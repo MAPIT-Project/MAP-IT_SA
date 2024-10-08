@@ -9,7 +9,7 @@ Author: Marco Dumont
 This document outlines the data science architecture for the MAP-IT Horizon project, aligning with the Cross-Industry Standard Process for Data Mining (CRISP-DM) methodology. 
 It aims to provide a clear and comprehensive view of the system's structure and components, guiding the project's development and implementation.
 
-[CRISP-DM](./CRISP_DM.png)
+![CRISP-DM](./CRISP_DM.png)
 
 
 2. CRISP-DM Phases and Corresponding Components
@@ -69,7 +69,7 @@ Objective: Deploy the model and integrate it into existing systems or processes.
     - Database: Dgraph
     - Data Analysis Libraries: pandas, scikit-learn, TensorFlow/PyTorch (if deep learning is used)
      - Visualization Libraries: matplotlib, seaborn, Plotly
-     - RAG-LLM: Mistral-7B
+     - RAG-LLM: Mistral-largest
      - Web Framework: (To be determined)
      - Cloud Environment: (To be determined)
 

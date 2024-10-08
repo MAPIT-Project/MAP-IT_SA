@@ -8,10 +8,11 @@ Date: October 2, 2024
 
 **Author: Marco Dumont**
 
-##1. Introduction
+1. Introduction
 This document describes the software architecture for the MAP-IT Horizon project. The purpose of this document is to establish a common understanding of the structure, components, and interactions of the software system.
 
-##2. Goals
+
+2. Goals
 The software architecture must meet the following goals:
 
 - Scalability: The system must be able to handle large amounts of data and grow with the needs of the project.
@@ -20,34 +21,40 @@ The software architecture must meet the following goals:
 - Security: The system must protect user data and privacy.
 - Integration: The system must be able to integrate with other systems and datasets.
 
+3. Architecture Overview
 
-##3. Architecture Overview
 4. Components
 The main components of the system are:
-- Graph containing knowledge.
-- RAGLLM
-- Promptbuilder
-- Dataloader (ETL stack)
+   - Graph (containing knowledge).
+   - RAGLLM
+   - Promptbuilder
+   - Dataloader (ETL stack) [data-analytics](./data-analytics.md)
+   - Verifier
 
-4.1 Data Ingestion
-The main datascource is the CORDIS database. 
+
+   1.  Data Ingestion
+The main datascource is the CORDIS database, additional databases OPENAIR, WikiData) will be used to enhance the projects in the CORDIS database. 
 ![Extraction process](Extraction_process.png)
+The [ontology](Question_Ontology.pdf) based on sample questions is the basis for the graph.
 
-4.2 Data Storage
-
-4.3 LLM
-
-4.4 User Interface
-
+The document [data-analytics](./data-analytics.md) shows the ingestion of the data. 
+   2. Data Storage
+   Data will be stored as a graph in [Dgraph](https://dgraph.io/)
+   3. LLM
+   [Mistral-largest (for now)](https://docs.mistral.ai/getting-started/models/models_overview/)
+   4. User Interface
+   
+	
 5. Technology Stack
 Programming Language: Python
-Database: Dgraph
+Database: Dgraph (open-source, free, native )
 Web framework: (To be determined)
 Other libraries: requests, pandas, dgraph, data analysis libraries
 6. Deployment
+Docker see [deployment](deployment.md) 
 
 
-
+Notes (in dutch)
 Graph: ~~Neo4j?~~ Dgraph (relations (edges) can be attributed with information )
 - [[embedding]](https://github.com/dgraph-io/pydgraph/blob/master/examples/notebook/RAG/RAG_with_Dgraph.ipynb)
 - [[Cordis OWL Graph to Python]](https://op.europa.eu/en/web/eu-vocabularies/dataset/-/resource?uri=http://publications.europa.eu/resource/dataset/eurio) using [[owlready2]](https://pypi.org/project/owlready2/) package.
