@@ -15,11 +15,12 @@ import pandas as pd
 from pydgraph import DgraphClientStub, DgraphClient, json, Mutation 
 import os
 import locale
-import json
 
 class CORDISProject:
-    def __init__(self, id, acronym, status, title, startDate, endDate, totalCost, ecMaxContribution, legalBasis, topics, ecSignatureDate, frameworkProgramme, masterCall, subCall, fundingScheme, nature, objective, contentUpdateDate,   
- rcn, grantDoi):
+    def __init__(self, id, acronym, status, title, startDate, endDate, totalCost, ecMaxContribution, 
+                 legalBasis, topics, ecSignatureDate, frameworkProgramme, masterCall, 
+                 subCall, fundingScheme, nature, objective, contentUpdateDate,   
+                 rcn, grantDoi):
         self.id = id
         self.acronym = acronym
         self.status = status
@@ -41,12 +42,9 @@ class CORDISProject:
         self.rcn = rcn
         self.grantDoi = grantDoi
 
-
+##Loads a the projects in a CORDIS project file format into a Dataframe
+#
 class ProjectLoader:
-    ##Loads a the projects in a CORDIS project file format into a Dataframe
-    #
-    
-    
     ##Constructor
     # @param filename of the CORDIS project file
     # @param delimiter of the CORDIS project file (default is ;)
@@ -67,7 +65,6 @@ class ProjectLoader:
         #
         df = None
         
-        
         try:
             df = pd.read_csv(self.filename, delimiter=self.delimiter, dtype=self.dtypes)
         except:
@@ -80,12 +77,11 @@ class ProjectLoader:
 
         
         # Convert date columns to datetime
-        
         date_columns = ['startDate', 'endDate', 'contentUpdateDate', 'ecSignatureDate']
         for col in date_columns:
             df[col] = pd.to_datetime(df[col], errors='coerce')
 
-        # Iterate through each row and create Project instances
+        # Iterate through each row and create Project instances and do cleanup
         for _, row in df.iterrows():
             # Create a dictionary for each row
             project_data = {col: row[col] for col in df.columns}
@@ -102,106 +98,107 @@ class ProjectLoader:
             project = CORDISProject(**project_data)
             
             self.add_or_update_projects(project, client)
+            
+            
+        logging.info("Projects have been added or updated in the database.") 
 
         return True, df
     
+    
     ##
     # Load the projectdata into the graph,
-    #
-    
+    # 
     def add_or_update_projects(self, project, client):
+        try:
         
-        query=f"""
-        {{
-        temp_uid as var(func: eq(id, {project.id} ))
-        }}
-        """
-                
-        # Project already exists, update the node
-        set_nquads=f"""
-        uid(temp_uid) <id> "{project.id}" .
-        uid(temp_uid) <acronym> "{project.acronym}" .
-        uid(temp_uid) <status> "{project.status}" .
-        uid(temp_uid) <title> "{project.title}" .
-        uid(temp_uid) <startDate> "{project.startDate.strftime('%Y-%m-%d') if project.startDate else ''}" .
-        uid(temp_uid) <endDate> "{project.endDate.strftime('%Y-%m-%d') if project.endDate else ''}" .
-        uid(temp_uid) <totalCost> "{project.totalCost}" .
-        uid(temp_uid) <ecMaxContribution> "{project.ecMaxContribution}" .
-        uid(temp_uid) <legalBasis> "{project.legalBasis}" .
-        uid(temp_uid) <topics> "{project.topics}" .
-        uid(temp_uid) <ecSignatureDate> "{project.ecSignatureDate.strftime('%Y-%m-%d') if project.ecSignatureDate else ''}" .
-        uid(temp_uid) <frameworkProgramme> "{project.frameworkProgramme}" .
-        uid(temp_uid) <masterCall> "{project.masterCall}" .
-        uid(temp_uid) <subCall> "{project.subCall}" .
-        uid(temp_uid) <fundingScheme> "{project.fundingScheme}" .
-        uid(temp_uid) <nature> "{project.nature}" .
-        uid(temp_uid) <objective> "{project.objective}" .
-        uid(temp_uid) <contentUpdateDate> "{project.contentUpdateDate.strftime('%Y-%m-%dT%H:%M:%S') if project.contentUpdateDate else ''}" .
-        uid(temp_uid) <rcn> "{project.rcn}" .
-        uid(temp_uid) <grantDoi> "{project.grantDoi}" .
-        """
-        
-        print (set_nquads)        
-        
-        cond = "@if(eq(len(temp_uid), 1))"
-        
-        #mutation = Mutation(set_nquads=set_nquads)
-#        txn = client.txn()
-#        txn.mutate(set_nquads=set_nquads)
-#        txn.commit()
-
-        #if there is no existing project than temp_uid is filled with the uid.
-        #than this update is iqnored
-        txn = client.txn()
-        mutation = txn.create_mutation(cond=cond, set_nquads=set_nquads)
-        request = txn.create_request(query=query, mutations=[mutation], commit_now=True)
-        txn.do_request(request)
-        
-
-        query = """
-        query q($id: string) {
-            existing_project(func: eq(id, $id)) {
-                uid
-            }
-        }
-        """
-
-        variables = {'$id': str(project.id)}
-        res = client.txn(read_only=True).query(query, variables=variables)
-        existing_project = json.loads(res.json).get('existing_project')
-    
-        if not existing_project:
-
-            # Project doesn't exist, create a new node
+            query=f"""
+            {{
+            temp_uid as var(func: eq(id, {project.id} ))
+            }}
+            """
+                    
+            # Project already exists, update the node
             set_nquads=f"""
-            _:newProject <id> "{project.id}" .
-            _:newProject <acronym> "{project.acronym}" .
-            _:newProject <status> "{project.status}" .
-            _:newProject <title> "{project.title}" .
-            _:newProject <startDate> "{project.startDate.strftime('%Y-%m-%d') if project.startDate else ''}" .
-            _:newProject <endDate> "{project.endDate.strftime('%Y-%m-%d') if project.endDate else ''}" .
-            _:newProject <totalCost> "{project.totalCost}" .
-            _:newProject <ecMaxContribution> "{project.ecMaxContribution}" .
-            _:newProject <legalBasis> "{project.legalBasis}" .
-            _:newProject <topics> "{project.topics}" .
-            _:newProject <ecSignatureDate> "{project.ecSignatureDate.strftime('%Y-%m-%d') if project.ecSignatureDate else ''}" .
-            _:newProject <frameworkProgramme> "{project.frameworkProgramme}" .
-            _:newProject <masterCall> "{project.masterCall}" .
-            _:newProject <subCall> "{project.subCall}" .
-            _:newProject <fundingScheme> "{project.fundingScheme}" .
-            _:newProject <nature> "{project.nature}" .
-            _:newProject <objective> "{project.objective}" .
-            _:newProject <contentUpdateDate> "{project.contentUpdateDate.strftime('%Y-%m-%dT%H:%M:%S') if project.contentUpdateDate else ''}" .
-            _:newProject <rcn> "{project.rcn}" .
-            _:newProject <grantDoi> "{project.grantDoi}" .
-            """.encode('utf-8')
-            print(set_nquads) 
-            mutation = Mutation(set_nquads = set_nquads)
+            uid(temp_uid) <id> "{project.id}" .
+            uid(temp_uid) <acronym> "{project.acronym}" .
+            uid(temp_uid) <status> "{project.status}" .
+            uid(temp_uid) <title> "{project.title}" .
+            uid(temp_uid) <startDate> "{project.startDate.strftime('%Y-%m-%d') if project.startDate else ''}" .
+            uid(temp_uid) <endDate> "{project.endDate.strftime('%Y-%m-%d') if project.endDate else ''}" .
+            uid(temp_uid) <totalCost> "{project.totalCost}" .
+            uid(temp_uid) <ecMaxContribution> "{project.ecMaxContribution}" .
+            uid(temp_uid) <legalBasis> "{project.legalBasis}" .
+            uid(temp_uid) <topics> "{project.topics}" .
+            uid(temp_uid) <ecSignatureDate> "{project.ecSignatureDate.strftime('%Y-%m-%d') if project.ecSignatureDate else ''}" .
+            uid(temp_uid) <frameworkProgramme> "{project.frameworkProgramme}" .
+            uid(temp_uid) <masterCall> "{project.masterCall}" .
+            uid(temp_uid) <subCall> "{project.subCall}" .
+            uid(temp_uid) <fundingScheme> "{project.fundingScheme}" .
+            uid(temp_uid) <nature> "{project.nature}" .
+            uid(temp_uid) <objective> "{project.objective}" .
+            uid(temp_uid) <contentUpdateDate> "{project.contentUpdateDate.strftime('%Y-%m-%dT%H:%M:%S') if project.contentUpdateDate else ''}" .
+            uid(temp_uid) <rcn> "{project.rcn}" .
+            uid(temp_uid) <grantDoi> "{project.grantDoi}" .
+            """
+            
+            #if there is an existing project than temp_uid is filled with the uid.
+            #than a update is executed otherwise it will be iqnored due to the condition
+            
+            cond = "@if(eq(len(temp_uid), 1))"
+            
             txn = client.txn()
-            txn.mutate(mutation)
-            txn.commit()
-
-        print("Projects have been added or updated in the database.")     
+            mutation = txn.create_mutation(cond=cond, set_nquads=set_nquads)
+            request = txn.create_request(query=query, mutations=[mutation], commit_now=True)
+            txn.do_request(request)
+            
+            
+            query = """
+            query q($id: string) {
+                existing_project(func: eq(id, $id)) {
+                    uid
+                }
+            }
+            """
+            
+            variables = {'$id': str(project.id)}
+            res = client.txn(read_only=True).query(query, variables=variables)
+            existing_project = json.loads(res.json).get('existing_project')
+            
+            if not existing_project:
+            
+                # Project doesn't exist, create a new node
+                set_nquads=f"""
+                _:newProject <id> "{project.id}" .
+                _:newProject <acronym> "{project.acronym}" .
+                _:newProject <status> "{project.status}" .
+                _:newProject <title> "{project.title}" .
+                _:newProject <startDate> "{project.startDate.strftime('%Y-%m-%d') if project.startDate else ''}" .
+                _:newProject <endDate> "{project.endDate.strftime('%Y-%m-%d') if project.endDate else ''}" .
+                _:newProject <totalCost> "{project.totalCost}" .
+                _:newProject <ecMaxContribution> "{project.ecMaxContribution}" .
+                _:newProject <legalBasis> "{project.legalBasis}" .
+                _:newProject <topics> "{project.topics}" .
+                _:newProject <ecSignatureDate> "{project.ecSignatureDate.strftime('%Y-%m-%d') if project.ecSignatureDate else ''}" .
+                _:newProject <frameworkProgramme> "{project.frameworkProgramme}" .
+                _:newProject <masterCall> "{project.masterCall}" .
+                _:newProject <subCall> "{project.subCall}" .
+                _:newProject <fundingScheme> "{project.fundingScheme}" .
+                _:newProject <nature> "{project.nature}" .
+                _:newProject <objective> "{project.objective}" .
+                _:newProject <contentUpdateDate> "{project.contentUpdateDate.strftime('%Y-%m-%dT%H:%M:%S') if project.contentUpdateDate else ''}" .
+                _:newProject <rcn> "{project.rcn}" .
+                _:newProject <grantDoi> "{project.grantDoi}" .
+                """.encode('utf-8')
+                #print(set_nquads) 
+                mutation = Mutation(set_nquads = set_nquads)
+                txn = client.txn()
+                txn.mutate(mutation)
+                txn.commit()
+        except:
+            client.txn().discard()
+            logging.exception(f"Exception while loading {project.id}")
+        
+            
        
     ## Method that creates the connection to the graph
     # 

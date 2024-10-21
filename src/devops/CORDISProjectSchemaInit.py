@@ -18,26 +18,53 @@ def drop_create_schema_and_index(client):
   
   
   schema = """
-  id: string @index(exact) .
-  acronym: string .
-  status: string .
-  title: string .
-  startDate: datetime .
-  endDate: datetime .
-  totalCost: string .
-  ecMaxContribution: string .
-  legalBasis: string .
-  topics: string .
-  ecSignatureDate: datetime .
-  frameworkProgramme: string .
-  masterCall: string .
-  subCall: string .
-  fundingScheme: string .
-  nature: string .
-  objective: string .
-  contentUpdateDate: datetime .
-  rcn: string .
-  grantDoi: string .
+  
+      id: string @unique @index(exact) .
+      acronym: string .
+      status: string .
+      title: string .
+      startDate: datetime .
+      endDate: datetime .
+      totalCost: string .
+      ecMaxContribution: string .
+      legalBasis: string .
+      topics: string .
+      ecSignatureDate: datetime .
+      frameworkProgramme: string .
+      masterCall: string .
+      subCall: string .
+      fundingScheme: string .
+      nature: string .
+      objective: string .
+      contentUpdateDate: datetime .
+      rcn: string .
+      grantDoi: string .
+      topic_projects: [uid] .
+      
+      
+      type Project {
+          id
+          acronym
+          status
+          title
+          startDate
+          endDate
+          totalCost
+          ecMaxContribution
+          legalBasis
+          topics
+          ecSignatureDate
+          frameworkProgramme
+          masterCall
+          subCall
+          fundingScheme
+          nature
+          objective
+          contentUpdateDate
+          rcn
+          grantDoi
+          topic_projects
+      }
   """
   op = Operation(schema=schema)
   client.alter(op)
