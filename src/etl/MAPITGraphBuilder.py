@@ -44,8 +44,9 @@ class Grapher:
 
     
     ##
-    #Add or update the relation between projects that have similar keywords
-    #this edge is defined as n_shared_topics/max(number_of_all_topics)
+    #Add or update the relation between projects that have a similar topic
+    #this edge is defined as equal, the name implies more topics but the 
+    #dataset shows one.
     def add_or_update_topic_relation(self, projects, client):
         for _, row in projects.iterrows():
             # Create a dictionary for each row
