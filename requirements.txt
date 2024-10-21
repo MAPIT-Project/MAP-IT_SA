@@ -1,9 +1,10 @@
 #requirements to load (with pip). Make sure that the environment is set correctly: python -m venv . (when in the root of the project; so not here)
 owlready2
 #NLP
-spacy
+#spacy
 #predicate processing
-crosslingual-coreference
-logics
+#crosslingual-coreference
+#logics
 #graph
 pydgraph
+pandas

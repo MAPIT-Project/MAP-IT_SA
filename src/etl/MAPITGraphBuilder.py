@@ -19,10 +19,13 @@ class Grapher:
     # @param directory where the CORDIS and OPENAIR exports are located.
     def buildGraph(self, directory):
         file = os.path.join(directory, "project.csv")
-        if os.path.exists(file):
+        if Path(file).is_file():
             loader = ProjectLoader(file)
-            if not loader.load_projects():
-                logging.Logger("Projects not loaded.")
+            client, client_stub = loader.connectToGraph()
+            if not loader.load_projects(client):
+                logging.info("Projects not loaded: no database or file is empty.")
+        else:
+            logging.info(f"Projects not loaded: file {file} not found")
             
 if __name__ == "__main__":
     #initiate logging as quickly as possible!
@@ -34,6 +37,8 @@ if __name__ == "__main__":
     dir = '.'
     if len(sys.argv) > 1:
         dir = sys.argv[1]
+        
+    logging.info(f"Using {dir} as directory for fileimport.")
         
     sys.exit(grapher.buildGraph(dir))
                 
