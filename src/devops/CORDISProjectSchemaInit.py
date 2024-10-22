@@ -13,7 +13,7 @@ def drop_create_schema_and_index(client):
   """
   op = Operation(drop_all=True)
   client.alter(op)
-  print("All data and schema dropped successfully!")
+  logging.info("All data and schema dropped successfully!")
   
   
   
@@ -39,7 +39,10 @@ def drop_create_schema_and_index(client):
       contentUpdateDate: datetime .
       rcn: string .
       grantDoi: string .
+      euroSciVoc: string .
+      keywords: [string] .
       topic_projects: [uid] .
+      
       
       
       type Project {
@@ -63,12 +66,15 @@ def drop_create_schema_and_index(client):
           contentUpdateDate
           rcn
           grantDoi
+          keywords
+          euroSciVoc
           topic_projects
+         
       }
   """
   op = Operation(schema=schema)
   client.alter(op)
-  print("Schema created successfully!")
+  logging.info("Schema created successfully!")
 
 if __name__ == "__main__":
   Path('./log/').mkdir(exist_ok=True)
@@ -78,6 +84,8 @@ if __name__ == "__main__":
   dgraph_url = "localhost:9080"
   if 'DGRAPH_URL' in os.environ:
       dgraph_url = os.environ['DGRAPH_URL']
+      
+  logging.info(f"Start dropping and adding schema using {dgraph_url}")
     
   # Create a Dgraph client stub
   client_stub = DgraphClientStub(dgraph_url) 

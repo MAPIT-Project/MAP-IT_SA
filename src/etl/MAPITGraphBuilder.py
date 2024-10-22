@@ -40,6 +40,14 @@ class Grapher:
     #this edge is defined as n_shared_keywords/max(number_of_all_keywords)
     def add_or_update_keyword_relation(self, projects, client):
         #TODO
+        #list thu projects
+        #download the project xml
+        #search other projects with similar keywords
+        #add relation and facet
+        
+        
+        
+        
         return
 
     
@@ -84,16 +92,10 @@ class Grapher:
                             uid(temp_uid) <topic_projects> <{horizon_topic['uid']}> .
                         """
                             
-                print (set_nquads)
                 txn = client.txn()
                 mutation = txn.create_mutation(set_nquads=set_nquads)
                 request = txn.create_request(query=projectq, mutations=[mutation], commit_now=True)
                 txn.do_request(request)
-            
-          
-                
-            
-    
 
 
 if __name__ == "__main__":

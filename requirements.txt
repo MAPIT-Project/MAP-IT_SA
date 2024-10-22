@@ -8,3 +8,4 @@ owlready2
 #graph
 pydgraph
 pandas
+xmltodict

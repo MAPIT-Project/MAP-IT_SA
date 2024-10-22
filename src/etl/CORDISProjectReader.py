@@ -15,6 +15,8 @@ import pandas as pd
 from pydgraph import DgraphClientStub, DgraphClient, json, Mutation 
 import os
 import locale
+import requests
+import xmltodict
 
 class CORDISProject:
     def __init__(self, id, acronym, status, title, startDate, endDate, totalCost, ecMaxContribution, 
@@ -98,12 +100,62 @@ class ProjectLoader:
             project = CORDISProject(**project_data)
             
             self.add_or_update_projects(project, client)
+            self.add_keywords_sciComps(project, client)
             
             
         logging.info("Projects have been added or updated in the database.") 
 
         return True, df
     
+    def add_keywords_sciComps(self, project, client):
+        url= f"https://cordis.europa.eu/project/id/{project.id}?format=xml"
+        response = requests.get(url)
+        if response.status_code == 201:
+            resp = response.content
+            cordis_project = xmltodict.parse(resp)['project']
+            
+            set_nquads =""
+            update_needed = False
+            projectq=f"""
+            {{
+            temp_uid as var(func: eq(id, {project.id} ))
+            }}
+            """
+            if 'keywords' in cordis_project:
+                keywords = cordis_project['keywords'].lower().split(',')
+                for keyword in keywords:
+                    keyword = keyword.strip()
+                    keyword = json.dumps(keyword).encode("ascii").decode('utf-8')[1:-1]
+                    set_nquads += f"""
+                        uid(temp_uid) <keywords> "{keyword}" .
+                    """
+                    update_needed = True
+            if 'relations' in cordis_project:
+                relations = cordis_project['relations']
+                categories = relations['categories']
+                
+                for category in categories:
+                    thies = categories[category]
+                    for the in thies:
+                        
+                        if the['@classification']=="euroSciVoc":
+                            euroSciVoc = the['displayCode']
+                            path = euroSciVoc['#text']
+                            path = json.dumps(path).encode("ascii").decode('utf-8')[1:-1]
+                            
+                            set_nquads += f"""
+                                uid(temp_uid) <euroSciVoc> "{path}" .
+                            """
+                            update_needed = True
+                       
+            print(set_nquads)
+            
+            if update_needed:
+                txn = client.txn()
+                mutation = txn.create_mutation(set_nquads=set_nquads)
+                request = txn.create_request(query=projectq, mutations=[mutation], commit_now=True)
+                txn.do_request(request)
+                         
     
     ##
     # Load the projectdata into the graph,
