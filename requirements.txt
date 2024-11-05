@@ -9,3 +9,6 @@ owlready2
 pydgraph
 pandas
 xmltodict
+pybars3
+sentence_transformers
+mistralai
