@@ -81,13 +81,13 @@ top_3_retrieved_chunks = [base_info[i] for i in top_3_indices]
 # the retrieved chunks
 retrieved_chunk = ""
 for i, chunk in enumerate(top_3_retrieved_chunks):
-    print(f"Top {i+1} retrieved chunk:\n{chunk}\n")
+    print(f"Top {i+1} retrieved chunk:{chunk}\n")
     retrieved_chunk += f"{chunk}"
 
 #read the database and query for projects with that topic
 def get_project_ids_by_title(title):
     """
-    Retourneert een lijst met project IDs die overeenkomen met de gegeven titel.
+    return a list of project IDs that match the title.
     """
     return [topic['projectID'] for topic in topic_ids_and_titles if topic['title'] == title]
 
@@ -98,6 +98,8 @@ topicID_idx = np.argmax(cosine_similarities_topic)
 
 topicID = topic_ids_and_titles[topicID_idx]['topic']
 print (topicID)
+
+#TODO query database
 
 prompt = f"""
 Context information is below.
