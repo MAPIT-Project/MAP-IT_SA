@@ -80,7 +80,9 @@ if __name__ == "__main__":
   Path('./log/').mkdir(exist_ok=True)
   logger = logging.getLogger(__name__)
   logging.basicConfig(filename='log/MAPIT.log', filemode="a", encoding='utf-8', level=logging.INFO)  
-    
+
+  os.environ['CURL_CA_BUNDLE'] = ''
+
   dgraph_url = "localhost:9080"
   if 'DGRAPH_URL' in os.environ:
       dgraph_url = os.environ['DGRAPH_URL']

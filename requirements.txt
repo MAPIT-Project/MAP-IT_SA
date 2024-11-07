@@ -12,3 +12,4 @@ xmltodict
 pybars3
 sentence_transformers
 mistralai
+pdfminer-six

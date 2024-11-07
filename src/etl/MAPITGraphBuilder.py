@@ -106,11 +106,11 @@ if __name__ == "__main__":
                         level=logging.INFO, format='%(asctime)s %(message)s')
     grapher = Grapher()
     #arg 1 is the directory otherwise the current dir
-    dir = '.'
+    directory = '.'
     if len(sys.argv) > 1:
-        dir = sys.argv[1]
+        directory = sys.argv[1]
         
     logging.info(f"Using {dir} as directory for fileimport.")
         
-    sys.exit(grapher.buildGraph(dir))
+    sys.exit(grapher.buildGraph(directory))
                 
