@@ -70,7 +70,7 @@ query_embedding = model.encode(query, convert_to_tensor=True)
 
 # Calculate cosine similarity between all pairs of embeddings
 cosine_similarities = util.cos_sim(embeddings, query_embedding)
-most_similar_idx = np.argmax(cosine_similarities)
+#most_similar_idx = np.argmax(cosine_similarities)
 #retrieved_chunk = base_info[most_similar_idx] 
 
 top_3_indices = np.argpartition(cosine_similarities.flatten(), -3)[-3:]
