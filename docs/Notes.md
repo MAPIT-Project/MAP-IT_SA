@@ -6,8 +6,10 @@ docker pull dgraph/standalone:latest
 docker run -it -p 5080:5080 -p 6080:6080 -p 8080:8080 \
   -p 9080:9080 -v ~/dgraph:/dgraph --name dgraph \
   dgraph/standalone:latest
-  
   Note: the second time just use the command: sudo docker start dgraph
+  checkout github project
+  
+  create a python venv environment
   
 4. create a python venv environment
   
@@ -18,7 +20,7 @@ docker run -it -p 5080:5080 -p 6080:6080 -p 8080:8080 \
   2. python ./src/etl/MAPITGraphBuilder.py \< dir where the project.csv is\>
   3. python ./src/etl/filter_topics.py \< dir where the list should go \(retrieve folder)\
   
-  Step 2 takes a while (40 minutes)
+  Step 2 takes a while (60 minutes)
   Step 1 also tests the docker & draph  installation
   Step 3 have fun
   
