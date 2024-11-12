@@ -7,10 +7,13 @@ docker run -it -p 5080:5080 -p 6080:6080 -p 8080:8080 \
   -p 9080:9080 -v ~/dgraph:/dgraph --name dgraph \
   dgraph/standalone:latest
   
-  create a python venv environment
+  Note: the second time just use the command: sudo docker start dgraph
   
-  pip install -r requirements.txt
+4. create a python venv environment
   
+5. pip install -r requirements.txt
+  
+6.  
   1. python ./src/devops/CORDISProjectSchemaInit.py 
   2. python ./src/etl/MAPITGraphBuilder.py \< dir where the project.csv is\>
   3. python ./src/etl/filter_topics.py \< dir where the list should go \(retrieve folder)\
@@ -19,4 +22,4 @@ docker run -it -p 5080:5080 -p 6080:6080 -p 8080:8080 \
   Step 1 also tests the docker & draph  installation
   Step 3 have fun
   
-  python src/retreive/retreiver.py runs the retreiver (for now this takes a few minutes)
+7. python src/retreive/retreiver.py runs the retreiver (for now this takes a few minutes)
