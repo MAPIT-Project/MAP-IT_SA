@@ -1,3 +1,7 @@
+
+##This file is obsolete and will be deleted soon!
+
+
 from mistralai import Mistral
 from sentence_transformers import util, SentenceTransformer
 import numpy as np
