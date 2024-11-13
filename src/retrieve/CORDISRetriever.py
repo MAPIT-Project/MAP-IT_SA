@@ -33,7 +33,8 @@ class CORDISRetreiver:
             try:
               text = extract_text(filepath)
               
-              #TODO we need the sentence parser from SpaCy for this:
+              #TODO we need to use paragraph chunks to (later) identify relevant paragraphs:
+              #https://medium.com/@npolovinkin/how-to-chunk-text-into-paragraphs-using-python-8ae66be38ea6
               lines = (line.strip() for line in text.splitlines())
               chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
               text = '\n'.join(chunk for chunk in chunks if chunk) 
@@ -125,14 +126,17 @@ class CORDISRetreiver:
         context = ""
         context_base  = self.get_base_information(prompt_embedding)
         context_topic = self.get_CORDIS_topic_info(prompt_embedding)
+        context_answers = self.get_relevant_history(prompt_embedding)
+        
         sim, context_best = self.get_best_project_info(prompt_embedding)
+        
         # TODO context += self.get_CORDIS_keywords(prompt_embedding)
         
-        if sim == 1:
+        if sim > .8:
             context = context_best
             
         else:
-            context = [context_base,context_topic].join()
+            context = [context_best, context_base, context_topic, context_answers].join('\n')
         
         
         new_prompt = f"""
@@ -151,9 +155,24 @@ class CORDISRetreiver:
         self.answers.insert(0, answer)
         return answer
     
+    def get_relevant_history(self, prompt_embedding):
+        if len(self.answers) > 3:
+            cosine_similarities = util.cos_sim(prompt_embedding, 
+                    self.encoder.encode(self.answers, convert_to_tensor=True))
+            
+            answer_top_3_indices = np.argpartition(cosine_similarities.flatten(), -3)[-3:]
+    
+            # Retrieve the 3 most similar chunks
+            top_3_retrieved_info = [self.answers[i] for i in answer_top_3_indices]
+            information = top_3_retrieved_info.join('\n')            
+            return information
+        else:
+            return ""
+            
+    
     def get_best_project_info(self, prompt_embedding):
         cosine_similarities_topic = util.cos_sim(prompt_embedding, 
-                self.encoder.encode("What is the best Horizon project?", convert_to_tensor=True))
+                self.encoder.encode("What is the best Horizon project", convert_to_tensor=True))
         
         print(cosine_similarities_topic.item())
         if cosine_similarities_topic.item() > 0.79:
@@ -178,6 +197,16 @@ if __name__ == "__main__":
     dgraph_url = "localhost:9080"
     if 'DGRAPH_URL' in os.environ:
         dgraph_url = os.environ['DGRAPH_URL']
+        
+    #TODO temporaly key by marco (wil expire soon). We need a MAPIT key
+    api_key = "iF2n1vbiburOLKJkZDJaGONFxzodiQPV"
+    if 'MAPIT_LLM_KEY' in os.environ:
+        api_key = os.environ['MAPIT_LLM_KEY']
+        
+    base_info_dir = "/home/marco/CORDIS/Small/"
+    if 'MAPIT_BASE_INFO_DIR' in os.environ:
+        base_info_dir = os.environ['MAPIT_BASE_INFO_DIR']
+        
          
     logging.info(f"Using {dgraph_url} as DGRAPH_URL environment variable, specify if needed!")
         
@@ -187,7 +216,7 @@ if __name__ == "__main__":
     # Create a Dgraph client
     client = DgraphClient(client_stub)
     
-    retreiver = CORDISRetreiver(client, "/home/marco/CORDIS/Small/", "iF2n1vbiburOLKJkZDJaGONFxzodiQPV")
-    print(retreiver.prompting("What is the best Horizon project?"))
+    retreiver = CORDISRetreiver(client, "/home/marco/CORDIS/Small/", api_key)
+    print(retreiver.prompting("What is the best Horizon project and why?"))
     
     
