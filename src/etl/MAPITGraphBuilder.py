@@ -110,7 +110,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         directory = sys.argv[1]
         
-    logging.info(f"Using {dir} as directory for fileimport.")
+    logging.info(f"Using {directory} as directory for fileimport.")
         
     sys.exit(grapher.buildGraph(directory))
                 

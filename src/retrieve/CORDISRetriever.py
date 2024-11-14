@@ -130,7 +130,7 @@ class CORDISRetreiver:
         
         sim, context_best = self.get_best_project_info(prompt_embedding)
         
-        # TODO context += self.get_CORDIS_keywords(prompt_embedding)
+        # TODO context += self.get_CORDIS_keywords(prompt_embedding) # make a keywords query
         
         if sim > .8:
             context = context_best
