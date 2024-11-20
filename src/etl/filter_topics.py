@@ -28,7 +28,8 @@ for index, row in df_topics.iterrows():
         seen_titles.add(title)
 
 # Schrijf de lijst met dictionaries naar een nieuw Python-bestand
-with open(to_file, 'w') as f: 
+
+with open(to_file, 'w', encoding='utf-8') as f: 
     f.write('topic_ids_and_titles = [\n')  
     for topic in topic_data:
         f.write(f'    {topic},\n')
