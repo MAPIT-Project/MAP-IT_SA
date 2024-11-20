@@ -24,4 +24,4 @@ docker run -it -p 5080:5080 -p 6080:6080 -p 8080:8080 \
   Step 1 also tests the docker & draph  installation
   Step 3 have fun
   
-7. python src/retreive/retreiver.py runs the retreiver (for now this takes a few minutes)
+7. python src/retrieve/CORDISRetriever.py runs the retreiver (for now this takes a few minutes)
