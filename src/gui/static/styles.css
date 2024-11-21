@@ -1,0 +1,42 @@
+.chat-box {
+    display: flex;
+    flex-direction: column; /* Stack messages vertically */
+    gap: 10px; /* Add space between messages */
+    overflow-y: auto; /* Allow the chat box to scroll if content overflows */
+    padding: 10px;
+    height: calc(85vh - 100px); /* Dynamic height calculation */
+}
+
+.chat-box .message {
+    display: inline-block;
+    align-self: flex-start; /* Align messages by default to the left */
+    width: auto; /* Allow bubble to resize dynamically */
+    max-width: 75%; /* Limit width to 75% of the container */
+    padding: 10px;
+    border-radius: 15px;
+    word-wrap: break-word; /* Ensure text wraps properly */
+    white-space: pre-wrap; /* Preserve formatting and wrap text */
+    background-color: #f1f1f1; /* Default background for Flask messages */
+    color: #333; /* Default text color for Flask messages */
+}
+
+.chat-box .user {
+    align-self: flex-end; /* Align user messages to the right */
+    background-color: #007bff; /* Blue background for user messages */
+    color: white; /* White text for user messages */
+}
+
+.chat-box .flask {
+    align-self: flex-start; /* Align Flask messages to the left */
+    background-color: #f1f1f1; /* Light gray background for Flask messages */
+    color: #333; /* Dark text color for Flask messages */
+}
+
+.chat-box .message pre {
+    margin: 0;
+    white-space: pre-wrap; /* Ensure preformatted text wraps */
+    word-wrap: break-word; /* Break long words properly */
+    overflow: visible; /* Prevent scrollbars */
+    font-family: inherit; /* Use parent font family */
+    font-size: inherit; /* Use parent font size */
+}

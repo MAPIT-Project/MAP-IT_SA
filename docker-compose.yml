@@ -1,0 +1,9 @@
+services:
+  flask_app:
+    build:
+      context: ./src/gui
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"  
+    environment:
+      DGRAPH_HOST: dgraph:9080 
