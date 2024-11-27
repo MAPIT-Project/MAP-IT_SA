@@ -19,9 +19,15 @@ docker run -it -p 5080:5080 -p 6080:6080 -p 8080:8080 \
   1. python ./src/devops/CORDISProjectSchemaInit.py 
   2. python ./src/etl/MAPITGraphBuilder.py \< dir where the project.csv is\>
   3. python ./src/etl/filter_topics.py \< dir where the list should go \(retrieve folder)\
+  4. enter the huggingface token:
+  
+  pip install huggingface_hub
+        huggingface-cli login 
+  5. python ./src/devops/MistralMeMoDownload.py
   
   Step 2 takes a while (60 minutes)
   Step 1 also tests the docker & draph  installation
   Step 3 have fun
+  Step 5 takes long (depends on your bandwith)
   
 7. python src/retrieve/CORDISRetriever.py runs the retreiver (for now this takes a few minutes)

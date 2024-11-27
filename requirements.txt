@@ -13,3 +13,4 @@ pybars3
 sentence_transformers
 mistralai
 pdfminer-six
+huggingface_hub
