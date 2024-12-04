@@ -131,12 +131,13 @@ class CORDISRetreiver:
         sim, context_best = self.get_best_project_info(prompt_embedding)
         
         # TODO context += self.get_CORDIS_keywords(prompt_embedding) # make a keywords query
-        
+        context_keywords = self.get_CORDIS_keywords(prompt_embedding)
+
         if sim > .8:
             context = context_best
             
         else:
-            context = [context_best, context_base, context_topic, context_answers].join('\n')
+            context = [context_best, context_base, context_topic, context_answers, context_keywords].join('\n')
         
         
         new_prompt = f"""
@@ -187,6 +188,47 @@ class CORDISRetreiver:
         """
         return [topic['title'] for topic in topic_ids_and_titles if topic['topic'] == topicID]    
  
+    def get_CORDIS_keywords(self, prompt_embedding):
+        """
+        Query the Dgraph database to find relevant information based on keywords.
+        """
+        # Convert the prompt embedding to a keyword query
+        keywords_query = """
+        {
+            var(func: has(keywords)) {
+                kw as keywords
+            }
+            q(func: eq(val(kw), "%s")) {
+                id
+                title
+                objective
+                keywords
+            }
+        }
+        """ % prompt_embedding
+
+        try:
+            # Execute the query on the Dgraph database
+            res = self.dgraph.txn(read_only=True).query(keywords_query)
+            keyword_results = json.loads(res.json).get('q', [])
+
+            # Format the results into a readable string
+            keyword_info = ""
+            for result in keyword_results:
+                keyword_info += f"""
+                Project ID: {result['id']}
+                Title: {result['title']}
+                Objective: {result['objective']}
+                Keywords: {result['keywords']}
+                ----
+                """
+
+            return keyword_info if keyword_info else "No relevant keywords found in the database."
+
+        except Exception as e:
+            logging.exception("Error querying keywords from Dgraph", e)
+            return "An error occurred while retrieving keyword information."
+
 if __name__ == "__main__":
     #initiate logging as quickly as possible!
     Path('./log/').mkdir(exist_ok=True)
