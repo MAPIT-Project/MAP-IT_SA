@@ -1,2 +1,6 @@
 flask
 pydgraph
+sentence-transformers
+pdfminer.six
+numpy
+mistralai

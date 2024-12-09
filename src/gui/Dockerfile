@@ -1,19 +1,22 @@
 FROM python:3.12.7-slim
 
-# Set the working directory inside the container
+# Set the working directory in the container
 WORKDIR /app
 
-# Copy requirements first to leverage Docker's caching
+# Copy the requirements file
 COPY requirements.txt /app/
 
-# Install dependencies
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the app (including static and templates folders)
+# Copy all application source files
 COPY . /app/
 
-# Expose port 5000 to access Flask app
+# Set the PYTHONPATH to include the src directory
+ENV PYTHONPATH="/app/src"
+
+# Expose the application port
 EXPOSE 5000
 
-# Start Flask app
+# Command to run the Flask app
 CMD ["python", "app.py"]
