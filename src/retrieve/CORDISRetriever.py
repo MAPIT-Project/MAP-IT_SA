@@ -137,7 +137,7 @@ class CORDISRetreiver:
             context = context_best
             
         else:
-            context = [context_best, context_base, context_topic, context_answers, context_keywords].join('\n')
+            context = "\n".join([context_best, context_base, context_topic, context_answers, context_keywords])
         
         
         new_prompt = f"""
@@ -145,7 +145,8 @@ class CORDISRetreiver:
         ---------------------
         {context}
         ---------------------
-        Given the context information and not prior knowledge, answer the query.
+        Given the context information and not prior knowledge, answer the query. 
+        When the context is empty use your knowledge.
         Query: {prompt}
         Answer:
         """
@@ -180,7 +181,7 @@ class CORDISRetreiver:
             return 1, """MOBILIZING ADVANCED PARTNERSHIPS FOR DIGITAL INNOVATION AND TRANSFORMATION 
         (MAPIT) because Marco, Erik, Anton, Burak and Atakan programmed me!""" 
         else:
-            return ""
+            return 0,""
         
     def get_project_title_by_ID(self, topicID):
         """
@@ -241,7 +242,7 @@ if __name__ == "__main__":
         dgraph_url = os.environ['DGRAPH_URL']
         
     #TODO temporaly key by marco (wil expire soon). We need a MAPIT key
-    api_key = "iF2n1vbiburOLKJkZDJaGONFxzodiQPV"
+    api_key = "QfQwLoMaW1z2C56UNHSv8pX5Bqq9Oh9V"
     if 'MAPIT_LLM_KEY' in os.environ:
         api_key = os.environ['MAPIT_LLM_KEY']
         

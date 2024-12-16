@@ -9,7 +9,7 @@ docker run -it -p 5080:5080 -p 6080:6080 -p 8080:8080 \
   Note: the second time just use the command: sudo docker start dgraph
   checkout github project
   
-  create a python venv environment
+  3.1. checkout project from Github.
   
 4. create a python venv environment
   
