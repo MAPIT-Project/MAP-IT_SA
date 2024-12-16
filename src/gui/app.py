@@ -66,5 +66,9 @@ def query():
 
 
 if __name__ == '__main__':
-    logging.info(f"Using :{HOST}:{PORT}")
-    app.run(host=HOST, port=PORT)
+    try:
+        logging.info(f"Using {HOST}:{PORT}")
+        app.run(host=HOST, port=PORT)
+    except Exception as e:
+        logging.exception("error starting", e)    
+    
