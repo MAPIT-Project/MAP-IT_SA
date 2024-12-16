@@ -134,13 +134,13 @@ class CORDISRetreiver:
         sim, context_best = self.get_best_project_info(prompt_embedding)
         
         # TODO context += self.get_CORDIS_keywords(prompt_embedding) # make a keywords query
-        context_keywords = self.get_CORDIS_keywords(prompt_embedding)
+        #context_keywords = self.get_CORDIS_keywords(prompt_embedding)
 
         if sim > .8:
             context = context_best
             
         else:
-            context = "\n".join([context_best, context_base, context_topic, context_answers, context_keywords])
+            context = "\n".join([context_best, context_base, context_topic, context_answers])
         
         
         new_prompt = f"""
