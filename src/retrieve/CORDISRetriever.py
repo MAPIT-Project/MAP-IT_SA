@@ -57,6 +57,7 @@ class CORDISRetreiver:
     
     def get_base_information(self, prompt_embedding):
         cosine_similarities = util.cos_sim(prompt_embedding, self.base_embeddings)
+        cosine_similarities = cosine_similarities.cpu()
         base_top_3_indices = np.argpartition(cosine_similarities.flatten(), -3)[-3:]
 
         # Retrieve the 3 most similar chunks
