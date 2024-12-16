@@ -71,6 +71,8 @@ class CORDISRetreiver:
     def get_CORDIS_topic_info(self, prompt_embedding):
         
         cosine_similarities_topic = util.cos_sim(prompt_embedding, self.topic_embeddings )
+        cosine_similarities_topic = cosine_similarities_topic.cpu()
+
         topicID_idx = np.argmax(cosine_similarities_topic)
         
         topicID = topic_ids_and_titles[topicID_idx]['topic']
