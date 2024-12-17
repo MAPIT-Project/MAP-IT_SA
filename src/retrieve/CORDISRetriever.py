@@ -246,7 +246,7 @@ if __name__ == "__main__":
         
     #TODO temporaly key by marco (wil expire soon). We need a MAPIT key
     api_key = os.environ.get('MAPIT_LLM_KEY', "QfQwLoMaW1z2C56UNHSv8pX5Bqq9Oh9V")        
-    base_info_dir = os.environ.get('MAPIT_BASE_INFO_DIR', "/home/marco/CORDIS/Small/")
+    base_info_dir = os.environ.get('MAPIT_BASE_INFO_DIR', "/home/mdumont/CORDIS/pdfs")
         
          
     logging.info(f"Using {dgraph_url} as DGRAPH_URL environment variable, specify if needed!")
@@ -257,7 +257,7 @@ if __name__ == "__main__":
     # Create a Dgraph client
     client = DgraphClient(client_stub)
     
-    retreiver = CORDISRetreiver(client, "/home/marco/CORDIS/Small/", api_key)
+    retreiver = CORDISRetreiver(client, base_info_dir, api_key)
     print(retreiver.prompting("What is the best Horizon project and why?"))
     
     
