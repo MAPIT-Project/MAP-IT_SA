@@ -118,7 +118,7 @@ class CORDISRetreiver:
         chat_response = self.get_LLM_client().chat.complete(
             model="mistral-large-latest", messages=messages
         )
-        answer = (chat_response.choices[0].message.content['response'])
+        answer = json.loads(chat_response.choices[0].message.content).get('response')
         return answer
         
 
