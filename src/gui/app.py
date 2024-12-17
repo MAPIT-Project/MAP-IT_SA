@@ -12,7 +12,7 @@ from pathlib import Path
 
 # Environment variables and constants
 DGRAPH_URL = os.environ.get('DGRAPH_URL', 'localhost:9080')
-BASE_INFO_DIR = os.environ.get('MAPIT_BASE_INFO_DIR', '/home/mdumont/CORDIS/pdfs')
+BASE_INFO_DIR = os.environ.get('MAPIT_BASE_INFO_DIR', '/home/mdumont/CORDIS/Small')
 API_KEY = os.environ.get('MAPIT_LLM_KEY', 'iF2n1vbiburOLKJkZDJaGONFxzodiQPV')
  
 PORT = os.environ.get('MAPIT_PORT', '16000')
