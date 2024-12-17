@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 addMessage('MAP_IT', data.error);
             } else {
                 answer = JSON.parse(data).reponse
-                addMessage('MAP_IT', JSON.stringify(data, null, 2));
+                addMessage('MAP_IT', answer);
             }
         })
         .catch(err => {
