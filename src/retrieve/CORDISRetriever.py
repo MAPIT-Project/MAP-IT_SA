@@ -15,6 +15,7 @@ from topic_ids_and_titles import topic_ids_and_titles
 from pydgraph import json
 from pydgraph import DgraphClientStub, DgraphClient
 from pathlib import Path
+import ast
 
 class CORDISRetreiver:
     def __init__(self, dgraph_client, base_info_dir, api_key):
@@ -118,7 +119,7 @@ class CORDISRetreiver:
         chat_response = self.get_LLM_client().chat.complete(
             model="mistral-large-latest", messages=messages
         )
-        answer = chat_response.choices[0].message.content
+        answer = ast.literal_eval(chat_response.choices[0].message.content)['response']
         return answer
         
 
