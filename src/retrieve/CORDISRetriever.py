@@ -118,7 +118,7 @@ class CORDISRetreiver:
         chat_response = self.get_LLM_client().chat.complete(
             model="mistral-large-latest", messages=messages
         )
-        answer = (chat_response.choices[0].message.content)
+        answer = (chat_response.choices[0].message.content['response'])
         return answer
         
 
@@ -245,13 +245,8 @@ if __name__ == "__main__":
         dgraph_url = os.environ['DGRAPH_URL']
         
     #TODO temporaly key by marco (wil expire soon). We need a MAPIT key
-    api_key = "QfQwLoMaW1z2C56UNHSv8pX5Bqq9Oh9V"
-    if 'MAPIT_LLM_KEY' in os.environ:
-        api_key = os.environ['MAPIT_LLM_KEY']
-        
-    base_info_dir = "/home/marco/CORDIS/Small/"
-    if 'MAPIT_BASE_INFO_DIR' in os.environ:
-        base_info_dir = os.environ['MAPIT_BASE_INFO_DIR']
+    api_key = os.environ.get('MAPIT_LLM_KEY', "QfQwLoMaW1z2C56UNHSv8pX5Bqq9Oh9V")        
+    base_info_dir = os.environ.get('MAPIT_BASE_INFO_DIR', "/home/marco/CORDIS/Small/")
         
          
     logging.info(f"Using {dgraph_url} as DGRAPH_URL environment variable, specify if needed!")
