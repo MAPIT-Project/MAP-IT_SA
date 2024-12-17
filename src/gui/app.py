@@ -12,10 +12,10 @@ from pathlib import Path
 
 # Environment variables and constants
 DGRAPH_URL = os.environ.get('DGRAPH_URL', 'localhost:9080')
-BASE_INFO_DIR = os.environ.get('MAPIT_BASE_INFO_DIR', '/home/marco/CORDIS/Small/')
+BASE_INFO_DIR = os.environ.get('MAPIT_BASE_INFO_DIR', '/home/mdumont/CORDIS/pdfs')
 API_KEY = os.environ.get('MAPIT_LLM_KEY', 'iF2n1vbiburOLKJkZDJaGONFxzodiQPV')
  
-PORT = os.environ.get('MAPIT_PORT', '8081')
+PORT = os.environ.get('MAPIT_PORT', '16000')
 HOST = os.environ.get('MAPIT_HOST', '0.0.0.0')
 
 # Initialize Flask app
@@ -24,10 +24,6 @@ class MyAPP(Flask):
     def __init__(self):
         super().__init__(__name__)
         self.retriever = None
-        Path('./log/').mkdir(exist_ok=True)
-        logger = logging.getLogger(__name__)
-        logging.basicConfig(filename='log/MAPIT.log', filemode="a", encoding='utf-8', 
-                            level=logging.INFO, format='%(asctime)s %(message)s')
         try:
             client_stub = DgraphClientStub(DGRAPH_URL)
             client = DgraphClient(client_stub)
@@ -66,6 +62,9 @@ def query():
 
 
 if __name__ == '__main__':
+    Path('./log/').mkdir(exist_ok=True)
+    logging.basicConfig(filename='log/MAPIT.log', filemode="a", encoding='utf-8', 
+                        level=logging.INFO, format='%(asctime)s %(message)s')
     try:
         logging.info(f"Using {HOST}:{PORT}")
         app.run(host=HOST, port=PORT)
