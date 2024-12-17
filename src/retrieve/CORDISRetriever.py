@@ -119,8 +119,7 @@ class CORDISRetreiver:
         chat_response = self.get_LLM_client().chat.complete(
             model="mistral-large-latest", messages=messages
         )
-        answer = ast.literal_eval(chat_response.choices[0].message.content)['response']
-        return answer
+        return str(chat_response.choices[0].message.content)
         
 
     def prompting(self, prompt):
