@@ -56,7 +56,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.error) {
                 addMessage('MAP_IT', data.error);
             } else {
-                addMessage('MAP_IT', JSON.stringify(data, null, 2)['response']);
+                answer = JSON.parse(data).reponse
+                addMessage('MAP_IT', JSON.stringify(data, null, 2));
             }
         })
         .catch(err => {
