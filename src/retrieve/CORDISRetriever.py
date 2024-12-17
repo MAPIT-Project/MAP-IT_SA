@@ -164,6 +164,7 @@ class CORDISRetreiver:
         if len(self.answers) > 3:
             cosine_similarities = util.cos_sim(prompt_embedding, 
                     self.encoder.encode(self.answers, convert_to_tensor=True))
+            cosine_similarities = cosine_similarities.cpu()
             
             answer_top_3_indices = np.argpartition(cosine_similarities.flatten(), -3)[-3:]
     
@@ -178,6 +179,7 @@ class CORDISRetreiver:
     def get_best_project_info(self, prompt_embedding):
         cosine_similarities_topic = util.cos_sim(prompt_embedding, 
                 self.encoder.encode("What is the best Horizon project", convert_to_tensor=True))
+        cosine_similarities_topic = cosine_similarities_topic.cpu()
         
         print(cosine_similarities_topic.item())
         if cosine_similarities_topic.item() > 0.79:
