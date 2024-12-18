@@ -170,7 +170,7 @@ class CORDISRetreiver:
     
             # Retrieve the 3 most similar chunks
             top_3_retrieved_info = [self.answers[i] for i in answer_top_3_indices]
-            information = top_3_retrieved_info.join('\n')            
+            information = "\n".join(top_3_retrieved_info)            
             return information
         else:
             return ""
