@@ -198,21 +198,42 @@ class CORDISRetreiver:
         """
         Query the Dgraph database to find relevant information based on keywords.
         """
+        
         # Convert the prompt embedding to a keyword query
-        keywords_query = """
-        {
-            var(func: has(keywords)) {
-                kw as keywords
-            }
-            q(func: eq(val(kw), "%s")) {
-                id
-                title
-                objective
-                keywords
-            }
-        }
-        """ % prompt_embedding
+        
+        tags_query = """{
+                          var(func: type(Project)) {
+                            tags
+                          }
+                          result(func: uid(tags)) @groupby(tags) {
+                            tags: val(tags)
+                          }
+                        }"""
+        
+        res = self.dgraph.txn(read_only=True).query(tags_query)
+        keyword_results = json.loads(res.json).get('result', [])    
+        
+        #get most equivalent keyword
+        
+        cosine_similarities = util.cos_sim(prompt_embedding, keyword_results)
+        cosine_similarities = cosine_similarities.cpu()
+        top_3_keywords = np.argpartition(cosine_similarities.flatten(), -3)[-3:].join(" ")
 
+        #find specific projects with keywords        
+        keywords_query = f"""
+                                {{
+                                    var(func: has(keywords)) {{
+                                        kw as keywords
+                                    }}
+                                    q(func: anyoftext(val(kw), "{top_3_keywords}")) {{
+                                        id
+                                        title
+                                        objective
+                                        keywords
+                                    }}
+                                }}
+        """
+        
         try:
             # Execute the query on the Dgraph database
             res = self.dgraph.txn(read_only=True).query(keywords_query)
