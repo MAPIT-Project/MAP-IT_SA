@@ -14,6 +14,7 @@ This project implements a specialized RAG system focused on European research pr
 - Structured data extraction from XML project documentation
 - Answer generation based on retrieved project information
 - FastAPI interface for easy integration
+- Demo endpoint for UI testing without making actual CORDIS queries
 
 ## System Architecture
 
@@ -68,6 +69,7 @@ Interactive API documentation is available at `http://localhost:8000/docs`.
 - `GET /`: Health check endpoint
 - `GET /api/health`: Detailed health check endpoint
 - `POST /api/query`: Main endpoint for querying European research projects
+- `POST /api/demo`: Demo endpoint that returns simulated responses (for UI testing)
 
 ### Query Example
 
@@ -87,6 +89,27 @@ Response:
 }
 ```
 
+### Demo Endpoint
+
+The `/api/demo` endpoint is specifically designed for UI testing and development purposes. It returns simulated responses without making actual CORDIS queries or using your OpenAI API quota.
+
+Request:
+```json
+{
+  "question": "What are recent AI projects in healthcare?"
+}
+```
+
+Response:
+```json
+{
+  "answer": "Based on the European research projects data, there are several notable AI initiatives in healthcare...",
+  "demo": true,
+  "processing_time": "3.45 seconds",
+  "query": "What are recent AI projects in healthcare?"
+}
+```
+
 ## Usage Examples
 
 ### Python Client
@@ -100,6 +123,42 @@ payload = {
 }
 response = requests.post(url, json=payload)
 print(response.json()["answer"])
+```
+
+### JavaScript Fetch (for UI integration)
+
+```javascript
+// Using the real query endpoint
+fetch('http://localhost:8000/api/query', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    question: "What are recent AI projects in healthcare?",
+  }),
+})
+.then(response => response.json())
+.then(data => {
+  console.log(data.answer);
+  // Update UI with the response
+});
+
+// Using the demo endpoint for testing
+fetch('http://localhost:8000/api/demo', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    question: "What are recent AI projects in healthcare?",
+  }),
+})
+.then(response => response.json())
+.then(data => {
+  console.log(data.answer);
+  // Update UI with the response
+});
 ```
 
 ### cURL
@@ -126,6 +185,8 @@ curl -X 'POST' \
 - Add caching to improve performance for repeated queries
 - Implement more advanced filtering options
 - Add support for returning structured project data
+- Create a web interface for easier access
+- Add authentication for API access control
 
 ## License
 
