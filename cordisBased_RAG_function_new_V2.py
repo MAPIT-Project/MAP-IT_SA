@@ -1,9 +1,12 @@
 import os
-import openai
 import requests
 import xml.etree.ElementTree as ET
-from typing import List, Dict, Any
 from dotenv import load_dotenv
+import openai # Ensure openai is imported
+from typing import List, Dict, Any, Optional
+
+from google import genai as google_genai_sdk
+from google.genai import types # Added import
 
 # Load environment variables
 load_dotenv()
@@ -13,19 +16,58 @@ class CordisRAG:
     Retrieval-Augmented Generation system for European research projects using CORDIS database.
     """
     
-    def __init__(self):
-        """Initialize the CordisRAG system."""
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise ValueError("OpenAI API key not found. Please set the OPENAI_API_KEY environment variable.")
-        self.client = openai.OpenAI(api_key=api_key)
+    def __init__(self, openai_api_key: Optional[str] = None, gemini_api_key: Optional[str] = None, 
+                 ai_provider: str = "openai", 
+                 openai_model_name: str = "gpt-4-turbo",
+                 gemini_model_name: str = "gemini-2.5-flash-preview-05-20"):
+        """
+        Initialize the RAG system.
         
-    def get_ai_response(self, user_text: str) -> str:
+        Args:
+            openai_api_key: OpenAI API key. If None, attempts to load from .env.
+            gemini_api_key: Gemini API key. If None, attempts to load from .env.
+            ai_provider: The AI provider to use ("openai" or "gemini"). Defaults to "openai".
+            openai_model_name: The OpenAI model to use. Defaults to "gpt-4-turbo".
+            gemini_model_name: The Gemini model to use. Defaults to "gemini-2.5-flash-preview-05-20".
+        """
+        load_dotenv()
+        self.ai_provider = ai_provider.lower()
+        self.openai_model_name = openai_model_name
+        self.gemini_model_name = gemini_model_name  # Add this attribute for consistent use
+        self.gemini_model_name_configured = gemini_model_name  # Keep for backward compatibility
+        self.gemini_client = None # Initialize gemini_client
+        # self.gemini_model = None # Remove gemini_model initialization
+
+        if self.ai_provider == "openai":
+            used_openai_api_key = openai_api_key if openai_api_key else os.getenv("OPENAI_API_KEY")
+            if not used_openai_api_key:
+                raise ValueError("OpenAI API key not provided and not found in .env file.")
+            self.openai_client = openai.OpenAI(api_key=used_openai_api_key)
+            print("CordisRAG initialized with OpenAI.")
+        elif self.ai_provider == "gemini":
+            used_gemini_api_key = gemini_api_key if gemini_api_key else os.getenv("GEMINI_API_KEY")
+            if not used_gemini_api_key:
+                raise ValueError("Gemini API key not provided and not found in .env file.")
+            try:
+                # Initialize client as per the demo
+                self.gemini_client = google_genai_sdk.Client(api_key=used_gemini_api_key)
+                print(f"CordisRAG initialized with Gemini (model: {self.gemini_model_name}). Client created.")
+            except AttributeError as ae:
+                # This specific AttributeError for 'configure' should no longer occur with Client() usage
+                print(f"AttributeError during Gemini client initialization: {ae}. This might indicate an issue with the google-generativeai library version or installation, or an incorrect API usage pattern.")
+                raise
+            except Exception as e:
+                print(f"Error configuring Gemini API or creating model: {e}")
+                raise
+        else:
+            raise ValueError("Invalid AI provider specified. Choose 'openai' or 'gemini'.")
+
+    def get_ai_response(self, question: str, max_projects_to_process: int = 5, max_cordis_results: int = 10) -> str:
         """
         Process a user query through the RAG pipeline.
         
         Args:
-            user_text: The user's question about European research projects
+            question: The user's question about European research projects
             
         Returns:
             str: The AI-generated response based on retrieved CORDIS data
@@ -35,31 +77,30 @@ class CordisRAG:
             role = self._get_system_role()
             
             # Generate queries from user question
-            queries, required_info = self._extract_queries(role, user_text)
+            queries, required_info = self._extract_queries(role, question)
             
             # Search CORDIS database
-            search_links = self._search_cordis(queries)
+            search_links = self._search_cordis(queries, max_results=max_cordis_results)
             
             # Retrieve and process project data
-            project_data = self._retrieve_project_data(search_links)
+            project_data = self._retrieve_project_data(search_links, max_projects=max_projects_to_process)
             
             # Generate final response
-            return self._generate_answer(role, user_text, project_data)
+            return self._generate_answer(role, question, project_data)
             
         except Exception as e:
             return f"An error occurred while processing your request: {str(e)}"
     
     def _get_system_role(self) -> str:
         """Define the system role for the AI."""
-        return """You play the role of a knowledge steward providing the research and innovation landscape of European research projects. You are helping a research university or institute or SME to retrieve information from the corpus of previously funded projects.
-        Your scenario of operation is as such: 
-        You will receive a question. In two or three stages, you extract queries from the question. At the first stage, you should extract queries to retrieve information about projects required to answer the questions. The first stage queries will be input to a xml retriever. Those queries may be names, topics, keywords, used methods and technologies of the projects as well as information related to participating organizations such as name, country, type, personnel of the institution. Occasionally, it may be start and end dates of projects, a budget interval or the name or code of a project call. 
-        The xml retriever will retrieve xml files that include information about the project. At the second stage, according to information in the xml files and the information need in the question, you will extract information from the retrieved xml files.
-        In rare cases, a third stage in which additional queries are sent to the xml retriever may be required."""
-    
+        return """You are an AI assistant specialized in processing information from the CORDIS database about European research projects. 
+Your goal is to answer user questions based on the project data provided to you.
+When generating queries, be concise and use boolean logic as specified.
+When generating answers, synthesize the information from multiple projects if necessary and clearly state if the provided data is insufficient."""
+
     def _extract_queries(self, role: str, question: str) -> tuple:
         """
-        Extract search queries from the user question using GPT-4.
+        Extract search queries from the user question using the configured AI provider.
         
         Args:
             role: The system role
@@ -79,18 +120,50 @@ class CordisRAG:
                 For example, for the question "What are the machine learning related projects?" the queries list should be queries = [machine learning OR deep learning OR artificial intelligence]. Please keep this format. Note that queries should only include texts in natural language and the logical connectives. If no queries can be generated from given information, take the question itself as the query and add it to the queries list.
                 Also, as you know, some xml files each holding information about one project will be returned after queries run. For the second stage (or for answer generation without second stage), which type of information will be required? Fill the required_information list with the required types of information. Available types of information are project_objective, keywords, call_scope, budget, participant_names, participant_properties, participant_countries, publications. For example, if countries of participants are required for the second stage or for direct answer generation, the required information list ahould be required_information = [participant_countries].
                 The last remark for you: If the question ask for filtering projects according to a metric such as best projects, worst projects, most successful projects etc., we need some restrictions about the projects we will consider, such as topics, participants, keywords etc. of the project. Otherwise we cannot reply the question. However, if the set of projects we should consider is sufficiently restricted, then we can devise a metric to answer such questions, therefore, no problem. For example, we cannot answer the question of most successful project, however, we may answer the questions of most successful machine learning project or the most successful project conducted in Central Europe in the last decade. 
-                """
+                """ 
         
-        response = self.client.chat.completions.create(
-            model="gpt-4-turbo",
-            messages=[
-                {"role": "system", "content": role},
-                {"role": "user", "content": quest}
-            ],
-            temperature=0.9
-        )
+        ans = ""
+        if self.ai_provider == "openai":
+            # print(f"Prompt for query extraction (OpenAI): Role: {role}, Question: {quest}") # For debugging
+            completion = self.openai_client.chat.completions.create(
+                model=self.openai_model_name, # Use configured OpenAI model
+                messages=[
+                    {"role": "system", "content": role},
+                    {"role": "user", "content": quest}
+                ],
+                temperature=0.3 # Lower temperature for more deterministic query generation
+            )
+            ans = completion.choices[0].message.content
+            # print(f"Raw response from OpenAI for query extraction: {ans}") # For debugging
+        elif self.ai_provider == "gemini":
+            if not self.gemini_client:
+                raise RuntimeError("Gemini client not initialized.")
+            
+            gemini_contents = [
+                types.Content(role="user", parts=[types.Part.from_text(text=role)]),
+                types.Content(role="model", parts=[types.Part.from_text(text="Okay, I understand my role. I will generate queries based on the user\\\'s question.")]),
+                types.Content(role="user", parts=[types.Part.from_text(text=quest)])
+            ]
+
+            # Using a simpler config for query extraction, adjust if needed
+            generation_config_params = types.GenerateContentConfig(
+                temperature=0.2, # Query generation should be more deterministic
+                response_mime_type="text/plain" # Expecting XML-like text
+            )
+            
+            try:
+                # Change parameter name from generation_config to config
+                response = self.gemini_client.models.generate_content(
+                    model=self.gemini_model_name,
+                    contents=gemini_contents,
+                    config=generation_config_params
+                )
+                ans = response.text
+            except Exception as e:
+                print(f"Error during Gemini query extraction: {e}")
+                # Fallback or re-raise, depending on desired error handling
+                raise RuntimeError(f"Gemini API error during query extraction: {e}") from e
         
-        ans = response.choices[0].message.content
         ans_lines = ans.splitlines()
         
         # Extract queries
@@ -116,7 +189,7 @@ class CordisRAG:
             problem_message = [line for line in ans_lines if line.startswith("<problem>")]
             if problem_message:
                 raise ValueError(problem_message[0].replace("<problem>", "").replace("</problem>", ""))
-        
+
         return queries, required_information
     
     def _search_cordis(self, queries: List[str], max_results: int = 10) -> List[Dict[str, Any]]: # Modified return type
@@ -171,12 +244,14 @@ class CordisRAG:
         q_value = " AND ".join(api_q_parts)
         
         # API parameters
+        updated_fields = "uri,rcn,title,id,code,startDate,endDate,teaser,contentUpdateDate,name,relatedImage,availableLanguages,language,issueNumber,issueDate,issueLastDate,issue,archivedDate,acronym,legalName,euCode,city,country,iprPrefix,iprNumber,iprDate,iprAwarded,description,doi,journalTitle,journalNumber,publishedYear,publishedPages,authors,periodFrom,periodTo,webItem,webItem/_ATTR_*,physUrl,webLink,webLink/_ATTR_*,physUrl,frameworkProgramme,totalCost,projectTotalCost,keywords,subjects,programme,participants"
+
         params = {
             "q": q_value,
             "p": 1,  # Page number, defaulting to 1
             "num": max_results,
             "srt": "Relevance:decreasing", # Sort order
-            "fields": "uri,rcn,title,id,code,startDate,endDate,teaser,contentUpdateDate,name,relatedImage,availableLanguages,language,issueNumber,issueDate,issueLastDate,issue,archivedDate,acronym,legalName,euCode,city,country,iprPrefix,iprNumber,iprDate,iprAwarded,description,doi,journalTitle,journalNumber,publishedYear,publishedPages,authors,periodFrom,periodTo,webItem,webItem/_ATTR_*,physUrl,webLink,webLink/_ATTR_*,physUrl,frameworkProgramme", # As provided by user
+            "fields": updated_fields, # Use the updated fields string
             "archived": "true"
         }
         
@@ -457,7 +532,7 @@ class CordisRAG:
     
     def _generate_answer(self, role: str, user_text: str, project_data: List[Dict[str, Any]]) -> str:
         """
-        Generate a final answer using GPT-4 based on retrieved data.
+        Generate a final answer using the configured AI provider based on retrieved data.
         
         Args:
             role: The system role
@@ -509,7 +584,7 @@ class CordisRAG:
         project_data_str = "\\n".join(project_data_str_parts)
 
         # Construct the prompt for the AI
-        prompt_content = f"""Based on the following information retrieved from the CORDIS database about European research projects, please answer the user's question.
+        prompt_content = f"""Based on the following information retrieved from the CORDIS database about European research projects, please answer the user\'s question.
 
 User Question: {user_text}
 
@@ -519,37 +594,82 @@ Retrieved Project Data:
 Please synthesize this information to provide a comprehensive answer. If the retrieved data is insufficient, acknowledge that.
 """
         
-        # print(f"Prompt for AI: {prompt_content}") # For debugging the prompt
-
-        answer = self.client.chat.completions.create(
-            model="gpt-4-turbo",
-            messages=[
-                {"role": "system", "content": role},
-                {"role": "user", "content": prompt_content}
-            ],
-            temperature=0.7
-        ).choices[0].message.content
-        return answer
+        answer = ""
+        if self.ai_provider == "openai":
+            # print(f"Prompt for AI (OpenAI): {prompt_content}") # For debugging
+            completion = self.openai_client.chat.completions.create(
+                model=self.openai_model_name, # Use configured OpenAI model
+                messages=[
+                    {"role": "system", "content": role},
+                    {"role": "user", "content": prompt_content}
+                ],
+                temperature=0.7
+            )
+            answer = completion.choices[0].message.content
+        elif self.ai_provider == "gemini":
+            if not self.gemini_client:
+                raise RuntimeError("Gemini client not initialized.")
+            answer = ""
+            try:
+                gemini_contents = [
+                    types.Content(role="user", parts=[types.Part.from_text(text=role)]),
+                    types.Content(role="model", parts=[types.Part.from_text(text="Okay, I understand my role. I will answer the user\\\'s question based on the provided CORDIS project data.")]),
+                    types.Content(role="user", parts=[types.Part.from_text(text=prompt_content)])
+                ]
+                
+                # Use types.GenerateContentConfig
+                gen_config = types.GenerateContentConfig(
+                    temperature=0.7
+                    # You can add other parameters here if needed, e.g., response_mime_type="text/plain"
+                    # based on the Gemini API documentation or your specific requirements.
+                )
+                
+                # Change parameter name from generation_config to config
+                response = self.gemini_client.models.generate_content(
+                    model=self.gemini_model_name,
+                    contents=gemini_contents,
+                    config=gen_config 
+                )
+                answer = response.text # Get text from the non-streaming response
+            except Exception as e:
+                print(f"Error during Gemini answer generation: {e}")
+                # Re-raise the exception to get more detailed traceback for debugging
+                raise
+            return answer
 
 if __name__ == "__main__":
-    rag_system = CordisRAG()
-    # Example user question for testing
-    test_question = "What are some projects related to renewable energy?"
-    print(f"Testing CordisRAG with question: '{test_question}'")
-    
-    try:
-        ai_response = rag_system.get_ai_response(test_question)
-        print("\\nAI Response:")
-        print(ai_response)
-    except Exception as e:
-        print(f"An error occurred during the test: {e}")
 
-    # Example with a more specific query that might involve dates or other params
-    # test_question_2 = "Find projects on AI in healthcare started after 2022."
-    # print(f"\\nTesting CordisRAG with question: '{test_question_2}'")
+    # Test with OpenAI (default)
+    # print("--- Testing with OpenAI ---")
+    # rag_system_openai = CordisRAG() # Defaults to OpenAI, will use OPENAI_API_KEY from .env
+    # test_question_openai = "What are some projects related to renewable energy?"
+    # print(f"Testing CordisRAG (OpenAI) with question: '{test_question_openai}'")
     # try:
-    #     ai_response_2 = rag_system.get_ai_response(test_question_2)
-    #     print("\\nAI Response 2:")
-    #     print(ai_response_2)
+    #     ai_response_openai = rag_system_openai.get_ai_response(test_question_openai)
+    #     print("\nAI Response (OpenAI):")
+    #     print(ai_response_openai)
     # except Exception as e:
-    #     print(f"An error occurred during the second test: {e}")
+    #     print(f"An error occurred during the OpenAI test: {e}")
+
+    print("\n--- Testing with Gemini ---")
+    # Test with Gemini, allowing model specification
+    try:
+        # User can specify the model like: "gemini-2.5-flash-preview-05-20"
+        # If not specified, __init__ default is used.
+        rag_system_gemini = CordisRAG(ai_provider="gemini") # Will use GEMINI_API_KEY from .env
+                                                            # and default gemini_model_name from __init__
+        
+        test_question_gemini = "Tell me about projects focusing on solar panel efficiency."
+        print(f"Testing CordisRAG (Gemini with model {rag_system_gemini.gemini_model_name}) with question: '{test_question_gemini}'")
+        
+        ai_response_gemini = rag_system_gemini.get_ai_response(test_question_gemini)
+        print("\nAI Response (Gemini):")
+        print(ai_response_gemini)
+    except ValueError as ve: # Catch API key errors from __init__
+        print(f"Skipping Gemini test due to configuration error: {ve}")
+    except ImportError:
+        print("Skipping Gemini test: google.generativeai library not found. Please install it.")
+    except AttributeError as ae: # Catch issues like model not found if genai.GenerativeModel fails
+        print(f"Skipping Gemini test due to attribute error (possibly model name issue): {ae}")
+    except Exception as e:
+        print(f"An error occurred during the Gemini test: {e}")
