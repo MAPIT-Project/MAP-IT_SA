@@ -1,0 +1,555 @@
+import os
+import openai
+import requests
+import xml.etree.ElementTree as ET
+from typing import List, Dict, Any
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+class CordisRAG:
+    """
+    Retrieval-Augmented Generation system for European research projects using CORDIS database.
+    """
+    
+    def __init__(self):
+        """Initialize the CordisRAG system."""
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("OpenAI API key not found. Please set the OPENAI_API_KEY environment variable.")
+        self.client = openai.OpenAI(api_key=api_key)
+        
+    def get_ai_response(self, user_text: str) -> str:
+        """
+        Process a user query through the RAG pipeline.
+        
+        Args:
+            user_text: The user's question about European research projects
+            
+        Returns:
+            str: The AI-generated response based on retrieved CORDIS data
+        """
+        try:
+            # System role definition
+            role = self._get_system_role()
+            
+            # Generate queries from user question
+            queries, required_info = self._extract_queries(role, user_text)
+            
+            # Search CORDIS database
+            search_links = self._search_cordis(queries)
+            
+            # Retrieve and process project data
+            project_data = self._retrieve_project_data(search_links)
+            
+            # Generate final response
+            return self._generate_answer(role, user_text, project_data)
+            
+        except Exception as e:
+            return f"An error occurred while processing your request: {str(e)}"
+    
+    def _get_system_role(self) -> str:
+        """Define the system role for the AI."""
+        return """You play the role of a knowledge steward providing the research and innovation landscape of European research projects. You are helping a research university or institute or SME to retrieve information from the corpus of previously funded projects.
+        Your scenario of operation is as such: 
+        You will receive a question. In two or three stages, you extract queries from the question. At the first stage, you should extract queries to retrieve information about projects required to answer the questions. The first stage queries will be input to a xml retriever. Those queries may be names, topics, keywords, used methods and technologies of the projects as well as information related to participating organizations such as name, country, type, personnel of the institution. Occasionally, it may be start and end dates of projects, a budget interval or the name or code of a project call. 
+        The xml retriever will retrieve xml files that include information about the project. At the second stage, according to information in the xml files and the information need in the question, you will extract information from the retrieved xml files.
+        In rare cases, a third stage in which additional queries are sent to the xml retriever may be required."""
+    
+    def _extract_queries(self, role: str, question: str) -> tuple:
+        """
+        Extract search queries from the user question using GPT-4.
+        
+        Args:
+            role: The system role
+            question: The user's question
+            
+        Returns:
+            tuple: (queries, required_information)
+        """
+        quest = f"""The question is: {question}
+                Please generate the first stage queries to input to the xml retriever to retrieve projects relevant to the question. Generate neat and concise textual boolean queries. If you need to connect parts of a query with "AND" connective, give them as seperate queries. That is, for example, if the query is "word1 AND word2" give it as two seperate queries which are "word1" and "word2". However, if you need to connect parts of a query with "OR" do it explicitly and do not seperate it into multiple queries in this case. That is, "word1 OR word2" should be given as it is. If you generate a query about dates, write in the format "startDate<YEAR-MONTH-DAY", "endDate>YEAR-MONTH-DAY". Note that date related information need may be implicitly given in the question using words recent, first, last etc.  If you generate a query about geographical locations, only include country names and no other region names. Explain your reasoning step by step. Do not provide the queries or relations about which you are not sure. Give your whole answer in xml format with the fields <explanation>,<code>, and <problem>. Your explanations goes under <explanations> key. Under the <code> key, provide the queries as a Python code in the following format:   
+                "
+                queries= []
+                problem_flag = False
+                required_information = []
+                "
+                Give the code in exactly two lines. problem_flag is set True when such a problem in the question exists: If you think the question is problematic (irrelevant or too general or we have no sufficient information sources to answer the question), set the problem_flag in the code and write the problem and a brief guiding sentence for the user under the <problem> key.
+                For example, for the question "What are the machine learning related projects?" the queries list should be queries = [machine learning OR deep learning OR artificial intelligence]. Please keep this format. Note that queries should only include texts in natural language and the logical connectives. If no queries can be generated from given information, take the question itself as the query and add it to the queries list.
+                Also, as you know, some xml files each holding information about one project will be returned after queries run. For the second stage (or for answer generation without second stage), which type of information will be required? Fill the required_information list with the required types of information. Available types of information are project_objective, keywords, call_scope, budget, participant_names, participant_properties, participant_countries, publications. For example, if countries of participants are required for the second stage or for direct answer generation, the required information list ahould be required_information = [participant_countries].
+                The last remark for you: If the question ask for filtering projects according to a metric such as best projects, worst projects, most successful projects etc., we need some restrictions about the projects we will consider, such as topics, participants, keywords etc. of the project. Otherwise we cannot reply the question. However, if the set of projects we should consider is sufficiently restricted, then we can devise a metric to answer such questions, therefore, no problem. For example, we cannot answer the question of most successful project, however, we may answer the questions of most successful machine learning project or the most successful project conducted in Central Europe in the last decade. 
+                """
+        
+        response = self.client.chat.completions.create(
+            model="gpt-4-turbo",
+            messages=[
+                {"role": "system", "content": role},
+                {"role": "user", "content": quest}
+            ],
+            temperature=0.9
+        )
+        
+        ans = response.choices[0].message.content
+        ans_lines = ans.splitlines()
+        
+        # Extract queries
+        queries = []
+        required_information = []
+        problem_flag = False
+        
+        for line in ans_lines:
+            if "problem_flag" in line and "True" in line:
+                problem_flag = True
+                break
+            if "queries=" in line or "queries =" in line:
+                lst = line[line.index("["):line.index("]")+1]
+                queries = eval(lst)
+            if "required_information" in line:
+                try:
+                    lst = line[line.index("["):line.index("]")+1]
+                    required_information = eval(lst)
+                except Exception:  # Catch specific exceptions instead of a bare except
+                    pass
+        
+        if problem_flag:
+            problem_message = [line for line in ans_lines if line.startswith("<problem>")]
+            if problem_message:
+                raise ValueError(problem_message[0].replace("<problem>", "").replace("</problem>", ""))
+        
+        return queries, required_information
+    
+    def _search_cordis(self, queries: List[str], max_results: int = 10) -> List[Dict[str, Any]]: # Modified return type
+        """
+        Search the CORDIS database with the extracted queries using the CORDIS API.
+        
+        Args:
+            queries: List of search queries (can be keyword groups with OR, or date conditions)
+            max_results: Maximum number of results to retrieve
+            
+        Returns:
+            List[Dict[str, Any]]: List of project data dictionaries from API results
+        """
+        base_api_url = "https://cordis.europa.eu/api/search/results"
+        
+        # Construct the 'q' parameter for the API
+        api_q_parts = ["contenttype='project'", "language='en'"]
+
+        for item_query in queries:
+            item_query_stripped = item_query.strip()
+            if not item_query_stripped: # Skip empty queries
+                continue
+
+            item_query_lower = item_query_stripped.lower()
+            
+            # Check if it's a date-related query
+            if "startdate" in item_query_lower or "enddate" in item_query_lower:
+                # Assumes date queries from _extract_queries are in a format like:
+                # "startDate>YYYY-MM-DD" or "endDate<=YYYY-MM-DD"
+                # These are used directly in the CORDIS API q-string.
+                # Example: startDate>2018-01-01
+                # Remove spaces for safety, e.g. "startDate > 2020-01-01" -> "startDate>2020-01-01"
+                date_str = item_query_stripped.replace(" ", "")
+                api_q_parts.append(date_str)
+            else:
+                # It's a keyword query, e.g., "term1 OR term2" or "term3"
+                or_terms = item_query_stripped.split("OR")
+                
+                # Filter out empty strings that might result from splitting (e.g. "term1 OR ") and strip terms
+                valid_or_terms = [term.strip() for term in or_terms if term.strip()]
+                
+                if not valid_or_terms: # Skip if no valid terms after splitting and stripping
+                    continue
+                
+                # Quote each term: 'term'
+                quoted_or_terms = [f"'{term}'" for term in valid_or_terms]
+                
+                # Join OR terms and enclose in parentheses: ('term1' OR 'term2') or ('term3')
+                keyword_part = f"({ ' OR '.join(quoted_or_terms) })"
+                api_q_parts.append(keyword_part)
+        
+        q_value = " AND ".join(api_q_parts)
+        
+        # API parameters
+        params = {
+            "q": q_value,
+            "p": 1,  # Page number, defaulting to 1
+            "num": max_results,
+            "srt": "Relevance:decreasing", # Sort order
+            "fields": "uri,rcn,title,id,code,startDate,endDate,teaser,contentUpdateDate,name,relatedImage,availableLanguages,language,issueNumber,issueDate,issueLastDate,issue,archivedDate,acronym,legalName,euCode,city,country,iprPrefix,iprNumber,iprDate,iprAwarded,description,doi,journalTitle,journalNumber,publishedYear,publishedPages,authors,periodFrom,periodTo,webItem,webItem/_ATTR_*,physUrl,webLink,webLink/_ATTR_*,physUrl,frameworkProgramme", # As provided by user
+            "archived": "true"
+        }
+        
+        # links = [] # No longer returning just links
+        project_items: List[Dict[str, Any]] = [] # To store full project item dictionaries
+
+        try:
+            response = requests.get(base_api_url, params=params, timeout=30) 
+            print(f"CORDIS API URL called: {response.url}") # Log URL
+            print(f"CORDIS API response status code: {response.status_code}") # Log status code
+            # Log a snippet of the response content for inspection
+            content_snippet = response.content[:500] if response.content else "N/A"
+            print(f"CORDIS API response content snippet: {content_snippet}")
+
+            response.raise_for_status()  # Raise an exception for HTTP errors (4xx or 5xx)
+            
+            try:
+                # Attempt to parse as JSON first, as the API might return JSON
+                json_data = response.json()
+                print("Successfully parsed CORDIS API response as JSON.") # Log JSON parsing success
+                if json_data.get("payload") and "results" in json_data["payload"]:
+                    results_list = json_data["payload"]["results"]
+                    if not results_list:
+                        print("JSON payload has an empty 'results' list.")
+                    else:
+                        print(f"Directly using {len(results_list)} items from 'results' list as project data.")
+                        project_items = results_list # Assign the list of dictionaries
+                    # The loop for creating 'links' by constructing URIs is removed.
+                    # We now return the 'results_list' (assigned to project_items) directly.
+                elif not json_data.get("payload"):
+                    print("JSON response does not contain 'payload' key.")
+                elif "results" not in json_data.get("payload", {}): # Added default {} for get to be safe
+                     print("JSON 'payload' does not contain 'results' key.")
+                else:
+                    print("JSON response from CORDIS API did not contain expected payload structure. Attempting XML parse for URIs (limited data).")
+                    # Fallback to XML (current XML parsing only extracts URIs, so project_items would be empty or contain minimal data)
+                    # This path would mean limited data for the new extraction method.
+                    xml_root = ET.fromstring(response.content)
+                    self._remove_namespace(xml_root)
+                    # Try to find <uri> tags directly within the XML structure
+                    for uri_element in xml_root.findall(".//uri"): # More general search for URI tags
+                        if uri_element.text:
+                            uri_text = uri_element.text.strip()
+                            if uri_text:
+                                project_items.append({"uri": uri_text})  # Append as a dict
+
+            except requests.exceptions.JSONDecodeError as json_err:
+                print(f"Failed to parse CORDIS API response as JSON: {json_err}. Attempting XML parsing (limited data).")
+                # If JSON decoding fails, assume it\'s XML
+                try:
+                    xml_root = ET.fromstring(response.content)
+                    self._remove_namespace(xml_root)
+                    # Current XML parsing only extracts URIs. For full data, this would need enhancement.
+                    # For now, project_items will likely remain empty if this path is taken and not adapted.
+                    temp_links_from_xml = []
+                    for uri_element in xml_root.findall(".//uri"): 
+                        if uri_element.text:
+                            uri_text = uri_element.text.strip()
+                            if uri_text:
+                                temp_links_from_xml.append(uri_text)
+                    print(f"Successfully parsed CORDIS API response as XML after JSON failure (extracted {len(temp_links_from_xml)} URIs). Full project data might be unavailable through this path.")
+                    # If we wanted to populate project_items here, we'd need to convert these URIs or parse more from XML.
+                    # For now, project_items remains empty, relying on the JSON path for full data.
+                except ET.ParseError as xml_err_after_json_fail:
+                    print(f"Critical Error: Failed to parse CORDIS API response as JSON and also as XML: {xml_err_after_json_fail}. Content: {response.content[:500]}")
+
+            # print(f"Found {len(links)} project links via CORDIS API: {links}") # Old log
+            print(f"Retrieved {len(project_items)} project detail items from CORDIS API.")
+
+
+        except requests.exceptions.Timeout:
+            print(f"Error: CORDIS API request timed out for URL: {base_api_url} with params: {params}")
+        except requests.exceptions.HTTPError as e:
+            print(f"Error: CORDIS API request failed with HTTP status {e.response.status_code} for URL: {response.url if 'response' in locals() and hasattr(response, 'url') else base_api_url}")
+        except requests.exceptions.RequestException as e:
+            print(f"Error during CORDIS API request: {e}")
+        except ET.ParseError as e:
+            print(f"Error parsing CORDIS API XML response: {e}. Content snippet: {response.content[:500] if 'response' in locals() else 'N/A'}")
+        except Exception as e: # Catch any other unexpected errors
+            print(f"An unexpected error occurred in _search_cordis: {e}")
+            
+        # return links # Old return
+        return project_items # New return
+    
+    # def _retrieve_project_data(self, links: List[str], max_projects: int = 5) -> List[Dict[str, Any]]: # Old signature
+    def _retrieve_project_data(self, project_items: List[Dict[str, Any]], max_projects: int = 5) -> List[Dict[str, Any]]: # New signature
+        """
+        Process project data from CORDIS search results.
+        
+        Args:
+            project_items: List of project data dictionaries from CORDIS API search.
+            max_projects: Maximum number of projects to process
+            
+        Returns:
+            List[Dict]: List of structured project data dictionaries
+        """
+        # project_data = [] # Old name
+        processed_project_data: List[Dict[str, Any]] = [] # New name for clarity
+        
+        # for link in links[:max_projects]: # Old loop
+        for item in project_items[:max_projects]: # New loop, item is a dict
+            try:
+                # xml_link = link + "?format=xml" # Removed
+                # xml_content = self._fetch_webpage_content(xml_link) # Removed
+                # if xml_content: # Removed
+                #     project_json = self._extract_project_data(xml_content) # Old call, passing XML string
+                #     project_data.append(project_json)
+                
+                # New logic: item is already a dictionary with project details
+                if item and isinstance(item, dict): # Ensure item is a valid dictionary
+                    extracted_data = self._extract_project_data(item) # Pass the project dictionary
+                    processed_project_data.append(extracted_data)
+                else:
+                    print(f"Skipping invalid or empty project item: {item}")
+
+            except Exception as e:
+                rcn = item.get('rcn', 'Unknown RCN') if isinstance(item, dict) else 'Unknown RCN'
+                # print(f"Error retrieving project data from {link}: {e}") # Old log
+                print(f"Error processing project data for RCN {rcn}: {e}")
+        
+        # return project_data
+        return processed_project_data
+    
+    # def _fetch_webpage_content(self, url: str) -> Optional[str]:
+    #     """
+    #     Retrieve webpage content as an XML string.
+    #     
+    #     Args:
+    #         url: The URL to fetch
+    #     """
+    #     try:
+    #         response = requests.get(url, timeout=30)
+    #         response.raise_for_status()
+    #         return response.text
+    #     except requests.exceptions.RequestException as e:
+    #         print(f"Error fetching {url}: {e}")
+    #         return None
+    
+    def _extract_project_data(self, project_json: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Extract and structure project data from a CORDIS project item dictionary.
+        
+        Args:
+            project_json: A dictionary containing raw project data from CORDIS API search result item.
+        
+        Returns:
+            Dict[str, Any]: A dictionary with structured project data.
+        """
+        data = {}
+        data['rcn'] = project_json.get('rcn', 'N/A')
+        data['title'] = project_json.get('title', 'N/A')
+        data['acronym'] = project_json.get('acronym', 'N/A')
+        
+        # Objective: Prioritize 'description', then 'teaser'
+        data['objective'] = project_json.get('description', project_json.get('teaser', 'N/A'))
+        if not data['objective'] or data['objective'] == 'N/A': # If both are empty or N/A
+             data['objective'] = project_json.get('teaser', 'N/A')
+
+
+        data['startDate'] = self._format_date(project_json.get('startDate', 'N/A'))
+        data['endDate'] = self._format_date(project_json.get('endDate', 'N/A'))
+        
+        # Budget: Attempt to extract from 'totalCost'. This field must be requested in _search_cordis.
+        raw_budget = project_json.get('totalCost', project_json.get('projectTotalCost')) # Trying common field names
+        if isinstance(raw_budget, dict) and 'value' in raw_budget: # e.g., {'value': 10000, 'currency': 'EUR'}
+            currency = raw_budget.get('currency', '')
+            value = raw_budget.get('value')
+            data['budget'] = f"{value} {currency}".strip() if value is not None else 'N/A'
+        elif raw_budget is not None:
+            data['budget'] = str(raw_budget)
+        else:
+            data['budget'] = 'N/A'
+
+        # Keywords: Attempt to extract from 'keywords'. This field must be requested in _search_cordis.
+        keywords_data = project_json.get('keywords', project_json.get('subjects')) # Trying common field names
+        if isinstance(keywords_data, list):
+            data['keywords'] = ', '.join(str(k.get('label', k) if isinstance(k, dict) else k) for k in keywords_data if k)
+        elif isinstance(keywords_data, str):
+            data['keywords'] = keywords_data
+        elif isinstance(keywords_data, dict): # e.g. if keywords are {'keyword': ['a', 'b']}
+            data['keywords'] = ', '.join(str(v) for v in keywords_data.values() if v)
+        else:
+            data['keywords'] = 'N/A'
+            
+        # Call Info: From 'programme'
+        programme_info_list = project_json.get('programme')
+        if isinstance(programme_info_list, list) and len(programme_info_list) > 0:
+            # Assuming the first programme in the list is the primary one
+            main_programme = programme_info_list[0]
+            if isinstance(main_programme, dict):
+                call_title = main_programme.get('title', '')
+                call_code = main_programme.get('code', '')
+                data['call_info'] = f"{call_title} ({call_code})".strip() if call_title or call_code else 'N/A'
+            else:
+                data['call_info'] = str(main_programme) # Fallback if structure is unexpected
+        else:
+            data['call_info'] = 'N/A'
+            
+        # Participants:
+        # The 'fields' list in _search_cordis requests 'legalName' and 'country',
+        # which might be for the coordinator.
+        # If a 'participants' array is available in project_json, use that.
+        participant_names_list = []
+        participant_countries_list = []
+
+        participants_data = project_json.get('participants')
+        if isinstance(participants_data, list):
+            for p_entry in participants_data:
+                if isinstance(p_entry, dict):
+                    name = p_entry.get('name', p_entry.get('legalName', p_entry.get('shortName')))
+                    country = p_entry.get('country') 
+                    if isinstance(country, dict): # e.g. country: {'isoCode': 'ES', 'label': 'Spain'}
+                        country = country.get('isoCode', country.get('label'))
+                    
+                    if name:
+                        participant_names_list.append(str(name))
+                    if country:
+                        participant_countries_list.append(str(country))
+        
+        if not participant_names_list: # Fallback to top-level coordinator info if no 'participants' array
+            coordinator_name = project_json.get('legalName') # 'legalName' is in the API fields list
+            if coordinator_name:
+                participant_names_list.append(str(coordinator_name))
+            
+            coordinator_country = project_json.get('country') # 'country' is in the API fields list
+            if isinstance(coordinator_country, dict): # e.g. country: {'isoCode': 'ES', 'label': 'Spain'}
+                 coordinator_country = coordinator_country.get('isoCode', coordinator_country.get('label'))
+            if coordinator_country:
+                participant_countries_list.append(str(coordinator_country))
+
+        data['participant_names'] = participant_names_list
+        data['participant_countries'] = participant_countries_list
+        
+        # Publications (example, improve if more details on 'authors' structure are known)
+        # The 'fields' list includes 'authors', 'journalTitle', etc.
+        authors_list = project_json.get('authors') # This could be a list of strings or dicts
+        pub_details = []
+        if isinstance(authors_list, list) and authors_list:
+            # Assuming authors_list could be complex, e.g. list of author dicts or strings
+            author_names = []
+            for author_entry in authors_list:
+                if isinstance(author_entry, dict):
+                    author_names.append(author_entry.get('fullName', author_entry.get('name', 'Unknown Author')))
+                else:
+                    author_names.append(str(author_entry))
+            if author_names:
+                 pub_details.append(f"Authors: {', '.join(author_names)}")
+
+        journal_title = project_json.get('journalTitle')
+        if journal_title:
+            pub_details.append(f"Journal: {journal_title}")
+        
+        published_year = project_json.get('publishedYear')
+        if published_year:
+            pub_details.append(f"Year: {published_year}")
+
+        data['publications'] = '. '.join(pub_details) if pub_details else 'N/A'
+            
+        return data
+    
+    def _format_date(self, date_str: str) -> str:
+        """
+        Convert a date string to a standard format (YYYY-MM-DD).
+        
+        Args:
+            date_str: The original date string
+        
+        Returns:
+            str: The formatted date string
+        """
+        try:
+            # Assuming the input date is in the format YYYY-MM-DD or similar
+            # This can be adjusted based on the actual date formats encountered
+            return "-".join(date_str.split("-")[:3])
+        except Exception as e:
+            print(f"Error formatting date '{date_str}': {e}")
+            return date_str  # Return original string if formatting fails
+    
+    def _generate_answer(self, role: str, user_text: str, project_data: List[Dict[str, Any]]) -> str:
+        """
+        Generate a final answer using GPT-4 based on retrieved data.
+        
+        Args:
+            role: The system role
+            user_text: The original user question
+            project_data: List of structured project data dictionaries
+            
+        Returns:
+            str: The AI-generated answer
+        """
+        if not project_data:
+            return "I couldn't find any specific project data relevant to your query in the CORDIS database. You might want to try rephrasing your question or making it more specific."
+
+        # Prepare the project data as a string for the prompt
+        project_data_str_parts = []
+        for i, proj in enumerate(project_data):
+            # Ensure all expected keys are present, providing defaults if not
+            title = proj.get('title', 'N/A')
+            objective = proj.get('objective', 'N/A') # This should now be populated by _extract_project_data
+            keywords = proj.get('keywords', 'N/A') # This too
+            call_info = proj.get('call_info', 'N/A') # And this
+            budget = proj.get('budget', 'N/A') # And this
+            # Format participants
+            participants_str = "N/A"
+            participant_names = proj.get('participant_names', [])
+            participant_countries = proj.get('participant_countries', [])
+
+            if participant_names:
+                if participant_countries and len(participant_names) == len(participant_countries):
+                    participants_details = [f"{name} ({country})" for name, country in zip(participant_names, participant_countries)]
+                    participants_str = ", ".join(participants_details)
+                else:
+                    participants_str = "Names: " + ", ".join(participant_names)
+                    if participant_countries:
+                        participants_str += "; Countries: " + ", ".join(participant_countries)
+            elif participant_countries: # Only countries available
+                 participants_str = "Countries: " + ", ".join(participant_countries)
+            
+            rcn = proj.get('rcn', 'N/A')
+
+            project_data_str_parts.append(
+                f"Project {i+1} (RCN: {rcn}):\\n"
+                f"  Title: {title}\\n"
+                f"  Objective: {objective}\\n"
+                f"  Keywords: {keywords}\\n"
+                f"  Call Info: {call_info}\\n"
+                f"  Budget: {budget}\\n"
+                f"  Participants: {participants_str}\\n" # Use the new formatted string
+            )
+        project_data_str = "\\n".join(project_data_str_parts)
+
+        # Construct the prompt for the AI
+        prompt_content = f"""Based on the following information retrieved from the CORDIS database about European research projects, please answer the user's question.
+
+User Question: {user_text}
+
+Retrieved Project Data:
+{project_data_str}
+
+Please synthesize this information to provide a comprehensive answer. If the retrieved data is insufficient, acknowledge that.
+"""
+        
+        # print(f"Prompt for AI: {prompt_content}") # For debugging the prompt
+
+        answer = self.client.chat.completions.create(
+            model="gpt-4-turbo",
+            messages=[
+                {"role": "system", "content": role},
+                {"role": "user", "content": prompt_content}
+            ],
+            temperature=0.7
+        ).choices[0].message.content
+        return answer
+
+if __name__ == "__main__":
+    rag_system = CordisRAG()
+    # Example user question for testing
+    test_question = "What are some projects related to renewable energy?"
+    print(f"Testing CordisRAG with question: '{test_question}'")
+    
+    try:
+        ai_response = rag_system.get_ai_response(test_question)
+        print("\\nAI Response:")
+        print(ai_response)
+    except Exception as e:
+        print(f"An error occurred during the test: {e}")
+
+    # Example with a more specific query that might involve dates or other params
+    # test_question_2 = "Find projects on AI in healthcare started after 2022."
+    # print(f"\\nTesting CordisRAG with question: '{test_question_2}'")
+    # try:
+    #     ai_response_2 = rag_system.get_ai_response(test_question_2)
+    #     print("\\nAI Response 2:")
+    #     print(ai_response_2)
+    # except Exception as e:
+    #     print(f"An error occurred during the second test: {e}")
