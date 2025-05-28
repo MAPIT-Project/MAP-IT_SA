@@ -5,8 +5,9 @@ from dotenv import load_dotenv
 import openai # Ensure openai is imported
 from typing import List, Dict, Any, Optional
 
+# Update to use google-genai instead of google-generativeai
 from google import genai as google_genai_sdk
-from google.genai import types # Added import
+from google.genai import types
 
 # Load environment variables
 load_dotenv()
