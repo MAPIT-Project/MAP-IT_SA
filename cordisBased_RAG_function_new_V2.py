@@ -635,7 +635,7 @@ Please synthesize this information to provide a comprehensive answer. If the ret
                 print(f"Error during Gemini answer generation: {e}")
                 # Re-raise the exception to get more detailed traceback for debugging
                 raise
-            return answer
+        return answer
 
 if __name__ == "__main__":
 

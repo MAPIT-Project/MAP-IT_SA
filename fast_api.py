@@ -6,7 +6,17 @@ import os
 import uvicorn
 import asyncio
 import random
-from cordisBased_RAG_function_new import CordisRAG
+from dotenv import load_dotenv
+# Update import to use the new version
+from cordisBased_RAG_function_new_V2 import CordisRAG
+
+# Load environment variables
+load_dotenv()
+
+# Get provider config from environment
+DEFAULT_AI_PROVIDER = os.getenv("DEFAULT_AI_PROVIDER", "openai").lower()
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4-turbo")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-preview-05-20")
 
 # Create FastAPI app
 app = FastAPI(
@@ -24,8 +34,35 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize the RAG system
-rag_system = CordisRAG()
+# Initialize the RAG systems for both providers (if keys are available)
+rag_systems = {}
+
+# Try to initialize OpenAI-based RAG
+try:
+    if os.getenv("OPENAI_API_KEY"):
+        rag_systems["openai"] = CordisRAG(
+            ai_provider="openai", 
+            openai_model_name=OPENAI_MODEL
+        )
+        print(f"OpenAI RAG system initialized with model: {OPENAI_MODEL}")
+except Exception as e:
+    print(f"Failed to initialize OpenAI RAG system: {e}")
+
+# Try to initialize Gemini-based RAG
+try:
+    if os.getenv("GEMINI_API_KEY"):
+        rag_systems["gemini"] = CordisRAG(
+            ai_provider="gemini", 
+            gemini_model_name=GEMINI_MODEL
+        )
+        print(f"Gemini RAG system initialized with model: {GEMINI_MODEL}")
+except Exception as e:
+    print(f"Failed to initialize Gemini RAG system: {e}")
+
+# Fallback to default if no systems initialized
+if not rag_systems:
+    print("WARNING: No RAG systems initialized. Using default OpenAI configuration.")
+    rag_systems["openai"] = CordisRAG()  # Default to OpenAI
 
 # Add demo examples for simulated responses
 DEMO_RESPONSES = [
@@ -44,16 +81,17 @@ DEMO_RESPONSES = [
 class QuestionRequest(BaseModel):
     question: str
     max_results: Optional[int] = 5
+    ai_provider: Optional[str] = None  # Allow specifying provider per request
 
 # Response models
 class ProjectParticipant(BaseModel):
     name: str
     country: str
-    city: str
+    city: Optional[str] = None
 
 class ProjectBudget(BaseModel):
     total_cost: str
-    eu_contribution: str
+    eu_contribution: Optional[str] = None
 
 class Project(BaseModel):
     title: str
@@ -65,12 +103,37 @@ class Project(BaseModel):
 
 class SearchResponse(BaseModel):
     answer: str
+    ai_provider: Optional[str] = None
+    model_used: Optional[str] = None
     projects: Optional[List[Project]] = None
 
 @app.get("/")
 async def root():
     """Health check endpoint."""
     return {"status": "online", "message": "CORDIS RAG API is running"}
+
+def get_rag_system(ai_provider: Optional[str] = None):
+    """
+    Get the appropriate RAG system based on the requested provider
+    or fall back to the default.
+    """
+    # Use requested provider if specified and available
+    if ai_provider and ai_provider.lower() in rag_systems:
+        return rag_systems[ai_provider.lower()], ai_provider.lower()
+    
+    # Otherwise use default provider if available
+    if DEFAULT_AI_PROVIDER in rag_systems:
+        return rag_systems[DEFAULT_AI_PROVIDER], DEFAULT_AI_PROVIDER
+    
+    # Fall back to first available provider
+    if rag_systems:
+        provider = next(iter(rag_systems.keys()))
+        return rag_systems[provider], provider
+    
+    raise HTTPException(
+        status_code=500, 
+        detail="No AI providers are configured and available."
+    )
 
 @app.post("/api/query", response_model=SearchResponse)
 async def query_projects(request: QuestionRequest):
@@ -86,18 +149,38 @@ async def query_projects(request: QuestionRequest):
     Parameters:
     - question: A natural language question about European research projects
     - max_results: Maximum number of projects to retrieve (default: 5)
+    - ai_provider: AI provider to use ("openai" or "gemini", optional)
     
     Returns:
     - answer: A comprehensive answer to the question
+    - ai_provider: The AI provider used to generate the answer
+    - model_used: The specific model used to generate the answer
     - projects: The retrieved project data (optional)
     """
     try:
+        # Get the appropriate RAG system
+        rag_system, provider = get_rag_system(request.ai_provider)
+        
         # Get answer from RAG system
-        answer = rag_system.get_ai_response(request.question)
+        answer = rag_system.get_ai_response(
+            request.question, 
+            max_projects_to_process=request.max_results
+        )
+        
+        # Get model information
+        model_used = None
+        if provider == "openai":
+            model_used = rag_system.openai_model_name
+        elif provider == "gemini":
+            model_used = rag_system.gemini_model_name
         
         # For now, we don't return the raw project data
         # This could be enhanced to return the structured project data
-        return {"answer": answer}
+        return {
+            "answer": answer,
+            "ai_provider": provider,
+            "model_used": model_used
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
 
@@ -125,11 +208,39 @@ async def demo_query(request: QuestionRequest, background_tasks: BackgroundTasks
     # Return a response after delay
     await asyncio.sleep(delay)
     
+    # Get the requested or default AI provider for the response info
+    _, provider = get_rag_system(request.ai_provider)
+    
     return {
         "answer": response,
+        "ai_provider": provider,
         "demo": True,
         "processing_time": f"{delay:.2f} seconds",
         "query": request.question
+    }
+
+@app.get("/api/providers")
+async def list_providers():
+    """
+    List all available AI providers and their models.
+    """
+    providers = {}
+    
+    for provider_name, rag_system in rag_systems.items():
+        if provider_name == "openai":
+            providers[provider_name] = {
+                "model": rag_system.openai_model_name,
+                "is_default": provider_name == DEFAULT_AI_PROVIDER
+            }
+        elif provider_name == "gemini":
+            providers[provider_name] = {
+                "model": rag_system.gemini_model_name,
+                "is_default": provider_name == DEFAULT_AI_PROVIDER
+            }
+    
+    return {
+        "available_providers": providers,
+        "default_provider": DEFAULT_AI_PROVIDER if DEFAULT_AI_PROVIDER in rag_systems else None
     }
 
 @app.get("/api/health")
@@ -137,18 +248,35 @@ async def health_check():
     """Detailed health check endpoint."""
     # Add more comprehensive health checks here if needed
     try:
-        # Basic test to ensure the OpenAI client is working
-        if not os.getenv("OPENAI_API_KEY"):
-            return {
-                "status": "warning",
-                "message": "API is running but OPENAI_API_KEY is not set"
-            }
+        providers_status = {}
+        overall_status = "healthy"
+        
+        # Check OpenAI
+        if "openai" in rag_systems:
+            providers_status["openai"] = {"status": "configured"}
+        elif os.getenv("OPENAI_API_KEY"):
+            providers_status["openai"] = {"status": "key_present_not_initialized"}
+        else:
+            providers_status["openai"] = {"status": "not_configured"}
+            overall_status = "warning"
+        
+        # Check Gemini
+        if "gemini" in rag_systems:
+            providers_status["gemini"] = {"status": "configured"}
+        elif os.getenv("GEMINI_API_KEY"):
+            providers_status["gemini"] = {"status": "key_present_not_initialized"}
+        else:
+            providers_status["gemini"] = {"status": "not_configured"}
+        
+        # If no providers are properly configured, mark as unhealthy
+        if "openai" not in rag_systems and "gemini" not in rag_systems:
+            overall_status = "unhealthy" 
         
         return {
-            "status": "healthy",
+            "status": overall_status,
             "components": {
                 "api": "online",
-                "openai": "configured"
+                "providers": providers_status
             }
         }
     except Exception as e:
