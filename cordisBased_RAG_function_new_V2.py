@@ -73,24 +73,21 @@ class CordisRAG:
         Returns:
             str: The AI-generated response based on retrieved CORDIS data
         """
-        try:
-            # System role definition
-            role = self._get_system_role()
-            
-            # Generate queries from user question
-            queries, required_info = self._extract_queries(role, question)
-            
-            # Search CORDIS database
-            search_links = self._search_cordis(queries, max_results=max_cordis_results)
-            
-            # Retrieve and process project data
-            project_data = self._retrieve_project_data(search_links, max_projects=max_projects_to_process)
-            
-            # Generate final response
-            return self._generate_answer(role, question, project_data)
-            
-        except Exception as e:
-            return f"An error occurred while processing your request: {str(e)}"
+        # Remove the try-catch block to let exceptions bubble up to FastAPI
+        # System role definition
+        role = self._get_system_role()
+        
+        # Generate queries from user question
+        queries, required_info = self._extract_queries(role, question)
+        
+        # Search CORDIS database
+        search_links = self._search_cordis(queries, max_results=max_cordis_results)
+        
+        # Retrieve and process project data
+        project_data = self._retrieve_project_data(search_links, max_projects=max_projects_to_process)
+        
+        # Generate final response
+        return self._generate_answer(role, question, project_data)
     
     def _get_system_role(self) -> str:
         """Define the system role for the AI."""
@@ -187,9 +184,29 @@ When generating answers, synthesize the information from multiple projects if ne
                     pass
         
         if problem_flag:
-            problem_message = [line for line in ans_lines if line.startswith("<problem>")]
-            if problem_message:
-                raise ValueError(problem_message[0].replace("<problem>", "").replace("</problem>", ""))
+            # Look for problem message in XML-like tags or any line containing problem information
+            problem_message = ""
+            
+            # Try to find message between <problem> tags
+            full_response = "\n".join(ans_lines)
+            if "<problem>" in full_response and "</problem>" in full_response:
+                start_idx = full_response.find("<problem>") + len("<problem>")
+                end_idx = full_response.find("</problem>")
+                problem_message = full_response[start_idx:end_idx].strip()
+            else:
+                # Fallback: look for lines that might contain the problem description
+                for line in ans_lines:
+                    line_stripped = line.strip()
+                    if line_stripped and not line_stripped.startswith("<") and "problem_flag" not in line and "queries" not in line:
+                        if "problem" in line_stripped.lower() or "too general" in line_stripped.lower() or "irrelevant" in line_stripped.lower():
+                            problem_message = line_stripped
+                            break
+                
+                # If still no message found, provide a default
+                if not problem_message:
+                    problem_message = "The question appears to be too general or not relevant to European research projects. Please provide a more specific question about research topics, countries, or time periods."
+            
+            raise ValueError(f"Question cannot be processed: {problem_message}")
 
         return queries, required_information
     

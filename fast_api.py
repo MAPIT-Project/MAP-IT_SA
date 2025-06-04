@@ -1,17 +1,24 @@
 from fastapi import FastAPI, HTTPException, Query, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 import os
 import uvicorn
 import asyncio
 import random
+import logging
 from dotenv import load_dotenv
 # Update import to use the new version
 from cordisBased_RAG_function_new_V2 import CordisRAG
 
 # Load environment variables
 load_dotenv()
+
+# Add logging configuration
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Get provider config from environment
 DEFAULT_AI_PROVIDER = os.getenv("DEFAULT_AI_PROVIDER", "gemini").lower()
@@ -33,6 +40,33 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Update response models to match SvelteKit's expected error format
+class ErrorResponse(BaseModel):
+    error: str
+    details: str
+
+# Override the default exception handler to ensure consistent error format
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": "Error processing request",
+            "details": str(exc.detail)
+        },
+    )
+
+# Handle validation errors
+@app.exception_handler(RequestValidationError) 
+async def validation_exception_handler(request, exc): 
+    return JSONResponse(
+        status_code=400,
+        content={
+            "error": "Validation error",
+            "details": str(exc)
+        }
+    )
 
 # Initialize the RAG systems for both providers (if keys are available)
 rag_systems = {}
@@ -102,10 +136,12 @@ class Project(BaseModel):
     call: Dict[str, str]
 
 class SearchResponse(BaseModel):
-    answer: str
+    answer: Optional[str] = None
     ai_provider: Optional[str] = None
     model_used: Optional[str] = None
     projects: Optional[List[Project]] = None
+    error: Optional[bool] = False
+    error_message: Optional[str] = None
 
 @app.get("/")
 async def root():
@@ -158,6 +194,9 @@ async def query_projects(request: QuestionRequest):
     - projects: The retrieved project data (optional)
     """
     try:
+        # Log the incoming request
+        logger.info(f"Processing query: '{request.question}' with provider: {request.ai_provider}")
+        
         # Get the appropriate RAG system
         rag_system, provider = get_rag_system(request.ai_provider)
         
@@ -174,15 +213,33 @@ async def query_projects(request: QuestionRequest):
         elif provider == "gemini":
             model_used = rag_system.gemini_model_name
         
-        # For now, we don't return the raw project data
-        # This could be enhanced to return the structured project data
-        return {
-            "answer": answer,
-            "ai_provider": provider,
-            "model_used": model_used
-        }
+        # Return successful response
+        return SearchResponse(
+            answer=answer,
+            ai_provider=provider,
+            model_used=model_used
+        )
+    except ValueError as ve:
+        # Handle validation errors (like "question too general")
+        logger.error(f"Validation error: {str(ve)}")
+        return JSONResponse(
+            status_code=400,
+            content={
+                "error": "Invalid question",
+                "details": str(ve)
+            }
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+        # Handle other errors
+        logger.error(f"Error processing request: {str(e)}", exc_info=True)
+        error_message = str(e) if str(e) else "Unknown error occurred"
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": "Error processing request",
+                "details": error_message
+            }
+        )
 
 @app.post("/api/demo")
 async def demo_query(request: QuestionRequest, background_tasks: BackgroundTasks):
