@@ -10,7 +10,7 @@ The API supports multiple AI providers (currently OpenAI and Gemini) and can be 
 
 The API uses the following environment variables:
 
-- `DEFAULT_AI_PROVIDER`: The default AI provider to use ("openai" or "gemini")
+- `DEFAULT_AI_PROVIDER`: The default AI provider to use ("openai" or "gemini", defaults to "gemini")
 - `OPENAI_API_KEY`: API key for OpenAI services
 - `GEMINI_API_KEY`: API key for Google Gemini services
 - `OPENAI_MODEL`: The model to use for OpenAI (default: "gpt-4-turbo")

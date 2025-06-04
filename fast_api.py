@@ -14,7 +14,7 @@ from cordisBased_RAG_function_new_V2 import CordisRAG
 load_dotenv()
 
 # Get provider config from environment
-DEFAULT_AI_PROVIDER = os.getenv("DEFAULT_AI_PROVIDER", "openai").lower()
+DEFAULT_AI_PROVIDER = os.getenv("DEFAULT_AI_PROVIDER", "gemini").lower()
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4-turbo")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-preview-05-20")
 
