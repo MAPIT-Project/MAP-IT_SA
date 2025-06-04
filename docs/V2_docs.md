@@ -62,14 +62,14 @@ Lists all available AI providers and their configured models.
   "available_providers": {
     "openai": {
       "model": "gpt-4-turbo",
-      "is_default": true
+      "is_default": false
     },
     "gemini": {
       "model": "gemini-2.5-flash-preview-05-20",
-      "is_default": false
+      "is_default": true
     }
   },
-  "default_provider": "openai"
+  "default_provider": "gemini"
 }
 ```
 
