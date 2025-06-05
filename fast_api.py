@@ -10,8 +10,9 @@ import asyncio
 import random
 import logging
 from dotenv import load_dotenv
-# Update import to use the new version
-from cordisBased_RAG_function_new_V2 import CordisRAG
+# Dynamically import both V2 and V3 RAG classes
+from cordisBased_RAG_function_new_V2 import CordisRAG as CordisRAG_V2
+from cordisBased_RAG_function_new_V3 import CordisRAG as CordisRAG_V3
 
 # Load environment variables
 load_dotenv()
@@ -68,35 +69,43 @@ async def validation_exception_handler(request, exc):
         }
     )
 
-# Initialize the RAG systems for both providers (if keys are available)
-rag_systems = {}
+# Initialize the RAG systems for both providers and both versions
+rag_systems = {"V2": {}, "V3": {}}
 
-# Try to initialize OpenAI-based RAG
+# Try to initialize OpenAI-based RAG for both versions
 try:
     if os.getenv("OPENAI_API_KEY"):
-        rag_systems["openai"] = CordisRAG(
+        rag_systems["V2"]["openai"] = CordisRAG_V2(
             ai_provider="openai", 
             openai_model_name=OPENAI_MODEL
         )
-        print(f"OpenAI RAG system initialized with model: {OPENAI_MODEL}")
+        rag_systems["V3"]["openai"] = CordisRAG_V3(
+            ai_provider="openai", 
+            openai_model_name=OPENAI_MODEL
+        )
+        print(f"OpenAI RAG systems initialized for V2 and V3 with model: {OPENAI_MODEL}")
 except Exception as e:
     print(f"Failed to initialize OpenAI RAG system: {e}")
 
-# Try to initialize Gemini-based RAG
+# Try to initialize Gemini-based RAG for both versions
 try:
     if os.getenv("GEMINI_API_KEY"):
-        rag_systems["gemini"] = CordisRAG(
+        rag_systems["V2"]["gemini"] = CordisRAG_V2(
             ai_provider="gemini", 
             gemini_model_name=GEMINI_MODEL
         )
-        print(f"Gemini RAG system initialized with model: {GEMINI_MODEL}")
+        rag_systems["V3"]["gemini"] = CordisRAG_V3(
+            ai_provider="gemini", 
+            gemini_model_name=GEMINI_MODEL
+        )
+        print(f"Gemini RAG systems initialized for V2 and V3 with model: {GEMINI_MODEL}")
 except Exception as e:
     print(f"Failed to initialize Gemini RAG system: {e}")
 
 # Fallback to default if no systems initialized
-if not rag_systems:
-    print("WARNING: No RAG systems initialized. Using default OpenAI configuration.")
-    rag_systems["openai"] = CordisRAG()  # Default to OpenAI
+if not rag_systems["V2"] and not rag_systems["V3"]:
+    print("WARNING: No RAG systems initialized. Using default OpenAI configuration for V3.")
+    rag_systems["V3"]["openai"] = CordisRAG_V3()  # Default to OpenAI
 
 # Add demo examples for simulated responses
 DEMO_RESPONSES = [
@@ -116,6 +125,7 @@ class QuestionRequest(BaseModel):
     question: str
     max_results: Optional[int] = 5
     ai_provider: Optional[str] = None  # Allow specifying provider per request
+    ai_version: Optional[str] = "V3"   # Allow switching between V2 and V3
 
 # Response models
 class ProjectParticipant(BaseModel):
@@ -148,27 +158,23 @@ async def root():
     """Health check endpoint."""
     return {"status": "online", "message": "CORDIS RAG API is running"}
 
-def get_rag_system(ai_provider: Optional[str] = None):
-    """
-    Get the appropriate RAG system based on the requested provider
-    or fall back to the default.
-    """
+def get_rag_system(ai_provider: Optional[str] = None, ai_version: Optional[str] = "V3"):
+    version = ai_version.upper() if ai_version else "V3"
+    if version not in rag_systems:
+        raise HTTPException(status_code=400, detail=f"Invalid ai_version '{ai_version}'. Supported: V2, V3.")
     # Use requested provider if specified and available
-    if ai_provider and ai_provider.lower() in rag_systems:
-        return rag_systems[ai_provider.lower()], ai_provider.lower()
-    
+    if ai_provider and ai_provider.lower() in rag_systems[version]:
+        return rag_systems[version][ai_provider.lower()], ai_provider.lower(), version
     # Otherwise use default provider if available
-    if DEFAULT_AI_PROVIDER in rag_systems:
-        return rag_systems[DEFAULT_AI_PROVIDER], DEFAULT_AI_PROVIDER
-    
+    if DEFAULT_AI_PROVIDER in rag_systems[version]:
+        return rag_systems[version][DEFAULT_AI_PROVIDER], DEFAULT_AI_PROVIDER, version
     # Fall back to first available provider
-    if rag_systems:
-        provider = next(iter(rag_systems.keys()))
-        return rag_systems[provider], provider
-    
+    if rag_systems[version]:
+        provider = next(iter(rag_systems[version].keys()))
+        return rag_systems[version][provider], provider, version
     raise HTTPException(
         status_code=500, 
-        detail="No AI providers are configured and available."
+        detail=f"No AI providers are configured and available for version {version}."
     )
 
 @app.post("/api/query", response_model=SearchResponse)
@@ -186,6 +192,7 @@ async def query_projects(request: QuestionRequest):
     - question: A natural language question about European research projects
     - max_results: Maximum number of projects to retrieve (default: 5)
     - ai_provider: AI provider to use ("openai" or "gemini", optional)
+    - ai_version: AI version to use ("V2" or "V3", optional)
     
     Returns:
     - answer: A comprehensive answer to the question
@@ -194,33 +201,23 @@ async def query_projects(request: QuestionRequest):
     - projects: The retrieved project data (optional)
     """
     try:
-        # Log the incoming request
-        logger.info(f"Processing query: '{request.question}' with provider: {request.ai_provider}")
-        
-        # Get the appropriate RAG system
-        rag_system, provider = get_rag_system(request.ai_provider)
-        
-        # Get answer from RAG system
+        logger.info(f"Processing query: '{request.question}' with provider: {request.ai_provider} and version: {request.ai_version}")
+        rag_system, provider, version = get_rag_system(request.ai_provider, request.ai_version)
         answer = rag_system.get_ai_response(
             request.question, 
             max_projects_to_process=request.max_results
         )
-        
-        # Get model information
         model_used = None
         if provider == "openai":
-            model_used = rag_system.openai_model_name
+            model_used = getattr(rag_system, "openai_model_name", OPENAI_MODEL)
         elif provider == "gemini":
-            model_used = rag_system.gemini_model_name
-        
-        # Return successful response
+            model_used = getattr(rag_system, "gemini_model_name", GEMINI_MODEL)
         return SearchResponse(
             answer=answer,
             ai_provider=provider,
             model_used=model_used
         )
     except ValueError as ve:
-        # Handle validation errors (like "question too general")
         logger.error(f"Validation error: {str(ve)}")
         return JSONResponse(
             status_code=400,
@@ -230,7 +227,6 @@ async def query_projects(request: QuestionRequest):
             }
         )
     except Exception as e:
-        # Handle other errors
         logger.error(f"Error processing request: {str(e)}", exc_info=True)
         error_message = str(e) if str(e) else "Unknown error occurred"
         return JSONResponse(
@@ -279,25 +275,24 @@ async def demo_query(request: QuestionRequest, background_tasks: BackgroundTasks
 @app.get("/api/providers")
 async def list_providers():
     """
-    List all available AI providers and their models.
+    List all available AI providers and their models for both V2 and V3.
     """
-    providers = {}
-    
-    for provider_name, rag_system in rag_systems.items():
-        if provider_name == "openai":
-            providers[provider_name] = {
-                "model": rag_system.openai_model_name,
-                "is_default": provider_name == DEFAULT_AI_PROVIDER
-            }
-        elif provider_name == "gemini":
-            providers[provider_name] = {
-                "model": rag_system.gemini_model_name,
-                "is_default": provider_name == DEFAULT_AI_PROVIDER
-            }
-    
+    providers = {"V2": {}, "V3": {}}
+    for version in ["V2", "V3"]:
+        for provider_name, rag_system in rag_systems[version].items():
+            if provider_name == "openai":
+                providers[version][provider_name] = {
+                    "model": getattr(rag_system, "openai_model_name", OPENAI_MODEL),
+                    "is_default": provider_name == DEFAULT_AI_PROVIDER
+                }
+            elif provider_name == "gemini":
+                providers[version][provider_name] = {
+                    "model": getattr(rag_system, "gemini_model_name", GEMINI_MODEL),
+                    "is_default": provider_name == DEFAULT_AI_PROVIDER
+                }
     return {
         "available_providers": providers,
-        "default_provider": DEFAULT_AI_PROVIDER if DEFAULT_AI_PROVIDER in rag_systems else None
+        "default_provider": DEFAULT_AI_PROVIDER
     }
 
 @app.get("/api/health")
