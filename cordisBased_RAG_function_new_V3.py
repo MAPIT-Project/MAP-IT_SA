@@ -159,7 +159,7 @@ class CordisRAG:
             "p": 1,
             "num": max_results,
             "srt": "Relevance:decreasing",
-            "fields": updated_fields,
+            # "fields": updated_fields,
             "archived": "true"
         }
         project_items: List[Dict[str, Any]] = []
