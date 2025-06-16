@@ -317,6 +317,7 @@ class CordisRAG:
             end_date = proj.get('endDate', 'Unknown')
             participants = proj.get('participant_names', [])
             countries = proj.get('participant_countries', [])
+            project_id = proj.get('id', '')
             
             # Format duration info
             duration_info = ""
@@ -341,13 +342,18 @@ class CordisRAG:
                 if len(unique_countries) > 5:
                     participant_info += f" and {len(unique_countries) - 5} other countries"
             
-            # Create project summary
+            # Create project summary with CORDIS link
             summary = f"**{title}"
             if acronym and acronym != 'N/A':
                 summary += f" ({acronym})"
             summary += f"**{duration_info}"
             if budget != 'N/A' and budget != 'Budget not specified':
                 summary += f" - Budget: {budget}"
+            
+            # Add CORDIS project link if project ID is available
+            if project_id and project_id != 'N/A':
+                summary += f"\n🔗 **CORDIS Link:** https://cordis.europa.eu/project/id/{project_id}"
+            
             summary += f"\n{objective[:300]}{'...' if len(objective) > 300 else ''}"
             if participant_info:
                 summary += f"\n{participant_info}."
