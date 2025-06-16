@@ -1,5 +1,3 @@
-````markdown
-<!-- filepath: /home/anmar/Documents/VSCODE_REPOS/MAP-IT_SA-1/docs/V5_docs_updated.md -->
 # CORDIS Research Projects API Documentation (V5)
 
 ## Overview
@@ -839,4 +837,3 @@ CREATE TABLE organizations (
 - Enhanced consortium data enriches existing workflows
 - Benchmark tools help quantify performance improvements
 - Fallback to CORDIS API mode ensures reliability during database maintenance
-````
