@@ -1,28 +1,69 @@
+````markdown
+<!-- filepath: /home/anmar/Documents/VSCODE_REPOS/MAP-IT_SA-1/docs/V5_docs_updated.md -->
 # CORDIS Research Projects API Documentation (V5)
 
 ## Overview
 
 This API provides a Retrieval-Augmented Generation (RAG) interface for querying European research projects from the CORDIS database. V5 introduces **local database integration** for significantly faster performance and richer data access.
 
-- **V5** supports both CORDIS API and local Supabase database modes for project retrieval
-- Local database provides 3-5x faster response times with richer consortium and financial data
-- Supports both OpenAI and Gemini as AI providers, with dynamic provider/model selection
-- Implements enhanced 2-phase RAG logic with performance optimizations
+- **V5** supports both CORDIS API and local PostgreSQL database modes for project retrieval
+- Local database provides 3-5x faster response times with enriched consortium and financial data
+- Supports both OpenAI and Gemini as AI providers with dynamic provider/model selection
+- Implements enhanced 6-phase RAG pipeline with intelligent project selection
 - Backward compatible with V2, V3, and V4 logic using the `ai_version` parameter
+- **XML enrichment** included for CORDIS API mode to match V4 functionality
 
 ## Key V5 Features
 
 ### 🚀 **Performance Enhancements**
-- **Local Database Mode**: Query pre-structured project data from Supabase PostgreSQL
-- **Concurrent Processing**: Parallel XML enrichment and database queries
-- **Smart Caching**: Multi-level caching for API calls, database queries, and XML data
-- **Connection Pooling**: Efficient database connection management
+- **Local Database Mode**: Query pre-structured project data from PostgreSQL with full-text search
+- **Connection Pooling**: Efficient database connection management (1-20 connections)
+- **Multi-level Caching**: API calls, database queries, XML data, and preprocessed queries
+- **Intelligent Query Preprocessing**: Domain-specific keyword expansion and query optimization
+- **Concurrent XML Enrichment**: Parallel processing for CORDIS API mode (inherited from V4)
 
 ### 📊 **Richer Data Access**
-- **Enhanced Consortium Information**: Detailed participant roles, SME counts, geographic distribution
-- **Financial Intelligence**: EU contributions, total costs, partner funding breakdowns
-- **Geographic Insights**: NUTS codes, country/city distributions, coordinator details
-- **Program Context**: Framework programmes, funding schemes, call information
+- **Enhanced Full-Text Search**: PostgreSQL tsvector with relevance scoring
+- **Comprehensive Consortium Data**: Participant counts, SME involvement, coordinator details
+- **Financial Intelligence**: EU contributions, total costs, budget analysis with filtering
+- **Geographic Intelligence**: NUTS codes, country/city distributions, multi-country analysis
+- **Program Intelligence**: Framework programmes, funding schemes, legal basis information
+- **Temporal Analysis**: Date-based filtering and trend analysis
+
+### 🎯 **Smart Selection & Ranking**
+- **Adaptive Result Selection**: Intelligent project selection based on relevance, recency, and significance
+- **Enhanced Relevance Scoring**: PostgreSQL ts_rank_cd with custom scoring algorithms
+- **Portfolio Analysis**: Automatic insights extraction (temporal, geographic, budget, framework trends)
+- **Multi-criteria Ranking**: Combines database relevance with LLM-based reranking
+
+### 🔍 **Enhanced RAG Pipeline**
+- **Phase 1**: Query extraction with enhanced preprocessing
+- **Phase 2**: Enhanced data retrieval (local DB with intelligent selection OR CORDIS API)
+- **Phase 3**: Project data extraction (CORDIS API mode only)
+- **Phase 3.5**: XML enrichment with concurrent processing (CORDIS API mode only)
+- **Phase 4**: Enhanced reranking with multiple criteria
+- **Phase 6**: Enhanced answer generation with portfolio insights
+
+## V5 Architecture
+
+### Database Mode Features
+```
+Query → Preprocessing → Full-Text Search → Adaptive Selection → Portfolio Analysis → Answer
+  ↓         ↓              ↓                    ↓                  ↓              ↓
+Cache    Domain       PostgreSQL         Relevance +         Temporal +      Enhanced
+Check    Keywords     tsvector          Recency +           Geographic +     Summaries
+         Expansion    ts_rank_cd        Budget +            Budget +         + Insights
+                                       Diversity           Framework
+```
+
+### CORDIS API Mode Features  
+```
+Query → Preprocessing → API Search → Data Extraction → XML Enrichment → Reranking → Answer
+  ↓         ↓            ↓             ↓                ↓                ↓          ↓
+Cache    Domain       Concurrent     Standard         Parallel         LLM +      Enhanced
+Check    Keywords     Requests       JSON             HTTP             Algo       Summaries
+         Expansion                   Parsing          Processing       Scoring    + Insights
+```
 
 ## Configuration
 
@@ -37,10 +78,16 @@ The API uses the following environment variables:
 
 ### V5 Database Configuration
 - `USE_LOCAL_DB`: Enable local database mode globally ("true" or "false", default: "false")
-- `DATABASE_URL`: PostgreSQL connection string for Supabase database
+- `DATABASE_URL`: PostgreSQL connection string for local database
   ```
   DATABASE_URL="postgresql://postgres:postgres@localhost:54322/postgres"
   ```
+
+### Docker Configuration
+V5 includes Docker-aware database URL handling for containerized deployments:
+- Automatically detects Docker environment
+- Replaces `localhost` with appropriate container networking
+- Supports both local development and Docker Compose setups
 
 ## API Endpoints
 
@@ -69,21 +116,9 @@ Enhanced health check with V5 database status and all component information.
   "components": {
     "api": "online",
     "providers": {
-      "V2": {
-        "openai": {"status": "configured"},
-        "gemini": {"status": "configured"}
-      },
-      "V3": {
-        "openai": {"status": "configured"},
-        "gemini": {"status": "configured"}
-      },
-      "V4": {
-        "openai": {"status": "configured"},
-        "gemini": {"status": "configured"}
-      },
       "V5": {
-        "openai": {"status": "configured"},
-        "gemini": {"status": "configured"}
+        "openai": {"status": "configured", "supports_local_db": true},
+        "gemini": {"status": "configured", "supports_local_db": true}
       }
     },
     "database": {
@@ -111,18 +146,6 @@ Lists all available AI providers and their configured models for V2, V3, V4, and
 ```json
 {
   "available_providers": {
-    "V2": {
-      "openai": {"model": "gpt-4-turbo", "is_default": false},
-      "gemini": {"model": "gemini-2.5-flash-preview-05-20", "is_default": true}
-    },
-    "V3": {
-      "openai": {"model": "gpt-4-turbo", "is_default": false},
-      "gemini": {"model": "gemini-2.5-flash-preview-05-20", "is_default": true}
-    },
-    "V4": {
-      "openai": {"model": "gpt-4-turbo", "is_default": false},
-      "gemini": {"model": "gemini-2.5-flash-preview-05-20", "is_default": true}
-    },
     "V5": {
       "openai": {
         "model": "gpt-4-turbo",
@@ -161,7 +184,13 @@ Check the status of the local database connection for V5.
   "status": "connected",
   "message": "Database connection successful",
   "use_local_db": true,
-  "database_url": "postgresql://***@localhost:54322/postgres"
+  "database_url": "postgresql://***@localhost:54322/postgres",
+  "stats": {
+    "total_projects": 45829,
+    "date_range": ["2007-01-01", "2024-12-31"],
+    "frameworks": 12,
+    "funding_schemes": 8
+  }
 }
 ```
 
@@ -199,7 +228,7 @@ The main endpoint for querying CORDIS projects with natural language questions. 
 **Enhanced V5 Response:**
 ```json
 {
-  "answer": "Based on our local CORDIS database, there are several notable AI initiatives in healthcare from recent years...",
+  "answer": "Based on our local CORDIS database, there are several notable AI initiatives in healthcare from recent years. The **FeatureCloud** project focuses on federated learning for medical data analysis, coordinated by the University of Hamburg (Germany) with 12 participants from 8 countries including 3 SMEs involved. This project runs from 2019-2023 with a total budget of €3.2M under Horizon 2020.\n\n🔗 **CORDIS Link:** https://cordis.europa.eu/project/id/826078\n\nAnother significant initiative is the **Human Brain Project SGA3** which develops AI-driven brain simulation platforms...",
   "ai_provider": "openai",
   "ai_version": "V5",
   "model_used": "gpt-4-turbo",
@@ -242,18 +271,34 @@ The main endpoint for querying CORDIS projects with natural language questions. 
       "processing_time": 1.45,
       "answer_length": 2847,
       "projects_found": 4,
-      "status": "success"
+      "status": "success",
+      "pipeline_phases": {
+        "query_extraction": 0.32,
+        "enhanced_local_db_search": 0.89,
+        "enhanced_reranking": 0.15,
+        "enhanced_answer_generation": 0.09
+      }
     },
     "cordis_api": {
       "processing_time": 8.32,
       "answer_length": 2654,
       "projects_found": 4,
-      "status": "success"
+      "status": "success",
+      "pipeline_phases": {
+        "query_extraction": 0.31,
+        "cordis_api_search": 3.21,
+        "data_extraction": 1.87,
+        "xml_enrichment": 2.45,
+        "enhanced_reranking": 0.18,
+        "enhanced_answer_generation": 0.30
+      }
     },
     "comparison": {
       "speedup_factor": 5.7,
       "time_saved": 6.87,
-      "local_faster": true
+      "local_faster": true,
+      "main_bottleneck_api": "xml_enrichment",
+      "main_advantage_local": "enhanced_local_db_search"
     }
   }
 }
@@ -275,7 +320,7 @@ Enhanced demo endpoint with V5 simulation including local database performance b
 **Response:**
 ```json
 {
-  "answer": "Based on the European research projects data, there are several notable...",
+  "answer": "Based on the European research projects data, there are several notable initiatives addressing climate change impacts on biodiversity. The ADAPT project studies ecosystem adaptation strategies across 14 European countries with €4.2M funding...",
   "ai_provider": "gemini",
   "ai_version": "V5",
   "data_source": "Local Database (Demo)",
@@ -284,6 +329,62 @@ Enhanced demo endpoint with V5 simulation including local database performance b
   "demo": true,
   "query": "What is the impact of climate change on biodiversity?"
 }
+```
+
+## V5 Database Features Deep Dive
+
+### Enhanced Search Capabilities
+
+**Full-Text Search with PostgreSQL:**
+```sql
+-- Example of V5's enhanced search query
+SELECT p.title, p.objective, 
+       ts_rank_cd(to_tsvector('english', p.title || ' ' || p.objective), 
+                  to_tsquery('english', 'artificial & intelligence'), 32) as relevance
+FROM projects p
+WHERE to_tsvector('english', p.title || ' ' || p.objective) @@ 
+      to_tsquery('english', 'artificial & intelligence')
+ORDER BY relevance DESC;
+```
+
+**Smart Query Preprocessing:**
+- Domain-specific keyword expansion (AI/ML, energy, health, mobility, environment, digital)
+- Stopword filtering and term optimization
+- OR/AND logic conversion to PostgreSQL tsquery format
+- Date and budget query parsing
+
+**Adaptive Result Selection Algorithm:**
+```python
+# V5's intelligent project scoring
+score = (relevance_score * 10) +           # Database relevance
+        (recency_bonus * 5) +              # More recent = higher score  
+        (budget_significance * 5) +        # Larger budget = more significant
+        (geographic_diversity * 3) +       # Multi-country bonus
+        (sme_involvement * 2) +            # SME participation bonus
+        (keyword_matches * 2)              # Question-specific matching
+```
+
+### Rich Consortium Data
+
+**Available Fields:**
+- **Participant Count**: Total number of organizations involved
+- **Country Distribution**: Number of countries and specific country list
+- **SME Involvement**: Count and percentage of Small-Medium Enterprises
+- **Coordinator Details**: Lead organization name, country, and city
+- **Geographic Codes**: NUTS codes for regional analysis
+- **Activity Types**: Organization activity classifications
+- **Financial Breakdown**: EC contributions, net contributions, total costs per organization
+
+**Enhanced Project Summaries:**
+```
+**FeatureCloud (826078)** [Relevance: 8.45]
+📅 Duration: 2019-01-01 to 2022-12-31 (Status: CLOSED)
+🏛️ Programme: H2020-EU.3.1. / RIA
+💰 Budget: €3,200,000
+🔗 CORDIS Link: https://cordis.europa.eu/project/id/826078
+🤝 Consortium: Coordinated by University Medical Center Hamburg-Eppendorf (Germany) | 12 participants from 8 countries (including 3 SMEs)
+
+Federated learning platform enabling privacy-preserving machine learning across distributed healthcare datasets. The project develops secure multi-party computation protocols for training AI models without centralizing sensitive medical data...
 ```
 
 ## Usage Examples
@@ -329,22 +430,34 @@ async function benchmarkPerformance(question) {
   
   const comparison = result.benchmark_results.comparison;
   console.log(`Local DB is ${comparison.speedup_factor}x faster, saving ${comparison.time_saved}s`);
+  console.log(`Main bottleneck in API mode: ${comparison.main_bottleneck_api}`);
   
   return result;
 }
 
-// Check database status
-async function checkDatabaseStatus() {
-  const response = await fetch('http://localhost:8000/api/database/status');
-  const status = await response.json();
+// Advanced V5 query with all options
+async function advancedV5Query() {
+  const response = await fetch('http://localhost:8000/api/query', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      question: "AI projects in healthcare with SME participation from last 5 years",
+      max_results: 8,
+      ai_version: "V5",
+      ai_provider: "gemini",
+      use_local_db: true
+    })
+  });
   
-  if (status.status === 'connected') {
-    console.log('✅ Database ready for fast queries');
-  } else {
-    console.log('⚠️ Database not available, will use CORDIS API');
-  }
+  const result = await response.json();
   
-  return status;
+  // Extract insights from response
+  console.log(`🔍 Query: ${result.answer.match(/User Question: (.+)/)?.[1]}`);
+  console.log(`📊 Data source: ${result.data_source}`);
+  console.log(`⚡ Processing time: ${result.processing_time}s`);
+  console.log(`📈 Projects found: ${result.projects_found}`);
+  
+  return result;
 }
 ```
 
@@ -353,6 +466,7 @@ async function checkDatabaseStatus() {
 ```python
 import requests
 import time
+import json
 
 def query_projects_v5(question, use_local_db=True, provider="gemini"):
     """Query projects using V5 with optional local database"""
@@ -376,7 +490,7 @@ def query_projects_v5(question, use_local_db=True, provider="gemini"):
         raise Exception(f"API error: {response.status_code} - {response.text}")
 
 def benchmark_performance(question):
-    """Compare local database vs CORDIS API performance"""
+    """Compare local database vs CORDIS API performance with detailed analysis"""
     response = requests.post('http://localhost:8000/api/query/benchmark', json={
         'question': question,
         'ai_version': 'V5'
@@ -385,43 +499,93 @@ def benchmark_performance(question):
     if response.status_code == 200:
         result = response.json()
         comparison = result['benchmark_results']['comparison']
+        local_phases = result['benchmark_results']['local_database']['pipeline_phases']
+        api_phases = result['benchmark_results']['cordis_api']['pipeline_phases']
         
-        print(f"🏃‍♂️ Performance Comparison:")
+        print(f"🏃‍♂️ Performance Comparison for: '{question}'")
         print(f"Local DB: {result['benchmark_results']['local_database']['processing_time']}s")
         print(f"CORDIS API: {result['benchmark_results']['cordis_api']['processing_time']}s")
         print(f"Speedup: {comparison['speedup_factor']}x faster with local database")
+        print(f"Time saved: {comparison['time_saved']}s")
+        
+        print(f"\n📊 Phase Breakdown:")
+        print(f"Local DB phases: {json.dumps(local_phases, indent=2)}")
+        print(f"API phases: {json.dumps(api_phases, indent=2)}")
         
         return result
     else:
         raise Exception(f"Benchmark error: {response.status_code}")
 
 def check_database_status():
-    """Check if local database is available"""
+    """Check if local database is available with detailed stats"""
     response = requests.get('http://localhost:8000/api/database/status')
     status = response.json()
     
     if status['status'] == 'connected':
         print("✅ Local database connected and ready")
+        if 'stats' in status:
+            stats = status['stats']
+            print(f"📊 Database contains {stats['total_projects']} projects")
+            print(f"📅 Date range: {stats['date_range'][0]} to {stats['date_range'][1]}")
+            print(f"🏛️ Framework programmes: {stats['frameworks']}")
+            print(f"💰 Funding schemes: {stats['funding_schemes']}")
     else:
         print(f"⚠️ Database status: {status['status']} - {status['message']}")
     
     return status
 
-# Example usage
-if __name__ == "__main__":
-    # Check database availability
-    db_status = check_database_status()
+def analyze_v5_capabilities():
+    """Demonstrate V5's advanced search capabilities"""
     
-    # Query with local database (fast)
-    if db_status['status'] == 'connected':
-        result = query_projects_v5("AI projects in healthcare", use_local_db=True)
-        print(f"Answer preview: {result['answer'][:200]}...")
+    # Test different query types
+    test_queries = [
+        "AI projects in healthcare with high SME participation",
+        "renewable energy projects from Germany and France after 2020",
+        "quantum computing research with budget over 5 million euros",
+        "climate change adaptation projects in Mediterranean countries"
+    ]
+    
+    print("🔬 Testing V5's Advanced Search Capabilities")
+    print("=" * 60)
+    
+    for i, query in enumerate(test_queries, 1):
+        print(f"\n{i}. Testing: {query}")
+        try:
+            result = query_projects_v5(query, use_local_db=True)
+            print(f"   ✅ Found {result['projects_found']} projects in {result['processing_time']}s")
+            
+            # Extract sample project info
+            if 'answer' in result and 'CORDIS Link:' in result['answer']:
+                links = [line.strip() for line in result['answer'].split('\n') 
+                        if 'CORDIS Link:' in line]
+                if links:
+                    print(f"   🔗 Sample: {links[0]}")
+        except Exception as e:
+            print(f"   ❌ Error: {e}")
+
+# Example usage with error handling
+if __name__ == "__main__":
+    try:
+        # Check database availability
+        db_status = check_database_status()
         
-        # Benchmark performance
-        benchmark_performance("machine learning projects")
-    else:
-        # Fallback to CORDIS API
-        result = query_projects_v5("AI projects in healthcare", use_local_db=False)
+        if db_status['status'] == 'connected':
+            # Test advanced capabilities
+            analyze_v5_capabilities()
+            
+            # Benchmark performance
+            print(f"\n🏁 Performance Benchmark")
+            print("=" * 60)
+            benchmark_performance("machine learning projects in healthcare")
+            
+        else:
+            # Fallback to CORDIS API
+            print("\n🔄 Fallback to CORDIS API mode")
+            result = query_projects_v5("AI projects in healthcare", use_local_db=False)
+            print(f"Answer preview: {result['answer'][:200]}...")
+            
+    except Exception as e:
+        print(f"❌ Error in example execution: {e}")
 ```
 
 ### Environment Setup
@@ -436,22 +600,66 @@ GEMINI_API_KEY=your_gemini_key_here
 USE_LOCAL_DB=true
 DATABASE_URL="postgresql://postgres:postgres@localhost:54322/postgres"
 
-# Supabase Local Development
+# Optional: Docker environment detection
+DOCKER_ENV=true  # Set in Docker containers
+
+# Optional: Supabase Local Development
 VITE_SUPABASE_URL="http://localhost:54321"
 VITE_SUPABASE_ANON_KEY="your_supabase_anon_key"
+```
+
+### Docker Compose Example
+
+```yaml
+# docker-compose.yml
+version: '3.8'
+services:
+  cordis-api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - USE_LOCAL_DB=true
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/cordis
+      - DOCKER_ENV=true
+      - DEFAULT_AI_PROVIDER=gemini
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=cordis
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+
+volumes:
+  postgres_data:
 ```
 
 ## Performance Comparison
 
 | Feature | V4 (CORDIS API) | V5 (Local DB) | V5 (CORDIS API) |
 |---------|----------------|---------------|-----------------|
-| Average Response Time | 8-15 seconds | 1-3 seconds | 8-15 seconds |
-| Data Richness | Standard | Enhanced | Standard |
-| Consortium Details | Basic | Detailed | Basic |
-| Financial Information | Limited | Comprehensive | Limited |
-| Geographic Insights | Basic | Advanced | Basic |
-| Caching | API + XML | Multi-level | API + XML |
-| Offline Capability | No | Yes | No |
+| **Average Response Time** | 8-15 seconds | 1-3 seconds | 8-15 seconds |
+| **Query Preprocessing** | Basic | Enhanced with domain keywords | Enhanced with domain keywords |
+| **Search Method** | API + XML enrichment | PostgreSQL full-text search | API + XML enrichment |
+| **Relevance Scoring** | LLM-based | ts_rank_cd + algorithmic | ts_rank_cd + algorithmic |
+| **Result Selection** | Sequential | Adaptive intelligence | Adaptive intelligence |
+| **Consortium Data** | Basic | Comprehensive | Enhanced via XML |
+| **Financial Information** | Limited | Full breakdown | Enhanced via XML |
+| **Geographic Insights** | Basic | NUTS codes + analysis | Enhanced via XML |
+| **Caching Strategy** | API + XML | Multi-level (4 types) | Multi-level (4 types) |
+| **Offline Capability** | No | Yes (full) | No |
+| **SME Analysis** | No | Yes (counts + percentage) | Basic |
+| **Portfolio Insights** | No | Yes (auto-generated) | Yes (auto-generated) |
+| **Concurrent Processing** | XML only | Database queries | XML enrichment |
 
 ## Error Handling
 
@@ -465,7 +673,12 @@ The API returns standard HTTP status codes with enhanced error details for V5:
 ```json
 {
   "error": "Error processing request",
-  "details": "Database connection failed: connection timeout"
+  "details": "Database connection failed: connection timeout",
+  "v5_context": {
+    "use_local_db": true,
+    "database_available": false,
+    "fallback_suggested": "Try setting use_local_db=false"
+  }
 }
 ```
 
@@ -473,47 +686,157 @@ The API returns standard HTTP status codes with enhanced error details for V5:
 ```json
 {
   "error": "Database not configured",
-  "details": "DATABASE_URL required when use_local_db=True"
+  "details": "DATABASE_URL required when use_local_db=True",
+  "suggestions": [
+    "Set DATABASE_URL environment variable",
+    "Use use_local_db=false for CORDIS API mode",
+    "Check database connectivity"
+  ]
+}
+```
+
+**Query-Specific Errors:**
+```json
+{
+  "error": "No projects found",
+  "details": "No projects match your query criteria",
+  "suggestions": [
+    "Try broader search terms",
+    "Check date ranges",
+    "Consider related keywords"
+  ],
+  "database_stats": {
+    "total_projects": 45829,
+    "date_range": ["2007-01-01", "2024-12-31"]
+  }
 }
 ```
 
 ## V5 Database Schema
 
-The local database includes rich project and organization data:
+The local database includes rich project and organization data optimized for fast retrieval:
 
 ### Projects Table
-- Basic project information (ID, title, acronym, objective)
-- Temporal data (start/end dates, status)
-- Financial data (total cost, EU contribution)
-- Program context (framework, funding scheme)
+```sql
+CREATE TABLE projects (
+    id VARCHAR PRIMARY KEY,
+    rcn VARCHAR,
+    title TEXT NOT NULL,
+    acronym VARCHAR,
+    objective TEXT,
+    "startDate" DATE,
+    "endDate" DATE,
+    status VARCHAR,
+    "totalCost" BIGINT,
+    "ecMaxContribution" BIGINT,
+    "frameworkProgramme" VARCHAR,
+    "fundingScheme" VARCHAR,
+    "legalBasis" VARCHAR,
+    topics TEXT,
+    "grantDoi" VARCHAR,
+    
+    -- Full-text search indexes
+    CONSTRAINT projects_title_idx GIN (to_tsvector('english', title)),
+    CONSTRAINT projects_objective_idx GIN (to_tsvector('english', objective))
+);
+```
 
 ### Organizations Table
-- Detailed participant information (name, role, SME status)
-- Geographic data (country, city, NUTS codes)
-- Financial contributions (EC contribution, total costs)
-- Organization metadata (activity type, contact info)
+```sql
+CREATE TABLE organizations (
+    "organisationID" VARCHAR PRIMARY KEY,
+    "projectID" VARCHAR REFERENCES projects(id),
+    name TEXT,
+    "legalName" TEXT,
+    role VARCHAR, -- 'coordinator', 'participant'
+    country VARCHAR,
+    city VARCHAR,
+    "nutsCode" VARCHAR,
+    "activityType" VARCHAR,
+    "SME" BOOLEAN DEFAULT FALSE,
+    "ecContribution" BIGINT,
+    "netEcContribution" BIGINT,
+    "totalCost" BIGINT,
+    
+    -- Geographic and organizational indexes
+    INDEX organizations_country_idx (country),
+    INDEX organizations_sme_idx ("SME"),
+    INDEX organizations_role_idx (role)
+);
+```
+
+### Key Optimizations
+- **Full-text search indexes** on title, objective, and topics
+- **Compound indexes** for common query patterns
+- **Materialized views** for complex aggregations
+- **Connection pooling** for concurrent access
+- **Query result caching** for repeated requests
 
 ## Limitations and Considerations
 
 ### V5 Specific
-1. **Local Database Dependency**: Enhanced features require proper database setup and maintenance
-2. **Data Freshness**: Local database may not have the latest projects compared to live CORDIS API
-3. **Storage Requirements**: Local database requires significant storage for full CORDIS dataset
+1. **Database Dependency**: Enhanced features require PostgreSQL setup and maintenance
+2. **Data Freshness**: Local database may lag behind live CORDIS by 24-48 hours
+3. **Storage Requirements**: Full CORDIS dataset requires ~5-10GB storage
+4. **Memory Usage**: Connection pooling and caching increase memory footprint
+5. **Index Maintenance**: Full-text indexes require periodic optimization
 
 ### General
-1. **Rate Limits**: API has rate limits based on AI provider limitations
-2. **Query Complexity**: Very complex queries may require longer processing time
-3. **Data Availability**: Response quality depends on available data in the database/CORDIS
+1. **Rate Limits**: API calls to OpenAI/Gemini have rate limitations
+2. **Query Complexity**: Very complex nested queries may timeout
+3. **Language Support**: Optimized for English, limited multilingual support
+4. **Historical Data**: Older projects may have incomplete consortium information
+
+### Recommendations
+1. **Production Setup**: Use dedicated PostgreSQL instance with sufficient resources
+2. **Monitoring**: Implement database performance monitoring
+3. **Backup Strategy**: Regular database backups for data protection
+4. **Update Cycle**: Establish process for refreshing local database from CORDIS
+5. **Scaling**: Consider read replicas for high-traffic scenarios
 
 ---
 
-**V5 Changelog:**
-- ✅ **Local Supabase Database Integration**: 3-5x faster queries with richer data
-- ✅ **Enhanced Performance Monitoring**: Detailed timing and caching metrics
-- ✅ **Comprehensive Consortium Data**: SME counts, geographic distribution, coordinator details
-- ✅ **Advanced Financial Intelligence**: Multi-level budget breakdown and EU funding details
-- ✅ **Benchmark Tools**: Compare local database vs CORDIS API performance
-- ✅ **Smart Caching**: Multi-level caching for optimal performance
-- ✅ **Connection Pooling**: Efficient database connection management
-- ✅ **Backward Compatibility**: Full compatibility with V2, V3, and V4 endpoints
-- ✅ **Enhanced Error Handling**: Database-specific error reporting and guidance
+## V5 Complete Changelog
+
+### ✅ **Core Enhancements**
+- **Local PostgreSQL Database Integration**: 3-5x faster queries with comprehensive data
+- **Enhanced 6-Phase RAG Pipeline**: Optimized flow from query to answer
+- **Intelligent Project Selection**: Multi-criteria adaptive ranking algorithm
+- **Portfolio Analysis Engine**: Automatic insights extraction and trend analysis
+- **Advanced Query Preprocessing**: Domain-specific keyword expansion and optimization
+
+### ✅ **Performance Optimizations**
+- **Connection Pooling**: Efficient database connection management (1-20 connections)
+- **Multi-level Caching**: API, database, XML, and query preprocessing caches
+- **Concurrent Processing**: Parallel XML enrichment inherited from V4
+- **Smart Query Optimization**: PostgreSQL tsvector with relevance scoring
+- **Docker-Aware Networking**: Automatic container environment detection
+
+### ✅ **Rich Data Access**
+- **Full-Text Search**: PostgreSQL ts_rank_cd with custom relevance algorithms
+- **Comprehensive Consortium Data**: SME counts, coordinator details, geographic distribution
+- **Financial Intelligence**: Multi-level budget analysis with EU contribution breakdowns
+- **Geographic Intelligence**: NUTS codes, country distributions, multi-country analysis
+- **Temporal Intelligence**: Date-based filtering with trend analysis
+
+### ✅ **Developer Experience**
+- **Enhanced Error Handling**: Context-aware error messages with suggestions
+- **Benchmark Tools**: Performance comparison between local DB and CORDIS API
+- **Backward Compatibility**: Full compatibility with V2, V3, and V4 endpoints
+- **Advanced Documentation**: Comprehensive examples and usage patterns
+- **Docker Support**: Container-ready with environment-specific configurations
+
+### ✅ **Answer Quality**
+- **Enhanced Project Summaries**: Rich formatting with consortium and financial details
+- **CORDIS Link Preservation**: Guaranteed inclusion of project links in responses
+- **Portfolio Insights**: Automatic trend analysis and pattern recognition
+- **Relevance Scoring**: Database-level relevance combined with LLM ranking
+- **Structured Responses**: Consistent formatting with emoji indicators and clear sections
+
+**Migration Path from V4:**
+- V5 maintains full API compatibility with V4
+- Local database mode provides immediate performance benefits
+- Enhanced consortium data enriches existing workflows
+- Benchmark tools help quantify performance improvements
+- Fallback to CORDIS API mode ensures reliability during database maintenance
+````
