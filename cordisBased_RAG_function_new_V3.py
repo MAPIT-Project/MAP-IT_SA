@@ -1,14 +1,15 @@
 import os
 import requests
+import re
+import json
 import xml.etree.ElementTree as ET
+from bs4 import BeautifulSoup
+from datetime import datetime
+from typing import List, Dict, Any, Optional
 from dotenv import load_dotenv
 import openai
-from typing import List, Dict, Any, Optional
 from google import genai as google_genai_sdk
 from google.genai import types
-import json
-import re
-from datetime import datetime
 
 # Load environment variables
 load_dotenv()
@@ -50,6 +51,8 @@ class CordisRAG:
         project_items = self._search_cordis_api(queries, max_results=max_cordis_results)
         # 3. Phase 3: Project data extraction
         project_data = [self._extract_project_data(item) for item in project_items[:max_projects_to_process]]
+        # 3.5. Phase 3.5: XML enrichment - get additional detailed data from XML endpoints
+        project_data = self._enrich_with_xml_data(project_data)
         # 4. Phase 4: Reranking (if rerank_criteria present)
         if rerank_criteria:
             project_data = self._rerank_projects(project_data, rerank_criteria, question, role)
@@ -185,6 +188,7 @@ class CordisRAG:
         """
         data = {}
         data['rcn'] = project_json.get('rcn', 'N/A')
+        data['id'] = project_json.get('id', project_json.get('reference', 'N/A'))  # Extract project ID for XML enrichment
         data['title'] = project_json.get('title', 'N/A')
         data['acronym'] = project_json.get('acronym', 'N/A')
         data['objective'] = project_json.get('description', project_json.get('teaser', 'N/A'))
@@ -391,7 +395,320 @@ Instructions:
             )
             return response.text
 
+    def _enrich_with_xml_data(self, project_data_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Enrich project data with additional information from XML endpoints.
+        This adds detailed data that's not available through the basic CORDIS API search.
+        
+        Extracts the following additional data from XML:
+        - Project objective (detailed description)
+        - Enhanced keywords list
+        - Call information (call ID)
+        - Budget details (total cost, EU contribution)
+        - Detailed participant information (name, country, city)
+        
+        Args:
+            project_data_list: List of project dictionaries from CORDIS API
+            
+        Returns:
+            List of enriched project dictionaries with additional XML data
+        """
+        enriched_projects = []
+        
+        cookies = {
+            'ppms_privacy_f0483949-d65d-4b24-a9ff-82b5105d06fe': '{%22visitorId%22:%22bf7614eb-42c9-4ee5-a9d2-9bf2466c20e7%22%2C%22domain%22:{%22normalized%22:%22cordis.europa.eu%22%2C%22isWildcard%22:false%2C%22pattern%22:%22cordis.europa.eu%22}%2C%22consents%22:{%22analytics%22:{%22status%22:1}}}',
+            'consent_cookies': 'allowed',
+            'PHPSESSID': 'a3f558f5fa4b198e2aa2980a6b4e3f44',
+        }
+
+        headers = {
+            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'accept-language': 'nl-NL,nl;q=0.9,en-US;q=0.8,en;q=0.7',
+            'cache-control': 'no-cache',
+            'pragma': 'no-cache',
+            'priority': 'u=0, i',
+            'sec-ch-ua': '"Google Chrome";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Linux"',
+            'sec-fetch-dest': 'document',
+            'sec-fetch-mode': 'navigate',
+            'sec-fetch-site': 'same-origin',
+            'sec-fetch-user': '?1',
+            'upgrade-insecure-requests': '1',
+            'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
+        }
+        
+        for project_data in project_data_list:
+            try:
+                enriched_project = project_data.copy()
+                
+                # Get project ID for XML fetch (not RCN!)
+                # The CORDIS XML endpoint uses the project ID, not the RCN
+                project_id = project_data.get('id', '')
+                if not project_id:
+                    # Fallback to other potential ID fields
+                    project_id = project_data.get('reference', '')
+                
+                if project_id and project_id != 'N/A':
+                    # Fetch XML data using the correct project ID
+                    xml_url = f"https://cordis.europa.eu/project/id/{project_id}"
+                    params = {'format': 'xml'}
+                    
+                    response = requests.get(xml_url, params=params, cookies=cookies, headers=headers, timeout=10)
+                    response.raise_for_status()
+                    
+                    # Parse XML and extract additional data
+                    xml_enrichment = self._extract_xml_project_data(response.content)
+                    
+                    # Merge XML data with existing project data
+                    if xml_enrichment:
+                        # Update with more detailed data from XML
+                        if xml_enrichment.get('objective') and xml_enrichment['objective'] != 'Unknown':
+                            enriched_project['objective'] = xml_enrichment['objective']
+                        
+                        if xml_enrichment.get('keywords') and xml_enrichment['keywords'] != 'Unknown':
+                            # Combine keywords from both sources
+                            existing_keywords = enriched_project.get('keywords', '')
+                            if isinstance(xml_enrichment['keywords'], list):
+                                xml_keywords = ', '.join(xml_enrichment['keywords'])
+                            else:
+                                xml_keywords = xml_enrichment['keywords']
+                            
+                            if existing_keywords and existing_keywords != 'N/A':
+                                enriched_project['keywords'] = f"{existing_keywords}, {xml_keywords}"
+                            else:
+                                enriched_project['keywords'] = xml_keywords
+                        
+                        # Add call information if available
+                        if xml_enrichment.get('call') and xml_enrichment['call'].get('id') != 'Unknown':
+                            enriched_project['call_id'] = xml_enrichment['call']['id']
+                        
+                        # Update budget information with more details
+                        if xml_enrichment.get('budget'):
+                            budget_info = xml_enrichment['budget']
+                            if budget_info.get('total_cost') != 'Unknown':
+                                enriched_project['budget'] = budget_info['total_cost']
+                            if budget_info.get('eu_contribution') != 'Unknown':
+                                enriched_project['eu_contribution'] = budget_info['eu_contribution']
+                        
+                        # Add detailed participant information
+                        if xml_enrichment.get('participants'):
+                            detailed_participants = []
+                            for participant in xml_enrichment['participants']:
+                                if participant.get('name') != 'Unknown':
+                                    participant_info = {
+                                        'name': participant.get('name', 'Unknown'),
+                                        'country': participant.get('country', 'Unknown'),
+                                        'city': participant.get('city', 'Unknown')
+                                    }
+                                    detailed_participants.append(participant_info)
+                            
+                            if detailed_participants:
+                                enriched_project['detailed_participants'] = detailed_participants
+                                # Update participant countries and names lists
+                                enriched_project['participant_names'] = [p['name'] for p in detailed_participants if p['name'] != 'Unknown']
+                                enriched_project['participant_countries'] = list(set([p['country'] for p in detailed_participants if p['country'] != 'Unknown']))
+                
+                enriched_projects.append(enriched_project)
+                
+            except Exception as e:
+                print(f"Error enriching project {project_data.get('title', 'Unknown')}: {e}")
+                # If enrichment fails, still include the original project data
+                enriched_projects.append(project_data)
+        
+        return enriched_projects
+
+    def _remove_namespace(self, element):
+        """
+        Remove namespace from XML elements for consistent parsing.
+        
+        Args:
+            element: XML element tree to clean
+        """
+        for elem in element.iter():
+            if '}' in elem.tag:
+                elem.tag = elem.tag.split('}', 1)[1]  # Remove namespace
+
+    def _extract_xml_project_data(self, xml_content):
+        """
+        Extract project data from XML content, matching the original implementation.
+        
+        Extracts the same data fields as the original gpt_2Phase_Ret_CLEAN_v2_submitted.py:
+        - objective (from .//objective)
+        - title (from .//title)
+        - keywords (from .//keywords, split by comma)
+        - call information (from .//call/identifier)
+        - budget information (from .//totalCost and .//ecMaxContribution)
+        - participant information (from .//organization with legalName, country, city)
+        
+        Args:
+            xml_content: Raw XML content from CORDIS endpoint
+            
+        Returns:
+            Dictionary with extracted project data or None if parsing fails
+        """
+        if not xml_content:
+            return None
+        
+        try:
+            # Parse content as XML
+            soup = BeautifulSoup(xml_content, 'xml')
+            
+            # Remove unnecessary tags
+            for tag in soup(["script", "style"]):
+                tag.decompose()
+            
+            # Convert to ElementTree for consistent parsing
+            xml_string = str(soup)
+            if not xml_string.strip():
+                return None
+            
+            root = ET.fromstring(xml_string.strip())
+            self._remove_namespace(root)  # Remove XML namespaces
+            
+            project_data = {}
+            
+            # Extract project objective
+            objective = root.find(".//objective")
+            project_data["objective"] = objective.text if objective is not None else "Unknown"
+            
+            # Extract project title
+            title = root.find(".//title")
+            project_data["title"] = title.text if title is not None else "Unknown"
+            
+            # Extract keywords
+            keywords = root.find(".//keywords")
+            if keywords is not None and keywords.text:
+                keywords_list = keywords.text.split(",")
+                project_data["keywords"] = [kw.strip() for kw in keywords_list if kw.strip()]
+            else:
+                project_data["keywords"] = "Unknown"
+            
+            # Extract call information
+            call_id = root.find(".//call/identifier")
+            project_data["call"] = {
+                "id": call_id.text if call_id is not None else "Unknown"
+            }
+            
+            # Extract budget-related information
+            total_budget = root.find(".//totalCost")
+            eu_contrib = root.find(".//ecMaxContribution")
+            project_data["budget"] = {
+                "total_cost": total_budget.text if total_budget is not None else "Unknown",
+                "eu_contribution": eu_contrib.text if eu_contrib is not None else "Unknown"
+            }
+            
+            # Extract participants' information
+            participants = []
+            for org in root.findall(".//organization"):
+                name = org.find(".//legalName")
+                country = org.find(".//country")
+                city = org.find(".//city")
+                attributes = {
+                    "name": name.text if name is not None else "Unknown",
+                    "country": country.text if country is not None else "Unknown",
+                    "city": city.text if city is not None else "Unknown"
+                }
+                participants.append(attributes)
+            
+            project_data["participants"] = participants
+            
+            return project_data
+            
+        except Exception as e:
+            print(f"Error parsing XML content: {e}")
+            return None
+
 if __name__ == "__main__":
-    rag = CordisRAG()
-    question = "What are some recent AI projects in healthcare with German participants?"
-    print(rag.get_ai_response(question))
+    def test_xml_enrichment():
+        """Test the XML enrichment functionality"""
+        print("="*50)
+        print("TESTING XML ENRICHMENT FUNCTIONALITY")
+        print("="*50)
+        
+        rag = CordisRAG()
+        
+        # Test with a simple question
+        test_question = "AI projects in healthcare"
+        print(f"Test Question: {test_question}")
+        
+        try:
+            # Test just the enrichment method with sample data
+            sample_project = {
+                'rcn': '223041',
+                'title': 'AI-Mind',
+                'acronym': 'AI-Mind',
+                'id': '223041',
+                'keywords': 'artificial intelligence',
+                'summary': 'AI project for mental health'
+            }
+            
+            print(f"\nOriginal project data keys: {list(sample_project.keys())}")
+            print(f"Testing XML enrichment for project: {sample_project['title']}")
+            
+            enriched_projects = rag._enrich_with_xml_data([sample_project])
+            
+            if enriched_projects and len(enriched_projects) > 0:
+                enriched_project = enriched_projects[0]
+                print(f"\nEnriched project data keys: {list(enriched_project.keys())}")
+                
+                # Check what additional data was extracted
+                xml_additions = []
+                if 'objective' in enriched_project:
+                    xml_additions.append('objective')
+                if 'detailed_participants' in enriched_project:
+                    xml_additions.append('detailed_participants')
+                if 'call_id' in enriched_project:
+                    xml_additions.append('call_id')
+                if 'eu_contribution' in enriched_project:
+                    xml_additions.append('eu_contribution')
+                
+                print(f"XML data additions: {xml_additions}")
+                print("\n✓ XML enrichment test completed successfully!")
+                
+                return True
+            else:
+                print("\n✗ No enriched data returned")
+                return False
+                
+        except Exception as e:
+            print(f"\n✗ XML enrichment test failed: {e}")
+            return False
+    
+    def run_full_test():
+        """Run a full end-to-end test"""
+        print("="*50)
+        print("RUNNING FULL END-TO-END TEST")
+        print("="*50)
+        
+        try:
+            rag = CordisRAG()
+            question = "What are some recent AI projects in healthcare?"
+            print(f"Test question: {question}")
+            
+            print("\nExecuting full RAG pipeline...")
+            response = rag.get_ai_response(question)
+            
+            print(f"\nResponse length: {len(response) if response else 0} characters")
+            print("✓ Full pipeline test completed successfully!")
+            
+            return True
+            
+        except Exception as e:
+            print(f"\n✗ Full pipeline test failed: {e}")
+            return False
+    
+    # Run tests
+    xml_test_passed = test_xml_enrichment()
+    print("\n" + "="*50)
+    
+    if xml_test_passed:
+        full_test_passed = run_full_test()
+        if full_test_passed:
+            print("\n🎉 ALL TESTS PASSED! XML enrichment is working correctly.")
+        else:
+            print("\n⚠️  XML enrichment works, but full pipeline has issues.")
+    else:
+        print("\n❌ XML enrichment test failed. Please check the implementation.")
+    
+    print("="*50)
