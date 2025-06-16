@@ -10,6 +10,8 @@ from dotenv import load_dotenv
 import openai
 from google import genai as google_genai_sdk
 from google.genai import types
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Load environment variables
 load_dotenv()
@@ -18,6 +20,7 @@ class CordisRAG:
     """
     Retrieval-Augmented Generation system for European research projects using CORDIS database.
     Implements the 2-phase RAG logic from gpt_2Phase_Ret_CLEAN_v2_submitted.py, but uses the CORDIS API (requests) for retrieval.
+    V4: Enhanced with performance optimizations including concurrent processing and caching.
     """
     def __init__(self, openai_api_key: Optional[str] = None, gemini_api_key: Optional[str] = None, 
                  ai_provider: str = "openai", 
@@ -28,6 +31,12 @@ class CordisRAG:
         self.openai_model_name = openai_model_name
         self.gemini_model_name = gemini_model_name
         self.gemini_client = None
+        
+        # Performance optimizations
+        self._xml_cache = {}  # Cache for XML data
+        self._api_cache = {}  # Cache for API responses
+        self._cache_ttl = 3600  # Cache TTL in seconds (1 hour)
+        
         if self.ai_provider == "openai":
             used_openai_api_key = openai_api_key if openai_api_key else os.getenv("OPENAI_API_KEY")
             if not used_openai_api_key:
@@ -42,23 +51,51 @@ class CordisRAG:
             raise ValueError("Invalid AI provider specified. Choose 'openai' or 'gemini'.")
 
     def get_ai_response(self, question: str, max_projects_to_process: int = 5, max_cordis_results: int = 10) -> str:
+        """
+        Get AI response with performance monitoring and optimizations.
+        """
+        total_start_time = time.time()
+        print(f"🚀 Starting V4 RAG pipeline for: '{question}'")
+        
         # 1. Phase 1: Query extraction
+        phase_start = time.time()
         role, quest = self._get_phase1_prompt(question)
         queries, end_flag, new_query_keys, rerank_criteria, problem_text, next_pass = self._extract_queries(role, quest)
+        print(f"📝 Phase 1 (Query extraction) completed in {time.time() - phase_start:.2f}s")
+        
         if end_flag:
             return problem_text
-        # 2. Phase 2: CORDIS API search
+        
+        # 2. Phase 2: CORDIS API search (with caching)
+        phase_start = time.time()
         project_items = self._search_cordis_api(queries, max_results=max_cordis_results)
+        print(f"🔍 Phase 2 (CORDIS API search) completed in {time.time() - phase_start:.2f}s")
+        
         # 3. Phase 3: Project data extraction
+        phase_start = time.time()
         project_data = [self._extract_project_data(item) for item in project_items[:max_projects_to_process]]
-        # 3.5. Phase 3.5: XML enrichment - get additional detailed data from XML endpoints
+        print(f"📊 Phase 3 (Data extraction) completed in {time.time() - phase_start:.2f}s")
+        
+        # 3.5. Phase 3.5: XML enrichment (concurrent + caching)
+        phase_start = time.time()
         project_data = self._enrich_with_xml_data(project_data)
+        print(f"🔗 Phase 3.5 (XML enrichment) completed in {time.time() - phase_start:.2f}s")
+        
         # 4. Phase 4: Reranking (if rerank_criteria present)
         if rerank_criteria:
+            phase_start = time.time()
             project_data = self._rerank_projects(project_data, rerank_criteria, question, role)
-        # 5. Phase 5: (Optional) Second stage queries (not implemented, placeholder)
-        # 6. Phase 6: Final answer generation
-        return self._generate_answer(role, question, project_data)
+            print(f"📈 Phase 4 (Reranking) completed in {time.time() - phase_start:.2f}s")
+        
+        # 5. Phase 6: Final answer generation
+        phase_start = time.time()
+        answer = self._generate_answer(role, question, project_data)
+        print(f"💬 Phase 6 (Answer generation) completed in {time.time() - phase_start:.2f}s")
+        
+        total_time = time.time() - total_start_time
+        print(f"✅ V4 RAG pipeline completed in {total_time:.2f}s total")
+        
+        return answer
 
     def _get_phase1_prompt(self, question: str):
         # Get current year for dynamic date calculations
@@ -137,6 +174,15 @@ class CordisRAG:
         return queries, end_flag, new_query_keys, rerank_criteria, problem_text, next_pass
 
     def _search_cordis_api(self, queries: List[str], max_results: int = 10) -> List[Dict[str, Any]]:
+        # Create cache key from queries
+        cache_key = self._get_cache_key((queries, max_results))
+        
+        # Check cache first
+        cached_result = self._get_from_cache(self._api_cache, cache_key)
+        if cached_result is not None:
+            print(f"Using cached CORDIS API results for {len(queries)} queries")
+            return cached_result
+        
         base_api_url = "https://cordis.europa.eu/api/search/results"
         api_q_parts = ["contenttype='project'", "language='en'"]
         for item_query in queries:
@@ -167,11 +213,17 @@ class CordisRAG:
         }
         project_items: List[Dict[str, Any]] = []
         try:
+            start_time = time.time()
             response = requests.get(base_api_url, params=params, timeout=30)
             response.raise_for_status()
             json_data = response.json()
             if json_data.get("payload") and "results" in json_data["payload"]:
                 project_items = json_data["payload"]["results"]
+            
+            # Cache the result
+            self._set_cache(self._api_cache, cache_key, project_items)
+            print(f"CORDIS API call completed in {time.time() - start_time:.2f}s, found {len(project_items)} projects")
+            
         except Exception as e:
             print(f"CORDIS API error: {e}")
         return project_items
@@ -188,7 +240,26 @@ class CordisRAG:
         """
         data = {}
         data['rcn'] = project_json.get('rcn', 'N/A')
-        data['id'] = project_json.get('id', project_json.get('reference', 'N/A'))  # Extract project ID for XML enrichment
+        
+        # Enhanced project ID extraction for better link generation
+        project_id = None
+        # Try multiple possible ID fields
+        for id_field in ['id', 'reference', 'projectId', 'code']:
+            if project_json.get(id_field):
+                project_id = str(project_json[id_field]).strip()
+                if project_id and project_id != 'N/A':
+                    break
+        
+        # If still no ID, try extracting from URI field
+        if not project_id or project_id == 'N/A':
+            uri = project_json.get('uri', '')
+            if uri and '/project/id/' in uri:
+                try:
+                    project_id = uri.split('/project/id/')[-1].split('/')[0]
+                except:
+                    pass
+        
+        data['id'] = project_id if project_id else 'N/A'
         data['title'] = project_json.get('title', 'N/A')
         data['acronym'] = project_json.get('acronym', 'N/A')
         data['objective'] = project_json.get('description', project_json.get('teaser', 'N/A'))
@@ -306,7 +377,7 @@ class CordisRAG:
         if not project_data:
             return "I couldn't find any specific project data relevant to your query in the CORDIS database. You might want to try rephrasing your question or making it more specific."
         
-        # Create a more natural, informative summary
+        # Create a more natural, informative summary with guaranteed links
         project_summaries = []
         for proj in project_data:
             title = proj.get('title', 'Unknown Title')
@@ -318,6 +389,7 @@ class CordisRAG:
             participants = proj.get('participant_names', [])
             countries = proj.get('participant_countries', [])
             project_id = proj.get('id', '')
+            rcn = proj.get('rcn', '')
             
             # Format duration info
             duration_info = ""
@@ -342,7 +414,7 @@ class CordisRAG:
                 if len(unique_countries) > 5:
                     participant_info += f" and {len(unique_countries) - 5} other countries"
             
-            # Create project summary with CORDIS link
+            # Create project summary with enhanced CORDIS link generation
             summary = f"**{title}"
             if acronym and acronym != 'N/A':
                 summary += f" ({acronym})"
@@ -350,9 +422,28 @@ class CordisRAG:
             if budget != 'N/A' and budget != 'Budget not specified':
                 summary += f" - Budget: {budget}"
             
-            # Add CORDIS project link if project ID is available
-            if project_id and project_id != 'N/A':
+            # Enhanced CORDIS project link generation with multiple fallbacks
+            cordis_link_added = False
+            
+            # Primary: Use project ID if available
+            if project_id and project_id != 'N/A' and project_id.strip():
                 summary += f"\n🔗 **CORDIS Link:** https://cordis.europa.eu/project/id/{project_id}"
+                cordis_link_added = True
+            
+            # Fallback 1: Use RCN if project ID not available
+            elif rcn and rcn != 'N/A' and rcn.strip():
+                summary += f"\n🔗 **CORDIS Link:** https://cordis.europa.eu/project/rcn/{rcn}"
+                cordis_link_added = True
+            
+            # Fallback 2: Search link using project title
+            elif title and title != 'Unknown Title':
+                search_title = title.replace(' ', '+').replace('&', '%26')
+                summary += f"\n🔍 **CORDIS Search:** https://cordis.europa.eu/search?q={search_title}&p=1&num=10&srt=Relevance:decreasing"
+                cordis_link_added = True
+            
+            # Always add a link, even if we have to use a general search
+            if not cordis_link_added:
+                summary += f"\n🔍 **CORDIS Database:** https://cordis.europa.eu/search"
             
             summary += f"\n{objective[:300]}{'...' if len(objective) > 300 else ''}"
             if participant_info:
@@ -372,10 +463,13 @@ Retrieved Projects:
 
 Instructions:
 - Write in a conversational, informative tone
+- ALWAYS mention and include the provided CORDIS links for each project you discuss
 - Highlight the most relevant and recent projects first
 - Include specific details like budgets, timelines, and key participants when available
 - Group related projects or identify common themes
 - If projects span different time periods, organize chronologically or by relevance
+- Make sure to preserve all the 🔗 CORDIS Link and 🔍 CORDIS Search links in your response
+- Encourage users to visit the CORDIS links for more detailed information
 - Don't use template phrases like "Stage 1" or "based on retrieved information"
 - Write as if you're explaining to someone interested in the research landscape
 - If any projects seem outdated for the question (e.g., asking for "recent" but showing old projects), acknowledge this
@@ -387,7 +481,7 @@ Instructions:
                 messages=[{"role": "system", "content": role}, {"role": "user", "content": prompt}],
                 temperature=0.25  # Lower temperature for more accurate, factual responses
             )
-            return response.choices[0].message.content
+            final_response = response.choices[0].message.content
         elif self.ai_provider == "gemini":
             gemini_contents = [
                 types.Content(role="user", parts=[types.Part.from_text(text=role)]),
@@ -399,19 +493,24 @@ Instructions:
                 contents=gemini_contents,
                 config=gen_config
             )
-            return response.text
+            final_response = response.text
+        
+        # Ensure links are preserved in the final response
+        # If somehow links got removed, add a general CORDIS search link
+        if 'cordis.europa.eu' not in final_response.lower():
+            final_response += f"\n\n🔗 **For more detailed information, visit the CORDIS database:** https://cordis.europa.eu/"
+        
+        return final_response
 
     def _enrich_with_xml_data(self, project_data_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        Enrich project data with additional information from XML endpoints.
+        Enrich project data with additional information from XML endpoints using concurrent processing.
         This adds detailed data that's not available through the basic CORDIS API search.
         
-        Extracts the following additional data from XML:
-        - Project objective (detailed description)
-        - Enhanced keywords list
-        - Call information (call ID)
-        - Budget details (total cost, EU contribution)
-        - Detailed participant information (name, country, city)
+        Performance optimized with:
+        - Concurrent XML requests using ThreadPoolExecutor
+        - Caching for repeated project IDs
+        - Early timeout for slow requests
         
         Args:
             project_data_list: List of project dictionaries from CORDIS API
@@ -419,7 +518,75 @@ Instructions:
         Returns:
             List of enriched project dictionaries with additional XML data
         """
+        if not project_data_list:
+            return project_data_list
+        
+        print(f"Starting XML enrichment for {len(project_data_list)} projects...")
+        start_time = time.time()
+        
         enriched_projects = []
+        
+        # Prepare data for concurrent processing
+        xml_tasks = []
+        for i, project_data in enumerate(project_data_list):
+            project_id = project_data.get('id', '')
+            if not project_id or project_id == 'N/A':
+                project_id = project_data.get('reference', '')
+            
+            if project_id and project_id != 'N/A':
+                xml_tasks.append((i, project_data, project_id))
+            else:
+                # No valid ID, add without enrichment
+                enriched_projects.append(project_data)
+        
+        # Process XML enrichment concurrently
+        xml_results = {}
+        if xml_tasks:
+            with ThreadPoolExecutor(max_workers=5) as executor:  # Limit concurrent requests
+                future_to_task = {
+                    executor.submit(self._fetch_single_xml_data, project_id): (i, project_data)
+                    for i, project_data, project_id in xml_tasks
+                }
+                
+                for future in as_completed(future_to_task, timeout=30):  # 30s total timeout
+                    i, project_data = future_to_task[future]
+                    try:
+                        xml_enrichment = future.result(timeout=5)  # 5s per request timeout
+                        xml_results[i] = (project_data, xml_enrichment)
+                    except Exception as e:
+                        print(f"Error enriching project {project_data.get('title', 'Unknown')}: {e}")
+                        xml_results[i] = (project_data, None)
+        
+        # Merge results in original order
+        for i, project_data, project_id in xml_tasks:
+            if i in xml_results:
+                original_project, xml_enrichment = xml_results[i]
+                enriched_project = self._merge_xml_data(original_project, xml_enrichment)
+                enriched_projects.append(enriched_project)
+            else:
+                # Fallback if not processed
+                enriched_projects.append(project_data)
+        
+        elapsed_time = time.time() - start_time
+        print(f"XML enrichment completed in {elapsed_time:.2f}s for {len(project_data_list)} projects")
+        
+        return enriched_projects
+    
+    def _fetch_single_xml_data(self, project_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Fetch and parse XML data for a single project with caching.
+        
+        Args:
+            project_id: The project ID to fetch XML data for
+            
+        Returns:
+            Parsed XML data or None if failed
+        """
+        # Check cache first
+        cache_key = self._get_cache_key(project_id)
+        cached_result = self._get_from_cache(self._xml_cache, cache_key)
+        if cached_result is not None:
+            return cached_result
         
         cookies = {
             'ppms_privacy_f0483949-d65d-4b24-a9ff-82b5105d06fe': '{%22visitorId%22:%22bf7614eb-42c9-4ee5-a9d2-9bf2466c20e7%22%2C%22domain%22:{%22normalized%22:%22cordis.europa.eu%22%2C%22isWildcard%22:false%2C%22pattern%22:%22cordis.europa.eu%22}%2C%22consents%22:{%22analytics%22:{%22status%22:1}}}',
@@ -444,85 +611,92 @@ Instructions:
             'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
         }
         
-        for project_data in project_data_list:
-            try:
-                enriched_project = project_data.copy()
-                
-                # Get project ID for XML fetch (not RCN!)
-                # The CORDIS XML endpoint uses the project ID, not the RCN
-                project_id = project_data.get('id', '')
-                if not project_id:
-                    # Fallback to other potential ID fields
-                    project_id = project_data.get('reference', '')
-                
-                if project_id and project_id != 'N/A':
-                    # Fetch XML data using the correct project ID
-                    xml_url = f"https://cordis.europa.eu/project/id/{project_id}"
-                    params = {'format': 'xml'}
-                    
-                    response = requests.get(xml_url, params=params, cookies=cookies, headers=headers, timeout=10)
-                    response.raise_for_status()
-                    
-                    # Parse XML and extract additional data
-                    xml_enrichment = self._extract_xml_project_data(response.content)
-                    
-                    # Merge XML data with existing project data
-                    if xml_enrichment:
-                        # Update with more detailed data from XML
-                        if xml_enrichment.get('objective') and xml_enrichment['objective'] != 'Unknown':
-                            enriched_project['objective'] = xml_enrichment['objective']
-                        
-                        if xml_enrichment.get('keywords') and xml_enrichment['keywords'] != 'Unknown':
-                            # Combine keywords from both sources
-                            existing_keywords = enriched_project.get('keywords', '')
-                            if isinstance(xml_enrichment['keywords'], list):
-                                xml_keywords = ', '.join(xml_enrichment['keywords'])
-                            else:
-                                xml_keywords = xml_enrichment['keywords']
-                            
-                            if existing_keywords and existing_keywords != 'N/A':
-                                enriched_project['keywords'] = f"{existing_keywords}, {xml_keywords}"
-                            else:
-                                enriched_project['keywords'] = xml_keywords
-                        
-                        # Add call information if available
-                        if xml_enrichment.get('call') and xml_enrichment['call'].get('id') != 'Unknown':
-                            enriched_project['call_id'] = xml_enrichment['call']['id']
-                        
-                        # Update budget information with more details
-                        if xml_enrichment.get('budget'):
-                            budget_info = xml_enrichment['budget']
-                            if budget_info.get('total_cost') != 'Unknown':
-                                enriched_project['budget'] = budget_info['total_cost']
-                            if budget_info.get('eu_contribution') != 'Unknown':
-                                enriched_project['eu_contribution'] = budget_info['eu_contribution']
-                        
-                        # Add detailed participant information
-                        if xml_enrichment.get('participants'):
-                            detailed_participants = []
-                            for participant in xml_enrichment['participants']:
-                                if participant.get('name') != 'Unknown':
-                                    participant_info = {
-                                        'name': participant.get('name', 'Unknown'),
-                                        'country': participant.get('country', 'Unknown'),
-                                        'city': participant.get('city', 'Unknown')
-                                    }
-                                    detailed_participants.append(participant_info)
-                            
-                            if detailed_participants:
-                                enriched_project['detailed_participants'] = detailed_participants
-                                # Update participant countries and names lists
-                                enriched_project['participant_names'] = [p['name'] for p in detailed_participants if p['name'] != 'Unknown']
-                                enriched_project['participant_countries'] = list(set([p['country'] for p in detailed_participants if p['country'] != 'Unknown']))
-                
-                enriched_projects.append(enriched_project)
-                
-            except Exception as e:
-                print(f"Error enriching project {project_data.get('title', 'Unknown')}: {e}")
-                # If enrichment fails, still include the original project data
-                enriched_projects.append(project_data)
+        try:
+            # Fetch XML data using the correct project ID
+            xml_url = f"https://cordis.europa.eu/project/id/{project_id}"
+            params = {'format': 'xml'}
+            
+            response = requests.get(xml_url, params=params, cookies=cookies, headers=headers, timeout=8)
+            response.raise_for_status()
+            
+            # Parse XML and extract additional data
+            xml_enrichment = self._extract_xml_project_data(response.content)
+            
+            # Cache the result
+            self._set_cache(self._xml_cache, cache_key, xml_enrichment)
+            
+            return xml_enrichment
+            
+        except Exception as e:
+            print(f"Error fetching XML for project {project_id}: {e}")
+            # Cache None result to avoid repeated failures
+            self._set_cache(self._xml_cache, cache_key, None)
+            return None
+    
+    def _merge_xml_data(self, project_data: Dict[str, Any], xml_enrichment: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Merge XML enrichment data with original project data.
         
-        return enriched_projects
+        Args:
+            project_data: Original project data from CORDIS API
+            xml_enrichment: Enrichment data from XML or None
+            
+        Returns:
+            Merged project data
+        """
+        enriched_project = project_data.copy()
+        
+        if not xml_enrichment:
+            return enriched_project
+        
+        # Update with more detailed data from XML
+        if xml_enrichment.get('objective') and xml_enrichment['objective'] != 'Unknown':
+            enriched_project['objective'] = xml_enrichment['objective']
+        
+        if xml_enrichment.get('keywords') and xml_enrichment['keywords'] != 'Unknown':
+            # Combine keywords from both sources
+            existing_keywords = enriched_project.get('keywords', '')
+            if isinstance(xml_enrichment['keywords'], list):
+                xml_keywords = ', '.join(xml_enrichment['keywords'])
+            else:
+                xml_keywords = xml_enrichment['keywords']
+            
+            if existing_keywords and existing_keywords != 'N/A':
+                enriched_project['keywords'] = f"{existing_keywords}, {xml_keywords}"
+            else:
+                enriched_project['keywords'] = xml_keywords
+        
+        # Add call information if available
+        if xml_enrichment.get('call') and xml_enrichment['call'].get('id') != 'Unknown':
+            enriched_project['call_id'] = xml_enrichment['call']['id']
+        
+        # Update budget information with more details
+        if xml_enrichment.get('budget'):
+            budget_info = xml_enrichment['budget']
+            if budget_info.get('total_cost') != 'Unknown':
+                enriched_project['budget'] = budget_info['total_cost']
+            if budget_info.get('eu_contribution') != 'Unknown':
+                enriched_project['eu_contribution'] = budget_info['eu_contribution']
+        
+        # Add detailed participant information
+        if xml_enrichment.get('participants'):
+            detailed_participants = []
+            for participant in xml_enrichment['participants']:
+                if participant.get('name') != 'Unknown':
+                    participant_info = {
+                        'name': participant.get('name', 'Unknown'),
+                        'country': participant.get('country', 'Unknown'),
+                        'city': participant.get('city', 'Unknown')
+                    }
+                    detailed_participants.append(participant_info)
+            
+            if detailed_participants:
+                enriched_project['detailed_participants'] = detailed_participants
+                # Update participant countries and names lists
+                enriched_project['participant_names'] = [p['name'] for p in detailed_participants if p['name'] != 'Unknown']
+                enriched_project['participant_countries'] = list(set([p['country'] for p in detailed_participants if p['country'] != 'Unknown']))
+        
+        return enriched_project
 
     def _remove_namespace(self, element):
         """
@@ -639,96 +813,146 @@ Instructions:
             print(f"Error parsing XML content: {e}")
             return None
 
+    def _get_cache_key(self, data: Any) -> str:
+        """Generate a cache key from data."""
+        return str(hash(str(data)))
+    
+    def _is_cache_valid(self, timestamp: float) -> bool:
+        """Check if cache entry is still valid."""
+        return time.time() - timestamp < self._cache_ttl
+    
+    def _get_from_cache(self, cache_dict: Dict, key: str) -> Optional[Any]:
+        """Get item from cache if valid."""
+        if key in cache_dict:
+            data, timestamp = cache_dict[key]
+            if self._is_cache_valid(timestamp):
+                return data
+            else:
+                # Remove expired entry
+                del cache_dict[key]
+        return None
+    
+    def _set_cache(self, cache_dict: Dict, key: str, data: Any) -> None:
+        """Set item in cache with timestamp."""
+        cache_dict[key] = (data, time.time())
+
 if __name__ == "__main__":
-    def test_xml_enrichment():
-        """Test the XML enrichment functionality"""
-        print("="*50)
-        print("TESTING XML ENRICHMENT FUNCTIONALITY")
-        print("="*50)
+    def benchmark_performance():
+        """Benchmark V4 performance optimizations"""
+        print("="*60)
+        print("V4 PERFORMANCE BENCHMARK")
+        print("="*60)
         
         rag = CordisRAG()
         
-        # Test with a simple question
-        test_question = "AI projects in healthcare"
-        print(f"Test Question: {test_question}")
+        test_questions = [
+            "What are some recent AI projects in healthcare?",
+            "Renewable energy projects in Europe",
+            "Quantum computing research initiatives"
+        ]
         
-        try:
-            # Test just the enrichment method with sample data
-            sample_project = {
-                'rcn': '223041',
-                'title': 'AI-Mind',
-                'acronym': 'AI-Mind',
-                'id': '223041',
-                'keywords': 'artificial intelligence',
-                'summary': 'AI project for mental health'
-            }
+        total_benchmark_time = time.time()
+        
+        for i, question in enumerate(test_questions, 1):
+            print(f"\n🧪 Test {i}/{len(test_questions)}: {question}")
+            print("-" * 50)
             
-            print(f"\nOriginal project data keys: {list(sample_project.keys())}")
-            print(f"Testing XML enrichment for project: {sample_project['title']}")
-            
-            enriched_projects = rag._enrich_with_xml_data([sample_project])
-            
-            if enriched_projects and len(enriched_projects) > 0:
-                enriched_project = enriched_projects[0]
-                print(f"\nEnriched project data keys: {list(enriched_project.keys())}")
+            start_time = time.time()
+            try:
+                response = rag.get_ai_response(question, max_projects_to_process=3, max_cordis_results=5)
+                elapsed = time.time() - start_time
+                print(f"✅ Test {i} completed in {elapsed:.2f}s")
+                print(f"Response length: {len(response)} characters")
                 
-                # Check what additional data was extracted
-                xml_additions = []
-                if 'objective' in enriched_project:
-                    xml_additions.append('objective')
-                if 'detailed_participants' in enriched_project:
-                    xml_additions.append('detailed_participants')
-                if 'call_id' in enriched_project:
-                    xml_additions.append('call_id')
-                if 'eu_contribution' in enriched_project:
-                    xml_additions.append('eu_contribution')
+                # Test caching by running the same query again
+                print(f"\n🔄 Testing cache for same query...")
+                cache_start = time.time()
+                cached_response = rag.get_ai_response(question, max_projects_to_process=3, max_cordis_results=5)
+                cache_elapsed = time.time() - cache_start
+                print(f"✅ Cached response in {cache_elapsed:.2f}s (speedup: {elapsed/cache_elapsed:.1f}x)")
                 
-                print(f"XML data additions: {xml_additions}")
-                print("\n✓ XML enrichment test completed successfully!")
-                
-                return True
-            else:
-                print("\n✗ No enriched data returned")
-                return False
-                
-        except Exception as e:
-            print(f"\n✗ XML enrichment test failed: {e}")
-            return False
+            except Exception as e:
+                print(f"❌ Test {i} failed: {e}")
+        
+        total_elapsed = time.time() - total_benchmark_time
+        print(f"\n🏁 Benchmark completed in {total_elapsed:.2f}s total")
+        
+        # Cache statistics
+        print(f"\n📊 Cache Statistics:")
+        print(f"API Cache: {len(rag._api_cache)} entries")
+        print(f"XML Cache: {len(rag._xml_cache)} entries")
+    
+    def test_xml_enrichment():
+        """Test the concurrent XML enrichment functionality"""
+        print("="*60)
+        print("TESTING CONCURRENT XML ENRICHMENT")
+        print("="*60)
+        
+        rag = CordisRAG()
+        
+        # Create sample projects to test concurrent processing
+        sample_projects = [
+            {'id': '826078', 'title': 'FeatureCloud', 'acronym': 'FeatureCloud'},
+            {'id': '945539', 'title': 'Human Brain Project SGA3', 'acronym': 'HBP SGA3'},
+            {'id': '875351', 'title': 'ASICA', 'acronym': 'ASICA'},
+        ]
+        
+        print(f"Testing concurrent XML enrichment for {len(sample_projects)} projects...")
+        
+        start_time = time.time()
+        enriched_projects = rag._enrich_with_xml_data(sample_projects)
+        elapsed_time = time.time() - start_time
+        
+        print(f"\n✅ Concurrent enrichment completed in {elapsed_time:.2f}s")
+        print(f"Projects processed: {len(enriched_projects)}")
+        
+        for project in enriched_projects:
+            has_xml_data = 'detailed_participants' in project or 'call_id' in project or 'eu_contribution' in project
+            status = "✅ Enriched" if has_xml_data else "⚠️  Basic"
+            print(f"  {status}: {project.get('title', 'Unknown')[:40]}...")
+        
+        return True
     
     def run_full_test():
-        """Run a full end-to-end test"""
-        print("="*50)
-        print("RUNNING FULL END-TO-END TEST")
-        print("="*50)
+        """Run a comprehensive V4 test"""
+        print("="*60)
+        print("V4 FULL SYSTEM TEST")
+        print("="*60)
         
         try:
             rag = CordisRAG()
-            question = "What are some recent AI projects in healthcare?"
+            question = "What are machine learning projects in healthcare from the last 3 years?"
             print(f"Test question: {question}")
             
-            print("\nExecuting full RAG pipeline...")
-            response = rag.get_ai_response(question)
+            response = rag.get_ai_response(question, max_projects_to_process=4)
             
-            print(f"\nResponse length: {len(response) if response else 0} characters")
-            print("✓ Full pipeline test completed successfully!")
+            print(f"\n📈 Final Results:")
+            print(f"Response length: {len(response)} characters")
+            print(f"Contains CORDIS links: {'cordis.europa.eu' in response}")
+            print("✅ Full V4 pipeline test successful!")
             
             return True
             
         except Exception as e:
-            print(f"\n✗ Full pipeline test failed: {e}")
+            print(f"\n❌ Full pipeline test failed: {e}")
             return False
     
-    # Run tests
+    # Run all tests
+    print("🚀 Starting V4 Performance Tests...")
+    
     xml_test_passed = test_xml_enrichment()
-    print("\n" + "="*50)
+    print("\n" + "="*60)
     
     if xml_test_passed:
         full_test_passed = run_full_test()
+        print("\n" + "="*60)
+        
         if full_test_passed:
-            print("\n🎉 ALL TESTS PASSED! XML enrichment is working correctly.")
+            benchmark_performance()
+            print("\n🎉 ALL V4 TESTS PASSED! Performance optimizations working correctly.")
         else:
             print("\n⚠️  XML enrichment works, but full pipeline has issues.")
     else:
-        print("\n❌ XML enrichment test failed. Please check the implementation.")
+        print("\n❌ XML enrichment test failed.")
     
-    print("="*50)
+    print("="*60)

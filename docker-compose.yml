@@ -5,10 +5,14 @@ services:
     build: .
     ports:
       - "8000:8000"
-    volumes:
-      - ./.env:/app/.env
     environment:
-      - DEFAULT_AI_PROVIDER=${DEFAULT_AI_PROVIDER:-openai}
-      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4-turbo}
-      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash-preview-05-20}
+      - DEFAULT_AI_PROVIDER=gemini
+      - USE_LOCAL_DB=true  # Set to true when database is available
+      - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres
+      - DOCKER_ENV=true
+      # Add your API keys here or use .env file
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # For Linux Docker
     restart: unless-stopped

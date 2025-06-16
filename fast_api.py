@@ -10,10 +10,11 @@ import asyncio
 import random
 import logging
 from dotenv import load_dotenv
-# Dynamically import both V2, V3, and V4 RAG classes
+# Dynamically import all RAG classes including V5
 from cordisBased_RAG_function_new_V2 import CordisRAG as CordisRAG_V2
 from cordisBased_RAG_function_new_V3 import CordisRAG as CordisRAG_V3
 from cordisBased_RAG_function_new_V4 import CordisRAG as CordisRAG_V4
+from cordisBased_RAG_function_new_V5 import CordisRAG as CordisRAG_V5
 
 # Load environment variables
 load_dotenv()
@@ -27,11 +28,32 @@ DEFAULT_AI_PROVIDER = os.getenv("DEFAULT_AI_PROVIDER", "gemini").lower()
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4-turbo")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-preview-05-20")
 
+# V5 specific configuration
+USE_LOCAL_DB = os.getenv("USE_LOCAL_DB", "false").lower() == "true"
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+# Docker-aware database URL handling
+def get_docker_database_url():
+    """
+    Get the appropriate database URL for Docker or local development.
+    """
+    db_url = DATABASE_URL
+    if db_url and "localhost" in db_url:
+        # Check if we're running in Docker
+        if os.path.exists("/.dockerenv") or os.getenv("DOCKER_ENV") == "true":
+            # Replace localhost with host.docker.internal for Docker
+            db_url = db_url.replace("localhost", "host.docker.internal")
+            print(f"🐳 Docker environment detected, using database URL: {db_url.split('@')[0]}@***")
+    return db_url
+
+# Update database URL for Docker compatibility
+DOCKER_DATABASE_URL = get_docker_database_url()
+
 # Create FastAPI app
 app = FastAPI(
     title="CORDIS Research Projects RAG API",
-    description="API for querying European research projects using a Retrieval-Augmented Generation approach",
-    version="1.0.0"
+    description="API for querying European research projects using a Retrieval-Augmented Generation approach. V5 supports local database integration for faster performance.",
+    version="1.1.0"
 )
 
 # Add CORS middleware
@@ -70,8 +92,8 @@ async def validation_exception_handler(request, exc):
         }
     )
 
-# Initialize the RAG systems for both providers and all versions
-rag_systems = {"V2": {}, "V3": {}, "V4": {}}
+# Initialize the RAG systems for all versions including V5
+rag_systems = {"V2": {}, "V3": {}, "V4": {}, "V5": {}}
 
 # Try to initialize OpenAI-based RAG for all versions
 try:
@@ -88,7 +110,26 @@ try:
             ai_provider="openai", 
             openai_model_name=OPENAI_MODEL
         )
-        print(f"OpenAI RAG systems initialized for V2, V3, and V4 with model: {OPENAI_MODEL}")
+        # V5 with local database support - handle Docker networking
+        try:
+            rag_systems["V5"]["openai"] = CordisRAG_V5(
+                ai_provider="openai", 
+                openai_model_name=OPENAI_MODEL,
+                use_local_db=USE_LOCAL_DB,
+                database_url=DOCKER_DATABASE_URL
+            )
+            print(f"OpenAI RAG systems initialized for V2, V3, V4, and V5 with model: {OPENAI_MODEL}")
+            if USE_LOCAL_DB:
+                print(f"V5 configured to use local database: {DOCKER_DATABASE_URL is not None}")
+        except Exception as db_e:
+            print(f"V5 OpenAI database connection failed: {db_e}")
+            # Initialize V5 without database as fallback
+            rag_systems["V5"]["openai"] = CordisRAG_V5(
+                ai_provider="openai", 
+                openai_model_name=OPENAI_MODEL,
+                use_local_db=False
+            )
+            print("V5 OpenAI initialized in API-only mode (no database)")
 except Exception as e:
     print(f"Failed to initialize OpenAI RAG system: {e}")
 
@@ -107,14 +148,33 @@ try:
             ai_provider="gemini", 
             gemini_model_name=GEMINI_MODEL
         )
-        print(f"Gemini RAG systems initialized for V2, V3, and V4 with model: {GEMINI_MODEL}")
+        # V5 with local database support - handle Docker networking
+        try:
+            rag_systems["V5"]["gemini"] = CordisRAG_V5(
+                ai_provider="gemini", 
+                gemini_model_name=GEMINI_MODEL,
+                use_local_db=USE_LOCAL_DB,
+                database_url=DOCKER_DATABASE_URL
+            )
+            print(f"Gemini RAG systems initialized for V2, V3, V4, and V5 with model: {GEMINI_MODEL}")
+            if USE_LOCAL_DB:
+                print(f"V5 configured to use local database: {DOCKER_DATABASE_URL is not None}")
+        except Exception as db_e:
+            print(f"V5 Gemini database connection failed: {db_e}")
+            # Initialize V5 without database as fallback
+            rag_systems["V5"]["gemini"] = CordisRAG_V5(
+                ai_provider="gemini", 
+                gemini_model_name=GEMINI_MODEL,
+                use_local_db=False
+            )
+            print("V5 Gemini initialized in API-only mode (no database)")
 except Exception as e:
     print(f"Failed to initialize Gemini RAG system: {e}")
 
 # Fallback to default if no systems initialized
-if not rag_systems["V2"] and not rag_systems["V3"] and not rag_systems["V4"]:
-    print("WARNING: No RAG systems initialized. Using default OpenAI configuration for V4.")
-    rag_systems["V4"]["openai"] = CordisRAG_V4()  # Default to OpenAI V4
+if not any(rag_systems.values()):
+    print("WARNING: No RAG systems initialized. Using default OpenAI configuration for V5.")
+    rag_systems["V5"]["openai"] = CordisRAG_V5(use_local_db=False)  # Default to API mode
 
 # Add demo examples for simulated responses
 DEMO_RESPONSES = [
@@ -134,7 +194,8 @@ class QuestionRequest(BaseModel):
     question: str
     max_results: Optional[int] = 5
     ai_provider: Optional[str] = None  # Allow specifying provider per request
-    ai_version: Optional[str] = "V4"   # Default to V4, allow switching between V2, V3, and V4
+    ai_version: Optional[str] = "V5"   # Default to V5, allow switching between V2, V3, V4, V5
+    use_local_db: Optional[bool] = None  # Override global setting for V5
 
 # Response models
 class ProjectParticipant(BaseModel):
@@ -157,7 +218,11 @@ class Project(BaseModel):
 class SearchResponse(BaseModel):
     answer: Optional[str] = None
     ai_provider: Optional[str] = None
+    ai_version: Optional[str] = None
     model_used: Optional[str] = None
+    data_source: Optional[str] = None  # "Local Database" or "CORDIS API"
+    processing_time: Optional[float] = None
+    projects_found: Optional[int] = None
     projects: Optional[List[Project]] = None
     error: Optional[bool] = False
     error_message: Optional[str] = None
@@ -167,10 +232,10 @@ async def root():
     """Health check endpoint."""
     return {"status": "online", "message": "CORDIS RAG API is running"}
 
-def get_rag_system(ai_provider: Optional[str] = None, ai_version: Optional[str] = "V4"):
-    version = ai_version.upper() if ai_version else "V4"
+def get_rag_system(ai_provider: Optional[str] = None, ai_version: Optional[str] = "V5"):
+    version = ai_version.upper() if ai_version else "V5"
     if version not in rag_systems:
-        raise HTTPException(status_code=400, detail=f"Invalid ai_version '{ai_version}'. Supported: V2, V3, V4.")
+        raise HTTPException(status_code=400, detail=f"Invalid ai_version '{ai_version}'. Supported: V2, V3, V4, V5.")
     # Use requested provider if specified and available
     if ai_provider and ai_provider.lower() in rag_systems[version]:
         return rag_systems[version][ai_provider.lower()], ai_provider.lower(), version
@@ -191,40 +256,88 @@ async def query_projects(request: QuestionRequest):
     """
     Query the CORDIS database with a natural language question.
     
-    This endpoint uses a RAG (Retrieval-Augmented Generation) system to:
-    1. Parse the user's question
-    2. Extract relevant search queries
-    3. Search the CORDIS database
-    4. Generate a comprehensive answer based on the retrieved data
+    Enhanced V5 endpoint with local database support for faster performance.
     
-    Parameters:    - question: A natural language question about European research projects
+    Parameters:
+    - question: A natural language question about European research projects
     - max_results: Maximum number of projects to retrieve (default: 5)
     - ai_provider: AI provider to use ("openai" or "gemini", optional)
-    - ai_version: AI version to use ("V2", "V3", or "V4", optional, default: "V4")
+    - ai_version: AI version to use ("V2", "V3", "V4", or "V5", optional, default: "V5")
+    - use_local_db: Override global database setting for V5 (optional)
     
     Returns:
     - answer: A comprehensive answer to the question
     - ai_provider: The AI provider used to generate the answer
+    - ai_version: The RAG version used
     - model_used: The specific model used to generate the answer
-    - projects: The retrieved project data (optional)
+    - data_source: Whether local database or CORDIS API was used
+    - processing_time: Time taken to process the request
+    - projects_found: Number of projects found
     """
+    import time
+    start_time = time.time()
+    
     try:
         logger.info(f"Processing query: '{request.question}' with provider: {request.ai_provider} and version: {request.ai_version}")
+        
         rag_system, provider, version = get_rag_system(request.ai_provider, request.ai_version)
+        
+        # For V5, handle local database override
+        if version == "V5" and request.use_local_db is not None:
+            # Create a new instance with the requested database setting
+            if provider == "openai":
+                rag_system = CordisRAG_V5(
+                    ai_provider="openai",
+                    openai_model_name=OPENAI_MODEL,
+                    use_local_db=request.use_local_db,
+                    database_url=DOCKER_DATABASE_URL
+                )
+            elif provider == "gemini":
+                rag_system = CordisRAG_V5(
+                    ai_provider="gemini",
+                    gemini_model_name=GEMINI_MODEL,
+                    use_local_db=request.use_local_db,
+                    database_url=DOCKER_DATABASE_URL
+                )
+        
+        # Get the response
         answer = rag_system.get_ai_response(
             request.question, 
             max_projects_to_process=request.max_results
         )
+        
+        processing_time = time.time() - start_time
+        
+        # Determine model used
         model_used = None
         if provider == "openai":
             model_used = getattr(rag_system, "openai_model_name", OPENAI_MODEL)
         elif provider == "gemini":
             model_used = getattr(rag_system, "gemini_model_name", GEMINI_MODEL)
+        
+        # Determine data source for V5
+        data_source = None
+        if version == "V5":
+            if hasattr(rag_system, 'use_local_db'):
+                data_source = "Local Database" if rag_system.use_local_db else "CORDIS API"
+            else:
+                data_source = "CORDIS API"  # fallback
+        else:
+            data_source = "CORDIS API"
+        
+        # Count projects mentioned in response (rough estimate)
+        projects_found = answer.count("🔗") if answer else 0
+        
         return SearchResponse(
             answer=answer,
             ai_provider=provider,
-            model_used=model_used
+            ai_version=version,
+            model_used=model_used,
+            data_source=data_source,
+            processing_time=round(processing_time, 2),
+            projects_found=projects_found
         )
+        
     except ValueError as ve:
         logger.error(f"Validation error: {str(ve)}")
         return JSONResponse(
@@ -250,20 +363,18 @@ async def demo_query(request: QuestionRequest, background_tasks: BackgroundTasks
     """
     Simulated query endpoint that returns a fake AI response after a short delay.
     
-    This endpoint is designed for UI testing and development purposes.
-    It does not perform actual CORDIS queries but returns predefined responses.
-    
-    Parameters:
-    - question: A natural language question (not actually processed)
-    - max_results: Ignored in demo mode
-    
-    Returns:
-    - answer: A simulated AI response
+    Enhanced with V5 simulation including local database performance benefits.
     """
     # Choose a random response
     response = random.choice(DEMO_RESPONSES)
-      # Simulate processing time (2-5 seconds)
-    delay = random.uniform(2, 5)
+    
+    # Simulate processing time - V5 with local DB is faster
+    if request.ai_version == "V5" and (request.use_local_db or USE_LOCAL_DB):
+        delay = random.uniform(0.5, 2.0)  # Faster with local DB
+        data_source = "Local Database (Demo)"
+    else:
+        delay = random.uniform(2, 5)  # Normal API speed
+        data_source = "CORDIS API (Demo)"
     
     # Return a response after delay
     await asyncio.sleep(delay)
@@ -275,68 +386,269 @@ async def demo_query(request: QuestionRequest, background_tasks: BackgroundTasks
         "answer": response,
         "ai_provider": provider,
         "ai_version": version,
+        "data_source": data_source,
+        "processing_time": round(delay, 2),
+        "projects_found": random.randint(3, 8),
         "demo": True,
-        "processing_time": f"{delay:.2f} seconds",
         "query": request.question
     }
 
 @app.get("/api/providers")
 async def list_providers():
     """
-    List all available AI providers and their models for V2, V3, and V4.
+    List all available AI providers and their models for V2, V3, V4, and V5.
     """
-    providers = {"V2": {}, "V3": {}, "V4": {}}
-    for version in ["V2", "V3", "V4"]:
+    providers = {"V2": {}, "V3": {}, "V4": {}, "V5": {}}
+    for version in ["V2", "V3", "V4", "V5"]:
         for provider_name, rag_system in rag_systems[version].items():
+            provider_info = {"is_default": provider_name == DEFAULT_AI_PROVIDER}
+            
             if provider_name == "openai":
-                providers[version][provider_name] = {
-                    "model": getattr(rag_system, "openai_model_name", OPENAI_MODEL),
-                    "is_default": provider_name == DEFAULT_AI_PROVIDER
-                }
+                provider_info["model"] = getattr(rag_system, "openai_model_name", OPENAI_MODEL)
             elif provider_name == "gemini":
-                providers[version][provider_name] = {
-                    "model": getattr(rag_system, "gemini_model_name", GEMINI_MODEL),
-                    "is_default": provider_name == DEFAULT_AI_PROVIDER
-                }
+                provider_info["model"] = getattr(rag_system, "gemini_model_name", GEMINI_MODEL)
+            
+            # Add V5 specific information
+            if version == "V5":
+                provider_info["supports_local_db"] = True
+                provider_info["local_db_enabled"] = getattr(rag_system, "use_local_db", False)
+                provider_info["database_available"] = DATABASE_URL is not None
+            
+            providers[version][provider_name] = provider_info
+    
     return {
         "available_providers": providers,
-        "default_provider": DEFAULT_AI_PROVIDER
+        "default_provider": DEFAULT_AI_PROVIDER,
+        "v5_features": {
+            "local_database_support": True,
+            "global_local_db_setting": USE_LOCAL_DB,
+            "database_configured": DATABASE_URL is not None
+        }
     }
+
+@app.get("/api/database/status")
+async def database_status():
+    """
+    Check the status of the local database connection for V5.
+    """
+    if not DOCKER_DATABASE_URL:
+        return {
+            "status": "not_configured",
+            "message": "DATABASE_URL not provided",
+            "database_url": None,
+            "docker_env": os.path.exists("/.dockerenv") or os.getenv("DOCKER_ENV") == "true"
+        }
+    
+    try:
+        # Test database connection using V5
+        if "openai" in rag_systems["V5"]:
+            test_rag = rag_systems["V5"]["openai"]
+        elif "gemini" in rag_systems["V5"]:
+            test_rag = rag_systems["V5"]["gemini"]
+        else:
+            # Create a test instance
+            test_rag = CordisRAG_V5(use_local_db=True, database_url=DOCKER_DATABASE_URL)
+        
+        if hasattr(test_rag, 'db_pool') and test_rag.db_pool:
+            # Try to get a connection to test
+            conn = test_rag.db_pool.getconn()
+            test_rag.db_pool.putconn(conn)
+            
+            return {
+                "status": "connected",
+                "message": "Database connection successful",
+                "use_local_db": USE_LOCAL_DB,
+                "database_url": DOCKER_DATABASE_URL.split('@')[0] + '@***' if '@' in DOCKER_DATABASE_URL else "***",
+                "docker_env": os.path.exists("/.dockerenv") or os.getenv("DOCKER_ENV") == "true"
+            }
+        else:
+            return {
+                "status": "not_connected",
+                "message": "Database pool not initialized",
+                "use_local_db": USE_LOCAL_DB,
+                "docker_env": os.path.exists("/.dockerenv") or os.getenv("DOCKER_ENV") == "true"
+            }
+            
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Database connection failed: {str(e)}",
+            "use_local_db": USE_LOCAL_DB,
+            "docker_env": os.path.exists("/.dockerenv") or os.getenv("DOCKER_ENV") == "true",
+            "suggested_solution": "If running in Docker, ensure Supabase is accessible via host.docker.internal:54322"
+        }
+
+@app.post("/api/query/benchmark")
+async def benchmark_query(request: QuestionRequest):
+    """
+    Benchmark endpoint to compare V5 local database vs CORDIS API performance.
+    """
+    if request.ai_version != "V5":
+        raise HTTPException(status_code=400, detail="Benchmarking only available for V5")
+    
+    if not DATABASE_URL:
+        raise HTTPException(status_code=400, detail="Database not configured for benchmarking")
+    
+    import time
+    
+    try:
+        rag_system, provider, version = get_rag_system(request.ai_provider, "V5")
+        
+        results = {}
+        
+        # Test with local database
+        try:
+            if provider == "openai":
+                rag_local = CordisRAG_V5(
+                    ai_provider="openai",
+                    openai_model_name=OPENAI_MODEL,
+                    use_local_db=True,
+                    database_url=DOCKER_DATABASE_URL
+                )
+            else:
+                rag_local = CordisRAG_V5(
+                    ai_provider="gemini",
+                    gemini_model_name=GEMINI_MODEL,
+                    use_local_db=True,
+                    database_url=DOCKER_DATABASE_URL
+                )
+
+            start_time = time.time()
+            answer_local = rag_local.get_ai_response(request.question, max_projects_to_process=request.max_results)
+            local_time = time.time() - start_time
+            
+            results["local_database"] = {
+                "processing_time": round(local_time, 2),
+                "answer_length": len(answer_local),
+                "projects_found": answer_local.count("🔗"),
+                "status": "success"
+            }
+        except Exception as e:
+            results["local_database"] = {
+                "status": "error",
+                "error": str(e)
+            }
+        
+        # Test with CORDIS API
+        try:
+            if provider == "openai":
+                rag_api = CordisRAG_V5(
+                    ai_provider="openai",
+                    openai_model_name=OPENAI_MODEL,
+                    use_local_db=False
+                )
+            else:
+                rag_api = CordisRAG_V5(
+                    ai_provider="gemini",
+                    gemini_model_name=GEMINI_MODEL,
+                    use_local_db=False
+                )
+            
+            start_time = time.time()
+            answer_api = rag_api.get_ai_response(request.question, max_projects_to_process=request.max_results)
+            api_time = time.time() - start_time
+            
+            results["cordis_api"] = {
+                "processing_time": round(api_time, 2),
+                "answer_length": len(answer_api),
+                "projects_found": answer_api.count("🔗"),
+                "status": "success"
+            }
+        except Exception as e:
+            results["cordis_api"] = {
+                "status": "error",
+                "error": str(e)
+            }
+        
+        # Calculate performance comparison
+        if ("local_database" in results and results["local_database"]["status"] == "success" and
+            "cordis_api" in results and results["cordis_api"]["status"] == "success"):
+            
+            local_time = results["local_database"]["processing_time"]
+            api_time = results["cordis_api"]["processing_time"]
+            speedup = api_time / local_time if local_time > 0 else 0
+            
+            results["comparison"] = {
+                "speedup_factor": round(speedup, 1),
+                "time_saved": round(api_time - local_time, 2),
+                "local_faster": local_time < api_time
+            }
+        
+        return {
+            "question": request.question,
+            "ai_provider": provider,
+            "benchmark_results": results
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Benchmark failed: {str(e)}")
 
 @app.get("/api/health")
 async def health_check():
-    """Detailed health check endpoint."""
-    # Add more comprehensive health checks here if needed
+    """Enhanced health check endpoint with V5 database status."""
     try:
         providers_status = {}
         overall_status = "healthy"
         
-        # Check OpenAI
-        if "openai" in rag_systems:
-            providers_status["openai"] = {"status": "configured"}
-        elif os.getenv("OPENAI_API_KEY"):
-            providers_status["openai"] = {"status": "key_present_not_initialized"}
-        else:
-            providers_status["openai"] = {"status": "not_configured"}
+        # Check all versions
+        for version in ["V2", "V3", "V4", "V5"]:
+            version_status = {}
+            
+            # Check OpenAI
+            if "openai" in rag_systems[version]:
+                version_status["openai"] = {"status": "configured"}
+            elif os.getenv("OPENAI_API_KEY"):
+                version_status["openai"] = {"status": "key_present_not_initialized"}
+            else:
+                version_status["openai"] = {"status": "not_configured"}
+            
+            # Check Gemini
+            if "gemini" in rag_systems[version]:
+                version_status["gemini"] = {"status": "configured"}
+            elif os.getenv("GEMINI_API_KEY"):
+                version_status["gemini"] = {"status": "key_present_not_initialized"}
+            else:
+                version_status["gemini"] = {"status": "not_configured"}
+            
+            providers_status[version] = version_status
+        
+        # Check V5 specific database status
+        database_status = "not_configured"
+        if DATABASE_URL:
+            try:
+                if "V5" in rag_systems and rag_systems["V5"]:
+                    # Test with any available V5 instance
+                    test_rag = next(iter(rag_systems["V5"].values()))
+                    if hasattr(test_rag, 'db_pool') and test_rag.db_pool:
+                        database_status = "connected"
+                    else:
+                        database_status = "configured_not_connected"
+                else:
+                    database_status = "configured_not_initialized"
+            except Exception:
+                database_status = "connection_error"
+        
+        # Determine overall status
+        v5_available = bool(rag_systems.get("V5"))
+        if not v5_available:
             overall_status = "warning"
-        
-        # Check Gemini
-        if "gemini" in rag_systems:
-            providers_status["gemini"] = {"status": "configured"}
-        elif os.getenv("GEMINI_API_KEY"):
-            providers_status["gemini"] = {"status": "key_present_not_initialized"}
-        else:
-            providers_status["gemini"] = {"status": "not_configured"}
-        
-        # If no providers are properly configured, mark as unhealthy
-        if "openai" not in rag_systems and "gemini" not in rag_systems:
-            overall_status = "unhealthy" 
         
         return {
             "status": overall_status,
             "components": {
                 "api": "online",
-                "providers": providers_status
+                "providers": providers_status,
+                "database": {
+                    "status": database_status,
+                    "url_configured": DATABASE_URL is not None,
+                    "local_db_enabled": USE_LOCAL_DB
+                }
+            },
+            "versions": {
+                "v2": bool(rag_systems.get("V2")),
+                "v3": bool(rag_systems.get("V3")),
+                "v4": bool(rag_systems.get("V4")),
+                "v5": bool(rag_systems.get("V5"))
             }
         }
     except Exception as e:
@@ -344,7 +656,3 @@ async def health_check():
             "status": "unhealthy",
             "error": str(e)
         }
-
-if __name__ == "__main__":
-    # Run the FastAPI app with uvicorn
-    uvicorn.run("fast_api:app", host="0.0.0.0", port=8000, reload=True)
