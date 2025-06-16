@@ -587,34 +587,80 @@ Instructions:
             conn = self.db_pool.getconn()
             cursor = conn.cursor(cursor_factory=DictCursor)
             
-            # Build SQL query from text queries
-            where_conditions = []
-            params = []
+            # Debug: Check what data is actually in the database
+            print(f"🔍 Searching for queries: {queries}")
+            
+            # First, let's see what projects we have in the database
+            cursor.execute("SELECT COUNT(*) as total_projects FROM projects")
+            total_count = cursor.fetchone()[0]
+            print(f"📊 Total projects in database: {total_count}")
+            
+            if total_count == 0:
+                print("⚠️ No projects found in database. Database might be empty.")
+                return []
+            
+            # Separate text queries from date queries
+            text_queries = []
+            date_conditions = []
             
             for query in queries:
                 query = query.strip()
                 if not query:
                     continue
                     
+                print(f"🔍 Processing query: '{query}'")
+                
+                # Check if this is a date query
+                if 'startdate>' in query.lower():
+                    # Extract date from startDate>YYYY-MM-DD format
+                    try:
+                        date_part = query.lower().split('startdate>')[1]
+                        date_conditions.append(f"p.\"startDate\" >= '{date_part}'")
+                        print(f"📅 Added date condition: startDate >= {date_part}")
+                        continue
+                    except:
+                        print(f"⚠️ Could not parse date query: {query}")
+                        continue
+                elif 'enddate>' in query.lower():
+                    try:
+                        date_part = query.lower().split('enddate>')[1]
+                        date_conditions.append(f"p.\"endDate\" >= '{date_part}'")
+                        print(f"📅 Added date condition: endDate >= {date_part}")
+                        continue
+                    except:
+                        print(f"⚠️ Could not parse date query: {query}")
+                        continue
+                
+                # This is a text query
+                text_queries.append(query)
+            
+            # Build SQL query from text queries with more flexible matching
+            where_conditions = []
+            params = []
+            
+            for query in text_queries:
                 # Handle OR conditions within a single query
                 or_terms = [term.strip() for term in query.split('OR') if term.strip()]
                 if len(or_terms) > 1:
                     # Multiple OR terms
                     or_conditions = []
                     for term in or_terms:
+                        term_pattern = f"%{term}%"
                         or_conditions.append("""
                             (LOWER(p.title) LIKE LOWER(%s) OR 
                              LOWER(p.objective) LIKE LOWER(%s) OR 
                              LOWER(p.acronym) LIKE LOWER(%s) OR
-                             LOWER(p.topics) LIKE LOWER(%s))
+                             LOWER(p.topics) LIKE LOWER(%s) OR
+                             LOWER(o.name) LIKE LOWER(%s) OR
+                             LOWER(o.country) LIKE LOWER(%s))
                         """)
-                        term_pattern = f"%{term}%"
-                        params.extend([term_pattern, term_pattern, term_pattern, term_pattern])
+                        params.extend([term_pattern] * 6)
                     
                     where_conditions.append(f"({' OR '.join(or_conditions)})")
                 else:
-                    # Single term
+                    # Single term - make search more flexible
                     term = or_terms[0] if or_terms else query
+                    term_pattern = f"%{term}%"
                     where_conditions.append("""
                         (LOWER(p.title) LIKE LOWER(%s) OR 
                          LOWER(p.objective) LIKE LOWER(%s) OR 
@@ -623,11 +669,26 @@ Instructions:
                          LOWER(o.name) LIKE LOWER(%s) OR
                          LOWER(o.country) LIKE LOWER(%s))
                     """)
-                    term_pattern = f"%{term}%"
-                    params.extend([term_pattern, term_pattern, term_pattern, term_pattern, term_pattern, term_pattern])
+                    params.extend([term_pattern] * 6)
+            
+            # Build the complete WHERE clause
+            all_conditions = []
+            
+            # Add text conditions
+            if where_conditions:
+                all_conditions.append(f"({' AND '.join(where_conditions)})")
+            
+            # Add date conditions
+            all_conditions.extend(date_conditions)
+            
+            # If no search conditions, return recent projects
+            if not all_conditions:
+                print("⚠️ No search conditions, returning recent projects")
+                where_clause = ""
+            else:
+                where_clause = f" AND ({' AND '.join(all_conditions)})"
             
             # Base SQL query with comprehensive joins and aggregations
-            # Fixed: Use correct case-sensitive column name "projectID" instead of "projectid"
             sql_query = f"""
                 SELECT DISTINCT
                     p.id,
@@ -666,13 +727,7 @@ Instructions:
                     ARRAY_AGG(DISTINCT o."activityType") FILTER (WHERE o."activityType" IS NOT NULL) as activity_types
                 FROM projects p
                 LEFT JOIN organizations o ON p.id = o."projectID"
-                WHERE p.id IS NOT NULL
-            """
-            
-            if where_conditions:
-                sql_query += f" AND ({' AND '.join(where_conditions)})"
-            
-            sql_query += f"""
+                WHERE p.id IS NOT NULL{where_clause}
                 GROUP BY p.id, p.acronym, p.title, p.objective, p."startDate", p."endDate", 
                          p."totalCost", p."ecMaxContribution", p.status, p.topics, 
                          p."frameworkProgramme", p."fundingScheme", p."legalBasis", p.rcn, p."grantDoi"
@@ -682,14 +737,51 @@ Instructions:
             params.append(max_results)
             
             start_time = time.time()
+            print(f"🔍 Executing SQL query with {len(params)} parameters")
             cursor.execute(sql_query, params)
             rows = cursor.fetchall()
+            
+            print(f"📊 Raw query returned {len(rows)} rows")
             
             # Convert to structured project data
             projects = []
             for row in rows:
                 project = self._format_db_project_data(dict(row))
                 projects.append(project)
+                print(f"  - {project['title'][:50]}...")
+            
+            # If no results and we had search conditions, try a much broader search
+            if len(projects) == 0:
+                print("🔍 No results found, trying fallback search...")
+                
+                # Show what types of projects we actually have
+                cursor.execute("""
+                    SELECT DISTINCT p."frameworkProgramme", COUNT(*) as count
+                    FROM projects p 
+                    GROUP BY p."frameworkProgramme"
+                    ORDER BY count DESC
+                    LIMIT 5
+                """)
+                frameworks = cursor.fetchall()
+                print("📊 Available frameworks in database:")
+                for fw in frameworks:
+                    print(f"  - {fw[0]}: {fw[1]} projects")
+                
+                # Try a very general search for recent projects
+                fallback_sql = """
+                    SELECT DISTINCT
+                        p.id, p.title, p.objective, p."startDate", p."frameworkProgramme"
+                    FROM projects p
+                    WHERE p."startDate" >= '2020-01-01'
+                    ORDER BY p."startDate" DESC
+                    LIMIT 5
+                """
+                cursor.execute(fallback_sql)
+                fallback_rows = cursor.fetchall()
+                
+                print(f"📊 Fallback search found {len(fallback_rows)} recent projects:")
+                for row in fallback_rows:
+                    print(f"  - {row[1][:60]}... ({row[3]})")
             
             # Cache the result
             self._set_cache(self._db_cache, cache_key, projects)
@@ -700,6 +792,8 @@ Instructions:
             
         except Exception as e:
             print(f"Database query error: {e}")
+            import traceback
+            traceback.print_exc()
             return []
         finally:
             if 'cursor' in locals():
@@ -712,6 +806,15 @@ Instructions:
         Format database row into standardized project data structure.
         Enhanced with richer database information.
         """
+        # Import Decimal for proper handling
+        from decimal import Decimal
+        
+        # Helper function to convert Decimal to float
+        def decimal_to_float(value):
+            if isinstance(value, Decimal):
+                return float(value)
+            return value
+        
         # Format dates - fix case sensitivity
         start_date = row.get('startDate', 'Unknown')
         if start_date and start_date != 'Unknown':
@@ -721,11 +824,11 @@ Instructions:
         if end_date and end_date != 'Unknown':
             end_date = str(end_date)
         
-        # Format budget information with enhanced details - fix case sensitivity
-        total_cost = row.get('totalCost')
-        ec_contribution = row.get('ecMaxContribution')
-        total_ec_contrib = row.get('total_ec_contribution')
-        total_net_ec_contrib = row.get('total_net_ec_contribution')
+        # Format budget information with enhanced details - fix case sensitivity and Decimal handling
+        total_cost = decimal_to_float(row.get('totalCost'))
+        ec_contribution = decimal_to_float(row.get('ecMaxContribution'))
+        total_ec_contrib = decimal_to_float(row.get('total_ec_contribution'))
+        total_net_ec_contrib = decimal_to_float(row.get('total_net_ec_contribution'))
         
         budget_parts = []
         if total_cost:
@@ -747,7 +850,7 @@ Instructions:
         participant_countries = [str(country) for country in participant_countries if country]
         participant_cities = [str(city) for city in participant_cities if city]
         
-        # Enhanced project data structure - fix case sensitivity
+        # Enhanced project data structure - fix case sensitivity and Decimal handling
         project_data = {
             'id': str(row.get('id', 'N/A')),
             'rcn': row.get('rcn', 'N/A'),
@@ -781,10 +884,10 @@ Instructions:
             'nuts_codes': row.get('nuts_codes') or [],
             'activity_types': row.get('activity_types') or [],
             
-            # Financial details
-            'total_ec_contribution': total_ec_contrib,
-            'total_net_ec_contribution': total_net_ec_contrib,
-            'total_org_costs': row.get('total_org_costs'),
+            # Financial details - convert Decimals to floats
+            'total_ec_contribution': decimal_to_float(total_ec_contrib),
+            'total_net_ec_contribution': decimal_to_float(total_net_ec_contrib),
+            'total_org_costs': decimal_to_float(row.get('total_org_costs')),
             
             # Additional metadata
             'keywords': row.get('topics', 'N/A'),  # Use topics as keywords for compatibility
@@ -1010,34 +1113,80 @@ Instructions:
             conn = self.db_pool.getconn()
             cursor = conn.cursor(cursor_factory=DictCursor)
             
-            # Build SQL query from text queries
-            where_conditions = []
-            params = []
+            # Debug: Check what data is actually in the database
+            print(f"🔍 Searching for queries: {queries}")
+            
+            # First, let's see what projects we have in the database
+            cursor.execute("SELECT COUNT(*) as total_projects FROM projects")
+            total_count = cursor.fetchone()[0]
+            print(f"📊 Total projects in database: {total_count}")
+            
+            if total_count == 0:
+                print("⚠️ No projects found in database. Database might be empty.")
+                return []
+            
+            # Separate text queries from date queries
+            text_queries = []
+            date_conditions = []
             
             for query in queries:
                 query = query.strip()
                 if not query:
                     continue
                     
+                print(f"🔍 Processing query: '{query}'")
+                
+                # Check if this is a date query
+                if 'startdate>' in query.lower():
+                    # Extract date from startDate>YYYY-MM-DD format
+                    try:
+                        date_part = query.lower().split('startdate>')[1]
+                        date_conditions.append(f"p.\"startDate\" >= '{date_part}'")
+                        print(f"📅 Added date condition: startDate >= {date_part}")
+                        continue
+                    except:
+                        print(f"⚠️ Could not parse date query: {query}")
+                        continue
+                elif 'enddate>' in query.lower():
+                    try:
+                        date_part = query.lower().split('enddate>')[1]
+                        date_conditions.append(f"p.\"endDate\" >= '{date_part}'")
+                        print(f"📅 Added date condition: endDate >= {date_part}")
+                        continue
+                    except:
+                        print(f"⚠️ Could not parse date query: {query}")
+                        continue
+                
+                # This is a text query
+                text_queries.append(query)
+            
+            # Build SQL query from text queries with more flexible matching
+            where_conditions = []
+            params = []
+            
+            for query in text_queries:
                 # Handle OR conditions within a single query
                 or_terms = [term.strip() for term in query.split('OR') if term.strip()]
                 if len(or_terms) > 1:
                     # Multiple OR terms
                     or_conditions = []
                     for term in or_terms:
+                        term_pattern = f"%{term}%"
                         or_conditions.append("""
                             (LOWER(p.title) LIKE LOWER(%s) OR 
                              LOWER(p.objective) LIKE LOWER(%s) OR 
                              LOWER(p.acronym) LIKE LOWER(%s) OR
-                             LOWER(p.topics) LIKE LOWER(%s))
+                             LOWER(p.topics) LIKE LOWER(%s) OR
+                             LOWER(o.name) LIKE LOWER(%s) OR
+                             LOWER(o.country) LIKE LOWER(%s))
                         """)
-                        term_pattern = f"%{term}%"
-                        params.extend([term_pattern, term_pattern, term_pattern, term_pattern])
+                        params.extend([term_pattern] * 6)
                     
                     where_conditions.append(f"({' OR '.join(or_conditions)})")
                 else:
-                    # Single term
+                    # Single term - make search more flexible
                     term = or_terms[0] if or_terms else query
+                    term_pattern = f"%{term}%"
                     where_conditions.append("""
                         (LOWER(p.title) LIKE LOWER(%s) OR 
                          LOWER(p.objective) LIKE LOWER(%s) OR 
@@ -1046,11 +1195,26 @@ Instructions:
                          LOWER(o.name) LIKE LOWER(%s) OR
                          LOWER(o.country) LIKE LOWER(%s))
                     """)
-                    term_pattern = f"%{term}%"
-                    params.extend([term_pattern, term_pattern, term_pattern, term_pattern, term_pattern, term_pattern])
+                    params.extend([term_pattern] * 6)
+            
+            # Build the complete WHERE clause
+            all_conditions = []
+            
+            # Add text conditions
+            if where_conditions:
+                all_conditions.append(f"({' AND '.join(where_conditions)})")
+            
+            # Add date conditions
+            all_conditions.extend(date_conditions)
+            
+            # If no search conditions, return recent projects
+            if not all_conditions:
+                print("⚠️ No search conditions, returning recent projects")
+                where_clause = ""
+            else:
+                where_clause = f" AND ({' AND '.join(all_conditions)})"
             
             # Base SQL query with comprehensive joins and aggregations
-            # Fixed: Use correct case-sensitive column name "projectID" instead of "projectid"
             sql_query = f"""
                 SELECT DISTINCT
                     p.id,
@@ -1089,13 +1253,7 @@ Instructions:
                     ARRAY_AGG(DISTINCT o."activityType") FILTER (WHERE o."activityType" IS NOT NULL) as activity_types
                 FROM projects p
                 LEFT JOIN organizations o ON p.id = o."projectID"
-                WHERE p.id IS NOT NULL
-            """
-            
-            if where_conditions:
-                sql_query += f" AND ({' AND '.join(where_conditions)})"
-            
-            sql_query += f"""
+                WHERE p.id IS NOT NULL{where_clause}
                 GROUP BY p.id, p.acronym, p.title, p.objective, p."startDate", p."endDate", 
                          p."totalCost", p."ecMaxContribution", p.status, p.topics, 
                          p."frameworkProgramme", p."fundingScheme", p."legalBasis", p.rcn, p."grantDoi"
@@ -1105,14 +1263,51 @@ Instructions:
             params.append(max_results)
             
             start_time = time.time()
+            print(f"🔍 Executing SQL query with {len(params)} parameters")
             cursor.execute(sql_query, params)
             rows = cursor.fetchall()
+            
+            print(f"📊 Raw query returned {len(rows)} rows")
             
             # Convert to structured project data
             projects = []
             for row in rows:
                 project = self._format_db_project_data(dict(row))
                 projects.append(project)
+                print(f"  - {project['title'][:50]}...")
+            
+            # If no results and we had search conditions, try a much broader search
+            if len(projects) == 0:
+                print("🔍 No results found, trying fallback search...")
+                
+                # Show what types of projects we actually have
+                cursor.execute("""
+                    SELECT DISTINCT p."frameworkProgramme", COUNT(*) as count
+                    FROM projects p 
+                    GROUP BY p."frameworkProgramme"
+                    ORDER BY count DESC
+                    LIMIT 5
+                """)
+                frameworks = cursor.fetchall()
+                print("📊 Available frameworks in database:")
+                for fw in frameworks:
+                    print(f"  - {fw[0]}: {fw[1]} projects")
+                
+                # Try a very general search for recent projects
+                fallback_sql = """
+                    SELECT DISTINCT
+                        p.id, p.title, p.objective, p."startDate", p."frameworkProgramme"
+                    FROM projects p
+                    WHERE p."startDate" >= '2020-01-01'
+                    ORDER BY p."startDate" DESC
+                    LIMIT 5
+                """
+                cursor.execute(fallback_sql)
+                fallback_rows = cursor.fetchall()
+                
+                print(f"📊 Fallback search found {len(fallback_rows)} recent projects:")
+                for row in fallback_rows:
+                    print(f"  - {row[1][:60]}... ({row[3]})")
             
             # Cache the result
             self._set_cache(self._db_cache, cache_key, projects)
@@ -1123,6 +1318,8 @@ Instructions:
             
         except Exception as e:
             print(f"Database query error: {e}")
+            import traceback
+            traceback.print_exc()
             return []
         finally:
             if 'cursor' in locals():
@@ -1135,6 +1332,15 @@ Instructions:
         Format database row into standardized project data structure.
         Enhanced with richer database information.
         """
+        # Import Decimal for proper handling
+        from decimal import Decimal
+        
+        # Helper function to convert Decimal to float
+        def decimal_to_float(value):
+            if isinstance(value, Decimal):
+                return float(value)
+            return value
+        
         # Format dates - fix case sensitivity
         start_date = row.get('startDate', 'Unknown')
         if start_date and start_date != 'Unknown':
@@ -1144,11 +1350,11 @@ Instructions:
         if end_date and end_date != 'Unknown':
             end_date = str(end_date)
         
-        # Format budget information with enhanced details - fix case sensitivity
-        total_cost = row.get('totalCost')
-        ec_contribution = row.get('ecMaxContribution')
-        total_ec_contrib = row.get('total_ec_contribution')
-        total_net_ec_contrib = row.get('total_net_ec_contribution')
+        # Format budget information with enhanced details - fix case sensitivity and Decimal handling
+        total_cost = decimal_to_float(row.get('totalCost'))
+        ec_contribution = decimal_to_float(row.get('ecMaxContribution'))
+        total_ec_contrib = decimal_to_float(row.get('total_ec_contribution'))
+        total_net_ec_contrib = decimal_to_float(row.get('total_net_ec_contribution'))
         
         budget_parts = []
         if total_cost:
@@ -1170,7 +1376,7 @@ Instructions:
         participant_countries = [str(country) for country in participant_countries if country]
         participant_cities = [str(city) for city in participant_cities if city]
         
-        # Enhanced project data structure - fix case sensitivity
+        # Enhanced project data structure - fix case sensitivity and Decimal handling
         project_data = {
             'id': str(row.get('id', 'N/A')),
             'rcn': row.get('rcn', 'N/A'),
@@ -1204,10 +1410,10 @@ Instructions:
             'nuts_codes': row.get('nuts_codes') or [],
             'activity_types': row.get('activity_types') or [],
             
-            # Financial details
-            'total_ec_contribution': total_ec_contrib,
-            'total_net_ec_contribution': total_net_ec_contrib,
-            'total_org_costs': row.get('total_org_costs'),
+            # Financial details - convert Decimals to floats
+            'total_ec_contribution': decimal_to_float(total_ec_contrib),
+            'total_net_ec_contribution': decimal_to_float(total_net_ec_contrib),
+            'total_org_costs': decimal_to_float(row.get('total_org_costs')),
             
             # Additional metadata
             'keywords': row.get('topics', 'N/A'),  # Use topics as keywords for compatibility
@@ -1410,6 +1616,242 @@ Instructions:
             final_response += f"\n\n🔗 **For more detailed information, visit the CORDIS database:** https://cordis.europa.eu/"
         
         return final_response
+
+    def _search_local_database(self, queries: List[str], max_results: int = 10) -> List[Dict[str, Any]]:
+        """
+        Search local Supabase database for projects matching the queries.
+        Returns enriched project data directly from the database.
+        """
+        # Create cache key from queries
+        cache_key = self._get_cache_key((queries, max_results, "local_db"))
+        
+        # Check cache first
+        cached_result = self._get_from_cache(self._db_cache, cache_key)
+        if cached_result is not None:
+            print(f"Using cached database results for {len(queries)} queries")
+            return cached_result
+        
+        if not self.db_pool:
+            print("❌ Database pool not available")
+            return []
+        
+        try:
+            conn = self.db_pool.getconn()
+            cursor = conn.cursor(cursor_factory=DictCursor)
+            
+            # Debug: Check what data is actually in the database
+            print(f"🔍 Searching for queries: {queries}")
+            
+            # First, let's see what projects we have in the database
+            cursor.execute("SELECT COUNT(*) as total_projects FROM projects")
+            total_count = cursor.fetchone()[0]
+            print(f"📊 Total projects in database: {total_count}")
+            
+            if total_count == 0:
+                print("⚠️ No projects found in database. Database might be empty.")
+                return []
+            
+            # Separate text queries from date queries
+            text_queries = []
+            date_conditions = []
+            
+            for query in queries:
+                query = query.strip()
+                if not query:
+                    continue
+                    
+                print(f"🔍 Processing query: '{query}'")
+                
+                # Check if this is a date query
+                if 'startdate>' in query.lower():
+                    # Extract date from startDate>YYYY-MM-DD format
+                    try:
+                        date_part = query.lower().split('startdate>')[1]
+                        date_conditions.append(f"p.\"startDate\" >= '{date_part}'")
+                        print(f"📅 Added date condition: startDate >= {date_part}")
+                        continue
+                    except:
+                        print(f"⚠️ Could not parse date query: {query}")
+                        continue
+                elif 'enddate>' in query.lower():
+                    try:
+                        date_part = query.lower().split('enddate>')[1]
+                        date_conditions.append(f"p.\"endDate\" >= '{date_part}'")
+                        print(f"📅 Added date condition: endDate >= {date_part}")
+                        continue
+                    except:
+                        print(f"⚠️ Could not parse date query: {query}")
+                        continue
+                
+                # This is a text query
+                text_queries.append(query)
+            
+            # Build SQL query from text queries with more flexible matching
+            where_conditions = []
+            params = []
+            
+            for query in text_queries:
+                # Handle OR conditions within a single query
+                or_terms = [term.strip() for term in query.split('OR') if term.strip()]
+                if len(or_terms) > 1:
+                    # Multiple OR terms
+                    or_conditions = []
+                    for term in or_terms:
+                        term_pattern = f"%{term}%"
+                        or_conditions.append("""
+                            (LOWER(p.title) LIKE LOWER(%s) OR 
+                             LOWER(p.objective) LIKE LOWER(%s) OR 
+                             LOWER(p.acronym) LIKE LOWER(%s) OR
+                             LOWER(p.topics) LIKE LOWER(%s) OR
+                             LOWER(o.name) LIKE LOWER(%s) OR
+                             LOWER(o.country) LIKE LOWER(%s))
+                        """)
+                        params.extend([term_pattern] * 6)
+                    
+                    where_conditions.append(f"({' OR '.join(or_conditions)})")
+                else:
+                    # Single term - make search more flexible
+                    term = or_terms[0] if or_terms else query
+                    term_pattern = f"%{term}%"
+                    where_conditions.append("""
+                        (LOWER(p.title) LIKE LOWER(%s) OR 
+                         LOWER(p.objective) LIKE LOWER(%s) OR 
+                         LOWER(p.acronym) LIKE LOWER(%s) OR
+                         LOWER(p.topics) LIKE LOWER(%s) OR
+                         LOWER(o.name) LIKE LOWER(%s) OR
+                         LOWER(o.country) LIKE LOWER(%s))
+                    """)
+                    params.extend([term_pattern] * 6)
+            
+            # Build the complete WHERE clause
+            all_conditions = []
+            
+            # Add text conditions
+            if where_conditions:
+                all_conditions.append(f"({' AND '.join(where_conditions)})")
+            
+            # Add date conditions
+            all_conditions.extend(date_conditions)
+            
+            # If no search conditions, return recent projects
+            if not all_conditions:
+                print("⚠️ No search conditions, returning recent projects")
+                where_clause = ""
+            else:
+                where_clause = f" AND ({' AND '.join(all_conditions)})"
+            
+            # Base SQL query with comprehensive joins and aggregations
+            sql_query = f"""
+                SELECT DISTINCT
+                    p.id,
+                    p.acronym,
+                    p.title,
+                    p.objective,
+                    p."startDate",
+                    p."endDate",
+                    p."totalCost",
+                    p."ecMaxContribution",
+                    p.status,
+                    p.topics,
+                    p."frameworkProgramme",
+                    p."fundingScheme",
+                    p."legalBasis",
+                    p.rcn,
+                    p."grantDoi",
+                    -- Aggregated organization data
+                    COUNT(o."organisationID") as participant_count,
+                    ARRAY_AGG(DISTINCT o.name) FILTER (WHERE o.name IS NOT NULL) as participant_names,
+                    ARRAY_AGG(DISTINCT o.country) FILTER (WHERE o.country IS NOT NULL) as participant_countries,
+                    ARRAY_AGG(DISTINCT o.city) FILTER (WHERE o.city IS NOT NULL) as participant_cities,
+                    SUM(o."ecContribution") as total_ec_contribution,
+                    SUM(o."netEcContribution") as total_net_ec_contribution,
+                    SUM(o."totalCost") as total_org_costs,
+                    -- Coordinator information (role = 'coordinator')
+                    MAX(CASE WHEN o.role = 'coordinator' THEN o.name END) as coordinator_name,
+                    MAX(CASE WHEN o.role = 'coordinator' THEN o.country END) as coordinator_country,
+                    MAX(CASE WHEN o.role = 'coordinator' THEN o.city END) as coordinator_city,
+                    -- SME information
+                    COUNT(CASE WHEN o."SME" = true THEN 1 END) as sme_count,
+                    -- Geographic diversity
+                    COUNT(DISTINCT o.country) as country_count,
+                    ARRAY_AGG(DISTINCT o."nutsCode") FILTER (WHERE o."nutsCode" IS NOT NULL) as nuts_codes,
+                    -- Organization types
+                    ARRAY_AGG(DISTINCT o."activityType") FILTER (WHERE o."activityType" IS NOT NULL) as activity_types
+                FROM projects p
+                LEFT JOIN organizations o ON p.id = o."projectID"
+                WHERE p.id IS NOT NULL{where_clause}
+                GROUP BY p.id, p.acronym, p.title, p.objective, p."startDate", p."endDate", 
+                         p."totalCost", p."ecMaxContribution", p.status, p.topics, 
+                         p."frameworkProgramme", p."fundingScheme", p."legalBasis", p.rcn, p."grantDoi"
+                ORDER BY p."startDate" DESC NULLS LAST, p."totalCost" DESC NULLS LAST
+                LIMIT %s
+            """
+            params.append(max_results)
+            
+            start_time = time.time()
+            print(f"🔍 Executing SQL query with {len(params)} parameters")
+            cursor.execute(sql_query, params)
+            rows = cursor.fetchall()
+            
+            print(f"📊 Raw query returned {len(rows)} rows")
+            
+            # Convert to structured project data
+            projects = []
+            for row in rows:
+                project = self._format_db_project_data(dict(row))
+                projects.append(project)
+                print(f"  - {project['title'][:50]}...")
+            
+            # If no results and we had search conditions, try a much broader search
+            if len(projects) == 0:
+                print("🔍 No results found, trying fallback search...")
+                
+                # Show what types of projects we actually have
+                cursor.execute("""
+                    SELECT DISTINCT p."frameworkProgramme", COUNT(*) as count
+                    FROM projects p 
+                    GROUP BY p."frameworkProgramme"
+                    ORDER BY count DESC
+                    LIMIT 5
+                """)
+                frameworks = cursor.fetchall()
+                print("📊 Available frameworks in database:")
+                for fw in frameworks:
+                    print(f"  - {fw[0]}: {fw[1]} projects")
+                
+                # Try a very general search for recent projects
+                fallback_sql = """
+                    SELECT DISTINCT
+                        p.id, p.title, p.objective, p."startDate", p."frameworkProgramme"
+                    FROM projects p
+                    WHERE p."startDate" >= '2020-01-01'
+                    ORDER BY p."startDate" DESC
+                    LIMIT 5
+                """
+                cursor.execute(fallback_sql)
+                fallback_rows = cursor.fetchall()
+                
+                print(f"📊 Fallback search found {len(fallback_rows)} recent projects:")
+                for row in fallback_rows:
+                    print(f"  - {row[1][:60]}... ({row[3]})")
+            
+            # Cache the result
+            self._set_cache(self._db_cache, cache_key, projects)
+            
+            print(f"Database query completed in {time.time() - start_time:.2f}s, found {len(projects)} projects")
+            
+            return projects
+            
+        except Exception as e:
+            print(f"Database query error: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
+        finally:
+            if 'cursor' in locals():
+                cursor.close()
+            if 'conn' in locals():
+                self.db_pool.putconn(conn)
 
     def _get_cache_key(self, data: Any) -> str:
         """Generate a cache key from data."""
