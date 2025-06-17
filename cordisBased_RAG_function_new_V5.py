@@ -17,9 +17,18 @@ from psycopg2.extras import DictCursor
 import psycopg2.pool
 from urllib.parse import urlparse
 from collections import defaultdict
+import hashlib
+from decimal import Decimal
 
 # Load environment variables
 load_dotenv()
+
+class DecimalEncoder(json.JSONEncoder):
+    """Custom JSON encoder that handles Decimal objects."""
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super(DecimalEncoder, self).default(obj)
 
 class CordisRAG:
     """
@@ -86,6 +95,129 @@ class CordisRAG:
         else:
             raise ValueError("Invalid AI provider specified. Choose 'openai' or 'gemini'.")
 
+    def _get_cache_key(self, data) -> str:
+        """Generate a cache key from data."""
+        return hashlib.md5(str(data).encode()).hexdigest()
+    
+    def _get_from_cache(self, cache_dict: dict, key: str):
+        """Get data from cache with TTL check."""
+        if key in cache_dict:
+            cached_data, timestamp = cache_dict[key]
+            if time.time() - timestamp < self._cache_ttl:
+                return cached_data
+            else:
+                # Cache expired, remove it
+                del cache_dict[key]
+        return None
+    
+    def _set_cache(self, cache_dict: dict, key: str, data):
+        """Set data in cache with timestamp."""
+        cache_dict[key] = (data, time.time())
+
+    def _format_db_project_data(self, row_dict: Dict[str, Any]) -> Dict[str, Any]:
+        """Format database row data into structured project data."""
+        project = {}
+        
+        # Basic project information
+        project['id'] = str(row_dict.get('id', 'N/A'))
+        project['rcn'] = str(row_dict.get('rcn', 'N/A'))
+        project['title'] = row_dict.get('title', 'Unknown Title')
+        project['acronym'] = row_dict.get('acronym', 'N/A')
+        project['objective'] = row_dict.get('objective', 'No description available')
+        project['status'] = row_dict.get('status', 'N/A')
+        
+        # Dates
+        project['startDate'] = str(row_dict.get('startDate', 'Unknown'))
+        project['endDate'] = str(row_dict.get('endDate', 'Unknown'))
+        
+        # Financial information
+        total_cost = row_dict.get('totalCost')
+        if total_cost and total_cost != 'N/A':
+            try:
+                # Convert Decimal to float for JSON serialization
+                project['totalCost'] = float(str(total_cost))
+                project['budget'] = f"€{float(str(total_cost)):,.0f}"
+            except (ValueError, TypeError):
+                project['totalCost'] = 0
+                project['budget'] = 'N/A'
+        else:
+            project['totalCost'] = 0
+            project['budget'] = 'N/A'
+        
+        ec_max_contribution = row_dict.get('ecMaxContribution')
+        if ec_max_contribution:
+            try:
+                # Convert Decimal to float for JSON serialization
+                project['ecMaxContribution'] = float(str(ec_max_contribution))
+            except (ValueError, TypeError):
+                project['ecMaxContribution'] = 0
+        else:
+            project['ecMaxContribution'] = 0
+        
+        # Programme information
+        project['frameworkProgramme'] = row_dict.get('frameworkProgramme', 'N/A')
+        project['fundingScheme'] = row_dict.get('fundingScheme', 'N/A')
+        project['legalBasis'] = row_dict.get('legalBasis', 'N/A')
+        project['topics'] = row_dict.get('topics', 'N/A')
+        project['grantDoi'] = row_dict.get('grantDoi', 'N/A')
+        
+        # Participant information from aggregated data
+        project['participant_count'] = row_dict.get('participant_count', 0)
+        project['country_count'] = row_dict.get('country_count', 0)
+        project['sme_count'] = row_dict.get('sme_count', 0)
+        
+        # Coordinator information
+        project['coordinator_name'] = row_dict.get('coordinator_name', 'N/A')
+        project['coordinator_country'] = row_dict.get('coordinator_country', 'N/A')
+        project['coordinator_city'] = row_dict.get('coordinator_city', 'N/A')
+        
+        # Participant details (arrays from PostgreSQL)
+        participant_names = row_dict.get('participant_names', [])
+        if participant_names and participant_names != [None]:
+            project['participant_names'] = [str(name) for name in participant_names if name]
+        else:
+            project['participant_names'] = []
+        
+        participant_countries = row_dict.get('participant_countries', [])
+        if participant_countries and participant_countries != [None]:
+            project['participant_countries'] = [str(country) for country in participant_countries if country]
+        else:
+            project['participant_countries'] = []
+        
+        participant_cities = row_dict.get('participant_cities', [])
+        if participant_cities and participant_cities != [None]:
+            project['participant_cities'] = [str(city) for city in participant_cities if city]
+        else:
+            project['participant_cities'] = []
+        
+        # Financial aggregations - convert Decimals to floats
+        project['total_ec_contribution'] = float(str(row_dict.get('total_ec_contribution', 0) or 0))
+        project['total_net_ec_contribution'] = float(str(row_dict.get('total_net_ec_contribution', 0) or 0))
+        project['total_org_costs'] = float(str(row_dict.get('total_org_costs', 0) or 0))
+        
+        # Additional arrays
+        nuts_codes = row_dict.get('nuts_codes', [])
+        if nuts_codes and nuts_codes != [None]:
+            project['nuts_codes'] = [str(code) for code in nuts_codes if code]
+        else:
+            project['nuts_codes'] = []
+        
+        activity_types = row_dict.get('activity_types', [])
+        if activity_types and activity_types != [None]:
+            project['activity_types'] = [str(activity) for activity in activity_types if activity]
+        else:
+            project['activity_types'] = []
+        
+        # Relevance score (if available from search)
+        project['relevance_score'] = row_dict.get('relevance_score', 0)
+        
+        # Legacy fields for compatibility
+        project['keywords'] = project.get('topics', 'N/A')
+        project['call_info'] = f"{project['frameworkProgramme']} / {project['fundingScheme']}"
+        project['publications'] = 'N/A'  # Not available in basic project data
+        
+        return project
+
     def _initialize_database_optimization(self):
         """Initialize database-specific optimizations and analysis."""
         try:
@@ -141,7 +273,7 @@ class CordisRAG:
             'ai_ml': ['artificial intelligence', 'machine learning', 'deep learning', 'neural networks', 
                      'computer vision', 'natural language processing', 'nlp', 'ai', 'ml'],
             'energy': ['renewable energy', 'solar', 'wind', 'battery', 'energy storage', 'green energy',
-                      'photovoltaic', 'hydroelectric', 'geothermal', 'energy efficiency'],
+                      'photovoltaic', 'hydroelectric', 'geothermal', 'energy efficiency', 'nuclear'],
             'health': ['healthcare', 'medical', 'pharmaceutical', 'biomedical', 'clinical', 'therapy',
                       'drug discovery', 'precision medicine', 'digital health', 'telemedicine'],
             'mobility': ['transportation', 'autonomous vehicles', 'electric vehicles', 'smart mobility',
@@ -374,7 +506,21 @@ class CordisRAG:
         # Handle OR conditions
         if ' OR ' in query.upper():
             terms = [term.strip() for term in re.split(r'\s+OR\s+', query, flags=re.IGNORECASE)]
-            return ' | '.join(f'"{term}"' for term in terms if term)
+            # Clean terms - remove quotes and escape special characters
+            clean_terms = []
+            for term in terms:
+                if term:
+                    # Remove any existing quotes and clean the term
+                    clean_term = term.replace('"', '').replace("'", "").strip()
+                    # Split multi-word terms and join with &
+                    if ' ' in clean_term:
+                        words = [w for w in clean_term.split() if len(w) > 2 and w.lower() not in self._stopwords]
+                        if words:
+                            clean_terms.append(' & '.join(words))
+                    elif len(clean_term) > 2 and clean_term.lower() not in self._stopwords:
+                        clean_terms.append(clean_term)
+            
+            return ' | '.join(clean_terms) if clean_terms else 'nuclear'
         
         # Handle AND conditions (default)
         terms = query.split()
@@ -382,9 +528,10 @@ class CordisRAG:
         meaningful_terms = [term for term in terms if len(term) > 2 and term.lower() not in self._stopwords]
         
         if not meaningful_terms:
-            return f'"{query}"'
+            # Fallback to a simple term
+            return 'nuclear'
         
-        return ' & '.join(f'"{term}"' for term in meaningful_terms[:5])  # Limit to 5 terms
+        return ' & '.join(meaningful_terms[:5])  # Limit to 5 terms
 
     def _parse_budget_query(self, query: str) -> str:
         """Parse budget queries like totalCost>1000000."""
@@ -731,14 +878,15 @@ Instructions:
                 if funding_scheme != 'N/A' and funding_scheme != framework_programme:
                     summary += f" / {funding_scheme}"
             
+            # Add budget information
             if budget != 'N/A' and budget != 'Budget not specified':
                 summary += f"\n💰 **Budget:** {budget}"
             
             # Enhanced CORDIS links
             if project_id and project_id != 'N/A':
-                summary += f"\n🔗 **CORDIS:** https://cordis.europa.eu/project/id/{project_id}"
+                summary += f"\n🔗 **CORDIS Link:** https://cordis.europa.eu/project/id/{project_id}"
             elif rcn and rcn != 'N/A':
-                summary += f"\n🔗 **CORDIS:** https://cordis.europa.eu/project/rcn/{rcn}"
+                summary += f"\n🔗 **CORDIS Link:** https://cordis.europa.eu/project/rcn/{rcn}"
             
             # Consortium information
             consortium_info = []
@@ -794,6 +942,10 @@ Instructions:
         
         return response
 
+    def _enrich_with_xml_data(self, project_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Placeholder for XML enrichment - not needed for local database mode."""
+        return project_data
+
     def _call_llm_for_generation(self, role: str, prompt: str) -> str:
         """Centralized LLM calling with error handling."""
         try:
@@ -818,7 +970,8 @@ Instructions:
                 return response.text
         except Exception as e:
             print(f"LLM generation error: {e}")
-            return "I apologize, but I encountered an error generating the response. Please try again."
+        
+        return "I apologize, but I encountered an error generating the response. Please try again."
 
     def _get_phase1_prompt(self, question: str):
         # Get current year for dynamic date calculations
@@ -1066,7 +1219,7 @@ Instructions:
 
     def _rerank_projects(self, project_data, rerank_criteria, question, role):
         # Use LLM to rerank the projects according to rerank_criteria
-        prompt_rerank = f"""The json files embodying detailed information about relevant projects are as follows: {json.dumps(project_data)}. Sort those json files according to the criteria in the following list: {rerank_criteria}. Also consider their relevance to the question and their overall importance. At the very and of your response, give the sorted list of titles of projects. The titles you put in the list must be written totally the same as they are in the json file. The list must be a python list named sorted_titles and must be in a single line. Except that list, do not include any python code in your reponse."""
+        prompt_rerank = f"""The json files embodying detailed information about relevant projects are as follows: {json.dumps(project_data, cls=DecimalEncoder)}. Sort those json files according to the criteria in the following list: {rerank_criteria}. Also consider their relevance to the question and their overall importance. At the very and of your response, give the sorted list of titles of projects. The titles you put in the list must be written totally the same as they are in the json file. The list must be a python list named sorted_titles and must be in a single line. Except that list, do not include any python code in your reponse."""
         if self.ai_provider == "openai":
             reranker_response = self.openai_client.chat.completions.create(
                 model=self.openai_model_name,
@@ -1199,10 +1352,10 @@ Instructions:
             if proj.get('call_info') and proj['call_info'] != 'N/A':
                 summary += f"\n📞 **Call Info:** {proj['call_info']}"
             
-            summaries.append(summary)
+            project_summaries.append(summary)
         
         # Create enhanced prompt for answer generation
-        projects_text = "\n\n".join(summaries)
+        projects_text = "\n\n".join(project_summaries)
         data_source_note = "from our local CORDIS database" if self.use_local_db else "from the CORDIS database"
         
         prompt = f"""Based on the following European research projects {data_source_note}, provide a comprehensive and natural answer to the user's question.
@@ -1254,633 +1407,6 @@ Instructions:
         
         return final_response
 
-    def _search_local_database(self, queries: List[str], max_results: int = 10) -> List[Dict[str, Any]]:
-        """
-        Enhanced database search with full-text search, query optimization, and better relevance scoring.
-        """
-        # Create cache key from queries
-        cache_key = self._get_cache_key((queries, max_results, "local_db_enhanced"))
-        
-        # Check cache first
-        cached_result = self._get_from_cache(self._db_cache, cache_key)
-        if cached_result is not None:
-            print(f"Using cached database results for {len(queries)} queries")
-            return cached_result
-        
-        if not self.db_pool:
-            print("❌ Database pool not available")
-            return []
-        
-        try:
-            conn = self.db_pool.getconn()
-            cursor = conn.cursor(cursor_factory=DictCursor)
-            
-            # Preprocess queries for better matching
-            processed_queries = self._preprocess_queries(queries)
-            print(f"🔍 Enhanced search for: {processed_queries}")
-            
-            # Separate text queries from date/budget queries
-            text_queries = []
-            date_conditions = []
-            budget_conditions = []
-            
-            for query in processed_queries:
-                query = query.strip()
-                if not query:
-                    continue
-                    
-                # Handle date queries
-                if 'startdate>' in query.lower():
-                    try:
-                        date_part = query.lower().split('startdate>')[1]
-                        date_conditions.append(f"p.\"startDate\" >= '{date_part}'")
-                        print(f"📅 Added date condition: startDate >= {date_part}")
-                        continue
-                    except:
-                        print(f"⚠️ Could not parse date query: {query}")
-                        continue
-                elif 'enddate>' in query.lower():
-                    try:
-                        date_part = query.lower().split('enddate>')[1]
-                        date_conditions.append(f"p.\"endDate\" >= '{date_part}'")
-                        continue
-                    except:
-                        continue
-                elif 'totalcost' in query.lower():
-                    try:
-                        budget_conditions.append(self._parse_budget_query(query))
-                        continue
-                    except:
-                        continue
-                
-                text_queries.append(query)
-            
-            # Build enhanced SQL query with full-text search and relevance scoring
-            if text_queries:
-                projects = self._execute_enhanced_text_search(cursor, text_queries, date_conditions, budget_conditions, max_results)
-            else:
-                # No text queries, just date/budget filters
-                projects = self._execute_filtered_search(cursor, date_conditions, budget_conditions, max_results)
-            
-            # Cache the result
-            self._set_cache(self._db_cache, cache_key, projects)
-            
-            print(f"Enhanced database search completed, found {len(projects)} projects")
-            return projects
-            
-        except Exception as e:
-            print(f"Database query error: {e}")
-            import traceback
-            traceback.print_exc()
-            return []
-        finally:
-            if 'cursor' in locals():
-                cursor.close()
-            if 'conn' in locals():
-                self.db_pool.putconn(conn)
-
-    def _execute_enhanced_text_search(self, cursor, text_queries: List[str], date_conditions: List[str], 
-                                    budget_conditions: List[str], max_results: int) -> List[Dict[str, Any]]:
-        """Execute enhanced full-text search with PostgreSQL tsvector."""
-        
-        # Build full-text search conditions
-        search_conditions = []
-        params = []
-        
-        for query in text_queries:
-            # Convert OR/AND logic to PostgreSQL tsquery format
-            ts_query = self._convert_to_tsquery(query)
-            search_conditions.append("""
-                (to_tsvector('english', p.title || ' ' || COALESCE(p.objective, '') || ' ' || COALESCE(p.topics, '')) @@ to_tsquery('english', %s)
-                 OR to_tsvector('english', COALESCE(o.name, '') || ' ' || COALESCE(o.country, '')) @@ to_tsquery('english', %s))
-            """)
-            params.extend([ts_query, ts_query])
-        
-        # Build complete WHERE clause
-        all_conditions = search_conditions + date_conditions + budget_conditions
-        where_clause = f" AND ({' AND '.join(all_conditions)})" if all_conditions else ""
-        
-        # Enhanced SQL with relevance scoring
-        sql_query = f"""
-            SELECT DISTINCT
-                p.id,
-                p.acronym,
-                p.title,
-                p.objective,
-                p."startDate",
-                p."endDate",
-                p."totalCost",
-                p."ecMaxContribution",
-                p.status,
-                p.topics,
-                p."frameworkProgramme",
-                p."fundingScheme",
-                p."legalBasis",
-                p.rcn,
-                p."grantDoi",
-                -- Relevance scoring
-                ts_rank_cd(to_tsvector('english', p.title || ' ' || COALESCE(p.objective, '')), 
-                          to_tsquery('english', %s), 32) as relevance_score,
-                -- Aggregated organization data
-                COUNT(o."organisationID") as participant_count,
-                ARRAY_AGG(DISTINCT o.name) FILTER (WHERE o.name IS NOT NULL) as participant_names,
-                ARRAY_AGG(DISTINCT o.country) FILTER (WHERE o.country IS NOT NULL) as participant_countries,
-                ARRAY_AGG(DISTINCT o.city) FILTER (WHERE o.city IS NOT NULL) as participant_cities,
-                SUM(o."ecContribution") as total_ec_contribution,
-                SUM(o."netEcContribution") as total_net_ec_contribution,
-                SUM(o."totalCost") as total_org_costs,
-                -- Coordinator information
-                MAX(CASE WHEN o.role = 'coordinator' THEN o.name END) as coordinator_name,
-                MAX(CASE WHEN o.role = 'coordinator' THEN o.country END) as coordinator_country,
-                MAX(CASE WHEN o.role = 'coordinator' THEN o.city END) as coordinator_city,
-                -- SME and geographic info
-                COUNT(CASE WHEN o."SME" = true THEN 1 END) as sme_count,
-                COUNT(DISTINCT o.country) as country_count,
-                ARRAY_AGG(DISTINCT o."nutsCode") FILTER (WHERE o."nutsCode" IS NOT NULL) as nuts_codes,
-                ARRAY_AGG(DISTINCT o."activityType") FILTER (WHERE o."activityType" IS NOT NULL) as activity_types
-            FROM projects p
-            LEFT JOIN organizations o ON p.id = o."projectID"
-            WHERE p.id IS NOT NULL{where_clause}
-            GROUP BY p.id, p.acronym, p.title, p.objective, p."startDate", p."endDate", 
-                     p."totalCost", p."ecMaxContribution", p.status, p.topics, 
-                     p."frameworkProgramme", p."fundingScheme", p."legalBasis", p.rcn, p."grantDoi"
-            ORDER BY relevance_score DESC, p."startDate" DESC NULLS LAST
-            LIMIT %s
-        """
-        
-        # Add relevance query parameter and limit
-        all_params = [self._convert_to_tsquery(' OR '.join(text_queries))] + params + [max_results]
-        
-        start_time = time.time()
-        cursor.execute(sql_query, all_params)
-        rows = cursor.fetchall()
-        
-        print(f"📊 Enhanced search returned {len(rows)} rows in {time.time() - start_time:.2f}s")
-        
-        # Convert to structured project data
-        projects = []
-        for row in rows:
-            project = self._format_db_project_data(dict(row))
-            project['relevance_score'] = float(row.get('relevance_score', 0))
-            projects.append(project)
-            print(f"  - {project['title'][:50]}... (relevance: {project['relevance_score']:.3f})")
-        
-        return projects
-
-    def _convert_to_tsquery(self, query: str) -> str:
-        """Convert natural language query to PostgreSQL tsquery format."""
-        # Handle OR conditions
-        if ' OR ' in query.upper():
-            terms = [term.strip() for term in re.split(r'\s+OR\s+', query, flags=re.IGNORECASE)]
-            return ' | '.join(f'"{term}"' for term in terms if term)
-        
-        # Handle AND conditions (default)
-        terms = query.split()
-        # Filter out stopwords and short terms
-        meaningful_terms = [term for term in terms if len(term) > 2 and term.lower() not in self._stopwords]
-        
-        if not meaningful_terms:
-            return f'"{query}"'
-        
-        return ' & '.join(f'"{term}"' for term in meaningful_terms[:5])  # Limit to 5 terms
-
-    def _parse_budget_query(self, query: str) -> str:
-        """Parse budget queries like totalCost>1000000."""
-        query_lower = query.lower()
-        if 'totalcost>' in query_lower:
-            amount = query_lower.split('totalcost>')[1]
-            return f'p."totalCost" > {amount}'
-        elif 'totalcost<' in query_lower:
-            amount = query_lower.split('totalcost<')[1]
-            return f'p."totalCost" < {amount}'
-        elif 'totalcost=' in query_lower:
-            range_part = query_lower.split('totalcost=')[1]
-            if '-' in range_part:
-                low, high = range_part.split('-')
-                return f'p."totalCost" BETWEEN {low} AND {high}'
-        return ""
-
-    def _execute_filtered_search(self, cursor, date_conditions: List[str], budget_conditions: List[str], max_results: int) -> List[Dict[str, Any]]:
-        """Execute search with only date and budget filters."""
-        all_conditions = date_conditions + budget_conditions
-        where_clause = f" AND ({' AND '.join(all_conditions)})" if all_conditions else ""
-        
-        # Simple filtered query
-        sql_query = f"""
-            SELECT DISTINCT
-                p.id, p.acronym, p.title, p.objective, p."startDate", p."endDate",
-                p."totalCost", p."ecMaxContribution", p.status, p.topics,
-                p."frameworkProgramme", p."fundingScheme", p."legalBasis", p.rcn, p."grantDoi",
-                COUNT(o."organisationID") as participant_count,
-                ARRAY_AGG(DISTINCT o.name) FILTER (WHERE o.name IS NOT NULL) as participant_names,
-                ARRAY_AGG(DISTINCT o.country) FILTER (WHERE o.country IS NOT NULL) as participant_countries,
-                MAX(CASE WHEN o.role = 'coordinator' THEN o.name END) as coordinator_name,
-                MAX(CASE WHEN o.role = 'coordinator' THEN o.country END) as coordinator_country,
-                COUNT(CASE WHEN o."SME" = true THEN 1 END) as sme_count,
-                COUNT(DISTINCT o.country) as country_count
-            FROM projects p
-            LEFT JOIN organizations o ON p.id = o."projectID"
-            WHERE p.id IS NOT NULL{where_clause}
-            GROUP BY p.id, p.acronym, p.title, p.objective, p."startDate", p."endDate",
-                     p."totalCost", p."ecMaxContribution", p.status, p.topics,
-                     p."frameworkProgramme", p."fundingScheme", p."legalBasis", p.rcn, p."grantDoi"
-            ORDER BY p."startDate" DESC NULLS LAST, p."totalCost" DESC NULLS LAST
-            LIMIT %s
-        """
-        
-        cursor.execute(sql_query, [max_results])
-        rows = cursor.fetchall()
-        
-        projects = []
-        for row in rows:
-            project = self._format_db_project_data(dict(row))
-            projects.append(project)
-        
-        return projects
-
-    def _adaptive_result_selection(self, project_data: List[Dict[str, Any]], question: str, max_results: int) -> List[Dict[str, Any]]:
-        """Intelligently select the most relevant projects based on question context."""
-        if len(project_data) <= max_results:
-            return project_data
-        
-        # Score projects based on multiple factors
-        scored_projects = []
-        question_lower = question.lower()
-        
-        for project in project_data:
-            score = 0
-            
-            # Relevance score from database
-            score += project.get('relevance_score', 0) * 10
-            
-            # Recency bonus (more recent = higher score)
-            try:
-                start_date = project.get('startDate', '')
-                if start_date and start_date != 'Unknown':
-                    year = int(str(start_date)[:4])
-                    current_year = datetime.now().year
-                    recency_score = max(0, (year - 2010) / (current_year - 2010)) * 5
-                    score += recency_score
-            except:
-                pass
-            
-            # Budget significance (larger budget = more significant)
-            try:
-                total_cost = project.get('totalCost', 0)
-                if isinstance(total_cost, (int, float)) and total_cost > 0:
-                    budget_score = min(5, total_cost / 10000000)  # Scale to max 5 points
-                    score += budget_score
-            except:
-                pass
-            
-            # Participation diversity bonus
-            country_count = project.get('country_count', 0)
-            if country_count > 1:
-                score += min(3, country_count * 0.5)
-            
-            # SME involvement bonus
-            sme_count = project.get('sme_count', 0)
-            if sme_count > 0:
-                score += min(2, sme_count * 0.5)
-            
-            # Question-specific keyword matching
-            title = project.get('title', '').lower()
-            objective = project.get('objective', '').lower()
-            
-            # Check for question keywords in project
-            question_words = set(question_lower.split()) - self._stopwords
-            project_text = f"{title} {objective}".lower()
-            
-            keyword_matches = sum(1 for word in question_words if word in project_text and len(word) > 3)
-            score += keyword_matches * 2
-            
-            scored_projects.append((score, project))
-        
-        # Sort by score and return top results
-        scored_projects.sort(key=lambda x: x[0], reverse=True)
-        return [project for score, project in scored_projects[:max_results]]
-
-    def get_ai_response(self, question: str, max_projects_to_process: int = 5, max_cordis_results: int = 10) -> str:
-        """
-        Enhanced AI response generation with adaptive result selection and improved answer quality.
-        """
-        total_start_time = time.time()
-        data_source = "Local Database" if self.use_local_db else "CORDIS API"
-        print(f"🚀 Starting Enhanced V5 RAG pipeline using {data_source} for: '{question}'")
-        
-        # 1. Phase 1: Query extraction with enhanced preprocessing
-        phase_start = time.time()
-        role, quest = self._get_phase1_prompt(question)
-        queries, end_flag, new_query_keys, rerank_criteria, problem_text, next_pass = self._extract_queries(role, quest)
-        print(f"📝 Phase 1 (Query extraction) completed in {time.time() - phase_start:.2f}s")
-        
-        if end_flag:
-            return problem_text
-        
-        # 2. Phase 2: Enhanced data retrieval
-        phase_start = time.time()
-        if self.use_local_db:
-            # Get more results initially for better selection
-            initial_results = max_projects_to_process * 3
-            raw_project_data = self._search_local_database(queries, max_results=initial_results)
-            
-            # Intelligently select the best projects
-            project_data = self._adaptive_result_selection(raw_project_data, question, max_projects_to_process)
-            print(f"🎯 Selected {len(project_data)} best projects from {len(raw_project_data)} candidates")
-            
-            print(f"🔍 Phase 2 (Enhanced Local DB search) completed in {time.time() - phase_start:.2f}s")
-        else:
-            project_items = self._search_cordis_api(queries, max_results=max_cordis_results)
-            print(f"🔍 Phase 2 (CORDIS API search) completed in {time.time() - phase_start:.2f}s")
-            
-            # Phase 3: Project data extraction (only for API mode)
-            phase_start = time.time()
-            project_data = [self._extract_project_data(item) for item in project_items[:max_projects_to_process]]
-            print(f"📊 Phase 3 (Data extraction) completed in {time.time() - phase_start:.2f}s")
-            
-            # Phase 3.5: XML enrichment (only for API mode)
-            phase_start = time.time()
-            project_data = self._enrich_with_xml_data(project_data)
-            print(f"🔗 Phase 3.5 (XML enrichment) completed in {time.time() - phase_start:.2f}s")
-        
-        # 4. Phase 4: Enhanced reranking
-        if rerank_criteria and len(project_data) > 1:
-            phase_start = time.time()
-            project_data = self._enhanced_rerank_projects(project_data, rerank_criteria, question, role)
-            print(f"📈 Phase 4 (Enhanced reranking) completed in {time.time() - phase_start:.2f}s")
-        
-        # 5. Phase 6: Enhanced answer generation
-        phase_start = time.time()
-        answer = self._generate_enhanced_answer(role, question, project_data)
-        print(f"💬 Phase 6 (Enhanced answer generation) completed in {time.time() - phase_start:.2f}s")
-        
-        total_time = time.time() - total_start_time
-        print(f"✅ Enhanced V5 RAG pipeline completed in {total_time:.2f}s total")
-        
-        return answer
-
-    def _enhanced_rerank_projects(self, project_data: List[Dict[str, Any]], rerank_criteria: List[str], 
-                                question: str, role: str) -> List[Dict[str, Any]]:
-        """Enhanced reranking with better project scoring and selection."""
-        if len(project_data) <= 1:
-            return project_data
-        
-        # Combine LLM reranking with algorithmic scoring
-        llm_ranked = self._rerank_projects(project_data, rerank_criteria, question, role)
-        
-        # If LLM reranking failed, fall back to algorithmic ranking
-        if not llm_ranked:
-            return self._adaptive_result_selection(project_data, question, len(project_data))
-        
-        return llm_ranked
-
-    def _generate_enhanced_answer(self, role: str, user_text: str, project_data: List[Dict[str, Any]]) -> str:
-        """Generate enhanced answer with better structure and insights."""
-        if not project_data:
-            return self._generate_no_results_response(user_text)
-        
-        # Analyze project portfolio for insights
-        insights = self._analyze_project_portfolio(project_data)
-        
-        # Generate enhanced project summaries
-        project_summaries = self._create_enhanced_project_summaries(project_data)
-        
-        # Create enhanced prompt with insights
-        projects_text = "\n\n".join(project_summaries)
-        data_source_note = "from our local CORDIS database" if self.use_local_db else "from the CORDIS database"
-        
-        insights_text = ""
-        if insights:
-            insights_text = f"\n\nPortfolio Insights:\n{insights}"
-        
-        prompt = f"""Based on the following European research projects {data_source_note}, provide a comprehensive and insightful answer to the user's question.
-
-User Question: {user_text}
-
-Retrieved Projects:
-{projects_text}{insights_text}
-
-Instructions:
-- Write in a conversational, authoritative tone
-- Start with a clear overview addressing the user's question
-- ALWAYS include the provided CORDIS links for each project discussed
-- Highlight the most relevant and recent projects first
-- Include specific details like budgets, timelines, consortium information, and geographic distribution
-- Note programme frameworks (Horizon, FP7, etc.) and their significance
-- Identify trends, patterns, and relationships between projects
-- Use the portfolio insights to provide deeper analysis
-- Organize information logically with clear sections if discussing multiple aspects
-- Make sure to preserve all 🔗 CORDIS Links in your response
-- Conclude with actionable insights or recommendations when appropriate
-- Write as if you're an expert consultant familiar with the European research landscape
-"""
-        
-        return self._call_llm_for_generation(role, prompt)
-
-    def _analyze_project_portfolio(self, projects: List[Dict[str, Any]]) -> str:
-        """Analyze the project portfolio to extract insights."""
-        if len(projects) < 2:
-            return ""
-        
-        insights = []
-        
-        # Temporal analysis
-        years = []
-        for project in projects:
-            try:
-                start_date = project.get('startDate', '')
-                if start_date and start_date != 'Unknown':
-                    year = int(str(start_date)[:4])
-                    years.append(year)
-            except:
-                pass
-        
-        if years:
-            insights.append(f"Projects span from {min(years)} to {max(years)}")
-        
-        # Geographic analysis
-        all_countries = []
-        for project in projects:
-            countries = project.get('participant_countries', [])
-            all_countries.extend(countries)
-        
-        if all_countries:
-            country_counts = defaultdict(int)
-            for country in all_countries:
-                country_counts[country] += 1
-            top_countries = sorted(country_counts.items(), key=lambda x: x[1], reverse=True)[:5]
-            insights.append(f"Top participating countries: {', '.join([f'{c} ({n})' for c, n in top_countries])}")
-        
-        # Budget analysis
-        budgets = []
-        for project in projects:
-            try:
-                total_cost = project.get('totalCost', 0)
-                if isinstance(total_cost, (int, float)) and total_cost > 0:
-                    budgets.append(total_cost)
-            except:
-                pass
-        
-        if budgets:
-            total_funding = sum(budgets)
-            avg_budget = total_funding / len(budgets)
-            insights.append(f"Total funding: €{total_funding:,.0f}, Average: €{avg_budget:,.0f}")
-        
-        # Framework analysis
-        frameworks = defaultdict(int)
-        for project in projects:
-            fw = project.get('frameworkProgramme', 'Unknown')
-            if fw and fw != 'N/A':
-                frameworks[fw] += 1
-        
-        if frameworks:
-            top_fw = max(frameworks.items(), key=lambda x: x[1])
-            insights.append(f"Most common programme: {top_fw[0]} ({top_fw[1]} projects)")
-        
-        return " | ".join(insights) if insights else ""
-
-    def _create_enhanced_project_summaries(self, projects: List[Dict[str, Any]]) -> List[str]:
-        """Create enhanced project summaries with better formatting and information."""
-        summaries = []
-        
-        for i, proj in enumerate(projects, 1):
-            title = proj.get('title', 'Unknown Title')
-            acronym = proj.get('acronym', '')
-            objective = proj.get('objective', 'No description available')
-            budget = proj.get('budget', 'Budget not specified')
-            start_date = proj.get('startDate', 'Unknown')
-            end_date = proj.get('endDate', 'Unknown')
-            project_id = proj.get('id', '')
-            rcn = proj.get('rcn', '')
-            status = proj.get('status', 'N/A')
-            
-            # Enhanced information from database
-            coordinator_name = proj.get('coordinator_name', 'N/A')
-            coordinator_country = proj.get('coordinator_country', 'N/A')
-            participant_count = proj.get('participant_count', 0)
-            country_count = proj.get('country_count', 0)
-            sme_count = proj.get('sme_count', 0)
-            framework_programme = proj.get('frameworkProgramme', 'N/A')
-            funding_scheme = proj.get('fundingScheme', 'N/A')
-            relevance_score = proj.get('relevance_score', 0)
-            
-            # Create structured summary
-            summary = f"**Project {i}: {title}"
-            if acronym and acronym != 'N/A':
-                summary += f" ({acronym})"
-            summary += "**"
-            
-            # Add relevance indicator if available
-            if relevance_score > 0:
-                summary += f" [Relevance: {relevance_score:.2f}]"
-            
-            # Duration and status
-            if start_date != 'Unknown' and end_date != 'Unknown':
-                summary += f"\n📅 **Duration:** {start_date} to {end_date}"
-            elif start_date != 'Unknown':
-                summary += f"\n📅 **Started:** {start_date}"
-            
-            if status != 'N/A':
-                summary += f" (Status: {status})"
-            
-            # Programme and funding
-            if framework_programme != 'N/A':
-                summary += f"\n🏛️ **Programme:** {framework_programme}"
-                if funding_scheme != 'N/A' and funding_scheme != framework_programme:
-                    summary += f" / {funding_scheme}"
-            
-            # Add budget information
-            if budget != 'N/A' and budget != 'Budget not specified':
-                summary += f"\n💰 **Budget:** {budget}"
-            
-            # Enhanced CORDIS links
-            if project_id and project_id != 'N/A':
-                summary += f"\n🔗 **CORDIS Link:** https://cordis.europa.eu/project/id/{project_id}"
-            elif rcn and rcn != 'N/A':
-                summary += f"\n🔗 **CORDIS Link:** https://cordis.europa.eu/project/rcn/{rcn}"
-            
-            # Consortium information
-            consortium_info = []
-            if coordinator_name != 'N/A':
-                coord_text = f"Coordinated by {coordinator_name}"
-                if coordinator_country != 'N/A':
-                    coord_text += f" ({coordinator_country})"
-                consortium_info.append(coord_text)
-            
-            if participant_count > 0:
-                participant_text = f"{participant_count} participants"
-                if country_count > 1:
-                    participant_text += f" from {country_count} countries"
-                if sme_count > 0:
-                    participant_text += f" (including {sme_count} SMEs)"
-                consortium_info.append(participant_text)
-            
-            if consortium_info:
-                summary += f"\n🤝 **Consortium:** {' | '.join(consortium_info)}"
-            
-            # Project description
-            summary += f"\n\n{objective[:400]}{'...' if len(objective) > 400 else ''}"
-            
-            summaries.append(summary)
-        
-        return summaries
-
-    def _generate_no_results_response(self, question: str) -> str:
-        """Generate a helpful response when no projects are found."""
-        suggestions = []
-        
-        # Analyze question for suggestions
-        question_lower = question.lower()
-        
-        if 'recent' in question_lower or 'latest' in question_lower:
-            suggestions.append("Try searching for projects from a broader time range")
-        
-        if any(term in question_lower for term in ['nuclear', 'quantum', 'blockchain']):
-            suggestions.append("Consider searching for related or broader terms")
-        
-        if not suggestions:
-            suggestions.append("Try rephrasing your question with different keywords")
-            suggestions.append("Consider broadening your search criteria")
-        
-        response = "I couldn't find any specific project data matching your query in the CORDIS database."
-        
-        if hasattr(self, '_db_stats') and self.use_local_db:
-            stats = self._db_stats
-            response += f"\n\nOur database contains {stats['total_projects']} projects from {stats['date_range'][0]} to {stats['date_range'][1]}."
-        
-        response += f"\n\n**Suggestions:**\n" + "\n".join(f"• {s}" for s in suggestions)
-        response += f"\n\n🔍 **Alternative:** Visit the full CORDIS database at https://cordis.europa.eu/search for comprehensive results."
-        
-        return response
-
-    def _call_llm_for_generation(self, role: str, prompt: str) -> str:
-        """Centralized LLM calling with error handling."""
-        try:
-            if self.ai_provider == "openai":
-                response = self.openai_client.chat.completions.create(
-                    model=self.openai_model_name,
-                    messages=[{"role": "system", "content": role}, {"role": "user", "content": prompt}],
-                    temperature=0.25
-                )
-                return response.choices[0].message.content
-            elif self.ai_provider == "gemini":
-                gemini_contents = [
-                    types.Content(role="user", parts=[types.Part.from_text(text=role)]),
-                    types.Content(role="user", parts=[types.Part.from_text(text=prompt)])
-                ]
-                gen_config = types.GenerateContentConfig(temperature=0.25)
-                response = self.gemini_client.models.generate_content(
-                    model=self.gemini_model_name,
-                    contents=gemini_contents,
-                    config=gen_config
-                )
-                return response.text
-        except Exception as e:
-            print(f"LLM generation error: {e}")
-            return "I apologize, but I encountered an error generating the response. Please try again."
-
-    # ...existing code for other methods...
-    
     def __del__(self):
         """Clean up database connections."""
         if hasattr(self, 'db_pool') and self.db_pool:
