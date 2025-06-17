@@ -179,24 +179,22 @@ Check the status of the local database connection for V5.
 **Response:**
 ```json
 {
-  "status": "connected",
+  "status": "connected", 
   "message": "Database connection successful",
   "use_local_db": true,
-  "database_url": "postgresql://***@localhost:54322/postgres",
-  "stats": {
-    "total_projects": 45829,
-    "date_range": ["2007-01-01", "2024-12-31"],
-    "frameworks": 12,
-    "funding_schemes": 8
-  }
+  "database_url": "postgresql://***@host.docker.internal:54322/***",
+  "docker_env": true
 }
 ```
 
 **Possible Status Values:**
 - `connected`: Database is connected and ready
 - `not_configured`: DATABASE_URL not provided
-- `not_connected`: Database pool not initialized
+- `not_connected`: Database pool not initialized  
 - `error`: Connection failed
+
+**Docker Environment Detection:**
+The API automatically detects Docker environments and adjusts database URLs accordingly, replacing `localhost` with `host.docker.internal` for proper container networking.
 
 ### Query Endpoints
 
@@ -221,7 +219,7 @@ The main endpoint for querying CORDIS projects with natural language questions. 
 | max_results | integer | No | Maximum number of projects to retrieve (default: 5) |
 | ai_provider | string | No | AI provider to use ("openai" or "gemini"). If not specified, uses the default provider |
 | ai_version | string | No | RAG logic version to use ("V2", "V3", "V4", or "V5"). Default: "V5" |
-| use_local_db | boolean | No | Override global database setting for V5 (V5 only) |
+| use_local_db | boolean | No | **V5 ONLY**: Override global USE_LOCAL_DB setting per request. `true` = use local database, `false` = use CORDIS API |
 
 **Enhanced V5 Response:**
 ```json
@@ -262,41 +260,25 @@ The main endpoint for querying CORDIS projects with natural language questions. 
 **Response:**
 ```json
 {
-  "question": "renewable energy projects in Europe",
+  "question": "renewable energy projects in Europe", 
   "ai_provider": "gemini",
   "benchmark_results": {
     "local_database": {
       "processing_time": 1.45,
       "answer_length": 2847,
       "projects_found": 4,
-      "status": "success",
-      "pipeline_phases": {
-        "query_extraction": 0.32,
-        "enhanced_local_db_search": 0.89,
-        "enhanced_reranking": 0.15,
-        "enhanced_answer_generation": 0.09
-      }
+      "status": "success"
     },
     "cordis_api": {
       "processing_time": 8.32,
-      "answer_length": 2654,
+      "answer_length": 2654, 
       "projects_found": 4,
-      "status": "success",
-      "pipeline_phases": {
-        "query_extraction": 0.31,
-        "cordis_api_search": 3.21,
-        "data_extraction": 1.87,
-        "xml_enrichment": 2.45,
-        "enhanced_reranking": 0.18,
-        "enhanced_answer_generation": 0.30
-      }
+      "status": "success"
     },
     "comparison": {
       "speedup_factor": 5.7,
       "time_saved": 6.87,
-      "local_faster": true,
-      "main_bottleneck_api": "xml_enrichment",
-      "main_advantage_local": "enhanced_local_db_search"
+      "local_faster": true
     }
   }
 }
@@ -399,7 +381,7 @@ async function queryProjectsV5(question, useLocalDb = true) {
       question: question,
       max_results: 5,
       ai_version: "V5",
-      use_local_db: useLocalDb
+      use_local_db: useLocalDb  // Override global database setting
     })
   });
   
@@ -410,6 +392,16 @@ async function queryProjectsV5(question, useLocalDb = true) {
   console.log(`Found ${result.projects_found} projects`);
   
   return result;
+}
+
+// Example: Force CORDIS API even if local DB is enabled globally
+async function queryWithCordisAPI(question) {
+  return await queryProjectsV5(question, false);  // use_local_db: false
+}
+
+// Example: Force local database even if CORDIS API is default
+async function queryWithLocalDB(question) {
+  return await queryProjectsV5(question, true);   // use_local_db: true
 }
 
 // Benchmark local database vs API performance
@@ -593,26 +585,24 @@ if __name__ == "__main__":
 DEFAULT_AI_PROVIDER=gemini
 OPENAI_API_KEY=your_openai_key_here
 GEMINI_API_KEY=your_gemini_key_here
+OPENAI_MODEL=gpt-4-turbo
+GEMINI_MODEL=gemini-2.5-flash-preview-05-20
 
 # V5 Database Configuration
 USE_LOCAL_DB=true
 DATABASE_URL="postgresql://postgres:postgres@localhost:54322/postgres"
 
-# Optional: Docker environment detection
+# Optional: Docker environment detection (automatically set by Docker)
 DOCKER_ENV=true  # Set in Docker containers
-
-# Optional: Supabase Local Development
-VITE_SUPABASE_URL="http://localhost:54321"
-VITE_SUPABASE_ANON_KEY="your_supabase_anon_key"
 ```
 
 ### Docker Compose Example
 
 ```yaml
-# docker-compose.yml
+# docker-compose.yml  
 version: '3.8'
 services:
-  cordis-api:
+  cordis-rag-api:
     build: .
     ports:
       - "8000:8000"
@@ -622,6 +612,7 @@ services:
       - DOCKER_ENV=true
       - DEFAULT_AI_PROVIDER=gemini
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
       - postgres
 
@@ -640,6 +631,8 @@ services:
 volumes:
   postgres_data:
 ```
+
+**Note:** The API automatically handles Docker networking by detecting the Docker environment and replacing `localhost` with `host.docker.internal` in database URLs when needed.
 
 ## Performance Comparison
 
@@ -671,42 +664,26 @@ The API returns standard HTTP status codes with enhanced error details for V5:
 ```json
 {
   "error": "Error processing request",
-  "details": "Database connection failed: connection timeout",
-  "v5_context": {
-    "use_local_db": true,
-    "database_available": false,
-    "fallback_suggested": "Try setting use_local_db=false"
-  }
+  "details": "Database connection failed: connection timeout"
 }
 ```
 
-**Database-Specific Errors:**
+**Database Status Response:**
 ```json
 {
-  "error": "Database not configured",
-  "details": "DATABASE_URL required when use_local_db=True",
-  "suggestions": [
-    "Set DATABASE_URL environment variable",
-    "Use use_local_db=false for CORDIS API mode",
-    "Check database connectivity"
-  ]
+  "status": "connected",
+  "message": "Database connection successful",
+  "use_local_db": true,
+  "database_url": "postgresql://***@host.docker.internal:54322/***",
+  "docker_env": true
 }
 ```
 
-**Query-Specific Errors:**
+**Error Response for Query:**
 ```json
 {
-  "error": "No projects found",
-  "details": "No projects match your query criteria",
-  "suggestions": [
-    "Try broader search terms",
-    "Check date ranges",
-    "Consider related keywords"
-  ],
-  "database_stats": {
-    "total_projects": 45829,
-    "date_range": ["2007-01-01", "2024-12-31"]
-  }
+  "error": "Error processing request",
+  "details": "Database connection failed: connection timeout"
 }
 ```
 
