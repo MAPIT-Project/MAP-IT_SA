@@ -21,7 +21,7 @@ class CordisRAG:
     def __init__(self, openai_api_key: Optional[str] = None, gemini_api_key: Optional[str] = None, 
                  ai_provider: str = "openai", 
                  openai_model_name: str = "gpt-4-turbo",
-                 gemini_model_name: str = "gemini-2.5-flash-preview-05-20"):
+                 gemini_model_name: str = "gemini-2.5-flash-lite-preview-06-17"):
         load_dotenv()
         self.ai_provider = ai_provider.lower()
         self.openai_model_name = openai_model_name

@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Query, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
@@ -9,12 +9,16 @@ import uvicorn
 import asyncio
 import random
 import logging
+import time
+import json
 from dotenv import load_dotenv
-# Dynamically import all RAG classes including V5
+# Dynamically import all RAG classes including V7
 from cordisBased_RAG_function_new_V2 import CordisRAG as CordisRAG_V2
 from cordisBased_RAG_function_new_V3 import CordisRAG as CordisRAG_V3
 from cordisBased_RAG_function_new_V4 import CordisRAG as CordisRAG_V4
 from cordisBased_RAG_function_new_V5 import CordisRAG as CordisRAG_V5
+from cordisBased_RAG_function_new_V6 import CordisRAG as CordisRAG_V6
+from cordisBased_RAG_function_new_V7 import CordisRAG as CordisRAG_V7
 
 # Load environment variables
 load_dotenv()
@@ -26,7 +30,7 @@ logger = logging.getLogger(__name__)
 # Get provider config from environment
 DEFAULT_AI_PROVIDER = os.getenv("DEFAULT_AI_PROVIDER", "gemini").lower()
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4-turbo")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-preview-05-20")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite-preview-06-17")
 
 # V5 specific configuration
 USE_LOCAL_DB = os.getenv("USE_LOCAL_DB", "false").lower() == "true"
@@ -92,8 +96,8 @@ async def validation_exception_handler(request, exc):
         }
     )
 
-# Initialize the RAG systems for all versions including V5
-rag_systems = {"V2": {}, "V3": {}, "V4": {}, "V5": {}}
+# Initialize the RAG systems for all versions including V7
+rag_systems = {"V2": {}, "V3": {}, "V4": {}, "V5": {}, "V6": {}, "V7": {}}
 
 # Try to initialize OpenAI-based RAG for all versions
 try:
@@ -109,8 +113,7 @@ try:
         rag_systems["V4"]["openai"] = CordisRAG_V4(
             ai_provider="openai", 
             openai_model_name=OPENAI_MODEL
-        )
-        # V5 with local database support - handle Docker networking
+        )        # V5 with local database support - handle Docker networking
         try:
             rag_systems["V5"]["openai"] = CordisRAG_V5(
                 ai_provider="openai", 
@@ -130,6 +133,48 @@ try:
                 use_local_db=False
             )
             print("V5 OpenAI initialized in API-only mode (no database)")
+        
+        # V6 with enhanced logging and local database support
+        try:
+            rag_systems["V6"]["openai"] = CordisRAG_V6(
+                ai_provider="openai", 
+                openai_model_name=OPENAI_MODEL,
+                use_local_db=USE_LOCAL_DB,
+                database_url=DOCKER_DATABASE_URL
+            )
+            print(f"OpenAI V6 RAG system initialized with enhanced logging")
+            if USE_LOCAL_DB:
+                print(f"V6 configured to use local database: {DOCKER_DATABASE_URL is not None}")
+        except Exception as db_e:
+            print(f"V6 OpenAI database connection failed: {db_e}")
+            # Initialize V6 without database as fallback
+            rag_systems["V6"]["openai"] = CordisRAG_V6(
+                ai_provider="openai", 
+                openai_model_name=OPENAI_MODEL,
+                use_local_db=False
+            )
+            print("V6 OpenAI initialized in API-only mode (no database)")
+        
+        # V7 with streaming support and enhanced logging
+        try:
+            rag_systems["V7"]["openai"] = CordisRAG_V7(
+                ai_provider="openai", 
+                openai_model_name=OPENAI_MODEL,
+                use_local_db=USE_LOCAL_DB,
+                database_url=DOCKER_DATABASE_URL
+            )
+            print(f"OpenAI V7 RAG system initialized with streaming support")
+            if USE_LOCAL_DB:
+                print(f"V7 configured to use local database: {DOCKER_DATABASE_URL is not None}")
+        except Exception as db_e:
+            print(f"V7 OpenAI database connection failed: {db_e}")
+            # Initialize V7 without database as fallback
+            rag_systems["V7"]["openai"] = CordisRAG_V7(
+                ai_provider="openai", 
+                openai_model_name=OPENAI_MODEL,
+                use_local_db=False
+            )
+            print("V7 OpenAI initialized in API-only mode (no database)")
 except Exception as e:
     print(f"Failed to initialize OpenAI RAG system: {e}")
 
@@ -147,8 +192,7 @@ try:
         rag_systems["V4"]["gemini"] = CordisRAG_V4(
             ai_provider="gemini", 
             gemini_model_name=GEMINI_MODEL
-        )
-        # V5 with local database support - handle Docker networking
+        )        # V5 with local database support - handle Docker networking
         try:
             rag_systems["V5"]["gemini"] = CordisRAG_V5(
                 ai_provider="gemini", 
@@ -168,13 +212,55 @@ try:
                 use_local_db=False
             )
             print("V5 Gemini initialized in API-only mode (no database)")
+        
+        # V6 with enhanced logging and local database support
+        try:
+            rag_systems["V6"]["gemini"] = CordisRAG_V6(
+                ai_provider="gemini", 
+                gemini_model_name=GEMINI_MODEL,
+                use_local_db=USE_LOCAL_DB,
+                database_url=DOCKER_DATABASE_URL
+            )
+            print(f"Gemini V6 RAG system initialized with enhanced logging")
+            if USE_LOCAL_DB:
+                print(f"V6 configured to use local database: {DOCKER_DATABASE_URL is not None}")
+        except Exception as db_e:
+            print(f"V6 Gemini database connection failed: {db_e}")
+            # Initialize V6 without database as fallback
+            rag_systems["V6"]["gemini"] = CordisRAG_V6(
+                ai_provider="gemini", 
+                gemini_model_name=GEMINI_MODEL,
+                use_local_db=False
+            )
+            print("V6 Gemini initialized in API-only mode (no database)")
+        
+        # V7 with streaming support and enhanced logging
+        try:
+            rag_systems["V7"]["gemini"] = CordisRAG_V7(
+                ai_provider="gemini", 
+                gemini_model_name=GEMINI_MODEL,
+                use_local_db=USE_LOCAL_DB,
+                database_url=DOCKER_DATABASE_URL
+            )
+            print(f"Gemini V7 RAG system initialized with streaming support")
+            if USE_LOCAL_DB:
+                print(f"V7 configured to use local database: {DOCKER_DATABASE_URL is not None}")
+        except Exception as db_e:
+            print(f"V7 Gemini database connection failed: {db_e}")
+            # Initialize V7 without database as fallback
+            rag_systems["V7"]["gemini"] = CordisRAG_V7(
+                ai_provider="gemini", 
+                gemini_model_name=GEMINI_MODEL,
+                use_local_db=False
+            )
+            print("V7 Gemini initialized in API-only mode (no database)")
 except Exception as e:
     print(f"Failed to initialize Gemini RAG system: {e}")
 
 # Fallback to default if no systems initialized
 if not any(rag_systems.values()):
-    print("WARNING: No RAG systems initialized. Using default OpenAI configuration for V5.")
-    rag_systems["V5"]["openai"] = CordisRAG_V5(use_local_db=False)  # Default to API mode
+    print("WARNING: No RAG systems initialized. Using default OpenAI configuration for V6.")
+    rag_systems["V6"]["openai"] = CordisRAG_V6(use_local_db=False)  # Default to API mode
 
 # Add demo examples for simulated responses
 DEMO_RESPONSES = [
@@ -194,8 +280,8 @@ class QuestionRequest(BaseModel):
     question: str
     max_results: Optional[int] = 5
     ai_provider: Optional[str] = None  # Allow specifying provider per request
-    ai_version: Optional[str] = "V5"   # Default to V5, allow switching between V2, V3, V4, V5
-    use_local_db: Optional[bool] = None  # Override global setting for V5
+    ai_version: Optional[str] = "V6"   # Default to V6, allow switching between V2, V3, V4, V5, V6
+    use_local_db: Optional[bool] = None  # Override global setting for V5/V6
 
 # Response models
 class ProjectParticipant(BaseModel):
@@ -226,16 +312,18 @@ class SearchResponse(BaseModel):
     projects: Optional[List[Project]] = None
     error: Optional[bool] = False
     error_message: Optional[str] = None
+    # V6 enhanced logging fields
+    logs: Optional[Dict[str, Any]] = None  # Complete pipeline logs from V6
 
 @app.get("/")
 async def root():
     """Health check endpoint."""
     return {"status": "online", "message": "CORDIS RAG API is running"}
 
-def get_rag_system(ai_provider: Optional[str] = None, ai_version: Optional[str] = "V5"):
-    version = ai_version.upper() if ai_version else "V5"
+def get_rag_system(ai_provider: Optional[str] = None, ai_version: Optional[str] = "V7"):
+    version = ai_version.upper() if ai_version else "V7"
     if version not in rag_systems:
-        raise HTTPException(status_code=400, detail=f"Invalid ai_version '{ai_version}'. Supported: V2, V3, V4, V5.")
+        raise HTTPException(status_code=400, detail=f"Invalid ai_version '{ai_version}'. Supported: V2, V3, V4, V5, V6, V7.")
     # Use requested provider if specified and available
     if ai_provider and ai_provider.lower() in rag_systems[version]:
         return rag_systems[version][ai_provider.lower()], ai_provider.lower(), version
@@ -256,14 +344,14 @@ async def query_projects(request: QuestionRequest):
     """
     Query the CORDIS database with a natural language question.
     
-    Enhanced V5 endpoint with local database support for faster performance.
+    Enhanced V6 endpoint with local database support and comprehensive logging.
     
     Parameters:
     - question: A natural language question about European research projects
     - max_results: Maximum number of projects to retrieve (default: 5)
     - ai_provider: AI provider to use ("openai" or "gemini", optional)
-    - ai_version: AI version to use ("V2", "V3", "V4", or "V5", optional, default: "V5")
-    - use_local_db: Override global database setting for V5 (optional)
+    - ai_version: AI version to use ("V2", "V3", "V4", "V5", or "V6", optional, default: "V6")
+    - use_local_db: Override global database setting for V5/V6 (optional)
     
     Returns:
     - answer: A comprehensive answer to the question
@@ -273,8 +361,8 @@ async def query_projects(request: QuestionRequest):
     - data_source: Whether local database or CORDIS API was used
     - processing_time: Time taken to process the request
     - projects_found: Number of projects found
+    - logs: Comprehensive pipeline logs (V6 only)
     """
-    import time
     start_time = time.time()
     
     try:
@@ -282,61 +370,102 @@ async def query_projects(request: QuestionRequest):
         
         rag_system, provider, version = get_rag_system(request.ai_provider, request.ai_version)
         
-        # For V5, handle local database override
-        if version == "V5" and request.use_local_db is not None:
+        # For V5 and V6, handle local database override
+        if version in ["V5", "V6"] and request.use_local_db is not None:
             # Create a new instance with the requested database setting
             if provider == "openai":
-                rag_system = CordisRAG_V5(
-                    ai_provider="openai",
-                    openai_model_name=OPENAI_MODEL,
-                    use_local_db=request.use_local_db,
-                    database_url=DOCKER_DATABASE_URL
-                )
+                if version == "V5":
+                    rag_system = CordisRAG_V5(
+                        ai_provider="openai",
+                        openai_model_name=OPENAI_MODEL,
+                        use_local_db=request.use_local_db,
+                        database_url=DOCKER_DATABASE_URL
+                    )
+                else:  # V6
+                    rag_system = CordisRAG_V6(
+                        ai_provider="openai",
+                        openai_model_name=OPENAI_MODEL,
+                        use_local_db=request.use_local_db,
+                        database_url=DOCKER_DATABASE_URL
+                    )
             elif provider == "gemini":
-                rag_system = CordisRAG_V5(
-                    ai_provider="gemini",
-                    gemini_model_name=GEMINI_MODEL,
-                    use_local_db=request.use_local_db,
-                    database_url=DOCKER_DATABASE_URL
-                )
+                if version == "V5":
+                    rag_system = CordisRAG_V5(
+                        ai_provider="gemini",
+                        gemini_model_name=GEMINI_MODEL,
+                        use_local_db=request.use_local_db,
+                        database_url=DOCKER_DATABASE_URL
+                    )
+                else:  # V6
+                    rag_system = CordisRAG_V6(
+                        ai_provider="gemini",
+                        gemini_model_name=GEMINI_MODEL,
+                        use_local_db=request.use_local_db,
+                        database_url=DOCKER_DATABASE_URL
+                    )
         
         # Get the response
-        answer = rag_system.get_ai_response(
+        result = rag_system.get_ai_response(
             request.question, 
-            max_projects_to_process=request.max_results
+            max_projects_to_process=request.max_results or 5
         )
         
         processing_time = time.time() - start_time
         
-        # Determine model used
-        model_used = None
-        if provider == "openai":
-            model_used = getattr(rag_system, "openai_model_name", OPENAI_MODEL)
-        elif provider == "gemini":
-            model_used = getattr(rag_system, "gemini_model_name", GEMINI_MODEL)
-        
-        # Determine data source for V5
-        data_source = None
-        if version == "V5":
-            if hasattr(rag_system, 'use_local_db'):
-                data_source = "Local Database" if rag_system.use_local_db else "CORDIS API"
-            else:
-                data_source = "CORDIS API"  # fallback
+        # Handle V6's new return format vs older versions
+        if version == "V6" and isinstance(result, dict) and 'logs' in result:
+            # V6 returns a dictionary with answer and logs
+            answer = result.get('answer', '')
+            logs = result.get('logs', {})
+            
+            # Extract metrics from logs
+            model_used = logs.get('model_used', getattr(rag_system, "openai_model_name" if provider == "openai" else "gemini_model_name", "Unknown"))
+            data_source = logs.get('data_source', 'CORDIS API')
+            projects_found = logs.get('projects_retrieved', 0)
+            
+            return SearchResponse(
+                answer=answer,
+                ai_provider=provider,
+                ai_version=version,
+                model_used=model_used,
+                data_source=data_source,
+                processing_time=round(processing_time, 2),
+                projects_found=projects_found,
+                logs=logs  # Include complete logs for V6
+            )
         else:
-            data_source = "CORDIS API"
-        
-        # Count projects mentioned in response (rough estimate)
-        projects_found = answer.count("🔗") if answer else 0
-        
-        return SearchResponse(
-            answer=answer,
-            ai_provider=provider,
-            ai_version=version,
-            model_used=model_used,
-            data_source=data_source,
-            processing_time=round(processing_time, 2),
-            projects_found=projects_found
-        )
+            # V2-V5 return a string answer
+            answer = result if isinstance(result, str) else str(result)
+            
+            # Determine model used
+            model_used = None
+            if provider == "openai":
+                model_used = getattr(rag_system, "openai_model_name", OPENAI_MODEL)
+            elif provider == "gemini":
+                model_used = getattr(rag_system, "gemini_model_name", GEMINI_MODEL)
+            
+            # Determine data source for V5/V6
+            data_source = None
+            if version in ["V5", "V6"]:
+                if hasattr(rag_system, 'use_local_db'):
+                    data_source = "Local Database" if rag_system.use_local_db else "CORDIS API"
+                else:
+                    data_source = "CORDIS API"  # fallback
+            else:
+                data_source = "CORDIS API"
+            
+            # Count projects mentioned in response (rough estimate)
+            projects_found = answer.count("🔗") if answer else 0
+            
+            return SearchResponse(
+                answer=answer,
+                ai_provider=provider,
+                ai_version=version,
+                model_used=model_used,
+                data_source=data_source,
+                processing_time=round(processing_time, 2),
+                projects_found=projects_found
+            )
         
     except ValueError as ve:
         logger.error(f"Validation error: {str(ve)}")
@@ -358,18 +487,195 @@ async def query_projects(request: QuestionRequest):
             }
         )
 
+@app.post("/api/query/stream")
+async def stream_query_projects(request: QuestionRequest):
+    """
+    Stream the CORDIS database query response in real-time using Server-Sent Events.
+    
+    Enhanced V7 endpoint with real-time token streaming and progress updates.
+    
+    Parameters:
+    - question: A natural language question about European research projects
+    - max_results: Maximum number of projects to retrieve (default: 5)
+    - ai_provider: AI provider to use ("openai" or "gemini", optional)
+    - ai_version: AI version to use ("V2", "V3", "V4", "V5", "V6", or "V7", optional, default: "V7")
+    - use_local_db: Override global database setting for V5/V6/V7 (optional)
+    
+    Returns:
+    - Server-Sent Events stream with real-time progress and token-by-token answer generation
+    """
+    async def generate_stream():
+        start_time = time.time()
+        
+        try:
+            # Send initial metadata
+            logger.info(f"Starting streaming query: '{request.question}' with provider: {request.ai_provider} and version: {request.ai_version}")
+            
+            rag_system, provider, version = get_rag_system(request.ai_provider, request.ai_version)
+            
+            # Send metadata
+            metadata = {
+                'type': 'metadata',
+                'ai_provider': provider,
+                'ai_version': version,
+                'status': 'starting',
+                'question': request.question
+            }
+            yield f"data: {json.dumps(metadata)}\n\n"
+            
+            # Handle V5/V6/V7 database override
+            if version in ["V5", "V6", "V7"] and request.use_local_db is not None:
+                if provider == "openai":
+                    if version == "V5":
+                        rag_system = CordisRAG_V5(
+                            ai_provider="openai",
+                            openai_model_name=OPENAI_MODEL,
+                            use_local_db=request.use_local_db,
+                            database_url=DOCKER_DATABASE_URL
+                        )
+                    elif version == "V6":
+                        rag_system = CordisRAG_V6(
+                            ai_provider="openai",
+                            openai_model_name=OPENAI_MODEL,
+                            use_local_db=request.use_local_db,
+                            database_url=DOCKER_DATABASE_URL
+                        )
+                    else:  # V7
+                        rag_system = CordisRAG_V7(
+                            ai_provider="openai",
+                            openai_model_name=OPENAI_MODEL,
+                            use_local_db=request.use_local_db,
+                            database_url=DOCKER_DATABASE_URL
+                        )
+                elif provider == "gemini":
+                    if version == "V5":
+                        rag_system = CordisRAG_V5(
+                            ai_provider="gemini",
+                            gemini_model_name=GEMINI_MODEL,
+                            use_local_db=request.use_local_db,
+                            database_url=DOCKER_DATABASE_URL
+                        )
+                    elif version == "V6":
+                        rag_system = CordisRAG_V6(
+                            ai_provider="gemini",
+                            gemini_model_name=GEMINI_MODEL,
+                            use_local_db=request.use_local_db,
+                            database_url=DOCKER_DATABASE_URL
+                        )
+                    else:  # V7
+                        rag_system = CordisRAG_V7(
+                            ai_provider="gemini",
+                            gemini_model_name=GEMINI_MODEL,
+                            use_local_db=request.use_local_db,
+                            database_url=DOCKER_DATABASE_URL
+                        )
+            
+            # Check if the RAG system supports streaming (V7)
+            if version == "V7" and hasattr(rag_system, 'get_ai_response_stream'):
+                # Use V7 streaming capability
+                # type: ignore - hasattr check ensures method exists
+                async for chunk in rag_system.get_ai_response_stream(  # type: ignore
+                    request.question, 
+                    max_projects_to_process=request.max_results or 5
+                ):
+                    yield f"data: {json.dumps(chunk)}\n\n"
+                    if chunk.get('type') == 'complete':
+                        break
+                    await asyncio.sleep(0.01)  # Prevent overwhelming the client
+            else:
+                # Fallback for older versions - simulate streaming
+                yield f"data: {json.dumps({'type': 'progress', 'phase': 'processing', 'message': f'Processing with {version} (non-streaming mode)...'})}\n\n"
+                
+                # Get the regular response
+                result = rag_system.get_ai_response(
+                    request.question, 
+                    max_projects_to_process=request.max_results or 5
+                )
+                
+                processing_time = time.time() - start_time
+                
+                # Handle different return formats
+                if isinstance(result, dict) and 'logs' in result:
+                    # V6+ format
+                    answer = result.get('answer', '')
+                    logs = result.get('logs', {})
+                    
+                    # Simulate token streaming by chunking the answer
+                    words = answer.split(' ')
+                    streamed_answer = ""
+                    for i, word in enumerate(words):
+                        token = word + (' ' if i < len(words) - 1 else '')
+                        streamed_answer += token
+                        yield f"data: {json.dumps({'type': 'token', 'content': token})}\n\n"
+                        await asyncio.sleep(0.05)  # Simulate streaming delay
+                    
+                    # Send completion
+                    completion_data = {
+                        'type': 'complete',
+                        'answer': answer,
+                        'logs': logs,
+                        'processing_time': round(processing_time, 2),
+                        'ai_provider': provider,
+                        'ai_version': version,
+                        'data_source': logs.get('data_source', 'CORDIS API'),
+                        'projects_found': logs.get('projects_retrieved', 0)
+                    }
+                    yield f"data: {json.dumps(completion_data)}\n\n"
+                else:
+                    # V2-V5 format
+                    answer = result if isinstance(result, str) else str(result)
+                    
+                    # Simulate token streaming
+                    words = answer.split(' ')
+                    for i, word in enumerate(words):
+                        token = word + (' ' if i < len(words) - 1 else '')
+                        yield f"data: {json.dumps({'type': 'token', 'content': token})}\n\n"
+                        await asyncio.sleep(0.05)
+                    
+                    # Send completion
+                    data_source = "Local Database" if (hasattr(rag_system, 'use_local_db') and rag_system.use_local_db) else "CORDIS API"
+                    completion_data = {
+                        'type': 'complete',
+                        'answer': answer,
+                        'processing_time': round(processing_time, 2),
+                        'ai_provider': provider,
+                        'ai_version': version,
+                        'data_source': data_source,
+                        'projects_found': answer.count("🔗") if answer else 0
+                    }
+                    yield f"data: {json.dumps(completion_data)}\n\n"
+            
+        except Exception as e:
+            logger.error(f"Streaming error: {str(e)}", exc_info=True)
+            error_data = {
+                'type': 'error',
+                'error': 'Error processing request',
+                'details': str(e)
+            }
+            yield f"data: {json.dumps(error_data)}\n\n"
+    
+    return StreamingResponse(
+        generate_stream(),
+        media_type="text/plain",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Content-Type": "text/event-stream",
+        }
+    )
+
 @app.post("/api/demo")
 async def demo_query(request: QuestionRequest, background_tasks: BackgroundTasks):
     """
     Simulated query endpoint that returns a fake AI response after a short delay.
     
-    Enhanced with V5 simulation including local database performance benefits.
+    Enhanced with V6 simulation including local database performance benefits.
     """
     # Choose a random response
     response = random.choice(DEMO_RESPONSES)
     
-    # Simulate processing time - V5 with local DB is faster
-    if request.ai_version == "V5" and (request.use_local_db or USE_LOCAL_DB):
+    # Simulate processing time - V5/V6 with local DB is faster
+    if request.ai_version in ["V5", "V6"] and (request.use_local_db or USE_LOCAL_DB):
         delay = random.uniform(0.5, 2.0)  # Faster with local DB
         data_source = "Local Database (Demo)"
     else:
@@ -396,10 +702,10 @@ async def demo_query(request: QuestionRequest, background_tasks: BackgroundTasks
 @app.get("/api/providers")
 async def list_providers():
     """
-    List all available AI providers and their models for V2, V3, V4, and V5.
+    List all available AI providers and their models for V2, V3, V4, V5, V6, and V7.
     """
-    providers = {"V2": {}, "V3": {}, "V4": {}, "V5": {}}
-    for version in ["V2", "V3", "V4", "V5"]:
+    providers = {"V2": {}, "V3": {}, "V4": {}, "V5": {}, "V6": {}, "V7": {}}
+    for version in ["V2", "V3", "V4", "V5", "V6", "V7"]:
         for provider_name, rag_system in rag_systems[version].items():
             provider_info = {"is_default": provider_name == DEFAULT_AI_PROVIDER}
             
@@ -408,17 +714,36 @@ async def list_providers():
             elif provider_name == "gemini":
                 provider_info["model"] = getattr(rag_system, "gemini_model_name", GEMINI_MODEL)
             
-            # Add V5 specific information
-            if version == "V5":
+            # Add V5/V6/V7 specific information
+            if version in ["V5", "V6", "V7"]:
                 provider_info["supports_local_db"] = True
                 provider_info["local_db_enabled"] = getattr(rag_system, "use_local_db", False)
                 provider_info["database_available"] = DATABASE_URL is not None
+                
+                # V7 specific features
+                if version == "V7":
+                    provider_info["supports_streaming"] = True
+                    provider_info["supports_realtime_tokens"] = True
             
             providers[version][provider_name] = provider_info
     
     return {
         "available_providers": providers,
         "default_provider": DEFAULT_AI_PROVIDER,
+        "v7_features": {
+            "streaming_support": True,
+            "realtime_token_streaming": True,
+            "enhanced_logging": True,
+            "local_database_support": True,
+            "global_local_db_setting": USE_LOCAL_DB,
+            "database_configured": DATABASE_URL is not None
+        },
+        "v6_features": {
+            "enhanced_logging": True,
+            "local_database_support": True,
+            "global_local_db_setting": USE_LOCAL_DB,
+            "database_configured": DATABASE_URL is not None
+        },
         "v5_features": {
             "local_database_support": True,
             "global_local_db_setting": USE_LOCAL_DB,
@@ -429,7 +754,7 @@ async def list_providers():
 @app.get("/api/database/status")
 async def database_status():
     """
-    Check the status of the local database connection for V5.
+    Check the status of the local database connection for V5/V6.
     """
     if not DOCKER_DATABASE_URL:
         return {
@@ -438,13 +763,16 @@ async def database_status():
             "database_url": None,
             "docker_env": os.path.exists("/.dockerenv") or os.getenv("DOCKER_ENV") == "true"
         }
-    
     try:
-        # Test database connection using V5
+        # Test database connection using V5 or V6
         if "openai" in rag_systems["V5"]:
             test_rag = rag_systems["V5"]["openai"]
         elif "gemini" in rag_systems["V5"]:
             test_rag = rag_systems["V5"]["gemini"]
+        elif "openai" in rag_systems["V6"]:
+            test_rag = rag_systems["V6"]["openai"]
+        elif "gemini" in rag_systems["V6"]:
+            test_rag = rag_systems["V6"]["gemini"]
         else:
             # Create a test instance
             test_rag = CordisRAG_V5(use_local_db=True, database_url=DOCKER_DATABASE_URL)
@@ -481,46 +809,69 @@ async def database_status():
 @app.post("/api/query/benchmark")
 async def benchmark_query(request: QuestionRequest):
     """
-    Benchmark endpoint to compare V5 local database vs CORDIS API performance.
+    Benchmark endpoint to compare V5/V6 local database vs CORDIS API performance.
     """
-    if request.ai_version != "V5":
-        raise HTTPException(status_code=400, detail="Benchmarking only available for V5")
+    if request.ai_version not in ["V5", "V6"]:
+        raise HTTPException(status_code=400, detail="Benchmarking only available for V5 and V6")
     
     if not DATABASE_URL:
         raise HTTPException(status_code=400, detail="Database not configured for benchmarking")
     
-    import time
-    
     try:
-        rag_system, provider, version = get_rag_system(request.ai_provider, "V5")
+        rag_system, provider, version = get_rag_system(request.ai_provider, request.ai_version)
         
         results = {}
         
         # Test with local database
         try:
             if provider == "openai":
-                rag_local = CordisRAG_V5(
-                    ai_provider="openai",
-                    openai_model_name=OPENAI_MODEL,
-                    use_local_db=True,
-                    database_url=DOCKER_DATABASE_URL
-                )
+                if version == "V5":
+                    rag_local = CordisRAG_V5(
+                        ai_provider="openai",
+                        openai_model_name=OPENAI_MODEL,
+                        use_local_db=True,
+                        database_url=DOCKER_DATABASE_URL
+                    )
+                else:  # V6
+                    rag_local = CordisRAG_V6(
+                        ai_provider="openai",
+                        openai_model_name=OPENAI_MODEL,
+                        use_local_db=True,
+                        database_url=DOCKER_DATABASE_URL
+                    )
             else:
-                rag_local = CordisRAG_V5(
-                    ai_provider="gemini",
-                    gemini_model_name=GEMINI_MODEL,
-                    use_local_db=True,
-                    database_url=DOCKER_DATABASE_URL
-                )
-
+                if version == "V5":
+                    rag_local = CordisRAG_V5(
+                        ai_provider="gemini",
+                        gemini_model_name=GEMINI_MODEL,
+                        use_local_db=True,
+                        database_url=DOCKER_DATABASE_URL
+                    )
+                else:  # V6
+                    rag_local = CordisRAG_V6(
+                        ai_provider="gemini",
+                        gemini_model_name=GEMINI_MODEL,
+                        use_local_db=True,
+                        database_url=DOCKER_DATABASE_URL
+                    )
+            
             start_time = time.time()
-            answer_local = rag_local.get_ai_response(request.question, max_projects_to_process=request.max_results)
+            answer_local = rag_local.get_ai_response(request.question, max_projects_to_process=request.max_results or 5)
             local_time = time.time() - start_time
+            
+            # Handle V6's new return format
+            if version == "V6" and isinstance(answer_local, dict):
+                answer_text = answer_local.get('answer', '')
+                logs = answer_local.get('logs', {})
+                projects_found = logs.get('projects_retrieved', 0)
+            else:
+                answer_text = answer_local if isinstance(answer_local, str) else str(answer_local)
+                projects_found = answer_text.count("🔗")
             
             results["local_database"] = {
                 "processing_time": round(local_time, 2),
-                "answer_length": len(answer_local),
-                "projects_found": answer_local.count("🔗"),
+                "answer_length": len(answer_text),
+                "projects_found": projects_found,
                 "status": "success"
             }
         except Exception as e:
@@ -545,7 +896,7 @@ async def benchmark_query(request: QuestionRequest):
                 )
             
             start_time = time.time()
-            answer_api = rag_api.get_ai_response(request.question, max_projects_to_process=request.max_results)
+            answer_api = rag_api.get_ai_response(request.question, max_projects_to_process=request.max_results or 5)
             api_time = time.time() - start_time
             
             results["cordis_api"] = {
@@ -564,8 +915,8 @@ async def benchmark_query(request: QuestionRequest):
         if ("local_database" in results and results["local_database"]["status"] == "success" and
             "cordis_api" in results and results["cordis_api"]["status"] == "success"):
             
-            local_time = results["local_database"]["processing_time"]
-            api_time = results["cordis_api"]["processing_time"]
+            local_time = float(results["local_database"]["processing_time"])
+            api_time = float(results["cordis_api"]["processing_time"])
             speedup = api_time / local_time if local_time > 0 else 0
             
             results["comparison"] = {
@@ -591,7 +942,7 @@ async def health_check():
         overall_status = "healthy"
         
         # Check all versions
-        for version in ["V2", "V3", "V4", "V5"]:
+        for version in ["V2", "V3", "V4", "V5", "V6", "V7"]:
             version_status = {}
             
             # Check OpenAI
@@ -612,25 +963,31 @@ async def health_check():
             
             providers_status[version] = version_status
         
-        # Check V5 specific database status
+        # Check V5/V6/V7 specific database status
         database_status = "not_configured"
         if DATABASE_URL:
             try:
-                if "V5" in rag_systems and rag_systems["V5"]:
-                    # Test with any available V5 instance
-                    test_rag = next(iter(rag_systems["V5"].values()))
-                    if hasattr(test_rag, 'db_pool') and test_rag.db_pool:
-                        database_status = "connected"
-                    else:
-                        database_status = "configured_not_connected"
+                # Test with any available V5/V6/V7 instance
+                test_rag = None
+                for version in ["V7", "V6", "V5"]:  # Check newest first
+                    if version in rag_systems and rag_systems[version]:
+                        test_rag = next(iter(rag_systems[version].values()))
+                        break
+                
+                if test_rag and hasattr(test_rag, 'db_pool') and test_rag.db_pool:
+                    database_status = "connected"
+                elif test_rag:
+                    database_status = "configured_not_connected"
                 else:
                     database_status = "configured_not_initialized"
             except Exception:
                 database_status = "connection_error"
         
         # Determine overall status
+        v7_available = bool(rag_systems.get("V7"))
+        v6_available = bool(rag_systems.get("V6"))
         v5_available = bool(rag_systems.get("V5"))
-        if not v5_available:
+        if not (v7_available or v6_available or v5_available):
             overall_status = "warning"
         
         return {
@@ -648,7 +1005,9 @@ async def health_check():
                 "v2": bool(rag_systems.get("V2")),
                 "v3": bool(rag_systems.get("V3")),
                 "v4": bool(rag_systems.get("V4")),
-                "v5": bool(rag_systems.get("V5"))
+                "v5": bool(rag_systems.get("V5")),
+                "v6": bool(rag_systems.get("V6")),
+                "v7": bool(rag_systems.get("V7"))
             }
         }
     except Exception as e:
@@ -656,3 +1015,6 @@ async def health_check():
             "status": "unhealthy",
             "error": str(e)
         }
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)

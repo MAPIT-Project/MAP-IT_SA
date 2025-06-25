@@ -72,7 +72,7 @@ The API uses the following environment variables:
 - `OPENAI_API_KEY`: API key for OpenAI services
 - `GEMINI_API_KEY`: API key for Google Gemini services
 - `OPENAI_MODEL`: The model to use for OpenAI (default: "gpt-4-turbo")
-- `GEMINI_MODEL`: The model to use for Gemini (default: "gemini-2.5-flash-preview-05-20")
+- `GEMINI_MODEL`: The model to use for Gemini (default: "gemini-2.5-flash-lite-preview-06-17")
 
 ### V5 Database Configuration
 - `USE_LOCAL_DB`: Enable local database mode globally ("true" or "false", default: "false")
@@ -153,7 +153,7 @@ Lists all available AI providers and their configured models for V2, V3, V4, and
         "database_available": true
       },
       "gemini": {
-        "model": "gemini-2.5-flash-preview-05-20",
+        "model": "gemini-2.5-flash-lite-preview-06-17",
         "is_default": true,
         "supports_local_db": true,
         "local_db_enabled": true,
@@ -586,7 +586,7 @@ DEFAULT_AI_PROVIDER=gemini
 OPENAI_API_KEY=your_openai_key_here
 GEMINI_API_KEY=your_gemini_key_here
 OPENAI_MODEL=gpt-4-turbo
-GEMINI_MODEL=gemini-2.5-flash-preview-05-20
+GEMINI_MODEL=gemini-2.5-flash-lite-preview-06-17
 
 # V5 Database Configuration
 USE_LOCAL_DB=true

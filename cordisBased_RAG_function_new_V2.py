@@ -20,7 +20,7 @@ class CordisRAG:
     def __init__(self, openai_api_key: Optional[str] = None, gemini_api_key: Optional[str] = None, 
                  ai_provider: str = "openai", 
                  openai_model_name: str = "gpt-4-turbo",
-                 gemini_model_name: str = "gemini-2.5-flash-preview-05-20"):
+                 gemini_model_name: str = "gemini-2.5-flash-lite-preview-06-17"):
         """
         Initialize the RAG system.
         
@@ -29,7 +29,7 @@ class CordisRAG:
             gemini_api_key: Gemini API key. If None, attempts to load from .env.
             ai_provider: The AI provider to use ("openai" or "gemini"). Defaults to "openai".
             openai_model_name: The OpenAI model to use. Defaults to "gpt-4-turbo".
-            gemini_model_name: The Gemini model to use. Defaults to "gemini-2.5-flash-preview-05-20".
+            gemini_model_name: The Gemini model to use. Defaults to "gemini-2.5-flash-lite-preview-06-17".
         """
         load_dotenv()
         self.ai_provider = ai_provider.lower()
@@ -672,7 +672,7 @@ if __name__ == "__main__":
     print("\n--- Testing with Gemini ---")
     # Test with Gemini, allowing model specification
     try:
-        # User can specify the model like: "gemini-2.5-flash-preview-05-20"
+        # User can specify the model like: "gemini-2.5-flash-lite-preview-06-17"
         # If not specified, __init__ default is used.
         rag_system_gemini = CordisRAG(ai_provider="gemini") # Will use GEMINI_API_KEY from .env
                                                             # and default gemini_model_name from __init__
