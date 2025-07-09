@@ -2085,8 +2085,6 @@ Instructions:
             for i, word in enumerate(words):
                 token = word + (' ' if i < len(words) - 1 else '')
                 yield {'type': 'token', 'content': token}
-                if i % 10 == 0:  # Only add delay every 10 words
-                    await asyncio.sleep(0.01)
             yield {'type': 'complete'}
             return
         
@@ -2150,8 +2148,6 @@ Instructions:
                 for i in range(0, len(answer), chunk_size):
                     chunk = answer[i:i+chunk_size]
                     yield {'type': 'token', 'content': chunk}
-                    if i % (chunk_size * 5) == 0:  # Delay every 5 chunks
-                        await asyncio.sleep(0.005)
         
         elif self.ai_provider == "gemini":
             # Gemini doesn't have native streaming in this SDK, so use optimized chunking
@@ -2162,8 +2158,6 @@ Instructions:
             for i in range(0, len(answer), chunk_size):
                 chunk = answer[i:i+chunk_size]
                 yield {'type': 'token', 'content': chunk}
-                if i % (chunk_size * 4) == 0:  # Delay every 4 chunks
-                    await asyncio.sleep(0.005)
         
         yield {'type': 'complete'}
 

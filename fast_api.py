@@ -501,7 +501,7 @@ async def stream_query_projects(request: QuestionRequest):
             # Check if Celery is available for concurrent processing
             if CELERY_AVAILABLE:
                 # Use Celery for concurrent processing
-                yield f"data: {json.dumps({'type': 'progress', 'phase': 'queuing', 'message': 'Submitting query to Celery worker for concurrent processing...'})}\n\n"
+                yield f"data: {json.dumps({'type': 'progress', 'phase': 'queuing', 'message': 'I am analyzing your question and preparing to search for relevant projects...'})}\n\n"
                 
                 # Submit the streaming task to Celery
                 task = process_rag_query_stream.delay(
@@ -512,20 +512,36 @@ async def stream_query_projects(request: QuestionRequest):
                     use_local_db=request.use_local_db
                 )
                 
-                yield f"data: {json.dumps({'type': 'progress', 'phase': 'processing', 'message': f'Task submitted to worker (ID: {task.id}). Processing in parallel...'})}\n\n"
+                yield f"data: {json.dumps({'type': 'progress', 'phase': 'processing', 'message': 'Searching through thousands of European research projects for you...'})}\n\n"
                 
                 # Poll task status with longer intervals for streaming
                 poll_interval = 2.0  # 2 seconds for streaming tasks
                 timeout = 300  # 5 minutes timeout
                 elapsed = 0
                 
+                # User-friendly progress messages
+                progress_messages = [
+                    "Analyzing project databases and research archives...",
+                    "Finding the most relevant projects for your question...", 
+                    "Examining project details and participant information...",
+                    "Cross-referencing funding programs and research outcomes...",
+                    "Preparing a comprehensive answer with project links..."
+                ]
+                message_index = 0
+                
                 while not task.ready() and elapsed < timeout:
                     await asyncio.sleep(poll_interval)
                     elapsed += poll_interval
                     
-                    # Send periodic progress updates
-                    if elapsed % 10 == 0:  # Every 10 seconds
-                        yield f"data: {json.dumps({'type': 'progress', 'phase': 'processing', 'message': f'Still processing... ({elapsed}s elapsed)'})}\n\n"
+                    # Send friendly progress updates every 10 seconds
+                    if elapsed % 10 == 0:
+                        if message_index < len(progress_messages):
+                            message = progress_messages[message_index]
+                            message_index += 1
+                        else:
+                            message = f"Still working on your request... ({elapsed}s elapsed)"
+                        
+                        yield f"data: {json.dumps({'type': 'progress', 'phase': 'processing', 'message': message})}\n\n"
                 
                 if task.ready():
                     if task.successful():
@@ -534,15 +550,13 @@ async def stream_query_projects(request: QuestionRequest):
                         if result.get("success", False):
                             answer = result.get("answer", "")
                             
-                            yield f"data: {json.dumps({'type': 'progress', 'phase': 'streaming', 'message': 'Processing complete. Streaming response...'})}\n\n"
+                            yield f"data: {json.dumps({'type': 'progress', 'phase': 'streaming', 'message': 'Perfect! I found some great projects. Let me share the details with you...'})}\n\n"
                             
                             # Stream the complete answer token by token
                             chunk_size = 50  # Characters per chunk for good streaming experience
                             for i in range(0, len(answer), chunk_size):
                                 chunk = answer[i:i+chunk_size]
                                 yield f"data: {json.dumps({'type': 'token', 'content': chunk})}\n\n"
-                                # Small delay for smooth streaming experience
-                                await asyncio.sleep(0.02)
                             
                             # Send completion with full metadata
                             processing_time = time.time() - start_time
@@ -567,8 +581,8 @@ async def stream_query_projects(request: QuestionRequest):
                             # Task completed but with error
                             error_data = {
                                 'type': 'error',
-                                'error': 'Task completed with error',
-                                'details': result.get('details', 'Unknown error'),
+                                'error': 'I encountered an issue while processing your request',
+                                'details': result.get('details', 'Please try rephrasing your question or try again later.'),
                                 'task_id': task.id
                             }
                             yield f"data: {json.dumps(error_data)}\n\n"
@@ -576,8 +590,8 @@ async def stream_query_projects(request: QuestionRequest):
                         # Task failed
                         error_data = {
                             'type': 'error',
-                            'error': 'Task failed',
-                            'details': str(task.result),
+                            'error': 'I am having trouble processing your request right now',
+                            'details': 'Please try again in a moment. If the problem persists, try rephrasing your question.',
                             'task_id': task.id
                         }
                         yield f"data: {json.dumps(error_data)}\n\n"
@@ -585,8 +599,8 @@ async def stream_query_projects(request: QuestionRequest):
                     # Task timed out
                     error_data = {
                         'type': 'error',
-                        'error': 'Task timed out',
-                        'details': f'Task did not complete within {timeout} seconds',
+                        'error': 'Your request is taking longer than expected',
+                        'details': 'The search timed out. Please try a more specific question or try again later.',
                         'task_id': task.id
                     }
                     yield f"data: {json.dumps(error_data)}\n\n"
@@ -635,7 +649,6 @@ async def stream_query_projects(request: QuestionRequest):
                         for i in range(0, len(answer), chunk_size):
                             chunk = answer[i:i+chunk_size]
                             yield f"data: {json.dumps({'type': 'token', 'content': chunk})}\n\n"
-                            await asyncio.sleep(0.02)
                         
                         # Send completion
                         completion_data = {
@@ -659,7 +672,6 @@ async def stream_query_projects(request: QuestionRequest):
                         for i in range(0, len(answer), chunk_size):
                             chunk = answer[i:i+chunk_size]
                             yield f"data: {json.dumps({'type': 'token', 'content': chunk})}\n\n"
-                            await asyncio.sleep(0.02)
                         
                         # Send completion
                         data_source = "Local Database" if (hasattr(rag_system, 'use_local_db') and rag_system.use_local_db) else "CORDIS API"

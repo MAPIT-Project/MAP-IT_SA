@@ -1871,7 +1871,6 @@ Instructions:
             for i, word in enumerate(words):
                 token = word + (' ' if i < len(words) - 1 else '')
                 yield {'type': 'token', 'content': token}
-                await asyncio.sleep(0.02)  # Small delay for streaming effect
             yield {'type': 'complete'}
             return
         
@@ -1925,7 +1924,6 @@ Instructions:
                 for chunk in response:
                     if chunk.choices[0].delta.content is not None:
                         yield {'type': 'token', 'content': chunk.choices[0].delta.content}
-                        await asyncio.sleep(0.001)  # Very small delay to prevent overwhelming
             except Exception as e:
                 print(f"OpenAI streaming error: {e}")
                 # Fallback to non-streaming
@@ -1934,7 +1932,6 @@ Instructions:
                 for i, word in enumerate(words):
                     token = word + (' ' if i < len(words) - 1 else '')
                     yield {'type': 'token', 'content': token}
-                    await asyncio.sleep(0.03)
         
         elif self.ai_provider == "gemini":
             # Gemini doesn't have native streaming in this SDK, so simulate it
@@ -1948,7 +1945,6 @@ Instructions:
                     for i, word in enumerate(words):
                         token = word + (' ' if i < len(words) - 1 else '')
                         yield {'type': 'token', 'content': token}
-                        await asyncio.sleep(0.05)  # Slightly slower for readability
         
         yield {'type': 'complete'}
 
