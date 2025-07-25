@@ -65,6 +65,13 @@ except ImportError as e:
     logger.warning(f"Could not import V8: {e}")
     CordisRAG_V8 = None
 
+try:
+    from cordisBased_RAG_function_new_V9 import CordisRAG as CordisRAG_V9
+    logger.info("Successfully imported CordisRAG_V9")
+except ImportError as e:
+    logger.warning(f"Could not import V9: {e}")
+    CordisRAG_V9 = None
+
 # Celery configuration
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 RABBITMQ_URL = os.getenv("CELERY_BROKER_URL", "pyamqp://guest@localhost//")
@@ -145,7 +152,8 @@ def _process_rag_core(question: str, max_results: int = 5,
             "V5": CordisRAG_V5,
             "V6": CordisRAG_V6,
             "V7": CordisRAG_V7,
-            "V8": CordisRAG_V8
+            "V8": CordisRAG_V8,
+            "V9": CordisRAG_V9
         }
         
         # Validate version
@@ -279,7 +287,7 @@ def _process_rag_core(question: str, max_results: int = 5,
 
 @celery_app.task(bind=True, base=CallbackTask, name="celery_app.process_rag_query")
 def process_rag_query(self, question: str, max_results: int = 5, 
-                     ai_provider: Optional[str] = None, ai_version: str = "V8", 
+                     ai_provider: Optional[str] = None, ai_version: str = "V9", 
                      use_local_db: Optional[bool] = None) -> Dict[str, Any]:
     """
     Process a RAG query in a Celery worker.
@@ -304,7 +312,7 @@ def process_rag_query(self, question: str, max_results: int = 5,
 
 @celery_app.task(bind=True, base=CallbackTask, name="celery_app.process_rag_query_stream")
 def process_rag_query_stream(self, question: str, max_results: int = 5, 
-                           ai_provider: Optional[str] = None, ai_version: str = "V8", 
+                           ai_provider: Optional[str] = None, ai_version: str = "V9", 
                            use_local_db: Optional[bool] = None) -> Dict[str, Any]:
     """
     Process a RAG query for streaming in a Celery worker.

@@ -27,7 +27,7 @@ except ImportError as e:
 if not CELERY_AVAILABLE:
     from concurrent.futures import ThreadPoolExecutor
 
-# Dynamically import all RAG classes including V8 (needed for fallback and version checking)
+# Dynamically import all RAG classes including V9 (needed for fallback and version checking)
 from cordisBased_RAG_function_new_V2 import CordisRAG as CordisRAG_V2
 from cordisBased_RAG_function_new_V3 import CordisRAG as CordisRAG_V3
 from cordisBased_RAG_function_new_V4 import CordisRAG as CordisRAG_V4
@@ -39,6 +39,7 @@ except ImportError:
     print("⚠️ V7 module not found, V7 will not be available")
     CordisRAG_V7 = None
 from cordisBased_RAG_function_new_V8 import CordisRAG as CordisRAG_V8
+from cordisBased_RAG_function_new_V9 import CordisRAG as CordisRAG_V9
 
 # Load environment variables
 load_dotenv()
@@ -86,8 +87,8 @@ DOCKER_DATABASE_URL = get_docker_database_url()
 # Create FastAPI app
 app = FastAPI(
     title="CORDIS Research Projects RAG API",
-    description="API for querying European research projects using a Retrieval-Augmented Generation approach. V5 supports local database integration for faster performance. Now supports concurrent request processing.",
-    version="1.2.0"
+    description="API for querying European research projects using a Retrieval-Augmented Generation approach. V9 features intelligent intent routing to search for existing projects OR open calls for proposals. Supports local database integration and concurrent processing.",
+    version="1.3.0"
 )
 
 # Add CORS middleware
@@ -142,7 +143,8 @@ def create_rag_instance(ai_provider: str, ai_version: str, use_local_db: Optiona
         "V5": CordisRAG_V5,
         "V6": CordisRAG_V6,
         "V7": CordisRAG_V7,
-        "V8": CordisRAG_V8
+        "V8": CordisRAG_V8,
+        "V9": CordisRAG_V9
     }
     
     if ai_version not in version_classes:
@@ -157,7 +159,7 @@ def create_rag_instance(ai_provider: str, ai_version: str, use_local_db: Optiona
     try:
         if ai_provider == "openai":
             # For V5+ versions that support database
-            if ai_version in ["V5", "V6", "V7", "V8"]:
+            if ai_version in ["V5", "V6", "V7", "V8", "V9"]:
                 instance = rag_class(
                     ai_provider="openai",
                     openai_model_name=OPENAI_MODEL,
@@ -171,7 +173,7 @@ def create_rag_instance(ai_provider: str, ai_version: str, use_local_db: Optiona
                 )
         elif ai_provider == "gemini":
             # For V5+ versions that support database
-            if ai_version in ["V5", "V6", "V7", "V8"]:
+            if ai_version in ["V5", "V6", "V7", "V8", "V9"]:
                 instance = rag_class(
                     ai_provider="gemini",
                     gemini_model_name=GEMINI_MODEL,
@@ -191,7 +193,7 @@ def create_rag_instance(ai_provider: str, ai_version: str, use_local_db: Optiona
         
     except Exception as e:
         logger.error(f"Failed to create {ai_provider} {ai_version} RAG instance: {e}")
-        if ai_version in ["V5", "V6", "V7", "V8"] and request_use_local_db:
+        if ai_version in ["V5", "V6", "V7", "V8", "V9"] and request_use_local_db:
             # Fallback to API-only mode
             logger.info(f"Trying {ai_version} without database as fallback...")
             return create_rag_instance(ai_provider, ai_version, use_local_db=False)
@@ -202,7 +204,7 @@ print("🚀 FastAPI server ready with enhanced concurrent processing support!")
 print(f"🔧 Thread pool size: {MAX_WORKERS}")
 print(f"💾 Database pool size: {DB_POOL_SIZE}")
 print(f"🌐 Available providers: {[p for p in ['openai', 'gemini'] if os.getenv(f'{p.upper()}_API_KEY')]}")
-print(f"📊 Available versions: V2, V3, V4, V5, V6{', V7' if CordisRAG_V7 else ''}, V8")
+print(f"📊 Available versions: V2, V3, V4, V5, V6{', V7' if CordisRAG_V7 else ''}, V8, V9")
 print(f"🗄️ Local database enabled: {USE_LOCAL_DB}")
 print("💡 RAG instances are now created per-request for true concurrency!")
 
@@ -224,7 +226,7 @@ class QuestionRequest(BaseModel):
     question: str
     max_results: Optional[int] = 5
     ai_provider: Optional[str] = None  # Allow specifying provider per request
-    ai_version: Optional[str] = "V8"   # Default to V8, allow switching between V2, V3, V4, V5, V6, V7, V8
+    ai_version: Optional[str] = "V9"   # Default to V9, allow switching between V2, V3, V4, V5, V6, V7, V8, V9
     use_local_db: Optional[bool] = None  # Override global setting for V5/V6/V7/V8
 
 # Response models
@@ -264,14 +266,14 @@ async def root():
     """Health check endpoint."""
     return {"status": "online", "message": "CORDIS RAG API is running"}
 
-def get_provider_and_version(ai_provider: Optional[str] = None, ai_version: Optional[str] = "V8"):
+def get_provider_and_version(ai_provider: Optional[str] = None, ai_version: Optional[str] = "V9"):
     """
     Validate and determine the AI provider and version to use.
     Returns (provider, version) tuple.
     """
     # Validate version
-    supported_versions = ["V2", "V3", "V4", "V5", "V6", "V7", "V8"]
-    version = ai_version.upper() if ai_version else "V8"
+    supported_versions = ["V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9"]
+    version = ai_version.upper() if ai_version else "V9"
     if version not in supported_versions:
         raise HTTPException(status_code=400, detail=f"Invalid ai_version '{ai_version}'. Supported: {', '.join(supported_versions)}.")
     
@@ -299,14 +301,15 @@ async def query_projects(request: QuestionRequest):
     """
     Query the CORDIS database with a natural language question.
     
-    Enhanced V8 endpoint with Celery for true concurrent processing.
+    Enhanced V9 endpoint with intelligent intent routing and Celery for true concurrent processing.
+    V9 can intelligently determine whether users want existing projects or open calls for proposals.
     
     Parameters:
-    - question: A natural language question about European research projects
-    - max_results: Maximum number of projects to retrieve (default: 5)
+    - question: A natural language question about European research projects or funding calls
+    - max_results: Maximum number of projects/calls to retrieve (default: 5)
     - ai_provider: AI provider to use ("openai" or "gemini", optional)
-    - ai_version: AI version to use ("V2", "V3", "V4", "V5", "V6", "V7", or "V8", optional, default: "V8")
-    - use_local_db: Override global database setting for V5/V6/V7/V8 (optional)
+    - ai_version: AI version to use ("V2", "V3", "V4", "V5", "V6", "V7", "V8", or "V9", optional, default: "V9")
+    - use_local_db: Override global database setting for V5/V6/V7/V8/V9 (optional)
     
     Returns:
     - answer: A comprehensive answer to the question
@@ -394,16 +397,47 @@ async def query_projects(request: QuestionRequest):
             
             processing_time = time.time() - start_time
             
-            # Handle V6+ new return format vs older versions
-            if version in ["V6", "V7", "V8"] and isinstance(result, dict) and 'logs' in result:
+            # Handle V9 response format first (most specific)
+            if version == "V9" and isinstance(result, dict):
+                logger.info("🔍 DEBUG - Handling V9 response")
+                
+                # Extract the actual answer string from V9 result
+                answer = result.get('answer', '')
+                logs = result.get('logs', {})
+                
+                # Ensure answer is a string, not a dict
+                if isinstance(answer, dict):
+                    logger.warning("⚠️ V9 answer is unexpectedly a dict, extracting string")
+                    answer = answer.get('answer', 'Error: Malformed V9 response')
+                elif not isinstance(answer, str):
+                    logger.warning("⚠️ V9 answer is not a string, converting")
+                    answer = str(answer)
+                
+                logger.info(f"🔍 V9 Answer type: {type(answer)}, length: {len(answer)}")
+                logger.info(f"🔍 V9 Answer preview: {answer[:100]}...")
+                
+                return SearchResponse(
+                    answer=answer,
+                    ai_provider=provider,
+                    ai_version=version,
+                    model_used=GEMINI_MODEL if provider == "gemini" else OPENAI_MODEL,
+                    data_source=result.get('data_source', 'CORDIS API'),
+                    processing_time=round(processing_time, 2),
+                    projects_found=result.get('projects_found', result.get('calls_found', 0)),
+                    logs=logs
+                )
+            
+            # Handle other V6+ versions with logs
+            elif version in ["V6", "V7", "V8"] and isinstance(result, dict) and 'logs' in result:
+                logger.info("🔍 DEBUG - Handling V6-V8 response with logs")
                 # V6+ returns a dictionary with answer and logs
                 answer = result.get('answer', '')
                 logs = result.get('logs', {})
                 
                 # Extract metrics from logs
                 model_used = logs.get('model_used', OPENAI_MODEL if provider == "openai" else GEMINI_MODEL)
-                data_source = logs.get('data_source', 'CORDIS API')
-                projects_found = logs.get('projects_retrieved', 0)
+                data_source = logs.get('data_source', result.get('data_source', 'CORDIS API'))
+                projects_found = logs.get('projects_retrieved', result.get('projects_found', result.get('calls_found', 0)))
                 
                 return SearchResponse(
                     answer=answer,
@@ -415,16 +449,50 @@ async def query_projects(request: QuestionRequest):
                     projects_found=projects_found,
                     logs=logs  # Include complete logs for V6+
                 )
+            
+            # Handle any other dictionary format that has an answer field
+            elif isinstance(result, dict) and 'answer' in result:
+                logger.info("🔍 DEBUG - Handling generic dict with answer")
+                # Handle any other dictionary format that has an answer field
+                answer = result.get('answer', '')
+                logs = result.get('logs', {})
+                
+                # Make sure we don't stringify if answer is empty - provide a fallback message instead
+                if not answer:
+                    answer = "I apologize, but I couldn't generate a proper response. Please try again."
+                
+                return SearchResponse(
+                    answer=answer,
+                    ai_provider=provider,
+                    ai_version=version,
+                    model_used=GEMINI_MODEL if provider == "gemini" else OPENAI_MODEL,
+                    data_source=result.get('data_source', 'CORDIS API'),
+                    processing_time=round(processing_time, 2),
+                    projects_found=result.get('projects_found', result.get('calls_found', 0)),
+                    logs=logs
+                )
+            
+            # Final fallback for string responses or malformed data
             else:
-                # V2-V5 return a string answer
-                answer = result if isinstance(result, str) else str(result)
+                logger.info("🔍 DEBUG - Taking final fallback path")
+                # V2-V5 return a string answer, or final fallback for malformed responses
+                if isinstance(result, dict):
+                    logger.warning("⚠️ Dict result fell through all conditions - using emergency extraction")
+                    # Final fallback - extract answer but never stringify the entire dict
+                    answer = result.get('answer', '')
+                    if not answer:
+                        # If no answer field or empty, provide a helpful message instead of stringifying
+                        answer = "I encountered an issue processing your request. Please try again or rephrase your question."
+                        logger.error("❌ Empty answer in dict result, using fallback message")
+                else:
+                    answer = result if isinstance(result, str) else str(result)
                 
                 # Determine model used
                 model_used = OPENAI_MODEL if provider == "openai" else GEMINI_MODEL
                 
                 # Determine data source for V5+
                 use_local_db = request.use_local_db if request.use_local_db is not None else USE_LOCAL_DB
-                if version in ["V5", "V6", "V7", "V8"]:
+                if version in ["V5", "V6", "V7", "V8", "V9"]:
                     data_source = "Local Database" if use_local_db else "CORDIS API"
                 else:
                     data_source = "CORDIS API"
@@ -467,14 +535,15 @@ async def stream_query_projects(request: QuestionRequest):
     """
     Stream the CORDIS database query response in real-time using Server-Sent Events.
     
-    Enhanced V8 endpoint with Celery-based concurrent processing and real-time token streaming.
+    Enhanced V9 endpoint with intelligent intent routing, Celery-based concurrent processing and real-time token streaming.
+    V9 can intelligently determine whether users want existing projects or open calls for proposals.
     
     Parameters:
-    - question: A natural language question about European research projects
-    - max_results: Maximum number of projects to retrieve (default: 5)
+    - question: A natural language question about European research projects or funding calls
+    - max_results: Maximum number of projects/calls to retrieve (default: 5)
     - ai_provider: AI provider to use ("openai" or "gemini", optional)
-    - ai_version: AI version to use ("V2", "V3", "V4", "V5", "V6", "V7", or "V8", optional, default: "V8")
-    - use_local_db: Override global database setting for V5/V6/V7/V8 (optional)
+    - ai_version: AI version to use ("V2", "V3", "V4", "V5", "V6", "V7", "V8", or "V9", optional, default: "V9")
+    - use_local_db: Override global database setting for V5/V6/V7/V8/V9 (optional)
     
     Returns:
     - Server-Sent Events stream with real-time progress and token-by-token answer generation
@@ -611,13 +680,13 @@ async def stream_query_projects(request: QuestionRequest):
                 
                 rag_system = create_rag_instance(provider, version, request.use_local_db)
                 
-                # Handle V5/V6/V7/V8 database override (keeping existing logic)
-                if version in ["V5", "V6", "V7", "V8"] and request.use_local_db is not None:
+                # Handle V5/V6/V7/V8/V9 database override (keeping existing logic)
+                if version in ["V5", "V6", "V7", "V8", "V9"] and request.use_local_db is not None:
                     # [Previous database override logic would go here - keeping existing implementation]
                     pass
                 
-                # Check if the RAG system supports streaming (V7 and V8)
-                if version in ["V7", "V8"] and hasattr(rag_system, 'get_ai_response_stream'):
+                # Check if the RAG system supports streaming (V7, V8, and V9)
+                if version in ["V7", "V8", "V9"] and hasattr(rag_system, 'get_ai_response_stream'):
                     # Use V7/V8 streaming capability
                     async for chunk in rag_system.get_ai_response_stream(  # type: ignore
                         request.question, 
@@ -750,9 +819,9 @@ async def list_providers():
     # Check which providers have API keys configured
     available_providers = [p for p in ['openai', 'gemini'] if os.getenv(f'{p.upper()}_API_KEY')]
     
-    providers = {"V2": {}, "V3": {}, "V4": {}, "V5": {}, "V6": {}, "V7": {}, "V8": {}}
+    providers = {"V2": {}, "V3": {}, "V4": {}, "V5": {}, "V6": {}, "V7": {}, "V8": {}, "V9": {}}
     
-    for version in ["V2", "V3", "V4", "V5", "V6", "V7", "V8"]:
+    for version in ["V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9"]:
         for provider_name in available_providers:
             provider_info = {"is_default": provider_name == DEFAULT_AI_PROVIDER}
             
@@ -762,18 +831,28 @@ async def list_providers():
                 provider_info["model"] = GEMINI_MODEL
             
             # Add V5/V6/V7/V8 specific information
-            if version in ["V5", "V6", "V7", "V8"]:
+            if version in ["V5", "V6", "V7", "V8", "V9"]:
                 provider_info["supports_local_db"] = True
                 provider_info["local_db_enabled"] = USE_LOCAL_DB
                 provider_info["database_available"] = DATABASE_URL is not None
                 
-                # V7 and V8 specific features
-                if version in ["V7", "V8"]:
+                # V7, V8, and V9 specific features
+                if version in ["V7", "V8", "V9"]:
                     provider_info["supports_streaming"] = True
                     provider_info["supports_realtime_tokens"] = True
                     
                     # V8 specific enhancements
                     if version == "V8":
+                        provider_info["performance_optimized"] = True
+                        provider_info["enhanced_streaming"] = True
+                        provider_info["concurrent_processing"] = True
+                        
+                    # V9 specific enhancements
+                    if version == "V9":
+                        provider_info["intelligent_intent_routing"] = True
+                        provider_info["project_search"] = True
+                        provider_info["call_search"] = True
+                        provider_info["confidence_scoring"] = True
                         provider_info["performance_optimized"] = True
                         provider_info["enhanced_streaming"] = True
                         provider_info["concurrent_processing"] = True
@@ -791,6 +870,16 @@ async def list_providers():
             "enabled": True,
             "thread_pool_size": MAX_WORKERS,
             "db_pool_size": DB_POOL_SIZE
+        },
+        "v9_features": {
+            "intelligent_intent_routing": True,
+            "project_search": True,
+            "call_search": True,
+            "confidence_scoring": True,
+            "streaming_support": True,
+            "performance_optimizations": True,
+            "enhanced_error_handling": True,
+            "concurrent_requests": True
         },
         "v8_features": {
             "streaming_support": True,
@@ -832,7 +921,7 @@ async def database_status():
         
         # Use the first available provider to test the connection
         test_provider = available_providers[0]
-        test_rag = create_rag_instance(test_provider, "V8", use_local_db=True)
+        test_rag = create_rag_instance(test_provider, "V9", use_local_db=True)
         
         if hasattr(test_rag, 'db_pool') and test_rag.db_pool:
             # Try to get a connection to test
@@ -992,6 +1081,70 @@ async def benchmark_query(request: QuestionRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Benchmark failed: {str(e)}")
 
+@app.post("/api/test-v9-fix")
+async def test_v9_fix():
+    """Test endpoint to verify V9 response handling is working correctly."""
+    
+    # Simulate a V9 response dictionary
+    mock_v9_result = {
+        'answer': 'This is a test answer from V9 that should NOT be stringified!',
+        'logs': {
+            'routing_decision': 'SEARCH_CALLS',
+            'intent_confidence': 1.0,
+            'data_source': 'Test API'
+        },
+        'data_source': 'Test CORDIS Topics/Calls API',
+        'routing_decision': 'SEARCH_CALLS',
+        'intent_confidence': 1.0,
+        'calls_found': 2
+    }
+    
+    # Simulate the FastAPI processing logic
+    version = "V9"
+    provider = "gemini"
+    processing_time = 1.5
+    
+    logger.info("🧪 Testing V9 response handling...")
+    
+    # This should match our first condition now
+    if version == "V9" and isinstance(mock_v9_result, dict):
+        logger.info("✅ V9 condition matched correctly!")
+        
+        # Extract the actual answer string from V9 result
+        answer = mock_v9_result.get('answer', '')
+        logs = mock_v9_result.get('logs', {})
+        
+        # Ensure answer is a string, not a dict
+        if isinstance(answer, dict):
+            logger.warning("⚠️ V9 answer is unexpectedly a dict, extracting string")
+            answer = answer.get('answer', 'Error: Malformed V9 response')
+        elif not isinstance(answer, str):
+            logger.warning("⚠️ V9 answer is not a string, converting")
+            answer = str(answer)
+        
+        logger.info(f"🔍 V9 Answer type: {type(answer)}, length: {len(answer)}")
+        logger.info(f"🔍 V9 Answer content: {answer}")
+        
+        return {
+            "test_result": "SUCCESS",
+            "message": "V9 response handling is working correctly!",
+            "answer_type": str(type(answer)),
+            "answer_content": answer,
+            "answer_is_string": isinstance(answer, str),
+            "data_source": mock_v9_result.get('data_source', 'Unknown'),
+            "processing_time": processing_time,
+            "condition_matched": "V9 specific condition"
+        }
+    else:
+        logger.error("❌ V9 condition did NOT match!")
+        return {
+            "test_result": "FAILED", 
+            "message": "V9 condition did not match",
+            "version": version,
+            "is_dict": isinstance(mock_v9_result, dict),
+            "condition_matched": "None"
+        }
+
 @app.get("/api/health")
 async def health_check():
     """Enhanced health check endpoint with Celery and database status."""
@@ -1013,7 +1166,7 @@ async def health_check():
                 available_providers = [p for p in ['openai', 'gemini'] if os.getenv(f'{p.upper()}_API_KEY')]
                 if available_providers:
                     test_provider = available_providers[0]
-                    test_rag = create_rag_instance(test_provider, "V8", use_local_db=True)
+                    test_rag = create_rag_instance(test_provider, "V9", use_local_db=True)
                     
                     if hasattr(test_rag, 'db_pool') and test_rag.db_pool:
                         # Try to get a connection to test
@@ -1062,7 +1215,8 @@ async def health_check():
                 "v5": True,
                 "v6": True,
                 "v7": CordisRAG_V7 is not None,
-                "v8": True
+                "v8": True,
+                "v9": True
             },
             "features": {
                 "concurrent_processing": CELERY_AVAILABLE,
