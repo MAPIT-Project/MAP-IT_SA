@@ -84,6 +84,37 @@ def get_docker_database_url():
 # Update database URL for Docker compatibility
 DOCKER_DATABASE_URL = get_docker_database_url()
 
+# Add this helper function at the top of the file, after the imports
+
+def extract_clean_answer_from_result(result: Any) -> str:
+    """
+    Extract clean answer text from V9 result, handling stringified Python dictionaries.
+    """
+    if isinstance(result, dict):
+        answer = result.get('answer', '')
+        
+        # Handle the case where answer is a stringified Python dictionary
+        if isinstance(answer, str) and answer.startswith('{') and "'answer':" in answer:
+            # Extract clean answer using the same logic as the regular endpoint
+            start_marker = "'answer': \""
+            end_marker = "\", 'logs':"
+            
+            start_index = answer.find(start_marker)
+            end_index = answer.find(end_marker)
+            
+            if start_index != -1 and end_index != -1 and end_index > start_index:
+                extracted_content = answer[start_index + len(start_marker):end_index]
+                
+                # Unescape the extracted content
+                clean_answer = extracted_content.replace('\\\"', '"').replace('\\n', '\n').replace('\\t', '\t').replace('\\r', '\r').replace('\\\\', '\\')
+                return clean_answer
+        
+        return answer if isinstance(answer, str) else str(answer)
+    elif isinstance(result, str):
+        return result
+    else:
+        return str(result)
+
 # Create FastAPI app
 app = FastAPI(
     title="CORDIS Research Projects RAG API",
@@ -347,9 +378,11 @@ async def query_projects(request: QuestionRequest):
                 result = task.get(timeout=300)  # 5 minute timeout
                 
                 if result.get("success", False):
-                    # Task completed successfully
+                    # Task completed successfully - extract clean answer
+                    clean_answer = extract_clean_answer_from_result(result)
+                    
                     return SearchResponse(
-                        answer=result.get('answer', ''),
+                        answer=clean_answer,
                         ai_provider=result.get('ai_provider', provider),
                         ai_version=result.get('ai_version', version),
                         model_used=result.get('model_used', OPENAI_MODEL if provider == "openai" else GEMINI_MODEL),
@@ -401,23 +434,15 @@ async def query_projects(request: QuestionRequest):
             if version == "V9" and isinstance(result, dict):
                 logger.info("🔍 DEBUG - Handling V9 response")
                 
-                # Extract the actual answer string from V9 result
-                answer = result.get('answer', '')
+                # Use the helper function to extract clean answer
+                clean_answer = extract_clean_answer_from_result(result)
                 logs = result.get('logs', {})
                 
-                # Ensure answer is a string, not a dict
-                if isinstance(answer, dict):
-                    logger.warning("⚠️ V9 answer is unexpectedly a dict, extracting string")
-                    answer = answer.get('answer', 'Error: Malformed V9 response')
-                elif not isinstance(answer, str):
-                    logger.warning("⚠️ V9 answer is not a string, converting")
-                    answer = str(answer)
-                
-                logger.info(f"🔍 V9 Answer type: {type(answer)}, length: {len(answer)}")
-                logger.info(f"🔍 V9 Answer preview: {answer[:100]}...")
+                logger.info(f"🔍 V9 Answer type: {type(clean_answer)}, length: {len(clean_answer)}")
+                logger.info(f"🔍 V9 Answer preview: {clean_answer[:100]}...")
                 
                 return SearchResponse(
-                    answer=answer,
+                    answer=clean_answer,
                     ai_provider=provider,
                     ai_version=version,
                     model_used=GEMINI_MODEL if provider == "gemini" else OPENAI_MODEL,
@@ -430,8 +455,8 @@ async def query_projects(request: QuestionRequest):
             # Handle other V6+ versions with logs
             elif version in ["V6", "V7", "V8"] and isinstance(result, dict) and 'logs' in result:
                 logger.info("🔍 DEBUG - Handling V6-V8 response with logs")
-                # V6+ returns a dictionary with answer and logs
-                answer = result.get('answer', '')
+                # Use the helper function to extract clean answer
+                clean_answer = extract_clean_answer_from_result(result)
                 logs = result.get('logs', {})
                 
                 # Extract metrics from logs
@@ -440,7 +465,7 @@ async def query_projects(request: QuestionRequest):
                 projects_found = logs.get('projects_retrieved', result.get('projects_found', result.get('calls_found', 0)))
                 
                 return SearchResponse(
-                    answer=answer,
+                    answer=clean_answer,
                     ai_provider=provider,
                     ai_version=version,
                     model_used=model_used,
@@ -453,16 +478,16 @@ async def query_projects(request: QuestionRequest):
             # Handle any other dictionary format that has an answer field
             elif isinstance(result, dict) and 'answer' in result:
                 logger.info("🔍 DEBUG - Handling generic dict with answer")
-                # Handle any other dictionary format that has an answer field
-                answer = result.get('answer', '')
+                # Use the helper function to extract clean answer
+                clean_answer = extract_clean_answer_from_result(result)
                 logs = result.get('logs', {})
                 
                 # Make sure we don't stringify if answer is empty - provide a fallback message instead
-                if not answer:
-                    answer = "I apologize, but I couldn't generate a proper response. Please try again."
+                if not clean_answer:
+                    clean_answer = "I apologize, but I couldn't generate a proper response. Please try again."
                 
                 return SearchResponse(
-                    answer=answer,
+                    answer=clean_answer,
                     ai_provider=provider,
                     ai_version=version,
                     model_used=GEMINI_MODEL if provider == "gemini" else OPENAI_MODEL,
@@ -475,17 +500,16 @@ async def query_projects(request: QuestionRequest):
             # Final fallback for string responses or malformed data
             else:
                 logger.info("🔍 DEBUG - Taking final fallback path")
-                # V2-V5 return a string answer, or final fallback for malformed responses
+                # Use the helper function to extract clean answer
+                clean_answer = extract_clean_answer_from_result(result)
+                
                 if isinstance(result, dict):
-                    logger.warning("⚠️ Dict result fell through all conditions - using emergency extraction")
-                    # Final fallback - extract answer but never stringify the entire dict
-                    answer = result.get('answer', '')
-                    if not answer:
+                    logger.warning("⚠️ Dict result fell through all conditions - used helper function extraction")
+                    # Make sure we have a valid answer
+                    if not clean_answer:
                         # If no answer field or empty, provide a helpful message instead of stringifying
-                        answer = "I encountered an issue processing your request. Please try again or rephrase your question."
+                        clean_answer = "I encountered an issue processing your request. Please try again or rephrase your question."
                         logger.error("❌ Empty answer in dict result, using fallback message")
-                else:
-                    answer = result if isinstance(result, str) else str(result)
                 
                 # Determine model used
                 model_used = OPENAI_MODEL if provider == "openai" else GEMINI_MODEL
@@ -498,10 +522,10 @@ async def query_projects(request: QuestionRequest):
                     data_source = "CORDIS API"
                 
                 # Count projects mentioned in response (rough estimate)
-                projects_found = answer.count("🔗") if answer else 0
+                projects_found = clean_answer.count("🔗") if clean_answer else 0
                 
                 return SearchResponse(
-                    answer=answer,
+                    answer=clean_answer,
                     ai_provider=provider,
                     ai_version=version,
                     model_used=model_used,
@@ -617,21 +641,22 @@ async def stream_query_projects(request: QuestionRequest):
                         result = task.result
                         
                         if result.get("success", False):
-                            answer = result.get("answer", "")
+                            # Extract clean answer from result
+                            clean_answer = extract_clean_answer_from_result(result)
                             
                             yield f"data: {json.dumps({'type': 'progress', 'phase': 'streaming', 'message': 'Perfect! I found some great projects. Let me share the details with you...'})}\n\n"
                             
-                            # Stream the complete answer token by token
+                            # Stream the clean answer token by token
                             chunk_size = 50  # Characters per chunk for good streaming experience
-                            for i in range(0, len(answer), chunk_size):
-                                chunk = answer[i:i+chunk_size]
+                            for i in range(0, len(clean_answer), chunk_size):
+                                chunk = clean_answer[i:i+chunk_size]
                                 yield f"data: {json.dumps({'type': 'token', 'content': chunk})}\n\n"
                             
                             # Send completion with full metadata
                             processing_time = time.time() - start_time
                             completion_data = {
                                 'type': 'complete',
-                                'answer': answer,
+                                'answer': clean_answer,
                                 'processing_time': round(processing_time, 2),
                                 'ai_provider': provider,
                                 'ai_version': version,
@@ -709,20 +734,20 @@ async def stream_query_projects(request: QuestionRequest):
                     
                     # Handle different return formats and stream the response
                     if isinstance(result, dict) and 'logs' in result:
-                        # V6+ format
-                        answer = result.get('answer', '')
+                        # V6+ format - extract clean answer
+                        clean_answer = extract_clean_answer_from_result(result)
                         logs = result.get('logs', {})
                         
-                        # Stream the answer
+                        # Stream the clean answer
                         chunk_size = 50
-                        for i in range(0, len(answer), chunk_size):
-                            chunk = answer[i:i+chunk_size]
+                        for i in range(0, len(clean_answer), chunk_size):
+                            chunk = clean_answer[i:i+chunk_size]
                             yield f"data: {json.dumps({'type': 'token', 'content': chunk})}\n\n"
                         
                         # Send completion
                         completion_data = {
                             'type': 'complete',
-                            'answer': answer,
+                            'answer': clean_answer,
                             'logs': logs,
                             'processing_time': round(processing_time, 2),
                             'ai_provider': provider,
@@ -733,25 +758,25 @@ async def stream_query_projects(request: QuestionRequest):
                         }
                         yield f"data: {json.dumps(completion_data)}\n\n"
                     else:
-                        # V2-V5 format
-                        answer = result if isinstance(result, str) else str(result)
+                        # V2-V5 format - extract clean answer
+                        clean_answer = extract_clean_answer_from_result(result)
                         
-                        # Stream the answer
+                        # Stream the clean answer
                         chunk_size = 50
-                        for i in range(0, len(answer), chunk_size):
-                            chunk = answer[i:i+chunk_size]
+                        for i in range(0, len(clean_answer), chunk_size):
+                            chunk = clean_answer[i:i+chunk_size]
                             yield f"data: {json.dumps({'type': 'token', 'content': chunk})}\n\n"
                         
                         # Send completion
                         data_source = "Local Database" if (hasattr(rag_system, 'use_local_db') and rag_system.use_local_db) else "CORDIS API"
                         completion_data = {
                             'type': 'complete',
-                            'answer': answer,
+                            'answer': clean_answer,
                             'processing_time': round(processing_time, 2),
                             'ai_provider': provider,
                             'ai_version': version,
                             'data_source': data_source,
-                            'projects_found': answer.count("🔗") if answer else 0,
+                            'projects_found': clean_answer.count("🔗") if clean_answer else 0,
                             'concurrent_processing': False
                         }
                         yield f"data: {json.dumps(completion_data)}\n\n"
