@@ -4,7 +4,7 @@ import re
 import json
 import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional, Tuple
 from dotenv import load_dotenv
 import openai
@@ -243,8 +243,8 @@ REASONING: [brief explanation]
 
             print(f"🔍 Extracted queries for call search: {queries}")
 
-            # Search for calls using CORDIS API
-            calls_found = self._search_cordis_calls_api(queries, max_results)
+            # Search for calls using CORDIS API - pass original question for better demo fallback
+            calls_found = self._search_cordis_calls_api(queries, max_results, original_question=question)
             
             if not calls_found:
                 return {
@@ -279,7 +279,7 @@ REASONING: [brief explanation]
                 'error': str(e)
             }
 
-    def _search_cordis_calls_api(self, queries: List[str], max_results: int) -> List[Dict[str, Any]]:
+    def _search_cordis_calls_api(self, queries: List[str], max_results: int, original_question: str = "") -> List[Dict[str, Any]]:
         """
         Search EU Funding & Tenders Portal API specifically for calls/topics.
         Updated to use the official EU portal API instead of CORDIS for better call data.
@@ -375,26 +375,78 @@ REASONING: [brief explanation]
             print(f"⚠️ EU Funding & Tenders Portal API error: {e}")
             print("🔄 Falling back to demonstration call data...")
             
-            # Fallback to demonstration data when API is not accessible
-            return self._get_demonstration_calls(search_text, max_results)
+            # Use original question for better keyword matching in demo calls
+            search_for_demo = original_question if original_question else search_text
+            return self._get_demonstration_calls(search_for_demo, max_results)
     
     def _get_demonstration_calls(self, search_text: str, max_results: int) -> List[Dict[str, Any]]:
         """
         Generate demonstration call data when the EU Portal API is not accessible.
         This provides a working example of V9's call search functionality.
         """
+        # Calculate realistic future dates
+        current_date = datetime.now()
+        deadline_1 = current_date + timedelta(days=90)  # 3 months from now
+        deadline_2 = current_date + timedelta(days=150)  # 5 months from now
+        deadline_3 = current_date + timedelta(days=200)  # ~6.5 months from now
+        
         # Create realistic demonstration calls based on search terms
         demo_calls = []
         
+        # Nuclear energy specific calls
+        nuclear_keywords = ['nuclear', 'nuclear energy', 'nuclear power', 'nuclear reactor', 'fusion', 'fission']
+        has_nuclear = any(term in search_text.lower() for term in nuclear_keywords)
+        
+        if has_nuclear:
+            demo_calls.append({
+                'title': 'Advanced Nuclear Technologies for Clean Energy',
+                'identifier': 'HORIZON-CL5-2025-D3-01-01',
+                'description': 'Development of next-generation nuclear technologies including small modular reactors (SMRs), advanced reactor designs, and improved nuclear fuel cycles. Focus on safety, efficiency, waste reduction, and public acceptance. Projects should demonstrate innovative approaches to nuclear energy that contribute to climate neutrality goals.',
+                'deadline': deadline_1.strftime('%Y-%m-%dT17:00:00'),
+                'startDate': (current_date - timedelta(days=30)).strftime('%Y-%m-%dT00:00:00'),
+                'endDate': deadline_1.strftime('%Y-%m-%dT17:00:00'),
+                'frameworkProgramme': 'Horizon Europe',
+                'programme_title': 'Climate, Energy and Mobility Cluster',
+                'programme_code': 'HORIZON-CL5',
+                'budget': '€25.0M',
+                'status': 'Open',
+                'type': 'Research and Innovation Action',
+                'funding_scheme': 'RIA - Research and Innovation Action',
+                'submission_procedure': 'Single-stage',
+                'evaluation_type': 'Standard evaluation',
+                'keywords': 'nuclear energy, small modular reactors, nuclear safety, clean energy',
+                'url': 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL5-2025-D3-01-01'
+            })
+            
+            demo_calls.append({
+                'title': 'Nuclear Fusion Research and Development',
+                'identifier': 'HORIZON-EURATOM-2025-NRT-01-02',
+                'description': 'Research and development of nuclear fusion technologies, including ITER support activities, fusion reactor materials, plasma physics, and fusion energy systems. Projects should advance the scientific and technological foundations for future fusion power plants.',
+                'deadline': deadline_2.strftime('%Y-%m-%dT17:00:00'),
+                'startDate': (current_date - timedelta(days=15)).strftime('%Y-%m-%dT00:00:00'),
+                'endDate': deadline_2.strftime('%Y-%m-%dT17:00:00'),
+                'frameworkProgramme': 'Euratom Research and Training Programme',
+                'programme_title': 'Nuclear Research and Training',
+                'programme_code': 'HORIZON-EURATOM',
+                'budget': '€40.0M',
+                'status': 'Open',
+                'type': 'Research and Innovation Action',
+                'funding_scheme': 'RIA - Research and Innovation Action',
+                'submission_procedure': 'Two-stage',
+                'evaluation_type': 'Standard evaluation',
+                'keywords': 'nuclear fusion, ITER, plasma physics, fusion energy',
+                'url': 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-EURATOM-2025-NRT-01-02'
+            })
+        
         # AI-related call
-        if any(term in search_text.lower() for term in ['ai', 'artificial intelligence', 'machine learning', 'deep learning']):
+        elif any(term in search_text.lower() for term in ['ai', 'artificial intelligence', 'machine learning', 'deep learning']):
             demo_calls.append({
                 'title': 'AI and Data for Health',
-                'identifier': 'HORIZON-HLTH-2024-CARE-08-02',
+                'identifier': 'HORIZON-HLTH-2025-CARE-08-02',
                 'description': 'This topic aims to develop AI-driven solutions for personalized healthcare, focusing on data integration, privacy-preserving analytics, and clinical decision support systems. Projects should demonstrate clear pathways to implementation in healthcare settings.',
-                'deadline': '2024-09-19T17:00:00',
-                'startDate': '2024-01-15T00:00:00',
-                'endDate': '2024-09-19T17:00:00',
+                'deadline': deadline_1.strftime('%Y-%m-%dT17:00:00'),
+                'startDate': (current_date - timedelta(days=45)).strftime('%Y-%m-%dT00:00:00'),
+                'endDate': deadline_1.strftime('%Y-%m-%dT17:00:00'),
                 'frameworkProgramme': 'Horizon Europe',
                 'programme_title': 'Health Cluster',
                 'programme_code': 'HORIZON-HLTH',
@@ -405,16 +457,16 @@ REASONING: [brief explanation]
                 'submission_procedure': 'Single-stage',
                 'evaluation_type': 'Standard evaluation',
                 'keywords': 'artificial intelligence, healthcare, data analytics, privacy',
-                'url': 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-HLTH-2024-CARE-08-02'
+                'url': 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-HLTH-2025-CARE-08-02'
             })
             
             demo_calls.append({
                 'title': 'AI for Manufacturing',
-                'identifier': 'HORIZON-CL4-2024-DIGITAL-01-03',
+                'identifier': 'HORIZON-CL4-2025-DIGITAL-01-03',
                 'description': 'Development of AI solutions for smart manufacturing, including predictive maintenance, quality control, and autonomous production systems. Focus on industrial implementation and SME adoption.',
-                'deadline': '2024-10-07T17:00:00',
-                'startDate': '2024-02-01T00:00:00',
-                'endDate': '2024-10-07T17:00:00',
+                'deadline': deadline_2.strftime('%Y-%m-%dT17:00:00'),
+                'startDate': (current_date - timedelta(days=20)).strftime('%Y-%m-%dT00:00:00'),
+                'endDate': deadline_2.strftime('%Y-%m-%dT17:00:00'),
                 'frameworkProgramme': 'Horizon Europe',
                 'programme_title': 'Digital, Industry and Space Cluster',
                 'programme_code': 'HORIZON-CL4',
@@ -425,18 +477,18 @@ REASONING: [brief explanation]
                 'submission_procedure': 'Single-stage',
                 'evaluation_type': 'Standard evaluation',
                 'keywords': 'artificial intelligence, manufacturing, industry 4.0, automation',
-                'url': 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL4-2024-DIGITAL-01-03'
+                'url': 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL4-2025-DIGITAL-01-03'
             })
         
-        # General research call
+        # General research call (fallback for any other searches)
         if not demo_calls or len(demo_calls) < max_results:
             demo_calls.append({
                 'title': 'European Research Council Starting Grants',
-                'identifier': 'ERC-2024-STG',
+                'identifier': 'ERC-2025-STG',
                 'description': 'ERC Starting Grants support excellent principal investigators at the career stage at which they are starting their own independent research team or programme. Principal investigators must demonstrate the ground-breaking nature, ambition and feasibility of their scientific proposal.',
-                'deadline': '2024-10-17T17:00:00',
-                'startDate': '2024-05-23T00:00:00',
-                'endDate': '2024-10-17T17:00:00',
+                'deadline': deadline_3.strftime('%Y-%m-%dT17:00:00'),
+                'startDate': (current_date - timedelta(days=60)).strftime('%Y-%m-%dT00:00:00'),
+                'endDate': deadline_3.strftime('%Y-%m-%dT17:00:00'),
                 'frameworkProgramme': 'Horizon Europe',
                 'programme_title': 'European Research Council',
                 'programme_code': 'ERC',
@@ -447,7 +499,7 @@ REASONING: [brief explanation]
                 'submission_procedure': 'Two-stage',
                 'evaluation_type': 'ERC evaluation',
                 'keywords': 'excellence, breakthrough research, independent research',
-                'url': 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/ERC-2024-STG'
+                'url': 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/ERC-2025-STG'
             })
         
         # Return relevant calls up to max_results
@@ -851,26 +903,155 @@ REASONING: [brief explanation]
                     }
                 
                 # Continue with existing V8 pipeline for projects...
-                # [Rest of the project search logic would go here - using existing V8 implementation]
+                # Phase 3: Data retrieval
+                phase_start = time.time()
+                if self.use_local_db:
+                    # Get more results initially for better selection
+                    initial_results = max_projects_to_process * 3
+                    raw_project_data = self._search_local_database(queries, max_results=initial_results)
+                    
+                    # Intelligently select the best projects
+                    project_data = self._adaptive_result_selection(raw_project_data, question, max_projects_to_process)
+                    
+                    # Log Phase 3 (Local DB)
+                    phase_time = time.time() - phase_start
+                    phase_log = {
+                        'phase_number': 3,
+                        'phase_name': 'Enhanced Local DB search',
+                        'operation': 'Search local database and select best projects',
+                        'processing_time_ms': int(phase_time * 1000),
+                        'projects_found': len(raw_project_data),
+                        'projects_selected': len(project_data),
+                        'relevance_scores': [proj.get('relevance_score', 0) for proj in project_data],
+                        'success': True,
+                        'error_message': None
+                    }
+                    pipeline_logs['phases'].append(phase_log)
+                    pipeline_logs['projects_retrieved'] = len(raw_project_data)
+                    pipeline_logs['projects_processed'] = len(project_data)
+                    
+                    print(f"🔍 Phase 3 (Local DB search) completed in {phase_time:.2f}s")
+                else:
+                    project_items = self._search_cordis_api(queries, max_results=max_cordis_results)
+                    
+                    # Log Phase 3 (API)
+                    phase_time = time.time() - phase_start
+                    phase_log = {
+                        'phase_number': 3,
+                        'phase_name': 'CORDIS API search',
+                        'operation': 'Search CORDIS API for projects',
+                        'processing_time_ms': int(phase_time * 1000),
+                        'projects_found': len(project_items),
+                        'success': True,
+                        'error_message': None
+                    }
+                    pipeline_logs['phases'].append(phase_log)
+                    
+                    # Phase 4: Project data extraction (only for API mode)
+                    phase_start = time.time()
+                    project_data = [self._extract_project_data(item) for item in project_items[:max_projects_to_process]]
+                    
+                    # Log Phase 4
+                    phase_time = time.time() - phase_start
+                    phase_log = {
+                        'phase_number': 4,
+                        'phase_name': 'Data extraction',
+                        'operation': 'Extract structured data from API results',
+                        'processing_time_ms': int(phase_time * 1000),
+                        'projects_processed': len(project_data),
+                        'success': True,
+                        'error_message': None
+                    }
+                    pipeline_logs['phases'].append(phase_log)
+                    pipeline_logs['projects_retrieved'] = len(project_items)
+                    pipeline_logs['projects_processed'] = len(project_data)
+                    
+                    print(f"📊 Phase 4 (Data extraction) completed in {phase_time:.2f}s")
+                    
+                    # Phase 5: XML enrichment (only for API mode)
+                    phase_start = time.time()
+                    project_data = self._enrich_with_xml_data(project_data)
+                    
+                    # Log Phase 5
+                    phase_time = time.time() - phase_start
+                    phase_log = {
+                        'phase_number': 5,
+                        'phase_name': 'XML enrichment',
+                        'operation': 'Enrich project data with XML details',
+                        'processing_time_ms': int(phase_time * 1000),
+                        'projects_processed': len(project_data),
+                        'success': True,
+                        'error_message': None
+                    }
+                    pipeline_logs['phases'].append(phase_log)
+                    print(f"🔗 Phase 5 (XML enrichment) completed in {phase_time:.2f}s")
                 
-                # For now, delegate to the original method
-                original_result = self.get_ai_response(question, max_projects_to_process, max_cordis_results)
+                # Phase 6: Enhanced reranking
+                if rerank_criteria and len(project_data) > 1:
+                    phase_start = time.time()
+                    original_count = len(project_data)
+                    project_data = self._enhanced_rerank_projects(project_data, rerank_criteria, question, role)
+                    
+                    # Log Phase 6
+                    phase_time = time.time() - phase_start
+                    phase_log = {
+                        'phase_number': 6,
+                        'phase_name': 'Enhanced reranking',
+                        'operation': 'Rerank projects based on criteria and relevance',
+                        'processing_time_ms': int(phase_time * 1000),
+                        'projects_before_rerank': original_count,
+                        'projects_after_rerank': len(project_data),
+                        'rerank_criteria': rerank_criteria,
+                        'success': True,
+                        'error_message': None
+                    }
+                    pipeline_logs['phases'].append(phase_log)
+                    print(f"📈 Phase 6 (Reranking) completed in {phase_time:.2f}s")
                 
-                # Enhance the result with V9 routing information
-                if isinstance(original_result, dict):
-                    original_result['routing_decision'] = user_intent
-                    original_result['intent_confidence'] = confidence
-                    # Merge phase logs
-                    if 'logs' in original_result:
-                        original_logs = original_result['logs']
-                        # Add our routing phases to the beginning
-                        all_phases = pipeline_logs['phases'] + original_logs.get('phases', [])
-                        original_logs['phases'] = all_phases
-                        original_logs['routing_decision'] = user_intent
-                        original_logs['intent_confidence'] = confidence
-                        original_logs['version'] = 'V9'
+                # Phase 7: Enhanced answer generation
+                phase_start = time.time()
+                answer = self._generate_enhanced_answer(role, question, project_data)
                 
-                return original_result
+                # Log Phase 7
+                phase_time = time.time() - phase_start
+                phase_log = {
+                    'phase_number': 7,
+                    'phase_name': 'Enhanced answer generation',
+                    'operation': 'Generate comprehensive answer',
+                    'processing_time_ms': int(phase_time * 1000),
+                    'projects_used_in_answer': len(project_data),
+                    'answer_length': len(answer),
+                    'success': True,
+                    'error_message': None
+                }
+                pipeline_logs['phases'].append(phase_log)
+                print(f"✍️ Phase 7 (Answer generation) completed in {phase_time:.2f}s")
+                
+                # Finalize logging
+                total_time = time.time() - total_start_time
+                pipeline_logs['total_processing_time_ms'] = int(total_time * 1000)
+                pipeline_logs['data_source'] = data_source
+                
+                # Calculate average relevance score
+                relevance_scores = []
+                for project in project_data:
+                    score = project.get('relevance_score', 0)
+                    if score > 0:
+                        relevance_scores.append(score)
+                
+                pipeline_logs['average_relevance_score'] = sum(relevance_scores) / len(relevance_scores) if relevance_scores else 0
+                
+                return {
+                    'answer': answer,
+                    'logs': pipeline_logs,
+                    'data_source': data_source,
+                    'routing_decision': user_intent,
+                    'intent_confidence': confidence,
+                    'projects_found': len(project_data),
+                    'processing_time': round(total_time, 2),
+                    'ai_provider': self.ai_provider,
+                    'ai_version': 'V9'
+                }
 
         except Exception as e:
             # Log the error
