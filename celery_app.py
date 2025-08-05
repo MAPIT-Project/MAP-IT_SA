@@ -238,7 +238,11 @@ def _process_rag_core(question: str, max_results: int = 5,
         processing_time = time.time() - start_time
         
         # Handle different return formats
-        if ai_version in ["V6", "V7", "V8"] and isinstance(result, dict) and 'logs' in result:
+        # Treat V6+ versions (including the new V9) uniformly – they all return a
+        # dictionary containing an "answer" field and rich logs.  Including V9
+        # here ensures we don’t stringify the whole dictionary, which caused
+        # the raw JSON-like output to be shown to end-users.
+        if ai_version in ["V6", "V7", "V8", "V9"] and isinstance(result, dict) and 'logs' in result:
             # V6+ returns a dictionary with answer and logs
             response_data = {
                 "answer": result.get('answer', ''),

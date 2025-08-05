@@ -95,19 +95,31 @@ def extract_clean_answer_from_result(result: Any) -> str:
         
         # Handle the case where answer is a stringified Python dictionary
         if isinstance(answer, str) and answer.startswith('{') and "'answer':" in answer:
-            # Extract clean answer using the same logic as the regular endpoint
-            start_marker = "'answer': \""
-            end_marker = "\", 'logs':"
-            
-            start_index = answer.find(start_marker)
-            end_index = answer.find(end_marker)
-            
+            # Two possible quoting styles depending on how the dict was stringified.
+            # 1. Single-quote style (Python default): {'answer': 'text', 'logs': {...}}
+            # 2. Double-quote style (manually json.dumps): {"answer": "text", "logs": {...}}
+
+            # Try single-quote style first
+            start_marker_sq = "'answer': '"
+            end_marker_sq = "', 'logs':"
+
+            start_index = answer.find(start_marker_sq)
+            end_index = answer.find(end_marker_sq)
+
             if start_index != -1 and end_index != -1 and end_index > start_index:
-                extracted_content = answer[start_index + len(start_marker):end_index]
-                
-                # Unescape the extracted content
-                clean_answer = extracted_content.replace('\\\"', '"').replace('\\n', '\n').replace('\\t', '\t').replace('\\r', '\r').replace('\\\\', '\\')
-                return clean_answer
+                extracted = answer[start_index + len(start_marker_sq):end_index]
+                return extracted
+
+            # Fallback to double-quote style
+            start_marker_dq = "\"answer\": \""
+            end_marker_dq = "\", \"logs\":"
+
+            start_index = answer.find(start_marker_dq)
+            end_index = answer.find(end_marker_dq)
+
+            if start_index != -1 and end_index != -1 and end_index > start_index:
+                extracted = answer[start_index + len(start_marker_dq):end_index]
+                return extracted
         
         return answer if isinstance(answer, str) else str(answer)
     elif isinstance(result, str):
