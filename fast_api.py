@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 # Get provider config from environment
 DEFAULT_AI_PROVIDER = os.getenv("DEFAULT_AI_PROVIDER", "gemini").lower()
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4-turbo")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite-preview-06-17")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
 
 # V5 specific configuration
 USE_LOCAL_DB = os.getenv("USE_LOCAL_DB", "false").lower() == "true"

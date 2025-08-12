@@ -14,7 +14,7 @@ The API uses the following environment variables:
 - `OPENAI_API_KEY`: API key for OpenAI services
 - `GEMINI_API_KEY`: API key for Google Gemini services
 - `OPENAI_MODEL`: The model to use for OpenAI (default: "gpt-4-turbo")
-- `GEMINI_MODEL`: The model to use for Gemini (default: "gemini-2.5-flash-lite-preview-06-17")
+- `GEMINI_MODEL`: The model to use for Gemini (default: "gemini-2.5-flash-lite")
 
 ## API Endpoints
 
@@ -65,7 +65,7 @@ Lists all available AI providers and their configured models.
       "is_default": false
     },
     "gemini": {
-      "model": "gemini-2.5-flash-lite-preview-06-17",
+      "model": "gemini-2.5-flash-lite",
       "is_default": true
     }
   },
