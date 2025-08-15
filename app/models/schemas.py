@@ -96,11 +96,16 @@ class DatabaseStatusResponse(BaseModel):
     connection_pool_status: Optional[Dict[str, Any]] = None
 
 
+class ProviderConfig(BaseModel):
+    """Configuration for a specific provider."""
+    model: str
+    is_default: bool
+
+
 class ProvidersResponse(BaseModel):
     """Available AI providers response model."""
-    available_providers: List[str]
+    available_providers: Dict[str, Dict[str, ProviderConfig]]
     default_provider: str
-    models: Dict[str, str]
 
 
 class BenchmarkResponse(BaseModel):

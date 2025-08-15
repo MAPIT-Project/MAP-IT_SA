@@ -14,7 +14,7 @@ import logging
 from ..models.schemas import (
     QuestionRequest, SearchResponse, ErrorResponse, HealthResponse,
     TaskStatusResponse, DatabaseStatusResponse, ProvidersResponse,
-    BenchmarkResponse
+    BenchmarkResponse, ProviderConfig
 )
 from ..core.config import settings
 from ..services.rag_service import CordisRAG
@@ -400,19 +400,30 @@ async def demo_endpoint(request: QuestionRequest):
 @router.get("/api/providers", response_model=ProvidersResponse)
 async def get_available_providers():
     """Get information about available AI providers."""
-    available_providers = []
+    available_providers = {}
+    
+    # Only show current version V9 with available providers
+    v9_providers = {}
+    
+    # Add OpenAI if API key is available
     if settings.openai_api_key:
-        available_providers.append("openai")
+        v9_providers["openai"] = ProviderConfig(
+            model=settings.openai_model,
+            is_default=(settings.default_ai_provider == "openai")
+        )
+    
+    # Add Gemini if API key is available  
     if settings.gemini_api_key:
-        available_providers.append("gemini")
+        v9_providers["gemini"] = ProviderConfig(
+            model=settings.gemini_model,
+            is_default=(settings.default_ai_provider == "gemini")
+        )
+    
+    available_providers["V9"] = v9_providers
     
     return ProvidersResponse(
         available_providers=available_providers,
-        default_provider=settings.default_ai_provider,
-        models={
-            "openai": settings.openai_model,
-            "gemini": settings.gemini_model
-        }
+        default_provider=settings.default_ai_provider
     )
 
 
