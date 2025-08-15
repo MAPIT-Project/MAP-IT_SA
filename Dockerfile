@@ -2,9 +2,10 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install dependencies - modified to handle dependency conflicts
+# Copy requirements first for better caching
 COPY requirements.txt .
 
+# Install dependencies - modified to handle dependency conflicts
 # First install protobuf with compatible version
 RUN pip install --no-cache-dir "protobuf>=3.19.5,<5.0.0"
 
@@ -12,7 +13,8 @@ RUN pip install --no-cache-dir "protobuf>=3.19.5,<5.0.0"
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY *.py .
+COPY app/ ./app/
+COPY main.py .
 
 # Create a .env file if it doesn't exist (this will be overwritten by mounted volume)
 RUN touch .env
@@ -21,4 +23,4 @@ RUN touch .env
 EXPOSE 8000
 
 # Run the FastAPI application
-CMD ["uvicorn", "fast_api:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Redis service for Celery message broker and result backend
   redis:
@@ -34,7 +32,7 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    command: uvicorn fast_api:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - ./:/app
     extra_hosts:
@@ -57,7 +55,7 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    command: celery -A celery_app worker --loglevel=info --concurrency=4 --queues=rag_queries
+    command: celery -A app.services.celery_app.celery_app worker --loglevel=info --concurrency=4 --queues=rag_queries
     volumes:
       - ./:/app
     extra_hosts:
@@ -80,7 +78,7 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    command: celery -A celery_app worker --loglevel=info --concurrency=2 --queues=rag_streams
+    command: celery -A app.services.celery_app.celery_app worker --loglevel=info --concurrency=2 --queues=rag_streams
     volumes:
       - ./:/app
     extra_hosts:

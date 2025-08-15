@@ -15,62 +15,16 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Import RAG classes at module level to avoid import issues in worker processes
+# Import RAG class from the reorganized structure
 try:
-    from cordisBased_RAG_function_new_V2 import CordisRAG as CordisRAG_V2
-    logger.info("Successfully imported CordisRAG_V2")
-except ImportError as e:
-    logger.warning(f"Could not import V2: {e}")
-    CordisRAG_V2 = None
-
-try:
-    from cordisBased_RAG_function_new_V3 import CordisRAG as CordisRAG_V3
-    logger.info("Successfully imported CordisRAG_V3")
-except ImportError as e:
-    logger.warning(f"Could not import V3: {e}")
-    CordisRAG_V3 = None
-
-try:
-    from cordisBased_RAG_function_new_V4 import CordisRAG as CordisRAG_V4
-    logger.info("Successfully imported CordisRAG_V4")
-except ImportError as e:
-    logger.warning(f"Could not import V4: {e}")
-    CordisRAG_V4 = None
-
-try:
-    from cordisBased_RAG_function_new_V5 import CordisRAG as CordisRAG_V5
-    logger.info("Successfully imported CordisRAG_V5")
-except ImportError as e:
-    logger.warning(f"Could not import V5: {e}")
-    CordisRAG_V5 = None
-
-try:
-    from cordisBased_RAG_function_new_V6 import CordisRAG as CordisRAG_V6
-    logger.info("Successfully imported CordisRAG_V6")
-except ImportError as e:
-    logger.warning(f"Could not import V6: {e}")
-    CordisRAG_V6 = None
-
-try:
-    from cordisBased_RAG_function_new_V7 import CordisRAG as CordisRAG_V7
-    logger.info("Successfully imported CordisRAG_V7")
-except ImportError as e:
-    logger.warning(f"Could not import V7: {e}")
-    CordisRAG_V7 = None
-
-try:
-    from cordisBased_RAG_function_new_V8 import CordisRAG as CordisRAG_V8
-    logger.info("Successfully imported CordisRAG_V8")
-except ImportError as e:
-    logger.warning(f"Could not import V8: {e}")
-    CordisRAG_V8 = None
-
-try:
-    from cordisBased_RAG_function_new_V9 import CordisRAG as CordisRAG_V9
+    from .rag_service import CordisRAG as CordisRAG_V9
     logger.info("Successfully imported CordisRAG_V9")
 except ImportError as e:
     logger.warning(f"Could not import V9: {e}")
     CordisRAG_V9 = None
+
+# For backward compatibility, map all versions to V9
+CordisRAG_V2 = CordisRAG_V3 = CordisRAG_V4 = CordisRAG_V5 = CordisRAG_V6 = CordisRAG_V7 = CordisRAG_V8 = CordisRAG_V9
 
 # Celery configuration
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
@@ -84,7 +38,7 @@ celery_app = Celery(
     "cordis_rag_tasks",
     broker=BROKER_URL,
     backend=REDIS_URL if "redis://" in REDIS_URL else "rpc://",
-    include=["celery_app"]
+    include=["app.services.celery_app"]
 )
 
 # Celery configuration
@@ -101,8 +55,8 @@ celery_app.conf.update(
     worker_max_tasks_per_child=50,  # Restart workers periodically
     result_expires=3600,  # Keep results for 1 hour
     task_routes={
-        "celery_app.process_rag_query": {"queue": "rag_queries"},
-        "celery_app.process_rag_query_stream": {"queue": "rag_streams"},
+        "app.services.celery_app.process_rag_query": {"queue": "rag_queries"},
+        "app.services.celery_app.process_rag_query_stream": {"queue": "rag_streams"},
     },
     task_annotations={
         "*": {"rate_limit": "10/s"}  # Overall rate limiting
@@ -234,6 +188,7 @@ def _process_rag_core(question: str, max_results: int = 5,
         # Process the query
         logger.info(f"[Task {task_id}] Processing query with {ai_version}")
         result = rag_instance.get_ai_response(question, max_projects_to_process=max_results)
+        logger.info(f"[Task {task_id}] RAG result type: {type(result)}, keys: {result.keys() if isinstance(result, dict) else 'N/A'}")
         
         processing_time = time.time() - start_time
         
@@ -289,7 +244,7 @@ def _process_rag_core(question: str, max_results: int = 5,
             "processing_time": round(processing_time, 2)
         }
 
-@celery_app.task(bind=True, base=CallbackTask, name="celery_app.process_rag_query")
+@celery_app.task(bind=True, base=CallbackTask, name="app.services.celery_app.process_rag_query")
 def process_rag_query(self, question: str, max_results: int = 5, 
                      ai_provider: Optional[str] = None, ai_version: str = "V9", 
                      use_local_db: Optional[bool] = None) -> Dict[str, Any]:
@@ -314,7 +269,7 @@ def process_rag_query(self, question: str, max_results: int = 5,
     # Use the shared core processing logic
     return _process_rag_core(question, max_results, ai_provider, ai_version, use_local_db, task_id)
 
-@celery_app.task(bind=True, base=CallbackTask, name="celery_app.process_rag_query_stream")
+@celery_app.task(bind=True, base=CallbackTask, name="app.services.celery_app.process_rag_query_stream")
 def process_rag_query_stream(self, question: str, max_results: int = 5, 
                            ai_provider: Optional[str] = None, ai_version: str = "V9", 
                            use_local_db: Optional[bool] = None) -> Dict[str, Any]:
@@ -352,7 +307,7 @@ def process_rag_query_stream(self, question: str, max_results: int = 5,
             "stream_mode": True
         }
 
-@celery_app.task(name="celery_app.health_check")
+@celery_app.task(name="app.services.celery_app.health_check")
 def health_check() -> Dict[str, Any]:
     """Health check task for Celery workers."""
     return {

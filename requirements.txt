@@ -4,6 +4,7 @@ openai==1.87.0
 protobuf>=3.20.2,<6.0.0
 psycopg2-binary==2.9.10
 pydantic==2.11.7
+pydantic-settings==2.1.0
 python-dotenv==1.1.0
 Requests==2.32.4
 uvicorn==0.34.3
