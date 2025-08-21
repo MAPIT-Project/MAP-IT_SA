@@ -18,6 +18,7 @@ from ..models.schemas import (
 )
 from ..core.config import settings
 from ..services.rag_service import CordisRAG
+from ..services.enhanced_rag_service import HorizonEuropeRAG
 
 # Setup logging
 logger = logging.getLogger(__name__)

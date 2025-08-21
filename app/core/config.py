@@ -5,7 +5,7 @@ Application configuration settings.
 import os
 from typing import Optional, List
 from pydantic_settings import BaseSettings
-from pydantic import validator
+from pydantic import field_validator
 
 
 class Settings(BaseSettings):
@@ -28,11 +28,29 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-4-turbo"
     gemini_model: str = "gemini-2.0-flash-thinking-exp"
     
+    # Google Embedding API Configuration
+    google_embedding_api_key: Optional[str] = None
+    embedding_model: str = "models/text-embedding-004"
+    embedding_dimension: int = 768
+    
     # Database Configuration
     use_local_db: bool = False
     database_url: Optional[str] = None
     db_min_connections: int = 5
     db_max_connections: int = 50
+    
+    # Supabase Configuration
+    supabase_url: Optional[str] = None
+    supabase_anon_key: Optional[str] = None
+    supabase_service_key: Optional[str] = None
+    use_supabase: bool = False
+    
+    # Vector Search Configuration
+    vector_search_enabled: bool = False
+    chunk_size: int = 1000
+    chunk_overlap: int = 200
+    max_chunks_per_query: int = 5
+    similarity_threshold: float = 0.7
     
     # Celery Configuration
     celery_broker_url: Optional[str] = None
@@ -46,16 +64,40 @@ class Settings(BaseSettings):
     task_time_limit: int = 300  # 5 minutes
     task_soft_time_limit: int = 240  # 4 minutes
     
-    @validator("openai_api_key", "gemini_api_key", pre=True)
+    # Document Processing Configuration
+    max_file_size_mb: int = 50
+    supported_file_types: List[str] = [".pdf", ".txt", ".md", ".html"]
+    upload_dir: str = "uploads"
+    
+    @field_validator("openai_api_key", "gemini_api_key")
+    @classmethod
     def validate_api_keys(cls, v):
         """Validate that at least one AI provider API key is provided."""
         return v
     
-    @validator("database_url", pre=True)
-    def validate_database_url(cls, v, values):
+    @field_validator("database_url")
+    @classmethod
+    def validate_database_url(cls, v, info):
         """Validate database URL when local DB is enabled."""
-        if values.get("use_local_db") and not v:
+        if info.data.get("use_local_db") and not v:
             raise ValueError("DATABASE_URL is required when use_local_db=True")
+        return v
+    
+    @field_validator("supabase_url", "supabase_service_key")
+    @classmethod
+    def validate_supabase_config(cls, v, info):
+        """Validate Supabase configuration when enabled."""
+        if info.data.get("use_supabase") and not v:
+            field_name = info.field_name.upper()
+            raise ValueError(f"{field_name} is required when use_supabase=True")
+        return v
+    
+    @field_validator("google_embedding_api_key")
+    @classmethod
+    def validate_embedding_api_key(cls, v, info):
+        """Validate Google API key when vector search is enabled."""
+        if info.data.get("vector_search_enabled") and not v:
+            raise ValueError("GOOGLE_EMBEDDING_API_KEY is required when vector_search_enabled=True")
         return v
     
     class Config:

@@ -11,6 +11,8 @@ import logging
 
 from .core.config import settings
 from .api.routes import router
+from .api.document_routes import router as document_router
+from .api.enhanced_rag_routes import router as enhanced_rag_router
 from .models.schemas import ErrorResponse
 
 # Configure logging
@@ -41,6 +43,8 @@ app.add_middleware(
 
 # Include API routes
 app.include_router(router)
+app.include_router(document_router)
+app.include_router(enhanced_rag_router)
 
 # Exception handlers
 @app.exception_handler(HTTPException)
@@ -87,6 +91,8 @@ async def startup_event():
     logger.info(f"Starting {settings.app_name} v{settings.app_version}")
     logger.info(f"Debug mode: {settings.debug}")
     logger.info(f"Database enabled: {settings.use_local_db}")
+    logger.info(f"Supabase enabled: {settings.use_supabase}")
+    logger.info(f"Vector search enabled: {settings.vector_search_enabled}")
     
     # Log available AI providers
     providers = []
@@ -95,6 +101,33 @@ async def startup_event():
     if settings.gemini_api_key:
         providers.append("Gemini")
     logger.info(f"Available AI providers: {', '.join(providers) if providers else 'None'}")
+    
+    # Log embedding configuration
+    if settings.google_embedding_api_key:
+        logger.info(f"Google Embedding API configured: {settings.embedding_model}")
+    
+    # Test services if enabled
+    if settings.use_supabase:
+        try:
+            from .services.supabase_client import SupabaseVectorStore
+            supabase = SupabaseVectorStore()
+            if supabase.test_connection():
+                logger.info("✅ Supabase connection successful")
+            else:
+                logger.warning("⚠️ Supabase connection failed")
+        except Exception as e:
+            logger.error(f"❌ Supabase initialization error: {e}")
+    
+    if settings.vector_search_enabled and settings.google_embedding_api_key:
+        try:
+            from .services.embedding_service import EmbeddingService
+            embedder = EmbeddingService()
+            if embedder.test_embedding_generation():
+                logger.info("✅ Embedding service test successful")
+            else:
+                logger.warning("⚠️ Embedding service test failed")
+        except Exception as e:
+            logger.error(f"❌ Embedding service initialization error: {e}")
 
 
 @app.on_event("shutdown")

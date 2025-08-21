@@ -29,6 +29,21 @@ services:
       - DEFAULT_AI_PROVIDER=${DEFAULT_AI_PROVIDER:-gemini}
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4-turbo}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash-lite}
+      # Enhanced RAG Configuration
+      - GOOGLE_EMBEDDING_API_KEY=${GOOGLE_API_KEY}
+      - SUPABASE_URL=http://host.docker.internal:54321
+      - SUPABASE_ANON_KEY=${PUBLIC_SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_KEY=${PUBLIC_SUPABASE_SERVICE_KEY}
+      - USE_SUPABASE=true
+      - VECTOR_SEARCH_ENABLED=true
+      - EMBEDDING_MODEL=models/text-embedding-004
+      - EMBEDDING_DIMENSION=768
+      - CHUNK_SIZE=1000
+      - CHUNK_OVERLAP=200
+      - MAX_CHUNKS_PER_QUERY=5
+      - SIMILARITY_THRESHOLD=0.7
+      - MAX_FILE_SIZE_MB=50
+      - UPLOAD_DIR=uploads
     depends_on:
       redis:
         condition: service_healthy
@@ -52,6 +67,13 @@ services:
       - DEFAULT_AI_PROVIDER=${DEFAULT_AI_PROVIDER:-gemini}
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4-turbo}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash-lite}
+      # Enhanced RAG Configuration
+      - GOOGLE_EMBEDDING_API_KEY=${GOOGLE_API_KEY}
+      - SUPABASE_URL=http://host.docker.internal:54321
+      - SUPABASE_ANON_KEY=${PUBLIC_SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_KEY=${PUBLIC_SUPABASE_SERVICE_KEY}
+      - USE_SUPABASE=true
+      - VECTOR_SEARCH_ENABLED=true
     depends_on:
       redis:
         condition: service_healthy
@@ -75,6 +97,13 @@ services:
       - DEFAULT_AI_PROVIDER=${DEFAULT_AI_PROVIDER:-gemini}
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4-turbo}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash-lite}
+      # Enhanced RAG Configuration
+      - GOOGLE_EMBEDDING_API_KEY=${GOOGLE_API_KEY}
+      - SUPABASE_URL=http://host.docker.internal:54321
+      - SUPABASE_ANON_KEY=${PUBLIC_SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_KEY=${PUBLIC_SUPABASE_SERVICE_KEY}
+      - USE_SUPABASE=true
+      - VECTOR_SEARCH_ENABLED=true
     depends_on:
       redis:
         condition: service_healthy

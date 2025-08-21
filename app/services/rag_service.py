@@ -1218,7 +1218,44 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
                 }
             
             else:
-                # Route to existing project search pipeline (SEARCH_PROJECTS or GENERAL_QUERY)
+                # Route based on intent
+                if user_intent == "GENERAL_QUERY":
+                    print(f"🔀 Routing GENERAL_QUERY to VECTOR SEARCH pipeline (confidence: {confidence:.2f})")
+                    
+                    # Try to use enhanced RAG for general queries if available
+                    try:
+                        from .enhanced_rag_service import HorizonEuropeRAG
+                        enhanced_rag = HorizonEuropeRAG()
+                        
+                        result = enhanced_rag.handle_general_query(
+                            question=question,
+                            max_context_chunks=max_projects_to_process,
+                            search_type="hybrid",
+                            similarity_threshold=0.7
+                        )
+                        
+                        # Finalize logging
+                        total_time = time.time() - total_start_time
+                        pipeline_logs['total_processing_time_ms'] = int(total_time * 1000)
+                        pipeline_logs['data_source'] = 'Enhanced RAG Vector Search'
+                        
+                        return {
+                            'answer': result.get('answer', 'No answer generated.'),
+                            'logs': pipeline_logs,
+                            'data_source': 'Enhanced RAG Vector Search',
+                            'routing_decision': 'GENERAL_QUERY_VECTOR',
+                            'intent_confidence': confidence,
+                            'projects_found': result.get('chunks_used', 0),
+                            'processing_time': round(total_time, 2),
+                            'ai_provider': self.ai_provider,
+                            'ai_version': 'V9_Enhanced'
+                        }
+                        
+                    except Exception as e:
+                        print(f"⚠️ Enhanced RAG not available, falling back to project search: {e}")
+                        pass  # Fall through to existing project search
+                
+                # Route to existing project search pipeline (SEARCH_PROJECTS or fallback GENERAL_QUERY)
                 print(f"🔀 Routing to PROJECT SEARCH pipeline (intent: {user_intent}, confidence: {confidence:.2f})")
                 
                 # Use the existing enhanced project search pipeline from V8
