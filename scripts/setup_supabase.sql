@@ -14,14 +14,15 @@ CREATE TABLE IF NOT EXISTS horizon_documents (
     file_path TEXT,
     title TEXT NOT NULL,
     document_type TEXT CHECK (document_type IN (
-        'work_programme', 
-        'programme_guide', 
+        'work_programme',
+        'programme_guide',
         'call_text',
         'grant_agreement',
         'faq',
         'manual',
         'policy',
-        'template'
+        'template',
+        'additional_resource'
     )),
     programme_year TEXT,
     programme_part TEXT, -- e.g., 'Cluster 4', 'Pillar 2'

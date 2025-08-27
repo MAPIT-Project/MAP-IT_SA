@@ -37,8 +37,8 @@ class CordisRAG:
     V9: Enhanced with intelligent intent routing to search for projects OR open calls for proposals.
     This addresses the requirement to expand beyond searching existing projects to include funding opportunities.
     """
-    def __init__(self, openai_api_key: Optional[str] = None, gemini_api_key: Optional[str] = None, 
-                 ai_provider: str = "openai", 
+    def __init__(self, openai_api_key: Optional[str] = None, gemini_api_key: Optional[str] = None,
+                 ai_provider: str = "openai",
                  openai_model_name: str = "gpt-4-turbo",
                  gemini_model_name: str = "gemini-2.5-flash-lite",
                  use_local_db: bool = False,
@@ -85,9 +85,20 @@ class CordisRAG:
         
         # Query preprocessing utilities
         self._domain_keywords = self._load_domain_keywords()
-        self._stopwords = {'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from', 
-                          'has', 'he', 'in', 'is', 'it', 'its', 'of', 'on', 'that', 'the', 
+        self._stopwords = {'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from',
+                          'has', 'he', 'in', 'is', 'it', 'its', 'of', 'on', 'that', 'the',
                           'to', 'was', 'will', 'with', 'the'}
+        
+        # Initialize call-specific RAG if available
+        self.call_specific_rag = None
+        try:
+            from .call_specific_rag import CallSpecificRAG
+            self.call_specific_rag = CallSpecificRAG(cordis_rag=self)
+            print("✅ Call-specific RAG initialized")
+        except ImportError as e:
+            print(f"⚠️ CallSpecificRAG not available: {e}")
+        except Exception as e:
+            print(f"⚠️ Failed to initialize CallSpecificRAG: {e}")
         
         if self.ai_provider == "openai":
             used_openai_api_key = openai_api_key if openai_api_key else os.getenv("OPENAI_API_KEY")
@@ -121,6 +132,23 @@ class CordisRAG:
             print(f"Using cached intent classification: {cached_result}")
             return cached_result
 
+        # First, check if this is a call-specific query using the enhanced detector
+        if self.call_specific_rag:
+            intent_type, call_identifier, confidence = self.call_specific_rag.detect_call_specific_intent(question)
+            
+            # Map call-specific intents to SEARCH_CALLS with high confidence
+            if intent_type in ["SPECIFIC_CALL", "SPECIFIC_TOPIC", "CLUSTER_SPECIFIC"]:
+                print(f"🎯 Call-specific intent detected: {intent_type} -> SEARCH_CALLS (confidence: {confidence:.2f})")
+                result = ("SEARCH_CALLS", confidence)
+                self._set_cache(self._query_cache, cache_key, result)
+                return result
+            elif intent_type == "GENERAL_CALL":
+                print(f"🎯 General call intent detected -> SEARCH_CALLS (confidence: {confidence:.2f})")
+                result = ("SEARCH_CALLS", confidence)
+                self._set_cache(self._query_cache, cache_key, result)
+                return result
+
+        # Fall back to LLM-based intent detection for other queries
         prompt = f"""You are an expert classifier for research queries. Analyze the user's question and determine their primary intent.
 
 INTENT CATEGORIES:
@@ -135,7 +163,7 @@ INTENT CATEGORIES:
 
 EXAMPLES:
 - "What AI projects have been funded in healthcare?" → SEARCH_PROJECTS
-- "Are there any open calls for renewable energy research?" → SEARCH_CALLS  
+- "Are there any open calls for renewable energy research?" → SEARCH_CALLS
 - "I need funding for my AI healthcare project" → SEARCH_CALLS
 - "Show me successful cybersecurity initiatives" → SEARCH_PROJECTS
 - "What is the EU's policy on digital transformation?" → GENERAL_QUERY
@@ -213,11 +241,10 @@ REASONING: [brief explanation]
 
     def search_for_calls(self, question: str, max_results: int = 10) -> Dict[str, Any]:
         """
-        Search the CORDIS API for open calls for proposals based on the user's question.
-        
-        V9 Enhancement: Comprehensive call search with detailed information extraction.
+        Search for Horizon Europe calls and topics, using appropriate data sources.
+        Enhanced to use call-specific RAG for detailed call/topic queries.
         """
-        print(f"📞 V9: Searching for open calls related to: '{question}'")
+        print(f"📞 V9: Searching for calls/topics related to: '{question}'")
         
         # Check cache first
         cache_key = f"calls_{hashlib.md5(f'{question}_{max_results}'.encode()).hexdigest()}"
@@ -227,6 +254,37 @@ REASONING: [brief explanation]
             return cached_result
 
         try:
+            # First, check if this is a specific call/topic query that should use the call-specific RAG
+            if self.call_specific_rag:
+                intent_type, call_identifier, confidence = self.call_specific_rag.detect_call_specific_intent(question)
+                
+                if intent_type in ["SPECIFIC_CALL", "SPECIFIC_TOPIC", "CLUSTER_SPECIFIC"]:
+                    print(f"🎯 Using call-specific RAG for {intent_type}: {call_identifier}")
+                    
+                    # Handle with call-specific RAG
+                    result = self.call_specific_rag.handle_call_specific_query(
+                        question=question,
+                        call_identifier=call_identifier,
+                        max_context_chunks=max_results
+                    )
+                    
+                    # Use appropriate data source based on success
+                    data_source = 'Horizon Europe Call Documentation' if result['success'] else 'No call documentation found'
+                    
+                    # Convert to compatible format
+                    return {
+                        'answer': result['answer'],
+                        'call_count': result.get('chunks_used', 0),
+                        'search_successful': result['success'],
+                        'queries_used': [question],
+                        'calls_data': [],
+                        'data_source': data_source,
+                        'confidence': result.get('confidence', 0.0)
+                    }
+
+            # Fall back to CORDIS API for general call searches
+            print("📞 Falling back to CORDIS API for general call search")
+            
             # Phase 1: Extract keywords from the question using existing logic with fallback
             try:
                 role, quest = self._get_phase1_prompt(question)
@@ -270,7 +328,8 @@ REASONING: [brief explanation]
                 'call_count': len(calls_found),
                 'search_successful': True,
                 'queries_used': queries,
-                'calls_data': calls_found
+                'calls_data': calls_found,
+                'data_source': 'CORDIS Topics/Calls API'
             }
             
             # Cache the result
@@ -1187,11 +1246,14 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
                 call_result = self.search_for_calls(question, max_results=max_cordis_results)
                 phase_time = time.time() - phase_start
                 
+                # Get data source from call_result
+                data_source = call_result.get('data_source', 'CORDIS Topics/Calls API')
+                
                 # Log Phase 2 (Call Search)
                 phase_log = {
                     'phase_number': 2,
                     'phase_name': 'Call Search',
-                    'operation': 'Search CORDIS for open calls/proposals',
+                    'operation': 'Search for open calls/proposals',
                     'processing_time_ms': int(phase_time * 1000),
                     'calls_found': call_result.get('call_count', 0),
                     'search_successful': call_result.get('search_successful', False),
@@ -1200,7 +1262,7 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
                     'error_message': call_result.get('error')
                 }
                 pipeline_logs['phases'].append(phase_log)
-                pipeline_logs['data_source'] = 'CORDIS Topics/Calls API'
+                pipeline_logs['data_source'] = data_source
                 pipeline_logs['calls_found'] = call_result.get('call_count', 0)
                 
                 print(f"📞 Phase 2 (Call Search) completed in {phase_time:.2f}s")
@@ -1212,9 +1274,11 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
                 return {
                     'answer': call_result.get('answer', 'No calls found.'),
                     'logs': pipeline_logs,
-                    'data_source': 'CORDIS Topics/Calls API',
+                    'data_source': data_source,
                     'routing_decision': 'SEARCH_CALLS',
-                    'intent_confidence': confidence
+                    'intent_confidence': confidence,
+                    'call_count': call_result.get('call_count', 0),
+                    'search_successful': call_result.get('search_successful', False)
                 }
             
             else:

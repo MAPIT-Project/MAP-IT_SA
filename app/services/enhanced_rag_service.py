@@ -11,6 +11,7 @@ from .vector_search_service import VectorSearchService, SearchResult
 from .rag_service import CordisRAG
 from .embedding_service import EmbeddingService
 from .supabase_client import SupabaseVectorStore
+# Note: CallSpecificRAG is imported locally within methods to avoid circular imports
 from ..core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -45,6 +46,8 @@ class HorizonEuropeRAG:
                 database_url=settings.database_url
             )
         
+        # Call-Specific RAG will be initialized on-demand to avoid circular imports
+        self._call_specific_rag = None
         logger.info("✅ Enhanced Horizon Europe RAG system initialized")
     
     def answer_question(
@@ -180,39 +183,73 @@ class HorizonEuropeRAG:
             return self._create_error_response(str(e))
     
     def handle_call_query(self, question: str) -> Dict[str, Any]:
-        """Handle call/funding opportunity queries."""
+        """Handle call/funding opportunity queries with enhanced call-specific RAG."""
         
-        logger.info(f"📞 Handling call query with CORDIS search")
+        logger.info(f"📞 Handling call query with enhanced call-specific RAG")
         
         try:
-            # Use existing call search functionality
-            result = self.cordis_rag.search_for_calls(
-                question=question,
-                max_results=10
-            )
+            # Import locally to avoid circular imports
+            from .call_specific_rag import CallSpecificRAG
             
-            # Enhance with programme documentation
-            doc_context = self._get_supporting_documentation(
-                question, 
-                max_chunks=3,
-                doc_types=['work_programme', 'call_text', 'programme_guide']
-            )
+            # Initialize call-specific RAG on-demand
+            if self._call_specific_rag is None:
+                self._call_specific_rag = CallSpecificRAG(
+                    vector_search_service=self.vector_search,
+                    supabase_client=self.supabase,
+                    embedding_service=self.embedder,
+                    cordis_rag=self.cordis_rag
+                )
             
-            if doc_context:
-                result['supporting_docs'] = doc_context
-                # Enhance the answer with document context
-                if result.get('answer') and len(doc_context) > 0:
-                    enhanced_answer = self._enhance_answer_with_docs(
-                        result['answer'], 
-                        doc_context
-                    )
-                    result['answer'] = enhanced_answer
+            # First, detect if this is a call-specific query that should use comprehensive docs
+            intent_type, call_identifier, confidence = self._call_specific_rag.detect_call_specific_intent(question)
             
-            # Ensure consistent response format
-            result['intent'] = 'SEARCH_CALLS'
-            result['data_source'] = result.get('data_source', 'CORDIS Calls')
-            
-            return result
+            if intent_type in ["SPECIFIC_CALL", "SPECIFIC_TOPIC", "CLUSTER_SPECIFIC"]:
+                logger.info(f"🎯 Using comprehensive call documentation for: {intent_type}")
+                
+                # Use call-specific RAG for comprehensive call documentation
+                result = self._call_specific_rag.handle_call_specific_query(
+                    question=question,
+                    call_identifier=call_identifier,
+                    max_context_chunks=8,
+                    search_type="hybrid"
+                )
+                
+                # Ensure consistent response format
+                result['intent'] = 'SEARCH_CALLS_ENHANCED'
+                result['data_source'] = result.get('data_source', 'Horizon Europe Comprehensive Call Docs')
+                
+                return result
+            else:
+                # Fall back to existing CORDIS call search for general call queries
+                logger.info(f"📞 Falling back to CORDIS call search for general query")
+                
+                result = self.cordis_rag.search_for_calls(
+                    question=question,
+                    max_results=10
+                )
+                
+                # Enhance with programme documentation from comprehensive docs
+                doc_context = self._get_supporting_documentation(
+                    question,
+                    max_chunks=3,
+                    doc_types=['work_programme', 'call_text', 'programme_guide']
+                )
+                
+                if doc_context:
+                    result['supporting_docs'] = doc_context
+                    # Enhance the answer with document context
+                    if result.get('answer') and len(doc_context) > 0:
+                        enhanced_answer = self._enhance_answer_with_docs(
+                            result['answer'],
+                            doc_context
+                        )
+                        result['answer'] = enhanced_answer
+                
+                # Ensure consistent response format
+                result['intent'] = 'SEARCH_CALLS'
+                result['data_source'] = result.get('data_source', 'CORDIS Calls')
+                
+                return result
             
         except Exception as e:
             logger.error(f"❌ Call query handling failed: {e}")
@@ -410,8 +447,12 @@ Answer:"""
         
         try:
             filters = {}
-            if doc_types and len(doc_types) == 1:
-                filters['document_type'] = doc_types[0]
+            if doc_types:
+                if len(doc_types) == 1:
+                    filters['document_type'] = doc_types[0]
+                else:
+                    # Use OR filter for multiple document types
+                    filters['document_type'] = doc_types
             
             results = self.vector_search.search(
                 query=question,
@@ -557,6 +598,18 @@ Answer:"""
             'error': error_message
         }
     
+    def detect_call_intent(self, question: str) -> Tuple[str, str, float]:
+        """Detect call-specific intent using the CallSpecificRAG system."""
+        if self._call_specific_rag is None:
+            from .call_specific_rag import CallSpecificRAG
+            self._call_specific_rag = CallSpecificRAG(
+                vector_search_service=self.vector_search,
+                supabase_client=self.supabase,
+                embedding_service=self.embedder,
+                cordis_rag=self.cordis_rag
+            )
+        return self._call_specific_rag.detect_call_specific_intent(question)
+
     def get_service_status(self) -> Dict[str, Any]:
         """Get the status of all integrated services."""
         return {
