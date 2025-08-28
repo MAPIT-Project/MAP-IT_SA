@@ -96,15 +96,36 @@ class CallSpecificRAG:
             confidence = 0.90 if (has_call_keyword and has_general_indicator) else 0.80
             return ("GENERAL_CALL", None, confidence)
         
+        # IMPORTANT: Check for procedural questions FIRST before keyword analysis
+        # These should NOT be handled by call-specific RAG but by the general RAG with documents
+        procedural_patterns = [
+            r'\bhow\s+to\b',
+            r'\bhow\s+do\s+i\b',
+            r'\bhow\s+can\s+i\b',
+            r'\bwhat\s+is\s+the\s+process\b',
+            r'\bwhat\s+are\s+the\s+steps\b',
+            r'\bwhat\s+are\s+the\s+requirements\b',
+            r'\bwhat\s+is\s+the\s+procedure\b',
+            r'\bwhat\s+are\s+the\s+criteria\b',
+            r'\bhow\s+should\s+i\b',
+            r'\bwhat\s+do\s+i\s+need\s+to\b'
+        ]
+        
+        # Check if this is a procedural question - if so, defer to general RAG
+        for pattern in procedural_patterns:
+            if re.search(pattern, question_lower):
+                logger.info("🎯 Detected procedural question - deferring to general RAG")
+                return ("GENERAL_QUERY", None, 0.95)  # High confidence that this is procedural
+        
         # Direct fallback analysis without calling back to CORDIS RAG to avoid circular dependency
-        # Check for funding-related keywords that suggest call queries
-        funding_keywords = ["funding", "grant", "apply", "proposal", "deadline", "opportunity", "submission", "eligibility", "tender", "competition"]
+        # Check for funding-related keywords that suggest call queries (but not procedural questions)
+        funding_keywords = ["funding", "grant", "proposal", "deadline", "opportunity", "submission", "eligibility", "tender", "competition"]
         project_keywords = ["project", "research", "initiative", "development", "study", "investigation", "programme"]
         
         funding_matches = sum(1 for word in funding_keywords if re.search(rf'\b{re.escape(word)}\b', question_lower))
         project_matches = sum(1 for word in project_keywords if re.search(rf'\b{re.escape(word)}\b', question_lower))
         
-        # Determine intent based on keyword analysis
+        # Only proceed with call/project classification if we didn't detect procedural intent
         if funding_matches > project_matches:
             return ("GENERAL_CALL", None, min(0.8, 0.5 + funding_matches * 0.1))
         elif project_matches > funding_matches:

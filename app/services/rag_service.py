@@ -156,17 +156,29 @@ INTENT CATEGORIES:
 1. **SEARCH_PROJECTS** - The user wants information about existing, past, or ongoing research projects.
    Keywords: "projects", "research", "initiatives", "who worked on", "what has been done", "previous work", "existing solutions", "case studies", "examples", "implemented", "developed"
 
-2. **SEARCH_CALLS** - The user is looking for funding opportunities, open calls for proposals, or application opportunities.
-   Keywords: "calls", "funding", "opportunities", "apply", "proposals", "deadlines", "open calls", "submit", "grant", "application", "tender", "competition", "call for proposals"
+2. **SEARCH_CALLS** - The user is looking for SPECIFIC funding opportunities, open calls for proposals, or wants to find actual calls to apply to.
+   Keywords: "find calls", "open calls for", "available calls", "what calls are", "show me calls", "list calls", "calls in [topic]"
+   
+3. **GENERAL_QUERY** - General questions about procedures, policies, eligibility, application processes, or other informational topics. This includes ALL "how-to" questions about applying, processes, and procedures.
+   Keywords: "how to", "how do I", "what is the process", "what are the steps", "how can I", "eligibility criteria", "application process", "evaluation criteria", "what are the requirements"
 
-3. **GENERAL_QUERY** - General questions about research, policies, or other topics not specifically about projects or calls.
+IMPORTANT DISTINCTIONS:
+- "How to find and apply for relevant calls?" → GENERAL_QUERY (procedural guidance)
+- "What calls are available for AI research?" → SEARCH_CALLS (looking for specific calls)
+- "How do I apply to Horizon Europe?" → GENERAL_QUERY (procedural guidance)
+- "Show me open calls for renewable energy" → SEARCH_CALLS (looking for specific calls)
+- "What are the eligibility criteria for EU funding?" → GENERAL_QUERY (procedural guidance)
+- "Are there any calls for healthcare projects?" → SEARCH_CALLS (looking for specific calls)
 
 EXAMPLES:
 - "What AI projects have been funded in healthcare?" → SEARCH_PROJECTS
 - "Are there any open calls for renewable energy research?" → SEARCH_CALLS
-- "I need funding for my AI healthcare project" → SEARCH_CALLS
+- "How to find and apply for relevant calls?" → GENERAL_QUERY
+- "What is the application process for Horizon Europe?" → GENERAL_QUERY
 - "Show me successful cybersecurity initiatives" → SEARCH_PROJECTS
-- "What is the EU's policy on digital transformation?" → GENERAL_QUERY
+- "What are the eligibility criteria for ERC grants?" → GENERAL_QUERY
+- "I need funding for my AI healthcare project" → SEARCH_CALLS
+- "How do I form a consortium for EU proposals?" → GENERAL_QUERY
 
 User Question: "{question}"
 
