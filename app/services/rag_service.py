@@ -115,83 +115,71 @@ class CordisRAG:
 
     def determine_user_intent(self, question: str) -> Tuple[str, float]:
         """
-        Uses an LLM call to classify the user's intent with confidence scoring.
+        SIMPLIFIED intent detection for the restricted AI system.
         Returns tuple of (intent, confidence) where intent is one of:
-        - 'SEARCH_PROJECTS': User wants to find existing/past research projects
-        - 'SEARCH_CALLS': User wants to find open funding calls/proposals
-        - 'GENERAL_QUERY': General question that doesn't fit the above
-        
-        V9 Enhancement: More sophisticated intent classification with confidence scoring.
+        - 'FAQ': General questions about procedures, policies, eligibility (use Enhanced RAG)
+        - 'SEARCH_PROJECTS': User wants to find existing/past research projects (use CORDIS)
+        - 'SEARCH_CALLS': User wants to find open funding calls/proposals (use Call Search)
         """
-        print(f"🎯 V9: Analyzing user intent for: '{question}'")
+        print(f"🎯 SIMPLIFIED: Analyzing user intent for: '{question}'")
         
-        # Check cache first
-        cache_key = f"intent_{hashlib.md5(question.encode()).hexdigest()}"
-        cached_result = self._get_from_cache(self._query_cache, cache_key)
-        if cached_result is not None:
-            print(f"Using cached intent classification: {cached_result}")
-            return cached_result
-
-        # First, check if this is a call-specific query using the enhanced detector
-        if self.call_specific_rag:
-            intent_type, call_identifier, confidence = self.call_specific_rag.detect_call_specific_intent(question)
+        question_lower = question.lower()
+        
+        # FIXED: More precise detection with proper priority ordering
+        
+        # 1. SEARCH_CALLS - Look for funding opportunities (HIGH PRIORITY)
+        call_keywords = [
+            'open call', 'available call', 'funding opportunity', 'opportunities',
+            'what calls', 'which calls', 'any calls', 'some calls', 'list calls',
+            'show me calls', 'find calls', 'search calls'
+        ]
+        
+        # Strong call indicators
+        if any(keyword in question_lower for keyword in call_keywords):
+            print(f"🎯 CALLS detected: strong call search keywords found")
+            return ("SEARCH_CALLS", 0.95)
+        
+        # Generic call/funding words - but check for procedural context
+        generic_call_words = ['call', 'calls', 'funding', 'grant', 'grants', 'proposal', 'proposals']
+        if any(word in question_lower for word in generic_call_words):
+            # Check if this is asking ABOUT calls (search) vs asking HOW TO with calls (FAQ)
+            procedural_context = ['how to', 'how do i', 'what is the process', 'what are the steps',
+                                'eligibility criteria', 'application process', 'evaluation criteria',
+                                'requirements for', 'how can i apply', 'evaluation process', 'process']
             
-            # Map call-specific intents to SEARCH_CALLS with high confidence
-            if intent_type in ["SPECIFIC_CALL", "SPECIFIC_TOPIC", "CLUSTER_SPECIFIC"]:
-                print(f"🎯 Call-specific intent detected: {intent_type} -> SEARCH_CALLS (confidence: {confidence:.2f})")
-                result = ("SEARCH_CALLS", confidence)
-                self._set_cache(self._query_cache, cache_key, result)
-                return result
-            elif intent_type == "GENERAL_CALL":
-                print(f"🎯 General call intent detected -> SEARCH_CALLS (confidence: {confidence:.2f})")
-                result = ("SEARCH_CALLS", confidence)
-                self._set_cache(self._query_cache, cache_key, result)
-                return result
-
-        # Fall back to LLM-based intent detection for other queries
-        prompt = f"""You are an expert classifier for research queries. Analyze the user's question and determine their primary intent.
-
-INTENT CATEGORIES:
-
-1. **SEARCH_PROJECTS** - The user wants information about existing, past, or ongoing research projects.
-   Keywords: "projects", "research", "initiatives", "who worked on", "what has been done", "previous work", "existing solutions", "case studies", "examples", "implemented", "developed"
-
-2. **SEARCH_CALLS** - The user is looking for SPECIFIC funding opportunities, open calls for proposals, or wants to find actual calls to apply to.
-   Keywords: "find calls", "open calls for", "available calls", "what calls are", "show me calls", "list calls", "calls in [topic]"
-   
-3. **GENERAL_QUERY** - General questions about procedures, policies, eligibility, application processes, or other informational topics. This includes ALL "how-to" questions about applying, processes, and procedures.
-   Keywords: "how to", "how do I", "what is the process", "what are the steps", "how can I", "eligibility criteria", "application process", "evaluation criteria", "what are the requirements"
-
-IMPORTANT DISTINCTIONS:
-- "How to find and apply for relevant calls?" → GENERAL_QUERY (procedural guidance)
-- "What calls are available for AI research?" → SEARCH_CALLS (looking for specific calls)
-- "How do I apply to Horizon Europe?" → GENERAL_QUERY (procedural guidance)
-- "Show me open calls for renewable energy" → SEARCH_CALLS (looking for specific calls)
-- "What are the eligibility criteria for EU funding?" → GENERAL_QUERY (procedural guidance)
-- "Are there any calls for healthcare projects?" → SEARCH_CALLS (looking for specific calls)
-
-EXAMPLES:
-- "What AI projects have been funded in healthcare?" → SEARCH_PROJECTS
-- "Are there any open calls for renewable energy research?" → SEARCH_CALLS
-- "How to find and apply for relevant calls?" → GENERAL_QUERY
-- "What is the application process for Horizon Europe?" → GENERAL_QUERY
-- "Show me successful cybersecurity initiatives" → SEARCH_PROJECTS
-- "What are the eligibility criteria for ERC grants?" → GENERAL_QUERY
-- "I need funding for my AI healthcare project" → SEARCH_CALLS
-- "How do I form a consortium for EU proposals?" → GENERAL_QUERY
-
-User Question: "{question}"
-
-Analyze the question and provide:
-1. Your classification: SEARCH_PROJECTS, SEARCH_CALLS, or GENERAL_QUERY
-2. Confidence level (0.0-1.0)
-3. Brief reasoning
-
-Format your response as:
-CLASSIFICATION: [your choice]
-CONFIDENCE: [0.0-1.0]
-REASONING: [brief explanation]
-"""
+            if not any(proc in question_lower for proc in procedural_context):
+                print(f"🎯 CALLS detected: funding keywords without procedural context")
+                return ("SEARCH_CALLS", 0.9)
+        
+        # 2. SEARCH_PROJECTS - Look for research projects
+        project_keywords = [
+            'what projects', 'which projects', 'any projects', 'some projects',
+            'show me projects', 'find projects', 'list projects', 'examples of projects',
+            'funded projects', 'successful projects', 'research initiatives'
+        ]
+        
+        # Strong project indicators
+        if any(keyword in question_lower for keyword in project_keywords):
+            print(f"🎯 PROJECTS detected: strong project search keywords found")
+            return ("SEARCH_PROJECTS", 0.95)
+        
+        # Generic project words - but check for procedural context
+        generic_project_words = ['project', 'projects', 'research', 'initiative', 'initiatives',
+                               'who worked on', 'what has been done', 'previous work', 'existing solutions',
+                               'case studies', 'examples', 'implemented', 'developed']
+        
+        if any(word in question_lower for word in generic_project_words):
+            procedural_context = ['how to', 'how do i', 'what is the process', 'what are the steps',
+                                'eligibility criteria', 'application process', 'evaluation criteria',
+                                'requirements for', 'how can i apply']
+            
+            if not any(proc in question_lower for proc in procedural_context):
+                print(f"🎯 PROJECTS detected: project keywords without procedural context")
+                return ("SEARCH_PROJECTS", 0.9)
+        
+        # 3. FAQ (default) - All procedural/policy questions
+        print(f"🎯 FAQ detected: general procedural/policy question")
+        return ("FAQ", 0.8)
 
         try:
             if self.ai_provider == "openai":
@@ -266,14 +254,15 @@ REASONING: [brief explanation]
             return cached_result
 
         try:
-            # First, check if this is a specific call/topic query that should use the call-specific RAG
+            # First, check if this is ANY call/topic query that should use the call-specific RAG
             if self.call_specific_rag:
                 intent_type, call_identifier, confidence = self.call_specific_rag.detect_call_specific_intent(question)
                 
-                if intent_type in ["SPECIFIC_CALL", "SPECIFIC_TOPIC", "CLUSTER_SPECIFIC"]:
+                # CRITICAL FIX: Include "GENERAL_CALL" intent to use enhanced search for ALL call queries
+                if intent_type in ["SPECIFIC_CALL", "SPECIFIC_TOPIC", "CLUSTER_SPECIFIC", "GENERAL_CALL"]:
                     print(f"🎯 Using call-specific RAG for {intent_type}: {call_identifier}")
                     
-                    # Handle with call-specific RAG
+                    # Handle with call-specific RAG (enhanced search will be used automatically)
                     result = self.call_specific_rag.handle_call_specific_query(
                         question=question,
                         call_identifier=call_identifier,
@@ -281,7 +270,7 @@ REASONING: [brief explanation]
                     )
                     
                     # Use appropriate data source based on success
-                    data_source = 'Horizon Europe Call Documentation' if result['success'] else 'No call documentation found'
+                    data_source = 'EU Funding & Tenders Portal (Enhanced)' if result['success'] else 'No call documentation found'
                     
                     # Convert to compatible format
                     return {
@@ -1203,336 +1192,141 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
 
     def get_ai_response_with_routing(self, question: str, max_projects_to_process: int = 5, max_cordis_results: int = 10) -> Dict[str, Any]:
         """
-        Enhanced V9 response generation with intelligent routing between project search and call search.
-        
-        This is the main entry point that determines user intent and routes to the appropriate pipeline.
+        SIMPLIFIED routing system - only handles 3 specific functions:
+        1. FAQ: General questions -> Enhanced RAG
+        2. SEARCH_PROJECTS: Project search -> CORDIS
+        3. SEARCH_CALLS: Call search -> EU Portal
         """
         total_start_time = time.time()
         
-        # Log the incoming question
-        question_hash = hashlib.md5(question.encode()).hexdigest()[:8]
-        print(f"🎯 V9: Processing question (hash:{question_hash}): '{question}'")
+        print(f"🎯 SIMPLIFIED ROUTING: Processing question: '{question}'")
         
-        # Initialize comprehensive logging
-        pipeline_logs = {
-            'question': question,
-            'version': 'V9',
-            'model_used': self.openai_model_name if self.ai_provider == "openai" else self.gemini_model_name,
-            'ai_provider': self.ai_provider,
-            'phases': [],
-            'total_processing_time_ms': 0,
-            'success': True,
-            'error_message': None,
-            'routing_decision': None,
-            'intent_confidence': 0.0
-        }
-
         try:
-            # Phase 1: Intent determination (NEW in V9)
-            phase_start = time.time()
+            # Simple intent determination
             user_intent, confidence = self.determine_user_intent(question)
-            phase_time = time.time() - phase_start
             
-            # Log Phase 1
-            phase_log = {
-                'phase_number': 1,
-                'phase_name': 'Intent Classification',
-                'operation': 'Determine whether user wants projects or calls',
-                'processing_time_ms': int(phase_time * 1000),
-                'intent_determined': user_intent,
-                'confidence_score': confidence,
-                'success': True,
-                'error_message': None
-            }
-            pipeline_logs['phases'].append(phase_log)
-            pipeline_logs['routing_decision'] = user_intent
-            pipeline_logs['intent_confidence'] = confidence
+            print(f"🎯 Intent: {user_intent} (confidence: {confidence:.2f})")
             
-            print(f"🎯 Phase 1 (Intent Classification) completed in {phase_time:.2f}s")
-
-            # Phase 2: Route to appropriate pipeline
-            if user_intent == "SEARCH_CALLS":
-                print(f"🔀 Routing to CALL SEARCH pipeline (confidence: {confidence:.2f})")
-                
-                phase_start = time.time()
+            # Route to ONLY the 3 allowed functions
+            if user_intent == "FAQ":
+                print(f"📚 Routing FAQ to Enhanced RAG")
+                try:
+                    from .enhanced_rag_service import HorizonEuropeRAG
+                    enhanced_rag = HorizonEuropeRAG()
+                    
+                    result = enhanced_rag.handle_general_query(
+                        question=question,
+                        max_context_chunks=5,
+                        search_type="hybrid",
+                        similarity_threshold=0.7
+                    )
+                    
+                    total_time = time.time() - total_start_time
+                    
+                    return {
+                        'answer': result.get('answer', 'I could not find relevant information to answer your question.'),
+                        'routing_decision': 'FAQ',
+                        'intent_confidence': confidence,
+                        'data_source': 'Horizon Europe Documents (FAQ)',
+                        'processing_time': round(total_time, 2),
+                        'success': result.get('success', True)
+                    }
+                    
+                except Exception as e:
+                    print(f"❌ Enhanced RAG failed: {e}")
+                    return {
+                        'answer': 'I apologize, but I encountered an error accessing the documentation to answer your question. Please try rephrasing your question.',
+                        'routing_decision': 'FAQ',
+                        'intent_confidence': confidence,
+                        'data_source': 'Error',
+                        'success': False,
+                        'error': str(e)
+                    }
+            
+            elif user_intent == "SEARCH_CALLS":
+                print(f"📞 Routing to Call Search")
                 call_result = self.search_for_calls(question, max_results=max_cordis_results)
-                phase_time = time.time() - phase_start
                 
-                # Get data source from call_result
-                data_source = call_result.get('data_source', 'CORDIS Topics/Calls API')
-                
-                # Log Phase 2 (Call Search)
-                phase_log = {
-                    'phase_number': 2,
-                    'phase_name': 'Call Search',
-                    'operation': 'Search for open calls/proposals',
-                    'processing_time_ms': int(phase_time * 1000),
-                    'calls_found': call_result.get('call_count', 0),
-                    'search_successful': call_result.get('search_successful', False),
-                    'queries_used': call_result.get('queries_used', []),
-                    'success': call_result.get('search_successful', False),
-                    'error_message': call_result.get('error')
-                }
-                pipeline_logs['phases'].append(phase_log)
-                pipeline_logs['data_source'] = data_source
-                pipeline_logs['calls_found'] = call_result.get('call_count', 0)
-                
-                print(f"📞 Phase 2 (Call Search) completed in {phase_time:.2f}s")
-                
-                # Finalize logging for call search
                 total_time = time.time() - total_start_time
-                pipeline_logs['total_processing_time_ms'] = int(total_time * 1000)
                 
                 return {
                     'answer': call_result.get('answer', 'No calls found.'),
-                    'logs': pipeline_logs,
-                    'data_source': data_source,
                     'routing_decision': 'SEARCH_CALLS',
                     'intent_confidence': confidence,
+                    'data_source': call_result.get('data_source', 'EU Funding Portal'),
+                    'processing_time': round(total_time, 2),
                     'call_count': call_result.get('call_count', 0),
-                    'search_successful': call_result.get('search_successful', False)
+                    'success': call_result.get('search_successful', True)
                 }
             
-            else:
-                # Route based on intent
-                if user_intent == "GENERAL_QUERY":
-                    print(f"🔀 Routing GENERAL_QUERY to VECTOR SEARCH pipeline (confidence: {confidence:.2f})")
-                    
-                    # Try to use enhanced RAG for general queries if available
-                    try:
-                        from .enhanced_rag_service import HorizonEuropeRAG
-                        enhanced_rag = HorizonEuropeRAG()
-                        
-                        result = enhanced_rag.handle_general_query(
-                            question=question,
-                            max_context_chunks=max_projects_to_process,
-                            search_type="hybrid",
-                            similarity_threshold=0.7
-                        )
-                        
-                        # Finalize logging
-                        total_time = time.time() - total_start_time
-                        pipeline_logs['total_processing_time_ms'] = int(total_time * 1000)
-                        pipeline_logs['data_source'] = 'Enhanced RAG Vector Search'
-                        
-                        return {
-                            'answer': result.get('answer', 'No answer generated.'),
-                            'logs': pipeline_logs,
-                            'data_source': 'Enhanced RAG Vector Search',
-                            'routing_decision': 'GENERAL_QUERY_VECTOR',
-                            'intent_confidence': confidence,
-                            'projects_found': result.get('chunks_used', 0),
-                            'processing_time': round(total_time, 2),
-                            'ai_provider': self.ai_provider,
-                            'ai_version': 'V9_Enhanced'
-                        }
-                        
-                    except Exception as e:
-                        print(f"⚠️ Enhanced RAG not available, falling back to project search: {e}")
-                        pass  # Fall through to existing project search
+            elif user_intent == "SEARCH_PROJECTS":
+                print(f"🔬 Routing to Project Search")
                 
-                # Route to existing project search pipeline (SEARCH_PROJECTS or fallback GENERAL_QUERY)
-                print(f"🔀 Routing to PROJECT SEARCH pipeline (intent: {user_intent}, confidence: {confidence:.2f})")
-                
-                # Use the existing enhanced project search pipeline from V8
+                # Use existing project search (simplified)
                 data_source = "Local Database" if self.use_local_db else "CORDIS API"
                 
-                # Phase 2: Query extraction
-                phase_start = time.time()
+                # Extract queries
                 role, quest = self._get_phase1_prompt(question)
                 queries, end_flag, new_query_keys, rerank_criteria, problem_text, next_pass = self._extract_queries(role, quest)
-                phase_time = time.time() - phase_start
-                
-                # Log Phase 2
-                phase_log = {
-                    'phase_number': 2,
-                    'phase_name': 'Query extraction',
-                    'operation': 'Extract search queries from user question',
-                    'processing_time_ms': int(phase_time * 1000),
-                    'queries_generated': queries,
-                    'rerank_criteria': rerank_criteria,
-                    'success': not end_flag,
-                    'error_message': problem_text if end_flag else None
-                }
-                pipeline_logs['phases'].append(phase_log)
-                print(f"📝 Phase 2 (Query extraction) completed in {phase_time:.2f}s")
                 
                 if end_flag:
-                    pipeline_logs['success'] = False
-                    pipeline_logs['error_message'] = problem_text
-                    pipeline_logs['total_processing_time_ms'] = int((time.time() - total_start_time) * 1000)
                     return {
                         'answer': problem_text,
-                        'logs': pipeline_logs,
-                        'routing_decision': user_intent,
-                        'intent_confidence': confidence
+                        'routing_decision': 'SEARCH_PROJECTS',
+                        'intent_confidence': confidence,
+                        'data_source': 'Error',
+                        'success': False
                     }
                 
-                # Continue with existing V8 pipeline for projects...
-                # Phase 3: Data retrieval
-                phase_start = time.time()
+                # Search for projects
                 if self.use_local_db:
-                    # Get more results initially for better selection
-                    initial_results = max_projects_to_process * 3
-                    raw_project_data = self._search_local_database(queries, max_results=initial_results)
-                    
-                    # Intelligently select the best projects
+                    raw_project_data = self._search_local_database(queries, max_results=max_projects_to_process * 3)
                     project_data = self._adaptive_result_selection(raw_project_data, question, max_projects_to_process)
-                    
-                    # Log Phase 3 (Local DB)
-                    phase_time = time.time() - phase_start
-                    phase_log = {
-                        'phase_number': 3,
-                        'phase_name': 'Enhanced Local DB search',
-                        'operation': 'Search local database and select best projects',
-                        'processing_time_ms': int(phase_time * 1000),
-                        'projects_found': len(raw_project_data),
-                        'projects_selected': len(project_data),
-                        'relevance_scores': [proj.get('relevance_score', 0) for proj in project_data],
-                        'success': True,
-                        'error_message': None
-                    }
-                    pipeline_logs['phases'].append(phase_log)
-                    pipeline_logs['projects_retrieved'] = len(raw_project_data)
-                    pipeline_logs['projects_processed'] = len(project_data)
-                    
-                    print(f"🔍 Phase 3 (Local DB search) completed in {phase_time:.2f}s")
                 else:
                     project_items = self._search_cordis_api(queries, max_results=max_cordis_results)
-                    
-                    # Log Phase 3 (API)
-                    phase_time = time.time() - phase_start
-                    phase_log = {
-                        'phase_number': 3,
-                        'phase_name': 'CORDIS API search',
-                        'operation': 'Search CORDIS API for projects',
-                        'processing_time_ms': int(phase_time * 1000),
-                        'projects_found': len(project_items),
-                        'success': True,
-                        'error_message': None
-                    }
-                    pipeline_logs['phases'].append(phase_log)
-                    
-                    # Phase 4: Project data extraction (only for API mode)
-                    phase_start = time.time()
                     project_data = [self._extract_project_data(item) for item in project_items[:max_projects_to_process]]
-                    
-                    # Log Phase 4
-                    phase_time = time.time() - phase_start
-                    phase_log = {
-                        'phase_number': 4,
-                        'phase_name': 'Data extraction',
-                        'operation': 'Extract structured data from API results',
-                        'processing_time_ms': int(phase_time * 1000),
-                        'projects_processed': len(project_data),
-                        'success': True,
-                        'error_message': None
-                    }
-                    pipeline_logs['phases'].append(phase_log)
-                    pipeline_logs['projects_retrieved'] = len(project_items)
-                    pipeline_logs['projects_processed'] = len(project_data)
-                    
-                    print(f"📊 Phase 4 (Data extraction) completed in {phase_time:.2f}s")
-                    
-                    # Phase 5: XML enrichment (only for API mode)
-                    phase_start = time.time()
                     project_data = self._enrich_with_xml_data(project_data)
-                    
-                    # Log Phase 5
-                    phase_time = time.time() - phase_start
-                    phase_log = {
-                        'phase_number': 5,
-                        'phase_name': 'XML enrichment',
-                        'operation': 'Enrich project data with XML details',
-                        'processing_time_ms': int(phase_time * 1000),
-                        'projects_processed': len(project_data),
-                        'success': True,
-                        'error_message': None
-                    }
-                    pipeline_logs['phases'].append(phase_log)
-                    print(f"🔗 Phase 5 (XML enrichment) completed in {phase_time:.2f}s")
                 
-                # Phase 6: Enhanced reranking
+                # Rerank if needed
                 if rerank_criteria and len(project_data) > 1:
-                    phase_start = time.time()
-                    original_count = len(project_data)
                     project_data = self._enhanced_rerank_projects(project_data, rerank_criteria, question, role)
-                    
-                    # Log Phase 6
-                    phase_time = time.time() - phase_start
-                    phase_log = {
-                        'phase_number': 6,
-                        'phase_name': 'Enhanced reranking',
-                        'operation': 'Rerank projects based on criteria and relevance',
-                        'processing_time_ms': int(phase_time * 1000),
-                        'projects_before_rerank': original_count,
-                        'projects_after_rerank': len(project_data),
-                        'rerank_criteria': rerank_criteria,
-                        'success': True,
-                        'error_message': None
-                    }
-                    pipeline_logs['phases'].append(phase_log)
-                    print(f"📈 Phase 6 (Reranking) completed in {phase_time:.2f}s")
                 
-                # Phase 7: Enhanced answer generation
-                phase_start = time.time()
+                # Generate answer
                 answer = self._generate_enhanced_answer(role, question, project_data)
                 
-                # Log Phase 7
-                phase_time = time.time() - phase_start
-                phase_log = {
-                    'phase_number': 7,
-                    'phase_name': 'Enhanced answer generation',
-                    'operation': 'Generate comprehensive answer',
-                    'processing_time_ms': int(phase_time * 1000),
-                    'projects_used_in_answer': len(project_data),
-                    'answer_length': len(answer),
-                    'success': True,
-                    'error_message': None
-                }
-                pipeline_logs['phases'].append(phase_log)
-                print(f"✍️ Phase 7 (Answer generation) completed in {phase_time:.2f}s")
-                
-                # Finalize logging
                 total_time = time.time() - total_start_time
-                pipeline_logs['total_processing_time_ms'] = int(total_time * 1000)
-                pipeline_logs['data_source'] = data_source
-                
-                # Calculate average relevance score
-                relevance_scores = []
-                for project in project_data:
-                    score = project.get('relevance_score', 0)
-                    if score > 0:
-                        relevance_scores.append(score)
-                
-                pipeline_logs['average_relevance_score'] = sum(relevance_scores) / len(relevance_scores) if relevance_scores else 0
                 
                 return {
                     'answer': answer,
-                    'logs': pipeline_logs,
-                    'data_source': data_source,
-                    'routing_decision': user_intent,
+                    'routing_decision': 'SEARCH_PROJECTS',
                     'intent_confidence': confidence,
-                    'projects_found': len(project_data),
+                    'data_source': data_source,
                     'processing_time': round(total_time, 2),
-                    'ai_provider': self.ai_provider,
-                    'ai_version': 'V9'
+                    'projects_found': len(project_data),
+                    'success': True
+                }
+            
+            else:
+                # Should never happen with new simplified intent detection
+                return {
+                    'answer': 'I can only help with three types of queries: (1) General FAQ about EU funding procedures and policies, (2) Searching for existing research projects, or (3) Finding open funding calls. Please rephrase your question to fit one of these categories.',
+                    'routing_decision': 'UNSUPPORTED',
+                    'intent_confidence': 0.0,
+                    'data_source': 'None',
+                    'success': False
                 }
 
         except Exception as e:
-            # Log the error
             error_message = str(e)
-            pipeline_logs['success'] = False
-            pipeline_logs['error_message'] = error_message
-            pipeline_logs['total_processing_time_ms'] = int((time.time() - total_start_time) * 1000)
-            
-            print(f"❌ V9 RAG pipeline failed: {error_message}")
+            print(f"❌ Simplified routing failed: {error_message}")
             
             return {
                 'answer': f"I apologize, but I encountered an error while processing your request: {error_message}",
-                'logs': pipeline_logs,
                 'routing_decision': 'ERROR',
-                'intent_confidence': 0.0
+                'intent_confidence': 0.0,
+                'data_source': 'Error',
+                'success': False,
+                'error': error_message
             }
 
     # Keep all existing V8 methods for backward compatibility

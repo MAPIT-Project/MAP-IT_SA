@@ -12,6 +12,7 @@ from .vector_search_service import VectorSearchService, SearchResult
 from .supabase_client import SupabaseVectorStore
 from .embedding_service import EmbeddingService
 from .rag_service import CordisRAG
+from .enhanced_call_search import EnhancedCallSearchService, EnhancedSearchResult
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +31,14 @@ class CallSpecificRAG:
         self.embedder = embedding_service or EmbeddingService(cache_client=self.supabase)
         self.vector_search = vector_search_service or VectorSearchService(self.supabase, self.embedder)
         self.cordis_rag = cordis_rag  # Use provided instance, don't create new
+        
+        # Initialize enhanced call search service
+        try:
+            self.enhanced_search = EnhancedCallSearchService()
+            logger.info("✅ Enhanced call search service initialized")
+        except Exception as e:
+            logger.warning(f"⚠️ Enhanced call search not available: {e}")
+            self.enhanced_search = None
         
         logger.info("✅ Call-specific RAG system initialized")
     
@@ -82,18 +91,30 @@ class CallSpecificRAG:
                     logger.info(f"🎯 Detected cluster-specific query: {cluster}")
                     return ("CLUSTER_SPECIFIC", cluster, 0.85)
         
-        # General call/topic query with better keyword detection using word boundaries
-        call_keywords = ["open calls", "funding opportunities", "grant application", "proposal deadline", "call for proposals", "topic search", "funding call", "research grant"]
-        general_call_indicators = ["what are some", "are there any", "show me", "list of", "find calls for", "looking for calls", "search for funding"]
+        # General call/topic query with enhanced keyword detection
+        call_keywords = ["open calls", "funding opportunities", "grant application", "proposal deadline", "call for proposals", "topic search", "funding call", "research grant", "calls for", "calls related to", "calls about", "available calls", "funding for"]
+        general_call_indicators = ["what are some", "are there any", "show me", "list of", "find calls for", "looking for calls", "search for funding", "what calls", "which calls"]
         
         # Check for general call queries with indicators using word boundaries
         has_call_keyword = any(re.search(rf'\b{re.escape(keyword)}\b', question_lower) for keyword in call_keywords)
         has_general_indicator = any(re.search(rf'\b{re.escape(indicator)}\b', question_lower) for indicator in general_call_indicators)
         
-        if has_call_keyword or has_general_indicator:
+        # CRITICAL FIX: Also check for specific patterns like "calls related to X" or "calls about X"
+        call_patterns = [
+            r'\bcalls?\s+(for|about|related\s+to|concerning|regarding)\s+\w+',
+            r'\bopen\s+calls?\s+\w+',
+            r'\bfunding\s+(for|about|related\s+to)\s+\w+',
+            r'\bwhat.*calls?.*for\s+\w+',
+            r'\bshow.*calls?\s+\w+',
+            r'\bfind.*calls?\s+\w+'
+        ]
+        
+        has_call_pattern = any(re.search(pattern, question_lower) for pattern in call_patterns)
+        
+        if has_call_keyword or has_general_indicator or has_call_pattern:
             logger.info("🎯 Detected general call/topic query")
-            # Higher confidence if both indicator and keyword are present
-            confidence = 0.90 if (has_call_keyword and has_general_indicator) else 0.80
+            # Higher confidence if multiple indicators are present
+            confidence = 0.95 if (has_call_keyword and has_general_indicator) or has_call_pattern else 0.85
             return ("GENERAL_CALL", None, confidence)
         
         # IMPORTANT: Check for procedural questions FIRST before keyword analysis
@@ -148,6 +169,26 @@ class CallSpecificRAG:
             logger.info(f"   Call/Topic ID: {call_identifier}")
         
         try:
+            # Try enhanced search first if available
+            if self.enhanced_search and not call_identifier:
+                logger.info("🚀 Using enhanced call search service")
+                
+                enhanced_result = self.enhanced_search.search_calls_enhanced(
+                    query=question,
+                    max_results=max_context_chunks,
+                    include_closed=True,  # Include closed calls for completeness
+                    enable_facet_analysis=True
+                )
+                
+                if enhanced_result['status'] == 'success':
+                    # Use enhanced search results even if empty - it may have explanations
+                    return self._process_enhanced_search_results(question, enhanced_result)
+                else:
+                    logger.warning("⚠️ Enhanced search failed, falling back to vector search")
+            
+            # Fallback to original vector search
+            logger.info(f"📊 Using vector search fallback (search_type: {search_type})")
+            
             # Build search filters based on call specificity
             filters = {}
             if call_identifier:
@@ -386,6 +427,151 @@ ANSWER:"""
         
         return avg_score
     
+    def _process_enhanced_search_results(
+        self,
+        question: str,
+        enhanced_result: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Process enhanced search results into RAG-compatible format."""
+        
+        results = enhanced_result.get('results', [])
+        facets = enhanced_result.get('facets', {})
+        metadata = enhanced_result.get('search_metadata', {})
+        
+        if not results:
+            # Check if this is due to filtering and we have an explanation
+            filter_explanation = metadata.get('filter_explanation', '')
+            if filter_explanation:
+                return self._create_filtered_no_results_response(question, metadata)
+            else:
+                return self._create_no_call_results_response(question)
+        
+        # Build comprehensive answer from enhanced results
+        answer_parts = []
+        answer_parts.append(f"I found {len(results)} relevant funding opportunities based on your query about '*{question}*':")
+        answer_parts.append("")
+        
+        # Add search metadata and filtering info
+        if metadata.get('semantic_tags_used', 0) > 0:
+            answer_parts.append(f"🏷️ **Search Enhancement:** Used {metadata['semantic_tags_used']} semantic tags for improved relevance")
+            
+        # Add filter information if applied
+        filters_applied = metadata.get('filters_applied', [])
+        filter_intention = metadata.get('filter_intention', 'all')
+        if filters_applied and 'no_filters' not in filters_applied:
+            filter_text = ", ".join([f.replace('status:', '').replace('temporal:', '') for f in filters_applied])
+            answer_parts.append(f"🔍 **Filters Applied:** {filter_text} ({filter_intention})")
+        
+        # Add filter explanation if provided (critical for "open calls" with 0 results)
+        filter_explanation = metadata.get('filter_explanation', '')
+        if filter_explanation:
+            answer_parts.append(f"ℹ️ **Filter Result:** {filter_explanation}")
+            
+        answer_parts.append("")
+        
+        # Process each result
+        for i, result in enumerate(results[:5], 1):  # Limit to top 5
+            answer_parts.append(f"**{i}. {result.title}**")
+            
+            if result.identifier != 'N/A':
+                answer_parts.append(f"📋 **Call ID:** {result.identifier}")
+            
+            if result.status != 'Unknown':
+                status_emoji = "🟢" if result.status == "Open" else "🔵" if result.status == "Forthcoming" else "🔴"
+                answer_parts.append(f"{status_emoji} **Status:** {result.status}")
+            
+            if result.deadline != 'Not specified':
+                answer_parts.append(f"⏰ **Deadline:** {result.deadline}")
+            
+            if result.framework_programme != 'Horizon Europe':
+                answer_parts.append(f"🏛️ **Programme:** {result.framework_programme}")
+            
+            if result.call_identifier != 'Not specified':
+                answer_parts.append(f"📞 **Call:** {result.call_identifier}")
+            
+            # Add enhanced description
+            if result.description and result.description != 'No description available':
+                # For enhanced descriptions, show more content but still limit for readability
+                if len(result.description) > 400:
+                    desc_preview = result.description[:400] + '...'
+                else:
+                    desc_preview = result.description
+                answer_parts.append(f"\n**Description:** {desc_preview}")
+            else:
+                # Fallback description if none available
+                action_type = "Research opportunity"
+                if hasattr(result, 'metadata') and result.metadata:
+                    types_action = result.metadata.get('typesOfAction', [''])[0] if isinstance(result.metadata.get('typesOfAction'), list) else result.metadata.get('typesOfAction', '')
+                    if types_action:
+                        if types_action == 'RIA':
+                            action_type = "Research and Innovation Action"
+                        elif types_action == 'CSA':
+                            action_type = "Coordination and Support Action"
+                        elif types_action == 'IA':
+                            action_type = "Innovation Action"
+                        else:
+                            action_type = f"{types_action} opportunity"
+                answer_parts.append(f"\n**Description:** {action_type} in the specified research area")
+            
+            # Add link
+            answer_parts.append(f"\n🔗 **Apply Here:** {result.url}")
+            answer_parts.append("\n")
+        
+        # Add facet analysis if available
+        if facets:
+            answer_parts.append("---")
+            answer_parts.append("📊 **FACET ANALYSIS:**\n")
+            
+            # Show top program areas
+            if 'programmeDivision' in facets:
+                divisions = facets['programmeDivision'].get('values', [])[:3]
+                if divisions:
+                    div_text = ", ".join([f"{d['value']} ({d['count']})" for d in divisions])
+                    answer_parts.append(f"🎯 **Top Program Areas:** {div_text}\n")
+            
+            # Show status distribution
+            if 'status' in facets:
+                status_dist = facets['status'].get('values', [])
+                if status_dist:
+                    status_text = ", ".join([f"{s['value']} ({s['count']})" for s in status_dist])
+                    answer_parts.append(f"📈 **Status Distribution:** {status_text}")
+            
+            answer_parts.append("")
+        
+        # Add simple footer
+        answer_parts.extend([
+            "---",
+            "🔗 **EU Funding Portal:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home"
+        ])
+        
+        return {
+            'answer': '\n'.join(answer_parts),
+            'intent': 'ENHANCED_CALL_SEARCH',
+            'call_identifier': None,
+            'sources': [{'title': r.title, 'url': r.url, 'status': r.status} for r in results],
+            'search_type': 'enhanced_hybrid',
+            'chunks_used': len(results),
+            'confidence': max(0.8, min([r.score for r in results]) / max([r.score for r in results]) if results else 0.8),
+            'data_source': 'EU Funding & Tenders Portal (Enhanced)',
+            'facets': facets,
+            'search_metadata': metadata,
+            'processing_time': metadata.get('processing_time', 0),
+            'success': True
+        }
+    
+    def _create_error_response(self, error_message: str) -> Dict[str, Any]:
+        """Create error response."""
+        return {
+            'answer': f"I apologize, but I encountered an error while processing your call-specific query: {error_message}",
+            'intent': 'ERROR',
+            'call_identifier': None,
+            'sources': [],
+            'confidence': 0.0,
+            'data_source': 'Error',
+            'success': False,
+            'error': error_message
+        }
+    
     def _create_no_call_results_response(
         self,
         question: str,
@@ -402,6 +588,77 @@ ANSWER:"""
         message += "• The documentation for this specific call might not be available yet\n"
         message += "• The call might be from a different funding programme\n\n"
         message += "💡 **Suggestions:**\n"
+    
+    def _create_filtered_no_results_response(
+        self,
+        question: str,
+        metadata: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Create specialized response when specific filters return no results."""
+        
+        filter_intention = metadata.get('filter_intention', 'all')
+        filter_explanation = metadata.get('filter_explanation', '')
+        clean_query = metadata.get('clean_query', question)
+        
+        message_parts = []
+        
+        if filter_intention == "open_only":
+            message_parts.extend([
+                f"🔴 **No Currently Open Calls Found** for '{clean_query}'",
+                "",
+                filter_explanation,
+                "",
+                "**This is normal** - EU funding calls follow scheduled cycles and aren't always open.",
+                "",
+                "💡 **What to do:**",
+                "• Check **recent closed calls** to see what types of calls are typically available",
+                "• Set up **EU call alerts** to be notified when new calls open",
+                "• Look for **forthcoming calls** that will open soon",
+                "",
+                f"🔍 **Alternative search:** Try removing 'open' to see all quantum mechanics calls"
+            ])
+            
+        elif filter_intention == "recent_only":
+            message_parts.extend([
+                f"📅 **No Recent Calls Found** for '{clean_query}'",
+                "",
+                filter_explanation,
+                "",
+                "This may indicate a gap between call cycles for this specific topic.",
+                "",
+                "💡 **What to do:**",
+                "• Expand your search to include older calls to see patterns",
+                "• Check the **EU call calendar** for upcoming opportunities",
+                "• Consider related or broader search terms"
+            ])
+            
+        else:
+            message_parts.extend([
+                f"🔍 **No Results Found** for your filtered search: '{question}'",
+                "",
+                filter_explanation if filter_explanation else "The specific filters you requested returned no matching calls."
+            ])
+        
+        # Add general guidance
+        message_parts.extend([
+            "",
+            "🔗 **Useful Resources:**",
+            "• EU Funding Portal: https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home",
+            "• Call Calendar: https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/calls-calendar",
+            "• Set Alerts: https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/mailing-lists"
+        ])
+        
+        return {
+            'answer': '\n'.join(message_parts),
+            'intent': 'FILTERED_NO_RESULTS', 
+            'call_identifier': None,
+            'sources': [],
+            'confidence': 0.9,  # High confidence in the filtering explanation
+            'data_source': 'EU Funding & Tenders Portal (Enhanced)',
+            'search_metadata': metadata,
+            'success': True,  # Success in explaining why no results
+            'filter_applied': True
+        }
         message += "• Verify the call identifier on the EU Funding Portal\n"
         message += "• Try searching with broader terms or cluster names\n"
         message += "• Check the relevant Work Programme for your research area\n"

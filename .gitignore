@@ -153,5 +153,5 @@ data/
 .env.local
 .env.production
 debug/
-test_reports/
+test_reports/*.json
 processed_docs/
