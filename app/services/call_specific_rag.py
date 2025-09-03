@@ -594,6 +594,19 @@ ANSWER:"""
         message += "• The documentation for this specific call might not be available yet\n"
         message += "• The call might be from a different funding programme\n\n"
         message += "💡 **Suggestions:**\n"
+        message += "• Verify the call identifier on the EU Funding Portal\n"
+        message += "• Try searching with broader terms or cluster names\n"
+        message += "• Check the relevant Work Programme for your research area\n"
+        message += "• Visit: https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/portal/home\n"
+        return {
+            'answer': message,
+            'intent': 'NO_CALL_RESULTS',
+            'call_identifier': call_identifier,
+            'sources': [],
+            'confidence': 0.0,
+            'data_source': 'No call documentation found',
+            'success': False
+        }
     
     def _create_filtered_no_results_response(
         self,

@@ -14,7 +14,7 @@ import time
 import logging
 from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 import hashlib
 import re
 
@@ -47,7 +47,7 @@ class EnhancedSearchResult:
     call_identifier: str
     url: str
     score: float
-    metadata: Dict[str, Any]
+    metadata: Dict[str, Any] = field(default_factory=dict)
     facets: Dict[str, Any] = None
 
 class EnhancedCallSearchService:
@@ -145,6 +145,9 @@ class EnhancedCallSearchService:
             
             # Step 5: Process and enrich results
             processed_results = self._process_enhanced_results(search_results, query)
+            # Step 5.1: Filter by status filter to exclude unwanted statuses (e.g., closed for forthcoming_only)
+            if parsed_filters and getattr(parsed_filters, 'status_filter', None):
+                processed_results = [res for res in processed_results if res.status_code in parsed_filters.status_filter]
             
             # Step 6: Apply intelligent ranking
             ranked_results = self._apply_intelligent_ranking(processed_results, query, tag_boosts)

@@ -44,7 +44,7 @@ class IntelligentQueryParser:
                 'intention': 'closed_only'
             },
             'forthcoming': {
-                'patterns': [r'\bforthcoming\s+calls?\b', r'\bupcoming\s+calls?\b', r'\bfuture\s+calls?\b'],
+                'patterns': [r'\bforthcoming\s+calls?\b', r'\bupcomm?ing\s+calls?\b', r'\bfuture\s+calls?\b'],
                 'codes': ['31094501'],  # Forthcoming only
                 'intention': 'forthcoming_only'
             },
@@ -73,7 +73,7 @@ class IntelligentQueryParser:
                 'intention': 'current_year'
             },
             'coming_soon': {
-                'patterns': [r'\bcom+ing\s+up\s+soon\b', r'\bcom+ing\s+soon\b', r'\bupcoming\b', r'\bsoon\b'],
+                'patterns': [r'\bcom+ing\s+up\s+soon\b', r'\bcom+ing\s+soon\b', r'\bupcomm?ing\b', r'\bsoon\b'],
                 'months_back': 12,
                 'intention': 'forthcoming_only',
                 'status_codes': ['31094501']  # Forthcoming status
