@@ -477,7 +477,7 @@ ANSWER:"""
         
         # Process each result
         for i, result in enumerate(results[:5], 1):  # Limit to top 5
-            answer_parts.append(f"**{i}. {result.title}**")
+            answer_parts.append(f"  \n**{i}. {result.title}**")
             
             if result.identifier != 'N/A':
                 answer_parts.append(f"📋 **Call ID:** {result.identifier}")

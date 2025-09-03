@@ -505,20 +505,20 @@ class EnhancedCallSearchService:
                 # Calculate relevance score
                 score = result.get('weight', 0.0)
                 
-                # Create enhanced result
+                # Create enhanced result with proper null handling
                 enhanced_result = EnhancedSearchResult(
-                    identifier=identifier,
-                    title=title,
-                    description=description,
-                    status=status_readable,
+                    identifier=identifier or 'N/A',
+                    title=title or 'Unknown Call',
+                    description=description or 'No description available',
+                    status=status_readable or 'Unknown',
                     status_code=str(status_raw) if status_raw else 'unknown',
-                    deadline=deadline_formatted,
-                    programme_period=programme_period,
-                    framework_programme=framework_programme,
-                    call_identifier=call_identifier,
-                    url=url,
-                    score=score,
-                    metadata=metadata
+                    deadline=deadline_formatted or 'Not specified',
+                    programme_period=programme_period or 'Not specified',
+                    framework_programme=framework_programme or 'Horizon Europe',
+                    call_identifier=call_identifier or 'Not specified',
+                    url=url or 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home',
+                    score=score or 0.0,
+                    metadata=metadata or {}
                 )
                 
                 processed.append(enhanced_result)
@@ -879,8 +879,9 @@ class EnhancedCallSearchService:
                 min_threshold = 0.15  # Higher threshold for filtered searches
             
             if relevance_score >= min_threshold:
-                # Store relevance score for potential use
-                result.metadata = result.metadata or {}
+                # Store relevance score for potential use (ensure metadata exists)
+                if result.metadata is None:
+                    result.metadata = {}
                 result.metadata['relevance_score'] = relevance_score
                 relevant_results.append(result)
         

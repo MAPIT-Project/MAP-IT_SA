@@ -119,74 +119,119 @@ class CordisRAG:
 
     def determine_user_intent(self, question: str) -> Tuple[str, float]:
         """
-        SIMPLIFIED intent detection for the restricted AI system.
+        AI-BASED intent detection for the restricted AI system.
         Returns tuple of (intent, confidence) where intent is one of:
         - 'FAQ': General questions about procedures, policies, eligibility (use Enhanced RAG)
         - 'SEARCH_PROJECTS': User wants to find existing/past research projects (use CORDIS)
         - 'SEARCH_CALLS': User wants to find open funding calls/proposals (use Call Search)
         """
-        print(f"🎯 SIMPLIFIED: Analyzing user intent for: '{question}'")
-        q = question.lower()
+        print(f"🤖 AI-BASED: Analyzing user intent for: '{question}'")
         
-        # 0. Procedural/admin phrases -> FAQ (highest priority for admin/how-to questions)
-        procedural_phrases = [
-            'how to', 'how do i', 'how do', 'how can i', 'how can i register', 'how can i apply',
-            'how to register', 'how to apply', 'register', 'registration',
-            'application deadline', 'application deadlines', 'deadline', 'deadlines',
-            'eligibility', 'eligibility criteria', 'eligibility requirements',
-            'application process', 'evaluation process', 'evaluation criteria',
-            'how is the grant evaluated', 'evaluated', 'scored', 'scoring',
-            'what documents', 'documents required', 'required documents', 'submit', 'submit a proposal',
-            'consortium requirements', 'consortium', 'budget', 'reporting', 'duration',
-            'how long', 'who can be', 'who can', 'coordinator', 'consent', 'requirements for',
-            # Added supporting/ethics tokens to ensure these always route to FAQ
-            'supporting document', 'supporting documents', 'supporting documentation', 'supporting documents required',
-            'supporting documents must', 'supporting documents for', 'supporting documentation required',
-            'ethic', 'ethics', 'ethics issues', 'ethics in proposals'
-        ]
-        if any(phrase in q for phrase in procedural_phrases):
-            print("🎯 Detected procedural/admin phrase -> FAQ")
-            return ("FAQ", 0.95)
-        
-        # 1. SEARCH_CALLS - Look for funding opportunities (HIGH PRIORITY)
-        call_keywords = [
-            'open call', 'available call', 'funding opportunity', 'opportunities',
-            'what calls', 'which calls', 'any calls', 'some calls', 'list calls',
-            'show me calls', 'find calls', 'search calls', 'open grants'
-        ]
-        if any(keyword in q for keyword in call_keywords):
-            print("🎯 CALLS detected: strong call search keywords found")
-            return ("SEARCH_CALLS", 0.95)
-        
-        # Generic call/funding words - non-procedural -> SEARCH_CALLS
-        generic_call_words = ['call', 'calls', 'funding', 'grant', 'grants', 'proposal', 'proposals']
-        if any(word in q for word in generic_call_words):
-            print("🎯 CALLS detected: generic funding keywords found (non-procedural)")
-            return ("SEARCH_CALLS", 0.90)
-        
-        # 2. SEARCH_PROJECTS - Look for research projects (strong indicators)
-        project_keywords = [
-            'what projects', 'which projects', 'any projects', 'some projects',
-            'show me projects', 'find projects', 'list projects', 'examples of projects',
-            'funded projects', 'successful projects', 'research initiatives'
-        ]
-        if any(keyword in q for keyword in project_keywords):
-            print("🎯 PROJECTS detected: strong project search keywords found")
-            return ("SEARCH_PROJECTS", 0.95)
-        
-        # Generic project words -> SEARCH_PROJECTS
-        generic_project_words = [
-            'project', 'projects', 'research', 'initiative', 'initiatives',
-            'who worked on', 'what has been done', 'previous work', 'existing solutions',
-            'case studies', 'examples', 'implemented', 'developed'
-        ]
-        if any(word in q for word in generic_project_words):
-            print("🎯 PROJECTS detected: generic project keywords found")
-            return ("SEARCH_PROJECTS", 0.90)
-        
-        # 3. Default to FAQ for anything else (safe fallback)
-        print("🎯 FAQ detected: default fallback to procedural/admin guidance")
-        return ("FAQ", 0.80)
+        # Use AI for better understanding of nuanced queries
+        prompt = f"""You are an expert intent classifier for a European research funding assistant.
+
+Your task is to classify the user's question into exactly ONE of these three categories:
+
+**FAQ**: Questions about procedures, policies, how-to guides, eligibility criteria, application processes, evaluation procedures, document requirements, consortium rules, deadlines, registration, ethics, supporting documents, or any "how to" questions. This INCLUDES questions asking WHERE to find calls, HOW to search for calls, WHERE to look for opportunities - these are procedural questions about the search process itself.
+
+**SEARCH_PROJECTS**: Questions asking for existing/completed research projects, past initiatives, examples of funded work, who worked on something, previous solutions, case studies, research that has been done.
+
+**SEARCH_CALLS**: Questions asking for SPECIFIC funding opportunities, open calls, available grants - when the user wants the actual list of calls/grants, not information about where to find them.
+
+IMPORTANT CONSTRAINTS:
+- You MUST choose exactly one of: FAQ, SEARCH_PROJECTS, or SEARCH_CALLS
+- Do NOT create new categories or combine them
+- When in doubt between categories, prefer FAQ for procedural questions, SEARCH_CALLS for funding opportunity questions
+
+User Question: "{question}"
+
+Respond in this exact format:
+CLASSIFICATION: [FAQ/SEARCH_PROJECTS/SEARCH_CALLS]
+CONFIDENCE: [0.0-1.0]
+REASONING: [Brief explanation]"""
+
+        try:
+            if self.ai_provider == "openai":
+                response = self.openai_client.chat.completions.create(
+                    model=self.openai_model_name,
+                    messages=[
+                        {"role": "system", "content": "You are an expert intent classifier for research queries."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.0,  # Deterministic for consistency
+                )
+                response_text = response.choices[0].message.content.strip()
+            elif self.ai_provider == "gemini":
+                if self.gemini_client:
+                    gemini_contents = [
+                        types.Content(role="user", parts=[types.Part.from_text(text=prompt)])
+                    ]
+                    gen_config = types.GenerateContentConfig(temperature=0.0)
+                    response = self.gemini_client.models.generate_content(
+                        model=self.gemini_model_name,
+                        contents=gemini_contents,
+                        config=gen_config
+                    )
+                    response_text = response.text
+                else:
+                    response_text = None
+            else:
+                response_text = None
+
+            # Parse the AI response
+            intent = "FAQ"  # Safe default
+            confidence = 0.5  # Default confidence
+            reasoning = "Fallback classification"
+            
+            if response_text:
+                lines = response_text.split('\n')
+                for line in lines:
+                    if line.startswith('CLASSIFICATION:'):
+                        classification = line.replace('CLASSIFICATION:', '').strip()
+                        if classification in ['FAQ', 'SEARCH_PROJECTS', 'SEARCH_CALLS']:
+                            intent = classification
+                    elif line.startswith('CONFIDENCE:'):
+                        try:
+                            confidence = float(line.replace('CONFIDENCE:', '').strip())
+                            confidence = max(0.0, min(1.0, confidence))  # Clamp to [0,1]
+                        except ValueError:
+                            confidence = 0.5
+                    elif line.startswith('REASONING:'):
+                        reasoning = line.replace('REASONING:', '').strip()
+
+            print(f"🤖 AI Classification: {intent} (confidence: {confidence:.2f})")
+            print(f"🧠 Reasoning: {reasoning}")
+            return (intent, confidence)
+
+        except Exception as e:
+            print(f"❌ AI intent detection failed: {e}. Using pattern fallback.")
+            
+            # Fallback to basic pattern matching if AI fails
+            q = question.lower()
+            
+            # Quick procedural check - includes WHERE to find questions
+            procedural_indicators = [
+                'how to', 'how do i', 'how can i', 'where can i find', 'where i can find', 'where to find',
+                'where should i look', 'where do i look', 'how do i search', 'how to search',
+                'eligibility', 'application process', 'documents required', 'supporting documents', 'ethics',
+                'tell me where', 'show me where', 'where can i', 'where do i'
+            ]
+            if any(phrase in q for phrase in procedural_indicators):
+                return ("FAQ", 0.85)
+            
+            # Call vs Project detection
+            call_indicators = ['call', 'calls', 'funding', 'grant', 'opportunity', 'deadline', 'proposal']
+            project_indicators = ['project', 'projects', 'research', 'initiative', 'example', 'case study']
+            
+            call_count = sum(1 for word in call_indicators if word in q)
+            project_count = sum(1 for word in project_indicators if word in q)
+            
+            if call_count > project_count:
+                return ("SEARCH_CALLS", 0.70)
+            elif project_count > call_count:
+                return ("SEARCH_PROJECTS", 0.70)
+            else:
+                return ("FAQ", 0.60)  # Safe default
 
         try:
             if self.ai_provider == "openai":

@@ -71,6 +71,12 @@ class IntelligentQueryParser:
                 'patterns': [r'\bthis\s+year\b', r'\b2025\b', r'\bcurrent\s+year\b'],
                 'months_back': 12,
                 'intention': 'current_year'
+            },
+            'coming_soon': {
+                'patterns': [r'\bcom+ing\s+up\s+soon\b', r'\bcom+ing\s+soon\b', r'\bupcoming\b', r'\bsoon\b'],
+                'months_back': 12,
+                'intention': 'forthcoming_only',
+                'status_codes': ['31094501']  # Forthcoming status
             }
         }
         
@@ -99,8 +105,14 @@ class IntelligentQueryParser:
                     filter_intention = config['intention']
                     user_intent_detected.append(f"status:{status_type}")
                     
-                    # Remove filter words from clean query
+                    # Remove filter words from clean query - also remove common question words
                     clean_query = re.sub(pattern, '', clean_query, flags=re.IGNORECASE).strip()
+                    
+                    # Remove common question starters that might be left
+                    question_starters = [r'\bwhat\s+are\s+some\s*', r'\bwhat\s+are\s*', r'\bshow\s+me\s*', r'\blist\s*', r'\bfind\s*']
+                    for starter in question_starters:
+                        clean_query = re.sub(starter, '', clean_query, flags=re.IGNORECASE).strip()
+                    
                     clean_query = re.sub(r'\s+', ' ', clean_query)  # Clean up extra spaces
                     
                     logger.info(f"🎯 Detected status filter: {status_type} -> codes {status_codes}")
@@ -112,14 +124,21 @@ class IntelligentQueryParser:
         for temporal_type, config in self.temporal_keywords.items():
             for pattern in config['patterns']:
                 if re.search(pattern, query_lower):
-                    # Calculate date range
-                    end_date = datetime.now()
-                    start_date = end_date - timedelta(days=config['months_back'] * 30)
-                    
-                    date_filter = {
-                        "gte": start_date.strftime('%Y-%m-%d'),
-                        "lte": end_date.strftime('%Y-%m-%d')
-                    }
+                    # Special handling for "coming soon" - this should be status filter, not date filter
+                    if temporal_type == 'coming_soon':
+                        # Set status filter for forthcoming calls instead of date filter
+                        if 'status_codes' in config:
+                            status_codes = config['status_codes']
+                            logger.info(f"🔜 Detected 'coming soon' -> setting status filter: {status_codes}")
+                    else:
+                        # Calculate date range for other temporal filters
+                        end_date = datetime.now()
+                        start_date = end_date - timedelta(days=config['months_back'] * 30)
+                        
+                        date_filter = {
+                            "gte": start_date.strftime('%Y-%m-%d'),
+                            "lte": end_date.strftime('%Y-%m-%d')
+                        }
                     
                     # Update intention if not already set by status
                     if filter_intention == "all":
@@ -127,22 +146,57 @@ class IntelligentQueryParser:
                     
                     user_intent_detected.append(f"temporal:{temporal_type}")
                     
-                    # Remove temporal words from clean query
+                    # Remove temporal words from clean query - also remove common question words
                     clean_query = re.sub(pattern, '', clean_query, flags=re.IGNORECASE).strip()
+                    
+                    # Remove common question starters that might be left
+                    question_starters = [r'\bwhat\s+are\s+some\s*', r'\bwhat\s+are\s*', r'\bshow\s+me\s*', r'\blist\s*', r'\bfind\s*']
+                    for starter in question_starters:
+                        clean_query = re.sub(starter, '', clean_query, flags=re.IGNORECASE).strip()
+                        
                     clean_query = re.sub(r'\s+', ' ', clean_query)  # Clean up extra spaces
                     
-                    logger.info(f"📅 Detected temporal filter: {temporal_type} -> last {config['months_back']} months")
+                    logger.info(f"📅 Detected temporal filter: {temporal_type} -> {config['intention']}")
                     break
-            if date_filter:
+            if date_filter or (temporal_type == 'coming_soon' and status_codes):
                 break
         
-        # Clean up remaining filter artifacts
-        clean_query = re.sub(r'\b(calls?|for|related\s+to)\b', '', clean_query, flags=re.IGNORECASE).strip()
-        clean_query = re.sub(r'\s+', ' ', clean_query)  # Clean up extra spaces
+        # ULTRA-SIMPLIFIED query cleaning - be very conservative to avoid breaking meaning
+        working_query = clean_query
         
-        # If clean query is empty, use original
-        if not clean_query or len(clean_query.strip()) < 3:
-            clean_query = original_query
+        # Only clean up basic punctuation and normalize spaces
+        working_query = re.sub(r'[?!.,;:]', '', working_query)
+        working_query = re.sub(r'\s+', ' ', working_query).strip()
+        
+        # For specific cases, extract obvious topics ONLY if we're confident
+        topic_extracted = False
+        
+        # Pattern 1: "related to X" or "about X" - extract X
+        topic_match = re.search(r'(?:related\s+to|about)\s+([a-zA-Z]+(?:\s+[a-zA-Z]+)*)', working_query, flags=re.IGNORECASE)
+        if topic_match:
+            topic = topic_match.group(1).strip()
+            if len(topic) >= 3 and topic.lower() not in ['the', 'any', 'some', 'that', 'are', 'can', 'you', 'find']:
+                working_query = topic
+                topic_extracted = True
+        
+        # Pattern 2: Status-only queries (e.g., "what are some forthcoming calls?")
+        if not topic_extracted and filter_intention in ['open_only', 'forthcoming_only', 'closed_only', 'available_only']:
+            # For pure status queries, use broad search term
+            working_query = "Horizon Europe"
+            topic_extracted = True
+        
+        # If we didn't extract a specific topic, keep more of the original query
+        if not topic_extracted:
+            # Just remove obvious noise words but keep the core query intact
+            noise_words = [r'\bcan\s+you\s+tell\s+me\s+', r'\bwhere\s+i\s+can\s+', r'\bwhat\s+are\s+some\s+']
+            for noise in noise_words:
+                working_query = re.sub(noise, '', working_query, flags=re.IGNORECASE).strip()
+        
+        clean_query = working_query
+        
+        # Final safety check
+        if not clean_query or len(clean_query.strip()) < 2:
+            clean_query = original_query  # Use original as last resort
         
         filters = QueryFilters(
             status_filter=status_codes,
