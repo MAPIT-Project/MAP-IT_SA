@@ -220,13 +220,37 @@ class HorizonEuropeRAG:
                 
                 return result
             else:
-                # Fall back to existing CORDIS call search for general call queries
-                logger.info(f"📞 Falling back to CORDIS call search for general query")
+                # Use enhanced search for general call queries (GENERAL_CALL intent)
+                logger.info(f"📞 Using enhanced search for general call query")
                 
-                result = self.cordis_rag.search_for_calls(
-                    question=question,
-                    max_results=10
-                )
+                # Initialize call-specific RAG if needed
+                if self._call_specific_rag is None:
+                    from .call_specific_rag import CallSpecificRAG
+                    self._call_specific_rag = CallSpecificRAG(
+                        vector_search_service=self.vector_search,
+                        supabase_client=self.supabase,
+                        embedding_service=self.embedder,
+                        cordis_rag=self.cordis_rag
+                    )
+                
+                # Use enhanced search service for better results
+                if hasattr(self._call_specific_rag, 'enhanced_search') and self._call_specific_rag.enhanced_search:
+                    logger.info(f"🚀 Using enhanced call search service for general query")
+                    enhanced_result = self._call_specific_rag.enhanced_search.search_calls_enhanced(
+                        query=question,
+                        max_results=10,
+                        include_closed=False,  # Only open/forthcoming for general queries
+                        enable_facet_analysis=True
+                    )
+                    
+                    if enhanced_result['status'] == 'success':
+                        result = self._call_specific_rag._process_enhanced_search_results(question, enhanced_result)
+                    else:
+                        logger.warning("⚠️ Enhanced search failed, falling back to CORDIS")
+                        result = self.cordis_rag.search_for_calls(question, max_results=10)
+                else:
+                    logger.warning("⚠️ Enhanced search not available, falling back to CORDIS")
+                    result = self.cordis_rag.search_for_calls(question, max_results=10)
                 
                 # Enhance with programme documentation from comprehensive docs
                 doc_context = self._get_supporting_documentation(

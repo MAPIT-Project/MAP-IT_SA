@@ -8,8 +8,12 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional, Tuple
 from dotenv import load_dotenv
 import openai
-from google import genai as google_genai_sdk
-from google.genai import types
+try:
+    from google import genai as google_genai_sdk
+    from google.genai import types
+except Exception:
+    google_genai_sdk = None
+    types = None
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import psycopg2
@@ -122,64 +126,67 @@ class CordisRAG:
         - 'SEARCH_CALLS': User wants to find open funding calls/proposals (use Call Search)
         """
         print(f"🎯 SIMPLIFIED: Analyzing user intent for: '{question}'")
+        q = question.lower()
         
-        question_lower = question.lower()
-        
-        # FIXED: More precise detection with proper priority ordering
+        # 0. Procedural/admin phrases -> FAQ (highest priority for admin/how-to questions)
+        procedural_phrases = [
+            'how to', 'how do i', 'how do', 'how can i', 'how can i register', 'how can i apply',
+            'how to register', 'how to apply', 'register', 'registration',
+            'application deadline', 'application deadlines', 'deadline', 'deadlines',
+            'eligibility', 'eligibility criteria', 'eligibility requirements',
+            'application process', 'evaluation process', 'evaluation criteria',
+            'how is the grant evaluated', 'evaluated', 'scored', 'scoring',
+            'what documents', 'documents required', 'required documents', 'submit', 'submit a proposal',
+            'consortium requirements', 'consortium', 'budget', 'reporting', 'duration',
+            'how long', 'who can be', 'who can', 'coordinator', 'consent', 'requirements for',
+            # Added supporting/ethics tokens to ensure these always route to FAQ
+            'supporting document', 'supporting documents', 'supporting documentation', 'supporting documents required',
+            'supporting documents must', 'supporting documents for', 'supporting documentation required',
+            'ethic', 'ethics', 'ethics issues', 'ethics in proposals'
+        ]
+        if any(phrase in q for phrase in procedural_phrases):
+            print("🎯 Detected procedural/admin phrase -> FAQ")
+            return ("FAQ", 0.95)
         
         # 1. SEARCH_CALLS - Look for funding opportunities (HIGH PRIORITY)
         call_keywords = [
             'open call', 'available call', 'funding opportunity', 'opportunities',
             'what calls', 'which calls', 'any calls', 'some calls', 'list calls',
-            'show me calls', 'find calls', 'search calls'
+            'show me calls', 'find calls', 'search calls', 'open grants'
         ]
-        
-        # Strong call indicators
-        if any(keyword in question_lower for keyword in call_keywords):
-            print(f"🎯 CALLS detected: strong call search keywords found")
+        if any(keyword in q for keyword in call_keywords):
+            print("🎯 CALLS detected: strong call search keywords found")
             return ("SEARCH_CALLS", 0.95)
         
-        # Generic call/funding words - but check for procedural context
+        # Generic call/funding words - non-procedural -> SEARCH_CALLS
         generic_call_words = ['call', 'calls', 'funding', 'grant', 'grants', 'proposal', 'proposals']
-        if any(word in question_lower for word in generic_call_words):
-            # Check if this is asking ABOUT calls (search) vs asking HOW TO with calls (FAQ)
-            procedural_context = ['how to', 'how do i', 'what is the process', 'what are the steps',
-                                'eligibility criteria', 'application process', 'evaluation criteria',
-                                'requirements for', 'how can i apply', 'evaluation process', 'process']
-            
-            if not any(proc in question_lower for proc in procedural_context):
-                print(f"🎯 CALLS detected: funding keywords without procedural context")
-                return ("SEARCH_CALLS", 0.9)
+        if any(word in q for word in generic_call_words):
+            print("🎯 CALLS detected: generic funding keywords found (non-procedural)")
+            return ("SEARCH_CALLS", 0.90)
         
-        # 2. SEARCH_PROJECTS - Look for research projects
+        # 2. SEARCH_PROJECTS - Look for research projects (strong indicators)
         project_keywords = [
             'what projects', 'which projects', 'any projects', 'some projects',
             'show me projects', 'find projects', 'list projects', 'examples of projects',
             'funded projects', 'successful projects', 'research initiatives'
         ]
-        
-        # Strong project indicators
-        if any(keyword in question_lower for keyword in project_keywords):
-            print(f"🎯 PROJECTS detected: strong project search keywords found")
+        if any(keyword in q for keyword in project_keywords):
+            print("🎯 PROJECTS detected: strong project search keywords found")
             return ("SEARCH_PROJECTS", 0.95)
         
-        # Generic project words - but check for procedural context
-        generic_project_words = ['project', 'projects', 'research', 'initiative', 'initiatives',
-                               'who worked on', 'what has been done', 'previous work', 'existing solutions',
-                               'case studies', 'examples', 'implemented', 'developed']
+        # Generic project words -> SEARCH_PROJECTS
+        generic_project_words = [
+            'project', 'projects', 'research', 'initiative', 'initiatives',
+            'who worked on', 'what has been done', 'previous work', 'existing solutions',
+            'case studies', 'examples', 'implemented', 'developed'
+        ]
+        if any(word in q for word in generic_project_words):
+            print("🎯 PROJECTS detected: generic project keywords found")
+            return ("SEARCH_PROJECTS", 0.90)
         
-        if any(word in question_lower for word in generic_project_words):
-            procedural_context = ['how to', 'how do i', 'what is the process', 'what are the steps',
-                                'eligibility criteria', 'application process', 'evaluation criteria',
-                                'requirements for', 'how can i apply']
-            
-            if not any(proc in question_lower for proc in procedural_context):
-                print(f"🎯 PROJECTS detected: project keywords without procedural context")
-                return ("SEARCH_PROJECTS", 0.9)
-        
-        # 3. FAQ (default) - All procedural/policy questions
-        print(f"🎯 FAQ detected: general procedural/policy question")
-        return ("FAQ", 0.8)
+        # 3. Default to FAQ for anything else (safe fallback)
+        print("🎯 FAQ detected: default fallback to procedural/admin guidance")
+        return ("FAQ", 0.80)
 
         try:
             if self.ai_provider == "openai":
@@ -258,8 +265,9 @@ class CordisRAG:
             if self.call_specific_rag:
                 intent_type, call_identifier, confidence = self.call_specific_rag.detect_call_specific_intent(question)
                 
-                # CRITICAL FIX: Include "GENERAL_CALL" intent to use enhanced search for ALL call queries
-                if intent_type in ["SPECIFIC_CALL", "SPECIFIC_TOPIC", "CLUSTER_SPECIFIC", "GENERAL_CALL"]:
+                # Only use call-specific RAG for very specific call/topic queries.
+                # For GENERAL or broad call queries we prefer the EU Funding & Tenders Portal API.
+                if intent_type in ["SPECIFIC_CALL", "SPECIFIC_TOPIC", "CLUSTER_SPECIFIC"]:
                     print(f"🎯 Using call-specific RAG for {intent_type}: {call_identifier}")
                     
                     # Handle with call-specific RAG (enhanced search will be used automatically)
@@ -269,19 +277,24 @@ class CordisRAG:
                         max_context_chunks=max_results
                     )
                     
-                    # Use appropriate data source based on success
-                    data_source = 'EU Funding & Tenders Portal (Enhanced)' if result['success'] else 'No call documentation found'
-                    
-                    # Convert to compatible format
-                    return {
-                        'answer': result['answer'],
-                        'call_count': result.get('chunks_used', 0),
-                        'search_successful': result['success'],
-                        'queries_used': [question],
-                        'calls_data': [],
-                        'data_source': data_source,
-                        'confidence': result.get('confidence', 0.0)
-                    }
+                    # If the call-specific RAG found useful documentation, return it.
+                    if result.get('success'):
+                        data_source = 'EU Funding & Tenders Portal (Enhanced)'
+                        return {
+                            'answer': result.get('answer', ''),
+                            'call_count': result.get('chunks_used', 0),
+                            'search_successful': True,
+                            'queries_used': [question],
+                            'calls_data': result.get('calls_data', []),
+                            'data_source': data_source,
+                            'confidence': result.get('confidence', 0.0)
+                        }
+                    else:
+                        # If call-specific RAG failed to find call docs, log and fall through to API search
+                        print("🔄 Call-specific RAG did not return results; falling back to EU Portal API")
+                else:
+                    # For GENERAL_CALL or other non-specific intents, prefer the EU Portal API
+                    print(f"🔁 Call-specific RAG skipped for intent: {intent_type}; using EU Portal API")
 
             # Fall back to CORDIS API for general call searches
             print("📞 Falling back to CORDIS API for general call search")
@@ -315,7 +328,7 @@ class CordisRAG:
             
             if not calls_found:
                 return {
-                    'answer': self._generate_no_calls_response(question),
+                    'answer': self._generate_no_calls_portal_fallback(question),
                     'call_count': 0,
                     'search_successful': True,
                     'queries_used': queries
@@ -1190,6 +1203,30 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
 
 **💡 The Reality:** EU funding is competitive and cyclical. No open calls right now doesn't mean no opportunities - it means timing is everything!"""
 
+    def _generate_no_calls_portal_fallback(self, question: str) -> str:
+        """
+        Concise fallback used when the EU Portal returns no calls for the query.
+        Returns a short message with a portal verification URL and an explicit portal search link.
+        """
+        current_year = datetime.now().year
+
+        # Extract search terms for verification URL
+        search_terms = question.lower().replace("what are some open calls for", "").replace("?", "").strip()
+        if not search_terms:
+            search_terms = "Horizon Europe"
+
+        verification_url = (
+            "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/"
+            f"topic-search;freeTextSearchKeyword={search_terms.replace(' ', '%20')};sortQuery=sortStatus;orderBy=asc"
+        )
+
+        # Concise, actionable fallback — no long documentation fallback here
+        return (
+            f"🔍 No currently open calls found for \"{question}\".\n\n"
+            f"🔗 Try this portal search to verify: {verification_url}\n\n"
+            "Tip: Broaden your keywords (e.g. 'sustainable energy', 'climate action') or check back later — "
+            "new calls are published periodically."
+        )
     def get_ai_response_with_routing(self, question: str, max_projects_to_process: int = 5, max_cordis_results: int = 10) -> Dict[str, Any]:
         """
         SIMPLIFIED routing system - only handles 3 specific functions:
@@ -1244,20 +1281,43 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
                     }
             
             elif user_intent == "SEARCH_CALLS":
-                print(f"📞 Routing to Call Search")
-                call_result = self.search_for_calls(question, max_results=max_cordis_results)
-                
-                total_time = time.time() - total_start_time
-                
-                return {
-                    'answer': call_result.get('answer', 'No calls found.'),
-                    'routing_decision': 'SEARCH_CALLS',
-                    'intent_confidence': confidence,
-                    'data_source': call_result.get('data_source', 'EU Funding Portal'),
-                    'processing_time': round(total_time, 2),
-                    'call_count': call_result.get('call_count', 0),
-                    'success': call_result.get('search_successful', True)
-                }
+                print(f"📞 Routing to Enhanced Call Search")
+                try:
+                    from .enhanced_rag_service import HorizonEuropeRAG
+                    enhanced_rag = HorizonEuropeRAG(existing_cordis_rag=self)
+                    
+                    call_result = enhanced_rag.handle_call_query(question)
+                    
+                    total_time = time.time() - total_start_time
+                    
+                    return {
+                        'answer': call_result.get('answer', 'No calls found.'),
+                        'routing_decision': 'SEARCH_CALLS',
+                        'intent_confidence': confidence,
+                        'data_source': call_result.get('data_source', 'Enhanced Call Search'),
+                        'processing_time': round(total_time, 2),
+                        'call_count': call_result.get('call_count', 0),
+                        'success': call_result.get('success', True)
+                    }
+                    
+                except Exception as e:
+                    print(f"❌ Enhanced call search failed, falling back: {e}")
+                    # Fallback to original call search
+                    call_result = self.search_for_calls(question, max_results=max_cordis_results)
+                    
+                    total_time = time.time() - total_start_time
+                    
+                    return {
+                        'answer': call_result.get('answer', 'No calls found.'),
+                        'routing_decision': 'SEARCH_CALLS',
+                        'intent_confidence': confidence,
+                        'data_source': call_result.get('data_source', 'EU Funding Portal (Fallback)'),
+                        'processing_time': round(total_time, 2),
+                        'call_count': call_result.get('call_count', 0),
+                        'success': call_result.get('search_successful', True),
+                        'fallback_used': True,
+                        'fallback_reason': str(e)
+                    }
             
             elif user_intent == "SEARCH_PROJECTS":
                 print(f"🔬 Routing to Project Search")

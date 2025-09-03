@@ -106,12 +106,18 @@ class CallSpecificRAG:
             r'\bfunding\s+(for|about|related\s+to)\s+\w+',
             r'\bwhat.*calls?.*for\s+\w+',
             r'\bshow.*calls?\s+\w+',
-            r'\bfind.*calls?\s+\w+'
+            r'\bfind.*calls?\s+\w+',
+            r'\bare\s+there\s+any.*calls',
+            r'\bany.*calls.*related\s+to',
+            r'\bopen.*calls.*related'
         ]
         
         has_call_pattern = any(re.search(pattern, question_lower) for pattern in call_patterns)
         
-        if has_call_keyword or has_general_indicator or has_call_pattern:
+        # Also check for simple "calls" + topic combinations
+        has_calls_and_topic = 'calls' in question_lower and any(topic in question_lower for topic in ['quantum', 'ai', 'energy', 'climate', 'health', 'digital'])
+        
+        if has_call_keyword or has_general_indicator or has_call_pattern or has_calls_and_topic:
             logger.info("🎯 Detected general call/topic query")
             # Higher confidence if multiple indicators are present
             confidence = 0.95 if (has_call_keyword and has_general_indicator) or has_call_pattern else 0.85
