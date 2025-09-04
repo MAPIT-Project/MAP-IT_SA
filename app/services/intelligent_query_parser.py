@@ -9,7 +9,7 @@ Parses user queries to detect filter intentions:
 
 import re
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
 import logging
 
@@ -24,6 +24,7 @@ class QueryFilters:
     original_query: str = ""
     clean_query: str = ""  # Query with filter words removed
     user_intent_detected: List[str] = None  # What user specifically asked for
+    specific_filters: Dict[str, Any] = None  # Domain-specific filters
 
 class IntelligentQueryParser:
     """Parses user queries to extract filter intentions."""
@@ -94,8 +95,51 @@ class IntelligentQueryParser:
         date_filter = None
         filter_intention = "all"
         user_intent_detected = []
+        specific_filters = {}  # For storing specific filter criteria
         
         logger.info(f"🔍 Parsing query: '{original_query}'")
+        
+        # Enhanced temporal filter detection for specific timeframes
+        temporal_patterns = {
+            'next_60_days': {
+                'patterns': [r'\bnext\s+60\s+days\b', r'\b60\s+days\b', r'\btwo\s+months\b'],
+                'days': 60,
+                'intention': 'next_60_days'
+            },
+            'next_30_days': {
+                'patterns': [r'\bnext\s+30\s+days\b', r'\b30\s+days\b', r'\bone\s+month\b'],
+                'days': 30,
+                'intention': 'next_30_days'
+            },
+            'next_90_days': {
+                'patterns': [r'\bnext\s+90\s+days\b', r'\b90\s+days\b', r'\bthree\s+months\b'],
+                'days': 90,
+                'intention': 'next_90_days'
+            }
+        }
+        
+        # Detect specific temporal filters first
+        for temp_type, config in temporal_patterns.items():
+            for pattern in config['patterns']:
+                if re.search(pattern, query_lower):
+                    end_date = datetime.now()
+                    start_date = datetime.now()
+                    target_date = end_date + timedelta(days=config['days'])
+                    
+                    date_filter = {
+                        "gte": start_date.strftime('%Y-%m-%d'),
+                        "lte": target_date.strftime('%Y-%m-%d')
+                    }
+                    
+                    filter_intention = config['intention']
+                    user_intent_detected.append(f"temporal:{temp_type}")
+                    specific_filters['temporal_range'] = config['days']
+                    
+                    # Remove temporal words
+                    clean_query = re.sub(pattern, '', clean_query, flags=re.IGNORECASE).strip()
+                    break
+            if date_filter:
+                break
         
         # Detect status filters
         for status_type, config in self.status_keywords.items():
@@ -120,10 +164,10 @@ class IntelligentQueryParser:
             if status_codes:
                 break
         
-        # Detect temporal filters
+        # Detect temporal filters (original ones)
         for temporal_type, config in self.temporal_keywords.items():
             for pattern in config['patterns']:
-                if re.search(pattern, query_lower):
+                if re.search(pattern, query_lower) and not date_filter:  # Only if no specific date filter already set
                     # Special handling for "coming soon" - this should be status filter, not date filter
                     if temporal_type == 'coming_soon':
                         # Set status filter for forthcoming calls instead of date filter
@@ -161,18 +205,54 @@ class IntelligentQueryParser:
             if date_filter or (temporal_type == 'coming_soon' and status_codes):
                 break
         
-        # ULTRA-SIMPLIFIED query cleaning - be very conservative to avoid breaking meaning
+        # Enhanced query cleaning with domain-specific pattern recognition
         working_query = clean_query
         
-        # Only clean up basic punctuation and normalize spaces
+        # Clean up basic punctuation and normalize spaces
         working_query = re.sub(r'[?!.,;:]', '', working_query)
         working_query = re.sub(r'\s+', ' ', working_query).strip()
+        
+        # Domain-specific pattern extraction
+        domain_patterns = {
+            'cluster_4': [r'cluster\s*4', r'digital.*industry.*space', r'industry.*digital.*space'],
+            'trl': [r'trl\s*[5-7]', r'trl\s*5.*7', r'technology\s*readiness\s*level\s*[5-7]'],
+            'living_labs': [r'living\s*labs?', r'govtech', r'digital\s*public\s*services'],
+            'standardization': [r'standardi[sz]ation', r'data\s*interoperability', r'interoperability\s*standards'],
+            'digital_twins': [r'digital\s*twins?', r'manufacturing.*digital', r'energy.*digital'],
+            'eic': [r'eic\s*accelerator', r'deep\s*tech\s*smes?', r'cut.*offs?'],
+            'mission_calls': [r'mission\s*calls?', r'climate.*neutral.*cities', r'smart\s*cities'],
+            'lump_sum': [r'lump.*sum', r'actual\s*cost', r'funding\s*type'],
+            'ssh': [r'ssh\s*integration', r'social\s*sciences.*humanities', r'humanities.*integration']
+        }
+        
+        # Check for domain-specific patterns
+        for domain, patterns in domain_patterns.items():
+            for pattern in patterns:
+                if re.search(pattern, query_lower):
+                    user_intent_detected.append(f"domain:{domain}")
+                    specific_filters[domain] = True
+                    break
+        
+        # Extract specific technologies and topics
+        tech_patterns = {
+            'ai': [r'\bai\b', r'artificial\s*intelligence', r'machine\s*learning'],
+            'cybersecurity': [r'cyber.*security', r'cybersecurity', r'security.*cyber'],
+            'edge_computing': [r'edge\s*computing', r'edge.*cloud', r'fog\s*computing'],
+            'quantum': [r'quantum.*computing', r'quantum.*technologies', r'qci'],
+            'data_spaces': [r'data\s*spaces', r'european\s*data\s*spaces', r'data.*interoperability']
+        }
+        
+        for tech, patterns in tech_patterns.items():
+            for pattern in patterns:
+                if re.search(pattern, query_lower):
+                    user_intent_detected.append(f"technology:{tech}")
+                    break
         
         # For specific cases, extract obvious topics ONLY if we're confident
         topic_extracted = False
         
         # Pattern 1: "related to X" or "about X" - extract X
-        topic_match = re.search(r'(?:related\s+to|about)\s+([a-zA-Z]+(?:\s+[a-zA-Z]+)*)', working_query, flags=re.IGNORECASE)
+        topic_match = re.search(r'(?:related\s+to|about|for|matching)\s+([a-zA-Z]+(?:\s+[a-zA-Z]+)*)', working_query, flags=re.IGNORECASE)
         if topic_match:
             topic = topic_match.group(1).strip()
             if len(topic) >= 3 and topic.lower() not in ['the', 'any', 'some', 'that', 'are', 'can', 'you', 'find']:
@@ -188,7 +268,7 @@ class IntelligentQueryParser:
         # If we didn't extract a specific topic, keep more of the original query
         if not topic_extracted:
             # Just remove obvious noise words but keep the core query intact
-            noise_words = [r'\bcan\s+you\s+tell\s+me\s+', r'\bwhere\s+i\s+can\s+', r'\bwhat\s+are\s+some\s+']
+            noise_words = [r'\bcan\s+you\s+tell\s+me\s+', r'\bwhere\s+i\s+can\s+', r'\bwhat\s+are\s+some\s+', r'\bwhich\s+topics?\s+', r'\bwhat\s+calls?\s+']
             for noise in noise_words:
                 working_query = re.sub(noise, '', working_query, flags=re.IGNORECASE).strip()
         
@@ -204,7 +284,8 @@ class IntelligentQueryParser:
             filter_intention=filter_intention,
             original_query=original_query,
             clean_query=clean_query,
-            user_intent_detected=user_intent_detected or ["no_filters"]
+            user_intent_detected=user_intent_detected or ["no_filters"],
+            specific_filters=specific_filters
         )
         
         logger.info(f"✅ Parsed filters: {filter_intention}, clean query: '{clean_query}'")

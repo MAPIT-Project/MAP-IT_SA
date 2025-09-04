@@ -1,0 +1,214 @@
+{
+  "clusters": {
+    "cluster_1": {
+      "name": "Health",
+      "keywords": ["health research", "medical research", "healthcare", "biomedical", "clinical research"],
+      "programme_division": "Health",
+      "description": "Health research including medical, biomedical, and clinical research"
+    },
+    "cluster_2": {
+      "name": "Culture, Creativity and Inclusive Society",
+      "keywords": ["culture", "creativity", "inclusive society", "social sciences", "humanities"],
+      "programme_division": "Culture, Creativity and Inclusive Society",
+      "description": "Research on culture, creativity, and inclusive societies"
+    },
+    "cluster_3": {
+      "name": "Civil Security for Society",
+      "keywords": ["civil security", "security research", "societal security", "crisis management"],
+      "programme_division": "Civil Security for Society",
+      "description": "Research on civil security and societal protection"
+    },
+    "cluster_4": {
+      "name": "Digital, Industry and Space",
+      "keywords": ["digital", "industry", "space", "manufacturing", "ICT", "digital transformation"],
+      "programme_division": "Digital, Industry and Space",
+      "description": "Research on digital technologies, industry, and space"
+    },
+    "cluster_5": {
+      "name": "Climate, Energy and Mobility",
+      "keywords": ["climate", "energy", "mobility", "transport", "renewable energy", "sustainability"],
+      "programme_division": "Climate, Energy and Mobility",
+      "description": "Research on climate action, energy, and mobility"
+    },
+    "cluster_6": {
+      "name": "Food, Bioeconomy, Natural Resources, Agriculture and Environment",
+      "keywords": ["food", "bioeconomy", "natural resources", "agriculture", "environment", "biodiversity"],
+      "programme_division": "Food, Bioeconomy, Natural Resources, Agriculture and Environment",
+      "description": "Research on food, bioeconomy, natural resources, and environment"
+    }
+  },
+  "technologies": {
+    "ai": {
+      "name": "Artificial Intelligence",
+      "keywords": ["ai", "artificial intelligence", "machine learning", "deep learning", "neural networks"],
+      "description": "Artificial intelligence and machine learning technologies"
+    },
+    "cybersecurity": {
+      "name": "Cybersecurity",
+      "keywords": ["cybersecurity", "cyber security", "information security", "network security", "data protection"],
+      "description": "Cybersecurity and information security technologies"
+    },
+    "edge_computing": {
+      "name": "Edge Computing",
+      "keywords": ["edge computing", "edge cloud", "fog computing", "distributed computing", "edge intelligence"],
+      "description": "Edge computing and distributed computing technologies"
+    },
+    "quantum": {
+      "name": "Quantum Computing",
+      "keywords": ["quantum", "quantum computing", "quantum technologies", "qci", "quantum communication"],
+      "description": "Quantum computing and quantum technologies"
+    },
+    "data_spaces": {
+      "name": "Data Spaces",
+      "keywords": ["data spaces", "european data spaces", "data interoperability", "data sharing", "data ecosystems"],
+      "description": "Data spaces and data interoperability technologies"
+    },
+    "digital_twins": {
+      "name": "Digital Twins",
+      "keywords": ["digital twins", "digital twin", "virtual twin", "simulation", "modeling"],
+      "description": "Digital twins and simulation technologies"
+    },
+    "robotics": {
+      "name": "Robotics",
+      "keywords": ["robotics", "robots", "autonomous systems", "automation", "industrial robotics"],
+      "description": "Robotics and autonomous systems"
+    },
+    "iot": {
+      "name": "Internet of Things",
+      "keywords": ["iot", "internet of things", "smart devices", "connected devices", "sensor networks"],
+      "description": "Internet of Things and connected devices"
+    },
+    "blockchain": {
+      "name": "Blockchain",
+      "keywords": ["blockchain", "distributed ledger", "smart contracts", "cryptocurrency", "dlt"],
+      "description": "Blockchain and distributed ledger technologies"
+    },
+    "advanced_manufacturing": {
+      "name": "Advanced Manufacturing",
+      "keywords": ["advanced manufacturing", "smart manufacturing", "industry 4.0", "additive manufacturing", "3d printing"],
+      "description": "Advanced manufacturing technologies"
+    }
+  },
+  "programmes": {
+    "horizon_europe": {
+      "name": "Horizon Europe",
+      "identifiers": ["HORIZON EUROPE", "HORIZON-EUROPE", "HE"],
+      "description": "EU Framework Programme for Research and Innovation"
+    },
+    "digital_europe": {
+      "name": "Digital Europe Programme",
+      "identifiers": ["DIGITAL EUROPE", "DIGITAL-EUROPE", "DIGITAL"],
+      "description": "Digital Europe Programme for digital transformation"
+    },
+    "eic": {
+      "name": "European Innovation Council",
+      "identifiers": ["EIC", "EUROPEAN INNOVATION COUNCIL"],
+      "description": "European Innovation Council for breakthrough innovations"
+    },
+    "erc": {
+      "name": "European Research Council",
+      "identifiers": ["ERC", "EUROPEAN RESEARCH COUNCIL"],
+      "description": "European Research Council for frontier research"
+    },
+    "msca": {
+      "name": "Marie Skłodowska-Curie Actions",
+      "identifiers": ["MSCA", "MARIE SKŁODOWSKA-CURIE"],
+      "description": "Marie Skłodowska-Curie Actions for researcher mobility"
+    },
+    "euratom": {
+      "name": "Euratom Research and Training Programme",
+      "identifiers": ["EURATOM", "NUCLEAR RESEARCH"],
+      "description": "Euratom Programme for nuclear research and training"
+    },
+    "clean_hydrogen": {
+      "name": "Clean Hydrogen Joint Undertaking",
+      "identifiers": ["CLEAN HYDROGEN", "HYDROGEN JU", "FCH JU"],
+      "description": "Clean Hydrogen Joint Undertaking for hydrogen technologies"
+    },
+    "batteries": {
+      "name": "Batteries Europe",
+      "identifiers": ["BATTERIES EUROPE", "BATTERY INNOVATION"],
+      "description": "Batteries Europe for battery technologies"
+    },
+    "chips": {
+      "name": "Chips Joint Undertaking",
+      "identifiers": ["CHIPS JU", "SEMICONDUCTOR", "MICROELECTRONICS"],
+      "description": "Chips Joint Undertaking for semiconductor technologies"
+    }
+  },
+  "action_types": {
+    "RIA": "Research and Innovation Action",
+    "IA": "Innovation Action",
+    "CSA": "Coordination and Support Action",
+    "MSCA-PF": "Marie Skłodowska-Curie Postdoctoral Fellowship",
+    "MSCA-DN": "Marie Skłodowska-Curie Doctoral Network",
+    "ERC-STG": "ERC Starting Grant",
+    "ERC-COG": "ERC Consolidator Grant",
+    "ERC-ADG": "ERC Advanced Grant",
+    "ERC-SyG": "ERC Synergy Grant",
+    "EIC-ACCELERATOR": "EIC Accelerator",
+    "EIC-PATHFINDER": "EIC Pathfinder",
+    "EIC-TRANSITION": "EIC Transition"
+  },
+  "status_codes": {
+    "31094501": "Forthcoming",
+    "31094502": "Open",
+    "31094503": "Closed"
+  },
+  "temporal_filters": {
+    "next_30_days": {
+      "days": 30,
+      "description": "Calls closing in the next 30 days"
+    },
+    "next_60_days": {
+      "days": 60,
+      "description": "Calls closing in the next 60 days"
+    },
+    "next_90_days": {
+      "days": 90,
+      "description": "Calls closing in the next 90 days"
+    },
+    "recent": {
+      "months_back": 6,
+      "description": "Calls from the last 6 months"
+    },
+    "very_recent": {
+      "months_back": 3,
+      "description": "Calls from the last 3 months"
+    },
+    "current_year": {
+      "months_back": 12,
+      "description": "Calls from the current year"
+    }
+  },
+  "domain_filters": {
+    "trl": {
+      "patterns": ["trl", "technology readiness level"],
+      "description": "Technology Readiness Level filtering"
+    },
+    "living_labs": {
+      "patterns": ["living labs", "govtech", "digital public services"],
+      "description": "Living labs and GovTech initiatives"
+    },
+    "standardization": {
+      "patterns": ["standardization", "data interoperability", "interoperability standards"],
+      "description": "Standardization activities"
+    },
+    "eic": {
+      "patterns": ["eic accelerator", "deep tech smes", "cut offs"],
+      "description": "EIC Accelerator and deep tech"
+    },
+    "mission_calls": {
+      "patterns": ["mission calls", "climate neutral cities", "smart cities"],
+      "description": "Mission-oriented calls"
+    },
+    "lump_sum": {
+      "patterns": ["lump sum", "actual cost", "funding type"],
+      "description": "Lump-sum vs actual cost funding"
+    },
+    "ssh": {
+      "patterns": ["ssh integration", "social sciences humanities", "humanities integration"],
+      "description": "Social Sciences and Humanities integration"
+    }
+  }
+}

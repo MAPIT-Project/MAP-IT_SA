@@ -9,8 +9,8 @@ import os
 import logging
 import time
 
-# Add the app directory to the Python path for proper imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'app'))
+# Add the current directory to Python path for proper imports
+sys.path.insert(0, os.path.dirname(__file__))
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
@@ -19,9 +19,9 @@ def test_comprehensive_call_functionality():
     """Test various types of call-related questions."""
     
     try:
-        from services.enhanced_call_search import EnhancedCallSearchService
-        from services.intelligent_query_parser import IntelligentQueryParser
-        from services.call_specific_rag import CallSpecificRAG
+        from app.services.enhanced_call_search import EnhancedCallSearchService
+        from app.services.intelligent_query_parser import IntelligentQueryParser
+        from app.services.call_specific_rag import CallSpecificRAG
         
         print("🧪 Comprehensive Call Functionality Test")
         print("=" * 60)

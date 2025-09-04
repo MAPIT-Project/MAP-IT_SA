@@ -285,6 +285,51 @@ class EnhancedCallSearchService:
             }
         }
         
+        # Domain-specific filters from parsed query
+        domain_filters = []
+        if hasattr(filters_or_include_closed, 'specific_filters') and filters_or_include_closed.specific_filters:
+            specific_filters = filters_or_include_closed.specific_filters
+            
+            # Cluster 4 filter
+            if specific_filters.get('cluster_4'):
+                domain_filters.append({"term": {"programmeDivision": "Digital, Industry and Space"}})
+                logger.info("🎯 Applying Cluster 4 filter")
+            
+            # TRL level filter (approximate based on call types)
+            if specific_filters.get('trl'):
+                # TRL 5-7 typically corresponds to Innovation Actions and some Research Actions
+                domain_filters.append({"terms": {"typesOfAction": ["IA", "RIA"]}})
+                logger.info("🎯 Applying TRL 5-7 filter (IA/RIA actions)")
+            
+            # Digital twins filter
+            if specific_filters.get('digital_twins'):
+                domain_filters.append({"term": {"keywords": "digital twin"}})
+                logger.info("🎯 Applying digital twins filter")
+            
+            # EIC Accelerator filter
+            if specific_filters.get('eic'):
+                domain_filters.append({"term": {"frameworkProgramme": "EIC"}})
+                logger.info("🎯 Applying EIC Accelerator filter")
+            
+            # Mission calls filter
+            if specific_filters.get('mission_calls'):
+                domain_filters.append({"term": {"mission": "true"}})
+                logger.info("🎯 Applying mission calls filter")
+            
+            # Standardization filter
+            if specific_filters.get('standardization'):
+                domain_filters.append({"term": {"keywords": "standardization"}})
+                logger.info("🎯 Applying standardization filter")
+            
+            # Living labs filter
+            if specific_filters.get('living_labs'):
+                domain_filters.append({"term": {"keywords": "living lab"}})
+                logger.info("🎯 Applying living labs filter")
+        
+        # Add domain filters to base query
+        if domain_filters:
+            base_query["bool"]["must"][0]["bool"]["must"].extend(domain_filters)
+        
         # Intelligent status filtering based on parsed query
         if hasattr(filters_or_include_closed, 'status_filter') and filters_or_include_closed.status_filter:
             # Use specific status filter from parsed query
