@@ -1,3 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+venv/
+.venv/
+
+# Env
+.env
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# OS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+# Project
+uploads/
+debug/
+downloads/
+processed_docs/
+test_results_*.json
+debug_scripts/*.log
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

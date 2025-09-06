@@ -64,7 +64,7 @@ MAP-IT_SA-1/
 - Redis (for Celery, optional)
 - PostgreSQL (for local database, optional)
 
-### Quick Setup
+### Quick Setup (Makefile)
 
 1. **Clone the repository:**
    ```bash
@@ -72,21 +72,41 @@ MAP-IT_SA-1/
    cd MAP-IT_SA-1
    ```
 
-2. **Run the setup script:**
-   ```bash
-   ./scripts/setup.sh
-   ```
-
-3. **Configure environment variables:**
+2. **Configure environment variables:**
    ```bash
    cp config/env.example .env
    # Edit .env with your API keys and configuration
    ```
 
-4. **Start the application:**
+3. **Install dependencies:**
    ```bash
-   ./scripts/start.sh
+   make install
+   make install-dev
    ```
+
+4. **Install git hooks (optional but recommended):**
+   ```bash
+   make hooks
+   ```
+
+5. **Start the application (hot reload):**
+   ```bash
+   make run-reload
+   ```
+
+#### Common Commands
+```bash
+# Lint and format
+make lint
+make format
+
+# Run tests
+make test
+
+# Start via Docker Compose (includes Redis)
+make docker-up
+make docker-down
+```
 
 ### Manual Setup
 
@@ -149,12 +169,26 @@ OPENAI_API_KEY=your_openai_api_key_here
 GEMINI_API_KEY=your_gemini_api_key_here
 DEFAULT_AI_PROVIDER=gemini
 
+# Embedding / Vector Search (optional)
+GOOGLE_EMBEDDING_API_KEY=your_google_api_key
+EMBEDDING_MODEL=models/text-embedding-004
+VECTOR_SEARCH_ENABLED=false
+
 # Database Configuration (optional)
 USE_LOCAL_DB=false
 DATABASE_URL=postgresql://user:password@localhost:5432/database
 
 # Celery Configuration (optional)
 CELERY_BROKER_URL=redis://localhost:6379/0
+```
+
+### Pre-commit Hooks
+```bash
+# Install hooks
+make hooks
+
+# Run on all files
+make precommit
 ```
 
 ### AI Providers
