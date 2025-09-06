@@ -91,7 +91,12 @@ class AIQueryParser:
                 }
             },
             'domain': {
+                'cluster_1': [r'cluster\s*1', r'health.*cluster', r'health.*research'],
+                'cluster_2': [r'cluster\s*2', r'culture.*creativity', r'inclusive.*society'],
+                'cluster_3': [r'cluster\s*3', r'civil.*security', r'security.*society'],
                 'cluster_4': [r'cluster\s*4', r'digital.*industry.*space'],
+                'cluster_5': [r'cluster\s*5', r'climate.*energy.*mobility'],
+                'cluster_6': [r'cluster\s*6', r'food.*bioeconomy', r'agriculture.*environment'],
                 'trl': [r'trl\s*[5-7]', r'technology\s*readiness\s*level'],
                 'ai': [r'\bai\b', r'artificial\s*intelligence'],
                 'cybersecurity': [r'cyber.*security', r'cybersecurity'],
@@ -102,7 +107,30 @@ class AIQueryParser:
                 'eic': [r'eic\s*accelerator', r'deep\s*tech'],
                 'mission_calls': [r'mission\s*calls?', r'climate.*neutral.*cities'],
                 'lump_sum': [r'lump.*sum', r'actual\s*cost'],
-                'ssh': [r'ssh\s*integration', r'social\s*sciences.*humanities']
+                'ssh': [r'ssh\s*integration', r'social\s*sciences.*humanities'],
+                # New technologies
+                'robotics': [r'robotics', r'robotic.*systems', r'autonomous.*robots'],
+                'iot': [r'\biot\b', r'internet.*of.*things', r'smart.*devices'],
+                'blockchain': [r'blockchain', r'distributed.*ledger', r'dlt'],
+                '5g': [r'5g', r'fifth.*generation'],
+                '6g': [r'6g', r'sixth.*generation'],
+                'biotech': [r'biotech', r'biotechnology', r'bio.*tech'],
+                'nanotech': [r'nanotech', r'nanotechnology', r'nano.*tech']
+            },
+            'budget': {
+                'small_budget': [r'small.*budget', r'under.*1m', r'under.*million'],
+                'medium_budget': [r'medium.*budget', r'1-5m', r'1.*5.*million'],
+                'large_budget': [r'large.*budget', r'over.*5m', r'over.*5.*million']
+            },
+            'consortium': {
+                'single_partner': [r'single.*partner', r'individual.*researcher', r'no.*consortium'],
+                'small_consortium': [r'small.*consortium', r'2-5.*partners', r'few.*partners'],
+                'large_consortium': [r'large.*consortium', r'many.*partners', r'6\+.*partners']
+            },
+            'geographic': {
+                'europe_only': [r'europe.*only', r'eu.*member.*states', r'only.*european'],
+                'international': [r'international', r'global.*partnership', r'worldwide'],
+                'specific_country': [r'country.*specific', r'in.*france', r'in.*germany', r'in.*spain']
             }
         }
     
@@ -182,6 +210,17 @@ Response: {{
   "user_intent_detected": ["temporal:next_60_days", "technology:cybersecurity"],
   "specific_filters": {{"cybersecurity": true}},
   "confidence": 0.96
+}}
+
+Example 3: "Robotics projects with large budgets for European consortia"
+Response: {{
+  "status_filter": null,
+  "temporal_filter": null,
+  "filter_intention": "robotics_large_budget",
+  "clean_query": "robotics",
+  "user_intent_detected": ["technology:robotics", "budget:large_budget", "geographic:europe_only"],
+ 极速赛车开奖结果历史 "specific_filters": {{"robotics": true, "large_budget": true, "europe_only": true}},
+  "confidence": 0.92
 }}
 
 **NOW ANALYZE THIS QUERY:** "{query}"

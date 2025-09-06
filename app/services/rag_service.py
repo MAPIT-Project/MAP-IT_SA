@@ -1360,9 +1360,6 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
             elif user_intent == "SEARCH_PROJECTS":
                 print(f"🔬 Routing to Project Search")
                 
-                # Use existing project search (simplified)
-                data_source = "Local Database" if self.use_local_db else "CORDIS API"
-                
                 # Extract queries
                 role, quest = self._get_phase1_prompt(question)
                 queries, end_flag, new_query_keys, rerank_criteria, problem_text, next_pass = self._extract_queries(role, quest)
@@ -1376,14 +1373,36 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
                         'success': False
                     }
                 
-                # Search for projects
-                if self.use_local_db:
-                    raw_project_data = self._search_local_database(queries, max_results=max_projects_to_process * 3)
-                    project_data = self._adaptive_result_selection(raw_project_data, question, max_projects_to_process)
-                else:
-                    project_items = self._search_cordis_api(queries, max_results=max_cordis_results)
-                    project_data = [self._extract_project_data(item) for item in project_items[:max_projects_to_process]]
-                    project_data = self._enrich_with_xml_data(project_data)
+                # Use HYBRID SEARCH: CORDIS API first, then database enrichment
+                try:
+                    from app.services.hybrid_search_service import HybridSearchService
+                    print("🔄 Using Hybrid Search: CORDIS API → Database Enrichment")
+                    
+                    hybrid_search = HybridSearchService()
+                    project_data = hybrid_search.search_projects(queries, max_results=max_cordis_results)
+                    
+                    # Determine data source based on enrichment
+                    if project_data and any(p.get('enrichment_status') == 'complete' for p in project_data):
+                        data_source = "CORDIS API + Local Database"
+                    else:
+                        data_source = "CORDIS API"
+                    
+                    # Select best projects if we got more than requested
+                    if len(project_data) > max_projects_to_process:
+                        project_data = self._adaptive_result_selection(project_data, question, max_projects_to_process)
+                    
+                except ImportError as e:
+                    print(f"⚠️ Hybrid search not available: {e}, falling back to original method")
+                    # Fallback to original method
+                    data_source = "Local Database" if self.use_local_db else "CORDIS API"
+                    
+                    if self.use_local_db:
+                        raw_project_data = self._search_local_database(queries, max_results=max_projects_to_process * 3)
+                        project_data = self._adaptive_result_selection(raw_project_data, question, max_projects_to_process)
+                    else:
+                        project_items = self._search_cordis_api(queries, max_results=max_cordis_results)
+                        project_data = [self._extract_project_data(item) for item in project_items[:max_projects_to_process]]
+                        project_data = self._enrich_with_xml_data(project_data)
                 
                 # Rerank if needed
                 if rerank_criteria and len(project_data) > 1:
@@ -1471,7 +1490,7 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
         cache_dict[key] = (data, current_time)
 
     def _format_db_project_data(self, row_dict: Dict[str, Any]) -> Dict[str, Any]:
-        """Format database row data into structured project data."""
+        """Format database row data into structured project data with ALL available fields."""
         project = {}
         
         # Basic project information
@@ -1480,7 +1499,9 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
         project['title'] = row_dict.get('title', 'Unknown Title')
         project['acronym'] = row_dict.get('acronym', 'N/A')
         project['objective'] = row_dict.get('objective', 'No description available')
-        project['status'] = row_dict.get('status', 'N/A')
+        
+        # CRITICAL FIX: Properly retrieve status field
+        project['status'] = row_dict.get('status', 'UNKNOWN')
         
         # Dates
         project['startDate'] = str(row_dict.get('startDate', 'Unknown'))
@@ -1505,14 +1526,17 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
             try:
                 # Convert Decimal to float for JSON serialization
                 project['ecMaxContribution'] = float(str(ec_max_contribution))
+                project['ecContribution'] = f"€{float(str(ec_max_contribution)):,.0f}"
             except (ValueError, TypeError):
                 project['ecMaxContribution'] = 0
+                project['ecContribution'] = 'N/A'
         else:
             project['ecMaxContribution'] = 0
+            project['ecContribution'] = 'N/A'
         
-        # Programme information
-        project['frameworkProgramme'] = row_dict.get('frameworkProgramme', 'N/A')
-        project['fundingScheme'] = row_dict.get('fundingScheme', 'N/A')
+        # CRITICAL FIX: Properly retrieve ALL programme information fields
+        project['frameworkProgramme'] = row_dict.get('frameworkProgramme', 'Unknown programme framework')
+        project['fundingScheme'] = row_dict.get('fundingScheme', 'Unknown funding scheme')
         project['legalBasis'] = row_dict.get('legalBasis', 'N/A')
         project['topics'] = row_dict.get('topics', 'N/A')
         project['grantDoi'] = row_dict.get('grantDoi', 'N/A')
@@ -1569,8 +1593,24 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
         
         # Legacy fields for compatibility
         project['keywords'] = project.get('topics', 'N/A')
-        project['call_info'] = f"{project['frameworkProgramme']} / {project['fundingScheme']}"
+        
+        # ENHANCED: Create comprehensive call_info with all programme details
+        call_info_parts = []
+        if project['frameworkProgramme'] != 'Unknown programme framework' and project['frameworkProgramme'] != 'N/A':
+            call_info_parts.append(project['frameworkProgramme'])
+        if project['fundingScheme'] != 'Unknown funding scheme' and project['fundingScheme'] != 'N/A':
+            call_info_parts.append(project['fundingScheme'])
+        
+        project['call_info'] = ' / '.join(call_info_parts) if call_info_parts else 'Programme information not available'
         project['publications'] = 'N/A'  # Not available in basic project data
+        
+        # Add a flag to indicate if this project has complete programme information
+        project['has_complete_programme_info'] = (
+            project['frameworkProgramme'] != 'Unknown programme framework' and
+            project['frameworkProgramme'] != 'N/A' and
+            project['fundingScheme'] != 'Unknown funding scheme' and
+            project['fundingScheme'] != 'N/A'
+        )
         
         return project
 
@@ -1837,7 +1877,7 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
         all_conditions = search_conditions + date_conditions + budget_conditions
         where_clause = f" AND ({' AND '.join(all_conditions)})" if all_conditions else ""
         
-        # Enhanced SQL with relevance scoring
+        # Enhanced SQL with relevance scoring and ALL critical fields
         sql_query = f"""
             SELECT DISTINCT
                 p.id,
@@ -1850,6 +1890,7 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
                 p."ecMaxContribution",
                 p.status,
                 p.topics,
+                -- CRITICAL: Ensure we fetch ALL programme fields
                 p."frameworkProgramme",
                 p."fundingScheme",
                 p."legalBasis",
@@ -1878,8 +1919,8 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
             FROM projects p
             LEFT JOIN organizations o ON p.id = o."projectID"
             WHERE p.id IS NOT NULL{where_clause}
-            GROUP BY p.id, p.acronym, p.title, p.objective, p."startDate", p."endDate", 
-                     p."totalCost", p."ecMaxContribution", p.status, p.topics, 
+            GROUP BY p.id, p.acronym, p.title, p.objective, p."startDate", p."endDate",
+                     p."totalCost", p."ecMaxContribution", p.status, p.topics,
                      p."frameworkProgramme", p."fundingScheme", p."legalBasis", p.rcn, p."grantDoi"
             ORDER BY relevance_score DESC, p."startDate" DESC NULLS LAST
             LIMIT %s
@@ -2002,7 +2043,7 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
         all_conditions = date_conditions + budget_conditions
         where_clause = f" AND ({' AND '.join(all_conditions)})" if all_conditions else ""
         
-        # Simple filtered query
+        # Simple filtered query with ALL programme fields
         sql_query = f"""
             SELECT DISTINCT
                 p.id, p.acronym, p.title, p.objective, p."startDate", p."endDate",
@@ -2144,7 +2185,8 @@ Instructions:
 - ALWAYS include the provided CORDIS links for each project discussed
 - Highlight the most relevant and recent projects first
 - Include specific details like budgets, timelines, consortium information, and geographic distribution
-- Note programme frameworks (Horizon, FP7, etc.) and their significance
+- ALWAYS mention the programme framework (Horizon Europe, Horizon 2020, FP7, etc.) for EACH project - this is CRITICAL information
+- If a project's framework programme is unknown, explicitly state "programme framework not available in database"
 - Identify trends, patterns, and relationships between projects
 - Use the portfolio insights to provide deeper analysis
 - Organize information logically with clear sections if discussing multiple aspects
@@ -2212,8 +2254,17 @@ Instructions:
                 frameworks[fw] += 1
         
         if frameworks:
-            top_fw = max(frameworks.items(), key=lambda x: x[1])
-            insights.append(f"Most common programme: {top_fw[0]} ({top_fw[1]} projects)")
+            # Filter out unknown/N/A values for better insights
+            valid_frameworks = {k: v for k, v in frameworks.items()
+                              if k not in ['Unknown programme framework', 'N/A', 'Unknown', '']}
+            if valid_frameworks:
+                top_fw = max(valid_frameworks.items(), key=lambda x: x[1])
+                insights.append(f"Most common programme: {top_fw[0]} ({top_fw[1]} projects)")
+                
+                # List all frameworks if there are multiple
+                if len(valid_frameworks) > 1:
+                    fw_list = ', '.join([f"{fw} ({count})" for fw, count in valid_frameworks.items()])
+                    insights.append(f"Programme distribution: {fw_list}")
         
         return " | ".join(insights) if insights else ""
 
@@ -2238,8 +2289,9 @@ Instructions:
             participant_count = proj.get('participant_count', 0)
             country_count = proj.get('country_count', 0)
             sme_count = proj.get('sme_count', 0)
-            framework_programme = proj.get('frameworkProgramme', 'N/A')
-            funding_scheme = proj.get('fundingScheme', 'N/A')
+            # CRITICAL FIX: Get framework programme with proper fallback
+            framework_programme = proj.get('frameworkProgramme', 'Unknown programme framework')
+            funding_scheme = proj.get('fundingScheme', 'Unknown funding scheme')
             relevance_score = proj.get('relevance_score', 0)
             
             # Create structured summary
@@ -2261,11 +2313,17 @@ Instructions:
             if status != 'N/A':
                 summary += f" (Status: {status})"
             
-            # Programme and funding
-            if framework_programme != 'N/A':
-                summary += f"\n🏛️ **Programme:** {framework_programme}"
-                if funding_scheme != 'N/A' and funding_scheme != framework_programme:
-                    summary += f" / {funding_scheme}"
+            # Programme and funding - ENHANCED DISPLAY
+            programme_parts = []
+            if framework_programme not in ['N/A', 'Unknown programme framework', None, '']:
+                programme_parts.append(framework_programme)
+            if funding_scheme not in ['N/A', 'Unknown funding scheme', None, ''] and funding_scheme != framework_programme:
+                programme_parts.append(funding_scheme)
+            
+            if programme_parts:
+                summary += f"\n🏛️ **Programme:** {' / '.join(programme_parts)}"
+            else:
+                summary += f"\n🏛️ **Programme:** Information not available in database"
             
             # Add budget information
             if budget != 'N/A' and budget != 'Budget not specified':

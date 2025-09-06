@@ -638,15 +638,24 @@ Answer:"""
             return ("SPECIFIC_TOPIC", topic_id, 0.9)
         
         # Cluster-specific queries with more context awareness and expanded keywords
+        # Now covering all 6 Horizon Europe clusters plus EIC and ERC
         cluster_keywords = {
-            "health": ["health cluster", "medical research", "biomedical", "pharmaceutical", "disease funding", "healthcare innovation", "biotech research"],
-            "digital": ["digital cluster", "industry 4.0", "space research", "ict topics", "ai call", "quantum computing", "data funding", "digital transformation", "artificial intelligence", "machine learning", "cloud computing", "cyber physical systems"],
-            "climate": ["climate cluster", "energy funding", "mobility research", "renewable energy", "green deal", "carbon neutral", "clean energy", "sustainable transport", "climate action", "decarbonization", "energy transition"],
-            "food": ["food cluster", "bioeconomy", "agricultural research", "environmental funding", "natural resources", "sustainable agriculture", "food security", "agri-food", "rural development"],
-            "culture": ["culture cluster", "creativity funding", "inclusive society", "arts programme", "cultural heritage", "creative industries", "social sciences", "humanities research"],
-            "security": ["civil security", "security research", "safety funding", "defense programme", "cybersecurity", "border security", "disaster resilience", "public safety"],
-            "eic": ["eic accelerator", "innovation council", "startup grant", "sme funding", "accelerator programme", "eic pathfinder", "eic transition", "deep tech innovation"],
-            "erc": ["erc grant", "research council", "frontier research", "excellent science", "erc starting grant", "erc consolidator", "erc advanced", "erc synergy"]
+            # Cluster 1: Health
+            "health": ["health cluster", "medical research", "biomedical", "pharmaceutical", "disease funding", "healthcare innovation", "biotech research", "biotechnology", "genomics", "personalized medicine", "clinical trials", "health data", "medical devices", "telemedicine"],
+            # Cluster 2: Culture, Creativity and Inclusive Society
+            "culture": ["culture cluster", "creativity funding", "inclusive society", "arts programme", "cultural heritage", "creative industries", "social sciences", "humanities research", "social innovation", "democracy", "cultural diversity", "social inclusion", "urban development", "education research"],
+            # Cluster 3: Civil Security for Society
+            "security": ["civil security", "security research", "safety funding", "defense programme", "cybersecurity", "border security", "disaster resilience", "public safety", "risk management", "emergency response", "critical infrastructure", "forensic science", "law enforcement", "crisis management"],
+            # Cluster 4: Digital, Industry and Space
+            "digital": ["digital cluster", "industry 4.0", "space research", "ict topics", "ai call", "quantum computing", "data funding", "digital transformation", "artificial intelligence", "machine learning", "cloud computing", "cyber physical systems", "robotics", "internet of things", "iot", "blockchain", "5g", "6g", "nanotechnology", "advanced materials", "additive manufacturing", "semiconductors", "edge computing", "digital twins", "autonomous systems"],
+            # Cluster 5: Climate, Energy and Mobility
+            "climate": ["climate cluster", "energy funding", "mobility research", "renewable energy", "green deal", "carbon neutral", "clean energy", "sustainable transport", "climate action", "decarbonization", "energy transition", "batteries", "hydrogen", "smart grids", "electric vehicles", "public transport", "low carbon industry", "circular economy", "carbon capture"],
+            # Cluster 6: Food, Bioeconomy, Natural Resources, Agriculture and Environment
+            "food": ["food cluster", "bioeconomy", "agricultural research", "environmental funding", "natural resources", "sustainable agriculture", "food security", "agri-food", "rural development", "forestry", "marine resources", "water management", "biodiversity", "soil health", "precision farming", "food processing", "bio-based products"],
+            # European Innovation Council (EIC)
+            "eic": ["eic accelerator", "innovation council", "startup grant", "sme funding", "accelerator programme", "eic pathfinder", "eic transition", "deep tech innovation", "disruptive innovation", "high risk research", "scale-up funding", "venture capital", "tech transfer"],
+            # European Research Council (ERC)
+            "erc": ["erc grant", "research council", "frontier research", "excellent science", "erc starting grant", "erc consolidator", "erc advanced", "erc synergy", "blue sky research", "fundamental research", "scientific excellence", "research leadership"]
         }
         
         # Check for cluster-specific phrases with higher precision
