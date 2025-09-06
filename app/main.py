@@ -13,6 +13,7 @@ from .core.config import settings
 from .api.routes import router
 from .api.document_routes import router as document_router
 from .api.enhanced_rag_routes import router as enhanced_rag_router
+from .api.conversation_routes import router as conversation_router
 from .models.schemas import ErrorResponse
 
 # Configure logging
@@ -45,6 +46,7 @@ app.add_middleware(
 app.include_router(router)
 app.include_router(document_router)
 app.include_router(enhanced_rag_router)
+app.include_router(conversation_router)
 
 # Exception handlers
 @app.exception_handler(HTTPException)

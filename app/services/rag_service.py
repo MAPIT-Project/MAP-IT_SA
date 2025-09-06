@@ -24,6 +24,7 @@ from collections import defaultdict
 import hashlib
 from decimal import Decimal
 import asyncio
+from dataclasses import asdict
 
 # Load environment variables
 load_dotenv()
@@ -42,7 +43,7 @@ class CordisRAG:
     This addresses the requirement to expand beyond searching existing projects to include funding opportunities.
     """
     def __init__(self, openai_api_key: Optional[str] = None, gemini_api_key: Optional[str] = None,
-                 ai_provider: str = "openai",
+                 ai_provider: str = "gemini",
                  openai_model_name: str = "gpt-4-turbo",
                  gemini_model_name: str = "gemini-2.5-flash-lite",
                  use_local_db: bool = False,
@@ -3144,6 +3145,263 @@ Instructions:
                 yield {'type': 'token', 'content': chunk}
         
         yield {'type': 'complete'}
+    def get_ai_response_with_context(
+        self,
+        question: str,
+        conversation_context,
+        max_projects_to_process: int = 5,
+        max_cordis_results: int = 10
+    ) -> Dict[str, Any]:
+        """
+        Process question with conversation context.
+        This is the context-aware version of get_ai_response.
+        """
+        
+        # Resolve references in the question
+        from app.services.conversation_context_service import ConversationContextService
+        context_service = ConversationContextService(os.getenv("DATABASE_URL"))
+        resolved_question = context_service.resolve_references(question, conversation_context)
+        
+        print(f"🧠 Original question: {question}")
+        print(f"🎯 Resolved question: {resolved_question}")
+        
+        # Build context-aware prompt
+        context_prompt = self._build_context_prompt(conversation_context)
+        
+        # Get the base response using existing method
+        response = self.get_ai_response_with_routing(
+            resolved_question,
+            max_projects_to_process,
+            max_cordis_results
+        )
+        
+        # Enhance the answer with context
+        if conversation_context.discussed_projects:
+            enhanced_answer = self._enhance_answer_with_context(
+                response['answer'],
+                conversation_context,
+                resolved_question
+            )
+            response['answer'] = enhanced_answer
+        
+        # Add context information to response
+        response['context_used'] = True
+        response['resolved_question'] = resolved_question
+        response['discussed_projects'] = [
+            asdict(p) for p in conversation_context.discussed_projects
+        ]
+        
+        # Generate follow-up suggestions
+        response['follow_up_suggestions'] = context_service.generate_follow_up_suggestions(
+            conversation_context,
+            response
+        )
+        
+        return response
+
+    def _build_context_prompt(self, context) -> str:
+        """Build context information for the prompt"""
+        
+        prompt_parts = []
+        
+        # Add recent conversation history
+        recent_messages = context.get_recent_messages(5)
+        if recent_messages:
+            prompt_parts.append("Recent conversation:")
+            for msg in recent_messages:
+                sender = msg['sender']
+                text = msg['text'][:200]  # Truncate long messages
+                prompt_parts.append(f"  {sender}: {text}")
+        
+        # Add discussed projects
+        if context.discussed_projects:
+            prompt_parts.append("\nProjects discussed:")
+            for proj in context.discussed_projects[-5:]:  # Last 5 projects
+                prompt_parts.append(f"  - {proj.acronym}: {proj.title}")
+        
+        # Add topics of interest
+        if context.topics_of_interest:
+            prompt_parts.append(f"\nTopics of interest: {', '.join(context.topics_of_interest)}")
+        
+        return "\n".join(prompt_parts)
+
+    def _enhance_answer_with_context(
+        self,
+        base_answer: str,
+        context,
+        question: str
+    ) -> str:
+        """Enhance answer with conversational context"""
+        
+        # Create context-aware prompt
+        enhancement_prompt = f"""
+You are continuing a conversation about European research projects.
+
+CONVERSATION CONTEXT:
+{self._build_context_prompt(context)}
+
+CURRENT QUESTION: {question}
+
+BASE ANSWER: {base_answer}
+
+Please enhance this answer by:
+1. Referencing previously discussed projects when relevant
+2. Making connections to topics already explored
+3. Using natural language that acknowledges the conversation history
+4. Avoiding repetition of information already provided
+5. Suggesting natural follow-up questions
+
+Enhanced answer:
+"""
+        
+        # Call LLM for enhancement
+        enhanced = self._call_llm_for_generation(
+            "You are a conversational AI assistant that maintains context across messages.",
+            enhancement_prompt
+        )
+        
+        return enhanced
+    async def get_ai_response_stream_with_context(
+        self,
+        question: str,
+        conversation_context,
+        max_projects_to_process: int = 5,
+        max_cordis_results: int = 10
+    ):
+        """
+        Stream AI response with conversation context and real-time stage updates.
+        """
+        total_start_time = time.time()
+        
+        try:
+            # Phase 1: Context Resolution
+            yield {'type': 'progress', 'phase': 'context_resolution', 'message': 'Resolving references and loading context...'}
+            
+            from app.services.conversation_context_service import ConversationContextService
+            context_service = ConversationContextService(os.getenv("DATABASE_URL"))
+            resolved_question = context_service.resolve_references(question, conversation_context)
+            
+            if resolved_question != question:
+                yield {'type': 'progress', 'phase': 'reference_resolved', 'message': f'Resolved: "{resolved_question}"'}
+            
+            # Phase 2: Intent Detection
+            yield {'type': 'progress', 'phase': 'intent_detection', 'message': 'Analyzing question intent...'}
+            
+            user_intent, confidence = self.determine_user_intent(resolved_question)
+            yield {'type': 'progress', 'phase': 'intent_detected', 'message': f'Intent: {user_intent} (confidence: {confidence:.2f})'}
+            
+            # Phase 3: Query Extraction
+            yield {'type': 'progress', 'phase': 'query_extraction', 'message': 'Extracting search queries...'}
+            
+            role, quest = self._get_phase1_prompt(resolved_question)
+            queries, end_flag, new_query_keys, rerank_criteria, problem_text, next_pass = self._extract_queries(role, quest)
+            
+            if end_flag:
+                yield {'type': 'error', 'error': 'Query processing failed', 'details': problem_text}
+                return
+            
+            yield {'type': 'progress', 'phase': 'queries_extracted', 'message': f'Generated {len(queries)} search queries'}
+            
+            # Phase 4: Data Retrieval
+            if user_intent == "SEARCH_PROJECTS":
+                yield {'type': 'progress', 'phase': 'data_retrieval', 'message': 'Searching CORDIS API and enriching with database...'}
+                
+                # Use hybrid search
+                try:
+                    from app.services.hybrid_search_service import HybridSearchService
+                    hybrid_search = HybridSearchService()
+                    project_data = hybrid_search.search_projects(queries, max_results=max_cordis_results)
+                    
+                    enriched_count = sum(1 for p in project_data if p.get('enrichment_status') == 'complete')
+                    yield {'type': 'progress', 'phase': 'data_enriched', 'message': f'Found {len(project_data)} projects, enriched {enriched_count} with database'}
+                    
+                    # Select best projects
+                    if len(project_data) > max_projects_to_process:
+                        project_data = self._adaptive_result_selection(project_data, resolved_question, max_projects_to_process)
+                        yield {'type': 'progress', 'phase': 'data_selected', 'message': f'Selected {len(project_data)} most relevant projects'}
+                    
+                except ImportError:
+                    yield {'type': 'progress', 'phase': 'fallback_search', 'message': 'Using fallback search method...'}
+                    project_items = self._search_cordis_api(queries, max_results=max_cordis_results)
+                    project_data = [self._extract_project_data(item) for item in project_items[:max_projects_to_process]]
+                
+                # Phase 5: Reranking (if needed)
+                if rerank_criteria and len(project_data) > 1:
+                    yield {'type': 'progress', 'phase': 'reranking', 'message': 'Reranking projects by relevance...'}
+                    project_data = self._enhanced_rerank_projects(project_data, rerank_criteria, resolved_question, role)
+                
+                # Phase 6: Answer Generation with Streaming
+                yield {'type': 'progress', 'phase': 'answer_generation', 'message': 'Generating comprehensive answer...'}
+                
+                # Build context-aware prompt
+                context_prompt = self._build_context_prompt(conversation_context)
+                
+                # Generate base answer
+                base_answer = self._generate_enhanced_answer(role, resolved_question, project_data)
+                
+                # Enhance with context if available
+                if conversation_context.discussed_projects:
+                    yield {'type': 'progress', 'phase': 'context_enhancement', 'message': 'Enhancing answer with conversation context...'}
+                    enhanced_answer = self._enhance_answer_with_context(base_answer, conversation_context, resolved_question)
+                    final_answer = enhanced_answer
+                else:
+                    final_answer = base_answer
+                
+                # Stream the final answer
+                yield {'type': 'progress', 'phase': 'streaming_response', 'message': 'Streaming response...'}
+                
+                # Stream answer in chunks for better UX
+                chunk_size = 50  # Characters per chunk
+                for i in range(0, len(final_answer), chunk_size):
+                    chunk = final_answer[i:i+chunk_size]
+                    yield {'type': 'token', 'content': chunk}
+                    await asyncio.sleep(0.01)  # Small delay for smooth streaming
+                
+                # Send completion
+                total_time = time.time() - total_start_time
+                yield {
+                    'type': 'complete',
+                    'answer': final_answer,
+                    'context_used': True,
+                    'resolved_question': resolved_question,
+                    'projects_found': len(project_data),
+                    'processing_time': round(total_time, 2),
+                    'data_source': "CORDIS API + Local Database" if any(p.get('enrichment_status') == 'complete' for p in project_data) else "CORDIS API"
+                }
+                
+            else:
+                # Handle FAQ and SEARCH_CALLS with basic streaming
+                yield {'type': 'progress', 'phase': 'processing_query', 'message': f'Processing {user_intent} query...'}
+                
+                response = self.get_ai_response_with_routing(
+                    resolved_question,
+                    max_projects_to_process,
+                    max_cordis_results
+                )
+                
+                # Stream the answer
+                answer = response['answer']
+                chunk_size = 50
+                for i in range(0, len(answer), chunk_size):
+                    chunk = answer[i:i+chunk_size]
+                    yield {'type': 'token', 'content': chunk}
+                    await asyncio.sleep(0.01)
+                
+                # Send completion
+                total_time = time.time() - total_start_time
+                yield {
+                    'type': 'complete',
+                    'answer': answer,
+                    'context_used': False,
+                    'resolved_question': resolved_question,
+                    'processing_time': round(total_time, 2),
+                    'data_source': response.get('data_source', 'Unknown')
+                }
+            
+        except Exception as e:
+            yield {'type': 'error', 'error': 'Processing failed', 'details': str(e)}
+
+
 
 if __name__ == "__main__":
     def test_local_database():
@@ -3198,6 +3456,123 @@ if __name__ == "__main__":
         """Compare performance between local database and API"""
         print("="*60)
         print("PERFORMANCE COMPARISON: LOCAL DB vs CORDIS API")
+        def get_ai_response_with_context(
+            self,
+            question: str,
+            conversation_context,
+            max_projects_to_process: int = 5,
+            max_cordis_results: int = 10
+        ) -> Dict[str, Any]:
+            """
+            Process question with conversation context.
+            This is the context-aware version of get_ai_response.
+            """
+            
+            # Resolve references in the question
+            from app.services.conversation_context_service import ConversationContextService
+            context_service = ConversationContextService(os.getenv("DATABASE_URL"))
+            resolved_question = context_service.resolve_references(question, conversation_context)
+            
+            print(f"🧠 Original question: {question}")
+            print(f"🎯 Resolved question: {resolved_question}")
+            
+            # Build context-aware prompt
+            context_prompt = self._build_context_prompt(conversation_context)
+            
+            # Get the base response using existing method
+            response = self.get_ai_response_with_routing(
+                resolved_question,
+                max_projects_to_process,
+                max_cordis_results
+            )
+            
+            # Enhance the answer with context
+            if conversation_context.discussed_projects:
+                enhanced_answer = self._enhance_answer_with_context(
+                    response['answer'],
+                    conversation_context,
+                    resolved_question
+                )
+                response['answer'] = enhanced_answer
+            
+            # Add context information to response
+            response['context_used'] = True
+            response['resolved_question'] = resolved_question
+            response['discussed_projects'] = [
+                asdict(p) for p in conversation_context.discussed_projects
+            ]
+            
+            # Generate follow-up suggestions
+            response['follow_up_suggestions'] = context_service.generate_follow_up_suggestions(
+                conversation_context,
+                response
+            )
+            
+            return response
+    
+        def _build_context_prompt(self, context) -> str:
+            """Build context information for the prompt"""
+            
+            prompt_parts = []
+            
+            # Add recent conversation history
+            recent_messages = context.get_recent_messages(5)
+            if recent_messages:
+                prompt_parts.append("Recent conversation:")
+                for msg in recent_messages:
+                    sender = msg['sender']
+                    text = msg['text'][:200]  # Truncate long messages
+                    prompt_parts.append(f"  {sender}: {text}")
+            
+            # Add discussed projects
+            if context.discussed_projects:
+                prompt_parts.append("\nProjects discussed:")
+                for proj in context.discussed_projects[-5:]:  # Last 5 projects
+                    prompt_parts.append(f"  - {proj.acronym}: {proj.title}")
+            
+            # Add topics of interest
+            if context.topics_of_interest:
+                prompt_parts.append(f"\nTopics of interest: {', '.join(context.topics_of_interest)}")
+            
+            return "\n".join(prompt_parts)
+    
+        def _enhance_answer_with_context(
+            self,
+            base_answer: str,
+            context,
+            question: str
+        ) -> str:
+            """Enhance answer with conversational context"""
+            
+            # Create context-aware prompt
+            enhancement_prompt = f"""
+    You are continuing a conversation about European research projects.
+    
+    CONVERSATION CONTEXT:
+    {self._build_context_prompt(context)}
+    
+    CURRENT QUESTION: {question}
+    
+    BASE ANSWER: {base_answer}
+    
+    Please enhance this answer by:
+    1. Referencing previously discussed projects when relevant
+    2. Making connections to topics already explored
+    3. Using natural language that acknowledges the conversation history
+    4. Avoiding repetition of information already provided
+    5. Suggesting natural follow-up questions
+    
+    Enhanced answer:
+    """
+            
+            # Call LLM for enhancement
+            enhanced = self._call_llm_for_generation(
+                "You are a conversational AI assistant that maintains context across messages.",
+                enhancement_prompt
+            )
+            
+            return enhanced
+    
         print("="*60)
         
         question = "machine learning projects in healthcare"

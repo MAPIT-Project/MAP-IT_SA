@@ -24,9 +24,10 @@ class HybridSearchService:
     2. Enrichment with local database data
     """
     
-    def __init__(self, database_url: Optional[str] = None):
+    def __init__(self, database_url: Optional[str] = None, ai_provider: str = "gemini"):
         """Initialize the hybrid search service."""
         self.db_url = database_url or os.getenv("DATABASE_URL")
+        self.ai_provider = ai_provider
         self.db_pool = None
         
         if self.db_url:
