@@ -15,7 +15,7 @@ def test_50_additional_questions():
     """Test the system with 50 additional Horizon Europe questions."""
     
     try:
-        from app.services.hybrid_query_parser import HybridQueryParser
+        from app.services.ai_query_parser import AIQueryParser
         from app.services.enhanced_call_search import EnhancedCallSearchService
         
         print("🧪 Testing 50 Additional Horizon Europe Questions")
@@ -23,7 +23,7 @@ def test_50_additional_questions():
         print()
         
         # Initialize components
-        hybrid_parser = HybridQueryParser()
+        ai_parser = AIQueryParser()
         call_search = EnhancedCallSearchService()
         
         # 50 additional Horizon Europe questions covering various scenarios
@@ -110,9 +110,9 @@ def test_50_additional_questions():
             print(f"{i+1:2d}. Testing: '{query}'")
             
             try:
-                # Step 1: Parse query with hybrid parser
+                # Step 1: Parse query with AI parser
                 parse_start = time.time()
-                filters = hybrid_parser.parse_query(query)
+                filters = ai_parser.parse_query(query)
                 parse_time = time.time() - parse_start
                 
                 # Step 2: Execute search for queries with specific intents
@@ -172,9 +172,8 @@ def test_50_additional_questions():
         avg_confidence = sum(confidences) / len(confidences) if confidences else 0
         total_results = sum(results_counts)
         
-        # Parser usage
-        intelligent_count = sum(1 for r in results if r.get('parser_used') == 'intelligent')
-        ai_count = sum(1 for r in results if r.get('parser_used') == 'ai')
+        # Parser usage - now only AI parser is used
+        ai_count = successful_queries
         
         print(f"\n📈 Performance Metrics:")
         print(f"   Total queries: {total_queries}")
@@ -186,7 +185,6 @@ def test_50_additional_questions():
         print(f"   Total results found: {total_results}")
         
         print(f"\n🎯 Parser Usage:")
-        print(f"   Intelligent parser: {intelligent_count} ({intelligent_count/successful_queries*100:.1f}%)")
         print(f"   AI parser: {ai_count} ({ai_count/successful_queries*100:.1f}%)")
         
         # Show some examples

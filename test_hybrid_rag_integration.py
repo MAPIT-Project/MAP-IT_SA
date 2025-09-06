@@ -15,15 +15,15 @@ def test_hybrid_rag_integration():
     """Test hybrid parser integration with RAG service for Horizon questions."""
     
     try:
-        from app.services.hybrid_query_parser import HybridQueryParser
+        from app.services.ai_query_parser import AIQueryParser
         from app.services.enhanced_call_search import EnhancedCallSearchService
         
-        print("🔗 Hybrid Parser + RAG Integration Test")
+        print("🔗 AI Parser + RAG Integration Test")
         print("=" * 60)
         print()
         
         # Initialize components
-        hybrid_parser = HybridQueryParser()
+        ai_parser = AIQueryParser()
         call_search = EnhancedCallSearchService()
         
         # Original Horizon Europe questions from the task
@@ -48,12 +48,12 @@ def test_hybrid_rag_integration():
             print(f"\n🔍 Query {i+1}: '{query}'")
             print("-" * 50)
             
-            # Step 1: Parse query with hybrid parser
+            # Step 1: Parse query with AI parser
             parse_start = time.time()
-            filters = hybrid_parser.parse_query(query)
+            filters = ai_parser.parse_query(query)
             parse_time = time.time() - parse_start
             
-            print(f"   🤖 Parser: {filters.parser_used.upper()}")
+            print(f"   🤖 Parser: AI")
             print(f"   🎯 Intention: {filters.filter_intention}")
             print(f"   🧠 Detected intents: {filters.user_intent_detected}")
             print(f"   ⏱️  Parse time: {parse_time:.3f}s")
@@ -75,14 +75,14 @@ def test_hybrid_rag_integration():
                 print(f"   ⏱️  Search time: {search_time:.3f}s")
                 
                 # Generate explanation
-                explanation = hybrid_parser.get_filter_explanation(
+                explanation = ai_parser.get_filter_explanation(
                     filters, len(search_results.get('calls_data', []))
                 )
                 print(f"   📝 Explanation: {explanation}")
                 
                 results.append({
                     'query': query,
-                    'parser_used': filters.parser_used,
+                    'parser_used': 'ai',
                     'parse_time': parse_time,
                     'search_time': search_time,
                     'total_time': parse_time + search_time,
@@ -94,7 +94,7 @@ def test_hybrid_rag_integration():
                 # For queries without specific filters, we might use different approach
                 results.append({
                     'query': query,
-                    'parser_used': filters.parser_used,
+                    'parser_used': 'ai',
                     'parse_time': parse_time,
                     'search_time': 0,
                     'total_time': parse_time,
@@ -108,8 +108,7 @@ def test_hybrid_rag_integration():
         print("="*60)
         
         total_queries = len(results)
-        intelligent_count = sum(1 for r in results if r['parser_used'] == 'intelligent')
-        ai_count = sum(1 for r in results if r['parser_used'] == 'ai')
+        ai_count = total_queries  # All queries use AI parser now
         
         total_parse_time = sum(r['parse_time'] for r in results)
         total_search_time = sum(r['search_time'] for r in results)
@@ -132,18 +131,12 @@ def test_hybrid_rag_integration():
         queries_with_results = sum(1 for r in results if r['results_count'] > 0)
         print(f"   Queries with results: {queries_with_results}/{total_queries} ({queries_with_results/total_queries*100:.1f}%)")
         
-        # Show examples of different parser choices
-        print(f"\n🔍 Example Parser Choices:")
-        intelligent_examples = [r for r in results if r['parser_used'] == 'intelligent'][:2]
-        ai_examples = [r for r in results if r['parser_used'] == 'ai'][:2]
+        # Show examples of AI parser choices
+        print(f"\n🔍 Example AI Parser Results:")
+        ai_examples = results[:2]
         
-        print(f"   Intelligent parser examples:")
-        for example in intelligent_examples:
-            print(f"     - '{example['query'][:50]}...' → {example['results_count']} results")
-        
-        print(f"   AI parser examples:")
         for example in ai_examples:
-            print(f"     - '{example['query'][:50]}...' → {example['results_count']} results")
+            print(f"   - '{example['query'][:50]}...' → {example['results_count']} results")
         
         print("\n✅ Integration test completed successfully!")
         

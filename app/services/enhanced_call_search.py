@@ -18,9 +18,9 @@ from dataclasses import dataclass, asdict, field
 import hashlib
 import re
 
-# Import the intelligent query parser
+# Import the AI query parser
 try:
-    from .intelligent_query_parser import IntelligentQueryParser, QueryFilters
+    from .ai_query_parser import AIQueryParser, QueryFilters
     QUERY_PARSER_AVAILABLE = True
 except ImportError:
     QUERY_PARSER_AVAILABLE = False
@@ -63,13 +63,13 @@ class EnhancedCallSearchService:
         self._tag_cache = {}
         self._cache_ttl = 3600  # 1 hour
         
-        # Initialize intelligent query parser
+        # Initialize AI query parser
         if QUERY_PARSER_AVAILABLE:
-            self.query_parser = IntelligentQueryParser()
-            logger.info("✅ Intelligent query parser initialized")
+            self.query_parser = AIQueryParser()
+            logger.info("✅ AI query parser initialized")
         else:
             self.query_parser = None
-            logger.warning("⚠️ Intelligent query parser not available")
+            logger.warning("⚠️ AI query parser not available")
         
         # Status code mapping
         self.status_mapping = {
