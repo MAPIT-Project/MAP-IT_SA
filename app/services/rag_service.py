@@ -93,16 +93,9 @@ class CordisRAG:
                           'has', 'he', 'in', 'is', 'it', 'its', 'of', 'on', 'that', 'the',
                           'to', 'was', 'will', 'with', 'the'}
         
-        # Initialize call-specific RAG if available
+        # Call-specific functionality is now integrated into EnhancedRAGService
         self.call_specific_rag = None
-        try:
-            from .call_specific_rag import CallSpecificRAG
-            self.call_specific_rag = CallSpecificRAG(cordis_rag=self)
-            print("✅ Call-specific RAG initialized")
-        except ImportError as e:
-            print(f"⚠️ CallSpecificRAG not available: {e}")
-        except Exception as e:
-            print(f"⚠️ Failed to initialize CallSpecificRAG: {e}")
+        print("ℹ️ Call-specific functionality integrated into EnhancedRAGService")
         
         if self.ai_provider == "openai":
             used_openai_api_key = openai_api_key if openai_api_key else os.getenv("OPENAI_API_KEY")
