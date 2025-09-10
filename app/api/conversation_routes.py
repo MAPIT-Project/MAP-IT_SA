@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from typing import List, Optional, AsyncGenerator
+from typing import List, Optional, AsyncGenerator, Dict, Any
 import os
 import time
 import json
 import asyncio
+from datetime import datetime
 from app.services.rag_service import CordisRAG
 from app.services.conversation_context_service import ConversationContextService, ConversationContext
 from dataclasses import asdict
@@ -55,11 +56,30 @@ async def send_contextual_message(
                 follow_up_expected=False
             )
         
-        # Process with RAG service
-        response = rag_service.get_ai_response_with_context(
+        # Use Professional AI-Powered Context System
+        print(f"🚀 Processing with Professional AI Context System: conversation {conversation_id}")
+        print(f"📝 Question: '{request.message}'")
+        
+        from app.services.professional_context_ai import get_professional_ai_response
+        
+        # Try professional AI context analysis first
+        ai_response = get_professional_ai_response(
             question=request.message,
-            conversation_context=context
+            conversation_id=conversation_id
         )
+        
+        # If AI can answer from context, use that response
+        if ai_response.get('success'):
+            print("✅ Professional AI provided contextual answer")
+            response = ai_response
+        else:
+            print("🔍 AI determined external search needed, using RAG")
+            # Use RAG for external search when AI determines it's needed
+            response = rag_service.get_ai_response_with_routing(
+                question=ai_response.get('suggested_search', request.message),
+                max_projects_to_process=5,
+                max_cordis_results=10
+            )
         
         # Save message to database (implement this based on your schema)
         # save_message(conversation_id, request.message, response['answer'])
@@ -100,6 +120,44 @@ async def get_conversation_context(conversation_id: int):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+def _get_conversation_messages(conversation_id: int) -> List[Dict[str, Any]]:
+    """Get conversation messages from database"""
+    try:
+        import psycopg2
+        from psycopg2.extras import DictCursor
+        
+        db_url = os.getenv("DATABASE_URL")
+        if not db_url:
+            return []
+        
+        conn = psycopg2.connect(db_url)
+        cursor = conn.cursor(cursor_factory=DictCursor)
+        
+        cursor.execute("""
+            SELECT text, sender, "created_at"
+            FROM message
+            WHERE "conversation_id" = %s
+            ORDER BY "created_at" ASC
+            LIMIT 20
+        """, (conversation_id,))
+        
+        messages = []
+        for row in cursor.fetchall():
+            messages.append({
+                'text': row['text'],
+                'sender': row['sender'],
+                'created_at': row['created_at'].isoformat() if row['created_at'] else datetime.now().isoformat()
+            })
+        
+        cursor.close()
+        conn.close()
+        
+        return messages
+        
+    except Exception as e:
+        print(f"⚠️ Failed to get conversation messages: {e}")
+        return []
 
 @router.post("/{conversation_id}/reset-context")
 async def reset_conversation_context(conversation_id: int):
@@ -157,50 +215,84 @@ async def send_contextual_message_stream(
             # Resolve references
             from app.services.conversation_context_service import ConversationContextService
             context_service_local = ConversationContextService(os.getenv("DATABASE_URL"))
-            resolved_question = context_service_local.resolve_references(request.message, context)
+            
+            # Handle tuple return from resolve_references
+            resolution_result = context_service_local.resolve_references(request.message, context)
+            if isinstance(resolution_result, tuple):
+                resolved_question, needs_detailed_lookup = resolution_result
+            else:
+                resolved_question = resolution_result
+                needs_detailed_lookup = False
             
             if resolved_question != request.message:
                 yield f"data: {json.dumps({'type': 'status', 'stage': 'reference_resolved', 'message': f'Resolved: {resolved_question}'})}\n\n"
             
             # Send processing status
-            yield f"data: {json.dumps({'type': 'status', 'stage': 'processing', 'message': 'Processing your question...'})}\n\n"
+            yield f"data: {json.dumps({'type': 'status', 'stage': 'processing', 'message': 'Processing your question intelligently...'})}\n\n"
             
-            # Get streaming response from RAG service
-            async for chunk in rag_service.get_ai_response_stream_with_context(
+            # Use Professional AI-Powered Context System for streaming
+            print(f"🚀 Streaming: Using Professional AI Context System for conversation {conversation_id}")
+            print(f"📝 Streaming Question: '{resolved_question}'")
+            
+            from app.services.professional_context_ai import get_professional_ai_response
+            
+            # Try professional AI context analysis
+            ai_response = get_professional_ai_response(
                 question=resolved_question,
-                conversation_context=context
-            ):
-                if chunk['type'] == 'progress':
-                    # Send progress updates
-                    yield f"data: {json.dumps({'type': 'progress', 'stage': chunk['phase'], 'message': chunk['message']})}\n\n"
-                elif chunk['type'] == 'token':
-                    # Send token chunks
-                    yield f"data: {json.dumps({'type': 'token', 'content': chunk['content']})}\n\n"
-                elif chunk['type'] == 'complete':
-                    # Generate follow-up suggestions
-                    suggestions = context_service_local.generate_follow_up_suggestions(context, chunk)
-                    
-                    # Send completion with metadata
-                    completion_data = {
-                        'type': 'complete',
-                        'follow_up_suggestions': suggestions,
-                        'context_used': True,
-                        'resolved_question': resolved_question,
-                        'projects_discussed': [asdict(p) for p in context.discussed_projects],
-                        'processing_time': chunk.get('processing_time', 0)
-                    }
-                    yield f"data: {json.dumps(completion_data)}\n\n"
-                    
-                    # Update context with new information
-                    context_service.update_context(
-                        conversation_id,
-                        {'text': request.message, 'sender': 'user'},
-                        chunk
-                    )
-                    break
-                elif chunk['type'] == 'error':
-                    yield f"data: {json.dumps({'type': 'error', 'error': chunk['error'], 'details': chunk.get('details', '')})}\n\n"
-                    break
+                conversation_id=conversation_id
+            )
+            
+            if ai_response.get('success'):
+                print("✅ Streaming: Professional AI provided contextual answer")
+                
+                # Stream the AI response
+                answer = ai_response['answer']
+                chunk_size = 50
+                for i in range(0, len(answer), chunk_size):
+                    chunk = answer[i:i+chunk_size]
+                    yield f"data: {json.dumps({'type': 'token', 'content': chunk})}\n\n"
+                
+                # Send completion
+                completion_data = {
+                    'type': 'complete',
+                    'follow_up_suggestions': [],
+                    'context_used': True,
+                    'resolved_question': resolved_question,
+                    'approach': ai_response.get('approach', 'professional_ai_context'),
+                    'processing_time': 0,
+                    'success': True
+                }
+                yield f"data: {json.dumps(completion_data)}\n\n"
+                
+            else:
+                print("🔍 Streaming: Professional AI determined external search needed")
+                
+                # Use RAG streaming for external search
+                search_query = ai_response.get('suggested_search', resolved_question)
+                
+                async for chunk in rag_service.get_ai_response_stream(
+                    question=search_query,
+                    max_projects_to_process=5,
+                    max_cordis_results=10
+                ):
+                    if chunk['type'] == 'progress':
+                        yield f"data: {json.dumps({'type': 'progress', 'stage': chunk['phase'], 'message': chunk['message']})}\n\n"
+                    elif chunk['type'] == 'token':
+                        yield f"data: {json.dumps({'type': 'token', 'content': chunk['content']})}\n\n"
+                    elif chunk['type'] == 'complete':
+                        completion_data = {
+                            'type': 'complete',
+                            'follow_up_suggestions': [],
+                            'context_used': False,
+                            'resolved_question': resolved_question,
+                            'processing_time': chunk.get('processing_time', 0),
+                            'success': True
+                        }
+                        yield f"data: {json.dumps(completion_data)}\n\n"
+                        break
+                    elif chunk['type'] == 'error':
+                        yield f"data: {json.dumps({'type': 'error', 'error': chunk['error'], 'details': chunk.get('details', '')})}\n\n"
+                        break
             
         except Exception as e:
             yield f"data: {json.dumps({'type': 'error', 'error': 'Processing failed', 'details': str(e)})}\n\n"

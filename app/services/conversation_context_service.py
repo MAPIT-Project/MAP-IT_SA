@@ -1,5 +1,5 @@
 import json
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime, timedelta
 import re
 from dataclasses import dataclass, asdict
@@ -230,10 +230,14 @@ class ConversationContextService:
             follow_up_expected=True if discussed_projects else False
         )
     
-    def resolve_references(self, message: str, context: ConversationContext) -> str:
-        """Resolve references in user message to concrete entities"""
+    def resolve_references(self, message: str, context: ConversationContext) -> Tuple[str, bool]:
+        """
+        Resolve references in user message to concrete entities.
+        Returns (resolved_message, needs_detailed_lookup)
+        """
         
         resolved = message
+        needs_detailed_lookup = False
         
         # Pattern for "tell me more about X"
         more_pattern = r'tell me (?:more )?about (the )?(first|second|third|fourth|fifth|last|latest|it|that|this)( one| project)?'
@@ -247,25 +251,42 @@ class ConversationContextService:
                     match.group(0),
                     f'tell me more about {project.acronym} ({project.title})'
                 )
+                needs_detailed_lookup = True  # This requires detailed project data
         
-        # Pattern for "what about its X"
-        its_pattern = r'what about (?:its|the) (\w+)'
+        # Pattern for "what about its X" or "what is the X of Y"
+        its_pattern = r'what (?:about )?(?:its|the) (\w+)'
         match = re.search(its_pattern, resolved, re.IGNORECASE)
         
         if match and context.discussed_projects:
             last_project = context.discussed_projects[-1]
-            resolved = resolved.replace(
-                'its', f"{last_project.acronym}'s"
-            ).replace(
-                'the project', last_project.acronym
-            )
+            attribute = match.group(1).lower()
+            
+            if attribute in ['budget', 'cost', 'funding']:
+                resolved = f"What is the budget of {last_project.acronym} project?"
+                needs_detailed_lookup = True
+            elif attribute in ['consortium', 'partners', 'participants']:
+                resolved = f"What is the consortium composition of {last_project.acronym} project?"
+                needs_detailed_lookup = True
+            else:
+                resolved = resolved.replace(
+                    'its', f"{last_project.acronym}'s"
+                ).replace(
+                    'the project', last_project.acronym
+                )
+                needs_detailed_lookup = True
+        
+        # Direct budget questions
+        budget_pattern = r'what (?:is )?(?:the )?budget (?:of )?(\w+)'
+        match = re.search(budget_pattern, resolved, re.IGNORECASE)
+        if match:
+            needs_detailed_lookup = True
         
         # Pattern for "show me similar projects"
         if 'similar' in resolved.lower() and context.discussed_projects:
             last_project = context.discussed_projects[-1]
             resolved = f"Find projects similar to {last_project.acronym} in the {' '.join(context.topics_of_interest)} domain"
         
-        return resolved
+        return resolved, needs_detailed_lookup
     
     def update_context(self, conversation_id: int, new_message: Dict, response: Dict):
         """Update context with new information"""
@@ -297,21 +318,47 @@ class ConversationContextService:
             # Extract projects using multiple patterns
             projects_extracted = []
             
-            # Pattern 1: **Project Name (ACRONYM)**
-            pattern1 = re.findall(r'\*\*(\d+)\.\s*([^*]+?)\s*\(([^)]+)\)\*\*', answer)
-            for i, (num, title, acronym) in enumerate(pattern1):
-                projects_extracted.append({
-                    'position': int(num) - 1,
-                    'title': title.strip(),
-                    'acronym': acronym.strip(),
-                    'id': acronym.strip()
-                })
+            # Pattern 1: **ACRONYM: Full Project Title**
+            pattern1 = re.findall(r'\*\*([A-Z][A-Z0-9-]+):\s*([^*\n]+)\*\*', answer)
+            for i, (acronym, title) in enumerate(pattern1):
+                if len(acronym) >= 3 and acronym not in ['HORIZON', 'EURATOM', 'RIA', 'CSA', 'FOCUS', 'DURATION', 'PROGRAMME', 'CONSORTIUM', 'CORDIS']:
+                    projects_extracted.append({
+                        'position': i,
+                        'title': title.strip(),
+                        'acronym': acronym.strip(),
+                        'id': acronym.strip()
+                    })
             
-            # Pattern 2: **ACRONYM** or **Project Name**
+            # Pattern 2: **Project Name (ACRONYM)**
             if not projects_extracted:
-                pattern2 = re.findall(r'\*\*([A-Z][A-Z0-9-]+)\*\*', answer)
-                for i, acronym in enumerate(pattern2):
-                    if len(acronym) >= 3 and acronym not in ['HORIZON', 'EURATOM', 'RIA', 'CSA']:
+                pattern2 = re.findall(r'\*\*([^*]+?)\s*\(([A-Z][A-Z0-9-]+)\)\*\*', answer)
+                for i, (title, acronym) in enumerate(pattern2):
+                    if len(acronym) >= 3:
+                        projects_extracted.append({
+                            'position': i,
+                            'title': title.strip(),
+                            'acronym': acronym.strip(),
+                            'id': acronym.strip()
+                        })
+            
+            # Pattern 3: Bullet points with **ACRONYM**
+            if not projects_extracted:
+                # Look for bullet points like "*   **DISTENDER: ...**"
+                pattern3 = re.findall(r'\*\s+\*\*([A-Z][A-Z0-9-]+):\s*([^*\n]+)\*\*', answer)
+                for i, (acronym, title) in enumerate(pattern3):
+                    if len(acronym) >= 3 and acronym not in ['HORIZON', 'EURATOM', 'RIA', 'CSA', 'FOCUS', 'DURATION', 'PROGRAMME', 'CONSORTIUM', 'CORDIS']:
+                        projects_extracted.append({
+                            'position': i,
+                            'title': title.strip(),
+                            'acronym': acronym.strip(),
+                            'id': acronym.strip()
+                        })
+            
+            # Pattern 4: **ACRONYM** standalone
+            if not projects_extracted:
+                pattern4 = re.findall(r'\*\*([A-Z][A-Z0-9-]+)\*\*', answer)
+                for i, acronym in enumerate(pattern4):
+                    if len(acronym) >= 3 and acronym not in ['HORIZON', 'EURATOM', 'RIA', 'CSA', 'FOCUS', 'DURATION', 'PROGRAMME', 'CONSORTIUM', 'CORDIS']:
                         projects_extracted.append({
                             'position': i,
                             'title': acronym,
@@ -319,10 +366,10 @@ class ConversationContextService:
                             'id': acronym
                         })
             
-            # Pattern 3: Look for numbered project sections
+            # Pattern 5: Look for numbered project sections
             if not projects_extracted:
-                pattern3 = re.findall(r'\*\*(\d+)\.\s*([^*\n]+)\*\*', answer)
-                for i, (num, title) in enumerate(pattern3):
+                pattern5 = re.findall(r'\*\*(\d+)\.\s*([^*\n]+)\*\*', answer)
+                for i, (num, title) in enumerate(pattern5):
                     # Try to extract acronym from title
                     acronym_match = re.search(r'\(([A-Z][A-Z0-9-]+)\)', title)
                     acronym = acronym_match.group(1) if acronym_match else f"PROJECT_{num}"

@@ -3153,17 +3153,79 @@ Instructions:
         max_cordis_results: int = 10
     ) -> Dict[str, Any]:
         """
-        Process question with conversation context.
-        This is the context-aware version of get_ai_response.
+        Process question with CONTEXT-FIRST analysis, then decide on approach.
+        This enables more intelligent, conversational responses.
         """
+        
+        print(f"🧠 Context-First Processing: '{question}'")
+        
+        # Step 1: Analyze conversation context FIRST
+        try:
+            from app.services.context_aware_planning_service import ContextFirstRAGService
+            context_first_rag = ContextFirstRAGService(ai_provider=self.ai_provider)
+            
+            # Get context-aware response
+            result = context_first_rag.get_context_aware_response(
+                question,
+                conversation_context,
+                max_projects_to_process
+            )
+            
+            if result['success']:
+                print(f"✅ Context-first approach: {result['approach']}")
+                
+                # Format response to match expected structure
+                response = {
+                    'answer': result['answer'],
+                    'routing_decision': f"CONTEXT_FIRST_{result['approach'].upper()}",
+                    'data_source': result.get('data_source', 'Context Analysis'),
+                    'context_used': True,
+                    'resolved_question': question,
+                    'approach': result['approach'],
+                    'success': True
+                }
+                
+                # Add clarification questions if available
+                if 'clarification_questions' in result:
+                    response['clarification_questions'] = result['clarification_questions']
+                
+                # Add context insight
+                if 'context_insight' in result:
+                    response['context_insight'] = {
+                        'analysis': result['context_insight'].analysis_result.value,
+                        'confidence': result['context_insight'].confidence,
+                        'reasoning': result['context_insight'].reasoning
+                    }
+                
+                # Generate follow-up suggestions
+                from app.services.conversation_context_service import ConversationContextService
+                context_service = ConversationContextService(os.getenv("DATABASE_URL"))
+                response['follow_up_suggestions'] = context_service.generate_follow_up_suggestions(
+                    conversation_context,
+                    response
+                )
+                
+                return response
+            else:
+                print("⚠️ Context-first processing failed, falling back")
+                
+        except Exception as e:
+            print(f"⚠️ Context-first RAG failed: {e}, falling back to regular processing")
+        
+        # Fallback to original method if context-first fails
+        print("🔄 Using fallback context-aware processing")
         
         # Resolve references in the question
         from app.services.conversation_context_service import ConversationContextService
         context_service = ConversationContextService(os.getenv("DATABASE_URL"))
-        resolved_question = context_service.resolve_references(question, conversation_context)
         
-        print(f"🧠 Original question: {question}")
-        print(f"🎯 Resolved question: {resolved_question}")
+        # Handle both old and new resolve_references return formats
+        resolution_result = context_service.resolve_references(question, conversation_context)
+        if isinstance(resolution_result, tuple):
+            resolved_question, needs_detailed_lookup = resolution_result
+        else:
+            resolved_question = resolution_result
+            needs_detailed_lookup = False
         
         # Build context-aware prompt
         context_prompt = self._build_context_prompt(conversation_context)
@@ -3279,7 +3341,14 @@ Enhanced answer:
             
             from app.services.conversation_context_service import ConversationContextService
             context_service = ConversationContextService(os.getenv("DATABASE_URL"))
-            resolved_question = context_service.resolve_references(question, conversation_context)
+            
+            # Handle tuple return from resolve_references
+            resolution_result = context_service.resolve_references(question, conversation_context)
+            if isinstance(resolution_result, tuple):
+                resolved_question, needs_detailed_lookup = resolution_result
+            else:
+                resolved_question = resolution_result
+                needs_detailed_lookup = False
             
             if resolved_question != question:
                 yield {'type': 'progress', 'phase': 'reference_resolved', 'message': f'Resolved: "{resolved_question}"'}
