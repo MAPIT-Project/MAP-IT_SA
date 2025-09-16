@@ -121,28 +121,55 @@ class CordisRAG:
         """
         print(f"🤖 AI-BASED: Analyzing user intent for: '{question}'")
         
-        # Use AI for better understanding of nuanced queries
-        prompt = f"""You are an expert intent classifier for a European research funding assistant.
+        # 1) Strong rule-based overrides for high-precision phrases
+        try:
+            q = question.lower().strip()
+            # Indicators
+            procedural_indicators = [
+                'how to', 'how do i', 'how can i', 'where can i find', 'where i can find', 'where to find',
+                'where should i look', 'where do i look', 'how do i search', 'how to search', 'eligibility',
+                'application process', 'documents required', 'supporting documents', 'ethics', 'guidelines',
+                'register on the portal', 'how to apply', 'steps to apply'
+            ]
+            call_indicators = [
+                'open calls', 'open call', 'calls for proposals', 'funding opportunities', 'funding opportunity',
+                'grant opportunities', 'grant call', 'topic', 'topics', 'deadline', 'tender', 'tenders', 'work programme',
+                'topic id', 'call identifier', 'call id', 'horizon-cl', 'horizon-miss', 'horizon-wp', 'lump sum',
+                'funding & tenders', 'funding and tenders'
+            ]
+            project_indicators = [
+                'project', 'projects', 'cordis project', 'acronym', 'rcn', 'previously funded', 'case study'
+            ]
+            
+            # Heuristics with precedence: procedural -> calls -> projects
+            if any(phrase in q for phrase in procedural_indicators):
+                return ("FAQ", 0.92)
+            # Calls: explicit phrases or pattern "open ... call(s)" or "calls for <domain>"
+            if any(phrase in q for phrase in call_indicators) or (
+                ('open' in q and 'call' in q) or ('calls for' in q)
+            ):
+                return ("SEARCH_CALLS", 0.93)
+            if any(word in q for word in project_indicators):
+                return ("SEARCH_PROJECTS", 0.9)
+        except Exception:
+            # Non-fatal: fall through to AI and existing fallback
+            pass
+        
+        # Deterministic, concise prompt for intent classification (strict 2-line output)
+        prompt = f"""You classify a single user question into exactly one label:
 
-Your task is to classify the user's question into exactly ONE of these three categories:
+Labels:
+- FAQ: procedural/how-to/eligibility/where-to-find
+- SEARCH_PROJECTS: existing/past projects, examples, case studies
+- SEARCH_CALLS: open calls/funding opportunities/topics/deadlines
 
-**FAQ**: Questions about procedures, policies, how-to guides, eligibility criteria, application processes, evaluation procedures, document requirements, consortium rules, deadlines, registration, ethics, supporting documents, or any "how to" questions. This INCLUDES questions asking WHERE to find calls, HOW to search for calls, WHERE to look for opportunities - these are procedural questions about the search process itself.
+Rules:
+- Output EXACTLY 2 lines, no extra text.
+- Line 1: CLASSIFICATION: <FAQ|SEARCH_PROJECTS|SEARCH_CALLS>
+- Line 2: CONFIDENCE: <0.0-1.0>
+- Prefer FAQ for procedural wording; prefer SEARCH_CALLS when asking for open calls/opportunities.
 
-**SEARCH_PROJECTS**: Questions asking for existing/completed research projects, past initiatives, examples of funded work, who worked on something, previous solutions, case studies, research that has been done.
-
-**SEARCH_CALLS**: Questions asking for SPECIFIC funding opportunities, open calls, available grants - when the user wants the actual list of calls/grants, not information about where to find them.
-
-IMPORTANT CONSTRAINTS:
-- You MUST choose exactly one of: FAQ, SEARCH_PROJECTS, or SEARCH_CALLS
-- Do NOT create new categories or combine them
-- When in doubt between categories, prefer FAQ for procedural questions, SEARCH_CALLS for funding opportunity questions
-
-User Question: "{question}"
-
-Respond in this exact format:
-CLASSIFICATION: [FAQ/SEARCH_PROJECTS/SEARCH_CALLS]
-CONFIDENCE: [0.0-1.0]
-REASONING: [Brief explanation]"""
+Question: "{question}"""
 
         try:
             if self.ai_provider == "openai":
@@ -178,7 +205,9 @@ REASONING: [Brief explanation]"""
             reasoning = "Fallback classification"
             
             if response_text:
-                lines = response_text.split('\n')
+                lines = [l.strip() for l in response_text.strip().split('\n') if l.strip()]
+                # Accept only the first two non-empty lines to avoid drift
+                lines = lines[:2]
                 for line in lines:
                     if line.startswith('CLASSIFICATION:'):
                         classification = line.replace('CLASSIFICATION:', '').strip()
@@ -187,11 +216,9 @@ REASONING: [Brief explanation]"""
                     elif line.startswith('CONFIDENCE:'):
                         try:
                             confidence = float(line.replace('CONFIDENCE:', '').strip())
-                            confidence = max(0.0, min(1.0, confidence))  # Clamp to [0,1]
+                            confidence = max(0.0, min(1.0, confidence))
                         except ValueError:
                             confidence = 0.5
-                    elif line.startswith('REASONING:'):
-                        reasoning = line.replace('REASONING:', '').strip()
 
             print(f"🤖 AI Classification: {intent} (confidence: {confidence:.2f})")
             print(f"🧠 Reasoning: {reasoning}")
@@ -1446,6 +1473,46 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
                 'success': False,
                 'error': error_message
             }
+
+    def _is_capability_question(self, question: str) -> bool:
+        """Detect if the user is asking about system capabilities."""
+        q = (question or "").strip().lower()
+        if not q:
+            return False
+        triggers = [
+            "what can you help me with",
+            "what can you do",
+            "what do you do",
+            "how can you help",
+            "your capabilities",
+            "what are you capable",
+            "capabilities",
+            "help me with?",
+        ]
+        return any(t in q for t in triggers)
+
+    def _generate_capabilities_answer(self) -> str:
+        """Return a concise description of assistant capabilities."""
+        parts = [
+            "Here’s what I can help you with:",
+            "",
+            "1) Find open funding opportunities (EU Funding & Tenders Portal)",
+            "   - Search and summarize open or forthcoming calls relevant to your topic",
+            "   - Provide identifiers, deadlines, eligibility hints, and portal links",
+            "",
+            "2) Explore existing EU research projects (CORDIS)",
+            "   - Search CORDIS projects, enrich results, and provide summaries",
+            "   - Include direct CORDIS links and key details (programme, dates, partners)",
+            "",
+            "3) Answer Horizon Europe FAQs from documentation",
+            "   - Procedures, eligibility, submission, evaluation, and guidance",
+            "",
+            "4) Conversational context & streaming",
+            "   - Remember context in a conversation and stream answers progressively",
+            "",
+            "If you tell me your topic and goal, I can: (a) list open calls, (b) surface relevant projects, or (c) explain how to apply." 
+        ]
+        return "\n".join(parts)
 
     # Keep all existing V8 methods for backward compatibility
     def get_ai_response(self, question: str, max_projects_to_process: int = 5, max_cordis_results: int = 10) -> Dict[str, Any]:

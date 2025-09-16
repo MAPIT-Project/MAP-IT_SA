@@ -17,7 +17,6 @@ from ..models.schemas import (
     BenchmarkResponse, ProviderConfig
 )
 from ..core.config import settings
-from ..services.rag_service import CordisRAG
 from ..services.enhanced_rag_service import HorizonEuropeRAG
 
 # Setup logging
@@ -470,14 +469,8 @@ async def _process_query_direct_with_context(request: QuestionRequest) -> Search
         elif provider == "gemini" and not settings.gemini_api_key:
             provider = "openai"
         
-        # Create RAG instance
-        rag_instance = CordisRAG(
-            ai_provider=provider,
-            openai_model_name=settings.openai_model,
-            gemini_model_name=settings.gemini_model,
-            use_local_db=request.use_local_db or settings.use_local_db,
-            database_url=settings.database_url
-        )
+        # Create Enhanced RAG instance (vector docs + calls + projects)
+        rag_instance = HorizonEuropeRAG()
         
         # Check if this is a conversation context request
         if request.conversation_id:
@@ -487,11 +480,8 @@ async def _process_query_direct_with_context(request: QuestionRequest) -> Search
                 context = context_service.load_context(request.conversation_id)
                 
                 # Use context-aware processing
-                result = rag_instance.get_ai_response_with_context(
-                    question=request.question,
-                    conversation_context=context,
-                    max_projects_to_process=request.max_results or 5
-                )
+                # Use enhanced RAG entry; it internally routes and can be extended to accept context
+                result = rag_instance.answer_question(request.question)
                 
                 # Update context with new information
                 context_service.update_context(
@@ -503,16 +493,10 @@ async def _process_query_direct_with_context(request: QuestionRequest) -> Search
             except Exception as context_error:
                 logger.warning(f"Context processing failed, falling back to regular processing: {context_error}")
                 # Fallback to regular processing
-                result = rag_instance.get_ai_response(
-                    request.question,
-                    max_projects_to_process=request.max_results or 5
-                )
+                result = rag_instance.answer_question(request.question)
         else:
             # Regular processing without context
-            result = rag_instance.get_ai_response(
-                request.question,
-                max_projects_to_process=request.max_results or 5
-            )
+            result = rag_instance.answer_question(request.question)
         
         processing_time = time.time() - start_time
         
@@ -523,7 +507,7 @@ async def _process_query_direct_with_context(request: QuestionRequest) -> Search
                 ai_provider=provider,
                 ai_version=request.ai_version or "V9",
                 model_used=result.get('model_used', settings.openai_model if provider == "openai" else settings.gemini_model),
-                data_source=result.get('data_source', 'CORDIS API'),
+                data_source=result.get('data_source', 'Horizon Europe RAG'),
                 processing_time=round(processing_time, 2),
                 projects_found=result.get('projects_found', 0),
                 success=result.get('success', True)
@@ -534,7 +518,7 @@ async def _process_query_direct_with_context(request: QuestionRequest) -> Search
                 ai_provider=provider,
                 ai_version=request.ai_version or "V9",
                 model_used=settings.openai_model if provider == "openai" else settings.gemini_model,
-                data_source="CORDIS API",
+                data_source="Horizon Europe RAG",
                 processing_time=round(processing_time, 2),
                 projects_found=0,
                 success=True
@@ -562,14 +546,8 @@ async def _process_query_direct(request: QuestionRequest) -> SearchResponse:
         elif provider == "gemini" and not settings.gemini_api_key:
             provider = "openai"
         
-        # Create RAG instance
-        rag_instance = CordisRAG(
-            ai_provider=provider,
-            openai_model_name=settings.openai_model,
-            gemini_model_name=settings.gemini_model,
-            use_local_db=request.use_local_db or settings.use_local_db,
-            database_url=settings.database_url
-        )
+        # Create Enhanced RAG instance (vector docs + calls + projects)
+        rag_instance = HorizonEuropeRAG()
         
         # Process query
         result = rag_instance.get_ai_response(

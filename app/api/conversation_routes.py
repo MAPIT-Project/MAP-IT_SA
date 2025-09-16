@@ -28,6 +28,9 @@ class MessageResponse(BaseModel):
     follow_up_suggestions: List[str]
     projects_discussed: List[dict]
     processing_time: float
+    routing_decision: Optional[str] = None
+    data_source: Optional[str] = None
+    intent_confidence: Optional[float] = None
 
 @router.post("/{conversation_id}/message", response_model=MessageResponse)
 async def send_contextual_message(
@@ -75,11 +78,24 @@ async def send_contextual_message(
         else:
             print("🔍 AI determined external search needed, using RAG")
             # Use RAG for external search when AI determines it's needed
+            # IMPORTANT: Pass the user's original message to preserve intent (e.g., "open calls")
             response = rag_service.get_ai_response_with_routing(
-                question=ai_response.get('suggested_search', request.message),
+                question=request.message,
                 max_projects_to_process=5,
                 max_cordis_results=10
             )
+            # Telemetry: log routing and intent for regression monitoring
+            try:
+                print(json.dumps({
+                    'telemetry': 'conversation_routing',
+                    'conversation_id': conversation_id,
+                    'question': request.message,
+                    'routing_decision': response.get('routing_decision'),
+                    'intent_confidence': response.get('intent_confidence'),
+                    'data_source': response.get('data_source')
+                }))
+            except Exception:
+                pass
         
         # Save message to database (implement this based on your schema)
         # save_message(conversation_id, request.message, response['answer'])
@@ -94,12 +110,15 @@ async def send_contextual_message(
         processing_time = time.time() - start_time
         
         return MessageResponse(
-            response=response['answer'],
+            response=response.get('answer') or response.get('response') or '',
             context_used=response.get('context_used', False),
             resolved_question=response.get('resolved_question'),
             follow_up_suggestions=response.get('follow_up_suggestions', []),
             projects_discussed=response.get('discussed_projects', []),
-            processing_time=processing_time
+            processing_time=processing_time,
+            routing_decision=response.get('routing_decision'),
+            data_source=response.get('data_source'),
+            intent_confidence=response.get('intent_confidence')
         )
         
     except Exception as e:
@@ -266,33 +285,82 @@ async def send_contextual_message_stream(
                 
             else:
                 print("🔍 Streaming: Professional AI determined external search needed")
-                
-                # Use RAG streaming for external search
-                search_query = ai_response.get('suggested_search', resolved_question)
-                
-                async for chunk in rag_service.get_ai_response_stream(
-                    question=search_query,
-                    max_projects_to_process=5,
-                    max_cordis_results=10
-                ):
-                    if chunk['type'] == 'progress':
-                        yield f"data: {json.dumps({'type': 'progress', 'stage': chunk['phase'], 'message': chunk['message']})}\n\n"
-                    elif chunk['type'] == 'token':
-                        yield f"data: {json.dumps({'type': 'token', 'content': chunk['content']})}\n\n"
-                    elif chunk['type'] == 'complete':
-                        completion_data = {
-                            'type': 'complete',
-                            'follow_up_suggestions': [],
-                            'context_used': False,
-                            'resolved_question': resolved_question,
-                            'processing_time': chunk.get('processing_time', 0),
-                            'success': True
-                        }
-                        yield f"data: {json.dumps(completion_data)}\n\n"
-                        break
-                    elif chunk['type'] == 'error':
-                        yield f"data: {json.dumps({'type': 'error', 'error': chunk['error'], 'details': chunk.get('details', '')})}\n\n"
-                        break
+                # Determine intent to select appropriate streaming path
+                intent, intent_conf = rag_service.determine_user_intent(resolved_question)
+                search_query = resolved_question
+
+                if intent == "SEARCH_CALLS" or intent == "FAQ":
+                    # For calls and FAQ, use synchronous routing then stream the final answer
+                    routed = rag_service.get_ai_response_with_routing(
+                        question=search_query,
+                        max_projects_to_process=5,
+                        max_cordis_results=10
+                    )
+                    answer_text = routed.get('answer') or ''
+                    chunk_size = 50
+                    for i in range(0, len(answer_text), chunk_size):
+                        chunk = answer_text[i:i+chunk_size]
+                        yield f"data: {json.dumps({'type': 'token', 'content': chunk})}\n\n"
+                    completion_data = {
+                        'type': 'complete',
+                        'follow_up_suggestions': [],
+                        'context_used': False,
+                        'resolved_question': resolved_question,
+                        'processing_time': routed.get('processing_time', 0),
+                        'success': routed.get('success', True),
+                        'routing_decision': routed.get('routing_decision', intent),
+                        'data_source': routed.get('data_source'),
+                        'intent_confidence': routed.get('intent_confidence', intent_conf)
+                    }
+                    try:
+                        print(json.dumps({
+                            'telemetry': 'conversation_routing_stream',
+                            'conversation_id': conversation_id,
+                            'question': resolved_question,
+                            'routing_decision': completion_data['routing_decision'],
+                            'data_source': completion_data.get('data_source')
+                        }))
+                    except Exception:
+                        pass
+                    yield f"data: {json.dumps(completion_data)}\n\n"
+                else:
+                    # Default: project streaming path with added routing metadata
+                    async for chunk in rag_service.get_ai_response_stream(
+                        question=search_query,
+                        max_projects_to_process=5,
+                        max_cordis_results=10
+                    ):
+                        if chunk['type'] == 'progress':
+                            yield f"data: {json.dumps({'type': 'progress', 'stage': chunk['phase'], 'message': chunk['message']})}\n\n"
+                        elif chunk['type'] == 'token':
+                            yield f"data: {json.dumps({'type': 'token', 'content': chunk['content']})}\n\n"
+                        elif chunk['type'] == 'complete':
+                            completion_data = {
+                                'type': 'complete',
+                                'follow_up_suggestions': [],
+                                'context_used': False,
+                                'resolved_question': resolved_question,
+                                'processing_time': chunk.get('processing_time', 0),
+                                'success': True,
+                                'routing_decision': 'SEARCH_PROJECTS',
+                                'data_source': chunk.get('data_source'),
+                                'intent_confidence': intent_conf
+                            }
+                            try:
+                                print(json.dumps({
+                                    'telemetry': 'conversation_routing_stream',
+                                    'conversation_id': conversation_id,
+                                    'question': resolved_question,
+                                    'routing_decision': 'SEARCH_PROJECTS',
+                                    'data_source': chunk.get('data_source')
+                                }))
+                            except Exception:
+                                pass
+                            yield f"data: {json.dumps(completion_data)}\n\n"
+                            break
+                        elif chunk['type'] == 'error':
+                            yield f"data: {json.dumps({'type': 'error', 'error': chunk['error'], 'details': chunk.get('details', '')})}\n\n"
+                            break
             
         except Exception as e:
             yield f"data: {json.dumps({'type': 'error', 'error': 'Processing failed', 'details': str(e)})}\n\n"

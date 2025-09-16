@@ -207,12 +207,16 @@ The API documentation is available at `http://localhost:8000/docs` when the serv
 
 - `GET /` - Health check
 - `GET /api/health` - Comprehensive health status
-- `POST /api/query` - Main query endpoint
+- `POST /api/query` - Main question answering endpoint (uses Enhanced RAG)
+- `POST /api/query/stream` - Streaming SSE endpoint for questions (uses Enhanced RAG)
+- `GET /api/query/stream` - Streaming SSE via GET (frontend convenience)
 - `POST /api/query/async` - Start async query
 - `GET /api/query/status/{task_id}` - Check async query status
 - `POST /api/demo` - Demo endpoint for testing
 - `GET /api/providers` - List available AI providers
 - `GET /api/database/status` - Database connection status
+
+Note: The separate enhanced router has been removed; its capabilities are integrated into the `/api/query` endpoints.
 
 ### Example Usage
 

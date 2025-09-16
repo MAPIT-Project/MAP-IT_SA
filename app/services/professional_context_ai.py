@@ -177,14 +177,14 @@ Analyze and respond:"""
                 response = self.gemini_client.models.generate_content(
                     model="gemini-2.5-flash-lite",
                     contents=[self.types.Content(role="user", parts=[self.types.Part.from_text(text=ai_prompt)])],
-                    config=self.types.GenerateContentConfig(temperature=0.1)
+                    config=self.types.GenerateContentConfig(temperature=0.0)
                 )
                 ai_response_text = response.text
             elif self.ai_provider == "openai":
                 response = self.openai_client.chat.completions.create(
                     model="gpt-4-turbo",
                     messages=[{"role": "user", "content": ai_prompt}],
-                    temperature=0.1
+                    temperature=0.0
                 )
                 ai_response_text = response.choices[0].message.content
             else:
@@ -205,6 +205,10 @@ Analyze and respond:"""
             json_match = re.search(r'```json\s*(\{.*?\})\s*```', ai_response, re.DOTALL)
             if not json_match:
                 json_match = re.search(r'\{.*\}', ai_response, re.DOTALL)
+            
+            # Capability override: if the user asks about capabilities, respond deterministically
+            if self._is_capability_question(question):
+                return self._capabilities_response()
             
             if json_match:
                 ai_data = json.loads(json_match.group(1) if json_match.groups() else json_match.group())
@@ -230,14 +234,14 @@ Analyze and respond:"""
                         'confidence': ai_data.get('confidence', 0.9)
                     }
             else:
-                # If no JSON found, treat the entire response as the answer
+                # If no structured JSON found, require external search
                 return {
-                    'answer': ai_response,
-                    'approach': 'professional_ai_direct',
-                    'success': True,
-                    'context_used': True,
-                    'confidence': 0.8,
-                    'data_source': 'AI Direct Response'
+                    'answer': None,
+                    'approach': 'ai_unstructured_response',
+                    'success': False,
+                    'requires_external_search': True,
+                    'suggested_search': question,
+                    'confidence': 0.0
                 }
                 
         except Exception as e:
@@ -247,12 +251,54 @@ Analyze and respond:"""
     def _fallback_response(self, question: str) -> Dict[str, Any]:
         """Fallback when AI analysis fails"""
         
+        # Capabilities: return deterministic, system-specific answer
+        if self._is_capability_question(question):
+            return self._capabilities_response()
         return {
             'answer': None,
             'approach': 'ai_analysis_failed',
             'success': False,
             'requires_external_search': True,
             'error': 'AI context analysis unavailable'
+        }
+    
+    def _is_capability_question(self, question: str) -> bool:
+        q = (question or '').lower().strip()
+        if not q:
+            return False
+        triggers = [
+            'what can you help me with',
+            'what can you do',
+            'how can you help',
+            'your capabilities',
+            'what are your capabilities',
+            'what do you do',
+            'help me with?'
+        ]
+        return any(t in q for t in triggers)
+    
+    def _capabilities_response(self) -> Dict[str, Any]:
+        answer = (
+            "Here’s what I can help you with:\n\n"
+            "1) Find open funding opportunities (EU Funding & Tenders Portal)\n"
+            "   - Search and summarize open/forthcoming calls relevant to your topic\n"
+            "   - Provide identifiers, deadlines, eligibility hints, and portal links\n\n"
+            "2) Explore existing EU research projects (CORDIS)\n"
+            "   - Search CORDIS projects, enrich results, and provide summaries\n"
+            "   - Include direct CORDIS links and key details (programme, dates, partners)\n\n"
+            "3) Answer Horizon Europe FAQs from documentation\n"
+            "   - Procedures, eligibility, submission, evaluation, and guidance\n\n"
+            "4) Conversational context & streaming\n"
+            "   - Remember context and stream answers progressively\n\n"
+            "If you tell me your topic and goal, I can: (a) list open calls, (b) surface relevant projects, or (c) explain how to apply."
+        )
+        return {
+            'answer': answer,
+            'approach': 'capabilities',
+            'success': True,
+            'context_used': False,
+            'confidence': 1.0,
+            'data_source': 'System Capabilities'
         }
 
 def get_professional_ai_response(question: str, conversation_id: int) -> Dict[str, Any]:

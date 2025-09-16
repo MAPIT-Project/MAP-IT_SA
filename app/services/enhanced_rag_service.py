@@ -78,11 +78,12 @@ class HorizonEuropeRAG:
         logger.info(f"🧠 Intent determined: {intent} (confidence: {confidence:.2f})")
         
         # Route to appropriate handler based on intent and user preferences
-        if intent == "PROJECT_SEARCH" and include_projects:
+        # NOTE: Intent labels must match those returned by CordisRAG.determine_user_intent
+        if intent == "SEARCH_PROJECTS" and include_projects:
             return self.handle_project_query(question)
-        elif intent == "SEARCH_CALLS" and include_projects:
+        elif intent == "SEARCH_CALLS":
             return self.handle_call_query(question)
-        elif intent in ["GENERAL_INFO", "GENERAL_QUERY"]:
+        elif intent in ["GENERAL_INFO", "GENERAL_QUERY", "FAQ"]:
             if include_documents:
                 logger.info(f"📚 Routing GENERAL_QUERY to vector search pipeline")
                 return self.handle_general_query(question, max_context_chunks, search_type, similarity_threshold)
@@ -115,6 +116,24 @@ class HorizonEuropeRAG:
         
         logger.info(f"📚 Handling general query with vector search")
         
+        # Capability questions should be answered directly
+        try:
+            if hasattr(self.cordis_rag, "_is_capability_question") and self.cordis_rag._is_capability_question(question):
+                answer = self.cordis_rag._generate_capabilities_answer()
+                return {
+                    'answer': answer,
+                    'intent': 'FAQ',
+                    'sources': [],
+                    'search_type': search_type,
+                    'chunks_used': 0,
+                    'confidence': 1.0,
+                    'data_source': 'System Capabilities',
+                    'processing_time': 0,
+                    'success': True
+                }
+        except Exception:
+            pass
+
         try:
             # Search for relevant document chunks
             search_results = self.vector_search.search(
