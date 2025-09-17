@@ -71,8 +71,15 @@ async def send_contextual_message(
             conversation_id=conversation_id
         )
         
-        # If AI can answer from context, use that response
-        if ai_response.get('success'):
+        # Guardrail: If intent is SEARCH_CALLS, force external search (do not let doc-only AI short-circuit)
+        try:
+            from app.services.intent_service import IntentService
+            _intent, _ = IntentService.determine_intent(request.message)
+        except Exception:
+            _intent = None
+
+        # If AI can answer from context AND it's not a calls query, use that response
+        if ai_response.get('success') and _intent != 'SEARCH_CALLS':
             print("✅ Professional AI provided contextual answer")
             response = ai_response
         else:

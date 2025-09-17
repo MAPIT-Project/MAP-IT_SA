@@ -223,7 +223,8 @@ class HorizonEuropeRAG:
             # First, detect if this is a call-specific query that should use comprehensive docs
             intent_type, call_identifier, confidence = self.detect_call_specific_intent(question)
             
-            if intent_type in ["SPECIFIC_CALL", "SPECIFIC_TOPIC", "CLUSTER_SPECIFIC"]:
+            # Use call documentation ONLY for specific call/topic IDs; cluster-specific queries go to enhanced search
+            if intent_type in ["SPECIFIC_CALL", "SPECIFIC_TOPIC"]:
                 logger.info(f"🎯 Using comprehensive call documentation for: {intent_type}")
                 
                 # Use integrated call-specific handling
@@ -255,6 +256,194 @@ class HorizonEuropeRAG:
                     
                     if enhanced_result['status'] == 'success':
                         result = self._process_enhanced_search_results(question, enhanced_result)
+                        # Enforce open-only if user asked for open calls
+                        if 'open' in question.lower() and result.get('intent') in ('ENHANCED_CALL_SEARCH', 'SEARCH_CALLS'):
+                            sources = enhanced_result.get('results', [])
+                            def _deadline_in_future_result(r) -> bool:
+                                # Prefer raw ISO from metadata if available
+                                meta = getattr(r, 'metadata', {}) or {}
+                                raw = None
+                                try:
+                                    raw = meta.get('deadlineDate')
+                                    if isinstance(raw, list) and raw:
+                                        raw = raw[0]
+                                except Exception:
+                                    raw = None
+                                # Fallback to r.deadline if no raw
+                                if not raw:
+                                    deadline_str = getattr(r, 'deadline', '') or ''
+                                    # Strip any annotations like emojis or parentheses
+                                    for marker in [' ❌', ' ⚠️', ' ⏰']:
+                                        if marker in deadline_str:
+                                            deadline_str = deadline_str.split(marker)[0].strip()
+                                    # Try parse long month format
+                                    try:
+                                        dt = datetime.strptime(deadline_str, '%B %d, %Y')
+                                        return dt >= datetime.now()
+                                    except Exception:
+                                        return True
+                                # Parse ISO-like
+                                try:
+                                    ds = str(raw).split('T')[0]
+                                    dt = datetime.strptime(ds, '%Y-%m-%d')
+                                    return dt >= datetime.now()
+                                except Exception:
+                                    return True
+                            open_only = [
+                                r for r in sources
+                                if getattr(r, 'status', '').lower() == 'open' and _deadline_in_future_result(r)
+                            ]
+                            if open_only:
+                                filtered = {
+                                    'results': open_only,
+                                    'facets': enhanced_result.get('facets', {}),
+                                    'search_metadata': enhanced_result.get('search_metadata', {}) | {'filters_applied': ['open_only_enforced']},
+                                    'status': 'success'
+                                }
+                                result = self._process_enhanced_search_results(question, filtered)
+                            else:
+                                # Return a clear open-only no-results response with verification URL
+                                result = self._create_filtered_no_results_response(question, enhanced_result.get('search_metadata', {}) | {
+                                    'filter_explanation': 'No currently open calls found for your query after enforcing open-only filter',
+                                    'filter_intention': 'open_only',
+                                    'clean_query': enhanced_result.get('search_metadata', {}).get('clean_query', question)
+                                })
+                        # Fallback: if enhanced returned zero results, try advanced portal JSON query with cluster token injection
+                        if not enhanced_result.get('results'):
+                            logger.info("⚠️ Enhanced search returned 0 results, trying advanced portal JSON query fallback")
+                            try:
+                                from .rag_service import CordisRAG
+                                portal = CordisRAG()
+                                # Inject identifier token if cluster is mentioned
+                                import re
+                                m = re.search(r"cluster\s*(\d)", question, re.IGNORECASE)
+                                # Build a clean, tokenized query for the portal text field
+                                q2 = question
+                                cluster_map = {
+                                    '1': 'Health',
+                                    '2': 'Culture, Creativity and Inclusive Society',
+                                    '3': 'Civil Security for Society',
+                                    '4': 'Digital, Industry and Space',
+                                    '5': 'Climate, Energy and Mobility',
+                                    '6': 'Food, Bioeconomy, Natural Resources, Agriculture and Environment',
+                                }
+                                if m:
+                                    cnum = m.group(1)
+                                    clabel = cluster_map.get(cnum, '')
+                                    # Use cluster token with wildcard for recall; drop label to avoid over-filtering
+                                    q2 = f"HORIZON-CL{cnum}*"
+                                # First attempt: advanced query (open only)
+                                calls_found = portal._search_with_advanced_json_query(
+                                    api_url="https://api.tech.ec.europa.eu/search-api/prod/rest/search",
+                                    search_text=q2,
+                                    max_results=10
+                                )
+                                # Second attempt: basic params (keep OPEN ONLY for 'open' queries)
+                                if not calls_found:
+                                    calls_found = portal._search_with_basic_params(
+                                        api_url="https://api.tech.ec.europa.eu/search-api/prod/rest/search",
+                                        search_text=q2 + " status:31094502",
+                                        max_results=10
+                                    )
+                                # If we found calls, convert to enhanced-style results for consistent formatting
+                                if calls_found:
+                                    # Import URL builder and result container
+                                    from .enhanced_call_search import EnhancedSearchResult, EnhancedCallSearchService
+                                    url_builder = EnhancedCallSearchService()
+
+                                    def _normalize_status(raw_status: str) -> str:
+                                        mapping = {
+                                            '31094502': 'Open',
+                                            '31094503': 'Closed',
+                                            '31094501': 'Forthcoming',
+                                            'open': 'Open',
+                                            'closed': 'Closed',
+                                            'forthcoming': 'Forthcoming'
+                                        }
+                                        if raw_status is None:
+                                            return 'Unknown'
+                                        s = str(raw_status).strip()
+                                        return mapping.get(s, mapping.get(s.lower(), 'Unknown'))
+
+                                    def _parse_deadline(deadline_str: str):
+                                        if not deadline_str or deadline_str == 'Not specified':
+                                            return None
+                                        try:
+                                            # Handle ISO-like formats first
+                                            ds = deadline_str.split('T')[0]
+                                            return datetime.strptime(ds, '%Y-%m-%d')
+                                        except Exception:
+                                            try:
+                                                # Try long month format (e.g., March 15, 2026)
+                                                return datetime.strptime(deadline_str, '%B %d, %Y')
+                                            except Exception:
+                                                return None
+
+                                    is_open_query = 'open' in question.lower()
+                                    enhanced_results = []
+                                    for c in calls_found:
+                                        identifier = c.get('identifier', 'N/A')
+                                        raw_url = c.get('url')
+                                        built_url = url_builder._build_call_url(identifier=identifier, raw_url=raw_url)
+                                        raw_deadline = c.get('deadline', 'Not specified')
+                                        deadline_dt = _parse_deadline(raw_deadline)
+                                        status_norm = _normalize_status(c.get('status', 'Unknown'))
+
+                                        # Status correction by deadline: if deadline passed, mark Closed
+                                        try:
+                                            if deadline_dt and deadline_dt < datetime.now():
+                                                status_norm = 'Closed'
+                                        except Exception:
+                                            pass
+
+                                        # Enforce open-only for queries asking for open calls
+                                        if is_open_query and status_norm != 'Open':
+                                            continue
+
+                                        enhanced_results.append(EnhancedSearchResult(
+                                            identifier=identifier,
+                                            title=c.get('title', 'Unknown Call'),
+                                            description=c.get('description', 'No description available'),
+                                            status=status_norm,
+                                            status_code='unknown',
+                                            deadline=raw_deadline,
+                                            programme_period=c.get('programme_period', '2021 - 2027'),
+                                            framework_programme=c.get('frameworkProgramme', 'Horizon Europe'),
+                                            call_identifier=c.get('call_identifier', 'Not specified'),
+                                            url=built_url,
+                                            score=0.5,
+                                            metadata={}
+                                        ))
+
+                                    # If enforcing open-only left nothing, return explicit filtered message
+                                    if is_open_query and not enhanced_results:
+                                        result = self._create_filtered_no_results_response(question, {
+                                            'filter_explanation': 'No currently open calls found for your query after enforcing open-only filter',
+                                            'filter_intention': 'open_only',
+                                            'clean_query': q2
+                                        })
+                                    else:
+                                        processed = self._process_enhanced_search_results(question, {
+                                            'results': enhanced_results,
+                                            'facets': {},
+                                            'search_metadata': {
+                                                'query': question,
+                                                'clean_query': q2,
+                                                'total_found': len(calls_found),
+                                                'returned': len(enhanced_results),
+                                                'processing_time': 0,
+                                                'semantic_tags_used': 0,
+                                                'facet_categories': 0,
+                                                'search_enhanced': True,
+                                                'filters_applied': ['fallback_portal'] + (['open_only_enforced'] if is_open_query else []),
+                                                'filter_intention': 'open_only' if is_open_query else 'all'
+                                            },
+                                            'status': 'success'
+                                        })
+                                        processed['data_source'] = 'EU Funding & Tenders Portal (Enhanced Fallback)'
+                                        result = processed
+                            except Exception as fe:
+                                logger.warning(f"Fallback advanced portal query failed: {fe}")
                     else:
                         logger.warning("⚠️ Enhanced search failed, falling back to CORDIS")
                         result = self.cordis_rag.search_for_calls(question, max_results=10)

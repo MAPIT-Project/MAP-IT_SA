@@ -119,6 +119,32 @@ class EnhancedCallSearchService:
         if self.query_parser:
             parsed_filters = self.query_parser.parse_query(query)
             search_query_text = parsed_filters.clean_query
+            # Cluster normalization: map "cluster X" to programme + identifier hints
+            m = re.search(r"cluster\s*(\d)", search_query_text, re.IGNORECASE)
+            if m:
+                cluster_num = m.group(1)
+                cluster_map = {
+                    '1': 'Health',
+                    '2': 'Culture, Creativity and Inclusive Society',
+                    '3': 'Civil Security for Society',
+                    '4': 'Digital, Industry and Space',
+                    '5': 'Climate, Energy and Mobility',
+                    '6': 'Food, Bioeconomy, Natural Resources, Agriculture and Environment',
+                }
+                cluster_label = cluster_map.get(cluster_num)
+                if cluster_label:
+                    logger.info(f"🧭 Normalized cluster {cluster_num} to '{cluster_label}' and identifier hint")
+                    # Replace the raw question with strong tokens only for the portal text field
+                    search_query_text = f"HORIZON-CL{cluster_num} \"{cluster_label}\""
+                    # Attach a specific filter flag to help advanced query builder
+                    if not parsed_filters.specific_filters:
+                        parsed_filters.specific_filters = {}
+                    parsed_filters.specific_filters[f'cluster_{cluster_num}'] = True
+            # If the user explicitly asked for OPEN calls, force open-only status filter
+            if 'open' in query.lower():
+                if not getattr(parsed_filters, 'status_filter', None):
+                    parsed_filters.status_filter = ['31094502']  # Open only
+                logger.info("🎯 Detected 'open' in query -> forcing OPEN-only status filter")
             logger.info(f"🧠 Parsed query: '{search_query_text}' with intention: {parsed_filters.filter_intention}")
         
         try:
@@ -145,10 +171,34 @@ class EnhancedCallSearchService:
             
             # Step 5: Process and enrich results
             processed_results = self._process_enhanced_results(search_results, query)
+            # Normalize status using deadline: if deadline is past, mark as Closed
+            try:
+                now = datetime.utcnow()
+                for r in processed_results:
+                    if getattr(r, 'deadline', None) and isinstance(r.deadline, str) and r.deadline not in ('Not specified', ''):
+                        try:
+                            # Deadlines are typically Month DD, YYYY after formatting; support ISO as well
+                            if ' ' in r.deadline and ',' in r.deadline:
+                                from datetime import datetime as _dt
+                                d = _dt.strptime(r.deadline, '%B %d, %Y')
+                            else:
+                                from datetime import datetime as _dt
+                                d = _dt.fromisoformat(r.deadline.split('T')[0])
+                            if d < now:
+                                r.status = 'Closed'
+                        except Exception:
+                            pass
+            except Exception:
+                pass
             # Step 5.1: Filter by status filter to exclude unwanted statuses (e.g., closed for forthcoming_only)
             if parsed_filters and getattr(parsed_filters, 'status_filter', None):
                 processed_results = [res for res in processed_results if res.status_code in parsed_filters.status_filter]
             
+            # If user explicitly requested open-only, filter to Open after normalization
+            if parsed_filters and getattr(parsed_filters, 'status_filter', None):
+                if '31094502' in parsed_filters.status_filter:
+                    processed_results = [r for r in processed_results if getattr(r, 'status', '').lower() == 'open']
+
             # Step 6: Apply intelligent ranking
             ranked_results = self._apply_intelligent_ranking(processed_results, query, tag_boosts)
             
@@ -291,9 +341,11 @@ class EnhancedCallSearchService:
             specific_filters = filters_or_include_closed.specific_filters
             
             # Cluster 4 filter
-            if specific_filters.get('cluster_4'):
-                domain_filters.append({"term": {"programmeDivision": "Digital, Industry and Space"}})
-                logger.info("🎯 Applying Cluster 4 filter")
+            # Cluster filters: use programmeDivision where available; also bias text via identifier hint already injected
+            for cnum, clabel in [("1", "Health"), ("2", "Culture, Creativity and Inclusive Society"), ("3", "Civil Security for Society"), ("4", "Digital, Industry and Space"), ("5", "Climate, Energy and Mobility"), ("6", "Food, Bioeconomy, Natural Resources, Agriculture and Environment")]:
+                if specific_filters.get(f'cluster_{cnum}'):
+                    domain_filters.append({"term": {"programmeDivision": clabel}})
+                    logger.info(f"🎯 Applying Cluster {cnum} filter -> programmeDivision='{clabel}'")
             
             # TRL level filter (approximate based on call types)
             if specific_filters.get('trl'):
@@ -1020,13 +1072,23 @@ class EnhancedCallSearchService:
     def _build_call_url(self, identifier: str, raw_url: Optional[str] = None) -> str:
         """Build proper EU portal URL for the call."""
         
-        # Check for existing valid URL
-        if raw_url and not raw_url.endswith('.json'):
-            return raw_url
+        # Treat /data/topicDetails and JSON links as invalid for end users
+        if raw_url and (raw_url.endswith('.json') or '/data/topicDetails/' in raw_url):
+            raw_url = None
+        
+        # If a valid non-data URL exists already, keep it, except topic-search (prefer topic-details)
+        if raw_url:
+            if 'topic-search' in raw_url:
+                raw_url = None
+            else:
+                return raw_url
         
         # Build proper topic details URL with identifier
         if identifier and identifier != 'N/A':
-            return f"https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/{identifier}?keywords={identifier}"
+            return (
+                f"https://ec.europa.eu/info/funding-tenders/opportunities/portal/"
+                f"screen/opportunities/topic-details/{identifier}?keywords={identifier}"
+            )
         
         # Fallback to general portal
         return "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/opportunities-tenders"
