@@ -7,56 +7,10 @@ This test DOES NOT call external APIs; it verifies the intent classification and
 """
 
 import sys
+from app.services.intent_service import IntentService
 
 def determine_user_intent(question: str):
-    question_lower = question.lower()
-    
-    # 1. SEARCH_CALLS - Look for funding opportunities (HIGH PRIORITY)
-    call_keywords = [
-        'open call', 'available call', 'funding opportunity', 'opportunities',
-        'what calls', 'which calls', 'any calls', 'some calls', 'list calls',
-        'show me calls', 'find calls', 'search calls'
-    ]
-    if any(keyword in question_lower for keyword in call_keywords):
-        return ("SEARCH_CALLS", 0.95)
-    
-    # Generic call/funding words - but check for procedural context
-    generic_call_words = ['call', 'calls', 'funding', 'grant', 'grants', 'proposal', 'proposals']
-    if any(word in question_lower for word in generic_call_words):
-        procedural_context = [
-            'how to', 'how do i', 'how do', 'what is the process', 'what are the steps',
-            'eligibility criteria', 'application process', 'evaluation criteria',
-            'requirements for', 'how can i apply', 'evaluation process', 'process'
-        ]
-        if not any(proc in question_lower for proc in procedural_context):
-            return ("SEARCH_CALLS", 0.90)
-    
-    # 2. SEARCH_PROJECTS - Look for research projects (strong indicators)
-    project_keywords = [
-        'what projects', 'which projects', 'any projects', 'some projects',
-        'show me projects', 'find projects', 'list projects', 'examples of projects',
-        'funded projects', 'successful projects', 'research initiatives'
-    ]
-    if any(keyword in question_lower for keyword in project_keywords):
-        return ("SEARCH_PROJECTS", 0.95)
-    
-    # Generic project words - but check for procedural context
-    generic_project_words = [
-        'project', 'projects', 'research', 'initiative', 'initiatives',
-        'who worked on', 'what has been done', 'previous work', 'existing solutions',
-        'case studies', 'examples', 'implemented', 'developed'
-    ]
-    if any(word in question_lower for word in generic_project_words):
-        procedural_context = [
-            'how to', 'how do i', 'how do', 'what is the process', 'what are the steps',
-            'eligibility criteria', 'application process', 'evaluation criteria',
-            'requirements for', 'how can i apply'
-        ]
-        if not any(proc in question_lower for proc in procedural_context):
-            return ("SEARCH_PROJECTS", 0.90)
-    
-    # 3. FAQ (default) - All procedural/policy/how-to questions
-    return ("FAQ", 0.80)
+    return IntentService.determine_intent(question)
 
 
 def make_question_sets():

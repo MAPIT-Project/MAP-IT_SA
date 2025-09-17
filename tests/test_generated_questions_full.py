@@ -6,58 +6,10 @@ but runs locally so it doesn't import the whole application (avoids external dep
 """
 
 import sys
+from app.services.intent_service import IntentService
 
 def determine_user_intent(question: str):
-    q = question.lower()
-    # 0. Procedural/admin phrases -> FAQ (highest priority)
-    procedural_phrases = [
-        'how to', 'how do i', 'how do', 'how can i', 'how can i register', 'how can i apply',
-        'how to register', 'how to apply', 'register', 'registration',
-        'application deadline', 'application deadlines', 'deadline', 'deadlines',
-        'eligibility', 'eligibility criteria', 'eligibility requirements',
-        'application process', 'evaluation process', 'evaluation criteria',
-        'how is the grant evaluated', 'evaluated', 'scored', 'scoring',
-        'what documents', 'what supporting', 'supporting documents', 'supporting document',
-        'documents required', 'required documents', 'submit', 'submit a proposal',
-        'consortium requirements', 'consortium', 'budget', 'reporting', 'duration',
-        'how long', 'who can be', 'who can', 'coordinator', 'requirements for',
-        'ethic', 'ethics', 'ethics issues', 'ethics in', 'ethics issues in'
-    ]
-    if any(phrase in q for phrase in procedural_phrases):
-        return ("FAQ", 0.95)
-
-    # 1. SEARCH_CALLS - funding opportunities
-    call_keywords = [
-        'open call', 'available call', 'funding opportunity', 'opportunities',
-        'what calls', 'which calls', 'any calls', 'some calls', 'list calls',
-        'show me calls', 'find calls', 'search calls', 'open grants', 'funding opportunities'
-    ]
-    if any(keyword in q for keyword in call_keywords):
-        return ("SEARCH_CALLS", 0.95)
-
-    generic_call_words = ['call', 'calls', 'funding', 'grant', 'grants', 'proposal', 'proposals']
-    if any(word in q for word in generic_call_words):
-        return ("SEARCH_CALLS", 0.90)
-
-    # 2. SEARCH_PROJECTS - research/projects
-    project_keywords = [
-        'what projects', 'which projects', 'any projects', 'some projects',
-        'show me projects', 'find projects', 'list projects', 'examples of projects',
-        'funded projects', 'successful projects', 'research initiatives'
-    ]
-    if any(keyword in q for keyword in project_keywords):
-        return ("SEARCH_PROJECTS", 0.95)
-
-    generic_project_words = [
-        'project', 'projects', 'research', 'initiative', 'initiatives',
-        'who worked on', 'what has been done', 'previous work', 'existing solutions',
-        'case studies', 'examples', 'implemented', 'developed'
-    ]
-    if any(word in q for word in generic_project_words):
-        return ("SEARCH_PROJECTS", 0.90)
-
-    # Fallback safe -> FAQ
-    return ("FAQ", 0.80)
+    return IntentService.determine_intent(question)
 
 
 def make_question_sets():

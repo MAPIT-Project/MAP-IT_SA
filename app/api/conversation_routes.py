@@ -286,8 +286,14 @@ async def send_contextual_message_stream(
             else:
                 print("🔍 Streaming: Professional AI determined external search needed")
                 # Determine intent to select appropriate streaming path
-                intent, intent_conf = rag_service.determine_user_intent(resolved_question)
+                try:
+                    from app.services.intent_service import IntentService
+                    intent, intent_conf = IntentService.determine_intent(resolved_question)
+                except Exception:
+                    intent, intent_conf = rag_service.determine_user_intent(resolved_question)
                 search_query = resolved_question
+                # Emit early route selection event
+                yield f"data: {json.dumps({'type': 'progress', 'stage': 'route_selected', 'routing_decision': intent, 'intent_confidence': intent_conf})}\n\n"
 
                 if intent == "SEARCH_CALLS" or intent == "FAQ":
                     # For calls and FAQ, use synchronous routing then stream the final answer
@@ -297,6 +303,10 @@ async def send_contextual_message_stream(
                         max_cordis_results=10
                     )
                     answer_text = routed.get('answer') or ''
+                    # Ensure verification_url is present for calls
+                    if intent == "SEARCH_CALLS":
+                        verification_url = routed.get('verification_url') or f"https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search;freeTextSearchKeyword={search_query.replace(' ', '%20')};sortQuery=sortStatus;orderBy=asc"
+                        answer_text += f"\n\n🔗 Verify on Portal: {verification_url}"
                     chunk_size = 50
                     for i in range(0, len(answer_text), chunk_size):
                         chunk = answer_text[i:i+chunk_size]

@@ -72,8 +72,12 @@ class HorizonEuropeRAG:
         
         logger.info(f"🎯 Processing question: '{question}'")
         
-        # Determine intent using existing CORDIS RAG logic
-        intent, confidence = self.cordis_rag.determine_user_intent(question)
+        # Determine intent using centralized intent service
+        try:
+            from .intent_service import IntentService
+            intent, confidence = IntentService.determine_intent(question)
+        except Exception:
+            intent, confidence = self.cordis_rag.determine_user_intent(question)
         
         logger.info(f"🧠 Intent determined: {intent} (confidence: {confidence:.2f})")
         
@@ -325,7 +329,11 @@ class HorizonEuropeRAG:
             # Get project information
             if include_projects:
                 # Try to determine if it's a project or call query
-                intent, _ = self.cordis_rag.determine_user_intent(question)
+                try:
+                    from .intent_service import IntentService
+                    intent, _ = IntentService.determine_intent(question)
+                except Exception:
+                    intent, _ = self.cordis_rag.determine_user_intent(question)
                 
                 if intent == "SEARCH_CALLS":
                     project_results = self.cordis_rag.search_for_calls(

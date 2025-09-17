@@ -54,16 +54,17 @@ def test_intent_detection_only():
             "What research has been done on quantum computing?"
         ]
         
-        print("🔍 Testing Procedural Questions (should be GENERAL_QUERY):")
+        print("🔍 Testing Procedural Questions (should be FAQ):")
         print("-" * 60)
         
         correct_procedural = 0
         for question in procedural_questions:
             try:
-                intent, confidence = cordis_rag.determine_user_intent(question)
-                status = "✅" if intent == "GENERAL_QUERY" else "❌"
+                from app.services.intent_service import IntentService
+                intent, confidence = IntentService.determine_intent(question)
+                status = "✅" if intent == "FAQ" else "❌"
                 print(f"{status} '{question[:45]}...' -> {intent} ({confidence:.2f})")
-                if intent == "GENERAL_QUERY":
+                if intent == "FAQ":
                     correct_procedural += 1
             except Exception as e:
                 print(f"❌ Error testing '{question[:30]}...': {e}")
@@ -76,7 +77,8 @@ def test_intent_detection_only():
         correct_calls = 0
         for question in call_search_questions:
             try:
-                intent, confidence = cordis_rag.determine_user_intent(question)
+                from app.services.intent_service import IntentService
+                intent, confidence = IntentService.determine_intent(question)
                 status = "✅" if intent == "SEARCH_CALLS" else "❌"
                 print(f"{status} '{question[:45]}...' -> {intent} ({confidence:.2f})")
                 if intent == "SEARCH_CALLS":
@@ -92,7 +94,8 @@ def test_intent_detection_only():
         correct_projects = 0 
         for question in project_search_questions:
             try:
-                intent, confidence = cordis_rag.determine_user_intent(question)
+                from app.services.intent_service import IntentService
+                intent, confidence = IntentService.determine_intent(question)
                 status = "✅" if intent == "SEARCH_PROJECTS" else "❌"
                 print(f"{status} '{question[:45]}...' -> {intent} ({confidence:.2f})")
                 if intent == "SEARCH_PROJECTS":
@@ -121,19 +124,20 @@ def test_intent_detection_only():
         
         problem_question = "How to find and apply for relevant calls?"
         try:
-            intent, confidence = cordis_rag.determine_user_intent(problem_question)
+            from app.services.intent_service import IntentService
+            intent, confidence = IntentService.determine_intent(problem_question)
             print(f"Question: '{problem_question}'")
             print(f"Intent: {intent}")
             print(f"Confidence: {confidence:.2f}")
             
-            if intent == "GENERAL_QUERY":
+            if intent == "FAQ":
                 print("✅ SUCCESS: The original problem question is now correctly classified!")
             else:
                 print("❌ ISSUE: The original problem question is still misclassified")
         except Exception as e:
             print(f"❌ Error testing problem question: {e}")
             
-        return accuracy >= 80  # Consider success if 80% or better
+        assert accuracy >= 80  # Consider success if 80% or better
         
     except ImportError as e:
         print(f"❌ Import error: {e}")
@@ -147,12 +151,7 @@ def test_intent_detection_only():
 
 if __name__ == "__main__":
     print("🚀 Starting Simple Intent Detection Tests...")
-    success = test_intent_detection_only()
-    
-    if success:
-        print("\n🎉 Intent detection tests completed successfully!")
-        print("The system should now properly handle procedural 'how-to' questions.")
-    else:
-        print("\n❌ Tests revealed issues that need further fixing.")
-        
+    test_intent_detection_only()
+    print("\n🎉 Intent detection tests completed successfully!")
+    print("The system should now properly handle procedural 'how-to' questions.")
     print("=" * 60)

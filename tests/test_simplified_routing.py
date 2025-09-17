@@ -93,7 +93,8 @@ def test_simplified_routing():
         
         # Test intent detection
         try:
-            intent, confidence = rag.determine_user_intent(question)
+            from app.services.intent_service import IntentService
+            intent, confidence = IntentService.determine_intent(question)
             print(f"🎯 Intent: {intent} (confidence: {confidence:.2f})")
             
             intent_correct = (intent == expected_intent)
@@ -165,18 +166,7 @@ def test_simplified_routing():
             if not f['routing_correct']:
                 print(f"    Routing: expected {f['expected_routing']}, got {f['actual_routing']}")
     
-    success = (intent_correct_count == total_tests and routing_correct_count == total_tests)
-    
-    if success:
-        print("\n🎉 ALL TESTS PASSED! Simplified routing system working correctly.")
-        print("\n✅ The AI is now restricted to only these 3 functions:")
-        print("   1. FAQ: Answer questions about EU funding procedures/policies")
-        print("   2. SEARCH_PROJECTS: Find existing/past research projects") 
-        print("   3. SEARCH_CALLS: Find open funding calls/opportunities")
-    else:
-        print(f"\n❌ {len(failures)} tests failed. Routing system needs fixing.")
-    
-    return success
+    assert intent_correct_count == total_tests and routing_correct_count == total_tests
 
 if __name__ == "__main__":
     success = test_simplified_routing()

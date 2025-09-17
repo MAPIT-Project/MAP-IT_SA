@@ -214,18 +214,7 @@ def test_intent_detection():
             print(f"    Question: {f['question']}")
             print(f"    Expected: {f['expected_intent']}, Got: {f['actual_intent']}")
     
-    success = (intent_correct_count == total_tests)
-    
-    if success:
-        print("\n🎉 ALL INTENT DETECTION TESTS PASSED!")
-        print("\n✅ Intent detection correctly classifies queries into 3 categories:")
-        print("   1. FAQ: Questions about procedures, policies, eligibility, how-to")
-        print("   2. SEARCH_PROJECTS: Looking for existing/past research projects")
-        print("   3. SEARCH_CALLS: Looking for funding opportunities/open calls")
-    else:
-        print(f"\n❌ {len(failures)} tests failed. Intent detection needs adjustment.")
-    
-    return success
+    assert intent_correct_count == total_tests
 
 if __name__ == "__main__":
     success = test_intent_detection()

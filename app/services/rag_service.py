@@ -112,205 +112,12 @@ class CordisRAG:
             raise ValueError("Invalid AI provider specified. Choose 'openai' or 'gemini'.")
 
     def determine_user_intent(self, question: str) -> Tuple[str, float]:
-        """
-        AI-BASED intent detection for the restricted AI system.
-        Returns tuple of (intent, confidence) where intent is one of:
-        - 'FAQ': General questions about procedures, policies, eligibility (use Enhanced RAG)
-        - 'SEARCH_PROJECTS': User wants to find existing/past research projects (use CORDIS)
-        - 'SEARCH_CALLS': User wants to find open funding calls/proposals (use Call Search)
-        """
-        print(f"🤖 AI-BASED: Analyzing user intent for: '{question}'")
-        
-        # 1) Strong rule-based overrides for high-precision phrases
+        """Deprecated: Use IntentService.determine_intent instead."""
         try:
-            q = question.lower().strip()
-            # Indicators
-            procedural_indicators = [
-                'how to', 'how do i', 'how can i', 'where can i find', 'where i can find', 'where to find',
-                'where should i look', 'where do i look', 'how do i search', 'how to search', 'eligibility',
-                'application process', 'documents required', 'supporting documents', 'ethics', 'guidelines',
-                'register on the portal', 'how to apply', 'steps to apply'
-            ]
-            call_indicators = [
-                'open calls', 'open call', 'calls for proposals', 'funding opportunities', 'funding opportunity',
-                'grant opportunities', 'grant call', 'topic', 'topics', 'deadline', 'tender', 'tenders', 'work programme',
-                'topic id', 'call identifier', 'call id', 'horizon-cl', 'horizon-miss', 'horizon-wp', 'lump sum',
-                'funding & tenders', 'funding and tenders'
-            ]
-            project_indicators = [
-                'project', 'projects', 'cordis project', 'acronym', 'rcn', 'previously funded', 'case study'
-            ]
-            
-            # Heuristics with precedence: procedural -> calls -> projects
-            if any(phrase in q for phrase in procedural_indicators):
-                return ("FAQ", 0.92)
-            # Calls: explicit phrases or pattern "open ... call(s)" or "calls for <domain>"
-            if any(phrase in q for phrase in call_indicators) or (
-                ('open' in q and 'call' in q) or ('calls for' in q)
-            ):
-                return ("SEARCH_CALLS", 0.93)
-            if any(word in q for word in project_indicators):
-                return ("SEARCH_PROJECTS", 0.9)
+            from app.services.intent_service import IntentService
+            return IntentService.determine_intent(question)
         except Exception:
-            # Non-fatal: fall through to AI and existing fallback
-            pass
-        
-        # Deterministic, concise prompt for intent classification (strict 2-line output)
-        prompt = f"""You classify a single user question into exactly one label:
-
-Labels:
-- FAQ: procedural/how-to/eligibility/where-to-find
-- SEARCH_PROJECTS: existing/past projects, examples, case studies
-- SEARCH_CALLS: open calls/funding opportunities/topics/deadlines
-
-Rules:
-- Output EXACTLY 2 lines, no extra text.
-- Line 1: CLASSIFICATION: <FAQ|SEARCH_PROJECTS|SEARCH_CALLS>
-- Line 2: CONFIDENCE: <0.0-1.0>
-- Prefer FAQ for procedural wording; prefer SEARCH_CALLS when asking for open calls/opportunities.
-
-Question: "{question}"""
-
-        try:
-            if self.ai_provider == "openai":
-                response = self.openai_client.chat.completions.create(
-                    model=self.openai_model_name,
-                    messages=[
-                        {"role": "system", "content": "You are an expert intent classifier for research queries."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    temperature=0.0,  # Deterministic for consistency
-                )
-                response_text = response.choices[0].message.content.strip()
-            elif self.ai_provider == "gemini":
-                if self.gemini_client:
-                    gemini_contents = [
-                        types.Content(role="user", parts=[types.Part.from_text(text=prompt)])
-                    ]
-                    gen_config = types.GenerateContentConfig(temperature=0.0)
-                    response = self.gemini_client.models.generate_content(
-                        model=self.gemini_model_name,
-                        contents=gemini_contents,
-                        config=gen_config
-                    )
-                    response_text = response.text
-                else:
-                    response_text = None
-            else:
-                response_text = None
-
-            # Parse the AI response
-            intent = "FAQ"  # Safe default
-            confidence = 0.5  # Default confidence
-            reasoning = "Fallback classification"
-            
-            if response_text:
-                lines = [l.strip() for l in response_text.strip().split('\n') if l.strip()]
-                # Accept only the first two non-empty lines to avoid drift
-                lines = lines[:2]
-                for line in lines:
-                    if line.startswith('CLASSIFICATION:'):
-                        classification = line.replace('CLASSIFICATION:', '').strip()
-                        if classification in ['FAQ', 'SEARCH_PROJECTS', 'SEARCH_CALLS']:
-                            intent = classification
-                    elif line.startswith('CONFIDENCE:'):
-                        try:
-                            confidence = float(line.replace('CONFIDENCE:', '').strip())
-                            confidence = max(0.0, min(1.0, confidence))
-                        except ValueError:
-                            confidence = 0.5
-
-            print(f"🤖 AI Classification: {intent} (confidence: {confidence:.2f})")
-            print(f"🧠 Reasoning: {reasoning}")
-            return (intent, confidence)
-
-        except Exception as e:
-            print(f"❌ AI intent detection failed: {e}. Using pattern fallback.")
-            
-            # Fallback to basic pattern matching if AI fails
-            q = question.lower()
-            
-            # Quick procedural check - includes WHERE to find questions
-            procedural_indicators = [
-                'how to', 'how do i', 'how can i', 'where can i find', 'where i can find', 'where to find',
-                'where should i look', 'where do i look', 'how do i search', 'how to search',
-                'eligibility', 'application process', 'documents required', 'supporting documents', 'ethics',
-                'tell me where', 'show me where', 'where can i', 'where do i'
-            ]
-            if any(phrase in q for phrase in procedural_indicators):
-                return ("FAQ", 0.85)
-            
-            # Call vs Project detection
-            call_indicators = ['call', 'calls', 'funding', 'grant', 'opportunity', 'deadline', 'proposal']
-            project_indicators = ['project', 'projects', 'research', 'initiative', 'example', 'case study']
-            
-            call_count = sum(1 for word in call_indicators if word in q)
-            project_count = sum(1 for word in project_indicators if word in q)
-            
-            if call_count > project_count:
-                return ("SEARCH_CALLS", 0.70)
-            elif project_count > call_count:
-                return ("SEARCH_PROJECTS", 0.70)
-            else:
-                return ("FAQ", 0.60)  # Safe default
-
-        try:
-            if self.ai_provider == "openai":
-                response = self.openai_client.chat.completions.create(
-                    model=self.openai_model_name,
-                    messages=[
-                        {"role": "system", "content": "You are an expert intent classifier for research queries."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    temperature=0.0,  # Deterministic for consistency
-                )
-                response_text = response.choices[0].message.content.strip()
-            elif self.ai_provider == "gemini":
-                gemini_contents = [
-                    types.Content(role="user", parts=[types.Part.from_text(text=prompt)])
-                ]
-                gen_config = types.GenerateContentConfig(temperature=0.0)
-                if self.gemini_client:
-                    response = self.gemini_client.models.generate_content(
-                        model=self.gemini_model_name,
-                        contents=gemini_contents,
-                        config=gen_config
-                    )
-                    response_text = response.text
-                else:
-                    response_text = None
-            else:
-                response_text = None
-
-            # Parse the response
-            intent = "SEARCH_PROJECTS"  # Default fallback
-            confidence = 0.5  # Default confidence
-            
-            if response_text:
-                lines = response_text.split('\n')
-                for line in lines:
-                    if line.startswith('CLASSIFICATION:'):
-                        classification = line.replace('CLASSIFICATION:', '').strip()
-                        if classification in ['SEARCH_PROJECTS', 'SEARCH_CALLS', 'GENERAL_QUERY']:
-                            intent = classification
-                    elif line.startswith('CONFIDENCE:'):
-                        try:
-                            confidence = float(line.replace('CONFIDENCE:', '').strip())
-                            confidence = max(0.0, min(1.0, confidence))  # Clamp to [0,1]
-                        except ValueError:
-                            confidence = 0.5
-
-            result = (intent, confidence)
-            
-            # Cache the result
-            self._set_cache(self._query_cache, cache_key, result)
-            
-            print(f"🎯 Intent determined: {intent} (confidence: {confidence:.2f})")
-            return result
-
-        except Exception as e:
-            print(f"❌ Error determining intent: {e}. Defaulting to SEARCH_PROJECTS.")
-            return ("SEARCH_PROJECTS", 0.3)  # Low confidence fallback
+            return ("FAQ", 0.5)
 
     def search_for_calls(self, question: str, max_results: int = 10) -> Dict[str, Any]:
         """
@@ -635,23 +442,19 @@ Question: "{question}"""
         print(f"   Query (truncated): bool.must[0].bool.must = types[1,2,8], status[31094502], period[2021-2027]")
         
         try:
-            # Use multipart form data structure that matches the working curl request
-            response = requests.post(
+            import httpx
+            with httpx.Client(timeout=httpx.Timeout(15.0)) as client:
+                response = client.post(
                 api_url,
                 params=params,
-                data={
-                    # Use data parameter with proper multipart boundary as in curl request
-                },
                 files={
                     "sort": ("blob", json.dumps(sort_params), "application/json"),
                     "query": ("blob", json.dumps(query), "application/json"),
                     "languages": ("blob", json.dumps(languages), "application/json"),
                     "displayFields": ("blob", json.dumps(display_fields), "application/json"),
                 },
-                timeout=15
             )
             response.raise_for_status()
-            
             data = response.json()
             print(f"🎯 Fixed query returned {data.get('totalResults', 0)} total results")
             return self._process_api_results(data, max_results, "advanced_fixed")
@@ -678,13 +481,10 @@ Question: "{question}"""
         print(f"   Data: {search_params}")
         
         try:
-            response = requests.post(
-                api_url,
-                data=search_params,
-                timeout=10
-            )
+            import httpx
+            with httpx.Client(timeout=httpx.Timeout(10.0)) as client:
+                response = client.post(api_url, data=search_params)
             response.raise_for_status()
-            
             data = response.json()
             return self._process_api_results(data, max_results, "basic")
         except Exception as e:
@@ -1494,7 +1294,7 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
     def _generate_capabilities_answer(self) -> str:
         """Return a concise description of assistant capabilities."""
         parts = [
-            "Here’s what I can help you with:",
+            "Here's what I can help you with:",
             "",
             "1) Find open funding opportunities (EU Funding & Tenders Portal)",
             "   - Search and summarize open or forthcoming calls relevant to your topic",

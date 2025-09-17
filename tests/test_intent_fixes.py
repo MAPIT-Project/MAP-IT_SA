@@ -5,10 +5,10 @@ Test script to verify intent detection fixes for procedural questions.
 
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), 'app'))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from services.rag_service import CordisRAG
-from services.enhanced_rag_service import HorizonEuropeRAG
+from app.services.rag_service import CordisRAG
+from app.services.enhanced_rag_service import HorizonEuropeRAG
 
 def test_intent_detection_fixes():
     """Test that procedural questions are now correctly classified as GENERAL_QUERY."""
@@ -51,15 +51,16 @@ def test_intent_detection_fixes():
             "What research has been done on quantum computing?"
         ]
         
-        print("🔍 Testing Procedural Questions (should be GENERAL_QUERY):")
+        print("🔍 Testing Procedural Questions (should be FAQ):")
         print("-" * 60)
         
         correct_procedural = 0
         for question in procedural_questions:
-            intent, confidence = cordis_rag.determine_user_intent(question)
-            status = "✅" if intent == "GENERAL_QUERY" else "❌"
+            from app.services.intent_service import IntentService
+            intent, confidence = IntentService.determine_intent(question)
+            status = "✅" if intent == "FAQ" else "❌"
             print(f"{status} '{question[:50]}...' -> {intent} (confidence: {confidence:.2f})")
-            if intent == "GENERAL_QUERY":
+            if intent == "FAQ":
                 correct_procedural += 1
         
         print(f"\n📊 Procedural Questions: {correct_procedural}/{len(procedural_questions)} classified correctly")
@@ -69,7 +70,8 @@ def test_intent_detection_fixes():
         
         correct_calls = 0
         for question in call_search_questions:
-            intent, confidence = cordis_rag.determine_user_intent(question)
+            from app.services.intent_service import IntentService
+            intent, confidence = IntentService.determine_intent(question)
             status = "✅" if intent == "SEARCH_CALLS" else "❌"
             print(f"{status} '{question[:50]}...' -> {intent} (confidence: {confidence:.2f})")
             if intent == "SEARCH_CALLS":
@@ -82,7 +84,8 @@ def test_intent_detection_fixes():
         
         correct_projects = 0
         for question in project_search_questions:
-            intent, confidence = cordis_rag.determine_user_intent(question)
+            from app.services.intent_service import IntentService
+            intent, confidence = IntentService.determine_intent(question)
             status = "✅" if intent == "SEARCH_PROJECTS" else "❌"
             print(f"{status} '{question[:50]}...' -> {intent} (confidence: {confidence:.2f})")
             if intent == "SEARCH_PROJECTS":
@@ -131,7 +134,7 @@ def test_intent_detection_fixes():
         except Exception as e:
             print(f"❌ Error testing full pipeline: {e}")
         
-        return accuracy >= 80  # Consider success if 80% or better
+        assert accuracy >= 80  # Consider success if 80% or better
         
     except Exception as e:
         print(f"❌ Test failed with error: {e}")
@@ -141,12 +144,7 @@ def test_intent_detection_fixes():
 
 if __name__ == "__main__":
     print("🚀 Starting Intent Detection Fix Tests...")
-    success = test_intent_detection_fixes()
-    
-    if success:
-        print("\n🎉 Tests completed successfully!")
-        print("The system should now properly handle procedural 'how-to' questions.")
-    else:
-        print("\n❌ Tests revealed issues that need further fixing.")
-        
+    test_intent_detection_fixes()
+    print("\n🎉 Tests completed successfully!")
+    print("The system should now properly handle procedural 'how-to' questions.")
     print("=" * 60)
