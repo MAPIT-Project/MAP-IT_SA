@@ -1515,11 +1515,11 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
             # Create text search indexes if they don't exist (for PostgreSQL)
             try:
                 cursor.execute("""
-                    CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_projects_text_search 
+                    CREATE INDEX IF NOT EXISTS idx_projects_text_search 
                     ON projects USING gin(to_tsvector('english', title || ' ' || COALESCE(objective, '') || ' ' || COALESCE(topics, '')))
                 """)
                 cursor.execute("""
-                    CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_organizations_text_search 
+                    CREATE INDEX IF NOT EXISTS idx_organizations_text_search 
                     ON organizations USING gin(to_tsvector('english', name || ' ' || COALESCE(country, '')))
                 """)
                 print("✅ Full-text search indexes created/verified")

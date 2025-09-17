@@ -9,7 +9,12 @@ import hashlib
 from typing import Dict, Any, List, Optional, Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-import redis
+try:
+    import redis
+    REDIS_AVAILABLE = True
+except ImportError:
+    redis = None
+    REDIS_AVAILABLE = False
 import logging
 
 logger = logging.getLogger(__name__)
@@ -42,22 +47,83 @@ class Tool:
     cache_ttl: int = 3600  # Cache for 1 hour by default
     parallel_safe: bool = True
 
+# Example tool implementations for your research domain
+class ResearchTools:
+    """Collection of research-specific tools."""
+
+
+    @staticmethod
+    async def search_cordis_projects(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+        """Search CORDIS for research projects."""
+        # This would integrate with your existing RAG service
+        from ..rag_service import CordisRAG
+
+        try:
+            rag_service = CordisRAG()
+            query = params.get('query', '')
+            max_results = params.get('max_results', 5)
+
+            results = rag_service.get_ai_response_with_routing(
+                question=query,
+                max_projects_to_process=max_results
+            )
+
+            return {
+                'query': query,
+                'answer': results.get('answer', ''),
+                'projects_found': results.get('projects_found', 0),
+                'data_source': results.get('data_source', ''),
+                'processing_time': results.get('processing_time', 0)
+            }
+
+        except Exception as e:
+            logger.error(f"CORDIS search error: {e}")
+            return {
+                'error': str(e),
+                'query': params.get('query', ''),
+                'projects_found': 0
+            }
+
+    # @staticmethod
+    # async def analyze_project_portfolio(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+    #     """Analyze a portfolio of projects."""
+    #     project_ids = params.get('project_ids', [])
+    #     analysis_type = params.get('analysis_type', 'overview')
+
+    #     # Mock implementation - would integrate with your project analysis
+    #     return {
+    #         'project_ids': project_ids,
+    #         'analysis_type': analysis_type,
+    #         'portfolio_size': len(project_ids),
+    #         'total_budget': f'{len(project_ids) * 1.5}M EUR',
+    #         'key_themes': ['Innovation', 'Sustainability', 'Digital Transformation'],
+    #         'recommendations': [
+    #             'Focus on cross-project synergies',
+    #             'Leverage existing partnerships',
+    #             'Consider follow-up funding opportunities'
+    #         ]
+    #     }
+
 class ToolOrchestrator:
     """
     Manages tool selection and execution with caching and error handling.
     """
     
-    def __init__(self, cache_client: redis.Redis = None):
+    def __init__(self, cache_client = None):
         """
         Initialize tool orchestrator.
-        
+
         Args:
-            cache_client: Redis client for result caching
+            cache_client: Redis client for result caching (optional)
         """
-        self.cache = cache_client
+        if cache_client and not REDIS_AVAILABLE:
+            logger.warning("Redis client provided but redis not available. Caching disabled.")
+            self.cache = None
+        else:
+            self.cache = cache_client
         self.tools: Dict[str, Tool] = {}
         self.execution_log = []
-        
+
         # Register built-in tools
         self._register_builtin_tools()
     
@@ -139,29 +205,38 @@ class ToolOrchestrator:
         start_time = datetime.now()
         
         try:
+            logger.info(f"Starting execution of tool: {tool_call.tool_name} for conversation {conversation_id}")
+
             # Check if tool exists
             if tool_call.tool_name not in self.tools:
+                error_msg = f"Tool {tool_call.tool_name} not found"
+                logger.error(error_msg)
                 return ToolResult(
                     tool_name=tool_call.tool_name,
                     success=False,
                     result=None,
                     execution_time_ms=0,
-                    error_message=f"Tool {tool_call.tool_name} not found"
+                    error_message=error_msg
                 )
-            
+
             tool = self.tools[tool_call.tool_name]
-            
+            logger.debug(f"Tool found: {tool.name}, parameters: {tool_call.parameters}")
+
             # Check cache first
             if self.cache:
                 cached_result = await self._get_cached_result(tool_call, conversation_id)
                 if cached_result:
+                    logger.info(f"Cache hit for tool: {tool_call.tool_name}")
                     return cached_result
-            
+
+            logger.debug(f"Executing tool: {tool_call.tool_name} with params: {tool_call.parameters}")
+
             # Execute tool
             result = await tool.execute_func(tool_call.parameters, previous_results)
-            
+
             execution_time = (datetime.now() - start_time).total_seconds() * 1000
-            
+            logger.info(f"Tool {tool_call.tool_name} executed successfully in {execution_time:.2f}ms")
+
             tool_result = ToolResult(
                 tool_name=tool_call.tool_name,
                 success=True,
@@ -169,30 +244,33 @@ class ToolOrchestrator:
                 execution_time_ms=int(execution_time),
                 cached=False
             )
-            
+
             # Cache result
             if self.cache:
                 await self._cache_result(tool_call, conversation_id, tool_result)
-            
+                logger.debug(f"Cached result for tool: {tool_call.tool_name}")
+
             # Log execution
             await self._log_execution(conversation_id, tool_call, tool_result)
-            
+
             return tool_result
-            
+
         except Exception as e:
             execution_time = (datetime.now() - start_time).total_seconds() * 1000
-            
+            error_msg = f"Tool execution failed: {str(e)}"
+            logger.error(f"{error_msg} for tool {tool_call.tool_name} in {execution_time:.2f}ms")
+
             error_result = ToolResult(
                 tool_name=tool_call.tool_name,
                 success=False,
                 result=None,
                 execution_time_ms=int(execution_time),
-                error_message=str(e)
+                error_message=error_msg
             )
-            
+
             # Log error
             await self._log_execution(conversation_id, tool_call, error_result)
-            
+
             return error_result
     
     async def _get_cached_result(self,
@@ -230,12 +308,12 @@ class ToolOrchestrator:
             return None
     
     async def _cache_result(self,
-                           tool_call: ToolCall,
-                           conversation_id: int,
-                           result: ToolResult):
+                            tool_call: ToolCall,
+                            conversation_id: int,
+                            result: ToolResult):
         """
         Cache tool execution result.
-        
+
         Args:
             tool_call: ToolCall that was executed
             conversation_id: Conversation ID
@@ -244,24 +322,61 @@ class ToolOrchestrator:
         try:
             tool = self.tools[tool_call.tool_name]
             cache_key = self._generate_cache_key(tool_call, conversation_id)
-            
+
+            # Convert result to JSON-serializable format
+            serializable_result = self._make_serializable(result.result)
+
             cache_data = {
                 'tool_name': result.tool_name,
                 'success': result.success,
-                'result': result.result,
+                'result': serializable_result,
                 'execution_time_ms': result.execution_time_ms,
                 'error_message': result.error_message,
                 'cached_at': datetime.now().isoformat()
             }
-            
+
             self.cache.setex(
                 cache_key,
                 tool.cache_ttl,
                 json.dumps(cache_data)
             )
-            
+
         except Exception as e:
             logger.warning(f"Cache storage error: {e}")
+
+    def _make_serializable(self, obj):
+        """
+        Convert complex objects to JSON-serializable format.
+
+        Args:
+            obj: Object to make serializable
+
+        Returns:
+            JSON-serializable version of the object
+        """
+        if obj is None:
+            return None
+        elif isinstance(obj, dict):
+            return {k: self._make_serializable(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [self._make_serializable(item) for item in obj]
+        elif hasattr(obj, '__dataclass_fields__'):
+            # Handle dataclass objects (like EnhancedSearchResult)
+            from dataclasses import asdict
+            return self._make_serializable(asdict(obj))
+        elif hasattr(obj, '__dict__'):
+            # Convert other objects to dict
+            result = {}
+            for key, value in obj.__dict__.items():
+                result[key] = self._make_serializable(value)
+            return result
+        else:
+            # Try to convert to string for other types
+            try:
+                json.dumps(obj)
+                return obj
+            except (TypeError, ValueError):
+                return str(obj)
     
     def _generate_cache_key(self,
                            tool_call: ToolCall,
@@ -316,63 +431,42 @@ class ToolOrchestrator:
     def _register_builtin_tools(self):
         """Register built-in tools."""
         
-        # CORDIS Search Tool
-        async def cordis_search(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
-            """Search CORDIS database for projects."""
-            query = params.get('query', '')
-            max_results = params.get('max_results', 5)
-            
-            # Mock implementation - in production, this would call your existing CORDIS service
-            return {
-                'query': query,
-                'results_found': max_results,
-                'projects': [
-                    {
-                        'title': f'Mock Project {i}',
-                        'acronym': f'MOCK{i}',
-                        'budget': f'{i * 100}K EUR'
-                    }
-                    for i in range(1, max_results + 1)
-                ]
-            }
-        
-        cordis_tool = Tool(
-            name='cordis_search',
-            description='Search CORDIS database for research projects',
-            parameters_schema={
-                'query': {'type': 'string', 'required': True},
-                'max_results': {'type': 'integer', 'default': 5}
-            },
-            execute_func=cordis_search,
-            cache_ttl=1800,  # 30 minutes
-            parallel_safe=True
-        )
         
         # EU Portal Search Tool
         async def eu_portal_search(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
             """Search EU Funding Portal for calls."""
-            query = params.get('query', '')
-            status = params.get('status', 'open')
-            
-            # Mock implementation
-            return {
-                'query': query,
-                'status_filter': status,
-                'calls_found': 3,
-                'calls': [
-                    {
-                        'identifier': f'HORIZON-2024-MOCK-{i}',
-                        'title': f'Mock Call {i}',
-                        'deadline': '2024-12-31',
-                        'budget': f'{i * 500}K EUR'
-                    }
-                    for i in range(1, 4)
-                ]
-            }
+            # This integrates with the enhanced_call_search service
+            from ..enhanced_call_search import EnhancedCallSearchService
+
+            try:
+                search_service = EnhancedCallSearchService()
+                # Support multiple parameter names for flexibility
+                query = params.get('query') or params.get('search_query_text') or params.get('search_query', '')
+                max_results = params.get('max_results', 10)
+
+                results = search_service.search_calls_enhanced(
+                    query=query,
+                    max_results=max_results
+                )
+
+                return {
+                    'query': query,
+                    'results_found': len(results.get('results', [])),
+                    'calls': results.get('results', []),
+                    'search_metadata': results.get('search_metadata', {})
+                }
+
+            except Exception as e:
+                logger.error(f"EU portal search error: {e}")
+                return {
+                    'error': str(e),
+                    'query': params.get('query') or params.get('search_query_text', ''),
+                    'results_found': 0
+                }
         
         portal_tool = Tool(
             name='eu_portal_search',
-            description='Search EU Funding Portal for open calls',
+            description='Search EU Funding Portal for (open/closed/forthcomming) calls',
             parameters_schema={
                 'query': {'type': 'string', 'required': True},
                 'status': {'type': 'string', 'default': 'open'}
@@ -383,45 +477,44 @@ class ToolOrchestrator:
         )
         
         # Document Analysis Tool
-        async def analyze_document(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
-            """Analyze a document for key information."""
-            document_id = params.get('document_id', '')
-            analysis_type = params.get('analysis_type', 'summary')
+        # async def analyze_document(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+        #     """Analyze a document for key information."""
+        #     document_id = params.get('document_id', '')
+        #     analysis_type = params.get('analysis_type', 'summary')
             
-            # Mock implementation
-            return {
-                'document_id': document_id,
-                'analysis_type': analysis_type,
-                'summary': f'Analysis of document {document_id}',
-                'key_points': [
-                    'Key finding 1',
-                    'Key finding 2',
-                    'Key finding 3'
-                ],
-                'confidence': 0.85
-            }
+        #     # Mock implementation
+        #     return {
+        #         'document_id': document_id,
+        #         'analysis_type': analysis_type,
+        #         'summary': f'Analysis of document {document_id}',
+        #         'key_points': [
+        #             'Key finding 1',
+        #             'Key finding 2',
+        #             'Key finding 3'
+        #         ],
+        #         'confidence': 0.85
+        #     }
         
-        analysis_tool = Tool(
-            name='analyze_document',
-            description='Analyze documents for key information',
-            parameters_schema={
-                'document_id': {'type': 'string', 'required': True},
-                'analysis_type': {'type': 'string', 'default': 'summary'}
-            },
-            execute_func=analyze_document,
-            cache_ttl=7200,  # 2 hours
-            parallel_safe=True
-        )
+        # analysis_tool = Tool(
+        #     name='analyze_document',
+        #     description='Analyze documents for key information',
+        #     parameters_schema={
+        #         'document_id': {'type': 'string', 'required': True},
+        #         'analysis_type': {'type': 'string', 'default': 'summary'}
+        #     },
+        #     execute_func=analyze_document,
+        #     cache_ttl=7200,  # 2 hours
+        #     parallel_safe=True
+        # )
         
         # Register all tools
-        self.register_tool(cordis_tool)
         self.register_tool(portal_tool)
-        self.register_tool(analysis_tool)
+        # self.register_tool(analysis_tool)
     
     def get_available_tools(self) -> List[Dict[str, Any]]:
         """
         Get list of available tools with their descriptions.
-        
+
         Returns:
             List of tool information dictionaries
         """
@@ -435,6 +528,35 @@ class ToolOrchestrator:
             }
             for tool in self.tools.values()
         ]
+
+    def print_available_tools(self):
+        """
+        Print available tools in a readable format for manual inspection.
+        """
+        if not self.tools:
+            print("No tools registered.")
+            return
+
+        print(f"\n{'='*60}")
+        print("REGISTERED TOOLS")
+        print(f"{'='*60}")
+
+        for i, tool in enumerate(self.tools.values(), 1):
+            print(f"\n{i}. Tool: {tool.name}")
+            print(f"   Description: {tool.description}")
+            print(f"   Cache TTL: {tool.cache_ttl} seconds")
+            print(f"   Parallel Safe: {tool.parallel_safe}")
+
+            print("   Parameters:")
+            for param_name, param_info in tool.parameters_schema.items():
+                required = param_info.get('required', False)
+                param_type = param_info.get('type', 'unknown')
+                default = param_info.get('default', 'N/A')
+                print(f"     - {param_name} ({param_type}) {'[required]' if required else '[optional]'} default: {default}")
+
+        print(f"\n{'='*60}")
+        print(f"Total tools: {len(self.tools)}")
+        print(f"{'='*60}\n")
     
     def get_execution_stats(self, conversation_id: Optional[int] = None) -> Dict[str, Any]:
         """
@@ -475,94 +597,7 @@ class ToolOrchestrator:
             'most_used_tool': max(tool_usage.items(), key=lambda x: x[1])[0] if tool_usage else None
         }
 
-# Example tool implementations for your research domain
-class ResearchTools:
-    """Collection of research-specific tools."""
-    
-    @staticmethod
-    async def search_horizon_calls(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
-        """Search for Horizon Europe calls."""
-        # This would integrate with your existing enhanced_call_search service
-        from ..enhanced_call_search import EnhancedCallSearchService
-        
-        try:
-            search_service = EnhancedCallSearchService()
-            query = params.get('query', '')
-            max_results = params.get('max_results', 10)
-            
-            results = search_service.search_calls_enhanced(
-                search_query_text=query,
-                max_results=max_results
-            )
-            
-            return {
-                'query': query,
-                'results_found': len(results.get('results', [])),
-                'calls': results.get('results', []),
-                'search_metadata': results.get('metadata', {})
-            }
-            
-        except Exception as e:
-            logger.error(f"Horizon calls search error: {e}")
-            return {
-                'error': str(e),
-                'query': params.get('query', ''),
-                'results_found': 0
-            }
-    
-    @staticmethod
-    async def search_cordis_projects(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
-        """Search CORDIS for research projects."""
-        # This would integrate with your existing RAG service
-        from ..rag_service import CordisRAG
-        
-        try:
-            rag_service = CordisRAG()
-            query = params.get('query', '')
-            max_results = params.get('max_results', 5)
-            
-            results = rag_service.get_ai_response_with_routing(
-                question=query,
-                max_projects_to_process=max_results
-            )
-            
-            return {
-                'query': query,
-                'answer': results.get('answer', ''),
-                'projects_found': results.get('projects_found', 0),
-                'data_source': results.get('data_source', ''),
-                'processing_time': results.get('processing_time', 0)
-            }
-            
-        except Exception as e:
-            logger.error(f"CORDIS search error: {e}")
-            return {
-                'error': str(e),
-                'query': params.get('query', ''),
-                'projects_found': 0
-            }
-    
-    @staticmethod
-    async def analyze_project_portfolio(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
-        """Analyze a portfolio of projects."""
-        project_ids = params.get('project_ids', [])
-        analysis_type = params.get('analysis_type', 'overview')
-        
-        # Mock implementation - would integrate with your project analysis
-        return {
-            'project_ids': project_ids,
-            'analysis_type': analysis_type,
-            'portfolio_size': len(project_ids),
-            'total_budget': f'{len(project_ids) * 1.5}M EUR',
-            'key_themes': ['Innovation', 'Sustainability', 'Digital Transformation'],
-            'recommendations': [
-                'Focus on cross-project synergies',
-                'Leverage existing partnerships',
-                'Consider follow-up funding opportunities'
-            ]
-        }
-
-def create_research_orchestrator(cache_client: redis.Redis = None) -> ToolOrchestrator:
+def create_research_orchestrator(cache_client = None) -> ToolOrchestrator:
     """
     Create a tool orchestrator with research-specific tools.
     
@@ -575,17 +610,6 @@ def create_research_orchestrator(cache_client: redis.Redis = None) -> ToolOrches
     orchestrator = ToolOrchestrator(cache_client)
     
     # Register research tools
-    horizon_tool = Tool(
-        name='search_horizon_calls',
-        description='Search Horizon Europe funding calls',
-        parameters_schema={
-            'query': {'type': 'string', 'required': True},
-            'max_results': {'type': 'integer', 'default': 10}
-        },
-        execute_func=ResearchTools.search_horizon_calls,
-        cache_ttl=1800,  # 30 minutes
-        parallel_safe=True
-    )
     
     cordis_tool = Tool(
         name='search_cordis_projects',
@@ -599,20 +623,19 @@ def create_research_orchestrator(cache_client: redis.Redis = None) -> ToolOrches
         parallel_safe=True
     )
     
-    portfolio_tool = Tool(
-        name='analyze_project_portfolio',
-        description='Analyze a portfolio of research projects',
-        parameters_schema={
-            'project_ids': {'type': 'array', 'required': True},
-            'analysis_type': {'type': 'string', 'default': 'overview'}
-        },
-        execute_func=ResearchTools.analyze_project_portfolio,
-        cache_ttl=7200,  # 2 hours
-        parallel_safe=False  # Requires sequential processing
-    )
+    # portfolio_tool = Tool(
+    #     name='analyze_project_portfolio',
+    #     description='Analyze a portfolio of research projects',
+    #     parameters_schema={
+    #         'project_ids': {'type': 'array', 'required': True},
+    #         'analysis_type': {'type': 'string', 'default': 'overview'}
+    #     },
+    #     execute_func=ResearchTools.analyze_project_portfolio,
+    #     cache_ttl=7200,  # 2 hours
+    #     parallel_safe=False  # Requires sequential processing
+    # )
     
-    orchestrator.register_tool(horizon_tool)
     orchestrator.register_tool(cordis_tool)
-    orchestrator.register_tool(portfolio_tool)
+    # orchestrator.register_tool(portfolio_tool)
     
     return orchestrator

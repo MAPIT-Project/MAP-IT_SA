@@ -21,7 +21,7 @@ class GroundedResponseGenerator:
             raise ValueError("GEMINI_API_KEY is required")
             
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        self.model = genai.GenerativeModel('gemini-2.5-flash-lite')
     
     def generate_response(self,
                          query: str,
@@ -49,14 +49,27 @@ class GroundedResponseGenerator:
         )
         
         try:
-            # Generate response
-            response = self.model.generate_content(
-                prompt,
-                generation_config=genai.GenerationConfig(
-                    temperature=0.3,
-                    max_output_tokens=1000
-                )
-            )
+            # Generate response with retry logic for rate limits
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    response = self.model.generate_content(
+                        prompt,
+                        generation_config=genai.GenerationConfig(
+                            temperature=0.3,
+                            max_output_tokens=1000
+                        )
+                    )
+                    break
+                except Exception as e:
+                    if "429" in str(e) and attempt < max_retries - 1:
+                        import time
+                        wait_time = (2 ** attempt) + 0.1  # Exponential backoff
+                        print(f"Response generation rate limit, retrying in {wait_time:.2f}s (attempt {attempt + 1}/{max_retries})")
+                        time.sleep(wait_time)
+                        continue
+                    else:
+                        raise e
             
             # Parse and validate response
             parsed_response = self._parse_response(response.text, context_chunks)
@@ -89,15 +102,28 @@ class GroundedResponseGenerator:
         )
         
         try:
-            # Generate streaming response
-            response = self.model.generate_content(
-                prompt,
-                generation_config=genai.GenerationConfig(
-                    temperature=0.3,
-                    max_output_tokens=1000
-                ),
-                stream=True
-            )
+            # Generate streaming response with retry logic
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    response = self.model.generate_content(
+                        prompt,
+                        generation_config=genai.GenerationConfig(
+                            temperature=0.3,
+                            max_output_tokens=1000
+                        ),
+                        stream=True
+                    )
+                    break
+                except Exception as e:
+                    if "429" in str(e) and attempt < max_retries - 1:
+                        import time
+                        wait_time = (2 ** attempt) + 0.1
+                        print(f"Streaming response rate limit, retrying in {wait_time:.2f}s (attempt {attempt + 1}/{max_retries})")
+                        time.sleep(wait_time)
+                        continue
+                    else:
+                        raise e
             
             accumulated_text = ""
             

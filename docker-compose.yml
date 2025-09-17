@@ -21,6 +21,8 @@ services:
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres
       - USE_LOCAL_DB=true
       - DOCKER_ENV=true
@@ -59,6 +61,8 @@ services:
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres
       - USE_LOCAL_DB=true
       - DOCKER_ENV=true
@@ -89,6 +93,8 @@ services:
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres
       - USE_LOCAL_DB=true
       - DOCKER_ENV=true

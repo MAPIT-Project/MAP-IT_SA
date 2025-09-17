@@ -610,7 +610,7 @@ class RollingSummarizer:
             gemini_api_key: Google Gemini API key
         """
         genai.configure(api_key=gemini_api_key)
-        self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        self.model = genai.GenerativeModel('gemini-2.5-flash-lite')
         
     def summarize_turn(self,
                        existing_summary: Optional[str],

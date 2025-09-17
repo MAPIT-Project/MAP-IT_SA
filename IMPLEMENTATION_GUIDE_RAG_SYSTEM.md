@@ -1100,7 +1100,7 @@ class GroundedResponseGenerator:
             gemini_api_key: Google Gemini API key
         """
         genai.configure(api_key=gemini_api_key)
-        self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        self.model = genai.GenerativeModel('gemini-2.5-flash-lite')
     
     def generate_response(self,
                          query: str,

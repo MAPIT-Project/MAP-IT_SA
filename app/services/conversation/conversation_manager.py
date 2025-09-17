@@ -91,17 +91,17 @@ class ConversationManager:
                 query=user_message
             )
             
-            # Phase 4: Determine if tools are needed
-            tool_plan = None
-            if intent_analysis.get('requires_tools'):
-                tool_plan = await self.tool_orchestrator.plan_tools(
-                    task=user_message,
-                    context=context
-                )
+            # Phase 4: AI-powered tool planning
+            tool_plan = await self._ai_tool_planner(
+                user_message=user_message,
+                intent_analysis=intent_analysis,
+                context=context,
+                conversation_id=conversation_id
+            )
             
             # Phase 5: Retrieve relevant information if needed
             retrieval_results = None
-            if intent_analysis.get('requires_retrieval'):
+            if intent_analysis.get('requires_retrieval') and not tool_plan:
                 retrieval_results = await self._retrieve_information(
                     conversation_id, user_message, context
                 )
@@ -112,6 +112,11 @@ class ConversationManager:
                 tool_results = await self.tool_orchestrator.execute_plan(
                     tool_plan, conversation_id
                 )
+                print(f"🔧 Tool Orchestrator executed {len(tool_results)} tools")
+                
+                # Convert tool results to retrieval format for response generation
+                if tool_results:
+                    retrieval_results = self._convert_tool_results_to_retrieval(tool_results)
             
             # Phase 7: Generate response
             if streaming:
@@ -179,47 +184,271 @@ Respond in JSON format:
         except Exception as e:
             print(f"Intent analysis error: {e}")
         
-        # Fallback to simple heuristics
+        # Fallback to simple heuristics with tool detection
+        message_lower = message.lower()
+
+        # Check if tools are needed based on keywords
+        requires_tools = any(keyword in message_lower for keyword in [
+            'open calls', 'calls for', 'funding opportunities', 'grant opportunities',
+            'available calls', 'current calls', 'calls about', 'calls related to',
+            'what calls', 'which calls', 'show me calls', 'find calls',
+            'funding calls', 'research calls', 'horizon calls',
+            'projects', 'research projects', 'case studies', 'project examples'
+        ])
+
         return {
             "intent_type": "question",
             "requires_retrieval": True,
-            "requires_tools": False,
+            "requires_tools": requires_tools,
             "confidence": 0.5,
-            "explanation": "Default processing"
+            "explanation": "Fallback processing with tool detection"
         }
     
+    async def _ai_service_selector(self,
+                                  user_message: str,
+                                  intent_analysis: Dict,
+                                  context: str) -> Dict[str, Any]:
+        """
+        AI-powered service selection that decides which service to use.
+        """
+        try:
+            prompt = f"""You are an AI that decides which service to use for European research funding questions.
+
+AVAILABLE SERVICES:
+1. enhanced_call_search - Real EU Portal API for funding calls/opportunities
+2. enhanced_rag - Existing RAG system with vector search and documents
+
+USER MESSAGE: {user_message}
+
+INTENT: {intent_analysis}
+
+DECISION RULES:
+- "open calls", "funding opportunities", "calls for proposals" → enhanced_call_search
+- "projects", "research projects", "case studies" → enhanced_rag
+- "how to", "guidelines", "requirements" → enhanced_rag
+
+Respond in JSON:
+{{
+    "service": "enhanced_call_search|enhanced_rag",
+    "reasoning": "Why this service was chosen"
+}}"""
+
+            response = self.response_generator.model.generate_content(prompt)
+            
+            # Parse JSON response
+            json_match = re.search(r'\{.*\}', response.text, re.DOTALL)
+            if json_match:
+                decision = json.loads(json_match.group())
+                print(f"🤖 AI Service Selector: {decision['service']}")
+                print(f"   Reasoning: {decision['reasoning']}")
+                return decision
+                
+        except Exception as e:
+            print(f"AI service selection error: {e}")
+        
+        # Fallback logic
+        message_lower = user_message.lower()
+        if any(word in message_lower for word in ['open calls', 'calls for', 'funding opportunities']):
+            return {'service': 'enhanced_call_search', 'reasoning': 'Detected call keywords'}
+        else:
+            return {'service': 'enhanced_rag', 'reasoning': 'Default to enhanced RAG'}
+    
+    async def _execute_service(self,
+                              service_decision: Dict[str, Any],
+                              conversation_id: int,
+                              user_message: str,
+                              context: str) -> List[Dict[str, Any]]:
+        """
+        Execute the selected service.
+        """
+        service_name = service_decision.get('service')
+        
+        # This method is now handled by the 7-phase architecture
+        return []
+    
+    def _convert_tool_results_to_retrieval(self, tool_results: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Convert tool execution results to retrieval format for response generation.
+        """
+        retrieval_results = []
+        
+        for tool_name, tool_result_obj in tool_results.items():
+            try:
+                if tool_result_obj.success:
+                    tool_data = tool_result_obj.result
+                    
+                    if tool_name == 'search_horizon_calls':
+                        # Format call search results
+                        if tool_data.get('calls'):
+                            for call in tool_data['calls'][:5]:
+                                # Handle both dict and EnhancedSearchResult objects
+                                if hasattr(call, '__dataclass_fields__'):
+                                    # EnhancedSearchResult object
+                                    call_data = {
+                                        'title': call.title,
+                                        'identifier': call.identifier,
+                                        'status': call.status,
+                                        'deadline': call.deadline,
+                                        'url': call.url,
+                                        'description': call.description
+                                    }
+                                else:
+                                    # Already a dict
+                                    call_data = call
+                                
+                                retrieval_results.append({
+                                    'content': f"**{call_data['title']}**\n\nCall ID: {call_data['identifier']}\nStatus: {call_data['status']}\nDeadline: {call_data['deadline']}\nURL: {call_data['url']}\n\n{call_data.get('description', '')}",
+                                    'citation': f"EU Funding Portal - {call_data['identifier']}",
+                                    'chunk_id': f"call_{call_data['identifier']}",
+                                    'metadata': {
+                                        'source': 'eu_portal_tool',
+                                        'tool_name': tool_name,
+                                        'call_id': call_data['identifier'],
+                                        'status': call_data['status']
+                                    }
+                                })
+                    
+                    elif tool_name == 'search_cordis_projects':
+                        # Format project search results
+                        if tool_data.get('answer'):
+                            retrieval_results.append({
+                                'content': tool_data['answer'],
+                                'citation': f"CORDIS Projects - {tool_data.get('data_source', 'Unknown')}",
+                                'chunk_id': f"projects_{len(retrieval_results)}",
+                                'metadata': {
+                                    'source': 'cordis_tool',
+                                    'tool_name': tool_name,
+                                    'projects_found': tool_data.get('projects_found', 0)
+                                }
+                            })
+                    
+                    else:
+                        # Generic tool result formatting
+                        if hasattr(tool_data, '__dict__'):
+                            content = json.dumps(tool_data.__dict__)
+                        else:
+                            content = str(tool_data)
+                        retrieval_results.append({
+                            'content': content,
+                            'citation': f"Tool: {tool_name}",
+                            'chunk_id': f"tool_{tool_name}",
+                            'metadata': {
+                                'source': 'tool_execution',
+                                'tool_name': tool_name
+                            }
+                        })
+                        
+            except Exception as e:
+                print(f"Error converting tool result {tool_name}: {e}")
+        
+        print(f"🔄 Converted {len(tool_results)} tool results to {len(retrieval_results)} retrieval chunks")
+        return retrieval_results
+    
+    async def _ai_tool_planner(self,
+                              user_message: str,
+                              intent_analysis: Dict,
+                              context: str,
+                              conversation_id: int) -> Optional[List]:
+        """
+        AI-powered tool planning that decides which tools to call.
+        """
+        try:
+            # Get available tools
+            available_tools = self.tool_orchestrator.get_available_tools()
+            
+            # Create AI prompt for tool planning
+            prompt = f"""You are an AI agent that decides which tools to call to answer user questions about European research funding.
+
+AVAILABLE TOOLS:
+{json.dumps(available_tools, indent=2)}
+
+USER QUESTION: {user_message}
+
+CONVERSATION CONTEXT: {context[:500]}...
+
+INTENT ANALYSIS: {intent_analysis}
+
+Based on the user's question, determine which tools should be called and in what order.
+
+DECISION RULES:
+1. For "open calls", "funding opportunities", "calls for proposals" → Use search_horizon_calls tool
+2. For "projects", "research projects", "case studies" → Use search_cordis_projects tool
+3. For "document analysis", "specific call details" → Use analyze_document tool
+4. For general questions → Use the most appropriate tool based on context
+
+Respond in JSON format:
+{{
+    "tools_needed": [
+        {{
+            "tool_name": "search_horizon_calls",
+            "parameters": {{"query": "clean energy", "status": "open"}},
+            "reason": "User asking for open calls"
+        }}
+    ],
+    "reasoning": "Explanation of why these tools were chosen"
+}}
+
+If no tools are needed, return {{"tools_needed": [], "reasoning": "Question can be answered from context"}}
+"""
+
+            # Add retry logic for rate limits
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    response = self.response_generator.model.generate_content(prompt)
+                    break
+                except Exception as e:
+                    if "429" in str(e) and attempt < max_retries - 1:
+                        wait_time = (2 ** attempt) + random.uniform(0, 1)  # Exponential backoff
+                        print(f"Rate limit hit, retrying in {wait_time:.2f}s (attempt {attempt + 1}/{max_retries})")
+                        await asyncio.sleep(wait_time)
+                        continue
+                    else:
+                        raise e
+            
+            # Parse AI response
+            json_match = re.search(r'\{.*\}', response.text, re.DOTALL)
+            if json_match:
+                ai_decision = json.loads(json_match.group())
+                tools_needed = ai_decision.get('tools_needed', [])
+                
+                if tools_needed:
+                    print(f"🤖 AI Tool Planner: {len(tools_needed)} tools planned")
+                    print(f"   Reasoning: {ai_decision.get('reasoning', 'No reasoning provided')}")
+                    
+                    # Convert to tool calls
+                    from ..tools.tool_orchestrator import ToolCall
+                    tool_calls = []
+                    
+                    for i, tool_spec in enumerate(tools_needed):
+                        tool_call = ToolCall(
+                            tool_name=tool_spec['tool_name'],
+                            parameters=tool_spec['parameters'],
+                            execution_order=i
+                        )
+                        tool_calls.append(tool_call)
+                    
+                    return tool_calls
+                else:
+                    print("🤖 AI Tool Planner: No tools needed")
+                    return None
+            
+        except Exception as e:
+            print(f"AI tool planning error: {e}")
+
+        return None
+
     async def _retrieve_information(self,
                                    conversation_id: int,
                                    query: str,
                                    context: str) -> List[Dict[str, Any]]:
         """
-        Retrieve relevant information using your existing RAG service.
+        Retrieve relevant information - now primarily handled by tools.
         """
         try:
-            # Use your existing RAG service for real data
-            if hasattr(self, 'existing_rag') and self.existing_rag:
-                print(f"🔍 Using existing RAG service for query: {query}")
-                
-                # Use your existing enhanced RAG service
-                rag_response = self.existing_rag.answer_question(
-                    question=query,
-                    max_results=self.config.get('max_retrieval_chunks', 4)
-                )
-                
-                # Convert to expected format
-                if rag_response.get('answer'):
-                    return [{
-                        'content': rag_response['answer'],
-                        'citation': f"Enhanced RAG Service - {rag_response.get('data_source', 'Unknown')}",
-                        'chunk_id': f"rag_response_{conversation_id}",
-                        'metadata': {
-                            'source': 'enhanced_rag',
-                            'confidence': rag_response.get('confidence', 0.8),
-                            'data_source': rag_response.get('data_source', 'Unknown')
-                        }
-                    }]
+            # This method is now mainly a fallback since tools handle most retrieval
+            print(f"🔄 Fallback retrieval for query: {query}")
             
-            # Fallback to new retrieval system
             summary = self.memory_service.ltm.get_summary(conversation_id)
             facts = self.memory_service.ltm.get_facts(conversation_id)
             entities = self.memory_service.ltm.get_entity_cards(conversation_id)
@@ -261,8 +490,10 @@ Respond in JSON format:
             
             # Add tool results to context if available
             if tool_results:
+                # Serialize tool results for JSON compatibility
+                serialized_tool_results = self._serialize_tool_results(tool_results)
                 tool_context = {
-                    'content': f"Tool Results:\n{json.dumps(tool_results, indent=2)}",
+                    'content': f"Tool Results:\n{json.dumps(serialized_tool_results, indent=2)}",
                     'citation': 'Tool Execution',
                     'chunk_id': 'tool_results'
                 }
@@ -325,8 +556,10 @@ Respond in JSON format:
             
             # Add tool results if available
             if tool_results:
+                # Serialize tool results for JSON compatibility
+                serialized_tool_results = self._serialize_tool_results(tool_results)
                 tool_context = {
-                    'content': f"Tool Results:\n{json.dumps(tool_results, indent=2)}",
+                    'content': f"Tool Results:\n{json.dumps(serialized_tool_results, indent=2)}",
                     'citation': 'Tool Execution',
                     'chunk_id': 'tool_results'
                 }
@@ -502,6 +735,67 @@ Be helpful and conversational."""
         except Exception as e:
             print(f"Error clearing conversation: {e}")
             return False
+
+    def _serialize_tool_results(self, tool_results: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Convert ToolResult objects to JSON-serializable dictionaries.
+        
+        Args:
+            tool_results: Dictionary containing ToolResult objects
+            
+        Returns:
+            JSON-serializable dictionary
+        """
+        serialized = {}
+        for tool_name, tool_result in tool_results.items():
+            if hasattr(tool_result, 'result'):
+                # This is a ToolResult object, convert to dict
+                serialized[tool_name] = {
+                    'tool_name': tool_result.tool_name,
+                    'success': tool_result.success,
+                    'result': self._make_serializable(tool_result.result),
+                    'execution_time_ms': tool_result.execution_time_ms,
+                    'error_message': tool_result.error_message,
+                    'cached': tool_result.cached
+                }
+            else:
+                # Already serialized or other type
+                serialized[tool_name] = self._make_serializable(tool_result)
+        return serialized
+    
+    def _make_serializable(self, obj):
+        """
+        Convert complex objects to JSON-serializable format.
+        
+        Args:
+            obj: Object to make serializable
+            
+        Returns:
+            JSON-serializable version of the object
+        """
+        if obj is None:
+            return None
+        elif isinstance(obj, dict):
+            return {k: self._make_serializable(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [self._make_serializable(item) for item in obj]
+        elif hasattr(obj, '__dataclass_fields__'):
+            # Handle dataclass objects (like EnhancedSearchResult)
+            from dataclasses import asdict
+            return self._make_serializable(asdict(obj))
+        elif hasattr(obj, '__dict__'):
+            # Convert other objects to dict
+            result = {}
+            for key, value in obj.__dict__.items():
+                result[key] = self._make_serializable(value)
+            return result
+        else:
+            # Try to convert to string for other types
+            try:
+                json.dumps(obj)
+                return obj
+            except (TypeError, ValueError):
+                return str(obj)
 
 # Test function
 async def test_conversation_manager():

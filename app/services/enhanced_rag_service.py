@@ -8,6 +8,7 @@ import json
 import logging
 import re
 from datetime import datetime
+from dataclasses import asdict
 
 from .vector_search_service import VectorSearchService, SearchResult
 from .rag_service import CordisRAG
@@ -72,10 +73,25 @@ class HorizonEuropeRAG:
         
         logger.info(f"🎯 Processing question: '{question}'")
         
-        # Determine intent using centralized intent service
+        # Determine intent using centralized intent service with better call detection
         try:
             from .intent_service import IntentService
             intent, confidence = IntentService.determine_intent(question)
+            
+            # Override intent for call-related queries that are being misclassified
+            question_lower = question.lower()
+            call_indicators = [
+                'open calls', 'calls for', 'funding opportunities', 'grant opportunities',
+                'available calls', 'current calls', 'calls about', 'calls related to',
+                'what calls', 'which calls', 'show me calls', 'find calls'
+            ]
+            
+            # If question contains call indicators, force SEARCH_CALLS
+            if any(indicator in question_lower for indicator in call_indicators):
+                intent = "SEARCH_CALLS"
+                confidence = 0.95
+                logger.info(f"🎯 Override: Detected call query, forcing SEARCH_CALLS intent")
+            
         except Exception:
             intent, confidence = self.cordis_rag.determine_user_intent(question)
         
