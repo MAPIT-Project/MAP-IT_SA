@@ -121,8 +121,6 @@ class UnifiedResponseFormatter:
         # Generate structured response with beautiful formatting
         answer_parts = [
             f"I found **{len(calls)} funding opportunities** for your query about '{query}':",
-            "",
-            "⚠️ **IMPORTANT**: These are REAL funding opportunities from official EU sources.",
             ""
         ]
         
@@ -134,9 +132,9 @@ class UnifiedResponseFormatter:
             answer_parts.append(call_summary)
             answer_parts.append("")  # Empty line between calls
         
-        # Add helpful footer
-        answer_parts.extend(self._get_calls_footer())
-        
+        # Add helpful footer with suggestions
+        answer_parts.extend(self._get_calls_footer_with_suggestions(query, len(calls)))
+
         return "\n".join(answer_parts)
     
     def _format_single_call(self, index: int, call: Dict[str, Any]) -> str:
@@ -244,9 +242,9 @@ class UnifiedResponseFormatter:
         
         return sorted(calls, key=sort_key)
     
-    def _get_calls_footer(self) -> List[str]:
-        """Get helpful footer information for funding calls."""
-        return [
+    def _get_calls_footer_with_suggestions(self, query: str, results_count: int) -> List[str]:
+        """Get helpful footer information for funding calls with suggestions."""
+        footer_parts = [
             "---",
             "",
             "💡 **How to Apply:**",
@@ -266,28 +264,53 @@ class UnifiedResponseFormatter:
             "• Download the call documentation and work programme",
             "• Start building your consortium if partnerships are required",
             "• Prepare your proposal using the official templates",
-            "",
-            "🔍 **Need more specific calls?** Try refining your search with more specific keywords, research areas, or check back regularly as new calls are published throughout the year."
+            ""
         ]
+
+        # Add suggestions based on results count
+        if results_count <= 2:
+            footer_parts.extend([
+                "🔍 **Want More Options?** Try these refined searches:",
+                "• Add 'horizon europe' to your query for EU framework programme calls",
+                "• Try broader terms: 'sustainable energy', 'climate action', 'green transition'",
+                "• Consider related programmes: EIC Accelerator, LIFE Programme, Digital Europe",
+                "• Check different time periods or include closed calls for more options",
+                ""
+            ])
+        elif results_count <= 5:
+            footer_parts.extend([
+                "🔍 **Explore More:**",
+                "• Try adding 'innovation' or 'research' to find additional opportunities",
+                "• Consider cross-cutting themes like 'digital transformation' or 'sustainability'",
+                "• Check related clusters: Health, Digital, Climate, or Mobility",
+                ""
+            ])
+
+        footer_parts.append("📅 **Stay Updated:** Check back regularly as new calls are published throughout the year.")
+
+        return footer_parts
     
     def _format_no_calls_found(self, query: str) -> str:
         """Format response when no calls are found."""
         current_year = datetime.now().year
-        
+
         # Extract search terms for verification URL and better messaging
         search_terms = query.lower()
         for phrase in ["what are some open calls for", "what are some open calls about", "open calls for", "open calls about", "calls for", "calls about"]:
             search_terms = search_terms.replace(phrase, "").strip()
         search_terms = search_terms.replace("?", "").strip()
-        
+
         if not search_terms:
             search_terms = "energy"
-        
+
         verification_url = f"https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search;freeTextSearchKeyword={search_terms.replace(' ', '%20')};sortQuery=sortStatus;orderBy=asc"
-        
+
         # Provide topic-specific guidance
         topic_guidance = self._get_topic_specific_guidance(search_terms)
-        
+
+        # Generate specific query suggestions based on the original query
+        query_suggestions = self._generate_query_suggestions(query, search_terms)
+
         return f"""**🔍 No Currently Open Calls Found**
 
 I searched the EU Funding & Tenders Portal but found **no currently open calls** for "{query}" right now in {current_year}.
@@ -326,7 +349,10 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
 
 **💡 The Reality:** EU funding is competitive and cyclical. No open calls right now doesn't mean no opportunities - it means timing is everything!
 
-{topic_guidance}"""
+{topic_guidance}
+
+**🎯 Try These More Specific Queries:**
+{query_suggestions}"""
     
     def _format_cordis_projects(self, project_data: Dict[str, Any]) -> str:
         """Format CORDIS project search results."""
@@ -521,10 +547,68 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
         
         return "\n".join(formatted_parts)
     
+    def _generate_query_suggestions(self, original_query: str, search_terms: str) -> str:
+        """Generate specific query suggestions based on the original query."""
+        suggestions = []
+
+        # Base suggestions for common scenarios
+        base_suggestions = [
+            f"\"{search_terms} horizon europe\"",
+            f"\"renewable energy horizon europe\"",
+            f"\"sustainable energy innovation\"",
+            f"\"energy efficiency research\""
+        ]
+
+        # Add topic-specific suggestions
+        search_terms_lower = search_terms.lower()
+
+        if any(term in search_terms_lower for term in ['energy', 'renewable', 'solar', 'wind', 'battery', 'hydrogen', 'clean']):
+            suggestions.extend([
+                f"\"{search_terms} horizon europe\"",
+                "\"renewable energy horizon europe\"",
+                "\"clean energy innovation\"",
+                "\"energy storage research\"",
+                "\"sustainable energy projects\""
+            ])
+        elif any(term in search_terms_lower for term in ['ai', 'artificial intelligence', 'digital', 'data', 'algorithm', 'machine learning']):
+            suggestions.extend([
+                f"\"{search_terms} horizon europe\"",
+                "\"artificial intelligence research\"",
+                "\"machine learning applications\"",
+                "\"digital transformation funding\"",
+                "\"AI innovation projects\""
+            ])
+        elif any(term in search_terms_lower for term in ['health', 'medical', 'healthcare', 'medicine', 'pharma', 'clinical']):
+            suggestions.extend([
+                f"\"{search_terms} horizon europe\"",
+                "\"medical research funding\"",
+                "\"healthcare innovation\"",
+                "\"clinical trials support\"",
+                "\"biomedical research projects\""
+            ])
+        elif any(term in search_terms_lower for term in ['climate', 'environment', 'sustainability', 'green']):
+            suggestions.extend([
+                f"\"{search_terms} horizon europe\"",
+                "\"climate change research\"",
+                "\"environmental sustainability\"",
+                "\"green technology innovation\"",
+                "\"circular economy projects\""
+            ])
+        else:
+            # Generic suggestions
+            suggestions.extend(base_suggestions)
+
+        # Format suggestions as a bulleted list
+        suggestion_lines = []
+        for i, suggestion in enumerate(suggestions[:5], 1):  # Limit to 5 suggestions
+            suggestion_lines.append(f"• \"{suggestion}\"")
+
+        return "\n".join(suggestion_lines)
+
     def _get_topic_specific_guidance(self, search_terms: str) -> str:
         """Get topic-specific guidance for when no calls are found."""
         search_terms_lower = search_terms.lower()
-        
+
         # Energy-specific guidance
         if any(term in search_terms_lower for term in ['energy', 'renewable', 'solar', 'wind', 'battery', 'hydrogen', 'clean']):
             return """
@@ -535,7 +619,7 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
 • Check **EIC Accelerator** for breakthrough energy innovations
 • Look into **LIFE Programme** for environmental energy projects"""
 
-        # AI/Digital specific guidance  
+        # AI/Digital specific guidance
         elif any(term in search_terms_lower for term in ['ai', 'artificial intelligence', 'digital', 'data', 'algorithm', 'machine learning']):
             return """
 **🤖 AI/Digital Topic Insights:**

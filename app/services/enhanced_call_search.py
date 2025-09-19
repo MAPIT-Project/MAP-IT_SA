@@ -71,11 +71,11 @@ class EnhancedCallSearchService:
             self.query_parser = None
             logger.warning("⚠️ AI query parser not available")
         
-        # Status code mapping (CORRECTED!)
+        # Status code mapping (CORRECT!)
         self.status_mapping = {
-            '31094501': 'Closed',      # Closed calls
-            '31094502': 'Open',        # Open for submission  
-            '31094503': 'Forthcoming', # Forthcoming/Future calls
+            '31094501': 'Forthcoming', # Forthcoming/Future calls
+            '31094502': 'Open',        # Open for submission
+            '31094503': 'Closed',      # Closed calls
         }
         
         # Search configuration - maximize results

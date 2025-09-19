@@ -248,6 +248,124 @@ class ResearchTools:
                 'projects_found': 0
             }
 
+    @staticmethod
+    async def search_local_database(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Search local document database for conversational queries using enhanced RAG.
+
+        This tool searches the local Horizon Europe document database to provide
+        contextual answers to general questions, procedural queries, and informational requests.
+        """
+        from ..enhanced_rag_service import HorizonEuropeRAG
+
+        # Define parameter schema for validation
+        schema = {
+            'query': {
+                'type': 'string',
+                'required': True,
+                'description': 'Search query for finding relevant information in local documents'
+            },
+            'max_context_chunks': {
+                'type': 'integer',
+                'default': 5,
+                'min': 1,
+                'max': 10,
+                'description': 'Maximum number of document chunks to use for context (1-10)'
+            },
+            'search_type': {
+                'type': 'string',
+                'default': 'hybrid',
+                'description': 'Search type: semantic, keyword, or hybrid',
+                'allowed_values': ['semantic', 'keyword', 'hybrid']
+            },
+            'similarity_threshold': {
+                'type': 'float',
+                'default': 0.7,
+                'min': 0.1,
+                'max': 1.0,
+                'description': 'Similarity threshold for search results (0.1-1.0)'
+            }
+        }
+
+        try:
+            # Validate parameters
+            validated_params = ToolValidator.validate_parameters(params, schema)
+
+            # Extract validated parameters
+            query = validated_params['query']
+            max_context_chunks = validated_params['max_context_chunks']
+            search_type = validated_params['search_type']
+            similarity_threshold = validated_params['similarity_threshold']
+
+            # Validate query is not empty
+            if not query or query.strip() == '':
+                return {
+                    'success': False,
+                    'error': 'Query parameter cannot be empty',
+                    'error_type': 'validation_error',
+                    'query': query,
+                    'documents_found': 0
+                }
+
+            logger.info(f"🔍 Searching local database: '{query}' (type: {search_type}, chunks: {max_context_chunks})")
+
+            # Execute search using enhanced RAG service
+            rag_service = HorizonEuropeRAG()
+            results = rag_service.handle_general_query(
+                question=query,
+                max_context_chunks=max_context_chunks,
+                search_type=search_type,
+                similarity_threshold=similarity_threshold
+            )
+
+            # Standardized successful response
+            response = {
+                'success': True,
+                'tool_name': 'search_local_database',
+                'query': query,
+                'parameters_used': validated_params,
+                'results': {
+                    'answer': results.get('answer', ''),
+                    'documents_found': results.get('chunks_used', 0),
+                    'data_source': results.get('data_source', 'local_documents'),
+                    'search_type': results.get('search_type', search_type),
+                    'confidence': results.get('confidence', 0.0),
+                    'sources': results.get('sources', [])
+                },
+                'metadata': {
+                    'search_method': 'enhanced_rag',
+                    'document_database': 'horizon_europe_documents',
+                    'timestamp': datetime.now().isoformat(),
+                    'processing_time_ms': results.get('processing_time', 0) * 1000
+                }
+            }
+
+            logger.info(f"✅ Local database search completed: {response['results']['documents_found']} documents found")
+            return response
+
+        except ValueError as e:
+            # Parameter validation error
+            logger.error(f"Local database search validation error: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'error_type': 'validation_error',
+                'tool_name': 'search_local_database',
+                'query': params.get('query', ''),
+                'documents_found': 0
+            }
+        except Exception as e:
+            # Execution error
+            logger.error(f"Local database search execution error: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'error_type': 'execution_error',
+                'tool_name': 'search_local_database',
+                'query': params.get('query', ''),
+                'documents_found': 0
+            }
+
     # @staticmethod
     # async def analyze_project_portfolio(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
     #     """Analyze a portfolio of projects."""
@@ -825,8 +943,172 @@ class ToolOrchestrator:
         #     parallel_safe=True
         # )
         
+        # Conversational Database Search Tool
+        async def search_local_database(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+            """
+            Search local document database for conversational queries using enhanced RAG.
+
+            This tool searches the local Horizon Europe document database to provide
+            contextual answers to general questions, procedural queries, and informational requests.
+            """
+            from ..enhanced_rag_service import HorizonEuropeRAG
+
+            # Define parameter schema for validation
+            schema = {
+                'query': {
+                    'type': 'string',
+                    'required': True,
+                    'description': 'Search query for finding relevant information in local documents'
+                },
+                'max_context_chunks': {
+                    'type': 'integer',
+                    'default': 5,
+                    'min': 1,
+                    'max': 10,
+                    'description': 'Maximum number of document chunks to use for context (1-10)'
+                },
+                'search_type': {
+                    'type': 'string',
+                    'default': 'hybrid',
+                    'description': 'Search type: semantic, keyword, or hybrid',
+                    'allowed_values': ['semantic', 'keyword', 'hybrid']
+                },
+                'similarity_threshold': {
+                    'type': 'float',
+                    'default': 0.7,
+                    'min': 0.1,
+                    'max': 1.0,
+                    'description': 'Similarity threshold for search results (0.1-1.0)'
+                }
+            }
+
+            try:
+                # Validate parameters
+                validated_params = ToolValidator.validate_parameters(params, schema)
+
+                # Extract validated parameters
+                query = validated_params['query']
+                max_context_chunks = validated_params['max_context_chunks']
+                search_type = validated_params['search_type']
+                similarity_threshold = validated_params['similarity_threshold']
+
+                # Validate query is not empty
+                if not query or query.strip() == '':
+                    return {
+                        'success': False,
+                        'error': 'Query parameter cannot be empty',
+                        'error_type': 'validation_error',
+                        'query': query,
+                        'documents_found': 0
+                    }
+
+                logger.info(f"🔍 Searching local database: '{query}' (type: {search_type}, chunks: {max_context_chunks})")
+
+                # Execute search using enhanced RAG service
+                rag_service = HorizonEuropeRAG()
+                results = rag_service.handle_general_query(
+                    question=query,
+                    max_context_chunks=max_context_chunks,
+                    search_type=search_type,
+                    similarity_threshold=similarity_threshold
+                )
+
+                # Standardized successful response
+                response = {
+                    'success': True,
+                    'tool_name': 'search_local_database',
+                    'query': query,
+                    'parameters_used': validated_params,
+                    'results': {
+                        'answer': results.get('answer', ''),
+                        'documents_found': results.get('chunks_used', 0),
+                        'data_source': results.get('data_source', 'local_documents'),
+                        'search_type': results.get('search_type', search_type),
+                        'confidence': results.get('confidence', 0.0),
+                        'sources': results.get('sources', [])
+                    },
+                    'metadata': {
+                        'search_method': 'enhanced_rag',
+                        'document_database': 'horizon_europe_documents',
+                        'timestamp': datetime.now().isoformat(),
+                        'processing_time_ms': results.get('processing_time', 0) * 1000
+                    }
+                }
+
+                logger.info(f"✅ Local database search completed: {response['results']['documents_found']} documents found")
+                return response
+
+            except ValueError as e:
+                # Parameter validation error
+                logger.error(f"Local database search validation error: {e}")
+                return {
+                    'success': False,
+                    'error': str(e),
+                    'error_type': 'validation_error',
+                    'tool_name': 'search_local_database',
+                    'query': params.get('query', ''),
+                    'documents_found': 0
+                }
+            except Exception as e:
+                # Execution error
+                logger.error(f"Local database search execution error: {e}")
+                return {
+                    'success': False,
+                    'error': str(e),
+                    'error_type': 'execution_error',
+                    'tool_name': 'search_local_database',
+                    'query': params.get('query', ''),
+                    'documents_found': 0
+                }
+
+        database_tool = Tool(
+            name='search_local_database',
+            description='Search local Horizon Europe document database for conversational queries and informational requests',
+            parameters_schema={
+                'query': {
+                    'type': 'string',
+                    'required': True,
+                    'description': 'Search query for finding relevant information in local documents',
+                    'examples': ['How to apply for Horizon Europe funding?', 'What are the eligibility requirements?', 'Explain the evaluation process']
+                },
+                'max_context_chunks': {
+                    'type': 'integer',
+                    'default': 5,
+                    'min': 1,
+                    'max': 10,
+                    'description': 'Maximum number of document chunks to use for context (1-10)'
+                },
+                'search_type': {
+                    'type': 'string',
+                    'default': 'hybrid',
+                    'description': 'Search type: semantic, keyword, or hybrid',
+                    'allowed_values': ['semantic', 'keyword', 'hybrid']
+                },
+                'similarity_threshold': {
+                    'type': 'float',
+                    'default': 0.7,
+                    'min': 0.1,
+                    'max': 1.0,
+                    'description': 'Similarity threshold for search results (0.1-1.0)'
+                }
+            },
+            execute_func=search_local_database,
+            cache_ttl=1800,  # 30 minutes - shorter cache for conversational queries
+            parallel_safe=True,
+            category='conversational_search',
+            tags=['local_database', 'conversational', 'documents', 'rag', 'horizon_europe'],
+            usage_examples=[
+                'How do I apply for Horizon Europe funding?',
+                'What are the eligibility requirements for grants?',
+                'Explain the proposal evaluation process',
+                'What documents do I need to submit?',
+                'How does the funding system work?'
+            ]
+        )
+
         # Register all tools
         self.register_tool(portal_tool)
+        self.register_tool(database_tool)
         # self.register_tool(analysis_tool)
     
     def get_available_tools(self) -> List[Dict[str, Any]]:
@@ -979,7 +1261,54 @@ def create_research_orchestrator(cache_client = None) -> ToolOrchestrator:
     #     parallel_safe=False  # Requires sequential processing
     # )
     
+    # Conversational Database Search Tool
+    database_tool = Tool(
+        name='search_local_database',
+        description='Search local Horizon Europe document database for conversational queries and informational requests',
+        parameters_schema={
+            'query': {
+                'type': 'string',
+                'required': True,
+                'description': 'Search query for finding relevant information in local documents',
+                'examples': ['How to apply for Horizon Europe funding?', 'What are the eligibility requirements?', 'Explain the evaluation process']
+            },
+            'max_context_chunks': {
+                'type': 'integer',
+                'default': 5,
+                'min': 1,
+                'max': 10,
+                'description': 'Maximum number of document chunks to use for context (1-10)'
+            },
+            'search_type': {
+                'type': 'string',
+                'default': 'hybrid',
+                'description': 'Search type: semantic, keyword, or hybrid',
+                'allowed_values': ['semantic', 'keyword', 'hybrid']
+            },
+            'similarity_threshold': {
+                'type': 'float',
+                'default': 0.7,
+                'min': 0.1,
+                'max': 1.0,
+                'description': 'Similarity threshold for search results (0.1-1.0)'
+            }
+        },
+        execute_func=ResearchTools.search_local_database,
+        cache_ttl=1800,  # 30 minutes - shorter cache for conversational queries
+        parallel_safe=True,
+        category='conversational_search',
+        tags=['local_database', 'conversational', 'documents', 'rag', 'horizon_europe'],
+        usage_examples=[
+            'How do I apply for Horizon Europe funding?',
+            'What are the eligibility requirements for grants?',
+            'Explain the proposal evaluation process',
+            'What documents do I need to submit?',
+            'How does the funding system work?'
+        ]
+    )
+
     orchestrator.register_tool(cordis_tool)
+    orchestrator.register_tool(database_tool)
     # orchestrator.register_tool(portfolio_tool)
-    
+
     return orchestrator
