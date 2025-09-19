@@ -78,10 +78,44 @@ class UnifiedResponseFormatter:
         Format EU funding calls with beautiful styling.
         Uses the excellent formatting from rag_service._generate_calls_answer
         """
-        calls = call_data.get('calls', [])
-        query = call_data.get('query', 'funding opportunities')
-        
-        if not calls:
+        # Handle different data structures from tool results
+        calls = []
+        query = 'funding opportunities'
+
+        # Check if call_data is the tool result structure
+        if isinstance(call_data, dict):
+            # Tool result structure
+            if 'calls' in call_data:
+                calls = call_data['calls']
+            elif 'results' in call_data:
+                # Handle both list of objects and dict with results
+                results = call_data['results']
+                if isinstance(results, list):
+                    calls = results
+                elif isinstance(results, dict) and 'calls' in results:
+                    calls = results['calls']
+            query = call_data.get('query', 'funding opportunities')
+        elif isinstance(call_data, list):
+            # Direct list of calls
+            calls = call_data
+        else:
+            # Try to extract calls from any structure
+            calls = getattr(call_data, 'results', []) if hasattr(call_data, 'results') else []
+
+        # Convert EnhancedSearchResult objects to dictionaries if needed
+        processed_calls = []
+        for call in calls:
+            if hasattr(call, '__dataclass_fields__'):
+                # Convert dataclass to dict
+                from dataclasses import asdict
+                processed_calls.append(asdict(call))
+            elif isinstance(call, dict):
+                processed_calls.append(call)
+            else:
+                # Skip invalid call objects
+                continue
+
+        if not processed_calls:
             return self._format_no_calls_found(query)
         
         # Generate structured response with beautiful formatting
@@ -93,8 +127,8 @@ class UnifiedResponseFormatter:
         ]
         
         # Sort calls by status and deadline
-        sorted_calls = self._sort_calls_by_priority(calls)
-        
+        sorted_calls = self._sort_calls_by_priority(processed_calls)
+
         for i, call in enumerate(sorted_calls, 1):
             call_summary = self._format_single_call(i, call)
             answer_parts.append(call_summary)

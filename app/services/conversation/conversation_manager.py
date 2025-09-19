@@ -198,11 +198,20 @@ Conversation Summary: {summary.summary_text if summary else 'New conversation'}
 
 User Message: {message}
 
+TOOL USAGE RULES:
+- "open calls", "funding opportunities", "calls for proposals" → REQUIRES eu_portal_search tool
+- "projects", "research projects", "case studies" → REQUIRES search_cordis_projects tool
+- "look up projects", "search projects", "find projects" → REQUIRES search_cordis_projects tool
+- "cordis", "cordis api", "search cordis" → REQUIRES search_cordis_projects tool
+- General questions about EU funding → May require tools depending on specificity
+
 Determine:
 1. Intent type: [question, command, clarification, follow_up, greeting]
 2. Requires retrieval: true/false (needs to search for information)
 3. Requires tools: true/false (needs to execute tools/APIs)
 4. Confidence: 0.0-1.0
+
+IMPORTANT: If the user mentions "open calls", "funding opportunities", or similar terms, you MUST set requires_tools: true
 
 Respond in JSON format:
 {{
@@ -329,7 +338,7 @@ Respond in JSON:
                 if tool_result_obj.success:
                     tool_data = tool_result_obj.result
                     
-                    if tool_name == 'search_horizon_calls':
+                    if tool_name == 'eu_portal_search':
                         # Format call search results
                         if tool_data.get('calls'):
                             for call in tool_data['calls'][:5]:
@@ -347,7 +356,7 @@ Respond in JSON:
                                 else:
                                     # Already a dict
                                     call_data = call
-                                
+
                                 retrieval_results.append({
                                     'content': f"**{call_data['title']}**\n\nCall ID: {call_data['identifier']}\nStatus: {call_data['status']}\nDeadline: {call_data['deadline']}\nURL: {call_data['url']}\n\n{call_data.get('description', '')}",
                                     'citation': f"EU Funding Portal - {call_data['identifier']}",
@@ -593,49 +602,25 @@ If no tools are needed, return {{"tools_needed": [], "reasoning": "Question can 
             }
 
     async def _forced_tool_planner(self,
-                                   user_message: str,
-                                   intent_analysis: Dict,
-                                   context: str,
-                                   conversation_id: int) -> Optional[List]:
+                                    user_message: str,
+                                    intent_analysis: Dict,
+                                    context: str,
+                                    conversation_id: int) -> Optional[List]:
         """
         SMART tool planning that only executes tools when appropriate.
         Follows the 7-phase architecture properly.
         """
         try:
             message_lower = user_message.lower()
-            
-            # EXCLUDE general conversational queries and nonsense text
-            conversational_indicators = [
-                'hello', 'hi', 'thanks', 'thank you', 'help', 'how are you',
-                'what can you', 'who are you', 'what do you do', 'goodbye',
-                'bye', 'please', 'explain', 'tell me about', 'what is',
-                'how does', 'why', 'when', 'where'
-            ]
-            
-            # If it's clearly conversational, don't use tools
-            if any(indicator in message_lower for indicator in conversational_indicators):
-                logger.info(f"🗣️ Conversational query detected: '{user_message}' - No tools needed")
-                return None
-            
-            # EXCLUDE nonsense/random text - if it doesn't contain recognizable words, treat as conversational
-            import re
-            # Check if message contains mostly nonsense (random characters, no recognizable patterns)
-            words = user_message.split()
-            nonsense_pattern = re.compile(r'^[a-zA-Z]{2,}$')  # Just random letters
-            recognizable_words = ['energy', 'automotive', 'ai', 'health', 'climate', 'digital', 'call', 'calls', 'funding', 'grant', 'project', 'research', 'open', 'closed', 'horizon', 'eu', 'european']
-            
-            # If message is short and contains no recognizable funding/research terms, treat as conversational
-            if len(words) <= 5 and not any(word.lower() in recognizable_words for word in words):
-                logger.info(f"🤷 Nonsense/unclear query detected: '{user_message}' - Using conversational response")
-                return None
-            
+
+            # Define all keyword lists at the beginning
             # SPECIFIC call-related keywords (more precise)
             call_keywords = [
                 'open calls', 'funding calls', 'call for proposals', 'grant calls',
                 'submission deadline', 'funding opportunities', 'horizon calls',
                 'eu calls', 'research calls', 'proposal calls'
             ]
-            
+
             # ENHANCED project-related keywords - comprehensive coverage
             project_keywords = [
                 # Original keywords
@@ -665,7 +650,132 @@ If no tools are needed, return {{"tools_needed": [], "reasoning": "Question can 
                 # Project search with any domain
                 'projects', 'project search', 'project database', 'project information'
             ]
-            
+
+            # FIRST: Check if intent analysis explicitly requires tools
+            requires_tools = intent_analysis.get('requires_tools', False)
+            if requires_tools:
+                logger.info(f"🎯 Intent analysis requires tools: {intent_analysis.get('explanation', 'No explanation')}")
+                # If intent analysis says tools are needed, create tool plan based on keywords
+                # This ensures AI decisions are respected
+
+                # Create tool plan based on the message content
+                tools_needed = []
+
+                # Check for call-related queries
+                if any(keyword in message_lower for keyword in call_keywords):
+                    tools_needed.append({
+                        "tool_name": "eu_portal_search",
+                        "parameters": {
+                            "query": user_message,
+                            "status": "open",
+                            "max_results": 20
+                        },
+                        "reason": f"Intent analysis requires tools and call keywords detected"
+                    })
+                    logger.info(f"🎯 AI-REQUIRED call query: eu_portal_search for '{user_message}'")
+
+                # Check for project-related queries
+                elif any(keyword in message_lower for keyword in project_keywords):
+                    tools_needed.append({
+                        "tool_name": "search_cordis_projects",
+                        "parameters": {
+                            "query": user_message,
+                            "max_results": 10
+                        },
+                        "reason": f"Intent analysis requires tools and project keywords detected"
+                    })
+                    logger.info(f"🎯 AI-REQUIRED project query: search_cordis_projects for '{user_message}'")
+
+                # If tools are needed but no specific keywords, default to call search
+                else:
+                    tools_needed.append({
+                        "tool_name": "eu_portal_search",
+                        "parameters": {
+                            "query": user_message,
+                            "status": "open",
+                            "max_results": 20
+                        },
+                        "reason": f"Intent analysis requires tools, defaulting to call search"
+                    })
+                    logger.info(f"🎯 AI-REQUIRED default query: eu_portal_search for '{user_message}'")
+
+                # Convert to ToolCall objects
+                if tools_needed:
+                    from ..tools.tool_orchestrator import ToolCall
+                    tool_calls = []
+                    for i, tool_spec in enumerate(tools_needed):
+                        tool_call = ToolCall(
+                            tool_name=tool_spec["tool_name"],
+                            parameters=tool_spec["parameters"],
+                            execution_order=i
+                        )
+                        tool_calls.append(tool_call)
+
+                    logger.info(f"🚀 AI-REQUIRED tool planning: {len(tool_calls)} tools planned for '{user_message}'")
+                    return tool_calls
+
+            # EXCLUDE general conversational queries and nonsense text
+            conversational_indicators = [
+                'hello', 'hi', 'thanks', 'thank you', 'help', 'how are you',
+                'what can you', 'who are you', 'what do you do', 'goodbye',
+                'bye', 'please', 'explain', 'tell me about', 'what is',
+                'how does', 'why', 'when', 'where'
+            ]
+
+            # If it's clearly conversational, don't use tools
+            if any(indicator in message_lower for indicator in conversational_indicators):
+                logger.info(f"🗣️ Conversational query detected: '{user_message}' - No tools needed")
+                return None
+
+            # EXCLUDE nonsense/random text - if it doesn't contain recognizable words, treat as conversational
+            import re
+            # Check if message contains mostly nonsense (random characters, no recognizable patterns)
+            words = user_message.split()
+            nonsense_pattern = re.compile(r'^[a-zA-Z]{2,}$')  # Just random letters
+            recognizable_words = ['energy', 'automotive', 'ai', 'health', 'climate', 'digital', 'call', 'calls', 'funding', 'grant', 'project', 'research', 'open', 'closed', 'horizon', 'eu', 'european']
+
+            # If message is short and contains no recognizable funding/research terms, treat as conversational
+            if len(words) <= 5 and not any(word.lower() in recognizable_words for word in words):
+                logger.info(f"🤷 Nonsense/unclear query detected: '{user_message}' - Using conversational response")
+                return None
+
+            # SPECIFIC call-related keywords (more precise)
+            call_keywords = [
+                'open calls', 'funding calls', 'call for proposals', 'grant calls',
+                'submission deadline', 'funding opportunities', 'horizon calls',
+                'eu calls', 'research calls', 'proposal calls'
+            ]
+
+            # ENHANCED project-related keywords - comprehensive coverage
+            project_keywords = [
+                # Original keywords
+                'completed projects', 'research projects', 'project results',
+                'cordis projects', 'funded projects', 'project examples',
+                'successful projects', 'project outcomes',
+                # Enhanced keywords for better detection
+                'look up projects', 'search projects', 'find projects',
+                'show me projects', 'get projects', 'retrieve projects',
+                'cordis api', 'cordis search', 'search cordis',
+                'information on projects', 'data on projects', 'details about projects',
+                'what projects', 'which projects', 'show me information on projects',
+                'get information on projects', 'retrieve information on projects',
+                'search for information on projects',
+                # Generic project terms that should trigger search
+                'projects about', 'projects related to', 'search for projects',
+                'find information on projects', 'get information on projects',
+                'retrieve information on projects', 'search for information on projects',
+                # Domain-specific project searches
+                'projects in', 'projects on', 'projects for',
+                # Action verbs + project terms
+                'find me projects', 'show me projects', 'get me projects',
+                'search me projects', 'look me projects',
+                # CRITICAL ADDITIONS - Direct search patterns
+                'search for', 'find me', 'show me', 'tell me about',
+                'look up', 'get me', 'retrieve', 'explore',
+                # Project search with any domain
+                'projects', 'project search', 'project database', 'project information'
+            ]
+
             # Domain + funding context (more specific)
             domain_funding_patterns = [
                 r'\b(energy|automotive|ai|health|climate|digital)\b.*\b(call|funding|grant|opportunity)\b',
@@ -673,9 +783,9 @@ If no tools are needed, return {{"tools_needed": [], "reasoning": "Question can 
                 r'open.*\b(energy|automotive|ai|health|climate|digital)\b',
                 r'\b(energy|automotive|ai|health|climate|digital)\b.*open'
             ]
-            
+
             tools_needed = []
-            
+
             # Check for explicit call-related queries
             if any(keyword in message_lower for keyword in call_keywords):
                 tools_needed.append({
@@ -688,7 +798,7 @@ If no tools are needed, return {{"tools_needed": [], "reasoning": "Question can 
                     "reason": f"Explicit call query detected"
                 })
                 logger.info(f"🎯 EXPLICIT call query: eu_portal_search for '{user_message}'")
-            
+
             # Check for domain + funding patterns
             elif any(re.search(pattern, message_lower) for pattern in domain_funding_patterns):
                 tools_needed.append({
@@ -701,7 +811,7 @@ If no tools are needed, return {{"tools_needed": [], "reasoning": "Question can 
                     "reason": f"Domain + funding pattern detected"
                 })
                 logger.info(f"🎯 DOMAIN+FUNDING query: eu_portal_search for '{user_message}'")
-            
+
             # Check for explicit project queries - ENHANCED DETECTION
             project_detected = False
 
@@ -737,12 +847,12 @@ If no tools are needed, return {{"tools_needed": [], "reasoning": "Question can 
                     "reason": f"Enhanced project query detection"
                 })
                 logger.info(f"🎯 ENHANCED project query: search_cordis_projects for '{user_message}'")
-            
+
             # NO DEFAULT TOOL EXECUTION - let it be conversational!
             else:
                 logger.info(f"🤖 No specific tool needed for: '{user_message}' - Will use conversational AI")
                 return None
-            
+
             if tools_needed:
                 # Convert to ToolCall objects
                 from ..tools.tool_orchestrator import ToolCall
@@ -754,10 +864,10 @@ If no tools are needed, return {{"tools_needed": [], "reasoning": "Question can 
                         execution_order=i
                     )
                     tool_calls.append(tool_call)
-                
+
                 logger.info(f"🚀 SMART tool planning: {len(tool_calls)} tools planned for '{user_message}'")
                 return tool_calls
-            
+
             return None
             
         except Exception as e:
@@ -825,6 +935,13 @@ CONTEXT ANALYSIS: {json.dumps(context_intent_boost, indent=2)}
 AVAILABLE TOOLS:
 {json.dumps(available_tools, indent=2)}
 
+TOOL USAGE RULES:
+- "open calls", "funding opportunities", "calls for proposals" → MUST USE eu_portal_search tool
+- "projects", "research projects", "case studies" → MUST USE search_cordis_projects tool
+- "look up projects", "search projects", "find projects" → MUST USE search_cordis_projects tool
+- "cordis", "cordis api", "search cordis" → MUST USE search_cordis_projects tool
+- General questions about EU funding → May require tools depending on specificity
+
 INSTRUCTIONS:
 1. Analyze the user's intent and classify the query type
 2. Consider the CONTEXT ANALYSIS for repeated patterns and user frustration
@@ -833,6 +950,7 @@ INSTRUCTIONS:
 5. If user is repeatedly asking for projects/CORDIS searches, HIGHLY prioritize search_cordis_projects tool
 6. If user shows frustration ("no i mean", "i said", etc.), boost confidence for tool usage
 7. Provide reasoning for your decisions
+8. CRITICAL: If user mentions "open calls", "funding opportunities", or similar terms, you MUST include eu_portal_search in tools_needed
 
 RESPONSE FORMAT (JSON):
 {{
