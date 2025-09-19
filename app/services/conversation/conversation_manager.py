@@ -17,6 +17,7 @@ from ..rag.conversation_retriever import ConversationAwareRetriever, RetrievalCo
 from ..rag.response_generator import GroundedResponseGenerator
 from ..rag.hybrid_search import HybridSearchPipeline, MockVectorStore, MockKeywordStore, MockEmbeddingService
 from ..tools.tool_orchestrator import create_research_orchestrator
+from ..response.unified_formatter import UnifiedResponseFormatter
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,9 @@ class ConversationManager:
             self.tool_orchestrator = create_research_orchestrator(
                 cache_client=self.memory_service.redis_client
             )
+            
+            # Response formatting
+            self.unified_formatter = UnifiedResponseFormatter()
             
             # Configuration
             self.config = self._load_configuration()
@@ -499,13 +503,32 @@ If no tools are needed, return {{"tools_needed": [], "reasoning": "Question can 
                 }
                 context_chunks.insert(0, tool_context)
             
-            # Generate response
-            response = self.response_generator.generate_response(
-                query=query,
-                context_chunks=context_chunks,
-                conversation_context=context,
-                system_instructions=self._get_system_instructions(intent_analysis)
-            )
+            # Phase 7: Use unified formatter for beautiful responses
+            formatted_response = None
+            if tool_results:
+                # Use unified formatter for tool results (calls, projects, etc.)
+                formatted_response = self.unified_formatter.format_mixed_results(
+                    tool_results=tool_results,
+                    retrieval_results=retrieval_results,
+                    query=query
+                )
+            
+            if formatted_response:
+                # Use the beautifully formatted response
+                response = {
+                    'answer': formatted_response,
+                    'citations': [],
+                    'confidence': 0.9,  # High confidence for direct tool results
+                    'grounded': True
+                }
+            else:
+                # Fall back to AI generation for complex queries
+                response = self.response_generator.generate_response(
+                    query=query,
+                    context_chunks=context_chunks,
+                    conversation_context=context,
+                    system_instructions=self._get_system_instructions(intent_analysis)
+                )
             
             # Store assistant response in memory
             assistant_message_id = await self._store_assistant_message(
@@ -565,7 +588,57 @@ If no tools are needed, return {{"tools_needed": [], "reasoning": "Question can 
                 }
                 context_chunks.insert(0, tool_context)
             
-            # Stream response generation
+            # Phase 7: Use unified formatter for streaming responses too
+            if tool_results:
+                # For tool results, generate the formatted response and stream it
+                formatted_response = self.unified_formatter.format_mixed_results(
+                    tool_results=tool_results,
+                    retrieval_results=retrieval_results,
+                    query=query
+                )
+                
+                if formatted_response:
+                    # Stream the pre-formatted response in chunks
+                    chunk_size = 50  # Characters per chunk
+                    for i in range(0, len(formatted_response), chunk_size):
+                        chunk = formatted_response[i:i+chunk_size]
+                        yield {
+                            'type': 'token',
+                            'content': chunk,
+                            'accumulated_response': formatted_response[:i+len(chunk)]
+                        }
+                        await asyncio.sleep(0.01)  # Small delay for streaming effect
+                    
+                    # Store final response in memory
+                    assistant_message_id = await self._store_assistant_message(
+                        conversation_id, formatted_response
+                    )
+                    
+                    self.memory_service.add_conversation_turn(
+                        conversation_id=conversation_id,
+                        role='assistant',
+                        content=formatted_response,
+                        message_id=assistant_message_id
+                    )
+                    
+                    # Send completion message
+                    processing_time = (datetime.now() - start_time).total_seconds()
+                    yield {
+                        'type': 'completion',
+                        'final_response': formatted_response,
+                        'citations': [],
+                        'confidence': 0.9,
+                        'grounded': True,
+                        'intent': intent_analysis,
+                        'chunks_retrieved': len(retrieval_results) if retrieval_results else 0,
+                        'tools_executed': True,
+                        'processing_time': processing_time,
+                        'memory_stats': self.memory_service.stm.get_memory_stats(conversation_id),
+                        'retrieval_stats': self.retriever.get_retrieval_stats(conversation_id)
+                    }
+                    return
+            
+            # Fall back to AI streaming for complex queries
             accumulated_response = ""
             async for chunk in self.response_generator.generate_streaming_response(
                 query=query,

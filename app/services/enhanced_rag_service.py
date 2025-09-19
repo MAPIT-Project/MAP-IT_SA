@@ -991,10 +991,13 @@ Answer:"""
             if self.enhanced_search and not call_identifier:
                 logger.info("🚀 Using enhanced call search service")
                 
+                # Check if user specifically asked for open calls
+                include_closed_calls = not ('open' in question.lower() and ('call' in question.lower() or 'funding' in question.lower()))
+                
                 enhanced_result = self.enhanced_search.search_calls_enhanced(
                     query=question,
                     max_results=max_context_chunks,
-                    include_closed=True,  # Include closed calls for completeness
+                    include_closed=include_closed_calls,  # Only include closed if not asking specifically for open
                     enable_facet_analysis=True
                 )
                 

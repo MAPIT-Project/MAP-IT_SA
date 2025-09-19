@@ -316,7 +316,16 @@ Response: {{
                     status_codes = config['codes']
                     filter_intention = config['intention']
                     user_intent_detected.append(f"status:{status_type}")
-                    clean_query = re.sub(pattern, '', clean_query, flags=re.IGNORECASE).strip()
+                    # Be smarter about what we remove - preserve the core content words
+                    if status_type == 'open':
+                        # For "open calls", just remove "open" but keep "calls" as it's meaningful
+                        clean_query = re.sub(r'\bopen\s+', '', clean_query, flags=re.IGNORECASE).strip()
+                    elif status_type == 'closed':
+                        # For "closed calls", just remove "closed" but keep "calls"
+                        clean_query = re.sub(r'\bclosed\s+', '', clean_query, flags=re.IGNORECASE).strip()
+                    else:
+                        # For other patterns, remove the full match
+                        clean_query = re.sub(pattern, '', clean_query, flags=re.IGNORECASE).strip()
                     break
         
         # Temporal filters
@@ -342,7 +351,8 @@ Response: {{
                     specific_filters[domain] = True
                     break
         
-        # Final cleanup
+        # Final cleanup - handle multiple spaces and ensure meaningful content
+        clean_query = re.sub(r'\s+', ' ', clean_query).strip()  # Replace multiple spaces with single space
         if not clean_query or len(clean_query.strip()) < 2:
             clean_query = query
         

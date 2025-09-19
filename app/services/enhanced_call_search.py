@@ -171,25 +171,29 @@ class EnhancedCallSearchService:
             
             # Step 5: Process and enrich results
             processed_results = self._process_enhanced_results(search_results, query)
-            # Normalize status using deadline: if deadline is past, mark as Closed
-            try:
-                now = datetime.utcnow()
-                for r in processed_results:
-                    if getattr(r, 'deadline', None) and isinstance(r.deadline, str) and r.deadline not in ('Not specified', ''):
-                        try:
-                            # Deadlines are typically Month DD, YYYY after formatting; support ISO as well
-                            if ' ' in r.deadline and ',' in r.deadline:
-                                from datetime import datetime as _dt
-                                d = _dt.strptime(r.deadline, '%B %d, %Y')
-                            else:
-                                from datetime import datetime as _dt
-                                d = _dt.fromisoformat(r.deadline.split('T')[0])
-                            if d < now:
-                                r.status = 'Closed'
-                        except Exception:
-                            pass
-            except Exception:
-                pass
+            
+            # Only normalize status using deadline if we're including closed calls
+            # If user specifically asked for open calls, don't override the API status
+            if include_closed:
+                # Normalize status using deadline: if deadline is past, mark as Closed
+                try:
+                    now = datetime.utcnow()
+                    for r in processed_results:
+                        if getattr(r, 'deadline', None) and isinstance(r.deadline, str) and r.deadline not in ('Not specified', ''):
+                            try:
+                                # Deadlines are typically Month DD, YYYY after formatting; support ISO as well
+                                if ' ' in r.deadline and ',' in r.deadline:
+                                    from datetime import datetime as _dt
+                                    d = _dt.strptime(r.deadline, '%B %d, %Y')
+                                else:
+                                    from datetime import datetime as _dt
+                                    d = _dt.fromisoformat(r.deadline.split('T')[0])
+                                if d < now:
+                                    r.status = 'Closed'
+                            except Exception:
+                                pass
+                except Exception:
+                    pass
             # Step 5.1: Filter by status filter to exclude unwanted statuses (e.g., closed for forthcoming_only)
             if parsed_filters and getattr(parsed_filters, 'status_filter', None):
                 processed_results = [res for res in processed_results if res.status_code in parsed_filters.status_filter]
@@ -393,12 +397,14 @@ class EnhancedCallSearchService:
         elif isinstance(filters_or_include_closed, bool):
             # Fallback to original logic
             if filters_or_include_closed:
+                # Include all statuses: closed, open, forthcoming
                 base_query["bool"]["must"][0]["bool"]["must"].append(
                     {"terms": {"status": ["31094501", "31094502", "31094503"]}}
                 )
             else:
+                # Only include open and forthcoming calls (exclude closed)
                 base_query["bool"]["must"][0]["bool"]["must"].append(
-                    {"terms": {"status": ["31094501", "31094502"]}}
+                    {"terms": {"status": ["31094502", "31094503"]}}
                 )
         else:
             # Default: include all statuses for comprehensive search
@@ -960,23 +966,28 @@ class EnhancedCallSearchService:
         query_lower = query.lower().strip()
         query_words = set(query_lower.split())
         
-        # Define core search terms (remove common words)
-        stop_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'are', 'what', 'some', 'calls', 'related', 'about'}
-        core_terms = query_words - stop_words
+        # Define core search terms (remove common words but keep important context words)
+        stop_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'are', 'what', 'some', 'related', 'about'}
+        # Keep important words like "open", "calls", "funding", "opportunities" as they provide context
+        important_context_words = {'open', 'closed', 'calls', 'funding', 'opportunities', 'grants', 'proposals'}
+        
+        # Remove stop words but preserve important context
+        core_terms = (query_words - stop_words) | (query_words & important_context_words)
         
         if not core_terms:
             return results
         
         relevant_results = []
-        relevance_threshold = 0.1  # Minimum relevance score
+        relevance_threshold = 0.05  # Lower minimum relevance score (was 0.1)
         
         for result in results:
             relevance_score = self._calculate_relevance_score(result, core_terms, query_lower)
             
-            # For filtered searches, be more strict about relevance
+            # For filtered searches, don't be overly strict - user is already filtering
             min_threshold = relevance_threshold
             if filters and hasattr(filters, 'status_filter') and filters.status_filter:
-                min_threshold = 0.15  # Higher threshold for filtered searches
+                # Only slightly higher threshold for filtered searches (was 0.15)
+                min_threshold = 0.08
             
             if relevance_score >= min_threshold:
                 # Store relevance score for potential use (ensure metadata exists)

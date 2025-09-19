@@ -46,6 +46,87 @@ class Tool:
     execute_func: Callable
     cache_ttl: int = 3600  # Cache for 1 hour by default
     parallel_safe: bool = True
+    category: str = "general"  # Tool category for AI planning
+    tags: List[str] = None  # Tags for tool discovery
+    usage_examples: List[str] = None  # Example usage patterns
+    
+    def __post_init__(self):
+        if self.tags is None:
+            self.tags = []
+        if self.usage_examples is None:
+            self.usage_examples = []
+
+class ToolValidator:
+    """Utility class for validating tool parameters."""
+    
+    @staticmethod
+    def validate_parameters(params: Dict[str, Any], schema: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Validate parameters against schema.
+        
+        Args:
+            params: Parameters to validate
+            schema: Parameter schema
+            
+        Returns:
+            Validated and normalized parameters
+            
+        Raises:
+            ValueError: If validation fails
+        """
+        validated = {}
+        errors = []
+        
+        for param_name, param_config in schema.items():
+            param_type = param_config.get('type', 'string')
+            required = param_config.get('required', False)
+            default = param_config.get('default')
+            min_val = param_config.get('min')
+            max_val = param_config.get('max')
+            
+            # Check if parameter is provided
+            if param_name not in params:
+                if required:
+                    errors.append(f"Required parameter '{param_name}' is missing")
+                    continue
+                elif default is not None:
+                    validated[param_name] = default
+                    continue
+                else:
+                    continue
+            
+            value = params[param_name]
+            
+            # Type validation and conversion
+            try:
+                if param_type == 'string':
+                    validated[param_name] = str(value)
+                elif param_type == 'integer':
+                    validated[param_name] = int(value)
+                    if min_val is not None and validated[param_name] < min_val:
+                        errors.append(f"Parameter '{param_name}' must be >= {min_val}")
+                    if max_val is not None and validated[param_name] > max_val:
+                        errors.append(f"Parameter '{param_name}' must be <= {max_val}")
+                elif param_type == 'boolean':
+                    if isinstance(value, str):
+                        validated[param_name] = value.lower() in ('true', '1', 'yes', 'on')
+                    else:
+                        validated[param_name] = bool(value)
+                elif param_type == 'array':
+                    if not isinstance(value, list):
+                        errors.append(f"Parameter '{param_name}' must be an array")
+                    else:
+                        validated[param_name] = value
+                else:
+                    validated[param_name] = value
+                    
+            except (ValueError, TypeError) as e:
+                errors.append(f"Parameter '{param_name}' type error: {str(e)}")
+        
+        if errors:
+            raise ValueError(f"Parameter validation failed: {'; '.join(errors)}")
+        
+        return validated
 
 # Example tool implementations for your research domain
 class ResearchTools:
@@ -54,32 +135,104 @@ class ResearchTools:
 
     @staticmethod
     async def search_cordis_projects(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
-        """Search CORDIS for research projects."""
-        # This would integrate with your existing RAG service
+        """
+        Search CORDIS for research projects using AI-powered RAG.
+        
+        This tool searches the CORDIS database for existing research projects,
+        providing AI-generated summaries and insights about relevant projects.
+        """
         from ..rag_service import CordisRAG
+        
+        # Define parameter schema for validation
+        schema = {
+            'query': {
+                'type': 'string', 
+                'required': True,
+                'description': 'Search query for finding relevant research projects'
+            },
+            'max_results': {
+                'type': 'integer', 
+                'default': 5,
+                'min': 1,
+                'max': 20,
+                'description': 'Maximum number of projects to process (1-20)'
+            },
+            'include_summary': {
+                'type': 'boolean',
+                'default': True,
+                'description': 'Include AI-generated summary of findings'
+            }
+        }
 
         try:
-            rag_service = CordisRAG()
-            query = params.get('query', '')
-            max_results = params.get('max_results', 5)
+            # Validate parameters
+            validated_params = ToolValidator.validate_parameters(params, schema)
+            
+            # Extract validated parameters
+            query = validated_params['query']
+            max_results = validated_params['max_results']
+            include_summary = validated_params['include_summary']
+            
+            # Validate query is not empty
+            if not query or query.strip() == '':
+                return {
+                    'success': False,
+                    'error': 'Query parameter cannot be empty',
+                    'error_type': 'validation_error',
+                    'query': query,
+                    'projects_found': 0
+                }
 
+            logger.info(f"🔍 Searching CORDIS projects: '{query}' (max_results: {max_results})")
+            
+            # Execute search
+            rag_service = CordisRAG()
             results = rag_service.get_ai_response_with_routing(
                 question=query,
                 max_projects_to_process=max_results
             )
 
-            return {
+            # Standardized successful response
+            response = {
+                'success': True,
+                'tool_name': 'search_cordis_projects',
                 'query': query,
-                'answer': results.get('answer', ''),
-                'projects_found': results.get('projects_found', 0),
-                'data_source': results.get('data_source', ''),
-                'processing_time': results.get('processing_time', 0)
+                'parameters_used': validated_params,
+                'results': {
+                    'answer': results.get('answer', '') if include_summary else '',
+                    'projects_found': results.get('projects_found', 0),
+                    'data_source': results.get('data_source', 'cordis'),
+                    'processing_time_ms': results.get('processing_time', 0)
+                },
+                'metadata': {
+                    'search_type': 'rag_search',
+                    'ai_generated': True,
+                    'timestamp': datetime.now().isoformat()
+                }
             }
+            
+            logger.info(f"✅ CORDIS search completed: {response['results']['projects_found']} projects found")
+            return response
 
-        except Exception as e:
-            logger.error(f"CORDIS search error: {e}")
+        except ValueError as e:
+            # Parameter validation error
+            logger.error(f"CORDIS search validation error: {e}")
             return {
+                'success': False,
                 'error': str(e),
+                'error_type': 'validation_error',
+                'tool_name': 'search_cordis_projects',
+                'query': params.get('query', ''),
+                'projects_found': 0
+            }
+        except Exception as e:
+            # Execution error
+            logger.error(f"CORDIS search execution error: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'error_type': 'execution_error',
+                'tool_name': 'search_cordis_projects',
                 'query': params.get('query', ''),
                 'projects_found': 0
             }
@@ -231,8 +384,25 @@ class ToolOrchestrator:
 
             logger.debug(f"Executing tool: {tool_call.tool_name} with params: {tool_call.parameters}")
 
-            # Execute tool
-            result = await tool.execute_func(tool_call.parameters, previous_results)
+            # Validate parameters using tool's schema
+            try:
+                validated_params = ToolValidator.validate_parameters(
+                    tool_call.parameters, 
+                    tool.parameters_schema
+                )
+                logger.debug(f"Parameters validated successfully for {tool_call.tool_name}")
+            except ValueError as e:
+                logger.error(f"Parameter validation failed for {tool_call.tool_name}: {e}")
+                return ToolResult(
+                    tool_name=tool_call.tool_name,
+                    success=False,
+                    result=None,
+                    execution_time_ms=0,
+                    error_message=f"Parameter validation error: {str(e)}"
+                )
+
+            # Execute tool with validated parameters
+            result = await tool.execute_func(validated_params, previous_results)
 
             execution_time = (datetime.now() - start_time).total_seconds() * 1000
             logger.info(f"Tool {tool_call.tool_name} executed successfully in {execution_time:.2f}ms")
@@ -434,46 +604,183 @@ class ToolOrchestrator:
         
         # EU Portal Search Tool
         async def eu_portal_search(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
-            """Search EU Funding Portal for calls."""
-            # This integrates with the enhanced_call_search service
+            """
+            Search EU Funding Portal for calls using enhanced semantic search.
+            
+            This tool searches the EU Funding & Tenders Portal for funding calls,
+            supporting open, closed, and forthcoming calls with advanced filtering.
+            """
             from ..enhanced_call_search import EnhancedCallSearchService
 
-            try:
-                search_service = EnhancedCallSearchService()
-                # Support multiple parameter names for flexibility
-                query = params.get('query') or params.get('search_query_text') or params.get('search_query', '')
-                max_results = params.get('max_results', 10)
+            # Define parameter schema for validation
+            schema = {
+                'query': {
+                    'type': 'string', 
+                    'required': True,
+                    'description': 'Search query for finding relevant funding calls'
+                },
+                'max_results': {
+                    'type': 'integer', 
+                    'default': 10,
+                    'min': 1,
+                    'max': 50,
+                    'description': 'Maximum number of calls to return (1-50)'
+                },
+                'status': {
+                    'type': 'string',
+                    'default': 'open',
+                    'description': 'Call status filter: open, closed, forthcoming, or all'
+                },
+                'include_closed': {
+                    'type': 'boolean',
+                    'default': False,
+                    'description': 'Include closed calls in results'
+                },
+                'programme_period': {
+                    'type': 'string',
+                    'default': '2021 - 2027',
+                    'description': 'Horizon Europe programme period'
+                }
+            }
 
+            try:
+                # Validate parameters
+                validated_params = ToolValidator.validate_parameters(params, schema)
+                
+                # Extract validated parameters
+                query = validated_params['query']
+                max_results = validated_params['max_results']
+                include_closed = validated_params['include_closed']
+                programme_period = validated_params['programme_period']
+                
+                # Handle status parameter
+                status = validated_params.get('status', 'open')
+                if status in ['closed', 'all']:
+                    include_closed = True
+                
+                # Validate query is not empty
+                if not query or query.strip() == '':
+                    return {
+                        'success': False,
+                        'error': 'Query parameter cannot be empty',
+                        'error_type': 'validation_error',
+                        'query': query,
+                        'calls_found': 0
+                    }
+
+                logger.info(f"🔍 Searching EU Portal calls: '{query}' (max_results: {max_results}, include_closed: {include_closed})")
+
+                # Execute search
+                search_service = EnhancedCallSearchService()
                 results = search_service.search_calls_enhanced(
                     query=query,
-                    max_results=max_results
+                    max_results=max_results,
+                    include_closed=include_closed,
+                    programme_period=programme_period
                 )
 
-                return {
-                    'query': query,
-                    'results_found': len(results.get('results', [])),
-                    'calls': results.get('results', []),
-                    'search_metadata': results.get('search_metadata', {})
-                }
+                # Check if search was successful
+                if results.get('status') != 'success':
+                    return {
+                        'success': False,
+                        'error': results.get('error', 'Search failed'),
+                        'error_type': 'search_error',
+                        'tool_name': 'eu_portal_search',
+                        'query': query,
+                        'calls_found': 0
+                    }
 
-            except Exception as e:
-                logger.error(f"EU portal search error: {e}")
+                # Standardized successful response
+                calls_data = results.get('results', [])
+                response = {
+                    'success': True,
+                    'tool_name': 'eu_portal_search',
+                    'query': query,
+                    'parameters_used': validated_params,
+                    'results': {
+                        'calls_found': len(calls_data),
+                        'calls': calls_data,
+                        'search_metadata': results.get('search_metadata', {}),
+                        'facets': results.get('facets', {})
+                    },
+                    'metadata': {
+                        'search_type': 'enhanced_semantic',
+                        'data_source': 'eu_funding_portal',
+                        'api_used': 'tech.ec.europa.eu',
+                        'timestamp': datetime.now().isoformat()
+                    }
+                }
+                
+                logger.info(f"✅ EU Portal search completed: {len(calls_data)} calls found")
+                return response
+
+            except ValueError as e:
+                # Parameter validation error
+                logger.error(f"EU Portal search validation error: {e}")
                 return {
+                    'success': False,
                     'error': str(e),
-                    'query': params.get('query') or params.get('search_query_text', ''),
-                    'results_found': 0
+                    'error_type': 'validation_error',
+                    'tool_name': 'eu_portal_search',
+                    'query': params.get('query', ''),
+                    'calls_found': 0
+                }
+            except Exception as e:
+                # Execution error
+                logger.error(f"EU Portal search execution error: {e}")
+                return {
+                    'success': False,
+                    'error': str(e),
+                    'error_type': 'execution_error',
+                    'tool_name': 'eu_portal_search',
+                    'query': params.get('query', ''),
+                    'calls_found': 0
                 }
         
         portal_tool = Tool(
             name='eu_portal_search',
-            description='Search EU Funding Portal for (open/closed/forthcomming) calls',
+            description='Search EU Funding Portal for funding calls using advanced semantic search',
             parameters_schema={
-                'query': {'type': 'string', 'required': True},
-                'status': {'type': 'string', 'default': 'open'}
+                'query': {
+                    'type': 'string', 
+                    'required': True,
+                    'description': 'Search query for finding relevant funding calls',
+                    'examples': ['clean energy', 'artificial intelligence', 'climate change']
+                },
+                'max_results': {
+                    'type': 'integer', 
+                    'default': 10,
+                    'min': 1,
+                    'max': 50,
+                    'description': 'Maximum number of calls to return (1-50)'
+                },
+                'status': {
+                    'type': 'string',
+                    'default': 'open',
+                    'description': 'Call status filter: open, closed, forthcoming, or all',
+                    'allowed_values': ['open', 'closed', 'forthcoming', 'all']
+                },
+                'include_closed': {
+                    'type': 'boolean',
+                    'default': False,
+                    'description': 'Include closed calls in results'
+                },
+                'programme_period': {
+                    'type': 'string',
+                    'default': '2021 - 2027',
+                    'description': 'Horizon Europe programme period'
+                }
             },
             execute_func=eu_portal_search,
             cache_ttl=3600,  # 1 hour
-            parallel_safe=True
+            parallel_safe=True,
+            category='research_funding',
+            tags=['eu_funding', 'horizon_europe', 'calls', 'semantic_search'],
+            usage_examples=[
+                'Find open calls for renewable energy research',
+                'Search for AI and machine learning funding opportunities',
+                'Look for closed calls in digital transformation'
+            ]
         )
         
         # Document Analysis Tool
@@ -513,18 +820,21 @@ class ToolOrchestrator:
     
     def get_available_tools(self) -> List[Dict[str, Any]]:
         """
-        Get list of available tools with their descriptions.
+        Get list of available tools with their descriptions and metadata.
 
         Returns:
-            List of tool information dictionaries
+            List of tool information dictionaries with enhanced metadata
         """
         return [
             {
                 'name': tool.name,
                 'description': tool.description,
+                'category': tool.category,
+                'tags': tool.tags,
                 'parameters': tool.parameters_schema,
                 'cache_ttl': tool.cache_ttl,
-                'parallel_safe': tool.parallel_safe
+                'parallel_safe': tool.parallel_safe,
+                'usage_examples': tool.usage_examples
             }
             for tool in self.tools.values()
         ]
@@ -613,14 +923,37 @@ def create_research_orchestrator(cache_client = None) -> ToolOrchestrator:
     
     cordis_tool = Tool(
         name='search_cordis_projects',
-        description='Search CORDIS research projects',
+        description='Search CORDIS database for research projects using AI-powered analysis',
         parameters_schema={
-            'query': {'type': 'string', 'required': True},
-            'max_results': {'type': 'integer', 'default': 5}
+            'query': {
+                'type': 'string', 
+                'required': True,
+                'description': 'Search query for finding relevant research projects',
+                'examples': ['renewable energy projects', 'AI in healthcare', 'sustainable transport']
+            },
+            'max_results': {
+                'type': 'integer', 
+                'default': 5,
+                'min': 1,
+                'max': 20,
+                'description': 'Maximum number of projects to process (1-20)'
+            },
+            'include_summary': {
+                'type': 'boolean',
+                'default': True,
+                'description': 'Include AI-generated summary of findings'
+            }
         },
         execute_func=ResearchTools.search_cordis_projects,
         cache_ttl=3600,  # 1 hour
-        parallel_safe=True
+        parallel_safe=True,
+        category='research_projects',
+        tags=['cordis', 'research_projects', 'ai_analysis', 'rag'],
+        usage_examples=[
+            'Find projects related to quantum computing research',
+            'Search for completed projects in biotechnology',
+            'Analyze projects focused on climate adaptation'
+        ]
     )
     
     # portfolio_tool = Tool(

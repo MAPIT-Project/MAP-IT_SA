@@ -21,22 +21,23 @@ class IntentService:
         if any(p in q for p in procedural):
             return ("FAQ", 0.92)
 
-        # call_triggers = [
-        #     'open calls', 'calls for proposals', 'funding opportunities', 'grant opportunities',
-        #     'deadline', 'topic', 'tenders', 'funding & tenders', 'funding and tenders'
-        # ]
-        # if any(c in q for c in call_triggers) or ("open" in q and "call" in q):
-        #     return ("SEARCH_CALLS", 0.93)
+        call_triggers = [
+            'open calls', 'calls for proposals', 'funding opportunities', 'grant opportunities',
+            'deadline', 'topic', 'tenders', 'funding & tenders', 'funding and tenders',
+            'calls about', 'calls for', 'calls related to', 'available calls', 'current calls'
+        ]
+        if any(c in q for c in call_triggers) or ("open" in q and "call" in q):
+            return ("SEARCH_CALLS", 0.93)
 
-        # project_triggers = ['project', 'projects', 'acronym', 'rcn', 'case study']
-        # # Strengthen calls vs projects: if generic call/funding words + domain term exist, prefer SEARCH_CALLS
-        # generic_call_words = ['call', 'calls', 'funding', 'grant', 'grants', 'proposal', 'proposals']
-        # domain_terms = ['ai', 'artificial intelligence', 'energy', 'clean energy', 'renewable', 'digital', 'health', 'smes', 'hydrogen', 'battery', 'digital transformation']
-        # if any(w in q for w in generic_call_words) and any(t in q for t in domain_terms):
-        #     return ("SEARCH_CALLS", 0.9)
+        project_triggers = ['project', 'projects', 'acronym', 'rcn', 'case study']
+        # Strengthen calls vs projects: if generic call/funding words + domain term exist, prefer SEARCH_CALLS
+        generic_call_words = ['call', 'calls', 'funding', 'grant', 'grants', 'proposal', 'proposals']
+        domain_terms = ['ai', 'artificial intelligence', 'energy', 'clean energy', 'renewable', 'digital', 'health', 'smes', 'hydrogen', 'battery', 'digital transformation']
+        if any(w in q for w in generic_call_words) and any(t in q for t in domain_terms):
+            return ("SEARCH_CALLS", 0.9)
 
-        # if any(p in q for p in project_triggers):
-        #     return ("SEARCH_PROJECTS", 0.9)
+        if any(p in q for p in project_triggers):
+            return ("SEARCH_PROJECTS", 0.9)
 
         # Advanced AI classification with detailed context and examples
         provider = (os.getenv("DEFAULT_AI_PROVIDER") or "gemini").lower()
