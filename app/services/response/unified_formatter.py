@@ -57,7 +57,13 @@ class UnifiedResponseFormatter:
                     
                 elif tool_name == 'search_cordis_projects':
                     # Format CORDIS project search results
+                    logger.info(f"🔍 FORMATTING CORDIS TOOL RESULT: {tool_name}")
+                    logger.info(f"🔍 RESULT DATA TYPE: {type(result_data)}")
+                    if isinstance(result_data, dict):
+                        logger.info(f"🔍 RESULT DATA KEYS: {list(result_data.keys())}")
+
                     formatted_projects = self._format_cordis_projects(result_data)
+                    logger.info(f"🔍 CORDIS FORMATTED LENGTH: {len(formatted_projects) if formatted_projects else 0}")
                     formatted_parts.append(formatted_projects)
                     
                 else:
@@ -290,12 +296,105 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
     
     def _format_cordis_projects(self, project_data: Dict[str, Any]) -> str:
         """Format CORDIS project search results."""
-        answer = project_data.get('answer', '')
-        projects_found = project_data.get('projects_found', 0)
-        data_source = project_data.get('data_source', 'CORDIS')
-        
-        if not answer:
-            return "No project information found."
+        logger.info(f"🎨 FORMATTING CORDIS PROJECTS: data type = {type(project_data)}")
+        logger.info(f"🎨 PROJECT DATA KEYS: {list(project_data.keys()) if isinstance(project_data, dict) else 'Not a dict'}")
+
+        # Handle the actual structure returned by the CORDIS tool
+        results = project_data.get('results', [])
+        metadata = project_data.get('metadata', {})
+        query = project_data.get('query', 'Unknown query')
+
+        logger.info(f"🎨 RESULTS TYPE: {type(results)}")
+        logger.info(f"🎨 METADATA: {metadata}")
+
+        # Check if this is RAG response format (dict with answer field)
+        if isinstance(results, dict) and 'answer' in results:
+            logger.info("🎨 DETECTED RAG RESPONSE FORMAT")
+            answer = results.get('answer', '')
+            projects_found = results.get('projects_found', 0)
+
+            if not answer:
+                logger.warning("🎨 NO ANSWER IN RAG RESPONSE - returning fallback message")
+                return f"No project information found for query: '{query}'"
+
+            # Format RAG response
+            formatted_parts = [
+                f"**🔬 Research Projects Analysis** ({projects_found} projects)",
+                f"📊 **Search Query:** {query}",
+                ""
+            ]
+
+            # Add the AI-generated answer
+            formatted_parts.append(answer)
+
+            # Add footer
+            formatted_parts.extend([
+                "",
+                "---",
+                f"💡 **Analysis based on {projects_found} research projects**",
+                "📊 **Data Source:** CORDIS Database with AI Analysis",
+                "",
+                "🔍 **Want more details?** Visit https://cordis.europa.eu/ to explore the full database."
+            ])
+
+            formatted_response = "\n".join(formatted_parts)
+            logger.info(f"🎨 FORMATTED RAG RESPONSE LENGTH: {len(formatted_response)}")
+            return formatted_response
+
+        # Handle list format (actual project objects)
+        projects_found = len(results) if isinstance(results, list) else 0
+        logger.info(f"🎨 PROJECTS FOUND: {projects_found}")
+
+        # Debug: Log the structure of the first result
+        if results and len(results) > 0:
+            first_result = results[0]
+            logger.info(f"🎨 FIRST RESULT TYPE: {type(first_result)}")
+            if isinstance(first_result, dict):
+                logger.info(f"🎨 FIRST RESULT KEYS: {list(first_result.keys())}")
+                # Log some sample values
+                for key in list(first_result.keys())[:3]:  # First 3 keys
+                    value = first_result[key]
+                    logger.info(f"🎨 {key}: {str(value)[:100]}{'...' if len(str(value)) > 100 else ''}")
+
+        if not results or projects_found == 0:
+            logger.warning("🎨 NO PROJECT RESULTS FOUND - returning fallback message")
+            return f"No project information found for query: '{query}'"
+
+        # Format the project results
+        formatted_parts = [
+            f"**🔬 Research Projects Found** ({projects_found} projects)",
+            f"📊 **Search Query:** {query}",
+            ""
+        ]
+
+        for i, project in enumerate(results[:5], 1):  # Limit to top 5
+            if isinstance(project, dict):
+                title = project.get('title', project.get('name', 'Unknown Title'))
+                description = project.get('description', project.get('summary', 'No description available'))
+                url = project.get('url', project.get('link', ''))
+
+                formatted_parts.extend([
+                    f"**{i}. {title}**",
+                    f"{description[:200]}{'...' if len(description) > 200 else ''}",
+                ])
+
+                if url:
+                    formatted_parts.append(f"🔗 [View Project]({url})")
+
+                formatted_parts.append("")  # Empty line between projects
+
+        # Add footer
+        formatted_parts.extend([
+            "---",
+            f"💡 **Total Projects Found:** {projects_found}",
+            "🔍 **Data Source:** CORDIS Database",
+            "",
+            "📚 **Want more details?** Visit https://cordis.europa.eu/ to explore the full database."
+        ])
+
+        formatted_response = "\n".join(formatted_parts)
+        logger.info(f"🎨 FORMATTED RESPONSE LENGTH: {len(formatted_response)}")
+        return formatted_response
         
         # Add header with metadata
         header_parts = [

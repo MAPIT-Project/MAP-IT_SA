@@ -3,7 +3,7 @@ Main conversation management system that orchestrates all components.
 """
 
 import asyncio
-from typing import Dict, Any, Optional, List, AsyncGenerator
+from typing import Dict, Any, Optional, List, AsyncGenerator, Tuple
 from datetime import datetime
 import json
 import logging
@@ -24,8 +24,23 @@ logger = logging.getLogger(__name__)
 
 class ConversationManager:
     """
-    Central manager for all conversation operations.
-    Coordinates memory, RAG, and tool systems.
+    Central manager for all conversation operations with OPTIMIZED ARCHITECTURE.
+
+    OPTIMIZED 5-PHASE PIPELINE:
+    Phase 1: Store user message in memory
+    Phase 2-4: COMBINED - Single AI call for intent analysis, context building, and tool planning
+    Phase 5: Retrieve information if needed (fallback only)
+    Phase 6: Execute tools if planned
+    Phase 7: Generate response
+
+    KEY IMPROVEMENTS:
+    - Reduced AI calls from 2-3 to 1 for most queries
+    - Better context utilization across all decisions
+    - Lower latency and improved performance
+    - More coherent decision making
+    - Maintains backward compatibility with fallback to separate phases
+
+    Coordinates memory, RAG, and tool systems with intelligent orchestration.
     """
     
     def __init__(self):
@@ -61,19 +76,32 @@ class ConversationManager:
             raise
     
     async def process_message(self,
-                             conversation_id: int,
-                             user_message: str,
-                             user_id: int,
-                             streaming: bool = False) -> Dict[str, Any]:
+                              conversation_id: int,
+                              user_message: str,
+                              user_id: int,
+                              streaming: bool = False) -> Dict[str, Any]:
         """
-        Process a user message through the complete pipeline.
-        
+        Process a user message through the optimized 5-phase pipeline.
+
+        OPTIMIZED ARCHITECTURE:
+        Phase 1: Store user message in memory
+        Phase 2-4: COMBINED - Analyze intent, build context, and plan tools (single AI call)
+        Phase 5: Retrieve information if needed (fallback only)
+        Phase 6: Execute tools if planned
+        Phase 7: Generate response
+
+        Benefits of combined phases 2-4:
+        - Single AI call instead of 2-3 separate calls
+        - Better context utilization across decisions
+        - Reduced latency and processing time
+        - More coherent decision making
+
         Args:
             conversation_id: Conversation identifier
             user_message: User's message
             user_id: User identifier
             streaming: Whether to stream the response
-            
+
         Returns:
             Complete response with metadata
         """
@@ -85,24 +113,13 @@ class ConversationManager:
                 conversation_id, user_id, user_message
             )
             
-            # Phase 2: Analyze intent and plan approach
-            intent_analysis = await self._analyze_intent(
-                conversation_id, user_message
-            )
-            
-            # Phase 3: Build conversation context
-            context = self.memory_service.get_context_for_query(
+            # COMBINED PHASE 2+3+4: Analyze intent, build context, and plan tools
+            print(f"🤖 STARTING COMBINED PHASE for: '{user_message}'")
+            intent_analysis, context, tool_plan = await self._combined_intent_context_tool_planner(
                 conversation_id=conversation_id,
-                query=user_message
+                user_message=user_message
             )
-            
-            # Phase 4: FORCED tool planning - no more missing tools!
-            tool_plan = await self._forced_tool_planner(
-                user_message=user_message,
-                intent_analysis=intent_analysis,
-                context=context,
-                conversation_id=conversation_id
-            )
+            print(f"🤖 COMBINED PHASE RESULT: intent={intent_analysis.get('intent_type', 'unknown')}, tools={len(tool_plan) if tool_plan else 0}")
             
             # Phase 5: Retrieve relevant information if needed
             retrieval_results = None
@@ -124,7 +141,15 @@ class ConversationManager:
                     retrieval_results = self._convert_tool_results_to_retrieval(tool_results)
             
             # Phase 7: Generate response
+            logger.info(f"📝 RESPONSE GENERATION: tool_results={tool_results is not None}, retrieval_results={len(retrieval_results) if retrieval_results else 0}")
+
+            if tool_results:
+                logger.info(f"🔧 TOOL RESULTS SUMMARY: {len(tool_results)} tools executed")
+                for tool_name, tool_result in tool_results.items():
+                    logger.info(f"   Tool {tool_name}: success={tool_result.success}, has_result={tool_result.result is not None}")
+
             if streaming:
+                logger.info("🎬 Starting streaming response generation")
                 return self._generate_streaming_response(
                     conversation_id=conversation_id,
                     query=user_message,
@@ -135,7 +160,8 @@ class ConversationManager:
                     start_time=start_time
                 )
             else:
-                return await self._generate_response(
+                logger.info("📄 Starting non-streaming response generation")
+                response = await self._generate_response(
                     conversation_id=conversation_id,
                     query=user_message,
                     context=context,
@@ -144,6 +170,12 @@ class ConversationManager:
                     intent_analysis=intent_analysis,
                     start_time=start_time
                 )
+
+                # LOG THE FINAL RESPONSE
+                logger.info(f"📤 FINAL RESPONSE: {response.get('response', 'No response')[:500]}...")
+                logger.info(f"📊 RESPONSE METADATA: tools_executed={response.get('tools_executed', False)}, confidence={response.get('confidence', 0.0)}")
+
+                return response
                 
         except Exception as e:
             logger.error(f"Error processing message: {e}")
@@ -192,13 +224,28 @@ Respond in JSON format:
         # Fallback to simple heuristics with tool detection
         message_lower = message.lower()
 
-        # Check if tools are needed based on keywords
+        # Check if tools are needed based on enhanced keywords
         requires_tools = any(keyword in message_lower for keyword in [
+            # Call-related keywords
             'open calls', 'calls for', 'funding opportunities', 'grant opportunities',
             'available calls', 'current calls', 'calls about', 'calls related to',
             'what calls', 'which calls', 'show me calls', 'find calls',
             'funding calls', 'research calls', 'horizon calls',
-            'projects', 'research projects', 'case studies', 'project examples'
+            # Project-related keywords (enhanced)
+            'projects', 'research projects', 'case studies', 'project examples',
+            'look up projects', 'search projects', 'find projects',
+            'show me projects', 'get projects', 'retrieve projects',
+            'cordis api', 'cordis search', 'search cordis',
+            'information on projects', 'data on projects', 'details about projects',
+            'what projects', 'which projects', 'show me information on projects',
+            'get information on projects', 'retrieve information on projects',
+            'search for information on projects',
+            'projects about', 'projects related to', 'search for projects',
+            'find information on projects', 'get information on projects',
+            'retrieve information on projects', 'search for information on projects',
+            'projects in', 'projects on', 'projects for',
+            'find me projects', 'show me projects', 'get me projects',
+            'search me projects', 'look me projects'
         ])
 
         return {
@@ -442,11 +489,114 @@ If no tools are needed, return {{"tools_needed": [], "reasoning": "Question can 
 
         return None
 
+    def _analyze_conversation_context_for_intent(self,
+                                                user_message: str,
+                                                conversation_history: str,
+                                                summary: Any) -> Dict[str, Any]:
+        """
+        Analyze conversation context for repeated patterns and intent persistence.
+
+        This method detects when users are repeatedly asking for the same type of information
+        and boosts confidence for routing to appropriate tools.
+
+        Args:
+            user_message: Current user message
+            conversation_history: Recent conversation turns
+            summary: Conversation summary object
+
+        Returns:
+            Dictionary with context analysis and intent boost recommendations
+        """
+        try:
+            user_message_lower = user_message.lower()
+            context_analysis = {
+                'repeated_project_intent': False,
+                'repeated_call_intent': False,
+                'frustration_indicators': False,
+                'intent_persistence_score': 0.0,
+                'recommended_tool_boost': None,
+                'confidence_multiplier': 1.0
+            }
+
+            # Analyze conversation history for repeated patterns
+            history_lower = conversation_history.lower()
+
+            # Check for repeated project search patterns
+            project_indicators = [
+                'look up projects', 'search projects', 'find projects',
+                'show me projects', 'get projects', 'retrieve projects',
+                'cordis api', 'cordis search', 'search cordis',
+                'information on projects', 'data on projects', 'details about projects',
+                'what projects', 'which projects', 'show me information on projects',
+                'get information on projects', 'retrieve information on projects',
+                'search for information on projects'
+            ]
+
+            # Count how many times project-related terms appear in recent history
+            project_mentions = sum(1 for indicator in project_indicators if indicator in history_lower)
+            project_mentions += sum(1 for indicator in project_indicators if indicator in user_message_lower)
+
+            # Check for repeated call search patterns
+            call_indicators = [
+                'open calls', 'funding calls', 'call for proposals', 'grant calls',
+                'submission deadline', 'funding opportunities', 'horizon calls',
+                'eu calls', 'research calls', 'proposal calls'
+            ]
+
+            call_mentions = sum(1 for indicator in call_indicators if indicator in history_lower)
+            call_mentions += sum(1 for indicator in call_indicators if indicator in user_message_lower)
+
+            # Check for frustration indicators (user repeatedly asking for same thing)
+            frustration_indicators = [
+                'no i mean', 'i said', 'i asked', 'but i want', 'i need',
+                'please', 'can you', 'could you', 'would you',
+                'search on', 'look up', 'find me', 'show me'
+            ]
+
+            frustration_count = sum(1 for indicator in frustration_indicators if indicator in user_message_lower)
+
+            # Analyze intent persistence
+            if project_mentions >= 2:  # User mentioned projects multiple times
+                context_analysis['repeated_project_intent'] = True
+                context_analysis['intent_persistence_score'] = min(project_mentions * 0.3, 1.0)
+                context_analysis['recommended_tool_boost'] = 'search_cordis_projects'
+                context_analysis['confidence_multiplier'] = 1.5
+
+            if call_mentions >= 2:  # User mentioned calls multiple times
+                context_analysis['repeated_call_intent'] = True
+                context_analysis['intent_persistence_score'] = min(call_mentions * 0.3, 1.0)
+                context_analysis['recommended_tool_boost'] = 'eu_portal_search'
+                context_analysis['confidence_multiplier'] = 1.5
+
+            if frustration_count >= 1:  # User showing frustration
+                context_analysis['frustration_indicators'] = True
+                context_analysis['confidence_multiplier'] *= 1.2
+
+            # Special case: User is explicitly asking for CORDIS/API searches
+            if any(term in user_message_lower for term in ['cordis', 'api', 'search on', 'look up in']):
+                context_analysis['confidence_multiplier'] = 2.0
+                if 'project' in user_message_lower or any(term in history_lower for term in ['project', 'cordis']):
+                    context_analysis['recommended_tool_boost'] = 'search_cordis_projects'
+
+            logger.info(f"🔍 Context Analysis: {context_analysis}")
+            return context_analysis
+
+        except Exception as e:
+            logger.error(f"Error in context analysis: {e}")
+            return {
+                'repeated_project_intent': False,
+                'repeated_call_intent': False,
+                'frustration_indicators': False,
+                'intent_persistence_score': 0.0,
+                'recommended_tool_boost': None,
+                'confidence_multiplier': 1.0
+            }
+
     async def _forced_tool_planner(self,
-                                  user_message: str,
-                                  intent_analysis: Dict,
-                                  context: str,
-                                  conversation_id: int) -> Optional[List]:
+                                   user_message: str,
+                                   intent_analysis: Dict,
+                                   context: str,
+                                   conversation_id: int) -> Optional[List]:
         """
         SMART tool planning that only executes tools when appropriate.
         Follows the 7-phase architecture properly.
@@ -486,11 +636,34 @@ If no tools are needed, return {{"tools_needed": [], "reasoning": "Question can 
                 'eu calls', 'research calls', 'proposal calls'
             ]
             
-            # SPECIFIC project-related keywords
+            # ENHANCED project-related keywords - comprehensive coverage
             project_keywords = [
+                # Original keywords
                 'completed projects', 'research projects', 'project results',
                 'cordis projects', 'funded projects', 'project examples',
-                'successful projects', 'project outcomes'
+                'successful projects', 'project outcomes',
+                # Enhanced keywords for better detection
+                'look up projects', 'search projects', 'find projects',
+                'show me projects', 'get projects', 'retrieve projects',
+                'cordis api', 'cordis search', 'search cordis',
+                'information on projects', 'data on projects', 'details about projects',
+                'what projects', 'which projects', 'show me information on projects',
+                'get information on projects', 'retrieve information on projects',
+                'search for information on projects',
+                # Generic project terms that should trigger search
+                'projects about', 'projects related to', 'search for projects',
+                'find information on projects', 'get information on projects',
+                'retrieve information on projects', 'search for information on projects',
+                # Domain-specific project searches
+                'projects in', 'projects on', 'projects for',
+                # Action verbs + project terms
+                'find me projects', 'show me projects', 'get me projects',
+                'search me projects', 'look me projects',
+                # CRITICAL ADDITIONS - Direct search patterns
+                'search for', 'find me', 'show me', 'tell me about',
+                'look up', 'get me', 'retrieve', 'explore',
+                # Project search with any domain
+                'projects', 'project search', 'project database', 'project information'
             ]
             
             # Domain + funding context (more specific)
@@ -529,17 +702,41 @@ If no tools are needed, return {{"tools_needed": [], "reasoning": "Question can 
                 })
                 logger.info(f"🎯 DOMAIN+FUNDING query: eu_portal_search for '{user_message}'")
             
-            # Check for explicit project queries
-            elif any(keyword in message_lower for keyword in project_keywords):
+            # Check for explicit project queries - ENHANCED DETECTION
+            project_detected = False
+
+            # Direct keyword match
+            if any(keyword in message_lower for keyword in project_keywords):
+                project_detected = True
+
+            # Enhanced pattern matching for action + project combinations
+            action_verbs = ['search', 'find', 'show', 'get', 'retrieve', 'look', 'tell', 'explore']
+            project_terms = ['projects', 'project', 'cordis', 'database', 'information']
+
+            # Check for action verb + project term combinations
+            for action in action_verbs:
+                if action in message_lower:
+                    for term in project_terms:
+                        if term in message_lower:
+                            project_detected = True
+                            break
+                    if project_detected:
+                        break
+
+            # Check for "search for X projects" pattern
+            if 'search for' in message_lower and 'projects' in message_lower:
+                project_detected = True
+
+            if project_detected:
                 tools_needed.append({
-                    "tool_name": "search_cordis_projects", 
+                    "tool_name": "search_cordis_projects",
                     "parameters": {
                         "query": user_message,
                         "max_results": 10
                     },
-                    "reason": f"Explicit project query detected"
+                    "reason": f"Enhanced project query detection"
                 })
-                logger.info(f"🎯 EXPLICIT project query: search_cordis_projects for '{user_message}'")
+                logger.info(f"🎯 ENHANCED project query: search_cordis_projects for '{user_message}'")
             
             # NO DEFAULT TOOL EXECUTION - let it be conversational!
             else:
@@ -566,6 +763,225 @@ If no tools are needed, return {{"tools_needed": [], "reasoning": "Question can 
         except Exception as e:
             logger.error(f"Smart tool planning failed: {e}")
             return None
+    async def _combined_intent_context_tool_planner(self,
+                                                     conversation_id: int,
+                                                     user_message: str) -> Tuple[Dict[str, Any], str, Optional[List]]:
+        """
+        COMBINED PHASE: Analyze intent, build context, and plan tools in a single AI call.
+
+        This method combines phases 2, 3, and 4 into one efficient operation:
+        - Phase 2: Intent analysis
+        - Phase 3: Context building
+        - Phase 4: Tool planning
+
+        Benefits:
+        - Single AI call instead of 2-3 separate calls
+        - Better context utilization across all decisions
+        - Reduced latency and processing time
+        - More coherent decision making
+
+        Args:
+            conversation_id: Conversation identifier
+            user_message: User's message
+
+        Returns:
+            Tuple of (intent_analysis, context, tool_plan)
+        """
+        try:
+            print("🔧 COMBINED PHASE: Starting context analysis...")
+            # Get conversation summary for context
+            summary = self.memory_service.ltm.get_summary(conversation_id)
+
+            # Get recent conversation turns for CONTEXT-AWARE INTENT DETECTION
+            recent_turns = self.memory_service.stm.get_recent_turns(conversation_id, limit=5)
+            conversation_history = "\n".join([
+                f"{'User' if turn.role == 'user' else 'Assistant'}: {turn.content}"
+                for turn in recent_turns
+            ])
+            print(f"🔧 COMBINED PHASE: Found {len(recent_turns)} recent turns")
+
+            # CONTEXT-AWARE INTENT DETECTION: Analyze conversation history for repeated patterns
+            context_intent_boost = self._analyze_conversation_context_for_intent(
+                user_message, conversation_history, summary
+            )
+            print(f"🔧 COMBINED PHASE: Context analysis result: {context_intent_boost}")
+
+            # Get available tools for planning
+            available_tools = self.tool_orchestrator.get_available_tools()
+            print(f"🔧 COMBINED PHASE: Found {len(available_tools)} available tools")
+
+            # Create comprehensive prompt for combined analysis with CONTEXT-AWARE ENHANCEMENTS
+            prompt = f"""You are an AI assistant specializing in European research funding. Analyze this user message and provide a comprehensive response that includes intent analysis, context assessment, and tool planning.
+
+CONVERSATION CONTEXT:
+Summary: {summary.summary_text if summary else 'New conversation'}
+Recent History:
+{conversation_history}
+
+USER MESSAGE: {user_message}
+
+CONTEXT ANALYSIS: {json.dumps(context_intent_boost, indent=2)}
+
+AVAILABLE TOOLS:
+{json.dumps(available_tools, indent=2)}
+
+INSTRUCTIONS:
+1. Analyze the user's intent and classify the query type
+2. Consider the CONTEXT ANALYSIS for repeated patterns and user frustration
+3. Assess what context is most relevant for this query
+4. Determine if tools are needed and which ones - PAY SPECIAL ATTENTION TO REPEATED PATTERNS
+5. If user is repeatedly asking for projects/CORDIS searches, HIGHLY prioritize search_cordis_projects tool
+6. If user shows frustration ("no i mean", "i said", etc.), boost confidence for tool usage
+7. Provide reasoning for your decisions
+
+RESPONSE FORMAT (JSON):
+{{
+    "intent_analysis": {{
+        "intent_type": "question|command|clarification|follow_up|greeting",
+        "requires_retrieval": true/false,
+        "requires_tools": true/false,
+        "confidence": 0.0-1.0,
+        "explanation": "Brief explanation of intent"
+    }},
+    "context_assessment": {{
+        "relevant_topics": ["topic1", "topic2"],
+        "context_importance": "high|medium|low",
+        "context_summary": "Summary of relevant context"
+    }},
+    "tool_plan": {{
+        "tools_needed": [
+            {{
+                "tool_name": "eu_portal_search|search_cordis_projects",
+                "parameters": {{
+                    "query": "search terms",
+                    "status": "open|closed",
+                    "max_results": 20
+                }},
+                "reason": "Why this tool is needed"
+            }}
+        ],
+        "execution_strategy": "parallel|sequential",
+        "reasoning": "Overall reasoning for tool selection"
+    }},
+    "processing_recommendation": {{
+        "use_tools": true/false,
+        "use_retrieval": true/false,
+        "response_type": "tool_based|conversational|mixed"
+    }}
+}}
+
+ENHANCED TOOL SELECTION RULES (with context awareness):
+- For "open calls", "funding opportunities", "calls for proposals" → eu_portal_search
+- For "projects", "research projects", "case studies" → search_cordis_projects
+- For "look up projects", "search projects", "find projects" → search_cordis_projects (HIGH PRIORITY)
+- For "cordis", "cordis api", "search cordis" → search_cordis_projects (VERY HIGH PRIORITY)
+- For repeated project requests (context shows persistence) → search_cordis_projects (BOOST CONFIDENCE)
+- For user frustration indicators ("no i mean", "i said") → boost tool confidence significantly
+- For conversational queries (hello, help, thanks) → no tools
+- For nonsense/short queries without funding terms → no tools
+- For domain + funding patterns (energy calls, AI funding) → eu_portal_search
+
+CONTEXT-AWARE DECISIONS:
+- If CONTEXT ANALYSIS shows repeated_project_intent: true → STRONGLY favor search_cordis_projects
+- If CONTEXT ANALYSIS shows frustration_indicators: true → increase confidence for tool usage
+- If user mentions "cordis" or "api" → prioritize search_cordis_projects regardless of other factors
+- If user says "search on", "look up", "find me" + project terms → search_cordis_projects
+
+If no tools are needed, set tools_needed to empty array.
+"""
+
+            # Make single AI call for combined analysis
+            print("🔧 COMBINED PHASE: Making AI call...")
+            response = self.response_generator.model.generate_content(prompt)
+            print(f"🔧 COMBINED PHASE: AI response received (length: {len(response.text)})")
+
+            # Parse JSON response
+            json_match = re.search(r'\{.*\}', response.text, re.DOTALL)
+            if json_match:
+                combined_decision = json.loads(json_match.group())
+                print(f"🤖 COMBINED PHASE: {combined_decision['processing_recommendation']['response_type']}")
+
+                # Extract components
+                intent_analysis = combined_decision['intent_analysis']
+                context_assessment = combined_decision['context_assessment']
+                tool_plan_data = combined_decision['tool_plan']
+
+                print(f"🔧 COMBINED PHASE: Intent analysis: {intent_analysis}")
+                print(f"🔧 COMBINED PHASE: Tool plan data: {tool_plan_data}")
+
+                # Build context string from assessment
+                context = f"Context Assessment: {context_assessment['context_summary']}\n"
+                context += f"Relevant Topics: {', '.join(context_assessment['relevant_topics'])}\n"
+                context += f"Conversation Summary: {summary.summary_text if summary else 'New conversation'}"
+
+                # Convert tool plan to ToolCall objects
+                tool_plan = None
+                if tool_plan_data['tools_needed']:
+                    from ..tools.tool_orchestrator import ToolCall
+                    tool_calls = []
+                    for i, tool_spec in enumerate(tool_plan_data['tools_needed']):
+                        tool_call = ToolCall(
+                            tool_name=tool_spec['tool_name'],
+                            parameters=tool_spec['parameters'],
+                            execution_order=i
+                        )
+                        tool_calls.append(tool_call)
+                    tool_plan = tool_calls
+                    print(f"   Tools planned: {len(tool_calls)}")
+
+                return intent_analysis, context, tool_plan
+            else:
+                print("🔧 COMBINED PHASE: No JSON found in AI response")
+                print(f"🔧 COMBINED PHASE: Raw response: {response.text[:500]}...")
+
+        except Exception as e:
+            print(f"Combined phase error: {e}")
+            print("🔄 Falling back to enhanced separate phases...")
+
+        # ENHANCED FALLBACK: Use separate phases with enhanced detection logic
+        print("🔧 FALLBACK: Analyzing intent...")
+        intent_analysis = await self._analyze_intent(conversation_id, user_message)
+        print(f"🔧 FALLBACK: Intent analysis result: {intent_analysis}")
+
+        context = self.memory_service.get_context_for_query(
+            conversation_id=conversation_id,
+            query=user_message
+        )
+
+        # Use the enhanced forced tool planner with comprehensive keyword detection
+        print("🔧 FALLBACK: Running forced tool planner...")
+        tool_plan = await self._forced_tool_planner(
+            user_message=user_message,
+            intent_analysis=intent_analysis,
+            context=context,
+            conversation_id=conversation_id
+        )
+        print(f"🔧 FALLBACK: Tool planner result: {len(tool_plan) if tool_plan else 0} tools")
+
+        # If still no tool plan, try one more time with enhanced context analysis
+        if not tool_plan:
+            print("🔄 No tool plan from enhanced detection, trying context-aware fallback...")
+            context_intent_boost = self._analyze_conversation_context_for_intent(
+                user_message, "", None  # Empty history for basic detection
+            )
+            print(f"🔧 FALLBACK: Context analysis result: {context_intent_boost}")
+
+            # If context analysis strongly recommends a tool, create a plan
+            if context_intent_boost.get('recommended_tool_boost') == 'search_cordis_projects':
+                print("🎯 Context analysis override: Forcing CORDIS search")
+                from ..tools.tool_orchestrator import ToolCall
+                tool_call = ToolCall(
+                    tool_name='search_cordis_projects',
+                    parameters={
+                        "query": user_message,
+                        "max_results": 10
+                    },
+                    execution_order=0
+                )
+                tool_plan = [tool_call]
+
+        print(f"🔧 FALLBACK: Final result - intent: {intent_analysis.get('intent_type', 'unknown')}, tools: {len(tool_plan) if tool_plan else 0}")
+        return intent_analysis, context, tool_plan
 
     async def _retrieve_information(self,
                                    conversation_id: int,
@@ -629,14 +1045,39 @@ If no tools are needed, return {{"tools_needed": [], "reasoning": "Question can 
                 context_chunks.insert(0, tool_context)
             
             # Phase 7: Generate appropriate response based on query type
+            logger.info(f"🔄 RESPONSE TYPE DECISION: tool_results present = {tool_results is not None}")
+
             if tool_results:
+                logger.info("🎯 Using tool-based response generation")
+
+                # DEBUG: Log the exact structure of tool results
+                logger.info(f"🔧 TOOL RESULTS STRUCTURE: {list(tool_results.keys())}")
+                for tool_name, tool_result in tool_results.items():
+                    logger.info(f"   Tool {tool_name}: type={type(tool_result)}, has_result={hasattr(tool_result, 'result')}")
+                    if hasattr(tool_result, 'result'):
+                        logger.info(f"      Result type: {type(tool_result.result)}")
+                        if isinstance(tool_result.result, dict):
+                            logger.info(f"      Result keys: {list(tool_result.result.keys())}")
+                            # Check for expected fields
+                            if 'answer' in tool_result.result:
+                                logger.info(f"      Has 'answer' field: {len(tool_result.result['answer'])} chars")
+                            if 'projects_found' in tool_result.result:
+                                logger.info(f"      Projects found: {tool_result.result['projects_found']}")
+
                 # Use unified formatter for tool results (calls, projects, etc.)
                 formatted_response = self.unified_formatter.format_mixed_results(
                     tool_results=tool_results,
                     retrieval_results=retrieval_results,
                     query=query
                 )
-                
+
+                logger.info(f"📝 FORMATTED RESPONSE LENGTH: {len(formatted_response) if formatted_response else 0}")
+                logger.info(f"📝 FORMATTED RESPONSE PREVIEW: {formatted_response[:500] if formatted_response else 'None'}...")
+
+                # Log the complete formatted response for debugging
+                if formatted_response:
+                    logger.info(f"📝 COMPLETE FORMATTED RESPONSE:\n{formatted_response}")
+
                 response = {
                     'answer': formatted_response,
                     'citations': [],
@@ -652,7 +1093,10 @@ If no tools are needed, return {{"tools_needed": [], "reasoning": "Question can 
                     retrieval_results=retrieval_results,
                     intent_analysis=intent_analysis
                 )
-                
+
+                logger.info(f"💬 CONVERSATIONAL RESPONSE LENGTH: {len(conversational_response) if conversational_response else 0}")
+                logger.info(f"💬 CONVERSATIONAL RESPONSE PREVIEW: {conversational_response[:200] if conversational_response else 'None'}...")
+
                 response = {
                     'answer': conversational_response,
                     'citations': [],
@@ -693,15 +1137,24 @@ If no tools are needed, return {{"tools_needed": [], "reasoning": "Question can 
             return self._create_error_response(str(e))
     
     async def _generate_streaming_response(self,
-                                          conversation_id: int,
-                                          query: str,
-                                          context: str,
-                                          retrieval_results: Optional[List[Dict]],
-                                          tool_results: Optional[Dict],
-                                          intent_analysis: Dict,
-                                          start_time: datetime) -> AsyncGenerator[Dict[str, Any], None]:
+                                           conversation_id: int,
+                                           query: str,
+                                           context: str,
+                                           retrieval_results: Optional[List[Dict]],
+                                           tool_results: Optional[Dict],
+                                           intent_analysis: Dict,
+                                           start_time: datetime) -> AsyncGenerator[Dict[str, Any], None]:
         """
-        Generate streaming response with progressive status updates following the 7-phase architecture.
+        Generate streaming response with progressive status updates following the OPTIMIZED 5-phase architecture.
+
+        OPTIMIZED PHASES:
+        Phase 1: Context Resolution
+        Phase 2: Combined Intent-Context-Tool Planning (single AI call)
+        Phase 3: Route Selection
+        Phase 4: Data Processing
+        Phase 5: Response Generation
+        Phase 6: Context Enhancement
+        Phase 7: Streaming Response
         """
         try:
             # Phase 1: Context Resolution
@@ -712,9 +1165,9 @@ If no tools are needed, return {{"tools_needed": [], "reasoning": "Question can 
             }
             await asyncio.sleep(0.1)
             
-            # Phase 2: Intent Detection (already done, but show progress)
+            # Phase 2: Intent Detection (combined with context and tool planning)
             intent_confidence = intent_analysis.get('confidence', 0.0)
-            routing_decision = intent_analysis.get('intent', 'CONVERSATIONAL')
+            routing_decision = intent_analysis.get('intent_type', 'CONVERSATIONAL')
             
             yield {
                 'type': 'progress',
@@ -850,7 +1303,7 @@ If no tools are needed, return {{"tools_needed": [], "reasoning": "Question can 
                 'logs': {
                     'question': query,
                     'model_used': 'gemini-2.5-flash-lite',
-                    'phases': ['context_resolution', 'intent_detected', 'route_selected', 'data_retrieval' if tools_executed else 'conversational', 'answer_generation', 'streaming_response'],
+                    'phases': ['context_resolution', 'combined_intent_context_tool_planning', 'data_retrieval' if tools_executed else 'conversational', 'answer_generation', 'streaming_response'],
                     'total_processing_time_ms': int(processing_time * 1000),
                     'projects_retrieved': projects_found,
                     'projects_processed': projects_found,
@@ -1260,12 +1713,12 @@ async def test_conversation_manager():
     """Test the conversation manager with a simple conversation."""
     try:
         manager = ConversationManager()
-        
+
         # Test conversation
         conv_id = 12345
-        
+
         print("Testing conversation manager...")
-        
+
         # First message
         response1 = await manager.process_message(
             conversation_id=conv_id,
@@ -1273,9 +1726,9 @@ async def test_conversation_manager():
             user_id=1,
             streaming=False
         )
-        
+
         print(f"Response 1: {response1.get('response', 'No response')[:100]}...")
-        
+
         # Follow-up message
         response2 = await manager.process_message(
             conversation_id=conv_id,
@@ -1283,18 +1736,122 @@ async def test_conversation_manager():
             user_id=1,
             streaming=False
         )
-        
+
         print(f"Response 2: {response2.get('response', 'No response')[:100]}...")
-        
+
         # Get stats
         stats = manager.get_conversation_stats(conv_id)
         print(f"Conversation stats: {stats}")
-        
+
         print("✅ Conversation manager test completed!")
-        
+
     except Exception as e:
         print(f"❌ Test failed: {e}")
 
+async def test_project_search_improvements():
+    """Test the improved project search detection with conversation examples."""
+    try:
+        manager = ConversationManager()
+
+        # Test conversation ID
+        conv_id = 999
+
+        print("🧪 Testing improved project search detection...")
+
+        # Simulate the conversation from the user's example
+        test_messages = [
+            "What are some open calls for clean energy?",
+            "Okay how about we look up information on projects for clean energy?",
+            "No i mean look up in the cordis api",
+            "No look up projects about clean energy",
+            "SEARCH ON CORDIS FOR PROJECTS WITH THE TERM CLEAN ENERGY"
+        ]
+
+        for i, message in enumerate(test_messages, 1):
+            print(f"\n📝 Test {i}: '{message}'")
+
+            response = await manager.process_message(
+                conversation_id=conv_id,
+                user_message=message,
+                user_id=1,
+                streaming=False
+            )
+
+            # Check if tools were executed
+            tools_executed = response.get('tools_executed', False)
+            response_type = "TOOL-BASED" if tools_executed else "CONVERSATIONAL"
+
+            print(f"   Result: {response_type}")
+            print(f"   Tools executed: {tools_executed}")
+            print(f"   Response preview: {response.get('response', 'No response')[:150]}...")
+
+            # For project search messages, we expect tools to be executed
+            if i >= 2:  # Messages 2-5 are project searches
+                if not tools_executed:
+                    print(f"   ⚠️  WARNING: Expected tools for project search but got conversational response")
+                else:
+                    print(f"   ✅ SUCCESS: Correctly routed to tools for project search")
+
+        print("\n✅ Project search improvement test completed!")
+
+    except Exception as e:
+        print(f"❌ Project search test failed: {e}")
+        import traceback
+        traceback.print_exc()
+
+async def test_single_project_message():
+    """Test a single project search message to debug the issue."""
+    try:
+        manager = ConversationManager()
+
+        # Test conversation ID
+        conv_id = 1000
+
+        print("🧪 Testing single project search message...")
+
+        # Test the most explicit project search message
+        message = "SEARCH ON CORDIS FOR PROJECTS WITH THE TERM CLEAN ENERGY"
+
+        print(f"\n📝 Test message: '{message}'")
+
+        response = await manager.process_message(
+            conversation_id=conv_id,
+            user_message=message,
+            user_id=1,
+            streaming=False
+        )
+
+        # Check if tools were executed
+        tools_executed = response.get('tools_executed', False)
+        response_type = "TOOL-BASED" if tools_executed else "CONVERSATIONAL"
+
+        print(f"   Result: {response_type}")
+        print(f"   Tools executed: {tools_executed}")
+        print(f"   Response preview: {response.get('response', 'No response')[:200]}...")
+
+        if not tools_executed:
+            print(f"   ⚠️  WARNING: Expected tools for project search but got conversational response")
+        else:
+            print(f"   ✅ SUCCESS: Correctly routed to tools for project search")
+
+        print("\n✅ Single message test completed!")
+
+    except Exception as e:
+        print(f"❌ Single message test failed: {e}")
+        import traceback
+        traceback.print_exc()
+
 if __name__ == "__main__":
     import asyncio
-    asyncio.run(test_conversation_manager())
+
+    async def main():
+        # Run basic test
+        await test_conversation_manager()
+
+        # Run single message test first for debugging
+        await test_single_project_message()
+
+        # Run project search improvement test
+        await test_project_search_improvements()
+
+    asyncio.run(main())

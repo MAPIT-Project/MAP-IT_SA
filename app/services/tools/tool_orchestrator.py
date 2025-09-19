@@ -184,15 +184,24 @@ class ResearchTools:
                 }
 
             logger.info(f"🔍 Searching CORDIS projects: '{query}' (max_results: {max_results})")
-            
+
             # Execute search
+            logger.info("🔧 Initializing CordisRAG service...")
             rag_service = CordisRAG()
+            logger.info("🔧 Calling get_ai_response_with_routing...")
+
             results = rag_service.get_ai_response_with_routing(
                 question=query,
                 max_projects_to_process=max_results
             )
 
-            # Standardized successful response
+            logger.info(f"🔧 RAG service returned: {type(results)}")
+            logger.info(f"🔧 RAG results keys: {list(results.keys()) if isinstance(results, dict) else 'Not a dict'}")
+            if isinstance(results, dict):
+                for key, value in results.items():
+                    logger.info(f"🔧 RAG result {key}: {str(value)[:200]}...")
+
+            # Standardized successful response - handle RAG response format
             response = {
                 'success': True,
                 'tool_name': 'search_cordis_projects',
@@ -202,12 +211,14 @@ class ResearchTools:
                     'answer': results.get('answer', '') if include_summary else '',
                     'projects_found': results.get('projects_found', 0),
                     'data_source': results.get('data_source', 'cordis'),
-                    'processing_time_ms': results.get('processing_time', 0)
+                    'processing_time_ms': results.get('processing_time', 0) * 1000  # Convert to ms
                 },
                 'metadata': {
                     'search_type': 'rag_search',
                     'ai_generated': True,
-                    'timestamp': datetime.now().isoformat()
+                    'timestamp': datetime.now().isoformat(),
+                    'routing_decision': results.get('routing_decision', 'SEARCH_PROJECTS'),
+                    'intent_confidence': results.get('intent_confidence', 0.5)
                 }
             }
             

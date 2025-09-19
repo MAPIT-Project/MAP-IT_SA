@@ -7,13 +7,21 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional, Tuple
 from dotenv import load_dotenv
-import openai
+try:
+    import openai
+    OPENAI_AVAILABLE = True
+except ImportError:
+    openai = None
+    OPENAI_AVAILABLE = False
+
 try:
     from google import genai as google_genai_sdk
     from google.genai import types
+    GEMINI_AVAILABLE = True
 except Exception:
     google_genai_sdk = None
     types = None
+    GEMINI_AVAILABLE = False
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import psycopg2
@@ -99,11 +107,15 @@ class CordisRAG:
         print("ℹ️ Call-specific functionality integrated into EnhancedRAGService")
         
         if self.ai_provider == "openai":
+            if not OPENAI_AVAILABLE:
+                raise ValueError("OpenAI package not installed. Install with: pip install openai")
             used_openai_api_key = openai_api_key if openai_api_key else os.getenv("OPENAI_API_KEY")
             if not used_openai_api_key:
                 raise ValueError("OpenAI API key not provided and not found in .env file.")
             self.openai_client = openai.OpenAI(api_key=used_openai_api_key)
         elif self.ai_provider == "gemini":
+            if not GEMINI_AVAILABLE:
+                raise ValueError("Google Gemini package not installed. Install with: pip install google-genai")
             used_gemini_api_key = gemini_api_key if gemini_api_key else os.getenv("GEMINI_API_KEY")
             if not used_gemini_api_key:
                 raise ValueError("Gemini API key not provided and not found in .env file.")
@@ -2349,6 +2361,8 @@ Instructions:
         
         ans = ""
         if self.ai_provider == "openai":
+            if not OPENAI_AVAILABLE:
+                raise ValueError("OpenAI package not installed. Install with: pip install openai")
             completion = self.openai_client.chat.completions.create(
                 model=self.openai_model_name,
                 messages=[{"role": "system", "content": role}, {"role": "user", "content": quest}],
@@ -2357,6 +2371,8 @@ Instructions:
             )
             ans = completion.choices[0].message.content  # Always pick the first (and only) completion
         elif self.ai_provider == "gemini":
+            if not GEMINI_AVAILABLE:
+                raise ValueError("Google Gemini package not installed. Install with: pip install google-genai")
             gemini_contents = [
                 types.Content(role="user", parts=[types.Part.from_text(text=role)]),
                 types.Content(role="user", parts=[types.Part.from_text(text=quest)])
@@ -2645,12 +2661,16 @@ Instructions:
         # Use LLM to rerank the projects according to rerank_criteria
         prompt_rerank = f"""The json files embodying detailed information about relevant projects are as follows: {json.dumps(project_data, cls=DecimalEncoder)}. Sort those json files according to the criteria in the following list: {rerank_criteria}. Also consider their relevance to the question and their overall importance. At the very and of your response, give the sorted list of titles of projects. The titles you put in the list must be written totally the same as they are in the json file. The list must be a python list named sorted_titles and must be in a single line. Except that list, do not include any python code in your reponse."""
         if self.ai_provider == "openai":
+            if not OPENAI_AVAILABLE:
+                raise ValueError("OpenAI package not installed. Install with: pip install openai")
             reranker_response = self.openai_client.chat.completions.create(
                 model=self.openai_model_name,
                 messages=[{"role": "system", "content": role}, {"role": "user", "content": prompt_rerank}]
             )
             reranked_str = reranker_response.choices[0].message.content
         elif self.ai_provider == "gemini":
+            if not GEMINI_AVAILABLE:
+                raise ValueError("Google Gemini package not installed. Install with: pip install google-genai")
             gemini_contents = [
                 types.Content(role="user", parts=[types.Part.from_text(text=role)]),
                 types.Content(role="user", parts=[types.Part.from_text(text=prompt_rerank)])
