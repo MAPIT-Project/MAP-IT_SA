@@ -621,10 +621,10 @@ class ToolOrchestrator:
                 },
                 'max_results': {
                     'type': 'integer', 
-                    'default': 10,
+                    'default': 50,  # Increased default from 10 to 50
                     'min': 1,
-                    'max': 50,
-                    'description': 'Maximum number of calls to return (1-50)'
+                    'max': 100,     # Increased max from 50 to 100
+                    'description': 'Maximum number of calls to return (1-100)'
                 },
                 'status': {
                     'type': 'string',
@@ -649,7 +649,7 @@ class ToolOrchestrator:
                 
                 # Extract validated parameters
                 query = validated_params['query']
-                max_results = validated_params['max_results']
+                max_results = min(validated_params['max_results'], 100)  # Increased limit
                 include_closed = validated_params['include_closed']
                 programme_period = validated_params['programme_period']
                 

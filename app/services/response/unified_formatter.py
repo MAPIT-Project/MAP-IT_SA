@@ -37,20 +37,32 @@ class UnifiedResponseFormatter:
         formatted_parts = []
         
         for tool_name, tool_result in tool_results.items():
-            if hasattr(tool_result, 'success') and tool_result.success:
+            # Handle both object-style and dict-style tool results
+            is_successful = (
+                (hasattr(tool_result, 'success') and tool_result.success) or
+                (isinstance(tool_result, dict) and tool_result.get('success', False))
+            )
+            
+            if is_successful:
+                # Extract the actual result data
+                result_data = (
+                    tool_result.result if hasattr(tool_result, 'result') 
+                    else tool_result
+                )
+                
                 if tool_name == 'eu_portal_search':
                     # Format EU portal call search results
-                    formatted_calls = self._format_eu_calls(tool_result.result)
+                    formatted_calls = self._format_eu_calls(result_data)
                     formatted_parts.append(formatted_calls)
                     
                 elif tool_name == 'search_cordis_projects':
                     # Format CORDIS project search results
-                    formatted_projects = self._format_cordis_projects(tool_result.result)
+                    formatted_projects = self._format_cordis_projects(result_data)
                     formatted_parts.append(formatted_projects)
                     
                 else:
                     # Generic tool result formatting
-                    formatted_generic = self._format_generic_tool_result(tool_name, tool_result.result)
+                    formatted_generic = self._format_generic_tool_result(tool_name, result_data)
                     formatted_parts.append(formatted_generic)
         
         return "\n\n".join(formatted_parts) if formatted_parts else "No results found."

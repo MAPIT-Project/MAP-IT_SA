@@ -71,17 +71,17 @@ class EnhancedCallSearchService:
             self.query_parser = None
             logger.warning("⚠️ AI query parser not available")
         
-        # Status code mapping
+        # Status code mapping (CORRECTED!)
         self.status_mapping = {
-            '31094502': 'Open',
-            '31094503': 'Closed',
-            '31094501': 'Forthcoming',
+            '31094501': 'Closed',      # Closed calls
+            '31094502': 'Open',        # Open for submission  
+            '31094503': 'Forthcoming', # Forthcoming/Future calls
         }
         
-        # Search configuration
+        # Search configuration - maximize results
         self.default_params = {
             "apiKey": "SEDIA",
-            "pageSize": "50",
+            "pageSize": "100",  # Increased from 50 to get more results
             "pageNumber": "1"
         }
         
@@ -90,7 +90,7 @@ class EnhancedCallSearchService:
     def search_calls_enhanced(
         self,
         query: str,
-        max_results: int = 10,
+        max_results: int = 50,  # Increased from 10 to return more calls by default
         include_closed: bool = False,
         programme_period: str = "2021 - 2027",
         enable_facet_analysis: bool = True
@@ -112,14 +112,19 @@ class EnhancedCallSearchService:
         start_time = time.time()
         logger.info(f"🚀 Enhanced search starting: '{query}'")
         
-        # Step 0: Parse query for intelligent filtering
+        # Step 0: Parse query for intelligent filtering and simplification
         parsed_filters = None
         search_query_text = query
         
         if self.query_parser:
             parsed_filters = self.query_parser.parse_query(query)
             search_query_text = parsed_filters.clean_query
-            # Cluster normalization: map "cluster X" to programme + identifier hints
+            
+        # Step 0.1: Simplify complex natural language queries for better API results
+        search_query_text = self._simplify_query_for_api(search_query_text, query)
+        
+        # Cluster normalization: map "cluster X" to programme + identifier hints  
+        if self.query_parser:
             m = re.search(r"cluster\s*(\d)", search_query_text, re.IGNORECASE)
             if m:
                 cluster_num = m.group(1)
@@ -156,8 +161,8 @@ class EnhancedCallSearchService:
             search_query = self._build_advanced_query(
                 search_query_text,
                 tag_boosts,
-                parsed_filters or include_closed,
-                programme_period
+                parsed_filters,
+                include_closed
             )
             
             # Step 3: Get facet analysis (if enabled)
@@ -194,20 +199,16 @@ class EnhancedCallSearchService:
                                 pass
                 except Exception:
                     pass
-            # Step 5.1: Filter by status filter to exclude unwanted statuses (e.g., closed for forthcoming_only)
-            if parsed_filters and getattr(parsed_filters, 'status_filter', None):
-                processed_results = [res for res in processed_results if res.status_code in parsed_filters.status_filter]
-            
-            # If user explicitly requested open-only, filter to Open after normalization
-            if parsed_filters and getattr(parsed_filters, 'status_filter', None):
-                if '31094502' in parsed_filters.status_filter:
-                    processed_results = [r for r in processed_results if getattr(r, 'status', '').lower() == 'open']
+            # Step 5: NO post-processing status filtering
+            # Return ALL results from API - let API filtering handle status
+            # User wants to see all calls without additional filtering
 
             # Step 6: Apply intelligent ranking
             ranked_results = self._apply_intelligent_ranking(processed_results, query, tag_boosts)
             
-            # Step 7: Apply relevance filtering (especially important for filtered searches)
-            relevant_results = self._filter_by_relevance(ranked_results, search_query_text, parsed_filters)
+            # Step 7: NO relevance filtering - return ALL results from API
+            # User wants to see all calls without any filtering
+            relevant_results = ranked_results
             
             # Limit results
             final_results = relevant_results[:max_results]
@@ -312,12 +313,73 @@ class EnhancedCallSearchService:
         
         return []
     
+    def _simplify_query_for_api(self, clean_query: str, original_query: str) -> str:
+        """
+        Simplify complex natural language queries for better API results.
+        
+        Complex queries like 'What are some open calls about energy?' should become 'energy'
+        to get maximum results from the API.
+        """
+        
+        # Extract key topic words from the query
+        import re
+        
+        # Common question words and phrases to remove
+        question_words = [
+            r'\bwhat\s+are\s+(some\s+)?',
+            r'\bwhat\s+is\s+',
+            r'\bhow\s+many\s+',
+            r'\bcan\s+you\s+(find|show|tell)\s+me\s+',
+            r'\bi\s+(want|need|am\s+looking\s+for)\s+',
+            r'\bshow\s+me\s+',
+            r'\bfind\s+me\s+',
+            r'\btell\s+me\s+about\s+',
+        ]
+        
+        # Remove question words
+        simplified = clean_query.lower()
+        for pattern in question_words:
+            simplified = re.sub(pattern, '', simplified, flags=re.IGNORECASE)
+        
+        # Remove call-related words that are already handled by status filtering
+        call_words = [
+            r'\bopen\s+calls?\s+(about|for|on|related\s+to)\s+',
+            r'\bcalls?\s+(about|for|on|related\s+to)\s+',
+            r'\bfunding\s+(opportunities|calls?)\s+(about|for|on|related\s+to)\s+',
+            r'\bfunding\s+(about|for|on|related\s+to)\s+',
+            r'\bopportunities\s+(about|for|on|related\s+to)\s+',
+        ]
+        
+        for pattern in call_words:
+            simplified = re.sub(pattern, '', simplified, flags=re.IGNORECASE)
+        
+        # Extract core topic words (keep important domain terms)
+        # Remove common words but keep domain-specific terms
+        words_to_remove = [
+            r'\bsome\b', r'\bany\b', r'\babout\b', r'\bfor\b', r'\bon\b', 
+            r'\bin\b', r'\bof\b', r'\bthe\b', r'\ba\b', r'\ban\b',
+            r'\brelated\s+to\b', r'\bconcerning\b', r'\bregarding\b'
+        ]
+        
+        for pattern in words_to_remove:
+            simplified = re.sub(pattern, ' ', simplified, flags=re.IGNORECASE)
+        
+        # Clean up extra spaces
+        simplified = re.sub(r'\s+', ' ', simplified).strip()
+        
+        # If we simplified too much, fall back to original clean query
+        if len(simplified) < 2:
+            simplified = clean_query
+        
+        logger.info(f"🔍 Query simplified: '{original_query}' → '{clean_query}' → '{simplified}'")
+        return simplified
+    
     def _build_advanced_query(
         self,
         query: str,
         tag_boosts: List[TagBoost],
-        filters_or_include_closed,  # Can be QueryFilters object or boolean
-        programme_period: str
+        parsed_filters,  # QueryFilters object or None
+        include_closed: bool = False  # Original boolean parameter
     ) -> Dict[str, Any]:
         """Build the advanced query structure matching EU portal approach with intelligent filtering."""
         
@@ -329,9 +391,9 @@ class EnhancedCallSearchService:
                         "bool": {
                             "must": [
                                 # Document types: 1=Grant, 2=Other, 8=Additional
-                                {"terms": {"type": ["1", "2", "8"]}},
-                                # Programme period filter
-                                {"term": {"programmePeriod": programme_period}}
+                                {"terms": {"type": ["1", "2", "8"]}}
+                                # Removed programme period filter - it was blocking valid results
+                                # Manual EU portal doesn't use this filter and finds 116+ results
                             ]
                         }
                     }
@@ -341,8 +403,8 @@ class EnhancedCallSearchService:
         
         # Domain-specific filters from parsed query
         domain_filters = []
-        if hasattr(filters_or_include_closed, 'specific_filters') and filters_or_include_closed.specific_filters:
-            specific_filters = filters_or_include_closed.specific_filters
+        if parsed_filters and hasattr(parsed_filters, 'specific_filters') and parsed_filters.specific_filters:
+            specific_filters = parsed_filters.specific_filters
             
             # Cluster 4 filter
             # Cluster filters: use programmeDivision where available; also bias text via identifier hint already injected
@@ -386,36 +448,33 @@ class EnhancedCallSearchService:
         if domain_filters:
             base_query["bool"]["must"][0]["bool"]["must"].extend(domain_filters)
         
-        # Intelligent status filtering based on parsed query
-        if hasattr(filters_or_include_closed, 'status_filter') and filters_or_include_closed.status_filter:
-            # Use specific status filter from parsed query
-            status_codes = filters_or_include_closed.status_filter
-            logger.info(f"🎯 Applying intelligent status filter: {status_codes}")
+        # Intelligent status filtering based on parsed query and include_closed parameter
+        if parsed_filters and hasattr(parsed_filters, 'status_filter') and parsed_filters.status_filter:
+            # Use specific status filter from parsed query (highest priority)
+            status_codes = parsed_filters.status_filter
+            logger.info(f"🎯 Applying intelligent status filter from parsed query: {status_codes}")
             base_query["bool"]["must"][0]["bool"]["must"].append(
                 {"terms": {"status": status_codes}}
             )
-        elif isinstance(filters_or_include_closed, bool):
-            # Fallback to original logic
-            if filters_or_include_closed:
+        else:
+            # Use include_closed parameter (fallback logic)
+            if include_closed:
                 # Include all statuses: closed, open, forthcoming
+                logger.info("🎯 Including all call statuses (closed + open + forthcoming)")
                 base_query["bool"]["must"][0]["bool"]["must"].append(
                     {"terms": {"status": ["31094501", "31094502", "31094503"]}}
                 )
             else:
-                # Only include open and forthcoming calls (exclude closed)
+                # Only include open calls (match manual query exactly)
+                logger.info("🎯 Including only open calls (31094502)")
                 base_query["bool"]["must"][0]["bool"]["must"].append(
-                    {"terms": {"status": ["31094502", "31094503"]}}
+                    {"terms": {"status": ["31094502"]}}
                 )
-        else:
-            # Default: include all statuses for comprehensive search
-            base_query["bool"]["must"][0]["bool"]["must"].append(
-                {"terms": {"status": ["31094501", "31094502", "31094503"]}}
-            )
         
         # Add date filtering if specified
-        if (hasattr(filters_or_include_closed, 'date_filter') and
-            filters_or_include_closed.date_filter):
-            date_filter = filters_or_include_closed.date_filter
+        if (parsed_filters and hasattr(parsed_filters, 'date_filter') and
+            parsed_filters.date_filter):
+            date_filter = parsed_filters.date_filter
             logger.info(f"📅 Applying date filter: {date_filter}")
             base_query["bool"]["must"][0]["bool"]["must"].append(
                 {"range": {"deadlineDate": date_filter}}
@@ -532,9 +591,9 @@ class EnhancedCallSearchService:
         """Execute the enhanced search with the built query."""
         
         try:
-            # Prepare search parameters
+            # Prepare search parameters - maximize API results
             params = dict(self.default_params)
-            params["pageSize"] = str(min(max_results * 2, 50))  # Get more for ranking
+            params["pageSize"] = str(min(max_results * 2, 100))  # Get more results, increased from 50
             params["text"] = "***"  # Use wildcard since we have structured query
             
             # Prepare multipart form data
@@ -978,16 +1037,16 @@ class EnhancedCallSearchService:
             return results
         
         relevant_results = []
-        relevance_threshold = 0.05  # Lower minimum relevance score (was 0.1)
+        relevance_threshold = 0.01  # MUCH lower minimum relevance score (was 0.05)
         
         for result in results:
             relevance_score = self._calculate_relevance_score(result, core_terms, query_lower)
             
-            # For filtered searches, don't be overly strict - user is already filtering
+            # For filtered searches, be very lenient - user is already filtering
             min_threshold = relevance_threshold
             if filters and hasattr(filters, 'status_filter') and filters.status_filter:
-                # Only slightly higher threshold for filtered searches (was 0.15)
-                min_threshold = 0.08
+                # Very low threshold for filtered searches - user wants to see results!
+                min_threshold = 0.02
             
             if relevance_score >= min_threshold:
                 # Store relevance score for potential use (ensure metadata exists)
@@ -997,8 +1056,8 @@ class EnhancedCallSearchService:
                 relevant_results.append(result)
         
         # If we filtered out too many results and have very few left, and this is a filtered search,
-        # log the issue but still return what we have
-        if len(relevant_results) < len(results) * 0.3 and len(relevant_results) < 3:
+        # log the issue but still return what we have (much more lenient threshold)
+        if len(relevant_results) < len(results) * 0.1 and len(relevant_results) < 1:
             logger.warning(f"⚠️ Relevance filtering removed {len(results) - len(relevant_results)} results. Query: '{query}', Remaining: {len(relevant_results)}")
         
         logger.info(f"🎯 Relevance filtering: {len(results)} -> {len(relevant_results)} results")

@@ -104,12 +104,8 @@ async def send_message_stream(
             
             # Otherwise, it should be an async generator
             async for chunk in result:
-                # Format as SSE
-                if chunk.get('type') == 'token':
-                    yield f"data: {json.dumps(chunk)}\n\n"
-                elif chunk.get('type') == 'complete':
-                    yield f"data: {json.dumps(chunk)}\n\n"
-                elif chunk.get('type') == 'error':
+                # Format as SSE - include ALL event types
+                if chunk.get('type') in ['status', 'progress', 'token', 'complete', 'error']:
                     yield f"data: {json.dumps(chunk)}\n\n"
                     
         except Exception as e:

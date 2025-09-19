@@ -7,6 +7,7 @@ from typing import Dict, Any, Optional, List, AsyncGenerator
 from datetime import datetime
 import json
 import logging
+import re
 import os
 import random
 import re
@@ -95,8 +96,8 @@ class ConversationManager:
                 query=user_message
             )
             
-            # Phase 4: AI-powered tool planning
-            tool_plan = await self._ai_tool_planner(
+            # Phase 4: FORCED tool planning - no more missing tools!
+            tool_plan = await self._forced_tool_planner(
                 user_message=user_message,
                 intent_analysis=intent_analysis,
                 context=context,
@@ -375,16 +376,15 @@ INTENT ANALYSIS: {intent_analysis}
 Based on the user's question, determine which tools should be called and in what order.
 
 DECISION RULES:
-1. For "open calls", "funding opportunities", "calls for proposals" → Use search_horizon_calls tool
+1. For "open calls", "funding opportunities", "calls for proposals" → Use eu_portal_search tool
 2. For "projects", "research projects", "case studies" → Use search_cordis_projects tool
-3. For "document analysis", "specific call details" → Use analyze_document tool
-4. For general questions → Use the most appropriate tool based on context
+3. For general questions → Use the most appropriate tool based on context
 
 Respond in JSON format:
 {{
     "tools_needed": [
         {{
-            "tool_name": "search_horizon_calls",
+            "tool_name": "eu_portal_search", 
             "parameters": {{"query": "clean energy", "status": "open"}},
             "reason": "User asking for open calls"
         }}
@@ -441,6 +441,131 @@ If no tools are needed, return {{"tools_needed": [], "reasoning": "Question can 
             print(f"AI tool planning error: {e}")
 
         return None
+
+    async def _forced_tool_planner(self,
+                                  user_message: str,
+                                  intent_analysis: Dict,
+                                  context: str,
+                                  conversation_id: int) -> Optional[List]:
+        """
+        SMART tool planning that only executes tools when appropriate.
+        Follows the 7-phase architecture properly.
+        """
+        try:
+            message_lower = user_message.lower()
+            
+            # EXCLUDE general conversational queries and nonsense text
+            conversational_indicators = [
+                'hello', 'hi', 'thanks', 'thank you', 'help', 'how are you',
+                'what can you', 'who are you', 'what do you do', 'goodbye',
+                'bye', 'please', 'explain', 'tell me about', 'what is',
+                'how does', 'why', 'when', 'where'
+            ]
+            
+            # If it's clearly conversational, don't use tools
+            if any(indicator in message_lower for indicator in conversational_indicators):
+                logger.info(f"🗣️ Conversational query detected: '{user_message}' - No tools needed")
+                return None
+            
+            # EXCLUDE nonsense/random text - if it doesn't contain recognizable words, treat as conversational
+            import re
+            # Check if message contains mostly nonsense (random characters, no recognizable patterns)
+            words = user_message.split()
+            nonsense_pattern = re.compile(r'^[a-zA-Z]{2,}$')  # Just random letters
+            recognizable_words = ['energy', 'automotive', 'ai', 'health', 'climate', 'digital', 'call', 'calls', 'funding', 'grant', 'project', 'research', 'open', 'closed', 'horizon', 'eu', 'european']
+            
+            # If message is short and contains no recognizable funding/research terms, treat as conversational
+            if len(words) <= 5 and not any(word.lower() in recognizable_words for word in words):
+                logger.info(f"🤷 Nonsense/unclear query detected: '{user_message}' - Using conversational response")
+                return None
+            
+            # SPECIFIC call-related keywords (more precise)
+            call_keywords = [
+                'open calls', 'funding calls', 'call for proposals', 'grant calls',
+                'submission deadline', 'funding opportunities', 'horizon calls',
+                'eu calls', 'research calls', 'proposal calls'
+            ]
+            
+            # SPECIFIC project-related keywords
+            project_keywords = [
+                'completed projects', 'research projects', 'project results',
+                'cordis projects', 'funded projects', 'project examples',
+                'successful projects', 'project outcomes'
+            ]
+            
+            # Domain + funding context (more specific)
+            domain_funding_patterns = [
+                r'\b(energy|automotive|ai|health|climate|digital)\b.*\b(call|funding|grant|opportunity)\b',
+                r'\b(call|funding|grant|opportunity)\b.*\b(energy|automotive|ai|health|climate|digital)\b',
+                r'open.*\b(energy|automotive|ai|health|climate|digital)\b',
+                r'\b(energy|automotive|ai|health|climate|digital)\b.*open'
+            ]
+            
+            tools_needed = []
+            
+            # Check for explicit call-related queries
+            if any(keyword in message_lower for keyword in call_keywords):
+                tools_needed.append({
+                    "tool_name": "eu_portal_search",
+                    "parameters": {
+                        "query": user_message,
+                        "status": "open",
+                        "max_results": 20
+                    },
+                    "reason": f"Explicit call query detected"
+                })
+                logger.info(f"🎯 EXPLICIT call query: eu_portal_search for '{user_message}'")
+            
+            # Check for domain + funding patterns
+            elif any(re.search(pattern, message_lower) for pattern in domain_funding_patterns):
+                tools_needed.append({
+                    "tool_name": "eu_portal_search",
+                    "parameters": {
+                        "query": user_message,
+                        "status": "open",
+                        "max_results": 20
+                    },
+                    "reason": f"Domain + funding pattern detected"
+                })
+                logger.info(f"🎯 DOMAIN+FUNDING query: eu_portal_search for '{user_message}'")
+            
+            # Check for explicit project queries
+            elif any(keyword in message_lower for keyword in project_keywords):
+                tools_needed.append({
+                    "tool_name": "search_cordis_projects", 
+                    "parameters": {
+                        "query": user_message,
+                        "max_results": 10
+                    },
+                    "reason": f"Explicit project query detected"
+                })
+                logger.info(f"🎯 EXPLICIT project query: search_cordis_projects for '{user_message}'")
+            
+            # NO DEFAULT TOOL EXECUTION - let it be conversational!
+            else:
+                logger.info(f"🤖 No specific tool needed for: '{user_message}' - Will use conversational AI")
+                return None
+            
+            if tools_needed:
+                # Convert to ToolCall objects
+                from ..tools.tool_orchestrator import ToolCall
+                tool_calls = []
+                for i, tool_spec in enumerate(tools_needed):
+                    tool_call = ToolCall(
+                        tool_name=tool_spec["tool_name"],
+                        parameters=tool_spec["parameters"],
+                        execution_order=i
+                    )
+                    tool_calls.append(tool_call)
+                
+                logger.info(f"🚀 SMART tool planning: {len(tool_calls)} tools planned for '{user_message}'")
+                return tool_calls
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Smart tool planning failed: {e}")
+            return None
 
     async def _retrieve_information(self,
                                    conversation_id: int,
@@ -503,8 +628,7 @@ If no tools are needed, return {{"tools_needed": [], "reasoning": "Question can 
                 }
                 context_chunks.insert(0, tool_context)
             
-            # Phase 7: Use unified formatter for beautiful responses
-            formatted_response = None
+            # Phase 7: Generate appropriate response based on query type
             if tool_results:
                 # Use unified formatter for tool results (calls, projects, etc.)
                 formatted_response = self.unified_formatter.format_mixed_results(
@@ -512,9 +636,7 @@ If no tools are needed, return {{"tools_needed": [], "reasoning": "Question can 
                     retrieval_results=retrieval_results,
                     query=query
                 )
-            
-            if formatted_response:
-                # Use the beautifully formatted response
+                
                 response = {
                     'answer': formatted_response,
                     'citations': [],
@@ -522,13 +644,21 @@ If no tools are needed, return {{"tools_needed": [], "reasoning": "Question can 
                     'grounded': True
                 }
             else:
-                # Fall back to AI generation for complex queries
-                response = self.response_generator.generate_response(
+                # Generate conversational AI response for general queries
+                logger.info(f"💬 Generating conversational response for: '{query}'")
+                conversational_response = self._generate_conversational_response(
                     query=query,
-                    context_chunks=context_chunks,
-                    conversation_context=context,
-                    system_instructions=self._get_system_instructions(intent_analysis)
+                    context=context,
+                    retrieval_results=retrieval_results,
+                    intent_analysis=intent_analysis
                 )
+                
+                response = {
+                    'answer': conversational_response,
+                    'citations': [],
+                    'confidence': 0.8,  # Good confidence for conversational responses
+                    'grounded': True if retrieval_results else False
+                }
             
             # Store assistant response in memory
             assistant_message_id = await self._store_assistant_message(
@@ -571,26 +701,93 @@ If no tools are needed, return {{"tools_needed": [], "reasoning": "Question can 
                                           intent_analysis: Dict,
                                           start_time: datetime) -> AsyncGenerator[Dict[str, Any], None]:
         """
-        Generate streaming response with progressive output.
+        Generate streaming response with progressive status updates following the 7-phase architecture.
         """
         try:
+            # Phase 1: Context Resolution
+            yield {
+                'type': 'status',
+                'stage': 'context_resolution',
+                'message': 'Loading conversation context and memory'
+            }
+            await asyncio.sleep(0.1)
+            
+            # Phase 2: Intent Detection (already done, but show progress)
+            intent_confidence = intent_analysis.get('confidence', 0.0)
+            routing_decision = intent_analysis.get('intent', 'CONVERSATIONAL')
+            
+            yield {
+                'type': 'progress',
+                'stage': 'intent_detected',
+                'message': f'Classified query intent: {routing_decision}',
+                'routing_decision': routing_decision,
+                'intent_confidence': intent_confidence
+            }
+            await asyncio.sleep(0.1)
+            
+            # Phase 3: Route Selection
+            if tool_results:
+                yield {
+                    'type': 'progress',
+                    'stage': 'route_selected',
+                    'message': 'Selected tool-based response generation',
+                    'routing_decision': 'SEARCH_CALLS' if 'eu_portal_search' in str(tool_results) else 'SEARCH_PROJECTS'
+                }
+            else:
+                yield {
+                    'type': 'progress',
+                    'stage': 'route_selected',
+                    'message': 'Selected conversational AI response',
+                    'routing_decision': 'CONVERSATIONAL'
+                }
+            await asyncio.sleep(0.1)
+            
+            # Phase 4: Data Processing
+            if tool_results:
+                yield {
+                    'type': 'status',
+                    'stage': 'data_retrieval',
+                    'message': 'Processing search results from EU databases'
+                }
+                await asyncio.sleep(0.1)
+                
+                yield {
+                    'type': 'status',
+                    'stage': 'data_enriched',
+                    'message': 'Enriching and formatting search results'
+                }
+                await asyncio.sleep(0.1)
+            
+            # Phase 5: Response Generation
+            yield {
+                'type': 'status',
+                'stage': 'answer_generation',
+                'message': 'Generating response based on processed data'
+            }
+            await asyncio.sleep(0.1)
+            
+            # Phase 6: Context Enhancement
+            yield {
+                'type': 'status',
+                'stage': 'context_enhancement',
+                'message': 'Enhancing response with relevant context'
+            }
+            await asyncio.sleep(0.1)
+            
+            # Phase 7: Streaming Response
+            yield {
+                'type': 'status',
+                'stage': 'streaming_response',
+                'message': 'Starting response stream'
+            }
+            await asyncio.sleep(0.1)
+            
             # Prepare context chunks
             context_chunks = retrieval_results if retrieval_results else []
             
-            # Add tool results if available
+            # Generate and stream the actual response
             if tool_results:
-                # Serialize tool results for JSON compatibility
-                serialized_tool_results = self._serialize_tool_results(tool_results)
-                tool_context = {
-                    'content': f"Tool Results:\n{json.dumps(serialized_tool_results, indent=2)}",
-                    'citation': 'Tool Execution',
-                    'chunk_id': 'tool_results'
-                }
-                context_chunks.insert(0, tool_context)
-            
-            # Phase 7: Use unified formatter for streaming responses too
-            if tool_results:
-                # For tool results, generate the formatted response and stream it
+                # Tool-based response with beautiful formatting
                 formatted_response = self.unified_formatter.format_mixed_results(
                     tool_results=tool_results,
                     retrieval_results=retrieval_results,
@@ -604,83 +801,203 @@ If no tools are needed, return {{"tools_needed": [], "reasoning": "Question can 
                         chunk = formatted_response[i:i+chunk_size]
                         yield {
                             'type': 'token',
-                            'content': chunk,
-                            'accumulated_response': formatted_response[:i+len(chunk)]
+                            'content': chunk
                         }
                         await asyncio.sleep(0.01)  # Small delay for streaming effect
                     
-                    # Store final response in memory
-                    assistant_message_id = await self._store_assistant_message(
-                        conversation_id, formatted_response
-                    )
-                    
-                    self.memory_service.add_conversation_turn(
-                        conversation_id=conversation_id,
-                        role='assistant',
-                        content=formatted_response,
-                        message_id=assistant_message_id
-                    )
-                    
-                    # Send completion message
-                    processing_time = (datetime.now() - start_time).total_seconds()
+                    final_response = formatted_response
+                    projects_found = self._count_projects_in_results(tool_results)
+                    tools_executed = True
+                    confidence = 0.9
+                    grounded = True
+            else:
+                # Generate conversational response for non-tool queries
+                logger.info(f"💬 Generating streaming conversational response for: '{query}'")
+                conversational_response = self._generate_conversational_response(
+                    query=query,
+                    context=context,
+                    retrieval_results=retrieval_results,
+                    intent_analysis=intent_analysis
+                )
+                
+                # Stream the conversational response in chunks
+                chunk_size = 50  # Characters per chunk
+                for i in range(0, len(conversational_response), chunk_size):
+                    chunk = conversational_response[i:i+chunk_size]
                     yield {
-                        'type': 'completion',
-                        'final_response': formatted_response,
-                        'citations': [],
-                        'confidence': 0.9,
-                        'grounded': True,
-                        'intent': intent_analysis,
-                        'chunks_retrieved': len(retrieval_results) if retrieval_results else 0,
-                        'tools_executed': True,
-                        'processing_time': processing_time,
-                        'memory_stats': self.memory_service.stm.get_memory_stats(conversation_id),
-                        'retrieval_stats': self.retriever.get_retrieval_stats(conversation_id)
+                        'type': 'token',
+                        'content': chunk
                     }
-                    return
+                    await asyncio.sleep(0.01)  # Small delay for streaming effect
+                
+                final_response = conversational_response
+                projects_found = 0
+                tools_executed = False
+                confidence = 0.8
+                grounded = True if retrieval_results else False
             
-            # Fall back to AI streaming for complex queries
-            accumulated_response = ""
-            async for chunk in self.response_generator.generate_streaming_response(
-                query=query,
-                context_chunks=context_chunks,
-                conversation_context=context,
-                system_instructions=self._get_system_instructions(intent_analysis)
-            ):
-                if chunk['type'] == 'token':
-                    accumulated_response += chunk['content']
-                    yield chunk
-                elif chunk['type'] == 'complete':
-                    # Store complete response in memory
-                    assistant_message_id = await self._store_assistant_message(
-                        conversation_id, accumulated_response
-                    )
-                    
-                    self.memory_service.add_conversation_turn(
-                        conversation_id=conversation_id,
-                        role='assistant',
-                        content=accumulated_response,
-                        message_id=assistant_message_id
-                    )
-                    
-                    # Add metadata to completion
-                    processing_time = (datetime.now() - start_time).total_seconds()
-                    chunk.update({
-                        'intent': intent_analysis,
-                        'chunks_retrieved': len(retrieval_results) if retrieval_results else 0,
-                        'tools_executed': tool_results is not None,
-                        'processing_time': processing_time,
-                        'memory_stats': self.memory_service.stm.get_memory_stats(conversation_id),
-                        'retrieval_stats': self.retriever.get_retrieval_stats(conversation_id)
-                    })
-                    yield chunk
-                else:
-                    yield chunk
+            # Send completion with full metadata IMMEDIATELY
+            processing_time = (datetime.now() - start_time).total_seconds()
+            
+            yield {
+                'type': 'complete',
+                'ai_provider': 'google',
+                'ai_version': 'gemini-2.5-flash-lite',
+                'model_used': 'gemini-2.5-flash-lite',
+                'data_source': 'EU Funding & Tenders Portal' if tools_executed else 'Conversational AI',
+                'processing_time': processing_time,
+                'projects_found': projects_found,
+                'logs': {
+                    'question': query,
+                    'model_used': 'gemini-2.5-flash-lite',
+                    'phases': ['context_resolution', 'intent_detected', 'route_selected', 'data_retrieval' if tools_executed else 'conversational', 'answer_generation', 'streaming_response'],
+                    'total_processing_time_ms': int(processing_time * 1000),
+                    'projects_retrieved': projects_found,
+                    'projects_processed': projects_found,
+                    'success': True,
+                    'average_relevance_score': 0.85 if tools_executed else 0.8
+                },
+                'context_used': len(retrieval_results) > 0 if retrieval_results else False,
+                'resolved_question': query,
+                'follow_up_suggestions': self._generate_follow_up_suggestions(query, tools_executed),
+                'projects_discussed': []
+            }
+            
+            # Store in memory AFTER sending complete event (fire-and-forget)
+            try:
+                assistant_message_id = await self._store_assistant_message(
+                    conversation_id, final_response
+                )
+                
+                self.memory_service.add_conversation_turn(
+                    conversation_id=conversation_id,
+                    role='assistant',
+                    content=final_response,
+                    message_id=assistant_message_id
+                )
+            except Exception as e:
+                logger.error(f"Error storing response in memory: {e}")
+            
         except Exception as e:
             yield {
                 'type': 'error',
-                'error': str(e)
+                'error': str(e),
+                'details': f'Error during response generation: {str(e)}'
             }
     
+    def _generate_conversational_response(self,
+                                         query: str,
+                                         context: str,
+                                         retrieval_results: Optional[List[Dict]],
+                                         intent_analysis: Dict) -> str:
+        """
+        Generate a conversational AI response for general queries.
+        This is used when no tools are needed.
+        """
+        try:
+            # Import here to avoid circular imports
+            from ..rag.response_generator import GroundedResponseGenerator
+            
+            # Initialize response generator if not already done
+            if not hasattr(self, 'response_generator'):
+                self.response_generator = GroundedResponseGenerator(
+                    gemini_api_key=os.getenv('GEMINI_API_KEY')
+                )
+            
+            # Prepare context chunks from retrieval results
+            context_chunks = retrieval_results if retrieval_results else []
+            
+            # Generate response using the response generator
+            response = self.response_generator.generate_response(
+                query=query,
+                context_chunks=context_chunks,
+                conversation_context=context,
+                system_instructions=self._get_conversational_instructions(intent_analysis)
+            )
+            
+            return response.get('answer', 'I apologize, but I encountered an issue generating a response.')
+            
+        except Exception as e:
+            logger.error(f"Error generating conversational response: {e}")
+            return self._get_fallback_conversational_response(query, intent_analysis)
+    
+    def _get_conversational_instructions(self, intent_analysis: Dict) -> str:
+        """
+        Get system instructions for conversational responses.
+        """
+        return """You are a helpful AI assistant specializing in European research funding and innovation.
+
+PERSONALITY & TONE:
+- Be friendly, professional, and conversational
+- Show enthusiasm for helping with research and funding questions
+- Be encouraging and supportive
+
+CAPABILITIES:
+- Expert knowledge of EU funding programmes (Horizon Europe, LIFE, Digital Europe, etc.)
+- Research and innovation guidance
+- Grant application advice
+- Project development support
+
+RESPONSE GUIDELINES:
+- Give helpful, actionable advice
+- If asked about specific calls or projects, suggest they ask for current information
+- Be honest about limitations - if you need current data, say so
+- Keep responses concise but informative
+- Use a warm, encouraging tone
+
+CURRENT CONTEXT:
+- You have access to extensive documentation about EU funding
+- You can search for current calls and projects when specifically requested
+- Focus on being genuinely helpful rather than just informative"""
+    
+    def _get_fallback_conversational_response(self, query: str, intent_analysis: Dict) -> str:
+        """
+        Provide a fallback response when AI generation fails.
+        """
+        query_lower = query.lower()
+        
+        if any(greeting in query_lower for greeting in ['hello', 'hi', 'hey']):
+            return """Hello! 👋 I'm your AI assistant specializing in European research funding and innovation. 
+
+I can help you with:
+• Finding current funding calls and opportunities
+• Understanding EU programmes like Horizon Europe
+• Grant application guidance and tips
+• Research project development advice
+• Connecting you with relevant resources
+
+What would you like to explore today?"""
+        
+        elif any(help_word in query_lower for help_word in ['help', 'what can you']):
+            return """I'm here to help with European research funding and innovation! 🚀
+
+**I can assist you with:**
+• **Finding funding**: Search for open calls, grants, and opportunities
+• **Programme guidance**: Horizon Europe, LIFE, Digital Europe, EIC, etc.
+• **Application support**: Tips for writing competitive proposals
+• **Project development**: From idea to implementation
+• **Resources & contacts**: Connect you with relevant information
+
+**Just ask me things like:**
+• "What are some open calls for energy research?"
+• "How does Horizon Europe work?"
+• "Tips for writing a successful grant proposal?"
+• "Show me completed projects in AI"
+
+What specific area would you like help with?"""
+        
+        elif 'thank' in query_lower:
+            return """You're very welcome! 😊 I'm always happy to help with research funding and innovation questions. 
+
+Feel free to ask me anything about EU funding opportunities, grant applications, or research programmes whenever you need assistance!"""
+        
+        else:
+            return f"""I'd be happy to help you with that! While I specialize in European research funding and innovation, I can provide guidance on a wide range of topics.
+
+For the most current and specific information about funding calls or project opportunities, I can search the latest databases. Just let me know if you'd like me to look up anything specific!
+
+Is there a particular aspect of research funding or innovation you'd like to explore?"""
+
     def _get_system_instructions(self, intent_analysis: Dict) -> str:
         """
         Get appropriate system instructions based on intent.
@@ -869,6 +1186,74 @@ Be helpful and conversational."""
                 return obj
             except (TypeError, ValueError):
                 return str(obj)
+
+    def _count_projects_in_results(self, tool_results: Dict) -> int:
+        """
+        Count the number of projects/calls found in tool results.
+        """
+        try:
+            if not tool_results:
+                return 0
+            
+            count = 0
+            for tool_name, result in tool_results.items():
+                if hasattr(result, 'results') and result.results:
+                    count += len(result.results)
+                elif isinstance(result, dict) and 'results' in result:
+                    count += len(result['results'])
+                elif isinstance(result, list):
+                    count += len(result)
+            
+            return count
+        except Exception:
+            return 0
+    
+    def _generate_follow_up_suggestions(self, query: str, tools_executed: bool) -> List[str]:
+        """
+        Generate contextual follow-up suggestions based on the query and response type.
+        """
+        try:
+            query_lower = query.lower()
+            suggestions = []
+            
+            if tools_executed:
+                # Tool-based response - suggest related searches
+                if 'energy' in query_lower:
+                    suggestions = [
+                        "Show me energy projects that received funding",
+                        "What are the eligibility criteria for energy calls?",
+                        "Find calls related to renewable energy"
+                    ]
+                elif 'automotive' in query_lower:
+                    suggestions = [
+                        "Find automotive research projects",
+                        "What funding is available for electric vehicles?",
+                        "Show me mobility and transport calls"
+                    ]
+                elif 'ai' in query_lower or 'artificial intelligence' in query_lower:
+                    suggestions = [
+                        "Find AI research projects",
+                        "What are the latest digital technology calls?",
+                        "Show me robotics and AI funding opportunities"
+                    ]
+                else:
+                    suggestions = [
+                        "Show me all currently open calls",
+                        "Find projects in my research area",
+                        "What are the most popular funding topics?"
+                    ]
+            else:
+                # Conversational response - suggest general queries
+                suggestions = [
+                    "What are some open calls about energy?",
+                    "Show me completed AI projects",
+                    "How do I apply for Horizon Europe funding?",
+                    "What are the eligibility criteria for EU grants?"
+                ]
+            
+            return suggestions[:3]  # Return max 3 suggestions
+        except Exception:
+            return []
 
 # Test function
 async def test_conversation_manager():

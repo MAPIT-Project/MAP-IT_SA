@@ -368,10 +368,11 @@ class HorizonEuropeRAG:
                                     url_builder = EnhancedCallSearchService()
 
                                     def _normalize_status(raw_status: str) -> str:
+                                        # CORRECTED status mapping to match EU API
                                         mapping = {
-                                            '31094502': 'Open',
-                                            '31094503': 'Closed',
-                                            '31094501': 'Forthcoming',
+                                            '31094501': 'Closed',      # Closed calls
+                                            '31094502': 'Open',        # Open for submission
+                                            '31094503': 'Forthcoming', # Forthcoming calls
                                             'open': 'Open',
                                             'closed': 'Closed',
                                             'forthcoming': 'Forthcoming'
@@ -996,7 +997,7 @@ Answer:"""
                 
                 enhanced_result = self.enhanced_search.search_calls_enhanced(
                     query=question,
-                    max_results=max_context_chunks,
+                    max_results=max(max_context_chunks, 20),  # Use at least 20 results for better coverage
                     include_closed=include_closed_calls,  # Only include closed if not asking specifically for open
                     enable_facet_analysis=True
                 )

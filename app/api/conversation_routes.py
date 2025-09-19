@@ -231,7 +231,8 @@ async def send_contextual_message_stream(
     async def generate_stream():
         start_time = time.time()
         processing_phases = {}
-        
+        phases = []
+
         try:
             # Load conversation context
             if request.include_context:
@@ -251,10 +252,11 @@ async def send_contextual_message_stream(
                     last_query_type='UNKNOWN',
                     follow_up_expected=False
                 )
-            
-            # Send initial status
-            yield f"data: {json.dumps({'type': 'status', 'stage': 'context_loaded', 'message': 'Conversation context loaded'})}\n\n"
-            
+
+            # Send initial status - context resolution
+            phases.append('context_resolution')
+            yield f"data: {json.dumps({'type': 'status', 'stage': 'context_resolution', 'message': 'Loading conversation context'})}\n\n"
+
             # Resolve references using the existing context service
             # Handle tuple return from resolve_references
             resolution_start = time.time()
@@ -265,22 +267,65 @@ async def send_contextual_message_stream(
                 resolved_question = resolution_result
                 needs_detailed_lookup = False
             processing_phases['reference_resolution'] = time.time() - resolution_start
-            
+
             if resolved_question != request.message:
-                yield f"data: {json.dumps({'type': 'status', 'stage': 'reference_resolved', 'message': f'Resolved: {resolved_question}'})}\n\n"
-            
+                phases.append('reference_resolved')
+                yield f"data: {json.dumps({'type': 'status', 'stage': 'reference_resolved', 'message': f'References resolved'})}\n\n"
+
+            # Intent detection status
+            phases.append('intent_detection')
+            yield f"data: {json.dumps({'type': 'status', 'stage': 'intent_detection', 'message': 'Detecting intent with context'})}\n\n"
+
             # Early intent detection with context for optimal routing
             intent_start = time.time()
             from app.services.intent_service import IntentService
             intent, intent_conf = IntentService.determine_intent_with_context(resolved_question, context)
             processing_phases['intent_detection'] = time.time() - intent_start
-            
-            # Emit early route selection event
+
+            # Intent detected status
+            phases.append('intent_detected')
+            yield f"data: {json.dumps({'type': 'status', 'stage': 'intent_detected', 'message': f'Intent detected: {intent}'})}\n\n"
+
+            # Emit route selection event
+            phases.append('route_selected')
             yield f"data: {json.dumps({'type': 'progress', 'stage': 'route_selected', 'routing_decision': intent, 'intent_confidence': intent_conf})}\n\n"
-            
-            # Send processing status
-            yield f"data: {json.dumps({'type': 'status', 'stage': 'processing', 'message': 'Processing your question...'})}\n\n"
-            
+
+            # Query extraction status
+            phases.append('query_extraction')
+            yield f"data: {json.dumps({'type': 'status', 'stage': 'query_extraction', 'message': 'Extracting search queries'})}\n\n"
+
+            # Queries extracted status
+            phases.append('queries_extracted')
+            yield f"data: {json.dumps({'type': 'status', 'stage': 'queries_extracted', 'message': 'Queries prepared for search'})}\n\n"
+
+            # Data retrieval status
+            phases.append('data_retrieval')
+            yield f"data: {json.dumps({'type': 'status', 'stage': 'data_retrieval', 'message': 'Retrieving relevant data'})}\n\n"
+
+            # Data enriched status
+            phases.append('data_enriched')
+            yield f"data: {json.dumps({'type': 'status', 'stage': 'data_enriched', 'message': 'Enriching retrieved data'})}\n\n"
+
+            # Data selected status
+            phases.append('data_selected')
+            yield f"data: {json.dumps({'type': 'status', 'stage': 'data_selected', 'message': 'Selecting relevant data'})}\n\n"
+
+            # Reranking status
+            phases.append('reranking')
+            yield f"data: {json.dumps({'type': 'status', 'stage': 'reranking', 'message': 'Reranking results'})}\n\n"
+
+            # Answer generation status
+            phases.append('answer_generation')
+            yield f"data: {json.dumps({'type': 'status', 'stage': 'answer_generation', 'message': 'Generating answer'})}\n\n"
+
+            # Context enhancement status
+            phases.append('context_enhancement')
+            yield f"data: {json.dumps({'type': 'status', 'stage': 'context_enhancement', 'message': 'Enhancing with context'})}\n\n"
+
+            # Streaming response status
+            phases.append('streaming_response')
+            yield f"data: {json.dumps({'type': 'status', 'stage': 'streaming_response', 'message': 'Streaming response'})}\n\n"
+
             # Use Professional AI-Powered Context System for streaming
             print(f"🚀 Streaming: Using Professional AI Context System for conversation {conversation_id}")
             print(f"📝 Streaming Question: '{resolved_question}'")
@@ -301,18 +346,35 @@ async def send_contextual_message_stream(
                         yield f"data: {json.dumps({'type': 'token', 'content': chunk['content']})}\n\n"
                     elif chunk['type'] == 'complete':
                         processing_phases['search_execution'] = time.time() - search_start
+                        total_time = time.time() - start_time
+
+                        # Build proper logs object
+                        logs_data = {
+                            'question': resolved_question,
+                            'model_used': chunk.get('model_used', 'gemini-2.5-flash-lite'),
+                            'phases': phases,
+                            'total_processing_time_ms': int(total_time * 1000),
+                            'projects_retrieved': chunk.get('projects_retrieved', 0),
+                            'projects_processed': chunk.get('projects_processed', 0),
+                            'success': True,
+                            'average_relevance_score': chunk.get('average_relevance_score', 0.0)
+                        }
+
                         completion_data = {
                             'type': 'complete',
-                            'follow_up_suggestions': [],
-                            'context_used': False,
+                            'ai_provider': 'google',
+                            'ai_version': 'gemini-2.5-flash-lite',
+                            'model_used': chunk.get('model_used', 'gemini-2.5-flash-lite'),
+                            'data_source': chunk.get('data_source', 'CORDIS Database'),
+                            'processing_time': total_time,
+                            'projects_found': chunk.get('projects_found', 0),
+                            'logs': logs_data,
+                            'context_used': request.include_context,
                             'resolved_question': resolved_question,
-                            'processing_time': chunk.get('processing_time', 0),
-                            'success': True,
+                            'follow_up_suggestions': chunk.get('follow_up_suggestions', []),
+                            'projects_discussed': chunk.get('projects_discussed', []),
                             'routing_decision': intent,
-                            'data_source': chunk.get('data_source'),
-                            'intent_confidence': intent_conf,
-                            'processing_phases': processing_phases,
-                            'total_time': time.time() - start_time
+                            'intent_confidence': intent_conf
                         }
                         try:
                             print(json.dumps({
@@ -353,18 +415,33 @@ async def send_contextual_message_stream(
                     chunk = answer_text[i:i+chunk_size]
                     yield f"data: {json.dumps({'type': 'token', 'content': chunk})}\n\n"
                 
+                # Build proper logs object
+                logs_data = {
+                    'question': resolved_question,
+                    'model_used': routed.get('model_used', 'gemini-2.5-flash-lite'),
+                    'phases': phases,
+                    'total_processing_time_ms': int((time.time() - start_time) * 1000),
+                    'projects_retrieved': routed.get('projects_retrieved', 0),
+                    'projects_processed': routed.get('projects_processed', 0),
+                    'success': routed.get('success', True),
+                    'average_relevance_score': routed.get('average_relevance_score', 0.0)
+                }
+
                 completion_data = {
                     'type': 'complete',
-                    'follow_up_suggestions': [],
-                    'context_used': False,
+                    'ai_provider': 'google',
+                    'ai_version': 'gemini-2.5-flash-lite',
+                    'model_used': routed.get('model_used', 'gemini-2.5-flash-lite'),
+                    'data_source': routed.get('data_source', 'CORDIS Database'),
+                    'processing_time': time.time() - start_time,
+                    'projects_found': routed.get('projects_found', 0),
+                    'logs': logs_data,
+                    'context_used': request.include_context,
                     'resolved_question': resolved_question,
-                    'processing_time': routed.get('processing_time', 0),
-                    'success': routed.get('success', True),
+                    'follow_up_suggestions': routed.get('follow_up_suggestions', []),
+                    'projects_discussed': routed.get('projects_discussed', []),
                     'routing_decision': routed.get('routing_decision', intent),
-                    'data_source': routed.get('data_source'),
-                    'intent_confidence': routed.get('intent_confidence', intent_conf),
-                    'processing_phases': processing_phases,
-                    'total_time': time.time() - start_time
+                    'intent_confidence': routed.get('intent_confidence', intent_conf)
                 }
                 try:
                     print(json.dumps({
@@ -384,10 +461,9 @@ async def send_contextual_message_stream(
     
     return StreamingResponse(
         generate_stream(),
-        media_type="text/plain",
+        media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
-            "Content-Type": "text/event-stream",
         }
     )

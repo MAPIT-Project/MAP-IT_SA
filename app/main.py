@@ -12,7 +12,8 @@ import logging
 from .core.config import settings
 from .api.routes import router
 from .api.document_routes import router as document_router
-from .api.conversation_routes import router as conversation_router
+# Removed old conversation_routes - only use v2 with tool orchestrator
+# from .api.conversation_routes import router as conversation_router
 from .api.conversation_routes_v2 import router as conversation_router_v2
 from .models.schemas import ErrorResponse
 
@@ -45,7 +46,8 @@ app.add_middleware(
 # Include API routes
 app.include_router(router)
 app.include_router(document_router)
-app.include_router(conversation_router)
+# Only include v2 conversation routes - no more old RAG fallbacks
+# app.include_router(conversation_router)
 app.include_router(conversation_router_v2)
 
 # Exception handlers
