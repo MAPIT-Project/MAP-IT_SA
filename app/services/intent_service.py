@@ -29,6 +29,27 @@ class IntentService:
         if any(c in q for c in call_triggers) or ("open" in q and "call" in q):
             return ("SEARCH_CALLS", 0.93)
 
+        # Single domain terms should be treated as project searches
+        single_domain_terms = [
+            'energy', 'ai', 'artificial intelligence', 'healthcare', 'quantum', 'nuclear',
+            'renewable', 'sustainable', 'climate', 'digital', 'robotics', 'biotechnology',
+            'nanotechnology', 'materials', 'transport', 'mobility', 'agriculture', 'food',
+            'water', 'environment', 'space', 'security', 'health', 'medical', 'pharma',
+            'chemistry', 'physics', 'engineering', 'technology', 'innovation', 'research'
+        ]
+
+        # Check if query is a single domain term (1-3 words, no procedural keywords)
+        query_words = q.split()
+        is_single_domain_query = (
+            len(query_words) <= 3 and
+            not any(p in q for p in procedural) and
+            not any(c in q for c in call_triggers) and
+            any(term in q for term in single_domain_terms)
+        )
+
+        if is_single_domain_query:
+            return ("SEARCH_PROJECTS", 0.95)
+
         project_triggers = ['project', 'projects', 'acronym', 'rcn', 'case study']
         # Strengthen calls vs projects: if generic call/funding words + domain term exist, prefer SEARCH_CALLS
         generic_call_words = ['call', 'calls', 'funding', 'grant', 'grants', 'proposal', 'proposals']
@@ -57,6 +78,7 @@ INTENT CATEGORIES:
    - Project details, consortium partners, budgets, outcomes
    - "What projects exist in quantum computing", "Case studies of successful projects"
    - Looking for inspiration, best practices, existing research
+   - Single domain terms like "energy", "AI", "healthcare" → SEARCH_PROJECTS (not FAQ)
 
 3. SEARCH_CALLS - Open Funding Opportunities:
    - Questions about current calls for proposals, funding opportunities
@@ -76,6 +98,7 @@ ANALYSIS FRAMEWORK:
    - "how to", "process", "guidelines", "requirements" → FAQ
    - "projects", "examples", "case studies", "show me" → SEARCH_PROJECTS
    - "calls", "opportunities", "deadlines", "funding" → SEARCH_CALLS
+   - Single domain words like "energy", "AI", "healthcare" → SEARCH_PROJECTS (not FAQ)
 
 3. CONFIDENCE SCORING:
    - 0.9-1.0: Clear, unambiguous intent with strong keyword signals
@@ -88,6 +111,7 @@ ANALYSIS FRAMEWORK:
      "Find projects with open calls" → SEARCH_PROJECTS (primary: find projects)
      "Show me calls with project examples" → SEARCH_CALLS (primary: show me calls)
    - Generic questions without clear intent: "Tell me about Horizon Europe" → FAQ
+   - Single domain terms: "energy", "AI", "quantum" → SEARCH_PROJECTS (users want project examples)
 
 OUTPUT FORMAT:
 CLASSIFICATION: <FAQ|SEARCH_PROJECTS|SEARCH_CALLS>

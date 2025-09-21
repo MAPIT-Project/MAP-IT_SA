@@ -19,6 +19,13 @@ except ImportError:
     google_genai_sdk = None
     types = None
 
+try:
+    import openai
+    OPENAI_AVAILABLE = True
+except ImportError:
+    openai = None
+    OPENAI_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 @dataclass
@@ -36,22 +43,51 @@ class QueryFilters:
 class AIQueryParser:
     """AI-powered query parser using Gemini 2.5 Flash for advanced intent detection."""
     
-    def __init__(self, gemini_api_key: Optional[str] = None):
+    def __init__(self, ai_provider: str = "gemini", gemini_api_key: Optional[str] = None, openrouter_api_key: Optional[str] = None):
         """Initialize the AI query parser."""
         load_dotenv()
-        
+
+        self.ai_provider = ai_provider.lower()
         self.gemini_api_key = gemini_api_key or os.getenv("GEMINI_API_KEY")
+        self.openrouter_api_key = openrouter_api_key or os.getenv("OPENROUTER_API_KEY")
         self.gemini_client = None
+        self.openai_client = None
         self.gemini_model_name = "gemini-2.5-flash-lite"
-        
-        if not self.gemini_api_key:
-            logger.warning("⚠️ Gemini API key not provided - will use fallback parsing")
+        self.openrouter_model_name = "auto"
+
+        if self.ai_provider == "gemini":
+            if not self.gemini_api_key:
+                logger.warning("⚠️ Gemini API key not provided - will use fallback parsing")
+            else:
+                try:
+                    self.gemini_client = google_genai_sdk.Client(api_key=self.gemini_api_key)
+                    logger.info("✅ Gemini client initialized successfully")
+                except Exception as e:
+                    logger.error(f"❌ Failed to initialize Gemini client: {e}")
+        elif self.ai_provider == "openrouter":
+            if not OPENAI_AVAILABLE:
+                logger.warning("⚠️ OpenAI package not available for OpenRouter - will use fallback parsing")
+            elif not self.openrouter_api_key:
+                logger.warning("⚠️ OpenRouter API key not provided - will use fallback parsing")
+            else:
+                try:
+                    self.openai_client = openai.OpenAI(
+                        api_key=self.openrouter_api_key,
+                        base_url="https://openrouter.ai/api/v1"
+                    )
+                    logger.info("✅ OpenRouter client initialized successfully")
+                except Exception as e:
+                    logger.error(f"❌ Failed to initialize OpenRouter client: {e}")
         else:
-            try:
-                self.gemini_client = google_genai_sdk.Client(api_key=self.gemini_api_key)
-                logger.info("✅ Gemini client initialized successfully")
-            except Exception as e:
-                logger.error(f"❌ Failed to initialize Gemini client: {e}")
+            logger.warning(f"⚠️ Unsupported AI provider: {ai_provider}. Falling back to Gemini.")
+            if not self.gemini_api_key:
+                logger.warning("⚠️ Gemini API key not provided - will use fallback parsing")
+            else:
+                try:
+                    self.gemini_client = google_genai_sdk.Client(api_key=self.gemini_api_key)
+                    logger.info("✅ Gemini client initialized successfully")
+                except Exception as e:
+                    logger.error(f"❌ Failed to initialize Gemini client: {e}")
         
         # Fallback patterns for when AI is unavailable
         self.fallback_patterns = self._setup_fallback_patterns()
@@ -227,27 +263,39 @@ Response: {{
 """
 
     def parse_with_ai(self, query: str) -> Optional[Dict]:
-        """Parse query using Gemini AI."""
-        if not self.gemini_client:
-            return None
-            
+        """Parse query using AI (Gemini or OpenRouter)."""
         try:
             prompt = self._create_comprehensive_prompt(query)
-            
-            gemini_contents = [
-                types.Content(role="user", parts=[types.Part.from_text(text=prompt)])
-            ]
-            gen_config = types.GenerateContentConfig(temperature=0.0)
-            
-            response = self.gemini_client.models.generate_content(
-                model=self.gemini_model_name,
-                contents=gemini_contents,
-                config=gen_config
-            )
-            
-            # Extract JSON from response
-            response_text = response.text.strip()
-            
+
+            if self.ai_provider == "openrouter":
+                if not self.openai_client:
+                    return None
+
+                response = self.openai_client.chat.completions.create(
+                    model="x-ai/grok-4-fast:free",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.0
+                )
+
+                response_text = response.choices[0].message.content
+            else:
+                # Gemini path
+                if not self.gemini_client:
+                    return None
+
+                gemini_contents = [
+                    types.Content(role="user", parts=[types.Part.from_text(text=prompt)])
+                ]
+                gen_config = types.GenerateContentConfig(temperature=0.0)
+
+                response = self.gemini_client.models.generate_content(
+                    model=self.gemini_model_name,
+                    contents=gemini_contents,
+                    config=gen_config
+                )
+
+                response_text = response.text.strip()
+
             # Try to find JSON in the response
             json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
             if json_match:
@@ -257,7 +305,7 @@ Response: {{
                 # If no JSON found, try to parse the text response
                 logger.warning("⚠️ No JSON found in AI response, trying to parse text")
                 return self._parse_text_response(response_text)
-                
+
         except Exception as e:
             logger.error(f"❌ AI parsing failed: {e}")
             return None

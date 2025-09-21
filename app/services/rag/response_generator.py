@@ -4,24 +4,52 @@ import json
 import re
 import os
 
+try:
+    import openai
+    OPENAI_AVAILABLE = True
+except ImportError:
+    openai = None
+    OPENAI_AVAILABLE = False
+
 class GroundedResponseGenerator:
     """
     Generate responses grounded in retrieved context with citations.
     """
     
-    def __init__(self, gemini_api_key: str = None):
+    def __init__(self, ai_provider: str = "gemini", gemini_api_key: str = None, openrouter_api_key: str = None):
         """
         Initialize response generator.
-        
+
         Args:
+            ai_provider: AI provider to use ("gemini" or "openrouter")
             gemini_api_key: Google Gemini API key
+            openrouter_api_key: OpenRouter API key
         """
-        api_key = gemini_api_key or os.getenv('GEMINI_API_KEY')
-        if not api_key:
-            raise ValueError("GEMINI_API_KEY is required")
-            
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-2.5-flash-lite')
+        self.ai_provider = ai_provider.lower()
+
+        if self.ai_provider == "gemini":
+            api_key = gemini_api_key or os.getenv('GEMINI_API_KEY')
+            if not api_key:
+                raise ValueError("GEMINI_API_KEY is required for Gemini provider")
+
+            genai.configure(api_key=api_key)
+            self.model = genai.GenerativeModel('gemini-2.5-flash-lite')
+            self.openai_client = None
+        elif self.ai_provider == "openrouter":
+            if not OPENAI_AVAILABLE:
+                raise ValueError("OpenAI package is required for OpenRouter. Install with: pip install openai")
+
+            api_key = openrouter_api_key or os.getenv('OPENROUTER_API_KEY')
+            if not api_key:
+                raise ValueError("OPENROUTER_API_KEY is required for OpenRouter provider")
+
+            self.openai_client = openai.OpenAI(
+                api_key=api_key,
+                base_url="https://openrouter.ai/api/v1"
+            )
+            self.model = None
+        else:
+            raise ValueError(f"Unsupported AI provider: {ai_provider}. Choose 'gemini' or 'openrouter'.")
     
     def generate_response(self,
                          query: str,
@@ -51,15 +79,31 @@ class GroundedResponseGenerator:
         try:
             # Generate response with retry logic for rate limits
             max_retries = 3
+            response_text = ""
+
             for attempt in range(max_retries):
                 try:
-                    response = self.model.generate_content(
-                        prompt,
-                        generation_config=genai.GenerationConfig(
+                    if self.ai_provider == "openrouter":
+                        if not self.openai_client:
+                            raise ValueError("OpenRouter client not initialized")
+
+                        response = self.openai_client.chat.completions.create(
+                            model="x-ai/grok-4-fast:free",
+                            messages=[{"role": "user", "content": prompt}],
                             temperature=0.3,
-                            max_output_tokens=1000
+                            max_tokens=1000
                         )
-                    )
+                        response_text = response.choices[0].message.content
+                    else:
+                        # Gemini path
+                        response = self.model.generate_content(
+                            prompt,
+                            generation_config=genai.GenerationConfig(
+                                temperature=0.3,
+                                max_output_tokens=1000
+                            )
+                        )
+                        response_text = response.text
                     break
                 except Exception as e:
                     if "429" in str(e) and attempt < max_retries - 1:
@@ -70,10 +114,10 @@ class GroundedResponseGenerator:
                         continue
                     else:
                         raise e
-            
+
             # Parse and validate response
-            parsed_response = self._parse_response(response.text, context_chunks)
-            
+            parsed_response = self._parse_response(response_text, context_chunks)
+
             return parsed_response
             
         except Exception as e:
@@ -104,16 +148,51 @@ class GroundedResponseGenerator:
         try:
             # Generate streaming response with retry logic
             max_retries = 3
+            accumulated_text = ""
+
             for attempt in range(max_retries):
                 try:
-                    response = self.model.generate_content(
-                        prompt,
-                        generation_config=genai.GenerationConfig(
+                    if self.ai_provider == "openrouter":
+                        if not self.openai_client:
+                            raise ValueError("OpenRouter client not initialized")
+
+                        # OpenRouter doesn't support streaming in the same way as Gemini
+                        # So we'll use regular completion and yield the full response
+                        response = self.openai_client.chat.completions.create(
+                            model="auto",
+                            messages=[{"role": "user", "content": prompt}],
                             temperature=0.3,
-                            max_output_tokens=1000
-                        ),
-                        stream=True
-                    )
+                            max_tokens=1000,
+                            stream=False  # Disable streaming for OpenRouter
+                        )
+                        response_text = response.choices[0].message.content
+                        accumulated_text = response_text
+
+                        # Yield the full response as tokens
+                        yield {
+                            'type': 'token',
+                            'content': response_text
+                        }
+                    else:
+                        # Gemini streaming path
+                        response = self.model.generate_content(
+                            prompt,
+                            generation_config=genai.GenerationConfig(
+                                temperature=0.3,
+                                max_output_tokens=1000
+                            ),
+                            stream=True
+                        )
+
+                        for chunk in response:
+                            if chunk.text:
+                                accumulated_text += chunk.text
+
+                                # Yield token
+                                yield {
+                                    'type': 'token',
+                                    'content': chunk.text
+                                }
                     break
                 except Exception as e:
                     if "429" in str(e) and attempt < max_retries - 1:
@@ -124,22 +203,10 @@ class GroundedResponseGenerator:
                         continue
                     else:
                         raise e
-            
-            accumulated_text = ""
-            
-            for chunk in response:
-                if chunk.text:
-                    accumulated_text += chunk.text
-                    
-                    # Yield token
-                    yield {
-                        'type': 'token',
-                        'content': chunk.text
-                    }
-            
+
             # Parse final response for citations
             parsed_response = self._parse_response(accumulated_text, context_chunks)
-            
+
             # Yield completion with metadata
             yield {
                 'type': 'complete',

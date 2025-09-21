@@ -49,7 +49,9 @@ class AIIntentService:
             # Import here to avoid circular imports
             from .rag.response_generator import GroundedResponseGenerator
             self.model = GroundedResponseGenerator(
-                gemini_api_key=os.getenv('GEMINI_API_KEY')
+                ai_provider=os.getenv('DEFAULT_AI_PROVIDER', 'gemini'),
+                gemini_api_key=os.getenv('GEMINI_API_KEY'),
+                openrouter_api_key=os.getenv('OPENROUTER_API_KEY')
             )
             logger.info("✅ AI Intent Service initialized successfully")
         except Exception as e:

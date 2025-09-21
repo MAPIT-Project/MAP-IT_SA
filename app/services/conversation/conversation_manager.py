@@ -53,7 +53,9 @@ class ConversationManager:
                 cache_client=self.memory_service.redis_client
             )
             self.response_generator = GroundedResponseGenerator(
-                gemini_api_key=os.getenv('GEMINI_API_KEY')
+                ai_provider=os.getenv('DEFAULT_AI_PROVIDER', 'gemini'),
+                gemini_api_key=os.getenv('GEMINI_API_KEY'),
+                openrouter_api_key=os.getenv('OPENROUTER_API_KEY')
             )
             
             # Tool orchestration
@@ -717,7 +719,9 @@ class ConversationManager:
             # Initialize response generator if not already done
             if not hasattr(self, 'response_generator'):
                 self.response_generator = GroundedResponseGenerator(
-                    gemini_api_key=os.getenv('GEMINI_API_KEY')
+                    ai_provider=os.getenv('DEFAULT_AI_PROVIDER', 'gemini'),
+                    gemini_api_key=os.getenv('GEMINI_API_KEY'),
+                    openrouter_api_key=os.getenv('OPENROUTER_API_KEY')
                 )
             
             # Prepare context chunks from retrieval results

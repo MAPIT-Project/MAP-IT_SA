@@ -8,25 +8,53 @@ from .short_term_memory import ConversationTurn
 from .long_term_memory import ConversationSummary, ConversationFact, EntityCard
 import os
 
+try:
+    import openai
+    OPENAI_AVAILABLE = True
+except ImportError:
+    openai = None
+    OPENAI_AVAILABLE = False
+
 class RollingSummarizer:
     """
     Progressive summarization using Gemini AI.
     Maintains task-focused summaries and extracts facts.
     """
     
-    def __init__(self, gemini_api_key: str = None):
+    def __init__(self, ai_provider: str = "gemini", gemini_api_key: str = None, openrouter_api_key: str = None):
         """
-        Initialize summarizer with Gemini.
-        
+        Initialize summarizer with AI provider.
+
         Args:
+            ai_provider: AI provider to use ("gemini" or "openrouter")
             gemini_api_key: Google Gemini API key
+            openrouter_api_key: OpenRouter API key
         """
-        api_key = gemini_api_key or os.getenv('GEMINI_API_KEY')
-        if not api_key:
-            raise ValueError("GEMINI_API_KEY is required")
-            
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-2.5-flash-lite')
+        self.ai_provider = ai_provider.lower()
+
+        if self.ai_provider == "gemini":
+            api_key = gemini_api_key or os.getenv('GEMINI_API_KEY')
+            if not api_key:
+                raise ValueError("GEMINI_API_KEY is required for Gemini provider")
+
+            genai.configure(api_key=api_key)
+            self.model = genai.GenerativeModel('gemini-2.5-flash-lite')
+            self.openai_client = None
+        elif self.ai_provider == "openrouter":
+            if not OPENAI_AVAILABLE:
+                raise ValueError("OpenAI package is required for OpenRouter. Install with: pip install openai")
+
+            api_key = openrouter_api_key or os.getenv('OPENROUTER_API_KEY')
+            if not api_key:
+                raise ValueError("OPENROUTER_API_KEY is required for OpenRouter provider")
+
+            self.openai_client = openai.OpenAI(
+                api_key=api_key,
+                base_url="https://openrouter.ai/api/v1"
+            )
+            self.model = None
+        else:
+            raise ValueError(f"Unsupported AI provider: {ai_provider}. Choose 'gemini' or 'openrouter'.")
         
     def summarize_turn(self,
                        existing_summary: Optional[str],
@@ -75,16 +103,30 @@ FORMAT YOUR RESPONSE AS JSON:
 }}"""
 
         try:
-            response = self.model.generate_content(
-                prompt,
-                generation_config=genai.GenerationConfig(
+            if self.ai_provider == "openrouter":
+                if not self.openai_client:
+                    raise ValueError("OpenRouter client not initialized")
+
+                response = self.openai_client.chat.completions.create(
+                    model="x-ai/grok-4-fast:free",
+                    messages=[{"role": "user", "content": prompt}],
                     temperature=0.3,
-                    max_output_tokens=max_tokens + 100
+                    max_tokens=max_tokens + 100
                 )
-            )
-            
+                response_text = response.choices[0].message.content
+            else:
+                # Gemini path
+                response = self.model.generate_content(
+                    prompt,
+                    generation_config=genai.GenerationConfig(
+                        temperature=0.3,
+                        max_output_tokens=max_tokens + 100
+                    )
+                )
+                response_text = response.text
+
             # Parse JSON response
-            result = self._parse_json_response(response.text)
+            result = self._parse_json_response(response_text)
             
             # Calculate token count (rough estimate)
             token_count = len(result['summary']) // 4
@@ -162,15 +204,29 @@ FORMAT YOUR RESPONSE AS JSON:
 }}"""
 
         try:
-            response = self.model.generate_content(
-                prompt,
-                generation_config=genai.GenerationConfig(
+            if self.ai_provider == "openrouter":
+                if not self.openai_client:
+                    raise ValueError("OpenRouter client not initialized")
+
+                response = self.openai_client.chat.completions.create(
+                    model="x-ai/grok-4-fast:free",
+                    messages=[{"role": "user", "content": prompt}],
                     temperature=0.2,
-                    max_output_tokens=1000
+                    max_tokens=1000
                 )
-            )
-            
-            result = self._parse_json_response(response.text)
+                response_text = response.choices[0].message.content
+            else:
+                # Gemini path
+                response = self.model.generate_content(
+                    prompt,
+                    generation_config=genai.GenerationConfig(
+                        temperature=0.2,
+                        max_output_tokens=1000
+                    )
+                )
+                response_text = response.text
+
+            result = self._parse_json_response(response_text)
             
             facts = []
             for fact_data in result.get('facts', []):
@@ -235,15 +291,29 @@ FORMAT YOUR RESPONSE AS JSON:
 }}"""
 
         try:
-            response = self.model.generate_content(
-                prompt,
-                generation_config=genai.GenerationConfig(
+            if self.ai_provider == "openrouter":
+                if not self.openai_client:
+                    raise ValueError("OpenRouter client not initialized")
+
+                response = self.openai_client.chat.completions.create(
+                    model="x-ai/grok-4-fast:free",
+                    messages=[{"role": "user", "content": prompt}],
                     temperature=0.2,
-                    max_output_tokens=1000
+                    max_tokens=1000
                 )
-            )
-            
-            result = self._parse_json_response(response.text)
+                response_text = response.choices[0].message.content
+            else:
+                # Gemini path
+                response = self.model.generate_content(
+                    prompt,
+                    generation_config=genai.GenerationConfig(
+                        temperature=0.2,
+                        max_output_tokens=1000
+                    )
+                )
+                response_text = response.text
+
+            result = self._parse_json_response(response_text)
             
             entities = []
             for entity_data in result.get('entities', []):

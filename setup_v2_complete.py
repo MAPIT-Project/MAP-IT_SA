@@ -341,6 +341,7 @@ REDIS_PORT=6379
 # AI Services (REQUIRED - Update these!)
 GEMINI_API_KEY=your-gemini-api-key-here
 OPENAI_API_KEY=your-openai-api-key-here
+OPENROUTER_API_KEY=your-openrouter-api-key-here
 
 # Supabase (Optional)
 SUPABASE_URL=https://your-project.supabase.co

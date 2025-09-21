@@ -40,7 +40,11 @@ class MemoryService:
         # Initialize components
         self.stm = ShortTermMemory(self.redis_client)
         self.ltm = LongTermMemory(os.getenv('DATABASE_URL'))
-        self.summarizer = RollingSummarizer(os.getenv('GEMINI_API_KEY'))
+        self.summarizer = RollingSummarizer(
+            ai_provider=os.getenv('DEFAULT_AI_PROVIDER', 'gemini'),
+            gemini_api_key=os.getenv('GEMINI_API_KEY'),
+            openrouter_api_key=os.getenv('OPENROUTER_API_KEY')
+        )
         self.context_manager = ContextWindowManager(self.stm, self.ltm)
         
         # Configuration

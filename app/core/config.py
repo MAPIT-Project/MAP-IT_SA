@@ -24,9 +24,12 @@ class Settings(BaseSettings):
     # AI Provider Configuration
     openai_api_key: Optional[str] = None
     gemini_api_key: Optional[str] = None
+    openrouter_api_key: Optional[str] = None
     default_ai_provider: str = "gemini"
     openai_model: str = "gpt-4-turbo"
     gemini_model: str = "gemini-2.5-flash-lite"
+    openrouter_model: str = "x-ai/grok-4-fast:free"
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
     
     # Google Embedding API Configuration
     google_embedding_api_key: Optional[str] = None
@@ -69,7 +72,7 @@ class Settings(BaseSettings):
     supported_file_types: List[str] = [".pdf", ".txt", ".md", ".html"]
     upload_dir: str = "uploads"
     
-    @field_validator("openai_api_key", "gemini_api_key")
+    @field_validator("openai_api_key", "gemini_api_key", "openrouter_api_key")
     @classmethod
     def validate_api_keys(cls, v):
         """Validate that at least one AI provider API key is provided."""

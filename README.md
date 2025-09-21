@@ -167,6 +167,7 @@ Key environment variables (see `config/env.example` for full list):
 # AI Provider Configuration
 OPENAI_API_KEY=your_openai_api_key_here
 GEMINI_API_KEY=your_gemini_api_key_here
+OPENROUTER_API_KEY=your_openrouter_api_key_here
 DEFAULT_AI_PROVIDER=gemini
 
 # Embedding / Vector Search (optional)
@@ -196,8 +197,9 @@ make precommit
 The application supports multiple AI providers:
 - **OpenAI GPT-4** (requires OpenAI API key)
 - **Google Gemini** (requires Gemini API key)
+- **OpenRouter** (requires OpenRouter API key) - Access to multiple models via a unified API (currently configured for x-ai/grok-4-fast:free)
 
-You can switch between providers per request or set a default provider.
+You can switch between providers per request or set a default provider using the `DEFAULT_AI_PROVIDER` environment variable.
 
 ## API Documentation
 
@@ -227,7 +229,7 @@ curl -X POST "http://localhost:8000/api/query" \
      -d '{
        "question": "What are recent AI projects in healthcare?",
        "max_results": 5,
-       "ai_provider": "gemini"
+       "ai_provider": "openrouter"
      }'
 ```
 
@@ -285,9 +287,10 @@ Optional PostgreSQL integration for:
 ### Multi-Provider AI Support
 
 Switch between different AI providers:
-- OpenAI GPT-4 for high-quality responses
-- Google Gemini for cost-effective processing
-- Per-request provider selection
+- **OpenAI GPT-4** for high-quality responses
+- **Google Gemini** for cost-effective processing
+- **OpenRouter** for access to multiple models via a unified API
+- Per-request provider selection via the `ai_provider` parameter
 
 ## Development
 

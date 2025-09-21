@@ -200,9 +200,10 @@ REDIS_PORT=6379
 
 # AI Services
 GEMINI_API_KEY=your-gemini-api-key-here
+OPENAI_API_KEY=your-openai-api-key-here
+OPENROUTER_API_KEY=your-openrouter-api-key-here
 
 # Optional
-OPENAI_API_KEY=
 SUPABASE_URL=
 SUPABASE_KEY=
 """

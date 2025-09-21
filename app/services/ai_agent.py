@@ -10,21 +10,43 @@ from typing import Dict, Any, Optional, List
 import google.generativeai as genai
 import os
 
+try:
+    import openai
+    OPENAI_AVAILABLE = True
+except ImportError:
+    openai = None
+    OPENAI_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 class AIAgent:
     """
     Overseeing AI agent that decides which tools/services to call.
     """
-    
-    def __init__(self, gemini_api_key: str = None):
+
+    def __init__(self, ai_provider: str = "gemini", gemini_api_key: str = None, openrouter_api_key: str = None):
         """Initialize the AI agent."""
-        api_key = gemini_api_key or os.getenv('GEMINI_API_KEY')
-        if api_key:
-            genai.configure(api_key=api_key)
-            self.model = genai.GenerativeModel('gemini-2.5-flash-lite')
+        self.ai_provider = ai_provider.lower()
+
+        if self.ai_provider == "gemini":
+            api_key = gemini_api_key or os.getenv('GEMINI_API_KEY')
+            if api_key:
+                genai.configure(api_key=api_key)
+                self.model = genai.GenerativeModel('gemini-2.5-flash-lite')
+            else:
+                self.model = None
+        elif self.ai_provider == "openrouter":
+            self.openrouter_api_key = openrouter_api_key or os.getenv('OPENROUTER_API_KEY')
+            self.model = None  # OpenRouter will be handled differently
         else:
-            self.model = None
+            logger.warning(f"Unsupported AI provider: {ai_provider}. Falling back to Gemini.")
+            self.ai_provider = "gemini"  # Update the provider to the fallback
+            api_key = gemini_api_key or os.getenv('GEMINI_API_KEY')
+            if api_key:
+                genai.configure(api_key=api_key)
+                self.model = genai.GenerativeModel('gemini-2.5-flash-lite')
+            else:
+                self.model = None
     
     async def decide_action(self, 
                            user_message: str, 
@@ -42,14 +64,14 @@ class AIAgent:
             }
         """
         
-        if not self.model:
+        if not self.model and self.ai_provider != "openrouter":
             return self._fallback_decision(user_message)
-        
+
         prompt = f"""You are an AI agent that decides how to answer questions about European research funding.
 
 AVAILABLE SERVICES:
 1. enhanced_call_search - For finding open/closed funding calls from EU Portal API
-2. cordis_rag - For finding existing research projects from CORDIS database  
+2. cordis_rag - For finding existing research projects from CORDIS database
 3. vector_search - For searching Horizon Europe documents and FAQs
 4. direct_answer - For questions that can be answered from conversation context
 
@@ -78,19 +100,43 @@ Respond in JSON format:
 }}"""
 
         try:
-            response = self.model.generate_content(prompt)
-            
+            if self.ai_provider == "openrouter":
+                if not OPENAI_AVAILABLE:
+                    logger.warning("OpenAI package not available for OpenRouter")
+                    return self._fallback_decision(user_message)
+
+                if not self.openrouter_api_key:
+                    logger.warning("OpenRouter API key not available")
+                    return self._fallback_decision(user_message)
+
+                client = openai.OpenAI(
+                    api_key=self.openrouter_api_key,
+                    base_url="https://openrouter.ai/api/v1"
+                )
+
+                response = client.chat.completions.create(
+                    model="x-ai/grok-4-fast:free",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.0
+                )
+
+                response_text = response.choices[0].message.content
+            else:
+                # Gemini path
+                response = self.model.generate_content(prompt)
+                response_text = response.text
+
             # Parse JSON response
-            json_match = re.search(r'\{.*\}', response.text, re.DOTALL)
+            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
             if json_match:
                 decision = json.loads(json_match.group())
                 logger.info(f"🤖 AI Agent Decision: {decision['action']} using {decision['service']}")
                 logger.info(f"   Reasoning: {decision['reasoning']}")
                 return decision
-                
+
         except Exception as e:
             logger.error(f"AI agent decision error: {e}")
-        
+
         return self._fallback_decision(user_message)
     
     def _fallback_decision(self, user_message: str) -> Dict[str, Any]:
