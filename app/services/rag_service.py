@@ -123,13 +123,6 @@ class CordisRAG:
         else:
             raise ValueError("Invalid AI provider specified. Choose 'openai' or 'gemini'.")
 
-    def determine_user_intent(self, question: str) -> Tuple[str, float]:
-        """Deprecated: Use IntentService.determine_intent instead."""
-        try:
-            from app.services.intent_service import IntentService
-            return IntentService.determine_intent(question)
-        except Exception:
-            return ("FAQ", 0.5)
 
     def search_for_calls(self, question: str, max_results: int = 10) -> Dict[str, Any]:
         """
@@ -1118,7 +1111,8 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
         
         try:
             # Simple intent determination
-            user_intent, confidence = self.determine_user_intent(question)
+            from app.services.intent_service import IntentService
+            user_intent, confidence = IntentService.determine_intent(question)
             
             print(f"🎯 Intent: {user_intent} (confidence: {confidence:.2f})")
             
@@ -1199,12 +1193,19 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
             
             elif user_intent == "SEARCH_PROJECTS":
                 print(f"🔬 Routing to Project Search")
-                
+                print(f"🔬 DEBUG: Question: '{question}'")
+                print(f"🔬 DEBUG: Intent confidence: {confidence}")
+
                 # Extract queries
                 role, quest = self._get_phase1_prompt(question)
+                print(f"🔬 DEBUG: About to extract queries from question: '{question}'")
                 queries, end_flag, new_query_keys, rerank_criteria, problem_text, next_pass = self._extract_queries(role, quest)
-                
+                print(f"🔬 DEBUG: Extracted queries: {queries}")
+                print(f"🔬 DEBUG: End flag: {end_flag}")
+                print(f"🔬 DEBUG: Problem text: {problem_text}")
+
                 if end_flag:
+                    print(f"🔬 DEBUG: Query extraction failed with problem: {problem_text}")
                     return {
                         'answer': problem_text,
                         'routing_decision': 'SEARCH_PROJECTS',
@@ -1217,10 +1218,17 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
                 try:
                     from app.services.hybrid_search_service import HybridSearchService
                     print("🔄 Using Hybrid Search: CORDIS API → Database Enrichment")
-                    
+                    print(f"🔄 DEBUG: Queries being passed to hybrid search: {queries}")
+                    print(f"🔄 DEBUG: Max CORDIS results: {max_cordis_results}")
+
                     hybrid_search = HybridSearchService()
                     project_data = hybrid_search.search_projects(queries, max_results=max_cordis_results)
-                    
+
+                    print(f"🔄 DEBUG: Hybrid search returned {len(project_data) if project_data else 0} projects")
+                    if project_data:
+                        for i, proj in enumerate(project_data[:3]):  # Log first 3 projects
+                            print(f"🔄 DEBUG: Project {i+1}: {proj.get('title', 'No title')[:100]}...")
+
                     # Determine data source based on enrichment
                     if project_data and any(p.get('enrichment_status') == 'complete' for p in project_data):
                         data_source = "CORDIS API + Local Database"
@@ -3242,8 +3250,9 @@ Enhanced answer:
             
             # Phase 2: Intent Detection
             yield {'type': 'progress', 'phase': 'intent_detection', 'message': 'Analyzing question intent...'}
-            
-            user_intent, confidence = self.determine_user_intent(resolved_question)
+
+            from app.services.intent_service import IntentService
+            user_intent, confidence = IntentService.determine_intent(resolved_question)
             yield {'type': 'progress', 'phase': 'intent_detected', 'message': f'Intent: {user_intent} (confidence: {confidence:.2f})'}
             
             # Phase 3: Query Extraction

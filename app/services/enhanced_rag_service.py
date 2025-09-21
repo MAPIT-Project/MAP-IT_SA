@@ -59,6 +59,48 @@ class HorizonEuropeRAG:
             self.enhanced_search = None
         
         logger.info("✅ Enhanced Horizon Europe RAG system initialized with consolidated call functionality")
+
+    def _rule_based_intent_fallback(self, question: str) -> Tuple[str, float]:
+        """
+        Final fallback intent detection using simple rule-based logic.
+        Used when both primary and secondary IntentService calls fail.
+        """
+        question_lower = question.lower()
+
+        # Memory query patterns
+        memory_patterns = [
+            'first message', 'earlier', 'before', 'previous', 'remind me',
+            'recall', 'history', 'conversation', 'what did i say', 'what was my'
+        ]
+        if any(pattern in question_lower for pattern in memory_patterns):
+            return ("conversational", 0.7)
+
+        # Call/funding patterns
+        call_patterns = [
+            'open calls', 'calls for', 'funding opportunities', 'grant opportunities',
+            'available calls', 'current calls', 'calls about', 'calls related to',
+            'what calls', 'which calls', 'show me calls', 'find calls', 'deadline',
+            'topic', 'tenders', 'funding & tenders', 'funding and tenders'
+        ]
+        if any(pattern in question_lower for pattern in call_patterns) or ("open" in question_lower and "call" in question_lower):
+            return ("SEARCH_CALLS", 0.8)
+
+        # Project patterns
+        project_patterns = ['project', 'projects', 'acronym', 'rcn', 'case study']
+        if any(pattern in question_lower for pattern in project_patterns):
+            return ("SEARCH_PROJECTS", 0.8)
+
+        # Procedural patterns
+        procedural_patterns = [
+            'how to', 'how do i', 'how can i', 'where can i find', 'where to find',
+            'eligibility', 'application process', 'documents required', 'supporting documents',
+            'ethics', 'guidelines', 'register on the portal', 'how to apply'
+        ]
+        if any(pattern in question_lower for pattern in procedural_patterns):
+            return ("FAQ", 0.8)
+
+        # Default to conversational for general questions
+        return ("conversational", 0.6)
     
     def answer_question(
         self,
@@ -77,7 +119,7 @@ class HorizonEuropeRAG:
         try:
             from .intent_service import IntentService
             intent, confidence = IntentService.determine_intent(question)
-            
+
             # Override intent for call-related queries that are being misclassified
             question_lower = question.lower()
             call_indicators = [
@@ -85,15 +127,24 @@ class HorizonEuropeRAG:
                 'available calls', 'current calls', 'calls about', 'calls related to',
                 'what calls', 'which calls', 'show me calls', 'find calls'
             ]
-            
+
             # If question contains call indicators, force SEARCH_CALLS
             if any(indicator in question_lower for indicator in call_indicators):
                 intent = "SEARCH_CALLS"
                 confidence = 0.95
                 logger.info(f"🎯 Override: Detected call query, forcing SEARCH_CALLS intent")
-            
-        except Exception:
-            intent, confidence = self.cordis_rag.determine_user_intent(question)
+
+        except Exception as e:
+            logger.warning(f"IntentService failed, using fallback: {e}")
+            # Use IntentService static method as fallback instead of deprecated CordisRAG method
+            try:
+                from .intent_service import IntentService
+                intent, confidence = IntentService.determine_intent(question)
+                logger.info(f"✅ Fallback intent detection successful: {intent} (confidence: {confidence:.2f})")
+            except Exception as fallback_error:
+                logger.error(f"❌ Both primary and fallback intent detection failed: {fallback_error}")
+                # Final fallback - use rule-based detection
+                intent, confidence = self._rule_based_intent_fallback(question)
         
         logger.info(f"🧠 Intent determined: {intent} (confidence: {confidence:.2f})")
         
@@ -538,8 +589,17 @@ class HorizonEuropeRAG:
                 try:
                     from .intent_service import IntentService
                     intent, _ = IntentService.determine_intent(question)
-                except Exception:
-                    intent, _ = self.cordis_rag.determine_user_intent(question)
+                except Exception as e:
+                    logger.warning(f"IntentService failed in combined query, using fallback: {e}")
+                    # Use IntentService static method as fallback instead of deprecated CordisRAG method
+                    try:
+                        from .intent_service import IntentService
+                        intent, _ = IntentService.determine_intent(question)
+                        logger.info(f"✅ Fallback intent detection successful in combined query: {intent}")
+                    except Exception as fallback_error:
+                        logger.error(f"❌ Both primary and fallback intent detection failed in combined query: {fallback_error}")
+                        # Final fallback - use rule-based detection
+                        intent, _ = self._rule_based_intent_fallback(question)
                 
                 if intent == "SEARCH_CALLS":
                     project_results = self.cordis_rag.search_for_calls(

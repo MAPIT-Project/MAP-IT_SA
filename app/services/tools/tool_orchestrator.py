@@ -190,6 +190,12 @@ class ResearchTools:
             rag_service = CordisRAG()
             logger.info("🔧 Calling get_ai_response_with_routing...")
 
+            # Add detailed logging before the call
+            logger.info(f"🔧 DEBUG: About to call get_ai_response_with_routing with:")
+            logger.info(f"🔧 DEBUG: - question: {query}")
+            logger.info(f"🔧 DEBUG: - max_projects_to_process: {max_results}")
+            logger.info(f"🔧 DEBUG: - rag_service type: {type(rag_service)}")
+
             results = rag_service.get_ai_response_with_routing(
                 question=query,
                 max_projects_to_process=max_results
@@ -200,6 +206,12 @@ class ResearchTools:
             if isinstance(results, dict):
                 for key, value in results.items():
                     logger.info(f"🔧 RAG result {key}: {str(value)[:200]}...")
+                    if key == 'projects_found':
+                        logger.info(f"🔧 DEBUG: projects_found = {value}")
+                    if key == 'routing_decision':
+                        logger.info(f"🔧 DEBUG: routing_decision = {value}")
+                    if key == 'data_source':
+                        logger.info(f"🔧 DEBUG: data_source = {value}")
 
             # Standardized successful response - handle RAG response format
             response = {
