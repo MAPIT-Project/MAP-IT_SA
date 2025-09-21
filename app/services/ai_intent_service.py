@@ -57,9 +57,10 @@ class AIIntentService:
             raise
 
     async def analyze_intent(self,
-                           message: str,
-                           conversation_context: str = "",
-                           conversation_history: str = "") -> IntentAnalysis:
+                            message: str,
+                            conversation_context: str = "",
+                            conversation_history: str = "",
+                            conversation_id: int = 1) -> IntentAnalysis:
         """
         Analyze user intent using AI only - no rule-based fallbacks.
 
@@ -67,6 +68,7 @@ class AIIntentService:
             message: User's message
             conversation_context: Current conversation context
             conversation_history: Recent conversation turns
+            conversation_id: Conversation ID for memory queries
 
         Returns:
             Structured intent analysis
@@ -108,6 +110,15 @@ class AIIntentService:
                             "search_type": "string",
                             "similarity_threshold": "number"
                         }
+                    },
+                    {
+                        "name": "search_conversation_memory",
+                        "description": "Search conversation memory for questions about previous messages and conversation history",
+                        "parameters": {
+                            "query": "string",
+                            "conversation_id": "integer",
+                            "max_turns": "integer"
+                        }
                     }
                 ]
 
@@ -116,7 +127,8 @@ class AIIntentService:
                 message=message,
                 conversation_context=conversation_context,
                 conversation_history=conversation_history,
-                available_tools=available_tools
+                available_tools=available_tools,
+                conversation_id=conversation_id
             )
 
             # Make single AI call
@@ -133,15 +145,16 @@ class AIIntentService:
         except Exception as e:
             logger.error(f"❌ AI Intent Analysis failed: {e}")
             # Return safe fallback with debugging information
-            return self._create_fallback_analysis(message, str(e))
+            return self._create_fallback_analysis(message, str(e), conversation_id)
 
     def _create_intent_analysis_prompt(self,
-                                      message: str,
-                                      conversation_context: str,
-                                      conversation_history: str,
-                                      available_tools: List[Dict[str, Any]]) -> str:
+                                       message: str,
+                                       conversation_context: str,
+                                       conversation_history: str,
+                                       available_tools: List[Dict[str, Any]],
+                                       conversation_id: int = 1) -> str:
         """
-        Create comprehensive prompt for AI intent analysis.
+        Create comprehensive prompt for AI intent analysis with enhanced support for general questions and memory queries.
         """
         return f"""You are an expert AI assistant specializing in European research funding and innovation. Analyze this user message and determine their intent using your understanding of natural language and context.
 
@@ -164,7 +177,8 @@ INTENT CATEGORIES:
 TOOL SELECTION:
 - "eu_portal_search": Use for finding funding calls, opportunities, grants, or funding programs
 - "search_cordis_projects": Use for finding research projects, case studies, examples, or research initiatives
-- "search_local_database": Use for conversational queries, procedural questions, informational requests, or explanations
+- "search_local_database": Use for conversational queries, procedural questions, informational requests, explanations, and general questions about Horizon Europe
+- "search_conversation_memory": Use for memory queries about previous messages, conversation history, or what was discussed earlier. IMPORTANT: Always include conversation_id: {conversation_id} in parameters
 
 CONFIDENCE SCORING:
 - 0.9-1.0: Very clear intent with strong indicators
@@ -179,7 +193,7 @@ RESPONSE FORMAT (JSON):
     "requires_tools": true/false,
     "tool_plan": [
         {{
-            "tool_name": "eu_portal_search|search_cordis_projects|search_local_database",
+            "tool_name": "eu_portal_search|search_cordis_projects|search_local_database|search_conversation_memory",
             "parameters": {{
                 "query": "user's query",
                 "max_results": 20
@@ -214,13 +228,47 @@ CONVERSATIONAL EXAMPLES:
 - "Tell me more about that"
 - "What are the requirements?"
 
+GENERAL QUESTION EXAMPLES (use search_local_database):
+- "Tell me about Horizon Europe funding"
+- "Explain the application process"
+- "What are the eligibility requirements?"
+- "How does the application process work?"
+- "What do you mean by X?"
+- "Could you elaborate on X?"
+- "How does X work?"
+- "What are the requirements for X?"
+- "Can you explain that in more detail?"
+- "Tell me more about X"
+
+MEMORY QUERY EXAMPLES (use search_conversation_memory):
+- "What was my first message?"
+- "What did I ask about X earlier?"
+- "Can you remind me what we discussed about X?"
+- "What was the first thing I asked you?"
+- "What did I say about X before?"
+- "Can you recall what I mentioned about X?"
+- "Show me our conversation history"
+- "What topics have we discussed?"
+- "Can you remind me what I asked about renewable energy?"
+
 INSTRUCTIONS:
 - Use your natural language understanding to determine intent
 - Consider the context and conversation history
 - Choose the most appropriate tool based on the user's goal
+- For general questions about Horizon Europe, use search_local_database tool
+- For memory queries about conversation history, use search_conversation_memory tool
 - Provide specific parameters for tool execution
 - Explain your reasoning in natural language
 - Be confident in your classification
+
+CLASSIFICATION PRECEDENCE:
+1. If query mentions calls, funding, grants, opportunities → search_calls
+2. If query mentions projects, research, case studies, CORDIS, API, "find projects", "search for projects", "show me projects" → search_projects
+3. If query is a memory query (see MEMORY QUERY EXAMPLES above) → search_conversation_memory → conversational
+4. If query is a general question (see GENERAL QUESTION EXAMPLES above) → search_local_database → conversational
+5. Everything else → conversational
+
+IMPORTANT: You must analyze the user's intent using your natural language understanding, NOT keyword detection or regex patterns.
 
 ANALYZE THE MESSAGE: "{message}" """
 
@@ -267,9 +315,9 @@ ANALYZE THE MESSAGE: "{message}" """
         except Exception as e:
             logger.error(f"Failed to parse AI response: {e}")
             # Return fallback analysis with debugging information
-            return self._create_fallback_analysis(response_text, f"JSON parsing failed: {str(e)}")
+            return self._create_fallback_analysis(response_text, f"JSON parsing failed: {str(e)}", conversation_id)
 
-    def _create_fallback_analysis(self, message: str, original_error: str = "") -> IntentAnalysis:
+    def _create_fallback_analysis(self, message: str, original_error: str = "", conversation_id: int = 1) -> IntentAnalysis:
         """
         Create safe fallback analysis when AI parsing fails.
         Uses AI to make a best guess without keyword detection.
@@ -288,6 +336,7 @@ TOOLS:
 - "eu_portal_search": For funding calls and opportunities
 - "search_cordis_projects": For research projects and case studies
 - "search_local_database": For conversational queries and explanations
+- "search_conversation_memory": For memory queries about conversation history
 
 Based on your understanding of the message, choose the most appropriate category and tool. Be confident in your assessment.
 
@@ -297,7 +346,7 @@ RESPONSE FORMAT (JSON):
     "confidence": 0.7,
     "requires_tools": true,
     "tool_plan": [{{
-        "tool_name": "eu_portal_search|search_cordis_projects|search_local_database",
+        "tool_name": "eu_portal_search|search_cordis_projects|search_local_database|search_conversation_memory",
         "parameters": {{"query": "{message}"}},
         "reason": "Your reasoning"
     }}],
@@ -328,18 +377,34 @@ RESPONSE FORMAT (JSON):
             )
         except Exception as e:
             logger.error(f"Fallback AI analysis also failed: {e}")
-            # Final fallback - use local database for everything
-            tool_call = ToolCall(
-                tool_name="search_local_database",
-                parameters={
-                    "query": message,
-                    "max_context_chunks": 5,
-                    "search_type": "hybrid",
-                    "similarity_threshold": 0.7
-                },
-                execution_order=0,
-                reason="Fallback analysis failed - using local database search"
-            )
+            # Final fallback - use conversation memory for memory queries, local database for everything else
+            # Check if this looks like a memory query
+            memory_keywords = ['first message', 'earlier', 'before', 'previous', 'remind me', 'recall', 'history', 'conversation']
+            is_memory_query = any(keyword in message.lower() for keyword in memory_keywords)
+
+            if is_memory_query:
+                tool_call = ToolCall(
+                    tool_name="search_conversation_memory",
+                    parameters={
+                        "query": message,
+                        "conversation_id": conversation_id,  # Use the actual conversation ID
+                        "max_turns": 20
+                    },
+                    execution_order=0,
+                    reason="Fallback analysis failed - using conversation memory search for memory query"
+                )
+            else:
+                tool_call = ToolCall(
+                    tool_name="search_local_database",
+                    parameters={
+                        "query": message,
+                        "max_context_chunks": 5,
+                        "search_type": "hybrid",
+                        "similarity_threshold": 0.7
+                    },
+                    execution_order=0,
+                    reason="Fallback analysis failed - using local database search"
+                )
             return IntentAnalysis(
                 intent_type="conversational",
                 confidence=0.6,

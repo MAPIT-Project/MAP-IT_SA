@@ -366,25 +366,180 @@ class ResearchTools:
                 'documents_found': 0
             }
 
-    # @staticmethod
-    # async def analyze_project_portfolio(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
-    #     """Analyze a portfolio of projects."""
-    #     project_ids = params.get('project_ids', [])
-    #     analysis_type = params.get('analysis_type', 'overview')
+    @staticmethod
+    async def search_conversation_memory(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Search conversation memory for memory-related queries.
 
-    #     # Mock implementation - would integrate with your project analysis
-    #     return {
-    #         'project_ids': project_ids,
-    #         'analysis_type': analysis_type,
-    #         'portfolio_size': len(project_ids),
-    #         'total_budget': f'{len(project_ids) * 1.5}M EUR',
-    #         'key_themes': ['Innovation', 'Sustainability', 'Digital Transformation'],
-    #         'recommendations': [
-    #             'Focus on cross-project synergies',
-    #             'Leverage existing partnerships',
-    #             'Consider follow-up funding opportunities'
-    #         ]
-    #     }
+        This tool searches through the actual conversation history stored in Redis
+        to answer questions about previous messages, conversation context, and memory queries.
+        """
+        from ..memory.memory_service import MemoryService
+
+        # Define parameter schema for validation
+        schema = {
+            'query': {
+                'type': 'string',
+                'required': True,
+                'description': 'Search query for finding information in conversation memory'
+            },
+            'conversation_id': {
+                'type': 'integer',
+                'required': True,
+                'description': 'Conversation ID to search memory for'
+            },
+            'max_turns': {
+                'type': 'integer',
+                'default': 20,
+                'min': 1,
+                'max': 50,
+                'description': 'Maximum number of conversation turns to search (1-50)'
+            }
+        }
+
+        try:
+            # Validate parameters
+            validated_params = ToolValidator.validate_parameters(params, schema)
+
+            # Extract validated parameters
+            query = validated_params['query']
+            conversation_id = validated_params['conversation_id']
+            max_turns = validated_params['max_turns']
+
+            # Validate query is not empty
+            if not query or query.strip() == '':
+                return {
+                    'success': False,
+                    'error': 'Query parameter cannot be empty',
+                    'error_type': 'validation_error',
+                    'query': query,
+                    'turns_found': 0
+                }
+
+            logger.info(f"🔍 Searching conversation memory: '{query}' (conversation: {conversation_id}, max_turns: {max_turns})")
+
+            # Initialize memory service
+            memory_service = MemoryService()
+
+            # Get recent conversation turns
+            turns = memory_service.stm.get_recent_turns(conversation_id, max_turns)
+
+            if not turns:
+                return {
+                    'success': True,
+                    'tool_name': 'search_conversation_memory',
+                    'query': query,
+                    'parameters_used': validated_params,
+                    'results': {
+                        'answer': "I don't have any conversation history to search through yet. This appears to be the start of our conversation.",
+                        'turns_found': 0,
+                        'data_source': 'conversation_memory',
+                        'search_type': 'memory',
+                        'confidence': 1.0,
+                        'sources': []
+                    },
+                    'metadata': {
+                        'search_method': 'conversation_memory',
+                        'conversation_id': conversation_id,
+                        'timestamp': datetime.now().isoformat(),
+                        'processing_time_ms': 0
+                    }
+                }
+
+            # Search through conversation turns for relevant content
+            relevant_turns = []
+            search_terms = query.lower().split()
+
+            for turn in turns:
+                turn_text = turn.content.lower()
+                # Check if any search terms appear in the turn
+                if any(term in turn_text for term in search_terms):
+                    relevant_turns.append(turn)
+
+            # If no direct matches, return all turns for context
+            if not relevant_turns:
+                relevant_turns = turns
+
+            # Format the response
+            formatted_turns = []
+            for i, turn in enumerate(relevant_turns, 1):
+                formatted_turns.append({
+                    'turn_number': i,
+                    'role': turn.role,
+                    'content': turn.content,
+                    'timestamp': turn.timestamp.isoformat(),
+                    'message_id': turn.message_id
+                })
+
+            # Create a helpful answer based on the found turns
+            if relevant_turns:
+                # Group turns by role for better readability
+                user_turns = [t for t in relevant_turns if t.role == 'user']
+                assistant_turns = [t for t in relevant_turns if t.role == 'assistant']
+
+                answer_parts = []
+                if user_turns:
+                    answer_parts.append(f"**Your messages:** {len(user_turns)} found")
+                    for i, turn in enumerate(user_turns, 1):
+                        answer_parts.append(f"{i}. {turn.content}")
+
+                if assistant_turns:
+                    answer_parts.append(f"\n**My responses:** {len(assistant_turns)} found")
+                    for i, turn in enumerate(assistant_turns, 1):
+                        answer_parts.append(f"{i}. {turn.content}")
+
+                answer = "\n".join(answer_parts)
+            else:
+                answer = f"I searched through our conversation history but couldn't find specific information related to '{query}'. You might want to rephrase your question or provide more details."
+
+            # Standardized successful response
+            response = {
+                'success': True,
+                'tool_name': 'search_conversation_memory',
+                'query': query,
+                'parameters_used': validated_params,
+                'results': {
+                    'answer': answer,
+                    'turns_found': len(relevant_turns),
+                    'total_turns_in_memory': len(turns),
+                    'data_source': 'conversation_memory',
+                    'search_type': 'memory',
+                    'confidence': 0.95 if relevant_turns else 0.3,
+                    'sources': formatted_turns
+                },
+                'metadata': {
+                    'search_method': 'conversation_memory',
+                    'conversation_id': conversation_id,
+                    'timestamp': datetime.now().isoformat(),
+                    'processing_time_ms': 0
+                }
+            }
+
+            logger.info(f"✅ Conversation memory search completed: {len(relevant_turns)} relevant turns found")
+            return response
+
+        except ValueError as e:
+            # Parameter validation error
+            logger.error(f"Conversation memory search validation error: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'error_type': 'validation_error',
+                'tool_name': 'search_conversation_memory',
+                'query': params.get('query', ''),
+                'turns_found': 0
+            }
+        except Exception as e:
+            # Execution error
+            logger.error(f"Conversation memory search execution error: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'error_type': 'execution_error',
+                'tool_name': 'search_conversation_memory',
+                'query': params.get('query', ''),
+                'turns_found': 0
+            }
 
 class ToolOrchestrator:
     """
@@ -1109,7 +1264,45 @@ class ToolOrchestrator:
         # Register all tools
         self.register_tool(portal_tool)
         self.register_tool(database_tool)
-        # self.register_tool(analysis_tool)
+
+        # Register memory search tool
+        memory_tool = Tool(
+            name='search_conversation_memory',
+            description='Search conversation memory for questions about previous messages and conversation history',
+            parameters_schema={
+                'query': {
+                    'type': 'string',
+                    'required': True,
+                    'description': 'Search query for finding information in conversation memory',
+                    'examples': ['What was my first message?', 'What did I ask about earlier?', 'Show me our conversation history']
+                },
+                'conversation_id': {
+                    'type': 'integer',
+                    'required': True,
+                    'description': 'Conversation ID to search memory for'
+                },
+                'max_turns': {
+                    'type': 'integer',
+                    'default': 20,
+                    'min': 1,
+                    'max': 50,
+                    'description': 'Maximum number of conversation turns to search (1-50)'
+                }
+            },
+            execute_func=ResearchTools.search_conversation_memory,
+            cache_ttl=300,  # 5 minutes - shorter cache for memory queries
+            parallel_safe=True,
+            category='memory_search',
+            tags=['conversation_memory', 'memory', 'history', 'chat_history'],
+            usage_examples=[
+                'What was the first message I sent you?',
+                'What did I ask about renewable energy?',
+                'Show me our previous conversation about Horizon Europe',
+                'What topics have we discussed?',
+                'Can you remind me what I said earlier?'
+            ]
+        )
+        self.register_tool(memory_tool)
     
     def get_available_tools(self) -> List[Dict[str, Any]]:
         """

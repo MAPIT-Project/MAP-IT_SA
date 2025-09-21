@@ -325,7 +325,8 @@ class ConversationManager:
             intent_analysis = await self.ai_intent_service.analyze_intent(
                 message=user_message,
                 conversation_context=conversation_context,
-                conversation_history=conversation_history
+                conversation_history=conversation_history,
+                conversation_id=conversation_id
             )
 
             print(f"🤖 AI-ONLY PHASE: Intent analysis complete - {intent_analysis.intent_type} (confidence: {intent_analysis.confidence:.2f})")

@@ -65,14 +65,160 @@ class UnifiedResponseFormatter:
                     formatted_projects = self._format_cordis_projects(result_data)
                     logger.info(f"🔍 CORDIS FORMATTED LENGTH: {len(formatted_projects) if formatted_projects else 0}")
                     formatted_parts.append(formatted_projects)
-                    
+
+                elif tool_name == 'search_conversation_memory':
+                    # Format conversation memory search results
+                    formatted_memory = self._format_conversation_memory(result_data)
+                    formatted_parts.append(formatted_memory)
+
+                elif tool_name == 'search_local_database':
+                    # Format local database search results
+                    formatted_database = self._format_local_database(result_data)
+                    formatted_parts.append(formatted_database)
+
                 else:
                     # Generic tool result formatting
                     formatted_generic = self._format_generic_tool_result(tool_name, result_data)
                     formatted_parts.append(formatted_generic)
         
         return "\n\n".join(formatted_parts) if formatted_parts else "No results found."
-    
+
+    def _format_conversation_memory(self, memory_data: Dict[str, Any]) -> str:
+        """Format conversation memory search results into natural conversational response."""
+        try:
+            # Extract the key information from the memory tool result
+            answer = memory_data.get('answer', '')
+            turns_found = memory_data.get('turns_found', 0)
+            total_turns = memory_data.get('total_turns_in_memory', 0)
+            sources = memory_data.get('sources', [])
+            confidence = memory_data.get('confidence', 0.0)
+
+            # If no conversation history found
+            if turns_found == 0:
+                return "I don't have any conversation history to search through yet. This appears to be the start of our conversation."
+
+            # Format the response based on what was found
+            if turns_found == 1:
+                # Single message found - format it naturally
+                if sources and len(sources) > 0:
+                    first_turn = sources[0]
+                    role = first_turn.get('role', 'user')
+                    content = first_turn.get('content', '')
+
+                    if role == 'user':
+                        return f"Your first message was: \"{content}\""
+                    else:
+                        return f"The first message in our conversation was: \"{content}\""
+                else:
+                    return answer  # Fallback to the tool's answer
+
+            # Multiple messages found - format them nicely
+            formatted_parts = []
+
+            # Group messages by role for better readability
+            user_messages = []
+            assistant_messages = []
+
+            for source in sources[:5]:  # Limit to first 5 messages for readability
+                role = source.get('role', 'user')
+                content = source.get('content', '')
+                timestamp = source.get('timestamp', '')
+
+                if role == 'user':
+                    user_messages.append(content)
+                else:
+                    assistant_messages.append(content)
+
+            # Build natural response
+            if user_messages:
+                formatted_parts.append("**Your messages:**")
+                for i, msg in enumerate(user_messages, 1):
+                    formatted_parts.append(f"{i}. \"{msg}\"")
+
+            if assistant_messages:
+                formatted_parts.append("\n**My responses:**")
+                for i, msg in enumerate(assistant_messages, 1):
+                    formatted_parts.append(f"{i}. \"{msg}\"")
+
+            if formatted_parts:
+                return "\n".join(formatted_parts)
+            else:
+                return answer  # Fallback to the tool's answer
+
+        except Exception as e:
+            logger.error(f"Error formatting conversation memory: {e}")
+            # Fallback to the raw answer from the tool
+            return memory_data.get('answer', 'I found some conversation history but had trouble formatting it.')
+
+    def _format_local_database(self, database_data: Dict[str, Any]) -> str:
+        """Format local database search results into natural conversational response."""
+        try:
+            # Debug: Log the structure of the database data
+            logger.info(f"🔍 FORMATTING LOCAL DATABASE: data type = {type(database_data)}")
+            logger.info(f"🔍 DATABASE DATA KEYS: {list(database_data.keys()) if isinstance(database_data, dict) else 'Not a dict'}")
+
+            # Extract the key information from the database tool result
+            # The answer might be nested in different structures
+            answer = ''
+
+            # Try different possible locations for the answer
+            if isinstance(database_data, dict):
+                # Direct answer field
+                if 'answer' in database_data:
+                    answer = database_data['answer']
+                # Nested in results
+                elif 'results' in database_data and isinstance(database_data['results'], dict):
+                    answer = database_data['results'].get('answer', '')
+                # Nested in result object
+                elif 'result' in database_data and isinstance(database_data['result'], dict):
+                    answer = database_data['result'].get('answer', '')
+                # Direct result field
+                elif 'result' in database_data:
+                    answer = database_data['result']
+
+            documents_found = database_data.get('documents_found', 0)
+            data_source = database_data.get('data_source', 'Local Database')
+            search_type = database_data.get('search_type', 'unknown')
+            confidence = database_data.get('confidence', 0.0)
+            sources = database_data.get('sources', [])
+
+            logger.info(f"🔍 EXTRACTED ANSWER: '{answer[:200]}...' (length: {len(answer) if answer else 0})")
+
+            # If no answer or empty answer, provide a helpful fallback
+            if not answer or answer.strip() == '':
+                logger.info("🔍 NO ANSWER FOUND - using fallback")
+                return "I couldn't find specific information to answer your question in the available documentation. You might try rephrasing your question or checking the EU Funding & Tenders Portal directly at https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home"
+
+            # Clean up the answer - remove any technical formatting that might have been added
+            # The answer should already be well-formatted by the RAG system
+            # Just ensure it doesn't contain raw tool result formatting
+            clean_answer = answer.strip()
+
+            # If the answer looks like it contains raw tool formatting, clean it up
+            if '🔧 Tool Result:' in clean_answer or '**Query:**' in clean_answer:
+                logger.info("🔍 CLEANING RAW TOOL OUTPUT")
+                # This suggests the answer contains raw tool output - try to extract just the useful part
+                lines = clean_answer.split('\n')
+                useful_lines = []
+                for line in lines:
+                    # Skip technical lines that look like tool output
+                    if not any(skip in line for skip in ['🔧 Tool Result:', '**Query:**', '**Parameters Used:**', '**Results:**', '**Metadata:**']):
+                        useful_lines.append(line)
+                clean_answer = '\n'.join(useful_lines).strip()
+
+            # If we ended up with empty content after cleaning, provide fallback
+            if not clean_answer:
+                logger.info("🔍 CLEANING RESULTED IN EMPTY ANSWER - using fallback")
+                return "I couldn't find specific information to answer your question in the available documentation. You might try rephrasing your question or checking the EU Funding & Tenders Portal directly at https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home"
+
+            logger.info(f"🔍 RETURNING CLEAN ANSWER: '{clean_answer[:100]}...'")
+            return clean_answer
+
+        except Exception as e:
+            logger.error(f"Error formatting local database: {e}")
+            # Fallback to the raw answer from the tool
+            return database_data.get('answer', 'I found some information but had trouble formatting it.')
+
     def _format_eu_calls(self, call_data: Dict[str, Any]) -> str:
         """
         Format EU funding calls with beautiful styling.

@@ -1,215 +1,207 @@
-# AI-Only Intent System
+# Enhanced AI-Only Intent System Design
 
 ## Overview
 
-This system provides a purely AI-driven intent detection mechanism that replaces all keyword-based, pattern matching, and regex-based approaches. The AI analyzes user messages using natural language understanding to determine intent and plan appropriate tool execution.
+This document outlines the design for an enhanced AI-only intent system that improves upon the existing AI intent service by:
+1. **Better handling of general questions** - Using local database search for general questions that don't match project or funding patterns
+2. **Better handling of memory queries** - Recognizing queries like "What is the first message I sent you?" as memory-related queries
+3. **Pure AI-driven analysis** - No keyword detection, no regex patterns, pure AI analysis
+4. **Enhanced examples and context** - Better examples for the AI to make better decisions
 
-## Key Features
+## Key Improvements
 
-- **Pure AI Analysis**: No keyword detection, pattern matching, or regex rules
-- **Natural Language Understanding**: AI uses context and examples to determine intent
-- **Reliable Classification**: Consistent intent detection across different phrasings
-- **Tool Planning**: AI automatically selects and configures appropriate tools
-- **Fallback Protection**: AI-driven fallback analysis when primary analysis fails
+### 1. Enhanced General Question Support
 
-## Intent Categories
+**Problem**: The current system classifies queries like "What is the first message I sent you?" as conversational queries and doesn't use the local database search tool to search conversation history.
 
-### 1. Search Calls (`search_calls`)
-User wants to find funding opportunities, open calls, grants, deadlines
-- **Tool**: `eu_portal_search`
-- **Examples**:
-  - "What are the open calls for renewable energy?"
-  - "Show me funding opportunities in AI"
-  - "Are there any grants for clean technology?"
+**Solution**: The enhanced AI will be trained to recognize:
+- **General information requests**: "Tell me about X", "Explain X", "What is X?"
+- **Memory queries**: "What was my first message?", "What did I ask about X earlier?"
+- **Follow-up questions**: "Tell me more about X", "Can you explain that in more detail?"
 
-### 2. Search Projects (`search_projects`)
-User wants to find existing research projects, case studies, examples
-- **Tool**: `search_cordis_projects`
-- **Examples**:
-  - "Can you show me projects about renewable energy?"
-  - "What research has been done on climate change?"
-  - "Find examples of successful Horizon Europe projects"
+When the AI detects these patterns, it will:
+1. Use `search_local_database` tool to search conversation history
+2. Provide context-aware responses based on actual conversation context
+3. Use AI to generate responses using retrieved information
 
-### 3. Conversational (`conversational`)
-General questions, help requests, procedural questions, explanations
-- **Tool**: `search_local_database`
-- **Examples**:
-  - "Hello, how can you help me?"
-  - "How do I apply for funding?"
-  - "Can you explain the process?"
+### 2. Enhanced Memory Query Support
 
-## Architecture
+**Problem**: Memory queries like "What is the first message I sent you?" are classified as conversational queries instead of using conversation history.
 
-### Main Components
+**Solution**: The enhanced AI will be trained to recognize memory-related patterns:
+- "What was my first message?"
+- "What did I ask about X earlier?"
+- "Can you remind me what we discussed about X?"
+- "What was the first thing I asked you?"
 
-1. **AIIntentService**: Core service that orchestrates AI analysis
-2. **Intent Analysis Prompt**: AI prompt that guides natural language understanding
-3. **Fallback Analysis**: Secondary AI analysis when primary fails
-4. **Tool Orchestration**: Integration with existing tool system
+When detected, the AI will:
+1. Use `search_local_database` tool to search conversation history
+2. Return actual conversation history instead of generating new responses
+3. Provide accurate memory retrieval instead of AI-generated responses
 
-### Process Flow
+### 3. Enhanced AI Prompt Design
 
-1. **User Input**: Message received from user
-2. **AI Analysis**: Primary AI call analyzes intent using natural language
-3. **Fallback Check**: If primary fails, secondary AI analysis is performed
-4. **Tool Planning**: AI selects appropriate tools and configures parameters
-5. **Execution**: Tools are executed based on AI recommendations
+The enhanced AI prompt will include:
+- **Better examples** for general questions and memory queries
+- **Clear intent definitions** with detailed descriptions
+- **Tool selection guidance** with specific tool parameters
+- **Confidence scoring** with clear guidelines
 
-## Implementation Details
+### 4. Fallback System Enhancements
 
-### Prompt Design
+The fallback system will include debugging information:
+- `[FALLBACK MODE]` prefix for fallback analysis
+- Original error information included in reasoning
+- `[EMERGENCY FALLBACK]` prefix for double fallback
+- Detailed error reporting
 
-The system uses a carefully crafted prompt that:
-- Provides clear intent category definitions
-- Includes examples for each category
-- Guides AI to use natural language understanding
-- Specifies tool selection criteria
-- Defines confidence scoring methodology
+## Enhanced AI Prompt
 
-### Fallback Strategy
+```text
+You are an expert AI assistant specializing in European research funding and innovation. Analyze this user message and determine their intent using your understanding of natural language and context.
 
-When the primary AI analysis fails:
-1. A simpler, more direct prompt is used for fallback analysis
-2. If fallback also fails, emergency fallback uses local database search
-3. All fallback decisions are made by AI, not rules
+USER MESSAGE: "{message}"
 
-### Error Handling & Debugging
+CONVERSATION CONTEXT:
+{conversation_context if conversation_context else "New conversation"}
 
-- **Primary AI Failure**: Automatic fallback to secondary AI analysis with debugging information
-- **Secondary AI Failure**: Emergency fallback to local database search with detailed error reporting
-- **Tool Execution Errors**: Handled by existing tool orchestration system
-- **Network Issues**: Retry mechanisms with exponential backoff
+RECENT HISTORY:
+{conversation_history if conversation_history else "No recent history"}
 
-#### Debugging Information
+AVAILABLE TOOLS:
+{json.dumps(available_tools, indent=2)}
 
-When the fallback system is triggered, the AI response includes detailed debugging information:
+INTENT CATEGORIES:
+- "search_calls": User wants to find funding opportunities, open calls, grants, deadlines, or funding programs
+- "search_projects": User wants to find existing research projects, case studies, examples, or research initiatives
+- "conversational": General questions, greetings, help requests, discussions, procedural questions, clarification requests
 
-- **Reasoning Field**: Prefixed with `[FALLBACK MODE]` and includes the original error
-- **Context Assessment**: Prefixed with `[FALLBACK]` or `[EMERGENCY FALLBACK]`
-- **Error Details**: Original error messages are preserved and included
-- **Fallback Level**: Indicates whether it's a single fallback or double fallback
+TOOL SELECTION:
+- "eu_portal_search": Use for finding funding calls and opportunities, grants, or funding programs
+- "search_cordis_projects": Use for finding research projects, case studies, examples, or research initiatives
+- "search_local_database": Use for conversational queries, procedural questions, informational requests, explanations
 
-**Example Fallback Response:**
-```json
+CONFIDENCE SCORING:
+- 0.9-1.0: Very clear intent with strong indicators
+- 0.7-0.89: Clear intent but some ambiguity
+- 0.5-0.69: Moderate ambiguity
+- Below 0.5: Unclear intent
+
+RESPONSE FORMAT (JSON):
 {
-  "intent_type": "search_projects",
-  "confidence": 0.9,
-  "reasoning": "[FALLBACK MODE] User's request clearly indicates project search intent | Original error: AI model timeout",
-  "context_assessment": "[FALLBACK] Fallback analysis triggered due to primary failure"
+    "intent_type": "search_calls|search_projects|conversational",
+    "confidence": 0.85,
+    "requires_tools": true/false,
+    "tool_plan": [
+        {
+            "tool_name": "eu_portal_search",
+            "parameters": {
+                "query": "clean energy funding",
+                "status": "open",
+                "max_results": 20
+            },
+            "reason": "User is asking for funding opportunities"
+        }
+    ],
+    "reasoning": "Step-by-step reasoning: 1. Check for search keywords... 2. Default to conversational",
+    "context_assessment": "Assessment of conversation context",
+    "processing_type": "tool_based|conversational|mixed"
 }
+
+MANDATORY: You must follow the step-by-step reasoning process exactly as specified. Show your reasoning in the "reasoning" field.
+
+CRITICAL RULES:
+- If user mentions "open calls", "funding opportunities", "calls for proposals", "grants", "deadlines" → search_calls
+- If user mentions "projects", "research projects", "case studies", "cordis", "api", "search on", "find projects", "show me projects", "what projects", "projects about", "projects on", "projects in" → search_projects
+- For conversational queries (hello, hi, help, thanks, what can you do, how to, explain, detail, requirements, process) → conversational
+- Always provide specific tool parameters when tools are needed
+- Consider conversation context for follow-up questions
+
+NEW ENHANCED RULES FOR ENHANCED AI-ONLY INTENT DETection:
+- "What was my first message?" → search_local_database → conversational
+- "What did I ask about X earlier?" → search_local_database → conversational
+- "Tell me more about X" → search_local_database → conversational
+- "Can you explain that in more detail?" → search_local_database → conversational
+- "What can you help me with?" → search_local_database → conversational
+- "Tell me about X" → search_local_database → conversational
+- "How does X work?" → search_local_database → conversational
+- "What are the requirements for X?" → search_local_database → conversational
+- "Could you elaborate on X?" → search_local_database → conversational
+- "How does the application process work?" → search_local_database → conversational
+- "What do you mean by X?" → search_local_database → conversational
+
+EXAMPLES TO GUIDE YOUR UNDERSTANDING:
+
+SEARCH CALLS EXAMPLES:
+- "What are the open calls for renewable energy?"
+- "Show me funding opportunities in AI"
+- "Are there any grants for clean technology?"
+
+SEARCH PROJECTS EXAMPLES:
+- "Can you show me projects about renewable energy?"
+- "What research has been done on climate change?"
+- "Find examples of successful Horizon Europe projects"
+- "Show me case studies in biotechnology"
+
+CONVERSATIONAL EXAMPLES:
+- "Hello, how can you help me?"
+- "How do I apply for funding?"
+- "Can you explain the process?"
+- "What documents do I need?"
+- "Tell me more about that"
+- "What are the eligibility requirements?"
+- "Could you elaborate on that?"
+- "How does the application process work?"
+- "What do you mean by that?"
+
+MEMORY QUERY EXAMPLES:
+- "What was my first message?"
+- "What did I ask about X earlier?"
+- "Can you remind me what we discussed about X?"
+- "What was the first thing I asked you?"
+
+GENERAL QUESTION EXAMPLES:
+- "Tell me about X"
+- "Explain X in more detail?"
+- "What is X?"
+- "How does X work?"
+- "What are the requirements for X?"
+- "Could you elaborate on X?"
+- "How does the application process work?"
+- "What do you mean by X?"
+
+CLASSIFICATION PRECEDENCE:
+1. If query mentions calls, funding, grants, opportunities → search_calls
+2. If query mentions projects, research, case studies, CORDIS, API, "find projects", "search for projects", "show me projects" → search_projects
+3. If query is a memory query (see MEMORY QUERY EXAMPLES above) → search_local_database → conversational
+4. If query is a general question (see GENERAL QUESTION EXAMPLES above) → search_local_database → conversational
+5. Everything else → conversational
+
+IMPORTANT: You must analyze the user's intent using your natural language understanding, NOT keyword detection or regex patterns.
+
+ANALYZE THE MESSAGE: "{message}"
 ```
 
-## Testing Results
+## Implementation Plan
 
-The system was tested with 14 diverse queries covering all intent categories:
+### Phase 1: Create Enhanced AI Intent Service
+1. Create `app/services/enhanced_ai_intent_service.py` implementing the enhanced AI-only intent detection
+2. Update `app/services/conversation/conversation_manager.py` to use the enhanced intent service
+3. Create test scripts to validate the enhanced intent detection
+4. Document the enhanced system in this document
 
-### Success Metrics
-- **Correct Classification**: 100% of test queries correctly classified
-- **High Confidence**: Average confidence score of 0.90+
-- **Proper Tool Selection**: All tools correctly matched to intents
-- **Natural Reasoning**: AI provided human-readable explanations
-
-### Key Test Cases
-
-1. **"Can you tell me about renewable energy projects?"**
-   - ✅ Correctly classified as `search_projects`
-   - ✅ Selected `search_cordis_projects` tool
-   - ✅ Confidence: 0.90
-
-2. **"What are the open calls for renewable energy?"**
-   - ✅ Correctly classified as `search_calls`
-   - ✅ Selected `eu_portal_search` tool
-   - ✅ Confidence: 0.90
-
-3. **"Hello, how can you help me?"**
-   - ✅ Correctly classified as `conversational`
-   - ✅ Selected `search_local_database` tool
-   - ✅ Confidence: 0.95
+### Phase 2: Testing Strategy
+1. **Test general questions**: "Tell me about Horizon Europe funding"
+2. **Test memory queries**: "What was my first message?"
+3. **Test follow-up questions**: "Tell me more about renewable energy projects"
+4. **Test edge cases**: Mixed queries that could be ambiguous
 
 ## Benefits
 
-### Compared to Rule-Based Systems
+1. **Better general question handling**: AI will use local database search for general questions
+2. **Better memory query handling**: AI will search conversation history for memory queries
+3. **More reliable intent detection**: Pure AI-driven analysis without keyword detection
+4. **Better debugging**: Enhanced fallback system with detailed error reporting
+5. **Simplified architecture**: Single AI call handles intent analysis and tool planning
 
-1. **Flexibility**: Handles variations in phrasing naturally
-2. **Context Awareness**: Considers conversation history and context
-3. **Adaptability**: Learns from examples rather than rigid rules
-4. **Reliability**: Consistent performance across different query types
-5. **Maintainability**: No complex rule sets to maintain
-
-### Technical Advantages
-
-1. **No Regex Dependencies**: Eliminates regex parsing complexity
-2. **No Keyword Lists**: No maintenance of keyword dictionaries
-3. **Natural Language**: Uses AI's understanding of human language
-4. **Extensible**: Easy to add new intent categories
-5. **Robust**: Multiple fallback layers ensure reliability
-
-## Usage
-
-### Integration
-
-The AI-only intent system integrates seamlessly with existing conversation management:
-
-```python
-from app.services.ai_intent_service import AIIntentService
-
-service = AIIntentService()
-analysis = await service.analyze_intent(
-    message="Can you tell me about renewable energy projects?",
-    conversation_context="Previous discussion about funding",
-    conversation_history="User asked about clean energy earlier"
-)
-
-print(f"Intent: {analysis.intent_type}")  # search_projects
-print(f"Tool: {analysis.tool_plan[0].tool_name}")  # search_cordis_projects
-```
-
-### Configuration
-
-The system uses existing environment variables:
-- `GEMINI_API_KEY`: Required for AI analysis
-- `GEMINI_MODEL`: Model configuration (default: gemini-2.5-flash-lite)
-
-### Debugging Features
-
-When the fallback system is triggered, debugging information is automatically included:
-
-```python
-# Example of fallback response with debugging info
-analysis = await service.analyze_intent("What are some projects about renewable energy?")
-
-print(f"Intent: {analysis.intent_type}")  # search_projects
-print(f"Reasoning: {analysis.reasoning}")
-# Output: "[FALLBACK MODE] User's request clearly indicates project search intent | Original error: AI model timeout"
-print(f"Context: {analysis.context_assessment}")
-# Output: "[FALLBACK] Fallback analysis triggered due to primary failure"
-```
-
-**Fallback Indicators:**
-- `[FALLBACK MODE]` - Primary AI analysis failed, using secondary AI analysis
-- `[EMERGENCY FALLBACK]` - Both primary and secondary AI analysis failed
-- `[DOUBLE FALLBACK]` - Complete AI analysis failure, using emergency fallback
-
-## Future Enhancements
-
-### Potential Improvements
-
-1. **Multi-language Support**: Extend to handle non-English queries
-2. **Domain Adaptation**: Fine-tune for specific research domains
-3. **Confidence Thresholding**: Dynamic confidence thresholds based on context
-4. **Learning from Feedback**: Incorporate user feedback to improve accuracy
-5. **Batch Processing**: Support for analyzing multiple messages simultaneously
-
-### Monitoring and Analytics
-
-1. **Performance Tracking**: Monitor classification accuracy over time
-2. **Usage Analytics**: Track which intents and tools are most common
-3. **Error Analysis**: Identify patterns in misclassifications
-4. **A/B Testing**: Compare different prompt strategies
-5. **User Satisfaction**: Measure impact on user experience
-
-## Conclusion
-
-The AI-only intent system represents a significant improvement over rule-based approaches by leveraging the power of natural language understanding. It provides reliable, consistent intent detection without the complexity and maintenance overhead of traditional pattern-matching systems.
-
-The system successfully addresses the original problem where queries like "Can you tell me about renewable energy projects?" were incorrectly classified as conversational instead of search_projects. Now, the AI correctly understands the user's intent and selects the appropriate tools to provide relevant responses.
+This enhanced AI-only intent system will provide more reliable, consistent intent detection with better support for general questions and memory queries.
