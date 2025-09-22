@@ -359,7 +359,8 @@ class ConversationManager:
                 "confidence": intent_analysis.confidence,
                 "requires_tools": intent_analysis.requires_tools,
                 "requires_retrieval": intent_analysis.requires_tools,  # For backward compatibility
-                "explanation": intent_analysis.reasoning
+                "explanation": intent_analysis.reasoning,
+                "extracted_keywords": intent_analysis.extracted_keywords
             }
 
             return intent_dict, context, tool_plan
@@ -457,10 +458,11 @@ class ConversationManager:
                                 logger.info(f"      Projects found: {tool_result.result['projects_found']}")
 
                 # Use unified formatter for tool results (calls, projects, etc.)
+                # Pass only the current user message, not the entire conversation context
                 formatted_response = self.unified_formatter.format_mixed_results(
                     tool_results=tool_results,
                     retrieval_results=retrieval_results,
-                    query=query
+                    query=query  # Use the query parameter, not user_message
                 )
 
                 logger.info(f"📝 FORMATTED RESPONSE LENGTH: {len(formatted_response) if formatted_response else 0}")
@@ -609,7 +611,7 @@ class ConversationManager:
                 formatted_response = self.unified_formatter.format_mixed_results(
                     tool_results=tool_results,
                     retrieval_results=retrieval_results,
-                    query=query
+                    query=query  # Use the query parameter, not user_message
                 )
                 
                 if formatted_response:

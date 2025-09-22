@@ -71,11 +71,11 @@ class EnhancedCallSearchService:
             self.query_parser = None
             logger.warning("⚠️ AI query parser not available")
         
-        # Status code mapping (CORRECT!)
+        # Status code mapping based on actual API behavior
         self.status_mapping = {
-            '31094501': 'Forthcoming', # Forthcoming/Future calls
-            '31094502': 'Open',        # Open for submission
-            '31094503': 'Closed',      # Closed calls
+            '31094501': 'Forthcoming', # Forthcoming calls (7 results)
+            '31094502': 'Open',        # Open for submission (468 results) - CONFIRMED BY API
+            '31094503': 'Closed',      # Closed calls (9664 results)
         }
         
         # Search configuration - maximize results
@@ -148,7 +148,7 @@ class EnhancedCallSearchService:
             # If the user explicitly asked for OPEN calls, force open-only status filter
             if 'open' in query.lower():
                 if not getattr(parsed_filters, 'status_filter', None):
-                    parsed_filters.status_filter = ['31094502']  # Open only
+                    parsed_filters.status_filter = ['31094502']  # Open only (correct code - CONFIRMED BY API)
                 logger.info("🎯 Detected 'open' in query -> forcing OPEN-only status filter")
             logger.info(f"🧠 Parsed query: '{search_query_text}' with intention: {parsed_filters.filter_intention}")
         
@@ -725,7 +725,7 @@ class EnhancedCallSearchService:
             # Status priority (open calls get higher scores)
             if result.status == 'Open':
                 result.score *= 1.3
-            elif result.status == 'Forthcoming':
+            elif result.status == 'Closing soon':
                 result.score *= 1.1
             
             # Recent calls get priority

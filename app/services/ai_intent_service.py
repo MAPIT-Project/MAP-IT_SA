@@ -23,6 +23,7 @@ class IntentAnalysis:
     reasoning: str
     context_assessment: str
     processing_type: str  # "tool_based", "conversational", "mixed"
+    extracted_keywords: List[str] = None  # AI-extracted search keywords
 
 @dataclass
 class ToolCall:
@@ -188,6 +189,18 @@ CONFIDENCE SCORING:
 - 0.5-0.69: Moderate ambiguity
 - Below 0.5: Unclear intent
 
+KEYWORD EXTRACTION:
+- For search queries, extract ONLY the core search terms from the user's message
+- Focus on the specific topic being searched for, NOT generic terms like "calls", "funding", "grants", "projects"
+- DO NOT include generic terms that describe the search action itself
+- Extract only the substantive content words that represent the search topic
+- Examples:
+  - "What are the open calls for renewable energy?" → ["renewable energy", "clean energy"]
+  - "Show me projects about AI in healthcare" → ["AI", "healthcare"]
+  - "Find grants for climate change research" → ["climate change", "environmental research"]
+  - "Search for textile funding" → ["textile"] (NOT "textile funding")
+  - "What are some calls about clothes?" → ["clothes", "fashion"] (NOT "calls", "funding opportunities")
+
 RESPONSE FORMAT (JSON):
 {{
     "intent_type": "search_calls|search_projects|conversational",
@@ -205,7 +218,8 @@ RESPONSE FORMAT (JSON):
     ],
     "reasoning": "Your natural language reasoning about the user's intent",
     "context_assessment": "How this fits with the conversation context",
-    "processing_type": "tool_based|conversational|mixed"
+    "processing_type": "tool_based|conversational|mixed",
+    "extracted_keywords": ["keyword1", "keyword2", "keyword3"]
 }}
 
 EXAMPLES TO GUIDE YOUR UNDERSTANDING:
@@ -311,7 +325,8 @@ ANALYZE THE MESSAGE: "{message}" """
                 tool_plan=tool_plan,
                 reasoning=data['reasoning'],
                 context_assessment=data.get('context_assessment', ''),
-                processing_type=data.get('processing_type', 'conversational')
+                processing_type=data.get('processing_type', 'conversational'),
+                extracted_keywords=data.get('extracted_keywords', [])
             )
 
         except Exception as e:

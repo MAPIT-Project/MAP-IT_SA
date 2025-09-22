@@ -440,12 +440,31 @@ class UnifiedResponseFormatter:
         """Format response when no calls are found."""
         current_year = datetime.now().year
 
-        # Extract search terms for verification URL and better messaging
-        search_terms = query.lower()
-        for phrase in ["what are some open calls for", "what are some open calls about", "open calls for", "open calls about", "calls for", "calls about"]:
-            search_terms = search_terms.replace(phrase, "").strip()
+        # Use the exact query for the verification URL to avoid combining previous queries
+        # Don't try to extract or clean the query - use it as-is
+        search_terms = query.strip()
+        
+        # If the query contains "OR" (indicating combined queries), extract the most recent term
+        if " OR " in search_terms.upper():
+            # Split by OR and take the last part (most recent query)
+            parts = search_terms.upper().split(" OR ")
+            if len(parts) > 1:
+                search_terms = parts[-1].strip()
+        
+        # Clean up any remaining conversational phrases
+        clean_phrases = [
+            "what are some open calls for", "what are some open calls about",
+            "open calls for", "open calls about", "calls for", "calls about",
+            "can you also include closed calls", "include closed calls"
+        ]
+        
+        for phrase in clean_phrases:
+            if phrase in search_terms.lower():
+                search_terms = search_terms.lower().replace(phrase, "").strip()
+        
+        # Remove question marks and extra whitespace
         search_terms = search_terms.replace("?", "").strip()
-
+        
         if not search_terms:
             search_terms = "energy"
 
@@ -454,12 +473,12 @@ class UnifiedResponseFormatter:
         # Provide topic-specific guidance
         topic_guidance = self._get_topic_specific_guidance(search_terms)
 
-        # Generate specific query suggestions based on the original query
+        # Generate specific query suggestions based on the cleaned query
         query_suggestions = self._generate_query_suggestions(query, search_terms)
 
         return f"""**🔍 No Currently Open Calls Found**
 
-I searched the EU Funding & Tenders Portal but found **no currently open calls** for "{query}" right now in {current_year}.
+I searched the EU Funding & Tenders Portal but found **no currently open calls** for "{search_terms}" right now in {current_year}.
 
 **🔗 Verify This Yourself:**
 **Manual Check:** {verification_url}

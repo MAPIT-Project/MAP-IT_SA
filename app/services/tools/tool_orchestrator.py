@@ -901,12 +901,12 @@ class ToolOrchestrator:
         # EU Portal Search Tool
         async def eu_portal_search(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
             """
-            Search EU Funding Portal for calls using enhanced semantic search.
+            Search EU Funding Portal for calls using improved direct search.
             
             This tool searches the EU Funding & Tenders Portal for funding calls,
-            supporting open, closed, and forthcoming calls with advanced filtering.
+            supporting open, closed, and forthcoming calls with simplified, reliable filtering.
             """
-            from ..enhanced_call_search import EnhancedCallSearchService
+            from ..improved_call_search import ImprovedCallSearchService
 
             # Define parameter schema for validation
             schema = {
@@ -966,10 +966,20 @@ class ToolOrchestrator:
 
                 logger.info(f"🔍 Searching EU Portal calls: '{query}' (max_results: {max_results}, include_closed: {include_closed})")
 
-                # Execute search
-                search_service = EnhancedCallSearchService()
-                results = search_service.search_calls_enhanced(
-                    query=query,
+                # Check if we have AI-extracted keywords from context
+                extracted_keywords = context.get('extracted_keywords', [])
+                
+                # Use AI-extracted keywords if available, otherwise use the original query
+                search_query = query
+                if extracted_keywords:
+                    # Join keywords with OR for better search coverage
+                    search_query = " OR ".join(extracted_keywords)
+                    logger.info(f"🎯 Using AI-extracted keywords: {search_query}")
+
+                # Execute search using improved service
+                search_service = ImprovedCallSearchService()
+                results = search_service.search_calls_simple(
+                    query=search_query,
                     max_results=max_results,
                     include_closed=include_closed,
                     programme_period=programme_period
@@ -1000,7 +1010,7 @@ class ToolOrchestrator:
                         'facets': results.get('facets', {})
                     },
                     'metadata': {
-                        'search_type': 'enhanced_semantic',
+                        'search_type': 'simple_direct',
                         'data_source': 'eu_funding_portal',
                         'api_used': 'tech.ec.europa.eu',
                         'timestamp': datetime.now().isoformat()
