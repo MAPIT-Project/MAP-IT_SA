@@ -70,8 +70,13 @@ class VectorSearchService:
                 results = self.keyword_search(query, num_results * 2, filters)
             elif search_type == "hybrid":
                 results = self.hybrid_search(query, num_results * 2, filters, threshold)
+            elif search_type == "conversational":
+                # For conversational queries, use semantic search as fallback
+                logger.info("Using semantic search for conversational query")
+                results = self.semantic_search(query, num_results * 2, filters, threshold)
             else:
-                raise ValueError(f"Unknown search type: {search_type}")
+                logger.warning(f"Unknown search type '{search_type}', defaulting to hybrid")
+                results = self.hybrid_search(query, num_results * 2, filters, threshold)
             
             # Rerank results if requested and we have multiple results
             if rerank and len(results) > 1:

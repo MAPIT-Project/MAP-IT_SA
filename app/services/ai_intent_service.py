@@ -174,14 +174,24 @@ AVAILABLE TOOLS:
 
 INTENT CATEGORIES:
 - "search_calls": User wants to find funding opportunities, open calls, grants, deadlines, or funding programs
-- "search_projects": User wants to find existing research projects, case studies, examples, or research initiatives
-- "conversational": General questions, greetings, help requests, discussions, procedural questions, clarification requests, or informational queries
+- "search_projects": User wants to find existing research projects, case studies, examples, or research initiatives  
+- "conversational": General questions, greetings, help requests, discussions, procedural questions, clarification requests, informational queries, OR basic program information questions
 
-TOOL SELECTION:
-- "eu_portal_search": Use for finding funding calls, opportunities, grants, or funding programs
-- "search_cordis_projects": Use for finding research projects, case studies, examples, or research initiatives
-- "search_local_database": Use for conversational queries, procedural questions, informational requests, explanations, and general questions about Horizon Europe
-- "search_conversation_memory": Use for memory queries about previous messages, conversation history, or what was discussed earlier. IMPORTANT: Always include conversation_id: {conversation_id} in parameters
+IMPORTANT CONVERSATIONAL CLASSIFICATION:
+- Questions about "What is Horizon Europe?" = CONVERSATIONAL (not search)
+- Questions about "How much funding..." = CONVERSATIONAL (not search)  
+- Questions about "How is X structured?" = CONVERSATIONAL (not search)
+- Questions about "What are the pillars?" = CONVERSATIONAL (not search)
+- Questions asking for explanations or information = CONVERSATIONAL (not search)
+- Only classify as search_calls/search_projects if user explicitly wants to FIND/SEARCH specific opportunities or projects
+
+TOOL SELECTION RULES:
+- For "conversational" intent: Use search_local_database to get relevant context, then generate enhanced response
+- For "search_calls": Use "eu_portal_search" for finding funding calls
+- For "search_projects": Use "search_cordis_projects" for finding research projects
+- For memory queries: Use "search_conversation_memory" with conversation_id: {conversation_id}
+
+IMPORTANT: Conversational queries SHOULD use search_local_database to get relevant context from the knowledge base
 
 CONFIDENCE SCORING:
 - 0.9-1.0: Very clear intent with strong indicators
@@ -236,15 +246,13 @@ SEARCH PROJECTS EXAMPLES:
 - "Find examples of successful Horizon Europe projects"
 - "Show me case studies in biotechnology"
 
-CONVERSATIONAL EXAMPLES:
+CONVERSATIONAL EXAMPLES (NO TOOLS NEEDED):
 - "Hello, how can you help me?"
 - "How do I apply for funding?"
 - "Can you explain the process?"
 - "What documents do I need?"
 - "Tell me more about that"
 - "What are the requirements?"
-
-GENERAL QUESTION EXAMPLES (use search_local_database):
 - "Tell me about Horizon Europe funding"
 - "Explain the application process"
 - "What are the eligibility requirements?"
@@ -255,6 +263,10 @@ GENERAL QUESTION EXAMPLES (use search_local_database):
 - "What are the requirements for X?"
 - "Can you explain that in more detail?"
 - "Tell me more about X"
+- "How much funding is available in Horizon Europe?"
+- "What is the structure of Horizon Europe?"
+- "What are the pillars of Horizon Europe?"
+- "What is the budget for climate research?"
 
 MEMORY QUERY EXAMPLES (use search_conversation_memory):
 - "What was my first message?"
@@ -269,22 +281,22 @@ MEMORY QUERY EXAMPLES (use search_conversation_memory):
 
 INSTRUCTIONS:
 - Use your natural language understanding to determine intent
-- Consider the context and conversation history
-- Choose the most appropriate tool based on the user's goal
-- For general questions about Horizon Europe, use search_local_database tool
+- Consider the context and conversation history  
+- IMPORTANT: For informational questions, explanations, and general queries, classify as "conversational" with NO TOOLS
+- Only use tools when the user explicitly wants to FIND or SEARCH for specific items
 - For memory queries about conversation history, use search_conversation_memory tool
 - Provide specific parameters for tool execution
 - Explain your reasoning in natural language
 - Be confident in your classification
 
 CLASSIFICATION PRECEDENCE:
-1. If query mentions calls, funding, grants, opportunities → search_calls
-2. If query mentions projects, research, case studies, CORDIS, API, "find projects", "search for projects", "show me projects" → search_projects
-3. If query is a memory query (see MEMORY QUERY EXAMPLES above) → search_conversation_memory → conversational
-4. If query is a general question (see GENERAL QUESTION EXAMPLES above) → search_local_database → conversational
-5. Everything else → conversational
+1. If query explicitly asks to FIND calls, funding, grants, opportunities → search_calls
+2. If query explicitly asks to FIND projects, research, case studies → search_projects  
+3. If query asks about conversation history → search_conversation_memory
+4. All informational questions, explanations, "what is", "how much", "tell me about" → conversational (WITH search_local_database for context)
+5. Everything else → conversational (WITH search_local_database for context)
 
-IMPORTANT: You must analyze the user's intent using your natural language understanding, NOT keyword detection or regex patterns.
+IMPORTANT: Conversational queries should use search_local_database to get relevant context before generating responses
 
 ANALYZE THE MESSAGE: "{message}" """
 
@@ -318,7 +330,7 @@ ANALYZE THE MESSAGE: "{message}" """
                     )
                     tool_plan.append(tool_call)
 
-            return IntentAnalysis(
+            analysis = IntentAnalysis(
                 intent_type=data['intent_type'],
                 confidence=float(data['confidence']),
                 requires_tools=data['requires_tools'],
@@ -329,6 +341,27 @@ ANALYZE THE MESSAGE: "{message}" """
                 extracted_keywords=data.get('extracted_keywords', [])
             )
 
+            # SAFETY CHECK: Ensure conversational queries have appropriate tools
+            if analysis.intent_type == 'conversational':
+                # Conversational queries should have search_local_database for context
+                if not analysis.tool_plan or not any(tool.tool_name == 'search_local_database' for tool in analysis.tool_plan):
+                    logger.info("🔧 Adding search_local_database tool for conversational query")
+                    from ..tools.tool_orchestrator import ToolCall
+                    analysis.tool_plan = [ToolCall(
+                        tool_name="search_local_database",
+                        parameters={
+                            "query": message,
+                            "max_context_chunks": 5,
+                            "search_type": "hybrid",  # Use hybrid instead of conversational
+                            "similarity_threshold": 0.5
+                        },
+                        execution_order=0,
+                        reason="Get relevant context for conversational query"
+                    )]
+                    analysis.requires_tools = True
+
+            return analysis
+
         except Exception as e:
             logger.error(f"Failed to parse AI response: {e}")
             # Return fallback analysis with debugging information
@@ -337,100 +370,21 @@ ANALYZE THE MESSAGE: "{message}" """
     def _create_fallback_analysis(self, message: str, original_error: str = "", conversation_id: int = 1) -> IntentAnalysis:
         """
         Create safe fallback analysis when AI parsing fails.
-        Uses AI to make a best guess without keyword detection.
+        Default to conversational with no tools for safety.
         """
-        # Use AI for fallback analysis too - create a simpler prompt
-        fallback_prompt = f"""You are an AI assistant. The main intent analysis failed. Please provide a fallback analysis for this message using your natural language understanding.
-
-MESSAGE: "{message}"
-
-INTENT CATEGORIES:
-- "search_calls": Looking for funding opportunities, grants, calls
-- "search_projects": Looking for research projects, examples, case studies
-- "conversational": General questions, help, explanations, procedures
-
-TOOLS:
-- "eu_portal_search": For funding calls and opportunities
-- "search_cordis_projects": For research projects and case studies
-- "search_local_database": For conversational queries and explanations
-- "search_conversation_memory": For memory queries about conversation history
-
-Based on your understanding of the message, choose the most appropriate category and tool. Be confident in your assessment.
-
-RESPONSE FORMAT (JSON):
-{{
-    "intent_type": "search_calls|search_projects|conversational",
-    "confidence": 0.7,
-    "requires_tools": true,
-    "tool_plan": [{{
-        "tool_name": "eu_portal_search|search_cordis_projects|search_local_database|search_conversation_memory",
-        "parameters": {{"query": "{message}"}},
-        "reason": "Your reasoning"
-    }}],
-    "reasoning": "Your natural language reasoning",
-    "context_assessment": "Fallback analysis",
-    "processing_type": "tool_based"
-}}"""
-
-        try:
-            # Try to get AI response for fallback
-            response = self.model.model.generate_content(fallback_prompt)
-            analysis = self._parse_ai_response(response.text)
-
-            # Add debugging information to the reasoning
-            enhanced_reasoning = f"[FALLBACK MODE] {analysis.reasoning}"
-            if original_error:
-                enhanced_reasoning += f" | Original error: {original_error}"
-
-            # Create new analysis with enhanced reasoning
-            return IntentAnalysis(
-                intent_type=analysis.intent_type,
-                confidence=analysis.confidence,
-                requires_tools=analysis.requires_tools,
-                tool_plan=analysis.tool_plan,
-                reasoning=enhanced_reasoning,
-                context_assessment=f"[FALLBACK] {analysis.context_assessment}",
-                processing_type=analysis.processing_type
-            )
-        except Exception as e:
-            logger.error(f"Fallback AI analysis also failed: {e}")
-            # Final fallback - use conversation memory for memory queries, local database for everything else
-            # Check if this looks like a memory query
-            memory_keywords = ['first message', 'earlier', 'before', 'previous', 'remind me', 'recall', 'history', 'conversation']
-            is_memory_query = any(keyword in message.lower() for keyword in memory_keywords)
-
-            if is_memory_query:
-                tool_call = ToolCall(
-                    tool_name="search_conversation_memory",
-                    parameters={
-                        "query": message,
-                        "conversation_id": conversation_id,  # Use the actual conversation ID
-                        "max_turns": 20
-                    },
-                    execution_order=0,
-                    reason="Fallback analysis failed - using conversation memory search for memory query"
-                )
-            else:
-                tool_call = ToolCall(
-                    tool_name="search_local_database",
-                    parameters={
-                        "query": message,
-                        "max_context_chunks": 5,
-                        "search_type": "hybrid",
-                        "similarity_threshold": 0.7
-                    },
-                    execution_order=0,
-                    reason="Fallback analysis failed - using local database search"
-                )
-            return IntentAnalysis(
-                intent_type="conversational",
-                confidence=0.6,
-                requires_tools=True,
-                tool_plan=[tool_call],
-                reasoning=f"[DOUBLE FALLBACK] Both primary and fallback AI analysis failed | Error: {str(e)} | Original error: {original_error}",
-                context_assessment="[EMERGENCY FALLBACK] All AI analysis attempts failed",
-                processing_type="tool_based"
-            )
+        logger.warning(f"🚨 Using fallback analysis for: '{message}' (Error: {original_error})")
+        
+        # For safety, always return conversational with no tools
+        return IntentAnalysis(
+            intent_type="conversational",
+            confidence=0.5,
+            requires_tools=False,
+            tool_plan=[],
+            reasoning=f"Fallback analysis due to parsing error: {original_error}. Defaulting to conversational for safety.",
+            context_assessment="Unable to assess context due to parsing error",
+            processing_type="conversational",
+            extracted_keywords=[]
+        )
 
     def get_intent_statistics(self) -> Dict[str, Any]:
         """
