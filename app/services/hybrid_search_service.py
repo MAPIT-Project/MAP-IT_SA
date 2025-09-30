@@ -85,8 +85,9 @@ class HybridSearchService:
         """
         base_api_url = "https://cordis.europa.eu/api/search/results"
         
-        # Build query string for CORDIS API
-        api_q_parts = ["contenttype='project'", "language='en'"]
+        # Separate static filters from keyword searches
+        static_parts = ["contenttype='project'", "language='en'"]
+        keyword_parts = []
         
         for query in queries:
             query_stripped = query.strip()
@@ -95,24 +96,29 @@ class HybridSearchService:
             
             query_lower = query_stripped.lower()
             
-            # Handle date queries
+            # Date filters go in static parts
             if "startdate" in query_lower or "enddate" in query_lower:
                 date_str = query_stripped.replace(" ", "")
-                api_q_parts.append(date_str)
-            # Handle budget queries
+                static_parts.append(date_str)
+            # Handle budget queries in static parts
             elif "totalcost" in query_lower:
-                api_q_parts.append(query_stripped)
-            # Handle text queries
+                static_parts.append(query_stripped)
+            # Keyword searches go in keyword parts
             else:
                 # Handle OR conditions
                 or_terms = query_stripped.split(" OR ")
                 valid_terms = [term.strip() for term in or_terms if term.strip()]
                 if valid_terms:
-                    quoted_terms = [f"'{term}'" for term in valid_terms]
-                    keyword_part = f"({ ' OR '.join(quoted_terms) })"
-                    api_q_parts.append(keyword_part)
+                    # Don't wrap in extra parentheses - we'll do that when combining
+                    for term in valid_terms:
+                        keyword_parts.append(f"'{term}'")
         
-        q_value = " AND ".join(api_q_parts)
+        # Build final query: static filters AND (keyword1 OR keyword2 OR ...)
+        if keyword_parts:
+            keyword_query = f"({ ' OR '.join(keyword_parts) })"
+            q_value = " AND ".join(static_parts + [keyword_query])
+        else:
+            q_value = " AND ".join(static_parts)
         
         params = {
             "q": q_value,

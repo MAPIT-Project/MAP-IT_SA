@@ -34,8 +34,15 @@ class HorizonEuropeRAG:
         
         # Initialize services
         self.supabase = supabase_client or SupabaseVectorStore()
-        self.embedder = embedding_service or EmbeddingService(cache_client=self.supabase)
-        self.vector_search = vector_search_service or VectorSearchService(self.supabase, self.embedder)
+        
+        # Only initialize embedding service if vector search is enabled and API key is available
+        if settings.vector_search_enabled and settings.google_embedding_api_key:
+            self.embedder = embedding_service or EmbeddingService(cache_client=self.supabase)
+            self.vector_search = vector_search_service or VectorSearchService(self.supabase, self.embedder)
+        else:
+            logger.info("ℹ️ Vector search disabled - using keyword search only")
+            self.embedder = None
+            self.vector_search = None
         
         # Initialize existing CORDIS RAG
         if existing_cordis_rag:
@@ -206,6 +213,12 @@ class HorizonEuropeRAG:
             pass
 
         try:
+            # Check if vector search is available
+            if not self.vector_search:
+                logger.warning("Vector search not available - using fallback to CORDIS RAG")
+                # Use CORDIS RAG as fallback for document search
+                return self.cordis_rag.get_ai_response_with_routing(question)
+            
             # Search for relevant document chunks
             search_results = self.vector_search.search(
                 query=question,

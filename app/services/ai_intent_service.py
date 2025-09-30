@@ -139,7 +139,7 @@ class AIIntentService:
             response = self.model.model.generate_content(prompt)
 
             # Parse AI response
-            analysis = self._parse_ai_response(response.text)
+            analysis = self._parse_ai_response(response.text, message)
 
             logger.info(f"✅ Intent Analysis: {analysis.intent_type} (confidence: {analysis.confidence:.2f})")
 
@@ -172,26 +172,56 @@ RECENT HISTORY:
 AVAILABLE TOOLS:
 {json.dumps(available_tools, indent=2)}
 
-INTENT CATEGORIES:
-- "search_calls": User wants to find funding opportunities, open calls, grants, deadlines, or funding programs
-- "search_projects": User wants to find existing research projects, case studies, examples, or research initiatives  
-- "conversational": General questions, greetings, help requests, discussions, procedural questions, clarification requests, informational queries, OR basic program information questions
+THE GOLDEN RULE FOR CLASSIFICATION:
+Ask yourself: "Does the user want me to SEARCH/FIND specific things, or EXPLAIN/TELL them about concepts?"
 
-IMPORTANT CONVERSATIONAL CLASSIFICATION:
-- Questions about "What is Horizon Europe?" = CONVERSATIONAL (not search)
-- Questions about "How much funding..." = CONVERSATIONAL (not search)  
-- Questions about "How is X structured?" = CONVERSATIONAL (not search)
-- Questions about "What are the pillars?" = CONVERSATIONAL (not search)
-- Questions asking for explanations or information = CONVERSATIONAL (not search)
-- Only classify as search_calls/search_projects if user explicitly wants to FIND/SEARCH specific opportunities or projects
+INTENT CATEGORIES WITH MANDATORY EXAMPLES:
 
-TOOL SELECTION RULES:
-- For "conversational" intent: Use search_local_database to get relevant context, then generate enhanced response
-- For "search_calls": Use "eu_portal_search" for finding funding calls
-- For "search_projects": Use "search_cordis_projects" for finding research projects
-- For memory queries: Use "search_conversation_memory" with conversation_id: {conversation_id}
+1. "search_calls" = User wants to FIND/GET/SEARCH specific funding calls or opportunities
+   MUST USE if message contains action verbs (search, find, show, get, list) + calls/funding/grants
+   ✅ ALWAYS search_calls:
+   - "Search calls about clean energy"
+   - "Find grants for renewable energy"  
+   - "What are the currently open calls in Cluster 4?"
+   - "Show me funding opportunities for AI"
+   - "List calls with deadline next month"
+   - "Get funding for healthcare projects"
+   
+2. "search_projects" = User wants to FIND/GET/SEARCH specific research projects
+   MUST USE if message contains action verbs + projects
+   ✅ ALWAYS search_projects:
+   - "Show me renewable energy projects"
+   - "Find projects about AI in healthcare"
+   - "Search for quantum computing research"
+   - "List projects in my area"
 
-IMPORTANT: Conversational queries SHOULD use search_local_database to get relevant context from the knowledge base
+3. "conversational" = User wants EXPLANATION or HOW-TO guidance (NO searching for specific things)
+   ONLY USE if asking about concepts, processes, or eligibility
+   ✅ ONLY conversational:
+   - "What is Horizon Europe?" (explaining concept)
+   - "How do I apply for funding?" (explaining process)
+   - "What are the eligibility criteria?" (explaining rules)
+   - "Tell me about the application process" (explaining)
+
+CRITICAL: If user says "search", "find", "show", "list", "get" + "calls/grants/projects" → MUST be search_calls or search_projects, NEVER conversational!
+
+MANDATORY TOOL SELECTION:
+- For "conversational" intent: 
+  * SKIP TOOLS for simple greetings (hi, hello, hey) - set requires_tools=false, tool_plan=[]
+  * USE search_local_database for actual questions that need context
+- For "search_calls": ALWAYS use "eu_portal_search" tool  
+- For "search_projects": ALWAYS use "search_cordis_projects" tool
+- For memory queries: ALWAYS use "search_conversation_memory" tool
+
+EXAMPLES OF WHEN TO SKIP TOOLS (conversational without tools):
+- "Hi", "Hello", "Hey", "Good morning" → requires_tools=false, tool_plan=[]
+- "How can you help me?" → requires_tools=false, tool_plan=[]
+- "What can you do?" → requires_tools=false, tool_plan=[]
+
+EXAMPLES OF WHEN TO USE search_local_database (conversational with tools):
+- "How do I apply for funding?" → requires_tools=true, use search_local_database
+- "What are the eligibility criteria?" → requires_tools=true, use search_local_database
+- "Explain the proposal process" → requires_tools=true, use search_local_database
 
 CONFIDENCE SCORING:
 - 0.9-1.0: Very clear intent with strong indicators
@@ -200,16 +230,18 @@ CONFIDENCE SCORING:
 - Below 0.5: Unclear intent
 
 KEYWORD EXTRACTION:
-- For search queries, extract ONLY the core search terms from the user's message
+- For search queries, extract core search terms from the user's message
 - Focus on the specific topic being searched for, NOT generic terms like "calls", "funding", "grants", "projects"
 - DO NOT include generic terms that describe the search action itself
-- Extract only the substantive content words that represent the search topic
+- Extract the substantive content words that represent the search topic
+- IMPORTANT: For broad single-word topics, extract multiple related/specific terms to improve search results
 - Examples:
-  - "What are the open calls for renewable energy?" → ["renewable energy", "clean energy"]
-  - "Show me projects about AI in healthcare" → ["AI", "healthcare"]
-  - "Find grants for climate change research" → ["climate change", "environmental research"]
-  - "Search for textile funding" → ["textile"] (NOT "textile funding")
-  - "What are some calls about clothes?" → ["clothes", "fashion"] (NOT "calls", "funding opportunities")
+  - "What are the open calls for renewable energy?" → ["renewable energy", "solar energy", "wind energy", "clean energy"]
+  - "Show me projects about AI in healthcare" → ["artificial intelligence", "AI", "healthcare", "medical AI"]
+  - "Find grants for climate change research" → ["climate change", "global warming", "environmental research"]
+  - "Search for nuclear projects" → ["nuclear", "nuclear energy", "nuclear power", "nuclear research"]
+  - "Search for textile funding" → ["textile", "textiles", "fabric", "clothing industry"]
+  - "What are some calls about clothes?" → ["clothes", "clothing", "fashion", "apparel", "textile"]
 
 RESPONSE FORMAT (JSON):
 {{
@@ -300,9 +332,13 @@ IMPORTANT: Conversational queries should use search_local_database to get releva
 
 ANALYZE THE MESSAGE: "{message}" """
 
-    def _parse_ai_response(self, response_text: str) -> IntentAnalysis:
+    def _parse_ai_response(self, response_text: str, original_message: str = "") -> IntentAnalysis:
         """
         Parse AI response into structured IntentAnalysis.
+        
+        Args:
+            response_text: The AI's response text to parse
+            original_message: The original user message for fallback tool planning
         """
         try:
             # Extract JSON from response
@@ -321,14 +357,18 @@ ANALYZE THE MESSAGE: "{message}" """
             # Create tool plan from AI response
             tool_plan = []
             if data.get('tool_plan'):
-                for i, tool_spec in enumerate(data['tool_plan']):
-                    tool_call = ToolCall(
-                        tool_name=tool_spec['tool_name'],
-                        parameters=tool_spec.get('parameters', {}),
-                        execution_order=i,
-                        reason=tool_spec.get('reason', '')
-                    )
-                    tool_plan.append(tool_call)
+                try:
+                    from app.services.tools.tool_orchestrator import ToolCall as TC
+                    for i, tool_spec in enumerate(data['tool_plan']):
+                        tool_call = TC(
+                            tool_name=tool_spec['tool_name'],
+                            parameters=tool_spec.get('parameters', {}),
+                            execution_order=i
+                        )
+                        tool_plan.append(tool_call)
+                except Exception as e:
+                    logger.warning(f"Could not create tool plan from AI response: {e}")
+                    tool_plan = []
 
             analysis = IntentAnalysis(
                 intent_type=data['intent_type'],
@@ -342,30 +382,82 @@ ANALYZE THE MESSAGE: "{message}" """
             )
 
             # SAFETY CHECK: Ensure conversational queries have appropriate tools
+            # SKIP for simple greetings
             if analysis.intent_type == 'conversational':
+                # Skip tools for simple greetings
+                message_lower = original_message.lower().strip()
+                simple_greetings = ['hi', 'hello', 'hey', 'greetings', 'good morning', 'good afternoon', 'good evening']
+                is_simple_greeting = message_lower in simple_greetings or (len(message_lower) < 15 and any(g in message_lower for g in ['hi', 'hello', 'hey']))
+                
+                if is_simple_greeting:
+                    logger.info("⚡ Skipping tools for simple greeting")
+                    analysis.tool_plan = []
+                    analysis.requires_tools = False
                 # Conversational queries should have search_local_database for context
-                if not analysis.tool_plan or not any(tool.tool_name == 'search_local_database' for tool in analysis.tool_plan):
+                elif not analysis.tool_plan or not any(tool.tool_name == 'search_local_database' for tool in analysis.tool_plan):
                     logger.info("🔧 Adding search_local_database tool for conversational query")
-                    from ..tools.tool_orchestrator import ToolCall
-                    analysis.tool_plan = [ToolCall(
-                        tool_name="search_local_database",
-                        parameters={
-                            "query": message,
-                            "max_context_chunks": 5,
-                            "search_type": "hybrid",  # Use hybrid instead of conversational
-                            "similarity_threshold": 0.5
-                        },
-                        execution_order=0,
-                        reason="Get relevant context for conversational query"
-                    )]
-                    analysis.requires_tools = True
+                    try:
+                        from app.services.tools.tool_orchestrator import ToolCall
+                        analysis.tool_plan = [ToolCall(
+                            tool_name="search_local_database",
+                            parameters={
+                                "query": original_message,
+                                "max_context_chunks": 5,
+                                "search_type": "hybrid",
+                                "similarity_threshold": 0.5
+                            },
+                            execution_order=0
+                        )]
+                        analysis.requires_tools = True
+                    except Exception as e:
+                        logger.warning(f"Could not add search_local_database tool: {e}")
+            
+            # SAFETY CHECK: Ensure search_calls queries use eu_portal_search
+            if analysis.intent_type == 'search_calls':
+                if not analysis.tool_plan or not any(tool.tool_name == 'eu_portal_search' for tool in analysis.tool_plan):
+                    logger.info("🔧 Adding eu_portal_search tool for search_calls query")
+                    try:
+                        from app.services.tools.tool_orchestrator import ToolCall
+                        keywords = analysis.extracted_keywords if analysis.extracted_keywords else []
+                        analysis.tool_plan = [ToolCall(
+                            tool_name="eu_portal_search",
+                            parameters={
+                                "query": original_message,
+                                "keywords": keywords,
+                                "max_results": 10
+                            },
+                            execution_order=0
+                        )]
+                        analysis.requires_tools = True
+                    except Exception as e:
+                        logger.warning(f"Could not add eu_portal_search tool: {e}")
+            
+            # SAFETY CHECK: Ensure search_projects queries use search_cordis_projects
+            if analysis.intent_type == 'search_projects':
+                if not analysis.tool_plan or not any(tool.tool_name == 'search_cordis_projects' for tool in analysis.tool_plan):
+                    logger.info("🔧 Adding search_cordis_projects tool for search_projects query")
+                    try:
+                        from app.services.tools.tool_orchestrator import ToolCall
+                        keywords = analysis.extracted_keywords if analysis.extracted_keywords else []
+                        analysis.tool_plan = [ToolCall(
+                            tool_name="search_cordis_projects",
+                            parameters={
+                                "query": original_message,
+                                "keywords": keywords,
+                                "max_results": 10
+                            },
+                            execution_order=0
+                        )]
+                        analysis.requires_tools = True
+                    except Exception as e:
+                        logger.warning(f"Could not add search_cordis_projects tool: {e}")
 
             return analysis
 
         except Exception as e:
             logger.error(f"Failed to parse AI response: {e}")
             # Return fallback analysis with debugging information
-            return self._create_fallback_analysis(response_text, f"JSON parsing failed: {str(e)}", conversation_id)
+            return self._create_fallback_analysis(original_message, f"JSON parsing failed: {str(e)}")
 
     def _create_fallback_analysis(self, message: str, original_error: str = "", conversation_id: int = 1) -> IntentAnalysis:
         """
@@ -380,8 +472,8 @@ ANALYZE THE MESSAGE: "{message}" """
             confidence=0.5,
             requires_tools=False,
             tool_plan=[],
-            reasoning=f"Fallback analysis due to parsing error: {original_error}. Defaulting to conversational for safety.",
-            context_assessment="Unable to assess context due to parsing error",
+            reasoning=f"⚠️ **[DEV MODE]** Fallback analysis activated due to error: {original_error[:100]}. Please report this query for improvement.",
+            context_assessment="⚠️ Fallback mode - Unable to assess context due to parsing error",
             processing_type="conversational",
             extracted_keywords=[]
         )

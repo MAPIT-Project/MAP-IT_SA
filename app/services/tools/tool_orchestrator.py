@@ -185,19 +185,23 @@ class ResearchTools:
 
             logger.info(f"🔍 Searching CORDIS projects: '{query}' (max_results: {max_results})")
 
-            # Execute search
+            # Check if we have AI-extracted keywords from context
+            extracted_keywords = context.get('extracted_keywords', [])
+            if extracted_keywords:
+                logger.info(f"🎯 AI extracted {len(extracted_keywords)} keywords: {extracted_keywords}")
+                # Note: We pass the ORIGINAL query to RAG service, not the formatted keywords
+                # The RAG service has its own query extraction that works better with natural language
+            else:
+                logger.info(f"⚠️ No extracted keywords from AI, RAG will extract its own")
+
+            # Execute search with ORIGINAL query
+            # RAG service expects natural language, not pre-formatted queries
             logger.info("🔧 Initializing CordisRAG service...")
             rag_service = CordisRAG()
-            logger.info("🔧 Calling get_ai_response_with_routing...")
-
-            # Add detailed logging before the call
-            logger.info(f"🔧 DEBUG: About to call get_ai_response_with_routing with:")
-            logger.info(f"🔧 DEBUG: - question: {query}")
-            logger.info(f"🔧 DEBUG: - max_projects_to_process: {max_results}")
-            logger.info(f"🔧 DEBUG: - rag_service type: {type(rag_service)}")
+            logger.info(f"🔧 Calling get_ai_response_with_routing with original query: '{query}'")
 
             results = rag_service.get_ai_response_with_routing(
-                question=query,
+                question=query,  # Pass original query, not formatted keywords
                 max_projects_to_process=max_results
             )
 
@@ -260,6 +264,18 @@ class ResearchTools:
                 'projects_found': 0
             }
 
+    # Singleton RAG service to avoid recreating it every time
+    _rag_service_instance = None
+    
+    @staticmethod
+    def _get_rag_service():
+        """Get or create singleton RAG service instance."""
+        if ResearchTools._rag_service_instance is None:
+            from ..enhanced_rag_service import HorizonEuropeRAG
+            logger.info("🔧 Creating singleton RAG service instance")
+            ResearchTools._rag_service_instance = HorizonEuropeRAG()
+        return ResearchTools._rag_service_instance
+    
     @staticmethod
     async def search_local_database(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -268,8 +284,6 @@ class ResearchTools:
         This tool searches the local Horizon Europe document database to provide
         contextual answers to general questions, procedural queries, and informational requests.
         """
-        from ..enhanced_rag_service import HorizonEuropeRAG
-
         # Define parameter schema for validation
         schema = {
             'query': {
@@ -319,10 +333,34 @@ class ResearchTools:
                     'documents_found': 0
                 }
 
+            # Fast path for simple greetings - don't search database
+            query_lower = query.lower().strip()
+            logger.info(f"🔍 Checking fast path for query: '{query}' (lower: '{query_lower}', len: {len(query_lower)})")
+            simple_greetings = ['hi', 'hello', 'hey', 'greeting', 'greetings', 'good morning', 'good afternoon', 'good evening']
+            if query_lower in simple_greetings or len(query_lower) < 10:
+                logger.info(f"⚡ FAST PATH ACTIVATED for: '{query}'")
+                return {
+                    'success': True,
+                    'tool_name': 'search_local_database',
+                    'query': query,
+                    'parameters_used': validated_params,
+                    'results': {
+                        'answer': "Hello! I'm your Horizon Europe research funding assistant. I can help you find funding calls, search for research projects, answer questions about Horizon Europe programs, and assist with proposal writing. How can I help you today?",
+                        'documents_found': 0,
+                        'data_source': 'fast_path',
+                        'search_type': 'greeting',
+                        'confidence': 1.0
+                    },
+                    'metadata': {
+                        'search_method': 'fast_path_greeting',
+                        'timestamp': datetime.now().isoformat()
+                    }
+                }
+
             logger.info(f"🔍 Searching local database: '{query}' (type: {search_type}, chunks: {max_context_chunks})")
 
-            # Execute search using enhanced RAG service
-            rag_service = HorizonEuropeRAG()
+            # Use singleton RAG service to avoid recreating it every time
+            rag_service = ResearchTools._get_rag_service()
             results = rag_service.handle_general_query(
                 question=query,
                 max_context_chunks=max_context_chunks,
@@ -603,13 +641,15 @@ class ToolOrchestrator:
     
     async def execute_plan(self, 
                           tool_calls: List[ToolCall],
-                          conversation_id: int) -> Dict[str, Any]:
+                          conversation_id: int,
+                          extracted_keywords: List[str] = None) -> Dict[str, Any]:
         """
         Execute a list of tool calls.
         
         Args:
             tool_calls: List of ToolCall objects
             conversation_id: Conversation ID for logging
+            extracted_keywords: AI-extracted search keywords to pass to tools
             
         Returns:
             Combined results from all tool executions
@@ -630,8 +670,8 @@ class ToolOrchestrator:
                     logger.warning(f"Tool {tool_call.tool_name} missing dependencies: {missing_deps}")
                     continue
             
-            # Execute tool
-            result = await self._execute_tool(tool_call, conversation_id, results)
+            # Execute tool with extracted keywords
+            result = await self._execute_tool(tool_call, conversation_id, results, extracted_keywords)
             results[tool_call.tool_name] = result
         
         return results
@@ -639,7 +679,8 @@ class ToolOrchestrator:
     async def _execute_tool(self,
                            tool_call: ToolCall,
                            conversation_id: int,
-                           previous_results: Dict[str, Any]) -> ToolResult:
+                           previous_results: Dict[str, Any],
+                           extracted_keywords: List[str] = None) -> ToolResult:
         """
         Execute a single tool.
         
@@ -647,6 +688,7 @@ class ToolOrchestrator:
             tool_call: ToolCall to execute
             conversation_id: Conversation ID
             previous_results: Results from previous tool executions
+            extracted_keywords: AI-extracted search keywords
             
         Returns:
             ToolResult object
@@ -697,8 +739,14 @@ class ToolOrchestrator:
                     error_message=f"Parameter validation error: {str(e)}"
                 )
 
-            # Execute tool with validated parameters
-            result = await tool.execute_func(validated_params, previous_results)
+            # Build execution context with extracted keywords and previous results
+            execution_context = {
+                **previous_results,  # Include previous tool results
+                'extracted_keywords': extracted_keywords or []  # Add AI-extracted keywords
+            }
+            
+            # Execute tool with validated parameters and context
+            result = await tool.execute_func(validated_params, execution_context)
 
             execution_time = (datetime.now() - start_time).total_seconds() * 1000
             logger.info(f"Tool {tool_call.tool_name} executed successfully in {execution_time:.2f}ms")

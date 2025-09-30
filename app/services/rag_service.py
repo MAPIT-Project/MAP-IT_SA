@@ -2508,24 +2508,37 @@ Instructions:
             return cached_result
         
         base_api_url = "https://cordis.europa.eu/api/search/results"
-        api_q_parts = ["contenttype='project'", "language='en'"]
+        
+        # Separate static filters from keyword searches
+        static_parts = ["contenttype='project'", "language='en'"]
+        keyword_parts = []
+        
         for item_query in queries:
             item_query_stripped = item_query.strip()
             if not item_query_stripped:
                 continue
             item_query_lower = item_query_stripped.lower()
+            
+            # Date filters go in static parts
             if "startdate" in item_query_lower or "enddate" in item_query_lower:
                 date_str = item_query_stripped.replace(" ", "")
-                api_q_parts.append(date_str)
+                static_parts.append(date_str)
+            # Keyword searches go in keyword parts
             else:
                 or_terms = item_query_stripped.split("OR")
                 valid_or_terms = [term.strip() for term in or_terms if term.strip()]
                 if not valid_or_terms:
                     continue
-                quoted_or_terms = [f"'{term}'" for term in valid_or_terms]
-                keyword_part = f"({ ' OR '.join(quoted_or_terms) })"
-                api_q_parts.append(keyword_part)
-        q_value = " AND ".join(api_q_parts)
+                # Don't wrap in extra parentheses - we'll do that when combining
+                for term in valid_or_terms:
+                    keyword_parts.append(f"'{term}'")
+        
+        # Build final query: static filters AND (keyword1 OR keyword2 OR ...)
+        if keyword_parts:
+            keyword_query = f"({ ' OR '.join(keyword_parts) })"
+            q_value = " AND ".join(static_parts + [keyword_query])
+        else:
+            q_value = " AND ".join(static_parts)
         updated_fields = "uri,rcn,title,id,code,startDate,endDate,teaser,contentUpdateDate,name,relatedImage,availableLanguages,language,issueNumber,issueDate,issueLastDate,issue,archivedDate,acronym,legalName,euCode,city,country,iprPrefix,iprNumber,iprDate,iprAwarded,description,doi,journalTitle,journalNumber,publishedYear,publishedPages,authors,periodFrom,periodTo,webItem,webItem/_ATTR_*,physUrl,webLink,webLink/_ATTR_*,physUrl,frameworkProgramme,totalCost,projectTotalCost,keywords,subjects,programme,participants"
         params = {
             "q": q_value,

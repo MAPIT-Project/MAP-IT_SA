@@ -109,6 +109,16 @@ class ConversationManager:
         """
         start_time = datetime.now()
         
+        # For streaming, return generator immediately so status updates stream in real-time
+        if streaming:
+            return self._generate_streaming_response_with_processing(
+                conversation_id=conversation_id,
+                user_message=user_message,
+                user_id=user_id,
+                start_time=start_time
+            )
+        
+        # For non-streaming, do all processing first
         try:
             # Phase 1: Add user message to memory
             user_message_id = await self._store_user_message(
@@ -127,8 +137,12 @@ class ConversationManager:
             tool_results = None
             retrieval_results = []  # Initialize to avoid undefined variable error
             if tool_plan:
+                # Extract keywords from intent analysis to pass to tools
+                extracted_keywords = intent_analysis.get('extracted_keywords', [])
+                logger.info(f"📌 Passing {len(extracted_keywords)} extracted keywords to tools: {extracted_keywords}")
+                
                 tool_results = await self.tool_orchestrator.execute_plan(
-                    tool_plan, conversation_id
+                    tool_plan, conversation_id, extracted_keywords
                 )
                 print(f"🔧 Tool Orchestrator executed {len(tool_results)} tools")
 
@@ -144,18 +158,8 @@ class ConversationManager:
                 for tool_name, tool_result in tool_results.items():
                     logger.info(f"   Tool {tool_name}: success={tool_result.success}, has_result={tool_result.result is not None}")
 
-            if streaming:
-                logger.info("🎬 Starting streaming response generation")
-                return self._generate_streaming_response(
-                    conversation_id=conversation_id,
-                    query=user_message,
-                    context=context,
-                    retrieval_results=retrieval_results,
-                    tool_results=tool_results,
-                    intent_analysis=intent_analysis,
-                    start_time=start_time
-                )
-            else:
+            # Non-streaming response
+            if True:
                 logger.info("📄 Starting non-streaming response generation")
                 response = await self._generate_response(
                     conversation_id=conversation_id,
@@ -481,12 +485,24 @@ class ConversationManager:
             else:
                 # Generate conversational AI response for general queries
                 logger.info(f"💬 Generating conversational response for: '{query}'")
-                conversational_response = self._generate_conversational_response(
-                    query=query,
-                    context=context,
-                    retrieval_results=retrieval_results,
-                    intent_analysis=intent_analysis
-                )
+                
+                # Fast path for simple greetings - no tools needed
+                query_lower = query.lower().strip()
+                simple_greetings = ['hi', 'hello', 'hey', 'greetings', 'good morning', 'good afternoon', 'good evening']
+                if query_lower in simple_greetings or (len(query_lower) < 15 and any(g in query_lower for g in ['hi', 'hello', 'hey'])):
+                    logger.info("⚡ Fast greeting response - no tools needed")
+                    conversational_response = "Hello! I'm your Horizon Europe research funding assistant. I can help you find funding calls, search for research projects, answer questions about Horizon Europe programs, and assist with proposal writing. How can I help you today?"
+                else:
+                    conversational_response = self._generate_conversational_response(
+                        query=query,
+                        context=context,
+                        retrieval_results=retrieval_results,
+                        intent_analysis=intent_analysis
+                    )
+                    
+                    # Add fallback notice if confidence is low (0.5 = fallback mode)
+                    if intent_analysis.get('confidence', 1.0) <= 0.5:
+                        conversational_response = f"⚠️ **[DEV MODE]** Fallback logic active - AI intent detection failed. Response quality may be limited.\n\n{conversational_response}"
 
                 logger.info(f"💬 CONVERSATIONAL RESPONSE LENGTH: {len(conversational_response) if conversational_response else 0}")
                 logger.info(f"💬 CONVERSATIONAL RESPONSE PREVIEW: {conversational_response[:200] if conversational_response else 'None'}...")
@@ -530,6 +546,107 @@ class ConversationManager:
             print(f"Response generation error: {e}")
             return self._create_error_response(str(e))
     
+    async def _generate_streaming_response_with_processing(self,
+                                                           conversation_id: int,
+                                                           user_message: str,
+                                                           user_id: int,
+                                                           start_time: datetime) -> AsyncGenerator[Dict[str, Any], None]:
+        """
+        Generate streaming response with real-time status updates.
+        Does all processing INSIDE the generator so status updates stream immediately.
+        """
+        try:
+            # INSTANT FEEDBACK - sent immediately when request received
+            yield {
+                'type': 'status',
+                'stage': 'processing',
+                'message': 'Processing...'
+            }
+            
+            # Phase 1: Store user message
+            yield {
+                'type': 'status',
+                'stage': 'storing_message',
+                'message': 'Storing your message...'
+            }
+            user_message_id = await self._store_user_message(
+                conversation_id, user_id, user_message
+            )
+            
+            # Phase 2: AI intent analysis and tool planning
+            yield {
+                'type': 'status',
+                'stage': 'analyzing_intent',
+                'message': 'Understanding your request...'
+            }
+            intent_analysis, context, tool_plan = await self._analyze_intent_and_plan_tools(
+                conversation_id=conversation_id,
+                user_message=user_message
+            )
+            
+            # Send intent detected
+            yield {
+                'type': 'progress',
+                'stage': 'intent_detected',
+                'message': f'AI analyzed intent: {intent_analysis.get("intent_type", "unknown")}',
+                'routing_decision': intent_analysis.get('intent_type', 'unknown'),
+                'intent_confidence': intent_analysis.get('confidence', 0.0)
+            }
+            
+            # Phase 3: Execute tools if needed
+            tool_results = None
+            retrieval_results = []
+            if tool_plan:
+                yield {
+                    'type': 'status',
+                    'stage': 'executing_tools',
+                    'message': 'Searching databases...'
+                }
+                # Extract keywords from intent analysis to pass to tools
+                extracted_keywords = intent_analysis.get('extracted_keywords', [])
+                logger.info(f"📌 [STREAMING] Passing {len(extracted_keywords)} extracted keywords to tools: {extracted_keywords}")
+                
+                tool_results = await self.tool_orchestrator.execute_plan(
+                    tool_plan, conversation_id, extracted_keywords
+                )
+                
+                # Convert tool results to retrieval format
+                if tool_results:
+                    retrieval_results = self._convert_tool_results_to_retrieval(tool_results)
+                
+                yield {
+                    'type': 'status',
+                    'stage': 'tools_complete',
+                    'message': 'Search complete, formatting results...'
+                }
+            
+            # Phase 4: Stream the response
+            yield {
+                'type': 'status',
+                'stage': 'generating_response',
+                'message': 'Generating response...'
+            }
+            
+            # Now call the existing streaming response generator
+            async for chunk in self._generate_streaming_response(
+                conversation_id=conversation_id,
+                query=user_message,
+                context=context,
+                retrieval_results=retrieval_results,
+                tool_results=tool_results,
+                intent_analysis=intent_analysis,
+                start_time=start_time
+            ):
+                yield chunk
+                
+        except Exception as e:
+            logger.error(f"Error in streaming with processing: {e}")
+            yield {
+                'type': 'error',
+                'error': str(e),
+                'stage': 'error'
+            }
+    
     async def _generate_streaming_response(self,
                                             conversation_id: int,
                                             query: str,
@@ -549,6 +666,13 @@ class ConversationManager:
         Phase 5: Streaming Response
         """
         try:
+            # Instant feedback - send immediately when request is received
+            yield {
+                'type': 'status',
+                'stage': 'processing',
+                'message': 'Processing...'
+            }
+            
             # Phase 1: Context Resolution
             yield {
                 'type': 'status',
@@ -634,12 +758,19 @@ class ConversationManager:
                 # Generate conversational response for non-tool queries
                 logger.info(f"💬 Generating streaming conversational response for: '{query}'")
                 
+                # Fast path for simple greetings - no tools needed
+                query_lower = query.lower().strip()
+                simple_greetings = ['hi', 'hello', 'hey', 'greetings', 'good morning', 'good afternoon', 'good evening']
+                if query_lower in simple_greetings or (len(query_lower) < 15 and any(g in query_lower for g in ['hi', 'hello', 'hey'])):
+                    logger.info("⚡ Fast greeting response - no tools needed")
+                    conversational_response = "Hello! I'm your Horizon Europe research funding assistant. I can help you find funding calls, search for research projects, answer questions about Horizon Europe programs, and assist with proposal writing. How can I help you today?"
                 # For research funding queries, use enhanced fallback directly for better quality
-                query_lower = query.lower()
-                research_keywords = ['horizon europe', 'funding', 'budget', 'structure', 'pillar', 'programme', 'call', 'grant']
-                if any(keyword in query_lower for keyword in research_keywords):
+                elif any(keyword in query_lower for keyword in ['horizon europe', 'funding', 'budget', 'structure', 'pillar', 'programme', 'call', 'grant']):
                     logger.info("💡 Research funding streaming query - using enhanced fallback")
                     conversational_response = self._get_enhanced_fallback_response(query, intent_analysis)
+                    # Add fallback notice if confidence is low
+                    if intent_analysis.get('confidence', 1.0) <= 0.5:
+                        conversational_response = f"⚠️ **[DEV MODE]** Fallback logic active - AI intent detection failed. Response quality may be limited.\n\n{conversational_response}"
                 else:
                     conversational_response = self._generate_conversational_response(
                         query=query,
@@ -647,6 +778,10 @@ class ConversationManager:
                         retrieval_results=retrieval_results,
                         intent_analysis=intent_analysis
                     )
+                    
+                    # Add fallback notice if confidence is low (0.5 = fallback mode)
+                    if intent_analysis.get('confidence', 1.0) <= 0.5:
+                        conversational_response = f"⚠️ **[DEV MODE]** Fallback logic active - AI intent detection failed. Response quality may be limited.\n\n{conversational_response}"
                 
                 # Stream the conversational response in chunks
                 chunk_size = 50  # Characters per chunk

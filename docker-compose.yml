@@ -18,6 +18,8 @@ services:
     build: .
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
@@ -28,16 +30,18 @@ services:
       - DOCKER_ENV=true
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - DEFAULT_AI_PROVIDER=${DEFAULT_AI_PROVIDER:-gemini}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - DEFAULT_AI_PROVIDER=gemini
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4-turbo}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash-lite}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL:-x-ai/grok-4-fast:free}
       # Enhanced RAG Configuration
-      - GOOGLE_EMBEDDING_API_KEY=${GOOGLE_API_KEY}
+      - GOOGLE_EMBEDDING_API_KEY=${GOOGLE_EMBEDDING_API_KEY:-}
       - SUPABASE_URL=http://host.docker.internal:54321
-      - SUPABASE_ANON_KEY=${PUBLIC_SUPABASE_ANON_KEY}
-      - SUPABASE_SERVICE_KEY=${PUBLIC_SUPABASE_SERVICE_KEY}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
       - USE_SUPABASE=true
-      - VECTOR_SEARCH_ENABLED=true
+      - VECTOR_SEARCH_ENABLED=false
       - EMBEDDING_MODEL=models/text-embedding-004
       - EMBEDDING_DIMENSION=768
       - CHUNK_SIZE=1000
@@ -58,6 +62,8 @@ services:
   # Celery worker for regular RAG queries
   celery-worker:
     build: .
+    env_file:
+      - .env
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
@@ -68,16 +74,18 @@ services:
       - DOCKER_ENV=true
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - DEFAULT_AI_PROVIDER=${DEFAULT_AI_PROVIDER:-gemini}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - DEFAULT_AI_PROVIDER=gemini
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4-turbo}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash-lite}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL:-x-ai/grok-4-fast:free}
       # Enhanced RAG Configuration
-      - GOOGLE_EMBEDDING_API_KEY=${GOOGLE_API_KEY}
+      - GOOGLE_EMBEDDING_API_KEY=${GOOGLE_EMBEDDING_API_KEY:-}
       - SUPABASE_URL=http://host.docker.internal:54321
-      - SUPABASE_ANON_KEY=${PUBLIC_SUPABASE_ANON_KEY}
-      - SUPABASE_SERVICE_KEY=${PUBLIC_SUPABASE_SERVICE_KEY}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
       - USE_SUPABASE=true
-      - VECTOR_SEARCH_ENABLED=true
+      - VECTOR_SEARCH_ENABLED=false
     depends_on:
       redis:
         condition: service_healthy
@@ -90,6 +98,8 @@ services:
   # Celery worker for streaming RAG queries  
   celery-worker-stream:
     build: .
+    env_file:
+      - .env
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
@@ -100,16 +110,18 @@ services:
       - DOCKER_ENV=true
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - DEFAULT_AI_PROVIDER=${DEFAULT_AI_PROVIDER:-gemini}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - DEFAULT_AI_PROVIDER=gemini
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4-turbo}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash-lite}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL:-x-ai/grok-4-fast:free}
       # Enhanced RAG Configuration
-      - GOOGLE_EMBEDDING_API_KEY=${GOOGLE_API_KEY}
+      - GOOGLE_EMBEDDING_API_KEY=${GOOGLE_EMBEDDING_API_KEY:-}
       - SUPABASE_URL=http://host.docker.internal:54321
-      - SUPABASE_ANON_KEY=${PUBLIC_SUPABASE_ANON_KEY}
-      - SUPABASE_SERVICE_KEY=${PUBLIC_SUPABASE_SERVICE_KEY}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
       - USE_SUPABASE=true
-      - VECTOR_SEARCH_ENABLED=true
+      - VECTOR_SEARCH_ENABLED=false
     depends_on:
       redis:
         condition: service_healthy
