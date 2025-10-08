@@ -267,7 +267,7 @@ echo $GEMINI_API_KEY
 python -c "
 import google.generativeai as genai
 genai.configure(api_key='$GEMINI_API_KEY')
-model = genai.GenerativeModel('gemini-2.5-flash-lite')
+model = genai.GenerativeModel('gemini-flash-lite-latest')
 response = model.generate_content('Hello')
 print('API working:', bool(response.text))
 "

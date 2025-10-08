@@ -128,7 +128,7 @@ def _process_rag_core(question: str, max_results: int = 5,
         
         # Get configuration
         openai_model = os.getenv("OPENAI_MODEL", "gpt-4-turbo")
-        gemini_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
+        gemini_model = os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")
         default_provider = os.getenv("DEFAULT_AI_PROVIDER", "gemini").lower()
         default_use_local_db = os.getenv("USE_LOCAL_DB", "false").lower() == "true"
         database_url = os.getenv("DATABASE_URL")

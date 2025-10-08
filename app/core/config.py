@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     openrouter_api_key: Optional[str] = None
     default_ai_provider: str = "gemini"
     openai_model: str = "gpt-4-turbo"
-    gemini_model: str = "gemini-2.5-flash-lite"
+    gemini_model: str = "gemini-flash-lite-latest"
     openrouter_model: str = "x-ai/grok-4-fast:free"
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     

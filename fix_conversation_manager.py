@@ -39,7 +39,7 @@ def fix_conversation_manager_issues():
             issues_found.append("Missing comprehensive error handling")
     
     # Issue 2: Check for proper Gemini model configuration
-    if 'gemini-2.5-flash-lite' in content or 'gemini-2.0-flash-exp' in content:
+    if 'gemini-flash-lite-latest' in content or 'gemini-2.0-flash-exp' in content:
         print("✅ Gemini model configured")
     else:
         print("⚠️ Gemini model may need updating")

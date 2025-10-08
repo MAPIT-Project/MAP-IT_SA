@@ -32,7 +32,7 @@ class AIAgent:
             api_key = gemini_api_key or os.getenv('GEMINI_API_KEY')
             if api_key:
                 genai.configure(api_key=api_key)
-                self.model = genai.GenerativeModel('gemini-2.5-flash-lite')
+                self.model = genai.GenerativeModel('gemini-flash-lite-latest')
             else:
                 self.model = None
         elif self.ai_provider == "openrouter":
@@ -44,7 +44,7 @@ class AIAgent:
             api_key = gemini_api_key or os.getenv('GEMINI_API_KEY')
             if api_key:
                 genai.configure(api_key=api_key)
-                self.model = genai.GenerativeModel('gemini-2.5-flash-lite')
+                self.model = genai.GenerativeModel('gemini-flash-lite-latest')
             else:
                 self.model = None
     

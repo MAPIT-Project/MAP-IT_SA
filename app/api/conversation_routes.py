@@ -351,7 +351,7 @@ async def send_contextual_message_stream(
                         # Build proper logs object
                         logs_data = {
                             'question': resolved_question,
-                            'model_used': chunk.get('model_used', 'gemini-2.5-flash-lite'),
+                            'model_used': chunk.get('model_used', 'gemini-flash-lite-latest'),
                             'phases': phases,
                             'total_processing_time_ms': int(total_time * 1000),
                             'projects_retrieved': chunk.get('projects_retrieved', 0),
@@ -363,8 +363,8 @@ async def send_contextual_message_stream(
                         completion_data = {
                             'type': 'complete',
                             'ai_provider': 'google',
-                            'ai_version': 'gemini-2.5-flash-lite',
-                            'model_used': chunk.get('model_used', 'gemini-2.5-flash-lite'),
+                            'ai_version': 'gemini-flash-lite-latest',
+                            'model_used': chunk.get('model_used', 'gemini-flash-lite-latest'),
                             'data_source': chunk.get('data_source', 'CORDIS Database'),
                             'processing_time': total_time,
                             'projects_found': chunk.get('projects_found', 0),
@@ -418,7 +418,7 @@ async def send_contextual_message_stream(
                 # Build proper logs object
                 logs_data = {
                     'question': resolved_question,
-                    'model_used': routed.get('model_used', 'gemini-2.5-flash-lite'),
+                    'model_used': routed.get('model_used', 'gemini-flash-lite-latest'),
                     'phases': phases,
                     'total_processing_time_ms': int((time.time() - start_time) * 1000),
                     'projects_retrieved': routed.get('projects_retrieved', 0),
@@ -430,8 +430,8 @@ async def send_contextual_message_stream(
                 completion_data = {
                     'type': 'complete',
                     'ai_provider': 'google',
-                    'ai_version': 'gemini-2.5-flash-lite',
-                    'model_used': routed.get('model_used', 'gemini-2.5-flash-lite'),
+                    'ai_version': 'gemini-flash-lite-latest',
+                    'model_used': routed.get('model_used', 'gemini-flash-lite-latest'),
                     'data_source': routed.get('data_source', 'CORDIS Database'),
                     'processing_time': time.time() - start_time,
                     'projects_found': routed.get('projects_found', 0),

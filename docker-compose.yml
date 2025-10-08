@@ -33,7 +33,7 @@ services:
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - DEFAULT_AI_PROVIDER=gemini
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4-turbo}
-      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash-lite}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-flash-lite-latest}
       - OPENROUTER_MODEL=${OPENROUTER_MODEL:-x-ai/grok-4-fast:free}
       # Enhanced RAG Configuration
       - GOOGLE_EMBEDDING_API_KEY=${GOOGLE_EMBEDDING_API_KEY:-}
@@ -77,7 +77,7 @@ services:
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - DEFAULT_AI_PROVIDER=gemini
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4-turbo}
-      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash-lite}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-flash-lite-latest}
       - OPENROUTER_MODEL=${OPENROUTER_MODEL:-x-ai/grok-4-fast:free}
       # Enhanced RAG Configuration
       - GOOGLE_EMBEDDING_API_KEY=${GOOGLE_EMBEDDING_API_KEY:-}
@@ -113,7 +113,7 @@ services:
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - DEFAULT_AI_PROVIDER=gemini
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4-turbo}
-      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash-lite}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-flash-lite-latest}
       - OPENROUTER_MODEL=${OPENROUTER_MODEL:-x-ai/grok-4-fast:free}
       # Enhanced RAG Configuration
       - GOOGLE_EMBEDDING_API_KEY=${GOOGLE_EMBEDDING_API_KEY:-}

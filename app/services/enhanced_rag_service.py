@@ -32,13 +32,27 @@ class HorizonEuropeRAG:
     ):
         """Initialize the enhanced RAG system."""
         
-        # Initialize services
-        self.supabase = supabase_client or SupabaseVectorStore()
+        # Initialize services - disable Supabase to avoid recursion issues
+        try:
+            if supabase_client:
+                self.supabase = supabase_client
+            else:
+                # Don't auto-create Supabase - causes recursion
+                logger.info("ℹ️ Supabase disabled to avoid recursion issues")
+                self.supabase = None
+        except Exception as e:
+            logger.warning(f"⚠️ Supabase initialization failed: {e}")
+            self.supabase = None
         
         # Only initialize embedding service if vector search is enabled and API key is available
-        if settings.vector_search_enabled and settings.google_embedding_api_key:
-            self.embedder = embedding_service or EmbeddingService(cache_client=self.supabase)
-            self.vector_search = vector_search_service or VectorSearchService(self.supabase, self.embedder)
+        if self.supabase and settings.vector_search_enabled and settings.google_embedding_api_key:
+            try:
+                self.embedder = embedding_service or EmbeddingService(cache_client=self.supabase)
+                self.vector_search = vector_search_service or VectorSearchService(self.supabase, self.embedder)
+            except Exception as e:
+                logger.warning(f"⚠️ Vector search initialization failed: {e}")
+                self.embedder = None
+                self.vector_search = None
         else:
             logger.info("ℹ️ Vector search disabled - using keyword search only")
             self.embedder = None

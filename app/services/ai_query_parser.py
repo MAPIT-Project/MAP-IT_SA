@@ -52,7 +52,7 @@ class AIQueryParser:
         self.openrouter_api_key = openrouter_api_key or os.getenv("OPENROUTER_API_KEY")
         self.gemini_client = None
         self.openai_client = None
-        self.gemini_model_name = "gemini-2.5-flash-lite"
+        self.gemini_model_name = "gemini-flash-lite-latest"
         self.openrouter_model_name = "auto"
 
         if self.ai_provider == "gemini":

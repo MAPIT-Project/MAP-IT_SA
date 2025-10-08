@@ -38,7 +38,7 @@ class RollingSummarizer:
                 raise ValueError("GEMINI_API_KEY is required for Gemini provider")
 
             genai.configure(api_key=api_key)
-            self.model = genai.GenerativeModel('gemini-2.5-flash-lite')
+            self.model = genai.GenerativeModel('gemini-flash-lite-latest')
             self.openai_client = None
         elif self.ai_provider == "openrouter":
             if not OPENAI_AVAILABLE:

@@ -53,7 +53,7 @@ class CordisRAG:
     def __init__(self, openai_api_key: Optional[str] = None, gemini_api_key: Optional[str] = None,
                  ai_provider: str = "gemini",
                  openai_model_name: str = "gpt-4-turbo",
-                 gemini_model_name: str = "gemini-2.5-flash-lite",
+                 gemini_model_name: str = "gemini-flash-lite-latest",
                  use_local_db: bool = False,
                  database_url: Optional[str] = None):
         load_dotenv()

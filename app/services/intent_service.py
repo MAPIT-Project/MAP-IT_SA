@@ -143,7 +143,7 @@ ANALYZE THOROUGHLY AND PROVIDE YOUR CLASSIFICATION:"""
                     contents = [types.Content(role="user", parts=[types.Part.from_text(text=prompt)])]
                     gen_config = types.GenerateContentConfig(temperature=0.0)
                     resp = client.models.generate_content(
-                        model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite"),
+                        model=os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest"),
                         contents=contents,
                         config=gen_config
                     )

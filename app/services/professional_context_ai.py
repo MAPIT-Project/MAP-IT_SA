@@ -175,7 +175,7 @@ Analyze and respond:"""
             # Call AI for analysis
             if self.ai_provider == "gemini" and self.gemini_client:
                 response = self.gemini_client.models.generate_content(
-                    model="gemini-2.5-flash-lite",
+                    model="gemini-flash-lite-latest",
                     contents=[self.types.Content(role="user", parts=[self.types.Part.from_text(text=ai_prompt)])],
                     config=self.types.GenerateContentConfig(temperature=0.0)
                 )

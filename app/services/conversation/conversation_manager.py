@@ -18,6 +18,10 @@ from ..rag.hybrid_search import HybridSearchPipeline, MockVectorStore, MockKeywo
 from ..tools.tool_orchestrator import create_research_orchestrator
 from ..response.unified_formatter import UnifiedResponseFormatter
 from ..ai_intent_service import AIIntentService
+from ..call_document_service import CallDocumentService
+import psycopg2
+from psycopg2 import pool
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +50,18 @@ class ConversationManager:
         try:
             # Memory management
             self.memory_service = MemoryService()
+            
+            # Database pool for call documents
+            db_url = os.getenv("DATABASE_URL")
+            self.db_pool = psycopg2.pool.SimpleConnectionPool(1, 10, db_url) if db_url else None
+            
+            # Call document service (automatic document fetching)
+            if self.db_pool:
+                self.call_doc_service = CallDocumentService(self.db_pool)
+                logger.info("✅ Call document service initialized")
+            else:
+                self.call_doc_service = None
+                logger.warning("⚠️ Call document service disabled (no DATABASE_URL)")
             
             # RAG components
             self.retriever = ConversationAwareRetriever(
@@ -125,6 +141,57 @@ class ConversationManager:
                 conversation_id, user_id, user_message
             )
 
+            # Phase 1.5: Check for call-specific question (PRIORITY)
+            call_id = self._extract_call_id(user_message)
+            call_document_results = None
+            
+            if call_id and self.call_doc_service:
+                logger.info(f"🎯 DETECTED CALL ID: {call_id} - fetching call documents")
+                try:
+                    # SMART SEARCH STRATEGY:
+                    # For specific questions, extract the TOPIC (not just keywords)
+                    # Then do a broad search on that topic to get relevant chunks
+                    import re
+                    clean_question = re.sub(r'HORIZON-[A-Z0-9-]+', '', user_message, flags=re.IGNORECASE).strip()
+                    
+                    # Map question patterns to search topics
+                    search_query = clean_question
+                    question_lower = clean_question.lower()
+                    
+                    # Geographic eligibility questions - detect country mentions
+                    if any(phrase in question_lower for phrase in ['can i apply from', 'can we apply from', 'eligible countries', 'country eligibility', 'from ']):
+                        # Search for GENERAL eligibility rules about countries
+                        # The AI knows which countries are EU/associated - it just needs the rules!
+                        search_query = 'eligibility EU member states associated countries third countries legal entities established participation'
+                        logger.info(f"🎯 Detected geographic/country eligibility question - searching for general country rules")
+                    
+                    # Budget/funding questions
+                    elif any(word in question_lower for word in ['budget', 'funding', 'grant size', 'how much']):
+                        search_query = 'budget funding contribution EUR million grant'
+                        logger.info(f"🎯 Detected budget/funding question")
+                    
+                    # Deadline questions
+                    elif any(word in question_lower for word in ['deadline', 'when', 'submission date']):
+                        search_query = 'deadline submission date stage opening'
+                        logger.info(f"🎯 Detected deadline question")
+                    
+                    # Otherwise use full question
+                    else:
+                        logger.info(f"🔍 Using full question for search")
+                    
+                    logger.info(f"📚 Search query: '{search_query}'")
+                    
+                    # Retrieve MORE chunks with topic-based search
+                    call_document_results = await self._retrieve_call_documents(
+                        call_id, 
+                        user_message,  # Pass original for context
+                        keywords=[search_query] if search_query else []
+                    )
+                    if call_document_results:
+                        logger.info(f"✅ Retrieved {len(call_document_results)} call-specific chunks - AI will select most relevant")
+                except Exception as e:
+                    logger.error(f"❌ Error retrieving call documents: {e}")
+
             # Phase 2: AI-only intent analysis and tool planning
             print(f"🤖 STARTING AI-ONLY PHASE for: '{user_message}'")
             intent_analysis, context, tool_plan = await self._analyze_intent_and_plan_tools(
@@ -133,10 +200,15 @@ class ConversationManager:
             )
             print(f"🤖 AI-ONLY PHASE RESULT: intent={intent_analysis.get('intent_type', 'unknown')}, tools={len(tool_plan) if tool_plan else 0}")
 
-            # Phase 3: Execute tools if needed
+            # Phase 3: Execute tools if needed (SKIP if we have call documents)
             tool_results = None
             retrieval_results = []  # Initialize to avoid undefined variable error
-            if tool_plan:
+            
+            if call_document_results:
+                # Use call documents as primary context - skip tool execution
+                logger.info("📚 Using call-specific documents as primary context - skipping tools")
+                retrieval_results = call_document_results
+            elif tool_plan:
                 # Extract keywords from intent analysis to pass to tools
                 extracted_keywords = intent_analysis.get('extracted_keywords', [])
                 logger.info(f"📌 Passing {len(extracted_keywords)} extracted keywords to tools: {extracted_keywords}")
@@ -380,15 +452,119 @@ class ConversationManager:
                 "explanation": f"Error in AI analysis: {str(e)}"
             }, "Error in context building", None
 
+    def _extract_call_id(self, text: str) -> Optional[str]:
+        """Extract call ID from text (e.g., HORIZON-CL3-2025-02-CS-ECCC-01)"""
+        # Pattern for Horizon Europe call IDs
+        pattern = r'HORIZON-[A-Z0-9]+-\d{4}(?:-\d+)?(?:-[A-Z]+){1,5}-\d+'
+        match = re.search(pattern, text, re.IGNORECASE)
+        return match.group(0).upper() if match else None
+    
+    async def _retrieve_call_documents(self, call_id: str, query: str, keywords: List[str] = None) -> List[Dict[str, Any]]:
+        """
+        Retrieve call-specific information using BOTH structured metadata and document chunks.
+        
+        PRIORITY 1: Structured metadata from API (instant answers for eligibility, budget, deadlines)
+        PRIORITY 2: Document chunks for detailed information
+        """
+        if not self.call_doc_service:
+            return []
+        
+        try:
+            logger.info(f"📚 Retrieving call-specific information for {call_id}")
+            results = []
+            
+            # STEP 1: Get structured metadata from API (FAST!)
+            call_metadata = self.call_doc_service.get_call_metadata(call_id)
+            
+            if call_metadata:
+                # Build a structured summary from metadata
+                metadata_text = f"""**CALL METADATA (Official API Data for {call_id})**
+
+Title: {call_metadata.get('title', 'N/A')}
+
+ELIGIBILITY:
+- Eligible Countries: {call_metadata.get('eligible_countries', 'See call documentation')}
+- Restrictions: {call_metadata.get('eligibility_restrictions', 'None specified')}
+
+BUDGET:
+- Minimum Contribution: €{call_metadata.get('min_contribution', 0):,} 
+- Maximum Contribution: €{call_metadata.get('max_contribution', 0):,}
+- Expected Number of Grants: {call_metadata.get('expected_grants', 'Not specified')}
+
+DEADLINE:
+- Submission Deadline: {call_metadata.get('deadline_date', 'See call documentation')}
+
+TYPE OF ACTION:
+- {', '.join(call_metadata.get('types_of_action', [])) if call_metadata.get('types_of_action') else 'Not specified'}
+
+This metadata was extracted directly from the EU Portal API and represents the official call conditions."""
+
+                results.append({
+                    'content': metadata_text,
+                    'citation': f"Call Metadata for {call_id} (EU Portal API)",
+                    'chunk_id': f"metadata_{call_id}",
+                    'metadata': {
+                        'source': 'call_metadata_api',
+                        'call_id': call_id,
+                        'is_structured': True,
+                        'priority': 'high'  # Tell AI this is authoritative
+                    }
+                })
+                logger.info(f"✅ Retrieved structured metadata for {call_id}")
+                logger.info(f"   Eligibility: {call_metadata.get('eligible_countries')}")
+            
+            # STEP 2: Get document chunks for detailed information
+            search_query = ' '.join(keywords) if keywords else None
+            logger.info(f"📚 Semantic search query: '{search_query}'")
+            
+            chunks = self.call_doc_service.search_call_chunks(
+                call_identifier=call_id,
+                query=search_query,
+                limit=20  # Increased from 10 to give AI more options
+            )
+            
+            # Convert to retrieval format
+            for chunk in chunks:
+                results.append({
+                    'content': chunk['chunk_text'],
+                    'citation': f"{chunk['document_title']} - {chunk.get('section_title', 'N/A')}",
+                    'chunk_id': str(chunk['chunk_id']),
+                    'metadata': {
+                        'source': 'call_documents',
+                        'call_id': call_id,
+                        'document_type': chunk['document_type'],
+                        'relevance_score': chunk['relevance_score']
+                    }
+                })
+            
+            logger.info(f"✅ Retrieved {len(results)} total items ({1 if call_metadata else 0} metadata + {len(chunks)} chunks)")
+            return results
+            
+        except Exception as e:
+            logger.error(f"❌ Error retrieving call documents: {e}", exc_info=True)
+            return []
+    
     async def _retrieve_information(self,
                                    conversation_id: int,
                                    query: str,
                                    context: str) -> List[Dict[str, Any]]:
         """
         Retrieve relevant information - now primarily handled by tools.
+        Enhanced with automatic call-specific document retrieval.
         """
         try:
-            # This method is now mainly a fallback since tools handle most retrieval
+            # Check if query mentions a specific call
+            call_id = self._extract_call_id(query) or self._extract_call_id(context)
+            
+            if call_id:
+                # Automatic call document retrieval!
+                logger.info(f"🎯 Detected call ID: {call_id} - fetching documents automatically")
+                call_chunks = await self._retrieve_call_documents(call_id, query, keywords=None)
+                if call_chunks:
+                    logger.info(f"✅ Using {len(call_chunks)} call-specific chunks")
+                    return call_chunks
+            
+            # Fallback to regular retrieval
             print(f"🔄 Fallback retrieval for query: {query}")
             
             summary = self.memory_service.ltm.get_summary(conversation_id)
@@ -442,9 +618,24 @@ class ConversationManager:
                 context_chunks.insert(0, tool_context)
             
             # Phase 7: Generate appropriate response based on query type
-            logger.info(f"🔄 RESPONSE TYPE DECISION: tool_results present = {tool_results is not None}")
+            logger.info(f"🔄 RESPONSE TYPE DECISION: tool_results present = {tool_results is not None}, retrieval_results = {len(retrieval_results) if retrieval_results else 0}")
 
-            if tool_results:
+            # If we have call document chunks, use AI to generate response with that context
+            if retrieval_results and not tool_results:
+                logger.info(f"📚 Using call document chunks ({len(retrieval_results)} chunks) to generate response")
+                conversational_response = self._generate_conversational_response(
+                    query=query,
+                    context=context,
+                    retrieval_results=retrieval_results,
+                    intent_analysis=intent_analysis
+                )
+                response = {
+                    'answer': conversational_response,
+                    'citations': [r.get('citation', 'Unknown') for r in retrieval_results],
+                    'confidence': 0.95,  # High confidence for call-specific documents
+                    'grounded': True
+                }
+            elif tool_results:
                 logger.info("🎯 Using tool-based response generation")
 
                 # DEBUG: Log the exact structure of tool results
@@ -573,6 +764,59 @@ class ConversationManager:
                 conversation_id, user_id, user_message
             )
             
+            # Phase 1.5: Check for call-specific question
+            call_id = self._extract_call_id(user_message)
+            call_document_results = None
+            
+            if call_id and self.call_doc_service:
+                logger.info(f"🎯 [STREAMING] DETECTED CALL ID: {call_id}")
+                yield {
+                    'type': 'status',
+                    'stage': 'fetching_call_documents',
+                    'message': f'Fetching documents for {call_id}...'
+                }
+                try:
+                    # SMART SEARCH STRATEGY (same as non-streaming)
+                    import re
+                    clean_question = re.sub(r'HORIZON-[A-Z0-9-]+', '', user_message, flags=re.IGNORECASE).strip()
+                    
+                    # Map question patterns to search topics
+                    search_query = clean_question
+                    question_lower = clean_question.lower()
+                    
+                    # Geographic eligibility - detect country mentions
+                    if any(phrase in question_lower for phrase in ['can i apply from', 'can we apply from', 'eligible countries', 'country eligibility', 'from ']):
+                        search_query = 'eligibility EU member states associated countries third countries legal entities established participation'
+                        logger.info(f"🎯 [STREAMING] Detected geographic/country eligibility question - searching for general country rules")
+                    # Budget/funding
+                    elif any(word in question_lower for word in ['budget', 'funding', 'grant size', 'how much']):
+                        search_query = 'budget funding contribution EUR million grant'
+                        logger.info(f"🎯 [STREAMING] Detected budget/funding question")
+                    # Deadline
+                    elif any(word in question_lower for word in ['deadline', 'when', 'submission date']):
+                        search_query = 'deadline submission date stage opening'
+                        logger.info(f"🎯 [STREAMING] Detected deadline question")
+                    else:
+                        logger.info(f"🔍 [STREAMING] Using full question")
+                    
+                    logger.info(f"📚 [STREAMING] Search query: '{search_query}'")
+                    
+                    call_document_results = await self._retrieve_call_documents(
+                        call_id, 
+                        user_message, 
+                        keywords=[search_query] if search_query else []
+                    )
+                    if call_document_results:
+                        logger.info(f"✅ [STREAMING] Retrieved {len(call_document_results)} call-specific chunks")
+                        yield {
+                            'type': 'progress',
+                            'stage': 'call_documents_loaded',
+                            'message': f'Loaded {len(call_document_results)} relevant document sections',
+                            'chunks_loaded': len(call_document_results)
+                        }
+                except Exception as e:
+                    logger.error(f"❌ [STREAMING] Error retrieving call documents: {e}")
+            
             # Phase 2: AI intent analysis and tool planning
             yield {
                 'type': 'status',
@@ -593,10 +837,20 @@ class ConversationManager:
                 'intent_confidence': intent_analysis.get('confidence', 0.0)
             }
             
-            # Phase 3: Execute tools if needed
+            # Phase 3: Execute tools if needed (SKIP if we have call documents)
             tool_results = None
             retrieval_results = []
-            if tool_plan:
+            
+            if call_document_results:
+                # Use call documents as primary context - skip tool execution
+                logger.info("📚 [STREAMING] Using call-specific documents - skipping tools")
+                retrieval_results = call_document_results
+                yield {
+                    'type': 'progress',
+                    'stage': 'using_call_documents',
+                    'message': 'Using call-specific documentation to answer'
+                }
+            elif tool_plan:
                 yield {
                     'type': 'status',
                     'stage': 'executing_tools',
@@ -805,14 +1059,14 @@ class ConversationManager:
             yield {
                 'type': 'complete',
                 'ai_provider': 'google',
-                'ai_version': 'gemini-2.5-flash-lite',
-                'model_used': 'gemini-2.5-flash-lite',
+                'ai_version': 'gemini-flash-lite-latest',
+                'model_used': 'gemini-flash-lite-latest',
                 'data_source': 'EU Funding & Tenders Portal' if tools_executed else 'Conversational AI',
                 'processing_time': processing_time,
                 'projects_found': projects_found,
                 'logs': {
                     'question': query,
-                    'model_used': 'gemini-2.5-flash-lite',
+                    'model_used': 'gemini-flash-lite-latest',
                     'phases': ['context_resolution', 'ai_intent_analysis', 'data_retrieval' if tools_executed else 'conversational', 'answer_generation', 'streaming_response'],
                     'total_processing_time_ms': int(processing_time * 1000),
                     'projects_retrieved': projects_found,
@@ -859,40 +1113,61 @@ class ConversationManager:
         """
         try:
             logger.info(f"💬 Starting conversational response generation for: '{query}'")
-            
-            # For specific research funding queries, use enhanced fallback directly
+
+            # Check if this is a "how to" question first - use enhanced fallback immediately
             query_lower = query.lower()
-            research_keywords = ['horizon europe', 'funding', 'budget', 'structure', 'pillar', 'programme', 'call', 'grant']
-            if any(keyword in query_lower for keyword in research_keywords):
-                logger.info("💡 Research funding query detected - using enhanced fallback directly")
+            if any(how_word in query_lower for how_word in ['how do i apply', 'how to apply', 'how can i apply', 'how do I apply', 'how to apply for funding', 'how do I apply for funding']):
+                logger.info("💡 Application help question detected - using enhanced fallback directly")
                 return self._get_enhanced_fallback_response(query, intent_analysis)
-            
-            # Use existing response generator (initialized in __init__)
-            if not hasattr(self, 'response_generator') or not self.response_generator:
-                logger.warning("Response generator not initialized - using enhanced fallback")
-                return self._get_enhanced_fallback_response(query, intent_analysis)
-            
+
             # Prepare context chunks from retrieval results
             context_chunks = retrieval_results if retrieval_results else []
             logger.info(f"💬 Context chunks available: {len(context_chunks)}")
-            
+
+            # If we have retrieval results (e.g., from call documents), use them directly with AI
+            if context_chunks:
+                logger.info(f"📚 Using {len(context_chunks)} retrieved chunks (likely call documents)")
+            else:
+                # Only use fallback if NO retrieval results for research funding queries
+                research_keywords = ['horizon europe', 'funding', 'budget', 'structure', 'pillar', 'programme', 'call', 'grant']
+                if any(keyword in query_lower for keyword in research_keywords):
+                    logger.info("💡 Research funding query detected - using enhanced fallback directly")
+                    return self._get_enhanced_fallback_response(query, intent_analysis)
+
+            # Check if response generator is available and properly initialized
+            if not hasattr(self, 'response_generator') or not self.response_generator:
+                logger.warning("Response generator not initialized - using enhanced fallback")
+                return self._get_enhanced_fallback_response(query, intent_analysis)
+
+            # Test response generator with a simple call first
+            try:
+                logger.info("💬 Testing response generator availability...")
+                # Simple test to see if the AI model is accessible
+                test_response = self.response_generator.model.generate_content("Test")
+                if not test_response or not test_response.text:
+                    logger.warning("Response generator model not responding - using enhanced fallback")
+                    return self._get_enhanced_fallback_response(query, intent_analysis)
+            except Exception as test_e:
+                logger.warning(f"Response generator test failed: {test_e} - using enhanced fallback")
+                return self._get_enhanced_fallback_response(query, intent_analysis)
+
             # If no context chunks, add basic context to help AI understand domain
             if not context_chunks:
                 context_chunks = [{
-                    'content': f"""This is a general query about European research and innovation. 
+                    'content': f"""This is a general query about European research and innovation.
                     The user is asking: "{query}"
-                    
-                    Context: European research funding primarily comes through Horizon Europe (2021-2027, €95.5B budget), 
-                    along with other programmes like LIFE, Digital Europe, and EIC. Focus areas include climate, 
+
+                    Context: European research funding primarily comes through Horizon Europe (2021-2027, €95.5B budget),
+                    along with other programmes like LIFE, Digital Europe, and EIC. Focus areas include climate,
                     digital transformation, health, and industrial competitiveness.""",
                     'citation': 'General EU Research Knowledge',
                     'chunk_id': 'general_context'
                 }]
-            
+
             # Get system instructions
             system_instructions = self._get_conversational_instructions(intent_analysis)
             logger.info(f"💬 System instructions length: {len(system_instructions)} chars")
-            
+
             # Generate response using the response generator
             logger.info("💬 Calling response generator...")
             response = self.response_generator.generate_response(
@@ -901,13 +1176,17 @@ class ConversationManager:
                 conversation_context=context,
                 system_instructions=system_instructions
             )
-            
+
             logger.info(f"💬 Response generator returned: {type(response)}")
-            
+
             # Extract answer from response
             if isinstance(response, dict):
                 answer = response.get('answer', '')
-                if answer and len(answer.strip()) > 50:  # Increased threshold
+                # Check for error messages in the response
+                if 'error' in answer.lower() or 'encountered an error' in answer.lower():
+                    logger.warning("Response contains error message, using enhanced fallback")
+                    return self._get_enhanced_fallback_response(query, intent_analysis)
+                elif answer and len(answer.strip()) > 50:  # Increased threshold
                     logger.info(f"💬 Generated response: {len(answer)} chars")
                     return answer
                 else:
@@ -916,7 +1195,7 @@ class ConversationManager:
             else:
                 logger.warning(f"Unexpected response format: {type(response)}, using enhanced fallback")
                 return self._get_enhanced_fallback_response(query, intent_analysis)
-            
+
         except Exception as e:
             logger.error(f"Error generating conversational response: {e}")
             import traceback
@@ -954,6 +1233,15 @@ class ConversationManager:
 • Always consider European added value and impact
 • Be encouraging about funding prospects while being realistic
 • Offer to search for current, specific information when relevant
+
+**COUNTRY ELIGIBILITY GUIDANCE:**
+When answering questions about specific countries (e.g., "Can I apply from Switzerland?"):
+• If the documents describe general rules (e.g., "EU Member States and Associated Countries are eligible")
+• You MAY use your knowledge to identify if the mentioned country falls into those categories
+• Example: If docs say "Associated Countries eligible" and user asks about Switzerland, you can answer "Yes, as Switzerland is an Associated Country"
+• Always cite the general rule from the documents [citation]
+• Add a disclaimer: "Please verify in the official call documentation for any specific restrictions"
+• You know: EU-27 members, Associated Countries (including Switzerland, Norway, Iceland, UK-partial, Israel, etc.)
 
 **SPECIALIZED KNOWLEDGE AREAS:**
 • Call identification and opportunity matching

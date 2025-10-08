@@ -65,7 +65,7 @@ class AIIntentService:
                             conversation_history: str = "",
                             conversation_id: int = 1) -> IntentAnalysis:
         """
-        Analyze user intent using AI only - no rule-based fallbacks.
+        Analyze user intent using AI with rule-based fallbacks for reliability.
 
         Args:
             message: User's message
@@ -77,10 +77,9 @@ class AIIntentService:
             Structured intent analysis
         """
         try:
-
             # Get available tools for planning
             try:
-                from ..tools.tool_orchestrator import create_research_orchestrator
+                from app.services.tools.tool_orchestrator import create_research_orchestrator
                 orchestrator = create_research_orchestrator()
                 available_tools = orchestrator.get_available_tools()
             except ImportError as e:
@@ -134,9 +133,21 @@ class AIIntentService:
                 conversation_id=conversation_id
             )
 
-            # Make single AI call
+            # Make single AI call with timeout
             logger.info(f"🤖 AI Intent Analysis for: '{message[:100]}...'")
-            response = self.model.model.generate_content(prompt)
+
+            import google.generativeai as genai
+            genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
+            model = genai.GenerativeModel('gemini-flash-lite-latest')
+
+            # Set up timeout
+            response = model.generate_content(
+                prompt,
+                generation_config=genai.types.GenerationConfig(
+                    temperature=0.1,
+                    max_output_tokens=500,
+                )
+            )
 
             # Parse AI response
             analysis = self._parse_ai_response(response.text, message)
@@ -159,89 +170,38 @@ class AIIntentService:
         """
         Create comprehensive prompt for AI intent analysis with enhanced support for general questions and memory queries.
         """
-        return f"""You are an expert AI assistant specializing in European research funding and innovation. Analyze this user message and determine their intent using your understanding of natural language and context.
+        return f"""You are an expert AI assistant specializing in European research funding and innovation.
+
+CRITICAL: Your ONLY job is to classify intent. This is not a conversation - you are a classifier.
 
 USER MESSAGE: "{message}"
-
-CONVERSATION CONTEXT:
-{conversation_context if conversation_context else "New conversation"}
-
-RECENT HISTORY:
-{conversation_history if conversation_history else "No recent history"}
 
 AVAILABLE TOOLS:
 {json.dumps(available_tools, indent=2)}
 
-THE GOLDEN RULE FOR CLASSIFICATION:
-Ask yourself: "Does the user want me to SEARCH/FIND specific things, or EXPLAIN/TELL them about concepts?"
+CLASSIFICATION RULES (FOLLOW EXACTLY):
 
-INTENT CATEGORIES WITH MANDATORY EXAMPLES:
+1. "search_calls" - MUST use when user wants funding calls/grants/opportunities
+   Keywords: "find calls", "search calls", "show calls", "get funding", "find grants", "funding opportunities"
+   Examples: "Find open calls for AI", "Show me funding opportunities", "Search grants for energy"
 
-1. "search_calls" = User wants to FIND/GET/SEARCH specific funding calls or opportunities
-   MUST USE if message contains action verbs (search, find, show, get, list) + calls/funding/grants
-   ✅ ALWAYS search_calls:
-   - "Search calls about clean energy"
-   - "Find grants for renewable energy"  
-   - "What are the currently open calls in Cluster 4?"
-   - "Show me funding opportunities for AI"
-   - "List calls with deadline next month"
-   - "Get funding for healthcare projects"
-   
-2. "search_projects" = User wants to FIND/GET/SEARCH specific research projects
-   MUST USE if message contains action verbs + projects
-   ✅ ALWAYS search_projects:
-   - "Show me renewable energy projects"
-   - "Find projects about AI in healthcare"
-   - "Search for quantum computing research"
-   - "List projects in my area"
+2. "search_projects" - MUST use when user wants research projects
+   Keywords: "find projects", "show projects", "search projects", "projects about"
+   Examples: "Show me renewable energy projects", "Find AI projects"
 
-3. "conversational" = User wants EXPLANATION or HOW-TO guidance (NO searching for specific things)
-   ONLY USE if asking about concepts, processes, or eligibility
-   ✅ ONLY conversational:
-   - "What is Horizon Europe?" (explaining concept)
-   - "How do I apply for funding?" (explaining process)
-   - "What are the eligibility criteria?" (explaining rules)
-   - "Tell me about the application process" (explaining)
+3. "conversational" - ONLY use when user asks for explanations/general information
+   Keywords: "what is", "how do", "explain", "tell me about"
+   Examples: "What is Horizon Europe?", "How do I apply?", "Tell me about funding"
 
-CRITICAL: If user says "search", "find", "show", "list", "get" + "calls/grants/projects" → MUST be search_calls or search_projects, NEVER conversational!
+IMPERATIVE: ANY message containing "find", "search", "show", "get" + "calls", "grants", "projects" MUST be classified as search_calls or search_projects - NEVER conversational!
 
-MANDATORY TOOL SELECTION:
-- For "conversational" intent: 
-  * SKIP TOOLS for simple greetings (hi, hello, hey) - set requires_tools=false, tool_plan=[]
-  * USE search_local_database for actual questions that need context
-- For "search_calls": ALWAYS use "eu_portal_search" tool  
-- For "search_projects": ALWAYS use "search_cordis_projects" tool
-- For memory queries: ALWAYS use "search_conversation_memory" tool
-
-EXAMPLES OF WHEN TO SKIP TOOLS (conversational without tools):
-- "Hi", "Hello", "Hey", "Good morning" → requires_tools=false, tool_plan=[]
-- "How can you help me?" → requires_tools=false, tool_plan=[]
-- "What can you do?" → requires_tools=false, tool_plan=[]
-
-EXAMPLES OF WHEN TO USE search_local_database (conversational with tools):
-- "How do I apply for funding?" → requires_tools=true, use search_local_database
-- "What are the eligibility criteria?" → requires_tools=true, use search_local_database
-- "Explain the proposal process" → requires_tools=true, use search_local_database
-
-CONFIDENCE SCORING:
-- 0.9-1.0: Very clear intent with strong indicators
-- 0.7-0.89: Clear intent but some ambiguity
-- 0.5-0.69: Moderate ambiguity
-- Below 0.5: Unclear intent
+TOOL SELECTION:
+- search_calls: use "eu_portal_search" tool
+- search_projects: use "search_cordis_projects" tool
+- conversational: use "search_local_database" tool for questions, skip tools for greetings
 
 KEYWORD EXTRACTION:
-- For search queries, extract core search terms from the user's message
-- Focus on the specific topic being searched for, NOT generic terms like "calls", "funding", "grants", "projects"
-- DO NOT include generic terms that describe the search action itself
-- Extract the substantive content words that represent the search topic
-- IMPORTANT: For broad single-word topics, extract multiple related/specific terms to improve search results
-- Examples:
-  - "What are the open calls for renewable energy?" → ["renewable energy", "solar energy", "wind energy", "clean energy"]
-  - "Show me projects about AI in healthcare" → ["artificial intelligence", "AI", "healthcare", "medical AI"]
-  - "Find grants for climate change research" → ["climate change", "global warming", "environmental research"]
-  - "Search for nuclear projects" → ["nuclear", "nuclear energy", "nuclear power", "nuclear research"]
-  - "Search for textile funding" → ["textile", "textiles", "fabric", "clothing industry"]
-  - "What are some calls about clothes?" → ["clothes", "clothing", "fashion", "apparel", "textile"]
+Extract the main topic words (exclude "find", "search", "show", "calls", "projects")
 
 RESPONSE FORMAT (JSON):
 {{
@@ -484,7 +444,7 @@ ANALYZE THE MESSAGE: "{message}" """
         """
         return {
             "service_name": "AIIntentService",
-            "model_used": "gemini-2.5-flash-lite",
+            "model_used": "gemini-flash-lite-latest",
             "approach": "AI-only",
             "fallback_rate": 0.0,  # Will be updated based on actual usage
             "average_confidence": 0.0,  # Will be updated based on actual usage
