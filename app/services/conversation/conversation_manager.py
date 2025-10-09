@@ -629,9 +629,21 @@ This metadata was extracted directly from the EU Portal API and represents the o
                     retrieval_results=retrieval_results,
                     intent_analysis=intent_analysis
                 )
+                # Build structured citations with metadata for frontend
+                structured_citations = []
+                for i, r in enumerate(retrieval_results, 1):
+                    structured_citations.append({
+                        'number': i,
+                        'text': r.get('citation', 'Unknown'),
+                        'chunk_id': r.get('chunk_id'),
+                        'content_snippet': r.get('content', '')[:200] + '...' if len(r.get('content', '')) > 200 else r.get('content', ''),
+                        'metadata': r.get('metadata', {}),
+                        'source_type': r.get('metadata', {}).get('source', 'unknown')
+                    })
+                
                 response = {
                     'answer': conversational_response,
-                    'citations': [r.get('citation', 'Unknown') for r in retrieval_results],
+                    'citations': structured_citations,
                     'confidence': 0.95,  # High confidence for call-specific documents
                     'grounded': True
                 }
@@ -1053,6 +1065,19 @@ This metadata was extracted directly from the EU Portal API and represents the o
                 confidence = 0.8
                 grounded = True if retrieval_results else False
             
+            # Build structured citations for streaming response
+            structured_citations = []
+            if retrieval_results:
+                for i, r in enumerate(retrieval_results, 1):
+                    structured_citations.append({
+                        'number': i,
+                        'text': r.get('citation', 'Unknown'),
+                        'chunk_id': r.get('chunk_id'),
+                        'content_snippet': r.get('content', '')[:200] + '...' if len(r.get('content', '')) > 200 else r.get('content', ''),
+                        'metadata': r.get('metadata', {}),
+                        'source_type': r.get('metadata', {}).get('source', 'unknown')
+                    })
+            
             # Send completion with full metadata IMMEDIATELY
             processing_time = (datetime.now() - start_time).total_seconds()
             
@@ -1064,6 +1089,9 @@ This metadata was extracted directly from the EU Portal API and represents the o
                 'data_source': 'EU Funding & Tenders Portal' if tools_executed else 'Conversational AI',
                 'processing_time': processing_time,
                 'projects_found': projects_found,
+                'citations': structured_citations,  # ✨ NEW: Include structured citations
+                'confidence': confidence,
+                'grounded': grounded,
                 'logs': {
                     'question': query,
                     'model_used': 'gemini-flash-lite-latest',
@@ -1217,22 +1245,20 @@ This metadata was extracted directly from the EU Portal API and represents the o
 • Success metrics and impact assessment
 • Funding landscapes across European countries
 
-**YOUR PERSONALITY & APPROACH:**
-• Professional yet approachable and encouraging
+**YOUR APPROACH:**
+• Professional, direct, and concise
 • Data-driven and precise with facts and figures
-• Action-oriented - always provide next steps
-• Strategic thinking for long-term research planning
-• Supportive of research excellence and innovation
+• Answer the specific question asked without unnecessary elaboration
+• Provide clear next steps when requested
 
 **RESPONSE GUIDELINES:**
-• Provide specific, actionable advice with concrete next steps
-• Include relevant budget figures, deadlines, and success rates when applicable
-• Mention specific programmes, instruments, and opportunities
-• Reference real data and current trends (2021-2027 period)
-• Suggest partnership and collaboration opportunities
-• Always consider European added value and impact
-• Be encouraging about funding prospects while being realistic
-• Offer to search for current, specific information when relevant
+• Answer directly and concisely
+• Include specific data (budget figures, deadlines, requirements) when relevant
+• Use bullet points for clarity
+• Avoid overly enthusiastic or promotional language
+• Avoid phrases like "That's an excellent question" or "crucial strategic step"
+• Get straight to the answer without preamble
+• Be factual and objective
 
 **COUNTRY ELIGIBILITY GUIDANCE:**
 When answering questions about specific countries (e.g., "Can I apply from Switzerland?"):
@@ -1254,10 +1280,10 @@ When answering questions about specific countries (e.g., "Can I apply from Switz
 • Innovation ecosystems and commercialization pathways
 
 **TONE:**
-Use a professional, knowledgeable tone that shows deep understanding of the European research landscape. Be enthusiastic about research potential while providing practical, implementable guidance. Focus on empowering research managers to make informed decisions and successful applications.
+Use a professional, direct tone. Provide precise answers without unnecessary enthusiasm or preamble.
 
 **CURRENT CONTEXT:**
-You're responding to questions about European research and innovation funding. Always consider the strategic perspective of research managers who need to plan projects, build teams, secure funding, and deliver impact. Provide comprehensive answers that address both immediate needs and longer-term strategic considerations."""
+You're answering questions about European research and innovation funding. Be concise and factual."""
     
     def _get_fallback_conversational_response(self, query: str, intent_analysis: Dict) -> str:
         """
