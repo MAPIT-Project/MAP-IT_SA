@@ -19,6 +19,7 @@ from ..tools.tool_orchestrator import create_research_orchestrator
 from ..response.unified_formatter import UnifiedResponseFormatter
 from ..ai_intent_service import AIIntentService
 from ..call_document_service import CallDocumentService
+from ..intelligent_retrieval import IntelligentRetrieval
 import psycopg2
 from psycopg2 import pool
 import re
@@ -59,9 +60,14 @@ class ConversationManager:
             if self.db_pool:
                 self.call_doc_service = CallDocumentService(self.db_pool)
                 logger.info("✅ Call document service initialized")
+                
+                # Intelligent retrieval service (uses comprehensive document library)
+                self.intelligent_retrieval = IntelligentRetrieval(self.db_pool)
+                logger.info("✅ Intelligent retrieval service initialized")
             else:
                 self.call_doc_service = None
-                logger.warning("⚠️ Call document service disabled (no DATABASE_URL)")
+                self.intelligent_retrieval = None
+                logger.warning("⚠️ Document services disabled (no DATABASE_URL)")
             
             # RAG components
             self.retriever = ConversationAwareRetriever(
@@ -200,7 +206,7 @@ class ConversationManager:
             )
             print(f"🤖 AI-ONLY PHASE RESULT: intent={intent_analysis.get('intent_type', 'unknown')}, tools={len(tool_plan) if tool_plan else 0}")
 
-            # Phase 3: Execute tools if needed (SKIP if we have call documents)
+            # Phase 3: Execute tools OR use intelligent retrieval
             tool_results = None
             retrieval_results = []  # Initialize to avoid undefined variable error
             
@@ -208,8 +214,39 @@ class ConversationManager:
                 # Use call documents as primary context - skip tool execution
                 logger.info("📚 Using call-specific documents as primary context - skipping tools")
                 retrieval_results = call_document_results
+            
+            elif intent_analysis.get('intent_type') in ['conversational', 'faq', 'general']:
+                # For FAQ/general questions, check if we should use intelligent retrieval
+                # Use it if there's no tool plan, or if the only tool is search_local_database
+                should_use_intelligent = not tool_plan or (
+                    len(tool_plan) == 1 and tool_plan[0].tool_name == 'search_local_database'
+                )
+                
+                if should_use_intelligent:
+                    logger.info(f"🔍 FAQ/General question detected - using intelligent retrieval instead of tools")
+                    retrieval_results = await self._retrieve_information(
+                        conversation_id=conversation_id,
+                        query=user_message,
+                        context=context
+                    )
+                    logger.info(f"✅ Retrieved {len(retrieval_results)} chunks via intelligent retrieval")
+                    tool_plan = None  # Clear tool plan since we're using intelligent retrieval
+                else:
+                    # Execute tools as planned
+                    extracted_keywords = intent_analysis.get('extracted_keywords', [])
+                    logger.info(f"📌 Passing {len(extracted_keywords)} extracted keywords to tools: {extracted_keywords}")
+                    
+                    tool_results = await self.tool_orchestrator.execute_plan(
+                        tool_plan, conversation_id, extracted_keywords
+                    )
+                    print(f"🔧 Tool Orchestrator executed {len(tool_results)} tools")
+
+                    # Convert tool results to retrieval format for response generation
+                    if tool_results:
+                        retrieval_results = self._convert_tool_results_to_retrieval(tool_results)
+            
             elif tool_plan:
-                # Extract keywords from intent analysis to pass to tools
+                # For search questions, execute tools (CORDIS, EU Portal)
                 extracted_keywords = intent_analysis.get('extracted_keywords', [])
                 logger.info(f"📌 Passing {len(extracted_keywords)} extracted keywords to tools: {extracted_keywords}")
                 
@@ -564,29 +601,27 @@ This metadata was extracted directly from the EU Portal API and represents the o
                     logger.info(f"✅ Using {len(call_chunks)} call-specific chunks")
                     return call_chunks
             
-            # Fallback to regular retrieval
-            print(f"🔄 Fallback retrieval for query: {query}")
+            # Use intelligent retrieval across comprehensive document library
+            logger.info(f"🔍 Using intelligent retrieval for general question: {query[:100]}...")
             
-            summary = self.memory_service.ltm.get_summary(conversation_id)
-            facts = self.memory_service.ltm.get_facts(conversation_id)
-            entities = self.memory_service.ltm.get_entity_cards(conversation_id)
+            if self.intelligent_retrieval:
+                # Smart search across all 29 documents with query classification
+                results = self.intelligent_retrieval.search_documents(
+                    query=query,
+                    limit=15  # Increased from 4 to 15 for better context
+                )
+                
+                if results:
+                    logger.info(f"✅ Intelligent retrieval found {len(results)} relevant chunks")
+                    logger.info(f"   Document types: {set(r['metadata']['document_type'] for r in results)}")
+                    return results
+                else:
+                    logger.info("⚠️ Intelligent retrieval returned no results - AI will provide general guidance")
+                    return []  # Return empty list - AI will give professional response without mock data
             
-            retrieval_context = RetrievalContext(
-                conversation_id=conversation_id,
-                current_query=query,
-                conversation_summary=summary.summary_text if summary else "",
-                recent_topics=[fact.fact_content for fact in facts[:3]],
-                entity_mentions=[entity.entity_name for entity in entities[:5]],
-                search_history=[]
-            )
-            
-            results = await self.retriever.retrieve(
-                context=retrieval_context,
-                max_chunks=self.config.get('max_retrieval_chunks', 4),
-                use_cache=True
-            )
-            
-            return results
+            # If intelligent retrieval is not available, return empty list
+            logger.warning("⚠️ Intelligent retrieval not available - returning empty results")
+            return []
         except Exception as e:
             print(f"Retrieval error: {e}")
             return []
@@ -849,7 +884,7 @@ This metadata was extracted directly from the EU Portal API and represents the o
                 'intent_confidence': intent_analysis.get('confidence', 0.0)
             }
             
-            # Phase 3: Execute tools if needed (SKIP if we have call documents)
+            # Phase 3: Execute tools OR use intelligent retrieval
             tool_results = None
             retrieval_results = []
             
@@ -862,6 +897,46 @@ This metadata was extracted directly from the EU Portal API and represents the o
                     'stage': 'using_call_documents',
                     'message': 'Using call-specific documentation to answer'
                 }
+            
+            elif intent_analysis.get('intent_type') in ['conversational', 'faq', 'general']:
+                # For FAQ/general questions, use intelligent retrieval
+                # Use it if there's no tool plan, or if the only tool is search_local_database
+                should_use_intelligent = not tool_plan or (
+                    len(tool_plan) == 1 and tool_plan[0].tool_name == 'search_local_database'
+                )
+                
+                if should_use_intelligent:
+                    logger.info(f"🔍 [STREAMING] FAQ/General question - using intelligent retrieval instead of tools")
+                    yield {
+                        'type': 'progress',
+                        'stage': 'searching_documents',
+                        'message': 'Searching comprehensive document library...'
+                    }
+                    retrieval_results = await self._retrieve_information(
+                        conversation_id=conversation_id,
+                        query=user_message,
+                        context=context
+                    )
+                    logger.info(f"✅ [STREAMING] Retrieved {len(retrieval_results)} chunks via intelligent retrieval")
+                    tool_plan = None  # Clear tool plan
+                else:
+                    # Execute tools as planned
+                    yield {
+                        'type': 'status',
+                        'stage': 'executing_tools',
+                        'message': 'Searching databases...'
+                    }
+                    extracted_keywords = intent_analysis.get('extracted_keywords', [])
+                    logger.info(f"📌 [STREAMING] Passing {len(extracted_keywords)} extracted keywords to tools: {extracted_keywords}")
+                    
+                    tool_results = await self.tool_orchestrator.execute_plan(
+                        tool_plan, conversation_id, extracted_keywords
+                    )
+                    
+                    # Convert tool results to retrieval format
+                    if tool_results:
+                        retrieval_results = self._convert_tool_results_to_retrieval(tool_results)
+            
             elif tool_plan:
                 yield {
                     'type': 'status',
