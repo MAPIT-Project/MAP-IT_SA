@@ -15,9 +15,10 @@ from ..memory.context_manager import ConversationContext
 from ..rag.conversation_retriever import ConversationAwareRetriever, RetrievalContext
 from ..rag.response_generator import GroundedResponseGenerator
 from ..rag.hybrid_search import HybridSearchPipeline, MockVectorStore, MockKeywordStore, MockEmbeddingService
-from ..tools.tool_orchestrator import create_research_orchestrator
+from ..tools.tool_orchestrator import create_research_orchestrator, ToolCall
 from ..response.unified_formatter import UnifiedResponseFormatter
 from ..ai_intent_service import AIIntentService
+from ..unified_intent_classifier import UnifiedIntentClassifier
 from ..call_document_service import CallDocumentService
 from ..intelligent_retrieval import IntelligentRetrieval
 from ..proposal_writing import (
@@ -99,6 +100,10 @@ class ConversationManager:
             # AI-only intent analysis
             self.ai_intent_service = AIIntentService()
             
+            # Unified intent classifier (handles ALL 5 intent types)
+            self.unified_classifier = UnifiedIntentClassifier()
+            logger.info("✅ Unified Intent Classifier initialized")
+            
             # Proposal writing services (NEW!)
             if self.db_pool:
                 self.proposal_template_service = ProposalTemplateService(
@@ -178,61 +183,33 @@ class ConversationManager:
                 conversation_id, user_id, user_message
             )
 
-            # Phase 1.5: Check for call-specific question (PRIORITY)
-            call_id = self._extract_call_id(user_message)
-            call_document_results = None
+            # Phase 1.5: UNIFIED INTENT CLASSIFICATION (handles ALL 5 intents)
+            recent_messages = self._get_recent_messages_simple(conversation_id, limit=5)
+            logger.info(f"📋 Retrieved {len(recent_messages)} recent messages for context")
+            for msg in recent_messages:
+                logger.info(f"   - {msg.get('sender')}: {msg.get('text', '')[:80]}")
             
-            if call_id and self.call_doc_service:
-                logger.info(f"🎯 DETECTED CALL ID: {call_id} - fetching call documents")
-                try:
-                    # SMART SEARCH STRATEGY:
-                    # For specific questions, extract the TOPIC (not just keywords)
-                    # Then do a broad search on that topic to get relevant chunks
-                    import re
-                    clean_question = re.sub(r'HORIZON-[A-Z0-9-]+', '', user_message, flags=re.IGNORECASE).strip()
-                    
-                    # Map question patterns to search topics
-                    search_query = clean_question
-                    question_lower = clean_question.lower()
-                    
-                    # Geographic eligibility questions - detect country mentions
-                    if any(phrase in question_lower for phrase in ['can i apply from', 'can we apply from', 'eligible countries', 'country eligibility', 'from ']):
-                        # Search for GENERAL eligibility rules about countries
-                        # The AI knows which countries are EU/associated - it just needs the rules!
-                        search_query = 'eligibility EU member states associated countries third countries legal entities established participation'
-                        logger.info(f"🎯 Detected geographic/country eligibility question - searching for general country rules")
-                    
-                    # Budget/funding questions
-                    elif any(word in question_lower for word in ['budget', 'funding', 'grant size', 'how much']):
-                        search_query = 'budget funding contribution EUR million grant'
-                        logger.info(f"🎯 Detected budget/funding question")
-                    
-                    # Deadline questions
-                    elif any(word in question_lower for word in ['deadline', 'when', 'submission date']):
-                        search_query = 'deadline submission date stage opening'
-                        logger.info(f"🎯 Detected deadline question")
-                    
-                    # Otherwise use full question
-                    else:
-                        logger.info(f"🔍 Using full question for search")
-                    
-                    logger.info(f"📚 Search query: '{search_query}'")
-                    
-                    # Retrieve MORE chunks with topic-based search
-                    call_document_results = await self._retrieve_call_documents(
-                        call_id, 
-                        user_message,  # Pass original for context
-                        keywords=[search_query] if search_query else []
-                    )
-                    if call_document_results:
-                        logger.info(f"✅ Retrieved {len(call_document_results)} call-specific chunks - AI will select most relevant")
-                except Exception as e:
-                    logger.error(f"❌ Error retrieving call documents: {e}")
-
-            # Phase 1.8: Check for proposal writing mode (NEW!)
-            proposal_mode = await self._detect_proposal_writing_mode(conversation_id, user_message)
-            if proposal_mode and self.draft_generator:
-                logger.info(f"✍️ PROPOSAL WRITING MODE DETECTED: {proposal_mode['action']}")
+            unified_intent = await self.unified_classifier.classify_intent(
+                user_message=user_message,
+                conversation_id=conversation_id,
+                recent_messages=recent_messages
+            )
+            
+            logger.info(f"🎯 UNIFIED INTENT: {unified_intent.primary_intent} (confidence: {unified_intent.confidence:.2f})")
+            logger.info(f"   Reasoning: {unified_intent.reasoning[:100]}...")
+            if unified_intent.call_id:
+                logger.info(f"   Call ID: {unified_intent.call_id}")
+            
+            # Route based on unified intent classification
+            
+            # 1. PROPOSAL WRITING
+            if unified_intent.primary_intent == 'proposal_writing' and self.draft_generator:
+                logger.info(f"✍️ ROUTING TO: Proposal Writing (action: {unified_intent.proposal_action})")
+                proposal_mode = {
+                    'action': unified_intent.proposal_action or 'draft_section',
+                    'call_id': unified_intent.call_id,
+                    'section_id': unified_intent.section_id
+                }
                 return await self._handle_proposal_writing(
                     conversation_id=conversation_id,
                     user_message=user_message,
@@ -240,66 +217,99 @@ class ConversationManager:
                     proposal_mode=proposal_mode
                 )
             
-            # Phase 2: AI-only intent analysis and tool planning
-            print(f"🤖 STARTING AI-ONLY PHASE for: '{user_message}'")
-            intent_analysis, context, tool_plan = await self._analyze_intent_and_plan_tools(
-                conversation_id=conversation_id,
-                user_message=user_message
-            )
-            print(f"🤖 AI-ONLY PHASE RESULT: intent={intent_analysis.get('intent_type', 'unknown')}, tools={len(tool_plan) if tool_plan else 0}")
-
-            # Phase 3: Execute tools OR use intelligent retrieval
-            tool_results = None
-            retrieval_results = []  # Initialize to avoid undefined variable error
+            # 2. CALL-SPECIFIC QUESTIONS
+            call_document_results = None
+            if unified_intent.primary_intent == 'call_specific' and unified_intent.call_id and self.call_doc_service:
+                call_id = unified_intent.call_id
+                logger.info(f"📞 ROUTING TO: Call-Specific (call: {call_id})")
+                
+                try:
+                    # SMART SEARCH STRATEGY for call documents
+                    import re
+                    clean_question = re.sub(r'HORIZON-[A-Z0-9-]+', '', user_message, flags=re.IGNORECASE).strip()
+                    search_query = clean_question
+                    question_lower = clean_question.lower()
+                    
+                    # Geographic eligibility questions
+                    if any(phrase in question_lower for phrase in ['can i apply from', 'can we apply from', 'eligible countries', 'country eligibility', 'from ', 'netherlands', 'germany', 'france']):
+                        search_query = 'eligibility EU member states associated countries third countries legal entities established participation'
+                        logger.info(f"🎯 Geographic eligibility question detected")
+                    # Budget/funding questions
+                    elif any(word in question_lower for word in ['budget', 'funding', 'grant size', 'how much']):
+                        search_query = 'budget funding contribution EUR million grant'
+                    # Deadline questions
+                    elif any(word in question_lower for word in ['deadline', 'when', 'submission date']):
+                        search_query = 'deadline submission date stage opening'
+                    
+                    logger.info(f"📚 Call document search query: '{search_query}'")
+                    
+                    # Retrieve call documents
+                    call_document_results = await self._retrieve_call_documents(
+                        call_id, 
+                        user_message,
+                        keywords=[search_query] if search_query else []
+                    )
+                    if call_document_results:
+                        logger.info(f"✅ Retrieved {len(call_document_results)} call-specific chunks")
+                except Exception as e:
+                    logger.error(f"❌ Error retrieving call documents: {e}")
             
+            # Phase 2: Execute tools based on unified intent - NO OLD AI INTENT SERVICE!
+            logger.info(f"🎯 Using unified intent: {unified_intent.primary_intent}")
+            
+            tool_results = None
+            retrieval_results = []
+            
+            # Route based on unified intent
             if call_document_results:
-                # Use call documents as primary context - skip tool execution
-                logger.info("📚 Using call-specific documents as primary context - skipping tools")
+                # Call-specific: Use loaded documents directly
+                logger.info("📚 Call-specific: Using loaded documents")
                 retrieval_results = call_document_results
             
-            elif intent_analysis.get('intent_type') in ['conversational', 'faq', 'general']:
-                # For FAQ/general questions, check if we should use intelligent retrieval
-                # Use it if there's no tool plan, or if the only tool is search_local_database
-                should_use_intelligent = not tool_plan or (
-                    len(tool_plan) == 1 and tool_plan[0].tool_name == 'search_local_database'
-                )
+            elif unified_intent.primary_intent in ['search_projects', 'search_calls']:
+                # Search: Execute tools from unified classifier's tool plan
+                logger.info(f"🔍 {unified_intent.primary_intent}: Executing tools")
                 
-                if should_use_intelligent:
-                    logger.info(f"🔍 FAQ/General question detected - using intelligent retrieval instead of tools")
-                    retrieval_results = await self._retrieve_information(
-                        conversation_id=conversation_id,
-                        query=user_message,
-                        context=context
-                    )
-                    logger.info(f"✅ Retrieved {len(retrieval_results)} chunks via intelligent retrieval")
-                    tool_plan = None  # Clear tool plan since we're using intelligent retrieval
-                else:
-                    # Execute tools as planned
-                    extracted_keywords = intent_analysis.get('extracted_keywords', [])
-                    logger.info(f"📌 Passing {len(extracted_keywords)} extracted keywords to tools: {extracted_keywords}")
+                if unified_intent.tool_plan:
+                    # Convert dict tool plans to ToolCall objects
+                    tool_calls = [
+                        ToolCall(
+                            tool_name=tp.get('tool_name'),
+                            parameters=tp.get('parameters', {}),
+                            execution_order=tp.get('execution_order', idx),
+                            depends_on=tp.get('depends_on')
+                        ) if isinstance(tp, dict) else tp
+                        for idx, tp in enumerate(unified_intent.tool_plan)
+                    ]
                     
                     tool_results = await self.tool_orchestrator.execute_plan(
-                        tool_plan, conversation_id, extracted_keywords
+                        tool_calls,
+                        conversation_id,
+                        unified_intent.project_keywords or unified_intent.call_keywords or []
                     )
-                    print(f"🔧 Tool Orchestrator executed {len(tool_results)} tools")
-
-                    # Convert tool results to retrieval format for response generation
+                    logger.info(f"✅ Tool execution complete")
+                    
+                    # Convert tool results to retrieval format
                     if tool_results:
                         retrieval_results = self._convert_tool_results_to_retrieval(tool_results)
             
-            elif tool_plan:
-                # For search questions, execute tools (CORDIS, EU Portal)
-                extracted_keywords = intent_analysis.get('extracted_keywords', [])
-                logger.info(f"📌 Passing {len(extracted_keywords)} extracted keywords to tools: {extracted_keywords}")
-                
-                tool_results = await self.tool_orchestrator.execute_plan(
-                    tool_plan, conversation_id, extracted_keywords
+            elif unified_intent.primary_intent == 'faq':
+                # FAQ: Use intelligent retrieval
+                logger.info(f"🔍 FAQ: Using intelligent retrieval")
+                retrieval_results = await self._retrieve_information(
+                    conversation_id=conversation_id,
+                    query=user_message,
+                    context=""
                 )
-                print(f"🔧 Tool Orchestrator executed {len(tool_results)} tools")
-
-                # Convert tool results to retrieval format for response generation
-                if tool_results:
-                    retrieval_results = self._convert_tool_results_to_retrieval(tool_results)
+                logger.info(f"✅ Retrieved {len(retrieval_results)} chunks")
+            
+            # Create intent_analysis format for compatibility
+            intent_analysis = {
+                'intent_type': unified_intent.primary_intent,
+                'confidence': unified_intent.confidence,
+                'reasoning': unified_intent.reasoning,
+                'extracted_keywords': unified_intent.project_keywords or unified_intent.call_keywords or []
+            }
 
             # Phase 4: Generate response
             logger.info(f"📝 RESPONSE GENERATION: tool_results={tool_results is not None}, retrieval_results={len(retrieval_results)}")
@@ -853,12 +863,42 @@ This metadata was extracted directly from the EU Portal API and represents the o
                 conversation_id, user_id, user_message
             )
             
-            # Phase 1.6: Check for proposal writing mode (including exports!)
-            proposal_mode = await self._detect_proposal_writing_mode(conversation_id, user_message)
-            if proposal_mode and self.draft_generator:
-                logger.info(f"✍️ [STREAMING] PROPOSAL WRITING MODE: {proposal_mode['action']}")
+            # Phase 1.6: UNIFIED INTENT CLASSIFICATION (handles ALL 5 intents)
+            recent_messages = self._get_recent_messages_simple(conversation_id, limit=5)
+            logger.info(f"📋 [STREAMING] Retrieved {len(recent_messages)} recent messages for context")
+            for msg in recent_messages:
+                logger.info(f"   - {msg.get('sender')}: {msg.get('text', '')[:80]}")
+            
+            unified_intent = await self.unified_classifier.classify_intent(
+                user_message=user_message,
+                conversation_id=conversation_id,
+                recent_messages=recent_messages
+            )
+            
+            logger.info(f"🎯 [STREAMING] UNIFIED INTENT: {unified_intent.primary_intent} (confidence: {unified_intent.confidence:.2f})")
+            if unified_intent.call_id:
+                logger.info(f"   [STREAMING] Call ID: {unified_intent.call_id}")
+            
+            # 1. PROPOSAL WRITING
+            if unified_intent.primary_intent == 'proposal_writing' and self.draft_generator:
+                logger.info(f"✍️ [STREAMING] ROUTING TO: Proposal Writing")
                 
-                # Handle proposal writing (may return generator for exports)
+                # Send intent detected event
+                yield {
+                    'type': 'progress',
+                    'stage': 'intent_detected',
+                    'message': f'AI analyzed intent: proposal_writing',
+                    'routing_decision': 'proposal_writing',
+                    'intent_confidence': unified_intent.confidence
+                }
+                
+                proposal_mode = {
+                    'action': unified_intent.proposal_action or 'draft_section',
+                    'call_id': unified_intent.call_id,
+                    'section_id': unified_intent.section_id
+                }
+                
+                logger.info(f"📝 [STREAMING] Calling _handle_proposal_writing with mode: {proposal_mode}")
                 result = await self._handle_proposal_writing(
                     conversation_id=conversation_id,
                     user_message=user_message,
@@ -866,14 +906,19 @@ This metadata was extracted directly from the EU Portal API and represents the o
                     proposal_mode=proposal_mode
                 )
                 
+                logger.info(f"📝 [STREAMING] Result type: {type(result)}, has __aiter__: {hasattr(result, '__aiter__')}")
+                
                 # Check if result is an async generator (for exports with progress)
                 if hasattr(result, '__aiter__'):
-                    # Stream the progress updates
+                    logger.info(f"📝 [STREAMING] Starting to yield from async generator")
+                    chunk_count = 0
                     async for chunk in result:
+                        chunk_count += 1
                         yield chunk
+                    logger.info(f"📝 [STREAMING] Finished yielding {chunk_count} chunks from generator")
                     return
                 else:
-                    # Regular dict response (for non-export actions)
+                    logger.info(f"📝 [STREAMING] Yielding single response dict")
                     yield {
                         'type': 'response',
                         'message': result.get('response', ''),
@@ -884,42 +929,37 @@ This metadata was extracted directly from the EU Portal API and represents the o
                     }
                     return
             
-            # Phase 1.7: Check for call-specific question
-            call_id = self._extract_call_id(user_message)
+            # 2. CALL-SPECIFIC QUESTIONS
             call_document_results = None
-            
-            if call_id and self.call_doc_service:
-                logger.info(f"🎯 [STREAMING] DETECTED CALL ID: {call_id}")
+            if unified_intent.primary_intent == 'call_specific' and unified_intent.call_id and self.call_doc_service:
+                call_id = unified_intent.call_id
+                logger.info(f"📞 [STREAMING] ROUTING TO: Call-Specific (call: {call_id})")
+                
                 yield {
                     'type': 'status',
                     'stage': 'fetching_call_documents',
-                    'message': f'Fetching documents for {call_id}...'
+                    'message': f'Analyzing call {call_id}...'
                 }
+                
                 try:
-                    # SMART SEARCH STRATEGY (same as non-streaming)
+                    # SMART SEARCH STRATEGY for call documents
                     import re
                     clean_question = re.sub(r'HORIZON-[A-Z0-9-]+', '', user_message, flags=re.IGNORECASE).strip()
-                    
-                    # Map question patterns to search topics
                     search_query = clean_question
                     question_lower = clean_question.lower()
                     
-                    # Geographic eligibility - detect country mentions
-                    if any(phrase in question_lower for phrase in ['can i apply from', 'can we apply from', 'eligible countries', 'country eligibility', 'from ']):
+                    # Geographic eligibility questions
+                    if any(phrase in question_lower for phrase in ['can i apply from', 'can we apply from', 'eligible countries', 'country eligibility', 'from ', 'netherlands', 'germany', 'france']):
                         search_query = 'eligibility EU member states associated countries third countries legal entities established participation'
-                        logger.info(f"🎯 [STREAMING] Detected geographic/country eligibility question - searching for general country rules")
-                    # Budget/funding
+                        logger.info(f"🎯 [STREAMING] Geographic eligibility question detected")
+                    # Budget/funding questions
                     elif any(word in question_lower for word in ['budget', 'funding', 'grant size', 'how much']):
                         search_query = 'budget funding contribution EUR million grant'
-                        logger.info(f"🎯 [STREAMING] Detected budget/funding question")
-                    # Deadline
+                    # Deadline questions
                     elif any(word in question_lower for word in ['deadline', 'when', 'submission date']):
                         search_query = 'deadline submission date stage opening'
-                        logger.info(f"🎯 [STREAMING] Detected deadline question")
-                    else:
-                        logger.info(f"🔍 [STREAMING] Using full question")
                     
-                    logger.info(f"📚 [STREAMING] Search query: '{search_query}'")
+                    logger.info(f"📚 [STREAMING] Call document search query: '{search_query}'")
                     
                     call_document_results = await self._retrieve_call_documents(
                         call_id, 
@@ -937,33 +977,24 @@ This metadata was extracted directly from the EU Portal API and represents the o
                 except Exception as e:
                     logger.error(f"❌ [STREAMING] Error retrieving call documents: {e}")
             
-            # Phase 2: AI intent analysis and tool planning
-            yield {
-                'type': 'status',
-                'stage': 'analyzing_intent',
-                'message': 'Understanding your request...'
-            }
-            intent_analysis, context, tool_plan = await self._analyze_intent_and_plan_tools(
-                conversation_id=conversation_id,
-                user_message=user_message
-            )
+            # Phase 2: Tool execution based on unified intent
+            # Use unified classifier's intent and tool plan - NO OLD AI INTENT SERVICE!
             
-            # Send intent detected
             yield {
                 'type': 'progress',
                 'stage': 'intent_detected',
-                'message': f'AI analyzed intent: {intent_analysis.get("intent_type", "unknown")}',
-                'routing_decision': intent_analysis.get('intent_type', 'unknown'),
-                'intent_confidence': intent_analysis.get('confidence', 0.0)
+                'message': f'AI analyzed intent: {unified_intent.primary_intent}',
+                'routing_decision': unified_intent.primary_intent,
+                'intent_confidence': unified_intent.confidence
             }
             
-            # Phase 3: Execute tools OR use intelligent retrieval
             tool_results = None
             retrieval_results = []
             
+            # Route based on unified intent
             if call_document_results:
-                # Use call documents as primary context - skip tool execution
-                logger.info("📚 [STREAMING] Using call-specific documents - skipping tools")
+                # Call-specific: Use loaded documents directly
+                logger.info("📚 [STREAMING] Call-specific: Using loaded documents")
                 retrieval_results = call_document_results
                 yield {
                     'type': 'progress',
@@ -971,81 +1002,80 @@ This metadata was extracted directly from the EU Portal API and represents the o
                     'message': 'Using call-specific documentation to answer'
                 }
             
-            elif intent_analysis.get('intent_type') in ['conversational', 'faq', 'general']:
-                # For FAQ/general questions, use intelligent retrieval
-                # Use it if there's no tool plan, or if the only tool is search_local_database
-                should_use_intelligent = not tool_plan or (
-                    len(tool_plan) == 1 and tool_plan[0].tool_name == 'search_local_database'
-                )
-                
-                if should_use_intelligent:
-                    logger.info(f"🔍 [STREAMING] FAQ/General question - using intelligent retrieval instead of tools")
-                    yield {
-                        'type': 'progress',
-                        'stage': 'searching_documents',
-                        'message': 'Searching comprehensive document library...'
-                    }
-                    retrieval_results = await self._retrieve_information(
-                        conversation_id=conversation_id,
-                        query=user_message,
-                        context=context
-                    )
-                    logger.info(f"✅ [STREAMING] Retrieved {len(retrieval_results)} chunks via intelligent retrieval")
-                    tool_plan = None  # Clear tool plan
-                else:
-                    # Execute tools as planned
-                    yield {
-                        'type': 'status',
-                        'stage': 'executing_tools',
-                        'message': 'Searching databases...'
-                    }
-                    extracted_keywords = intent_analysis.get('extracted_keywords', [])
-                    logger.info(f"📌 [STREAMING] Passing {len(extracted_keywords)} extracted keywords to tools: {extracted_keywords}")
-                    
-                    tool_results = await self.tool_orchestrator.execute_plan(
-                        tool_plan, conversation_id, extracted_keywords
-                    )
-                    
-                    # Convert tool results to retrieval format
-                    if tool_results:
-                        retrieval_results = self._convert_tool_results_to_retrieval(tool_results)
-            
-            elif tool_plan:
+            elif unified_intent.primary_intent in ['search_projects', 'search_calls']:
+                # Search: Execute tools from unified classifier's tool plan
+                logger.info(f"🔍 [STREAMING] {unified_intent.primary_intent}: Executing tools")
                 yield {
                     'type': 'status',
                     'stage': 'executing_tools',
                     'message': 'Searching databases...'
                 }
-                # Extract keywords from intent analysis to pass to tools
-                extracted_keywords = intent_analysis.get('extracted_keywords', [])
-                logger.info(f"📌 [STREAMING] Passing {len(extracted_keywords)} extracted keywords to tools: {extracted_keywords}")
                 
-                tool_results = await self.tool_orchestrator.execute_plan(
-                    tool_plan, conversation_id, extracted_keywords
+                if unified_intent.tool_plan:
+                    # Convert dict tool plans to ToolCall objects
+                    tool_calls = [
+                        ToolCall(
+                            tool_name=tp.get('tool_name'),
+                            parameters=tp.get('parameters', {}),
+                            execution_order=tp.get('execution_order', idx),
+                            depends_on=tp.get('depends_on')
+                        ) if isinstance(tp, dict) else tp
+                        for idx, tp in enumerate(unified_intent.tool_plan)
+                    ]
+                    
+                    tool_results = await self.tool_orchestrator.execute_plan(
+                        tool_calls,
+                        conversation_id,
+                        unified_intent.project_keywords or unified_intent.call_keywords or []
+                    )
+                    logger.info(f"✅ [STREAMING] Tool execution complete")
+            
+            elif unified_intent.primary_intent == 'faq':
+                # FAQ: Use intelligent retrieval or tool plan
+                logger.info(f"🔍 [STREAMING] FAQ: Using intelligent retrieval")
+                yield {
+                    'type': 'progress',
+                    'stage': 'searching_documents',
+                    'message': 'Searching comprehensive document library...'
+                }
+                
+                retrieval_results = await self._retrieve_information(
+                    conversation_id=conversation_id,
+                    query=user_message,
+                    context=""
                 )
-                
-                # Convert tool results to retrieval format
-                if tool_results:
-                    retrieval_results = self._convert_tool_results_to_retrieval(tool_results)
-                
+                logger.info(f"✅ [STREAMING] Retrieved {len(retrieval_results)} chunks")
+            
+            # Convert tool results to retrieval format if needed
+            if tool_results:
+                retrieval_results = self._convert_tool_results_to_retrieval(tool_results)
+                logger.info(f"✅ [STREAMING] Converted tool results to retrieval format")
                 yield {
                     'type': 'status',
                     'stage': 'tools_complete',
                     'message': 'Search complete, formatting results...'
                 }
             
-            # Phase 4: Stream the response
+            # Phase 3: Stream the response
             yield {
                 'type': 'status',
                 'stage': 'generating_response',
                 'message': 'Generating response...'
             }
             
+            # Create intent_analysis format for compatibility with response generator
+            intent_analysis = {
+                'intent_type': unified_intent.primary_intent,
+                'confidence': unified_intent.confidence,
+                'reasoning': unified_intent.reasoning,
+                'extracted_keywords': unified_intent.project_keywords or unified_intent.call_keywords or []
+            }
+            
             # Now call the existing streaming response generator
             async for chunk in self._generate_streaming_response(
                 conversation_id=conversation_id,
                 query=user_message,
-                context=context,
+                context="",  # Context not needed with unified intent
                 retrieval_results=retrieval_results,
                 tool_results=tool_results,
                 intent_analysis=intent_analysis,
@@ -1172,26 +1202,36 @@ This metadata was extracted directly from the EU Portal API and represents the o
                 # Generate conversational response for non-tool queries
                 logger.info(f"💬 Generating streaming conversational response for: '{query}'")
                 
-                # Fast path for simple greetings - no tools needed
-                query_lower = query.lower().strip()
-                simple_greetings = ['hi', 'hello', 'hey', 'greetings', 'good morning', 'good afternoon', 'good evening']
-                if query_lower in simple_greetings or (len(query_lower) < 15 and any(g in query_lower for g in ['hi', 'hello', 'hey'])):
-                    logger.info("⚡ Fast greeting response - no tools needed")
-                    conversational_response = "Hello! I'm your Horizon Europe research funding assistant. I can help you find funding calls, search for research projects, answer questions about Horizon Europe programs, and assist with proposal writing. How can I help you today?"
-                # For research funding queries, use enhanced fallback directly for better quality
-                elif any(keyword in query_lower for keyword in ['horizon europe', 'funding', 'budget', 'structure', 'pillar', 'programme', 'call', 'grant']):
-                    logger.info("💡 Research funding streaming query - using enhanced fallback")
-                    conversational_response = self._get_enhanced_fallback_response(query, intent_analysis)
-                    # Add fallback notice if confidence is low
-                    if intent_analysis.get('confidence', 1.0) <= 0.5:
-                        conversational_response = f"⚠️ **[DEV MODE]** Fallback logic active - AI intent detection failed. Response quality may be limited.\n\n{conversational_response}"
-                else:
+                # Check if we have retrieval results (e.g., from call-specific documents)
+                if retrieval_results and len(retrieval_results) > 0:
+                    logger.info(f"📚 Using {len(retrieval_results)} retrieved documents for response")
                     conversational_response = self._generate_conversational_response(
                         query=query,
                         context=context,
                         retrieval_results=retrieval_results,
                         intent_analysis=intent_analysis
                     )
+                else:
+                    # Fast path for simple greetings - no tools needed
+                    query_lower = query.lower().strip()
+                    simple_greetings = ['hi', 'hello', 'hey', 'greetings', 'good morning', 'good afternoon', 'good evening']
+                    if query_lower in simple_greetings or (len(query_lower) < 15 and any(g in query_lower for g in ['hi', 'hello', 'hey'])):
+                        logger.info("⚡ Fast greeting response - no tools needed")
+                        conversational_response = "Hello! I'm your Horizon Europe research funding assistant. I can help you find funding calls, search for research projects, answer questions about Horizon Europe programs, and assist with proposal writing. How can I help you today?"
+                    # For research funding queries, use enhanced fallback directly for better quality
+                    elif any(keyword in query_lower for keyword in ['horizon europe', 'funding', 'budget', 'structure', 'pillar', 'programme', 'call', 'grant']):
+                        logger.info("💡 Research funding streaming query - using enhanced fallback")
+                        conversational_response = self._get_enhanced_fallback_response(query, intent_analysis)
+                        # Add fallback notice if confidence is low
+                        if intent_analysis.get('confidence', 1.0) <= 0.5:
+                            conversational_response = f"⚠️ **[DEV MODE]** Fallback logic active - AI intent detection failed. Response quality may be limited.\n\n{conversational_response}"
+                    else:
+                        conversational_response = self._generate_conversational_response(
+                            query=query,
+                            context=context,
+                            retrieval_results=retrieval_results,
+                            intent_analysis=intent_analysis
+                        )
                     
                     # Add fallback notice if confidence is low (0.5 = fallback mode)
                     if intent_analysis.get('confidence', 1.0) <= 0.5:
@@ -1882,9 +1922,38 @@ Be helpful and conversational."""
                                  user_id: int,
                                  message: str) -> int:
         """Store user message in database and return message ID."""
-        # For now, generate a mock message ID
-        # In production, this would insert into your message table
-        message_id = random.randint(1000, 9999)
+        
+        # Actually store message in database
+        if self.db_pool:
+            conn = self.db_pool.getconn()
+            cursor = conn.cursor()
+            try:
+                # First ensure conversation exists
+                cursor.execute("""
+                    INSERT INTO conversation (id, user_id, name, created_at)
+                    VALUES (%s, %s, %s, NOW())
+                    ON CONFLICT (id) DO NOTHING
+                """, (conversation_id, 1, f'Chat {conversation_id}'))  # user_id must be integer
+                
+                # Then insert the message
+                cursor.execute("""
+                    INSERT INTO message (conversation_id, sender, text, created_at)
+                    VALUES (%s, %s, %s, NOW())
+                    RETURNING id
+                """, (conversation_id, 'user', message))
+                
+                message_id = cursor.fetchone()[0]
+                conn.commit()  # Commit immediately so it's visible to next query
+                logger.info(f"✅ Stored user message {message_id} in database")
+                
+            except Exception as e:
+                logger.error(f"❌ Failed to store user message: {e}")
+                conn.rollback()
+                message_id = random.randint(1000, 9999)  # Fallback
+            finally:
+                self.db_pool.putconn(conn)
+        else:
+            message_id = random.randint(1000, 9999)
         
         # Add to short-term memory immediately
         from ..memory.short_term_memory import ConversationTurn
@@ -2267,6 +2336,16 @@ Be helpful and conversational."""
         
         action = proposal_mode['action']
         
+        # Map generic actions to specific handlers
+        action_mapping = {
+            'write': 'draft_section',
+            'draft': 'draft_section',
+            'help': 'draft_section',
+            'generate': 'draft_section',
+        }
+        action = action_mapping.get(action, action)
+        logger.info(f"✍️ Proposal action: {proposal_mode['action']} → mapped to: {action}")
+        
         try:
             # Generate template
             if action == 'generate_template':
@@ -2315,7 +2394,9 @@ I've generated a complete proposal structure based on the call requirements:
                 async def stream_draft_generation():
                     try:
                         call_id = proposal_mode.get('call_id')
-                        section_id = proposal_mode.get('section_id', 'excellence.objectives')
+                        section_id = proposal_mode.get('section_id') or 'excellence.objectives'  # Use 'or' to handle None
+                        
+                        logger.info(f"📝 Draft generation: call_id={call_id}, section_id={section_id}")
                         
                         # Check if we need more info
                         if not call_id:
@@ -2946,6 +3027,37 @@ Good luck with your submission! 🍀
             return section_order[next_idx]
         except (ValueError, IndexError):
             return 'excellence.objectives'
+
+    def _get_recent_messages_simple(self, conversation_id: int, limit: int = 5) -> List[Dict[str, str]]:
+        """Get recent messages for context (simple version for unified classifier)"""
+        if not self.db_pool:
+            return []
+
+        conn = self.db_pool.getconn()
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute("""
+                SELECT text, sender FROM message
+                WHERE conversation_id = %s
+                ORDER BY created_at DESC
+                LIMIT %s
+            """, (conversation_id, limit))
+
+            messages = []
+            for row in cursor.fetchall():
+                messages.append({
+                    'text': row[0],
+                    'sender': row[1]
+                })
+
+            return list(reversed(messages))  # Return in chronological order
+
+        except Exception as e:
+            logger.warning(f"Could not get recent messages: {e}")
+            return []
+        finally:
+            self.db_pool.putconn(conn)
 
     async def _get_proposal_metadata(self, proposal_id: int) -> Dict[str, Any]:
         """Get proposal metadata for export"""
