@@ -16,6 +16,7 @@ from .api.document_routes import router as document_router
 # from .api.conversation_routes import router as conversation_router
 from .api.conversation_routes_v2 import router as conversation_router_v2
 from .api.call_document_routes import router as call_document_router
+from .api.proposal_routes import router as proposal_router
 from .models.schemas import ErrorResponse
 
 # Configure logging
@@ -52,6 +53,8 @@ app.include_router(document_router)
 app.include_router(conversation_router_v2)
 # Include call document routes (simple, direct access to call documents)
 app.include_router(call_document_router)
+# Include proposal writing routes (AI-powered proposal assistance)
+app.include_router(proposal_router)
 
 # Exception handlers
 @app.exception_handler(HTTPException)

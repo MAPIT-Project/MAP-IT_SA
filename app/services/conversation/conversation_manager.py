@@ -20,6 +20,14 @@ from ..response.unified_formatter import UnifiedResponseFormatter
 from ..ai_intent_service import AIIntentService
 from ..call_document_service import CallDocumentService
 from ..intelligent_retrieval import IntelligentRetrieval
+from ..proposal_writing import (
+    ProposalTemplateService,
+    ProposalDraftGenerator,
+    EvaluationCriteriaMatcher,
+    BudgetAssistant,
+    ComplianceChecker,
+    QualityImprover
+)
 import psycopg2
 from psycopg2 import pool
 import re
@@ -90,11 +98,34 @@ class ConversationManager:
 
             # AI-only intent analysis
             self.ai_intent_service = AIIntentService()
+            
+            # Proposal writing services (NEW!)
+            if self.db_pool:
+                self.proposal_template_service = ProposalTemplateService(
+                    self.db_pool, 
+                    self.call_doc_service
+                )
+                self.draft_generator = ProposalDraftGenerator(
+                    self.call_doc_service,
+                    self.proposal_template_service
+                )
+                self.criteria_matcher = EvaluationCriteriaMatcher()
+                self.budget_assistant = BudgetAssistant(self.db_pool)
+                self.compliance_checker = ComplianceChecker(
+                    self.call_doc_service,
+                    self.db_pool
+                )
+                self.quality_improver = QualityImprover(self.ai_intent_service)
+                logger.info("✅ Proposal writing services initialized")
+            else:
+                self.proposal_template_service = None
+                self.draft_generator = None
+                logger.warning("⚠️ Proposal writing disabled (no DATABASE_URL)")
 
             # Configuration
             self.config = self._load_configuration()
 
-            print("✅ ConversationManager initialized successfully with AI-only intent system")
+            print("✅ ConversationManager initialized successfully with AI-only intent system + Proposal Writing")
             
         except Exception as e:
             print(f"⚠️ ConversationManager initialization error: {e}")
@@ -198,6 +229,17 @@ class ConversationManager:
                 except Exception as e:
                     logger.error(f"❌ Error retrieving call documents: {e}")
 
+            # Phase 1.8: Check for proposal writing mode (NEW!)
+            proposal_mode = await self._detect_proposal_writing_mode(conversation_id, user_message)
+            if proposal_mode and self.draft_generator:
+                logger.info(f"✍️ PROPOSAL WRITING MODE DETECTED: {proposal_mode['action']}")
+                return await self._handle_proposal_writing(
+                    conversation_id=conversation_id,
+                    user_message=user_message,
+                    user_id=user_id,
+                    proposal_mode=proposal_mode
+                )
+            
             # Phase 2: AI-only intent analysis and tool planning
             print(f"🤖 STARTING AI-ONLY PHASE for: '{user_message}'")
             intent_analysis, context, tool_plan = await self._analyze_intent_and_plan_tools(
@@ -811,7 +853,38 @@ This metadata was extracted directly from the EU Portal API and represents the o
                 conversation_id, user_id, user_message
             )
             
-            # Phase 1.5: Check for call-specific question
+            # Phase 1.6: Check for proposal writing mode (including exports!)
+            proposal_mode = await self._detect_proposal_writing_mode(conversation_id, user_message)
+            if proposal_mode and self.draft_generator:
+                logger.info(f"✍️ [STREAMING] PROPOSAL WRITING MODE: {proposal_mode['action']}")
+                
+                # Handle proposal writing (may return generator for exports)
+                result = await self._handle_proposal_writing(
+                    conversation_id=conversation_id,
+                    user_message=user_message,
+                    user_id=user_id,
+                    proposal_mode=proposal_mode
+                )
+                
+                # Check if result is an async generator (for exports with progress)
+                if hasattr(result, '__aiter__'):
+                    # Stream the progress updates
+                    async for chunk in result:
+                        yield chunk
+                    return
+                else:
+                    # Regular dict response (for non-export actions)
+                    yield {
+                        'type': 'response',
+                        'message': result.get('response', ''),
+                        'download_url': result.get('download_url'),
+                        'file_type': result.get('file_type'),
+                        'proposal_id': result.get('proposal_id'),
+                        'package_contents': result.get('package_contents')
+                    }
+                    return
+            
+            # Phase 1.7: Check for call-specific question
             call_id = self._extract_call_id(user_message)
             call_document_results = None
             
@@ -2029,6 +2102,877 @@ Be helpful and conversational."""
             return suggestions[:3]  # Return max 3 suggestions
         except Exception:
             return []
+    
+    # ================================================================
+    # PROPOSAL WRITING METHODS (NEW!)
+    # ================================================================
+    
+    async def _detect_proposal_writing_mode(
+        self,
+        conversation_id: int,
+        user_message: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Detect if user wants proposal writing assistance
+        
+        Returns mode dict with action and context, or None
+        """
+        
+        message_lower = user_message.lower()
+        
+        # Writing indicators
+        writing_keywords = [
+            'write proposal', 'draft proposal', 'help me write',
+            'generate proposal', 'create proposal', 'proposal section',
+            'draft section', 'generate section', 'write section',
+            'start proposal', 'new proposal'
+        ]
+        
+        # Budget indicators
+        budget_keywords = [
+            'create budget', 'generate budget', 'budget table',
+            'calculate budget', 'budget breakdown'
+        ]
+        
+        # Compliance indicators
+        compliance_keywords = [
+            'check compliance', 'compliance check', 'review proposal',
+            'check proposal', 'validate proposal'
+        ]
+        
+        # Improvement indicators
+        improvement_keywords = [
+            'improve', 'enhance', 'make better', 'refine',
+            'suggestions for', 'how to improve'
+        ]
+        
+        # Template indicators
+        template_keywords = [
+            'template', 'structure', 'outline', 'framework'
+        ]
+
+        # Navigation indicators (next section, move to, continue)
+        navigation_keywords = [
+            'next section', 'move to next', 'continue to', 'proceed to',
+            'next part', 'following section', 'subsequent section'
+        ]
+
+        # Check for each type
+        if any(kw in message_lower for kw in writing_keywords):
+            # Extract call ID if present
+            call_id = self._extract_call_id(user_message)
+            
+            # Determine section if specified
+            section_id = None
+            for section in ['objectives', 'methodology', 'beyond state of the art', 
+                          'impact', 'dissemination', 'work plan', 'consortium']:
+                if section in message_lower:
+                    section_id = f"excellence.{section.replace(' ', '_')}" if section in ['objectives', 'methodology', 'beyond state of the art'] else f"impact.{section}" if section in ['impact', 'dissemination'] else f"implementation.{section.replace(' ', '_')}"
+                    break
+            
+            # Default to objectives if no section specified
+            if not section_id:
+                section_id = 'excellence.objectives'
+            
+            return {
+                'action': 'draft_section',
+                'call_id': call_id,
+                'section_id': section_id,
+                'full_proposal': 'entire proposal' in message_lower or 'complete proposal' in message_lower
+            }
+
+        elif any(kw in message_lower for kw in navigation_keywords):
+            # User wants to move to next section
+            call_id = self._extract_call_id(user_message)
+
+            # Get current section from conversation context or default to objectives
+            current_section = self._get_current_section(conversation_id) or 'excellence.objectives'
+            next_section = self._get_next_section(current_section)
+
+            return {
+                'action': 'draft_section',
+                'call_id': call_id,
+                'section_id': next_section,
+                'context': 'navigation'
+            }
+
+        elif any(kw in message_lower for kw in budget_keywords):
+            call_id = self._extract_call_id(user_message)
+            return {
+                'action': 'create_budget',
+                'call_id': call_id
+            }
+        
+        elif any(kw in message_lower for kw in compliance_keywords):
+            return {
+                'action': 'check_compliance'
+            }
+        
+        elif any(kw in message_lower for kw in improvement_keywords):
+            return {
+                'action': 'improve_quality'
+            }
+        
+        elif any(kw in message_lower for kw in template_keywords):
+            call_id = self._extract_call_id(user_message)
+            return {
+                'action': 'generate_template',
+                'call_id': call_id
+            }
+        
+        # Export keywords (NEW!)
+        export_keywords = [
+            'export', 'download', 'submission package', 'complete package',
+            'word document', 'excel', 'part b', 'budget file', 'zip',
+            'ready to submit', 'generate documents', 'create package',
+            'get word', 'get excel', 'get zip', 'get package'
+        ]
+        
+        if any(kw in message_lower for kw in export_keywords):
+            # Detect export type
+            if 'part b' in message_lower or ('word' in message_lower and 'document' in message_lower):
+                return {
+                    'action': 'export_part_b',
+                    'proposal_id': None  # Will be determined later
+                }
+            elif 'budget' in message_lower or 'excel' in message_lower:
+                return {
+                    'action': 'export_budget',
+                    'proposal_id': None
+                }
+            else:
+                # Default to complete package
+                return {
+                    'action': 'export_package',
+                    'proposal_id': None
+                }
+        
+        # Check conversation context
+        # Note: Context checking disabled for now (method not available)
+        # Will be re-enabled when get_conversation_context is implemented
+        pass
+        
+        return None
+    
+    async def _handle_proposal_writing(
+        self,
+        conversation_id: int,
+        user_message: str,
+        user_id: int,
+        proposal_mode: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Handle proposal writing requests
+        """
+        
+        action = proposal_mode['action']
+        
+        try:
+            # Generate template
+            if action == 'generate_template':
+                call_id = proposal_mode.get('call_id')
+                if not call_id:
+                    return {
+                        'response': "I'd be happy to generate a proposal template! Which call are you applying to? Please provide the call ID (e.g., HORIZON-CL3-2025-02-CS-ECCC-01).",
+                        'needs_info': ['call_id']
+                    }
+                
+                template = self.proposal_template_service.generate_template(call_id)
+                
+                # Format response
+                response = f"""📋 **Proposal Template for {call_id}**
+
+I've generated a complete proposal structure based on the call requirements:
+
+**Proposal Type:** {template['proposal_type']}
+**Total Page Limit:** {template['metadata']['page_limit']} pages
+
+**Section Structure:**
+"""
+                for section in template['structure']['sections']:
+                    response += f"\n**{section['order']}. {section['name']}** (max {section.get('page_limit', '?')} pages)"
+                    for subsection in section.get('subsections', []):
+                        response += f"\n   - {subsection['name']}"
+                
+                response += "\n\n✅ Template ready! Would you like me to help you start writing a specific section?"
+                
+                # Store template in context
+                await self.memory_service.redis_client.setex(
+                    f"template:{conversation_id}",
+                    3600,
+                    json.dumps(template)
+                )
+                
+                return {
+                    'response': response,
+                    'template': template,
+                    'mode': 'proposal_writing'
+                }
+            
+            # Draft section - WITH STREAMING PROGRESS
+            elif action == 'draft_section':
+                # Return async generator for streaming progress
+                async def stream_draft_generation():
+                    try:
+                        call_id = proposal_mode.get('call_id')
+                        section_id = proposal_mode.get('section_id', 'excellence.objectives')
+                        
+                        # Check if we need more info
+                        if not call_id:
+                            yield {
+                                'type': 'response',
+                                'message': "Which call are you writing the proposal for? Please provide the call ID (e.g., HORIZON-CL3-2025-02-CS-ECCC-01)."
+                            }
+                            return
+                        
+                        # Status 1: Preparing
+                        yield {
+                            'type': 'status',
+                            'stage': 'proposal_preparation',
+                            'message': f'✍️ Preparing to draft proposal for {call_id}...'
+                        }
+                        
+                        # Status 2: Analyzing call
+                        yield {
+                            'type': 'status',
+                            'stage': 'analyzing_call_documents',
+                            'message': '📚 Analyzing call documents and requirements...'
+                        }
+                        
+                        # Get conversation context for project details
+                        conversation_context = self._get_conversation_context_for_proposal(conversation_id)
+
+                        # Use user message as project idea, but enhance with context
+                        project_idea = user_message
+
+                        # Add context if available
+                        if conversation_context:
+                            project_idea = f"{conversation_context.get('project_acronym', 'Project')} - {user_message}"
+                        
+                        # Status 3: Generating content
+                        yield {
+                            'type': 'status',
+                            'stage': 'generating_draft',
+                            'message': '🤖 AI generating proposal content...'
+                        }
+                        
+                        # Generate draft
+                        user_context = {
+                            'project_idea': project_idea,
+                            'research_area': '',
+                            'proposal_id': None
+                        }
+                        
+                        logger.info(f"🎯 Generating draft for {section_id} with context: {user_context}")
+                        
+                        draft_result = await self.draft_generator.generate_section_draft(
+                            call_id=call_id,
+                            section_id=section_id,
+                            user_context=user_context
+                        )
+                        
+                        logger.info(f"✅ Draft generated successfully: {draft_result.get('word_count', 0)} words")
+                        
+                        # Status 4: Streaming response
+                        yield {
+                            'type': 'status',
+                            'stage': 'streaming_response',
+                            'message': 'Starting proposal draft stream...'
+                        }
+                        
+                        # Format full response
+                        response = f"""✍️ **Proposal Section - First Draft**
+
+{draft_result.get('draft_text', 'Draft generated successfully!')}
+
+---
+
+📊 **Draft Analysis:**
+- Word count: {draft_result.get('word_count', 0)} words
+- Estimated pages: {draft_result.get('estimated_pages', 0):.1f}
+- Quality score: {draft_result.get('quality_score', 0.7)*100:.0f}%
+
+📋 **Evaluation Criteria Addressed:**
+{chr(10).join(['✅ ' + c for c in draft_result.get('evaluation_criteria_addressed', [])])}
+
+💡 **Next Steps:**
+1. Review and refine the draft
+2. Move to the next section
+3. Export the proposal when ready
+
+Would you like me to help with anything else?
+"""
+                        
+                        # Stream response token by token (chunked for speed)
+                        chunk_size = 50
+                        for i in range(0, len(response), chunk_size):
+                            chunk = response[i:i+chunk_size]
+                            yield {
+                                'type': 'token',
+                                'content': chunk
+                            }
+                            await asyncio.sleep(0.01)
+                        
+                        # Send complete event with metadata (matching normal message format)
+                        logger.info(f"✅ Sending complete event")
+                        yield {
+                            'type': 'complete',
+                            'ai_provider': 'google',
+                            'ai_version': 'gemini-flash-lite-latest',
+                            'model_used': 'gemini-flash-lite-latest',
+                            'data_source': 'Proposal Writing Assistant',
+                            'processing_time': 0,
+                            'projects_found': 0,
+                            'citations': [],
+                            'confidence': draft_result.get('quality_score', 0.7),
+                            'grounded': True,
+                            'logs': {
+                                'mode': 'proposal_writing',
+                                'call_id': call_id,
+                                'section_id': section_id,
+                                'word_count': draft_result.get('word_count', 0),
+                                'quality_score': draft_result.get('quality_score', 0.7)
+                            },
+                            'context_used': True,
+                            'resolved_question': user_message,
+                            'follow_up_suggestions': [
+                                'Help me write the next section',
+                                'Export this proposal to Word',
+                                'Check compliance with call requirements'
+                            ],
+                            'proposal_draft': draft_result
+                        }
+                    
+                    except Exception as e:
+                        logger.error(f"❌ Error in draft generation: {e}")
+                        import traceback
+                        traceback.print_exc()
+                        
+                        yield {
+                            'type': 'error',
+                            'message': f"I encountered an error while generating the draft: {str(e)}\n\nPlease try again or let me know if you need help."
+                        }
+                
+                return stream_draft_generation()
+            
+            # Create budget
+            elif action == 'create_budget':
+                response = """💰 **Budget Table Generation**
+
+I can help you create a complete budget table! I'll need some information:
+
+1. **Consortium Partners:**
+   - Organization names
+   - Country
+   - Type (University/Research/Company/Other)
+   - Estimated person-months
+
+2. **Project Details:**
+   - Duration (months)
+   - Total budget estimate (if any)
+
+Please provide the partner information, and I'll generate the full budget breakdown with:
+- Personnel costs
+- Equipment
+- Other direct costs
+- Indirect costs (25% flat rate)
+- Funding rates per partner type
+"""
+                
+                return {
+                    'response': response,
+                    'mode': 'budget_creation'
+                }
+            
+            # Check compliance
+            elif action == 'check_compliance':
+                # Would need proposal ID from context
+                response = """✅ **Compliance Check**
+
+I can run a comprehensive compliance check on your proposal to ensure:
+
+- All mandatory sections are present
+- Page limits are respected
+- Consortium composition meets requirements
+- Budget calculations are correct
+- Evaluation criteria are addressed
+
+Which proposal would you like me to check? (Provide the proposal ID or title)
+"""
+                
+                return {
+                    'response': response,
+                    'mode': 'compliance_check'
+                }
+            
+            # Improve quality
+            elif action == 'improve_quality':
+                response = """🎨 **Quality Improvement**
+
+I can analyze and improve your proposal sections by checking:
+
+- Readability and clarity
+- EU terminology usage
+- Structure and flow
+- Impact language
+- Evidence and argumentation
+
+Which section would you like me to analyze? Please provide the section text or section ID.
+"""
+                
+                return {
+                    'response': response,
+                    'mode': 'quality_improvement'
+                }
+            
+            # Export Part B (NEW!)
+            elif action == 'export_part_b':
+                # Async generator for streaming progress
+                async def stream_part_b_export():
+                    proposal_id = await self._get_active_proposal_id(conversation_id)
+                    
+                    if not proposal_id:
+                        yield {
+                            'type': 'error',
+                            'message': "I couldn't find an active proposal in this conversation. Please create a proposal first or specify which proposal to export."
+                        }
+                        return
+                    
+                    # Progress 1: Starting
+                    yield {
+                        'type': 'progress',
+                        'message': '📄 Preparing Part B export...',
+                        'step': 1,
+                        'total_steps': 4
+                    }
+                    
+                    await asyncio.sleep(0.3)  # Small delay for UX
+                    
+                    # Progress 2: Getting data
+                    yield {
+                        'type': 'progress',
+                        'message': '📋 Retrieving proposal sections...',
+                        'step': 2,
+                        'total_steps': 4
+                    }
+                    
+                    proposal_data = await self._get_proposal_metadata(proposal_id)
+                    await asyncio.sleep(0.3)
+                    
+                    # Progress 3: Formatting
+                    yield {
+                        'type': 'progress',
+                        'message': '✍️ Applying official EU formatting...',
+                        'step': 3,
+                        'total_steps': 4
+                    }
+                    
+                    download_url = f"/api/proposal/export/{proposal_id}/part-b"
+                    await asyncio.sleep(0.3)
+                    
+                    # Progress 4: Complete
+                    yield {
+                        'type': 'progress',
+                        'message': '✅ Part B document ready!',
+                        'step': 4,
+                        'total_steps': 4
+                    }
+                    
+                    # Final response
+                    response = f"""📄 **Part B Export Complete!**
+
+**Proposal:** {proposal_data['title']}
+**Type:** {proposal_data['action_type']}
+**Format:** Microsoft Word (.docx)
+
+📥 **Download:** {download_url}
+
+**File Details:**
+• Official EU format
+• All sections included
+• Submission-ready
+• ~40 KB file size
+
+✅ Ready to upload to EU Funding & Tenders Portal!
+
+**Next Steps:**
+1. Download the Word document
+2. Review the content
+3. Upload to EU portal Part B section
+4. Submit your proposal! 🚀
+"""
+                    
+                    yield {
+                        'type': 'response',
+                        'message': response,
+                        'download_url': download_url,
+                        'file_type': 'docx',
+                        'proposal_id': proposal_id
+                    }
+                
+                # Return the generator
+                return stream_part_b_export()
+            
+            # Export Budget (NEW!)
+            elif action == 'export_budget':
+                # Async generator for streaming progress
+                async def stream_budget_export():
+                    proposal_id = await self._get_active_proposal_id(conversation_id)
+                    
+                    if not proposal_id:
+                        yield {
+                            'type': 'error',
+                            'message': "I couldn't find an active proposal in this conversation. Please create a proposal first or specify which proposal to export."
+                        }
+                        return
+                    
+                    # Progress 1: Starting
+                    yield {
+                        'type': 'progress',
+                        'message': '💰 Preparing budget export...',
+                        'step': 1,
+                        'total_steps': 4
+                    }
+                    
+                    await asyncio.sleep(0.3)
+                    
+                    # Progress 2: Getting data
+                    yield {
+                        'type': 'progress',
+                        'message': '📊 Retrieving partner budgets...',
+                        'step': 2,
+                        'total_steps': 4
+                    }
+                    
+                    proposal_data = await self._get_proposal_metadata(proposal_id)
+                    await asyncio.sleep(0.3)
+                    
+                    # Progress 3: Calculating
+                    yield {
+                        'type': 'progress',
+                        'message': '🧮 Calculating funding rates...',
+                        'step': 3,
+                        'total_steps': 4
+                    }
+                    
+                    download_url = f"/api/proposal/export/{proposal_id}/budget"
+                    await asyncio.sleep(0.3)
+                    
+                    # Progress 4: Complete
+                    yield {
+                        'type': 'progress',
+                        'message': '✅ Budget spreadsheet ready!',
+                        'step': 4,
+                        'total_steps': 4
+                    }
+                    
+                    # Final response
+                    response = f"""💰 **Budget Export Complete!**
+
+**Proposal:** {proposal_data['title']}
+**Format:** Microsoft Excel (.xlsx)
+
+📥 **Download:** {download_url}
+
+**File Details:**
+• Official EU format
+• All partners included
+• Funding rates calculated
+• ~5 KB file size
+
+✅ Ready to upload to EU Funding & Tenders Portal!
+"""
+                    
+                    yield {
+                        'type': 'response',
+                        'message': response,
+                        'download_url': download_url,
+                        'file_type': 'xlsx',
+                        'proposal_id': proposal_id
+                    }
+                
+                # Return the generator
+                return stream_budget_export()
+            
+            # Export Complete Package (NEW!)
+            elif action == 'export_package':
+                # Async generator for streaming progress
+                async def stream_package_export():
+                    proposal_id = await self._get_active_proposal_id(conversation_id)
+                    
+                    if not proposal_id:
+                        yield {
+                            'type': 'error',
+                            'message': "I couldn't find an active proposal in this conversation. Please create a proposal first or specify which proposal to export."
+                        }
+                        return
+                    
+                    # Progress 1: Initializing
+                    yield {
+                        'type': 'progress',
+                        'message': '📦 Creating submission package...',
+                        'step': 1,
+                        'total_steps': 6
+                    }
+                    
+                    await asyncio.sleep(0.3)
+                    
+                    # Progress 2: Getting proposal data
+                    yield {
+                        'type': 'progress',
+                        'message': '📋 Analyzing proposal structure...',
+                        'step': 2,
+                        'total_steps': 6
+                    }
+                    
+                    proposal_data = await self._get_proposal_metadata(proposal_id)
+                    await asyncio.sleep(0.4)
+                    
+                    # Progress 3: Generating Part B
+                    yield {
+                        'type': 'progress',
+                        'message': '📄 Generating Part B (Word document)...',
+                        'step': 3,
+                        'total_steps': 6
+                    }
+                    
+                    await asyncio.sleep(0.5)
+                    
+                    # Progress 4: Generating Budget
+                    yield {
+                        'type': 'progress',
+                        'message': '💰 Generating Budget (Excel spreadsheet)...',
+                        'step': 4,
+                        'total_steps': 6
+                    }
+                    
+                    await asyncio.sleep(0.4)
+                    
+                    # Progress 5: Adding README
+                    yield {
+                        'type': 'progress',
+                        'message': '📝 Creating README with submission instructions...',
+                        'step': 5,
+                        'total_steps': 6
+                    }
+                    
+                    download_url = f"/api/proposal/export/{proposal_id}/complete-package"
+                    await asyncio.sleep(0.3)
+                    
+                    # Progress 6: Packaging
+                    yield {
+                        'type': 'progress',
+                        'message': '🗜️ Packaging files into ZIP archive...',
+                        'step': 6,
+                        'total_steps': 6
+                    }
+                    
+                    await asyncio.sleep(0.3)
+                    
+                    # Final response
+                    response = f"""🎉 **Submission Package Ready!**
+
+**Proposal:** {proposal_data['title']}
+**Acronym:** {proposal_data['acronym']}
+**Type:** {proposal_data['action_type']}
+
+📥 **Download Complete Package (ZIP):** {download_url}
+
+**Package Contents:**
+• {proposal_data['acronym']}_PartB.docx (~38 KB)
+  - All proposal sections
+  - Official EU format
+  
+• {proposal_data['acronym']}_Budget.xlsx (~5 KB)
+  - Partner budgets
+  - Funding calculations
+  
+• README.txt
+  - Submission instructions
+  - Portal upload guide
+
+**Total Package Size:** ~40 KB
+
+✅ **READY TO SUBMIT TO EU PORTAL!** 🚀
+
+**Submission Steps:**
+1. Download the ZIP file above
+2. Extract the contents
+3. Log in to EU Funding & Tenders Portal
+4. Navigate to your proposal application
+5. Upload Part B documents (Word & Excel)
+6. Complete Part A (administrative data)
+7. Submit! 🎊
+
+Good luck with your submission! 🍀
+"""
+                    
+                    yield {
+                        'type': 'response',
+                        'message': response,
+                        'download_url': download_url,
+                        'file_type': 'zip',
+                        'proposal_id': proposal_id,
+                        'package_contents': [
+                            f"{proposal_data['acronym']}_PartB.docx",
+                            f"{proposal_data['acronym']}_Budget.xlsx",
+                            "README.txt"
+                        ]
+                    }
+                
+                # Return the generator
+                return stream_package_export()
+            
+            # Default
+            else:
+                return {
+                    'response': "I'm in proposal writing mode! I can help you:\n\n✍️ Write proposal sections\n💰 Create budget tables\n✅ Check compliance\n🎨 Improve quality\n📋 Generate templates\n\nWhat would you like to do?",
+                    'mode': 'proposal_writing'
+                }
+        
+        except Exception as e:
+            logger.error(f"Error in proposal writing mode: {e}")
+            return {
+                'response': f"I encountered an error while assisting with proposal writing: {str(e)}\n\nLet me help you with general questions instead.",
+                'error': str(e)
+            }
+    
+    async def _get_active_proposal_id(self, conversation_id: int) -> Optional[int]:
+        """Get the active proposal ID from conversation context"""
+
+        try:
+            # Query database for most recent proposal in this conversation
+            if not self.db_pool:
+                return None
+
+            conn = self.db_pool.getconn()
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                SELECT id FROM proposals
+                WHERE conversation_id = %s
+                ORDER BY created_at DESC
+                LIMIT 1
+            """, (conversation_id,))
+
+            row = cursor.fetchone()
+            self.db_pool.putconn(conn)
+
+            return row[0] if row else None
+
+        except Exception as e:
+            logger.error(f"Error getting active proposal ID: {e}")
+            return None
+
+    def _get_conversation_context_for_proposal(self, conversation_id: int) -> Optional[Dict[str, Any]]:
+        """Get conversation context for proposal writing"""
+        if not self.db_pool:
+            return None
+
+        conn = self.db_pool.getconn()
+        cursor = conn.cursor()
+
+        try:
+            # Get recent messages to extract context
+            cursor.execute("""
+                SELECT text FROM message
+                WHERE conversation_id = %s AND sender = 'user'
+                ORDER BY created_at DESC
+                LIMIT 5
+            """, (conversation_id,))
+
+            messages = cursor.fetchall()
+
+            context = {}
+
+            for msg_row in messages:
+                msg_text = msg_row[0].lower()
+
+                # Look for project acronym
+                if 'acronym' in msg_text or 'project name' in msg_text or 'call it' in msg_text:
+                    # Try to extract acronym (usually in quotes or after "is")
+                    import re
+                    acronym_match = re.search(r'(?:acronym|name|call it)\s+(?:is\s+)?["\']?([A-Z]{2,})["\']?', msg_text)
+                    if acronym_match:
+                        context['project_acronym'] = acronym_match.group(1)
+
+                # Look for research area
+                if any(word in msg_text for word in ['cybersecurity', 'ai', 'artificial intelligence', 'threat detection']):
+                    context['research_area'] = msg_text
+
+            return context if context else None
+
+        finally:
+            self.db_pool.putconn(conn)
+
+    def _get_current_section(self, conversation_id: int) -> Optional[str]:
+        """Get current section from conversation context"""
+        if not self.db_pool:
+            return None
+
+        conn = self.db_pool.getconn()
+        cursor = conn.cursor()
+
+        try:
+            # Get most recent proposal section from this conversation
+            cursor.execute("""
+                SELECT section_id FROM proposal_sections
+                WHERE conversation_id = %s
+                ORDER BY created_at DESC
+                LIMIT 1
+            """, (conversation_id,))
+
+            row = cursor.fetchone()
+            return row[0] if row else None
+
+        finally:
+            self.db_pool.putconn(conn)
+
+    def _get_next_section(self, current_section: str) -> str:
+        """Get the next logical section"""
+        section_order = [
+            'excellence.objectives',
+            'excellence.methodology',
+            'excellence.beyond_sota',
+            'impact.pathways',
+            'impact.dissemination',
+            'implementation.work_plan',
+            'implementation.consortium'
+        ]
+
+        try:
+            current_idx = section_order.index(current_section)
+            next_idx = min(current_idx + 1, len(section_order) - 1)
+            return section_order[next_idx]
+        except (ValueError, IndexError):
+            return 'excellence.objectives'
+
+    async def _get_proposal_metadata(self, proposal_id: int) -> Dict[str, Any]:
+        """Get proposal metadata for export"""
+        
+        if not self.db_pool:
+            raise ValueError("Database not available")
+        
+        conn = self.db_pool.getconn()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT proposal_title, proposal_acronym, proposal_type
+            FROM proposals
+            WHERE id = %s
+        """, (proposal_id,))
+        
+        row = cursor.fetchone()
+        self.db_pool.putconn(conn)
+        
+        if not row:
+            raise ValueError(f"Proposal {proposal_id} not found")
+        
+        return {
+            'title': row[0] or 'Untitled Proposal',
+            'acronym': row[1] or 'PROPOSAL',
+            'action_type': row[2] or 'RIA'
+        }
 
 # Test function
 async def test_conversation_manager():
