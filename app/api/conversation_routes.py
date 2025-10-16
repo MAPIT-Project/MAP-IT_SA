@@ -9,6 +9,7 @@ import asyncio
 from datetime import datetime
 from app.services.rag_service import CordisRAG
 from app.services.conversation_context_service import ConversationContextService, ConversationContext
+from app.services.citations_service import CitationsService
 from dataclasses import asdict
 
 router = APIRouter(prefix="/api/conversation", tags=["conversation"])
@@ -16,6 +17,7 @@ router = APIRouter(prefix="/api/conversation", tags=["conversation"])
 # Initialize services
 rag_service = CordisRAG(use_local_db=False, ai_provider="gemini")
 context_service = ConversationContextService(os.getenv("DATABASE_URL"))
+citations_service = CitationsService(os.getenv("DATABASE_URL"))
 
 class MessageRequest(BaseModel):
     message: str
@@ -116,8 +118,67 @@ async def send_contextual_message(
         except Exception:
             pass
         
-        # Save message to database (implement this based on your schema)
-        # save_message(conversation_id, request.message, response['answer'])
+        # Save messages to database
+        try:
+            import psycopg2
+            from psycopg2.extras import DictCursor
+            
+            db_url = os.getenv("DATABASE_URL")
+            if db_url:
+                conn = psycopg2.connect(db_url)
+                cursor = conn.cursor()
+                
+                # Ensure conversation exists
+                cursor.execute("""
+                    INSERT INTO conversation (id, user_id, name, created_at)
+                    VALUES (%s, %s, %s, NOW())
+                    ON CONFLICT (id) DO NOTHING
+                """, (conversation_id, 1, f'Chat {conversation_id}'))
+                
+                # Save user message
+                cursor.execute("""
+                    INSERT INTO message (conversation_id, sender, text, created_at)
+                    VALUES (%s, %s, %s, NOW())
+                    RETURNING id
+                """, (conversation_id, 'user', request.message))
+                user_message_id = cursor.fetchone()[0]
+                
+                # Save assistant response
+                response_text = response.get('answer') or response.get('response') or ''
+                cursor.execute("""
+                    INSERT INTO message (conversation_id, sender, text, created_at)
+                    VALUES (%s, %s, %s, NOW())
+                    RETURNING id
+                """, (conversation_id, 'assistant', response_text))
+                assistant_message_id = cursor.fetchone()[0]
+                
+                # Save citations if available
+                if response.get('citations'):
+                    citations_json = json.dumps(response['citations'])
+                    cursor.execute("""
+                        UPDATE message
+                        SET citations = %s
+                        WHERE id = %s
+                    """, (citations_json, assistant_message_id))
+                    print(f"💾 Saved {len(response['citations'])} citations to message {assistant_message_id}")
+                    
+                    # Also save using citations_service for consistency
+                    try:
+                        citations_service.save_citations_from_stream_response(
+                            conversation_id=conversation_id,
+                            message_id=assistant_message_id,
+                            completion_data={'citations': response['citations']}
+                        )
+                    except Exception as citation_error:
+                        print(f"⚠️ Failed to save citations with service: {citation_error}")
+                
+                conn.commit()
+                cursor.close()
+                conn.close()
+                
+                print(f"✅ Saved messages to database: user={user_message_id}, assistant={assistant_message_id}")
+        except Exception as e:
+            print(f"⚠️ Failed to save messages to database: {e}")
         
         # Update context with new information
         context_service.update_context(
@@ -232,8 +293,40 @@ async def send_contextual_message_stream(
         start_time = time.time()
         processing_phases = {}
         phases = []
+        user_message_id = None
+        assistant_message_id = None
 
         try:
+            # Save user message immediately
+            try:
+                import psycopg2
+                db_url = os.getenv("DATABASE_URL")
+                if db_url:
+                    conn = psycopg2.connect(db_url)
+                    cursor = conn.cursor()
+                    
+                    # Ensure conversation exists
+                    cursor.execute("""
+                        INSERT INTO conversation (id, user_id, name, created_at)
+                        VALUES (%s, %s, %s, NOW())
+                        ON CONFLICT (id) DO NOTHING
+                    """, (conversation_id, 1, f'Chat {conversation_id}'))
+                    
+                    # Save user message
+                    cursor.execute("""
+                        INSERT INTO message (conversation_id, sender, text, created_at)
+                        VALUES (%s, %s, %s, NOW())
+                        RETURNING id
+                    """, (conversation_id, 'user', request.message))
+                    user_message_id = cursor.fetchone()[0]
+                    
+                    conn.commit()
+                    cursor.close()
+                    conn.close()
+                    
+                    print(f"✅ Saved user message {user_message_id} to database")
+            except Exception as e:
+                print(f"⚠️ Failed to save user message: {e}")
             # Load conversation context
             if request.include_context:
                 context_load_start = time.time()
@@ -376,6 +469,11 @@ async def send_contextual_message_stream(
                             'routing_decision': intent,
                             'intent_confidence': intent_conf
                         }
+                        
+                        # Extract citations from the chunk if available
+                        if 'citations' in chunk:
+                            completion_data['citations'] = chunk['citations']
+                            print(f"📋 Found {len(chunk['citations'])} citations in streaming response")
                         try:
                             print(json.dumps({
                                 'telemetry': 'conversation_routing_stream',
@@ -387,6 +485,41 @@ async def send_contextual_message_stream(
                             }))
                         except Exception:
                             pass
+                        # Save assistant message and citations
+                        try:
+                            import psycopg2
+                            db_url = os.getenv("DATABASE_URL")
+                            if db_url:
+                                conn = psycopg2.connect(db_url)
+                                cursor = conn.cursor()
+                                
+                                # Save assistant message
+                                response_text = chunk.get('response', '') or chunk.get('answer', '')
+                                cursor.execute("""
+                                    INSERT INTO message (conversation_id, sender, text, created_at)
+                                    VALUES (%s, %s, %s, NOW())
+                                    RETURNING id
+                                """, (conversation_id, 'assistant', response_text))
+                                assistant_message_id = cursor.fetchone()[0]
+                                
+                                # Save citations if available
+                                if 'citations' in chunk and chunk['citations']:
+                                    citations_json = json.dumps(chunk['citations'])
+                                    cursor.execute("""
+                                        UPDATE message
+                                        SET citations = %s
+                                        WHERE id = %s
+                                    """, (citations_json, assistant_message_id))
+                                    print(f"💾 Saved {len(chunk['citations'])} citations to message {assistant_message_id}")
+                                
+                                conn.commit()
+                                cursor.close()
+                                conn.close()
+                                
+                                print(f"✅ Saved assistant message {assistant_message_id} to database")
+                        except Exception as e:
+                            print(f"⚠️ Failed to save assistant message: {e}")
+                        
                         yield f"data: {json.dumps(completion_data)}\n\n"
                         break
                     elif chunk['type'] == 'error':
@@ -443,6 +576,11 @@ async def send_contextual_message_stream(
                     'routing_decision': routed.get('routing_decision', intent),
                     'intent_confidence': routed.get('intent_confidence', intent_conf)
                 }
+                
+                # Extract citations from the routed response if available
+                if 'citations' in routed:
+                    completion_data['citations'] = routed['citations']
+                    print(f"📋 Found {len(routed['citations'])} citations in routed response")
                 try:
                     print(json.dumps({
                         'telemetry': 'conversation_routing_stream',
@@ -454,6 +592,40 @@ async def send_contextual_message_stream(
                     }))
                 except Exception:
                     pass
+                # Save assistant message and citations
+                try:
+                    import psycopg2
+                    db_url = os.getenv("DATABASE_URL")
+                    if db_url:
+                        conn = psycopg2.connect(db_url)
+                        cursor = conn.cursor()
+                        
+                        # Save assistant message
+                        cursor.execute("""
+                            INSERT INTO message (conversation_id, sender, text, created_at)
+                            VALUES (%s, %s, %s, NOW())
+                            RETURNING id
+                        """, (conversation_id, 'assistant', answer_text))
+                        assistant_message_id = cursor.fetchone()[0]
+                        
+                        # Save citations if available
+                        if 'citations' in routed and routed['citations']:
+                            citations_json = json.dumps(routed['citations'])
+                            cursor.execute("""
+                                UPDATE message
+                                SET citations = %s
+                                WHERE id = %s
+                            """, (citations_json, assistant_message_id))
+                            print(f"💾 Saved {len(routed['citations'])} citations to message {assistant_message_id}")
+                        
+                        conn.commit()
+                        cursor.close()
+                        conn.close()
+                        
+                        print(f"✅ Saved assistant message {assistant_message_id} to database")
+                except Exception as e:
+                    print(f"⚠️ Failed to save assistant message: {e}")
+                
                 yield f"data: {json.dumps(completion_data)}\n\n"
             
         except Exception as e:

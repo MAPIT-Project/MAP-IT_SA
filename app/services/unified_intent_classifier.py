@@ -156,12 +156,16 @@ Your job is to classify the user's message into ONE of 5 intent categories with 
    - Context: "AI answered about HORIZON-CL4-2025" → Message: "Can I apply?" → call_specific
    - Any question referring to "it", "that call", "the call" when call ID in context → call_specific
 
-5. **proposal_writing** - User wants help WRITING, IMPROVING, or EXPORTING a proposal
+5. **proposal_writing** - User wants help WRITING, IMPROVING, EDITING, or EXPORTING a proposal
    Examples:
    - "Help me write a proposal for HORIZON-CL3-2025-02-CS-ECCC-01"
    - "Draft the objectives section"
    - "Move to the next section"
    - "Improve this methodology"
+   - "Make the objectives more specific"
+   - "Add more detail to the methodology"
+   - "Edit the current section to include KPIs"
+   - "Revise the impact section"
    - "Export my proposal to Word"
    - "Generate the budget table"
    - "Check compliance with call requirements"

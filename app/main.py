@@ -56,6 +56,10 @@ app.include_router(call_document_router)
 # Include proposal writing routes (AI-powered proposal assistance)
 app.include_router(proposal_router)
 
+# Include proposal document management routes (Live document editing)
+from .api.proposal_document_routes import router as proposal_document_router
+app.include_router(proposal_document_router)
+
 # Exception handlers
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc):

@@ -178,10 +178,9 @@ class ConversationManager:
         
         # For non-streaming, do all processing first
         try:
-            # Phase 1: Add user message to memory
-            user_message_id = await self._store_user_message(
-                conversation_id, user_id, user_message
-            )
+            # Phase 1: Process user message (no database storage for V2)
+            # Generate a fake message ID for compatibility
+            user_message_id = random.randint(1000, 9999)
 
             # Phase 1.5: UNIFIED INTENT CLASSIFICATION (handles ALL 5 intents)
             recent_messages = self._get_recent_messages_simple(conversation_id, limit=5)
@@ -325,7 +324,7 @@ class ConversationManager:
                 response = await self._generate_response(
                     conversation_id=conversation_id,
                     query=user_message,
-                    context=context,
+                    context="",
                     retrieval_results=retrieval_results,
                     tool_results=tool_results,
                     intent_analysis=intent_analysis,
@@ -804,12 +803,11 @@ This metadata was extracted directly from the EU Portal API and represents the o
                     'grounded': True if retrieval_results else False
                 }
             
-            # Store assistant response in memory
-            assistant_message_id = await self._store_assistant_message(
-                conversation_id, response['answer']
-            )
+            # V2 endpoint: No database storage - just add to memory for conversation context
+            # Generate a fake message ID for compatibility
+            assistant_message_id = random.randint(1000, 9999)
             
-            # Update memory with new turn
+            # Only store in memory service, not database
             self.memory_service.add_conversation_turn(
                 conversation_id=conversation_id,
                 role='assistant',
@@ -853,15 +851,14 @@ This metadata was extracted directly from the EU Portal API and represents the o
                 'message': 'Processing...'
             }
             
-            # Phase 1: Store user message
+            # Phase 1: Process user message (no database storage for V2)
             yield {
                 'type': 'status',
-                'stage': 'storing_message',
-                'message': 'Storing your message...'
+                'stage': 'processing_message',
+                'message': 'Processing your message...'
             }
-            user_message_id = await self._store_user_message(
-                conversation_id, user_id, user_message
-            )
+            # Generate a fake message ID for compatibility (not saved to database)
+            user_message_id = random.randint(1000, 9999)
             
             # Phase 1.6: UNIFIED INTENT CLASSIFICATION (handles ALL 5 intents)
             recent_messages = self._get_recent_messages_simple(conversation_id, limit=5)
@@ -1296,12 +1293,12 @@ This metadata was extracted directly from the EU Portal API and represents the o
                 'projects_discussed': []
             }
             
-            # Store in memory AFTER sending complete event (fire-and-forget)
+            # V2 endpoint: No database storage - just add to memory for conversation context
             try:
-                assistant_message_id = await self._store_assistant_message(
-                    conversation_id, final_response
-                )
+                # Generate a fake message ID for compatibility
+                assistant_message_id = random.randint(1000, 9999)
                 
+                # Only store in memory service, not database
                 self.memory_service.add_conversation_turn(
                     conversation_id=conversation_id,
                     role='assistant',
@@ -1935,7 +1932,23 @@ Be helpful and conversational."""
                     ON CONFLICT (id) DO NOTHING
                 """, (conversation_id, 1, f'Chat {conversation_id}'))  # user_id must be integer
                 
-                # Then insert the message
+                # Check for duplicate message (within last 5 seconds)
+                cursor.execute("""
+                    SELECT id FROM message
+                    WHERE conversation_id = %s 
+                      AND sender = 'user' 
+                      AND text = %s
+                      AND created_at > NOW() - INTERVAL '5 seconds'
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                """, (conversation_id, message))
+                
+                existing = cursor.fetchone()
+                if existing:
+                    logger.info(f"⚠️ Duplicate message detected (within 5s), reusing existing ID: {existing[0]}")
+                    return existing[0]
+                
+                # Insert new message
                 cursor.execute("""
                     INSERT INTO message (conversation_id, sender, text, created_at)
                     VALUES (%s, %s, %s, NOW())
@@ -1969,11 +1982,70 @@ Be helpful and conversational."""
     
     async def _store_assistant_message(self,
                                       conversation_id: int,
-                                      message: str) -> int:
+                                      message: str,
+                                      citations: Optional[List[Dict[str, Any]]] = None) -> int:
         """Store assistant message in database and return message ID."""
-        # For now, generate a mock message ID
-        # In production, this would insert into your message table
-        return random.randint(1000, 9999)
+        
+        # Actually store message in database
+        if self.db_pool:
+            conn = self.db_pool.getconn()
+            cursor = conn.cursor()
+            try:
+                # First ensure conversation exists
+                cursor.execute("""
+                    INSERT INTO conversation (id, user_id, name, created_at)
+                    VALUES (%s, %s, %s, NOW())
+                    ON CONFLICT (id) DO NOTHING
+                """, (conversation_id, 1, f'Chat {conversation_id}'))  # user_id must be integer
+                
+                # Check for duplicate message (within last 5 seconds)
+                cursor.execute("""
+                    SELECT id FROM message
+                    WHERE conversation_id = %s
+                      AND sender = 'assistant'
+                      AND text = %s
+                      AND created_at > NOW() - INTERVAL '5 seconds'
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                """, (conversation_id, message))
+                
+                existing = cursor.fetchone()
+                if existing:
+                    logger.info(f"⚠️ Duplicate assistant message detected (within 5s), reusing existing ID: {existing[0]}")
+                    return existing[0]
+                
+                # Insert new message
+                cursor.execute("""
+                    INSERT INTO message (conversation_id, sender, text, created_at)
+                    VALUES (%s, %s, %s, NOW())
+                    RETURNING id
+                """, (conversation_id, 'assistant', message))
+                
+                message_id = cursor.fetchone()[0]
+                
+                # Save citations if provided
+                if citations and len(citations) > 0:
+                    citations_json = json.dumps(citations)
+                    cursor.execute("""
+                        UPDATE message
+                        SET citations = %s
+                        WHERE id = %s
+                    """, (citations_json, message_id))
+                    logger.info(f"💾 Saved {len(citations)} citations to message {message_id}")
+                
+                conn.commit()  # Commit immediately so it's visible to next query
+                logger.info(f"✅ Stored assistant message {message_id} in database")
+                
+            except Exception as e:
+                logger.error(f"❌ Failed to store assistant message: {e}")
+                conn.rollback()
+                message_id = random.randint(1000, 9999)  # Fallback
+            finally:
+                self.db_pool.putconn(conn)
+        else:
+            message_id = random.randint(1000, 9999)
+        
+        return message_id
     
     def _init_hybrid_search(self):
         """Initialize hybrid search pipeline."""
