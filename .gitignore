@@ -186,5 +186,5 @@ data/
 debug/
 test_reports/*.json
 processed_docs/
-newdocs/
+
 test_outputs/
