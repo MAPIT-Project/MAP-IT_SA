@@ -49,7 +49,8 @@ async def test_template_generation():
         
         print(f"\n📋 Generating template for {TEST_CALL_ID}...")
         
-        template = await template_service.generate_template(TEST_CALL_ID)
+        template = template_service.generate_template(TEST_CALL_ID)
+        await template
         
         print(f"\n✅ Template generated successfully!")
         print(f"   - Proposal Type: {template['proposal_type']}")

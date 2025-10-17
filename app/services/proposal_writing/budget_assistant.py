@@ -255,42 +255,70 @@ and infrastructure costs.
     
     def _format_budget_table(self, partner_budgets: List[Dict]) -> str:
         """
-        Format budget as a text table for display
+        Format budget as a detailed text table for display
         """
         
         lines = []
-        lines.append("BUDGET BREAKDOWN")
-        lines.append("=" * 100)
+        lines.append("DETAILED BUDGET BREAKDOWN")
+        lines.append("=" * 120)
         lines.append("")
         
-        # Header
-        header = f"{'Partner':<30} {'Personnel':>12} {'Equipment':>12} {'Other':>12} {'Indirect':>12} {'Total':>15} {'Funding':>15}"
+        # Header with all categories
+        header = f"{'Partner':<25} {'Type':<6} {'Country':<8} {'Personnel':>12} {'Equip.':>10} {'Subcont.':>10} {'Other':>10} {'Indirect':>10} {'Total':>12} {'Funding':>12} {'Rate':>6}"
         lines.append(header)
-        lines.append("-" * 100)
+        lines.append("-" * 120)
         
         # Partner rows
         total_eligible = Decimal('0')
         total_funding = Decimal('0')
+        total_personnel = Decimal('0')
+        total_equipment = Decimal('0')
+        total_subcontracting = Decimal('0')
+        total_other = Decimal('0')
+        total_indirect = Decimal('0')
         
         for budget in partner_budgets:
-            name = budget['partner_name'][:28]  # Truncate if too long
+            name = budget['partner_name'][:23]  # Truncate if too long
+            partner_type = budget['partner_type']
+            country = budget['country']
             costs = budget['costs']
             
-            line = f"{name:<30} €{costs['personnel']:>11,.0f} €{costs['equipment']:>11,.0f} €{costs['other_direct']:>11,.0f} €{costs['indirect']:>11,.0f} €{budget['total_eligible_costs']:>14,.0f} €{budget['requested_funding']:>14,.0f}"
+            line = f"{name:<25} {partner_type:<6} {country:<8} €{costs['personnel']:>11,.0f} €{costs.get('subcontracting', 0):>9,.0f} €{costs['equipment']:>9,.0f} €{costs['other_direct']:>9,.0f} €{costs['indirect']:>9,.0f} €{budget['total_eligible_costs']:>11,.0f} €{budget['requested_funding']:>11,.0f} {budget['funding_rate']*100:>5.0f}%"
             lines.append(line)
             
-            total_eligible += budget['total_eligible_costs']
-            total_funding += budget['requested_funding']
+            total_eligible += Decimal(str(budget['total_eligible_costs']))
+            total_funding += Decimal(str(budget['requested_funding']))
+            total_personnel += Decimal(str(costs['personnel']))
+            total_equipment += Decimal(str(costs['equipment']))
+            total_subcontracting += Decimal(str(costs.get('subcontracting', 0)))
+            total_other += Decimal(str(costs['other_direct']))
+            total_indirect += Decimal(str(costs['indirect']))
         
-        # Footer
-        lines.append("-" * 100)
-        footer = f"{'TOTAL':<30} {'':<48} €{total_eligible:>14,.0f} €{total_funding:>14,.0f}"
+        # Footer with totals
+        lines.append("-" * 120)
+        footer = f"{'TOTAL':<25} {'':<14} {'':<8} €{total_personnel:>11,.0f} €{total_subcontracting:>9,.0f} €{total_equipment:>9,.0f} €{total_other:>9,.0f} €{total_indirect:>9,.0f} €{total_eligible:>11,.0f} €{total_funding:>11,.0f} {'':>6}"
         lines.append(footer)
         lines.append("")
         
-        # Summary
+        # Detailed summary
         avg_rate = (total_funding / total_eligible * 100) if total_eligible > 0 else 0
-        lines.append(f"Average funding rate: {avg_rate:.1f}%")
+        lines.append("BUDGET SUMMARY:")
+        lines.append("-" * 40)
+        lines.append(f"Total Eligible Costs:     €{total_eligible:,.2f}")
+        lines.append(f"Total Requested Funding:  €{total_funding:,.2f}")
+        lines.append(f"Average Funding Rate:     {avg_rate:.1f}%")
+        lines.append(f"Number of Partners:       {len(partner_budgets)}")
+        
+        # Cost breakdown percentages
+        if total_eligible > 0:
+            lines.append("")
+            lines.append("COST BREAKDOWN (% of total):")
+            lines.append("-" * 40)
+            lines.append(f"Personnel Costs:        {(total_personnel/total_eligible*100):.1f}%")
+            lines.append(f"Equipment Costs:        {(total_equipment/total_eligible*100):.1f}%")
+            lines.append(f"Subcontracting:         {(total_subcontracting/total_eligible*100):.1f}%")
+            lines.append(f"Other Direct Costs:     {(total_other/total_eligible*100):.1f}%")
+            lines.append(f"Indirect Costs:         {(total_indirect/total_eligible*100):.1f}%")
         
         return '\n'.join(lines)
 

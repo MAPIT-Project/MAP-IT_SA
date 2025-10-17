@@ -163,7 +163,7 @@ class ComplianceChecker:
         """
         
         # Get requirements from call documents
-        requirements_chunks = await self.call_doc_service.search_call_chunks(
+        requirements_chunks = self.call_doc_service.search_call_chunks(
             call_id,
             "eligibility consortium minimum entities countries",
             limit=3

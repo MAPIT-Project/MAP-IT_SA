@@ -21,7 +21,7 @@ class ProposalTemplateService:
         self.db_pool = db_pool
         self.call_doc_service = call_doc_service
         
-    def generate_template(self, call_id: str) -> Dict[str, Any]:
+    async def generate_template(self, call_id: str) -> Dict[str, Any]:
         """
         Generate a complete proposal template for a specific call
         

@@ -64,7 +64,7 @@ async def evaluate_proposal_generation():
         print("\n📋 1. TEMPLATE GENERATION")
         print("-" * 40)
         
-        template = template_service.generate_template(TEST_CALL_ID)
+        template = await template_service.generate_template(TEST_CALL_ID)
         
         print(f"✅ Template generated successfully!")
         print(f"   Proposal Type: {template['proposal_type']}")
