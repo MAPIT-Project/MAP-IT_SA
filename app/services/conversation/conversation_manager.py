@@ -362,12 +362,20 @@ class ConversationManager:
         """
         retrieval_results = []
         
+        print(f"🔄 DEBUG: _convert_tool_results_to_retrieval called with {len(tool_results)} tool results")
+        
         for tool_name, tool_result_obj in tool_results.items():
+            print(f"🔍 DEBUG: Processing tool: {tool_name}, success: {tool_result_obj.success}")
             try:
                 if tool_result_obj.success:
                     tool_data = tool_result_obj.result
+                    print(f"📊 DEBUG: Tool data type: {type(tool_data)}, keys: {list(tool_data.keys()) if isinstance(tool_data, dict) else 'Not a dict'}")
                     
                     if tool_name == 'eu_portal_search':
+                        print(f"🔍 DEBUG: eu_portal_search - checking for 'calls' key...")
+                        print(f"📋 DEBUG: tool_data has 'calls': {('calls' in tool_data) if isinstance(tool_data, dict) else False}")
+                        if isinstance(tool_data, dict):
+                            print(f"🔢 DEBUG: calls count: {len(tool_data.get('calls', []))}")
                         # Format call search results
                         if tool_data.get('calls'):
                             for call in tool_data['calls'][:5]:

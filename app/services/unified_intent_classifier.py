@@ -205,6 +205,12 @@ Your job is to classify the user's message into ONE of 5 intent categories with 
    - 0.5-0.7: Moderate confidence
    - Below 0.5: Uncertain (default to faq)
 
+**AVAILABLE TOOLS (use these EXACT names):**
+- **eu_portal_search** - For search_calls intent (searching funding opportunities)
+- **search_cordis_projects** - For search_projects intent (searching research projects)
+- **search_local_database** - For faq intent (general knowledge base queries)
+- **search_call_documents** - For call_specific intent (when call ID is known)
+
 **OUTPUT FORMAT (JSON):**
 ```json
 {{
@@ -214,8 +220,8 @@ Your job is to classify the user's message into ONE of 5 intent categories with 
   "requires_tools": true,
   "tool_plan": [
     {{
-      "tool_name": "appropriate_tool_name",
-      "parameters": {{"query": "...", "call_id": "..."}},
+      "tool_name": "eu_portal_search",
+      "parameters": {{"query": "user message or cleaned query"}},
       "reason": "Why this tool"
     }}
   ],
@@ -226,6 +232,8 @@ Your job is to classify the user's message into ONE of 5 intent categories with 
   "proposal_action": "draft|improve|export|navigate or null"
 }}
 ```
+
+**CRITICAL:** Always use the EXACT tool names from the "AVAILABLE TOOLS" list above!
 
 **IMPORTANT RULES:**
 - Be decisive - choose ONE primary intent
@@ -318,11 +326,24 @@ Now classify the message above:"""
             }]
         
         elif intent == 'search_calls':
+            # Extract keywords only - don't include "open", "calls for", etc.
+            call_keywords = classification.get('call_keywords', [])
+            # If AI provided keywords, use them; otherwise extract from message
+            if call_keywords:
+                query = ' '.join(call_keywords)
+            else:
+                # Fallback: remove common query words
+                query = user_message.lower()
+                remove_words = ['what', 'are', 'some', 'open', 'calls', 'for', 'show', 'me', 'find', 'search']
+                for word in remove_words:
+                    query = query.replace(word, '')
+                query = ' '.join(query.split())  # Clean extra spaces
+            
             return [{
                 'tool_name': 'eu_portal_search',
                 'parameters': {
-                    'query': user_message,
-                    'keywords': classification.get('call_keywords', []),
+                    'query': query,
+                    'keywords': call_keywords,
                     'max_results': 15
                 },
                 'reason': 'Search EU Funding & Tenders Portal for calls'

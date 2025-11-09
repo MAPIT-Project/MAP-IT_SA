@@ -1,0 +1,75 @@
+================================================================================
+Testing V2 Conversation Manager: Energy Call Query
+================================================================================
+
+📝 Question: 'What are some open calls for energy?'
+🔢 Conversation ID: 99999
+👤 User ID: 1
+
+✅ Importing ConversationManager...
+✅ Redis connected successfully
+ℹ️ Call-specific functionality integrated into EnhancedRAGService
+✅ Using existing HorizonEuropeRAG service
+Warning: sentence-transformers not available, reranking disabled
+✅ ConversationManager initialized successfully with AI-only intent system + Proposal Writing
+✅ ConversationManager initialized
+
+🔍 Checking tool registration...
+✅ Registered tools (4):
+  - eu_portal_search: Search EU Funding Portal for open funding calls and opportun...
+  - search_local_database: Search local Horizon Europe document database for conversati...
+  - search_conversation_memory: Search conversation memory for questions about previous mess...
+  - search_cordis_projects: Search CORDIS database for research projects using AI-powere...
+
+✅ ✅ ✅ eu_portal_search tool IS registered! ✅ ✅ ✅
+
+🚀 Processing message (non-streaming)...
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+E0000 00:00:1761826489.183026  219627 alts_credentials.cc:93] ALTS creds ignored. Not running on GCP and untrusted ALTS is not enabled.
+🔄 Converted 1 tool results to 0 retrieval chunks
+
+================================================================================
+RESULTS
+================================================================================
+
+✅ Response received!
+📊 Processing time: 2.31s
+🎯 Confidence: 0.90
+🔧 Tools executed: True
+📚 Grounded: True
+📑 Citations: 0
+
+📝 Response length: 2568 characters
+
+📄 Response preview (first 1000 chars):
+--------------------------------------------------------------------------------
+**🔍 No Currently Open Calls Found**
+
+I searched the EU Funding & Tenders Portal but found **no currently open calls** for "funding opportunities" right now in 2025.
+
+**🔗 Verify This Yourself:**
+**Manual Check:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search;freeTextSearchKeyword=funding%20opportunities;sortQuery=sortStatus;orderBy=asc
+*(You can click this link to see the same search results I found)*
+
+**📅 Why This Happens:**
+• **EU funding follows scheduled cycles** - calls aren't always open
+• **Energy calls** typically open at specific times during the year
+• **Early 2025** - new calls may not be published yet
+• **Previous calls closed** in late 2024
+
+**🎯 What to Do Next:**
+
+**📧 Set Up Alerts** (Recommended):
+🔗 **EU Call Alerts:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/mailing-lists
+• Get notified when new energy calls open
+• Select "Climate, Energy and Environment" topics
+
+**🔍 Check These Resou
+
+... (truncated)
+
+✅ Response contains actual results!
+
+================================================================================
+Test Complete
+================================================================================

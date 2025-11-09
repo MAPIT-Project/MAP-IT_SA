@@ -1570,8 +1570,130 @@ def create_research_orchestrator(cache_client = None) -> ToolOrchestrator:
         ]
     )
 
+    # EU Portal Search Tool - CRITICAL for call searches!
+    async def eu_portal_search_exec(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+        """Search EU Funding Portal for calls - executes actual search."""
+        from ..improved_call_search import ImprovedCallSearchService
+        
+        try:
+            query = params.get('query', '')
+            max_results = params.get('max_results', 50)
+            include_closed = params.get('include_closed', False)
+            programme_period = params.get('programme_period', '2021 - 2027')
+            
+            print(f"🔍 DEBUG: eu_portal_search_exec called with params: {params}")
+            print(f"🔍 DEBUG: query='{query}', max_results={max_results}, include_closed={include_closed}")
+            
+            if not query or query.strip() == '':
+                return {
+                    'success': False,
+                    'error': 'Query parameter cannot be empty',
+                    'calls_found': 0
+                }
+            
+            logging.getLogger(__name__).info(f"🔍 EU Portal search: '{query}' (max: {max_results})")
+            
+            search_service = ImprovedCallSearchService()
+            results = search_service.search_calls_simple(
+                query=query,
+                max_results=max_results,
+                include_closed=include_closed,
+                programme_period=programme_period
+            )
+            
+            if results.get('status') != 'success':
+                return {
+                    'success': False,
+                    'error': results.get('error', 'Search failed'),
+                    'calls_found': 0
+                }
+            
+            calls_data = results.get('results', [])
+            
+            # Format calls to match conversation_manager expectations
+            formatted_calls = []
+            for call in calls_data:
+                # Handle both dataclass and dict formats
+                if hasattr(call, '__dataclass_fields__'):
+                    formatted_calls.append({
+                        'title': call.title,
+                        'identifier': call.identifier,
+                        'status': call.status,
+                        'deadline': call.deadline,
+                        'url': call.url,
+                        'description': getattr(call, 'description', '')
+                    })
+                else:
+                    # Already a dict - ensure required fields
+                    formatted_calls.append({
+                        'title': call.get('title', 'Untitled'),
+                        'identifier': call.get('identifier', 'Unknown'),
+                        'status': call.get('status', 'Unknown'),
+                        'deadline': call.get('deadline', 'Not specified'),
+                        'url': call.get('url', ''),
+                        'description': call.get('description', '')
+                    })
+            
+            return {
+                'success': True,
+                'tool_name': 'eu_portal_search',
+                'calls_found': len(formatted_calls),
+                'calls': formatted_calls,  # This is what conversation_manager expects
+                'search_metadata': results.get('search_metadata', {}),
+                'facets': results.get('facets', {})
+            }
+            
+        except Exception as e:
+            logging.getLogger(__name__).error(f"EU Portal search error: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'calls_found': 0
+            }
+    
+    portal_tool = Tool(
+        name='eu_portal_search',
+        description='Search EU Funding Portal for open funding calls and opportunities',
+        parameters_schema={
+            'query': {
+                'type': 'string', 
+                'required': True,
+                'description': 'Search query for finding relevant funding calls',
+                'examples': ['clean energy', 'artificial intelligence', 'renewable energy']
+            },
+            'max_results': {
+                'type': 'integer', 
+                'default': 50,
+                'min': 1,
+                'max': 100,
+                'description': 'Maximum number of calls to return'
+            },
+            'include_closed': {
+                'type': 'boolean',
+                'default': False,
+                'description': 'Include closed calls in results'
+            },
+            'programme_period': {
+                'type': 'string',
+                'default': '2021 - 2027',
+                'description': 'Horizon Europe programme period'
+            }
+        },
+        execute_func=eu_portal_search_exec,
+        cache_ttl=3600,  # 1 hour
+        parallel_safe=True,
+        category='research_funding',
+        tags=['eu_funding', 'horizon_europe', 'calls', 'opportunities'],
+        usage_examples=[
+            'Find open calls for renewable energy research',
+            'Search for AI funding opportunities',
+            'Look for climate change funding calls'
+        ]
+    )
+
     orchestrator.register_tool(cordis_tool)
     orchestrator.register_tool(database_tool)
+    orchestrator.register_tool(portal_tool)  # ✅ NOW REGISTERED!
     # orchestrator.register_tool(portfolio_tool)
 
     return orchestrator
