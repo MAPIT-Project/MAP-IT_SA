@@ -1373,6 +1373,159 @@ class ToolOrchestrator:
             ]
         )
         self.register_tool(memory_tool)
+        
+        # ====================================================================
+        # INTELLIGENT SEARCH TOOL (Graph + Vector + Planner)
+        # ====================================================================
+        
+        async def intelligent_search_execute(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+            """
+            Intelligent search combining graph relationships and vector similarity.
+            Uses LLM-based query planning to determine the best retrieval strategy.
+            """
+            try:
+                # Import here to avoid circular imports
+                try:
+                    from ..data_intelligence_service import DataIntelligenceService
+                except ImportError:
+                    from app.services.data_intelligence_service import DataIntelligenceService
+                
+                query = params.get('query', '')
+                conversation_context = params.get('context', '')
+                max_results = params.get('max_results', 10)
+                
+                if not query or not query.strip():
+                    return {
+                        'success': False,
+                        'error': 'Query parameter cannot be empty',
+                        'error_type': 'validation_error',
+                        'tool_name': 'intelligent_search',
+                        'results': {}
+                    }
+                
+                logger.info(f"🧠 Intelligent search: '{query[:80]}...'")
+                
+                # Initialize and execute search
+                service = DataIntelligenceService()
+                result = await service.search(
+                    query=query,
+                    context=conversation_context,
+                    max_results=max_results
+                )
+                
+                if not result.success:
+                    return {
+                        'success': False,
+                        'error': result.error or 'Search failed',
+                        'error_type': 'execution_error',
+                        'tool_name': 'intelligent_search',
+                        'query': query,
+                        'results': {}
+                    }
+                
+                # Format successful response
+                response = {
+                    'success': True,
+                    'tool_name': 'intelligent_search',
+                    'query': query,
+                    'results': {
+                        'intent_type': result.intent_type,
+                        'confidence': result.confidence,
+                        'answer_context': result.answer_context,
+                        'graph_results': result.graph_results,
+                        'vector_results': result.vector_results,
+                        'sources': result.sources,
+                        'total_time_ms': result.total_time_ms
+                    },
+                    'metadata': {
+                        'search_type': 'intelligent_hybrid',
+                        'data_sources_used': [s['type'] for s in result.sources],
+                        'plan_intent': result.intent_type,
+                        'plan_confidence': result.confidence
+                    }
+                }
+                
+                logger.info(f"✅ Intelligent search: {result.intent_type} "
+                           f"({len(result.graph_results)} graph, {len(result.vector_results)} vector)")
+                
+                return response
+                
+            except Exception as e:
+                logger.error(f"Intelligent search error: {e}")
+                return {
+                    'success': False,
+                    'error': str(e),
+                    'error_type': 'execution_error',
+                    'tool_name': 'intelligent_search',
+                    'query': params.get('query', ''),
+                    'results': {}
+                }
+        
+        intelligent_search_tool = Tool(
+            name='intelligent_search',
+            description='''Intelligent search combining Neo4j graph relationships and vector similarity.
+Uses LLM-based query planning to determine the optimal retrieval strategy.
+
+Best for:
+- Call/topic lookups ("What is HORIZON-CL4-2022-DATA-01-02?", "Tell me about ERC-2024-STG")
+- Eligibility questions ("Can Switzerland participate?", "Are SMEs eligible?")
+- Budget questions ("Maximum budget for RIA in Cluster 5?", "Average project funding?")
+- Consortium questions ("How many partners needed?", "Typical consortium size?")
+- Similar calls ("Find topics like HORIZON-CL4-2022-HUMAN-01")
+- Organization queries ("Who has TU Delft collaborated with?")
+
+This tool should be preferred over basic search for complex questions about:
+- Relationships between entities (organizations, projects, countries)
+- Structured data (budgets, statistics, patterns)
+- Eligibility and requirements
+- Finding similar items based on graph structure''',
+            parameters_schema={
+                'query': {
+                    'type': 'string',
+                    'required': True,
+                    'description': 'User question about Horizon Europe funding, calls, eligibility, budgets, or projects',
+                    'examples': [
+                        'What is HORIZON-CL4-2022-DATA-01-02?',
+                        'Can an SME from Switzerland participate in Cluster 4?',
+                        'What is the maximum budget for RIA actions?',
+                        'Find calls similar to HORIZON-CL4-2022-HUMAN-01'
+                    ]
+                },
+                'context': {
+                    'type': 'string',
+                    'required': False,
+                    'default': '',
+                    'description': 'Conversation context for follow-up questions'
+                },
+                'max_results': {
+                    'type': 'integer',
+                    'required': False,
+                    'default': 10,
+                    'min': 1,
+                    'max': 50,
+                    'description': 'Maximum results per data source'
+                }
+            },
+            execute_func=intelligent_search_execute,
+            cache_ttl=1800,  # 30 minutes
+            parallel_safe=True,
+            category='data_intelligence',
+            tags=['graph', 'vector', 'hybrid', 'intelligent', 'horizon_europe', 
+                  'eligibility', 'budget', 'calls', 'topics', 'neo4j'],
+            usage_examples=[
+                'What is the deadline for HORIZON-CL4-2022-DATA-01-02?',
+                'Can an SME from Switzerland participate in Cluster 4 calls?',
+                'What is the maximum budget for RIA actions in Cluster 5?',
+                'What is the minimum number of countries required for a CSA?',
+                'Find calls similar to HORIZON-CL4-2022-HUMAN-01',
+                'Which organizations have collaborated with Fraunhofer?',
+                'What is the typical consortium size for Cluster 6?',
+                'Tell me about ERC-2024-STG funding'
+            ]
+        )
+        
+        self.register_tool(intelligent_search_tool)
+        logger.info("📊 Registered intelligent_search tool")
     
     def get_available_tools(self) -> List[Dict[str, Any]]:
         """
