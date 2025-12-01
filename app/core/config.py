@@ -31,10 +31,15 @@ class Settings(BaseSettings):
     openrouter_model: str = "x-ai/grok-4-fast:free"
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     
-    # Google Embedding API Configuration
+    # Google Embedding API Configuration (falls back to gemini_api_key)
     google_embedding_api_key: Optional[str] = None
     embedding_model: str = "models/text-embedding-004"
     embedding_dimension: int = 768
+    
+    @property
+    def effective_embedding_api_key(self) -> Optional[str]:
+        """Get embedding API key, falling back to Gemini key if not set."""
+        return self.google_embedding_api_key or self.gemini_api_key
     
     # Database Configuration
     use_local_db: bool = False

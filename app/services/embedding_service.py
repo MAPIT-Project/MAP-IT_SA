@@ -22,9 +22,10 @@ class EmbeddingService:
     
     def __init__(self, cache_client=None):
         """Initialize the embedding service."""
-        self.api_key = settings.google_embedding_api_key
+        # Use effective_embedding_api_key which falls back to gemini_api_key
+        self.api_key = settings.effective_embedding_api_key
         if not self.api_key:
-            raise ValueError("Google Embedding API key not found in configuration")
+            raise ValueError("Google Embedding API key not found in configuration (set GOOGLE_EMBEDDING_API_KEY or GEMINI_API_KEY)")
         
         # Configure Google AI
         genai.configure(api_key=self.api_key)
