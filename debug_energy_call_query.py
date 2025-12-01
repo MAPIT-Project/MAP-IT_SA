@@ -149,3 +149,4 @@ def test_energy_call_query():
 if __name__ == "__main__":
     test_energy_call_query()
 
+

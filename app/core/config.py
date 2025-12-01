@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     db_min_connections: int = 5
     db_max_connections: int = 50
     
+    # CORDIS Configuration
+    cordis_source: str = "local"  # Options: "local", "legacy_api"
+    cordis_api_url: str = "https://cordis.europa.eu/api/search/results"
+    cordis_api_timeout: int = 30
+    
     # Supabase Configuration
     supabase_url: Optional[str] = None
     supabase_anon_key: Optional[str] = None
@@ -101,6 +106,15 @@ class Settings(BaseSettings):
         """Validate Google API key when vector search is enabled."""
         if info.data.get("vector_search_enabled") and not v:
             raise ValueError("GOOGLE_EMBEDDING_API_KEY is required when vector_search_enabled=True")
+        return v
+    
+    @field_validator("cordis_source")
+    @classmethod
+    def validate_cordis_source(cls, v):
+        """Validate CORDIS source configuration."""
+        valid_sources = ["local", "legacy_api"]
+        if v not in valid_sources:
+            raise ValueError(f"cordis_source must be one of: {valid_sources}")
         return v
     
     class Config:

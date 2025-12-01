@@ -6,16 +6,17 @@ This service searches CORDIS API first, then enriches results with local databas
 import os
 import time
 import requests
-import psycopg2
-from psycopg2.extras import DictCursor
+import logging
 from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime
 import json
-from decimal import Decimal
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
+
+# Set up structured telemetry logger
+logger = logging.getLogger(__name__)
 
 class HybridSearchService:
     """
@@ -56,7 +57,7 @@ class HybridSearchService:
         print(f"🔍 Hybrid Search: Starting with {len(queries)} queries")
         
         # Step 1: Search CORDIS API
-        api_projects = self._search_cordis_api(queries, max_results)
+        api_projects = self._query_legacy_cordis_api(queries, max_results)
         print(f"📡 CORDIS API returned {len(api_projects)} projects")
         
         if not api_projects:
@@ -72,7 +73,78 @@ class HybridSearchService:
             print("ℹ️ Database not available, returning CORDIS API data only")
             return api_projects
     
-    def _search_cordis_api(self, queries: List[str], max_results: int) -> List[Dict[str, Any]]:
+    def search_projects_local_first(
+        self,
+        queries: List[str],
+        filters: Optional[Dict[str, Any]] = None,
+        limit: int = 10,
+        offset: int = 0,
+        repository: Optional["CordisProjectRepository"] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Local-first hybrid search: repository first, fallback to legacy CORDIS API if needed.
+        
+        Args:
+            queries: List of search queries
+            filters: Optional structured filters (programme, date_range, budget_range, countries)
+            limit: Maximum number of results to return
+            offset: Pagination offset
+            repository: Optional CordisProjectRepository instance (injected for testing)
+            
+        Returns:
+            List of enriched project data with data_source flag
+        """
+        start_time = datetime.now()
+        logger.info(f"Starting local-first hybrid search: {len(queries)} queries, limit={limit}")
+        print(f"🔍 Local-First Hybrid Search: {len(queries)} queries")
+        
+        # Use injected repository or create default instance
+        if repository is None:
+            try:
+                from .data.cordis_repository import CordisProjectRepository
+                repository = CordisProjectRepository()
+            except ImportError as e:
+                logger.error(f"Repository not available: {e}, falling back to legacy API")
+                print(f"⚠️ Repository not available: {e}, falling back to legacy API")
+                return self._query_legacy_cordis_api(queries, limit)
+        
+        # Step 1: Search local repository
+        try:
+            local_projects, total_count = repository.search_projects(
+                queries=queries,
+                filters=filters,
+                limit=limit,
+                offset=offset
+            )
+            
+            elapsed = (datetime.now() - start_time).total_seconds()
+            logger.info(f"Local repository search completed: {len(local_projects)} projects in {elapsed:.2f}s (total: {total_count})")
+            print(f"📚 Local repository returned {len(local_projects)} projects (total: {total_count})")
+            
+            if local_projects:
+                # Convert DTOs to dicts for downstream compatibility
+                projects = [proj.to_dict() for proj in local_projects]
+                
+                # Mark as local data source with telemetry
+                for project in projects:
+                    project['data_source'] = 'local_cordis'
+                    project['enrichment_status'] = 'complete'
+                    project['search_latency_ms'] = elapsed * 1000
+                
+                return projects
+            else:
+                logger.info("No projects found in local repository, falling back to legacy API")
+                print("⚠️ No projects found in local repository")
+                return self._query_legacy_cordis_api(queries, limit)
+                
+        except Exception as e:
+            elapsed = (datetime.now() - start_time).total_seconds()
+            logger.error(f"Local repository search failed after {elapsed:.2f}s: {e}")
+            print(f"❌ Local repository search failed: {e}")
+            print("🔄 Falling back to legacy CORDIS API")
+            return self._query_legacy_cordis_api(queries, limit)
+    
+    def _query_legacy_cordis_api(self, queries: List[str], max_results: int) -> List[Dict[str, Any]]:
         """
         Search CORDIS API for projects.
         

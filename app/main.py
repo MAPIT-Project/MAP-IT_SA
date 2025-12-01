@@ -10,6 +10,7 @@ import uvicorn
 import logging
 
 from .core.config import settings
+from .core.dependencies import initialize_cordis_repository, shutdown_cordis_repository
 from .api.routes import router
 from .api.document_routes import router as document_router
 # Removed old conversation_routes - only use v2 with tool orchestrator
@@ -142,12 +143,22 @@ async def startup_event():
                 logger.warning("⚠️ Embedding service test failed")
         except Exception as e:
             logger.error(f"❌ Embedding service initialization error: {e}")
+    
+    # Initialize CORDIS repository if configured
+    repository = initialize_cordis_repository()
+    if repository:
+        logger.info(f"📊 CORDIS source configuration: {settings.cordis_source}")
+    else:
+        logger.info("📊 CORDIS repository not configured (local database disabled)")
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Application shutdown event."""
     logger.info(f"Shutting down {settings.app_name}")
+    
+    # Shutdown CORDIS repository
+    shutdown_cordis_repository()
 
 
 def create_app() -> FastAPI:
