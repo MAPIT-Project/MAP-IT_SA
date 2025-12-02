@@ -20,9 +20,11 @@ from datetime import datetime
 try:
     from .data_intelligence.graph_service import GraphSearchService
     from .data_intelligence.query_planner import QueryPlanner, QueryPlan, ExecutionStep, ExtractedEntities
+    from .data_intelligence.cross_encoder_reranker import CrossEncoderReranker, RankedDocument
 except ImportError:
     from app.services.data_intelligence.graph_service import GraphSearchService
     from app.services.data_intelligence.query_planner import QueryPlanner, QueryPlan, ExecutionStep, ExtractedEntities
+    from app.services.data_intelligence.cross_encoder_reranker import CrossEncoderReranker, RankedDocument
 
 logger = logging.getLogger(__name__)
 
@@ -118,16 +120,29 @@ class DataIntelligenceService:
             self.vector_service = None
             self._vector_available = False
         
+        # Initialize cross-encoder reranker
+        try:
+            self.reranker = CrossEncoderReranker(model_type="fast")
+            self._reranker_available = True
+            logger.info("✅ Reranker initialized (lazy loading)")
+        except Exception as e:
+            logger.warning(f"⚠️ Reranker unavailable: {e}")
+            self.reranker = None
+            self._reranker_available = False
+        
         logger.info(f"🧠 Data Intelligence Service ready")
         logger.info(f"   Graph: {'✓' if self._graph_available else '✗'}")
         logger.info(f"   Vector: {'✓' if self._vector_available else '✗'}")
         logger.info(f"   Planner: {'✓' if self._planner_available else '✗'}")
+        logger.info(f"   Reranker: {'✓' if self._reranker_available else '✗'}")
     
     async def search(
         self,
         query: str,
         context: str = "",
-        max_results: int = 10
+        max_results: int = 10,
+        rerank: bool = True,
+        rerank_threshold: float = -5.0
     ) -> IntelligentSearchResult:
         """
         Execute intelligent search across all available data sources.
@@ -136,6 +151,8 @@ class DataIntelligenceService:
             query: User's question
             context: Optional conversation context
             max_results: Maximum results per source
+            rerank: Whether to apply neural reranking (default: True)
+            rerank_threshold: Minimum rerank score to include (default: -5.0)
             
         Returns:
             IntelligentSearchResult with combined data from all sources
@@ -204,13 +221,31 @@ class DataIntelligenceService:
                         execution_time_ms=step_time
                     ))
             
-            # Step 3: Build answer context
+            # Step 3: Rerank and fuse results (if enabled)
+            reranked_results = []
+            if rerank and self._reranker_available and (graph_results or vector_results or keyword_results):
+                reranked_results = self._fuse_and_rerank(
+                    query=query,
+                    graph_results=graph_results,
+                    vector_results=vector_results,
+                    keyword_results=keyword_results,
+                    top_k=max_results,
+                    threshold=rerank_threshold
+                )
+                
+                if reranked_results:
+                    # Convert reranked results back to dict format
+                    vector_results = [r.to_dict() for r in reranked_results]
+                    sources.append({"type": "reranked", "operation": "cross_encoder"})
+                    logger.info(f"🔄 Reranked {len(reranked_results)} results")
+            
+            # Step 4: Build answer context
             answer_context = self._build_answer_context(
                 query=query,
                 plan=plan,
-                graph_results=graph_results,
+                graph_results=graph_results if not reranked_results else [],  # Don't duplicate
                 vector_results=vector_results,
-                keyword_results=keyword_results
+                keyword_results=keyword_results if not reranked_results else []  # Don't duplicate
             )
             
             # Calculate total time
@@ -527,16 +562,80 @@ class DataIntelligenceService:
             fallback_strategy="Use vector search only"
         )
     
+    def _fuse_and_rerank(
+        self,
+        query: str,
+        graph_results: List[Dict],
+        vector_results: List[Dict],
+        keyword_results: List[Dict],
+        top_k: int = 10,
+        threshold: float = -5.0
+    ) -> List[RankedDocument]:
+        """
+        Fuse results from multiple sources and rerank using cross-encoder.
+        
+        Args:
+            query: The search query
+            graph_results: Results from graph database
+            vector_results: Results from vector search
+            keyword_results: Results from keyword search
+            top_k: Maximum results to return
+            threshold: Minimum rerank score to include
+            
+        Returns:
+            List of reranked documents
+        """
+        if not self.reranker:
+            return []
+        
+        # Tag results with their source
+        all_results = []
+        
+        for r in graph_results:
+            r_copy = r.copy() if isinstance(r, dict) else {"data": r}
+            r_copy["_source"] = "graph"
+            all_results.append(r_copy)
+        
+        for r in vector_results:
+            r_copy = r.copy() if isinstance(r, dict) else {"data": r}
+            r_copy["_source"] = "vector"
+            all_results.append(r_copy)
+        
+        for r in keyword_results:
+            r_copy = r.copy() if isinstance(r, dict) else {"data": r}
+            r_copy["_source"] = "keyword"
+            all_results.append(r_copy)
+        
+        if not all_results:
+            return []
+        
+        logger.info(f"🔄 Fusing and reranking {len(all_results)} results from multiple sources")
+        
+        # Rerank all results together
+        try:
+            reranked = self.reranker.rerank(
+                query=query,
+                documents=all_results,
+                content_key="content",
+                top_k=top_k,
+                score_threshold=threshold
+            )
+            return reranked
+        except Exception as e:
+            logger.error(f"❌ Reranking failed: {e}")
+            return []
+    
     def get_service_status(self) -> Dict[str, Any]:
         """Get status of all services."""
         return {
             "graph_available": self._graph_available,
             "vector_available": self._vector_available,
             "planner_available": self._planner_available,
+            "reranker_available": self._reranker_available,
             "fully_operational": all([
                 self._graph_available,
                 self._planner_available
-                # Note: vector is optional for graph-only queries
+                # Note: vector and reranker are optional enhancements
             ])
         }
 

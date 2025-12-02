@@ -856,6 +856,535 @@ class GraphSearchService:
         except Exception as e:
             logger.error(f"Error getting top organizations: {e}")
             return []
+    
+    # ========================================================================
+    # QUERY TYPE F: Project Examples with Success Metrics
+    # ========================================================================
+    
+    def get_project_examples(
+        self,
+        cluster_code: Optional[str] = None,
+        topic_pattern: Optional[str] = None,
+        funding_scheme: Optional[str] = None,
+        min_budget: float = 0,
+        limit: int = 10
+    ) -> List[Dict[str, Any]]:
+        """
+        Get example projects with their details and success indicators.
+        
+        Args:
+            cluster_code: Filter by cluster (e.g., "CLUSTER-4")
+            topic_pattern: Topic code pattern to match
+            funding_scheme: Filter by RIA, IA, CSA, etc.
+            min_budget: Minimum budget threshold
+            limit: Maximum results
+            
+        Returns:
+            List of projects with consortium details
+        """
+        where_clauses = ["p.ecMaxContribution >= $min_budget"]
+        params = {"limit": limit, "min_budget": min_budget}
+        
+        if cluster_code:
+            where_clauses.append("c.code = $cluster_code")
+            params["cluster_code"] = cluster_code.upper()
+        
+        if topic_pattern:
+            where_clauses.append("t.code CONTAINS $topic_pattern")
+            params["topic_pattern"] = topic_pattern.upper()
+        
+        if funding_scheme:
+            where_clauses.append("p.fundingScheme CONTAINS $funding_scheme")
+            params["funding_scheme"] = funding_scheme.upper()
+        
+        where_clause = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+        
+        query = f"""
+        MATCH (p:Project)-[:FUNDED_UNDER]->(t:Topic)
+        OPTIONAL MATCH (p)-[:TARGETS]->(c:Cluster)
+        {where_clause}
+        
+        // Get consortium info
+        OPTIONAL MATCH (o:Organization)-[r:PARTICIPATES_IN]->(p)
+        OPTIONAL MATCH (o)-[:LOCATED_IN]->(co:Country)
+        
+        WITH p, t, c,
+             COUNT(DISTINCT o) as partnerCount,
+             COUNT(DISTINCT co) as countryCount,
+             COLLECT(DISTINCT {{
+                 name: o.name,
+                 country: co.isoCode,
+                 role: r.role
+             }})[0..5] as partners
+        
+        RETURN p.id as projectId,
+               p.acronym as acronym,
+               p.title as title,
+               left(p.objective, 500) as objective,
+               p.status as status,
+               p.startDate as startDate,
+               p.endDate as endDate,
+               p.ecMaxContribution as budget,
+               p.fundingScheme as fundingScheme,
+               t.code as topicCode,
+               c.code as clusterCode,
+               c.name as clusterName,
+               partnerCount,
+               countryCount,
+               partners
+        ORDER BY p.ecMaxContribution DESC
+        LIMIT $limit
+        """
+        
+        try:
+            results = self.db.execute_query(query, params)
+            return [
+                {
+                    "project_id": r.get("projectId"),
+                    "acronym": r.get("acronym"),
+                    "title": r.get("title"),
+                    "objective": r.get("objective"),
+                    "status": r.get("status"),
+                    "start_date": r.get("startDate"),
+                    "end_date": r.get("endDate"),
+                    "budget": r.get("budget", 0) or 0,
+                    "funding_scheme": r.get("fundingScheme"),
+                    "topic_code": r.get("topicCode"),
+                    "cluster_code": r.get("clusterCode"),
+                    "cluster_name": r.get("clusterName"),
+                    "partner_count": r.get("partnerCount", 0),
+                    "country_count": r.get("countryCount", 0),
+                    "partners": r.get("partners", []),
+                    "source": "neo4j_graph"
+                }
+                for r in results
+            ]
+        except Exception as e:
+            logger.error(f"Error getting project examples: {e}")
+            return []
+    
+    # ========================================================================
+    # QUERY TYPE G: Organization Track Record
+    # ========================================================================
+    
+    def get_organization_track_record(
+        self,
+        org_name: str,
+        include_partners: bool = True
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Get comprehensive track record for an organization.
+        
+        Args:
+            org_name: Organization name (partial match)
+            include_partners: Include top collaboration partners
+            
+        Returns:
+            Organization profile with project history and statistics
+        """
+        query = """
+        MATCH (o:Organization)
+        WHERE toLower(o.name) CONTAINS toLower($org_name)
+           OR toLower(o.shortName) CONTAINS toLower($org_name)
+        
+        OPTIONAL MATCH (o)-[:LOCATED_IN]->(co:Country)
+        OPTIONAL MATCH (o)-[:IS_TYPE]->(et:EntityType)
+        OPTIONAL MATCH (o)-[r:PARTICIPATES_IN]->(p:Project)
+        OPTIONAL MATCH (p)-[:TARGETS]->(c:Cluster)
+        OPTIONAL MATCH (p)-[:FUNDED_UNDER]->(t:Topic)
+        
+        WITH o, co, et,
+             COLLECT(DISTINCT {
+                 id: p.id,
+                 acronym: p.acronym,
+                 title: p.title,
+                 budget: p.ecMaxContribution,
+                 role: r.role,
+                 status: p.status,
+                 cluster: c.code,
+                 topic: t.code
+             }) as projects
+        
+        // Calculate statistics
+        WITH o, co, et, projects,
+             SIZE(projects) as totalProjects,
+             SIZE([p IN projects WHERE p.role = 'coordinator']) as coordinations,
+             REDUCE(s = 0.0, p IN projects | s + COALESCE(p.budget, 0)) as totalFunding
+        
+        RETURN o.id as orgId,
+               o.name as name,
+               o.shortName as shortName,
+               co.isoCode as country,
+               co.name as countryName,
+               et.code as entityType,
+               et.name as entityTypeName,
+               totalProjects,
+               coordinations,
+               totalFunding,
+               projects[0..10] as recentProjects
+        LIMIT 1
+        """
+        
+        try:
+            results = self.db.execute_query(query, {"org_name": org_name})
+            
+            if not results:
+                return None
+            
+            r = results[0]
+            result = {
+                "org_id": r.get("orgId"),
+                "name": r.get("name"),
+                "short_name": r.get("shortName"),
+                "country": r.get("country"),
+                "country_name": r.get("countryName"),
+                "entity_type": r.get("entityType"),
+                "entity_type_name": r.get("entityTypeName"),
+                "total_projects": r.get("totalProjects", 0),
+                "coordinations": r.get("coordinations", 0),
+                "total_funding": r.get("totalFunding", 0) or 0,
+                "recent_projects": r.get("recentProjects", []),
+                "source": "neo4j_graph"
+            }
+            
+            # Get top partners if requested
+            if include_partners:
+                partners = self.find_organization_partners(org_name, limit=5)
+                result["top_partners"] = partners
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error getting organization track record: {e}")
+            return None
+    
+    # ========================================================================
+    # Compliance Checker: Consortium Validation
+    # ========================================================================
+    
+    def check_consortium_compliance(
+        self,
+        partners: List[Dict[str, str]],
+        action_type: str = "RIA",
+        call_specific_rules: Optional[Dict] = None
+    ) -> Dict[str, Any]:
+        """
+        Check if a proposed consortium meets eligibility requirements.
+        
+        Args:
+            partners: List of partners with {country, entity_type, is_coordinator}
+            action_type: RIA, IA, CSA, ERC, MSCA, etc.
+            call_specific_rules: Override default rules
+            
+        Returns:
+            Compliance check results with issues and recommendations
+        """
+        # Default rules by action type
+        default_rules = {
+            "RIA": {
+                "min_partners": 3,
+                "min_countries": 3,
+                "countries_must_be_different": True,
+                "requires_eu_coordinator": True
+            },
+            "IA": {
+                "min_partners": 3,
+                "min_countries": 3,
+                "countries_must_be_different": True,
+                "requires_eu_coordinator": True
+            },
+            "CSA": {
+                "min_partners": 1,
+                "min_countries": 1,
+                "countries_must_be_different": False,
+                "requires_eu_coordinator": True
+            },
+            "ERC": {
+                "min_partners": 1,
+                "min_countries": 1,
+                "countries_must_be_different": False,
+                "requires_eu_coordinator": True
+            },
+            "MSCA": {
+                "min_partners": 1,
+                "min_countries": 1,
+                "countries_must_be_different": False,
+                "requires_eu_coordinator": True
+            }
+        }
+        
+        rules = call_specific_rules or default_rules.get(action_type.upper(), default_rules["RIA"])
+        
+        issues = []
+        warnings = []
+        
+        # Check partner count
+        if len(partners) < rules.get("min_partners", 1):
+            issues.append({
+                "type": "partner_count",
+                "severity": "error",
+                "message": f"Minimum {rules['min_partners']} partners required, found {len(partners)}"
+            })
+        
+        # Check country diversity
+        countries = set(p.get("country", "").upper() for p in partners if p.get("country"))
+        if len(countries) < rules.get("min_countries", 1):
+            issues.append({
+                "type": "country_count",
+                "severity": "error",
+                "message": f"Minimum {rules['min_countries']} different countries required, found {len(countries)}"
+            })
+        
+        # Check if countries must be different
+        if rules.get("countries_must_be_different") and len(partners) > 1:
+            if len(countries) < min(len(partners), rules.get("min_countries", 3)):
+                warnings.append({
+                    "type": "country_diversity",
+                    "severity": "warning",
+                    "message": "Consider partners from more diverse countries for stronger proposal"
+                })
+        
+        # Check EU coordinator requirement
+        coordinator = next((p for p in partners if p.get("is_coordinator")), None)
+        if coordinator:
+            coord_country = coordinator.get("country", "").upper()
+            if rules.get("requires_eu_coordinator"):
+                if coord_country and coord_country not in self.EU_MEMBER_STATES and coord_country not in self.ASSOCIATED_COUNTRIES:
+                    issues.append({
+                        "type": "coordinator_eligibility",
+                        "severity": "error",
+                        "message": f"Coordinator country {coord_country} may not be eligible to coordinate"
+                    })
+        elif len(partners) > 0:
+            warnings.append({
+                "type": "no_coordinator",
+                "severity": "warning",
+                "message": "No coordinator specified - ensure one partner is designated as coordinator"
+            })
+        
+        # Check entity diversity (recommendation)
+        entity_types = set(p.get("entity_type", "").upper() for p in partners if p.get("entity_type"))
+        if len(entity_types) == 1 and len(partners) >= 3:
+            warnings.append({
+                "type": "entity_diversity",
+                "severity": "recommendation",
+                "message": "Consider including diverse entity types (research, industry, SME) for stronger impact"
+            })
+        
+        # Check for SME participation (often valued)
+        has_sme = any("SME" in p.get("entity_type", "").upper() or "PRC" in p.get("entity_type", "").upper() 
+                      for p in partners)
+        if not has_sme and action_type.upper() in ["RIA", "IA"]:
+            warnings.append({
+                "type": "sme_participation",
+                "severity": "recommendation",
+                "message": "Consider including SME/private sector partners for innovation and exploitation"
+            })
+        
+        is_compliant = len(issues) == 0
+        
+        return {
+            "is_compliant": is_compliant,
+            "action_type": action_type.upper(),
+            "rules_applied": rules,
+            "partner_count": len(partners),
+            "country_count": len(countries),
+            "countries": sorted(list(countries)),
+            "entity_types": sorted(list(entity_types)),
+            "issues": issues,
+            "warnings": warnings,
+            "recommendation": "Consortium meets basic eligibility criteria ✓" if is_compliant 
+                            else f"Address {len(issues)} issue(s) before submission",
+            "source": "compliance_checker"
+        }
+    
+    # ========================================================================
+    # Consortium Builder: Partner Suggestions
+    # ========================================================================
+    
+    def suggest_consortium_partners(
+        self,
+        cluster_code: str,
+        topic_code: Optional[str] = None,
+        coordinator_country: Optional[str] = None,
+        target_partner_count: int = 5,
+        required_entity_types: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        """
+        Suggest potential consortium partners for a project.
+        
+        Args:
+            cluster_code: Target cluster (e.g., "CLUSTER-4")
+            topic_code: Specific topic (optional)
+            coordinator_country: Coordinator's country to exclude
+            target_partner_count: Number of partners to suggest
+            required_entity_types: Required entity types ["HES", "REC", "PRC"]
+            
+        Returns:
+            Dictionary with suggested partners grouped by role/type
+        """
+        params = {
+            "cluster_code": cluster_code.upper(),
+            "limit": target_partner_count * 3  # Get more to filter
+        }
+        
+        where_clauses = []
+        
+        if coordinator_country:
+            where_clauses.append("co.isoCode <> $coord_country")
+            params["coord_country"] = coordinator_country.upper()
+        
+        where_clause = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+        
+        # Find organizations active in this cluster with good track record
+        query = f"""
+        MATCH (o:Organization)-[r:PARTICIPATES_IN]->(p:Project)-[:TARGETS]->(c:Cluster {{code: $cluster_code}})
+        OPTIONAL MATCH (o)-[:LOCATED_IN]->(co:Country)
+        OPTIONAL MATCH (o)-[:IS_TYPE]->(et:EntityType)
+        {where_clause}
+        
+        WITH o, co, et,
+             COUNT(DISTINCT p) as projectCount,
+             COUNT(CASE WHEN r.role = 'coordinator' THEN 1 END) as coordinations,
+             SUM(r.ecContribution) as totalFunding
+        
+        WHERE projectCount >= 2
+        
+        RETURN o.id as orgId,
+               o.name as name,
+               o.shortName as shortName,
+               co.isoCode as country,
+               co.name as countryName,
+               et.code as entityType,
+               et.name as entityTypeName,
+               projectCount,
+               coordinations,
+               totalFunding
+        ORDER BY projectCount DESC, coordinations DESC
+        LIMIT $limit
+        """
+        
+        try:
+            candidates = self.db.execute_query(query, params)
+            
+            # Group by entity type
+            by_type: Dict[str, List[Dict]] = {"HES": [], "REC": [], "PRC": [], "PUB": [], "OTH": []}
+            countries_seen: set = set()
+            
+            suggestions = []
+            
+            for candidate in candidates:
+                entity_type = candidate.get("entityType") or "OTH"
+                country = candidate.get("country")
+                
+                # Format candidate
+                formatted = {
+                    "org_id": candidate.get("orgId"),
+                    "name": candidate.get("name"),
+                    "short_name": candidate.get("shortName"),
+                    "country": country,
+                    "country_name": candidate.get("countryName"),
+                    "entity_type": entity_type,
+                    "entity_type_name": candidate.get("entityTypeName"),
+                    "project_count": candidate.get("projectCount", 0),
+                    "coordinations": candidate.get("coordinations", 0),
+                    "total_funding": candidate.get("totalFunding", 0) or 0
+                }
+                
+                # Prioritize geographic diversity
+                if country not in countries_seen or len(by_type.get(entity_type, [])) < 2:
+                    by_type.setdefault(entity_type, []).append(formatted)
+                    if country:
+                        countries_seen.add(country)
+                    suggestions.append(formatted)
+                    
+                    if len(suggestions) >= target_partner_count:
+                        break
+            
+            return {
+                "cluster": cluster_code,
+                "topic": topic_code,
+                "suggestions": suggestions[:target_partner_count],
+                "by_entity_type": {k: v[:2] for k, v in by_type.items() if v},
+                "countries_covered": list(countries_seen)[:10],
+                "total_candidates": len(candidates),
+                "source": "neo4j_graph"
+            }
+            
+        except Exception as e:
+            logger.error(f"Error suggesting consortium partners: {e}")
+            return {"suggestions": [], "error": str(e)}
+    
+    # ========================================================================
+    # QUERY TYPE H: Trend Analysis
+    # ========================================================================
+    
+    def get_funding_trends(
+        self,
+        cluster_code: Optional[str] = None,
+        group_by: str = "year"
+    ) -> List[Dict[str, Any]]:
+        """
+        Get funding trends over time.
+        
+        Args:
+            cluster_code: Optional cluster filter
+            group_by: Time grouping ("year" or "quarter")
+            
+        Returns:
+            List of time periods with funding statistics
+        """
+        where_clauses = ["p.startDate IS NOT NULL"]
+        params = {}
+        
+        if cluster_code:
+            where_clauses.append("c.code = $cluster_code")
+            params["cluster_code"] = cluster_code.upper()
+        
+        where_clause = "WHERE " + " AND ".join(where_clauses)
+        
+        if group_by == "quarter":
+            date_extract = "substring(p.startDate, 0, 7)"  # YYYY-MM
+        else:
+            date_extract = "substring(p.startDate, 0, 4)"  # YYYY
+        
+        query = f"""
+        MATCH (p:Project)
+        OPTIONAL MATCH (p)-[:TARGETS]->(c:Cluster)
+        {where_clause}
+        
+        WITH {date_extract} as period, p, c
+        
+        WITH period,
+             COUNT(p) as projectCount,
+             SUM(p.ecMaxContribution) as totalFunding,
+             AVG(p.ecMaxContribution) as avgBudget,
+             COLLECT(DISTINCT c.code) as clusters
+        
+        RETURN period,
+               projectCount,
+               totalFunding,
+               avgBudget,
+               clusters
+        ORDER BY period
+        """
+        
+        try:
+            results = self.db.execute_query(query, params)
+            return [
+                {
+                    "period": r.get("period"),
+                    "project_count": r.get("projectCount", 0),
+                    "total_funding": r.get("totalFunding", 0) or 0,
+                    "avg_budget": r.get("avgBudget", 0) or 0,
+                    "clusters": [c for c in r.get("clusters", []) if c],
+                    "source": "neo4j_graph"
+                }
+                for r in results
+            ]
+        except Exception as e:
+            logger.error(f"Error getting funding trends: {e}")
+            return []
 
 
 # Module-level instance for convenience

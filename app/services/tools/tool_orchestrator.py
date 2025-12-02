@@ -1526,6 +1526,215 @@ This tool should be preferred over basic search for complex questions about:
         
         self.register_tool(intelligent_search_tool)
         logger.info("📊 Registered intelligent_search tool")
+        
+        # ====================================================================
+        # CONSORTIUM BUILDER TOOL
+        # ====================================================================
+        
+        async def consortium_builder_execute(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+            """
+            Build consortium suggestions based on track record and geographic diversity.
+            """
+            try:
+                from ..data_intelligence.graph_service import GraphSearchService
+                
+                cluster_code = params.get('cluster_code', '')
+                topic_code = params.get('topic_code')
+                coordinator_country = params.get('coordinator_country')
+                target_partners = params.get('target_partners', 5)
+                
+                if not cluster_code:
+                    return {
+                        'success': False,
+                        'error': 'cluster_code is required',
+                        'error_type': 'validation_error',
+                        'tool_name': 'consortium_builder',
+                        'results': {}
+                    }
+                
+                logger.info(f"🏢 Building consortium for {cluster_code}")
+                
+                service = GraphSearchService()
+                result = service.suggest_consortium_partners(
+                    cluster_code=cluster_code,
+                    topic_code=topic_code,
+                    coordinator_country=coordinator_country,
+                    target_partner_count=target_partners
+                )
+                
+                return {
+                    'success': True,
+                    'tool_name': 'consortium_builder',
+                    'results': result,
+                    'metadata': {
+                        'cluster': cluster_code,
+                        'partners_suggested': len(result.get('suggestions', [])),
+                        'countries_covered': len(result.get('countries_covered', []))
+                    }
+                }
+                
+            except Exception as e:
+                logger.error(f"Consortium builder error: {e}")
+                return {
+                    'success': False,
+                    'error': str(e),
+                    'error_type': 'execution_error',
+                    'tool_name': 'consortium_builder',
+                    'results': {}
+                }
+        
+        consortium_builder_tool = Tool(
+            name='consortium_builder',
+            description='''Suggests potential consortium partners for Horizon Europe proposals.
+
+Analyzes the Neo4j graph database to find organizations with:
+- Strong track record in the target cluster/topic
+- Geographic diversity (different EU countries)
+- Balanced entity types (HES, REC, PRC mix)
+- Prior successful collaborations
+
+Use this tool when the user is:
+- Preparing a proposal and needs partner suggestions
+- Looking for organizations in a specific cluster
+- Wanting to build a balanced consortium''',
+            parameters_schema={
+                'cluster_code': {
+                    'type': 'string',
+                    'required': True,
+                    'description': 'Target cluster (e.g., "CLUSTER-4", "CLUSTER-5")'
+                },
+                'topic_code': {
+                    'type': 'string',
+                    'required': False,
+                    'description': 'Specific topic code (optional)'
+                },
+                'coordinator_country': {
+                    'type': 'string',
+                    'required': False,
+                    'description': 'Country code to exclude (e.g., "NL" if coordinator is Dutch)'
+                },
+                'target_partners': {
+                    'type': 'integer',
+                    'required': False,
+                    'default': 5,
+                    'min': 3,
+                    'max': 15,
+                    'description': 'Number of partners to suggest'
+                }
+            },
+            execute_func=consortium_builder_execute,
+            cache_ttl=3600,  # 1 hour
+            parallel_safe=True,
+            category='data_intelligence',
+            tags=['consortium', 'partners', 'proposal', 'horizon_europe', 'collaboration'],
+            usage_examples=[
+                'Suggest partners for a Cluster 4 proposal',
+                'Find potential consortium members for CLUSTER-5',
+                'Build a consortium for digital project, coordinator from Germany'
+            ]
+        )
+        
+        self.register_tool(consortium_builder_tool)
+        logger.info("🏢 Registered consortium_builder tool")
+        
+        # ====================================================================
+        # COMPLIANCE CHECKER TOOL
+        # ====================================================================
+        
+        async def compliance_checker_execute(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+            """
+            Check consortium compliance against Horizon Europe rules.
+            """
+            try:
+                from ..data_intelligence.graph_service import GraphSearchService
+                
+                partners = params.get('partners', [])
+                action_type = params.get('action_type', 'RIA')
+                
+                if not partners:
+                    return {
+                        'success': False,
+                        'error': 'partners list is required',
+                        'error_type': 'validation_error',
+                        'tool_name': 'compliance_checker',
+                        'results': {}
+                    }
+                
+                logger.info(f"✅ Checking compliance for {len(partners)} partners ({action_type})")
+                
+                service = GraphSearchService()
+                result = service.check_consortium_compliance(
+                    partners=partners,
+                    action_type=action_type
+                )
+                
+                return {
+                    'success': True,
+                    'tool_name': 'compliance_checker',
+                    'results': result,
+                    'metadata': {
+                        'is_compliant': result.get('is_compliant'),
+                        'issues_count': len(result.get('issues', [])),
+                        'warnings_count': len(result.get('warnings', []))
+                    }
+                }
+                
+            except Exception as e:
+                logger.error(f"Compliance checker error: {e}")
+                return {
+                    'success': False,
+                    'error': str(e),
+                    'error_type': 'execution_error',
+                    'tool_name': 'compliance_checker',
+                    'results': {}
+                }
+        
+        compliance_checker_tool = Tool(
+            name='compliance_checker',
+            description='''Validates consortium composition against Horizon Europe eligibility rules.
+
+Checks:
+- Minimum partner count for action type (RIA/IA: 3, CSA: 1)
+- Country diversity requirements (RIA/IA: 3 different countries)
+- Coordinator eligibility (must be from EU/Associated country)
+- Entity type balance recommendations
+
+Returns issues that must be addressed and recommendations for improvement.''',
+            parameters_schema={
+                'partners': {
+                    'type': 'array',
+                    'required': True,
+                    'description': 'List of partners with {country, entity_type, is_coordinator}',
+                    'items': {
+                        'type': 'object',
+                        'properties': {
+                            'country': {'type': 'string', 'description': 'ISO country code (e.g., "DE", "NL")'},
+                            'entity_type': {'type': 'string', 'description': 'Entity type (HES, REC, PRC, SME)'},
+                            'is_coordinator': {'type': 'boolean', 'description': 'Is this the coordinator?'}
+                        }
+                    }
+                },
+                'action_type': {
+                    'type': 'string',
+                    'required': False,
+                    'default': 'RIA',
+                    'description': 'Action type: RIA, IA, CSA, ERC, MSCA'
+                }
+            },
+            execute_func=compliance_checker_execute,
+            cache_ttl=0,  # No caching - always check fresh
+            parallel_safe=True,
+            category='data_intelligence',
+            tags=['compliance', 'eligibility', 'validation', 'consortium', 'horizon_europe'],
+            usage_examples=[
+                'Check if our 3-partner consortium is eligible for RIA',
+                'Validate consortium composition for IA action',
+                'Is our consortium eligible with partners from DE, NL, FR?'
+            ]
+        )
+        
+        self.register_tool(compliance_checker_tool)
+        logger.info("✅ Registered compliance_checker tool")
     
     def get_available_tools(self) -> List[Dict[str, Any]]:
         """
