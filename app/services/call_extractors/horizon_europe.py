@@ -306,97 +306,200 @@ class HorizonEuropeExtractor(CallExtractor):
         return None
     
     def _extract_expected_outcome(self, content: str, topic_code: str) -> Optional[str]:
-        """Extract the Expected Outcome section for a call."""
-        # Find the topic code position
-        start_idx = content.upper().find(topic_code.upper())
-        if start_idx == -1:
-            return None
+        """
+        Extract the Expected Outcome section for a call.
         
-        # Search for "Expected Outcome" after the topic code
-        search_content = content[start_idx:start_idx+5000]
+        Strategy: Search entire document for the topic code's detailed section,
+        which may be far from the first mention (e.g., table of contents).
+        """
+        # Find ALL occurrences of the topic code
+        topic_upper = topic_code.upper()
+        content_upper = content.upper()
+        
+        # Look for the detailed section (usually after title on its own line)
+        # Pattern: "HORIZON-CL5-2025-...: Title\nExpected Outcome..."
+        detail_pattern = rf'{re.escape(topic_code)}[:\s]+[^\n]+\n.*?Expected\s+Outcome'
+        detail_match = re.search(detail_pattern, content, re.IGNORECASE | re.DOTALL)
+        
+        if detail_match:
+            start_idx = detail_match.start()
+        else:
+            # Fall back to first occurrence
+            start_idx = content_upper.find(topic_upper)
+            if start_idx == -1:
+                return None
+        
+        # Search for "Expected Outcome" in this section
+        search_content = content[start_idx:start_idx+8000]
         
         patterns = [
-            r'Expected\s+Outcome[s]?[:\s]+(.{100,1500}?)(?=Scope[:\s]|$)',
-            r'Project\s+results\s+are\s+expected\s+to\s+contribute\s+to[:\s]+(.{100,1500}?)(?=Scope[:\s]|$)',
+            # Standard format: "Expected Outcome: ..."
+            r'Expected\s+Outcome[s]?[:\s]+(.{50,2000}?)(?=Scope[:\s]|Legal\s+and|Eligibility|HORIZON-[A-Z]|$)',
+            # Alternative: "Project results are expected to contribute..."
+            r'Project\s+results\s+are\s+expected\s+to\s+contribute\s+to[:\s]*(.{50,1500}?)(?=Scope[:\s]|$)',
+            # Bullet point format
+            r'Expected\s+Outcome[s]?[:\s]*\n(.{50,2000}?)(?=Scope|Legal|$)',
         ]
         
         for pattern in patterns:
             match = re.search(pattern, search_content, re.IGNORECASE | re.DOTALL)
             if match:
                 outcome = self.clean_text(match.group(1), max_length=1500)
-                if len(outcome) > 50:
+                if len(outcome) > 30:
                     return outcome
         
         return None
     
     def _extract_scope(self, content: str, topic_code: str) -> Optional[str]:
-        """Extract the Scope section for a call."""
-        # Find the topic code position
-        start_idx = content.upper().find(topic_code.upper())
-        if start_idx == -1:
-            return None
+        """
+        Extract the Scope section for a call.
         
-        # Search for "Scope:" after the topic code
-        search_content = content[start_idx:start_idx+8000]
+        The Scope section describes what the project should do.
+        """
+        # Find ALL occurrences of the topic code
+        topic_upper = topic_code.upper()
+        content_upper = content.upper()
+        
+        # Look for the detailed section with Scope
+        detail_pattern = rf'{re.escape(topic_code)}.*?Scope[:\s]'
+        detail_match = re.search(detail_pattern, content, re.IGNORECASE | re.DOTALL)
+        
+        if detail_match:
+            start_idx = detail_match.start()
+        else:
+            start_idx = content_upper.find(topic_upper)
+            if start_idx == -1:
+                return None
+        
+        # Search for "Scope:" in this section
+        search_content = content[start_idx:start_idx+10000]
         
         patterns = [
-            r'Scope[:\s]+(.{100,2000}?)(?=Legal\s+and\s+financial|Eligibility|Specific\s+conditions|$)',
-            r'Activities\s+(?:are\s+)?expected\s+to[:\s]+(.{100,1500}?)(?=Legal|Eligibility|$)',
+            # Standard format: "Scope: ..."
+            r'Scope[:\s]+(.{50,3000}?)(?=Legal\s+and\s+financial|Eligibility|Specific\s+conditions|Technology\s+Readiness|HORIZON-[A-Z]|$)',
+            # Alternative formats
+            r'Scope[:\s]*\n(.{50,2500}?)(?=Legal|Eligibility|Technology|$)',
+            # "Activities are expected to..."
+            r'(?:Scope[:\s]*)?Activities\s+(?:are\s+)?expected\s+to[:\s]*(.{50,2000}?)(?=Legal|Eligibility|$)',
+            # "Proposals should/must..."
+            r'Proposals\s+(?:should|must|are\s+expected\s+to)[:\s]*(.{50,2000}?)(?=Legal|Eligibility|$)',
         ]
         
         for pattern in patterns:
             match = re.search(pattern, search_content, re.IGNORECASE | re.DOTALL)
             if match:
-                scope = self.clean_text(match.group(1), max_length=2000)
-                if len(scope) > 50:
+                scope = self.clean_text(match.group(1), max_length=2500)
+                if len(scope) > 30:
                     return scope
         
         return None
     
     def _extract_budget_info(self, content: str, topic_code: str) -> Dict[str, Any]:
-        """Extract budget information for a call."""
+        """
+        Extract budget information for a call.
+        
+        Looks for:
+        - Total budget for the topic
+        - Budget per project (min/max)
+        - Expected number of projects
+        - Funding rate
+        """
         result = {}
         
-        # Find content near the topic code
+        # Find content around the topic code
         start_idx = content.upper().find(topic_code.upper())
         if start_idx == -1:
             return result
         
-        search_content = content[start_idx:start_idx+2000]
+        # Look in a wider range - budget info can be before or after
+        search_start = max(0, start_idx - 500)
+        search_content = content[search_start:start_idx + 3000]
         
-        # Look for budget patterns
-        # "EUR 10 million", "EUR 5.00 million", "budget: EUR 15M"
+        # Budget patterns - more comprehensive
         budget_patterns = [
-            r'(?:budget|contribution)[:\s]+(?:EUR\s*)?(\d+(?:\.\d+)?)\s*(?:million|M)',
-            r'EUR\s*(\d+(?:\.\d+)?)\s*(?:million|M)',
-            r'(\d+(?:\.\d+)?)\s*(?:million|M)\s*EUR',
+            # "indicative budget of EUR 10.00 million"
+            r'(?:indicative\s+)?budget[:\s]+(?:of\s+)?(?:EUR\s*)?(\d+(?:[.,]\d+)?)\s*(?:million|M\b)',
+            # "EUR 10 million" standalone
+            r'\bEUR\s*(\d+(?:[.,]\d+)?)\s*(?:million|M\b)',
+            # "10.00 million EUR"
+            r'(\d+(?:[.,]\d+)?)\s*(?:million|M)\s*EUR',
+            # "contribution of EUR 10M"
+            r'contribution[:\s]+(?:of\s+)?(?:EUR\s*)?(\d+(?:[.,]\d+)?)\s*(?:million|M\b)',
+            # In tables: "10.00" followed by "million" context
+            r'(\d+(?:[.,]\d+)?)\s+(?:million|M\b)',
         ]
         
         for pattern in budget_patterns:
+            matches = re.findall(pattern, search_content, re.IGNORECASE)
+            for match in matches:
+                try:
+                    # Handle European number format (comma as decimal)
+                    amount_str = match.replace(',', '.')
+                    amount = float(amount_str)
+                    # Only accept reasonable budget amounts (0.5M - 500M)
+                    if 0.5 <= amount <= 500:
+                        result['total'] = Decimal(str(amount * 1_000_000))
+                        break
+                except ValueError:
+                    continue
+            if 'total' in result:
+                break
+        
+        # Budget per project patterns
+        per_project_patterns = [
+            r'(?:around|approximately|up\s+to)\s+(?:EUR\s*)?(\d+(?:[.,]\d+)?)\s*(?:million|M)',
+            r'per\s+project[:\s]+(?:EUR\s*)?(\d+(?:[.,]\d+)?)\s*(?:million|M)',
+            r'(\d+(?:[.,]\d+)?)\s+to\s+(\d+(?:[.,]\d+)?)\s*(?:million|M)',  # Range
+        ]
+        
+        for pattern in per_project_patterns:
             match = re.search(pattern, search_content, re.IGNORECASE)
             if match:
                 try:
-                    amount = float(match.group(1)) * 1_000_000
-                    result['total'] = Decimal(str(amount))
+                    groups = match.groups()
+                    if len(groups) == 2 and groups[1]:  # Range
+                        result['min'] = Decimal(str(float(groups[0].replace(',', '.')) * 1_000_000))
+                        result['max'] = Decimal(str(float(groups[1].replace(',', '.')) * 1_000_000))
+                    else:
+                        result['max'] = Decimal(str(float(groups[0].replace(',', '.')) * 1_000_000))
                     break
-                except ValueError:
+                except (ValueError, IndexError):
                     continue
         
-        # Look for expected projects
-        projects_match = re.search(r'Around\s+(\d+)', search_content, re.IGNORECASE)
-        if projects_match:
-            try:
-                result['projects'] = int(projects_match.group(1))
-            except ValueError:
-                pass
+        # Expected projects: "Around 2", "Expected: 3", "2-3 projects"
+        projects_patterns = [
+            r'Around\s+(\d+)',
+            r'(?:expected|indicative)[:\s]+(\d+)\s*(?:project|grant)',
+            r'(\d+)\s*(?:to|-)\s*(\d+)\s*project',
+            r'number\s+of\s+projects[:\s]+(\d+)',
+        ]
         
-        # Look for funding rate
-        rate_match = re.search(r'funding\s+rate[:\s]+(\d+)\s*%', search_content, re.IGNORECASE)
-        if rate_match:
-            try:
-                result['rate'] = int(rate_match.group(1))
-            except ValueError:
-                pass
+        for pattern in projects_patterns:
+            match = re.search(pattern, search_content, re.IGNORECASE)
+            if match:
+                try:
+                    result['projects'] = int(match.group(1))
+                    break
+                except (ValueError, IndexError):
+                    continue
+        
+        # Funding rate: "100%", "70%", "funding rate of 100%"
+        rate_patterns = [
+            r'funding\s+rate[:\s]+(?:of\s+)?(?:up\s+to\s+)?(\d+)\s*%',
+            r'(\d+)\s*%\s*(?:funding|of\s+eligible\s+costs)',
+            r'rate[:\s]+(\d+)\s*%',
+        ]
+        
+        for pattern in rate_patterns:
+            match = re.search(pattern, search_content, re.IGNORECASE)
+            if match:
+                try:
+                    rate = int(match.group(1))
+                    if 1 <= rate <= 100:
+                        result['rate'] = rate
+                        break
+                except ValueError:
+                    continue
         
         return result
     

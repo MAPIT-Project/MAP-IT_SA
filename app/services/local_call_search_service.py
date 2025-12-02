@@ -134,6 +134,7 @@ class LocalCallSearchService:
         
         self._db_url = settings.database_url
         self._structured_available = False
+        self._enrichment_service = None
         
         # Try to check if funding_calls table exists
         try:
@@ -151,6 +152,14 @@ class LocalCallSearchService:
                 cursor.execute("SELECT COUNT(*) FROM funding_calls")
                 count = cursor.fetchone()[0]
                 logger.info(f"✅ Structured call database available ({count} calls)")
+                
+                # Initialize enrichment service for on-demand API fetching
+                try:
+                    from .call_enrichment_service import CallEnrichmentService
+                    self._enrichment_service = CallEnrichmentService(self._db_url)
+                    logger.info("✅ Call enrichment service available (will fetch missing data from EU Portal)")
+                except Exception as e:
+                    logger.warning(f"Call enrichment service not available: {e}")
             conn.close()
         except Exception as e:
             logger.warning(f"Structured call database not available: {e}")
@@ -159,7 +168,7 @@ class LocalCallSearchService:
         try:
             self.vector_service = VectorSearchService()
             self._available = True
-            logger.info("✅ LocalCallSearchService initialized (LOCAL ONLY - no external API)")
+            logger.info("✅ LocalCallSearchService initialized")
         except Exception as e:
             logger.error(f"❌ Failed to initialize LocalCallSearchService: {e}")
             self._available = False
@@ -422,8 +431,24 @@ class LocalCallSearchService:
             logger.error(f"Structured search failed: {e}")
             return []
     
-    def _format_structured_call(self, call: Dict[str, Any]) -> Dict[str, Any]:
-        """Format a structured call result to match the expected output format."""
+    def _format_structured_call(self, call: Dict[str, Any], enrich: bool = True) -> Dict[str, Any]:
+        """
+        Format a structured call result to match the expected output format.
+        
+        If enrich=True and data is incomplete, fetches from EU Portal API.
+        """
+        # Check if we need to enrich this call
+        topic_code = call.get('topic_code')
+        scope = call.get('scope') or ''
+        
+        if enrich and self._enrichment_service and len(scope) < 50 and topic_code:
+            logger.info(f"📡 Enriching {topic_code} from EU Portal API...")
+            enriched = self._enrichment_service.get_call_details(topic_code)
+            if enriched:
+                # Merge enriched data with original
+                call = {**call, **enriched}
+                logger.info(f"✅ Enriched {topic_code} successfully")
+        
         # Format deadline
         deadline = call.get('deadline')
         if deadline:
@@ -435,7 +460,9 @@ class LocalCallSearchService:
         # Format budget
         budget = call.get('budget_total')
         if budget:
-            if budget >= 1_000_000:
+            if isinstance(budget, str):
+                budget = budget  # Already formatted
+            elif budget >= 1_000_000:
                 budget = f"EUR {budget / 1_000_000:.1f} million"
             else:
                 budget = f"EUR {budget:,.0f}"
@@ -457,7 +484,50 @@ class LocalCallSearchService:
             'url': call.get('portal_url'),
             'call_year': call.get('call_year'),
             'expected_projects': call.get('expected_projects'),
+            'enriched': call.get('enriched_from_api', False),
         }
+    
+    def get_call_details(self, topic_code: str) -> Optional[Dict[str, Any]]:
+        """
+        Get complete details for a specific call.
+        
+        Always tries to enrich with API data if local data is incomplete.
+        """
+        if not topic_code:
+            return None
+        
+        topic_code = topic_code.upper().strip()
+        
+        # First check local database
+        local_call = self._get_local_call(topic_code)
+        
+        # If enrichment service available, get complete data
+        if self._enrichment_service:
+            enriched = self._enrichment_service.get_call_details(topic_code)
+            if enriched:
+                return self._format_structured_call(enriched, enrich=False)
+        
+        # Fall back to local data
+        if local_call:
+            return self._format_structured_call(local_call, enrich=False)
+        
+        return None
+    
+    def _get_local_call(self, topic_code: str) -> Optional[Dict[str, Any]]:
+        """Get call from local database."""
+        try:
+            conn = psycopg2.connect(self._db_url)
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                "SELECT * FROM funding_calls WHERE topic_code = %s",
+                (topic_code,)
+            )
+            result = cursor.fetchone()
+            conn.close()
+            return dict(result) if result else None
+        except Exception as e:
+            logger.error(f"Database error: {e}")
+            return None
     
     def _extract_year_from_call(self, call: LocalCallResult) -> Optional[int]:
         """Extract the year from a call's topic code or content."""
