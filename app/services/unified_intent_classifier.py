@@ -313,6 +313,29 @@ Now classify the message above:"""
         """Generate appropriate tool plan based on intent"""
         
         intent = classification.get('primary_intent')
+        message_lower = user_message.lower()
+        
+        # Check if query would benefit from intelligent_search (graph + LLM planning)
+        intelligent_triggers = [
+            'eligible', 'eligibility', 'can participate', 'allowed to',
+            'budget', 'funding', 'maximum', 'minimum', 'average',
+            'consortium', 'partners', 'countries required', 'how many',
+            'similar', 'like', 'related to', 'find calls',
+            'cluster', 'horizon-', 'who has', 'track record',
+            'switzerland', 'associated', 'third country',
+            'sme', 'university', 'research organization',
+            'ria', 'ia', 'csa', 'erc', 'msca',
+        ]
+        
+        if any(trigger in message_lower for trigger in intelligent_triggers):
+            return [{
+                'tool_name': 'intelligent_search',
+                'parameters': {
+                    'query': user_message,
+                    'max_results': 10
+                },
+                'reason': 'Intelligent search using graph database and LLM planning for structured queries'
+            }]
         
         if intent == 'search_projects':
             return [{
@@ -373,28 +396,28 @@ Now classify the message above:"""
                 }]
         
         elif intent == 'faq':
+            # Use intelligent_search for FAQ - it can answer from graph + vector
             return [{
-                'tool_name': 'search_local_database',
+                'tool_name': 'intelligent_search',
                 'parameters': {
                     'query': user_message,
-                    'max_context_chunks': 5,
-                    'search_type': 'hybrid'
+                    'max_results': 10
                 },
-                'reason': 'Search knowledge base for FAQ answer'
+                'reason': 'Search knowledge base with intelligent graph + vector hybrid'
             }]
         
         elif intent == 'proposal_writing':
             # Proposal writing doesn't use tools - handled separately
             return []
         
-        # Default fallback
+        # Default fallback - use intelligent_search
         return [{
-            'tool_name': 'search_local_database',
+            'tool_name': 'intelligent_search',
             'parameters': {
                 'query': user_message,
-                'max_context_chunks': 5
+                'max_results': 10
             },
-            'reason': 'General information search'
+            'reason': 'Intelligent search for general queries'
         }]
     
     def _create_fallback_intent(
@@ -406,19 +429,19 @@ Now classify the message above:"""
         
         logger.warning(f"Using fallback intent for: {user_message[:50]}...")
         
-        # Default to FAQ with general search
+        # Default to intelligent_search for robust fallback
         return UnifiedIntent(
             primary_intent="faq",
             confidence=0.5,
-            reasoning="Fallback classification due to error",
+            reasoning="Fallback classification - using intelligent search",
             requires_tools=True,
             tool_plan=[{
-                'tool_name': 'search_local_database',
+                'tool_name': 'intelligent_search',
                 'parameters': {
                     'query': user_message,
-                    'max_context_chunks': 5
+                    'max_results': 10
                 },
-                'reason': 'General fallback search'
+                'reason': 'Intelligent search fallback for comprehensive coverage'
             }],
             call_id=None,
             section_id=None,

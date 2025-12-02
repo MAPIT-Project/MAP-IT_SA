@@ -104,6 +104,17 @@ class ConversationManager:
             self.unified_classifier = UnifiedIntentClassifier()
             logger.info("✅ Unified Intent Classifier initialized")
             
+            # Data Intelligence Service - PRIMARY for graph + vector queries
+            try:
+                from ..data_intelligence_service import DataIntelligenceService
+                self.data_intelligence = DataIntelligenceService()
+                self._data_intelligence_available = True
+                logger.info("✅ Data Intelligence Service initialized (Graph + Vector + Planner)")
+            except Exception as e:
+                logger.warning(f"⚠️ Data Intelligence Service unavailable: {e}")
+                self.data_intelligence = None
+                self._data_intelligence_available = False
+            
             # Proposal writing services (NEW!)
             if self.db_pool:
                 self.proposal_template_service = ProposalTemplateService(
@@ -293,14 +304,73 @@ class ConversationManager:
                         retrieval_results = self._convert_tool_results_to_retrieval(tool_results)
             
             elif unified_intent.primary_intent == 'faq':
-                # FAQ: Use intelligent retrieval
-                logger.info(f"🔍 FAQ: Using intelligent retrieval")
-                retrieval_results = await self._retrieve_information(
-                    conversation_id=conversation_id,
-                    query=user_message,
-                    context=""
-                )
-                logger.info(f"✅ Retrieved {len(retrieval_results)} chunks")
+                # FAQ: Use DataIntelligenceService for smart graph + vector search
+                logger.info(f"🧠 FAQ: Using Data Intelligence Service (Planner LLM)")
+                
+                if self._data_intelligence_available:
+                    try:
+                        di_result = await self.data_intelligence.search(
+                            query=user_message,
+                            context="",
+                            max_results=10,
+                            rerank=True
+                        )
+                        
+                        if di_result.success:
+                            # Convert to retrieval format
+                            retrieval_results = []
+                            
+                            # Add graph results
+                            for r in di_result.graph_results:
+                                retrieval_results.append({
+                                    'content': str(r),
+                                    'source': 'neo4j_graph',
+                                    'score': 1.0,
+                                    'metadata': {'type': 'structured_data'}
+                                })
+                            
+                            # Add vector results
+                            for r in di_result.vector_results:
+                                retrieval_results.append({
+                                    'content': r.get('content', str(r)),
+                                    'source': r.get('source', 'vector'),
+                                    'score': r.get('rerank_score', r.get('score', 0.5)),
+                                    'metadata': r
+                                })
+                            
+                            # Add answer context at the front
+                            if di_result.answer_context:
+                                retrieval_results.insert(0, {
+                                    'content': di_result.answer_context,
+                                    'source': 'data_intelligence',
+                                    'score': 1.0,
+                                    'metadata': {
+                                        'intent': di_result.intent_type,
+                                        'confidence': di_result.confidence
+                                    }
+                                })
+                            
+                            logger.info(f"✅ DataIntelligenceService: {len(retrieval_results)} results")
+                        else:
+                            retrieval_results = await self._retrieve_information(
+                                conversation_id=conversation_id,
+                                query=user_message,
+                                context=""
+                            )
+                    except Exception as e:
+                        logger.error(f"❌ DataIntelligenceService error: {e}")
+                        retrieval_results = await self._retrieve_information(
+                            conversation_id=conversation_id,
+                            query=user_message,
+                            context=""
+                        )
+                else:
+                    retrieval_results = await self._retrieve_information(
+                        conversation_id=conversation_id,
+                        query=user_message,
+                        context=""
+                    )
+                    logger.info(f"✅ Retrieved {len(retrieval_results)} chunks")
             
             # Create intent_analysis format for compatibility
             intent_analysis = {
@@ -1036,20 +1106,87 @@ This metadata was extracted directly from the EU Portal API and represents the o
                     logger.info(f"✅ [STREAMING] Tool execution complete")
             
             elif unified_intent.primary_intent == 'faq':
-                # FAQ: Use intelligent retrieval or tool plan
-                logger.info(f"🔍 [STREAMING] FAQ: Using intelligent retrieval")
+                # FAQ: Use DataIntelligenceService for smart graph + vector search
+                logger.info(f"🧠 [STREAMING] FAQ: Using Data Intelligence Service (Planner LLM)")
                 yield {
                     'type': 'progress',
-                    'stage': 'searching_documents',
-                    'message': 'Searching comprehensive document library...'
+                    'stage': 'intelligent_search',
+                    'message': 'AI is planning the optimal search strategy...'
                 }
                 
-                retrieval_results = await self._retrieve_information(
-                    conversation_id=conversation_id,
-                    query=user_message,
-                    context=""
-                )
-                logger.info(f"✅ [STREAMING] Retrieved {len(retrieval_results)} chunks")
+                # Use DataIntelligenceService directly - single LLM call with smart planning
+                if self._data_intelligence_available:
+                    try:
+                        di_result = await self.data_intelligence.search(
+                            query=user_message,
+                            context="",
+                            max_results=10,
+                            rerank=True
+                        )
+                        
+                        if di_result.success:
+                            yield {
+                                'type': 'progress',
+                                'stage': 'search_complete',
+                                'message': f'Found {len(di_result.graph_results)} graph results, {len(di_result.vector_results)} document results'
+                            }
+                            
+                            # Convert to retrieval format
+                            retrieval_results = []
+                            
+                            # Add graph results as high-quality context
+                            for r in di_result.graph_results:
+                                retrieval_results.append({
+                                    'content': str(r),
+                                    'source': 'neo4j_graph',
+                                    'score': 1.0,
+                                    'metadata': {'type': 'structured_data'}
+                                })
+                            
+                            # Add vector results
+                            for r in di_result.vector_results:
+                                retrieval_results.append({
+                                    'content': r.get('content', str(r)),
+                                    'source': r.get('source', 'vector'),
+                                    'score': r.get('rerank_score', r.get('score', 0.5)),
+                                    'metadata': r
+                                })
+                            
+                            # Store the answer context for the response generator
+                            if di_result.answer_context:
+                                retrieval_results.insert(0, {
+                                    'content': di_result.answer_context,
+                                    'source': 'data_intelligence',
+                                    'score': 1.0,
+                                    'metadata': {
+                                        'intent': di_result.intent_type,
+                                        'confidence': di_result.confidence
+                                    }
+                                })
+                            
+                            logger.info(f"✅ [STREAMING] DataIntelligenceService: {len(retrieval_results)} results (intent: {di_result.intent_type})")
+                        else:
+                            logger.warning(f"⚠️ [STREAMING] DataIntelligenceService failed, falling back")
+                            retrieval_results = await self._retrieve_information(
+                                conversation_id=conversation_id,
+                                query=user_message,
+                                context=""
+                            )
+                    except Exception as e:
+                        logger.error(f"❌ [STREAMING] DataIntelligenceService error: {e}")
+                        retrieval_results = await self._retrieve_information(
+                            conversation_id=conversation_id,
+                            query=user_message,
+                            context=""
+                        )
+                else:
+                    # Fallback to old retrieval
+                    retrieval_results = await self._retrieve_information(
+                        conversation_id=conversation_id,
+                        query=user_message,
+                        context=""
+                    )
+                    logger.info(f"✅ [STREAMING] Fallback retrieval: {len(retrieval_results)} chunks")
             
             # Convert tool results to retrieval format if needed
             if tool_results:
