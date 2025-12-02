@@ -489,26 +489,40 @@ class DataIntelligenceService:
         is_requirements_query = plan.intent_type in ['consortium_requirements', 'eligibility'] or \
                                any(word in query.lower() for word in ['requirement', 'required', 'must', 'rules', 'eligibility'])
         
-        if is_requirements_query:
+        if is_requirements_query and vector_results:
+            # Sort vector results: prioritize documents with eligibility/rule content
+            def has_rule_content(r):
+                content = r.get("content", "").lower()
+                title = r.get("title", "").lower()
+                # Prioritize regulation, annexes, and content with "at least" or "eligib"
+                if "regulation" in title or "annex" in title:
+                    return 0
+                if "at least" in content or "eligib" in content or "must include" in content:
+                    return 1
+                return 2
+            
+            vector_results = sorted(vector_results, key=has_rule_content)
+            
             context_parts.append("=" * 60)
-            context_parts.append("⚠️ ANSWER GUIDANCE: This query asks about REQUIREMENTS/RULES.")
-            context_parts.append("Prioritize information from DOCUMENT CONTEXT (official rules).")
-            context_parts.append("Graph data shows HISTORICAL STATISTICS, not official rules.")
-            context_parts.append("If documents don't contain the specific rules, state that clearly.")
+            context_parts.append("🎯 ANSWER INSTRUCTION FOR REQUIREMENTS QUERY")
             context_parts.append("=" * 60)
             context_parts.append("")
-        
-        # Add vector results FIRST for requirements queries
-        if vector_results and is_requirements_query:
+            context_parts.append("The user is asking about OFFICIAL RULES/REQUIREMENTS.")
+            context_parts.append("Your answer should:")
+            context_parts.append("1. State the rules DIRECTLY and CONFIDENTLY from the documents below")
+            context_parts.append("2. DO NOT say 'not explicitly detailed' if you find rules in the documents")
+            context_parts.append("3. Lead with the RULES, then optionally mention statistics for context")
+            context_parts.append("4. Cite the source document (e.g., 'According to the Horizon Europe Regulation...')")
+            context_parts.append("")
             context_parts.append("=" * 60)
-            context_parts.append("📄 OFFICIAL DOCUMENTS (search for requirements/rules here)")
+            context_parts.append("📄 OFFICIAL DOCUMENTS (USE THESE FOR YOUR ANSWER)")
             context_parts.append("=" * 60)
             
             for i, result in enumerate(vector_results[:5], 1):
                 title = result.get("title", "Unknown Document")
                 doc_type = result.get("type", "")
                 section = result.get("section", "")
-                content = result.get("content", "")[:600]
+                content = result.get("content", "")[:700]  # Slightly more content
                 
                 context_parts.append(f"\n[Document {i}: {title}]")
                 if doc_type:
@@ -518,38 +532,50 @@ class DataIntelligenceService:
                 context_parts.append(f"Content: {content}...")
             
             context_parts.append("")
+            
+            # For requirements queries, show only a BRIEF summary of statistics
+            if graph_results:
+                context_parts.append("=" * 60)
+                context_parts.append("📊 OPTIONAL CONTEXT: Typical Consortium Statistics")
+                context_parts.append("(Use only as supplementary info, NOT as the main answer)")
+                context_parts.append("=" * 60)
+                context_parts.append("")
+                # Just show a one-line summary instead of full details
+                if isinstance(graph_results[0], dict) and 'avg_partners' in graph_results[0]:
+                    avg_partners = sum(r.get('avg_partners', 0) for r in graph_results) / len(graph_results)
+                    avg_countries = sum(r.get('avg_countries', 0) for r in graph_results) / len(graph_results)
+                    context_parts.append(f"Typical Horizon Europe consortiums have {avg_partners:.0f}-{avg_partners+2:.0f} partners across {avg_countries:.0f}-{avg_countries+1:.0f} countries.")
+                context_parts.append("")
         
-        # Add graph results (with appropriate label)
-        if graph_results:
-            context_parts.append("=" * 60)
-            if is_requirements_query:
-                context_parts.append("📊 HISTORICAL STATISTICS (for context only, NOT official rules)")
-            else:
+        elif not is_requirements_query:
+            # Non-requirements queries: show graph results first as before
+            if graph_results:
+                context_parts.append("=" * 60)
                 context_parts.append("STRUCTURED DATA (from Graph Database)")
-            context_parts.append("=" * 60)
-            
-            for i, result in enumerate(graph_results[:5], 1):
-                context_parts.append(f"\n[Graph Result {i}]")
+                context_parts.append("=" * 60)
                 
-                # Format based on result type
-                if isinstance(result, dict):
-                    for key, value in result.items():
-                        if value is not None and value != "" and key != "source":
-                            # Format large numbers
-                            if isinstance(value, (int, float)) and abs(value) > 1000:
-                                if "budget" in key.lower() or "funding" in key.lower() or "contribution" in key.lower() or "cost" in key.lower():
-                                    context_parts.append(f"  {key}: €{value:,.0f}")
+                for i, result in enumerate(graph_results[:5], 1):
+                    context_parts.append(f"\n[Graph Result {i}]")
+                    
+                    # Format based on result type
+                    if isinstance(result, dict):
+                        for key, value in result.items():
+                            if value is not None and value != "" and key != "source":
+                                # Format large numbers
+                                if isinstance(value, (int, float)) and abs(value) > 1000:
+                                    if "budget" in key.lower() or "funding" in key.lower() or "contribution" in key.lower() or "cost" in key.lower():
+                                        context_parts.append(f"  {key}: €{value:,.0f}")
+                                    else:
+                                        context_parts.append(f"  {key}: {value:,.0f}")
+                                elif isinstance(value, list):
+                                    if value:
+                                        context_parts.append(f"  {key}: {', '.join(str(v) for v in value[:5])}")
                                 else:
-                                    context_parts.append(f"  {key}: {value:,.0f}")
-                            elif isinstance(value, list):
-                                if value:
-                                    context_parts.append(f"  {key}: {', '.join(str(v) for v in value[:5])}")
-                            else:
-                                context_parts.append(f"  {key}: {value}")
-                else:
-                    context_parts.append(f"  {result}")
-            
-            context_parts.append("")
+                                    context_parts.append(f"  {key}: {value}")
+                    else:
+                        context_parts.append(f"  {result}")
+                
+                context_parts.append("")
         
         # Add vector results (if not already added for requirements query)
         if vector_results and not is_requirements_query:
