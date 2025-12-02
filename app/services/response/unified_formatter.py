@@ -300,6 +300,12 @@ class UnifiedResponseFormatter:
         description = call.get('description', 'No description available')
         url = call.get('url', '')
         
+        # New fields from local search
+        action_type = call.get('action_type', '')
+        budget = call.get('budget', '')
+        cluster = call.get('cluster', '')
+        work_programme = call.get('work_programme', '')
+        
         # Format deadline nicely with urgency indicators
         deadline_text = self._format_deadline(deadline)
         
@@ -309,6 +315,11 @@ class UnifiedResponseFormatter:
         if identifier != 'N/A':
             call_summary += f"\n📋 **Call ID:** {identifier}"
         
+        # Add action type (RIA, IA, CSA, etc.)
+        if action_type:
+            action_emoji = self._get_action_type_emoji(action_type)
+            call_summary += f"\n{action_emoji} **Type:** {action_type}"
+        
         if status != 'Unknown':
             status_emoji = self._get_status_emoji(status)
             call_summary += f"\n{status_emoji} **Status:** {status}"
@@ -316,13 +327,19 @@ class UnifiedResponseFormatter:
         if deadline_text != 'Not specified':
             call_summary += f"\n⏰ **Application Deadline:** {deadline_text}"
         
+        # Add budget if available
+        if budget:
+            call_summary += f"\n💰 **Budget:** {budget}"
+        
         if programme != 'Not specified':
             call_summary += f"\n🏛️ **Programme:** {programme}"
+        elif work_programme:
+            call_summary += f"\n🏛️ **Work Programme:** {work_programme}"
         
-        # Add description (truncated)
-        if description and description != 'No description available':
-            desc_preview = description[:300] + ('...' if len(description) > 300 else '')
-            call_summary += f"\n\n**Call Description:**\n{desc_preview}"
+        # Add description (truncated) - only if meaningful
+        if description and description != 'No description available' and len(description) > 30:
+            desc_preview = description[:250] + ('...' if len(description) > 250 else '')
+            call_summary += f"\n\n**Scope:**\n{desc_preview}"
         
         # Add link with proper emoji
         if url:
@@ -331,6 +348,29 @@ class UnifiedResponseFormatter:
             call_summary += f"\n\n🔗 **Find on Portal:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home"
         
         return call_summary
+    
+    def _get_action_type_emoji(self, action_type: str) -> str:
+        """Get appropriate emoji for action type."""
+        action_type_upper = action_type.upper() if action_type else ''
+        emojis = {
+            'RIA': '🔬',      # Research and Innovation Action
+            'IA': '🏭',       # Innovation Action
+            'CSA': '🤝',      # Coordination and Support Action
+            'COFUND': '💱',   # Co-fund
+            'ERC': '🎓',      # European Research Council
+            'ERC-STG': '🌟',  # ERC Starting Grant
+            'ERC-COG': '⭐',  # ERC Consolidator Grant
+            'ERC-ADG': '🏆',  # ERC Advanced Grant
+            'EIC': '🚀',      # European Innovation Council
+            'EIC-ACCELERATOR': '🚀',
+            'EIC-PATHFINDER': '🔮',
+            'EIC-TRANSITION': '🔄',
+            'MSCA': '👩‍🔬',     # Marie Skłodowska-Curie Actions
+            'MSCA-PF': '👩‍🔬',
+            'MSCA-DN': '👨‍🎓',
+            'LUMP-SUM': '📦',
+        }
+        return emojis.get(action_type_upper, '📄')
     
     def _format_deadline(self, deadline: str) -> str:
         """Format deadline with urgency indicators."""

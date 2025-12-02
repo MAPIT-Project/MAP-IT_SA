@@ -3,6 +3,10 @@ Local Call Search Service
 
 Searches for funding calls using locally ingested Work Programme documents.
 No external API dependency - everything runs on your local data.
+
+Architecture:
+1. First tries `funding_calls` table (structured, fast, accurate)
+2. Falls back to vector search if table has no results
 """
 
 import logging
@@ -10,6 +14,9 @@ import re
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 from datetime import datetime, date
+
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
 from .vector_search_service import VectorSearchService
 
@@ -29,6 +36,7 @@ class LocalCallResult:
     budget: Optional[str]
     deadline: Optional[str]
     relevance_score: float
+    url: Optional[str] = None  # Constructed URL to EU portal
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -41,7 +49,8 @@ class LocalCallResult:
             'action_type': self.action_type,
             'budget': self.budget,
             'deadline': self.deadline,
-            'relevance_score': self.relevance_score
+            'relevance_score': self.relevance_score,
+            'url': self.url
         }
 
 
@@ -121,6 +130,32 @@ class LocalCallSearchService:
     
     def __init__(self):
         """Initialize the local call search service."""
+        from ..core.config import settings
+        
+        self._db_url = settings.database_url
+        self._structured_available = False
+        
+        # Try to check if funding_calls table exists
+        try:
+            conn = psycopg2.connect(self._db_url)
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'funding_calls'
+                )
+            """)
+            self._structured_available = cursor.fetchone()[0]
+            
+            if self._structured_available:
+                cursor.execute("SELECT COUNT(*) FROM funding_calls")
+                count = cursor.fetchone()[0]
+                logger.info(f"✅ Structured call database available ({count} calls)")
+            conn.close()
+        except Exception as e:
+            logger.warning(f"Structured call database not available: {e}")
+        
+        # Initialize vector service as fallback
         try:
             self.vector_service = VectorSearchService()
             self._available = True
@@ -140,6 +175,10 @@ class LocalCallSearchService:
     ) -> Dict[str, Any]:
         """
         Search for calls matching the query in local Work Programme documents.
+        
+        Strategy:
+        1. First try structured `funding_calls` table (fast, accurate)
+        2. Fall back to vector search if no structured results
         
         Args:
             query: Search query (e.g., "clean energy", "hydrogen", "AI healthcare")
@@ -161,13 +200,45 @@ class LocalCallSearchService:
                 'calls': []
             }
         
-        # Get current date dynamically (not hardcoded!)
+        # Get current date dynamically
         today = date.today()
         current_year = today.year
         logger.info(f"🔍 LOCAL SEARCH: '{query}' (cluster={cluster}, type={action_type}, include_closed={include_closed}, year={year_filter}, today={today})")
         
+        # STRATEGY 1: Try structured database first (fast, accurate)
+        if self._structured_available:
+            structured_results = self._search_structured_calls(
+                query=query,
+                num_results=num_results,
+                cluster=cluster,
+                action_type=action_type,
+                include_closed=include_closed,
+                year_filter=int(year_filter) if year_filter else None,
+                current_year=current_year
+            )
+            
+            if structured_results and len(structured_results) > 0:
+                logger.info(f"✅ Found {len(structured_results)} results from structured database")
+                return {
+                    'success': True,
+                    'query': query,
+                    'calls_found': len(structured_results),
+                    'calls': [self._format_structured_call(c) for c in structured_results],
+                    'current_date': today.isoformat(),
+                    'search_metadata': {
+                        'source': 'funding_calls_table',
+                        'api_used': False,
+                        'search_method': 'structured_fulltext',
+                        'include_closed': include_closed,
+                        'year_filter': year_filter,
+                        'current_year': current_year
+                    }
+                }
+        
+        # STRATEGY 2: Fall back to vector search
+        logger.info("📄 Falling back to vector search...")
+        
         # Build enhanced query for better recall
-        # If not including closed calls, bias toward current/future years
         if not include_closed and not year_filter:
             enhanced_query = self._enhance_query(query, cluster, action_type, current_year=current_year)
         else:
@@ -206,6 +277,11 @@ class LocalCallSearchService:
             # Extract call information
             call_info = self._extract_call_info(result)
             
+            # Skip results without a proper topic code (low quality results)
+            if not call_info.topic_code:
+                logger.debug(f"Skipping result without topic code")
+                continue
+            
             # YEAR FILTERING - Only show current/upcoming calls by default
             if not include_closed:
                 call_year = self._extract_year_from_call(call_info)
@@ -220,10 +296,9 @@ class LocalCallSearchService:
                     continue
             
             # Skip if we've seen this topic code
-            if call_info.topic_code and call_info.topic_code in seen_codes:
+            if call_info.topic_code in seen_codes:
                 continue
-            if call_info.topic_code:
-                seen_codes.add(call_info.topic_code)
+            seen_codes.add(call_info.topic_code)
             
             # Apply filters
             if cluster:
@@ -250,6 +325,7 @@ class LocalCallSearchService:
             'search_metadata': {
                 'source': 'local_work_programmes',
                 'api_used': False,
+                'search_method': 'vector_fallback',
                 'enhanced_query': enhanced_query,
                 'total_results_before_filter': len(results),
                 'include_closed': include_closed,
@@ -260,6 +336,127 @@ class LocalCallSearchService:
                     'action_type': action_type
                 }
             }
+        }
+    
+    def _search_structured_calls(
+        self,
+        query: str,
+        num_results: int = 10,
+        cluster: Optional[str] = None,
+        action_type: Optional[str] = None,
+        include_closed: bool = False,
+        year_filter: Optional[int] = None,
+        current_year: int = 2025
+    ) -> List[Dict[str, Any]]:
+        """
+        Search the structured funding_calls table.
+        
+        Uses PostgreSQL full-text search for fast, accurate results.
+        """
+        try:
+            conn = psycopg2.connect(self._db_url)
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            
+            # Build the query
+            query_parts = ["SELECT * FROM funding_calls WHERE 1=1"]
+            params = []
+            
+            # Full-text search on title, scope, expected_outcome
+            if query:
+                query_parts.append("""
+                    AND to_tsvector('english', 
+                        COALESCE(title, '') || ' ' || 
+                        COALESCE(scope, '') || ' ' || 
+                        COALESCE(expected_outcome, '')
+                    ) @@ plainto_tsquery('english', %s)
+                """)
+                params.append(query)
+            
+            # Cluster filter
+            if cluster:
+                query_parts.append("AND cluster = %s")
+                params.append(cluster.upper())
+            
+            # Action type filter
+            if action_type:
+                query_parts.append("AND action_type = %s")
+                params.append(action_type.upper())
+            
+            # Year filter
+            if year_filter:
+                query_parts.append("AND call_year = %s")
+                params.append(year_filter)
+            elif not include_closed:
+                # Only current and future years
+                query_parts.append("AND call_year >= %s")
+                params.append(current_year)
+            
+            # Status filter
+            if not include_closed:
+                query_parts.append("AND status != 'closed'")
+            
+            # Order by relevance and deadline
+            query_parts.append("""
+                ORDER BY 
+                    ts_rank(
+                        to_tsvector('english', 
+                            COALESCE(title, '') || ' ' || 
+                            COALESCE(scope, '') || ' ' || 
+                            COALESCE(expected_outcome, '')
+                        ),
+                        plainto_tsquery('english', %s)
+                    ) DESC,
+                    deadline ASC NULLS LAST
+                LIMIT %s
+            """)
+            params.extend([query, num_results])
+            
+            full_query = " ".join(query_parts)
+            cursor.execute(full_query, params)
+            results = cursor.fetchall()
+            
+            conn.close()
+            return [dict(r) for r in results]
+            
+        except Exception as e:
+            logger.error(f"Structured search failed: {e}")
+            return []
+    
+    def _format_structured_call(self, call: Dict[str, Any]) -> Dict[str, Any]:
+        """Format a structured call result to match the expected output format."""
+        # Format deadline
+        deadline = call.get('deadline')
+        if deadline:
+            if hasattr(deadline, 'strftime'):
+                deadline = deadline.strftime('%d %B %Y')
+            else:
+                deadline = str(deadline)
+        
+        # Format budget
+        budget = call.get('budget_total')
+        if budget:
+            if budget >= 1_000_000:
+                budget = f"EUR {budget / 1_000_000:.1f} million"
+            else:
+                budget = f"EUR {budget:,.0f}"
+        
+        return {
+            'topic_code': call.get('topic_code'),
+            'title': call.get('title'),
+            'description': call.get('scope') or call.get('expected_outcome') or '',
+            'expected_outcome': call.get('expected_outcome'),
+            'scope': call.get('scope'),
+            'source_document': call.get('source_document_title', ''),
+            'work_programme': call.get('programme_part') or call.get('destination', ''),
+            'cluster': call.get('cluster'),
+            'action_type': call.get('action_type'),
+            'budget': budget,
+            'deadline': deadline,
+            'status': call.get('status'),
+            'relevance_score': 1.0,  # Structured results are always relevant
+            'url': call.get('portal_url'),
+            'call_year': call.get('call_year'),
+            'expected_projects': call.get('expected_projects'),
         }
     
     def _extract_year_from_call(self, call: LocalCallResult) -> Optional[int]:
@@ -320,12 +517,26 @@ class LocalCallSearchService:
         content = result.content
         doc_title = result.document_title or ""
         
-        # Extract topic code (try all patterns)
+        # Extract topic code AND title together
+        # Format: "HORIZON-CL5-2025-02-D3-15: Building a Long-Term Africa Union..."
         topic_code = None
+        call_title = None
+        
         for pattern in self.TOPIC_CODE_PATTERNS:
+            # Try to match topic code followed by title
+            title_pattern = f'({pattern})[:\\s]+([^\\n\\.]+(?:\\([^)]+\\))?[^\\n]*)'
+            title_match = re.search(title_pattern, content, re.IGNORECASE)
+            if title_match:
+                topic_code = title_match.group(1).upper()
+                raw_title = title_match.group(2).strip()
+                # Clean the title - remove page numbers, truncate at reasonable length
+                call_title = self._clean_call_title(raw_title)
+                break
+            
+            # Fallback: just get the topic code
             matches = re.findall(pattern, content)
             if matches:
-                topic_code = matches[0]
+                topic_code = matches[0].upper()
                 break
         
         # Extract action type
@@ -341,22 +552,28 @@ class LocalCallSearchService:
         # Extract budget (look for EUR patterns)
         budget = self._extract_budget(content)
         
-        # Extract deadline
-        deadline = self._extract_deadline(content)
+        # Extract deadline - with validation against call year
+        call_year = self._extract_year_from_topic_code(topic_code)
+        deadline = self._extract_deadline(content, call_year)
         
-        # Generate title
-        if topic_code:
+        # Generate title - prefer extracted title, fall back to topic code
+        if call_title and len(call_title) > 10:
+            title = call_title
+        elif topic_code:
             title = topic_code
         elif result.section_title:
             title = result.section_title[:100]
         else:
             title = self._generate_title_from_content(content)
         
-        # Get description (clean first ~400 chars)
-        description = self._clean_description(content[:600])
+        # Get description - try to extract content relevant to THIS specific call
+        description = self._extract_relevant_description(content, topic_code, call_title)
         
         # Get work programme name
         work_programme = self._get_work_programme_name(doc_title)
+        
+        # Construct URL if we have a topic code
+        url = self._construct_portal_url(topic_code)
         
         return LocalCallResult(
             topic_code=topic_code,
@@ -368,8 +585,79 @@ class LocalCallSearchService:
             action_type=action_type,
             budget=budget,
             deadline=deadline,
-            relevance_score=result.score
+            relevance_score=result.score,
+            url=url
         )
+    
+    def _clean_call_title(self, raw_title: str) -> str:
+        """Clean up extracted call title."""
+        title = raw_title
+        
+        # Remove "Call: Cluster X Call..." pattern and everything after
+        title = re.sub(r'\s*Call:\s*Cluster.*$', '', title, flags=re.IGNORECASE)
+        
+        # Remove action type indicators at the start (RIA, IA, CSA followed by numbers)
+        title = re.sub(r'^(RIA|IA|CSA|COFUND)\s+[\d\.]+\s*', '', title)
+        
+        # Remove budget info (numbers followed by Around/million)
+        title = re.sub(r'\s*[\d\.]+\s*(Around|million|EUR).*$', '', title, flags=re.IGNORECASE)
+        
+        # Remove "Specific conditions..." and everything after
+        title = re.sub(r'\s*Specific conditions.*$', '', title, flags=re.IGNORECASE)
+        
+        # Remove "Expected EU..." and everything after
+        title = re.sub(r'\s*Expected EU.*$', '', title, flags=re.IGNORECASE)
+        
+        # Remove "The Commission estimates..." and everything after
+        title = re.sub(r'\s*The Commission.*$', '', title, flags=re.IGNORECASE)
+        
+        # Remove "Overview of this call..." 
+        title = re.sub(r'\s*Overview of this call.*$', '', title, flags=re.IGNORECASE)
+        
+        # Remove page references
+        title = re.sub(r'\s*\[Page \d+\].*$', '', title)
+        title = re.sub(r'\s*Part \d+.*$', '', title)
+        
+        # Remove trailing dots, colons, or special chars
+        title = re.sub(r'[\.\s:]+$', '', title)
+        title = re.sub(r'^[\.\s:]+', '', title)
+        
+        # Truncate if too long but keep reasonable length for descriptive titles
+        if len(title) > 120:
+            # Try to cut at a word boundary
+            title = title[:120]
+            last_space = title.rfind(' ')
+            if last_space > 80:
+                title = title[:last_space]
+            title = title + '...'
+        
+        return title.strip()
+    
+    def _extract_year_from_topic_code(self, topic_code: Optional[str]) -> Optional[int]:
+        """Extract year from topic code like HORIZON-CL5-2025-... -> 2025"""
+        if not topic_code:
+            return None
+        match = re.search(r'20(2[0-9]|3[0-9])', topic_code)
+        return int(match.group(0)) if match else None
+    
+    def _construct_portal_url(self, topic_code: Optional[str]) -> Optional[str]:
+        """Construct EU Portal URL from topic code."""
+        if not topic_code:
+            return None
+        
+        # EU Portal URL pattern for topic details
+        base_url = "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details"
+        
+        # Clean the topic code
+        clean_code = topic_code.strip().upper()
+        
+        # Validate it looks like a real topic code
+        if re.match(r'^HORIZON-[A-Z0-9]+-\d{4}', clean_code):
+            return f"{base_url}/{clean_code}"
+        elif re.match(r'^ERC-\d{4}', clean_code):
+            return f"{base_url}/{clean_code}"
+        
+        return None
     
     def _detect_cluster(self, doc_title: str, content: str) -> Optional[str]:
         """Detect which cluster this content belongs to."""
@@ -415,21 +703,40 @@ class LocalCallSearchService:
         
         return None
     
-    def _extract_deadline(self, content: str) -> Optional[str]:
-        """Extract deadline information from content."""
+    def _extract_deadline(self, content: str, call_year: Optional[int] = None) -> Optional[str]:
+        """
+        Extract deadline information from content.
+        Only returns deadlines that match the call year (or current/future years).
+        """
+        # Patterns that capture the full date with year
+        # Format examples: "Deadline(s): 02 Sep 2025", "Deadline: 04 September 2025"
         patterns = [
-            r'deadline[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})',
-            r'deadline[:\s]+(\d{1,2}\s+\w+\s+\d{4})',
-            r'closes?[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})',
-            r'closes?[:\s]+(\d{1,2}\s+\w+\s+\d{4})',
-            r'(\d{1,2}\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4})',
+            # "Deadline(s): 02 Sep 2025" - most common format in Work Programmes
+            r'[Dd]eadline\(?s?\)?[:\s]+(\d{1,2}\s+[A-Za-z]+\s+\d{4})',
+            # "closes: 15 January 2026"
+            r'[Cc]loses?[:\s]+(\d{1,2}\s+[A-Za-z]+\s+\d{4})',
+            # Date formats like "02/09/2025"
+            r'[Dd]eadline\(?s?\)?[:\s]+(\d{1,2}/\d{1,2}/\d{4})',
         ]
         
         for pattern in patterns:
-            match = re.search(pattern, content, re.IGNORECASE)
-            if match:
-                return match.group(1)
+            matches = re.findall(pattern, content)
+            for match in matches:
+                # Validate the year in the deadline
+                year_match = re.search(r'(20\d{2})', match)
+                if year_match:
+                    deadline_year = int(year_match.group(1))
+                    
+                    # If we know the call year, deadline should be same year or +1
+                    if call_year:
+                        if deadline_year >= call_year and deadline_year <= call_year + 1:
+                            return match
+                    else:
+                        # No call year known - accept any current/future deadline
+                        if deadline_year >= 2025:
+                            return match
         
+        # If no valid deadline found, return None (don't show misleading dates)
         return None
     
     def _generate_title_from_content(self, content: str) -> str:
@@ -445,6 +752,52 @@ class LocalCallSearchService:
         words = content.split()[:10]
         return " ".join(words) + "..."
     
+    def _extract_relevant_description(
+        self, 
+        content: str, 
+        topic_code: Optional[str],
+        call_title: Optional[str]
+    ) -> str:
+        """
+        Extract description that's actually relevant to the specific call.
+        Looks for content near the topic code or after specific markers.
+        """
+        # If we have a topic code, try to find description near it
+        if topic_code:
+            # Look for "Scope:" or "Expected Outcome:" sections after the topic code
+            scope_patterns = [
+                rf'{re.escape(topic_code)}[^S]*Scope[:\s]+([^E]{{100,600}})',
+                rf'{re.escape(topic_code)}[^E]*Expected Outcome[s]?[:\s]+([^\n]{{100,400}})',
+                rf'{re.escape(topic_code)}[:\s]+[^\.]+\.\s*([A-Z][^\.]+(?:\.[^\.]+){{0,3}})',
+            ]
+            
+            for pattern in scope_patterns:
+                match = re.search(pattern, content, re.IGNORECASE | re.DOTALL)
+                if match:
+                    desc = match.group(1).strip()
+                    return self._clean_description(desc)
+        
+        # Look for general scope/outcome sections
+        scope_match = re.search(
+            r'(?:Scope|Expected Outcome|Objective)[s]?[:\s]+([A-Z][^\.]{50,400}(?:\.[^\.]{20,200})?)',
+            content, 
+            re.IGNORECASE
+        )
+        if scope_match:
+            return self._clean_description(scope_match.group(1))
+        
+        # Fallback: use content after the title if available
+        if call_title and call_title in content:
+            idx = content.find(call_title) + len(call_title)
+            remaining = content[idx:idx+500].strip()
+            # Skip past any metadata
+            remaining = re.sub(r'^[:\s\d\.]+', '', remaining)
+            if len(remaining) > 50:
+                return self._clean_description(remaining)
+        
+        # Last resort: clean first part of content
+        return self._clean_description(content[:400])
+    
     def _clean_description(self, text: str) -> str:
         """Clean up description text."""
         # Remove excessive whitespace
@@ -453,9 +806,20 @@ class LocalCallSearchService:
         # Remove page markers
         text = re.sub(r'\[Page \d+\]', '', text)
         
-        # Truncate if needed
-        if len(text) > 500:
-            text = text[:500] + "..."
+        # Remove common noise patterns
+        text = re.sub(r'Part \d+ - Page \d+ of \d+', '', text)
+        text = re.sub(r'Horizon Europe - Work Programme \d+', '', text)
+        text = re.sub(r'\.{3,}', '', text)  # Remove ....
+        text = re.sub(r'\s+', ' ', text).strip()  # Clean up again
+        
+        # Truncate if needed, try to end at sentence
+        if len(text) > 350:
+            text = text[:350]
+            last_period = text.rfind('.')
+            if last_period > 200:
+                text = text[:last_period + 1]
+            else:
+                text = text + "..."
         
         return text
     

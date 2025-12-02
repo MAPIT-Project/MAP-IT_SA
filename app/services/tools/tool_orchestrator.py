@@ -1998,7 +1998,7 @@ def create_research_orchestrator(cache_client = None) -> ToolOrchestrator:
                 call_year = None
                 if call.get('topic_code'):
                     import re
-                    year_match = re.search(r'20(2[4-9]|3[0-9])', call.get('topic_code', ''))
+                    year_match = re.search(r'20(2[0-9]|3[0-9])', call.get('topic_code', ''))
                     if year_match:
                         call_year = int(year_match.group(0))
                 
@@ -2012,12 +2012,27 @@ def create_research_orchestrator(cache_client = None) -> ToolOrchestrator:
                 else:
                     status = 'See Work Programme'
                 
+                # Use the constructed URL if available, otherwise provide search link
+                topic_code = call.get('topic_code')
+                if call.get('url'):
+                    url = call.get('url')
+                elif topic_code:
+                    # Construct portal URL from topic code
+                    url = f"https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/{topic_code}"
+                else:
+                    url = "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home"
+                
+                # Only show deadline if it's valid (not from wrong year)
+                deadline = call.get('deadline')
+                if not deadline:
+                    deadline = 'Check official portal for deadline'
+                
                 formatted_calls.append({
                     'title': call.get('title', 'Funding Opportunity'),
-                    'identifier': call.get('topic_code', 'See Work Programme'),
+                    'identifier': topic_code or 'See Work Programme',
                     'status': status,
-                    'deadline': call.get('deadline', 'Check official portal'),
-                    'url': '',  # No URL for local results
+                    'deadline': deadline,
+                    'url': url,
                     'description': call.get('description', ''),
                     # Extra local-specific fields
                     'work_programme': call.get('work_programme', ''),
