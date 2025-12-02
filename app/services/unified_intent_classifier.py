@@ -30,6 +30,12 @@ class UnifiedIntent:
     requires_tools: bool
     tool_plan: List[Dict[str, Any]]
     
+    # NEW: Complexity and routing (determined by LLM, not regex!)
+    complexity_type: str = "simple"  # "simple", "comparison", "analysis", "multi_source", "validation"
+    requires_multi_tool: bool = False  # Should use ToolAwareAgent?
+    suggested_tools: List[str] = None  # Specific tools the LLM recommends
+    complexity_reasoning: str = ""  # Why this complexity level?
+    
     # Context extraction
     call_id: Optional[str] = None  # For call-specific or proposal writing
     section_id: Optional[str] = None  # For proposal writing sections
@@ -57,8 +63,9 @@ class UnifiedIntentClassifier:
     def __init__(self):
         """Initialize the unified classifier"""
         genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
-        self.model = genai.GenerativeModel('gemini-flash-lite-latest')
-        logger.info("✅ Unified Intent Classifier initialized")
+        model_name = os.getenv('GEMINI_MODEL', 'gemini-flash-latest')
+        self.model = genai.GenerativeModel(model_name)
+        logger.info(f"✅ Unified Intent Classifier initialized (model: {model_name})")
     
     async def classify_intent(
         self,

@@ -3,10 +3,13 @@ Agentic Manager
 
 Main orchestrator for the self-correcting agentic loop.
 Coordinates understanding, planning, execution, evaluation, reflection, and replanning.
+
+For complex queries requiring multiple tools, delegates to ToolAwareAgent.
 """
 
 import logging
 import asyncio
+import re
 from datetime import datetime
 from typing import Dict, Any, List, Optional, AsyncGenerator, Tuple
 
@@ -16,6 +19,17 @@ from .reflector import Reflector, ReflectionResult, FailureRootCause
 from .replanner import Replanner
 
 logger = logging.getLogger(__name__)
+
+
+# Patterns that indicate complex multi-tool queries
+COMPLEX_QUERY_PATTERNS = [
+    r'\b(compare|comparison|versus|vs\.?|difference between)\b',
+    r'\b(both|multiple|several|various)\b.*\b(sources|programmes|countries)\b',
+    r'\b(analyze|analysis|why does|why do|how does)\b',
+    r'\b(cross-reference|verify|validate|check if)\b',
+    r'\b(and also|as well as|in addition to|together with)\b',
+    r'\b(success rate|statistics).*\b(and|compared to)\b',
+]
 
 
 class AgenticManager:
@@ -36,7 +50,8 @@ class AgenticManager:
     def __init__(
         self,
         max_iterations: int = 3,
-        sufficient_score: float = 0.65
+        sufficient_score: float = 0.65,
+        enable_multi_tool: bool = True
     ):
         """
         Initialize the Agentic Manager.
@@ -44,9 +59,11 @@ class AgenticManager:
         Args:
             max_iterations: Maximum number of plan/execute cycles
             sufficient_score: Minimum evaluation score to consider results sufficient
+            enable_multi_tool: Whether to enable multi-tool reasoning for complex queries
         """
         self.max_iterations = max_iterations
         self.sufficient_score = sufficient_score
+        self.enable_multi_tool = enable_multi_tool
         
         # Initialize components
         self.evaluator = ResultEvaluator()
@@ -57,7 +74,21 @@ class AgenticManager:
         # Initialize core services
         self._init_services()
         
-        logger.info(f"🤖 AgenticManager initialized (max_iterations={max_iterations})")
+        # Initialize multi-tool agent for complex queries
+        self.tool_agent = None
+        if enable_multi_tool:
+            try:
+                from .tool_aware_agent import ToolAwareAgent
+                self.tool_agent = ToolAwareAgent(max_iterations=5)
+                self._tool_agent_available = True
+                logger.info(f"🛠️ ToolAwareAgent initialized (multi-tool reasoning enabled)")
+            except Exception as e:
+                logger.warning(f"⚠️ ToolAwareAgent unavailable: {e}")
+                self._tool_agent_available = False
+        else:
+            self._tool_agent_available = False
+        
+        logger.info(f"🤖 AgenticManager initialized (max_iterations={max_iterations}, multi_tool={'✓' if self._tool_agent_available else '✗'})")
     
     def _init_services(self):
         """Initialize data intelligence and planning services."""
@@ -79,25 +110,77 @@ class AgenticManager:
             self.intent_classifier = None
             self._classifier_available = False
     
+    def _is_complex_query(self, query: str) -> bool:
+        """
+        Detect if a query requires multi-tool reasoning.
+        
+        Complex queries include:
+        - Comparisons between programmes/countries
+        - Requests for multiple types of information
+        - Analysis questions requiring cross-referencing
+        - Validation/verification requests
+        """
+        query_lower = query.lower()
+        
+        for pattern in COMPLEX_QUERY_PATTERNS:
+            if re.search(pattern, query_lower):
+                return True
+        
+        return False
+    
+    def _get_query_complexity_type(self, query: str) -> str:
+        """Determine the type of complexity."""
+        query_lower = query.lower()
+        
+        if re.search(r'\b(compare|versus|vs\.?|difference)\b', query_lower):
+            return 'comparison'
+        elif re.search(r'\b(analyze|why|how does)\b', query_lower):
+            return 'analysis'
+        elif re.search(r'\b(verify|validate|cross-reference)\b', query_lower):
+            return 'validation'
+        elif re.search(r'\b(both|multiple|and also)\b', query_lower):
+            return 'multi_source'
+        
+        return 'standard'
+    
     async def process_query(
         self,
         query: str,
         conversation_id: Optional[str] = None,
         conversation_history: List[Dict] = None,
-        stream_progress: bool = False
+        stream_progress: bool = False,
+        force_multi_tool: bool = False
     ) -> Dict[str, Any]:
         """
         Process a query through the agentic loop.
+        
+        For complex queries (comparisons, multi-source, analysis), automatically
+        delegates to the ToolAwareAgent for multi-tool reasoning.
         
         Args:
             query: User's question
             conversation_id: Optional conversation ID for context
             conversation_history: Previous messages in conversation
             stream_progress: Whether to enable progress streaming (for future use)
+            force_multi_tool: Force using multi-tool agent even for simple queries
             
         Returns:
             Dict with response, context, and metadata
         """
+        # Check for complex queries that need multi-tool reasoning
+        is_complex = self._is_complex_query(query) or force_multi_tool
+        
+        if is_complex and self._tool_agent_available:
+            complexity_type = self._get_query_complexity_type(query)
+            logger.info(f"🧠 Complex query detected: {complexity_type} - using ToolAwareAgent")
+            
+            return await self._process_with_tool_agent(
+                query=query,
+                conversation_history=conversation_history,
+                complexity_type=complexity_type
+            )
+        
+        # Standard self-correcting loop for simpler queries
         # Initialize context
         context = AgentContext(
             user_query=query,
@@ -553,6 +636,139 @@ class AgenticManager:
             'context': context.to_dict()
         }
     
+    async def _process_with_tool_agent(
+        self,
+        query: str,
+        conversation_history: List[Dict] = None,
+        complexity_type: str = 'standard'
+    ) -> Dict[str, Any]:
+        """
+        Process a complex query using the multi-tool ToolAwareAgent.
+        
+        This enables:
+        - Multiple tool calls in sequence or parallel
+        - Reasoning between tool calls
+        - Cross-referencing results from different sources
+        - Drawing conclusions based on combined evidence
+        """
+        start_time = datetime.now()
+        
+        try:
+            # Build context string from conversation history
+            context_str = ""
+            if conversation_history:
+                recent = conversation_history[-3:]  # Last 3 messages
+                for msg in recent:
+                    context_str += f"{msg.get('sender', 'user')}: {msg.get('text', '')}\n"
+            
+            # Call the tool-aware agent
+            result = await self.tool_agent.process_query(
+                query=query,
+                context=context_str,
+                conversation_history=conversation_history
+            )
+            
+            total_time = (datetime.now() - start_time).total_seconds() * 1000
+            
+            # Format the response
+            answer = result.get('answer', '')
+            reasoning_steps = result.get('reasoning_steps', [])
+            sources_used = result.get('sources_used', [])
+            
+            # Build a nice response with reasoning trace
+            response_parts = [answer]
+            
+            # Add reasoning summary if multiple steps were taken
+            if len(reasoning_steps) > 1:
+                response_parts.append("\n\n---\n*How I found this:*")
+                for step in reasoning_steps[:3]:  # Show first 3 steps
+                    tools = step.get('tools_called', [])
+                    if tools:
+                        response_parts.append(f"- Step {step['step']}: Called {', '.join(tools)}")
+            
+            # Add sources
+            if sources_used:
+                response_parts.append(f"\n*Sources: {', '.join(sources_used[:5])}*")
+            
+            final_response = '\n'.join(response_parts)
+            
+            return {
+                'response': final_response,
+                'success': result.get('success', True),
+                'metadata': {
+                    'mode': 'multi_tool',
+                    'complexity_type': complexity_type,
+                    'iterations': result.get('iterations', 1),
+                    'tools_used': [s for s in sources_used],
+                    'reasoning_steps': len(reasoning_steps),
+                    'confidence': result.get('confidence', 0.8),
+                    'total_time_ms': total_time
+                },
+                'reasoning_trace': reasoning_steps,
+                'sources': sources_used
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ ToolAwareAgent error: {e}")
+            
+            # Fall back to standard processing
+            logger.info("Falling back to standard agentic loop")
+            context = AgentContext(
+                user_query=query,
+                max_iterations=self.max_iterations
+            )
+            
+            # Run standard loop
+            return await self._run_standard_loop(context, conversation_history)
+    
+    async def _run_standard_loop(
+        self,
+        context: AgentContext,
+        conversation_history: List[Dict] = None
+    ) -> Dict[str, Any]:
+        """Run the standard self-correcting loop."""
+        try:
+            # PHASE 1: UNDERSTAND
+            context.transition_to(AgentState.UNDERSTANDING)
+            await self._understand_query(context, conversation_history)
+            
+            # Main agentic loop
+            while context.should_continue():
+                context.iteration += 1
+                
+                if context.iteration == 1:
+                    context.transition_to(AgentState.PLANNING)
+                    await self._create_initial_plan(context)
+                else:
+                    context.transition_to(AgentState.REPLANNING)
+                    await self._replan(context)
+                
+                context.transition_to(AgentState.EXECUTING)
+                await self._execute_plan(context)
+                
+                context.transition_to(AgentState.EVALUATING)
+                evaluation = self._evaluate_results(context)
+                
+                if evaluation.is_sufficient:
+                    context.record_success(context.get_strategy_description())
+                    break
+                
+                if context.iteration < context.max_iterations:
+                    context.transition_to(AgentState.REFLECTING)
+                    await self._reflect_on_failure(context, evaluation)
+            
+            context.transition_to(AgentState.SYNTHESIZING)
+            response = await self._synthesize_response(context)
+            context.final_response = response
+            context.transition_to(AgentState.COMPLETE)
+            
+            return self._build_final_output(context, response)
+            
+        except Exception as e:
+            context.transition_to(AgentState.ERROR)
+            context.errors.append(str(e))
+            return self._build_error_output(context, str(e))
+    
     async def process_query_streaming(
         self,
         query: str,
@@ -563,8 +779,19 @@ class AgenticManager:
         Process a query with streaming progress updates.
         
         Yields status updates as the agent progresses through phases.
+        Automatically routes complex queries to multi-tool reasoning.
         """
         
+        # Check for complex queries
+        is_complex = self._is_complex_query(query)
+        
+        if is_complex and self._tool_agent_available:
+            # Route to multi-tool streaming
+            async for update in self._stream_multi_tool_query(query, conversation_history):
+                yield update
+            return
+        
+        # Standard streaming for simpler queries
         # Initialize context
         context = AgentContext(
             user_query=query,
@@ -638,5 +865,152 @@ class AgenticManager:
                 'type': 'error',
                 'error': str(e),
                 'message': f"Error processing query: {e}"
+            }
+    
+    async def _stream_multi_tool_query(
+        self,
+        query: str,
+        conversation_history: List[Dict] = None
+    ) -> AsyncGenerator[Dict[str, Any], None]:
+        """
+        Stream progress for multi-tool reasoning queries.
+        
+        Shows each tool call and reasoning step as they happen.
+        """
+        complexity_type = self._get_query_complexity_type(query)
+        
+        yield {
+            'type': 'status',
+            'message': f'Complex {complexity_type} query detected - using multi-tool reasoning...',
+            'phase': 'multi_tool_init',
+            'complexity': complexity_type
+        }
+        
+        try:
+            # Build context
+            context_str = ""
+            if conversation_history:
+                recent = conversation_history[-3:]
+                for msg in recent:
+                    context_str += f"{msg.get('sender', 'user')}: {msg.get('text', '')}\n"
+            
+            # We'll run the tool agent and stream its progress
+            # For now, we simulate streaming by running and then yielding results
+            # In the future, the ToolAwareAgent could yield intermediate results
+            
+            yield {
+                'type': 'status',
+                'message': 'Reasoning about which tools to use...',
+                'phase': 'multi_tool_reasoning'
+            }
+            
+            result = await self.tool_agent.process_query(
+                query=query,
+                context=context_str,
+                conversation_history=conversation_history
+            )
+            
+            # Yield reasoning steps as progress updates
+            reasoning_steps = result.get('reasoning_steps', [])
+            for step in reasoning_steps:
+                tools_called = step.get('tools_called', [])
+                thought = step.get('thought', '')[:100]
+                
+                if tools_called:
+                    yield {
+                        'type': 'progress',
+                        'message': f"Step {step['step']}: Calling {', '.join(tools_called)}",
+                        'phase': 'multi_tool_executing',
+                        'tools': tools_called,
+                        'thought': thought
+                    }
+                else:
+                    yield {
+                        'type': 'progress',
+                        'message': f"Step {step['step']}: {thought}...",
+                        'phase': 'multi_tool_analyzing'
+                    }
+            
+            # Show sources used
+            sources = result.get('sources_used', [])
+            if sources:
+                yield {
+                    'type': 'progress',
+                    'message': f'Gathered data from {len(sources)} sources',
+                    'phase': 'multi_tool_gathering',
+                    'sources': sources
+                }
+            
+            yield {
+                'type': 'status',
+                'message': 'Synthesizing answer from multiple sources...',
+                'phase': 'multi_tool_synthesizing'
+            }
+            
+            # Final response
+            answer = result.get('answer', '')
+            
+            # Add reasoning trace to response
+            if len(reasoning_steps) > 1:
+                answer += "\n\n---\n*Reasoning trace:*"
+                for step in reasoning_steps[:3]:
+                    tools = step.get('tools_called', [])
+                    if tools:
+                        answer += f"\n- Step {step['step']}: Used {', '.join(tools)}"
+            
+            yield {
+                'type': 'response',
+                'response': answer,
+                'metadata': {
+                    'mode': 'multi_tool',
+                    'complexity': complexity_type,
+                    'iterations': result.get('iterations', 1),
+                    'tools_used': sources,
+                    'reasoning_steps': len(reasoning_steps),
+                    'confidence': result.get('confidence', 0.8)
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Multi-tool streaming error: {e}")
+            yield {
+                'type': 'status',
+                'message': 'Falling back to standard search...',
+                'phase': 'fallback'
+            }
+            
+            # Fall back to standard streaming
+            async for update in self._stream_standard_query(query, conversation_history):
+                yield update
+    
+    async def _stream_standard_query(
+        self,
+        query: str,
+        conversation_history: List[Dict] = None
+    ) -> AsyncGenerator[Dict[str, Any], None]:
+        """Fallback standard streaming when multi-tool fails."""
+        context = AgentContext(
+            user_query=query,
+            max_iterations=self.max_iterations
+        )
+        
+        try:
+            await self._understand_query(context, conversation_history)
+            await self._create_fallback_plan(context)
+            await self._execute_plan(context)
+            response = await self._synthesize_response(context)
+            
+            yield {
+                'type': 'response',
+                'response': response,
+                'metadata': {
+                    'mode': 'fallback',
+                    'quality_score': context.result_quality
+                }
+            }
+        except Exception as e:
+            yield {
+                'type': 'error',
+                'error': str(e)
             }
 

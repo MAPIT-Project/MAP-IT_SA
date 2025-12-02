@@ -105,8 +105,8 @@ class QueryPlanner:
     - Fallback strategies
     """
     
-    # Default model configuration
-    DEFAULT_MODEL = "gemini-flash-latest"
+    # Default model configuration - uses env var
+    DEFAULT_MODEL = os.getenv('GEMINI_MODEL', 'gemini-flash-latest')
     DEFAULT_TEMPERATURE = 0.1
     DEFAULT_MAX_TOKENS = 2000
     
