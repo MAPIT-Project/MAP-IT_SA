@@ -191,7 +191,13 @@ class DataIntelligenceService:
                     elif step.source == "vector":
                         result = await self._execute_vector_step(step, plan.cleaned_query)
                         if result:
-                            vector_results.extend(result)
+                            # Deduplicate: only add results not already in vector_results
+                            existing_contents = {r.get("content", "")[:100] for r in vector_results}
+                            for r in result:
+                                content_key = r.get("content", "")[:100]
+                                if content_key not in existing_contents:
+                                    vector_results.append(r)
+                                    existing_contents.add(content_key)
                             sources.append({"type": "vector", "operation": step.operation})
                         
                     elif step.source == "keyword":
@@ -376,11 +382,30 @@ class DataIntelligenceService:
             if operation in ["semantic_search", "hybrid_search"]:
                 search_type = "hybrid" if operation == "hybrid_search" else "semantic"
                 
-                results = self.vector_service.search(
+                # Lower threshold for better recall on requirements queries
+                default_threshold = 0.4  # Lower threshold to find more potential matches
+                
+                # Use keyword-heavy weight (0.3) for better keyword matching
+                # This helps find exact regulatory text that semantic search misses
+                vector_weight = params.get("vector_weight", 0.3)
+                
+                # For hybrid search, truncate query to ~10 words for better keyword matching
+                # Long queries dilute the keyword matching effectiveness
+                if search_type == "hybrid":
+                    query_words = search_query.split()
+                    if len(query_words) > 10:
+                        search_query = ' '.join(query_words[:10])
+                        logger.debug(f"Truncated hybrid query to: {search_query}")
+                
+                results = self.vector_service.hybrid_search(
                     query=search_query,
-                    search_type=search_type,
-                    num_results=num_results,
-                    similarity_threshold=params.get("similarity_threshold", 0.5)
+                    num_results=num_results * 2,  # Get more results for better chance of finding relevant content
+                    similarity_threshold=params.get("similarity_threshold", default_threshold),
+                    vector_weight=vector_weight  # Lower = more keyword weight
+                ) if search_type == "hybrid" else self.vector_service.semantic_search(
+                    query=search_query,
+                    num_results=num_results * 2,
+                    similarity_threshold=params.get("similarity_threshold", default_threshold)
                 )
                 
                 # Convert SearchResult objects to dicts
@@ -460,10 +485,47 @@ class DataIntelligenceService:
         context_parts.append(f"DETECTED INTENT: {plan.intent_type} (confidence: {plan.confidence:.2f})")
         context_parts.append("")
         
-        # Add graph results
+        # For requirements queries, prioritize vector results and add guidance
+        is_requirements_query = plan.intent_type in ['consortium_requirements', 'eligibility'] or \
+                               any(word in query.lower() for word in ['requirement', 'required', 'must', 'rules', 'eligibility'])
+        
+        if is_requirements_query:
+            context_parts.append("=" * 60)
+            context_parts.append("⚠️ ANSWER GUIDANCE: This query asks about REQUIREMENTS/RULES.")
+            context_parts.append("Prioritize information from DOCUMENT CONTEXT (official rules).")
+            context_parts.append("Graph data shows HISTORICAL STATISTICS, not official rules.")
+            context_parts.append("If documents don't contain the specific rules, state that clearly.")
+            context_parts.append("=" * 60)
+            context_parts.append("")
+        
+        # Add vector results FIRST for requirements queries
+        if vector_results and is_requirements_query:
+            context_parts.append("=" * 60)
+            context_parts.append("📄 OFFICIAL DOCUMENTS (search for requirements/rules here)")
+            context_parts.append("=" * 60)
+            
+            for i, result in enumerate(vector_results[:5], 1):
+                title = result.get("title", "Unknown Document")
+                doc_type = result.get("type", "")
+                section = result.get("section", "")
+                content = result.get("content", "")[:600]
+                
+                context_parts.append(f"\n[Document {i}: {title}]")
+                if doc_type:
+                    context_parts.append(f"Type: {doc_type}")
+                if section:
+                    context_parts.append(f"Section: {section}")
+                context_parts.append(f"Content: {content}...")
+            
+            context_parts.append("")
+        
+        # Add graph results (with appropriate label)
         if graph_results:
             context_parts.append("=" * 60)
-            context_parts.append("STRUCTURED DATA (from Graph Database)")
+            if is_requirements_query:
+                context_parts.append("📊 HISTORICAL STATISTICS (for context only, NOT official rules)")
+            else:
+                context_parts.append("STRUCTURED DATA (from Graph Database)")
             context_parts.append("=" * 60)
             
             for i, result in enumerate(graph_results[:5], 1):
@@ -489,8 +551,8 @@ class DataIntelligenceService:
             
             context_parts.append("")
         
-        # Add vector results
-        if vector_results:
+        # Add vector results (if not already added for requirements query)
+        if vector_results and not is_requirements_query:
             context_parts.append("=" * 60)
             context_parts.append("DOCUMENT CONTEXT (from Vector Search)")
             context_parts.append("=" * 60)

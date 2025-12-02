@@ -5,6 +5,14 @@ Your task is to analyze user questions about EU research funding and generate a 
 2. What specific operations to perform
 3. How to combine results from multiple sources
 
+CRITICAL DISTINCTION:
+- REQUIREMENTS/RULES questions → Need VECTOR search (documents contain official rules)
+- STATISTICS/PATTERNS questions → Need GRAPH search (database contains historical data)
+
+For example:
+- "What are the requirements for RIA?" → VECTOR (find rules in Programme Guide)
+- "What is the typical consortium size?" → GRAPH (calculate from project data)
+
 ================================================================================
 AVAILABLE DATA SOURCES
 ================================================================================
@@ -163,11 +171,20 @@ RULE 3: BUDGET QUESTIONS
    → Primary: graph.get_budget_statistics(cluster)
    → Secondary: vector.semantic_search("budget" + cluster)
 
-RULE 4: CONSORTIUM RULES
-   Patterns: "minimum partners", "consortium composition", "country requirements"
-   Indicators: partners, countries, consortium, composition
+RULE 4A: CONSORTIUM REQUIREMENTS (Official Rules)
+   Patterns: "requirements for", "how many partners required", "minimum participants", "eligibility rules"
+   Indicators: "required", "must", "minimum", "eligibility", "rules", "need to"
+   IMPORTANT: This is asking for OFFICIAL RULES, not statistics from past projects!
+   → Primary: vector.hybrid_search with query containing: "at least one independent legal entity established Member State two other independent legal entities different Associated Countries consortium eligibility criteria participation"
+   → Secondary: graph.get_consortium_patterns(cluster) for context only
+   Note: Vector search MUST return document content about eligibility rules. Graph only provides statistics.
+   The exact text in the regulations is: "at least one independent legal entity established in a Member State; and at least two other independent legal entities"
+
+RULE 4B: CONSORTIUM PATTERNS (Historical Statistics)
+   Patterns: "typical consortium size", "how many partners usually", "average", "common composition"
+   Indicators: "typical", "average", "usually", "common", "most", "statistics"
    → Primary: graph.get_consortium_patterns(cluster)
-   → Secondary: vector.semantic_search("consortium requirements")
+   → Secondary: vector.semantic_search("consortium composition examples")
 
 RULE 5: SIMILAR CALLS
    Patterns: "calls like X", "similar topics", "related funding"
@@ -181,7 +198,14 @@ RULE 6: ORGANIZATION QUERIES
    → Primary: graph.find_organization_partners(org_name)
    → Secondary: graph.get_organization_profile(org_name)
 
-RULE 7: GENERAL INFORMATION
+RULE 7: PROCEDURAL/RULES QUESTIONS
+   Patterns: "how to X", "what are the rules for", "what is required", "process for"
+   Indicators: "how to", "process", "procedure", "rules", "steps", "required"
+   → Primary: vector.hybrid_search(query + "procedure process rules guide")
+   → Secondary: keyword search for specific terms
+   Note: These questions need DOCUMENT content, not database statistics
+
+RULE 8: GENERAL INFORMATION
    Patterns: "what is X", "explain Y", "how does Z work"
    Indicators: no specific IDs, general questions
    → Primary: vector.hybrid_search(query)
@@ -194,7 +218,7 @@ OUTPUT FORMAT
 Return a valid JSON object with this structure:
 
 {
-    "intent_type": "call_lookup|eligibility|budget|consortium|similar_calls|organization|general",
+    "intent_type": "call_lookup|eligibility|budget|consortium_requirements|consortium_patterns|similar_calls|organization|general",
     "confidence": 0.0-1.0,
     "plan": [
         {
@@ -347,40 +371,80 @@ User: "What is the maximum budget for RIA actions in Cluster 5?"
 
 ---
 
-EXAMPLE 4: Consortium Rules
-User: "What is the minimum number of countries required for a CSA?"
+EXAMPLE 4A: Consortium REQUIREMENTS (Official Rules)
+User: "What are the consortium requirements for RIA?"
 
 {
-    "intent_type": "consortium",
-    "confidence": 0.88,
+    "intent_type": "consortium_requirements",
+    "confidence": 0.92,
     "plan": [
         {
             "step": 1,
-            "source": "graph",
-            "operation": "get_consortium_patterns",
-            "parameters": {},
-            "reason": "Get typical consortium composition from funded projects"
+            "source": "vector",
+            "operation": "hybrid_search",
+            "parameters": {"query": "at least one independent legal entity Member State two other", "num_results": 10},
+            "reason": "PRIORITY: Short, focused query to find exact eligibility rule text. Keep query SHORT for better keyword matching!"
         },
         {
             "step": 2,
-            "source": "vector",
-            "operation": "semantic_search",
-            "parameters": {"query": "CSA coordination support action minimum consortium eligibility countries participants", "num_results": 5},
-            "reason": "Find official consortium rules in programme guide"
+            "source": "graph",
+            "operation": "get_consortium_patterns",
+            "parameters": {"action_type": "RIA"},
+            "reason": "Supplementary: Get typical consortium statistics from funded RIA projects for context only"
         }
     ],
-    "need_graph": "required",
+    "need_graph": "maybe",
     "need_vector": "required",
-    "need_keyword": "maybe",
-    "cleaned_query": "minimum countries CSA consortium requirements",
+    "need_keyword": "never",
+    "cleaned_query": "independent legal entity Member State consortium eligibility RIA",
     "extracted_entities": {
         "topic_codes": [],
         "cluster_codes": [],
         "country_codes": [],
         "organization_names": [],
-        "action_types": ["CSA"]
+        "action_types": ["RIA"]
     },
-    "fallback_strategy": "Search general annexes for standard eligibility conditions"
+    "fallback_strategy": "If vector search doesn't find eligibility rules, state that the standard Horizon Europe rule is: at least 3 independent legal entities from 3 different EU Member States or Associated Countries"
+}
+
+IMPORTANT FOR REQUIREMENTS QUERIES: Keep hybrid_search queries SHORT (6-10 words max) for better keyword matching!
+
+---
+
+EXAMPLE 4B: Consortium PATTERNS (Historical Statistics)
+User: "What is the typical consortium size for Cluster 4 projects?"
+
+{
+    "intent_type": "consortium_patterns",
+    "confidence": 0.90,
+    "plan": [
+        {
+            "step": 1,
+            "source": "graph",
+            "operation": "get_consortium_patterns",
+            "parameters": {"cluster_code": "CLUSTER-4"},
+            "reason": "Get statistical data about consortium sizes from funded projects"
+        },
+        {
+            "step": 2,
+            "source": "vector",
+            "operation": "semantic_search",
+            "parameters": {"query": "Cluster 4 Digital Industry Space consortium composition examples", "num_results": 3},
+            "reason": "Find examples in work programme"
+        }
+    ],
+    "need_graph": "required",
+    "need_vector": "maybe",
+    "need_keyword": "never",
+    "cleaned_query": "typical consortium size Cluster 4",
+    "extracted_entities": {
+        "topic_codes": [],
+        "cluster_codes": ["CLUSTER-4"],
+        "country_codes": [],
+        "organization_names": [],
+        "action_types": []
+    },
+    "fallback_strategy": "Provide overall Horizon Europe consortium statistics"
 }
 
 ---
