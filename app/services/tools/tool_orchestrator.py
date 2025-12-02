@@ -1999,6 +1999,7 @@ def create_research_orchestrator(cache_client = None) -> ToolOrchestrator:
             return {
                 'success': True,
                 'tool_name': 'eu_portal_search',
+                'query': query,  # Include the actual search query for display purposes
                 'calls_found': len(formatted_calls),
                 'calls': formatted_calls,  # This is what conversation_manager expects
                 'search_metadata': results.get('search_metadata', {}),
