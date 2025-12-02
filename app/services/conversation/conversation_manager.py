@@ -220,7 +220,46 @@ class ConversationManager:
             if unified_intent.call_id:
                 logger.info(f"   Call ID: {unified_intent.call_id}")
             
+            # Build conversation context string for response generation
+            conversation_context_str = self._build_conversation_context_string(recent_messages)
+            
             # Route based on unified intent classification
+            
+            # 0. FOLLOW-UP (handle first - uses conversation context)
+            if unified_intent.primary_intent == 'follow_up':
+                logger.info(f"🔄 ROUTING TO: Follow-up (type: {unified_intent.follow_up_type})")
+                
+                # For follow-up, the conversation context IS the retrieval context
+                follow_up_context = [{
+                    'content': conversation_context_str,
+                    'citation': 'Previous Conversation',
+                    'chunk_id': 'conversation_history',
+                    'metadata': {
+                        'source': 'conversation_history',
+                        'follow_up_type': unified_intent.follow_up_type
+                    }
+                }]
+                
+                # Create intent analysis for follow-up
+                intent_analysis = {
+                    'intent_type': 'follow_up',
+                    'confidence': unified_intent.confidence,
+                    'reasoning': unified_intent.reasoning,
+                    'follow_up_type': unified_intent.follow_up_type
+                }
+                
+                logger.info("📄 Starting follow-up response generation")
+                response = await self._generate_response(
+                    conversation_id=conversation_id,
+                    query=user_message,
+                    context=conversation_context_str,
+                    retrieval_results=follow_up_context,
+                    tool_results=None,
+                    intent_analysis=intent_analysis,
+                    start_time=start_time
+                )
+                
+                return response
             
             # 1. PROPOSAL WRITING
             if unified_intent.primary_intent == 'proposal_writing' and self.draft_generator:
@@ -404,7 +443,7 @@ class ConversationManager:
                 response = await self._generate_response(
                     conversation_id=conversation_id,
                     query=user_message,
-                    context="",
+                    context=conversation_context_str,  # Pass conversation context
                     retrieval_results=retrieval_results,
                     tool_results=tool_results,
                     intent_analysis=intent_analysis,
@@ -964,6 +1003,51 @@ This metadata was extracted directly from the EU Portal API and represents the o
             if unified_intent.call_id:
                 logger.info(f"   [STREAMING] Call ID: {unified_intent.call_id}")
             
+            # Build conversation context string
+            conversation_context_str = self._build_conversation_context_string(recent_messages)
+            
+            # 0. FOLLOW-UP (handle first - uses conversation context)
+            if unified_intent.primary_intent == 'follow_up':
+                logger.info(f"🔄 [STREAMING] ROUTING TO: Follow-up (type: {unified_intent.follow_up_type})")
+                
+                yield {
+                    'type': 'progress',
+                    'stage': 'follow_up_detected',
+                    'message': 'Processing your follow-up question using conversation history...'
+                }
+                
+                # For follow-up, the conversation context IS the retrieval context
+                follow_up_context = [{
+                    'content': conversation_context_str,
+                    'citation': 'Previous Conversation',
+                    'chunk_id': 'conversation_history',
+                    'metadata': {
+                        'source': 'conversation_history',
+                        'follow_up_type': unified_intent.follow_up_type
+                    }
+                }]
+                
+                # Create intent analysis for follow-up
+                intent_analysis = {
+                    'intent_type': 'follow_up',
+                    'confidence': unified_intent.confidence,
+                    'reasoning': unified_intent.reasoning,
+                    'follow_up_type': unified_intent.follow_up_type
+                }
+                
+                # Stream the follow-up response
+                async for chunk in self._generate_streaming_response(
+                    conversation_id=conversation_id,
+                    query=user_message,
+                    context=conversation_context_str,
+                    retrieval_results=follow_up_context,
+                    tool_results=None,
+                    intent_analysis=intent_analysis,
+                    start_time=start_time
+                ):
+                    yield chunk
+                return
+            
             # 1. PROPOSAL WRITING
             if unified_intent.primary_intent == 'proposal_writing' and self.draft_generator:
                 logger.info(f"✍️ [STREAMING] ROUTING TO: Proposal Writing")
@@ -1227,7 +1311,7 @@ This metadata was extracted directly from the EU Portal API and represents the o
             async for chunk in self._generate_streaming_response(
                 conversation_id=conversation_id,
                 query=user_message,
-                context="",  # Context not needed with unified intent
+                context=conversation_context_str,  # Pass conversation context for continuity
                 retrieval_results=retrieval_results,
                 tool_results=tool_results,
                 intent_analysis=intent_analysis,
@@ -3285,6 +3369,28 @@ Good luck with your submission! 🍀
             return []
         finally:
             self.db_pool.putconn(conn)
+
+    def _build_conversation_context_string(self, recent_messages: List[Dict[str, str]]) -> str:
+        """
+        Build a conversation context string from recent messages.
+        This string is passed to the LLM to maintain conversation continuity.
+        """
+        if not recent_messages:
+            return "No previous conversation context."
+        
+        context_lines = []
+        context_lines.append("PREVIOUS CONVERSATION:")
+        context_lines.append("-" * 40)
+        
+        for msg in recent_messages:
+            sender = msg.get('sender', 'unknown').upper()
+            text = msg.get('text', '')
+            # Include full message content for context
+            context_lines.append(f"{sender}: {text}")
+        
+        context_lines.append("-" * 40)
+        
+        return "\n".join(context_lines)
 
     async def _get_proposal_metadata(self, proposal_id: int) -> Dict[str, Any]:
         """Get proposal metadata for export"""

@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class UnifiedIntent:
     """Unified intent classification result"""
-    primary_intent: str  # "faq", "search_projects", "search_calls", "call_specific", "proposal_writing"
+    primary_intent: str  # "faq", "search_projects", "search_calls", "call_specific", "proposal_writing", "follow_up"
     confidence: float  # 0.0-1.0
     reasoning: str
     
@@ -38,6 +38,9 @@ class UnifiedIntent:
     
     # Proposal-specific
     proposal_action: Optional[str] = None  # "draft", "improve", "export", "navigate"
+    
+    # Follow-up specific
+    follow_up_type: Optional[str] = None  # "repeat", "clarify", "expand", "compare"
     
     # Additional context
     conversation_context_used: bool = False
@@ -114,11 +117,27 @@ class UnifiedIntentClassifier:
         """Create the classification prompt with clear examples"""
         
         return f"""You are an expert intent classifier for a Horizon Europe research funding assistant.
-Your job is to classify the user's message into ONE of 5 intent categories with HIGH accuracy.
+Your job is to classify the user's message into ONE of 6 intent categories with HIGH accuracy.
 
-**THE 5 INTENT CATEGORIES:**
+**THE 6 INTENT CATEGORIES:**
 
-1. **faq** - General questions about Horizon Europe, procedures, eligibility, documentation
+1. **follow_up** - User is referencing PREVIOUS conversation content (HIGHEST PRIORITY - check first!)
+   Examples:
+   - "Can you repeat that?"
+   - "Say that again"
+   - "What did you just say?"
+   - "Can you explain that more?"
+   - "Tell me more about that"
+   - "What was the first point?"
+   - "Go back to what you said about..."
+   - "You mentioned X, can you elaborate?"
+   - "Can you summarize what we discussed?"
+   - "What were those requirements again?"
+   
+   **CRITICAL: If user refers to previous answer content → follow_up**
+   **Keywords that trigger follow_up:** repeat, again, said, mentioned, discussed, previous, earlier, last, summarize, elaborate, clarify, more about that
+
+2. **faq** - General questions about Horizon Europe, procedures, eligibility, documentation
    Examples:
    - "How do I apply for Horizon Europe funding?"
    - "What are the eligibility criteria?"
@@ -127,7 +146,7 @@ Your job is to classify the user's message into ONE of 5 intent categories with 
    - "Tell me about Horizon Europe structure"
    - "How does consortium building work?"
 
-2. **search_projects** - User wants to FIND specific research projects or case studies
+3. **search_projects** - User wants to FIND specific research projects or case studies
    Examples:
    - "Show me projects about renewable energy"
    - "Find research on AI in healthcare"
@@ -135,7 +154,7 @@ Your job is to classify the user's message into ONE of 5 intent categories with 
    - "Can you show me successful climate projects?"
    - "Search for projects led by universities in Germany"
 
-3. **search_calls** - User wants to FIND funding calls and opportunities
+4. **search_calls** - User wants to FIND funding calls and opportunities
    Examples:
    - "What calls are open for renewable energy?"
    - "Show me funding opportunities in AI"
@@ -143,7 +162,7 @@ Your job is to classify the user's message into ONE of 5 intent categories with 
    - "Find open calls with deadline in 2025"
    - "What funding is available for SMEs?"
 
-4. **call_specific** - Questions about a SPECIFIC call (when call ID is mentioned OR in context)
+5. **call_specific** - Questions about a SPECIFIC call (when call ID is mentioned OR in context)
    Examples:
    - "Tell me about HORIZON-CL3-2025-02-CS-ECCC-01"
    - "What are the requirements for HORIZON-MSCA-2024-DN-01?"
@@ -156,7 +175,7 @@ Your job is to classify the user's message into ONE of 5 intent categories with 
    - Context: "AI answered about HORIZON-CL4-2025" → Message: "Can I apply?" → call_specific
    - Any question referring to "it", "that call", "the call" when call ID in context → call_specific
 
-5. **proposal_writing** - User wants help WRITING, IMPROVING, EDITING, or EXPORTING a proposal
+6. **proposal_writing** - User wants help WRITING, IMPROVING, EDITING, or EXPORTING a proposal
    Examples:
    - "Help me write a proposal for HORIZON-CL3-2025-02-CS-ECCC-01"
    - "Draft the objectives section"
@@ -178,28 +197,34 @@ Your job is to classify the user's message into ONE of 5 intent categories with 
 
 **CLASSIFICATION INSTRUCTIONS:**
 
-1. **FIRST: Scan conversation context for call IDs (HORIZON-XXX-YYYY-ZZ format)**
-   - Look in USER messages and AI messages
-   - If found, note it for step 2
+1. **FIRST: Check for FOLLOW-UP intent (highest priority!)**
+   - Does the message reference previous conversation? ("repeat", "again", "said", "mentioned", "that")
+   - Does it ask to clarify, expand, or summarize previous content?
+   - If YES → **follow_up** (determine follow_up_type: repeat/clarify/expand/summarize)
 
-2. **THEN: Analyze the current message**
+2. **SECOND: Scan conversation context for call IDs (HORIZON-XXX-YYYY-ZZ format)**
+   - Look in USER messages and AI messages
+   - If found, note it for step 3
+
+3. **THEN: Analyze the current message**
    - Does it ask a question WITHOUT a new call ID?
    - Does it use "it", "that", "the call", "this call", or just direct questions like "what's the deadline?"
    - If YES + call ID found in context → **call_specific** (extract call ID from context!)
    
-3. **Otherwise: Look for explicit indicators in the message itself:**
+4. **Otherwise: Look for explicit indicators in the message itself:**
    - "find", "show", "search" + "projects" → search_projects
    - "find", "show", "search" + "calls/opportunities/grants" → search_calls
    - Call ID mentioned (HORIZON-XXX-YYYY-ZZ) + question → call_specific
    - "write", "draft", "help", "generate", "export" + "proposal" → proposal_writing
    - General questions, "how to", "what is", "explain" → faq
 
-4. **Extract relevant information:**
+5. **Extract relevant information:**
    - **IMPORTANT**: If call ID present IN MESSAGE **OR CONTEXT**, extract it (format: HORIZON-XXX-YYYY-...)
    - If proposal writing: determine action (draft/improve/export/navigate)
    - If searching: extract search keywords
+   - If follow_up: determine follow_up_type (repeat/clarify/expand/summarize)
 
-5. **Provide confidence** (0.0-1.0):
+6. **Provide confidence** (0.0-1.0):
    - 0.9-1.0: Very clear intent
    - 0.7-0.9: Clear intent with some ambiguity
    - 0.5-0.7: Moderate confidence
@@ -214,7 +239,7 @@ Your job is to classify the user's message into ONE of 5 intent categories with 
 **OUTPUT FORMAT (JSON):**
 ```json
 {{
-  "primary_intent": "faq|search_projects|search_calls|call_specific|proposal_writing",
+  "primary_intent": "follow_up|faq|search_projects|search_calls|call_specific|proposal_writing",
   "confidence": 0.95,
   "reasoning": "Clear explanation of why you chose this intent",
   "requires_tools": true,
@@ -229,7 +254,8 @@ Your job is to classify the user's message into ONE of 5 intent categories with 
   "section_id": "excellence.objectives or null",
   "project_keywords": ["keyword1", "keyword2"],
   "call_keywords": ["keyword1", "keyword2"],
-  "proposal_action": "draft|improve|export|navigate or null"
+  "proposal_action": "draft|improve|export|navigate or null",
+  "follow_up_type": "repeat|clarify|expand|summarize or null"
 }}
 ```
 
@@ -237,10 +263,12 @@ Your job is to classify the user's message into ONE of 5 intent categories with 
 
 **IMPORTANT RULES:**
 - Be decisive - choose ONE primary intent
+- **CHECK FOR FOLLOW-UP FIRST** - if user refers to previous content → follow_up
 - **ALWAYS check conversation context for call IDs** when user uses "it", "that", "the call"
 - If previous messages mention a call ID and current question refers to it → call_specific
 - Extract call IDs from MESSAGE OR CONTEXT (format: HORIZON-XXX-YYYY-...)
 - For proposal writing, identify the specific action
+- For follow_up, identify the follow_up_type (repeat/clarify/expand/summarize)
 - Provide clear, logical reasoning
 
 Now classify the message above:"""
@@ -295,6 +323,7 @@ Now classify the message above:"""
                 project_keywords=data.get('project_keywords', []),
                 call_keywords=data.get('call_keywords', []),
                 proposal_action=data.get('proposal_action'),
+                follow_up_type=data.get('follow_up_type'),
                 extracted_entities={}
             )
             
@@ -314,6 +343,10 @@ Now classify the message above:"""
         
         intent = classification.get('primary_intent')
         message_lower = user_message.lower()
+        
+        # Follow-up intent: NO tools needed, use conversation history
+        if intent == 'follow_up':
+            return []  # Handled by conversation context, no tools needed
         
         # Check if query would benefit from intelligent_search (graph + LLM planning)
         intelligent_triggers = [
@@ -429,6 +462,28 @@ Now classify the message above:"""
         
         logger.warning(f"Using fallback intent for: {user_message[:50]}...")
         
+        # Check if this looks like a follow-up question
+        message_lower = user_message.lower()
+        follow_up_triggers = ['repeat', 'again', 'said', 'mentioned', 'discussed', 
+                             'earlier', 'previous', 'last', 'summarize', 'elaborate', 
+                             'clarify', 'what did you', 'can you repeat', 'say that again']
+        
+        if any(trigger in message_lower for trigger in follow_up_triggers):
+            logger.info(f"Fallback detected as follow_up intent")
+            return UnifiedIntent(
+                primary_intent="follow_up",
+                confidence=0.7,
+                reasoning="Fallback classification - detected follow-up language",
+                requires_tools=False,
+                tool_plan=[],
+                call_id=None,
+                section_id=None,
+                project_keywords=[],
+                call_keywords=[],
+                proposal_action=None,
+                follow_up_type="repeat"
+            )
+        
         # Default to intelligent_search for robust fallback
         return UnifiedIntent(
             primary_intent="faq",
@@ -447,7 +502,8 @@ Now classify the message above:"""
             section_id=None,
             project_keywords=[],
             call_keywords=[],
-            proposal_action=None
+            proposal_action=None,
+            follow_up_type=None
         )
     
     def extract_call_id(self, text: str) -> Optional[str]:
