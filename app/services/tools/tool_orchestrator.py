@@ -1932,125 +1932,137 @@ def create_research_orchestrator(cache_client = None) -> ToolOrchestrator:
         ]
     )
 
-    # EU Portal Search Tool - CRITICAL for call searches!
+    # EU Portal Search Tool - NOW USES LOCAL DATA ONLY (no external API)
     async def eu_portal_search_exec(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
-        """Search EU Funding Portal for calls - executes actual search."""
-        from ..improved_call_search import ImprovedCallSearchService
+        """
+        Search for funding calls using LOCAL Work Programme documents.
+        
+        This tool searches your locally ingested Work Programme PDFs for funding
+        opportunities. It does NOT call any external API - all data comes from
+        your local vector database.
+        """
+        from ..local_call_search_service import LocalCallSearchService
         
         try:
             query = params.get('query', '')
-            max_results = params.get('max_results', 50)
-            include_closed = params.get('include_closed', False)
-            programme_period = params.get('programme_period', '2021 - 2027')
-            
-            print(f"🔍 DEBUG: eu_portal_search_exec called with params: {params}")
-            print(f"🔍 DEBUG: query='{query}', max_results={max_results}, include_closed={include_closed}")
+            max_results = params.get('max_results', 10)
+            cluster = params.get('cluster')  # Optional: CL1-CL6
+            action_type = params.get('action_type')  # Optional: RIA, IA, CSA, etc.
             
             if not query or query.strip() == '':
                 return {
                     'success': False,
                     'error': 'Query parameter cannot be empty',
+                    'tool_name': 'eu_portal_search',
                     'calls_found': 0
                 }
             
-            logging.getLogger(__name__).info(f"🔍 EU Portal search: '{query}' (max: {max_results})")
+            logging.getLogger(__name__).info(f"🔍 LOCAL Call Search: '{query}' (max: {max_results})")
             
-            search_service = ImprovedCallSearchService()
-            results = search_service.search_calls_simple(
+            # Use LOCAL search service (no external API!)
+            search_service = LocalCallSearchService()
+            results = search_service.search_calls(
                 query=query,
-                max_results=max_results,
-                include_closed=include_closed,
-                programme_period=programme_period
+                num_results=max_results,
+                cluster=cluster,
+                action_type=action_type
             )
             
-            if results.get('status') != 'success':
+            if not results.get('success'):
                 return {
                     'success': False,
-                    'error': results.get('error', 'Search failed'),
+                    'error': results.get('error', 'Local search failed'),
+                    'tool_name': 'eu_portal_search',
+                    'query': query,
                     'calls_found': 0
                 }
             
-            calls_data = results.get('results', [])
-            
             # Format calls to match conversation_manager expectations
+            calls_data = results.get('calls', [])
             formatted_calls = []
+            
             for call in calls_data:
-                # Handle both dataclass and dict formats
-                if hasattr(call, '__dataclass_fields__'):
-                    formatted_calls.append({
-                        'title': call.title,
-                        'identifier': call.identifier,
-                        'status': call.status,
-                        'deadline': call.deadline,
-                        'url': call.url,
-                        'description': getattr(call, 'description', '')
-                    })
-                else:
-                    # Already a dict - ensure required fields
-                    formatted_calls.append({
-                        'title': call.get('title', 'Untitled'),
-                        'identifier': call.get('identifier', 'Unknown'),
-                        'status': call.get('status', 'Unknown'),
-                        'deadline': call.get('deadline', 'Not specified'),
-                        'url': call.get('url', ''),
-                        'description': call.get('description', '')
-                    })
+                formatted_calls.append({
+                    'title': call.get('title', 'Funding Opportunity'),
+                    'identifier': call.get('topic_code', 'See Work Programme'),
+                    'status': 'See Work Programme',  # Local docs don't have real-time status
+                    'deadline': call.get('deadline', 'Check official portal'),
+                    'url': '',  # No URL for local results
+                    'description': call.get('description', ''),
+                    # Extra local-specific fields
+                    'work_programme': call.get('work_programme', ''),
+                    'cluster': call.get('cluster', ''),
+                    'action_type': call.get('action_type', ''),
+                    'budget': call.get('budget', ''),
+                    'source': 'local_work_programmes'
+                })
             
             return {
                 'success': True,
                 'tool_name': 'eu_portal_search',
-                'query': query,  # Include the actual search query for display purposes
+                'query': query,
                 'calls_found': len(formatted_calls),
-                'calls': formatted_calls,  # This is what conversation_manager expects
-                'search_metadata': results.get('search_metadata', {}),
-                'facets': results.get('facets', {})
+                'calls': formatted_calls,
+                'search_metadata': {
+                    **results.get('search_metadata', {}),
+                    'source': 'local_work_programmes',
+                    'api_used': False,
+                    'note': 'Results from locally ingested Work Programme documents'
+                }
             }
             
         except Exception as e:
-            logging.getLogger(__name__).error(f"EU Portal search error: {e}")
+            logging.getLogger(__name__).error(f"Local call search error: {e}")
+            import traceback
+            traceback.print_exc()
             return {
                 'success': False,
                 'error': str(e),
+                'tool_name': 'eu_portal_search',
+                'query': params.get('query', ''),
                 'calls_found': 0
             }
     
     portal_tool = Tool(
         name='eu_portal_search',
-        description='Search EU Funding Portal for open funding calls and opportunities',
+        description='Search LOCAL Work Programme documents for funding calls and opportunities (no external API)',
         parameters_schema={
             'query': {
                 'type': 'string', 
                 'required': True,
                 'description': 'Search query for finding relevant funding calls',
-                'examples': ['clean energy', 'artificial intelligence', 'renewable energy']
+                'examples': ['clean energy', 'artificial intelligence', 'hydrogen', 'EIC Accelerator']
             },
             'max_results': {
                 'type': 'integer', 
-                'default': 50,
+                'default': 10,
                 'min': 1,
-                'max': 100,
+                'max': 50,
                 'description': 'Maximum number of calls to return'
             },
-            'include_closed': {
-                'type': 'boolean',
-                'default': False,
-                'description': 'Include closed calls in results'
-            },
-            'programme_period': {
+            'cluster': {
                 'type': 'string',
-                'default': '2021 - 2027',
-                'description': 'Horizon Europe programme period'
+                'default': None,
+                'description': 'Filter by Horizon Europe cluster (CL1-CL6)',
+                'examples': ['CL5', 'CL4', 'CL1']
+            },
+            'action_type': {
+                'type': 'string',
+                'default': None,
+                'description': 'Filter by action type (RIA, IA, CSA, ERC, EIC, MSCA)',
+                'examples': ['RIA', 'EIC', 'ERC-STG']
             }
         },
         execute_func=eu_portal_search_exec,
         cache_ttl=3600,  # 1 hour
         parallel_safe=True,
         category='research_funding',
-        tags=['eu_funding', 'horizon_europe', 'calls', 'opportunities'],
+        tags=['eu_funding', 'horizon_europe', 'calls', 'opportunities', 'local_search'],
         usage_examples=[
-            'Find open calls for renewable energy research',
-            'Search for AI funding opportunities',
-            'Look for climate change funding calls'
+            'Find calls for renewable energy research',
+            'Search for AI funding opportunities in Cluster 4',
+            'Look for EIC Accelerator opportunities',
+            'Find ERC Starting Grant information'
         ]
     )
 
