@@ -109,7 +109,17 @@ class ConversationManager:
                 from ..data_intelligence_service import DataIntelligenceService
                 self.data_intelligence = DataIntelligenceService()
                 self._data_intelligence_available = True
-                logger.info("✅ Data Intelligence Service initialized (Graph + Vector + Planner)")
+                
+                # Log detailed status
+                di_status = self.data_intelligence.get_service_status()
+                logger.info("=" * 50)
+                logger.info("🧠 DATA INTELLIGENCE SERVICE READY")
+                logger.info("=" * 50)
+                logger.info(f"   Neo4j Graph:    {'✓' if di_status.get('graph_available') else '✗'}")
+                logger.info(f"   Vector Search:  {'✓' if di_status.get('vector_available') else '✗'}")
+                logger.info(f"   Query Planner:  {'✓' if di_status.get('planner_available') else '✗'}")
+                logger.info(f"   Reranker:       {'✓' if di_status.get('reranker_available') else '✗'}")
+                logger.info("=" * 50)
             except Exception as e:
                 logger.warning(f"⚠️ Data Intelligence Service unavailable: {e}")
                 self.data_intelligence = None

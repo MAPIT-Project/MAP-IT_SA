@@ -32,29 +32,29 @@ class HorizonEuropeRAG:
     ):
         """Initialize the enhanced RAG system."""
         
-        # Initialize services - disable Supabase to avoid recursion issues
+        # Initialize services - Supabase vector disabled (using DataIntelligenceService instead)
         try:
             if supabase_client:
                 self.supabase = supabase_client
             else:
-                # Don't auto-create Supabase - causes recursion
-                logger.info("ℹ️ Supabase disabled to avoid recursion issues")
+                # DataIntelligenceService handles vector search now
                 self.supabase = None
         except Exception as e:
-            logger.warning(f"⚠️ Supabase initialization failed: {e}")
+            logger.debug(f"Supabase not configured: {e}")
             self.supabase = None
         
-        # Only initialize embedding service if vector search is enabled and API key is available
+        # Vector search now handled by DataIntelligenceService (Neo4j + dedicated vector)
+        # This legacy path is kept for backwards compatibility only
         if self.supabase and settings.vector_search_enabled and settings.google_embedding_api_key:
             try:
                 self.embedder = embedding_service or EmbeddingService(cache_client=self.supabase)
                 self.vector_search = vector_search_service or VectorSearchService(self.supabase, self.embedder)
             except Exception as e:
-                logger.warning(f"⚠️ Vector search initialization failed: {e}")
+                logger.debug(f"Legacy vector search not available: {e}")
                 self.embedder = None
                 self.vector_search = None
         else:
-            logger.info("ℹ️ Vector search disabled - using keyword search only")
+            # This is expected - DataIntelligenceService handles intelligent search
             self.embedder = None
             self.vector_search = None
         

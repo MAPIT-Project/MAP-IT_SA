@@ -12,6 +12,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - mapit_network
 
   # FastAPI application
   api:
@@ -50,14 +52,22 @@ services:
       - SIMILARITY_THRESHOLD=0.7
       - MAX_FILE_SIZE_MB=50
       - UPLOAD_DIR=uploads
+      # Neo4j Configuration (use Docker service name)
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-mapit_secure_password_2024}
     depends_on:
       redis:
+        condition: service_healthy
+      neo4j:
         condition: service_healthy
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - ./:/app
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    networks:
+      - mapit_network
 
   # Celery worker for regular RAG queries
   celery-worker:
@@ -86,14 +96,22 @@ services:
       - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
       - USE_SUPABASE=true
       - VECTOR_SEARCH_ENABLED=false
+      # Neo4j Configuration
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-mapit_secure_password_2024}
     depends_on:
       redis:
+        condition: service_healthy
+      neo4j:
         condition: service_healthy
     command: celery -A app.services.celery_app.celery_app worker --loglevel=info --concurrency=4 --queues=rag_queries
     volumes:
       - ./:/app
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    networks:
+      - mapit_network
 
   # Celery worker for streaming RAG queries  
   celery-worker-stream:
@@ -122,14 +140,22 @@ services:
       - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
       - USE_SUPABASE=true
       - VECTOR_SEARCH_ENABLED=false
+      # Neo4j Configuration
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-mapit_secure_password_2024}
     depends_on:
       redis:
+        condition: service_healthy
+      neo4j:
         condition: service_healthy
     command: celery -A app.services.celery_app.celery_app worker --loglevel=info --concurrency=2 --queues=rag_streams
     volumes:
       - ./:/app
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    networks:
+      - mapit_network
 
   # Neo4j Graph Database for relationship-aware queries
   neo4j:
@@ -156,7 +182,10 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+      start_period: 60s
     restart: unless-stopped
+    networks:
+      - mapit_network
 
 volumes:
   redis_data:
@@ -165,5 +194,5 @@ volumes:
   neo4j_plugins:
 
 networks:
-  celery_network:
-    driver: bridge 
+  mapit_network:
+    driver: bridge
