@@ -125,6 +125,20 @@ class ConversationManager:
                 self.data_intelligence = None
                 self._data_intelligence_available = False
             
+            # Agentic Manager - Self-correcting query processing (NEW!)
+            try:
+                from ..agents import AgenticManager
+                self.agentic_manager = AgenticManager(
+                    max_iterations=3,
+                    sufficient_score=0.65
+                )
+                self._agentic_available = True
+                logger.info("🤖 Agentic Manager initialized (self-correcting loop enabled)")
+            except Exception as e:
+                logger.warning(f"⚠️ Agentic Manager unavailable: {e}")
+                self.agentic_manager = None
+                self._agentic_available = False
+            
             # Proposal writing services (NEW!)
             if self.db_pool:
                 self.proposal_template_service = ProposalTemplateService(
@@ -151,7 +165,8 @@ class ConversationManager:
             # Configuration
             self.config = self._load_configuration()
 
-            print("✅ ConversationManager initialized successfully with AI-only intent system + Proposal Writing")
+            agentic_status = "✓" if getattr(self, '_agentic_available', False) else "✗"
+            print(f"✅ ConversationManager initialized (AI-only intent + Proposal Writing + Agentic Loop: {agentic_status})")
             
         except Exception as e:
             print(f"⚠️ ConversationManager initialization error: {e}")
@@ -1200,87 +1215,112 @@ This metadata was extracted directly from the EU Portal API and represents the o
                     logger.info(f"✅ [STREAMING] Tool execution complete")
             
             elif unified_intent.primary_intent == 'faq':
-                # FAQ: Use DataIntelligenceService for smart graph + vector search
-                logger.info(f"🧠 [STREAMING] FAQ: Using Data Intelligence Service (Planner LLM)")
-                yield {
-                    'type': 'progress',
-                    'stage': 'intelligent_search',
-                    'message': 'AI is planning the optimal search strategy...'
-                }
+                # FAQ: Use Agentic Loop for self-correcting search (if available)
+                # Falls back to DataIntelligenceService if agentic not available
                 
-                # Use DataIntelligenceService directly - single LLM call with smart planning
-                if self._data_intelligence_available:
+                if getattr(self, '_agentic_available', False):
+                    # 🤖 AGENTIC LOOP - Self-correcting search with evaluation and replanning
+                    logger.info(f"🤖 [STREAMING] FAQ: Using Agentic Loop (self-correcting)")
+                    yield {
+                        'type': 'progress',
+                        'stage': 'agentic_search',
+                        'message': 'AI is using self-correcting search...'
+                    }
+                    
                     try:
-                        di_result = await self.data_intelligence.search(
-                            query=user_message,
-                            context="",
-                            max_results=10,
-                            rerank=True
-                        )
+                        # Stream progress from agentic manager
+                        agentic_response = None
+                        agentic_metadata = {}
                         
-                        if di_result.success:
-                            yield {
-                                'type': 'progress',
-                                'stage': 'search_complete',
-                                'message': f'Found {len(di_result.graph_results)} graph results, {len(di_result.vector_results)} document results'
-                            }
-                            
-                            # Convert to retrieval format
-                            retrieval_results = []
-                            
-                            # Add graph results as high-quality context
-                            for r in di_result.graph_results:
-                                retrieval_results.append({
-                                    'content': str(r),
-                                    'source': 'neo4j_graph',
-                                    'score': 1.0,
-                                    'metadata': {'type': 'structured_data'}
-                                })
-                            
-                            # Add vector results
-                            for r in di_result.vector_results:
-                                retrieval_results.append({
-                                    'content': r.get('content', str(r)),
-                                    'source': r.get('source', 'vector'),
-                                    'score': r.get('rerank_score', r.get('score', 0.5)),
-                                    'metadata': r
-                                })
-                            
-                            # Store the answer context for the response generator
-                            if di_result.answer_context:
-                                retrieval_results.insert(0, {
-                                    'content': di_result.answer_context,
-                                    'source': 'data_intelligence',
-                                    'score': 1.0,
-                                    'metadata': {
-                                        'intent': di_result.intent_type,
-                                        'confidence': di_result.confidence
-                                    }
-                                })
-                            
-                            logger.info(f"✅ [STREAMING] DataIntelligenceService: {len(retrieval_results)} results (intent: {di_result.intent_type})")
-                        else:
-                            logger.warning(f"⚠️ [STREAMING] DataIntelligenceService failed, falling back")
-                            retrieval_results = await self._retrieve_information(
-                                conversation_id=conversation_id,
-                                query=user_message,
-                                context=""
-                            )
-                    except Exception as e:
-                        logger.error(f"❌ [STREAMING] DataIntelligenceService error: {e}")
-                        retrieval_results = await self._retrieve_information(
-                            conversation_id=conversation_id,
+                        async for update in self.agentic_manager.process_query_streaming(
                             query=user_message,
-                            context=""
+                            conversation_id=str(conversation_id),
+                            conversation_history=recent_messages
+                        ):
+                            update_type = update.get('type', 'unknown')
+                            
+                            if update_type == 'status':
+                                # Forward status updates
+                                yield {
+                                    'type': 'progress',
+                                    'stage': f"agentic_{update.get('phase', 'processing')}",
+                                    'message': update.get('message', 'Processing...'),
+                                    'iteration': update.get('iteration', 1)
+                                }
+                            
+                            elif update_type == 'progress':
+                                # Forward progress updates
+                                yield {
+                                    'type': 'progress',
+                                    'stage': 'agentic_search',
+                                    'message': update.get('message', 'Searching...'),
+                                    'count': update.get('count', 0)
+                                }
+                            
+                            elif update_type == 'response':
+                                # Capture final response
+                                agentic_response = update.get('response', '')
+                                agentic_metadata = update.get('metadata', {})
+                                
+                                # Log agentic performance
+                                iterations = agentic_metadata.get('iterations', 1)
+                                quality = agentic_metadata.get('quality_score', 0)
+                                confidence = agentic_metadata.get('confidence', 'unknown')
+                                logger.info(f"🤖 [AGENTIC] Completed: {iterations} iteration(s), quality={quality:.2f}, confidence={confidence}")
+                                
+                                # Show user the quality info
+                                if iterations > 1:
+                                    yield {
+                                        'type': 'progress',
+                                        'stage': 'agentic_refined',
+                                        'message': f'Refined search {iterations-1} time(s) for better results'
+                                    }
+                            
+                            elif update_type == 'error':
+                                logger.error(f"🤖 [AGENTIC] Error: {update.get('error')}")
+                                # Fall through to fallback
+                                agentic_response = None
+                                break
+                        
+                        if agentic_response:
+                            # Use agentic response as retrieval context
+                            retrieval_results = [{
+                                'content': agentic_response,
+                                'source': 'agentic_loop',
+                                'score': agentic_metadata.get('quality_score', 1.0),
+                                'metadata': {
+                                    'type': 'agentic_response',
+                                    'iterations': agentic_metadata.get('iterations', 1),
+                                    'confidence': agentic_metadata.get('confidence', 'medium'),
+                                    'intent': unified_intent.primary_intent
+                                }
+                            }]
+                            logger.info(f"✅ [STREAMING] Agentic Loop: response ready")
+                        else:
+                            # Agentic failed, fall back to DataIntelligenceService
+                            logger.warning(f"⚠️ [STREAMING] Agentic Loop failed, falling back to DataIntelligenceService")
+                            retrieval_results = await self._fallback_to_data_intelligence(
+                                user_message, conversation_id
+                            )
+                            
+                    except Exception as e:
+                        logger.error(f"❌ [STREAMING] Agentic Loop error: {e}")
+                        retrieval_results = await self._fallback_to_data_intelligence(
+                            user_message, conversation_id
                         )
+                
                 else:
-                    # Fallback to old retrieval
-                    retrieval_results = await self._retrieve_information(
-                        conversation_id=conversation_id,
-                        query=user_message,
-                        context=""
+                    # No agentic available - use DataIntelligenceService directly
+                    logger.info(f"🧠 [STREAMING] FAQ: Using Data Intelligence Service (Planner LLM)")
+                    yield {
+                        'type': 'progress',
+                        'stage': 'intelligent_search',
+                        'message': 'AI is planning the optimal search strategy...'
+                    }
+                    
+                    retrieval_results = await self._fallback_to_data_intelligence(
+                        user_message, conversation_id
                     )
-                    logger.info(f"✅ [STREAMING] Fallback retrieval: {len(retrieval_results)} chunks")
             
             # Convert tool results to retrieval format if needed
             if tool_results:
@@ -2329,6 +2369,153 @@ Be helpful and conversational."""
             'grounded': False,
             'processing_time': 0.0
         }
+    
+    async def process_with_agentic_loop(
+        self,
+        conversation_id: int,
+        user_message: str,
+        user_id: int,
+        streaming: bool = False
+    ) -> AsyncGenerator[Dict[str, Any], None]:
+        """
+        Process a message using the self-correcting agentic loop.
+        
+        This method uses the AgenticManager to:
+        1. Understand the query
+        2. Plan an execution strategy
+        3. Execute the plan
+        4. Evaluate results
+        5. If insufficient, reflect and replan
+        6. Repeat until satisfied or max iterations
+        7. Synthesize final response
+        
+        Args:
+            conversation_id: Conversation identifier
+            user_message: User's message
+            user_id: User identifier
+            streaming: Whether to stream progress updates
+            
+        Yields:
+            Progress updates and final response
+        """
+        if not getattr(self, '_agentic_available', False):
+            yield {
+                'type': 'error',
+                'message': 'Agentic processing is not available'
+            }
+            return
+        
+        start_time = datetime.now()
+        
+        # Get conversation history for context
+        conversation_history = []
+        try:
+            context = self.memory_service.get_conversation_context(conversation_id)
+            if context and hasattr(context, 'recent_messages'):
+                conversation_history = context.recent_messages
+        except Exception as e:
+            logger.warning(f"Could not get conversation history: {e}")
+        
+        if streaming:
+            # Stream progress updates
+            async for update in self.agentic_manager.process_query_streaming(
+                query=user_message,
+                conversation_id=str(conversation_id),
+                conversation_history=conversation_history
+            ):
+                yield update
+        else:
+            # Single response
+            result = await self.agentic_manager.process_query(
+                query=user_message,
+                conversation_id=str(conversation_id),
+                conversation_history=conversation_history
+            )
+            
+            processing_time = (datetime.now() - start_time).total_seconds()
+            
+            yield {
+                'type': 'response',
+                'response': result.get('response', ''),
+                'success': result.get('success', False),
+                'metadata': {
+                    **result.get('metadata', {}),
+                    'processing_time': processing_time,
+                    'agentic': True
+                },
+                'sources': result.get('sources', [])
+            }
+    
+    async def _fallback_to_data_intelligence(
+        self, 
+        user_message: str, 
+        conversation_id: int
+    ) -> List[Dict]:
+        """
+        Fallback to DataIntelligenceService when agentic loop fails or is unavailable.
+        
+        Returns retrieval results in standard format.
+        """
+        retrieval_results = []
+        
+        if self._data_intelligence_available:
+            try:
+                di_result = await self.data_intelligence.search(
+                    query=user_message,
+                    context="",
+                    max_results=10,
+                    rerank=True
+                )
+                
+                if di_result.success:
+                    # Add graph results as high-quality context
+                    for r in di_result.graph_results:
+                        retrieval_results.append({
+                            'content': str(r),
+                            'source': 'neo4j_graph',
+                            'score': 1.0,
+                            'metadata': {'type': 'structured_data'}
+                        })
+                    
+                    # Add vector results
+                    for r in di_result.vector_results:
+                        retrieval_results.append({
+                            'content': r.get('content', str(r)),
+                            'source': r.get('source', 'vector'),
+                            'score': r.get('rerank_score', r.get('score', 0.5)),
+                            'metadata': r
+                        })
+                    
+                    # Store the answer context for the response generator
+                    if di_result.answer_context:
+                        retrieval_results.insert(0, {
+                            'content': di_result.answer_context,
+                            'source': 'data_intelligence',
+                            'score': 1.0,
+                            'metadata': {
+                                'intent': di_result.intent_type,
+                                'confidence': di_result.confidence
+                            }
+                        })
+                    
+                    logger.info(f"✅ DataIntelligenceService fallback: {len(retrieval_results)} results")
+                    return retrieval_results
+                    
+            except Exception as e:
+                logger.error(f"❌ DataIntelligenceService fallback error: {e}")
+        
+        # Ultimate fallback to basic retrieval
+        try:
+            retrieval_results = await self._retrieve_information(
+                conversation_id=conversation_id,
+                query=user_message,
+                context=""
+            )
+            logger.info(f"✅ Basic retrieval fallback: {len(retrieval_results)} chunks")
+        except Exception as e:
+            logger.error(f"❌ Basic retrieval fallback error: {e}")
+        
+        return retrieval_results
     
     def get_conversation_stats(self, conversation_id: int) -> Dict[str, Any]:
         """Get comprehensive conversation statistics."""
