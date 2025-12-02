@@ -9,6 +9,7 @@ import logging
 import re
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
+from datetime import datetime, date
 
 from .vector_search_service import VectorSearchService
 
@@ -133,7 +134,9 @@ class LocalCallSearchService:
         query: str,
         num_results: int = 10,
         cluster: Optional[str] = None,
-        action_type: Optional[str] = None
+        action_type: Optional[str] = None,
+        include_closed: bool = False,
+        year_filter: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Search for calls matching the query in local Work Programme documents.
@@ -143,6 +146,8 @@ class LocalCallSearchService:
             num_results: Maximum number of results to return
             cluster: Optional filter by cluster (CL1-CL6)
             action_type: Optional filter by action type (RIA, IA, CSA, etc.)
+            include_closed: If False, filter out calls from past years (default: False)
+            year_filter: Only show calls from specific year (e.g., "2025", "2026")
         
         Returns:
             Dict with 'calls' list and 'search_metadata'
@@ -156,16 +161,23 @@ class LocalCallSearchService:
                 'calls': []
             }
         
-        logger.info(f"🔍 LOCAL SEARCH: '{query}' (cluster={cluster}, type={action_type})")
+        # Get current date dynamically (not hardcoded!)
+        today = date.today()
+        current_year = today.year
+        logger.info(f"🔍 LOCAL SEARCH: '{query}' (cluster={cluster}, type={action_type}, include_closed={include_closed}, year={year_filter}, today={today})")
         
         # Build enhanced query for better recall
-        enhanced_query = self._enhance_query(query, cluster, action_type)
+        # If not including closed calls, bias toward current/future years
+        if not include_closed and not year_filter:
+            enhanced_query = self._enhance_query(query, cluster, action_type, current_year=current_year)
+        else:
+            enhanced_query = self._enhance_query(query, cluster, action_type, current_year=None)
         
         # Search vector database
         try:
             results = self.vector_service.hybrid_search(
                 query=enhanced_query,
-                num_results=num_results * 4,  # Get more for filtering/dedup
+                num_results=num_results * 6,  # Get more for filtering/dedup
                 vector_weight=0.4,  # Balance semantic and keyword
                 similarity_threshold=0.3  # Lower threshold for better recall
             )
@@ -194,6 +206,19 @@ class LocalCallSearchService:
             # Extract call information
             call_info = self._extract_call_info(result)
             
+            # YEAR FILTERING - Only show current/upcoming calls by default
+            if not include_closed:
+                call_year = self._extract_year_from_call(call_info)
+                if call_year and call_year < current_year:
+                    logger.debug(f"Skipping old call {call_info.topic_code} (year={call_year})")
+                    continue
+            
+            # Specific year filter
+            if year_filter:
+                call_year = self._extract_year_from_call(call_info)
+                if not call_year or str(call_year) != str(year_filter):
+                    continue
+            
             # Skip if we've seen this topic code
             if call_info.topic_code and call_info.topic_code in seen_codes:
                 continue
@@ -214,18 +239,22 @@ class LocalCallSearchService:
             if len(calls) >= num_results:
                 break
         
-        logger.info(f"✅ Found {len(calls)} local results for '{query}'")
+        logger.info(f"✅ Found {len(calls)} local results for '{query}' (filtered to current/upcoming)")
         
         return {
             'success': True,
             'query': query,
             'calls_found': len(calls),
             'calls': [c.to_dict() for c in calls],
+            'current_date': today.isoformat(),
             'search_metadata': {
                 'source': 'local_work_programmes',
                 'api_used': False,
                 'enhanced_query': enhanced_query,
                 'total_results_before_filter': len(results),
+                'include_closed': include_closed,
+                'year_filter': year_filter,
+                'current_year': current_year,
                 'filters_applied': {
                     'cluster': cluster,
                     'action_type': action_type
@@ -233,11 +262,35 @@ class LocalCallSearchService:
             }
         }
     
+    def _extract_year_from_call(self, call: LocalCallResult) -> Optional[int]:
+        """Extract the year from a call's topic code or content."""
+        # Try topic code first: HORIZON-CL5-2025-D3-01-04 -> 2025
+        # Match any year from 2020-2039
+        if call.topic_code:
+            year_match = re.search(r'20(2[0-9]|3[0-9])', call.topic_code)
+            if year_match:
+                return int(year_match.group(0))
+        
+        # Try work programme name
+        if call.work_programme:
+            year_match = re.search(r'20(2[0-9]|3[0-9])', call.work_programme)
+            if year_match:
+                return int(year_match.group(0))
+        
+        # Try source document
+        if call.source_document:
+            year_match = re.search(r'20(2[0-9]|3[0-9])', call.source_document)
+            if year_match:
+                return int(year_match.group(0))
+        
+        return None
+    
     def _enhance_query(
         self, 
         query: str, 
         cluster: Optional[str] = None,
-        action_type: Optional[str] = None
+        action_type: Optional[str] = None,
+        current_year: Optional[int] = None
     ) -> str:
         """Enhance the query with relevant context for better search."""
         parts = [query]
@@ -254,6 +307,11 @@ class LocalCallSearchService:
         # Add action type context
         if action_type:
             parts.append(action_type)
+        
+        # Bias toward current/upcoming years
+        if current_year:
+            parts.append(f"{current_year}")
+            parts.append(f"{current_year + 1}")
         
         return " ".join(parts)
     

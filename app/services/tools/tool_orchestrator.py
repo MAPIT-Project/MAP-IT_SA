@@ -1940,14 +1940,20 @@ def create_research_orchestrator(cache_client = None) -> ToolOrchestrator:
         This tool searches your locally ingested Work Programme PDFs for funding
         opportunities. It does NOT call any external API - all data comes from
         your local vector database.
+        
+        By default, only shows calls from current year (2025) and future years.
+        Set include_closed=True to see older calls.
         """
         from ..local_call_search_service import LocalCallSearchService
+        from datetime import date
         
         try:
             query = params.get('query', '')
             max_results = params.get('max_results', 10)
             cluster = params.get('cluster')  # Optional: CL1-CL6
             action_type = params.get('action_type')  # Optional: RIA, IA, CSA, etc.
+            include_closed = params.get('include_closed', False)  # Default: only open/upcoming
+            year_filter = params.get('year', None)  # Optional: specific year
             
             if not query or query.strip() == '':
                 return {
@@ -1957,7 +1963,11 @@ def create_research_orchestrator(cache_client = None) -> ToolOrchestrator:
                     'calls_found': 0
                 }
             
-            logging.getLogger(__name__).info(f"🔍 LOCAL Call Search: '{query}' (max: {max_results})")
+            current_date = date.today()
+            logging.getLogger(__name__).info(
+                f"🔍 LOCAL Call Search: '{query}' (max: {max_results}, "
+                f"include_closed: {include_closed}, year: {year_filter}, today: {current_date})"
+            )
             
             # Use LOCAL search service (no external API!)
             search_service = LocalCallSearchService()
@@ -1965,7 +1975,9 @@ def create_research_orchestrator(cache_client = None) -> ToolOrchestrator:
                 query=query,
                 num_results=max_results,
                 cluster=cluster,
-                action_type=action_type
+                action_type=action_type,
+                include_closed=include_closed,
+                year_filter=year_filter
             )
             
             if not results.get('success'):
@@ -1982,10 +1994,28 @@ def create_research_orchestrator(cache_client = None) -> ToolOrchestrator:
             formatted_calls = []
             
             for call in calls_data:
+                # Determine status based on year
+                call_year = None
+                if call.get('topic_code'):
+                    import re
+                    year_match = re.search(r'20(2[4-9]|3[0-9])', call.get('topic_code', ''))
+                    if year_match:
+                        call_year = int(year_match.group(0))
+                
+                if call_year:
+                    if call_year > current_date.year:
+                        status = f'Upcoming ({call_year})'
+                    elif call_year == current_date.year:
+                        status = f'Current ({call_year})'
+                    else:
+                        status = f'Past ({call_year})'
+                else:
+                    status = 'See Work Programme'
+                
                 formatted_calls.append({
                     'title': call.get('title', 'Funding Opportunity'),
                     'identifier': call.get('topic_code', 'See Work Programme'),
-                    'status': 'See Work Programme',  # Local docs don't have real-time status
+                    'status': status,
                     'deadline': call.get('deadline', 'Check official portal'),
                     'url': '',  # No URL for local results
                     'description': call.get('description', ''),
@@ -1994,7 +2024,8 @@ def create_research_orchestrator(cache_client = None) -> ToolOrchestrator:
                     'cluster': call.get('cluster', ''),
                     'action_type': call.get('action_type', ''),
                     'budget': call.get('budget', ''),
-                    'source': 'local_work_programmes'
+                    'source': 'local_work_programmes',
+                    'year': call_year
                 })
             
             return {
@@ -2003,11 +2034,14 @@ def create_research_orchestrator(cache_client = None) -> ToolOrchestrator:
                 'query': query,
                 'calls_found': len(formatted_calls),
                 'calls': formatted_calls,
+                'current_date': current_date.isoformat(),
                 'search_metadata': {
                     **results.get('search_metadata', {}),
                     'source': 'local_work_programmes',
                     'api_used': False,
-                    'note': 'Results from locally ingested Work Programme documents'
+                    'include_closed': include_closed,
+                    'current_date': current_date.isoformat(),
+                    'note': f'Results from locally ingested Work Programme documents. Showing {"all" if include_closed else "current/upcoming"} calls as of {current_date}.'
                 }
             }
             
@@ -2025,7 +2059,7 @@ def create_research_orchestrator(cache_client = None) -> ToolOrchestrator:
     
     portal_tool = Tool(
         name='eu_portal_search',
-        description='Search LOCAL Work Programme documents for funding calls and opportunities (no external API)',
+        description='Search LOCAL Work Programme documents for funding calls and opportunities (no external API). By default shows only current/upcoming calls.',
         parameters_schema={
             'query': {
                 'type': 'string', 
@@ -2051,6 +2085,17 @@ def create_research_orchestrator(cache_client = None) -> ToolOrchestrator:
                 'default': None,
                 'description': 'Filter by action type (RIA, IA, CSA, ERC, EIC, MSCA)',
                 'examples': ['RIA', 'EIC', 'ERC-STG']
+            },
+            'include_closed': {
+                'type': 'boolean',
+                'default': False,
+                'description': 'Include calls from past years (default: only current/upcoming)'
+            },
+            'year': {
+                'type': 'string',
+                'default': None,
+                'description': 'Filter to specific year (e.g., "2025", "2026")',
+                'examples': ['2025', '2026']
             }
         },
         execute_func=eu_portal_search_exec,
@@ -2059,10 +2104,11 @@ def create_research_orchestrator(cache_client = None) -> ToolOrchestrator:
         category='research_funding',
         tags=['eu_funding', 'horizon_europe', 'calls', 'opportunities', 'local_search'],
         usage_examples=[
-            'Find calls for renewable energy research',
+            'Find current calls for renewable energy research',
             'Search for AI funding opportunities in Cluster 4',
-            'Look for EIC Accelerator opportunities',
-            'Find ERC Starting Grant information'
+            'Look for EIC Accelerator opportunities in 2026',
+            'Find ERC Starting Grant information',
+            'Show me past calls for clean energy (include_closed=True)'
         ]
     )
 
