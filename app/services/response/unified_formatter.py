@@ -76,6 +76,11 @@ class UnifiedResponseFormatter:
                     formatted_database = self._format_local_database(result_data)
                     formatted_parts.append(formatted_database)
 
+                elif tool_name == 'intelligent_search':
+                    # Format intelligent search results (graph + vector + planner)
+                    formatted_intelligent = self._format_intelligent_search(result_data)
+                    formatted_parts.append(formatted_intelligent)
+
                 else:
                     # Generic tool result formatting
                     formatted_generic = self._format_generic_tool_result(tool_name, result_data)
@@ -149,6 +154,124 @@ class UnifiedResponseFormatter:
             logger.error(f"Error formatting conversation memory: {e}")
             # Fallback to the raw answer from the tool
             return memory_data.get('answer', 'I found some conversation history but had trouble formatting it.')
+
+    def _format_intelligent_search(self, search_data: Dict[str, Any]) -> str:
+        """Format intelligent search results (graph + vector + planner) into a natural response.
+
+        The intelligent_search tool returns:
+        - results.answer_context: Context for LLM (NOT a final answer) - contains metadata + documents
+        - results.intent_type: Detected intent (e.g., 'general', 'eligibility', 'budget')
+        - results.confidence: Confidence score
+        - results.graph_results: Structured data from Neo4j
+        - results.vector_results: Semantic matches from vector search
+        - results.sources: List of sources used
+
+        IMPORTANT: The answer_context is NOT a final answer - it's context for generating an answer.
+        We need to extract and format the actual content from the results.
+        """
+        try:
+            # Extract the results object
+            results = search_data.get('results', {})
+            if not results:
+                results = search_data  # Maybe results are at top level
+
+            formatted_parts = []
+            intent_type = results.get('intent_type', 'general')
+            confidence = results.get('confidence', 0.0)
+
+            # First try to build from structured graph results (most valuable)
+            graph_results = results.get('graph_results', [])
+            if graph_results:
+                formatted_parts.append("**Based on our research database:**\n")
+                for i, result in enumerate(graph_results[:5], 1):
+                    if isinstance(result, str):
+                        # Clean up graph result string
+                        clean_result = result.strip()
+                        if clean_result:
+                            formatted_parts.append(f"{clean_result}\n")
+                    elif isinstance(result, dict):
+                        content = result.get('content', result.get('name', str(result)))
+                        formatted_parts.append(f"{content}\n")
+
+            # Then add vector results for supporting evidence
+            vector_results = results.get('vector_results', [])
+            if vector_results:
+                if formatted_parts:
+                    formatted_parts.append("\n**From official documentation:**\n")
+                else:
+                    formatted_parts.append("**Based on official documentation:**\n")
+
+                for i, result in enumerate(vector_results[:3], 1):
+                    if isinstance(result, dict):
+                        content = result.get('content', '')
+                        title = result.get('title', result.get('source', 'Horizon Europe Document'))
+
+                        # Clean and truncate content
+                        if content:
+                            clean_content = content.strip()[:400]
+                            if len(content) > 400:
+                                clean_content += "..."
+                            formatted_parts.append(f"*From {title}:*\n{clean_content}\n")
+                    elif isinstance(result, str):
+                        formatted_parts.append(f"{result[:300]}...\n")
+
+            # If we have formatted content, return it
+            if formatted_parts:
+                # Add a helpful intro based on intent
+                intro = ""
+                if intent_type == 'general':
+                    intro = "Here's what I found:\n\n"
+                elif intent_type == 'eligibility':
+                    intro = "Regarding eligibility:\n\n"
+                elif intent_type == 'budget':
+                    intro = "Regarding budget and funding:\n\n"
+                elif intent_type == 'consortium_requirements':
+                    intro = "Regarding consortium requirements:\n\n"
+
+                return intro + ''.join(formatted_parts).strip()
+
+            # Fallback: Try to extract content from answer_context if it contains document content
+            answer_context = results.get('answer_context', '')
+            if answer_context:
+                # The answer_context contains metadata we need to strip
+                # Look for actual document content after the headers
+                import re
+
+                # Try to find document content sections
+                doc_pattern = r'\[Document \d+: ([^\]]+)\].*?Content: (.+?)(?=\[Document|\Z)'
+                matches = re.findall(doc_pattern, answer_context, re.DOTALL)
+
+                if matches:
+                    formatted_parts = ["Based on our search results:\n"]
+                    for title, content in matches[:3]:
+                        clean_content = content.strip()[:300]
+                        if len(content) > 300:
+                            clean_content += "..."
+                        formatted_parts.append(f"\n*From {title.strip()}:*\n{clean_content}\n")
+                    return ''.join(formatted_parts).strip()
+
+                # If no structured documents found, try to extract any meaningful content
+                # Skip the metadata lines and get actual content
+                lines = answer_context.split('\n')
+                content_lines = []
+                skip_prefixes = ('USER QUERY:', 'DETECTED INTENT:', '====', '🎯', '📄', '📊')
+
+                for line in lines:
+                    line_stripped = line.strip()
+                    if line_stripped and not any(line_stripped.startswith(p) for p in skip_prefixes):
+                        # Skip instruction lines
+                        if 'Your answer should:' not in line_stripped and not line_stripped.startswith(('1.', '2.', '3.', '4.')):
+                            content_lines.append(line_stripped)
+
+                if content_lines:
+                    return '\n'.join(content_lines[:10])
+
+            # Ultimate fallback
+            return "I found relevant information about your query, but I need more specific details to provide a focused answer. Could you please clarify what aspect you'd like to know more about?"
+
+        except Exception as e:
+            logger.error(f"Error formatting intelligent search: {e}")
+            return "I had trouble processing the search results. Please try rephrasing your question."
 
     def _format_local_database(self, database_data: Dict[str, Any]) -> str:
         """Format local database search results into natural conversational response."""

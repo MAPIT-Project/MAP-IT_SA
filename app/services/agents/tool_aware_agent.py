@@ -97,58 +97,78 @@ class ToolAwareAgent:
     """
     
     # System prompt for the reasoning LLM
-    REASONING_PROMPT = """You are an intelligent research assistant with access to multiple data sources about EU funding programs (Horizon Europe, EIC, ERC, etc.).
+    REASONING_PROMPT = """You are an intelligent research assistant for EU funding (Horizon Europe, EIC, ERC, etc.).
 
 ## Available Tools
 
 {tools_description}
 
+## Understanding User Intent
+
+The user's message may:
+- Be a NEW question: Search for the information they need
+- REFER to previous results: "the 4th one", "that call", "tell me more about it"
+- BE A COMPLAINT: "only 1 result", "that's not enough", "wtf" → They want more/better results
+- ASK FOR MORE: "show me more", "any others" → Search again with same topic
+
+When the user refers to previous conversation:
+- Look at CONVERSATION HISTORY to understand what they mean
+- If they say "the 3rd call" - find the 3rd call ID from the history
+- If they complain about results - search again for the SAME TOPIC with more results
+
 ## Your Task
 
-Answer the user's question by:
-1. **THINK**: Analyze what information is needed
-2. **ACT**: Choose which tool(s) to call
-3. **OBSERVE**: Review the results
-4. **REPEAT**: If needed, call more tools based on what you learned
-5. **CONCLUDE**: Synthesize a final answer
+1. **UNDERSTAND**: What does the user actually want?
+   - Read the conversation history to understand context
+   - Identify if this is a new question or follow-up
+
+2. **DECIDE**: What tools to use (or answer directly if you can)
+   - For funding calls → use search_funding_calls
+   - For projects → use search_projects
+   - For statistics → use get_programme_statistics or get_country_statistics
+   - For eligibility rules → use search_documents
+   - For comparing things → use compare_programmes
+
+3. **EXECUTE**: Call the tools
+
+4. **RESPOND**: Provide a helpful answer
 
 ## Response Format
 
-Respond in JSON format:
+Respond ONLY with JSON (no other text):
 ```json
 {{
-    "thought": "Your reasoning about what to do next",
-    "action": "call_tools" | "analyze_results" | "conclude",
+    "thought": "What does the user want? What info do I need?",
+    "action": "call_tools" | "conclude",
     "tool_calls": [
         {{
             "tool": "tool_name",
             "parameters": {{"param1": "value1"}},
-            "reasoning": "Why this tool helps answer the question"
+            "reasoning": "Why this tool helps"
         }}
     ],
     "needs_more_info": true | false,
-    "conclusion": "Final answer if action is 'conclude'"
+    "conclusion": "Final answer (if action is 'conclude')"
 }}
 ```
 
 ## Rules
 
-1. For COMPARISON questions, always gather data from BOTH sides before concluding
-2. For STATISTICS questions, prefer graph_search over document_search
-3. For ELIGIBILITY questions, prefer document_search for official rules
-4. You can call multiple tools in parallel if they're independent
-5. After getting results, analyze if you have enough info or need more
-6. Always cite which sources your answer came from
+1. ALWAYS respond with valid JSON
+2. For complaints about few results, search again with the SAME TOPIC
+3. For calls/projects, use the dedicated search tools (not search_documents)
+4. Can call multiple tools in parallel if independent
+5. Cite your sources in the conclusion
 
-## Current Query
-
-{query}
-
-## Conversation Context
+## Conversation History
 
 {context}
 
-## Previous Steps in This Session
+## Current User Message
+
+{query}
+
+## Previous Steps (this reasoning session)
 
 {previous_steps}
 
@@ -156,7 +176,7 @@ Respond in JSON format:
 
 {tool_results}
 
-What is your next step?"""
+What is your next step? Remember: Output ONLY JSON."""
 
     def __init__(self, max_iterations: int = 5):
         """Initialize the tool-aware agent."""
@@ -872,32 +892,72 @@ What is your next step?"""
         try:
             from ..local_call_search_service import LocalCallSearchService
             call_service = LocalCallSearchService()
-            
+
             keywords = params.get('keywords', '')
             status = params.get('status', 'open')
             year = params.get('year')
-            
-            results = await call_service.search_calls(
+
+            # LocalCallSearchService.search_calls uses 'num_results' not 'limit'
+            results = call_service.search_calls(
                 query=keywords,
-                limit=5,
-                include_closed=(status == 'closed')
+                num_results=15,
+                include_closed=(status == 'closed'),
+                year_filter=str(year) if year else None
             )
-            
-            return {"calls": results.get('calls', [])}
+
+            calls = results.get('calls', [])
+            return {
+                "calls_found": len(calls),
+                "calls": [
+                    {
+                        "call_id": c.get('call_id', ''),
+                        "title": c.get('title', ''),
+                        "deadline": c.get('deadline', ''),
+                        "type": c.get('action_type', ''),
+                        "cluster": c.get('cluster', ''),
+                        "budget": c.get('budget', '')
+                    }
+                    for c in calls[:15]
+                ]
+            }
         except Exception as e:
-            return {"error": str(e)}
+            logger.error(f"Funding calls search error: {e}")
+            return {"error": str(e), "calls": []}
     
     async def _tool_get_call_details(self, params: Dict) -> Dict:
         """Get details for a specific call."""
         try:
-            from ..call_enrichment_service import CallEnrichmentService
-            enricher = CallEnrichmentService()
-            
             call_id = params.get('call_id', '')
-            result = await enricher.enrich_call_data(call_id, {})
-            
-            return result or {"message": f"No details found for {call_id}"}
+            if not call_id:
+                return {"error": "call_id is required"}
+
+            # First try local search for the call
+            from ..local_call_search_service import LocalCallSearchService
+            call_service = LocalCallSearchService()
+
+            # Search for the specific call
+            results = call_service.search_calls(
+                query=call_id,
+                num_results=5
+            )
+
+            calls = results.get('calls', [])
+            for call in calls:
+                if call_id.upper() in call.get('call_id', '').upper():
+                    return {
+                        "call_id": call.get('call_id'),
+                        "title": call.get('title'),
+                        "description": call.get('description', ''),
+                        "deadline": call.get('deadline'),
+                        "type": call.get('action_type'),
+                        "cluster": call.get('cluster'),
+                        "budget": call.get('budget'),
+                        "topics": call.get('topics', [])
+                    }
+
+            return {"message": f"No details found for {call_id}"}
         except Exception as e:
+            logger.error(f"Get call details error: {e}")
             return {"error": str(e)}
     
     async def _tool_search_projects(self, params: Dict) -> Dict:

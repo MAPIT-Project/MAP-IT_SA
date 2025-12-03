@@ -138,6 +138,17 @@ class ConversationManager:
                 logger.warning(f"⚠️ Agentic Manager unavailable: {e}")
                 self.agentic_manager = None
                 self._agentic_available = False
+
+            # Tool-Aware Agent - Single entry point for simplified architecture
+            try:
+                from ..agents.tool_aware_agent import ToolAwareAgent
+                self.tool_aware_agent = ToolAwareAgent(max_iterations=5)
+                self._tool_aware_agent_available = True
+                logger.info("🛠️ ToolAwareAgent initialized (simplified architecture ready)")
+            except Exception as e:
+                logger.warning(f"⚠️ ToolAwareAgent unavailable: {e}")
+                self.tool_aware_agent = None
+                self._tool_aware_agent_available = False
             
             # Proposal writing services (NEW!)
             if self.db_pool:
@@ -214,9 +225,16 @@ class ConversationManager:
         
         # For non-streaming, do all processing first
         try:
-            # Phase 1: Process user message (no database storage for V2)
-            # Generate a fake message ID for compatibility
+            # Phase 1: Process user message (store in memory for context continuity)
             user_message_id = random.randint(1000, 9999)
+
+            # Store user message in memory service for conversation context
+            self.memory_service.add_conversation_turn(
+                conversation_id=conversation_id,
+                role='user',
+                content=user_message,
+                message_id=user_message_id
+            )
 
             # Phase 1.5: UNIFIED INTENT CLASSIFICATION (handles ALL 5 intents)
             recent_messages = self._get_recent_messages_simple(conversation_id, limit=5)
@@ -240,41 +258,52 @@ class ConversationManager:
             
             # Route based on unified intent classification
             
-            # 0. FOLLOW-UP (handle first - uses conversation context)
+            # 0. FOLLOW-UP - Resolve references and route through normal agentic pipeline
             if unified_intent.primary_intent == 'follow_up':
-                logger.info(f"🔄 ROUTING TO: Follow-up (type: {unified_intent.follow_up_type})")
-                
-                # For follow-up, the conversation context IS the retrieval context
-                follow_up_context = [{
-                    'content': conversation_context_str,
-                    'citation': 'Previous Conversation',
-                    'chunk_id': 'conversation_history',
-                    'metadata': {
-                        'source': 'conversation_history',
-                        'follow_up_type': unified_intent.follow_up_type
-                    }
-                }]
-                
-                # Create intent analysis for follow-up
-                intent_analysis = {
-                    'intent_type': 'follow_up',
-                    'confidence': unified_intent.confidence,
-                    'reasoning': unified_intent.reasoning,
-                    'follow_up_type': unified_intent.follow_up_type
-                }
-                
-                logger.info("📄 Starting follow-up response generation")
-                response = await self._generate_response(
-                    conversation_id=conversation_id,
-                    query=user_message,
-                    context=conversation_context_str,
-                    retrieval_results=follow_up_context,
-                    tool_results=None,
-                    intent_analysis=intent_analysis,
-                    start_time=start_time
+                logger.info(f"=" * 60)
+                logger.info(f"🔄 FOLLOW-UP DETECTED")
+                logger.info(f"   Type: {unified_intent.follow_up_type}")
+                logger.info(f"   Original message: {user_message}")
+                logger.info(f"=" * 60)
+
+                # Resolve the follow-up question by expanding references using conversation context
+                resolved_query = self._resolve_follow_up_references(
+                    user_message=user_message,
+                    conversation_context=conversation_context_str,
+                    follow_up_type=unified_intent.follow_up_type
                 )
-                
-                return response
+
+                logger.info(f"🔄 Resolved follow-up query: '{resolved_query}'")
+
+                # Now route the resolved query through the normal agentic pipeline
+                # Re-classify the resolved query to determine proper routing
+                resolved_intent = await self.unified_classifier.classify_intent(
+                    user_message=resolved_query,
+                    conversation_id=conversation_id,
+                    recent_messages=recent_messages
+                )
+
+                logger.info(f"=" * 60)
+                logger.info(f"🎯 RESOLVED INTENT")
+                logger.info(f"   Intent: {resolved_intent.primary_intent}")
+                logger.info(f"   Confidence: {resolved_intent.confidence:.2f}")
+                logger.info(f"   Tool plan: {resolved_intent.tool_plan}")
+                logger.info(f"=" * 60)
+
+                # Use the resolved intent for routing, but keep conversation context
+                unified_intent = resolved_intent
+                user_message = resolved_query  # Use resolved query for downstream processing
+
+                # IMPORTANT: Update tool_plan parameters to use the resolved query
+                # The tool_plan was generated with the original message, we need to fix it
+                if unified_intent.tool_plan:
+                    for tool in unified_intent.tool_plan:
+                        if isinstance(tool, dict) and 'parameters' in tool:
+                            if 'query' in tool['parameters']:
+                                tool['parameters']['query'] = resolved_query
+                                logger.info(f"🔄 Updated tool plan query to: '{resolved_query}'")
+
+                # Fall through to normal routing below (don't return early)
             
             # 1. PROPOSAL WRITING
             if unified_intent.primary_intent == 'proposal_writing' and self.draft_generator:
@@ -482,14 +511,185 @@ class ConversationManager:
                 logger.info(f"📤 FINAL RESPONSE: {response.get('response', 'No response')[:500]}...")
                 logger.info(f"📊 RESPONSE METADATA: tools_executed={response.get('tools_executed', False)}, confidence={response.get('confidence', 0.0)}")
 
+                # Store assistant response in memory for conversation continuity
+                assistant_response_text = response.get('response', '')
+                if assistant_response_text:
+                    self.memory_service.add_conversation_turn(
+                        conversation_id=conversation_id,
+                        role='assistant',
+                        content=assistant_response_text[:2000],  # Limit to avoid memory issues
+                        message_id=random.randint(10000, 99999)
+                    )
+                    logger.info(f"💾 Stored assistant response in memory ({len(assistant_response_text)} chars)")
+
                 return response
                 
         except Exception as e:
             logger.error(f"Error processing message: {e}")
             return self._create_error_response(str(e))
-    
-    
-    
+
+    async def process_message_v3(
+        self,
+        conversation_id: int,
+        user_message: str,
+        user_id: int,
+        streaming: bool = False
+    ) -> Dict[str, Any]:
+        """
+        SIMPLIFIED ARCHITECTURE - Single Agentic Loop
+
+        This is the new simplified entry point that routes ALL queries through
+        the ToolAwareAgent. The agent decides:
+        - What tools to use (or none)
+        - How to handle follow-ups (from conversation context)
+        - When to iterate and when to conclude
+
+        No intent classification. No complex routing. Just the agent.
+        """
+        start_time = datetime.now()
+
+        if not self._tool_aware_agent_available:
+            logger.warning("ToolAwareAgent not available, falling back to v2")
+            return await self.process_message(
+                conversation_id=conversation_id,
+                user_message=user_message,
+                user_id=user_id,
+                streaming=streaming
+            )
+
+        logger.info("=" * 60)
+        logger.info("🚀 SIMPLIFIED ARCHITECTURE V3")
+        logger.info(f"   Query: {user_message[:100]}...")
+        logger.info("=" * 60)
+
+        try:
+            # 1. Get conversation history (BEFORE storing current message)
+            recent_messages = self._get_recent_messages_simple(conversation_id, limit=10)
+            conversation_context = self._format_conversation_for_agent(recent_messages)
+
+            logger.info(f"📋 Conversation context: {len(recent_messages)} messages")
+
+            # 2. Store user message in memory
+            self.memory_service.add_conversation_turn(
+                conversation_id=conversation_id,
+                role='user',
+                content=user_message,
+                message_id=random.randint(1000, 9999)
+            )
+
+            # 3. Run the agentic loop - THE AGENT DECIDES EVERYTHING
+            agent_result = await self.tool_aware_agent.process_query(
+                query=user_message,
+                context=conversation_context,
+                conversation_history=recent_messages
+            )
+
+            logger.info(f"🤖 Agent completed:")
+            logger.info(f"   Iterations: {agent_result.get('iterations', 0)}")
+            logger.info(f"   Sources: {agent_result.get('sources_used', [])}")
+            logger.info(f"   Confidence: {agent_result.get('confidence', 0):.2f}")
+
+            # 4. Get the answer
+            answer = agent_result.get('answer', '')
+
+            # 5. If agent didn't produce a good answer, synthesize from results
+            if not answer or len(answer) < 50:
+                answer = await self._synthesize_agent_response(
+                    query=user_message,
+                    agent_result=agent_result,
+                    context=conversation_context
+                )
+
+            # 6. Store assistant response
+            if answer:
+                self.memory_service.add_conversation_turn(
+                    conversation_id=conversation_id,
+                    role='assistant',
+                    content=answer[:2000],
+                    message_id=random.randint(10000, 99999)
+                )
+
+            # 7. Build response
+            processing_time = (datetime.now() - start_time).total_seconds() * 1000
+
+            return {
+                'response': answer,
+                'metadata': {
+                    'intent_type': 'agentic_v3',
+                    'confidence': agent_result.get('confidence', 0.8),
+                    'tools_used': agent_result.get('sources_used', []),
+                    'reasoning_steps': agent_result.get('reasoning_steps', []),
+                    'iterations': agent_result.get('iterations', 0),
+                    'processing_time_ms': processing_time,
+                    'architecture': 'simplified_v3'
+                }
+            }
+
+        except Exception as e:
+            logger.error(f"V3 processing error: {e}")
+            import traceback
+            traceback.print_exc()
+            return self._create_error_response(str(e))
+
+    def _format_conversation_for_agent(self, messages: List[Dict]) -> str:
+        """Format conversation history for the agent."""
+        if not messages:
+            return "No previous conversation."
+
+        lines = []
+        for msg in messages[-10:]:  # Last 10 turns
+            role = msg.get('sender', 'unknown').upper()
+            content = msg.get('text', '')
+            # Truncate long assistant responses but keep more of user messages
+            max_len = 500 if role == 'ASSISTANT' else 300
+            if len(content) > max_len:
+                content = content[:max_len] + "..."
+            lines.append(f"{role}: {content}")
+
+        return "\n\n".join(lines)
+
+    async def _synthesize_agent_response(
+        self,
+        query: str,
+        agent_result: Dict[str, Any],
+        context: str
+    ) -> str:
+        """Synthesize a response from agent results using LLM."""
+        try:
+            import google.generativeai as genai
+
+            # Collect tool results from reasoning steps
+            tool_info = []
+            for step in agent_result.get('reasoning_steps', []):
+                if step.get('observation'):
+                    tool_info.append(step['observation'])
+
+            if not tool_info:
+                return agent_result.get('answer', 'I was unable to find relevant information.')
+
+            prompt = f"""Based on the following search results, provide a helpful answer to the user's question.
+
+USER QUESTION: {query}
+
+SEARCH RESULTS:
+{chr(10).join(tool_info[:3])}
+
+Provide a clear, well-structured answer. If the results include calls or projects, format them nicely with key details."""
+
+            model = genai.GenerativeModel('gemini-2.0-flash')
+            response = model.generate_content(
+                prompt,
+                generation_config=genai.types.GenerationConfig(
+                    temperature=0.3,
+                    max_output_tokens=2000,
+                )
+            )
+            return response.text
+
+        except Exception as e:
+            logger.error(f"Synthesis failed: {e}")
+            return agent_result.get('answer', 'I found some information but had trouble formatting the response.')
+
     async def _execute_service(self,
                               service_decision: Dict[str, Any],
                               conversation_id: int,
@@ -582,7 +782,56 @@ class ConversationManager:
                                     'confidence': tool_data.get('confidence', 0.0)
                                 }
                             })
-                    
+
+                    elif tool_name == 'intelligent_search':
+                        # Format intelligent search results (graph + vector + planner)
+                        print(f"🧠 DEBUG: intelligent_search - extracting answer_context...")
+                        results = tool_data.get('results', {})
+                        answer_context = results.get('answer_context', '')
+
+                        if answer_context:
+                            print(f"🧠 DEBUG: answer_context found: {len(answer_context)} chars")
+                            retrieval_results.append({
+                                'content': answer_context,
+                                'citation': f"Intelligent Search - {results.get('intent_type', 'general')}",
+                                'chunk_id': f"intelligent_search_0",
+                                'metadata': {
+                                    'source': 'intelligent_search_tool',
+                                    'tool_name': tool_name,
+                                    'intent_type': results.get('intent_type', 'unknown'),
+                                    'confidence': results.get('confidence', 0.0),
+                                    'sources_count': len(results.get('sources', []))
+                                }
+                            })
+
+                        # Also add graph results if available
+                        for i, graph_result in enumerate(results.get('graph_results', [])[:3]):
+                            if isinstance(graph_result, str) and graph_result.strip():
+                                retrieval_results.append({
+                                    'content': graph_result,
+                                    'citation': f"Graph Database - Result {i+1}",
+                                    'chunk_id': f"graph_{i}",
+                                    'metadata': {
+                                        'source': 'neo4j_graph',
+                                        'tool_name': tool_name
+                                    }
+                                })
+
+                        # Add vector results if available
+                        for i, vector_result in enumerate(results.get('vector_results', [])[:3]):
+                            if isinstance(vector_result, dict):
+                                content = vector_result.get('content', str(vector_result))
+                                retrieval_results.append({
+                                    'content': content,
+                                    'citation': vector_result.get('source', f"Vector Search - Result {i+1}"),
+                                    'chunk_id': f"vector_{i}",
+                                    'metadata': {
+                                        'source': 'vector_search',
+                                        'tool_name': tool_name,
+                                        'score': vector_result.get('score', 0.0)
+                                    }
+                                })
+
                     else:
                         # Generic tool result formatting
                         if hasattr(tool_data, '__dict__'):
@@ -899,33 +1148,52 @@ This metadata was extracted directly from the EU Portal API and represents the o
                         logger.info(f"      Result type: {type(tool_result.result)}")
                         if isinstance(tool_result.result, dict):
                             logger.info(f"      Result keys: {list(tool_result.result.keys())}")
-                            # Check for expected fields
                             if 'answer' in tool_result.result:
                                 logger.info(f"      Has 'answer' field: {len(tool_result.result['answer'])} chars")
                             if 'projects_found' in tool_result.result:
                                 logger.info(f"      Projects found: {tool_result.result['projects_found']}")
 
-                # Use unified formatter for tool results (calls, projects, etc.)
-                # Pass only the current user message, not the entire conversation context
-                formatted_response = self.unified_formatter.format_mixed_results(
-                    tool_results=tool_results,
-                    retrieval_results=retrieval_results,
-                    query=query  # Use the query parameter, not user_message
-                )
+                # Check if this is intelligent_search - it needs LLM processing, not just formatting
+                is_intelligent_search = 'intelligent_search' in tool_results
 
-                logger.info(f"📝 FORMATTED RESPONSE LENGTH: {len(formatted_response) if formatted_response else 0}")
-                logger.info(f"📝 FORMATTED RESPONSE PREVIEW: {formatted_response[:500] if formatted_response else 'None'}...")
+                if is_intelligent_search:
+                    # intelligent_search returns context that needs LLM synthesis
+                    logger.info("🧠 intelligent_search detected - using LLM to synthesize response")
 
-                # Log the complete formatted response for debugging
-                if formatted_response:
-                    logger.info(f"📝 COMPLETE FORMATTED RESPONSE:\n{formatted_response}")
+                    # Convert tool results to retrieval format for LLM processing
+                    search_context = self._convert_tool_results_to_retrieval(tool_results)
 
-                response = {
-                    'answer': formatted_response,
-                    'citations': [],
-                    'confidence': 0.9,  # High confidence for direct tool results
-                    'grounded': True
-                }
+                    # Generate proper conversational response using the LLM
+                    conversational_response = self._generate_conversational_response(
+                        query=query,
+                        context=context,
+                        retrieval_results=search_context,
+                        intent_analysis=intent_analysis
+                    )
+
+                    response = {
+                        'answer': conversational_response,
+                        'citations': [],
+                        'confidence': 0.9,
+                        'grounded': True
+                    }
+                else:
+                    # Other tools (eu_portal_search, search_cordis_projects, etc.) - use beautiful formatting
+                    formatted_response = self.unified_formatter.format_mixed_results(
+                        tool_results=tool_results,
+                        retrieval_results=retrieval_results,
+                        query=query
+                    )
+
+                    logger.info(f"📝 FORMATTED RESPONSE LENGTH: {len(formatted_response) if formatted_response else 0}")
+                    logger.info(f"📝 FORMATTED RESPONSE PREVIEW: {formatted_response[:500] if formatted_response else 'None'}...")
+
+                    response = {
+                        'answer': formatted_response,
+                        'citations': [],
+                        'confidence': 0.9,  # High confidence for direct tool results
+                        'grounded': True
+                    }
             else:
                 # Generate conversational AI response for general queries
                 logger.info(f"💬 Generating conversational response for: '{query}'")
@@ -1006,15 +1274,22 @@ This metadata was extracted directly from the EU Portal API and represents the o
                 'message': 'Processing...'
             }
             
-            # Phase 1: Process user message (no database storage for V2)
+            # Phase 1: Process user message (store in memory for context continuity)
             yield {
                 'type': 'status',
                 'stage': 'processing_message',
                 'message': 'Processing your message...'
             }
-            # Generate a fake message ID for compatibility (not saved to database)
             user_message_id = random.randint(1000, 9999)
-            
+
+            # Store user message in memory service for conversation context
+            self.memory_service.add_conversation_turn(
+                conversation_id=conversation_id,
+                role='user',
+                content=user_message,
+                message_id=user_message_id
+            )
+
             # Phase 1.6: UNIFIED INTENT CLASSIFICATION (handles ALL 5 intents)
             recent_messages = self._get_recent_messages_simple(conversation_id, limit=5)
             logger.info(f"📋 [STREAMING] Retrieved {len(recent_messages)} recent messages for context")
@@ -1034,47 +1309,55 @@ This metadata was extracted directly from the EU Portal API and represents the o
             # Build conversation context string
             conversation_context_str = self._build_conversation_context_string(recent_messages)
             
-            # 0. FOLLOW-UP (handle first - uses conversation context)
+            # 0. FOLLOW-UP - Resolve references and route through normal agentic pipeline
             if unified_intent.primary_intent == 'follow_up':
                 logger.info(f"🔄 [STREAMING] ROUTING TO: Follow-up (type: {unified_intent.follow_up_type})")
-                
+
                 yield {
                     'type': 'progress',
                     'stage': 'follow_up_detected',
-                    'message': 'Processing your follow-up question using conversation history...'
+                    'message': 'Resolving your follow-up question...'
                 }
-                
-                # For follow-up, the conversation context IS the retrieval context
-                follow_up_context = [{
-                    'content': conversation_context_str,
-                    'citation': 'Previous Conversation',
-                    'chunk_id': 'conversation_history',
-                    'metadata': {
-                        'source': 'conversation_history',
-                        'follow_up_type': unified_intent.follow_up_type
-                    }
-                }]
-                
-                # Create intent analysis for follow-up
-                intent_analysis = {
-                    'intent_type': 'follow_up',
-                    'confidence': unified_intent.confidence,
-                    'reasoning': unified_intent.reasoning,
-                    'follow_up_type': unified_intent.follow_up_type
-                }
-                
-                # Stream the follow-up response
-                async for chunk in self._generate_streaming_response(
+
+                # Resolve the follow-up question by expanding references using conversation context
+                resolved_query = self._resolve_follow_up_references(
+                    user_message=user_message,
+                    conversation_context=conversation_context_str,
+                    follow_up_type=unified_intent.follow_up_type
+                )
+
+                logger.info(f"🔄 [STREAMING] Resolved follow-up query: '{resolved_query}'")
+
+                # Re-classify the resolved query to determine proper routing
+                resolved_intent = await self.unified_classifier.classify_intent(
+                    user_message=resolved_query,
                     conversation_id=conversation_id,
-                    query=user_message,
-                    context=conversation_context_str,
-                    retrieval_results=follow_up_context,
-                    tool_results=None,
-                    intent_analysis=intent_analysis,
-                    start_time=start_time
-                ):
-                    yield chunk
-                return
+                    recent_messages=recent_messages
+                )
+
+                logger.info(f"🎯 [STREAMING] Resolved intent: {resolved_intent.primary_intent}")
+
+                yield {
+                    'type': 'progress',
+                    'stage': 'intent_detected',
+                    'message': f'AI analyzed intent: {resolved_intent.primary_intent}',
+                    'routing_decision': resolved_intent.primary_intent,
+                    'intent_confidence': resolved_intent.confidence
+                }
+
+                # Use the resolved intent for routing
+                unified_intent = resolved_intent
+                user_message = resolved_query
+
+                # IMPORTANT: Update tool_plan parameters to use the resolved query
+                if unified_intent.tool_plan:
+                    for tool in unified_intent.tool_plan:
+                        if isinstance(tool, dict) and 'parameters' in tool:
+                            if 'query' in tool['parameters']:
+                                tool['parameters']['query'] = resolved_query
+                                logger.info(f"🔄 [STREAMING] Updated tool plan query to: '{resolved_query}'")
+
+                # Fall through to normal routing below (don't return early)
             
             # 1. PROPOSAL WRITING
             if unified_intent.primary_intent == 'proposal_writing' and self.draft_generator:
@@ -1476,32 +1759,66 @@ This metadata was extracted directly from the EU Portal API and represents the o
             
             # Prepare context chunks
             context_chunks = retrieval_results if retrieval_results is not None else []
-            
+
             # Generate and stream the actual response
             if tool_results:
-                # Tool-based response with beautiful formatting
-                formatted_response = self.unified_formatter.format_mixed_results(
-                    tool_results=tool_results,
-                    retrieval_results=retrieval_results,
-                    query=query  # Use the query parameter, not user_message
-                )
-                
-                if formatted_response:
-                    # Stream the pre-formatted response in chunks
-                    chunk_size = 50  # Characters per chunk
-                    for i in range(0, len(formatted_response), chunk_size):
-                        chunk = formatted_response[i:i+chunk_size]
+                # Check if this is intelligent_search - it needs LLM processing, not just formatting
+                is_intelligent_search = 'intelligent_search' in tool_results
+
+                if is_intelligent_search:
+                    # intelligent_search returns context that needs LLM synthesis
+                    logger.info("🧠 intelligent_search detected - using LLM to synthesize response")
+
+                    # Convert tool results to retrieval format for LLM processing
+                    search_context = self._convert_tool_results_to_retrieval(tool_results)
+
+                    # Generate proper conversational response using the LLM
+                    conversational_response = self._generate_conversational_response(
+                        query=query,
+                        context=context,
+                        retrieval_results=search_context,
+                        intent_analysis=intent_analysis
+                    )
+
+                    # Stream the AI-generated response
+                    chunk_size = 50
+                    for i in range(0, len(conversational_response), chunk_size):
+                        chunk = conversational_response[i:i+chunk_size]
                         yield {
                             'type': 'token',
                             'content': chunk
                         }
-                        await asyncio.sleep(0.01)  # Small delay for streaming effect
-                    
-                    final_response = formatted_response
-                    projects_found = self._count_projects_in_results(tool_results)
+                        await asyncio.sleep(0.01)
+
+                    final_response = conversational_response
                     tools_executed = True
                     confidence = 0.9
                     grounded = True
+                    projects_found = 0
+                else:
+                    # Other tools (eu_portal_search, search_cordis_projects, etc.) - use beautiful formatting
+                    formatted_response = self.unified_formatter.format_mixed_results(
+                        tool_results=tool_results,
+                        retrieval_results=retrieval_results,
+                        query=query
+                    )
+
+                    if formatted_response:
+                        # Stream the pre-formatted response in chunks
+                        chunk_size = 50  # Characters per chunk
+                        for i in range(0, len(formatted_response), chunk_size):
+                            chunk = formatted_response[i:i+chunk_size]
+                            yield {
+                                'type': 'token',
+                                'content': chunk
+                            }
+                            await asyncio.sleep(0.01)  # Small delay for streaming effect
+
+                        final_response = formatted_response
+                        projects_found = self._count_projects_in_results(tool_results)
+                        tools_executed = True
+                        confidence = 0.9
+                        grounded = True
             else:
                 # Generate conversational response for non-tool queries
                 logger.info(f"💬 Generating streaming conversational response for: '{query}'")
@@ -3569,35 +3886,53 @@ Good luck with your submission! 🍀
             return 'excellence.objectives'
 
     def _get_recent_messages_simple(self, conversation_id: int, limit: int = 5) -> List[Dict[str, str]]:
-        """Get recent messages for context (simple version for unified classifier)"""
-        if not self.db_pool:
-            return []
+        """Get recent messages for context (simple version for unified classifier).
 
-        conn = self.db_pool.getconn()
-        cursor = conn.cursor()
+        Tries database first, then falls back to memory service for v2 endpoint compatibility.
+        """
+        messages = []
 
-        try:
-            cursor.execute("""
-                SELECT text, sender FROM message
-                WHERE conversation_id = %s
-                ORDER BY created_at DESC
-                LIMIT %s
-            """, (conversation_id, limit))
+        # Try database first (v1 endpoint uses database)
+        if self.db_pool:
+            conn = self.db_pool.getconn()
+            cursor = conn.cursor()
 
-            messages = []
-            for row in cursor.fetchall():
-                messages.append({
-                    'text': row[0],
-                    'sender': row[1]
-                })
+            try:
+                cursor.execute("""
+                    SELECT text, sender FROM message
+                    WHERE conversation_id = %s
+                    ORDER BY created_at DESC
+                    LIMIT %s
+                """, (conversation_id, limit))
 
-            return list(reversed(messages))  # Return in chronological order
+                for row in cursor.fetchall():
+                    messages.append({
+                        'text': row[0],
+                        'sender': row[1]
+                    })
 
-        except Exception as e:
-            logger.warning(f"Could not get recent messages: {e}")
-            return []
-        finally:
-            self.db_pool.putconn(conn)
+                messages = list(reversed(messages))  # Return in chronological order
+
+            except Exception as e:
+                logger.warning(f"Could not get recent messages from DB: {e}")
+            finally:
+                self.db_pool.putconn(conn)
+
+        # If no messages from database, try memory service (v2 endpoint uses memory)
+        if not messages and hasattr(self, 'memory_service') and self.memory_service:
+            try:
+                recent_turns = self.memory_service.stm.get_recent_turns(conversation_id, n=limit)
+                for turn in recent_turns:
+                    messages.append({
+                        'text': turn.content if hasattr(turn, 'content') else str(turn),
+                        'sender': turn.role if hasattr(turn, 'role') else 'unknown'
+                    })
+                if messages:
+                    logger.info(f"📋 Retrieved {len(messages)} messages from memory service")
+            except Exception as e:
+                logger.warning(f"Could not get recent messages from memory: {e}")
+
+        return messages
 
     def _build_conversation_context_string(self, recent_messages: List[Dict[str, str]]) -> str:
         """
@@ -3606,20 +3941,104 @@ Good luck with your submission! 🍀
         """
         if not recent_messages:
             return "No previous conversation context."
-        
+
         context_lines = []
         context_lines.append("PREVIOUS CONVERSATION:")
         context_lines.append("-" * 40)
-        
+
         for msg in recent_messages:
             sender = msg.get('sender', 'unknown').upper()
             text = msg.get('text', '')
             # Include full message content for context
             context_lines.append(f"{sender}: {text}")
-        
+
         context_lines.append("-" * 40)
-        
+
         return "\n".join(context_lines)
+
+    def _resolve_follow_up_references(
+        self,
+        user_message: str,
+        conversation_context: str,
+        follow_up_type: str
+    ) -> str:
+        """
+        Resolve references in follow-up questions using LLM for robust understanding.
+
+        Uses AI to understand what the user is referring to based on conversation context,
+        rather than brittle regex patterns.
+        """
+        import re
+        import google.generativeai as genai
+
+        # For expand/correction follow-ups, use LLM to extract the original search topic
+        if follow_up_type in ['expand', 'correction']:
+            try:
+                # Use Gemini to understand the original topic
+                prompt = f"""Based on this conversation, extract the ORIGINAL SEARCH TOPIC the user was asking about.
+
+CONVERSATION:
+{conversation_context[-2000:]}
+
+USER'S FOLLOW-UP: "{user_message}"
+
+The user is complaining or asking for more results. What was the ORIGINAL TOPIC they searched for?
+
+Reply with ONLY the search topic (e.g., "funding calls in clean energy research" or "hydrogen projects").
+Do NOT include phrases like "the user asked about" - just the topic itself."""
+
+                model = genai.GenerativeModel('gemini-2.0-flash')
+                response = model.generate_content(
+                    prompt,
+                    generation_config=genai.types.GenerationConfig(
+                        temperature=0.1,
+                        max_output_tokens=100,
+                    )
+                )
+                original_topic = response.text.strip().strip('"').strip("'")
+
+                if original_topic and len(original_topic) > 3:
+                    resolved = f"Search for more funding calls about {original_topic}"
+                    logger.info(f"🔄 LLM resolved expand/correction to: '{resolved}'")
+                    return resolved
+
+            except Exception as e:
+                logger.warning(f"LLM resolution failed: {e}, falling back to basic handling")
+
+        # For ordinal references (the 4th call), use simple extraction
+        ordinal_pattern = r'(?:the\s+)?(\d+)(?:st|nd|rd|th)?\s+(?:call|one|option|result|project)'
+        ordinal_match = re.search(ordinal_pattern, user_message.lower())
+
+        if ordinal_match:
+            ordinal_num = int(ordinal_match.group(1))
+            call_ids = re.findall(r'HORIZON-[A-Z0-9-]+', conversation_context)
+
+            # Remove duplicates while preserving order
+            seen = set()
+            unique_call_ids = []
+            for cid in call_ids:
+                if cid not in seen:
+                    seen.add(cid)
+                    unique_call_ids.append(cid)
+
+            if ordinal_num <= len(unique_call_ids):
+                target_call_id = unique_call_ids[ordinal_num - 1]
+                resolved = re.sub(ordinal_pattern, target_call_id, user_message, flags=re.IGNORECASE)
+                logger.info(f"🔄 Resolved ordinal reference: '{user_message}' → '{resolved}'")
+                return resolved
+
+        # For pronoun references, extract the last mentioned call ID
+        pronoun_pattern = r'\b(?:it|this call|that call|this one|that one)\b'
+        if re.search(pronoun_pattern, user_message.lower()):
+            call_ids = re.findall(r'HORIZON-[A-Z0-9-]+', conversation_context)
+            if call_ids:
+                last_call = call_ids[-1]
+                resolved = re.sub(pronoun_pattern, last_call, user_message, flags=re.IGNORECASE)
+                logger.info(f"🔄 Resolved pronoun reference to: {last_call}")
+                return resolved
+
+        # Default: return original message
+        return user_message
 
     async def _get_proposal_metadata(self, proposal_id: int) -> Dict[str, Any]:
         """Get proposal metadata for export"""

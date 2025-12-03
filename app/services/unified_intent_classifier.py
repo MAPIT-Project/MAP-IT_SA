@@ -99,7 +99,7 @@ class UnifiedIntentClassifier:
                 prompt,
                 generation_config=genai.types.GenerationConfig(
                     temperature=0.2,
-                    max_output_tokens=1000,
+                    max_output_tokens=2000,
                 )
             )
             
@@ -132,7 +132,10 @@ class UnifiedIntentClassifier:
             
             logger.info(f"✅ Intent classified: {intent.primary_intent} (confidence: {intent.confidence:.2f})")
             logger.info(f"   Reasoning: {intent.reasoning[:100]}...")
-            
+
+            # Post-LLM validation: Override if strong keyword evidence contradicts LLM
+            intent = self._validate_and_override_intent(intent, user_message, conversation_id)
+
             return intent
             
         except Exception as e:
@@ -167,12 +170,20 @@ OUTPUT JSON:
 }}
 
 INTENT RULES:
-- follow_up: references previous message ("repeat", "again", "said", "that")
-- faq: general questions about funding, eligibility, process
+- follow_up: references previous conversation items including:
+  * Ordinal references: "the 4th call", "the first one", "the second project"
+  * Pronouns: "it", "that", "this one", "that call"
+  * Explicit references: "repeat", "again", "you said", "mentioned earlier"
+  * Relative references: "the one about AI", "the climate call"
+  * Complaints/corrections: "that's not enough", "only 1", "more calls", "wtf", "that's wrong"
+  * Requests for more: "show me more", "any others", "what else", "more options"
+- faq: general questions about funding, eligibility, process (no reference to prior context)
 - search_projects: wants to find funded projects
 - search_calls: wants to find funding opportunities
-- call_specific: asks about specific call ID (HORIZON-XXX-...)
+- call_specific: asks about specific call ID with full ID present (HORIZON-XXX-...)
 - proposal_writing: help writing/editing proposal
+
+IMPORTANT: If user references previous results, complains about results, or asks for more, classify as follow_up with follow_up_type="correction" or "expand".
 
 COMPLEXITY RULES:
 - simple: single question, single source answers it
@@ -306,33 +317,13 @@ Respond with ONLY the JSON, no other text."""
         
         intent = classification.get('primary_intent')
         message_lower = user_message.lower()
-        
+
         # Follow-up intent: NO tools needed, use conversation history
         if intent == 'follow_up':
             return []  # Handled by conversation context, no tools needed
-        
-        # Check if query would benefit from intelligent_search (graph + LLM planning)
-        intelligent_triggers = [
-            'eligible', 'eligibility', 'can participate', 'allowed to',
-            'budget', 'funding', 'maximum', 'minimum', 'average',
-            'consortium', 'partners', 'countries required', 'how many',
-            'similar', 'like', 'related to', 'find calls',
-            'cluster', 'horizon-', 'who has', 'track record',
-            'switzerland', 'associated', 'third country',
-            'sme', 'university', 'research organization',
-            'ria', 'ia', 'csa', 'erc', 'msca',
-        ]
-        
-        if any(trigger in message_lower for trigger in intelligent_triggers):
-            return [{
-                'tool_name': 'intelligent_search',
-                'parameters': {
-                    'query': user_message,
-                    'max_results': 10
-                },
-                'reason': 'Intelligent search using graph database and LLM planning for structured queries'
-            }]
-        
+
+        # INTENT-SPECIFIC TOOLS FIRST (these take precedence)
+        # search_calls and search_projects have dedicated tools that work better
         if intent == 'search_projects':
             return [{
                 'tool_name': 'search_cordis_projects',
@@ -447,6 +438,61 @@ Respond with ONLY the JSON, no other text."""
                 follow_up_type="repeat"
             )
         
+        # Smart fallback: detect intent from keywords before defaulting to faq
+        message_lower = user_message.lower()
+
+        # Check for call search intent
+        call_search_keywords = ['call', 'calls', 'funding opportunit', 'open call', 'deadline', 'apply']
+        if any(kw in message_lower for kw in call_search_keywords):
+            logger.info(f"Fallback detected as search_calls intent (keyword match)")
+            return UnifiedIntent(
+                primary_intent="search_calls",
+                confidence=0.6,
+                reasoning="Fallback classification - detected call search keywords",
+                requires_tools=True,
+                tool_plan=[{
+                    'tool_name': 'eu_portal_search',
+                    'parameters': {
+                        'query': user_message,
+                        'keywords': [],
+                        'max_results': 15
+                    },
+                    'reason': 'Search for funding calls (fallback)'
+                }],
+                call_id=None,
+                section_id=None,
+                project_keywords=[],
+                call_keywords=[],
+                proposal_action=None,
+                follow_up_type=None
+            )
+
+        # Check for project search intent
+        project_search_keywords = ['project', 'projects', 'funded', 'cordis', 'research project']
+        if any(kw in message_lower for kw in project_search_keywords):
+            logger.info(f"Fallback detected as search_projects intent (keyword match)")
+            return UnifiedIntent(
+                primary_intent="search_projects",
+                confidence=0.6,
+                reasoning="Fallback classification - detected project search keywords",
+                requires_tools=True,
+                tool_plan=[{
+                    'tool_name': 'search_cordis_projects',
+                    'parameters': {
+                        'query': user_message,
+                        'keywords': [],
+                        'max_results': 15
+                    },
+                    'reason': 'Search for projects (fallback)'
+                }],
+                call_id=None,
+                section_id=None,
+                project_keywords=[],
+                call_keywords=[],
+                proposal_action=None,
+                follow_up_type=None
+            )
+
         # Default to intelligent_search for robust fallback
         return UnifiedIntent(
             primary_intent="faq",
@@ -469,6 +515,94 @@ Respond with ONLY the JSON, no other text."""
             follow_up_type=None
         )
     
+    def _validate_and_override_intent(
+        self,
+        intent: UnifiedIntent,
+        user_message: str,
+        conversation_id: int
+    ) -> UnifiedIntent:
+        """
+        Post-LLM validation: Override intent if strong keyword evidence contradicts LLM.
+
+        This ensures that queries with explicit intent signals (like "search for calls")
+        don't get misclassified as faq by the LLM.
+        """
+        message_lower = user_message.lower()
+
+        # Only override if confidence is low-to-medium (< 0.8) and there's strong keyword evidence
+        if intent.confidence >= 0.8:
+            return intent  # High confidence, trust the LLM
+
+        # Check for strong call search signals
+        call_keywords = ['funding call', 'funding calls', 'open call', 'search for call', 'find call',
+                        'search calls', 'find calls', 'funding opportunit']
+        has_call_signal = any(kw in message_lower for kw in call_keywords)
+
+        # Check for strong project search signals
+        project_keywords = ['search project', 'find project', 'funded project', 'cordis project',
+                           'research project', 'search for project']
+        has_project_signal = any(kw in message_lower for kw in project_keywords)
+
+        # Override to search_calls if strong signal and currently faq
+        if has_call_signal and intent.primary_intent == 'faq':
+            logger.info(f"🔄 OVERRIDE: faq → search_calls (strong keyword signal detected)")
+            return UnifiedIntent(
+                primary_intent="search_calls",
+                confidence=0.75,
+                reasoning=f"Override: strong call search signal in query. Original: {intent.reasoning}",
+                requires_tools=True,
+                tool_plan=[{
+                    'tool_name': 'eu_portal_search',
+                    'parameters': {
+                        'query': user_message,
+                        'keywords': [],
+                        'max_results': 15
+                    },
+                    'reason': 'Search for funding calls (override)'
+                }],
+                complexity_type=intent.complexity_type,
+                requires_multi_tool=intent.requires_multi_tool,
+                suggested_tools=intent.suggested_tools,
+                complexity_reasoning=intent.complexity_reasoning,
+                call_id=intent.call_id,
+                section_id=intent.section_id,
+                project_keywords=intent.project_keywords,
+                call_keywords=intent.call_keywords,
+                proposal_action=intent.proposal_action,
+                follow_up_type=intent.follow_up_type
+            )
+
+        # Override to search_projects if strong signal and currently faq
+        if has_project_signal and intent.primary_intent == 'faq':
+            logger.info(f"🔄 OVERRIDE: faq → search_projects (strong keyword signal detected)")
+            return UnifiedIntent(
+                primary_intent="search_projects",
+                confidence=0.75,
+                reasoning=f"Override: strong project search signal in query. Original: {intent.reasoning}",
+                requires_tools=True,
+                tool_plan=[{
+                    'tool_name': 'search_cordis_projects',
+                    'parameters': {
+                        'query': user_message,
+                        'keywords': [],
+                        'max_results': 15
+                    },
+                    'reason': 'Search for projects (override)'
+                }],
+                complexity_type=intent.complexity_type,
+                requires_multi_tool=intent.requires_multi_tool,
+                suggested_tools=intent.suggested_tools,
+                complexity_reasoning=intent.complexity_reasoning,
+                call_id=intent.call_id,
+                section_id=intent.section_id,
+                project_keywords=intent.project_keywords,
+                call_keywords=intent.call_keywords,
+                proposal_action=intent.proposal_action,
+                follow_up_type=intent.follow_up_type
+            )
+
+        return intent  # No override needed
+
     def extract_call_id(self, text: str) -> Optional[str]:
         """Extract call ID from text"""
         # Match HORIZON-XXX-YYYY-ZZ-... pattern
