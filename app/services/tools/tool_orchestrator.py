@@ -136,12 +136,19 @@ class ResearchTools:
     @staticmethod
     async def search_cordis_projects(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Search CORDIS for research projects using AI-powered RAG.
+        Search for research projects using LOCAL-FIRST multi-source search.
         
-        This tool searches the CORDIS database for existing research projects,
-        providing AI-generated summaries and insights about relevant projects.
+        NO external API calls! Uses:
+        1. PostgreSQL full-text search (cordis_processed.projects_enriched)
+        2. Neo4j graph queries (relationship-based discovery)
+        
+        Supports:
+        - Natural language queries ("AI healthcare projects from Germany")
+        - Implicit filter extraction (country names, programmes, funding schemes)
+        - Similar project discovery
+        - Organization-based project lookup
         """
-        from ..rag_service import CordisRAG
+        from ..local_project_search_service import LocalProjectSearchService
         
         # Define parameter schema for validation
         schema = {
@@ -152,15 +159,30 @@ class ResearchTools:
             },
             'max_results': {
                 'type': 'integer', 
-                'default': 5,
+                'default': 10,
                 'min': 1,
-                'max': 20,
-                'description': 'Maximum number of projects to process (1-20)'
+                'max': 50,
+                'description': 'Maximum number of projects to return (1-50)'
             },
-            'include_summary': {
+            'programme': {
+                'type': 'string',
+                'default': None,
+                'description': 'Filter by programme (H2020, HORIZON, FP7)'
+            },
+            'countries': {
+                'type': 'array',
+                'default': None,
+                'description': 'Filter by country codes (e.g., ["DE", "FR"])'
+            },
+            'status': {
+                'type': 'string',
+                'default': None,
+                'description': 'Filter by status (SIGNED for active, CLOSED for completed)'
+            },
+            'include_graph': {
                 'type': 'boolean',
                 'default': True,
-                'description': 'Include AI-generated summary of findings'
+                'description': 'Include Neo4j graph-based search for relationships'
             }
         }
 
@@ -171,7 +193,6 @@ class ResearchTools:
             # Extract validated parameters
             query = validated_params['query']
             max_results = validated_params['max_results']
-            include_summary = validated_params['include_summary']
             
             # Validate query is not empty
             if not query or query.strip() == '':
@@ -179,71 +200,61 @@ class ResearchTools:
                     'success': False,
                     'error': 'Query parameter cannot be empty',
                     'error_type': 'validation_error',
+                    'tool_name': 'search_cordis_projects',
                     'query': query,
                     'projects_found': 0
                 }
 
-            logger.info(f"🔍 Searching CORDIS projects: '{query}' (max_results: {max_results})")
+            logger.info(f"🔍 LOCAL Project Search: '{query}' (max_results: {max_results})")
 
-            # Check if we have AI-extracted keywords from context
-            extracted_keywords = context.get('extracted_keywords', [])
-            if extracted_keywords:
-                logger.info(f"🎯 AI extracted {len(extracted_keywords)} keywords: {extracted_keywords}")
-                # Note: We pass the ORIGINAL query to RAG service, not the formatted keywords
-                # The RAG service has its own query extraction that works better with natural language
-            else:
-                logger.info(f"⚠️ No extracted keywords from AI, RAG will extract its own")
+            # Build filters from parameters
+            filters = {}
+            if validated_params.get('programme'):
+                filters['programme'] = validated_params['programme']
+            if validated_params.get('countries'):
+                filters['countries'] = validated_params['countries']
+            if validated_params.get('status'):
+                filters['status'] = validated_params['status']
 
-            # Execute search with ORIGINAL query
-            # RAG service expects natural language, not pre-formatted queries
-            logger.info("🔧 Initializing CordisRAG service...")
-            rag_service = CordisRAG()
-            logger.info(f"🔧 Calling get_ai_response_with_routing with original query: '{query}'")
-
-            results = rag_service.get_ai_response_with_routing(
-                question=query,  # Pass original query, not formatted keywords
-                max_projects_to_process=max_results
+            # Execute LOCAL-FIRST search (no API calls!)
+            search_service = LocalProjectSearchService()
+            results = await search_service.search_projects(
+                query=query,
+                filters=filters if filters else None,
+                limit=max_results,
+                include_graph=validated_params.get('include_graph', True)
             )
 
-            logger.info(f"🔧 RAG service returned: {type(results)}")
-            logger.info(f"🔧 RAG results keys: {list(results.keys()) if isinstance(results, dict) else 'Not a dict'}")
-            if isinstance(results, dict):
-                for key, value in results.items():
-                    logger.info(f"🔧 RAG result {key}: {str(value)[:200]}...")
-                    if key == 'projects_found':
-                        logger.info(f"🔧 DEBUG: projects_found = {value}")
-                    if key == 'routing_decision':
-                        logger.info(f"🔧 DEBUG: routing_decision = {value}")
-                    if key == 'data_source':
-                        logger.info(f"🔧 DEBUG: data_source = {value}")
-
-            # Standardized successful response - handle RAG response format
+            # Format response
+            projects = results.get('projects', [])
+            
             response = {
                 'success': True,
                 'tool_name': 'search_cordis_projects',
                 'query': query,
                 'parameters_used': validated_params,
                 'results': {
-                    'answer': results.get('answer', '') if include_summary else '',
-                    'projects_found': results.get('projects_found', 0),
-                    'data_source': results.get('data_source', 'cordis'),
-                    'processing_time_ms': results.get('processing_time', 0) * 1000  # Convert to ms
+                    'projects': projects,
+                    'projects_found': results.get('total_found', len(projects)),
+                    'returned': results.get('returned', len(projects)),
+                    'data_source': 'local_multi_source',
+                    'processing_time_ms': results.get('processing_time_ms', 0)
                 },
                 'metadata': {
-                    'search_type': 'rag_search',
-                    'ai_generated': True,
-                    'timestamp': datetime.now().isoformat(),
-                    'routing_decision': results.get('routing_decision', 'SEARCH_PROJECTS'),
-                    'intent_confidence': results.get('intent_confidence', 0.5)
+                    'search_type': 'local_multi_source',
+                    'sources_used': results.get('sources_used', []),
+                    'filters_applied': results.get('filters_applied', {}),
+                    'search_terms': results.get('search_terms', []),
+                    'timestamp': datetime.now().isoformat()
                 }
             }
             
-            logger.info(f"✅ CORDIS search completed: {response['results']['projects_found']} projects found")
+            logger.info(f"✅ Local project search completed: {len(projects)} projects found from {results.get('sources_used', [])}")
             return response
 
         except ValueError as e:
             # Parameter validation error
-            logger.error(f"CORDIS search validation error: {e}")
+            logger.error(f"Project search validation error: {e}")
             return {
                 'success': False,
                 'error': str(e),
@@ -254,7 +265,7 @@ class ResearchTools:
             }
         except Exception as e:
             # Execution error
-            logger.error(f"CORDIS search execution error: {e}")
+            logger.error(f"Project search execution error: {e}")
             return {
                 'success': False,
                 'error': str(e),
@@ -1841,36 +1852,53 @@ def create_research_orchestrator(cache_client = None) -> ToolOrchestrator:
     
     cordis_tool = Tool(
         name='search_cordis_projects',
-        description='Search CORDIS database for research projects using AI-powered analysis',
+        description='Search for EU research projects using LOCAL database (PostgreSQL + Neo4j). No external API calls - fast and reliable!',
         parameters_schema={
             'query': {
                 'type': 'string', 
                 'required': True,
-                'description': 'Search query for finding relevant research projects',
-                'examples': ['renewable energy projects', 'AI in healthcare', 'sustainable transport']
+                'description': 'Natural language search query. Can include country names, programmes, funding schemes.',
+                'examples': ['AI healthcare projects from Germany', 'renewable energy H2020', 'ERC grants in quantum computing']
             },
             'max_results': {
                 'type': 'integer', 
-                'default': 5,
+                'default': 10,
                 'min': 1,
-                'max': 20,
-                'description': 'Maximum number of projects to process (1-20)'
+                'max': 50,
+                'description': 'Maximum number of projects to return (1-50)'
             },
-            'include_summary': {
+            'programme': {
+                'type': 'string',
+                'default': None,
+                'description': 'Filter by programme: H2020, HORIZON, FP7'
+            },
+            'countries': {
+                'type': 'array',
+                'default': None,
+                'description': 'Filter by country codes, e.g., ["DE", "FR", "IT"]'
+            },
+            'status': {
+                'type': 'string',
+                'default': None,
+                'description': 'Filter by status: SIGNED (active), CLOSED (completed)'
+            },
+            'include_graph': {
                 'type': 'boolean',
                 'default': True,
-                'description': 'Include AI-generated summary of findings'
+                'description': 'Include relationship-based graph search'
             }
         },
         execute_func=ResearchTools.search_cordis_projects,
         cache_ttl=3600,  # 1 hour
         parallel_safe=True,
         category='research_projects',
-        tags=['cordis', 'research_projects', 'ai_analysis', 'rag'],
+        tags=['cordis', 'research_projects', 'local_search', 'multi_source'],
         usage_examples=[
-            'Find projects related to quantum computing research',
-            'Search for completed projects in biotechnology',
-            'Analyze projects focused on climate adaptation'
+            'Find AI healthcare projects from German universities',
+            'Search for H2020 renewable energy projects',
+            'Find completed ERC grants in quantum computing',
+            'Projects coordinated by Fraunhofer',
+            'Active projects in climate adaptation'
         ]
     )
     

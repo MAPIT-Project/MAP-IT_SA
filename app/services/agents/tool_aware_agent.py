@@ -318,6 +318,60 @@ What is your next step?"""
             ]
         ))
         
+        # Relationship-based project discovery tools
+        self.register_tool(Tool(
+            name="find_similar_projects",
+            description="Find projects similar to a given project based on topic, consortium partners, or cluster",
+            category=ToolCategory.PROJECTS,
+            parameters={
+                "project_id": "The reference project ID",
+                "similarity_type": "Type: 'topic' (same topic), 'consortium' (shared partners), or 'cluster' (same cluster)"
+            },
+            examples=[
+                "find_similar_projects(project_id='101000000', similarity_type='topic')",
+                "find_similar_projects(project_id='101000000', similarity_type='consortium')"
+            ]
+        ))
+        
+        self.register_tool(Tool(
+            name="find_organization_projects",
+            description="Find all projects an organization has participated in",
+            category=ToolCategory.PROJECTS,
+            parameters={
+                "organization_name": "Name (or partial name) of the organization",
+                "role": "Optional: 'coordinator' or 'participant'"
+            },
+            examples=[
+                "find_organization_projects(organization_name='Fraunhofer')",
+                "find_organization_projects(organization_name='TU Munich', role='coordinator')"
+            ]
+        ))
+        
+        self.register_tool(Tool(
+            name="get_collaboration_network",
+            description="Get the collaboration network showing which organizations frequently partner together",
+            category=ToolCategory.PROJECTS,
+            parameters={
+                "organization_name": "Name of the organization to find partners for"
+            },
+            examples=[
+                "get_collaboration_network(organization_name='CNRS')"
+            ]
+        ))
+        
+        self.register_tool(Tool(
+            name="search_by_cluster",
+            description="Find projects in a specific research cluster (e.g., Climate, Health, Digital)",
+            category=ToolCategory.PROJECTS,
+            parameters={
+                "cluster": "Cluster name or code (e.g., 'Climate', 'CL5', 'Health')"
+            },
+            examples=[
+                "search_by_cluster(cluster='Climate')",
+                "search_by_cluster(cluster='CL4')"
+            ]
+        ))
+        
         # Validation/cross-reference tools
         self.register_tool(Tool(
             name="verify_eligibility",
@@ -689,6 +743,14 @@ What is your next step?"""
                 return await self._tool_get_call_details(params)
             elif tool_name == 'search_projects':
                 return await self._tool_search_projects(params)
+            elif tool_name == 'find_similar_projects':
+                return await self._tool_find_similar_projects(params)
+            elif tool_name == 'find_organization_projects':
+                return await self._tool_find_organization_projects(params)
+            elif tool_name == 'get_collaboration_network':
+                return await self._tool_get_collaboration_network(params)
+            elif tool_name == 'search_by_cluster':
+                return await self._tool_search_by_cluster(params)
             elif tool_name == 'verify_eligibility':
                 return await self._tool_verify_eligibility(params)
             elif tool_name == 'cross_reference':
@@ -823,19 +885,144 @@ What is your next step?"""
             return {"error": str(e)}
     
     async def _tool_search_projects(self, params: Dict) -> Dict:
-        """Search CORDIS projects."""
+        """Search CORDIS projects using LOCAL database."""
         try:
-            from ..tools.tool_orchestrator import cordis_search_exec
+            from ..local_project_search_service import LocalProjectSearchService
             
             keywords = params.get('keywords', '')
-            results = await cordis_search_exec(
-                query=keywords,
-                limit=5
+            country = params.get('country')
+            programme = params.get('programme')
+            
+            # Build the full query including country if provided
+            # Let the LocalProjectSearchService handle country extraction from natural language
+            query = keywords
+            if country:
+                query = f"{keywords} {country}"
+            
+            # Build explicit filters for programme only
+            filters = {}
+            if programme:
+                filters['programme'] = programme.upper()
+            
+            # Use local search service - it will parse country from query
+            service = LocalProjectSearchService()
+            results = await service.search_projects(
+                query=query,
+                filters=filters if filters else None,
+                limit=10
             )
             
-            return results or {"projects": []}
+            return {
+                "projects": results.get('projects', []),
+                "total_found": results.get('total_found', 0),
+                "sources": results.get('sources_used', [])
+            }
         except Exception as e:
-            return {"error": str(e)}
+            logger.error(f"Project search error: {e}")
+            return {"error": str(e), "projects": []}
+    
+    async def _tool_find_similar_projects(self, params: Dict) -> Dict:
+        """Find projects similar to a given project."""
+        try:
+            from ..data_intelligence.graph_service import GraphSearchService
+            graph = GraphSearchService()
+            
+            project_id = params.get('project_id', '')
+            similarity_type = params.get('similarity_type', 'topic')
+            
+            if not project_id:
+                return {"error": "project_id is required", "projects": []}
+            
+            results = await asyncio.to_thread(
+                graph.find_similar_projects,
+                project_id=project_id,
+                similarity_type=similarity_type,
+                limit=10
+            )
+            
+            return {
+                "reference_project": project_id,
+                "similarity_type": similarity_type,
+                "similar_projects": results,
+                "count": len(results)
+            }
+        except Exception as e:
+            logger.error(f"Similar projects search error: {e}")
+            return {"error": str(e), "projects": []}
+    
+    async def _tool_find_organization_projects(self, params: Dict) -> Dict:
+        """Find projects by organization."""
+        try:
+            from ..data_intelligence.graph_service import GraphSearchService
+            graph = GraphSearchService()
+            
+            org_name = params.get('organization_name', '')
+            role = params.get('role')
+            
+            if not org_name:
+                return {"error": "organization_name is required", "projects": []}
+            
+            results = await asyncio.to_thread(
+                graph.find_projects_by_organization,
+                organization_name=org_name,
+                role=role,
+                limit=20
+            )
+            
+            return {
+                "organization": org_name,
+                "role_filter": role,
+                "projects": results,
+                "count": len(results)
+            }
+        except Exception as e:
+            logger.error(f"Organization projects search error: {e}")
+            return {"error": str(e), "projects": []}
+    
+    async def _tool_get_collaboration_network(self, params: Dict) -> Dict:
+        """Get collaboration network for an organization."""
+        try:
+            from ..data_intelligence.graph_service import GraphSearchService
+            graph = GraphSearchService()
+            
+            org_name = params.get('organization_name', '')
+            
+            if not org_name:
+                return {"error": "organization_name is required", "partners": []}
+            
+            result = await asyncio.to_thread(
+                graph.get_organization_collaboration_network,
+                organization_name=org_name,
+                depth=1,
+                limit=30
+            )
+            
+            return result
+        except Exception as e:
+            logger.error(f"Collaboration network error: {e}")
+            return {"error": str(e), "partners": []}
+    
+    async def _tool_search_by_cluster(self, params: Dict) -> Dict:
+        """Search projects in a specific cluster."""
+        try:
+            from ..local_project_search_service import LocalProjectSearchService
+            service = LocalProjectSearchService()
+            
+            cluster = params.get('cluster', '')
+            
+            if not cluster:
+                return {"error": "cluster parameter is required", "projects": []}
+            
+            result = await service.search_projects_by_relationship(
+                relationship_type="cluster",
+                entity_value=cluster,
+                limit=15
+            )
+            
+            return result
+        except Exception as e:
+            logger.error(f"Cluster search error: {e}")
+            return {"error": str(e), "projects": []}
     
     async def _tool_verify_eligibility(self, params: Dict) -> Dict:
         """Verify eligibility for a scenario."""

@@ -345,22 +345,35 @@ class ConversationManager:
                 logger.info(f"🔍 {unified_intent.primary_intent}: Executing tools")
                 
                 if unified_intent.tool_plan:
-                    # Convert dict tool plans to ToolCall objects
-                    tool_calls = [
-                        ToolCall(
-                            tool_name=tp.get('tool_name'),
-                            parameters=tp.get('parameters', {}),
-                            execution_order=tp.get('execution_order', idx),
-                            depends_on=tp.get('depends_on')
-                        ) if isinstance(tp, dict) else tp
-                        for idx, tp in enumerate(unified_intent.tool_plan)
-                    ]
+                    # Convert dict tool plans to ToolCall objects (with validation)
+                    raw_tool_plan = unified_intent.tool_plan if isinstance(unified_intent.tool_plan, list) else []
                     
-                    tool_results = await self.tool_orchestrator.execute_plan(
-                        tool_calls,
-                        conversation_id,
-                        unified_intent.project_keywords or unified_intent.call_keywords or []
-                    )
+                    tool_calls = []
+                    for idx, tp in enumerate(raw_tool_plan):
+                        if isinstance(tp, dict):
+                            tool_name = tp.get('tool_name')
+                            if tool_name:  # Only add if tool_name is valid
+                                tool_calls.append(ToolCall(
+                                    tool_name=tool_name,
+                                    parameters=tp.get('parameters', {}),
+                                    execution_order=tp.get('execution_order', idx),
+                                    depends_on=tp.get('depends_on')
+                                ))
+                            else:
+                                logger.warning(f"Skipping tool plan item with missing tool_name: {tp}")
+                        elif hasattr(tp, 'tool_name') and tp.tool_name:  # Already a ToolCall
+                            tool_calls.append(tp)
+                        else:
+                            logger.warning(f"Skipping invalid tool plan item: {type(tp)}")
+                    
+                    if tool_calls:
+                        tool_results = await self.tool_orchestrator.execute_plan(
+                            tool_calls,
+                            conversation_id,
+                            unified_intent.project_keywords or unified_intent.call_keywords or []
+                        )
+                    else:
+                        logger.warning("No valid tool calls to execute")
                     logger.info(f"✅ Tool execution complete")
                     
                     # Convert tool results to retrieval format
@@ -1196,23 +1209,36 @@ This metadata was extracted directly from the EU Portal API and represents the o
                 }
                 
                 if unified_intent.tool_plan:
-                    # Convert dict tool plans to ToolCall objects
-                    tool_calls = [
-                        ToolCall(
-                            tool_name=tp.get('tool_name'),
-                            parameters=tp.get('parameters', {}),
-                            execution_order=tp.get('execution_order', idx),
-                            depends_on=tp.get('depends_on')
-                        ) if isinstance(tp, dict) else tp
-                        for idx, tp in enumerate(unified_intent.tool_plan)
-                    ]
+                    # Convert dict tool plans to ToolCall objects (with validation)
+                    raw_tool_plan = unified_intent.tool_plan if isinstance(unified_intent.tool_plan, list) else []
                     
-                    tool_results = await self.tool_orchestrator.execute_plan(
-                        tool_calls,
-                        conversation_id,
-                        unified_intent.project_keywords or unified_intent.call_keywords or []
-                    )
-                    logger.info(f"✅ [STREAMING] Tool execution complete")
+                    tool_calls = []
+                    for idx, tp in enumerate(raw_tool_plan):
+                        if isinstance(tp, dict):
+                            tool_name = tp.get('tool_name')
+                            if tool_name:  # Only add if tool_name is valid
+                                tool_calls.append(ToolCall(
+                                    tool_name=tool_name,
+                                    parameters=tp.get('parameters', {}),
+                                    execution_order=tp.get('execution_order', idx),
+                                    depends_on=tp.get('depends_on')
+                                ))
+                            else:
+                                logger.warning(f"Skipping tool plan item with missing tool_name: {tp}")
+                        elif hasattr(tp, 'tool_name') and tp.tool_name:  # Already a ToolCall
+                            tool_calls.append(tp)
+                        else:
+                            logger.warning(f"Skipping invalid tool plan item: {type(tp)}")
+                    
+                    if tool_calls:
+                        tool_results = await self.tool_orchestrator.execute_plan(
+                            tool_calls,
+                            conversation_id,
+                            unified_intent.project_keywords or unified_intent.call_keywords or []
+                        )
+                        logger.info(f"✅ [STREAMING] Tool execution complete")
+                    else:
+                        logger.warning("No valid tool calls to execute")
             
             elif unified_intent.primary_intent == 'faq':
                 # FAQ: Use Agentic Loop for self-correcting search (if available)

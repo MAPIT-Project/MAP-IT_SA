@@ -241,12 +241,19 @@ Respond with ONLY the JSON, no other text."""
                 json_str = ''.join(char for char in json_str if ord(char) >= 32 or char in '\n\t')
                 data = json.loads(json_str)
             
-            # Build tool plan
+            # Build tool plan - MUST be a list of dicts with valid tool_name
             tool_plan = []
-            if data.get('tool_plan'):
-                tool_plan = data['tool_plan']
-            else:
-                # Auto-generate tool plan based on intent
+            raw_tool_plan = data.get('tool_plan')
+            
+            if raw_tool_plan and isinstance(raw_tool_plan, list):
+                # LLM provided a list - validate each item is a dict with tool_name
+                tool_plan = [
+                    tp for tp in raw_tool_plan 
+                    if isinstance(tp, dict) and tp.get('tool_name')
+                ]
+            
+            # If no valid tool plan, auto-generate based on intent
+            if not tool_plan:
                 tool_plan = self._generate_tool_plan(data, user_message, conversation_id)
             
             # Extract complexity info (NEW - LLM determines this, not regex!)

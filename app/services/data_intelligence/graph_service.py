@@ -1387,6 +1387,357 @@ class GraphSearchService:
             return []
 
 
+# ========================================================================
+    # PROJECT DISCOVERY: Find Similar and Related Projects
+    # ========================================================================
+    
+    def find_similar_projects(
+        self,
+        project_id: str,
+        similarity_type: str = "topic",
+        limit: int = 10
+    ) -> List[Dict[str, Any]]:
+        """
+        Find projects similar to a given project.
+        
+        Neo4j Schema:
+        - Project: id, title, acronym, objective, status, startDate, endDate, 
+                   totalCost, ecMaxContribution, fundingScheme, legalBasis
+        - Relationships: FUNDED_UNDER->Topic, TARGETS->Cluster, PARTICIPATES_IN<-Organization
+        
+        Args:
+            project_id: ID of the reference project
+            similarity_type: Type of similarity:
+                - "topic": Same topic/call
+                - "consortium": Shared organizations
+                - "cluster": Same cluster area
+            limit: Maximum results
+            
+        Returns:
+            List of similar projects with similarity info
+        """
+        params = {'project_id': project_id, 'limit': limit}
+        
+        if similarity_type == "topic":
+            query = """
+            MATCH (p1:Project {id: $project_id})-[:FUNDED_UNDER]->(t:Topic)<-[:FUNDED_UNDER]-(p2:Project)
+            WHERE p1 <> p2
+            WITH p2, t, p1
+            RETURN p2.id as id, p2.title as title, p2.acronym as acronym,
+                   t.code as shared_topic, p2.ecMaxContribution as budget,
+                   p2.status as status, p2.fundingScheme as fundingScheme
+            ORDER BY p2.startDate DESC
+            LIMIT $limit
+            """
+        elif similarity_type == "consortium":
+            query = """
+            MATCH (p1:Project {id: $project_id})<-[:PARTICIPATES_IN]-(o:Organization)-[:PARTICIPATES_IN]->(p2:Project)
+            WHERE p1 <> p2
+            WITH p2, COUNT(DISTINCT o) as shared_orgs, COLLECT(DISTINCT o.name)[0..3] as shared_org_names
+            RETURN p2.id as id, p2.title as title, p2.acronym as acronym,
+                   shared_orgs, shared_org_names, p2.ecMaxContribution as budget,
+                   p2.status as status, p2.fundingScheme as fundingScheme
+            ORDER BY shared_orgs DESC
+            LIMIT $limit
+            """
+        elif similarity_type == "cluster":
+            query = """
+            MATCH (p1:Project {id: $project_id})-[:TARGETS]->(c:Cluster)<-[:TARGETS]-(p2:Project)
+            WHERE p1 <> p2
+            WITH p2, c
+            RETURN p2.id as id, p2.title as title, p2.acronym as acronym,
+                   c.code as shared_cluster, c.name as cluster_name,
+                   p2.ecMaxContribution as budget, p2.status as status,
+                   p2.fundingScheme as fundingScheme
+            ORDER BY p2.startDate DESC
+            LIMIT $limit
+            """
+        else:
+            logger.warning(f"Unknown similarity type: {similarity_type}, using 'topic'")
+            return self.find_similar_projects(project_id, "topic", limit)
+        
+        try:
+            results = self.db.execute_query(query, params)
+            return [
+                {
+                    "id": r.get("id"),
+                    "title": r.get("title"),
+                    "acronym": r.get("acronym"),
+                    "budget": r.get("budget", 0) or 0,
+                    "status": r.get("status"),
+                    "funding_scheme": r.get("fundingScheme"),
+                    "similarity_type": similarity_type,
+                    "shared_topic": r.get("shared_topic"),
+                    "shared_cluster": r.get("shared_cluster"),
+                    "cluster_name": r.get("cluster_name"),
+                    "shared_orgs": r.get("shared_orgs"),
+                    "shared_org_names": r.get("shared_org_names", []),
+                    "cordis_url": f"https://cordis.europa.eu/project/id/{r.get('id')}"
+                }
+                for r in results
+            ]
+        except Exception as e:
+            logger.error(f"Error finding similar projects: {e}")
+            return []
+    
+    def find_projects_by_organization(
+        self,
+        organization_name: str,
+        role: Optional[str] = None,
+        limit: int = 20
+    ) -> List[Dict[str, Any]]:
+        """
+        Find all projects an organization participated in.
+        
+        Note: Neo4j only has PARTICIPATES_IN relationship - role detection uses 
+        convention where coordinator org IDs end with '_coordinator'.
+        
+        Args:
+            organization_name: Name (or partial name) of organization
+            role: Filter by role ("coordinator", "participant", or None for both)
+            limit: Maximum results
+            
+        Returns:
+            List of projects with organization role info
+        """
+        params = {'org_name': organization_name.lower(), 'limit': limit}
+        
+        # Build the query - detect coordinator by naming convention or first participant
+        query = """
+        MATCH (o:Organization)-[:PARTICIPATES_IN]->(p:Project)
+        WHERE toLower(o.name) CONTAINS $org_name
+           OR toLower(o.shortName) CONTAINS $org_name
+        
+        // Try to determine role - coordinator if ID ends with _coordinator or first alphabetically
+        WITH o, p, 
+             CASE 
+               WHEN o.id ENDS WITH '_coordinator' THEN 'coordinator'
+               ELSE 'participant'
+             END as detected_role
+        
+        RETURN p.id as id, p.title as title, p.acronym as acronym,
+               p.ecMaxContribution as budget, p.status as status,
+               o.name as organization, detected_role as role,
+               o.country as org_country, p.fundingScheme as fundingScheme,
+               p.startDate as start_date
+        ORDER BY p.startDate DESC
+        LIMIT $limit
+        """
+        
+        try:
+            results = self.db.execute_query(query, params)
+            formatted_results = [
+                {
+                    "id": r.get("id"),
+                    "title": r.get("title"),
+                    "acronym": r.get("acronym"),
+                    "budget": r.get("budget", 0) or 0,
+                    "status": r.get("status"),
+                    "funding_scheme": r.get("fundingScheme"),
+                    "organization": r.get("organization"),
+                    "org_country": r.get("org_country"),
+                    "role": r.get("role"),
+                    "start_date": r.get("start_date"),
+                    "cordis_url": f"https://cordis.europa.eu/project/id/{r.get('id')}"
+                }
+                for r in results
+            ]
+            
+            # Filter by role if specified
+            if role:
+                formatted_results = [r for r in formatted_results if r['role'] == role]
+            
+            return formatted_results
+        except Exception as e:
+            logger.error(f"Error finding projects by organization: {e}")
+            return []
+    
+    def search_projects_by_keywords(
+        self,
+        keywords: List[str],
+        status: Optional[str] = None,
+        limit: int = 20
+    ) -> List[Dict[str, Any]]:
+        """
+        Search for projects by keywords in title and objective.
+        
+        Note: Neo4j Project nodes don't have 'topics' or 'frameworkProgramme' properties.
+        
+        Args:
+            keywords: List of search keywords
+            status: Optional status filter (SIGNED, CLOSED)
+            limit: Maximum results
+            
+        Returns:
+            List of matching projects
+        """
+        # Build search pattern - case-insensitive regex
+        search_pattern = '|'.join(keywords).lower()
+        
+        where_clauses = [
+            f"(toLower(p.title) =~ '.*({search_pattern}).*' OR toLower(p.objective) =~ '.*({search_pattern}).*')"
+        ]
+        params = {'limit': limit}
+        
+        if status:
+            where_clauses.append("p.status = $status")
+            params['status'] = status
+        
+        where_clause = " AND ".join(where_clauses)
+        
+        query = f"""
+        MATCH (p:Project)
+        WHERE {where_clause}
+        OPTIONAL MATCH (p)-[:TARGETS]->(c:Cluster)
+        OPTIONAL MATCH (p)-[:FUNDED_UNDER]->(t:Topic)
+        RETURN p.id as id, p.title as title, p.acronym as acronym,
+               p.objective as objective, p.ecMaxContribution as budget,
+               p.status as status, p.fundingScheme as fundingScheme,
+               p.startDate as start_date, p.endDate as end_date,
+               COLLECT(DISTINCT c.code) as clusters,
+               COLLECT(DISTINCT t.code) as topics
+        ORDER BY p.startDate DESC
+        LIMIT $limit
+        """
+        
+        try:
+            results = self.db.execute_query(query, params)
+            return [
+                {
+                    "id": r.get("id"),
+                    "title": r.get("title"),
+                    "acronym": r.get("acronym"),
+                    "objective": (r.get("objective") or "")[:300],
+                    "budget": r.get("budget", 0) or 0,
+                    "status": r.get("status"),
+                    "funding_scheme": r.get("fundingScheme"),
+                    "start_date": r.get("start_date"),
+                    "end_date": r.get("end_date"),
+                    "clusters": [c for c in r.get("clusters", []) if c],
+                    "topics": [t for t in r.get("topics", []) if t],
+                    "cordis_url": f"https://cordis.europa.eu/project/id/{r.get('id')}"
+                }
+                for r in results
+            ]
+        except Exception as e:
+            logger.error(f"Error searching projects by keywords: {e}")
+            return []
+    
+    def get_organization_collaboration_network(
+        self,
+        organization_name: str,
+        depth: int = 1,
+        limit: int = 50
+    ) -> Dict[str, Any]:
+        """
+        Get the collaboration network of an organization.
+        
+        Args:
+            organization_name: Name of the organization
+            depth: How many hops of collaboration to explore (1 = direct partners)
+            limit: Maximum number of collaborating organizations to return
+            
+        Returns:
+            Dict with organization network data
+        """
+        params = {'org_name': organization_name.lower(), 'depth': depth, 'limit': limit}
+        
+        query = """
+        MATCH (o1:Organization)-[:PARTICIPATES_IN]->(p:Project)<-[:PARTICIPATES_IN]-(o2:Organization)
+        WHERE (toLower(o1.name) CONTAINS $org_name OR toLower(o1.shortName) CONTAINS $org_name)
+          AND o1 <> o2
+        WITH o1, o2, COUNT(DISTINCT p) as collaboration_count
+        ORDER BY collaboration_count DESC
+        LIMIT $limit
+        RETURN o1.name as source_org, o1.country as source_country,
+               o2.name as partner_org, o2.country as partner_country,
+               o2.activityType as partner_type, o2.sme as partner_is_sme,
+               collaboration_count
+        """
+        
+        try:
+            results = self.db.execute_query(query, params)
+            
+            partners = []
+            source_org = None
+            source_country = None
+            
+            for r in results:
+                if not source_org:
+                    source_org = r.get('source_org')
+                    source_country = r.get('source_country')
+                
+                partners.append({
+                    'name': r.get('partner_org'),
+                    'country': r.get('partner_country'),
+                    'type': r.get('partner_type'),
+                    'is_sme': r.get('partner_is_sme'),
+                    'collaborations': r.get('collaboration_count')
+                })
+            
+            return {
+                'success': True,
+                'organization': source_org,
+                'country': source_country,
+                'partners': partners,
+                'total_partners': len(partners)
+            }
+        except Exception as e:
+            logger.error(f"Error getting collaboration network: {e}")
+            return {'success': False, 'error': str(e), 'partners': []}
+    
+    def get_cluster_statistics(
+        self,
+        cluster_code: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Get statistics for clusters - project counts, funding, etc.
+        
+        Args:
+            cluster_code: Optional specific cluster code. If None, returns all clusters.
+            
+        Returns:
+            List of cluster statistics
+        """
+        params = {}
+        where_clause = ""
+        
+        if cluster_code:
+            where_clause = "WHERE c.code = $cluster_code"
+            params['cluster_code'] = cluster_code
+        
+        query = f"""
+        MATCH (c:Cluster)<-[:TARGETS]-(p:Project)
+        {where_clause}
+        WITH c, 
+             COUNT(DISTINCT p) as project_count,
+             SUM(p.ecMaxContribution) as total_funding,
+             AVG(p.ecMaxContribution) as avg_budget,
+             COLLECT(DISTINCT p.fundingScheme) as funding_schemes
+        RETURN c.code as code, c.name as name, c.pillar as pillar,
+               project_count, total_funding, avg_budget, funding_schemes
+        ORDER BY project_count DESC
+        """
+        
+        try:
+            results = self.db.execute_query(query, params)
+            return [
+                {
+                    "code": r.get("code"),
+                    "name": r.get("name"),
+                    "pillar": r.get("pillar"),
+                    "project_count": r.get("project_count", 0),
+                    "total_funding": r.get("total_funding", 0) or 0,
+                    "avg_budget": r.get("avg_budget", 0) or 0,
+                    "funding_schemes": [s for s in r.get("funding_schemes", []) if s]
+                }
+                for r in results
+            ]
+        except Exception as e:
+            logger.error(f"Error getting cluster statistics: {e}")
+            return []
+
+
 # Module-level instance for convenience
 graph_search = GraphSearchService()
 
