@@ -31,9 +31,11 @@ The V3 architecture uses a **single agentic loop** without intent classification
 ### Agentic Architecture (ReAct Pattern)
 The system uses a sophisticated **agentic architecture** that can:
 - **Self-correct** when initial search results are insufficient
-- **Use multiple tools** to gather information from different sources (16 tools available)
+- **Use multiple tools** to gather information from different sources (20 tools available)
 - **Reason iteratively** to answer complex comparison and analysis questions
 - **Synthesize answers** from graph databases, vector stores, and external APIs
+- **Speculatively execute** tools in parallel to reduce latency
+- **Cache query plans** for repeated query patterns using Redis
 
 **Key Capabilities:**
 - **FAQ Answering**: Answer questions about eligibility, rules, requirements
@@ -47,9 +49,13 @@ The system uses a sophisticated **agentic architecture** that can:
 
 ### Service Layer Organization (`app/services/`)
 - `agents/` - Agentic AI components with reflection, evaluation, planning
+- `analytics/` - Tool usage analytics and performance tracking
+- `cache/` - Query plan caching and speculative execution
 - `data_intelligence/` - Graph search, query planning, cross-encoder reranking
+- `embedding/` - Incremental embedding updates for new projects
+- `feedback/` - User feedback collection and analysis
 - `rag/` - RAG-specific components (retrievers, chunkers, generators)
-- `tools/` - Tool orchestration for multi-step reasoning (18 tools available)
+- `tools/` - Tool orchestration for multi-step reasoning (20 tools available)
 - `call_extractors/` - Funding call document processing
 - `conversation/` - Conversation management and memory
 - `memory/` - Short/long-term memory systems
@@ -59,9 +65,10 @@ The system uses a sophisticated **agentic architecture** that can:
 ### API Layer Organization (`app/api/`)
 - `routes.py` - Legacy V2 API routes
 - `conversation_routes_v3.py` - V3 simplified architecture routes
+- `feedback_routes.py` - User feedback API endpoints
 
-### Available Tools (18 Tools)
-The system has 18 tools available for the multi-tool agent:
+### Available Tools (20 Tools)
+The system has 20 tools available for the multi-tool agent:
 
 **Statistics Tools:**
 - `get_programme_statistics`: Success rates, funding amounts for a programme
@@ -93,6 +100,10 @@ The system has 18 tools available for the multi-tool agent:
 - `get_similar_funded_projects`: Find semantically similar funded projects using AI embeddings
 - `analyze_call_history`: Analyze historical funding patterns for topics/clusters (timeline, trends, action types)
 
+**Proposal Planning Tools (NEW):**
+- `calculate_budget`: Generate detailed budget breakdown for a proposal (personnel, equipment, travel, etc.)
+- `generate_timeline`: Create project timeline with work packages, deliverables, and milestones
+
 ### Key Services
 
 **Core Services:**
@@ -114,6 +125,13 @@ The system has 18 tools available for the multi-tool agent:
 - `CrossEncoderReranker` (`cross_encoder_reranker.py`): Result reranking
 - `CallEnrichmentService` (`call_enrichment_service.py`): API enrichment
 - `MemoryService` (`memory_service.py`): Conversation memory
+
+**Performance & Analytics Services:**
+- `QueryPlanCache` (`cache/query_plan_cache.py`): Redis-based caching for query plans
+- `SpeculativeExecutor` (`cache/speculative_executor.py`): Parallel tool execution for latency reduction
+- `ToolAnalyticsService` (`analytics/tool_analytics_service.py`): Track tool usage, performance, and patterns
+- `FeedbackService` (`feedback/feedback_service.py`): User feedback collection and quality insights
+- `IncrementalEmbeddingService` (`embedding/incremental_embedding_service.py`): Auto-update embeddings for new projects
 
 ### Data Management
 - `data/cordis/` - CORDIS research project data
@@ -145,6 +163,14 @@ The `docker-compose.yml` defines these services:
 - `celery-worker` - Regular RAG query processing
 - `celery-worker-stream` - Streaming RAG queries
 - `neo4j` - Graph database with APOC and GDS plugins
+
+### Celery Tasks
+Available Celery tasks in `app/services/celery_app.py`:
+- `process_rag_query` - Process RAG queries asynchronously
+- `process_rag_query_stream` - Process streaming RAG queries
+- `update_embeddings` - Incremental embedding updates for new/modified projects
+- `get_embedding_stats` - Get current embedding coverage statistics
+- `health_check` - Worker health check
 
 ### Testing
 ```bash
@@ -202,6 +228,13 @@ pytest --cov=app tests/
 - `POST /api/query/async` - Start async query
 - `GET /api/query/status/{task_id}` - Check async query status
 
+**Feedback API Endpoints:**
+- `POST /api/feedback` - Submit user feedback (rating, comments, tool feedback)
+- `GET /api/feedback/summary` - Get aggregated feedback metrics
+- `GET /api/feedback/conversation/{id}` - Get feedback for a conversation
+- `GET /api/feedback/suggestions` - Get AI-powered improvement suggestions
+- `GET /api/feedback/health` - Health check for feedback service
+
 ### Enhanced RAG Service
 - `app/services/enhanced_rag_service.py` - Core RAG implementation
 - `app/services/data_intelligence_service.py` - Multi-source search orchestration
@@ -254,6 +287,9 @@ Results are synthesized into final response with:
 - **Purpose**: Complex queries using ReAct pattern (Reasoning + Acting)
 - **Max iterations**: 5 reasoning iterations
 - **Features**: Parallel execution, LLM-driven decisions, fallback logic
+- **Speculative Execution**: Pre-executes likely tools based on query patterns
+- **Plan Caching**: Caches successful query plans in Redis for faster repeat queries
+- **Analytics Integration**: Tracks tool usage, latency, and success rates
 
 **Evaluation System (Hybrid Approach)**
 - **Rule-based scoring** (fast, free): Result count, relevance, content quality, query coverage, source diversity, freshness
@@ -312,6 +348,12 @@ When results are insufficient, the system identifies causes:
 ### Redis
 - Message broker for Celery task queue
 - Result backend for async operations
+- Query plan caching for repeated patterns
+
+### Database Migrations
+New database tables added for analytics and feedback (in `migration/` directory):
+- **008_tool_analytics.sql**: `tool_usage_analytics`, `tool_performance_metrics`, `tool_combination_analytics`
+- **009_user_feedback.sql**: `response_feedback`, `feedback_insights`
 
 ## Development Patterns
 

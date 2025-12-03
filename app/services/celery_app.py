@@ -316,6 +316,62 @@ def health_check() -> Dict[str, Any]:
         "worker_id": os.getpid()
     }
 
+
+@celery_app.task(bind=True, base=CallbackTask, name="app.services.celery_app.update_embeddings")
+def update_embeddings(self, max_projects: int = 500) -> Dict[str, Any]:
+    """
+    Celery task for incremental embedding updates.
+
+    Runs the incremental embedding service to update embeddings for
+    new or modified projects.
+
+    Args:
+        max_projects: Maximum number of projects to process
+
+    Returns:
+        Summary of the update operation
+    """
+    task_id = self.request.id
+    logger.info(f"[Task {task_id}] Starting incremental embedding update (max: {max_projects})")
+
+    try:
+        from .embedding.incremental_embedding_service import get_embedding_service
+
+        service = get_embedding_service()
+        if not service.enabled:
+            return {
+                "status": "skipped",
+                "message": "Embedding service not enabled",
+                "task_id": task_id
+            }
+
+        result = service.run_incremental_update(max_projects=max_projects)
+        result["task_id"] = task_id
+
+        logger.info(f"[Task {task_id}] Embedding update complete: {result}")
+        return result
+
+    except Exception as e:
+        logger.error(f"[Task {task_id}] Embedding update failed: {e}")
+        return {
+            "status": "failed",
+            "error": str(e),
+            "task_id": task_id
+        }
+
+
+@celery_app.task(name="app.services.celery_app.get_embedding_stats")
+def get_embedding_stats() -> Dict[str, Any]:
+    """Get current embedding statistics."""
+    try:
+        from .embedding.incremental_embedding_service import get_embedding_service
+
+        service = get_embedding_service()
+        return service.get_embedding_stats()
+
+    except Exception as e:
+        return {"error": str(e)}
+
 # Utility functions for task management
 def get_task_result(task_id: str) -> Dict[str, Any]:
     """Get the result of a Celery task."""

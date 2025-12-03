@@ -257,7 +257,7 @@ class V3ResponseFormatter:
         return "\n".join(lines)
 
     def _format_single_project(self, index: int, project: Dict) -> str:
-        """Format a single project."""
+        """Format a single project with optional publications and deliverables."""
         title = project.get('title', project.get('acronym', 'Untitled Project'))
         acronym = project.get('acronym', '')
         project_id = project.get('id', project.get('project_id', ''))
@@ -269,6 +269,11 @@ class V3ResponseFormatter:
         eu_contribution = project.get('ecMaxContribution', project.get('eu_contribution', ''))
         objective = project.get('objective', project.get('description', ''))
         coordinator = project.get('coordinator', '')
+
+        # Optional enhanced data
+        publications = project.get('publications', [])
+        deliverables = project.get('deliverables', [])
+        impact_metrics = project.get('impact_metrics', {})
 
         lines = []
 
@@ -301,6 +306,60 @@ class V3ResponseFormatter:
         if objective:
             obj_text = objective[:400] + "..." if len(objective) > 400 else objective
             lines.append(f"\n**Objective:** {obj_text}")
+
+        # Publications section (if available)
+        if publications:
+            lines.append("\n📚 **Key Publications:**")
+            for pub in publications[:3]:
+                pub_title = pub.get('title', 'Untitled')
+                if len(pub_title) > 80:
+                    pub_title = pub_title[:77] + "..."
+                authors = pub.get('authors', '')
+                if len(authors) > 50:
+                    authors = authors[:47] + "..."
+                journal = pub.get('journal', '')
+                doi = pub.get('doi', '')
+
+                pub_line = f"  • {pub_title}"
+                if authors:
+                    pub_line += f" - *{authors}*"
+                if journal:
+                    pub_line += f" ({journal})"
+                if doi:
+                    pub_line += f" [DOI](https://doi.org/{doi})"
+                lines.append(pub_line)
+
+        # Deliverables section (if available)
+        if deliverables:
+            lines.append("\n📦 **Key Deliverables:**")
+            for deliv in deliverables[:3]:
+                deliv_title = deliv.get('title', 'Untitled')
+                if len(deliv_title) > 60:
+                    deliv_title = deliv_title[:57] + "..."
+                deliv_type = deliv.get('type', '')
+                url = deliv.get('url', '')
+
+                deliv_line = f"  • {deliv_title}"
+                if deliv_type:
+                    deliv_line += f" ({deliv_type})"
+                if url:
+                    deliv_line += f" [View]({url})"
+                lines.append(deliv_line)
+
+        # Impact metrics section (if available)
+        if impact_metrics:
+            impact_parts = []
+            if impact_metrics.get('publications_count'):
+                impact_parts.append(f"{impact_metrics['publications_count']} publications")
+            if impact_metrics.get('deliverables_count'):
+                impact_parts.append(f"{impact_metrics['deliverables_count']} deliverables")
+            if impact_metrics.get('patents_count'):
+                impact_parts.append(f"{impact_metrics['patents_count']} patents")
+            if impact_metrics.get('datasets_count'):
+                impact_parts.append(f"{impact_metrics['datasets_count']} datasets")
+
+            if impact_parts:
+                lines.append(f"\n📊 **Impact:** {', '.join(impact_parts)}")
 
         # CORDIS link
         if project_id:

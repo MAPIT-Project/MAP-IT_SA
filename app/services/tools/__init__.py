@@ -8,6 +8,8 @@ from .consortium_patterns import ConsortiumPatternsTool, get_consortium_patterns
 from .partner_discovery import PartnerDiscoveryTool, find_experienced_partners_execute
 from .similar_projects import SimilarProjectsTool, get_similar_funded_projects_execute
 from .call_history import CallHistoryTool, analyze_call_history_execute
+from .budget_calculator import BudgetCalculatorTool, calculate_budget_execute
+from .timeline_generator import TimelineGeneratorTool, generate_timeline_execute
 
 __all__ = [
     'ToolOrchestrator',
@@ -23,5 +25,9 @@ __all__ = [
     'SimilarProjectsTool',
     'get_similar_funded_projects_execute',
     'CallHistoryTool',
-    'analyze_call_history_execute'
+    'analyze_call_history_execute',
+    'BudgetCalculatorTool',
+    'calculate_budget_execute',
+    'TimelineGeneratorTool',
+    'generate_timeline_execute'
 ]

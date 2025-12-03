@@ -279,8 +279,49 @@ What is your next step? Remember: Output ONLY JSON."""
         self.tools: Dict[str, Tool] = {}
         self._init_tools()
         self._init_llm()
-        
+        self._init_cache()
+        self._init_analytics()
+        self._init_speculative_executor()
+
         logger.info(f"🛠️ ToolAwareAgent initialized with {len(self.tools)} tools")
+
+    def _init_cache(self):
+        """Initialize query plan cache."""
+        try:
+            from ..cache.query_plan_cache import QueryPlanCache
+            from ..memory.memory_service import MemoryService
+
+            memory = MemoryService()
+            self.plan_cache = QueryPlanCache(memory.redis_client)
+            logger.info("✅ Query plan cache initialized")
+        except Exception as e:
+            logger.warning(f"⚠️ Query plan cache unavailable: {e}")
+            self.plan_cache = None
+
+    def _init_analytics(self):
+        """Initialize tool analytics for usage tracking."""
+        try:
+            from ..analytics.tool_analytics_service import get_analytics_service
+            self.analytics = get_analytics_service()
+            logger.info("✅ Tool analytics initialized")
+        except Exception as e:
+            logger.warning(f"⚠️ Tool analytics unavailable: {e}")
+            self.analytics = None
+
+    def _init_speculative_executor(self):
+        """Initialize speculative tool executor for parallel execution."""
+        try:
+            from ..cache.speculative_executor import SpeculativeExecutor
+
+            # Create a wrapper that calls our tool execution method
+            async def tool_executor(tool_name: str, params: dict):
+                return await self._execute_single_tool(tool_name, params)
+
+            self.speculative_executor = SpeculativeExecutor(tool_executor)
+            logger.info("✅ Speculative executor initialized")
+        except Exception as e:
+            logger.warning(f"⚠️ Speculative executor unavailable: {e}")
+            self.speculative_executor = None
     
     def _init_llm(self):
         """Initialize the LLM for reasoning."""
@@ -584,7 +625,46 @@ What is your next step? Remember: Output ONLY JSON."""
                 "search_by_cluster(cluster='CL4')"
             ]
         ))
-        
+
+        # Budget calculator tool (proposal planning)
+        self.register_tool(Tool(
+            name="calculate_budget",
+            description="Calculate realistic budget breakdown for a Horizon Europe proposal. Returns cost categories (personnel, equipment, travel, etc.), per-partner distribution, and benchmarks.",
+            category=ToolCategory.STATISTICS,
+            parameters={
+                "action_type": "Required: Action type (RIA, IA, CSA, ERC-STG, ERC-COG, ERC-ADG)",
+                "duration_months": "Required: Project duration in months",
+                "num_partners": "Required: Number of consortium partners",
+                "total_person_months": "Optional: Total person-months (if known)",
+                "target_budget": "Optional: Target total budget in EUR",
+                "countries": "Optional: List of partner country codes (e.g., ['DE', 'FR', 'ES'])"
+            },
+            examples=[
+                "calculate_budget(action_type='RIA', duration_months=36, num_partners=8)",
+                "calculate_budget(action_type='IA', duration_months=48, num_partners=12, target_budget=10000000)",
+                "calculate_budget(action_type='RIA', duration_months=36, num_partners=6, countries=['DE', 'FR', 'ES', 'PL', 'IT', 'NL'])"
+            ]
+        ))
+
+        # Timeline generator tool (proposal planning)
+        self.register_tool(Tool(
+            name="generate_timeline",
+            description="Generate a project timeline with work packages, deliverables, and milestones for a Horizon Europe proposal. Based on best practices from funded projects.",
+            category=ToolCategory.STATISTICS,
+            parameters={
+                "action_type": "Required: Action type (RIA, IA, CSA, ERC)",
+                "duration_months": "Required: Project duration in months",
+                "num_partners": "Required: Number of partners",
+                "total_person_months": "Required: Total effort in person-months",
+                "project_title": "Optional: Project title for naming",
+                "start_date": "Optional: Start date (YYYY-MM-DD)"
+            },
+            examples=[
+                "generate_timeline(action_type='RIA', duration_months=36, num_partners=8, total_person_months=300)",
+                "generate_timeline(action_type='IA', duration_months=48, num_partners=12, total_person_months=500, project_title='GreenHydrogen')"
+            ]
+        ))
+
     def register_tool(self, tool: Tool):
         """Register a tool with the agent."""
         self.tools[tool.name] = tool
@@ -612,25 +692,38 @@ What is your next step? Remember: Output ONLY JSON."""
     ) -> Dict[str, Any]:
         """
         Process a complex query using multi-tool reasoning.
-        
+
         Args:
             query: User's question
             context: Additional context
             conversation_history: Previous messages
-            
+
         Returns:
             Dict with answer, reasoning steps, and sources
         """
         start_time = datetime.now()
-        
+
         # Initialize plan
         plan = AgentPlan(
             query=query,
             complexity=self._assess_complexity(query),
             required_sources=self._identify_required_sources(query)
         )
-        
+
         logger.info(f"🧠 Query complexity: {plan.complexity}, sources needed: {plan.required_sources}")
+
+        # Start speculative execution for likely-needed tools
+        speculative_tasks = {}
+        if self.speculative_executor:
+            try:
+                speculative_tasks = await self.speculative_executor.start_speculative_execution(
+                    query=query,
+                    context=context
+                )
+                if speculative_tasks:
+                    logger.info(f"🔮 Started speculative execution for {len(speculative_tasks)} tool(s)")
+            except Exception as e:
+                logger.warning(f"Speculative execution failed to start: {e}")
         
         # ReAct loop
         iteration = 0
@@ -694,6 +787,40 @@ What is your next step? Remember: Output ONLY JSON."""
         # Build final response
         total_time = (datetime.now() - start_time).total_seconds() * 1000
 
+        # Cancel any unused speculative tasks
+        if self.speculative_executor:
+            used_tools = set()
+            for step in plan.reasoning_steps:
+                for tc in step.tool_calls:
+                    used_tools.add(tc.tool_name)
+            self.speculative_executor.cancel_unused_speculation(used_tools)
+
+        # Cache the first step's plan if query was successful
+        if self.plan_cache and plan.reasoning_steps and plan.final_answer:
+            first_step = plan.reasoning_steps[0] if plan.reasoning_steps else None
+            if first_step and first_step.tool_calls:
+                # Build a cacheable plan from the first step
+                first_plan = {
+                    'thought': first_step.thought,
+                    'action': 'call_tools',
+                    'tool_calls': [
+                        {
+                            'tool': tc.tool_name,
+                            'parameters': tc.parameters,
+                            'reasoning': tc.reasoning
+                        }
+                        for tc in first_step.tool_calls
+                    ],
+                    'needs_more_info': first_step.next_action_needed
+                }
+                # Use confidence as quality score
+                self.plan_cache.cache_plan(
+                    query=query,
+                    plan=first_plan,
+                    context=context,
+                    quality_score=plan.confidence or 0.8
+                )
+
         return {
             'answer': plan.final_answer or self._build_fallback_answer(plan),
             'success': plan.final_answer is not None,
@@ -755,7 +882,24 @@ What is your next step? Remember: Output ONLY JSON."""
             sources.append('projects')
         
         return sources if sources else ['documents']
-    
+
+    def _count_results(self, result: Any) -> Optional[int]:
+        """Count the number of results from a tool response."""
+        if result is None:
+            return 0
+        if isinstance(result, dict):
+            # Check for common result count keys
+            for key in ['count', 'total', 'total_results', 'projects_count', 'calls_found']:
+                if key in result:
+                    return int(result[key])
+            # Check for list-like keys
+            for key in ['results', 'projects', 'calls', 'documents', 'partners', 'organizations']:
+                if key in result and isinstance(result[key], list):
+                    return len(result[key])
+        if isinstance(result, list):
+            return len(result)
+        return None
+
     async def _reason_next_step(
         self,
         query: str,
@@ -764,7 +908,14 @@ What is your next step? Remember: Output ONLY JSON."""
         tool_results: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
         """Use LLM to reason about the next step."""
-        
+
+        # Check cache for first step only (no previous steps or results)
+        if not previous_steps and not tool_results and self.plan_cache:
+            cached_plan = self.plan_cache.get_cached_plan(query, context)
+            if cached_plan:
+                logger.info("🚀 Using cached reasoning plan")
+                return cached_plan
+
         # Format previous steps
         steps_text = ""
         for step in previous_steps:
@@ -911,48 +1062,94 @@ What is your next step? Remember: Output ONLY JSON."""
         return intro + "\n\n".join(body_parts)
     
     async def _execute_tool_calls(self, tool_calls: List[Dict]) -> List[ToolCall]:
-        """Execute multiple tool calls (in parallel when possible)."""
-        
+        """Execute multiple tool calls (in parallel when possible).
+
+        If speculative execution is enabled, check for pre-computed results first.
+        """
         results = []
-        
-        # Group calls that can run in parallel
-        parallel_calls = []
-        
+
+        # Group calls that need execution vs those with speculative results
+        to_execute = []
+        used_speculative = set()
+
         for tc in tool_calls:
             tool_name = tc.get('tool')
             params = tc.get('parameters', {})
             reasoning = tc.get('reasoning', '')
-            
+
             tool_call = ToolCall(
                 tool_name=tool_name,
                 parameters=params,
                 reasoning=reasoning
             )
-            parallel_calls.append((tool_call, self._execute_single_tool(tool_name, params)))
-        
-        # Execute in parallel
-        if parallel_calls:
+
+            # Check for speculative result first
+            speculative_result = None
+            if self.speculative_executor:
+                speculative_result = await self.speculative_executor.get_speculative_result(
+                    tool_name, timeout=0.2  # 200ms timeout for speculative results
+                )
+
+            if speculative_result and speculative_result.get('result') is not None:
+                # Use speculative result
+                tool_call.success = True
+                tool_call.result = speculative_result['result']
+                tool_call.execution_time_ms = 0  # Already computed
+                results.append(tool_call)
+                used_speculative.add(tool_name)
+                logger.info(f"🎯 Using speculative result for: {tool_name}")
+
+                # Track speculative hit in analytics
+                if self.analytics:
+                    from ..analytics.tool_analytics_service import ToolUsageEvent
+                    await self.analytics.track_tool_usage(ToolUsageEvent(
+                        tool_name=tool_name,
+                        parameters=params,
+                        execution_time_ms=0,
+                        success=True,
+                        speculative=True,
+                        result_count=self._count_results(speculative_result['result'])
+                    ))
+            else:
+                # Need to execute normally
+                to_execute.append((tool_call, self._execute_single_tool(tool_name, params)))
+
+        # Execute remaining tools in parallel
+        if to_execute:
             start_time = datetime.now()
-            
-            tasks = [call[1] for call in parallel_calls]
+
+            tasks = [call[1] for call in to_execute]
             task_results = await asyncio.gather(*tasks, return_exceptions=True)
-            
-            for i, (tool_call, _) in enumerate(parallel_calls):
+
+            for i, (tool_call, _) in enumerate(to_execute):
                 result = task_results[i]
                 execution_time = (datetime.now() - start_time).total_seconds() * 1000
-                
+
                 if isinstance(result, Exception):
                     tool_call.success = False
                     tool_call.error = str(result)
                 else:
                     tool_call.success = True
                     tool_call.result = result
-                
+
                 tool_call.execution_time_ms = execution_time
                 results.append(tool_call)
-                
+
                 logger.info(f"🔧 Tool {tool_call.tool_name}: {'✓' if tool_call.success else '✗'}")
-        
+
+                # Track in analytics
+                if self.analytics:
+                    from ..analytics.tool_analytics_service import ToolUsageEvent
+                    await self.analytics.track_tool_usage(ToolUsageEvent(
+                        tool_name=tool_call.tool_name,
+                        parameters=tool_call.parameters,
+                        execution_time_ms=int(execution_time),
+                        success=tool_call.success,
+                        error_message=tool_call.error if not tool_call.success else None,
+                        result_count=self._count_results(result) if tool_call.success else None,
+                        speculative=False
+                    ))
+
         return results
     
     async def _execute_single_tool(self, tool_name: str, params: Dict) -> Any:
@@ -998,6 +1195,10 @@ What is your next step? Remember: Output ONLY JSON."""
                 return await self._tool_get_similar_funded_projects(params)
             elif tool_name == 'analyze_call_history':
                 return await self._tool_analyze_call_history(params)
+            elif tool_name == 'calculate_budget':
+                return await self._tool_calculate_budget(params)
+            elif tool_name == 'generate_timeline':
+                return await self._tool_generate_timeline(params)
             else:
                 return {"error": f"Tool {tool_name} not implemented"}
         except Exception as e:
@@ -1665,6 +1866,50 @@ What is your next step? Remember: Output ONLY JSON."""
 
         except Exception as e:
             logger.error(f"Call history analysis error: {e}")
+            return {"error": str(e)}
+
+    async def _tool_calculate_budget(self, params: Dict) -> Dict:
+        """Calculate budget breakdown for a Horizon Europe proposal."""
+        try:
+            from ..tools.budget_calculator import BudgetCalculatorTool
+
+            tool = BudgetCalculatorTool()
+            result = tool.calculate_budget(
+                action_type=params.get('action_type', 'RIA'),
+                duration_months=params.get('duration_months', 36),
+                num_partners=params.get('num_partners', 8),
+                total_person_months=params.get('total_person_months'),
+                target_budget=params.get('target_budget'),
+                countries=params.get('countries'),
+                include_breakdown=params.get('include_breakdown', True)
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Budget calculator error: {e}")
+            return {"error": str(e)}
+
+    async def _tool_generate_timeline(self, params: Dict) -> Dict:
+        """Generate project timeline with work packages, deliverables, and milestones."""
+        try:
+            from ..tools.timeline_generator import TimelineGeneratorTool
+
+            tool = TimelineGeneratorTool()
+            result = tool.generate_timeline(
+                action_type=params.get('action_type', 'RIA'),
+                duration_months=params.get('duration_months', 36),
+                num_partners=params.get('num_partners', 8),
+                total_person_months=params.get('total_person_months', 300),
+                project_title=params.get('project_title', 'Project'),
+                custom_wps=params.get('custom_wps'),
+                start_date=params.get('start_date')
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Timeline generator error: {e}")
             return {"error": str(e)}
 
     def _summarize_tool_results(self, tool_calls: List[ToolCall]) -> str:

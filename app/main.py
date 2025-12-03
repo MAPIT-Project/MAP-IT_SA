@@ -64,6 +64,10 @@ app.include_router(proposal_router)
 from .api.proposal_document_routes import router as proposal_document_router
 app.include_router(proposal_document_router)
 
+# Include feedback routes (user feedback collection and analysis)
+from .api.feedback_routes import router as feedback_router
+app.include_router(feedback_router)
+
 # Exception handlers
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc):
