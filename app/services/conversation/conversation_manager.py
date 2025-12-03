@@ -748,8 +748,26 @@ class ConversationManager:
                         'iteration': step.get('step', 0)
                     }
 
-            # 4. Get/synthesize answer
-            answer = agent_result.get('answer', '')
+            # 4. Get/synthesize answer - ALWAYS try formatter for structured results
+            answer = None
+
+            # First, try the V3 formatter for structured results (calls, projects)
+            tool_results = agent_result.get('tool_results', {})
+            if tool_results:
+                try:
+                    from ..response.v3_response_formatter import get_formatter
+                    formatter = get_formatter()
+                    formatted_answer = formatter.format_from_tool_results(tool_results, user_message)
+                    if formatted_answer:
+                        logger.info("✅ Used V3 formatter for structured response")
+                        answer = formatted_answer
+                except Exception as e:
+                    logger.warning(f"V3 formatter failed: {e}")
+
+            # If formatter didn't produce output, use agent's answer or synthesize
+            if not answer:
+                answer = agent_result.get('answer', '')
+
             if not answer or len(answer) < 50:
                 yield {
                     'type': 'status',
@@ -851,8 +869,20 @@ class ConversationManager:
         agent_result: Dict[str, Any],
         context: str
     ) -> str:
-        """Synthesize a response from agent results using LLM."""
+        """Synthesize a response from agent results using the V3 formatter."""
         try:
+            # First, try to use the V3 formatter for structured results
+            from ..response.v3_response_formatter import get_formatter
+
+            tool_results = agent_result.get('tool_results', {})
+            if tool_results:
+                formatter = get_formatter()
+                formatted_response = formatter.format_from_tool_results(tool_results, query)
+                if formatted_response:
+                    logger.info("✅ Used V3 formatter for structured response")
+                    return formatted_response
+
+            # Fallback to LLM synthesis if formatter didn't produce output
             import google.generativeai as genai
 
             # Collect tool results from reasoning steps

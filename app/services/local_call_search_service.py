@@ -324,12 +324,34 @@ class LocalCallSearchService:
                 break
         
         logger.info(f"✅ Found {len(calls)} local results for '{query}' (filtered to current/upcoming)")
-        
+
+        # Convert to dicts and enrich incomplete results
+        formatted_calls = []
+        for c in calls:
+            call_dict = c.to_dict()
+            # Enrich if title or description is missing/incomplete
+            if self._enrichment_service and c.topic_code:
+                title = call_dict.get('title') or ''
+                desc = call_dict.get('description') or ''
+                needs_enrichment = (
+                    len(title) < 20 or
+                    title == c.topic_code or
+                    len(desc) < 50
+                )
+                if needs_enrichment:
+                    logger.info(f"📡 Enriching vector result {c.topic_code}...")
+                    enriched = self._enrichment_service.get_call_details(c.topic_code)
+                    if enriched:
+                        # Merge enriched data
+                        call_dict = {**call_dict, **enriched}
+                        logger.info(f"✅ Enriched {c.topic_code}")
+            formatted_calls.append(call_dict)
+
         return {
             'success': True,
             'query': query,
-            'calls_found': len(calls),
-            'calls': [c.to_dict() for c in calls],
+            'calls_found': len(formatted_calls),
+            'calls': formatted_calls,
             'current_date': today.isoformat(),
             'search_metadata': {
                 'source': 'local_work_programmes',
@@ -434,15 +456,23 @@ class LocalCallSearchService:
     def _format_structured_call(self, call: Dict[str, Any], enrich: bool = True) -> Dict[str, Any]:
         """
         Format a structured call result to match the expected output format.
-        
+
         If enrich=True and data is incomplete, fetches from EU Portal API.
         """
         # Check if we need to enrich this call
         topic_code = call.get('topic_code')
         scope = call.get('scope') or ''
-        
-        if enrich and self._enrichment_service and len(scope) < 50 and topic_code:
-            logger.info(f"📡 Enriching {topic_code} from EU Portal API...")
+        title = call.get('title') or ''
+
+        # Enrich if: scope is short OR title is missing/same as topic_code
+        needs_enrichment = (
+            len(scope) < 50 or
+            len(title) < 20 or
+            title == topic_code  # Title is just the call ID
+        )
+
+        if enrich and self._enrichment_service and needs_enrichment and topic_code:
+            logger.info(f"📡 Enriching {topic_code} from EU Portal API (scope={len(scope)}, title='{title[:30]}...')...")
             enriched = self._enrichment_service.get_call_details(topic_code)
             if enriched:
                 # Merge enriched data with original

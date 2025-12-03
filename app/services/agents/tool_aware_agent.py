@@ -160,14 +160,12 @@ Respond ONLY with JSON (no other text):
 4. Can call multiple tools in parallel if independent
 5. Cite your sources in the conclusion
 
-## Response Formatting Guidelines
+## Response Guidelines
 
-When presenting results to users:
-- For funding calls: Show ALL relevant results (up to 10), not just 2-3
-- For each call/project: Include title, deadline (if available), cluster/programme, and brief description
-- Format as a numbered list for easy reference
-- Include call IDs when available so users can ask "tell me more about #3"
-- Don't truncate or summarize too aggressively - users want details
+- Show ALL relevant results (up to 10), not just 2-3
+- Include call IDs so users can reference them (e.g., "tell me more about #3")
+- For funding calls: include title, call ID, type, deadline, cluster, and scope
+- Be comprehensive but organized
 
 ## Conversation History
 
@@ -552,7 +550,7 @@ What is your next step? Remember: Output ONLY JSON."""
         
         # Build final response
         total_time = (datetime.now() - start_time).total_seconds() * 1000
-        
+
         return {
             'answer': plan.final_answer or self._build_fallback_answer(plan),
             'success': plan.final_answer is not None,
@@ -567,6 +565,7 @@ What is your next step? Remember: Output ONLY JSON."""
                 for s in plan.reasoning_steps
             ],
             'sources_used': list(all_tool_results.keys()),
+            'tool_results': all_tool_results,  # Include full tool results for formatting
             'complexity': plan.complexity,
             'iterations': iteration,
             'confidence': plan.confidence,
@@ -924,16 +923,24 @@ What is your next step? Remember: Output ONLY JSON."""
             )
 
             calls = results.get('calls', [])
+
+            # Pass through ALL available fields for rich formatting
             return {
                 "calls_found": len(calls),
                 "calls": [
                     {
-                        "call_id": c.get('call_id', ''),
+                        "call_id": c.get('topic_code', ''),  # topic_code is the actual call ID
                         "title": c.get('title', ''),
                         "deadline": c.get('deadline', ''),
                         "type": c.get('action_type', ''),
                         "cluster": c.get('cluster', ''),
-                        "budget": c.get('budget', '')
+                        "budget": c.get('budget', ''),
+                        "scope": c.get('scope', '') or c.get('description', ''),
+                        "expected_outcome": c.get('expected_outcome', ''),
+                        "status": c.get('status', 'open'),
+                        "url": c.get('url', ''),
+                        "work_programme": c.get('work_programme', ''),
+                        "call_year": c.get('call_year', ''),
                     }
                     for c in calls[:15]
                 ]
