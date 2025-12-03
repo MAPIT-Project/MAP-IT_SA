@@ -16,6 +16,7 @@ from .api.document_routes import router as document_router
 # Removed old conversation_routes - only use v2 with tool orchestrator
 # from .api.conversation_routes import router as conversation_router
 from .api.conversation_routes_v2 import router as conversation_router_v2
+from .api.conversation_routes_v3 import router as conversation_router_v3
 from .api.call_document_routes import router as call_document_router
 from .api.proposal_routes import router as proposal_router
 from .models.schemas import ErrorResponse
@@ -52,6 +53,8 @@ app.include_router(document_router)
 # Only include v2 conversation routes - no more old RAG fallbacks
 # app.include_router(conversation_router)
 app.include_router(conversation_router_v2)
+# V3 conversation routes - simplified agentic architecture (no intent classification)
+app.include_router(conversation_router_v3)
 # Include call document routes (simple, direct access to call documents)
 app.include_router(call_document_router)
 # Include proposal writing routes (AI-powered proposal assistance)

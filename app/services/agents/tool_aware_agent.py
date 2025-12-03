@@ -855,23 +855,29 @@ What is your next step? Remember: Output ONLY JSON."""
         try:
             from ..vector_search_service import VectorSearchService
             vector = VectorSearchService()
-            
+
             query = params.get('query', '')
             max_results = params.get('max_results', 5)
             doc_type = params.get('document_type')
-            
-            results = await vector.hybrid_search(
+
+            # Build filters if document type specified
+            filters = None
+            if doc_type:
+                filters = {'document_type': doc_type}
+
+            # hybrid_search uses num_results, not limit
+            results = vector.hybrid_search(
                 query=query,
-                limit=max_results,
-                document_type=doc_type
+                num_results=max_results,
+                filters=filters
             )
-            
+
             return {
                 "documents": [
                     {
-                        "content": r.get('content', '')[:300],
-                        "source": r.get('document_title', 'Unknown'),
-                        "score": r.get('combined_score', 0)
+                        "content": r.content[:300] if hasattr(r, 'content') else str(r)[:300],
+                        "source": r.document_title if hasattr(r, 'document_title') else 'Unknown',
+                        "score": r.score if hasattr(r, 'score') else 0
                     }
                     for r in results[:max_results]
                 ]
