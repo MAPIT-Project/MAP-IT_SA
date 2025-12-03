@@ -603,15 +603,36 @@ class LocalCallSearchService:
         return None
     
     def _get_local_call(self, topic_code: str) -> Optional[Dict[str, Any]]:
-        """Get call from local database."""
+        """Get call from local database with fuzzy matching for similar IDs."""
         try:
             conn = psycopg2.connect(self._db_url)
             cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            # First try exact match
             cursor.execute(
                 "SELECT * FROM funding_calls WHERE topic_code = %s",
                 (topic_code,)
             )
             result = cursor.fetchone()
+
+            # If not found, try fuzzy matching for similar call IDs
+            if not result:
+                # Create a pattern for fuzzy matching - e.g., HORIZON-CL5-2026-D3-01 could match HORIZON-CL5-2026-02-D3-01
+                # Extract parts of the topic code
+                parts = topic_code.split('-')
+                if len(parts) >= 3:
+                    # Build a LIKE pattern with wildcards between parts
+                    like_pattern = '%'.join(parts[:3]) + '%' + '%'.join(parts[3:]) if len(parts) > 3 else '%'.join(parts) + '%'
+                    cursor.execute(
+                        "SELECT * FROM funding_calls WHERE topic_code LIKE %s ORDER BY topic_code LIMIT 5",
+                        (f"%{like_pattern}%",)
+                    )
+                    fuzzy_results = cursor.fetchall()
+                    if fuzzy_results:
+                        # Return the closest match
+                        result = fuzzy_results[0]
+                        logger.info(f"📍 Fuzzy matched {topic_code} to {result['topic_code']}")
+
             conn.close()
             return dict(result) if result else None
         except Exception as e:

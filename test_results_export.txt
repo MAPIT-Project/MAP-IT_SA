@@ -13,52 +13,37 @@ CATEGORY: General Call Identification
 📊 Confidence: 0.8, Iterations: 2
 ------------------------------------------------------------
 💬 RESPONSE:
-I found 10 open funding calls related to clean energy research, primarily within Cluster 5 (Climate, Energy and Mobility). Many of these calls relate to the 2026 Work Programme and may have deadlines scheduled for early 2026. 
+I have found several open and upcoming funding opportunities in Horizon Europe Cluster 5 (Climate, Energy and Mobility) relevant to clean energy research, focusing on batteries, smart buildings, and renewable fuels. 
 
-Here are the top open calls:
+Please note that some 2026 topics may be 'upcoming' but are officially 'open' for proposal submission outlines or preparation, depending on the specific work programme rules.
 
-1.  **Title:** Large-scale production of liquid advanced biofuels and renewable fuels of non-biological origin
-    *   **Call ID:** HORIZON-CL5-2026-02-D3-01
-    *   **Cluster:** CL5 (Energy)
-    *   **Deadline:** *To be determined (likely Q1/Q2 2026)*
-2.  **Title:** Smarter buildings as part of the energy system for increased efficiency and flexibility – Societal Readiness Pilot
-    *   **Call ID:** HORIZON-CL5-2026-02
-    *   **Cluster:** CL5 (Energy Systems)
-    *   **Deadline:** 2026-02-17
-3.  **Title:** Development of sustainable and design-to-cost batteries with (energy-)efficient manufacturing processes and based on...
-    *   **Call ID:** HORIZON-CL5-2026-01-D2-01
-    *   **Cluster:** CL5 (Batteries/Mobility)
-    *   **Deadline:** *To be determined (likely Q1/Q2 2026)*
-4.  **Title:** Accelerated multi-physical and virtual testing for battery aging, reliability, and safety evaluation (Batt4EU...)
-    *   **Call ID:** HORIZON-CL5-2026-01-D2-05
-    *   **Cluster:** CL5 (Batteries/Mobility)
-    *   **Deadline:** *To be determined (likely Q1/Q2 2026)*
-5.  **Title:** Novel cost-effective and low-carbon technologies for CO2 capture and conversion into value-added products
-    *   **Call ID:** HORIZON-CL5-2026-D4-01
-    *   **Cluster:** CL5 (Carbon Capture and Storage)
-    *   **Deadline:** *To be determined (likely Q1/Q2 2026)*
-6.  **Title:** Enabling innovative solutions for deep renovation and industrialisation of building renovation processes
-    *   **Call ID:** HORIZON-CL5-2026-D3-03
-    *   **Cluster:** CL5 (Building Efficiency)
-    *   **Deadline:** *To be determined (likely Q1/Q2 2026)*
-7.  **Title:** Supporting the development of the European hydrogen backbone
-    *   **Call ID:** HORIZON-CL5-2026-D4-05
-    *   **Cluster:** CL5 (Hydrogen)
-    *   **Deadline:** *To be determined (likely Q1/Q2 2026)*
-8.  **Title:** Decarbonisation and safety of shipping, including related infrastructures and equipment
-    *   **Call ID:** HORIZON-CL5-2026-D5-02
-    *   **Cluster:** CL5 (Mobility/Clean Transport)
-    *   **Deadline:** *To be determined (likely Q1/Q2 2026)*
-9.  **Title:** Advanced sustainable production pathways for hydrogen (electrolysis, pyrolysis, etc.)
-    *   **Call ID:** HORIZON-CL5-2026-D4-02
-    *   **Cluster:** CL5 (Hydrogen)
-    *   **Deadline:** *To be determined (likely Q1/Q2 2026)*
-10. **Title:** Development and demonstration of sustainable cooling and heating solutions for buildings
-    *   **Call ID:** HORIZON-CL5-2026-D3-02
-    *   **Cluster:** CL5 (Building Efficiency)
-    *   **Deadline:** *To be determined (likely Q1/Q2 2026)*
+### Currently Open Clean Energy Research Calls
 
-Please note that deadlines marked as 'To be determined' are part of the upcoming or two-stage work programmes. For the most precise and immediate deadlines, refer to the official Funding & Tenders Portal link provided in the results.
+| ID | Title | Action Type | Cluster | Focus Area | Status/Deadline |
+|---|---|---|---|---|---|
+| **HORIZON-CL5-2026-02** | Smarter buildings as part of the energy system for increased efficiency and flexibility – Societal Readiness Pilot | Unknown (likely IA/CSA) | CL5 | Energy efficiency, Smart Grids, Buildings | **Deadline: 17 February 2026** |
+| **HORIZON-CL5-2026-02-D3-01** | Large-scale production of liquid advanced biofuels and renewable fuels of non-biological origin | IA/RIA | CL5 | Renewable Fuels (Biofuels, RFNBOs) | **Open** (2026 WP) |
+| **HORIZON-CL5-2026-01-D2-01** | Development of sustainable and design-to-cost batteries... | COFUND | CL5 | Batteries and Energy Storage (Mobility) | **Open** (2026 WP) |
+| **HORIZON-CL5-2026-01-D2-05** | Accelerated multi-physical and virtual testing for battery aging, reliability, and safety evaluation (Batt4EU Partnership) | COFUND | CL5 | Batteries and Testing | **Open** (2026 WP) |
+
+### Detail on Key Topics
+
+#### 1. Smarter Buildings and Grids
+
+*   **Call ID:** `HORIZON-CL5-2026-02`
+*   **Focus:** This call targets integrating smart buildings fully into the energy system, enhancing efficiency and providing flexibility (e.g., demand-side management) to the grid.
+
+#### 2. Renewable Fuels
+
+*   **Call ID:** `HORIZON-CL5-2026-02-D3-01`
+*   **Focus:** Aims at advancing the technology readiness level and economic viability for large-scale production of advanced biofuels and Renewable Fuels of Non-Biological Origin (RFNBOs), crucial for decarbonizing sectors like aviation and maritime.
+
+#### 3. Battery Technologies
+
+*   **Call IDs:** `HORIZON-CL5-2026-01-D2-01` and `HORIZON-CL5-2026-01-D2-05`
+*   **Focus:** These topics address crucial aspects of sustainable battery development, including cost-efficient manufacturing, advanced testing for safety, reliability, and extended life cycles, often under the Batt4EU Partnership umbrella.
+
+To find the specific budget and full eligibility criteria for any of these calls, I recommend checking the specific topic details on the Funding & Tenders Portal using the provided Call ID, as they belong to the latest Work Programmes (Cluster 5).
 
 ------------------------------------------------------------
 
@@ -68,49 +53,30 @@ Please note that deadlines marked as 'To be determined' are part of the upcoming
 📊 Confidence: 0.0, Iterations: 1
 ------------------------------------------------------------
 💬 RESPONSE:
-Okay, I checked for information on the call **HORIZON-CL5-2026-D3-01** but unfortunately, I couldn't find any details in my current database.
-
-It's possible that this call is very new or hasn't been fully integrated into my system yet.
-
-**To get the most accurate and up-to-date information, I recommend checking the official EU Funding & Tenders Portal directly:**
-
-[https://ec.europa.eu/info/funding-tenders/opportunitie](https://ec.europa.eu/info/funding-tenders/opportunitie)
-
-You should be able to search for the call "HORIZON-CL5-2026-D3-01" on that portal and find details about its objectives, eligibility criteria, budget, and application process. Good luck!
-
+I found some information but couldn't extract specific details. Please try a more specific question.
 
 ------------------------------------------------------------
 
 📝 QUESTION: What types of actions are available (RIA, IA, CSA)?
 ------------------------------------------------------------
 ✅ STATUS: Success
-📊 Confidence: 0.8, Iterations: 4
+📊 Confidence: 0.8, Iterations: 1
 ------------------------------------------------------------
 💬 RESPONSE:
-The three most common types of funding actions available in Horizon Europe (and other EU Framework Programmes) are Research and Innovation Actions (RIA), Innovation Actions (IA), and Coordination and Support Actions (CSA).
+The three main types of actions available in Horizon Europe are Research and Innovation Actions (RIA), Innovation Actions (IA), and Coordination and Support Actions (CSA). They differ primarily based on the Technology Readiness Level (TRL) of the work and the associated funding rates.
 
-Here is a breakdown of what each action type entails:
+### Horizon Europe Action Types Summary
 
-### 1. Research and Innovation Actions (RIA)
+| Type | Full Name | TRL Range | Funding Rate | Primary Focus |
+|------|-----------|--------------|--------------|---------------|
+| **RIA** | Research and Innovation Action | TRL 2-5 | 100% | Focuses on advancing knowledge, developing new technology, or fundamental research. |
+| **IA** | Innovation Action | TRL 5-8 | 70%/100% | Focuses on demonstration, piloting, testing, and scaling up solutions close to market deployment. (Note: Non-profit entities receive 100% funding; for-profit entities usually receive 70%). |
+| **CSA** | Coordination and Support Action | N/A | 100% | Covers networking, standardisation, dissemination, communication, studies, and policy support. Does not fund research or demonstration activities directly. |
 
-*   **Focus:** Establishing new knowledge and exploring the feasibility of a new or improved technology, product, process, service, or solution.
-*   **Activities:** Basic and applied research, technology development and integration, testing and validation on a small-scale prototype in a laboratory or simulated environment.
-*   **Technology Readiness Level (TRL):** Typically targets TRL 1 to TRL 5/6.
-*   **Funding Rate:** Generally **100%** of eligible costs.
+### Key Differentiators
 
-### 2. Innovation Actions (IA)
-
-*   **Focus:** Activities that are closer to the market, involving large-scale demonstration, prototyping, testing, and validation of new or improved solutions under real-world operating conditions.
-*   **Activities:** Piloting, demonstrating, testing, and scaling up.
-*   **Technology Readiness Level (TRL):** Typically targets TRL 6 to TRL 8.
-*   **Funding Rate:** Generally **70%** of eligible costs (except for non-profit legal entities, where the rate is 100%).
-
-### 3. Coordination and Support Actions (CSA)
-
-*   **Focus:** Activities aimed at coordinating or supporting research and innovation activities (e.g., networking, knowledge dissemination, awareness-raising, standardisation, or policy dialogue).
-*   **Activities:** Communication, conferences, workshops, studies, road-mapping, data collection, and access to research infrastructures.
-*   **TRL:** CSAs do **not** directly fund research or innovation activities.
-*   **Funding Rate:** Generally **100%** of eligible costs.
+*   **Risk vs. Market Proximity:** RIAs focus on higher-risk, fundamental steps (lower TRL), while IAs focus on lowering the final hurdles before commercialisation (higher TRL).
+*   **Funding:** RIAs and CSAs always offer 100% reimbursement of eligible costs. IAs offer 70% for standard for-profit partners but 100% for non-profit entities (like universities or NGOs) and for SMEs if specified in the call.
 
 ------------------------------------------------------------
 
@@ -121,51 +87,86 @@ CATEGORY: Budget and Funding
 📝 QUESTION: What is the typical EU contribution rate for RIA projects?
 ------------------------------------------------------------
 ✅ STATUS: Success
-📊 Confidence: 0.8, Iterations: 4
+📊 Confidence: 0.8, Iterations: 1
 ------------------------------------------------------------
 💬 RESPONSE:
-The typical EU contribution rate for Research and Innovation Actions (RIA) under Horizon Europe is **100% of the total eligible costs**.
+The typical EU contribution rate for Research and Innovation Actions (RIA) projects is **100%** of eligible costs.
 
-This high contribution rate reflects the focus of RIAs on fundamental research and knowledge creation, typically falling within lower Technology Readiness Levels (TRLs).
+### Key Facts about RIA Funding:
 
-### Comparison with other Action Types:
+*   **Funding Rate:** 100% (for all legal entities, including companies).
+*   **Focus:** Primarily research and the generation of new knowledge.
+*   **TRL Range:** Typically targets Technology Readiness Levels (TRL) 2 to 5.
 
-| Action Type | Focus | Standard EU Contribution Rate |
-| :--- | :--- | :--- |
-| **RIA** (Research & Innovation) | Lower TRLs (R&D) | **100%** of eligible costs |
-| **CSA** (Coordination & Support) | Networking, Dissemination | **100%** of eligible costs |
-| **IA** (Innovation Actions) | Higher TRLs (Demonstration) | **70%** of eligible costs (For non-profit entities, the rate remains 100%)|
+This high rate reflects the inherent risk and non-market-driven nature of early-stage research activities that RIAs support.
+
+*Source: Horizon Europe Action Types Summary*
 
 ------------------------------------------------------------
 
 📝 QUESTION: Are there specific co-funding or in-kind contribution requirements for Horizon Europe?
 ------------------------------------------------------------
 ✅ STATUS: Success
-📊 Confidence: 0.0, Iterations: 1
+📊 Confidence: 0.8, Iterations: 2
 ------------------------------------------------------------
 💬 RESPONSE:
-participation is considered essential for implementing the action by the granting authority. Specific cases: Affiliated entities Affiliated entities are eligible for funding if they are established in one of the countries listed above, or in a country identified in the specific call/topic conditions
+Horizon Europe projects are primarily defined by the EU contribution rate applied to the eligible costs, and generally, there are **no specific mandatory co-funding requirements** imposed on top of this structure. However, there are clear rules governing how **in-kind contributions** are managed. 
 
-reject tenders for supply contracts when more than 50% of the products come from third countries with which the EU does not have an international (WTO GPA or bilateral) agreement on public procurement. 3. Due to the exemption for PCP procurements, PCP procurements can require that essential componen
+### 1. Co-Funding (Financial Contribution)
+
+In Horizon Europe, the concept is that the EU reimburses a percentage of the total eligible costs, rather than demanding a separate, mandatory financial co-funding target. 
+
+| Action Type | EU Contribution Rate | Beneficiary Share (Co-funding) |
+|-------------|----------------------|--------------------------------|
+| **RIA/CSA (All Entities)** | 100% | 0% (of eligible costs)|
+| **IA (Non-profit/Public)** | 100% | 0% (of eligible costs)|
+| **IA (Profit-making)** | 70% | 30% (of eligible costs)|
+
+*   **No Mandatory Co-financing:** For most research actions (RIA) and all non-profit entities, the EU covers 100% of the eligible costs, meaning there is no mandatory co-funding required.
+*   **In-built Co-funding for IA:** For profit-making entities (e.g., large companies, or SMEs participating in Innovation Actions), the 70% rate automatically means the beneficiary must cover the remaining 30% of eligible costs. This 30% is their 'co-funding' contribution.
+
+### 2. In-Kind Contributions
+
+In-kind contributions refer to non-financial resources provided to the action, typically by third parties (who are not beneficiaries). These are generally **allowed** and can, in certain circumstances, be declared as **eligible costs**.
+
+#### A. Eligible In-Kind Contributions
+
+If a third party gives an in-kind contribution (such as personnel time, equipment, or research infrastructure access), the costs associated with that contribution can be considered eligible costs for the beneficiary, provided they meet strict conditions outlined in the Annotated Grant Agreement (AGA), including:
+
+1.  They must be explicitly foreseen in Annex 1 (Description of the Action).
+2.  They must fulfill all standard eligibility conditions (e.g., exclude ineligible costs, be necessary for the project).
+3.  They must be properly documented and verifiable.
+
+#### B. Non-Eligible In-Kind Contributions
+
+Third parties are also permitted to provide voluntary in-kind contributions that are **not** declared as eligible costs by any beneficiary. While these resources are crucial for the project's success, they do not enter into the calculation of the final EU grant amount.
+
+*Source: Horizon Europe Regulation, Annotated Grant Agreement (Article 6.2 and 9.2)*
 
 ------------------------------------------------------------
 
 📝 QUESTION: What are the budget limits per project for Innovation Actions?
 ------------------------------------------------------------
 ✅ STATUS: Success
-📊 Confidence: 0.8, Iterations: 2
+📊 Confidence: 0.8, Iterations: 1
 ------------------------------------------------------------
 💬 RESPONSE:
-There is **no single, fixed overall budget limit** for Innovation Action (IA) projects across Horizon Europe.
+There is **NO single fixed budget limit** for Innovation Actions (IA) in Horizon Europe. The specific budget allocated or expected for a project is determined entirely by the individual **Call Topic** within the annual Work Programme.
 
-Instead, the maximum budget or the **expected EU contribution** per project is defined specifically for **each individual funding topic** listed in the annual Work Programme (e.g., Cluster 5, Digital, Health, etc.).
+### Typical EU Contribution Ranges for IA
 
-### Key Determination Factors:
+While fixed limits are topic-dependent, the following ranges represent the typical EU contribution:
 
-1.  **Work Programme Topic:** You must consult the specific call text (e.g., 'HORIZON-CL5-2025-D3-01') in the Work Programme. Each topic description typically states the 'Indicative budget' for the topic and specifies the 'Expected EU contribution per project' (e.g., 'The Commission estimates that an EU contribution of between €4 million and €7 million would allow these outcomes to be addressed adequately').
-2.  **Availability of Appropriations:** The final budget allocation is always subject to the availability of funds provided for in the general budget of the Union, as stated in the documentation.
+*   **Standard IA Projects:** Typically range from **€5 million to €15 million**.
+*   **Flagship or Large-Scale IA Projects:** These strategic and highly complex projects can receive significantly higher funding, potentially ranging from **€15 million up to €50 million** or more.
 
-**In summary, to find the budget limit for a specific IA project, you must search the relevant Work Programme for the specific topic ID.**
+### How to Find the Actual Budget Limit
+
+To find the specific expected budget for your proposal, you must consult the relevant Topic description in the Work Programme. It will contain a line specifying:
+
+> *"Expected EU contribution per project: €X-Y million"*
+
+Proposals requesting contributions significantly outside this range risk being scored lower due to poor alignment with the topic's stated scale.
 
 ------------------------------------------------------------
 
@@ -176,82 +177,99 @@ CATEGORY: Consortium Composition and Eligibility
 📝 QUESTION: What is the minimum consortium composition required for Horizon Europe projects?
 ------------------------------------------------------------
 ✅ STATUS: Success
-📊 Confidence: 0.0, Iterations: 2
+📊 Confidence: 0.8, Iterations: 1
 ------------------------------------------------------------
 💬 RESPONSE:
-Unfortunately, the provided search results are insufficient to answer your question about the minimum consortium composition required for Horizon Europe projects. The snippets only contain the phrase "entities from non-" and a reference to a regulation, which doesn't provide the necessary information.
+The minimum consortium composition required for standard Horizon Europe projects (such as Research and Innovation Actions - RIA, Innovation Actions - IA, and Coordination and Support Actions - CSA) is:
 
-To answer your question accurately, I would need access to the relevant sections of the Horizon Europe Programme Guide that specifically address consortium requirements.
+### Standard Consortium Requirements
 
-**However, based on general knowledge of Horizon Europe, the typical minimum consortium composition is:**
+**3 independent legal entities from 3 different EU Member States (MS) or Associated Countries (AC).**
 
-*   **At least three legal entities.**
-*   **Each of the three must be established in a different Member State or Associated Country.**
+This is the baseline requirement for most collaborative calls under the Horizon Europe framework.
 
-**Important Considerations:**
+### Detailed Breakdown:
 
-*   **Specific calls may have different requirements.** Always check the specific call text for any deviations from the standard minimum. Some calls might require a larger consortium or specific types of partners.
-*   **Associated Countries:** Participation of entities from Associated Countries is generally encouraged and counts towards the minimum requirement.
+| Requirement | Details |
+|-------------|---------|
+| **Minimum Entities** | 3 independent legal entities. |
+| **Country Diversity** | These 3 entities must come from 3 different EU Member States or Associated Countries. |
+| **Role** | All entities participate as beneficiaries. |
 
-**To find the definitive answer, you should:**
+### Exceptions to the Rule
 
-1.  **Consult the official Horizon Europe Programme Guide.** Look for sections related to eligibility criteria, participation rules, and consortium requirements.
-2.  **Check the specific call text.** The call document will always contain the most accurate and up-to-date information for that particular funding opportunity.
+Specific programs or actions have different requirements, often allowing for single beneficiaries or smaller groups:
 
+*   **ERC Grants:** Single Principal Investigator (PI) applying as a monobeneficiary hosted by one legal entity.
+*   **MSCA Postdoctoral Fellowships (PF):** Single fellow hosted by one host institution.
+*   **EIC Accelerator:** Single SME or a small consortium (though single applicant is standard).
+
+*Source: Horizon Europe Built-in Knowledge / Standard Consortium Requirements*
 
 ------------------------------------------------------------
 
 📝 QUESTION: Are there specific eligibility requirements regarding the type of organisations (HEIs, NGOs, SMEs, Research Institutes)?
 ------------------------------------------------------------
 ✅ STATUS: Success
-📊 Confidence: 0.0, Iterations: 2
+📊 Confidence: 0.8, Iterations: 1
 ------------------------------------------------------------
 💬 RESPONSE:
-Based on the provided search results, there are **specific eligibility requirements** for organisations applying for EU grants. These requirements are detailed in:
-
-*   **Article 6.2.D.5** of the grant agreement (annotated_grant_agreement.pdf). This article outlines general conditions for costs to be eligible.
-*   **Part 2 of the work programme** (programme_guide_horizon_europe.pdf). This section contains specific eligibility and other conditions.
-
-The search results don't specify the exact eligibility requirements for HEIs, NGOs, SMEs, or Research Institutes. To find those specific requirements, you need to consult the documents mentioned above: the annotated grant agreement and the work programme. Look for sections related to eligibility criteria and conditions for participation.
-
+Yes, all the organisation types you mentioned are generally eligible to participate in Horizon Europe projects (RIA, IA, CSA). However, there are crucial differences in mandatory requirements (like Gender Equality Plans) and funding rates, especially between research/non-profit entities and for-profit entities participating in Innovation Actions (IA).
 
 ------------------------------------------------------------
 
 📝 QUESTION: Can third-country participants join Horizon Europe projects?
 ------------------------------------------------------------
 ✅ STATUS: Success
-📊 Confidence: 0.8, Iterations: 3
+📊 Confidence: 0.8, Iterations: 2
 ------------------------------------------------------------
 💬 RESPONSE:
-Yes, third-country participants can join Horizon Europe projects, but their eligibility for EU funding depends significantly on their country's status. Participation rules are generally divided into three categories:
+Yes, legal entities from third countries can participate in Horizon Europe projects. However, their participation conditions and eligibility for EU funding depend heavily on their country's status relative to the EU.
 
-### 1. Associated Countries (AC)
+There are three main categories of participants:
 
-Entities legally established in a country 'associated' with Horizon Europe are treated almost identically to those in EU Member States. 
+### 1. EU Member States (MS)
 
-*   **Participation:** Fully eligible to join consortia.
-*   **Funding:** **Automatically eligible for EU funding** under the same conditions as Member State entities (e.g., 100% funding for RIA, 70% for IA/100% for non-profit).
+*   **Eligibility:** Fully eligible and always fundable.
 
-### 2. Low-to-Middle Income Countries (LMICs)
+### 2. Associated Countries (AC)
 
-Legal entities established in specific third countries classified as Low- or Middle-Income Countries (as defined by the OECD) are generally automatically eligible for EU funding.
+Associated Countries (ACs) have finalized an agreement with the EU to contribute financially to Horizon Europe.
 
-*   **Participation:** Fully eligible to join consortia.
-*   **Funding:** **Automatically eligible for EU funding**.
+*   **Eligibility & Funding:** Legal entities from ACs participate under **equivalent conditions** as entities from EU Member States. They are fully eligible to coordinate and receive funding, unless specific limitations are set out in the Work Programme.
 
-### 3. Non-Associated, High-Income Countries
+### 3. Other Third Countries (TCC) – Neither MS nor AC
 
-Entities from other third countries (i.e., countries that are neither EU Member States, nor associated, nor LMICs, such as the US, Canada, Japan, etc.) are subject to stricter rules:
+Entities from countries that are neither EU MS nor ACs can still join consortia, but their funding eligibility follows specific rules:
 
-*   **Participation:** They are generally allowed to participate in projects (provided the minimum consortium requirements are met by EU Member States/Associated Countries).
-*   **Funding:** **They are generally NOT eligible for EU funding** and must participate at their own cost (using their own funds or national funding schemes).
+#### A. Automatically Eligible for Funding
 
-#### Exceptions to the Non-Funding Rule:
+Entities established in **Low- and Middle-Income Countries (LMIC)**, as defined by the European Commission, are typically **automatically eligible for funding** from the EU budget when they participate in Horizon Europe projects.
 
-The EU may grant funding to entities from non-associated high-income countries in specific, exceptional cases, such as when:
+#### B. Generally Not Eligible for Automatic Funding
 
-1.  Their participation is **deemed essential** for carrying out the action (e.g., providing unique expertise, accessing specialized infrastructure).
-2.  The specific **Work Programme topic explicitly allows** for their funding.
+Entities established in **High-Income Third Countries (HIC)** are generally **not automatically eligible for funding**. They can participate, but must typically cover their own costs. This includes countries like the USA, Canada, Japan, Australia, etc.
+
+**Exceptions to the HIC Funding Rule:**
+
+High-Income Third Country participants *may* receive EU funding in specific, limited circumstances, such as:
+
+1.  When funding is **specifically provided for** in the relevant Work Programme or Call Topic.
+2.  When their participation is **deemed essential** for carrying out the action (e.g., possessing unique expertise, infrastructure, or access to data).
+3.  For certain specific actions, such as ERC grants or MSCA, where specific rules apply.
+
+---
+
+### Summary of Funding Rules
+
+| Country Type | Participation Allowed? | Automatic EU Funding? |
+| :--- | :--- | :--- |
+| **EU Member State (MS)** | Yes | Yes (100% or 70%) |
+| **Associated Country (AC)** | Yes | Yes (Equivalent to MS) |
+| **Low/Middle Income TCC** | Yes | Yes |
+| **High Income TCC** | Yes | No (Unless specifically requested by the EC/topic) |
+
+*Source: Horizon Europe Programme Guide, General Annexes*
 
 ------------------------------------------------------------
 
@@ -262,28 +280,32 @@ CATEGORY: Thematic and Policy Alignment
 📝 QUESTION: What are the policy priorities addressed by Cluster 5 Climate calls?
 ------------------------------------------------------------
 ✅ STATUS: Success
-📊 Confidence: 0.0, Iterations: 5
+📊 Confidence: 0.8, Iterations: 2
 ------------------------------------------------------------
 💬 RESPONSE:
-Based on the provided search results, it appears the user is asking about the policy priorities addressed by "Cluster 5 Climate" calls within the Horizon Europe program (specifically referencing the 2025 and 2026 work programs).
+Horizon Europe Cluster 5: Climate, Energy and Transport is a cornerstone of the EU’s response to the climate crisis, serving as the main implementation tool for research and innovation supporting the **European Green Deal**. The calls under this cluster address several high-level policy priorities aimed at achieving climate neutrality by 2050, fostering clean industrial competitiveness, and promoting sustainable transitions. 
 
-Unfortunately, the search snippets are very limited and don't provide a comprehensive overview of the policy priorities. However, we can infer some information:
+### Key Policy Priorities for Cluster 5
 
-*   **Focus Area:** The calls fall under "Cluster 5: Climate, Energy and Mobility." This indicates a broad focus on addressing climate change through advancements in energy and mobility solutions.
+Cluster 5 is focused on integrated actions across the climate, energy, and mobility domains, structured around the following core policy goals:
 
-*   **Specific Topics (Inferred):**
-    *   **Energy Communities:** The mention of "energy technology (RET) solutions in energy communities" suggests a priority in developing and deploying renewable energy technologies within local energy communities.
-    *   **Battery Technology:** The call "HORIZON-CL5-2026-" followed by "virtual testing for battery aging, reliability, and safety evaluation (Batt4EU Partnership)" indicates a focus on improving battery technology, particularly for electric vehicles and energy storage, through virtual testing methods. This aligns with the Batt4EU (Batteries European Partnership) initiative.
-    *   **Social Sciences and Humanities:** The mention of "Mobilising the Energy-Related Social Sciences and Humanities" suggests that the calls also recognize the importance of social and human factors in the energy transition.
+1.  **Climate Mitigation and Adaptation:**
+    *   Identifying effective and efficient pathways, cross-cutting technologies, and solutions for addressing both climate change mitigation (reducing emissions) and adaptation (preparing for impacts).
+2.  **Energy Transition (Clean Energy):**
+    *   Ensuring affordable, sustainable, and secure energy supplies for Europe.
+    *   Supporting the transition towards renewable sources and integrating smart energy systems.
+3.  **Sustainable Mobility and Transport:**
+    *   Driving the shift to more sustainable mobility options and transport modes (e.g., rail, public transport, cycling, walking).
+    *   Addressing the decarbonisation of the transport sector, including supporting the technological development of the **automotive sector package** for clean vehicles.
+4.  **Circular Economy and Industrial Decarbonisation:**
+    *   Supporting the decarbonisation of key industries.
+    *   Promoting circularity in manufacturing and process industries to reduce resource use and waste.
+5.  **Clean Industrial Competitiveness:**
+    *   Leveraging research and innovation to enhance the competitiveness of European industries in climate-neutral technologies, often relying on digital technologies for improved productivity and sustainability.
 
-**In summary, while the search results are limited, they suggest that Cluster 5 Climate calls prioritize:**
+Overall, the Cluster aims to deploy market-ready solutions for societal transformation while ensuring strategic autonomy and competitiveness in the green technology sector.
 
-*   Developing and deploying renewable energy technologies, particularly within energy communities.
-*   Advancing battery technology for electric vehicles and energy storage, with a focus on safety and reliability.
-*   Integrating social sciences and humanities perspectives into energy and climate solutions.
-
-To get a complete picture of the policy priorities, it is recommended to consult the full Horizon Europe Cluster 5 work programs for 2025 and 2026. These documents will provide detailed descriptions of the call topics, objectives, and expected impacts.
-
+*Source: Horizon Europe Work Programme (General Introduction, Cluster 5 sections)*
 
 ------------------------------------------------------------
 
@@ -293,81 +315,77 @@ To get a complete picture of the policy priorities, it is recommended to consult
 📊 Confidence: 0.8, Iterations: 2
 ------------------------------------------------------------
 💬 RESPONSE:
-Horizon Europe is fundamentally aligned with the European Green Deal (EGD), acting as the primary funding instrument for research and innovation supporting the EGD's transition objectives.
+Horizon Europe (HE) is the European Union’s main research and innovation instrument for implementing the ambitious goals of the **European Green Deal (EGD)**, which aims to make Europe the first climate-neutral continent by 2050. The entire framework is structured to ensure that research priorities directly translate into Green Deal objectives. 
 
-This alignment is mandated and measurable through three key areas:
+### Key Mechanisms for Alignment
 
-### 1. Financial Commitment
-Horizon Europe explicitly targets significant spending toward climate and biodiversity goals, demonstrating a direct financial commitment to the EGD:
+The alignment is enforced through strategic planning, dedicated clusters, and novel instruments like the EU Missions, backed by specific budgetary targets.
 
-*   **Climate Action:** Overall, it is estimated that approximately **35.6%** of the funds allocated across the 2023-2024 Work Programmes contribute directly to climate action objectives.
-*   **Biodiversity:** Around **8.8%** of the funds are dedicated to biodiversity-related policy objectives.
+#### 1. Financial Commitment (The 35% Target)
 
-### 2. Strategic Screening ('Do No Significant Harm')
-All proposed outcomes of topics within the Horizon Europe Work Programmes are subjected to a rigorous screening process to ensure they actively support or, at minimum, do not contradict the Green Deal:
+Horizon Europe has a statutory objective to dedicate **at least 35% of its total budget** to climate-related objectives. This ensures that climate action is mainstreamed across all relevant parts of the programme, particularly Pillar II (Global Challenges and European Industrial Competitiveness).
 
-*   Topics are screened for potential **detrimental effects on the green transition** and the objectives of Green Deal related policies.
+#### 2. Pillar II Clusters
 
-### 3. Pillar II Integration
-Alignment is most evident within **Pillar II (Global Challenges and European Industrial Competitiveness)**, where six Clusters address societal challenges that directly support the EGD, particularly:
+The six clusters under Pillar II are primarily designed to address the socio-economic and environmental challenges identified by the EGD. The most directly aligned clusters are:
 
-*   **Cluster 5: Climate, Energy and Mobility**
-*   **Cluster 6: Food, Bioeconomy, Natural Resources, Agriculture and Environment**
+*   **Cluster 5: Climate, Energy and Transport:** This cluster is the core instrument for developing innovative solutions to decarbonize the energy and transport sectors, focusing on renewable energies, sustainable mobility, climate science, and circular industries.
+*   **Cluster 6: Food, Bioeconomy, Natural Resources, Agriculture and Environment:** Focuses on implementing the 'Farm to Fork' strategy, protecting biodiversity, reducing pollution (zero-pollution ambition), and managing natural resources sustainably.
 
-The research agendas within these clusters are explicitly designed to deliver technological and systemic solutions necessary for reaching the EU's 2030 climate and energy targets and the long-term goal of climate neutrality by 2050.
+#### 3. EU Missions
 
-***
-*Source: Horizon Europe Work Programme 2023-2024 General Introduction*
+The five EU Missions are novel portfolio instruments within Horizon Europe designed to deliver bold, inspirational, and measurable societal impact within a set timeframe. Three of the five Missions are directly linked to the Green Deal:
+
+| Mission Title | Green Deal Priority | Focus Area |
+|--------------------------------------|----------------------|----------------------------------------------------------|
+| **100 Climate-Neutral and Smart Cities** | Climate Neutrality | Supports cities in becoming climate-neutral by 2030, acting as innovation hubs. |
+| **Restore our Ocean and Waters** | Zero Pollution, Biodiversity | Restoring aquatic ecosystems, reducing plastic pollution, and making the blue economy sustainable. |
+| **A Soil Deal for Europe** | Farm to Fork, Biodiversity | Ensures 75% of European soils are healthy by 2030 for food, people, nature, and climate.
+
+In essence, Horizon Europe provides the necessary funding and framework to develop the technologies, social innovations, and regulatory support required to achieve the European Green Deal's environmental and climate targets.
 
 ------------------------------------------------------------
 
 📝 QUESTION: What are the cross-cutting priorities like open science and gender in Horizon Europe?
 ------------------------------------------------------------
 ✅ STATUS: Success
-📊 Confidence: 0.8, Iterations: 4
+📊 Confidence: 0.8, Iterations: 3
 ------------------------------------------------------------
 💬 RESPONSE:
-Horizon Europe is designed to mainstream ethical and societal priorities, known as **cross-cutting issues**, throughout all its funding activities. The two most prominent priorities are **Gender Equality** and **Open Science**.
+Horizon Europe incorporates several cross-cutting priorities that applicants must address in their proposals and implementation, reflecting the EU's commitment to research excellence, societal values, and policy goals. The two most prominent horizontal priorities are **Open Science** and **Gender Equality**.
 
 ***
 
-### 1. Gender Equality
+## 1. Open Science
 
-Gender equality is a fundamental value of the EU and a cross-cutting priority integrated into all stages of the research cycle, from work programme design to project implementation.
+Open Science is mandated by default in Horizon Europe and moves beyond just Open Access publishing. It aims to ensure that research outcomes (publications, data, methods) are openly available, accessible, and reusable.
 
-#### Mandatory Gender Equality Plans (GEP)
+### Key Pillars of Open Science Requirements:
 
-The most significant new requirement in Horizon Europe is the mandatory **Gender Equality Plan (GEP)**. To be eligible for funding, certain types of organizations must have a GEP in place by the time of the call deadline (for calls with deadlines in 2022 and beyond).
-
-**Who needs a GEP?**
-*   **Public bodies** (including national, regional, and local government bodies)
-*   **Research organizations**
-*   **Higher education establishments**
-
-This requirement applies to entities established in EU Member States and Associated Countries. The GEP must meet minimum process and substance requirements, including:
-*   Publication on the organization's website.
-*   Dedicated resources and expertise for implementation.
-*   Data collection and monitoring based on gender disaggregated data.
-*   Training and awareness-raising.
-
-**Integration into Research**
-Gender dimension must also be included in the content of the research and innovation proposals (Gender as a Research Content). This is a criterion evaluated during the proposal assessment process.
+| Requirement | Details |
+|---|---|
+| **Open Access to Publications** | Mandatory. Researchers must ensure that peer-reviewed scientific publications are immediately accessible upon publication (Zero embargo period) and provided under a Creative Commons Attribution Licence (CC BY) or equivalent. |
+| **Research Data Management** | Beneficiaries must manage the research data generated according to the **FAIR principles** (Findable, Accessible, Interoperable, Reusable). This includes preparing and implementing a Data Management Plan (DMP). Data needs to be open by default, though exceptions (for IPR, privacy, or security reasons) can be justified. |
+| **Responsible Research & Innovation (RRI)** | While not a strict funding requirement for all actions, RRI principles—including public engagement, ethics, and research integrity—are strongly encouraged and often assessed as part of the 'Impact' criteria. |
 
 ***
 
-### 2. Open Science
+## 2. Gender Equality
 
-Horizon Europe makes Open Science the *modus operandi* of the programme. Open Science practices are mandatory, aiming to ensure publicly funded research results are openly accessible, reusable, and reproducible.
+Gender equality is addressed through two compulsory requirements: ensuring gender balance within the consortium team and addressing the gender dimension in the research content itself, alongside a specific administrative eligibility criterion.
 
-#### Key Requirements
+### Mandatory Eligibility Requirement: Gender Equality Plan (GEP)
 
-1.  **Open Access to Publications:** Beneficiaries must ensure immediate Open Access (OA) to all peer-reviewed scientific publications resulting from the project. There is no longer an embargo period.
+For calls closing in 2022 onwards, organizations established in EU Member States and Associated Countries that are **public bodies, research organizations, or higher education institutions (HEIs)** must have a dedicated, publicly available **Gender Equality Plan (GEP)** in place to be eligible for funding. This is a mandatory administrative requirement.
 
-2.  **Research Data Management (FAIR Data):** Projects must adhere to the principles of **FAIR** (Findable, Accessible, Interoperable, Reusable) data management. This includes:
-    *   Submitting a **Data Management Plan (DMP)** within the first six months of the project.
-    *   Depositing research data in a trustworthy repository and ensuring it is openly accessible (as open as possible, as closed as necessary).
+### Requirements in Proposal Evaluation:
 
-3.  **Inclusion in Proposals:** Proposers must detail their planned Open Science practices (including data management and data sharing) within the proposal. If **Open Science practices are not applicable** to the proposal (e.g., due to the nature of the research), **justification must be provided** for evaluation.
+| Area | Description |
+|---|---|
+| **Gender Balance in the Consortium** | Applicants must aim for gender balance at all levels of personnel assigned to the action, including supervisory and managerial roles. This is assessed under the **Implementation** criterion. |
+| **Integrating the Gender Dimension in R&I Content** | Proposals must analyze whether and how sex and/or gender are relevant variables in the research or innovation content. Failing to adequately address the gender dimension when it is relevant can significantly lower the score under the **Excellence** criterion. This aims to eliminate bias and ensure research outcomes benefit all citizens. |
+
+*Sources: Horizon Europe Programme Guide, EU Grants Annotated Grant Agreement (AGA), Built-in Knowledge Base*
 
 ------------------------------------------------------------
 
@@ -378,50 +396,50 @@ CATEGORY: Formal and Administrative Aspects
 📝 QUESTION: What is the typical TRL level required for Innovation Actions?
 ------------------------------------------------------------
 ✅ STATUS: Success
-📊 Confidence: 0.8, Iterations: 3
+📊 Confidence: 0.8, Iterations: 1
 ------------------------------------------------------------
 💬 RESPONSE:
-Innovation Actions (IA) in Horizon Europe typically require a **high Technology Readiness Level (TRL)**, generally starting around **TRL 6** and aiming to reach **TRL 8** by the end of the project. 
+The typical Technology Readiness Level (TRL) required for **Innovation Actions (IA)** is **TRL 5 to TRL 8**.
 
-Innovation Actions focus on activities close to market uptake, demonstrating and piloting new solutions in operational environments, which distinguishes them from actions focused purely on research.
+Innovation Actions are designed to focus on activities that are closer to market deployment, involving demonstration, piloting, scale-up, and replication of solutions. They bridge the gap between advanced research and market uptake.
 
-***
+### Key Characteristics of Innovation Actions (IA):
 
-### TRL Requirements by Action Type
+| Characteristic | Details |
+|------------------|----------------------------------------------------------|
+| **TRL Range** | **TRL 5 (demonstration in relevant environment) up to TRL 8 (system complete and qualified)**. |
+| **Focus** | Demonstration, piloting, large-scale system validation, and market replication. |
+| **Funding Rate** | Generally **70%** for for-profit entities (SMEs, Large Companies). **100%** for non-profit entities (HEIs, Research Institutes, NGOs). |
+| **Purpose** | To prove the technical and economic viability of a novel solution or technology at scale. |
 
-To provide context, the different types of Horizon Europe actions are defined by the TRL range they cover:
-
-1.  **Research and Innovation Actions (RIA):** These actions cover activities from basic research up to demonstrating a prototype system in a relevant environment. Their TRL range typically starts low (around TRL 2-3) and goes up to **TRL 5**.
-
-2.  **Innovation Actions (IA):** These actions pick up where RIAs leave off. They focus on demonstration, piloting, testing, and validating solutions at a large scale. The starting point is usually a validated technology, covering **TRL 6 (technology demonstrated in relevant environment) up to TRL 8 (system completed and qualified)**.
-
-3.  **Coordination and Support Actions (CSA):** These actions are TRL-agnostic, as they focus on networking, standardisation, dissemination, and policy support, not direct R&D or innovation deployment.
+For comparison, Research and Innovation Actions (RIA) focus on lower TRLs (TRL 2-5), aiming to establish new knowledge or explore the feasibility of a new technology.
 
 ------------------------------------------------------------
 
 📝 QUESTION: What are the page limits for Horizon Europe proposals?
 ------------------------------------------------------------
 ✅ STATUS: Success
-📊 Confidence: 0.8, Iterations: 5
+📊 Confidence: 0.8, Iterations: 1
 ------------------------------------------------------------
 💬 RESPONSE:
-Unfortunately, the provided search results are insufficient to definitively answer the question about page limits for Horizon Europe proposals. The snippets are fragmented and don't contain specific information about page limits.
+The page limits for the technical description (Part B) of Horizon Europe proposals vary significantly depending on the specific action type and whether the call is single-stage or two-stage. These limits are strictly enforced, and any excess pages will be blanked and not evaluated.
 
-To find the page limits, you would need to consult the official Horizon Europe call documents for the specific funding scheme you are interested in. These documents are typically available on the European Commission's Funding & Tenders Portal.
+### Standard Page Limits for Proposals (Part B)
 
-**Where to find the information:**
+| Action Type | Standard Page Limit | Notes |
+|-------------|---------------------|-------|
+| **RIA/IA (single-stage)** | **45 pages** | Sections 1-3 combined |
+| **RIA/IA (two-stage, full)** | **45 pages** | After passing stage 1 |
+| **RIA/IA (two-stage, outline)** | **10 pages** | Stage 1 only |
+| **CSA** | **30 pages** | Shorter scope |
 
-1.  **Funding & Tenders Portal:** Search for the specific call you are applying to on the Funding & Tenders Portal.
-2.  **Call Document:** Download the official call document (often called "Call Text" or similar).
-3.  **Instructions for Applicants:** Look for a section titled "Admissibility Conditions," "Proposal Templates," "Format Requirements," or similar. This section will specify the page limits for each part of the proposal (e.g., technical description, administrative forms).
+### Other Specific Actions
 
-**General Advice:**
+For specific programmes, the limits are typically lower or defined uniquely:
 
-*   Page limits are strictly enforced. Proposals exceeding the limit may be declared ineligible.
-*   Pay close attention to the formatting requirements (font size, margins, etc.) as these also contribute to the overall length of the proposal.
-*   Use the provided proposal templates.
-*   Start preparing your proposal well in advance to allow time for revisions and adherence to the page limits.
-
+*   **ERC grants:** Highly **variable**; applicants must check the specific call documentation (e.g., Starting Grant vs. Advanced Grant).
+*   **MSCA (Marie Skłodowska-Curie Actions):** Typically range from **10 to 15 pages**, depending on the specific action (e.g., Postdoctoral Fellowships).
+*   **EIC Accelerator:** Follows a specific structure involving a short proposal and then a full proposal with a detailed business plan, where page counts are applied differently to various sections.
 
 ------------------------------------------------------------
 
@@ -431,29 +449,47 @@ To find the page limits, you would need to consult the official Horizon Europe c
 📊 Confidence: 0.8, Iterations: 2
 ------------------------------------------------------------
 💬 RESPONSE:
-Horizon Europe projects require a multi-faceted approach to reporting, divided into three main categories: Continuous Reporting, Periodic Reporting (Financial), and Scientific Reporting (Progress Reports).
+Horizon Europe projects require two main streams of reporting: **Continuous Reporting** throughout the project lifecycle, and **Periodic Reporting** at predefined intervals to trigger interim and final payments.
 
 ### 1. Continuous Reporting
-This type of reporting provides regular updates on the project's operational status and is done throughout the project lifecycle.
 
-*   **Scope:** Continuous reporting focuses on the status of milestones and deliverables.
-*   **Frequency:** Updates are expected regularly, though specific intervals depend on the project's operational schedule.
-*   **Submission:** Submitted through the Funding & Tenders Portal.
+Continuous reporting is conducted throughout the project duration via the EU Funding & Tenders Portal (Continuous Reporting Module). It keeps the granting authority updated on operational progress and administrative changes.
 
-### 2. Periodic Financial Reporting
-This corresponds to the financial reporting requirements found in standard EU grants and is used to account for expenditure and request interim payments.
+| Item | Description |
+|---|---|
+| **Milestones & Deliverables** | Ongoing submission of completed milestones and deliverables according to the schedule set out in Annex 1. |
+| **Risks** | Updates on critical risks encountered and the mitigation strategies implemented. |
+| **Publications & IPR** | Reporting on publications, communication activities, intellectual property rights (IPR), and dissemination efforts. |
+| **Summary** | Regular updates to the publishable summary. |
+| **Programme-Specific Info** | Reporting on indicators related to cross-cutting issues like Gender, Open Data, Training, etc., as required by the specific action type. |
 
-*   **Scope:** Detailed financial statements of costs incurred by all beneficiaries during the reporting period.
-*   **Frequency:** Typically occurs at set intervals, such as every 18 months (e.g., Month 18, 36, 54, and 72 for longer projects).
-*   **Content:** Financial statements, Certificates on Financial Statements (CFS) if thresholds are met, and a request for the interim payment.
+### 2. Periodic Reporting (Technical and Financial)
 
-### 3. Scientific Reporting (Progress Reports)
-Scientific reporting is distinct from financial reporting and focuses specifically on the technical and scientific progress achieved during the reporting period.
+Periodic Reports are mandatory submissions required by the coordinator at the end of each reporting period defined in the Grant Agreement. They serve as the prerequisite for receiving interim payments.
 
-*   **Scope:** Information about the scientific and technical work performed, results achieved, and fulfillment of objectives.
-*   **Frequency:** Aligned with the periodic financial reporting deadlines.
-*   **Submission:** Must be submitted through the Portal's Scientific Reporting tool.
+#### A. Technical Report
 
-All reports are submitted by the Coordinator on behalf of the consortium via the Funding & Tenders Portal.
+This part focuses on the achievements of the project during the reporting period:
+
+*   **Progress Summary:** Detailed narrative of the work carried out, objectives achieved, and deviations from the original plan (if any).
+*   **Impact:** Updates on the project's contribution towards the expected impacts, including relevant KPIs and programme-specific indicators.
+*   **Use of Resources:** Explanation of how the project utilized resources.
+
+#### B. Financial Report (Form C)
+
+This part summarizes the eligible costs incurred by *all* partners during the reporting period.
+
+*   **Cost Declaration:** Each beneficiary submits its own financial statement (Form C) detailing personnel costs, travel costs, equipment, subcontracting, and other direct and indirect costs.
+*   **Payment Request:** The financial report determines the amount of the interim payment requested.
+
+### Reporting Deadlines
+
+The coordinator must submit the Periodic Report to the European Commission/Funding Agency **within 60 days** after the end of the relevant reporting period (often 18 months or 12 months, as specified in the Grant Agreement).
+
+### Final Report
+
+The final reporting period typically includes both the Technical and Financial Reports submitted together within 60 days of the project end date, followed by a final review and payment.
+
+***Source: EU Funding & Tenders Online Manual, Annotated Grant Agreement***
 
 ------------------------------------------------------------

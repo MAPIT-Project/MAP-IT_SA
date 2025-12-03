@@ -61,9 +61,9 @@ class Settings(BaseSettings):
     # Vector Search Configuration
     vector_search_enabled: bool = False
     chunk_size: int = 1000
-    chunk_overlap: int = 200
-    max_chunks_per_query: int = 5
-    similarity_threshold: float = 0.7
+    chunk_overlap: int = 300  # Increased from 200 for better context preservation
+    max_chunks_per_query: int = 20  # Increased from 5 for comprehensive retrieval
+    similarity_threshold: float = 0.45  # Lowered from 0.7 for better recall
     
     # Celery Configuration
     celery_broker_url: Optional[str] = None

@@ -111,7 +111,7 @@ class IntelligentRetrieval:
         
         return classification
     
-    def search_documents(self, query: str, limit: int = 15) -> List[Dict[str, Any]]:
+    def search_documents(self, query: str, limit: int = 25) -> List[Dict[str, Any]]:  # Increased from 15
         """
         Intelligent search across all documents based on query classification.
         

@@ -80,7 +80,7 @@ class CrossEncoderReranker:
         self,
         model_name: Optional[str] = None,
         model_type: str = "fast",
-        max_length: int = 512,
+        max_length: int = 768,  # Increased from 512 for better content handling
         device: str = "cpu"
     ):
         """
@@ -251,13 +251,13 @@ class CrossEncoderReranker:
         # Try the specified key first
         content = doc.get(content_key)
         if content:
-            return str(content)[:self.max_length * 4]  # Rough char limit
+            return str(content)[:self.max_length * 5]  # Increased char limit for better context
         
         # Try common alternatives
         for key in ["text", "body", "description", "summary", "objective"]:
             content = doc.get(key)
             if content:
-                return str(content)[:self.max_length * 4]
+                return str(content)[:self.max_length * 5]
         
         # For graph results, construct content from available fields
         if "title" in doc or "name" in doc:
@@ -266,7 +266,7 @@ class CrossEncoderReranker:
                 if doc.get(key):
                     parts.append(f"{key}: {doc[key]}")
             if parts:
-                return " | ".join(parts)[:self.max_length * 4]
+                return " | ".join(parts)[:self.max_length * 5]
         
         return ""
     

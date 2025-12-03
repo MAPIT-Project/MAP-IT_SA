@@ -47,7 +47,7 @@ class VectorSearchService:
         self,
         query: str,
         search_type: str = "hybrid",
-        num_results: int = 5,
+        num_results: int = 15,  # Increased from 5 for better retrieval
         filters: Optional[Dict[str, Any]] = None,
         similarity_threshold: Optional[float] = None,
         rerank: bool = True
@@ -451,7 +451,7 @@ class VectorSearchService:
         self,
         query: str,
         document_type: str,
-        num_results: int = 5,
+        num_results: int = 15,  # Increased from 5
         search_type: str = "hybrid"
     ) -> List[SearchResult]:
         """Search within a specific document type."""
@@ -472,7 +472,7 @@ class VectorSearchService:
         self,
         query: str,
         programme_year: str,
-        num_results: int = 5,
+        num_results: int = 15,  # Increased from 5
         search_type: str = "hybrid"
     ) -> List[SearchResult]:
         """Search within a specific programme year."""

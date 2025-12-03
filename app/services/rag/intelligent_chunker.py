@@ -63,10 +63,10 @@ class IntelligentChunker:
     """
     
     def __init__(self,
-                 chunk_size: int = 500,
-                 chunk_overlap: int = 100,
-                 min_chunk_size: int = 200,
-                 max_chunk_size: int = 800):
+                 chunk_size: int = 800,  # Increased from 500 for better context
+                 chunk_overlap: int = 200,  # Increased from 100 for better context preservation
+                 min_chunk_size: int = 300,  # Increased from 200 to prevent fragmentation
+                 max_chunk_size: int = 1200):  # Increased from 800 for more complete sections
         """
         Initialize intelligent chunker.
         

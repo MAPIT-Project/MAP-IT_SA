@@ -21,10 +21,12 @@ try:
     from .data_intelligence.graph_service import GraphSearchService
     from .data_intelligence.query_planner import QueryPlanner, QueryPlan, ExecutionStep, ExtractedEntities
     from .data_intelligence.cross_encoder_reranker import CrossEncoderReranker, RankedDocument
+    from .local_call_search_service import LocalCallSearchService
 except ImportError:
     from app.services.data_intelligence.graph_service import GraphSearchService
     from app.services.data_intelligence.query_planner import QueryPlanner, QueryPlan, ExecutionStep, ExtractedEntities
     from app.services.data_intelligence.cross_encoder_reranker import CrossEncoderReranker, RankedDocument
+    from app.services.local_call_search_service import LocalCallSearchService
 
 logger = logging.getLogger(__name__)
 
@@ -129,12 +131,23 @@ class DataIntelligenceService:
             logger.warning(f"⚠️ Reranker unavailable: {e}")
             self.reranker = None
             self._reranker_available = False
-        
+
+        # Initialize local call search service for call lookups with fallback
+        try:
+            self.call_service = LocalCallSearchService()
+            self._call_service_available = True
+            logger.info("✅ Call service initialized")
+        except Exception as e:
+            logger.warning(f"⚠️ Call service unavailable: {e}")
+            self.call_service = None
+            self._call_service_available = False
+
         logger.info(f"🧠 Data Intelligence Service ready")
         logger.info(f"   Graph: {'✓' if self._graph_available else '✗'}")
         logger.info(f"   Vector: {'✓' if self._vector_available else '✗'}")
         logger.info(f"   Planner: {'✓' if self._planner_available else '✗'}")
         logger.info(f"   Reranker: {'✓' if self._reranker_available else '✗'}")
+        logger.info(f"   Call Service: {'✓' if self._call_service_available else '✗'}")
     
     async def search(
         self,
@@ -300,9 +313,18 @@ class DataIntelligenceService:
         
         # Map operations to GraphSearchService methods
         if operation == "get_call_details":
-            return self.graph_service.get_call_details(
-                params.get("identifier", "")
-            )
+            identifier = params.get("identifier", "")
+
+            # Try graph service first
+            result = self.graph_service.get_call_details(identifier) if self._graph_available else None
+
+            # Fallback to LocalCallSearchService if graph has no results
+            if not result or not result.get('topic_code'):
+                if self._call_service_available and self.call_service:
+                    logger.info(f"📡 Falling back to LocalCallSearchService for {identifier}")
+                    result = self.call_service.get_call_details(identifier)
+
+            return result
         
         elif operation == "check_country_eligibility":
             return self.graph_service.check_country_eligibility(
@@ -374,7 +396,7 @@ class DataIntelligenceService:
         
         # Get the search query
         search_query = params.get("query", cleaned_query)
-        num_results = params.get("num_results", params.get("limit", 5))
+        num_results = params.get("num_results", params.get("limit", 15))  # Increased from 5
         
         logger.debug(f"Executing vector step: {operation} - '{search_query[:50]}...'")
         
@@ -450,7 +472,7 @@ class DataIntelligenceService:
             results = self.vector_service.search(
                 query=search_query,
                 search_type="keyword",
-                num_results=params.get("limit", 5)
+                num_results=params.get("limit", 15)  # Increased from 5
             )
             
             return [
@@ -518,12 +540,12 @@ class DataIntelligenceService:
             context_parts.append("📄 OFFICIAL DOCUMENTS (USE THESE FOR YOUR ANSWER)")
             context_parts.append("=" * 60)
             
-            for i, result in enumerate(vector_results[:5], 1):
+            for i, result in enumerate(vector_results[:10], 1):  # Increased from 5 to 10
                 title = result.get("title", "Unknown Document")
                 doc_type = result.get("type", "")
                 section = result.get("section", "")
-                content = result.get("content", "")[:700]  # Slightly more content
-                
+                content = result.get("content", "")[:1200]  # Increased from 700 for more context
+
                 context_parts.append(f"\n[Document {i}: {title}]")
                 if doc_type:
                     context_parts.append(f"Type: {doc_type}")
@@ -582,20 +604,20 @@ class DataIntelligenceService:
             context_parts.append("=" * 60)
             context_parts.append("DOCUMENT CONTEXT (from Vector Search)")
             context_parts.append("=" * 60)
-            
-            for i, result in enumerate(vector_results[:5], 1):
+
+            for i, result in enumerate(vector_results[:10], 1):  # Increased from 5 to 10
                 title = result.get("title", "Unknown Document")
                 doc_type = result.get("type", "")
                 section = result.get("section", "")
-                content = result.get("content", "")[:600]
-                
+                content = result.get("content", "")[:1200]  # Increased from 600
+
                 context_parts.append(f"\n[Document {i}: {title}]")
                 if doc_type:
                     context_parts.append(f"Type: {doc_type}")
                 if section:
                     context_parts.append(f"Section: {section}")
                 context_parts.append(f"Content: {content}...")
-            
+
             context_parts.append("")
         
         # Add keyword results (if different from vector)

@@ -96,8 +96,70 @@ class ToolAwareAgent:
     - Iteratively refines by calling more tools based on findings
     """
     
+    # Built-in knowledge for common questions where documents may be incomplete
+    BUILT_IN_KNOWLEDGE = """
+## Quick Reference: Horizon Europe Facts
+
+### Page Limits for Proposals (Part B - Technical Description)
+| Action Type | Standard Page Limit | Notes |
+|-------------|---------------------|-------|
+| **RIA/IA (single-stage)** | **45 pages** | Sections 1-3 combined |
+| **RIA/IA (two-stage, full)** | **45 pages** | After passing stage 1 |
+| **RIA/IA (two-stage, outline)** | **10 pages** | Stage 1 only |
+| **CSA** | **30 pages** | Shorter scope |
+| **ERC grants** | **Variable** | Check specific call |
+| **MSCA** | **10-15 pages** | Depends on action |
+| **EIC Accelerator** | **Variable** | Short proposal + full |
+
+*Page limits are strictly enforced. Excess pages will be blanked and not evaluated.*
+
+### Organisation Type Eligibility
+| Organisation Type | Eligible? | Funding Rate (RIA) | Funding Rate (IA) | Special Notes |
+|-------------------|-----------|-------------------|-------------------|---------------|
+| **Universities/HEIs** | Yes | 100% | 100% | Must have GEP |
+| **Research Institutes** | Yes | 100% | 100% | Must have GEP |
+| **SMEs** | Yes | 100% | 70% | EIC Accelerator available |
+| **Large Companies** | Yes | 100% | 70% | Cannot lead some calls |
+| **NGOs** | Yes | 100% | 100% (non-profit) | Often needed for dissemination |
+| **Public Bodies** | Yes | 100% | 100% | Must have GEP |
+| **International Orgs** | Case-by-case | Varies | Varies | Check specific call |
+
+### Action Types Summary
+| Type | TRL Range | Funding Rate | Focus |
+|------|-----------|--------------|-------|
+| **RIA** | TRL 2-5 | 100% | Research, new knowledge |
+| **IA** | TRL 5-8 | 70%/100% | Demonstration, piloting |
+| **CSA** | N/A | 100% | Coordination, networking |
+
+### Consortium Requirements
+- **Standard (RIA/IA/CSA)**: 3 independent entities from 3 different EU/AC countries
+- **ERC**: Single PI (monobeneficiary)
+- **MSCA PF**: Single fellow + host
+- **EIC Accelerator**: Single SME or small group
+
+### Budget Limits / Expected EU Contribution per Project
+There is NO single fixed budget limit for Innovation Actions (IA) or other action types. Budgets are defined per TOPIC in the Work Programme.
+
+| Action Type | Typical EU Contribution Range | Notes |
+|-------------|------------------------------|-------|
+| **RIA (standard)** | €3-8 million | Varies by topic complexity |
+| **IA (standard)** | €5-15 million | Large-scale demonstrations |
+| **IA (flagship/large)** | €15-50 million | Strategic topics only |
+| **CSA** | €1-3 million | Coordination activities |
+| **ERC Starting** | Up to €1.5 million | 5 years |
+| **ERC Consolidator** | Up to €2 million | 5 years |
+| **ERC Advanced** | Up to €2.5 million | 5 years |
+| **EIC Accelerator** | Up to €2.5M grant + €15M equity | Blended finance |
+
+**How to find actual limits:** Check the specific Call Topic in the Work Programme - it states "Expected EU contribution per project: €X-Y million"
+"""
+
     # System prompt for the reasoning LLM
     REASONING_PROMPT = """You are an intelligent research assistant for EU funding (Horizon Europe, EIC, ERC, etc.).
+
+## Built-in Knowledge (USE THIS FOR COMMON QUESTIONS)
+
+{built_in_knowledge}
 
 ## Available Tools
 
@@ -166,6 +228,29 @@ Respond ONLY with JSON (no other text):
 - Include call IDs so users can reference them (e.g., "tell me more about #3")
 - For funding calls: include title, call ID, type, deadline, cluster, and scope
 - Be comprehensive but organized
+
+## CRITICAL: Synthesizing Answers
+
+When action is "conclude", you MUST:
+1. SYNTHESIZE information from tool results into a coherent, well-structured answer
+2. NEVER just copy raw document fragments - explain them in your own words
+3. Use markdown formatting: headings, bullet points, tables where appropriate
+4. If documents mention specific rules/requirements, state them clearly
+5. If you found relevant info, explain it - don't say "results don't contain information"
+6. Structure answers with: Overview → Details → Key Points/Recommendations
+
+Example good conclusion:
+"The minimum consortium composition for Horizon Europe RIA/IA projects is **3 independent legal entities from 3 different EU Member States or Associated Countries**.
+
+### Key Requirements:
+- At least 3 legal entities
+- Each from a different country
+- Countries must be EU Member States or Associated Countries
+
+*Source: Horizon Europe Programme Guide*"
+
+Example BAD conclusion (never do this):
+"From document X: The consortium shall... [raw text fragment]"
 
 ## Conversation History
 
@@ -631,16 +716,17 @@ What is your next step? Remember: Output ONLY JSON."""
             if step.tool_calls:
                 steps_text += f"Tools called: {[tc.tool_name for tc in step.tool_calls]}\n"
             if step.observation:
-                steps_text += f"Observation: {step.observation[:300]}...\n"
+                steps_text += f"Observation: {step.observation[:1500]}...\n"  # Increased from 300
         
         # Format tool results - use larger limit to show more results
         results_text = ""
         for name, result in tool_results.items():
-            result_str = str(result)[:3000] if result else "No results"
+            result_str = str(result)[:5000] if result else "No results"  # Increased from 3000
             results_text += f"\n**{name}**: {result_str}\n"
         
         # Build prompt
         prompt = self.REASONING_PROMPT.format(
+            built_in_knowledge=self.BUILT_IN_KNOWLEDGE,
             tools_description=self._get_tools_description(),
             query=query,
             context=context or "No additional context",
@@ -683,46 +769,88 @@ What is your next step? Remember: Output ONLY JSON."""
         tool_results: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Fallback reasoning when LLM fails."""
-        
+
         if not previous_steps:
-            # First step - call basic search
+            # First step - call basic search with more results
             return {
                 'thought': 'Starting with document search to gather information',
                 'action': 'call_tools',
                 'tool_calls': [{
                     'tool': 'search_documents',
-                    'parameters': {'query': query, 'max_results': 5},
+                    'parameters': {'query': query, 'max_results': 15},  # Increased from 5
                     'reasoning': 'Initial search for relevant information'
                 }],
                 'needs_more_info': True
             }
-        
+
         if tool_results:
-            # Have results - conclude with summarized info
-            # Summarize results instead of dumping raw data
-            summary_parts = []
-            for name, result in list(tool_results.items())[:2]:
-                if isinstance(result, dict):
-                    summary = self._format_tool_result_summary(name, result)
-                    summary_parts.append(summary)
-                else:
-                    summary_parts.append(f"{name}: Data found")
+            # Have results - synthesize a proper answer
+            # Extract and synthesize content from results
+            synthesized_content = self._synthesize_from_results(query, tool_results)
 
             return {
-                'thought': 'Have gathered information, forming conclusion',
+                'thought': 'Have gathered information, synthesizing answer',
                 'action': 'conclude',
-                'conclusion': "Based on the search results:\n\n" + "\n\n".join(summary_parts) if summary_parts else "Information gathered from search",
-                'confidence': 0.6,
+                'conclusion': synthesized_content,
+                'confidence': 0.7,
                 'needs_more_info': False
             }
-        
+
         return {
             'thought': 'Unable to gather more information',
             'action': 'conclude',
-            'conclusion': 'I was unable to find specific information to answer this question.',
+            'conclusion': 'I was unable to find specific information to answer this question. Please try rephrasing your question or asking about a more specific topic.',
             'confidence': 0.3,
             'needs_more_info': False
         }
+
+    def _synthesize_from_results(self, query: str, tool_results: Dict[str, Any]) -> str:
+        """Synthesize a coherent answer from tool results."""
+        content_pieces = []
+
+        for name, result in tool_results.items():
+            if not isinstance(result, dict):
+                continue
+
+            # Extract documents
+            if 'documents' in result and isinstance(result['documents'], list):
+                for doc in result['documents'][:10]:
+                    content = doc.get('content', '')
+                    if content and len(content) > 100:
+                        content_pieces.append(content.strip())
+
+            # Extract calls info
+            elif 'calls' in result and isinstance(result['calls'], list):
+                for call in result['calls'][:10]:
+                    title = call.get('title', '')
+                    call_id = call.get('topic_code', call.get('call_id', ''))
+                    if title or call_id:
+                        content_pieces.append(f"Call {call_id}: {title}")
+
+        if not content_pieces:
+            return "I found some information but couldn't extract specific details. Please try a more specific question."
+
+        # Combine and deduplicate content
+        unique_content = []
+        seen = set()
+        for piece in content_pieces:
+            key = piece[:100].lower()
+            if key not in seen:
+                seen.add(key)
+                unique_content.append(piece)
+
+        # Build a structured response
+        intro = f"Based on my search for information about '{query}', here's what I found:\n\n"
+
+        # Take top pieces and format
+        body_parts = []
+        for i, content in enumerate(unique_content[:5], 1):
+            # Truncate long pieces
+            if len(content) > 600:
+                content = content[:600] + "..."
+            body_parts.append(f"**Finding {i}:**\n{content}")
+
+        return intro + "\n\n".join(body_parts)
     
     async def _execute_tool_calls(self, tool_calls: List[Dict]) -> List[ToolCall]:
         """Execute multiple tool calls (in parallel when possible)."""
@@ -1016,7 +1144,7 @@ What is your next step? Remember: Output ONLY JSON."""
             vector = VectorSearchService()
 
             query = params.get('query', '')
-            max_results = params.get('max_results', 5)
+            max_results = params.get('max_results', 15)  # Increased default from 5
             doc_type = params.get('document_type')
 
             # Build filters if document type specified
@@ -1034,8 +1162,10 @@ What is your next step? Remember: Output ONLY JSON."""
             return {
                 "documents": [
                     {
-                        "content": r.content[:300] if hasattr(r, 'content') else str(r)[:300],
+                        "content": r.content[:1500] if hasattr(r, 'content') else str(r)[:1500],  # Increased from 300
                         "source": r.document_title if hasattr(r, 'document_title') else 'Unknown',
+                        "title": r.document_title if hasattr(r, 'document_title') else '',
+                        "section": r.section if hasattr(r, 'section') else '',
                         "score": r.score if hasattr(r, 'score') else 0
                     }
                     for r in results[:max_results]
@@ -1049,8 +1179,8 @@ What is your next step? Remember: Output ONLY JSON."""
         topic = params.get('topic', '')
         context = params.get('context', '')
         query = f"{topic} {context}".strip()
-        
-        return await self._tool_search_documents({'query': query, 'max_results': 5})
+
+        return await self._tool_search_documents({'query': query, 'max_results': 15})  # Increased from 5
     
     async def _tool_search_funding_calls(self, params: Dict) -> Dict:
         """Search funding calls."""
@@ -1186,7 +1316,29 @@ What is your next step? Remember: Output ONLY JSON."""
                             }
 
             logger.warning(f"❌ No details found for {call_id}")
-            return {"message": f"No details found for {call_id}. This call may not be in our database yet. You can check the EU Portal directly at: https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/{call_id}"}
+
+            # Try to find similar calls to suggest
+            similar_calls = []
+            if '-' in call_id:
+                parts = call_id.split('-')
+                # Search for calls in the same cluster/year
+                if len(parts) >= 3:
+                    search_term = '-'.join(parts[:3])  # e.g., HORIZON-CL5-2026
+                    results = call_service.search_calls(query=search_term, num_results=5)
+                    for call in results.get('calls', [])[:5]:
+                        topic_code = call.get('topic_code', '')
+                        title = call.get('title', '')
+                        if topic_code and title:
+                            similar_calls.append(f"- {topic_code}: {title[:60]}...")
+
+            if similar_calls:
+                suggestions = "\n".join(similar_calls)
+                return {
+                    "message": f"Call ID '{call_id}' was not found. This may be an invalid or incomplete call ID.\n\n**Similar calls you might be looking for:**\n{suggestions}\n\nYou can also check the EU Portal directly.",
+                    "similar_calls": similar_calls
+                }
+            else:
+                return {"message": f"No details found for {call_id}. This call ID may be invalid or not yet in our database. Please verify the call ID format (e.g., HORIZON-CL5-2026-02-D3-01) and try again, or check the EU Funding & Tenders Portal directly."}
         except Exception as e:
             logger.error(f"Get call details error: {e}")
             import traceback
@@ -1408,12 +1560,12 @@ What is your next step? Remember: Output ONLY JSON."""
 
             # Extract actual content from documents
             content_parts = []
-            for doc in docs[:3]:  # Limit to top 3
+            for doc in docs[:8]:  # Increased from 3 to 8
                 content = doc.get('content', '')
-                source = doc.get('source', 'Unknown')
+                source = doc.get('source', doc.get('title', 'Unknown'))
                 if content:
                     # Clean up the content
-                    content = content.strip()[:400]
+                    content = content.strip()[:800]  # Increased from 400
                     content_parts.append(f"From {source}: {content}")
 
             if content_parts:
@@ -1460,6 +1612,17 @@ What is your next step? Remember: Output ONLY JSON."""
         if not plan.reasoning_steps:
             return ""  # Return empty to trigger synthesis
 
+        # Collect all tool results from steps
+        all_results = {}
+        for step in plan.reasoning_steps:
+            for tc in step.tool_calls:
+                if tc.success and tc.result:
+                    all_results[tc.tool_name] = tc.result
+
+        # If we have tool results, synthesize from them
+        if all_results:
+            return self._synthesize_from_results(plan.query, all_results)
+
         # Collect meaningful observations (skip raw tool results)
         meaningful_content = []
 
@@ -1492,7 +1655,14 @@ What is your next step? Remember: Output ONLY JSON."""
             # Deduplicate similar content
             unique_content = self._deduplicate_content(meaningful_content)
             if unique_content:
-                return "\n\n".join(unique_content[:3])
+                # Format as a proper answer
+                intro = f"Based on the information I found about '{plan.query}':\n\n"
+                formatted_content = []
+                for i, content in enumerate(unique_content[:5], 1):
+                    if len(content) > 500:
+                        content = content[:500] + "..."
+                    formatted_content.append(f"{content}")
+                return intro + "\n\n".join(formatted_content)
 
         # Return empty to trigger LLM synthesis
         return ""
