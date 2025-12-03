@@ -18,14 +18,15 @@ This is a **production-grade Retrieval-Augmented Generation (RAG) system** for q
 ### Agentic Architecture (ReAct Pattern)
 The system uses a sophisticated **agentic architecture** that can:
 - **Self-correct** when initial search results are insufficient
-- **Use multiple tools** to gather information from different sources (15 tools available)
+- **Use multiple tools** to gather information from different sources (16 tools available)
 - **Reason iteratively** to answer complex comparison and analysis questions
 - **Synthesize answers** from graph databases, vector stores, and external APIs
 
 **Key Capabilities:**
 - **FAQ Answering**: Answer questions about eligibility, rules, requirements
 - **Call Search**: Find open/upcoming funding calls (local-first with API enrichment)
-- **Project Search**: Search CORDIS for funded projects (100% local: PostgreSQL + Neo4j, no API calls)
+- **Project Search**: Search CORDIS for funded projects (100% local: PostgreSQL + Neo4j + Vector embeddings, no API calls)
+- **Semantic Search**: Find projects by meaning, not just keywords (e.g., "renewable energy" finds "solar power" projects)
 - **Project Discovery**: Find similar projects, organization collaborations, cluster-based search
 - **Statistics**: Get success rates, funding amounts, participation data
 - **Comparisons**: Compare programmes, countries, or funding types
@@ -35,15 +36,15 @@ The system uses a sophisticated **agentic architecture** that can:
 - `agents/` - Agentic AI components with reflection, evaluation, planning
 - `data_intelligence/` - Graph search, query planning, cross-encoder reranking
 - `rag/` - RAG-specific components (retrievers, chunkers, generators)
-- `tools/` - Tool orchestration for multi-step reasoning (15 tools available)
+- `tools/` - Tool orchestration for multi-step reasoning (16 tools available)
 - `call_extractors/` - Funding call document processing
 - `conversation/` - Conversation management and memory
 - `memory/` - Short/long-term memory systems
 - `proposal_writing/` - AI-powered proposal assistance
 - `response/` - Response generation utilities
 
-### Available Tools (15 Tools)
-The system has 15 tools available for the multi-tool agent:
+### Available Tools (16 Tools)
+The system has 16 tools available for the multi-tool agent:
 
 **Statistics Tools:**
 - `get_programme_statistics`: Success rates, funding amounts for a programme
@@ -257,9 +258,10 @@ When results are insufficient, the system identifies causes:
 ### 3. CORDIS Database (Local PostgreSQL)
 - **Purpose**: Funded project information
 - **Contains**: All Horizon Europe funded projects (13,865+ projects), project descriptions, objectives, consortium compositions, funding amounts, publications, deliverables
-- **Tables**: `projects`, `organizations` (in public schema)
+- **Tables**: `projects`, `organizations`, `project_embeddings` (in public schema)
 - **Queries via**: `CordisProjectRepository` → `LocalProjectSearchService`
-- **Search**: Full-text search with PostgreSQL tsquery, multi-source fusion with Neo4j
+- **Search**: Full-text search with PostgreSQL tsquery, vector similarity search with pgvector, multi-source fusion with Neo4j using RRF algorithm
+- **Embeddings**: 13,850 project embeddings (768-dim vectors via Google text-embedding-004) for semantic similarity search
 
 ### 4. EU Portal API
 - **Purpose**: Live call data enrichment

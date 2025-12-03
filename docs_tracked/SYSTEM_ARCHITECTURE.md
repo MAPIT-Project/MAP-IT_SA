@@ -1,7 +1,7 @@
 # MAP-IT System Architecture
 
-> **Last Updated:** December 3, 2024  
-> **Version:** 2.3 (Local-First Project Search + Graph-Enhanced Discovery)
+> **Last Updated:** December 3, 2025
+> **Version:** 2.4 (Semantic Project Search with Vector Embeddings)
 
 ---
 
@@ -35,7 +35,8 @@ MAP-IT is an intelligent research assistant for EU funding programs (Horizon Eur
 |------------|-------------|
 | **FAQ Answering** | Answer questions about eligibility, rules, requirements |
 | **Call Search** | Find open/upcoming funding calls (local-first with API enrichment) |
-| **Project Search** | Search CORDIS for funded projects (100% local: PostgreSQL + Neo4j) |
+| **Project Search** | Search CORDIS for funded projects (100% local: PostgreSQL + Neo4j + Vector) |
+| **Semantic Search** | Find projects by meaning using AI embeddings (e.g., "renewable energy" finds "solar power") |
 | **Project Discovery** | Find similar projects, organization collaborations, cluster-based search |
 | **Statistics** | Get success rates, funding amounts, participation data |
 | **Comparisons** | Compare programmes, countries, or funding types |
@@ -77,7 +78,7 @@ MAP-IT is an intelligent research assistant for EU funding programs (Horizon Eur
 │  Smart Behavior:                                                            │
 │  • Simple queries ("What is RIA?") → 1-2 iterations, fast                  │
 │  • Complex queries ("Compare EIC vs ERC") → Up to 5 iterations, thorough   │
-│  • 15 tools available: stats, docs, calls, projects, relationships         │
+│  • 16 tools available: stats, docs, calls, projects, semantic similarity   │
 │                                                                             │
 │  Fallback: Simple loop only if ToolAwareAgent unavailable                  │
 └──────────────────────────────────┬──────────────────────────────────────────┘
@@ -89,10 +90,10 @@ MAP-IT is an intelligent research assistant for EU funding programs (Horizon Eur
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
 │  │   Neo4j     │  │  Supabase   │  │   CORDIS    │  │   EU Portal API     │ │
 │  │   Graph     │  │  pgvector   │  │  Projects   │  │   (enrichment)      │ │
-│  │             │  │             │  │             │  │                     │ │
+│  │             │  │             │  │ + Vectors   │  │                     │ │
 │  │ Statistics  │  │ Documents   │  │ Funded      │  │ Call details        │ │
 │  │ Patterns    │  │ Embeddings  │  │ Projects    │  │ Live data           │ │
-│  │ Relations   │  │ Chunks      │  │ Search      │  │                     │ │
+│  │ Relations   │  │ Chunks      │  │ Embeddings  │  │                     │ │
 │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────────────┘
                               │
@@ -298,7 +299,7 @@ For **complex queries** (comparisons, analysis, multi-source), the Tool-Aware Ag
 
 ## Available Tools
 
-The system has **15 tools** available for the multi-tool agent:
+The system has **16 tools** available for the multi-tool agent:
 
 ### Statistics Tools
 
@@ -355,22 +356,29 @@ search_funding_calls(keywords='hydrogen energy', status='open', year=2025)
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
-| `search_projects` | Search CORDIS for funded projects (LOCAL-FIRST: PostgreSQL + Neo4j) | `keywords`, `programme`, `country` |
+| `search_projects` | Search CORDIS for funded projects (LOCAL-FIRST: PostgreSQL + Neo4j + Vector) | `keywords`, `programme`, `country` |
 | `get_project_details` | Get details for a project | `project_id` |
-| `find_similar_projects` | Find projects similar to a given project | `project_id`, `similarity_type` (topic/consortium/cluster) |
+| `find_similar_projects` | Find projects similar to a given project (graph-based) | `project_id`, `similarity_type` (topic/consortium/cluster) |
+| `find_semantically_similar_projects` | Find projects semantically similar using AI embeddings | `project_id`, `limit` |
 | `find_organization_projects` | Find all projects an organization participated in | `organization_name`, `role` (optional) |
 | `get_collaboration_network` | Get collaboration network for an organization | `organization_name` |
 | `search_by_cluster` | Find projects in a specific research cluster | `cluster` (name or code) |
 
 **Examples:**
 ```python
-# Local-first project search (no API calls!)
+# Local-first project search with semantic matching (no API calls!)
 search_projects(keywords='quantum computing', country='Germany')
 # Returns: [{ "acronym": "...", "funding": "...", "participants": [...] }]
+# Note: Uses PostgreSQL full-text + Neo4j graph + Vector semantic search with RRF fusion
 
-# Find similar projects
+# Find similar projects (graph-based: topic, consortium, or cluster)
 find_similar_projects(project_id='101000000', similarity_type='topic')
 # Returns: [{ "id": "...", "title": "...", "similarity_type": "topic", ... }]
+
+# Find semantically similar projects (AI embeddings - understands meaning)
+find_semantically_similar_projects(project_id='101000000', limit=10)
+# Returns: [{ "id": "...", "title": "...", "similarity_score": 0.85, ... }]
+# Note: Uses 768-dim embeddings to find conceptually similar projects
 
 # Organization projects
 find_organization_projects(organization_name='Fraunhofer', role='coordinator')
@@ -443,7 +451,7 @@ verify_eligibility(entity_type='SME', country='Switzerland', programme='Horizon 
 
 ### 3. CORDIS Database (Local PostgreSQL)
 
-**Purpose:** Funded project information
+**Purpose:** Funded project information with semantic search
 
 **Contains:**
 - All Horizon Europe funded projects (13,865+ projects indexed)
@@ -451,18 +459,26 @@ verify_eligibility(entity_type='SME', country='Switzerland', programme='Horizon 
 - Consortium compositions
 - Funding amounts
 - Publications, deliverables
+- **Vector embeddings** for semantic similarity (13,850 projects)
 
 **Tables:**
 - `projects` - Project metadata (title, objective, status, dates, budget)
 - `organizations` - Organization data (name, country, role, SME status)
+- `project_embeddings` - Vector embeddings (768-dim) for semantic search
 
 **Queries via:** `CordisProjectRepository` → `LocalProjectSearchService`
 
 **Search Capabilities:**
 - Full-text search with PostgreSQL tsquery
+- **Semantic vector search** with pgvector (cosine similarity)
 - Country/programme/status filtering
-- Multi-source fusion with Neo4j graph data
+- Multi-source fusion with Neo4j graph data using **RRF algorithm**
 - **100% local** - No external API calls
+
+**Embedding Details:**
+- Model: Google `text-embedding-004` (768 dimensions)
+- Content: Title + objective (first 2000 chars)
+- Index: IVFFlat with 100 lists for fast approximate search
 
 ### 4. EU Portal API
 
@@ -497,7 +513,7 @@ verify_eligibility(entity_type='SME', country='Switzerland', programme='Horizon 
 | `VectorSearchService` | `vector_search_service.py` | Semantic search |
 | `GraphSearchService` | `graph_service.py` | Neo4j queries |
 | `LocalCallSearchService` | `local_call_search_service.py` | Call search |
-| `LocalProjectSearchService` | `local_project_search_service.py` | Multi-source project search (PostgreSQL + Neo4j) |
+| `LocalProjectSearchService` | `local_project_search_service.py` | Multi-source project search (PostgreSQL + Neo4j + Vector) |
 | `CordisProjectRepository` | `data/cordis_repository.py` | PostgreSQL project data access |
 
 ### Support Services
@@ -629,16 +645,22 @@ When using the streaming endpoint, progress updates are sent as SSE:
 - [x] **Phase 1:** Self-correcting agentic loop
 - [x] **Phase 2:** LLM-based complexity detection (replaces regex!)
 - [x] **Phase 2:** LLM-based evaluation for edge cases (hybrid approach)
-- [x] **Multi-tool reasoning:** ReAct agent with 15 tools
+- [x] **Multi-tool reasoning:** ReAct agent with 16 tools
 - [x] **Local-first project search:** PostgreSQL + Neo4j (no API dependency)
 - [x] **Graph-enhanced search:** Relationship-based project discovery (similar projects, org networks, clusters)
+- [x] **Phase 3:** Semantic project search with vector embeddings (13,850 projects embedded)
+  - Vector similarity search using Google `text-embedding-004` (768 dimensions)
+  - Three-source fusion: PostgreSQL full-text + Neo4j graph + Vector semantic search
+  - RRF (Reciprocal Rank Fusion) algorithm for combining results
+  - New tool: `find_semantically_similar_projects` for AI-powered similarity
 
 ## Future Improvements
 
-- [ ] **Phase 3:** Streaming UX improvements in frontend
-- [ ] **Phase 4:** Plan caching for repeated query patterns
-- [ ] **Phase 4:** Parallel execution within agentic iterations
+- [ ] Streaming UX improvements in frontend
+- [ ] Plan caching for repeated query patterns
+- [ ] Parallel execution within agentic iterations
 - [ ] Add more tools (budget calculator, timeline generator)
 - [ ] Implement tool usage analytics
 - [ ] Add user feedback loop for quality improvement
+- [ ] Incremental embedding updates for new projects
 
