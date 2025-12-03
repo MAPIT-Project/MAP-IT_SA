@@ -150,8 +150,8 @@ class AgentContext:
                 logger.info(f"Diminishing returns (improvement: {improvement:.2f})")
                 return False
         
-        return True
-    
+            return True
+        
     def get_strategy_description(self) -> str:
         """Create a string description of the current strategy."""
         if not self.current_plan:

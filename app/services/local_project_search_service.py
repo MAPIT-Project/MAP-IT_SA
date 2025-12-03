@@ -71,6 +71,19 @@ class LocalProjectSearchService:
     No external API calls - 100% local data!
     """
     
+    # Stopwords to remove from search terms
+    STOPWORDS = {
+        'find', 'show', 'me', 'get', 'search', 'for', 'about', 'in', 'from', 'with',
+        'projects', 'project', 'calls', 'call', 'funding', 'grants', 'grant',
+        'has', 'have', 'had', 'are', 'is', 'was', 'were', 'been', 'being',
+        'coordinated', 'coordinating', 'participated', 'participating',
+        'what', 'which', 'where', 'when', 'who', 'how', 'why',
+        'the', 'a', 'an', 'and', 'or', 'but', 'if', 'then', 'else',
+        'some', 'any', 'all', 'each', 'every', 'this', 'that', 'these', 'those',
+        'to', 'of', 'on', 'at', 'by', 'for', 'with', 'from', 'into', 'onto',
+        'can', 'could', 'should', 'would', 'may', 'might', 'must', 'will', 'shall'
+    }
+    
     # Country name to code mapping for filter extraction
     COUNTRY_MAPPINGS = {
         'germany': 'DE', 'german': 'DE', 'deutschland': 'DE',
@@ -397,13 +410,30 @@ class LocalProjectSearchService:
                 filters['status'] = 'CLOSED'
                 remaining_query = re.sub(r'\b(completed|finished|closed)\b', '', remaining_query, flags=re.IGNORECASE)
         
+        # Remove common query verbs that don't add search value
+        query_verbs = ['coordinated', 'coordinating', 'coordinator', 'participated', 'participating', 
+                      'participant', 'has', 'have', 'had', 'show', 'shows', 'showing', 'find', 'finding',
+                      'search', 'searches', 'searched', 'get', 'gets', 'getting']
+        for verb in query_verbs:
+            remaining_query = re.sub(rf'\b{verb}\b', '', remaining_query, flags=re.IGNORECASE)
+        
         # Clean up remaining query to get search terms
         remaining_query = re.sub(r'\s+', ' ', remaining_query).strip()
-        search_terms = [term.strip() for term in remaining_query.split() if len(term.strip()) > 2]
         
-        # If no search terms left, use the original query
+        # Remove punctuation and split into words
+        words = re.findall(r'\b\w+\b', remaining_query.lower())
+        
+        # Filter out stopwords and short words
+        search_terms = [
+            word for word in words 
+            if word not in self.STOPWORDS and len(word) > 2
+        ]
+        
+        # If no meaningful search terms left, use the original query (cleaned)
         if not search_terms:
-            search_terms = [query]
+            # Fallback: use original query but remove common query words
+            fallback_words = [w for w in words if w not in self.STOPWORDS]
+            search_terms = fallback_words if fallback_words else [query]
         
         return filters, search_terms
     

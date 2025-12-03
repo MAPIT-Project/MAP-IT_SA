@@ -353,7 +353,7 @@ Evaluate the results:"""
                 total += len(graph_data.get('results', []))
             elif isinstance(graph_data, list):
                 total += len(graph_data)
-        
+            
         # Vector results
         if 'vector' in results:
             vector_data = results['vector']
@@ -361,11 +361,11 @@ Evaluate the results:"""
                 total += len(vector_data.get('results', []))
             elif isinstance(vector_data, list):
                 total += len(vector_data)
-        
+            
         # Document results
         if 'documents' in results:
             total += len(results['documents'])
-        
+            
         # Calls results
         if 'calls' in results:
             total += len(results.get('calls', []))
@@ -401,8 +401,8 @@ Evaluate the results:"""
                 else:
                     continue
                 
-                for item in items:
-                    if isinstance(item, dict):
+            for item in items:
+                if isinstance(item, dict):
                         score = item.get('score') or item.get('relevance_score') or item.get('similarity', 0)
                         if score:
                             scores.append(float(score))
@@ -434,7 +434,7 @@ Evaluate the results:"""
                 items = data.get('results', []) if isinstance(data, dict) else data
                 
                 for item in items if isinstance(items, list) else []:
-                    if isinstance(item, dict):
+            if isinstance(item, dict):
                         content = item.get('content') or item.get('description') or item.get('scope') or ''
                         content_lengths.append(len(content))
         
