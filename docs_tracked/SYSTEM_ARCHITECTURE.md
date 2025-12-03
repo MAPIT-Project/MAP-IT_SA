@@ -1,7 +1,7 @@
 # MAP-IT System Architecture
 
-> **Last Updated:** December 2, 2024  
-> **Version:** 2.2 (Always Multi-Tool ReAct for Best Results)
+> **Last Updated:** December 3, 2024  
+> **Version:** 2.3 (Local-First Project Search + Graph-Enhanced Discovery)
 
 ---
 
@@ -34,8 +34,9 @@ MAP-IT is an intelligent research assistant for EU funding programs (Horizon Eur
 | Capability | Description |
 |------------|-------------|
 | **FAQ Answering** | Answer questions about eligibility, rules, requirements |
-| **Call Search** | Find open/upcoming funding calls |
-| **Project Search** | Search CORDIS for funded projects |
+| **Call Search** | Find open/upcoming funding calls (local-first with API enrichment) |
+| **Project Search** | Search CORDIS for funded projects (100% local: PostgreSQL + Neo4j) |
+| **Project Discovery** | Find similar projects, organization collaborations, cluster-based search |
 | **Statistics** | Get success rates, funding amounts, participation data |
 | **Comparisons** | Compare programmes, countries, or funding types |
 | **Document Search** | Search official EU regulations and work programmes |
@@ -76,7 +77,7 @@ MAP-IT is an intelligent research assistant for EU funding programs (Horizon Eur
 │  Smart Behavior:                                                            │
 │  • Simple queries ("What is RIA?") → 1-2 iterations, fast                  │
 │  • Complex queries ("Compare EIC vs ERC") → Up to 5 iterations, thorough   │
-│  • 11 tools available: stats, docs, calls, projects, validation            │
+│  • 15 tools available: stats, docs, calls, projects, relationships         │
 │                                                                             │
 │  Fallback: Simple loop only if ToolAwareAgent unavailable                  │
 └──────────────────────────────────┬──────────────────────────────────────────┘
@@ -297,7 +298,7 @@ For **complex queries** (comparisons, analysis, multi-source), the Tool-Aware Ag
 
 ## Available Tools
 
-The system has **11 tools** available for the multi-tool agent:
+The system has **15 tools** available for the multi-tool agent:
 
 ### Statistics Tools
 
@@ -354,13 +355,34 @@ search_funding_calls(keywords='hydrogen energy', status='open', year=2025)
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
-| `search_projects` | Search CORDIS for funded projects | `keywords`, `programme`, `country` |
+| `search_projects` | Search CORDIS for funded projects (LOCAL-FIRST: PostgreSQL + Neo4j) | `keywords`, `programme`, `country` |
 | `get_project_details` | Get details for a project | `project_id` |
+| `find_similar_projects` | Find projects similar to a given project | `project_id`, `similarity_type` (topic/consortium/cluster) |
+| `find_organization_projects` | Find all projects an organization participated in | `organization_name`, `role` (optional) |
+| `get_collaboration_network` | Get collaboration network for an organization | `organization_name` |
+| `search_by_cluster` | Find projects in a specific research cluster | `cluster` (name or code) |
 
-**Example:**
+**Examples:**
 ```python
+# Local-first project search (no API calls!)
 search_projects(keywords='quantum computing', country='Germany')
 # Returns: [{ "acronym": "...", "funding": "...", "participants": [...] }]
+
+# Find similar projects
+find_similar_projects(project_id='101000000', similarity_type='topic')
+# Returns: [{ "id": "...", "title": "...", "similarity_type": "topic", ... }]
+
+# Organization projects
+find_organization_projects(organization_name='Fraunhofer', role='coordinator')
+# Returns: [{ "id": "...", "title": "...", "role": "coordinator", ... }]
+
+# Collaboration network
+get_collaboration_network(organization_name='CNRS')
+# Returns: { "organization": "CNRS", "partners": [...], "total_partners": 50 }
+
+# Cluster search
+search_by_cluster(cluster='Climate')
+# Returns: [{ "id": "...", "title": "...", "cluster_name": "Climate", ... }]
 ```
 
 ### Validation Tools
@@ -382,7 +404,7 @@ verify_eligibility(entity_type='SME', country='Switzerland', programme='Horizon 
 
 ### 1. Neo4j Graph Database
 
-**Purpose:** Statistics, patterns, relationships
+**Purpose:** Statistics, patterns, relationships, project discovery
 
 **Contains:**
 - Programme success rates
@@ -390,8 +412,16 @@ verify_eligibility(entity_type='SME', country='Switzerland', programme='Horizon 
 - Consortium patterns
 - Funding distributions
 - Organization relationships
+- Project-topic-cluster relationships
+- Organization collaboration networks
 
 **Queries via:** `GraphSearchService`
+
+**Project Discovery:**
+- Find similar projects (by topic, consortium, or cluster)
+- Organization project lookup
+- Collaboration network mapping
+- Cluster-based project search
 
 ### 2. Supabase (pgvector)
 
@@ -411,18 +441,28 @@ verify_eligibility(entity_type='SME', country='Switzerland', programme='Horizon 
 
 **Queries via:** `VectorSearchService`
 
-### 3. CORDIS Database
+### 3. CORDIS Database (Local PostgreSQL)
 
 **Purpose:** Funded project information
 
 **Contains:**
-- All Horizon Europe funded projects
+- All Horizon Europe funded projects (13,865+ projects indexed)
 - Project descriptions, objectives
 - Consortium compositions
 - Funding amounts
 - Publications, deliverables
 
-**Queries via:** `CordisProjectRepository`
+**Tables:**
+- `projects` - Project metadata (title, objective, status, dates, budget)
+- `organizations` - Organization data (name, country, role, SME status)
+
+**Queries via:** `CordisProjectRepository` → `LocalProjectSearchService`
+
+**Search Capabilities:**
+- Full-text search with PostgreSQL tsquery
+- Country/programme/status filtering
+- Multi-source fusion with Neo4j graph data
+- **100% local** - No external API calls
 
 ### 4. EU Portal API
 
@@ -457,6 +497,8 @@ verify_eligibility(entity_type='SME', country='Switzerland', programme='Horizon 
 | `VectorSearchService` | `vector_search_service.py` | Semantic search |
 | `GraphSearchService` | `graph_service.py` | Neo4j queries |
 | `LocalCallSearchService` | `local_call_search_service.py` | Call search |
+| `LocalProjectSearchService` | `local_project_search_service.py` | Multi-source project search (PostgreSQL + Neo4j) |
+| `CordisProjectRepository` | `data/cordis_repository.py` | PostgreSQL project data access |
 
 ### Support Services
 
@@ -587,7 +629,9 @@ When using the streaming endpoint, progress updates are sent as SSE:
 - [x] **Phase 1:** Self-correcting agentic loop
 - [x] **Phase 2:** LLM-based complexity detection (replaces regex!)
 - [x] **Phase 2:** LLM-based evaluation for edge cases (hybrid approach)
-- [x] **Multi-tool reasoning:** ReAct agent with 11 tools
+- [x] **Multi-tool reasoning:** ReAct agent with 15 tools
+- [x] **Local-first project search:** PostgreSQL + Neo4j (no API dependency)
+- [x] **Graph-enhanced search:** Relationship-based project discovery (similar projects, org networks, clusters)
 
 ## Future Improvements
 

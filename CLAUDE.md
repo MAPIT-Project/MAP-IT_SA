@@ -4,294 +4,429 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a sophisticated Retrieval-Augmented Generation (RAG) system for querying European research projects from the CORDIS database and Horizon Europe funding opportunities. The system has evolved from a basic RAG implementation to an advanced context-aware AI system with memory management, enhanced search capabilities, and intelligent conversation handling.
+This is a **production-grade Retrieval-Augmented Generation (RAG) system** for querying European research projects from the CORDIS database. The system implements sophisticated multi-source intelligent search, agentic AI capabilities, and comprehensive tooling for Horizon Europe research project queries.
 
-## Common Development Commands
+## Key Architecture Components
 
-### Setup and Installation
+### Core Services Architecture
+- **Multi-Source Intelligent Search**: Combines graph search (Neo4j), vector search (Supabase), and keyword search
+- **Agentic AI System**: Tool orchestrator with reflection, evaluation, and replanning capabilities
+- **Intent Detection Pipeline**: Multi-stage classification with LLM-based and rule-based fallbacks
+- **Data Intelligence Service**: Query planning, multi-source execution, and result fusion
+- **Conversation Management**: Short-term/long-term memory with professional context injection
+
+### Agentic Architecture (ReAct Pattern)
+The system uses a sophisticated **agentic architecture** that can:
+- **Self-correct** when initial search results are insufficient
+- **Use multiple tools** to gather information from different sources (15 tools available)
+- **Reason iteratively** to answer complex comparison and analysis questions
+- **Synthesize answers** from graph databases, vector stores, and external APIs
+
+**Key Capabilities:**
+- **FAQ Answering**: Answer questions about eligibility, rules, requirements
+- **Call Search**: Find open/upcoming funding calls (local-first with API enrichment)
+- **Project Search**: Search CORDIS for funded projects (100% local: PostgreSQL + Neo4j, no API calls)
+- **Project Discovery**: Find similar projects, organization collaborations, cluster-based search
+- **Statistics**: Get success rates, funding amounts, participation data
+- **Comparisons**: Compare programmes, countries, or funding types
+- **Document Search**: Search official EU regulations and work programmes
+
+### Service Layer Organization (`app/services/`)
+- `agents/` - Agentic AI components with reflection, evaluation, planning
+- `data_intelligence/` - Graph search, query planning, cross-encoder reranking
+- `rag/` - RAG-specific components (retrievers, chunkers, generators)
+- `tools/` - Tool orchestration for multi-step reasoning (15 tools available)
+- `call_extractors/` - Funding call document processing
+- `conversation/` - Conversation management and memory
+- `memory/` - Short/long-term memory systems
+- `proposal_writing/` - AI-powered proposal assistance
+- `response/` - Response generation utilities
+
+### Available Tools (15 Tools)
+The system has 15 tools available for the multi-tool agent:
+
+**Statistics Tools:**
+- `get_programme_statistics`: Success rates, funding amounts for a programme
+- `get_country_statistics`: Participation stats for a country
+
+**Comparison Tools:**
+- `compare_programmes`: Compare two programmes side-by-side
+
+**Document Tools:**
+- `search_documents`: Search official EU documents
+- `search_specific_topic`: Deep semantic search for a topic
+
+**Call Tools:**
+- `search_funding_calls`: Find open/upcoming calls
+- `get_call_details`: Get details for a specific call
+
+**Project Tools:**
+- `search_projects`: Search CORDIS for funded projects (LOCAL-FIRST: PostgreSQL + Neo4j + Vector, no API calls)
+- `get_project_details`: Get details for a project
+- `find_similar_projects`: Find projects similar to a given project (by topic, consortium, or cluster)
+- `find_semantically_similar_projects`: Find projects semantically similar using AI embeddings (understands objectives)
+- `find_organization_projects`: Find all projects an organization participated in
+- `get_collaboration_network`: Get collaboration network showing which organizations partner together
+- `search_by_cluster`: Find projects in a specific research cluster (e.g., Climate, Health, Digital)
+
+**Validation Tools:**
+- `verify_eligibility`: Check eligibility for a scenario
+- `cross_reference`: Verify info across sources
+
+### Key Services
+
+**Core Services:**
+- `ConversationManager` (`conversation_manager.py`): Main orchestrator
+- `AgenticManager` (`agentic_manager.py`): Self-correcting loop
+- `ToolAwareAgent` (`tool_aware_agent.py`): Multi-tool reasoning
+- `UnifiedIntentClassifier` (`unified_intent_classifier.py`): Intent detection
+
+**Data Services:**
+- `DataIntelligenceService` (`data_intelligence_service.py`): Graph + Vector search
+- `VectorSearchService` (`vector_search_service.py`): Semantic search
+- `GraphSearchService` (`graph_service.py`): Neo4j queries
+- `LocalCallSearchService` (`local_call_search_service.py`): Call search
+- `LocalProjectSearchService` (`local_project_search_service.py`): Multi-source project search (PostgreSQL + Neo4j + Vector embeddings)
+- `CordisProjectRepository` (`data/cordis_repository.py`): PostgreSQL project data access
+
+**Support Services:**
+- `QueryPlanner` (`query_planner.py`): LLM-based query planning
+- `CrossEncoderReranker` (`cross_encoder_reranker.py`): Result reranking
+- `CallEnrichmentService` (`call_enrichment_service.py`): API enrichment
+- `MemoryService` (`memory_service.py`): Conversation memory
+
+### Data Management
+- `data/cordis/` - CORDIS research project data
+- `data/shared_documents/` - Shared Horizon Europe documents
+- `data/manual_uploads/` - User-uploaded documents
+- `newdocs/` - Horizon Europe work programmes and guidance
+
+## Development Commands
+
+### Makefile Commands
 ```bash
-# Install dependencies
-make install
-make install-dev
-
-# Setup environment
-cp config/env.example .env
-# Edit .env with your API keys
-
-# Install git hooks (recommended)
-make hooks
+make install        # Install prod dependencies
+make install-dev    # Install dev dependencies (ruff/black/isort/pytest/pre-commit)
+make run            # Run API (uvicorn main:app)
+make run-reload     # Run API with reload
+make docker-up      # Start services via docker-compose
+make docker-down    # Stop services
+make lint           # Run ruff (lint)
+make format         # Run ruff format + isort + black
+make test           # Run pytest
+make precommit      # Run pre-commit on all files
+make hooks          # Install pre-commit git hooks
 ```
 
-### Running the Application
+### Docker Services
+The `docker-compose.yml` defines these services:
+- `api` - FastAPI application
+- `redis` - Redis for Celery message broker
+- `celery-worker` - Regular RAG query processing
+- `celery-worker-stream` - Streaming RAG queries
+- `neo4j` - Graph database with APOC and GDS plugins
+
+### Testing
 ```bash
-# Development with hot reload
-make run-reload
-
-# Production mode
-make run
-
-# Docker Compose (includes Redis)
-make docker-up
-make docker-down
-```
-
-### Testing and Quality
-```bash
-# Run tests
+# Run all tests
 make test
 
-# Lint code
-make lint
+# Run specific test files
+pytest tests/test_integration_v2.py
+pytest tests/test_intent_detection_only.py
+pytest tests/test_data_source_verification.py
+pytest tests/test_conversation_routing.py
 
-# Format code
-make format
-
-# Run pre-commit checks
-make precommit
+# Run with coverage
+pytest --cov=app tests/
 ```
 
-### Specific Test Commands
-```bash
-# Test system capabilities
-python test_system_capabilities.py
+## Key Configuration Files
 
-# Test AI intent service
-python test_ai_intent_service.py
+### Environment Variables
+- `.env.example` - Template for environment variables
+- **Required**: `OPENAI_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`
+- **Optional**: `GOOGLE_EMBEDDING_API_KEY`, `SUPABASE_*`, `NEO4J_*`
+- **AI Models**: `GEMINI_API_KEY`, `GEMINI_MODEL=gemini-flash-latest` (used by all agentic components)
+- **Database**: `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_KEY`
+- **Neo4j**: `NEO4J_URI=bolt://neo4j:7687`, `NEO4J_USER=neo4j`, `NEO4J_PASSWORD`
+- **Redis**: `REDIS_URL=redis://redis:6379` (for caching)
 
-# Test basic functionality
-python test_basic_functionality.py
+### Agentic Configuration
+- **AgenticManager**: `max_iterations=3`, `sufficient_score=0.65`, `enable_multi_tool=True`
+- **ToolAwareAgent**: `max_iterations=5` (max reasoning iterations)
 
-# Test search queries
-python test_search_queries.py
+### Tool Configuration
+- `pyproject.toml` - Project metadata, ruff, black, isort, pytest config
+- `.pre-commit-config.yaml` - Pre-commit hooks configuration
 
-# Test v2 system
-python test_v2_system.py
-```
+## API Architecture
 
-## Architecture Overview
+### Main Entry Points
+- `app/main.py` - FastAPI application entry point
+- `app/api/routes.py` - Primary API routes
+- `app/core/config.py` - Configuration settings
 
-### High-Level Architecture
+### Key Endpoints
+- `POST /api/query` - Main question answering endpoint (Enhanced RAG)
+- `POST /api/query/stream` - Streaming SSE endpoint
+- `POST /api/query/async` - Start async query
+- `GET /api/query/status/{task_id}` - Check async query status
 
-The system follows a layered architecture with multiple specialized services:
+### Enhanced RAG Service
+- `app/services/enhanced_rag_service.py` - Core RAG implementation
+- `app/services/data_intelligence_service.py` - Multi-source search orchestration
+- `app/services/agents/tool_aware_agent.py` - Agentic AI system
 
-1. **API Layer** (`app/api/`): FastAPI routes and endpoints
-2. **Core Layer** (`app/core/`): Configuration and settings management
-3. **Services Layer** (`app/services/`): Business logic and external integrations
-4. **Models Layer** (`app/models/`): Data models and schemas
-5. **Utils Layer** (`app/utils/`): Helper functions and utilities
+## Data Flow Patterns
 
-### Key Service Components
+### Query Processing Pipeline
 
-#### 1. Enhanced RAG System (`app/services/enhanced_rag_service.py`)
-- **Purpose**: Main orchestrator for query processing and response generation
-- **Features**: Integrated vector search, call-specific functionality, enhanced search capabilities
-- **Key Methods**: `answer_question()`, `handle_project_query()`, `handle_call_query()`
+**Phase 1: Intent Classification**
+The `UnifiedIntentClassifier` analyzes user messages and classifies into:
+- `faq`: General questions about EU funding
+- `search_calls`: Looking for funding opportunities
+- `search_projects`: Looking for funded projects
+- `call_specific`: Questions about a specific call
+- `proposal_writing`: Help with proposal drafting
+- `follow_up`: References previous conversation
 
-#### 2. Memory Management System (`app/services/memory/`)
-- **Short-Term Memory**: Redis-based recent conversation turns
-- **Long-Term Memory**: PostgreSQL summaries and extracted facts
-- **Context Manager**: Optimizes context window usage
-- **Rolling Summarizer**: AI-powered conversation summarization
+**Phase 2: LLM-Driven Complexity Detection**
+For `faq` queries, the LLM determines complexity type:
+- `simple`: Single source answers (e.g., "What is RIA?")
+- `comparison`: Comparing 2+ things (e.g., "Compare EIC vs ERC")
+- `analysis`: Explaining WHY (e.g., "Why do some countries succeed more?")
+- `multi_source`: Needs multiple info types (e.g., "Eligibility AND success rates")
+- `validation`: Verify/confirm (e.g., "Is EIC success rate really 8%?")
 
-#### 3. Conversation Management (`app/services/conversation/`)
-- **Conversation Manager**: Main orchestrator for v2 system
-- **Context-Aware Processing**: Maintains conversation flow and entity tracking
-- **Professional Context AI**: Advanced response generation
+**Phase 3: Execution Routing (v2.2)**
+- **ALL queries** → Tool-Aware Agent (ReAct) for best results
+- Simple queries finish in 1-2 iterations, complex ones use up to 5
+- Simple loop is only used as fallback if ToolAwareAgent is unavailable
 
-#### 4. Vector Search and Embedding (`app/services/rag/`)
-- **Hybrid Search**: Combines vector similarity with keyword search
-- **Intelligent Chunking**: Semantic document chunking with overlap
-- **Response Generator**: Grounded response generation with citations
+**Phase 4: Response Generation**
+Results are synthesized into final response with:
+- Answer text with source citations
+- Confidence level indicators (high/medium/low)
+- Reasoning trace for complex queries
+- Streaming tokens for real-time UX
 
-#### 5. Intent Detection (`app/services/intent_service.py`, `app/services/ai_intent_service.py`)
-- **Multi-Level Intent Detection**: AI-powered with rule-based fallbacks
-- **Context-Aware Routing**: Routes queries to appropriate handlers
-- **Call-Specific Detection**: Specialized detection for funding calls
+### Agentic AI Components
 
-#### 6. Call Document System (`app/services/call_document_service.py`)
-- **Comprehensive Call Documentation**: Processes and indexes call documents
-- **Enhanced Search**: Advanced search with facet analysis
-- **Status Tracking**: Real-time call status and deadline tracking
+**Agentic Manager (Self-Correcting Loop)**
+- **File**: `app/services/agents/agentic_manager.py`
+- **Purpose**: Handles simpler queries with automatic retry and refinement
+- **Max iterations**: 3 self-correction attempts
+- **Quality threshold**: 0.65 (sufficient score)
 
-### API Routes Structure
+**Tool-Aware Agent (Multi-Tool ReAct)**
+- **File**: `app/services/agents/tool_aware_agent.py`
+- **Purpose**: Complex queries using ReAct pattern (Reasoning + Acting)
+- **Max iterations**: 5 reasoning iterations
+- **Features**: Parallel execution, LLM-driven decisions, fallback logic
 
-#### Main Routes (`app/api/routes.py`)
-- `/api/query` - Main RAG endpoint
-- `/api/query/stream` - Streaming SSE endpoint
-- `/api/query/async` - Async query processing
-- `/api/demo` - Demo endpoint for testing
+**Evaluation System (Hybrid Approach)**
+- **Rule-based scoring** (fast, free): Result count, relevance, content quality, query coverage, source diversity, freshness
+- **LLM evaluation** (accurate, costs tokens): Only for uncertain cases (score 0.4-0.7)
+- **Final score**: `(rule_based * 0.3) + (llm_score * 0.7)`
+- **Threshold**: Results are sufficient if score ≥ 0.65
 
-#### Conversation Routes v2 (`app/api/conversation_routes_v2.py`)
-- `/api/v2/conversation/{id}/message` - Context-aware messaging
-- `/api/v2/conversation/{id}/message/stream` - Streaming conversation
-- `/api/v2/conversation/{id}/memory` - Memory statistics
-- `/api/v2/conversation/health` - Health check
+**Root Cause Analysis**
+When results are insufficient, the system identifies causes:
+- `query_too_broad`: Refine with specific terms
+- `query_too_narrow`: Broaden the search
+- `wrong_source`: Switch data source
+- `semantic_mismatch`: Use keyword search instead
+- `temporal_mismatch`: Add year filters
+- `entity_not_found`: Add entity context
 
-#### Document Routes (`app/api/document_routes.py`)
-- Document upload and processing endpoints
-- Vector search management
-- Document indexing operations
+## Data Sources
 
-#### Call Document Routes (`app/api/call_document_routes.py`)
-- Call-specific document retrieval
-- Status and deadline information
-- Advanced call search
+### 1. Neo4j Graph Database
+- **Purpose**: Statistics, patterns, relationships, project discovery
+- **Contains**: Programme success rates, country participation data, consortium patterns, funding distributions, organization relationships, project-topic-cluster relationships
+- **Queries via**: `GraphSearchService`
+- **Project Discovery**: Find similar projects, organization collaborations, cluster-based search
 
-## Configuration Management
+### 2. Supabase (pgvector)
+- **Purpose**: Document storage and semantic search
+- **Contains**: Horizon Europe regulations, work programmes (2023-2027), guidance documents, call topic descriptions, proposal templates
+- **Tables**: `horizon_documents` (document metadata), `document_chunks` (text chunks with embeddings), `funding_calls` (structured call data)
+- **Queries via**: `VectorSearchService`
 
-### Environment Variables (Key Settings)
-```bash
-# AI Provider Configuration
-DEFAULT_AI_PROVIDER=gemini
-OPENAI_API_KEY=your_openai_key
-GEMINI_API_KEY=your_gemini_key
-OPENROUTER_API_KEY=your_openrouter_key
+### 3. CORDIS Database (Local PostgreSQL)
+- **Purpose**: Funded project information
+- **Contains**: All Horizon Europe funded projects (13,865+ projects), project descriptions, objectives, consortium compositions, funding amounts, publications, deliverables
+- **Tables**: `projects`, `organizations` (in public schema)
+- **Queries via**: `CordisProjectRepository` → `LocalProjectSearchService`
+- **Search**: Full-text search with PostgreSQL tsquery, multi-source fusion with Neo4j
 
-# Database Configuration
-DATABASE_URL=postgresql://user:pass@localhost:5432/db
-USE_LOCAL_DB=true
-REDIS_HOST=localhost
-REDIS_PORT=6379
+### 4. EU Portal API
+- **Purpose**: Live call data enrichment
+- **Used for**: Fetching missing call details, verifying deadlines, getting latest status, enriching local data
+- **Queries via**: `CallEnrichmentService`
 
-# Vector Search Configuration
-VECTOR_SEARCH_ENABLED=false
-GOOGLE_EMBEDDING_API_KEY=your_google_key
-SUPABASE_URL=your_supabase_url
-SUPABASE_SERVICE_KEY=your_supabase_key
+## Database Systems
 
-# Celery Configuration
-CELERY_BROKER_URL=redis://localhost:6379/0
-CELERY_RESULT_BACKEND=redis://localhost:6379/0
-```
+### PostgreSQL (Supabase)
+- Primary relational database for project metadata
+- Vector search capabilities via `pgvector` extension
+- Configured via `DATABASE_URL` environment variable
 
-### AI Provider Support
-- **OpenAI GPT-4**: High-quality responses
-- **Google Gemini**: Cost-effective processing (default)
-- **OpenRouter**: Multiple models via unified API (x-ai/grok-4-fast:free)
+### Neo4j Graph Database
+- Relationship-aware queries for projects, organizations, topics
+- APOC and Graph Data Science plugins enabled
+- Access via `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`
 
-## Key Features and Capabilities
-
-### 1. Multi-Modal Search
-- **Vector Search**: Semantic similarity using embeddings
-- **Keyword Search**: Traditional text-based search
-- **Hybrid Search**: Combines both approaches with reranking
-- **Faceted Search**: Advanced filtering and categorization
-
-### 2. Context-Aware Conversation
-- **Memory Management**: Hybrid short-term and long-term memory
-- **Entity Tracking**: Maintains context across conversation turns
-- **Reference Resolution**: Handles pronouns and contextual references
-- **Follow-up Suggestions**: Intelligent next-step recommendations
-
-### 3. Enhanced Call Processing
-- **Call-Specific Queries**: Handles specific call identifiers (HORIZON-CL4-2024-DATA-01-01)
-- **Status Tracking**: Real-time deadline and status information
-- **Enhanced Descriptions**: Rich call descriptions with metadata
-- **Portal Integration**: Direct links to EU Funding Portal
-
-### 4. Professional Response Generation
-- **Grounded Responses**: All responses based on retrieved context
-- **Citation Tracking**: Automatic source attribution
-- **Confidence Scoring**: Response quality indicators
-- **Hallucination Prevention**: Strict context adherence
+### Redis
+- Message broker for Celery task queue
+- Result backend for async operations
 
 ## Development Patterns
 
-### Adding New Features
-1. **API Endpoints**: Add routes in appropriate `app/api/` module
-2. **Business Logic**: Implement in `app/services/`
-3. **Data Models**: Define schemas in `app/models/schemas.py`
-4. **Configuration**: Update `app/core/config.py`
-5. **Tests**: Add comprehensive tests in `tests/` directory
+### Code Quality
+- **Ruff**: Linting and formatting (configured in `pyproject.toml`)
+- **Black**: Code formatting with 100-character line length
+- **isort**: Import sorting with black compatibility
+- **Pre-commit hooks**: Automatic quality checks on commit
 
-### Error Handling Patterns
-- Use structured error responses with proper HTTP status codes
-- Implement graceful fallbacks for external service failures
-- Log errors with context for debugging
-- Provide user-friendly error messages
+### Testing Strategy
+- Integration tests for conversation management and memory systems
+- Intent detection and classification tests
+- Data source verification tests
+- Simplified routing tests
+- Enhanced description generation tests
 
-### Performance Considerations
-- Use async processing for long-running operations
-- Implement caching for frequently accessed data
-- Optimize database queries with proper indexing
-- Monitor and optimize response times
+### Data Operations
+- `scripts/` directory contains helper scripts for data ingestion and setup
+- `migration/` directory for database schema migrations
+- `cleanup/` directory for system maintenance scripts
 
-## Testing Strategy
+## Special Considerations
 
-### Test Categories
-1. **Unit Tests**: Individual component testing
-2. **Integration Tests**: Service interaction testing
-3. **System Tests**: End-to-end functionality testing
-4. **Performance Tests**: Load and timing testing
+### Multi-Provider AI Support
+The system supports multiple LLM providers:
+- **OpenAI GPT-4**: High-quality responses
+- **Google Gemini**: Cost-effective processing
+- **OpenRouter**: Access to multiple models via unified API
+- Provider selection via `ai_provider` parameter or `DEFAULT_AI_PROVIDER` env var
 
-### Key Test Files
-- `test_system_capabilities.py` - Overall system health
-- `test_ai_intent_service.py` - Intent detection accuracy
-- `test_v2_system.py` - V2 conversation system
-- `test_search_queries.py` - Search functionality
+### Streaming vs Async Processing
+- **Streaming**: Real-time SSE responses via `/api/query/stream`
+- **Async**: Background processing via Celery workers with task status polling
+- **Synchronous**: Direct responses via `/api/query`
 
-## Docker and Deployment
+### Professional Context Management
+- Domain-specific knowledge injection for Horizon Europe queries
+- Short-term memory (12-turn capacity) and long-term memory (summarized context)
+- Tool-aware routing based on conversation state
 
-### Docker Compose Services
-- **api**: Main FastAPI application
-- **redis**: Message broker and caching
-- **celery-worker**: Background task processing
-- **celery-worker-stream**: Streaming query processing
+## Common Development Tasks
 
-### Production Considerations
-- Use proper secret management for API keys
-- Configure database connection pooling
-- Implement monitoring and logging
-- Set up backup strategies
+### Adding New Tools
+1. Create tool in `app/services/tools/` directory
+2. Register tool in `app/services/tools/__init__.py`
+3. Update tool orchestrator in `app/services/agents/tool_aware_agent.py`
+4. Add tests for new tool functionality
+
+### Extending Data Sources
+1. Add data source connector in `app/services/data_intelligence_service.py`
+2. Update query planner to include new source
+3. Implement result fusion logic
+4. Add data ingestion scripts to `scripts/` directory
+
+### Modifying Intent Detection
+1. Update classification logic in `app/services/intent_detection_service.py`
+2. Add new intent patterns to rule-based fallback
+3. Update routing logic in conversation management
+4. Add tests for new intent patterns
+
+### Database Schema Changes
+1. Create migration script in `migration/` directory
+2. Update schema documentation in `docs/DATABASE_SCHEMA_DOCUMENTATION.md`
+3. Test migration with existing data
+4. Update data ingestion scripts if needed
 
 ## Troubleshooting
 
 ### Common Issues
-1. **Redis Connection**: Check Redis service status
-2. **Database Connection**: Verify DATABASE_URL format
-3. **API Key Errors**: Validate environment variables
-4. **Memory Issues**: Check Redis memory limits
-5. **Search Performance**: Optimize vector search configuration
+- **Import errors**: Ensure virtual environment is activated and dependencies installed
+- **API key errors**: Verify environment variables are set correctly
+- **Database connection**: Check `DATABASE_URL` format and database accessibility
+- **Celery not working**: Ensure Redis is running and accessible
+- **Neo4j connection**: Verify `NEO4J_URI` and authentication credentials
 
-### Debug Commands
-```bash
-# Check system health
-curl http://localhost:8000/api/health
+### Logs and Monitoring
+- Application logs: Check Docker container logs or console output
+- Celery worker logs: Monitor worker output for task processing issues
+- Database logs: Check PostgreSQL/Neo4j logs for query performance
+- Health endpoints: Use `/api/health` for system status
 
-# Test intent service
-python debug_intent_service.py
+## Example Flows
 
-# Test database connection
-python -c "from app.core.config import settings; print(settings.database_url)"
+### Example 1: Simple FAQ
+```
+User: "Can Switzerland participate in Horizon Europe?"
 
-# Check Redis connection
-redis-cli ping
+1. Intent: faq (confidence: 0.95)
+2. Route: Agentic Manager (simple query)
+3. Iteration 1:
+   - Plan: vector search + keyword search
+   - Execute: 4 results found
+   - Evaluate: score 0.90 ✅ (sufficient)
+4. Response: "Yes, Switzerland can participate as an Associated Country..."
 ```
 
-## Migration Notes
+### Example 2: Complex Comparison
+```
+User: "Compare EIC Accelerator success rates with regular RIA grants"
 
-### V1 to V2 Migration
-The system has migrated from a basic RAG implementation to an advanced context-aware system:
-- **Old System**: Simple RAG with limited context
-- **New System**: Advanced memory management, enhanced search, professional responses
+1. Intent: faq (confidence: 0.95)
+2. Complexity: comparison detected
+3. Route: Tool-Aware Agent (multi-tool)
+4. Reasoning:
+   - Step 1: get_programme_statistics(EIC) + get_programme_statistics(RIA)
+   - Step 2: compare_programmes(EIC, RIA)
+   - Step 3: search_documents("EIC vs RIA differences")
+5. Synthesize from 3 sources
+6. Response: "EIC Accelerator has ~8% success rate while RIA grants..."
+```
 
-### Key Changes
-- New conversation routes (`/api/v2/conversation/`)
-- Enhanced memory system with Redis and PostgreSQL
-- Improved intent detection with AI-powered analysis
-- Advanced call processing with status tracking
+### Example 3: Self-Correcting Search
+```
+User: "What are the consortium requirements?"
 
-## Future Development
+1. Intent: faq
+2. Route: Agentic Manager
+3. Iteration 1:
+   - Execute: 3 results, low relevance
+   - Evaluate: score 0.42 ❌
+   - Reflect: "Query too broad"
+4. Iteration 2:
+   - Replan: Add "eligibility minimum partners EU"
+   - Execute: 8 results, high relevance
+   - Evaluate: score 0.85 ✅
+5. Response: "For RIA projects, you need at least 3 independent entities..."
+```
 
-### Planned Enhancements
-1. **User Authentication**: Add user-specific memory and preferences
-2. **Advanced Analytics**: Conversation insights and usage patterns
-3. **Multi-Language Support**: Expand beyond English queries
-4. **Enhanced UI**: Improve frontend integration
-5. **Performance Optimization**: Further reduce response times
+### Streaming Response Format
+When using the streaming endpoint, progress updates are sent as SSE:
+```json
+{"type": "status", "stage": "processing", "message": "Processing..."}
+{"type": "progress", "stage": "intent_detected", "message": "AI analyzed intent: faq"}
+{"type": "progress", "stage": "agentic_search", "message": "AI is using self-correcting search..."}
+{"type": "progress", "stage": "agentic_executing", "message": "Searching data sources..."}
+{"type": "progress", "stage": "agentic_search", "message": "Found 8 results", "count": 8}
+{"type": "progress", "stage": "agentic_evaluating", "message": "Found good results!"}
+{"type": "status", "stage": "generating_response", "message": "Generating response..."}
+{"type": "token", "content": "Based on the Horizon Europe regulation..."}
+{"type": "token", "content": "..."}
+{"type": "complete", "metadata": {"confidence": "high", "iterations": 1}}
+```
 
-### Scaling Considerations
-- Horizontal scaling with multiple Celery workers
-- Database read replicas for improved query performance
-- CDN integration for static content
-- Load balancing for high-traffic scenarios
+## Documentation
+- Comprehensive documentation in `docs/` directory including `docs_tracked/SYSTEM_ARCHITECTURE.md`
+- Architecture specifications and technical documentation
+- Database schema documentation
+- Deployment guides and API integration guides
+- System use cases with BPMN diagrams

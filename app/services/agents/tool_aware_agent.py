@@ -332,6 +332,20 @@ What is your next step?"""
                 "find_similar_projects(project_id='101000000', similarity_type='consortium')"
             ]
         ))
+
+        self.register_tool(Tool(
+            name="find_semantically_similar_projects",
+            description="Find projects semantically similar to a given project using AI embeddings (understands project objectives and descriptions)",
+            category=ToolCategory.PROJECTS,
+            parameters={
+                "project_id": "The reference project ID",
+                "limit": "Optional: maximum number of results (default 10)"
+            },
+            examples=[
+                "find_semantically_similar_projects(project_id='101000000')",
+                "find_semantically_similar_projects(project_id='101000000', limit=5)"
+            ]
+        ))
         
         self.register_tool(Tool(
             name="find_organization_projects",
@@ -745,6 +759,8 @@ What is your next step?"""
                 return await self._tool_search_projects(params)
             elif tool_name == 'find_similar_projects':
                 return await self._tool_find_similar_projects(params)
+            elif tool_name == 'find_semantically_similar_projects':
+                return await self._tool_find_semantically_similar_projects(params)
             elif tool_name == 'find_organization_projects':
                 return await self._tool_find_organization_projects(params)
             elif tool_name == 'get_collaboration_network':
@@ -949,7 +965,29 @@ What is your next step?"""
         except Exception as e:
             logger.error(f"Similar projects search error: {e}")
             return {"error": str(e), "projects": []}
-    
+
+    async def _tool_find_semantically_similar_projects(self, params: Dict) -> Dict:
+        """Find semantically similar projects using vector embeddings."""
+        try:
+            from ..local_project_search_service import LocalProjectSearchService
+
+            project_id = params.get('project_id', '')
+            limit = params.get('limit', 10)
+
+            if not project_id:
+                return {"error": "project_id is required", "projects": []}
+
+            service = LocalProjectSearchService()
+            result = await service.find_similar_projects_by_embedding(
+                project_id=project_id,
+                limit=limit
+            )
+
+            return result
+        except Exception as e:
+            logger.error(f"Semantic similarity search error: {e}")
+            return {"error": str(e), "projects": []}
+
     async def _tool_find_organization_projects(self, params: Dict) -> Dict:
         """Find projects by organization."""
         try:

@@ -433,8 +433,8 @@ Evaluate the results:"""
                 data = results[source]
                 items = data.get('results', []) if isinstance(data, dict) else data
                 
-                for item in items if isinstance(items, list) else []:
-            if isinstance(item, dict):
+                for item in (items if isinstance(items, list) else []):
+                    if isinstance(item, dict):
                         content = item.get('content') or item.get('description') or item.get('scope') or ''
                         content_lengths.append(len(content))
         

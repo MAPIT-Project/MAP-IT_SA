@@ -156,13 +156,172 @@ class LocalProjectSearchService:
         except Exception as e:
             logger.warning(f"⚠️ Neo4j graph service unavailable: {e}")
             self._graph_service = None
-    
+
+    def _has_project_embeddings(self) -> bool:
+        """Check if project_embeddings table exists and has data."""
+        if not self._postgres_repo or not self._postgres_repo.db_pool:
+            return False
+
+        try:
+            conn = self._postgres_repo.db_pool.getconn()
+            cursor = conn.cursor()
+
+            # Check if table exists and has embeddings
+            cursor.execute("""
+                SELECT EXISTS (
+                    SELECT 1 FROM information_schema.tables
+                    WHERE table_name = 'project_embeddings'
+                ) AND EXISTS (
+                    SELECT 1 FROM project_embeddings
+                    WHERE embedding_status = 'completed'
+                    AND combined_embedding IS NOT NULL
+                    LIMIT 1
+                )
+            """)
+
+            has_embeddings = cursor.fetchone()[0]
+            cursor.close()
+            self._postgres_repo.db_pool.putconn(conn)
+
+            return has_embeddings
+        except Exception as e:
+            logger.warning(f"Failed to check project embeddings: {e}")
+            return False
+
+    async def _search_vector(
+        self,
+        query: str,
+        filters: Dict[str, Any],
+        limit: int
+    ) -> List[Dict[str, Any]]:
+        """
+        Search projects using vector similarity.
+
+        Args:
+            query: Natural language search query
+            filters: Applied filters
+            limit: Maximum results
+
+        Returns:
+            List of project dicts with vector similarity scores
+        """
+        if not self._postgres_repo or not self._postgres_repo.db_pool:
+            return []
+
+        try:
+            # Get query embedding
+            from .embedding_service import EmbeddingService
+            embedding_service = EmbeddingService()
+            query_embedding = await asyncio.to_thread(
+                embedding_service.generate_embedding,
+                query
+            )
+
+            if query_embedding is None or not query_embedding.any():
+                logger.warning("Failed to generate query embedding")
+                return []
+
+            # Convert to list for PostgreSQL
+            query_vector = query_embedding.tolist()
+
+            # Build WHERE clause for filters using %s placeholders
+            where_clauses = ["pe.embedding_status = 'completed'", "pe.combined_embedding IS NOT NULL"]
+            params = [query_vector]  # First param is the query vector
+
+            if 'programme' in filters:
+                where_clauses.append('p."frameworkProgramme" = %s')
+                params.append(filters['programme'])
+
+            if 'countries' in filters and filters['countries']:
+                # Check if any participant country matches using organizations table
+                country_placeholders = ','.join(['%s'] * len(filters['countries']))
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1 FROM organizations o
+                        WHERE o."projectID" = p.id
+                        AND o.country IN ({country_placeholders})
+                    )
+                """)
+                params.extend(filters['countries'])
+
+            if 'status' in filters:
+                where_clauses.append("p.status = %s")
+                params.append(filters['status'])
+
+            where_clause = " AND ".join(where_clauses)
+            params.append(query_vector)  # Second query vector for ORDER BY
+            params.append(limit)
+
+            # Execute vector similarity search
+            conn = self._postgres_repo.db_pool.getconn()
+            cursor = conn.cursor()
+
+            try:
+                query_sql = f"""
+                    SELECT
+                        p.id,
+                        p.rcn,
+                        p.title,
+                        p.acronym,
+                        p.objective,
+                        p."startDate",
+                        p."endDate",
+                        p.status,
+                        p."totalCost",
+                        p."ecMaxContribution",
+                        p."frameworkProgramme",
+                        p."fundingScheme",
+                        p.topics,
+                        1 - (pe.combined_embedding <=> %s::vector) as similarity_score
+                    FROM projects p
+                    JOIN project_embeddings pe ON p.id = pe.project_id
+                    WHERE {where_clause}
+                    ORDER BY pe.combined_embedding <=> %s::vector
+                    LIMIT %s
+                """
+
+                cursor.execute(query_sql, params)
+                rows = cursor.fetchall()
+
+                # Format results
+                results = []
+                for i, row in enumerate(rows):
+                    results.append({
+                        'id': row[0],
+                        'rcn': row[1] or '',
+                        'title': row[2],
+                        'acronym': row[3],
+                        'objective': (row[4] or '')[:500],
+                        'startDate': str(row[5]) if row[5] else '',
+                        'endDate': str(row[6]) if row[6] else '',
+                        'status': row[7],
+                        'totalCost': float(row[8] or 0),
+                        'ecMaxContribution': float(row[9] or 0),
+                        'frameworkProgramme': row[10] or '',
+                        'fundingScheme': row[11] or '',
+                        'topics': row[12] or '',
+                        'similarity_score': float(row[13]),
+                        '_source': 'vector',
+                        '_rank': i + 1
+                    })
+
+                return results
+
+            finally:
+                cursor.close()
+                self._postgres_repo.db_pool.putconn(conn)
+
+        except Exception as e:
+            logger.error(f"Vector search error: {e}")
+            return []
+
     async def search_projects(
         self,
         query: str,
         filters: Optional[Dict[str, Any]] = None,
         limit: int = 10,
-        include_graph: bool = True
+        include_graph: bool = True,
+        include_semantic: bool = True
     ) -> Dict[str, Any]:
         """
         Search for projects using all available local sources.
@@ -178,7 +337,8 @@ class LocalProjectSearchService:
                 - funding_scheme: str (e.g., "RIA", "ERC")
             limit: Maximum results to return
             include_graph: Whether to include Neo4j graph search
-            
+            include_semantic: Whether to include vector semantic search
+
         Returns:
             Dict with projects, metadata, and statistics
         """
@@ -213,7 +373,17 @@ class LocalProjectSearchService:
                 logger.info(f"   Neo4j returned {len(graph_results)} projects")
             except Exception as e:
                 logger.warning(f"   Neo4j search failed: {e}")
-        
+
+        # Vector semantic search (for semantic similarity)
+        if include_semantic and self._has_project_embeddings():
+            try:
+                vector_results = await self._search_vector(query, parsed_filters, limit)
+                all_results['vector'] = vector_results
+                sources_used.append('vector')
+                logger.info(f"   Vector search returned {len(vector_results)} projects")
+            except Exception as e:
+                logger.warning(f"   Vector search failed: {e}")
+
         # 3. Fuse results if we have multiple sources
         if len(all_results) > 1:
             fused_results = self._reciprocal_rank_fusion(all_results)
@@ -293,7 +463,129 @@ class LocalProjectSearchService:
                 'error': str(e),
                 'projects': []
             }
-    
+
+    async def find_similar_projects_by_embedding(
+        self,
+        project_id: str,
+        limit: int = 10
+    ) -> Dict[str, Any]:
+        """
+        Find projects semantically similar to a given project using embeddings.
+
+        Args:
+            project_id: ID of the reference project
+            limit: Maximum results
+
+        Returns:
+            Dict with similar projects and similarity scores
+        """
+        if not self._postgres_repo or not self._postgres_repo.db_pool:
+            return {
+                'success': False,
+                'error': 'Database not available',
+                'projects': []
+            }
+
+        if not self._has_project_embeddings():
+            return {
+                'success': False,
+                'error': 'Vector similarity search not available - no embeddings in database',
+                'projects': []
+            }
+
+        try:
+            conn = self._postgres_repo.db_pool.getconn()
+            cursor = conn.cursor()
+
+            try:
+                # Get the reference project's embedding
+                cursor.execute("""
+                    SELECT combined_embedding
+                    FROM project_embeddings
+                    WHERE project_id = %s
+                      AND embedding_status = 'completed'
+                      AND combined_embedding IS NOT NULL
+                """, (project_id,))
+
+                result = cursor.fetchone()
+                if not result:
+                    return {
+                        'success': False,
+                        'error': f'No embedding found for project {project_id}',
+                        'projects': []
+                    }
+
+                ref_embedding = result[0]
+
+                # Find similar projects with proper column names
+                cursor.execute("""
+                    SELECT
+                        p.id,
+                        p.rcn,
+                        p.title,
+                        p.acronym,
+                        p.objective,
+                        p."startDate",
+                        p."endDate",
+                        p.status,
+                        p."totalCost",
+                        p."ecMaxContribution",
+                        p."frameworkProgramme",
+                        p."fundingScheme",
+                        p.topics,
+                        1 - (pe.combined_embedding <=> %s::vector) as similarity_score
+                    FROM projects p
+                    JOIN project_embeddings pe ON p.id = pe.project_id
+                    WHERE pe.project_id != %s
+                      AND pe.embedding_status = 'completed'
+                      AND pe.combined_embedding IS NOT NULL
+                    ORDER BY pe.combined_embedding <=> %s::vector
+                    LIMIT %s
+                """, (ref_embedding, project_id, ref_embedding, limit))
+
+                rows = cursor.fetchall()
+
+                # Format results
+                projects = []
+                for row in rows:
+                    projects.append({
+                        'id': row[0],
+                        'rcn': row[1] or '',
+                        'title': row[2],
+                        'acronym': row[3],
+                        'objective': (row[4] or '')[:300],
+                        'start_date': str(row[5]) if row[5] else '',
+                        'end_date': str(row[6]) if row[6] else '',
+                        'status': row[7],
+                        'total_cost': float(row[8] or 0),
+                        'ec_contribution': float(row[9] or 0),
+                        'programme': row[10] or '',
+                        'funding_scheme': row[11] or '',
+                        'topics': row[12] or '',
+                        'similarity_score': float(row[13]),
+                        'cordis_url': f"https://cordis.europa.eu/project/id/{row[0]}"
+                    })
+
+                return {
+                    'success': True,
+                    'reference_project': project_id,
+                    'similarity_type': 'semantic',
+                    'projects': projects,
+                    'total_found': len(projects)
+                }
+
+            finally:
+                cursor.close()
+                self._postgres_repo.db_pool.putconn(conn)
+
+        except Exception as e:
+            logger.error(f"Embedding similarity search failed: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'projects': []
+            }
+
     async def find_projects_by_organization(
         self,
         organization_name: str,
@@ -801,6 +1093,7 @@ class LocalProjectSearchService:
                 'countries': project.get('participant_countries', [])
             },
             'relevance_score': project.get('_rrf_score', project.get('relevance_score', 0)),
+            'similarity_score': project.get('similarity_score'),
             'sources': project.get('_sources', [project.get('_source', 'unknown')]),
             'cordis_url': f"https://cordis.europa.eu/project/id/{project_id}" if project_id else None
         }
