@@ -7,6 +7,7 @@ from .budget_benchmark import BudgetBenchmarkTool, get_budget_benchmark_execute
 from .consortium_patterns import ConsortiumPatternsTool, get_consortium_patterns_execute
 from .partner_discovery import PartnerDiscoveryTool, find_experienced_partners_execute
 from .similar_projects import SimilarProjectsTool, get_similar_funded_projects_execute
+from .call_history import CallHistoryTool, analyze_call_history_execute
 
 __all__ = [
     'ToolOrchestrator',
@@ -20,5 +21,7 @@ __all__ = [
     'PartnerDiscoveryTool',
     'find_experienced_partners_execute',
     'SimilarProjectsTool',
-    'get_similar_funded_projects_execute'
+    'get_similar_funded_projects_execute',
+    'CallHistoryTool',
+    'analyze_call_history_execute'
 ]

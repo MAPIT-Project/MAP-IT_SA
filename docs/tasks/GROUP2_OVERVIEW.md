@@ -29,7 +29,7 @@ All tools will be **honest and data-backed**. We will NOT create fake "AI scores
 | 2 | `task_02_consortium_patterns.md` | `get_consortium_patterns` | ✅ Implemented |
 | 3 | `task_03_partner_discovery.md` | `find_experienced_partners` | ✅ Implemented |
 | 4 | `task_04_similar_projects.md` | `get_similar_funded_projects` | ✅ Implemented |
-| 5 | `task_05_call_history.md` | `analyze_call_history` | 📋 Defined |
+| 5 | `task_05_call_history.md` | `analyze_call_history` | ✅ Implemented |
 | 6 | `task_06_future_proposals.md` | Future enhancements | 📋 Defined |
 
 ---

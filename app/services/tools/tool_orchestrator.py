@@ -2158,6 +2158,88 @@ Returns projects ranked by semantic similarity with:
         self.register_tool(similar_projects_tool)
         logger.info("🔎 Registered get_similar_funded_projects tool")
 
+        # ====================================================================
+        # CALL HISTORY ANALYSIS TOOL
+        # ====================================================================
+
+        from .call_history import analyze_call_history_execute
+
+        call_history_tool = Tool(
+            name='analyze_call_history',
+            description='''Analyze historical funding patterns for specific topic areas in Horizon Europe.
+
+Use this tool when users want to:
+- Understand funding trends over time
+- See what got funded in the past for a topic
+- Identify which clusters/topics are growing or declining
+- Get year-by-year funding breakdowns
+- Find patterns in action types (RIA vs IA)
+
+Returns comprehensive analysis including:
+- Timeline of calls and projects by year
+- Funding totals and averages
+- Action type breakdown
+- Top funded topics
+- Trend detection (increasing/stable/declining)
+- Recommendations based on patterns''',
+            parameters_schema={
+                'topic_pattern': {
+                    'type': 'string',
+                    'required': False,
+                    'description': 'Topic code pattern (e.g., "HORIZON-CL4-2023", "HORIZON-CL5")',
+                    'examples': ['HORIZON-CL4', 'HORIZON-CL5-2024', 'HORIZON-HLTH']
+                },
+                'cluster': {
+                    'type': 'string',
+                    'required': False,
+                    'description': 'Cluster code (e.g., "CL4", "CL5", "EIC")',
+                    'examples': ['CL4', 'CL5', 'CL6', 'EIC', 'ERC']
+                },
+                'keywords': {
+                    'type': 'string',
+                    'required': False,
+                    'description': 'Keywords to search in call titles/descriptions',
+                    'examples': ['artificial intelligence', 'hydrogen', 'quantum']
+                },
+                'year_from': {
+                    'type': 'integer',
+                    'required': False,
+                    'description': 'Starting year filter (default 2021)'
+                },
+                'year_to': {
+                    'type': 'integer',
+                    'required': False,
+                    'description': 'Ending year filter'
+                },
+                'action_types': {
+                    'type': 'array',
+                    'required': False,
+                    'description': 'Filter by action types',
+                    'examples': [['RIA'], ['RIA', 'IA'], ['CSA']]
+                },
+                'include_projects': {
+                    'type': 'boolean',
+                    'required': False,
+                    'default': True,
+                    'description': 'Include funded project examples'
+                }
+            },
+            execute_func=analyze_call_history_execute,
+            cache_ttl=3600,  # 1 hour
+            parallel_safe=True,
+            category='proposal_support',
+            tags=['history', 'trends', 'calls', 'funding', 'analysis', 'horizon_europe'],
+            usage_examples=[
+                'What AI topics got funded under Cluster 4?',
+                'Show me hydrogen funding trends over time',
+                'How has quantum computing funding evolved?',
+                'What were the biggest calls in Health in 2023?'
+            ]
+        )
+
+        self.register_tool(call_history_tool)
+        logger.info("📊 Registered analyze_call_history tool")
+
     def get_available_tools(self) -> List[Dict[str, Any]]:
         """
         Get list of available tools with their descriptions and metadata.

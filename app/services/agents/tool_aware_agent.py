@@ -410,6 +410,27 @@ What is your next step? Remember: Output ONLY JSON."""
             ]
         ))
 
+        # Call history analysis tool
+        self.register_tool(Tool(
+            name="analyze_call_history",
+            description="Analyze historical funding patterns for Horizon Europe topics. Shows what got funded, when, funding trends over time, and recommendations.",
+            category=ToolCategory.STATISTICS,
+            parameters={
+                "topic_pattern": "Optional: Topic code pattern (e.g., 'HORIZON-CL4-2023')",
+                "cluster": "Optional: Cluster code (CL4, CL5, EIC, etc.)",
+                "keywords": "Optional: Keywords to search in call titles/descriptions",
+                "year_from": "Optional: Starting year filter",
+                "year_to": "Optional: Ending year filter",
+                "action_types": "Optional: List of action types (RIA, IA, CSA)",
+                "include_projects": "Optional: Include funded project examples (default true)"
+            },
+            examples=[
+                "analyze_call_history(cluster='CL4', keywords='artificial intelligence')",
+                "analyze_call_history(keywords='hydrogen', year_from=2022)",
+                "analyze_call_history(cluster='CL5', action_types=['RIA', 'IA'])"
+            ]
+        ))
+
         self.register_tool(Tool(
             name="compare_programmes",
             description="Compare statistics between two programmes or clusters",
@@ -1023,6 +1044,8 @@ What is your next step? Remember: Output ONLY JSON."""
                 return await self._tool_find_experienced_partners(params)
             elif tool_name == 'get_similar_funded_projects':
                 return await self._tool_get_similar_funded_projects(params)
+            elif tool_name == 'analyze_call_history':
+                return await self._tool_analyze_call_history(params)
             else:
                 return {"error": f"Tool {tool_name} not implemented"}
         except Exception as e:
@@ -1703,6 +1726,29 @@ What is your next step? Remember: Output ONLY JSON."""
             logger.error(f"Similar projects error: {e}")
             return {"error": str(e)}
 
+    async def _tool_analyze_call_history(self, params: Dict) -> Dict:
+        """Analyze historical funding patterns for Horizon Europe topics."""
+        try:
+            from ..tools.call_history import CallHistoryTool
+
+            tool = CallHistoryTool()
+            result = tool.analyze_history(
+                topic_pattern=params.get('topic_pattern'),
+                cluster=params.get('cluster'),
+                keywords=params.get('keywords'),
+                year_from=params.get('year_from'),
+                year_to=params.get('year_to'),
+                action_types=params.get('action_types'),
+                include_projects=params.get('include_projects', True),
+                limit=params.get('limit', 50)
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Call history analysis error: {e}")
+            return {"error": str(e)}
+
     def _summarize_tool_results(self, tool_calls: List[ToolCall]) -> str:
         """Summarize results from tool calls in a human-readable format."""
         summaries = []
@@ -1886,6 +1932,46 @@ What is your next step? Remember: Output ONLY JSON."""
             insights = result.get('insights', [])
             if insights:
                 parts.append(f"\nInsights: {'; '.join(insights[:3])}")
+
+            return "\n".join(parts)
+
+        # Handle call history analysis results
+        if 'timeline' in result and 'trends' in result:
+            calls = result.get('calls_analyzed', 0)
+            projects = result.get('projects_funded', 0)
+            total_funding = result.get('total_funding_allocated', 0)
+            trends = result.get('trends', {})
+
+            parts = [f"Call History Analysis: {calls} calls, {projects} projects funded"]
+
+            if total_funding > 0:
+                parts.append(f"Total funding: €{total_funding/1_000_000_000:.1f}B")
+
+            # Trend info
+            trend = trends.get('funding_trend', 'unknown')
+            growth = trends.get('year_over_year_funding_growth', 0)
+            if trend != 'insufficient_data':
+                parts.append(f"Trend: {trend.replace('_', ' ')} ({growth:+.1f}% YoY)")
+
+            # Timeline summary
+            timeline = result.get('timeline', {})
+            if timeline:
+                years = sorted(timeline.keys(), reverse=True)[:3]
+                for year in years:
+                    data = timeline[year]
+                    parts.append(f"  {year}: {data.get('projects_funded', 0)} projects, €{data.get('total_funding', 0)/1_000_000:.0f}M")
+
+            # Top topics
+            top_topics = result.get('top_funded_topics', [])[:3]
+            if top_topics:
+                parts.append("\nTop topics:")
+                for t in top_topics:
+                    parts.append(f"  - {t.get('topic', 'N/A')}: {t.get('projects', 0)} projects")
+
+            # Recommendations
+            recommendations = result.get('recommendations', [])[:2]
+            if recommendations:
+                parts.append(f"\nRecommendations: {'; '.join(recommendations)}")
 
             return "\n".join(parts)
 
