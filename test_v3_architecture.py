@@ -12,8 +12,71 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from dotenv import load_dotenv
 load_dotenv()
 
+
+async def test_v3_streaming():
+    """Test V3 streaming support."""
+    from app.services.conversation.conversation_manager import ConversationManager
+
+    print("\n" + "=" * 60)
+    print("TEST 4: V3 STREAMING")
+    print("=" * 60)
+
+    manager = ConversationManager()
+    conversation_id = random.randint(200000, 299999)
+
+    print(f"\nUsing conversation ID: {conversation_id}")
+    print("Streaming query: 'Show me AI funding calls'\n")
+
+    result = await manager.process_message_v3(
+        conversation_id=conversation_id,
+        user_message="Show me AI funding calls",
+        user_id=1,
+        streaming=True
+    )
+
+    # Collect streaming events
+    events = []
+    async for event in result:
+        events.append(event)
+        event_type = event.get('type', 'unknown')
+
+        if event_type == 'status':
+            print(f"  📊 STATUS: {event.get('stage')} - {event.get('message')}")
+        elif event_type == 'agent_thinking':
+            print(f"  🧠 THINKING (iter {event.get('iteration')}): {event.get('thought', '')[:60]}...")
+        elif event_type == 'tool_call':
+            print(f"  🔧 TOOL CALL: {event.get('tool_name')} (iter {event.get('iteration')})")
+        elif event_type == 'tool_result':
+            print(f"  ✅ TOOL RESULT: {event.get('result_summary', '')[:60]}...")
+        elif event_type == 'token':
+            pass  # Don't print every token
+        elif event_type == 'complete':
+            meta = event.get('metadata', {})
+            print(f"\n  🏁 COMPLETE:")
+            print(f"     Architecture: {meta.get('architecture')}")
+            print(f"     Iterations: {meta.get('iterations')}")
+            print(f"     Tools: {meta.get('tools_used')}")
+            print(f"     Time: {meta.get('processing_time_ms', 0):.0f}ms")
+        elif event_type == 'error':
+            print(f"  ❌ ERROR: {event.get('error')}")
+
+    # Collect response from tokens
+    response_text = ''.join([e.get('content', '') for e in events if e.get('type') == 'token'])
+    print(f"\n📝 Response ({len(response_text)} chars): {response_text[:200]}...")
+
+    # Validate
+    has_complete = any(e.get('type') == 'complete' for e in events)
+    has_tokens = any(e.get('type') == 'token' for e in events)
+    is_v3 = any(e.get('metadata', {}).get('architecture') == 'simplified_v3' for e in events)
+
+    success = has_complete and has_tokens and is_v3
+    print(f"\n{'✅ STREAMING TEST PASSED' if success else '❌ STREAMING TEST FAILED'}")
+
+    return success
+
+
 async def test_v3_architecture():
-    """Test the simplified V3 architecture."""
+    """Test the simplified V3 architecture (non-streaming)."""
 
     from app.services.conversation.conversation_manager import ConversationManager
 
@@ -22,13 +85,13 @@ async def test_v3_architecture():
     print("=" * 60)
 
     manager = ConversationManager()
-    conversation_id = random.randint(100000, 999999)
+    conversation_id = random.randint(100000, 199999)
     user_id = 1
     print(f"Using conversation ID: {conversation_id}")
 
     # Test 1: Simple call search
     print("\n" + "=" * 60)
-    print("TEST 1: Search for funding calls")
+    print("TEST 1: Search for funding calls (non-streaming)")
     print("=" * 60)
 
     response1 = await manager.process_message_v3(
@@ -109,8 +172,8 @@ async def test_v3_architecture():
         print(f"   Answer length: {len(answer3)} chars")
         print(f"   Answer preview: {answer3[:300]}...")
 
-    # Final verdict
-    success = (
+    # Non-streaming verdict
+    non_streaming_success = (
         response1.get('metadata', {}).get('architecture') == 'simplified_v3' and
         response2.get('metadata', {}).get('architecture') == 'simplified_v3' and
         len(answer1) > 100 and
@@ -118,13 +181,31 @@ async def test_v3_architecture():
     )
 
     print("\n" + "=" * 60)
-    if success:
-        print("✅ V3 ARCHITECTURE TEST PASSED")
+    if non_streaming_success:
+        print("✅ NON-STREAMING TESTS PASSED")
     else:
-        print("❌ V3 ARCHITECTURE TEST FAILED")
+        print("❌ NON-STREAMING TESTS FAILED")
     print("=" * 60)
 
-    return success
+    # Test 4: Streaming
+    streaming_success = await test_v3_streaming()
+
+    # Final verdict
+    all_success = non_streaming_success and streaming_success
+
+    print("\n" + "=" * 60)
+    print("FINAL RESULTS")
+    print("=" * 60)
+    print(f"  Non-streaming: {'✅ PASS' if non_streaming_success else '❌ FAIL'}")
+    print(f"  Streaming:     {'✅ PASS' if streaming_success else '❌ FAIL'}")
+    print("=" * 60)
+    if all_success:
+        print("✅ ALL V3 TESTS PASSED")
+    else:
+        print("❌ SOME V3 TESTS FAILED")
+    print("=" * 60)
+
+    return all_success
 
 if __name__ == "__main__":
     success = asyncio.run(test_v3_architecture())

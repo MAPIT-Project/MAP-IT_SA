@@ -539,15 +539,58 @@ curl -X POST "http://localhost:8000/api/v2/conversation/123/message/stream" \
 | Component | Status | Notes |
 |-----------|--------|-------|
 | `ToolAwareAgent` | ✅ Done | Enhanced with conversation context |
-| `process_message_v3` | ✅ Done | Non-streaming works |
-| V3 streaming endpoint | ❌ Not Done | Needs implementation |
-| V3 route in `conversation_routes_v2.py` | ❌ Not Done | Needs new endpoint |
+| `process_message_v3` | ✅ Done | Both streaming and non-streaming |
+| `_stream_v3_response` | ✅ Done | Yields all event types |
+| V3 route | ⚠️ Pending | Need to add route that calls `process_message_v3` |
 
-### What Needs to Be Built
+### What's Implemented
 
-1. **`process_message_v3` streaming support** - Add `streaming=True` mode that yields events
-2. **New V3 route** - Add `/api/v3/conversation/{id}/message/stream` endpoint
-3. **Event emission during agent loop** - Yield events at each reasoning step
+The streaming is fully implemented in `conversation_manager.py`:
+- `process_message_v3(streaming=True)` returns an async generator
+- `_stream_v3_response()` yields all the events documented above
+
+### What Still Needs to Be Done
+
+1. **Add V3 API route** - Create endpoint that calls `process_message_v3` with `streaming=True`
+
+   Example route to add in `conversation_routes_v2.py`:
+   ```python
+   @router.post("/{conversation_id}/message/stream/v3")
+   async def send_message_stream_v3(conversation_id: int, request: MessageRequest, user_id: int = 1):
+       async def generate_stream():
+           result = await conversation_manager.process_message_v3(
+               conversation_id=conversation_id,
+               user_message=request.message,
+               user_id=user_id,
+               streaming=True
+           )
+           async for chunk in result:
+               yield f"data: {json.dumps(chunk)}\n\n"
+
+       return StreamingResponse(generate_stream(), media_type="text/event-stream")
+   ```
+
+---
+
+## Actual Event Sequence (From Test Run)
+
+Here's the actual output from a test run:
+
+```
+📊 STATUS: processing - Processing...
+📊 STATUS: context_loaded - Loaded 0 messages from conversation history
+📊 STATUS: agent_starting - AI agent is analyzing your question...
+🧠 THINKING (iter 1): The user wants to find open funding calls related to 'AI' or...
+🔧 TOOL CALL: search_funding_calls (iter 1)
+✅ TOOL RESULT: search_funding_calls: {'calls_found': 3, 'calls': [{'call_id...
+🧠 THINKING (iter 2): I searched for AI funding calls and found three results, tho...
+📊 STATUS: streaming_response - Generating response...
+🏁 COMPLETE:
+   Architecture: simplified_v3
+   Iterations: 2
+   Tools: ['search_funding_calls_1']
+   Time: 8618ms
+```
 
 ---
 
@@ -555,5 +598,5 @@ curl -X POST "http://localhost:8000/api/v2/conversation/123/message/stream" \
 
 For questions about this spec, refer to:
 - `app/services/agents/tool_aware_agent.py` - Agent implementation
-- `app/services/conversation/conversation_manager.py` - `process_message_v3` method
+- `app/services/conversation/conversation_manager.py` - `process_message_v3` and `_stream_v3_response` methods
 - `PLAN_SIMPLIFIED_AGENTIC_ARCHITECTURE.md` - Architecture overview

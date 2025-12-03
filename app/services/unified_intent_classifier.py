@@ -350,13 +350,13 @@ Respond with ONLY the JSON, no other text."""
                 query = ' '.join(query.split())  # Clean extra spaces
             
             return [{
-                'tool_name': 'eu_portal_search',
+                'tool_name': 'search_funding_calls',
                 'parameters': {
                     'query': query,
                     'keywords': call_keywords,
                     'max_results': 15
                 },
-                'reason': 'Search EU Funding & Tenders Portal for calls'
+                'reason': 'Search local funding calls database'
             }]
         
         elif intent == 'call_specific':
@@ -451,13 +451,13 @@ Respond with ONLY the JSON, no other text."""
                 reasoning="Fallback classification - detected call search keywords",
                 requires_tools=True,
                 tool_plan=[{
-                    'tool_name': 'eu_portal_search',
+                    'tool_name': 'search_funding_calls',
                     'parameters': {
                         'query': user_message,
                         'keywords': [],
                         'max_results': 15
                     },
-                    'reason': 'Search for funding calls (fallback)'
+                    'reason': 'Search local funding calls database (fallback)'
                 }],
                 call_id=None,
                 section_id=None,
@@ -552,13 +552,13 @@ Respond with ONLY the JSON, no other text."""
                 reasoning=f"Override: strong call search signal in query. Original: {intent.reasoning}",
                 requires_tools=True,
                 tool_plan=[{
-                    'tool_name': 'eu_portal_search',
+                    'tool_name': 'search_funding_calls',
                     'parameters': {
                         'query': user_message,
                         'keywords': [],
                         'max_results': 15
                     },
-                    'reason': 'Search for funding calls (override)'
+                    'reason': 'Search local funding calls database (override)'
                 }],
                 complexity_type=intent.complexity_type,
                 requires_multi_tool=intent.requires_multi_tool,

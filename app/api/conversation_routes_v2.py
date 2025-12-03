@@ -123,6 +123,108 @@ async def send_message_stream(
         }
     )
 
+@router.post("/{conversation_id}/message/stream/v3")
+async def send_message_stream_v3(
+    conversation_id: int,
+    request: MessageRequest,
+    user_id: int = 1
+):
+    """
+    Send a message and stream the response using V3 simplified architecture.
+
+    V3 uses a single agentic loop (no intent classification).
+    The agent decides what tools to use based on the query and conversation context.
+
+    Event types emitted:
+    - status: Processing stages (processing, context_loaded, agent_starting, streaming_response)
+    - agent_thinking: Agent's reasoning at each iteration
+    - tool_call: When a tool is being called
+    - tool_result: When a tool completes
+    - token: Streaming response text
+    - complete: Final metadata with architecture="simplified_v3"
+    - error: If something goes wrong
+    """
+    async def generate_stream():
+        try:
+            logger.info(f"[V3] Streaming message for conversation {conversation_id}")
+
+            result = await conversation_manager.process_message_v3(
+                conversation_id=conversation_id,
+                user_message=request.message,
+                user_id=user_id,
+                streaming=True
+            )
+
+            # If result is a dict (error case or fallback to V2), yield it once
+            if isinstance(result, dict):
+                yield f"data: {json.dumps({'type': 'error', 'error': result.get('error', 'Unknown error')})}\n\n"
+                return
+
+            # Otherwise, it should be an async generator
+            async for chunk in result:
+                # Format as SSE - include ALL V3 event types
+                event_type = chunk.get('type', '')
+                if event_type in ['status', 'progress', 'agent_thinking', 'tool_call', 'tool_result', 'token', 'complete', 'error']:
+                    yield f"data: {json.dumps(chunk)}\n\n"
+
+        except Exception as e:
+            logger.error(f"[V3] Error in streaming: {e}")
+            import traceback
+            traceback.print_exc()
+            error_chunk = {'type': 'error', 'error': str(e), 'stage': 'error'}
+            yield f"data: {json.dumps(error_chunk)}\n\n"
+
+    return StreamingResponse(
+        generate_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        }
+    )
+
+
+@router.post("/{conversation_id}/message/v3")
+async def send_message_v3(
+    conversation_id: int,
+    request: MessageRequest,
+    user_id: int = 1
+) -> MessageResponse:
+    """
+    Send a message and get a response using V3 simplified architecture (non-streaming).
+
+    V3 uses a single agentic loop - no intent classification, just the agent deciding
+    what tools to use based on the query and conversation context.
+    """
+    try:
+        logger.info(f"[V3] Processing message for conversation {conversation_id}")
+
+        result = await conversation_manager.process_message_v3(
+            conversation_id=conversation_id,
+            user_message=request.message,
+            user_id=user_id,
+            streaming=False
+        )
+
+        metadata = result.get('metadata', {})
+
+        return MessageResponse(
+            response=result.get('response', ''),
+            memory_used={},
+            retrieval_stats={},
+            tools_executed=metadata.get('tools_used', []),
+            processing_time_ms=metadata.get('processing_time_ms', 0),
+            confidence=metadata.get('confidence', 0.0),
+            grounded=True,
+            citations=[]
+        )
+
+    except Exception as e:
+        logger.error(f"[V3] Error in send_message: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/{conversation_id}/memory")
 async def get_conversation_memory(conversation_id: int):
     """
@@ -130,7 +232,7 @@ async def get_conversation_memory(conversation_id: int):
     """
     try:
         stats = conversation_manager.get_conversation_stats(conversation_id)
-        
+
         return {
             'conversation_id': conversation_id,
             'memory_stats': stats.get('memory', {}),

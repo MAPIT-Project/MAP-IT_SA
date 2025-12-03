@@ -534,7 +534,7 @@ class ConversationManager:
         user_message: str,
         user_id: int,
         streaming: bool = False
-    ) -> Dict[str, Any]:
+    ):
         """
         SIMPLIFIED ARCHITECTURE - Single Agentic Loop
 
@@ -557,8 +557,33 @@ class ConversationManager:
                 streaming=streaming
             )
 
+        # For streaming, return the async generator
+        if streaming:
+            return self._stream_v3_response(
+                conversation_id=conversation_id,
+                user_message=user_message,
+                user_id=user_id,
+                start_time=start_time
+            )
+
+        # Non-streaming: process synchronously
+        return await self._process_v3_sync(
+            conversation_id=conversation_id,
+            user_message=user_message,
+            user_id=user_id,
+            start_time=start_time
+        )
+
+    async def _process_v3_sync(
+        self,
+        conversation_id: int,
+        user_message: str,
+        user_id: int,
+        start_time: datetime
+    ) -> Dict[str, Any]:
+        """Non-streaming V3 processing."""
         logger.info("=" * 60)
-        logger.info("🚀 SIMPLIFIED ARCHITECTURE V3")
+        logger.info("🚀 SIMPLIFIED ARCHITECTURE V3 (sync)")
         logger.info(f"   Query: {user_message[:100]}...")
         logger.info("=" * 60)
 
@@ -630,6 +655,178 @@ class ConversationManager:
             import traceback
             traceback.print_exc()
             return self._create_error_response(str(e))
+
+    async def _stream_v3_response(
+        self,
+        conversation_id: int,
+        user_message: str,
+        user_id: int,
+        start_time: datetime
+    ) -> AsyncGenerator[Dict[str, Any], None]:
+        """
+        Stream V3 response with real-time events.
+
+        Yields events:
+        - status: Processing stages
+        - agent_thinking: Agent's reasoning at each iteration
+        - tool_call: When a tool is being called
+        - tool_result: When a tool completes
+        - agent_iteration: After each reasoning iteration
+        - token: Streaming response text
+        - complete: Final metadata
+        - error: If something goes wrong
+        """
+        logger.info("=" * 60)
+        logger.info("🚀 SIMPLIFIED ARCHITECTURE V3 (streaming)")
+        logger.info(f"   Query: {user_message[:100]}...")
+        logger.info("=" * 60)
+
+        try:
+            # Initial status
+            yield {
+                'type': 'status',
+                'stage': 'processing',
+                'message': 'Processing...'
+            }
+
+            # 1. Get conversation history
+            recent_messages = self._get_recent_messages_simple(conversation_id, limit=10)
+            conversation_context = self._format_conversation_for_agent(recent_messages)
+
+            yield {
+                'type': 'status',
+                'stage': 'context_loaded',
+                'message': f'Loaded {len(recent_messages)} messages from conversation history'
+            }
+
+            # 2. Store user message
+            self.memory_service.add_conversation_turn(
+                conversation_id=conversation_id,
+                role='user',
+                content=user_message,
+                message_id=random.randint(1000, 9999)
+            )
+
+            yield {
+                'type': 'status',
+                'stage': 'agent_starting',
+                'message': 'AI agent is analyzing your question...'
+            }
+
+            # 3. Run the agentic loop with streaming events
+            agent_result = await self._run_agent_with_streaming(
+                query=user_message,
+                context=conversation_context,
+                recent_messages=recent_messages
+            )
+
+            # Yield agent progress events
+            for step in agent_result.get('reasoning_steps', []):
+                # Agent thinking
+                yield {
+                    'type': 'agent_thinking',
+                    'stage': 'reasoning',
+                    'iteration': step.get('step', 0),
+                    'thought': step.get('thought', '')[:200]
+                }
+
+                # Tool calls
+                for tool_name in step.get('tools_called', []):
+                    yield {
+                        'type': 'tool_call',
+                        'stage': 'executing_tool',
+                        'tool_name': tool_name,
+                        'iteration': step.get('step', 0)
+                    }
+
+                # Tool results
+                if step.get('observation'):
+                    yield {
+                        'type': 'tool_result',
+                        'stage': 'tool_complete',
+                        'result_summary': step.get('observation', '')[:150],
+                        'iteration': step.get('step', 0)
+                    }
+
+            # 4. Get/synthesize answer
+            answer = agent_result.get('answer', '')
+            if not answer or len(answer) < 50:
+                yield {
+                    'type': 'status',
+                    'stage': 'synthesizing',
+                    'message': 'Synthesizing response from search results...'
+                }
+                answer = await self._synthesize_agent_response(
+                    query=user_message,
+                    agent_result=agent_result,
+                    context=conversation_context
+                )
+
+            # 5. Store assistant response
+            if answer:
+                self.memory_service.add_conversation_turn(
+                    conversation_id=conversation_id,
+                    role='assistant',
+                    content=answer[:2000],
+                    message_id=random.randint(10000, 99999)
+                )
+
+            # 6. Stream the response tokens
+            yield {
+                'type': 'status',
+                'stage': 'streaming_response',
+                'message': 'Generating response...'
+            }
+
+            # Stream in chunks
+            chunk_size = 50
+            for i in range(0, len(answer), chunk_size):
+                chunk = answer[i:i+chunk_size]
+                yield {
+                    'type': 'token',
+                    'content': chunk
+                }
+                await asyncio.sleep(0.01)  # Small delay for smooth streaming
+
+            # 7. Complete event
+            processing_time = (datetime.now() - start_time).total_seconds() * 1000
+
+            yield {
+                'type': 'complete',
+                'metadata': {
+                    'architecture': 'simplified_v3',
+                    'confidence': agent_result.get('confidence', 0.8),
+                    'iterations': agent_result.get('iterations', 0),
+                    'tools_used': agent_result.get('sources_used', []),
+                    'reasoning_steps': agent_result.get('reasoning_steps', []),
+                    'processing_time_ms': processing_time
+                }
+            }
+
+        except Exception as e:
+            logger.error(f"V3 streaming error: {e}")
+            import traceback
+            traceback.print_exc()
+            yield {
+                'type': 'error',
+                'error': str(e),
+                'stage': 'error'
+            }
+
+    async def _run_agent_with_streaming(
+        self,
+        query: str,
+        context: str,
+        recent_messages: List[Dict]
+    ) -> Dict[str, Any]:
+        """Run the agent and collect results for streaming."""
+        # For now, just run the regular agent
+        # Future enhancement: make ToolAwareAgent yield events during processing
+        return await self.tool_aware_agent.process_query(
+            query=query,
+            context=context,
+            conversation_history=recent_messages
+        )
 
     def _format_conversation_for_agent(self, messages: List[Dict]) -> str:
         """Format conversation history for the agent."""

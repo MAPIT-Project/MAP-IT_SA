@@ -1537,7 +1537,137 @@ This tool should be preferred over basic search for complex questions about:
         
         self.register_tool(intelligent_search_tool)
         logger.info("📊 Registered intelligent_search tool")
-        
+
+        # ====================================================================
+        # SEARCH FUNDING CALLS TOOL (LOCAL - No External API)
+        # ====================================================================
+
+        async def search_funding_calls_execute(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+            """
+            Search for funding calls using LOCAL database only.
+            No external API calls - uses PostgreSQL funding_calls table.
+            """
+            try:
+                from ..local_call_search_service import LocalCallSearchService
+
+                query = params.get('query', '')
+                keywords = params.get('keywords', [])
+                max_results = params.get('max_results', 15)
+
+                if not query and not keywords:
+                    return {
+                        'success': False,
+                        'error': 'Query or keywords parameter is required',
+                        'error_type': 'validation_error',
+                        'tool_name': 'search_funding_calls',
+                        'calls_found': 0,
+                        'calls': []
+                    }
+
+                # Use keywords if provided, otherwise use query
+                search_query = ' '.join(keywords) if keywords else query
+
+                logger.info(f"🔍 Searching local funding calls: '{search_query}' (max: {max_results})")
+
+                call_service = LocalCallSearchService()
+                results = call_service.search_calls(
+                    query=search_query,
+                    num_results=max_results
+                )
+
+                calls = results.get('calls', [])
+
+                return {
+                    'success': True,
+                    'tool_name': 'search_funding_calls',
+                    'query': search_query,
+                    'calls_found': len(calls),
+                    'calls': [
+                        {
+                            'call_id': c.get('call_id', c.get('topic_code', '')),
+                            'title': c.get('title', ''),
+                            'description': c.get('description', '')[:300] if c.get('description') else '',
+                            'deadline': c.get('deadline', ''),
+                            'action_type': c.get('action_type', ''),
+                            'cluster': c.get('cluster', ''),
+                            'budget': c.get('budget', ''),
+                            'work_programme': c.get('work_programme', '')
+                        }
+                        for c in calls[:max_results]
+                    ],
+                    'current_date': datetime.now().strftime('%Y-%m-%d'),
+                    'search_metadata': {
+                        'source': 'local_database',
+                        'api_used': False
+                    }
+                }
+
+            except Exception as e:
+                logger.error(f"Local funding calls search error: {e}")
+                return {
+                    'success': False,
+                    'error': str(e),
+                    'error_type': 'execution_error',
+                    'tool_name': 'search_funding_calls',
+                    'calls_found': 0,
+                    'calls': []
+                }
+
+        search_funding_calls_tool = Tool(
+            name='search_funding_calls',
+            description='''Search for Horizon Europe funding calls using LOCAL database.
+
+This tool searches the locally ingested Work Programme documents for funding calls.
+NO external API calls - fast and reliable.
+
+Features:
+- Searches funding_calls table in PostgreSQL
+- Returns call IDs, titles, deadlines, budgets, action types
+- Supports keyword-based and natural language queries
+- Works completely offline
+
+Use this tool when the user asks about:
+- Open funding calls
+- Upcoming deadlines
+- Funding opportunities in a specific area
+- Calls for a particular topic or cluster''',
+            parameters_schema={
+                'query': {
+                    'type': 'string',
+                    'required': False,
+                    'description': 'Natural language search query (e.g., "clean energy funding calls")'
+                },
+                'keywords': {
+                    'type': 'array',
+                    'required': False,
+                    'description': 'List of keywords to search for',
+                    'default': []
+                },
+                'max_results': {
+                    'type': 'integer',
+                    'required': False,
+                    'default': 15,
+                    'min': 1,
+                    'max': 50,
+                    'description': 'Maximum number of calls to return'
+                }
+            },
+            execute_func=search_funding_calls_execute,
+            cache_ttl=1800,  # 30 minutes
+            parallel_safe=True,
+            category='call_search',
+            tags=['funding', 'calls', 'horizon_europe', 'deadlines', 'local'],
+            usage_examples=[
+                'Show me clean energy funding calls',
+                'Find open calls for AI research',
+                'What calls are available for hydrogen projects?',
+                'Search for upcoming Cluster 5 calls'
+            ]
+        )
+
+        self.register_tool(search_funding_calls_tool)
+        logger.info("📞 Registered search_funding_calls tool (LOCAL)")
+
         # ====================================================================
         # CONSORTIUM BUILDER TOOL
         # ====================================================================

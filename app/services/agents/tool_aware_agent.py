@@ -894,6 +894,9 @@ What is your next step? Remember: Output ONLY JSON."""
             call_service = LocalCallSearchService()
 
             keywords = params.get('keywords', '')
+            # Handle keywords being a list or string
+            if isinstance(keywords, list):
+                keywords = ' '.join(keywords)
             status = params.get('status', 'open')
             year = params.get('year')
 
