@@ -1876,7 +1876,132 @@ Returns issues that must be addressed and recommendations for improvement.''',
         
         self.register_tool(compliance_checker_tool)
         logger.info("✅ Registered compliance_checker tool")
-    
+
+        # ====================================================================
+        # BUDGET BENCHMARK TOOL
+        # ====================================================================
+
+        from .budget_benchmark import get_budget_benchmark_execute
+
+        budget_benchmark_tool = Tool(
+            name='get_budget_benchmark',
+            description='''Get real budget statistics from funded Horizon Europe projects.
+
+Use this tool when users ask about:
+- Typical budgets for a specific cluster or action type
+- How much EU contribution to request
+- Average budget per partner
+- Consortium size recommendations
+- Whether a specific budget is realistic
+
+Returns real statistics from funded CORDIS projects including:
+- Min/Max/Average/Median EU contributions
+- Budget per partner averages
+- Consortium size statistics
+- Sample funded projects for reference
+- Data-driven recommendations''',
+            parameters_schema={
+                'cluster': {
+                    'type': 'string',
+                    'required': False,
+                    'description': 'Cluster code (e.g., "CL4", "CL5", "EIC")',
+                    'examples': ['CL4', 'CL5', 'CL6', 'EIC']
+                },
+                'action_type': {
+                    'type': 'string',
+                    'required': False,
+                    'description': 'Action type (e.g., "RIA", "IA", "CSA", "ERC-STG")',
+                    'examples': ['RIA', 'IA', 'CSA', 'ERC-STG', 'ERC-COG']
+                },
+                'topic_keywords': {
+                    'type': 'string',
+                    'required': False,
+                    'description': 'Keywords to filter projects (e.g., "AI", "hydrogen", "quantum")',
+                    'examples': ['artificial intelligence', 'hydrogen', 'climate']
+                },
+                'year': {
+                    'type': 'integer',
+                    'required': False,
+                    'description': 'Filter by funding year',
+                    'examples': [2023, 2024]
+                }
+            },
+            execute_func=get_budget_benchmark_execute,
+            cache_ttl=3600,  # 1 hour
+            parallel_safe=True,
+            category='proposal_support',
+            tags=['budget', 'benchmark', 'statistics', 'funding', 'horizon_europe', 'consortium'],
+            usage_examples=[
+                'What is the typical budget for a Cluster 4 RIA project?',
+                'How much should I request for an IA in clean energy?',
+                'What is the average consortium size for health projects?',
+                'Is €5M realistic for an AI research project?',
+                'Budget benchmarks for ERC Starting Grants'
+            ]
+        )
+
+        self.register_tool(budget_benchmark_tool)
+        logger.info("💰 Registered get_budget_benchmark tool")
+
+        # ====================================================================
+        # CONSORTIUM PATTERNS TOOL
+        # ====================================================================
+
+        from .consortium_patterns import get_consortium_patterns_execute
+
+        consortium_patterns_tool = Tool(
+            name='get_consortium_patterns',
+            description='''Analyze consortium composition patterns from funded Horizon Europe projects.
+
+Use this tool when users ask about:
+- Typical consortium composition for a cluster or action type
+- How many SMEs/universities/companies are usually in a project
+- Which countries lead in specific research areas
+- What type of organization usually coordinates
+- Geographic diversity requirements
+
+Returns real patterns from funded CORDIS projects including:
+- Organization type distribution (HES, REC, PRC, SME percentages)
+- Country participation rates
+- Coordinator profiles (by type and country)
+- Sample consortia for reference
+- Data-driven composition recommendations''',
+            parameters_schema={
+                'cluster': {
+                    'type': 'string',
+                    'required': False,
+                    'description': 'Cluster code (e.g., "CL4", "CL5", "EIC")',
+                    'examples': ['CL4', 'CL5', 'CL1', 'EIC']
+                },
+                'action_type': {
+                    'type': 'string',
+                    'required': False,
+                    'description': 'Action type (e.g., "RIA", "IA", "CSA")',
+                    'examples': ['RIA', 'IA', 'CSA']
+                },
+                'topic_keywords': {
+                    'type': 'string',
+                    'required': False,
+                    'description': 'Keywords to filter projects (e.g., "AI", "hydrogen")',
+                    'examples': ['artificial intelligence', 'hydrogen', 'health']
+                }
+            },
+            execute_func=get_consortium_patterns_execute,
+            cache_ttl=3600,  # 1 hour
+            parallel_safe=True,
+            category='proposal_support',
+            tags=['consortium', 'patterns', 'partners', 'composition', 'horizon_europe'],
+            usage_examples=[
+                'What is the typical consortium composition for Cluster 4 RIA projects?',
+                'How many SMEs are usually in an IA project?',
+                'Which countries lead in Health research?',
+                'What type of organization usually coordinates Digital projects?'
+            ]
+        )
+
+        self.register_tool(consortium_patterns_tool)
+        logger.info("🏢 Registered get_consortium_patterns tool")
+
     def get_available_tools(self) -> List[Dict[str, Any]]:
         """
         Get list of available tools with their descriptions and metadata.

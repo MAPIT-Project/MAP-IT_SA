@@ -188,6 +188,8 @@ When the user refers to previous conversation:
    - For funding calls → use search_funding_calls
    - For projects → use search_projects
    - For statistics → use get_programme_statistics or get_country_statistics
+   - For budget/funding questions → use get_budget_benchmark (returns real data from funded projects)
+   - For consortium composition → use get_consortium_patterns (org types, country distribution, coordinator profiles)
    - For eligibility rules → use search_documents
    - For comparing things → use compare_programmes
 
@@ -330,7 +332,42 @@ What is your next step? Remember: Output ONLY JSON."""
                 "get_country_statistics(country='Netherlands', programme='EIC')"
             ]
         ))
-        
+
+        # Budget benchmarking tool
+        self.register_tool(Tool(
+            name="get_budget_benchmark",
+            description="Get real budget statistics from funded Horizon Europe projects. Returns min/max/average/median EU contributions, budget per partner, consortium sizes, and data-driven recommendations.",
+            category=ToolCategory.STATISTICS,
+            parameters={
+                "cluster": "Optional: Cluster code (e.g., 'CL4', 'CL5', 'EIC')",
+                "action_type": "Optional: Action type (e.g., 'RIA', 'IA', 'CSA', 'ERC-STG')",
+                "topic_keywords": "Optional: Keywords to filter projects (e.g., 'AI', 'hydrogen')",
+                "year": "Optional: Filter by funding year"
+            },
+            examples=[
+                "get_budget_benchmark(cluster='CL4', action_type='RIA')",
+                "get_budget_benchmark(action_type='IA', topic_keywords='hydrogen')",
+                "get_budget_benchmark(cluster='CL5')"
+            ]
+        ))
+
+        # Consortium patterns tool
+        self.register_tool(Tool(
+            name="get_consortium_patterns",
+            description="Analyze consortium composition patterns from funded projects. Returns organization type distribution (HES, REC, PRC, SME), country participation rates, coordinator profiles, and composition recommendations.",
+            category=ToolCategory.STATISTICS,
+            parameters={
+                "cluster": "Optional: Cluster code (e.g., 'CL4', 'CL5', 'EIC')",
+                "action_type": "Optional: Action type (e.g., 'RIA', 'IA', 'CSA')",
+                "topic_keywords": "Optional: Keywords to filter projects"
+            },
+            examples=[
+                "get_consortium_patterns(cluster='CL4', action_type='RIA')",
+                "get_consortium_patterns(action_type='IA')",
+                "get_consortium_patterns(topic_keywords='hydrogen')"
+            ]
+        ))
+
         self.register_tool(Tool(
             name="compare_programmes",
             description="Compare statistics between two programmes or clusters",
@@ -936,6 +973,10 @@ What is your next step? Remember: Output ONLY JSON."""
                 return await self._tool_verify_eligibility(params)
             elif tool_name == 'cross_reference':
                 return await self._tool_cross_reference(params)
+            elif tool_name == 'get_budget_benchmark':
+                return await self._tool_get_budget_benchmark(params)
+            elif tool_name == 'get_consortium_patterns':
+                return await self._tool_get_consortium_patterns(params)
             else:
                 return {"error": f"Tool {tool_name} not implemented"}
         except Exception as e:
@@ -1532,7 +1573,45 @@ What is your next step? Remember: Output ONLY JSON."""
             results['graph'] = await self._tool_get_programme_stats({'programme': claim})
         
         return {"cross_reference": results}
-    
+
+    async def _tool_get_budget_benchmark(self, params: Dict) -> Dict:
+        """Get budget benchmarks from funded Horizon Europe projects."""
+        try:
+            from ..tools.budget_benchmark import BudgetBenchmarkTool
+
+            tool = BudgetBenchmarkTool()
+            result = tool.get_benchmark(
+                cluster=params.get('cluster'),
+                action_type=params.get('action_type'),
+                topic_keywords=params.get('topic_keywords'),
+                year=params.get('year')
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Budget benchmark error: {e}")
+            return {"error": str(e)}
+
+    async def _tool_get_consortium_patterns(self, params: Dict) -> Dict:
+        """Get consortium composition patterns from funded projects."""
+        try:
+            from ..tools.consortium_patterns import ConsortiumPatternsTool
+
+            tool = ConsortiumPatternsTool()
+            result = tool.get_patterns(
+                cluster=params.get('cluster'),
+                action_type=params.get('action_type'),
+                topic_keywords=params.get('topic_keywords'),
+                min_projects=params.get('min_projects', 10)
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Consortium patterns error: {e}")
+            return {"error": str(e)}
+
     def _summarize_tool_results(self, tool_calls: List[ToolCall]) -> str:
         """Summarize results from tool calls in a human-readable format."""
         summaries = []
@@ -1595,6 +1674,70 @@ What is your next step? Remember: Output ONLY JSON."""
                 return f"Call {call_id}: {title}\n{desc}" if desc else f"Call {call_id}: {title}"
             elif result.get('message'):
                 return result['message']
+
+        # Handle budget benchmark results
+        if 'statistics' in result and 'total_eu_contribution' in result.get('statistics', {}):
+            stats = result['statistics']
+            contrib = stats.get('total_eu_contribution', {})
+            consortium = stats.get('consortium_size', {})
+            recs = result.get('recommendations', {})
+
+            parts = [f"Budget Benchmark Analysis ({stats.get('projects_analyzed', 'N/A')} projects):"]
+
+            if contrib:
+                avg = contrib.get('average', 0)
+                median = contrib.get('median', 0)
+                parts.append(f"- EU Contribution: €{median/1_000_000:.1f}M median, €{avg/1_000_000:.1f}M average")
+                parts.append(f"- Range: €{contrib.get('min', 0)/1_000_000:.1f}M - €{contrib.get('max', 0)/1_000_000:.1f}M")
+
+            if consortium:
+                parts.append(f"- Consortium Size: {consortium.get('median', 0):.0f} partners (avg: {consortium.get('average', 0):.1f})")
+
+            if recs:
+                parts.append(f"- Recommended Budget: {recs.get('suggested_budget_range', 'N/A')}")
+                parts.append(f"- Recommended Partners: {recs.get('suggested_consortium_size', 'N/A')}")
+
+            return "\n".join(parts)
+
+        # Handle consortium patterns results
+        if 'organization_type_distribution' in result and 'consortium_size' in result:
+            projects = result.get('projects_analyzed', 'N/A')
+            consortium = result.get('consortium_size', {})
+            org_dist = result.get('organization_type_distribution', {})
+            country_patterns = result.get('country_patterns', {})
+            recs = result.get('recommendations', {})
+
+            parts = [f"Consortium Patterns Analysis ({projects} projects):"]
+
+            # Consortium size
+            if consortium:
+                parts.append(f"- Consortium Size: {consortium.get('median', 0):.0f} partners (avg: {consortium.get('average', 0):.1f})")
+                parts.append(f"- Recommended: {consortium.get('recommended', 'N/A')}")
+
+            # Org type distribution
+            if org_dist:
+                type_parts = []
+                for org_type, data in sorted(org_dist.items(), key=lambda x: x[1].get('percentage', 0), reverse=True)[:4]:
+                    pct = data.get('percentage', 0)
+                    type_parts.append(f"{org_type}: {pct:.0f}%")
+                parts.append(f"- Organization Mix: {', '.join(type_parts)}")
+
+            # Top countries
+            top_countries = country_patterns.get('top_participating', [])[:5]
+            if top_countries:
+                countries = [c['country'] for c in top_countries]
+                parts.append(f"- Top Countries: {', '.join(countries)}")
+
+            # Geographic diversity
+            geo = country_patterns.get('geographic_diversity', {})
+            if geo:
+                parts.append(f"- Avg Countries per Project: {geo.get('avg_countries', 'N/A')}")
+
+            # Recommendations
+            if recs.get('ideal_composition'):
+                parts.append(f"- Ideal Mix: {'; '.join(recs['ideal_composition'][:3])}")
+
+            return "\n".join(parts)
 
         # Handle error messages
         if 'error' in result:
