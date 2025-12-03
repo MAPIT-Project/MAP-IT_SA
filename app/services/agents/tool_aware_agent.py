@@ -160,6 +160,15 @@ Respond ONLY with JSON (no other text):
 4. Can call multiple tools in parallel if independent
 5. Cite your sources in the conclusion
 
+## Response Formatting Guidelines
+
+When presenting results to users:
+- For funding calls: Show ALL relevant results (up to 10), not just 2-3
+- For each call/project: Include title, deadline (if available), cluster/programme, and brief description
+- Format as a numbered list for easy reference
+- Include call IDs when available so users can ask "tell me more about #3"
+- Don't truncate or summarize too aggressively - users want details
+
 ## Conversation History
 
 {context}
@@ -625,10 +634,10 @@ What is your next step? Remember: Output ONLY JSON."""
             if step.observation:
                 steps_text += f"Observation: {step.observation[:300]}...\n"
         
-        # Format tool results
+        # Format tool results - use larger limit to show more results
         results_text = ""
         for name, result in tool_results.items():
-            result_str = str(result)[:500] if result else "No results"
+            result_str = str(result)[:3000] if result else "No results"
             results_text += f"\n**{name}**: {result_str}\n"
         
         # Build prompt
@@ -1160,14 +1169,15 @@ What is your next step? Remember: Output ONLY JSON."""
     def _summarize_tool_results(self, tool_calls: List[ToolCall]) -> str:
         """Summarize results from tool calls."""
         summaries = []
-        
+
         for tc in tool_calls:
             if tc.success:
-                result_str = str(tc.result)[:200]
+                # Use larger limit to capture more results
+                result_str = str(tc.result)[:2000]
                 summaries.append(f"{tc.tool_name}: {result_str}")
             else:
                 summaries.append(f"{tc.tool_name}: Failed - {tc.error}")
-        
+
         return "\n".join(summaries)
     
     def _build_fallback_answer(self, plan: AgentPlan) -> str:
