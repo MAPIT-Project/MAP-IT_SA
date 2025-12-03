@@ -1,7 +1,7 @@
 # MAP-IT System Architecture
 
 > **Last Updated:** December 2, 2024  
-> **Version:** 2.1 (LLM-Driven Complexity Detection + Multi-Tool Reasoning)
+> **Version:** 2.2 (Always Multi-Tool ReAct for Best Results)
 
 ---
 
@@ -61,30 +61,26 @@ MAP-IT is an intelligent research assistant for EU funding programs (Horizon Eur
                     ┌─────────────┴─────────────┐
                     │                           │
                     ▼                           ▼
-┌───────────────────────────────┐   ┌───────────────────────────────────────┐
-│      SIMPLE QUERIES           │   │         COMPLEX QUERIES                │
-│   (faq, search_calls, etc.)   │   │   (comparisons, analysis, multi-source)│
-└───────────────┬───────────────┘   └───────────────────┬───────────────────┘
-                │                                       │
-                ▼                                       ▼
-┌───────────────────────────────┐   ┌───────────────────────────────────────┐
-│      AGENTIC MANAGER          │   │       TOOL-AWARE AGENT                 │
-│   (Self-Correcting Loop)      │   │      (ReAct Multi-Tool)                │
-│                               │   │                                        │
-│  ┌─────────────────────────┐  │   │  ┌──────────────────────────────────┐ │
-│  │ 1. Understand           │  │   │  │ 1. THINK: What tools do I need?  │ │
-│  │ 2. Plan                 │  │   │  │ 2. ACT: Call tools (parallel OK) │ │
-│  │ 3. Execute              │  │   │  │ 3. OBSERVE: Review results       │ │
-│  │ 4. Evaluate (0-100)     │  │   │  │ 4. REPEAT: Need more info?       │ │
-│  │ 5. Reflect (if needed)  │  │   │  │ 5. CONCLUDE: Synthesize answer   │ │
-│  │ 6. Replan (if needed)   │  │   │  └──────────────────────────────────┘ │
-│  │ 7. Synthesize           │  │   │                                        │
-│  └─────────────────────────┘  │   │  Max 5 iterations, 11 tools available  │
-│                               │   │                                        │
-│  Max 3 iterations             │   └───────────────────────────────────────┘
-└───────────────┬───────────────┘                   │
-                │                                   │
-                └─────────────┬─────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     ALL QUERIES → TOOL-AWARE AGENT                          │
+│                        (ReAct Multi-Tool Reasoning)                         │
+│                                                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐ │
+│  │  1. THINK: Analyze query, decide which tools to use                   │ │
+│  │  2. ACT: Call tools (can run multiple in parallel)                    │ │
+│  │  3. OBSERVE: Review results from tools                                │ │
+│  │  4. REPEAT: If more info needed, think again and call more tools     │ │
+│  │  5. CONCLUDE: Synthesize final answer from all gathered data          │ │
+│  └───────────────────────────────────────────────────────────────────────┘ │
+│                                                                             │
+│  Smart Behavior:                                                            │
+│  • Simple queries ("What is RIA?") → 1-2 iterations, fast                  │
+│  • Complex queries ("Compare EIC vs ERC") → Up to 5 iterations, thorough   │
+│  • 11 tools available: stats, docs, calls, projects, validation            │
+│                                                                             │
+│  Fallback: Simple loop only if ToolAwareAgent unavailable                  │
+└──────────────────────────────────┬──────────────────────────────────────────┘
+                                   │
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -150,8 +146,10 @@ The `UnifiedIntentClassifier` outputs:
 | `multi_source` | Needs multiple info types | "Eligibility AND success rates" |
 | `validation` | Verify/confirm | "Is EIC success rate really 8%?" |
 
-- **Simple queries** → Agentic Loop (self-correcting)
-- **Complex queries** (`requires_multi_tool=true`) → Tool-Aware Agent
+**Routing (v2.2):**
+- **ALL queries** → Tool-Aware Agent (ReAct) for best results
+- The agent is smart: simple queries finish in 1-2 iterations, complex ones use up to 5
+- Simple loop is only used as fallback if ToolAwareAgent is unavailable
 
 ### Phase 3: Execution
 

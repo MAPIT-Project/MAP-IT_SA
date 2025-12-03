@@ -10,11 +10,17 @@ For complex queries requiring multiple tools, delegates to ToolAwareAgent.
 """
 Agentic Manager
 
-Main orchestrator for the self-correcting agentic loop.
-Coordinates understanding, planning, execution, evaluation, reflection, and replanning.
+Main orchestrator for intelligent query processing.
 
-For complex queries requiring multiple tools, delegates to ToolAwareAgent.
-Complexity is determined by LLM (UnifiedIntentClassifier), NOT regex!
+ARCHITECTURE (v2.2):
+- ALWAYS uses ToolAwareAgent (ReAct pattern) for best results
+- Multi-tool reasoning ensures thorough answers from multiple sources
+- Self-correcting with evaluation and reflection
+- Falls back to simple loop only if ToolAwareAgent is unavailable
+
+The ToolAwareAgent is smart enough to:
+- Finish quickly for simple queries (1-2 iterations)
+- Use multiple tools and reasoning for complex queries (up to 5 iterations)
 """
 
 import logging
@@ -114,46 +120,47 @@ class AgenticManager:
         conversation_id: Optional[str] = None,
         conversation_history: List[Dict] = None,
         stream_progress: bool = False,
-        force_multi_tool: bool = False,
+        force_simple: bool = False,  # Only use simple loop if explicitly forced
         intent_classification: Optional[Any] = None  # UnifiedIntent from classifier
     ) -> Dict[str, Any]:
         """
-        Process a query through the agentic loop.
+        Process a query using the best available method.
         
-        For complex queries (comparisons, multi-source, analysis), automatically
-        delegates to the ToolAwareAgent for multi-tool reasoning.
+        ALWAYS uses ToolAwareAgent (ReAct pattern) for best results.
+        The agent is smart enough to:
+        - Finish quickly for simple queries (1-2 iterations)  
+        - Use multiple tools for complex queries (up to 5 iterations)
         
-        IMPORTANT: Complexity is determined by LLM (UnifiedIntentClassifier), NOT regex!
-        Pass the intent_classification from the classifier to use its decision.
+        Only falls back to simple loop if:
+        - ToolAwareAgent is unavailable, OR
+        - force_simple=True is explicitly set
         
         Args:
             query: User's question
             conversation_id: Optional conversation ID for context
             conversation_history: Previous messages in conversation
-            stream_progress: Whether to enable progress streaming (for future use)
-            force_multi_tool: Force using multi-tool agent even for simple queries
-            intent_classification: Optional UnifiedIntent from classifier with LLM complexity decision
+            stream_progress: Whether to enable progress streaming
+            force_simple: Force using simple loop instead of multi-tool (not recommended)
+            intent_classification: Optional UnifiedIntent from classifier
             
         Returns:
             Dict with response, context, and metadata
         """
-        # Use LLM's complexity decision if provided, otherwise default to simple
-        is_complex = force_multi_tool
-        complexity_type = 'simple'
+        # Extract complexity info from classification (for logging/metadata)
+        complexity_type = 'auto'
         suggested_tools = []
         
         if intent_classification:
-            # LLM determined complexity - use its decision!
-            is_complex = getattr(intent_classification, 'requires_multi_tool', False)
-            complexity_type = getattr(intent_classification, 'complexity_type', 'simple')
+            complexity_type = getattr(intent_classification, 'complexity_type', 'auto')
             suggested_tools = getattr(intent_classification, 'suggested_tools', [])
-            
-            if is_complex:
-                logger.info(f"🧠 LLM determined COMPLEX query: {complexity_type}")
-                logger.info(f"   Suggested tools: {suggested_tools}")
         
-        if is_complex and self._tool_agent_available:
-            logger.info(f"🧠 Routing to ToolAwareAgent for {complexity_type} query")
+        # ALWAYS use ToolAwareAgent for best results (unless forced to simple or unavailable)
+        if self._tool_agent_available and not force_simple:
+            logger.info(f"🧠 Using ToolAwareAgent (ReAct) for BEST results")
+            if complexity_type != 'auto':
+                logger.info(f"   LLM complexity hint: {complexity_type}")
+            if suggested_tools:
+                logger.info(f"   Suggested tools: {suggested_tools}")
             
             return await self._process_with_tool_agent(
                 query=query,
@@ -161,6 +168,10 @@ class AgenticManager:
                 complexity_type=complexity_type,
                 suggested_tools=suggested_tools
             )
+        
+        # Fallback to simple loop only if ToolAwareAgent unavailable
+        if not self._tool_agent_available:
+            logger.warning("⚠️ ToolAwareAgent unavailable, using simple loop")
         
         # Standard self-correcting loop for simpler queries
         # Initialize context
@@ -757,27 +768,26 @@ class AgenticManager:
         query: str,
         conversation_id: Optional[str] = None,
         conversation_history: List[Dict] = None,
-        intent_classification: Optional[Any] = None  # UnifiedIntent from classifier
+        intent_classification: Optional[Any] = None,  # UnifiedIntent from classifier
+        force_simple: bool = False
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """
         Process a query with streaming progress updates.
         
-        Yields status updates as the agent progresses through phases.
-        Routes to multi-tool reasoning based on LLM's complexity decision.
+        ALWAYS uses ToolAwareAgent (ReAct pattern) for best results.
+        Yields status updates showing reasoning steps and tool calls.
         """
         
-        # Use LLM's complexity decision if provided
-        is_complex = False
-        complexity_type = 'simple'
+        # Extract complexity info from classification (for logging)
+        complexity_type = 'auto'
         suggested_tools = []
         
         if intent_classification:
-            is_complex = getattr(intent_classification, 'requires_multi_tool', False)
-            complexity_type = getattr(intent_classification, 'complexity_type', 'simple')
+            complexity_type = getattr(intent_classification, 'complexity_type', 'auto')
             suggested_tools = getattr(intent_classification, 'suggested_tools', [])
         
-        if is_complex and self._tool_agent_available:
-            # Route to multi-tool streaming
+        # ALWAYS use multi-tool for best results (unless forced to simple or unavailable)
+        if self._tool_agent_available and not force_simple:
             async for update in self._stream_multi_tool_query(
                 query, 
                 conversation_history,
@@ -786,6 +796,14 @@ class AgenticManager:
             ):
                 yield update
             return
+        
+        # Fallback only if unavailable
+        if not self._tool_agent_available:
+            yield {
+                'type': 'status',
+                'message': 'Using simple search (multi-tool unavailable)',
+                'phase': 'fallback'
+            }
         
         # Standard streaming for simpler queries
         # Initialize context
