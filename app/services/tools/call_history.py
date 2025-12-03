@@ -69,7 +69,7 @@ class CallHistoryTool:
         year_to: Optional[int] = None,
         action_types: Optional[List[str]] = None,
         include_projects: bool = True,
-        limit: int = 50
+        limit: int = 500
     ) -> Dict[str, Any]:
         """
         Analyze historical funding patterns for specific topic areas.
@@ -109,7 +109,13 @@ class CallHistoryTool:
                 year_from, year_to, action_types, limit
             )
 
-            # Get funded projects
+            # Get timeline aggregates (full data, no limit)
+            timeline = self._get_timeline_aggregates(
+                cursor, topic_pattern, cluster, keywords,
+                year_from, year_to
+            )
+
+            # Get funded projects (limited, for samples and detailed analysis)
             projects = []
             if include_projects:
                 projects = self._get_funded_projects(
@@ -120,7 +126,7 @@ class CallHistoryTool:
             cursor.close()
             conn.close()
 
-            if not calls and not projects:
+            if not calls and not timeline:
                 return {
                     "success": True,
                     "tool_name": "analyze_call_history",
@@ -140,8 +146,11 @@ class CallHistoryTool:
                     ]
                 }
 
-            # Build timeline
-            timeline = self._build_timeline(calls, projects)
+            # Update timeline with call counts
+            for call in calls:
+                year = call.get('year')
+                if year and year in timeline:
+                    timeline[year]["calls"] += 1
 
             # Analyze by action type
             by_action_type = self._analyze_by_action_type(calls, projects)
@@ -155,8 +164,9 @@ class CallHistoryTool:
             # Generate recommendations
             recommendations = self._generate_recommendations(trends, top_topics, cluster, keywords)
 
-            # Calculate totals
-            total_funding = sum(p.get('eu_contribution', 0) for p in projects)
+            # Calculate totals from timeline (accurate, not limited)
+            total_funding = sum(t.get('total_funding', 0) for t in timeline.values())
+            total_projects = sum(t.get('projects_funded', 0) for t in timeline.values())
 
             return {
                 "success": True,
@@ -170,8 +180,8 @@ class CallHistoryTool:
                 },
                 "calls_analyzed": len(calls),
                 "total_funding_allocated": total_funding,
-                "projects_funded": len(projects),
-                "timeline": timeline,
+                "projects_funded": total_projects,
+                "timeline": dict(sorted(timeline.items(), reverse=True)),
                 "funding_by_action_type": by_action_type,
                 "top_funded_topics": top_topics[:10],
                 "trends": trends,
@@ -297,17 +307,15 @@ class CallHistoryTool:
             return 'MSCA'
         return None
 
-    def _get_funded_projects(
+    def _build_where_clause(
         self,
-        cursor,
         topic_pattern: Optional[str],
         cluster: Optional[str],
         keywords: Optional[str],
         year_from: Optional[int],
-        year_to: Optional[int],
-        limit: int
-    ) -> List[Dict]:
-        """Get funded projects matching criteria."""
+        year_to: Optional[int]
+    ) -> tuple:
+        """Build WHERE clause and params for project queries."""
         where_conditions = ["\"frameworkProgramme\" = 'HORIZON'"]
         params = []
 
@@ -316,7 +324,6 @@ class CallHistoryTool:
             params.append(f"%{topic_pattern}%")
 
         if cluster:
-            # Map cluster to what appears in topics field
             cluster_patterns = {
                 'CL1': ['CL1', 'HLTH'],
                 'CL2': ['CL2'],
@@ -346,7 +353,67 @@ class CallHistoryTool:
             where_conditions.append("EXTRACT(YEAR FROM \"startDate\") <= %s")
             params.append(year_to)
 
-        where_clause = " AND ".join(where_conditions)
+        return " AND ".join(where_conditions), params
+
+    def _get_timeline_aggregates(
+        self,
+        cursor,
+        topic_pattern: Optional[str],
+        cluster: Optional[str],
+        keywords: Optional[str],
+        year_from: Optional[int],
+        year_to: Optional[int]
+    ) -> Dict[int, Dict]:
+        """Get aggregated timeline data directly from database (no limit)."""
+        where_clause, params = self._build_where_clause(
+            topic_pattern, cluster, keywords, year_from, year_to
+        )
+
+        sql = f"""
+            SELECT
+                EXTRACT(YEAR FROM "startDate")::int as year,
+                COUNT(*) as project_count,
+                SUM("ecMaxContribution") as total_funding,
+                AVG("ecMaxContribution") as avg_funding,
+                COUNT(DISTINCT "fundingScheme") as scheme_count
+            FROM projects
+            WHERE {where_clause}
+              AND "startDate" IS NOT NULL
+            GROUP BY EXTRACT(YEAR FROM "startDate")
+            ORDER BY year DESC
+        """
+
+        cursor.execute(sql, params)
+        results = cursor.fetchall()
+
+        timeline = {}
+        for r in results:
+            year = r['year']
+            if year:
+                timeline[year] = {
+                    "projects_funded": int(r['project_count'] or 0),
+                    "total_funding": float(r['total_funding'] or 0),
+                    "avg_project_budget": round(float(r['avg_funding'] or 0), 0),
+                    "calls": 0,  # Will be updated from calls data
+                    "key_topics": []
+                }
+
+        return timeline
+
+    def _get_funded_projects(
+        self,
+        cursor,
+        topic_pattern: Optional[str],
+        cluster: Optional[str],
+        keywords: Optional[str],
+        year_from: Optional[int],
+        year_to: Optional[int],
+        limit: int
+    ) -> List[Dict]:
+        """Get funded projects matching criteria (for samples and detailed analysis)."""
+        where_clause, params = self._build_where_clause(
+            topic_pattern, cluster, keywords, year_from, year_to
+        )
 
         sql = f"""
             SELECT

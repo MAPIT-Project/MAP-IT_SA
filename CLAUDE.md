@@ -49,7 +49,7 @@ The system uses a sophisticated **agentic architecture** that can:
 - `agents/` - Agentic AI components with reflection, evaluation, planning
 - `data_intelligence/` - Graph search, query planning, cross-encoder reranking
 - `rag/` - RAG-specific components (retrievers, chunkers, generators)
-- `tools/` - Tool orchestration for multi-step reasoning (16 tools available)
+- `tools/` - Tool orchestration for multi-step reasoning (21 tools available)
 - `call_extractors/` - Funding call document processing
 - `conversation/` - Conversation management and memory
 - `memory/` - Short/long-term memory systems
@@ -60,8 +60,8 @@ The system uses a sophisticated **agentic architecture** that can:
 - `routes.py` - Legacy V2 API routes
 - `conversation_routes_v3.py` - V3 simplified architecture routes
 
-### Available Tools (16 Tools)
-The system has 16 tools available for the multi-tool agent:
+### Available Tools (21 Tools)
+The system has 21 tools available for the multi-tool agent:
 
 **Statistics Tools:**
 - `get_programme_statistics`: Success rates, funding amounts for a programme
@@ -90,6 +90,13 @@ The system has 16 tools available for the multi-tool agent:
 **Validation Tools:**
 - `verify_eligibility`: Check eligibility for a scenario
 - `cross_reference`: Verify info across sources
+
+**Proposal Support Tools (Group 2):**
+- `get_budget_benchmark`: Get budget statistics from similar funded projects (by action type, cluster, year)
+- `get_consortium_patterns`: Analyze consortium composition patterns (org types, countries, sizes)
+- `find_experienced_partners`: Find organizations with experience in specific research areas
+- `get_similar_funded_projects`: Find semantically similar funded projects using AI embeddings
+- `analyze_call_history`: Analyze historical funding patterns for topics/clusters (timeline, trends, action types)
 
 ### Key Services
 

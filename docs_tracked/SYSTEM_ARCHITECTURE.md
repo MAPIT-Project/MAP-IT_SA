@@ -163,7 +163,7 @@ I found **15 funding opportunities** for your query:
 │  Smart Behavior:                                                            │
 │  • Simple queries ("What is RIA?") → 1-2 iterations, fast                  │
 │  • Complex queries ("Compare EIC vs ERC") → Up to 5 iterations, thorough   │
-│  • 16 tools available: stats, docs, calls, projects, semantic similarity   │
+│  • 21 tools available: stats, docs, calls, projects, proposal support      │
 │                                                                             │
 │  Fallback: Simple loop only if ToolAwareAgent unavailable                  │
 └──────────────────────────────────┬──────────────────────────────────────────┘
@@ -384,7 +384,7 @@ For **complex queries** (comparisons, analysis, multi-source), the Tool-Aware Ag
 
 ## Available Tools
 
-The system has **16 tools** available for the multi-tool agent:
+The system has **21 tools** available for the multi-tool agent:
 
 ### Statistics Tools
 
@@ -490,6 +490,73 @@ search_by_cluster(cluster='Climate')
 verify_eligibility(entity_type='SME', country='Switzerland', programme='Horizon Europe')
 # Returns: { "eligible": true, "conditions": [...], "sources": [...] }
 ```
+
+### Proposal Support Tools (Group 2)
+
+These tools help users improve proposal quality using **real data from 13,865+ funded projects**:
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_budget_benchmark` | Get budget statistics from similar funded projects | `action_type`, `cluster` (optional), `year_from` (optional) |
+| `get_consortium_patterns` | Analyze consortium composition patterns | `action_type`, `cluster` (optional) |
+| `find_experienced_partners` | Find organizations with track record in specific areas | `keywords`, `country` (optional), `org_type` (optional), `limit` |
+| `get_similar_funded_projects` | Find semantically similar funded projects using embeddings | `query`, `action_type` (optional), `cluster` (optional), `limit` |
+| `analyze_call_history` | Analyze historical funding patterns for topics/clusters | `topic_pattern` (optional), `cluster` (optional), `keywords` (optional), `year_from`, `year_to` |
+
+**Examples:**
+```python
+# Budget benchmarking - "What's typical for a Climate RIA?"
+get_budget_benchmark(action_type='RIA', cluster='CL5')
+# Returns: {
+#   "total_projects": 234,
+#   "budget": {"mean": 8.5M, "median": 7.2M, "min": 2.1M, "max": 25M},
+#   "consortium_size": {"mean": 12, "median": 10},
+#   "by_year": {...}
+# }
+
+# Consortium patterns - "What's the typical makeup of Health IAs?"
+get_consortium_patterns(action_type='IA', cluster='HLTH')
+# Returns: {
+#   "total_projects": 89,
+#   "org_type_distribution": {"HES": 35%, "REC": 28%, "PRC": 22%, "OTH": 15%},
+#   "country_distribution": {"Germany": 18%, "France": 14%, ...},
+#   "coordinator_profile": {"avg_experience": 4.2, "top_countries": [...]}
+# }
+
+# Partner discovery - "Find German SMEs with hydrogen experience"
+find_experienced_partners(keywords='hydrogen fuel cells', country='Germany', org_type='SME', limit=10)
+# Returns: {
+#   "experienced_partners": [
+#     {"name": "...", "country": "DE", "project_count": 5, "experience_score": 0.82, ...}
+#   ],
+#   "total_found": 47
+# }
+
+# Similar projects - "Show funded projects like my AI healthcare idea"
+get_similar_funded_projects(query='AI diagnostic imaging for early cancer detection', limit=5)
+# Returns: {
+#   "similar_projects": [
+#     {"acronym": "AISCREEN", "similarity_score": 0.67, "objective": "...", ...}
+#   ]
+# }
+
+# Call history - "What got funded in Cluster 4 over the years?"
+analyze_call_history(cluster='CL4', year_from=2021, year_to=2025)
+# Returns: {
+#   "cluster": "CL4 - Digital, Industry, Space",
+#   "projects_funded": 811,
+#   "total_funding": 4.79B EUR,
+#   "timeline": {2024: {"projects_funded": 289, "total_funding": ...}, ...},
+#   "action_type_breakdown": {"RIA": 60%, "IA": 25%, "CSA": 15%},
+#   "trend": "increasing"
+# }
+```
+
+**Design Philosophy:**
+- All data comes from **funded CORDIS projects** (no fake "AI scores" or success predictions)
+- Helps users understand **realistic benchmarks** for their proposals
+- Uses **768-dim embeddings** (Google text-embedding-004) for semantic similarity
+- Timeline aggregations query **all matching projects** for accurate statistics
 
 ---
 
@@ -769,6 +836,12 @@ When using the streaming endpoint, progress updates are sent as SSE:
   - Rich response formatter (V3ResponseFormatter) with emojis, structured data, Apply links
   - On-demand API enrichment for missing call data (titles, descriptions)
   - SSE streaming events: `agent_thinking`, `tool_call`, `tool_result`, `token`, `complete`
+- [x] **Group 2 Proposal Support Tools (5 new tools):**
+  - `get_budget_benchmark`: Budget statistics from 13,865+ funded projects by action type/cluster
+  - `get_consortium_patterns`: Consortium composition analysis (org types, countries, coordinator profiles)
+  - `find_experienced_partners`: Partner discovery with track record scoring and filtering
+  - `get_similar_funded_projects`: Semantic project similarity using 768-dim embeddings
+  - `analyze_call_history`: Historical funding pattern analysis with timeline aggregation
 
 ## Future Improvements
 
