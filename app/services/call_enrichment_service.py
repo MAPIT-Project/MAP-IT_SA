@@ -215,20 +215,33 @@ class CallEnrichmentService:
                 results = data.get('results', [])
                 
                 logger.info(f"API returned {len(results)} results for {topic_code}")
-                
-                # Find the exact matching topic
+
+                # Find matching topic - try exact match first, then partial
                 for result in results:
                     metadata = result.get('metadata', {})
                     # metadata values are lists, get first item
                     identifiers = metadata.get('identifier', [])
                     if identifiers:
                         result_id = identifiers[0].upper() if isinstance(identifiers, list) else str(identifiers).upper()
+                        # Exact match
                         if result_id == topic_code.upper():
+                            logger.info(f"✅ Found exact match for {topic_code}")
                             return self._parse_search_result(result, topic_code)
-                
-                # If no exact match but we have results, return first one
+
+                # Try partial match (topic_code contained in identifier or vice versa)
+                for result in results:
+                    metadata = result.get('metadata', {})
+                    identifiers = metadata.get('identifier', [])
+                    if identifiers:
+                        result_id = identifiers[0].upper() if isinstance(identifiers, list) else str(identifiers).upper()
+                        if topic_code.upper() in result_id or result_id in topic_code.upper():
+                            logger.info(f"✅ Found partial match: {result_id} for {topic_code}")
+                            return self._parse_search_result(result, topic_code)
+
+                # If no match but we have results, use the first one as fallback
                 if results:
-                    logger.info(f"No exact match for {topic_code}, using closest result")
+                    first_id = results[0].get('metadata', {}).get('identifier', ['unknown'])[0]
+                    logger.info(f"⚠️ No exact match for {topic_code}, using closest result: {first_id}")
                     return self._parse_search_result(results[0], topic_code)
             
             logger.warning(f"API returned status {response.status_code} for {topic_code}")
@@ -335,9 +348,24 @@ class CallEnrichmentService:
             '31094503': 'closed',    # Closed
         }
         status = status_map.get(status_code, 'unknown')
-        
+
+        # Map typeOfMGAs numeric IDs to action type abbreviations
+        # These IDs come from the EU Portal search API metadata
+        action_type_map = {
+            '43027843': 'RIA',       # Research and Innovation Action
+            '43027844': 'IA',        # Innovation Action
+            '43027845': 'CSA',       # Coordination and Support Action
+            '43027846': 'LUMP-SUM',  # Lump Sum
+            '43027847': 'PCP',       # Pre-Commercial Procurement
+            '43027848': 'PPI',       # Public Procurement of Innovation
+            '43027849': 'LUMP-SUM',  # Lump Sum (alternative ID)
+            '43027850': 'COFUND',    # Co-fund
+        }
+        raw_action_type = get_first('typeOfMGAs')
+        action_type = action_type_map.get(raw_action_type, raw_action_type if not raw_action_type.isdigit() else '')
+
         logger.info(f"✅ Parsed API result: {identifier} - {title[:50] if title else 'No title'}...")
-        
+
         return {
             'topic_code': identifier.upper() if identifier else topic_code.upper(),
             'title': title,
@@ -345,7 +373,7 @@ class CallEnrichmentService:
             'expected_outcome': '',  # Not in search results
             'deadline': deadline,
             'status': status,
-            'action_type': get_first('typeOfMGAs'),
+            'action_type': action_type,
             'call_identifier': get_first('callIdentifier'),
             'portal_url': f"https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/{identifier or topic_code}",
             'enriched_from_api': True,

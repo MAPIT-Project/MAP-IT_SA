@@ -6,6 +6,7 @@ This is a post-processor that takes raw tool results and formats them consistent
 """
 
 import logging
+import re
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 class V3ResponseFormatter:
     """Formats V3 agent responses with consistent styling."""
 
-    # Type icons
+    # Type icons - only valid action types
     TYPE_ICONS = {
         'RIA': '🔬',
         'IA': '🚀',
@@ -23,8 +24,14 @@ class V3ResponseFormatter:
         'COFUND': '💱',
         'ERC': '🎓',
         'MSCA': '👨‍🔬',
+        'LUMP-SUM': '📦',
+        'PCP': '🔧',
+        'PPI': '🛒',
         'default': '📄'
     }
+
+    # Valid action types (to filter out numeric IDs)
+    VALID_ACTION_TYPES = {'RIA', 'IA', 'CSA', 'COFUND', 'ERC', 'MSCA', 'LUMP-SUM', 'PCP', 'PPI', 'ERC-STG', 'ERC-COG', 'ERC-ADG', 'ERC-POC', 'MSCA-PF', 'MSCA-DN', 'MSCA-SE', 'MSCA-COFUND'}
 
     # Status icons
     STATUS_ICONS = {
@@ -63,8 +70,12 @@ class V3ResponseFormatter:
         scope = call.get('scope') or call.get('description') or call.get('objective') or call.get('expected_outcome') or ''
         url = call.get('url') or call.get('portal_url') or ''
 
-        # Get icons - handle None/empty call_type
-        type_icon = self.TYPE_ICONS.get(call_type.upper() if call_type else '', self.TYPE_ICONS['default'])
+        # Validate and clean call_type - filter out numeric IDs and invalid types
+        call_type_upper = call_type.upper() if call_type else ''
+        is_valid_type = call_type_upper in self.VALID_ACTION_TYPES
+
+        # Get icons - only if valid type
+        type_icon = self.TYPE_ICONS.get(call_type_upper, self.TYPE_ICONS['default']) if is_valid_type else None
         status_icon = self.STATUS_ICONS.get(status, self.STATUS_ICONS['default'])
 
         # Format deadline
@@ -73,14 +84,18 @@ class V3ResponseFormatter:
         # Format budget
         budget_str = self._format_budget(budget)
 
+        # Clean up scope - remove document fragments and noise
+        scope = self._clean_scope_text(scope)
+
         # Build the formatted entry
         lines = [f"**{index}. {title}**"]
 
         if call_id:
             lines.append(f"📋 **Call ID:** {call_id}")
 
-        if call_type:
-            lines.append(f"{type_icon} **Type:** {call_type}")
+        # Only show type if it's a valid action type (not numeric ID)
+        if call_type and is_valid_type:
+            lines.append(f"{type_icon} **Type:** {call_type_upper}")
 
         lines.append(f"{status_icon} **Status:** {status.capitalize()}")
 
@@ -108,6 +123,59 @@ class V3ResponseFormatter:
         lines.append("\n---")
 
         return "\n".join(lines)
+
+    def _clean_scope_text(self, scope: str) -> str:
+        """Clean up scope text to remove document fragments and noise."""
+        if not scope:
+            return ""
+
+        # Remove common document fragment patterns
+        noise_patterns = [
+            "The Director-General responsible may delay",
+            "All deadlines are at 17.00.00 Brussels",
+            "Legal and financial The rules are described",
+            "General Annex",
+            "Expected EU The Commission estimates",
+            "contribution per project",
+            "Nonetheless, this does not preclude submission",
+            "Opening:",
+            "Deadline(s):",
+            "Overview of this call",
+            "Proposals are invited against",
+            "Topics Type Budgets",
+            "EUR million",
+            "indicative budget",
+        ]
+
+        # Check if scope starts with noise (first 100 chars contain noise patterns)
+        scope_start = scope[:150].lower()
+        for pattern in noise_patterns:
+            if pattern.lower() in scope_start:
+                # Try to find where actual content starts
+                # Look for "Project results are expected" or similar
+                content_markers = [
+                    "Project results are expected",
+                    "The action should",
+                    "This topic",
+                    "Proposals should",
+                    "The objective",
+                    "Activities should",
+                ]
+                for marker in content_markers:
+                    idx = scope.find(marker)
+                    if idx > 0 and idx < 500:
+                        scope = scope[idx:]
+                        break
+                break
+
+        # Remove repeated whitespace
+        scope = re.sub(r'\s+', ' ', scope).strip()
+
+        # If scope is too short after cleaning, return empty
+        if len(scope) < 30:
+            return ""
+
+        return scope
 
     def _format_deadline(self, deadline: Any) -> str:
         """Format deadline to human-readable string."""

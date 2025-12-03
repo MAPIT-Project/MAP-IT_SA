@@ -559,7 +559,9 @@ class AgenticManager:
             parts.append("\n\nFrom the knowledge graph:")
             for result in graph_results[:3]:
                 if isinstance(result, dict):
-                    parts.append(f"- {str(result)[:150]}")
+                    # Format graph result more nicely
+                    formatted = self._format_graph_result(result)
+                    parts.append(f"- {formatted}")
         
         if not parts:
             return (
@@ -569,7 +571,62 @@ class AgenticManager:
             )
         
         return '\n'.join(parts)
-    
+
+    def _format_graph_result(self, result: Dict[str, Any]) -> str:
+        """Format a graph database result into a readable string."""
+        # Handle project results
+        if 'acronym' in result or 'project_id' in result:
+            acronym = result.get('acronym', '')
+            title = result.get('title', '')
+            project_id = result.get('project_id', result.get('id', ''))
+            if acronym and title:
+                return f"{acronym}: {title[:100]}"
+            elif title:
+                return f"{title[:100]} (ID: {project_id})"
+            elif acronym:
+                return f"{acronym} (ID: {project_id})"
+
+        # Handle organization results
+        if 'organization_name' in result or 'org_name' in result:
+            org_name = result.get('organization_name', result.get('org_name', ''))
+            country = result.get('country', '')
+            if org_name:
+                return f"{org_name} ({country})" if country else org_name
+
+        # Handle statistics results
+        if 'success_rate' in result or 'funding_amount' in result:
+            parts = []
+            if 'programme' in result:
+                parts.append(result['programme'])
+            if 'success_rate' in result:
+                parts.append(f"Success rate: {result['success_rate']}")
+            if 'funding_amount' in result:
+                parts.append(f"Funding: {result['funding_amount']}")
+            if parts:
+                return " - ".join(parts)
+
+        # Handle topic/cluster results
+        if 'topic' in result or 'cluster' in result:
+            topic = result.get('topic', result.get('cluster', ''))
+            count = result.get('count', result.get('project_count', ''))
+            if topic and count:
+                return f"{topic}: {count} projects"
+            elif topic:
+                return topic
+
+        # Fallback: extract key fields
+        key_fields = ['name', 'title', 'description', 'content', 'label']
+        for field in key_fields:
+            if field in result and result[field]:
+                return str(result[field])[:150]
+
+        # Last resort: show first few key-value pairs
+        items = [(k, v) for k, v in result.items() if v and k not in ['id', 'uuid', 'created_at']][:3]
+        if items:
+            return ", ".join(f"{k}: {str(v)[:50]}" for k, v in items)
+
+        return "Result data available"
+
     def _count_results(self, results: Dict[str, Any]) -> int:
         """Count total results across all sources."""
         total = 0

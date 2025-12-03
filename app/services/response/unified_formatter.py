@@ -187,11 +187,13 @@ class UnifiedResponseFormatter:
                     if isinstance(result, str):
                         # Clean up graph result string
                         clean_result = result.strip()
-                        if clean_result:
+                        if clean_result and not clean_result.startswith('{'):
                             formatted_parts.append(f"{clean_result}\n")
                     elif isinstance(result, dict):
-                        content = result.get('content', result.get('name', str(result)))
-                        formatted_parts.append(f"{content}\n")
+                        # Format dict results nicely instead of just converting to string
+                        content = self._format_graph_dict_result(result)
+                        if content:
+                            formatted_parts.append(f"{content}\n")
 
             # Then add vector results for supporting evidence
             vector_results = results.get('vector_results', [])
@@ -814,17 +816,78 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
             f"**🔧 Tool Result: {tool_name}**",
             ""
         ]
-        
+
         # Extract key information
         if isinstance(result, dict):
             for key, value in result.items():
-                if key in ['error', 'success', 'tool_name']:
+                if key in ['error', 'success', 'tool_name', 'score']:
                     continue  # Skip metadata
-                formatted_parts.append(f"**{key.replace('_', ' ').title()}:** {value}")
+                # Format value appropriately
+                if isinstance(value, dict):
+                    formatted_value = self._format_graph_dict_result(value)
+                elif isinstance(value, list) and len(value) > 0:
+                    if isinstance(value[0], dict):
+                        formatted_value = f"{len(value)} items"
+                    else:
+                        formatted_value = ", ".join(str(v)[:50] for v in value[:3])
+                else:
+                    formatted_value = str(value)[:200]
+                formatted_parts.append(f"**{key.replace('_', ' ').title()}:** {formatted_value}")
         else:
-            formatted_parts.append(str(result))
-        
+            formatted_parts.append(str(result)[:500])
+
         return "\n".join(formatted_parts)
+
+    def _format_graph_dict_result(self, result: Dict[str, Any]) -> str:
+        """Format a graph/dict result into readable text."""
+        if not isinstance(result, dict):
+            return str(result)[:150]
+
+        # Handle project results
+        if 'acronym' in result or 'project_id' in result:
+            acronym = result.get('acronym', '')
+            title = result.get('title', '')
+            if acronym and title:
+                return f"{acronym}: {title[:100]}"
+            elif title:
+                return title[:150]
+            elif acronym:
+                return acronym
+
+        # Handle content-based results
+        if 'content' in result:
+            content = result.get('content', '')
+            if content and not content.startswith('{'):
+                return content[:200]
+
+        # Handle name-based results
+        if 'name' in result:
+            name = result.get('name', '')
+            desc = result.get('description', '')[:100] if result.get('description') else ''
+            if name and desc:
+                return f"{name}: {desc}"
+            elif name:
+                return name
+
+        # Handle statistics
+        if 'success_rate' in result or 'count' in result or 'total' in result:
+            parts = []
+            for key in ['programme', 'country', 'cluster', 'topic']:
+                if key in result:
+                    parts.append(str(result[key]))
+            for key in ['success_rate', 'count', 'total', 'funding']:
+                if key in result:
+                    parts.append(f"{key.replace('_', ' ')}: {result[key]}")
+            if parts:
+                return " - ".join(parts)
+
+        # Fallback: extract meaningful fields
+        skip_keys = {'id', 'uuid', 'created_at', 'updated_at', 'score', 'error', 'success'}
+        items = [(k, v) for k, v in result.items() if v and k not in skip_keys][:3]
+        if items:
+            return ", ".join(f"{k}: {str(v)[:50]}" for k, v in items)
+
+        return ""
     
     def format_mixed_results(self, 
                            tool_results: Optional[Dict[str, Any]] = None,

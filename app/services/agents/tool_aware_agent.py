@@ -698,11 +698,20 @@ What is your next step? Remember: Output ONLY JSON."""
             }
         
         if tool_results:
-            # Have results - conclude
+            # Have results - conclude with summarized info
+            # Summarize results instead of dumping raw data
+            summary_parts = []
+            for name, result in list(tool_results.items())[:2]:
+                if isinstance(result, dict):
+                    summary = self._format_tool_result_summary(name, result)
+                    summary_parts.append(summary)
+                else:
+                    summary_parts.append(f"{name}: Data found")
+
             return {
                 'thought': 'Have gathered information, forming conclusion',
                 'action': 'conclude',
-                'conclusion': f"Based on the search results: {str(list(tool_results.values())[:2])[:500]}",
+                'conclusion': "Based on the search results:\n\n" + "\n\n".join(summary_parts) if summary_parts else "Information gathered from search",
                 'confidence': 0.6,
                 'needs_more_info': False
             }
@@ -956,33 +965,90 @@ What is your next step? Remember: Output ONLY JSON."""
             if not call_id:
                 return {"error": "call_id is required"}
 
-            # First try local search for the call
+            logger.info(f"🔍 Getting call details for: {call_id}")
+
             from ..local_call_search_service import LocalCallSearchService
             call_service = LocalCallSearchService()
 
-            # Search for the specific call
+            # First try the dedicated get_call_details method (includes API enrichment)
+            call_details = call_service.get_call_details(call_id)
+
+            # Check if we got valid data (not just empty dict)
+            if call_details and (call_details.get('topic_code') or call_details.get('title')):
+                logger.info(f"✅ Got call details: {call_details.get('topic_code')} - {call_details.get('title', '')[:50]}")
+                return {
+                    "call_id": call_details.get('topic_code'),
+                    "title": call_details.get('title'),
+                    "description": call_details.get('scope') or call_details.get('description', ''),
+                    "expected_outcome": call_details.get('expected_outcome', ''),
+                    "deadline": str(call_details.get('deadline')) if call_details.get('deadline') else None,
+                    "type": call_details.get('action_type'),
+                    "cluster": call_details.get('cluster'),
+                    "budget": call_details.get('budget'),
+                    "status": call_details.get('status'),
+                    "url": call_details.get('url') or call_details.get('portal_url'),
+                }
+
+            # Fallback: Search for the call using keywords
+            logger.info(f"🔎 Fallback: Searching for {call_id}...")
             results = call_service.search_calls(
                 query=call_id,
-                num_results=5
+                num_results=10
             )
 
             calls = results.get('calls', [])
+            logger.info(f"Search returned {len(calls)} results")
+
             for call in calls:
-                if call_id.upper() in call.get('call_id', '').upper():
+                # Check both topic_code and call_id fields
+                topic_code = call.get('topic_code', '') or ''
+                if call_id.upper() in topic_code.upper():
+                    logger.info(f"✅ Found matching call: {topic_code}")
                     return {
-                        "call_id": call.get('call_id'),
+                        "call_id": topic_code,
                         "title": call.get('title'),
-                        "description": call.get('description', ''),
-                        "deadline": call.get('deadline'),
+                        "description": call.get('scope') or call.get('description', ''),
+                        "expected_outcome": call.get('expected_outcome', ''),
+                        "deadline": str(call.get('deadline')) if call.get('deadline') else None,
                         "type": call.get('action_type'),
                         "cluster": call.get('cluster'),
                         "budget": call.get('budget'),
-                        "topics": call.get('topics', [])
+                        "status": call.get('status'),
+                        "url": call.get('url') or call.get('portal_url'),
                     }
 
-            return {"message": f"No details found for {call_id}"}
+            # If still not found, try searching with just the base call identifier
+            # e.g., HORIZON-CL5-2026-02-D4-01 -> search for "HORIZON-CL5-2026"
+            if '-' in call_id:
+                parts = call_id.split('-')
+                if len(parts) >= 4:
+                    base_call = '-'.join(parts[:4])  # e.g., HORIZON-CL5-2026-02
+                    logger.info(f"🔎 Trying base call search: {base_call}")
+                    results = call_service.search_calls(query=base_call, num_results=15)
+                    calls = results.get('calls', [])
+                    for call in calls:
+                        topic_code = call.get('topic_code', '') or ''
+                        if call_id.upper() in topic_code.upper() or topic_code.upper() in call_id.upper():
+                            logger.info(f"✅ Found via base search: {topic_code}")
+                            return {
+                                "call_id": topic_code,
+                                "title": call.get('title'),
+                                "description": call.get('scope') or call.get('description', ''),
+                                "expected_outcome": call.get('expected_outcome', ''),
+                                "deadline": str(call.get('deadline')) if call.get('deadline') else None,
+                                "type": call.get('action_type'),
+                                "cluster": call.get('cluster'),
+                                "budget": call.get('budget'),
+                                "status": call.get('status'),
+                                "url": call.get('url') or call.get('portal_url'),
+                            }
+
+            logger.warning(f"❌ No details found for {call_id}")
+            return {"message": f"No details found for {call_id}. This call may not be in our database yet. You can check the EU Portal directly at: https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/{call_id}"}
         except Exception as e:
             logger.error(f"Get call details error: {e}")
+            import traceback
+            traceback.print_exc()
             return {"error": str(e)}
     
     async def _tool_search_projects(self, params: Dict) -> Dict:
@@ -1174,33 +1240,125 @@ What is your next step? Remember: Output ONLY JSON."""
         return {"cross_reference": results}
     
     def _summarize_tool_results(self, tool_calls: List[ToolCall]) -> str:
-        """Summarize results from tool calls."""
+        """Summarize results from tool calls in a human-readable format."""
         summaries = []
 
         for tc in tool_calls:
             if tc.success:
-                # Use larger limit to capture more results
-                result_str = str(tc.result)[:2000]
-                summaries.append(f"{tc.tool_name}: {result_str}")
+                result = tc.result
+                summary = self._format_tool_result_summary(tc.tool_name, result)
+                summaries.append(summary)
             else:
                 summaries.append(f"{tc.tool_name}: Failed - {tc.error}")
 
         return "\n".join(summaries)
+
+    def _format_tool_result_summary(self, tool_name: str, result: Any) -> str:
+        """Format a single tool result into a readable summary."""
+        if not isinstance(result, dict):
+            return f"{tool_name}: {str(result)[:500]}"
+
+        # Handle document search results
+        if 'documents' in result and isinstance(result['documents'], list):
+            docs = result['documents']
+            if not docs:
+                return f"{tool_name}: No documents found"
+
+            # Extract actual content from documents
+            content_parts = []
+            for doc in docs[:3]:  # Limit to top 3
+                content = doc.get('content', '')
+                source = doc.get('source', 'Unknown')
+                if content:
+                    # Clean up the content
+                    content = content.strip()[:400]
+                    content_parts.append(f"From {source}: {content}")
+
+            if content_parts:
+                return f"Found {len(docs)} relevant document(s):\n" + "\n\n".join(content_parts)
+            return f"{tool_name}: Found {len(docs)} documents (no content extracted)"
+
+        # Handle funding call results
+        if 'calls' in result and isinstance(result['calls'], list):
+            calls = result['calls']
+            if not calls:
+                return f"{tool_name}: No funding calls found"
+            return f"Found {len(calls)} funding call(s)"
+
+        # Handle project results
+        if 'projects' in result and isinstance(result['projects'], list):
+            projects = result['projects']
+            if not projects:
+                return f"{tool_name}: No projects found"
+            return f"Found {len(projects)} project(s)"
+
+        # Handle call details
+        if 'call_id' in result or 'topic_code' in result:
+            call_id = result.get('call_id') or result.get('topic_code')
+            title = result.get('title', 'Unknown')
+            if call_id and title:
+                desc = result.get('description', '')[:200] if result.get('description') else ''
+                return f"Call {call_id}: {title}\n{desc}" if desc else f"Call {call_id}: {title}"
+            elif result.get('message'):
+                return result['message']
+
+        # Handle error messages
+        if 'error' in result:
+            return f"{tool_name}: Error - {result['error']}"
+
+        if 'message' in result:
+            return f"{tool_name}: {result['message']}"
+
+        # Default: truncated string representation
+        return f"{tool_name}: {str(result)[:500]}"
     
     def _build_fallback_answer(self, plan: AgentPlan) -> str:
         """Build a fallback answer from collected information."""
-        
+
         if not plan.reasoning_steps:
             return "I was unable to find information to answer this question."
-        
-        # Collect all observations
+
+        # Collect meaningful observations (skip raw tool results)
         observations = []
+        document_contents = []
+
         for step in plan.reasoning_steps:
             if step.observation:
-                observations.append(step.observation)
-        
+                obs = step.observation
+
+                # Extract document content if present
+                if "From " in obs and ":" in obs:
+                    # This looks like formatted document content
+                    document_contents.append(obs)
+                elif not obs.startswith("{") and not obs.startswith("search_"):
+                    # Not raw JSON - keep it
+                    observations.append(obs)
+
+        # If we have document contents, format them nicely
+        if document_contents:
+            # Extract just the text content from document observations
+            content_texts = []
+            for doc_obs in document_contents[:3]:
+                # Parse out the content after "From source:"
+                lines = doc_obs.split('\n')
+                for line in lines:
+                    if line.startswith("From ") and ":" in line:
+                        # Extract content after the source prefix
+                        parts = line.split(":", 1)
+                        if len(parts) > 1:
+                            content = parts[1].strip()
+                            if len(content) > 50:  # Only meaningful content
+                                content_texts.append(content)
+
+            if content_texts:
+                return "Based on the official documentation:\n\n" + "\n\n".join(content_texts[:3])
+
+        # Use cleaned observations
         if observations:
-            return f"Based on my search:\n\n" + "\n\n".join(observations[:3])
-        
-        return "I searched multiple sources but couldn't find a complete answer to your question."
+            # Filter out observations that look like raw data
+            clean_obs = [o for o in observations if len(o) > 30 and not o.startswith("{'")]
+            if clean_obs:
+                return "Based on my search:\n\n" + "\n\n".join(clean_obs[:3])
+
+        return "I searched multiple sources but couldn't find a complete answer to your question. Please try rephrasing your question or asking about a specific aspect."
 

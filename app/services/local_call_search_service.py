@@ -381,23 +381,37 @@ class LocalCallSearchService:
     ) -> List[Dict[str, Any]]:
         """
         Search the structured funding_calls table.
-        
+
         Uses PostgreSQL full-text search for fast, accurate results.
+        Also handles exact topic_code lookups (e.g., HORIZON-CL5-2026-02-D4-01).
         """
         try:
             conn = psycopg2.connect(self._db_url)
             cursor = conn.cursor(cursor_factory=RealDictCursor)
-            
+
+            # Check if query looks like a topic code (starts with HORIZON-)
+            is_topic_code = query.upper().startswith('HORIZON-')
+
             # Build the query
             query_parts = ["SELECT * FROM funding_calls WHERE 1=1"]
             params = []
-            
-            # Full-text search on title, scope, expected_outcome
-            if query:
+
+            # For topic code queries, use exact or LIKE match first
+            if is_topic_code and query:
                 query_parts.append("""
-                    AND to_tsvector('english', 
-                        COALESCE(title, '') || ' ' || 
-                        COALESCE(scope, '') || ' ' || 
+                    AND (
+                        topic_code ILIKE %s
+                        OR topic_code ILIKE %s
+                    )
+                """)
+                params.append(query.upper())  # Exact match
+                params.append(f"%{query.upper()}%")  # Partial match
+            elif query:
+                # Full-text search on title, scope, expected_outcome
+                query_parts.append("""
+                    AND to_tsvector('english',
+                        COALESCE(title, '') || ' ' ||
+                        COALESCE(scope, '') || ' ' ||
                         COALESCE(expected_outcome, '')
                     ) @@ plainto_tsquery('english', %s)
                 """)
@@ -413,40 +427,55 @@ class LocalCallSearchService:
                 query_parts.append("AND action_type = %s")
                 params.append(action_type.upper())
             
-            # Year filter
-            if year_filter:
-                query_parts.append("AND call_year = %s")
-                params.append(year_filter)
-            elif not include_closed:
-                # Only current and future years
-                query_parts.append("AND call_year >= %s")
-                params.append(current_year)
-            
-            # Status filter
-            if not include_closed:
-                query_parts.append("AND status != 'closed'")
-            
+            # Year and status filters - skip for topic code queries (we want to find it regardless)
+            if not is_topic_code:
+                # Year filter
+                if year_filter:
+                    query_parts.append("AND call_year = %s")
+                    params.append(year_filter)
+                elif not include_closed:
+                    # Only current and future years
+                    query_parts.append("AND call_year >= %s")
+                    params.append(current_year)
+
+                # Status filter
+                if not include_closed:
+                    query_parts.append("AND status != 'closed'")
+
             # Order by relevance and deadline
-            query_parts.append("""
-                ORDER BY 
-                    ts_rank(
-                        to_tsvector('english', 
-                            COALESCE(title, '') || ' ' || 
-                            COALESCE(scope, '') || ' ' || 
-                            COALESCE(expected_outcome, '')
-                        ),
-                        plainto_tsquery('english', %s)
-                    ) DESC,
-                    deadline ASC NULLS LAST
-                LIMIT %s
-            """)
-            params.extend([query, num_results])
-            
+            if is_topic_code:
+                # For topic code queries, order by exact match first
+                query_parts.append("""
+                    ORDER BY
+                        CASE WHEN topic_code ILIKE %s THEN 0 ELSE 1 END,
+                        deadline ASC NULLS LAST
+                    LIMIT %s
+                """)
+                params.extend([query.upper(), num_results])
+            else:
+                # For text queries, order by full-text rank
+                query_parts.append("""
+                    ORDER BY
+                        ts_rank(
+                            to_tsvector('english',
+                                COALESCE(title, '') || ' ' ||
+                                COALESCE(scope, '') || ' ' ||
+                                COALESCE(expected_outcome, '')
+                            ),
+                            plainto_tsquery('english', %s)
+                        ) DESC,
+                        deadline ASC NULLS LAST
+                    LIMIT %s
+                """)
+                params.extend([query, num_results])
+
             full_query = " ".join(query_parts)
+            logger.debug(f"Executing structured search: {full_query[:200]}...")
             cursor.execute(full_query, params)
             results = cursor.fetchall()
-            
+
             conn.close()
+            logger.info(f"Structured search returned {len(results)} results for '{query}'")
             return [dict(r) for r in results]
             
         except Exception as e:
@@ -520,27 +549,57 @@ class LocalCallSearchService:
     def get_call_details(self, topic_code: str) -> Optional[Dict[str, Any]]:
         """
         Get complete details for a specific call.
-        
+
         Always tries to enrich with API data if local data is incomplete.
         """
         if not topic_code:
             return None
-        
+
         topic_code = topic_code.upper().strip()
-        
+        logger.info(f"🔍 Getting call details for: {topic_code}")
+
         # First check local database
         local_call = self._get_local_call(topic_code)
-        
-        # If enrichment service available, get complete data
+        if local_call:
+            logger.info(f"✅ Found {topic_code} in local database: {local_call.get('title', '')[:50]}")
+
+        # If enrichment service available, get complete data from API
         if self._enrichment_service:
+            logger.info(f"📡 Trying API enrichment for {topic_code}...")
             enriched = self._enrichment_service.get_call_details(topic_code)
-            if enriched:
-                return self._format_structured_call(enriched, enrich=False)
-        
+            if enriched and (enriched.get('topic_code') or enriched.get('title')):
+                logger.info(f"✅ Got API data for {topic_code}: {enriched.get('title', '')[:50]}")
+                result = self._format_structured_call(enriched, enrich=False)
+                if result and (result.get('topic_code') or result.get('title')):
+                    return result
+            else:
+                logger.info(f"⚠️ No valid API data found for {topic_code}")
+
         # Fall back to local data
         if local_call:
-            return self._format_structured_call(local_call, enrich=False)
-        
+            result = self._format_structured_call(local_call, enrich=False)
+            if result and (result.get('topic_code') or result.get('title')):
+                return result
+
+        # Last resort: try vector search to find the call
+        logger.info(f"🔎 Trying vector search for {topic_code}...")
+        try:
+            vector_results = self._vector_search.search_funding_calls(
+                query=topic_code,
+                limit=10
+            )
+            for call in vector_results:
+                call_topic = (call.topic_code or '').upper()
+                # Check for exact or partial match
+                if topic_code in call_topic or call_topic in topic_code:
+                    logger.info(f"✅ Found {call_topic} via vector search")
+                    result = self._format_structured_call(call.to_dict(), enrich=True)
+                    if result and (result.get('topic_code') or result.get('title')):
+                        return result
+        except Exception as e:
+            logger.warning(f"Vector search failed: {e}")
+
+        logger.warning(f"❌ Could not find call details for {topic_code}")
         return None
     
     def _get_local_call(self, topic_code: str) -> Optional[Dict[str, Any]]:
