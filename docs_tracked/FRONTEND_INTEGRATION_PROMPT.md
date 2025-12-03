@@ -18,17 +18,140 @@ DELETE /api/v3/conversation/{conversation_id}/context       - Clear conversation
 GET  /api/v3/conversation/health                            - Health check
 ```
 
-### SSE Event Types (Already Implemented)
+### SSE Event Types
+
+Events are now streamed **in real-time** as the agent thinks and executes tools. This means the frontend gets immediate updates during processing, not after.
+
 ```typescript
 type SSEEvent =
   | { type: 'status'; stage: string; message: string }
-  | { type: 'agent_thinking'; content: string }
-  | { type: 'tool_call'; tool: string; args: Record<string, any> }
-  | { type: 'tool_result'; tool: string; result: Record<string, any> }
+  | { type: 'conversation_name'; name: string; conversation_id: number }  // First message only
+  | { type: 'agent_thinking'; stage: 'reasoning'; iteration: number; thought: string; action: string }  // REAL-TIME
+  | { type: 'tool_call'; stage: 'executing_tool'; tool_name: string; parameters: Record<string, any>; reasoning: string; iteration: number }  // REAL-TIME
+  | { type: 'tool_result'; stage: 'tool_complete'; tool_name: string; success: boolean; result_count: number; result_summary: string; execution_time_ms: number; iteration: number }  // REAL-TIME
   | { type: 'token'; content: string }
   | { type: 'complete'; metadata: ResponseMetadata }
   | { type: 'error'; message: string; code?: string }
 ```
+
+### Real-Time Agent Events
+
+Agent thinking and tool execution events are now streamed **as they happen**, not after processing completes. This gives users immediate feedback:
+
+```typescript
+// Example event sequence (real-time):
+// 1. Agent starts thinking (sent immediately)
+{ "type": "agent_thinking", "stage": "reasoning", "iteration": 1, "thought": "User is asking about hydrogen funding calls. I should search for open funding opportunities.", "action": "call_tools" }
+
+// 2. Tool call announced before execution
+{ "type": "tool_call", "stage": "executing_tool", "tool_name": "search_funding_calls", "parameters": {"keywords": "hydrogen", "status": "open"}, "reasoning": "Search for open hydrogen funding calls", "iteration": 1 }
+
+// 3. Tool result after execution completes
+{ "type": "tool_result", "stage": "tool_complete", "tool_name": "search_funding_calls", "success": true, "result_count": 15, "result_summary": "Found 15 funding calls...", "execution_time_ms": 245, "iteration": 1 }
+
+// 4. Agent may think again if more info needed
+{ "type": "agent_thinking", "stage": "reasoning", "iteration": 2, "thought": "Found good results, I can now provide the answer", "action": "conclude" }
+
+// 5. Response tokens stream
+{ "type": "token", "content": "I found **15 funding opportunities**..." }
+```
+
+### Frontend UX Recommendations
+
+```typescript
+function handleSSEEvent(event: SSEEvent) {
+  switch (event.type) {
+    case 'agent_thinking':
+      // Show thinking indicator with the thought
+      showThinkingBubble({
+        iteration: event.iteration,
+        thought: event.thought,
+        action: event.action  // 'call_tools' or 'conclude'
+      });
+      break;
+
+    case 'tool_call':
+      // Show which tool is being called
+      showToolExecuting({
+        toolName: event.tool_name,
+        parameters: event.parameters,
+        reasoning: event.reasoning
+      });
+      break;
+
+    case 'tool_result':
+      // Show result count and success
+      showToolComplete({
+        toolName: event.tool_name,
+        success: event.success,
+        resultCount: event.result_count,
+        executionTime: event.execution_time_ms
+      });
+      break;
+
+    case 'token':
+      // Append to response (hide thinking UI)
+      hideThinkingUI();
+      appendToResponse(event.content);
+      break;
+    // ... other handlers
+  }
+}
+```
+
+### NEW: Automatic Conversation Naming
+
+When the user sends their **first message** in a conversation, the backend automatically generates a descriptive name based on the message content. This is streamed back as a `conversation_name` event.
+
+**Event structure:**
+```json
+{
+  "type": "conversation_name",
+  "name": "Hydrogen Funding Calls",
+  "conversation_id": 12345
+}
+```
+
+**Frontend handling:**
+```typescript
+// In your SSE event handler
+function handleSSEEvent(event: SSEEvent) {
+  switch (event.type) {
+    case 'conversation_name':
+      // Update the conversation title in the sidebar/header
+      updateConversationName(event.conversation_id, event.name);
+      // Also update in your conversation list/store
+      conversationStore.setName(event.conversation_id, event.name);
+      break;
+    // ... other event handlers
+  }
+}
+
+// Update sidebar conversation list
+function updateConversationName(conversationId: number, name: string) {
+  // Find the conversation in sidebar and update its display name
+  const conversationElement = document.querySelector(`[data-conversation-id="${conversationId}"]`);
+  if (conversationElement) {
+    conversationElement.querySelector('.conversation-name').textContent = name;
+  }
+}
+```
+
+**Example conversation names generated:**
+| User's First Message | Generated Name |
+|---------------------|----------------|
+| "What hydrogen funding calls are open?" | "Hydrogen Funding Calls" |
+| "Can universities from Switzerland participate?" | "Swiss Eligibility" |
+| "Compare ERC and EIC programmes" | "ERC vs EIC Comparison" |
+| "Help me write a proposal for AI research" | "AI Research Proposal" |
+| "What are the success rates for RIA grants?" | "RIA Success Rates" |
+| "Find projects about renewable energy" | "Renewable Energy Projects" |
+
+**Important notes:**
+1. The `conversation_name` event is only sent for the **first message** in a conversation
+2. The name is also persisted in the database (`conversation.name` column)
+3. If name generation fails, no event is sent (graceful degradation)
+4. Names are 2-5 words, title-cased, and descriptive
 
 ---
 

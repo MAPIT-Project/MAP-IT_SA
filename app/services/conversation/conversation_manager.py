@@ -667,6 +667,7 @@ class ConversationManager:
 
         Yields events:
         - status: Processing stages
+        - conversation_name: Generated name for new conversations (first message only)
         - agent_thinking: Agent's reasoning at each iteration
         - tool_call: When a tool is being called
         - tool_result: When a tool completes
@@ -692,6 +693,27 @@ class ConversationManager:
             recent_messages = self._get_recent_messages_simple(conversation_id, limit=10)
             conversation_context = self._format_conversation_for_agent(recent_messages)
 
+            # Check if this is the first message - generate conversation name
+            is_first_message = len(recent_messages) == 0
+            if is_first_message:
+                try:
+                    from .conversation_namer import get_conversation_namer
+                    namer = get_conversation_namer()
+                    conversation_name = await namer.generate_name(user_message)
+
+                    # Update conversation name in database
+                    await self._update_conversation_name(conversation_id, conversation_name)
+
+                    # Stream the name to frontend
+                    yield {
+                        'type': 'conversation_name',
+                        'name': conversation_name,
+                        'conversation_id': conversation_id
+                    }
+                    logger.info(f"📝 Generated conversation name: {conversation_name}")
+                except Exception as e:
+                    logger.warning(f"Failed to generate conversation name: {e}")
+
             yield {
                 'type': 'status',
                 'stage': 'context_loaded',
@@ -712,72 +734,89 @@ class ConversationManager:
                 'message': 'AI agent is analyzing your question...'
             }
 
-            # 3. Run the agentic loop with streaming events
-            agent_result = await self._run_agent_with_streaming(
+            # 3. Run the agentic loop with REAL-TIME streaming events
+            # Use the streaming version of process_query to get events as they happen
+            agent_result = None
+
+            async for event in self.tool_aware_agent.process_query_streaming(
                 query=user_message,
                 context=conversation_context,
-                recent_messages=recent_messages
-            )
+                conversation_history=recent_messages
+            ):
+                event_type = event.get('type', '')
 
-            # Yield agent progress events
-            for step in agent_result.get('reasoning_steps', []):
-                # Agent thinking
-                yield {
-                    'type': 'agent_thinking',
-                    'stage': 'reasoning',
-                    'iteration': step.get('step', 0),
-                    'thought': step.get('thought', '')[:200]
-                }
+                if event_type == 'agent_thinking':
+                    # Stream agent thinking immediately
+                    yield {
+                        'type': 'agent_thinking',
+                        'stage': 'reasoning',
+                        'iteration': event.get('iteration', 0),
+                        'thought': event.get('thought', ''),
+                        'action': event.get('action', '')
+                    }
 
-                # Tool calls
-                for tool_name in step.get('tools_called', []):
+                elif event_type == 'tool_call':
+                    # Stream tool call before execution
                     yield {
                         'type': 'tool_call',
                         'stage': 'executing_tool',
-                        'tool_name': tool_name,
-                        'iteration': step.get('step', 0)
+                        'tool_name': event.get('tool_name', ''),
+                        'parameters': event.get('parameters', {}),
+                        'reasoning': event.get('reasoning', ''),
+                        'iteration': event.get('iteration', 0)
                     }
 
-                # Tool results
-                if step.get('observation'):
+                elif event_type == 'tool_result':
+                    # Stream tool result after execution
                     yield {
                         'type': 'tool_result',
                         'stage': 'tool_complete',
-                        'result_summary': step.get('observation', '')[:150],
-                        'iteration': step.get('step', 0)
+                        'tool_name': event.get('tool_name', ''),
+                        'success': event.get('success', False),
+                        'result_count': event.get('result_count', 0),
+                        'result_summary': event.get('result_summary', '')[:300],
+                        'execution_time_ms': event.get('execution_time_ms', 0),
+                        'iteration': event.get('iteration', 0)
                     }
+
+                elif event_type == 'agent_complete':
+                    # Capture the final result
+                    agent_result = event.get('result', {})
 
             # 4. Get/synthesize answer - ALWAYS try formatter for structured results
             answer = None
 
-            # First, try the V3 formatter for structured results (calls, projects)
-            tool_results = agent_result.get('tool_results', {})
-            if tool_results:
-                try:
-                    from ..response.v3_response_formatter import get_formatter
-                    formatter = get_formatter()
-                    formatted_answer = formatter.format_from_tool_results(tool_results, user_message)
-                    if formatted_answer:
-                        logger.info("✅ Used V3 formatter for structured response")
-                        answer = formatted_answer
-                except Exception as e:
-                    logger.warning(f"V3 formatter failed: {e}")
+            if agent_result:
+                # First, try the V3 formatter for structured results (calls, projects)
+                tool_results = agent_result.get('tool_results', {})
+                if tool_results:
+                    try:
+                        from ..response.v3_response_formatter import get_formatter
+                        formatter = get_formatter()
+                        formatted_answer = formatter.format_from_tool_results(tool_results, user_message)
+                        if formatted_answer:
+                            logger.info("✅ Used V3 formatter for structured response")
+                            answer = formatted_answer
+                    except Exception as e:
+                        logger.warning(f"V3 formatter failed: {e}")
 
-            # If formatter didn't produce output, use agent's answer or synthesize
-            if not answer:
-                answer = agent_result.get('answer', '')
+                # If formatter didn't produce output, use agent's answer or synthesize
+                if not answer:
+                    answer = agent_result.get('answer', '')
 
-            if not answer or len(answer) < 50 or self._is_poor_quality_answer(answer):
-                yield {
-                    'type': 'status',
-                    'stage': 'synthesizing',
-                    'message': 'Synthesizing response from search results...'
-                }
-                answer = await self._synthesize_agent_response(
-                    query=user_message,
-                    agent_result=agent_result,
-                    context=conversation_context
-                )
+                if not answer or len(answer) < 50 or self._is_poor_quality_answer(answer):
+                    yield {
+                        'type': 'status',
+                        'stage': 'synthesizing',
+                        'message': 'Synthesizing response from search results...'
+                    }
+                    answer = await self._synthesize_agent_response(
+                        query=user_message,
+                        agent_result=agent_result,
+                        context=conversation_context
+                    )
+            else:
+                answer = "I encountered an issue processing your request. Please try again."
 
             # 5. Store assistant response in database AND memory
             if answer:
@@ -811,10 +850,10 @@ class ConversationManager:
                 'type': 'complete',
                 'metadata': {
                     'architecture': 'simplified_v3',
-                    'confidence': agent_result.get('confidence', 0.8),
-                    'iterations': agent_result.get('iterations', 0),
-                    'tools_used': agent_result.get('sources_used', []),
-                    'reasoning_steps': agent_result.get('reasoning_steps', []),
+                    'confidence': agent_result.get('confidence', 0.8) if agent_result else 0.5,
+                    'iterations': agent_result.get('iterations', 0) if agent_result else 0,
+                    'tools_used': agent_result.get('sources_used', []) if agent_result else [],
+                    'reasoning_steps': agent_result.get('reasoning_steps', []) if agent_result else [],
                     'processing_time_ms': processing_time
                 }
             }
@@ -845,18 +884,38 @@ class ConversationManager:
         )
 
     def _format_conversation_for_agent(self, messages: List[Dict]) -> str:
-        """Format conversation history for the agent."""
+        """Format conversation history for the agent.
+
+        IMPORTANT: This context is used by the agent to understand follow-up questions.
+        When users say "the 7th result" or "tell me more about that call", the agent
+        needs to see the full previous response to know what they're referring to.
+        """
         if not messages:
             return "No previous conversation."
 
         lines = []
-        for msg in messages[-10:]:  # Last 10 turns
+        # Keep last 6 turns but with much more context
+        for i, msg in enumerate(messages[-6:]):
             role = msg.get('sender', 'unknown').upper()
             content = msg.get('text', '')
-            # Truncate long assistant responses but keep more of user messages
-            max_len = 500 if role == 'ASSISTANT' else 300
+
+            # For the most recent assistant message (likely contains the results user is referring to),
+            # keep much more content so agent can see "the 7th result", etc.
+            is_most_recent_assistant = (role == 'ASSISTANT' and i == len(messages[-6:]) - 1)
+
+            if is_most_recent_assistant:
+                # Keep up to 4000 chars for the most recent assistant response
+                # This ensures the agent can see numbered results, call IDs, etc.
+                max_len = 4000
+            elif role == 'ASSISTANT':
+                # Keep more for assistant responses (2000 chars)
+                max_len = 2000
+            else:
+                # User messages can be shorter
+                max_len = 500
+
             if len(content) > max_len:
-                content = content[:max_len] + "..."
+                content = content[:max_len] + "... [truncated]"
             lines.append(f"{role}: {content}")
 
         return "\n\n".join(lines)
@@ -2984,9 +3043,33 @@ Be helpful and conversational."""
                 self.db_pool.putconn(conn)
         else:
             message_id = random.randint(1000, 9999)
-        
+
         return message_id
-    
+
+    async def _update_conversation_name(self, conversation_id: int, name: str) -> bool:
+        """Update the conversation name in the database."""
+        if not self.db_pool:
+            logger.warning("No database pool available for updating conversation name")
+            return False
+
+        conn = self.db_pool.getconn()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                UPDATE conversation
+                SET name = %s
+                WHERE id = %s
+            """, (name, conversation_id))
+            conn.commit()
+            logger.info(f"✅ Updated conversation {conversation_id} name to: {name}")
+            return True
+        except Exception as e:
+            logger.error(f"❌ Failed to update conversation name: {e}")
+            conn.rollback()
+            return False
+        finally:
+            self.db_pool.putconn(conn)
+
     def _init_hybrid_search(self):
         """Initialize hybrid search pipeline."""
         try:

@@ -46,6 +46,7 @@ async def send_message_stream(
 
     Event types emitted:
     - status: Processing stages (processing, context_loaded, agent_starting, streaming_response)
+    - conversation_name: Generated name for the conversation (first message only)
     - agent_thinking: Agent's reasoning at each iteration
     - tool_call: When a tool is being called
     - tool_result: When a tool completes
@@ -73,7 +74,7 @@ async def send_message_stream(
             async for chunk in result:
                 # Format as SSE - include ALL V3 event types
                 event_type = chunk.get('type', '')
-                if event_type in ['status', 'progress', 'agent_thinking', 'tool_call', 'tool_result', 'token', 'complete', 'error']:
+                if event_type in ['status', 'progress', 'conversation_name', 'agent_thinking', 'tool_call', 'tool_result', 'token', 'complete', 'error']:
                     yield f"data: {json.dumps(chunk)}\n\n"
 
         except Exception as e:

@@ -16,7 +16,7 @@ import asyncio
 import json
 import re
 from datetime import datetime
-from typing import Dict, Any, List, Optional, Tuple, Callable, Awaitable
+from typing import Dict, Any, List, Optional, Tuple, Callable, Awaitable, AsyncGenerator
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -841,7 +841,204 @@ What is your next step? Remember: Output ONLY JSON."""
             'confidence': plan.confidence,
             'total_time_ms': total_time
         }
-    
+
+    async def process_query_streaming(
+        self,
+        query: str,
+        context: str = "",
+        conversation_history: List[Dict] = None
+    ) -> AsyncGenerator[Dict[str, Any], None]:
+        """
+        Process a query and yield events in real-time as reasoning happens.
+
+        Yields events like:
+        - {'type': 'agent_thinking', 'iteration': 1, 'thought': '...'}
+        - {'type': 'tool_call', 'tool_name': '...', 'parameters': {...}}
+        - {'type': 'tool_result', 'tool_name': '...', 'result_summary': '...', 'result_count': 5}
+        - {'type': 'agent_complete', 'result': {...}}
+
+        Args:
+            query: User's question
+            context: Additional context (conversation history)
+            conversation_history: Previous messages
+
+        Yields:
+            Dict events as processing happens
+        """
+        start_time = datetime.now()
+
+        # Initialize plan
+        plan = AgentPlan(
+            query=query,
+            complexity=self._assess_complexity(query),
+            required_sources=self._identify_required_sources(query)
+        )
+
+        logger.info(f"🧠 [Streaming] Query complexity: {plan.complexity}, sources needed: {plan.required_sources}")
+
+        # Start speculative execution for likely-needed tools
+        if self.speculative_executor:
+            try:
+                speculative_tasks = await self.speculative_executor.start_speculative_execution(
+                    query=query,
+                    context=context
+                )
+                if speculative_tasks:
+                    logger.info(f"🔮 Started speculative execution for {len(speculative_tasks)} tool(s)")
+            except Exception as e:
+                logger.warning(f"Speculative execution failed to start: {e}")
+
+        # ReAct loop with streaming
+        iteration = 0
+        all_tool_results = {}
+
+        while iteration < self.max_iterations:
+            iteration += 1
+            logger.info(f"🔄 [Streaming] Reasoning iteration {iteration}/{self.max_iterations}")
+
+            # Get next action from LLM
+            reasoning_result = await self._reason_next_step(
+                query=query,
+                context=context,
+                previous_steps=plan.reasoning_steps,
+                tool_results=all_tool_results
+            )
+
+            if not reasoning_result:
+                logger.warning("Reasoning step failed, using fallback")
+                break
+
+            # Create reasoning step
+            step = ReasoningStep(
+                step_number=iteration,
+                thought=reasoning_result.get('thought', ''),
+                action=reasoning_result.get('action', 'conclude')
+            )
+
+            # YIELD: Agent thinking event immediately
+            yield {
+                'type': 'agent_thinking',
+                'iteration': iteration,
+                'thought': step.thought,
+                'action': step.action
+            }
+
+            # Handle different actions
+            if step.action == 'call_tools':
+                tool_calls = reasoning_result.get('tool_calls', [])
+
+                # YIELD: Tool call events before execution
+                for tc in tool_calls:
+                    tool_name = tc.get('tool', '')
+                    parameters = tc.get('parameters', {})
+                    yield {
+                        'type': 'tool_call',
+                        'iteration': iteration,
+                        'tool_name': tool_name,
+                        'parameters': parameters,
+                        'reasoning': tc.get('reasoning', '')
+                    }
+
+                # Execute tool calls
+                step.tool_calls = await self._execute_tool_calls(tool_calls)
+
+                # YIELD: Tool result events after execution
+                for tc in step.tool_calls:
+                    result_count = self._count_results(tc.result) if tc.success else 0
+                    yield {
+                        'type': 'tool_result',
+                        'iteration': iteration,
+                        'tool_name': tc.tool_name,
+                        'success': tc.success,
+                        'result_count': result_count,
+                        'result_summary': str(tc.result)[:300] if tc.result else 'No results',
+                        'execution_time_ms': tc.execution_time_ms
+                    }
+
+                    if tc.success:
+                        all_tool_results[f"{tc.tool_name}_{iteration}"] = tc.result
+
+                step.observation = self._summarize_tool_results(step.tool_calls)
+                step.next_action_needed = reasoning_result.get('needs_more_info', True)
+
+            elif step.action == 'analyze_results':
+                step.observation = reasoning_result.get('analysis', '')
+                step.next_action_needed = reasoning_result.get('needs_more_info', False)
+
+            elif step.action == 'conclude':
+                plan.final_answer = reasoning_result.get('conclusion', '')
+                plan.confidence = reasoning_result.get('confidence', 0.8)
+                step.next_action_needed = False
+
+            plan.reasoning_steps.append(step)
+
+            # Check if we should stop
+            if not step.next_action_needed:
+                logger.info(f"✅ [Streaming] Agent concluded after {iteration} iteration(s)")
+                break
+
+        # Build final response
+        total_time = (datetime.now() - start_time).total_seconds() * 1000
+
+        # Cancel any unused speculative tasks
+        if self.speculative_executor:
+            used_tools = set()
+            for step in plan.reasoning_steps:
+                for tc in step.tool_calls:
+                    used_tools.add(tc.tool_name)
+            self.speculative_executor.cancel_unused_speculation(used_tools)
+
+        # Cache the first step's plan if successful
+        if self.plan_cache and plan.reasoning_steps and plan.final_answer:
+            first_step = plan.reasoning_steps[0] if plan.reasoning_steps else None
+            if first_step and first_step.tool_calls:
+                first_plan = {
+                    'thought': first_step.thought,
+                    'action': 'call_tools',
+                    'tool_calls': [
+                        {
+                            'tool': tc.tool_name,
+                            'parameters': tc.parameters,
+                            'reasoning': tc.reasoning
+                        }
+                        for tc in first_step.tool_calls
+                    ],
+                    'needs_more_info': first_step.next_action_needed
+                }
+                self.plan_cache.cache_plan(
+                    query=query,
+                    plan=first_plan,
+                    context=context,
+                    quality_score=plan.confidence or 0.8
+                )
+
+        # YIELD: Final complete event with full result
+        final_result = {
+            'answer': plan.final_answer or self._build_fallback_answer(plan),
+            'success': plan.final_answer is not None,
+            'reasoning_steps': [
+                {
+                    'step': s.step_number,
+                    'thought': s.thought,
+                    'action': s.action,
+                    'tools_called': [tc.tool_name for tc in s.tool_calls],
+                    'observation': s.observation[:500] if s.observation else ''
+                }
+                for s in plan.reasoning_steps
+            ],
+            'sources_used': list(all_tool_results.keys()),
+            'tool_results': all_tool_results,
+            'complexity': plan.complexity,
+            'iterations': iteration,
+            'confidence': plan.confidence,
+            'total_time_ms': total_time
+        }
+
+        yield {
+            'type': 'agent_complete',
+            'result': final_result
+        }
+
     def _assess_complexity(self, query: str) -> str:
         """Assess the complexity of a query."""
         query_lower = query.lower()
