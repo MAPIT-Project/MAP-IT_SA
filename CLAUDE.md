@@ -49,7 +49,7 @@ The system uses a sophisticated **agentic architecture** that can:
 - `agents/` - Agentic AI components with reflection, evaluation, planning
 - `data_intelligence/` - Graph search, query planning, cross-encoder reranking
 - `rag/` - RAG-specific components (retrievers, chunkers, generators)
-- `tools/` - Tool orchestration for multi-step reasoning (21 tools available)
+- `tools/` - Tool orchestration for multi-step reasoning (18 tools available)
 - `call_extractors/` - Funding call document processing
 - `conversation/` - Conversation management and memory
 - `memory/` - Short/long-term memory systems
@@ -60,8 +60,8 @@ The system uses a sophisticated **agentic architecture** that can:
 - `routes.py` - Legacy V2 API routes
 - `conversation_routes_v3.py` - V3 simplified architecture routes
 
-### Available Tools (21 Tools)
-The system has 21 tools available for the multi-tool agent:
+### Available Tools (18 Tools)
+The system has 18 tools available for the multi-tool agent:
 
 **Statistics Tools:**
 - `get_programme_statistics`: Success rates, funding amounts for a programme
@@ -72,7 +72,6 @@ The system has 21 tools available for the multi-tool agent:
 
 **Document Tools:**
 - `search_documents`: Search official EU documents
-- `search_specific_topic`: Deep semantic search for a topic
 
 **Call Tools:**
 - `search_funding_calls`: Find open/upcoming calls
@@ -86,10 +85,6 @@ The system has 21 tools available for the multi-tool agent:
 - `find_organization_projects`: Find all projects an organization participated in
 - `get_collaboration_network`: Get collaboration network showing which organizations partner together
 - `search_by_cluster`: Find projects in a specific research cluster (e.g., Climate, Health, Digital)
-
-**Validation Tools:**
-- `verify_eligibility`: Check eligibility for a scenario
-- `cross_reference`: Verify info across sources
 
 **Proposal Support Tools (Group 2):**
 - `get_budget_benchmark`: Get budget statistics from similar funded projects (by action type, cluster, year)

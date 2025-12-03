@@ -192,7 +192,7 @@ COMPLEXITY RULES:
 - multi_source: needs stats AND documents → requires_multi_tool=true
 - validation: verify/confirm information → requires_multi_tool=true
 
-TOOLS: get_programme_statistics, get_country_statistics, compare_programmes, search_documents, search_specific_topic, search_funding_calls, get_call_details, search_projects, verify_eligibility, cross_reference
+TOOLS: get_programme_statistics, get_country_statistics, compare_programmes, search_documents, search_funding_calls, get_call_details, search_projects, find_similar_projects, find_experienced_partners, get_budget_benchmark, get_consortium_patterns, analyze_call_history
 
 Respond with ONLY the JSON, no other text."""
     

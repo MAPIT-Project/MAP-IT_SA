@@ -163,7 +163,7 @@ I found **15 funding opportunities** for your query:
 │  Smart Behavior:                                                            │
 │  • Simple queries ("What is RIA?") → 1-2 iterations, fast                  │
 │  • Complex queries ("Compare EIC vs ERC") → Up to 5 iterations, thorough   │
-│  • 21 tools available: stats, docs, calls, projects, proposal support      │
+│  • 18 tools available: stats, docs, calls, projects, proposal support      │
 │                                                                             │
 │  Fallback: Simple loop only if ToolAwareAgent unavailable                  │
 └──────────────────────────────────┬──────────────────────────────────────────┘
@@ -384,7 +384,7 @@ For **complex queries** (comparisons, analysis, multi-source), the Tool-Aware Ag
 
 ## Available Tools
 
-The system has **21 tools** available for the multi-tool agent:
+The system has **18 tools** available for the multi-tool agent:
 
 ### Statistics Tools
 
@@ -416,7 +416,6 @@ compare_programmes(programme_a='EIC', programme_b='ERC', metrics=['success_rate'
 | Tool | Description | Parameters |
 |------|-------------|------------|
 | `search_documents` | Search official EU documents | `query`, `document_type` (optional), `max_results` |
-| `search_specific_topic` | Deep semantic search for a topic | `topic`, `context` |
 
 **Example:**
 ```python
@@ -476,19 +475,6 @@ get_collaboration_network(organization_name='CNRS')
 # Cluster search
 search_by_cluster(cluster='Climate')
 # Returns: [{ "id": "...", "title": "...", "cluster_name": "Climate", ... }]
-```
-
-### Validation Tools
-
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `verify_eligibility` | Check eligibility for a scenario | `entity_type`, `country`, `programme`, `role` |
-| `cross_reference` | Verify info across sources | `claim`, `sources` |
-
-**Example:**
-```python
-verify_eligibility(entity_type='SME', country='Switzerland', programme='Horizon Europe')
-# Returns: { "eligible": true, "conditions": [...], "sources": [...] }
 ```
 
 ### Proposal Support Tools (Group 2)

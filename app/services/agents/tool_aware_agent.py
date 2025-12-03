@@ -461,19 +461,6 @@ What is your next step? Remember: Output ONLY JSON."""
             ]
         ))
         
-        self.register_tool(Tool(
-            name="search_specific_topic",
-            description="Deep search for a specific topic with semantic understanding",
-            category=ToolCategory.DOCUMENTS,
-            parameters={
-                "topic": "The specific topic to search",
-                "context": "Additional context to narrow results"
-            },
-            examples=[
-                "search_specific_topic(topic='third country participation', context='eligibility rules')"
-            ]
-        ))
-        
         # Funding call tools
         self.register_tool(Tool(
             name="search_funding_calls",
@@ -598,35 +585,6 @@ What is your next step? Remember: Output ONLY JSON."""
             ]
         ))
         
-        # Validation/cross-reference tools
-        self.register_tool(Tool(
-            name="verify_eligibility",
-            description="Check eligibility rules for a specific scenario",
-            category=ToolCategory.VALIDATION,
-            parameters={
-                "entity_type": "Type of entity (SME, university, company, etc.)",
-                "country": "Country of the entity",
-                "programme": "Target programme",
-                "role": "Optional: 'coordinator', 'participant'"
-            },
-            examples=[
-                "verify_eligibility(entity_type='SME', country='Switzerland', programme='Horizon Europe')"
-            ]
-        ))
-        
-        self.register_tool(Tool(
-            name="cross_reference",
-            description="Cross-reference information from multiple sources to verify accuracy",
-            category=ToolCategory.VALIDATION,
-            parameters={
-                "claim": "The claim to verify",
-                "sources": "List of source types to check"
-            },
-            examples=[
-                "cross_reference(claim='EIC has 8% success rate', sources=['graph', 'documents'])"
-            ]
-        ))
-    
     def register_tool(self, tool: Tool):
         """Register a tool with the agent."""
         self.tools[tool.name] = tool
@@ -1014,8 +972,6 @@ What is your next step? Remember: Output ONLY JSON."""
                 return await self._tool_compare_programmes(params)
             elif tool_name == 'search_documents':
                 return await self._tool_search_documents(params)
-            elif tool_name == 'search_specific_topic':
-                return await self._tool_search_specific_topic(params)
             elif tool_name == 'search_funding_calls':
                 return await self._tool_search_funding_calls(params)
             elif tool_name == 'get_call_details':
@@ -1032,10 +988,6 @@ What is your next step? Remember: Output ONLY JSON."""
                 return await self._tool_get_collaboration_network(params)
             elif tool_name == 'search_by_cluster':
                 return await self._tool_search_by_cluster(params)
-            elif tool_name == 'verify_eligibility':
-                return await self._tool_verify_eligibility(params)
-            elif tool_name == 'cross_reference':
-                return await self._tool_cross_reference(params)
             elif tool_name == 'get_budget_benchmark':
                 return await self._tool_get_budget_benchmark(params)
             elif tool_name == 'get_consortium_patterns':
@@ -1283,15 +1235,7 @@ What is your next step? Remember: Output ONLY JSON."""
             }
         except Exception as e:
             return {"error": str(e)}
-    
-    async def _tool_search_specific_topic(self, params: Dict) -> Dict:
-        """Deep search for a specific topic."""
-        topic = params.get('topic', '')
-        context = params.get('context', '')
-        query = f"{topic} {context}".strip()
 
-        return await self._tool_search_documents({'query': query, 'max_results': 15})  # Increased from 5
-    
     async def _tool_search_funding_calls(self, params: Dict) -> Dict:
         """Search funding calls."""
         try:
@@ -1616,32 +1560,6 @@ What is your next step? Remember: Output ONLY JSON."""
         except Exception as e:
             logger.error(f"Cluster search error: {e}")
             return {"error": str(e), "projects": []}
-    
-    async def _tool_verify_eligibility(self, params: Dict) -> Dict:
-        """Verify eligibility for a scenario."""
-        entity_type = params.get('entity_type', '')
-        country = params.get('country', '')
-        programme = params.get('programme', '')
-        
-        # Search documents for eligibility rules
-        query = f"{entity_type} {country} eligibility {programme}"
-        return await self._tool_search_documents({'query': query, 'max_results': 5})
-    
-    async def _tool_cross_reference(self, params: Dict) -> Dict:
-        """Cross-reference information from multiple sources."""
-        claim = params.get('claim', '')
-        sources = params.get('sources', ['documents'])
-        
-        results = {}
-        
-        if 'documents' in sources:
-            results['documents'] = await self._tool_search_documents({'query': claim})
-        
-        if 'graph' in sources:
-            # Extract key terms for graph search
-            results['graph'] = await self._tool_get_programme_stats({'programme': claim})
-        
-        return {"cross_reference": results}
 
     async def _tool_get_budget_benchmark(self, params: Dict) -> Dict:
         """Get budget benchmarks from funded Horizon Europe projects."""
