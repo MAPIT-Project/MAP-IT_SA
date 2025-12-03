@@ -618,7 +618,7 @@ class ConversationManager:
             answer = agent_result.get('answer', '')
 
             # 5. If agent didn't produce a good answer, synthesize from results
-            if not answer or len(answer) < 50:
+            if not answer or len(answer) < 50 or self._is_poor_quality_answer(answer):
                 answer = await self._synthesize_agent_response(
                     query=user_message,
                     agent_result=agent_result,
@@ -767,7 +767,7 @@ class ConversationManager:
             if not answer:
                 answer = agent_result.get('answer', '')
 
-            if not answer or len(answer) < 50:
+            if not answer or len(answer) < 50 or self._is_poor_quality_answer(answer):
                 yield {
                     'type': 'status',
                     'stage': 'synthesizing',
@@ -860,6 +860,97 @@ class ConversationManager:
             lines.append(f"{role}: {content}")
 
         return "\n\n".join(lines)
+
+    def _is_poor_quality_answer(self, answer: str) -> bool:
+        """Check if an answer is poor quality and needs LLM synthesis."""
+        if not answer:
+            return True
+
+        # Check for raw document fragments (common patterns)
+        poor_quality_patterns = [
+            # Document titles/headers appearing as content
+            "Application Form",
+            "Horizon Europe Programme Standard",
+            "Part A)",
+            "Part B)",
+            # Lists of country names (document fragments)
+            "Somalia, South Africa",
+            "South Sudan, Sri Lanka",
+            "St. Lucia, St. Vincent",
+            # Raw field names
+            "'content':",
+            "'score':",
+            "{'documents'",
+            '{"documents"',
+            # Cut-off words at start
+            answer.strip()[:10] in ["rmance", "tion of", "ing the", "ment of"],
+            # Looks like a table of contents
+            "Table of Contents",
+            "[Page",
+            # Administrative text
+            "The Director-General responsible may delay",
+            "All deadlines are at 17.00.00 Brussels",
+            # Document structure fragments
+            "General conditions relating to this call",
+            "conditions are described in General Annex",
+            "The criteria are described in General Annex",
+            "indicative budget",
+            # Work programme fragments
+            "Overall indicative budget",
+            "Admissibility conditions The conditions",
+            "Eligibility conditions The conditions",
+            # Truncated document patterns (from Q5)
+            "participation is considered essential for implementing",
+            "reject tenders for supply contracts",
+            "affiliated entities are eligible",
+            "essential components of the activities",
+            # More document fragment patterns
+            "Specific cases:",
+            "The rules are described in",
+            "The procedure is described in",
+            "Financial and operational capacity",
+            "Award criteria The criteria",
+            # Mid-sentence starts (document fragments)
+            answer.strip()[:30].startswith("participation is"),
+            answer.strip()[:30].startswith("reject tenders"),
+            answer.strip()[:30].startswith("affiliated"),
+        ]
+
+        for pattern in poor_quality_patterns:
+            if isinstance(pattern, bool):
+                if pattern:
+                    return True
+            elif pattern in answer:
+                logger.info(f"⚠️ Poor quality answer detected: contains '{pattern}'")
+                return True
+
+        # Check if it's mostly a list without explanation
+        lines = answer.strip().split('\n')
+        if len(lines) > 5:
+            # If more than 70% of lines are short items (like country names)
+            short_lines = sum(1 for line in lines if len(line.strip()) < 40)
+            if short_lines / len(lines) > 0.7:
+                logger.info("⚠️ Poor quality answer detected: mostly short list items")
+                return True
+
+        # Check for lack of structure (no formatting indicators in long text)
+        if len(answer) > 200:
+            has_structure = any([
+                "**" in answer,  # Bold
+                "•" in answer or "- " in answer,  # Bullets
+                answer.count('\n\n') >= 2,  # Paragraphs
+                any(c.isdigit() and answer[answer.index(c):answer.index(c)+2] in [f"{i}." for i in range(1, 10)] for c in answer if c.isdigit()),  # Numbered lists
+            ])
+            if not has_structure:
+                # Additional check: does it read like a coherent answer?
+                # Short sentences with periods suggest document fragments
+                sentences = answer.split('.')
+                avg_sentence_len = sum(len(s) for s in sentences) / max(len(sentences), 1)
+                if avg_sentence_len < 30:  # Very short sentences
+                    logger.info("⚠️ Poor quality answer detected: fragmented text without structure")
+                    return True
+
+        return False
 
     async def _synthesize_agent_response(
         self,

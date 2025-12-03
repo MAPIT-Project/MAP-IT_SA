@@ -817,18 +817,73 @@ What is your next step? Remember: Output ONLY JSON."""
     # ==================== Tool Implementations ====================
     
     async def _tool_get_programme_stats(self, params: Dict) -> Dict:
-        """Get programme statistics from graph DB."""
+        """Get programme/cluster statistics from graph DB."""
         try:
             from ..data_intelligence.graph_service import GraphSearchService
             graph = GraphSearchService()
-            
+
             programme = params.get('programme', '')
+
+            # Map programme names to cluster codes
+            cluster_map = {
+                'cluster 5': 'CL5',
+                'cl5': 'CL5',
+                'climate': 'CL5',
+                'energy': 'CL5',
+                'mobility': 'CL5',
+                'cluster 4': 'CL4',
+                'cl4': 'CL4',
+                'digital': 'CL4',
+                'cluster 6': 'CL6',
+                'cl6': 'CL6',
+                'food': 'CL6',
+                'cluster 1': 'CL1',
+                'cl1': 'CL1',
+                'health': 'CL1',
+                'cluster 2': 'CL2',
+                'cl2': 'CL2',
+                'culture': 'CL2',
+                'cluster 3': 'CL3',
+                'cl3': 'CL3',
+                'security': 'CL3',
+                'eic': 'EIC',
+                'erc': 'ERC',
+                'msca': 'MSCA',
+            }
+
+            # Try to find a matching cluster code
+            cluster_code = None
+            programme_lower = programme.lower()
+            for key, code in cluster_map.items():
+                if key in programme_lower:
+                    cluster_code = code
+                    break
+
+            # Get cluster statistics
             result = await asyncio.to_thread(
-                graph.get_programme_statistics,
-                programme
+                graph.get_cluster_statistics,
+                cluster_code
             )
-            return result or {"message": f"No statistics found for {programme}"}
+
+            if result:
+                # Also get budget statistics for more detail
+                budget_stats = await asyncio.to_thread(
+                    graph.get_budget_statistics,
+                    cluster_code
+                )
+
+                # Combine results
+                return {
+                    "programme": programme,
+                    "cluster_code": cluster_code,
+                    "statistics": result,
+                    "budget_details": budget_stats,
+                    "source": "neo4j_graph"
+                }
+
+            return {"message": f"No statistics found for {programme}"}
         except Exception as e:
+            logger.error(f"Programme stats error: {e}")
             return {"error": str(e)}
     
     async def _tool_get_country_stats(self, params: Dict) -> Dict:
@@ -836,35 +891,122 @@ What is your next step? Remember: Output ONLY JSON."""
         try:
             from ..data_intelligence.graph_service import GraphSearchService
             graph = GraphSearchService()
-            
+
             country = params.get('country', '')
-            result = await asyncio.to_thread(
-                graph.get_country_participation,
-                country
+
+            # Try to extract country code from input
+            country_codes = {
+                'germany': 'DE', 'german': 'DE',
+                'france': 'FR', 'french': 'FR',
+                'italy': 'IT', 'italian': 'IT',
+                'spain': 'ES', 'spanish': 'ES',
+                'netherlands': 'NL', 'dutch': 'NL',
+                'belgium': 'BE', 'belgian': 'BE',
+                'austria': 'AT', 'austrian': 'AT',
+                'sweden': 'SE', 'swedish': 'SE',
+                'denmark': 'DK', 'danish': 'DK',
+                'finland': 'FI', 'finnish': 'FI',
+                'ireland': 'IE', 'irish': 'IE',
+                'portugal': 'PT', 'portuguese': 'PT',
+                'greece': 'GR', 'greek': 'GR',
+                'poland': 'PL', 'polish': 'PL',
+                'switzerland': 'CH', 'swiss': 'CH',
+                'norway': 'NO', 'norwegian': 'NO',
+                'uk': 'GB', 'united kingdom': 'GB', 'britain': 'GB', 'british': 'GB',
+                'israel': 'IL', 'israeli': 'IL',
+            }
+
+            country_code = None
+            country_lower = country.lower()
+
+            # First check if it's already a code (2 letters)
+            if len(country) == 2:
+                country_code = country.upper()
+            else:
+                for name, code in country_codes.items():
+                    if name in country_lower:
+                        country_code = code
+                        break
+
+            if not country_code:
+                return {"message": f"Could not identify country code for '{country}'. Try using ISO codes like DE, FR, IT."}
+
+            # Get eligibility info
+            eligibility = await asyncio.to_thread(
+                graph.check_country_eligibility,
+                country_code
             )
-            return result or {"message": f"No statistics found for {country}"}
+
+            # Get top organizations in that country
+            top_orgs = await asyncio.to_thread(
+                graph.get_top_organizations,
+                None,  # no cluster filter
+                country_code,
+                10  # limit
+            )
+
+            return {
+                "country": country,
+                "country_code": country_code,
+                "eligibility": eligibility,
+                "top_organizations": top_orgs,
+                "organization_count": len(top_orgs),
+                "source": "neo4j_graph"
+            }
         except Exception as e:
+            logger.error(f"Country stats error: {e}")
             return {"error": str(e)}
     
     async def _tool_compare_programmes(self, params: Dict) -> Dict:
-        """Compare two programmes."""
+        """Compare two programmes/clusters."""
         try:
             from ..data_intelligence.graph_service import GraphSearchService
             graph = GraphSearchService()
-            
+
             prog_a = params.get('programme_a', '')
             prog_b = params.get('programme_b', '')
-            
-            stats_a = await asyncio.to_thread(graph.get_programme_statistics, prog_a)
-            stats_b = await asyncio.to_thread(graph.get_programme_statistics, prog_b)
-            
+
+            # Use the same cluster mapping as get_programme_stats
+            cluster_map = {
+                'cluster 5': 'CL5', 'cl5': 'CL5', 'climate': 'CL5', 'energy': 'CL5', 'mobility': 'CL5',
+                'cluster 4': 'CL4', 'cl4': 'CL4', 'digital': 'CL4',
+                'cluster 6': 'CL6', 'cl6': 'CL6', 'food': 'CL6',
+                'cluster 1': 'CL1', 'cl1': 'CL1', 'health': 'CL1',
+                'cluster 2': 'CL2', 'cl2': 'CL2', 'culture': 'CL2',
+                'cluster 3': 'CL3', 'cl3': 'CL3', 'security': 'CL3',
+                'eic': 'EIC', 'erc': 'ERC', 'msca': 'MSCA',
+                'ria': 'RIA', 'ia': 'IA', 'csa': 'CSA',
+            }
+
+            def get_cluster_code(prog: str) -> Optional[str]:
+                prog_lower = prog.lower()
+                for key, code in cluster_map.items():
+                    if key in prog_lower:
+                        return code
+                return None
+
+            code_a = get_cluster_code(prog_a)
+            code_b = get_cluster_code(prog_b)
+
+            # Get statistics for both
+            stats_a = await asyncio.to_thread(graph.get_cluster_statistics, code_a)
+            stats_b = await asyncio.to_thread(graph.get_cluster_statistics, code_b)
+
             return {
                 "comparison": {
-                    prog_a: stats_a,
-                    prog_b: stats_b
-                }
+                    prog_a: {
+                        "cluster_code": code_a,
+                        "statistics": stats_a[0] if stats_a else None
+                    },
+                    prog_b: {
+                        "cluster_code": code_b,
+                        "statistics": stats_b[0] if stats_b else None
+                    }
+                },
+                "source": "neo4j_graph"
             }
         except Exception as e:
+            logger.error(f"Compare programmes error: {e}")
             return {"error": str(e)}
     
     async def _tool_search_documents(self, params: Dict) -> Dict:
@@ -1316,49 +1458,98 @@ What is your next step? Remember: Output ONLY JSON."""
         """Build a fallback answer from collected information."""
 
         if not plan.reasoning_steps:
-            return "I was unable to find information to answer this question."
+            return ""  # Return empty to trigger synthesis
 
         # Collect meaningful observations (skip raw tool results)
-        observations = []
-        document_contents = []
+        meaningful_content = []
 
         for step in plan.reasoning_steps:
             if step.observation:
                 obs = step.observation
 
-                # Extract document content if present
-                if "From " in obs and ":" in obs:
-                    # This looks like formatted document content
-                    document_contents.append(obs)
-                elif not obs.startswith("{") and not obs.startswith("search_"):
-                    # Not raw JSON - keep it
-                    observations.append(obs)
+                # Skip if it looks like raw JSON
+                if obs.startswith("{") or obs.startswith("search_") or obs.startswith("get_"):
+                    continue
 
-        # If we have document contents, format them nicely
-        if document_contents:
-            # Extract just the text content from document observations
-            content_texts = []
-            for doc_obs in document_contents[:3]:
-                # Parse out the content after "From source:"
-                lines = doc_obs.split('\n')
-                for line in lines:
-                    if line.startswith("From ") and ":" in line:
-                        # Extract content after the source prefix
-                        parts = line.split(":", 1)
-                        if len(parts) > 1:
-                            content = parts[1].strip()
-                            if len(content) > 50:  # Only meaningful content
-                                content_texts.append(content)
+                # Check if this is formatted document content
+                if "Found " in obs and "relevant document" in obs:
+                    # Extract the actual content from "From source: content" lines
+                    lines = obs.split('\n')
+                    for line in lines:
+                        if line.startswith("From ") and ":" in line:
+                            # Extract content after "From Source:"
+                            parts = line.split(":", 1)
+                            if len(parts) > 1:
+                                content = parts[1].strip()
+                                # Check content quality - skip truncated/malformed text
+                                if self._is_quality_content(content):
+                                    meaningful_content.append(content)
+                elif self._is_quality_content(obs):
+                    meaningful_content.append(obs)
 
-            if content_texts:
-                return "Based on the official documentation:\n\n" + "\n\n".join(content_texts[:3])
+        # Only return if we have quality content
+        if meaningful_content:
+            # Deduplicate similar content
+            unique_content = self._deduplicate_content(meaningful_content)
+            if unique_content:
+                return "\n\n".join(unique_content[:3])
 
-        # Use cleaned observations
-        if observations:
-            # Filter out observations that look like raw data
-            clean_obs = [o for o in observations if len(o) > 30 and not o.startswith("{'")]
-            if clean_obs:
-                return "Based on my search:\n\n" + "\n\n".join(clean_obs[:3])
+        # Return empty to trigger LLM synthesis
+        return ""
 
-        return "I searched multiple sources but couldn't find a complete answer to your question. Please try rephrasing your question or asking about a specific aspect."
+    def _is_quality_content(self, text: str) -> bool:
+        """Check if text is quality content suitable for display."""
+        if not text or len(text) < 50:
+            return False
+
+        # Check for truncated/malformed text patterns
+        bad_patterns = [
+            # Truncated words at start
+            text[:20].count('  ') > 2,  # Multiple spaces
+            text.startswith('rmance'),  # Cut-off word
+            text.startswith('tion'),
+            text.startswith('ing '),
+            # Raw data patterns
+            "{'documents'" in text,
+            '{"documents"' in text,
+            "'content':" in text,
+            "'score':" in text,
+            # Meta/structural content
+            "Table of Contents" in text,
+            "Page " in text and " of " in text,
+        ]
+
+        if any(bad_patterns):
+            return False
+
+        # Check for reasonable word structure
+        words = text.split()
+        if len(words) < 10:
+            return False
+
+        # Check that content has actual sentences (periods, capitals)
+        if '.' not in text and '?' not in text:
+            return False
+
+        return True
+
+    def _deduplicate_content(self, contents: list) -> list:
+        """Remove duplicate or very similar content."""
+        if not contents:
+            return []
+
+        unique = []
+        for content in contents:
+            # Check if this content is similar to any existing
+            is_duplicate = False
+            content_start = content[:100].lower()
+            for existing in unique:
+                existing_start = existing[:100].lower()
+                if content_start == existing_start:
+                    is_duplicate = True
+                    break
+            if not is_duplicate:
+                unique.append(content)
+
+        return unique
 
