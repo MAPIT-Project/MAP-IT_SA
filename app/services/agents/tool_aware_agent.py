@@ -190,6 +190,7 @@ When the user refers to previous conversation:
    - For statistics → use get_programme_statistics or get_country_statistics
    - For budget/funding questions → use get_budget_benchmark (returns real data from funded projects)
    - For consortium composition → use get_consortium_patterns (org types, country distribution, coordinator profiles)
+   - For finding partners → use find_experienced_partners (organizations with track records in specific topics)
    - For eligibility rules → use search_documents
    - For comparing things → use compare_programmes
 
@@ -365,6 +366,47 @@ What is your next step? Remember: Output ONLY JSON."""
                 "get_consortium_patterns(cluster='CL4', action_type='RIA')",
                 "get_consortium_patterns(action_type='IA')",
                 "get_consortium_patterns(topic_keywords='hydrogen')"
+            ]
+        ))
+
+        # Partner discovery tool
+        self.register_tool(Tool(
+            name="find_experienced_partners",
+            description="Find organizations with proven track records in specific Horizon Europe topics. Returns organizations ranked by relevant projects, coordination experience, and funding received.",
+            category=ToolCategory.PROJECTS,
+            parameters={
+                "topic_keywords": "Required: Keywords describing the research area (e.g., 'quantum computing')",
+                "country": "Optional: Country name or code (e.g., 'Germany', 'DE')",
+                "organization_type": "Optional: HES, REC, PRC, SME, university, research",
+                "cluster": "Optional: Cluster code (CL4, CL5, etc.)",
+                "min_projects": "Optional: Minimum projects to be considered experienced (default: 2)",
+                "role_filter": "Optional: 'coordinator' or 'participant'"
+            },
+            examples=[
+                "find_experienced_partners(topic_keywords='quantum computing', country='Germany')",
+                "find_experienced_partners(topic_keywords='hydrogen', organization_type='SME')",
+                "find_experienced_partners(topic_keywords='AI healthcare', role_filter='coordinator')"
+            ]
+        ))
+
+        # Similar funded projects tool (semantic search)
+        self.register_tool(Tool(
+            name="get_similar_funded_projects",
+            description="Find funded Horizon Europe projects semantically similar to a description using AI embeddings. Returns projects ranked by similarity with details, consortiums, and insights.",
+            category=ToolCategory.PROJECTS,
+            parameters={
+                "description": "Required: Project idea or description to match (min 20 chars)",
+                "cluster": "Optional: Cluster code filter (CL4, CL5, EIC, etc.)",
+                "action_type": "Optional: Action type filter (RIA, IA, CSA)",
+                "min_budget": "Optional: Minimum EU contribution filter",
+                "max_budget": "Optional: Maximum EU contribution filter",
+                "year_from": "Optional: Filter for projects starting from year",
+                "limit": "Optional: Number of results (default 10)"
+            },
+            examples=[
+                "get_similar_funded_projects(description='AI system for cancer detection using medical imaging')",
+                "get_similar_funded_projects(description='Green hydrogen production', cluster='CL5', action_type='RIA')",
+                "get_similar_funded_projects(description='Quantum computing applications in drug discovery', limit=5)"
             ]
         ))
 
@@ -977,6 +1019,10 @@ What is your next step? Remember: Output ONLY JSON."""
                 return await self._tool_get_budget_benchmark(params)
             elif tool_name == 'get_consortium_patterns':
                 return await self._tool_get_consortium_patterns(params)
+            elif tool_name == 'find_experienced_partners':
+                return await self._tool_find_experienced_partners(params)
+            elif tool_name == 'get_similar_funded_projects':
+                return await self._tool_get_similar_funded_projects(params)
             else:
                 return {"error": f"Tool {tool_name} not implemented"}
         except Exception as e:
@@ -1612,6 +1658,51 @@ What is your next step? Remember: Output ONLY JSON."""
             logger.error(f"Consortium patterns error: {e}")
             return {"error": str(e)}
 
+    async def _tool_find_experienced_partners(self, params: Dict) -> Dict:
+        """Find experienced partners for consortium building."""
+        try:
+            from ..tools.partner_discovery import PartnerDiscoveryTool
+
+            tool = PartnerDiscoveryTool()
+            result = tool.find_partners(
+                topic_keywords=params.get('topic_keywords', params.get('keywords', '')),
+                country=params.get('country'),
+                organization_type=params.get('organization_type'),
+                cluster=params.get('cluster'),
+                min_projects=params.get('min_projects', 2),
+                role_filter=params.get('role_filter'),
+                limit=params.get('limit', 20)
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Partner discovery error: {e}")
+            return {"error": str(e)}
+
+    async def _tool_get_similar_funded_projects(self, params: Dict) -> Dict:
+        """Find funded projects semantically similar to a description."""
+        try:
+            from ..tools.similar_projects import SimilarProjectsTool
+
+            tool = SimilarProjectsTool()
+            result = tool.find_similar(
+                description=params.get('description', ''),
+                cluster=params.get('cluster'),
+                action_type=params.get('action_type'),
+                min_budget=params.get('min_budget'),
+                max_budget=params.get('max_budget'),
+                year_from=params.get('year_from'),
+                limit=params.get('limit', 10),
+                similarity_threshold=params.get('similarity_threshold', 0.3)
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Similar projects error: {e}")
+            return {"error": str(e)}
+
     def _summarize_tool_results(self, tool_calls: List[ToolCall]) -> str:
         """Summarize results from tool calls in a human-readable format."""
         summaries = []
@@ -1736,6 +1827,65 @@ What is your next step? Remember: Output ONLY JSON."""
             # Recommendations
             if recs.get('ideal_composition'):
                 parts.append(f"- Ideal Mix: {'; '.join(recs['ideal_composition'][:3])}")
+
+            return "\n".join(parts)
+
+        # Handle partner discovery results
+        if 'experienced_partners' in result:
+            partners = result.get('experienced_partners', [])
+            total = result.get('total_found', 0)
+            query = result.get('query_params', {})
+
+            if not partners:
+                return f"Partner Discovery: No organizations found matching '{query.get('topic_keywords', '')}'"
+
+            parts = [f"Found {total} experienced partners for '{query.get('topic_keywords', '')}':"]
+
+            for p in partners[:5]:
+                name = p.get('short_name') or p.get('name', 'Unknown')
+                country = p.get('country', '')
+                org_type = p.get('type', '')
+                track = p.get('track_record', {})
+                relevant = track.get('relevant_projects', 0)
+                coord = track.get('as_coordinator', 0)
+                score = p.get('experience_score', 0)
+
+                coord_str = f", {coord} as coordinator" if coord > 0 else ""
+                parts.append(f"- {name} ({country}, {org_type}): {relevant} relevant projects{coord_str} [score: {score}]")
+
+            insights = result.get('aggregated_insights', {})
+            if insights.get('top_countries_in_topic'):
+                parts.append(f"\nTop countries: {', '.join(insights['top_countries_in_topic'][:5])}")
+
+            return "\n".join(parts)
+
+        # Handle similar projects results
+        if 'similar_projects' in result and isinstance(result['similar_projects'], list):
+            projects = result['similar_projects']
+            query_desc = result.get('query_description', '')[:50]
+            matches = result.get('matches_found', len(projects))
+
+            if not projects:
+                return f"Similar Projects: No projects found matching '{query_desc}'"
+
+            parts = [f"Found {matches} similar projects:"]
+
+            for p in projects[:5]:
+                acronym = p.get('acronym', 'N/A')
+                title = p.get('title', 'N/A')[:60]
+                score = p.get('similarity_score', 0)
+                budget = p.get('eu_contribution', 0)
+                consortium = p.get('consortium', {})
+                size = consortium.get('size', 0)
+                action_type = p.get('action_type', 'N/A')
+
+                budget_str = f"€{budget/1_000_000:.1f}M" if budget > 0 else "N/A"
+                parts.append(f"- [{score:.0%}] {acronym}: {title}... ({action_type}, {budget_str}, {size} partners)")
+
+            # Add insights
+            insights = result.get('insights', [])
+            if insights:
+                parts.append(f"\nInsights: {'; '.join(insights[:3])}")
 
             return "\n".join(parts)
 

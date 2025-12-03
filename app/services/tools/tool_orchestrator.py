@@ -2002,6 +2002,162 @@ Returns real patterns from funded CORDIS projects including:
         self.register_tool(consortium_patterns_tool)
         logger.info("🏢 Registered get_consortium_patterns tool")
 
+        # ====================================================================
+        # PARTNER DISCOVERY TOOL
+        # ====================================================================
+
+        from .partner_discovery import find_experienced_partners_execute
+
+        partner_discovery_tool = Tool(
+            name='find_experienced_partners',
+            description='''Find organizations with proven track records in specific Horizon Europe topics.
+
+Use this tool when users want to:
+- Find potential consortium partners for their proposal
+- Identify experienced coordinators in a research area
+- Discover organizations working on specific topics
+- Find partners from specific countries or organization types
+
+Returns organizations ranked by:
+- Number of relevant projects
+- Coordination experience
+- Total Horizon Europe experience
+- Funding received
+
+Each partner includes their project history, experience score, and contact hints.''',
+            parameters_schema={
+                'topic_keywords': {
+                    'type': 'string',
+                    'required': True,
+                    'description': 'Keywords describing the research area (e.g., "quantum computing", "hydrogen fuel cells")',
+                    'examples': ['quantum computing', 'hydrogen', 'AI healthcare']
+                },
+                'country': {
+                    'type': 'string',
+                    'required': False,
+                    'description': 'Country name or code (e.g., "Germany", "DE")',
+                    'examples': ['Germany', 'DE', 'France', 'Netherlands']
+                },
+                'organization_type': {
+                    'type': 'string',
+                    'required': False,
+                    'description': 'Organization type (HES, REC, PRC, SME)',
+                    'examples': ['HES', 'REC', 'SME', 'university', 'research']
+                },
+                'cluster': {
+                    'type': 'string',
+                    'required': False,
+                    'description': 'Cluster code to filter (CL4, CL5, etc.)',
+                    'examples': ['CL4', 'CL5', 'EIC']
+                },
+                'min_projects': {
+                    'type': 'integer',
+                    'required': False,
+                    'default': 2,
+                    'description': 'Minimum projects to be considered experienced'
+                },
+                'role_filter': {
+                    'type': 'string',
+                    'required': False,
+                    'description': 'Filter by role: coordinator, participant, or both',
+                    'examples': ['coordinator', 'participant']
+                }
+            },
+            execute_func=find_experienced_partners_execute,
+            cache_ttl=3600,  # 1 hour
+            parallel_safe=True,
+            category='proposal_support',
+            tags=['partners', 'consortium', 'organizations', 'discovery', 'horizon_europe'],
+            usage_examples=[
+                'Find experienced partners for quantum computing in Germany',
+                'Which SMEs have worked on hydrogen projects?',
+                'Find coordinators for AI in healthcare',
+                'What universities have renewable energy experience?'
+            ]
+        )
+
+        self.register_tool(partner_discovery_tool)
+        logger.info("🔍 Registered find_experienced_partners tool")
+
+        # ====================================================================
+        # SIMILAR PROJECTS TOOL
+        # ====================================================================
+
+        from .similar_projects import get_similar_funded_projects_execute
+
+        similar_projects_tool = Tool(
+            name='get_similar_funded_projects',
+            description='''Find funded Horizon Europe projects semantically similar to a description.
+
+Use this tool when users want to:
+- See examples of funded projects similar to their idea
+- Understand what kinds of projects get funded in their area
+- Find reference projects for their proposal
+- Benchmark their project idea against successful projects
+
+Returns projects ranked by semantic similarity with:
+- Similarity scores (0-1)
+- Project details (acronym, title, budget, dates)
+- Consortium information (size, countries, coordinator)
+- Keywords extracted from objectives
+- Aggregated insights about funding trends''',
+            parameters_schema={
+                'description': {
+                    'type': 'string',
+                    'required': True,
+                    'description': 'Project idea or description to match against (min 20 chars)',
+                    'examples': ['AI system for early cancer detection using multi-modal imaging', 'Green hydrogen production from offshore wind']
+                },
+                'cluster': {
+                    'type': 'string',
+                    'required': False,
+                    'description': 'Cluster code filter (e.g., "CL4", "CL5", "EIC")',
+                    'examples': ['CL4', 'CL5', 'CL1', 'EIC']
+                },
+                'action_type': {
+                    'type': 'string',
+                    'required': False,
+                    'description': 'Action type filter (e.g., "RIA", "IA", "CSA")',
+                    'examples': ['RIA', 'IA', 'CSA']
+                },
+                'min_budget': {
+                    'type': 'integer',
+                    'required': False,
+                    'description': 'Minimum EU contribution filter'
+                },
+                'max_budget': {
+                    'type': 'integer',
+                    'required': False,
+                    'description': 'Maximum EU contribution filter'
+                },
+                'year_from': {
+                    'type': 'integer',
+                    'required': False,
+                    'description': 'Filter for projects starting from this year'
+                },
+                'limit': {
+                    'type': 'integer',
+                    'required': False,
+                    'default': 10,
+                    'description': 'Number of results to return'
+                }
+            },
+            execute_func=get_similar_funded_projects_execute,
+            cache_ttl=3600,  # 1 hour
+            parallel_safe=True,
+            category='proposal_support',
+            tags=['similar', 'projects', 'embeddings', 'semantic', 'benchmark', 'horizon_europe'],
+            usage_examples=[
+                'Find projects similar to my AI healthcare idea',
+                'Show me funded projects about hydrogen energy storage',
+                'What projects are similar to quantum computing for drug discovery?',
+                'Find RIA projects about sustainable agriculture'
+            ]
+        )
+
+        self.register_tool(similar_projects_tool)
+        logger.info("🔎 Registered get_similar_funded_projects tool")
+
     def get_available_tools(self) -> List[Dict[str, Any]]:
         """
         Get list of available tools with their descriptions and metadata.
