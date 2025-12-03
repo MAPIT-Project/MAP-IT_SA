@@ -594,13 +594,13 @@ class ConversationManager:
 
             logger.info(f"📋 Conversation context: {len(recent_messages)} messages")
 
-            # 2. Store user message in memory
-            self.memory_service.add_conversation_turn(
+            # 2. Store user message in database AND memory
+            user_message_id = await self._store_user_message(
                 conversation_id=conversation_id,
-                role='user',
-                content=user_message,
-                message_id=random.randint(1000, 9999)
+                user_id=user_id,
+                message=user_message
             )
+            logger.info(f"💾 Stored user message {user_message_id} in database (V3)")
 
             # 3. Run the agentic loop - THE AGENT DECIDES EVERYTHING
             agent_result = await self.tool_aware_agent.process_query(
@@ -625,14 +625,13 @@ class ConversationManager:
                     context=conversation_context
                 )
 
-            # 6. Store assistant response
+            # 6. Store assistant response in database AND memory
             if answer:
-                self.memory_service.add_conversation_turn(
+                assistant_message_id = await self._store_assistant_message(
                     conversation_id=conversation_id,
-                    role='assistant',
-                    content=answer[:2000],
-                    message_id=random.randint(10000, 99999)
+                    message=answer[:4000]  # Allow longer responses
                 )
+                logger.info(f"💾 Stored assistant message {assistant_message_id} in database (V3)")
 
             # 7. Build response
             processing_time = (datetime.now() - start_time).total_seconds() * 1000
@@ -699,13 +698,13 @@ class ConversationManager:
                 'message': f'Loaded {len(recent_messages)} messages from conversation history'
             }
 
-            # 2. Store user message
-            self.memory_service.add_conversation_turn(
+            # 2. Store user message in database AND memory
+            user_message_id = await self._store_user_message(
                 conversation_id=conversation_id,
-                role='user',
-                content=user_message,
-                message_id=random.randint(1000, 9999)
+                user_id=user_id,
+                message=user_message
             )
+            logger.info(f"💾 Stored user message {user_message_id} in database (V3 streaming)")
 
             yield {
                 'type': 'status',
@@ -780,14 +779,13 @@ class ConversationManager:
                     context=conversation_context
                 )
 
-            # 5. Store assistant response
+            # 5. Store assistant response in database AND memory
             if answer:
-                self.memory_service.add_conversation_turn(
+                assistant_message_id = await self._store_assistant_message(
                     conversation_id=conversation_id,
-                    role='assistant',
-                    content=answer[:2000],
-                    message_id=random.randint(10000, 99999)
+                    message=answer[:4000]  # Allow longer responses
                 )
+                logger.info(f"💾 Stored assistant message {assistant_message_id} in database (V3 streaming)")
 
             # 6. Stream the response tokens
             yield {

@@ -1,22 +1,23 @@
 # MAP-IT System Architecture
 
 > **Last Updated:** December 3, 2025
-> **Version:** 2.4 (Semantic Project Search with Vector Embeddings)
+> **Version:** 3.0 (V3 Simplified Architecture with Rich Response Formatting)
 
 ---
 
 ## Table of Contents
 
 1. [System Overview](#system-overview)
-2. [Architecture Diagram](#architecture-diagram)
-3. [Query Processing Pipeline](#query-processing-pipeline)
-4. [Agentic Loop (Self-Correcting)](#agentic-loop-self-correcting)
-5. [Multi-Tool Agent (ReAct)](#multi-tool-agent-react)
-6. [Available Tools](#available-tools)
-7. [Data Sources](#data-sources)
-8. [Key Services](#key-services)
-9. [Configuration](#configuration)
-10. [Example Flows](#example-flows)
+2. [V3 Simplified Architecture](#v3-simplified-architecture)
+3. [Architecture Diagram](#architecture-diagram)
+4. [Query Processing Pipeline](#query-processing-pipeline)
+5. [Agentic Loop (Self-Correcting)](#agentic-loop-self-correcting)
+6. [Multi-Tool Agent (ReAct)](#multi-tool-agent-react)
+7. [Available Tools](#available-tools)
+8. [Data Sources](#data-sources)
+9. [Key Services](#key-services)
+10. [Configuration](#configuration)
+11. [Example Flows](#example-flows)
 
 ---
 
@@ -41,6 +42,90 @@ MAP-IT is an intelligent research assistant for EU funding programs (Horizon Eur
 | **Statistics** | Get success rates, funding amounts, participation data |
 | **Comparisons** | Compare programmes, countries, or funding types |
 | **Document Search** | Search official EU regulations and work programmes |
+
+---
+
+## V3 Simplified Architecture
+
+**Version 3.0** introduces a simplified architecture that removes intent classification in favor of a single agentic loop that handles all queries.
+
+### Key Changes from V2
+
+| Aspect | V2 (Legacy) | V3 (Simplified) |
+|--------|-------------|-----------------|
+| **Intent Classification** | UnifiedIntentClassifier analyzes every query | No classification - agent decides |
+| **Routing** | Routes to different handlers based on intent | Single ToolAwareAgent handles all |
+| **Response Formatting** | LLM generates formatted response | Post-processor formats structured data |
+| **API Enrichment** | Manual enrichment calls | Automatic on-demand enrichment |
+
+### V3 API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v3/conversation/{id}/message/stream` | POST | Streaming response with SSE events |
+| `/api/v3/conversation/{id}/message` | POST | Non-streaming response |
+| `/api/v3/conversation/{id}/context` | GET | Get conversation history |
+| `/api/v3/conversation/{id}/context` | DELETE | Clear conversation memory |
+| `/api/v3/conversation/health` | GET | Health check |
+
+### V3 Components
+
+**1. conversation_routes_v3.py** - API routes
+- Handles streaming and non-streaming requests
+- Emits SSE events: `status`, `agent_thinking`, `tool_call`, `tool_result`, `token`, `complete`, `error`
+
+**2. ToolAwareAgent** - Single agentic loop
+- ReAct pattern (Reasoning + Acting)
+- Decides which tools to use based on query
+- Up to 5 iterations for complex queries
+- Returns `tool_results` dict for formatter
+
+**3. V3ResponseFormatter** - Rich response formatting
+- Post-processor that formats tool results consistently
+- `format_funding_calls()` - Formats calls with emojis, structured fields, Apply links
+- `format_projects()` - Formats CORDIS projects with details
+- Type icons: 🔬 RIA, 🚀 IA, 🤝 CSA, 💱 COFUND, 🎓 ERC, 👨‍🔬 MSCA
+- Status icons: 🟢 Open, 🟡 Upcoming, 🔴 Closed
+
+**4. CallEnrichmentService** - On-demand API enrichment
+- Fetches missing data from EU Portal API
+- Triggers when: `title.length < 20` OR `title == topic_code` OR `description.length < 50`
+- Caches enriched data in PostgreSQL
+- Works for both structured and vector search results
+
+### V3 Streaming Event Types
+
+```json
+{"type": "status", "stage": "processing", "message": "Processing your query..."}
+{"type": "agent_thinking", "content": "Analyzing query: find hydrogen funding calls..."}
+{"type": "tool_call", "tool": "search_funding_calls", "args": {"keywords": "hydrogen"}}
+{"type": "tool_result", "tool": "search_funding_calls", "result": {"calls_found": 15}}
+{"type": "token", "content": "I found **15 funding opportunities**..."}
+{"type": "complete", "metadata": {"architecture": "simplified_v3", "tools_used": [...]}}
+```
+
+### V3 Response Format Example
+
+```markdown
+I found **15 funding opportunities** for your query:
+
+**1. Competitiveness, energy security and integration aspects of advanced biofuels**
+📋 **Call ID:** HORIZON-CL5-2026-D3-02-01
+🔬 **Type:** RIA
+🟢 **Status:** Open
+⏰ **Deadline:** 05 Feb 2026
+🏛️ **Programme:** Cluster 5 - Climate, Energy and Mobility
+💰 **Budget:** EUR 20.00 million
+
+**Scope:** This topic focuses on advanced biofuels and renewable fuels...
+
+🔗 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/...
+
+---
+
+💡 **How to Apply:**
+• **Register** on the EU Funding & Tenders Portal...
+```
 
 ---
 
@@ -501,9 +586,10 @@ verify_eligibility(entity_type='SME', country='Switzerland', programme='Horizon 
 | Service | File | Purpose |
 |---------|------|---------|
 | `ConversationManager` | `conversation_manager.py` | Main orchestrator |
-| `AgenticManager` | `agentic_manager.py` | Self-correcting loop |
-| `ToolAwareAgent` | `tool_aware_agent.py` | Multi-tool reasoning |
-| `UnifiedIntentClassifier` | `unified_intent_classifier.py` | Intent detection |
+| `AgenticManager` | `agentic_manager.py` | Self-correcting loop (V2) |
+| `ToolAwareAgent` | `tool_aware_agent.py` | Multi-tool reasoning (V3 primary) |
+| `UnifiedIntentClassifier` | `unified_intent_classifier.py` | Intent detection (V2 only) |
+| `V3ResponseFormatter` | `response/v3_response_formatter.py` | Rich formatting for calls/projects (V3) |
 
 ### Data Services
 
@@ -619,6 +705,30 @@ User: "What are the consortium requirements?"
 5. Response: "For RIA projects, you need at least 3 independent entities..."
 ```
 
+### Example 4: V3 Call Search with Rich Formatting
+
+```
+User: "Find hydrogen funding calls" (via /api/v3/conversation/{id}/message/stream)
+
+1. No intent classification (V3 simplified)
+2. ToolAwareAgent receives query directly
+3. Agent thinking: "User wants funding calls about hydrogen"
+4. Tool call: search_funding_calls(keywords="hydrogen", status="open")
+5. Tool result: 15 calls found
+6. V3ResponseFormatter formats results:
+   - Enriches calls with missing titles via EU Portal API
+   - Adds type icons (🔬 RIA, 🚀 IA, etc.)
+   - Adds status icons (🟢 Open, 🟡 Upcoming)
+   - Generates Apply links
+   - Adds application guidance footer
+7. Streaming events:
+   - {"type": "agent_thinking", "content": "User wants funding calls..."}
+   - {"type": "tool_call", "tool": "search_funding_calls", ...}
+   - {"type": "tool_result", "tool": "search_funding_calls", ...}
+   - {"type": "token", "content": "I found **15 funding opportunities**..."}
+   - {"type": "complete", "metadata": {"architecture": "simplified_v3"}}
+```
+
 ---
 
 ## Streaming Response Format
@@ -653,14 +763,20 @@ When using the streaming endpoint, progress updates are sent as SSE:
   - Three-source fusion: PostgreSQL full-text + Neo4j graph + Vector semantic search
   - RRF (Reciprocal Rank Fusion) algorithm for combining results
   - New tool: `find_semantically_similar_projects` for AI-powered similarity
+- [x] **V3 Simplified Architecture:**
+  - Single agentic loop (no intent classification)
+  - V3 API routes at `/api/v3/conversation/...`
+  - Rich response formatter (V3ResponseFormatter) with emojis, structured data, Apply links
+  - On-demand API enrichment for missing call data (titles, descriptions)
+  - SSE streaming events: `agent_thinking`, `tool_call`, `tool_result`, `token`, `complete`
 
 ## Future Improvements
 
-- [ ] Streaming UX improvements in frontend
 - [ ] Plan caching for repeated query patterns
 - [ ] Parallel execution within agentic iterations
 - [ ] Add more tools (budget calculator, timeline generator)
 - [ ] Implement tool usage analytics
 - [ ] Add user feedback loop for quality improvement
 - [ ] Incremental embedding updates for new projects
+- [ ] V3 project formatter enhancements (publications, deliverables)
 

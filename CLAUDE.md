@@ -15,6 +15,19 @@ This is a **production-grade Retrieval-Augmented Generation (RAG) system** for q
 - **Data Intelligence Service**: Query planning, multi-source execution, and result fusion
 - **Conversation Management**: Short-term/long-term memory with professional context injection
 
+### V3 Simplified Architecture (Recommended)
+The V3 architecture uses a **single agentic loop** without intent classification:
+- **No intent classification** - The agent decides what tools to use based on query and context
+- **Single ToolAwareAgent** - Handles all query types with ReAct pattern
+- **Rich response formatting** - Post-processor formats calls/projects with emojis, links, structured data
+- **API enrichment** - Missing call data (titles, descriptions) fetched from EU Portal API on-demand
+
+**V3 Components:**
+- `conversation_routes_v3.py` - V3 API routes at `/api/v3/conversation/...`
+- `ToolAwareAgent` - Single agentic loop for all queries
+- `V3ResponseFormatter` - Post-processor for rich formatting
+- `CallEnrichmentService` - On-demand API enrichment for missing data
+
 ### Agentic Architecture (ReAct Pattern)
 The system uses a sophisticated **agentic architecture** that can:
 - **Self-correct** when initial search results are insufficient
@@ -41,7 +54,11 @@ The system uses a sophisticated **agentic architecture** that can:
 - `conversation/` - Conversation management and memory
 - `memory/` - Short/long-term memory systems
 - `proposal_writing/` - AI-powered proposal assistance
-- `response/` - Response generation utilities
+- `response/` - Response generation utilities and V3 formatter
+
+### API Layer Organization (`app/api/`)
+- `routes.py` - Legacy V2 API routes
+- `conversation_routes_v3.py` - V3 simplified architecture routes
 
 ### Available Tools (16 Tools)
 The system has 16 tools available for the multi-tool agent:
@@ -169,6 +186,15 @@ pytest --cov=app tests/
 - `app/core/config.py` - Configuration settings
 
 ### Key Endpoints
+
+**V3 Simplified Architecture (Recommended):**
+- `POST /api/v3/conversation/{id}/message/stream` - Streaming with single agentic loop
+- `POST /api/v3/conversation/{id}/message` - Non-streaming with single agentic loop
+- `GET /api/v3/conversation/{id}/context` - Get conversation history
+- `DELETE /api/v3/conversation/{id}/context` - Clear conversation memory
+- `GET /api/v3/conversation/health` - Health check
+
+**Legacy V2 Endpoints:**
 - `POST /api/query` - Main question answering endpoint (Enhanced RAG)
 - `POST /api/query/stream` - Streaming SSE endpoint
 - `POST /api/query/async` - Start async query
@@ -178,6 +204,7 @@ pytest --cov=app tests/
 - `app/services/enhanced_rag_service.py` - Core RAG implementation
 - `app/services/data_intelligence_service.py` - Multi-source search orchestration
 - `app/services/agents/tool_aware_agent.py` - Agentic AI system
+- `app/services/response/v3_response_formatter.py` - Rich response formatting for calls/projects
 
 ## Data Flow Patterns
 
@@ -411,8 +438,29 @@ User: "What are the consortium requirements?"
 5. Response: "For RIA projects, you need at least 3 independent entities..."
 ```
 
-### Streaming Response Format
-When using the streaming endpoint, progress updates are sent as SSE:
+### V3 Streaming Response Format
+When using the V3 streaming endpoint (`/api/v3/conversation/{id}/message/stream`), events are sent as SSE:
+```json
+{"type": "status", "stage": "processing", "message": "Processing your query..."}
+{"type": "agent_thinking", "content": "Analyzing query: find hydrogen funding calls..."}
+{"type": "tool_call", "tool": "search_funding_calls", "args": {"keywords": "hydrogen", "status": "open"}}
+{"type": "tool_result", "tool": "search_funding_calls", "result": {"calls_found": 15, ...}}
+{"type": "token", "content": "I found **15 funding opportunities**..."}
+{"type": "token", "content": "..."}
+{"type": "complete", "metadata": {"architecture": "simplified_v3", "tools_used": ["search_funding_calls"]}}
+```
+
+**V3 Event Types:**
+- `status` - Processing stages
+- `agent_thinking` - Agent's reasoning at each iteration
+- `tool_call` - When a tool is being called (tool name, arguments)
+- `tool_result` - Tool execution result
+- `token` - Streaming response text
+- `complete` - Final metadata with `architecture="simplified_v3"`
+- `error` - Error information
+
+### Legacy Streaming Response Format
+When using the legacy endpoint (`/api/query/stream`), progress updates are sent as SSE:
 ```json
 {"type": "status", "stage": "processing", "message": "Processing..."}
 {"type": "progress", "stage": "intent_detected", "message": "AI analyzed intent: faq"}
