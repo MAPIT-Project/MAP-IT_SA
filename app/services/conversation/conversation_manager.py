@@ -1229,13 +1229,15 @@ This metadata was extracted directly from the EU Portal API and represents the o
                     
                     try:
                         # Stream progress from agentic manager
+                        # Pass the unified_intent so LLM's complexity decision is used!
                         agentic_response = None
                         agentic_metadata = {}
                         
                         async for update in self.agentic_manager.process_query_streaming(
                             query=user_message,
                             conversation_id=str(conversation_id),
-                            conversation_history=recent_messages
+                            conversation_history=recent_messages,
+                            intent_classification=unified_intent  # LLM determines complexity!
                         ):
                             update_type = update.get('type', 'unknown')
                             
@@ -2416,12 +2418,25 @@ Be helpful and conversational."""
         except Exception as e:
             logger.warning(f"Could not get conversation history: {e}")
         
+        # First classify intent to get LLM's complexity decision
+        intent_classification = None
+        try:
+            intent_classification = await self.unified_classifier.classify_intent(
+                user_message=user_message,
+                conversation_id=conversation_id,
+                recent_messages=conversation_history
+            )
+            logger.info(f"🎯 Intent: {intent_classification.primary_intent}, Complex: {intent_classification.requires_multi_tool}")
+        except Exception as e:
+            logger.warning(f"Intent classification failed: {e}")
+        
         if streaming:
             # Stream progress updates
             async for update in self.agentic_manager.process_query_streaming(
                 query=user_message,
                 conversation_id=str(conversation_id),
-                conversation_history=conversation_history
+                conversation_history=conversation_history,
+                intent_classification=intent_classification  # LLM determines complexity!
             ):
                 yield update
         else:
@@ -2429,7 +2444,8 @@ Be helpful and conversational."""
             result = await self.agentic_manager.process_query(
                 query=user_message,
                 conversation_id=str(conversation_id),
-                conversation_history=conversation_history
+                conversation_history=conversation_history,
+                intent_classification=intent_classification  # LLM determines complexity!
             )
             
             processing_time = (datetime.now() - start_time).total_seconds()

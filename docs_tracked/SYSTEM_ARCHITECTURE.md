@@ -1,7 +1,7 @@
 # MAP-IT System Architecture
 
 > **Last Updated:** December 2, 2024  
-> **Version:** 2.0 (Agentic Loop + Multi-Tool Reasoning)
+> **Version:** 2.1 (LLM-Driven Complexity Detection + Multi-Tool Reasoning)
 
 ---
 
@@ -126,21 +126,32 @@ The `UnifiedIntentClassifier` analyzes the user's message and classifies it into
 | `proposal_writing` | Help with proposal drafting | "Help me write the excellence section" |
 | `follow_up` | References previous conversation | "Can you explain that more?" |
 
-### Phase 2: Complexity Detection
+### Phase 2: LLM-Driven Complexity Detection
 
-For `faq` queries, the system checks if the query is **complex**:
+For `faq` queries, the **LLM determines complexity** (not regex!):
 
-```python
-COMPLEX_QUERY_PATTERNS = [
-    r'\b(compare|versus|vs\.?|difference between)\b',    # Comparisons
-    r'\b(both|multiple|several)\b.*\b(sources|programmes)\b',  # Multi-source
-    r'\b(analyze|why does|how does)\b',                  # Analysis
-    r'\b(verify|validate|cross-reference)\b',            # Validation
-]
+The `UnifiedIntentClassifier` outputs:
+```json
+{
+  "primary_intent": "faq",
+  "complexity_type": "comparison|analysis|multi_source|validation|simple",
+  "requires_multi_tool": true,
+  "suggested_tools": ["compare_programmes", "get_programme_statistics"],
+  "complexity_reasoning": "User wants to compare two programmes..."
+}
 ```
 
+**Complexity Types:**
+| Type | Description | Example |
+|------|-------------|---------|
+| `simple` | Single source answers | "What is RIA?" |
+| `comparison` | Comparing 2+ things | "Compare EIC vs ERC" |
+| `analysis` | Explaining WHY | "Why do some countries succeed more?" |
+| `multi_source` | Needs multiple info types | "Eligibility AND success rates" |
+| `validation` | Verify/confirm | "Is EIC success rate really 8%?" |
+
 - **Simple queries** → Agentic Loop (self-correcting)
-- **Complex queries** → Tool-Aware Agent (multi-tool reasoning)
+- **Complex queries** (`requires_multi_tool=true`) → Tool-Aware Agent
 
 ### Phase 3: Execution
 
@@ -199,10 +210,14 @@ The Agentic Loop handles simpler queries with **automatic retry and refinement**
 | `Reflector` | `reflector.py` | Analyzes why results were poor |
 | `Replanner` | `replanner.py` | Creates improved search strategy |
 
-### Evaluation Metrics
+### Evaluation Metrics (Hybrid: Rule + LLM)
 
-The `ResultEvaluator` scores results on:
+The `ResultEvaluator` uses a **hybrid approach**:
 
+1. **Rule-based scoring** (fast, free) - always runs first
+2. **LLM evaluation** (accurate, costs tokens) - only for uncertain cases (score 0.4-0.7)
+
+**Rule-Based Metrics:**
 | Metric | Weight | Description |
 |--------|--------|-------------|
 | Result Count | 20% | Enough results found? |
@@ -211,6 +226,11 @@ The `ResultEvaluator` scores results on:
 | Query Coverage | 15% | Do results contain query terms? |
 | Source Diversity | 10% | Multiple sources used? |
 | Freshness | 5% | Recent information? |
+
+**LLM Evaluation (for edge cases):**
+- Triggered when rule-based score is 0.4-0.7 (uncertain zone)
+- Evaluates: relevance, completeness, accuracy, actionability
+- Combined: `final_score = (rule_based * 0.3) + (llm_score * 0.7)`
 
 **Threshold:** Results are **sufficient** if score ≥ 0.65
 
@@ -564,9 +584,15 @@ When using the streaming endpoint, progress updates are sent as SSE:
 
 ---
 
+## Completed Improvements
+
+- [x] **Phase 1:** Self-correcting agentic loop
+- [x] **Phase 2:** LLM-based complexity detection (replaces regex!)
+- [x] **Phase 2:** LLM-based evaluation for edge cases (hybrid approach)
+- [x] **Multi-tool reasoning:** ReAct agent with 11 tools
+
 ## Future Improvements
 
-- [ ] **Phase 2:** LLM-based evaluation for edge cases
 - [ ] **Phase 3:** Streaming UX improvements in frontend
 - [ ] **Phase 4:** Plan caching for repeated query patterns
 - [ ] **Phase 4:** Parallel execution within agentic iterations

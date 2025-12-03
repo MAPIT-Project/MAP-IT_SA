@@ -7,9 +7,18 @@ Coordinates understanding, planning, execution, evaluation, reflection, and repl
 For complex queries requiring multiple tools, delegates to ToolAwareAgent.
 """
 
+"""
+Agentic Manager
+
+Main orchestrator for the self-correcting agentic loop.
+Coordinates understanding, planning, execution, evaluation, reflection, and replanning.
+
+For complex queries requiring multiple tools, delegates to ToolAwareAgent.
+Complexity is determined by LLM (UnifiedIntentClassifier), NOT regex!
+"""
+
 import logging
 import asyncio
-import re
 from datetime import datetime
 from typing import Dict, Any, List, Optional, AsyncGenerator, Tuple
 
@@ -19,17 +28,6 @@ from .reflector import Reflector, ReflectionResult, FailureRootCause
 from .replanner import Replanner
 
 logger = logging.getLogger(__name__)
-
-
-# Patterns that indicate complex multi-tool queries
-COMPLEX_QUERY_PATTERNS = [
-    r'\b(compare|comparison|versus|vs\.?|difference between)\b',
-    r'\b(both|multiple|several|various)\b.*\b(sources|programmes|countries)\b',
-    r'\b(analyze|analysis|why does|why do|how does)\b',
-    r'\b(cross-reference|verify|validate|check if)\b',
-    r'\b(and also|as well as|in addition to|together with)\b',
-    r'\b(success rate|statistics).*\b(and|compared to)\b',
-]
 
 
 class AgenticManager:
@@ -110,46 +108,14 @@ class AgenticManager:
             self.intent_classifier = None
             self._classifier_available = False
     
-    def _is_complex_query(self, query: str) -> bool:
-        """
-        Detect if a query requires multi-tool reasoning.
-        
-        Complex queries include:
-        - Comparisons between programmes/countries
-        - Requests for multiple types of information
-        - Analysis questions requiring cross-referencing
-        - Validation/verification requests
-        """
-        query_lower = query.lower()
-        
-        for pattern in COMPLEX_QUERY_PATTERNS:
-            if re.search(pattern, query_lower):
-                return True
-        
-        return False
-    
-    def _get_query_complexity_type(self, query: str) -> str:
-        """Determine the type of complexity."""
-        query_lower = query.lower()
-        
-        if re.search(r'\b(compare|versus|vs\.?|difference)\b', query_lower):
-            return 'comparison'
-        elif re.search(r'\b(analyze|why|how does)\b', query_lower):
-            return 'analysis'
-        elif re.search(r'\b(verify|validate|cross-reference)\b', query_lower):
-            return 'validation'
-        elif re.search(r'\b(both|multiple|and also)\b', query_lower):
-            return 'multi_source'
-        
-        return 'standard'
-    
     async def process_query(
         self,
         query: str,
         conversation_id: Optional[str] = None,
         conversation_history: List[Dict] = None,
         stream_progress: bool = False,
-        force_multi_tool: bool = False
+        force_multi_tool: bool = False,
+        intent_classification: Optional[Any] = None  # UnifiedIntent from classifier
     ) -> Dict[str, Any]:
         """
         Process a query through the agentic loop.
@@ -157,27 +123,43 @@ class AgenticManager:
         For complex queries (comparisons, multi-source, analysis), automatically
         delegates to the ToolAwareAgent for multi-tool reasoning.
         
+        IMPORTANT: Complexity is determined by LLM (UnifiedIntentClassifier), NOT regex!
+        Pass the intent_classification from the classifier to use its decision.
+        
         Args:
             query: User's question
             conversation_id: Optional conversation ID for context
             conversation_history: Previous messages in conversation
             stream_progress: Whether to enable progress streaming (for future use)
             force_multi_tool: Force using multi-tool agent even for simple queries
+            intent_classification: Optional UnifiedIntent from classifier with LLM complexity decision
             
         Returns:
             Dict with response, context, and metadata
         """
-        # Check for complex queries that need multi-tool reasoning
-        is_complex = self._is_complex_query(query) or force_multi_tool
+        # Use LLM's complexity decision if provided, otherwise default to simple
+        is_complex = force_multi_tool
+        complexity_type = 'simple'
+        suggested_tools = []
+        
+        if intent_classification:
+            # LLM determined complexity - use its decision!
+            is_complex = getattr(intent_classification, 'requires_multi_tool', False)
+            complexity_type = getattr(intent_classification, 'complexity_type', 'simple')
+            suggested_tools = getattr(intent_classification, 'suggested_tools', [])
+            
+            if is_complex:
+                logger.info(f"🧠 LLM determined COMPLEX query: {complexity_type}")
+                logger.info(f"   Suggested tools: {suggested_tools}")
         
         if is_complex and self._tool_agent_available:
-            complexity_type = self._get_query_complexity_type(query)
-            logger.info(f"🧠 Complex query detected: {complexity_type} - using ToolAwareAgent")
+            logger.info(f"🧠 Routing to ToolAwareAgent for {complexity_type} query")
             
             return await self._process_with_tool_agent(
                 query=query,
                 conversation_history=conversation_history,
-                complexity_type=complexity_type
+                complexity_type=complexity_type,
+                suggested_tools=suggested_tools
             )
         
         # Standard self-correcting loop for simpler queries
@@ -640,7 +622,8 @@ class AgenticManager:
         self,
         query: str,
         conversation_history: List[Dict] = None,
-        complexity_type: str = 'standard'
+        complexity_type: str = 'standard',
+        suggested_tools: List[str] = None
     ) -> Dict[str, Any]:
         """
         Process a complex query using the multi-tool ToolAwareAgent.
@@ -773,21 +756,34 @@ class AgenticManager:
         self,
         query: str,
         conversation_id: Optional[str] = None,
-        conversation_history: List[Dict] = None
+        conversation_history: List[Dict] = None,
+        intent_classification: Optional[Any] = None  # UnifiedIntent from classifier
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """
         Process a query with streaming progress updates.
         
         Yields status updates as the agent progresses through phases.
-        Automatically routes complex queries to multi-tool reasoning.
+        Routes to multi-tool reasoning based on LLM's complexity decision.
         """
         
-        # Check for complex queries
-        is_complex = self._is_complex_query(query)
+        # Use LLM's complexity decision if provided
+        is_complex = False
+        complexity_type = 'simple'
+        suggested_tools = []
+        
+        if intent_classification:
+            is_complex = getattr(intent_classification, 'requires_multi_tool', False)
+            complexity_type = getattr(intent_classification, 'complexity_type', 'simple')
+            suggested_tools = getattr(intent_classification, 'suggested_tools', [])
         
         if is_complex and self._tool_agent_available:
             # Route to multi-tool streaming
-            async for update in self._stream_multi_tool_query(query, conversation_history):
+            async for update in self._stream_multi_tool_query(
+                query, 
+                conversation_history,
+                complexity_type=complexity_type,
+                suggested_tools=suggested_tools
+            ):
                 yield update
             return
         
@@ -870,14 +866,16 @@ class AgenticManager:
     async def _stream_multi_tool_query(
         self,
         query: str,
-        conversation_history: List[Dict] = None
+        conversation_history: List[Dict] = None,
+        complexity_type: str = 'simple',
+        suggested_tools: List[str] = None
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """
         Stream progress for multi-tool reasoning queries.
         
         Shows each tool call and reasoning step as they happen.
+        Uses LLM-determined complexity type (not regex!).
         """
-        complexity_type = self._get_query_complexity_type(query)
         
         yield {
             'type': 'status',

@@ -2,11 +2,20 @@
 Result Evaluator
 
 Evaluates search results to determine if they sufficiently answer the user's query.
-Uses rule-based heuristics for fast evaluation, with optional LLM for edge cases.
+
+Strategy:
+1. Rule-based evaluation first (fast, cheap)
+2. If score is in "uncertain zone" (0.4-0.7), use LLM evaluation
+3. LLM evaluation is more accurate but costs tokens
+
+This hybrid approach balances accuracy with cost.
 """
 
 import logging
 import re
+import os
+import json
+import asyncio
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Tuple, Optional
 
@@ -27,12 +36,17 @@ class ResultEvaluator:
     """
     Evaluates search results to determine if they answer the user's query.
     
-    Phase 1: Rule-based evaluation (fast, no LLM cost)
-    Phase 2: Add LLM evaluation for edge cases
+    Hybrid approach:
+    1. Rule-based evaluation (fast, free)
+    2. LLM evaluation for uncertain cases (accurate, costs tokens)
+    
+    The "uncertain zone" is 0.4-0.7 - these cases benefit from LLM judgment.
     """
     
     # Thresholds
     SUFFICIENT_SCORE = 0.65  # Score needed to consider results sufficient
+    UNCERTAIN_LOW = 0.40     # Below this = clearly bad
+    UNCERTAIN_HIGH = 0.70    # Above this = clearly good
     
     # Query type specific thresholds
     THRESHOLDS = {
@@ -63,6 +77,27 @@ class ResultEvaluator:
         }
     }
     
+    def __init__(self, use_llm_evaluation: bool = True):
+        """
+        Initialize the evaluator.
+        
+        Args:
+            use_llm_evaluation: Whether to use LLM for edge cases (default: True)
+        """
+        self.use_llm_evaluation = use_llm_evaluation
+        self.llm = None
+        
+        if use_llm_evaluation:
+            try:
+                import google.generativeai as genai
+                genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
+                model_name = os.getenv('GEMINI_MODEL', 'gemini-flash-latest')
+                self.llm = genai.GenerativeModel(model_name)
+                logger.info(f"🧠 ResultEvaluator LLM enabled: {model_name}")
+            except Exception as e:
+                logger.warning(f"LLM evaluation disabled: {e}")
+                self.llm = None
+    
     def evaluate(
         self,
         query: str,
@@ -72,6 +107,10 @@ class ResultEvaluator:
     ) -> EvaluationResult:
         """
         Evaluate if results sufficiently answer the query.
+        
+        Uses hybrid approach:
+        1. Rule-based evaluation first (fast)
+        2. LLM evaluation for uncertain cases (score 0.4-0.7)
         
         Args:
             query: Original user query
@@ -130,8 +169,8 @@ class ResultEvaluator:
         freshness_score = self._evaluate_freshness(results, query)
         metrics['freshness'] = freshness_score
         
-        # Calculate weighted final score
-        final_score = self._calculate_final_score(
+        # Calculate weighted final score (rule-based)
+        rule_based_score = self._calculate_final_score(
             count_score=count_score,
             relevance_score=relevance_score,
             content_score=content_score,
@@ -140,6 +179,32 @@ class ResultEvaluator:
             freshness_score=freshness_score,
             query_type=query_type
         )
+        
+        # Check if we should use LLM evaluation for edge cases
+        final_score = rule_based_score
+        llm_used = False
+        
+        if (self.use_llm_evaluation and 
+            self.llm is not None and 
+            self.UNCERTAIN_LOW <= rule_based_score <= self.UNCERTAIN_HIGH):
+            
+            # Edge case - use LLM for more accurate evaluation
+            logger.info(f"📊 Rule-based score {rule_based_score:.2f} in uncertain zone, using LLM evaluation")
+            
+            try:
+                llm_result = self._llm_evaluate(query, query_type, results, entities)
+                if llm_result:
+                    # Combine rule-based and LLM scores (LLM weighted higher)
+                    final_score = (rule_based_score * 0.3) + (llm_result['score'] * 0.7)
+                    reasons.extend(llm_result.get('reasons', []))
+                    suggestions.extend(llm_result.get('suggestions', []))
+                    llm_used = True
+                    logger.info(f"🧠 LLM evaluation: {llm_result['score']:.2f} → combined: {final_score:.2f}")
+            except Exception as e:
+                logger.warning(f"LLM evaluation failed: {e}")
+        
+        metrics['llm_used'] = llm_used
+        metrics['rule_based_score'] = rule_based_score
         
         # Determine if sufficient
         is_sufficient = final_score >= self.SUFFICIENT_SCORE
@@ -152,7 +217,7 @@ class ResultEvaluator:
         
         logger.info(
             f"Evaluation: score={final_score:.2f}, sufficient={is_sufficient}, "
-            f"results={result_count}, relevance={avg_relevance:.2f}"
+            f"results={result_count}, relevance={avg_relevance:.2f}, llm={llm_used}"
         )
         
         return EvaluationResult(
@@ -162,6 +227,120 @@ class ResultEvaluator:
             suggestions=suggestions,
             metrics=metrics
         )
+    
+    def _llm_evaluate(
+        self,
+        query: str,
+        query_type: str,
+        results: Dict[str, Any],
+        entities: List[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Use LLM to evaluate result quality for edge cases.
+        
+        Returns dict with score, reasons, and suggestions.
+        """
+        # Format results for LLM
+        results_summary = self._format_results_for_llm(results)
+        
+        prompt = f"""You are evaluating if search results adequately answer a user's question.
+
+**USER QUESTION:** {query}
+**QUESTION TYPE:** {query_type}
+**KEY ENTITIES:** {entities or 'None specified'}
+
+**SEARCH RESULTS:**
+{results_summary}
+
+**EVALUATION CRITERIA:**
+1. RELEVANCE: Do the results relate to the question?
+2. COMPLETENESS: Do they fully answer what was asked?
+3. ACCURACY: Do they appear factually correct?
+4. ACTIONABLE: Can the user act on this information?
+
+**SCORING:**
+- 0.9-1.0: Excellent - fully answers the question with high quality
+- 0.7-0.9: Good - answers the question but may miss some details
+- 0.5-0.7: Partial - answers some aspects but misses important parts
+- 0.3-0.5: Poor - barely related or very incomplete
+- 0.0-0.3: Bad - doesn't answer the question at all
+
+**OUTPUT FORMAT (JSON only):**
+```json
+{{
+    "score": 0.75,
+    "is_sufficient": true,
+    "reasons": ["Results directly address eligibility requirements", "Missing specific country details"],
+    "suggestions": ["Search for country-specific rules"],
+    "explanation": "Brief explanation of your reasoning"
+}}
+```
+
+Evaluate the results:"""
+
+        try:
+            response = self.llm.generate_content(
+                prompt,
+                generation_config={'temperature': 0.1, 'max_output_tokens': 500}
+            )
+            
+            # Safely get response text
+            try:
+                response_text = response.text
+            except Exception:
+                # Response might not have text (safety filter, etc.)
+                logger.warning("LLM response has no text, skipping")
+                return None
+            
+            # Parse JSON from response
+            json_str = None
+            
+            # Try code block first
+            code_match = re.search(r'```json\s*(.*?)\s*```', response_text, re.DOTALL)
+            if code_match:
+                json_str = code_match.group(1)
+            else:
+                json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+                if json_match:
+                    json_str = json_match.group()
+            
+            if json_str:
+                # Clean up JSON
+                json_str = re.sub(r',\s*}', '}', json_str)
+                json_str = re.sub(r',\s*]', ']', json_str)
+                return json.loads(json_str)
+            
+        except Exception as e:
+            logger.error(f"LLM evaluation error: {e}")
+        
+        return None
+    
+    def _format_results_for_llm(self, results: Dict[str, Any], max_chars: int = 2000) -> str:
+        """Format results for LLM evaluation prompt."""
+        parts = []
+        total_chars = 0
+        
+        for source in ['graph', 'vector', 'documents', 'results']:
+            if source in results and total_chars < max_chars:
+                data = results[source]
+                if isinstance(data, dict):
+                    items = data.get('results', [])
+                elif isinstance(data, list):
+                    items = data
+                else:
+                    continue
+                
+                for i, item in enumerate(items[:3]):  # Max 3 per source
+                    if isinstance(item, dict):
+                        content = item.get('content', str(item))[:300]
+                        score = item.get('score', 'N/A')
+                        parts.append(f"[{source.upper()} {i+1}] (score: {score})\n{content}\n")
+                        total_chars += len(parts[-1])
+                        
+                        if total_chars >= max_chars:
+                            break
+        
+        return "\n".join(parts) if parts else "No results found"
     
     def _count_results(self, results: Dict[str, Any]) -> int:
         """Count total results across all sources."""

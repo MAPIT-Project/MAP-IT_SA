@@ -98,14 +98,34 @@ class UnifiedIntentClassifier:
             response = self.model.generate_content(
                 prompt,
                 generation_config=genai.types.GenerationConfig(
-                    temperature=0.2,  # Slightly higher for better context awareness
-                    max_output_tokens=800,
+                    temperature=0.2,
+                    max_output_tokens=1000,
                 )
             )
             
+            # Safely get response text
+            try:
+                response_text = response.text
+            except Exception as e:
+                # Response might be blocked by safety filters
+                logger.warning(f"Could not get response text: {e}")
+                # Try to get partial response
+                if hasattr(response, 'candidates') and response.candidates:
+                    for candidate in response.candidates:
+                        if hasattr(candidate, 'content') and candidate.content:
+                            for part in candidate.content.parts:
+                                if hasattr(part, 'text'):
+                                    response_text = part.text
+                                    break
+                else:
+                    raise ValueError("No valid response from LLM")
+            
+            # Log raw response for debugging
+            logger.debug(f"🔍 Raw LLM response:\n{response_text[:500]}")
+            
             # Parse response
             intent = self._parse_classification_response(
-                response.text,
+                response_text,
                 user_message,
                 conversation_id
             )
@@ -121,164 +141,49 @@ class UnifiedIntentClassifier:
             return self._create_fallback_intent(user_message, conversation_id)
     
     def _create_classification_prompt(self, message: str, context: str) -> str:
-        """Create the classification prompt with clear examples"""
+        """Create the classification prompt - concise but comprehensive"""
         
-        return f"""You are an expert intent classifier for a Horizon Europe research funding assistant.
-Your job is to classify the user's message into ONE of 6 intent categories with HIGH accuracy.
+        return f"""Classify this user message for a Horizon Europe funding assistant.
 
-**THE 6 INTENT CATEGORIES:**
+CONTEXT: {context}
+MESSAGE: "{message}"
 
-1. **follow_up** - User is referencing PREVIOUS conversation content (HIGHEST PRIORITY - check first!)
-   Examples:
-   - "Can you repeat that?"
-   - "Say that again"
-   - "What did you just say?"
-   - "Can you explain that more?"
-   - "Tell me more about that"
-   - "What was the first point?"
-   - "Go back to what you said about..."
-   - "You mentioned X, can you elaborate?"
-   - "Can you summarize what we discussed?"
-   - "What were those requirements again?"
-   
-   **CRITICAL: If user refers to previous answer content → follow_up**
-   **Keywords that trigger follow_up:** repeat, again, said, mentioned, discussed, previous, earlier, last, summarize, elaborate, clarify, more about that
-
-2. **faq** - General questions about Horizon Europe, procedures, eligibility, documentation
-   Examples:
-   - "How do I apply for Horizon Europe funding?"
-   - "What are the eligibility criteria?"
-   - "Explain the evaluation process"
-   - "What documents do I need to submit?"
-   - "Tell me about Horizon Europe structure"
-   - "How does consortium building work?"
-
-3. **search_projects** - User wants to FIND specific research projects or case studies
-   Examples:
-   - "Show me projects about renewable energy"
-   - "Find research on AI in healthcare"
-   - "What projects have been funded in biotechnology?"
-   - "Can you show me successful climate projects?"
-   - "Search for projects led by universities in Germany"
-
-4. **search_calls** - User wants to FIND funding calls and opportunities
-   Examples:
-   - "What calls are open for renewable energy?"
-   - "Show me funding opportunities in AI"
-   - "Are there any grants for clean technology?"
-   - "Find open calls with deadline in 2025"
-   - "What funding is available for SMEs?"
-
-5. **call_specific** - Questions about a SPECIFIC call (when call ID is mentioned OR in context)
-   Examples:
-   - "Tell me about HORIZON-CL3-2025-02-CS-ECCC-01"
-   - "What are the requirements for HORIZON-MSCA-2024-DN-01?"
-   - "What is the budget for call HORIZON-CL4-2025-TWIN-01?"
-   - "When is the deadline for HORIZON-HLTH-2025-01?"
-   
-   **Context-based examples (call ID from previous message):**
-   - Context: "USER: Tell me about HORIZON-CL3-2025" → Message: "What's the deadline?" → call_specific
-   - Context: "USER: HORIZON-MSCA-2024-DN-01" → Message: "What about the budget?" → call_specific  
-   - Context: "AI answered about HORIZON-CL4-2025" → Message: "Can I apply?" → call_specific
-   - Any question referring to "it", "that call", "the call" when call ID in context → call_specific
-
-6. **proposal_writing** - User wants help WRITING, IMPROVING, EDITING, or EXPORTING a proposal
-   Examples:
-   - "Help me write a proposal for HORIZON-CL3-2025-02-CS-ECCC-01"
-   - "Draft the objectives section"
-   - "Move to the next section"
-   - "Improve this methodology"
-   - "Make the objectives more specific"
-   - "Add more detail to the methodology"
-   - "Edit the current section to include KPIs"
-   - "Revise the impact section"
-   - "Export my proposal to Word"
-   - "Generate the budget table"
-   - "Check compliance with call requirements"
-
-**CONVERSATION CONTEXT:**
-{context}
-
-**USER MESSAGE:**
-"{message}"
-
-**CLASSIFICATION INSTRUCTIONS:**
-
-1. **FIRST: Check for FOLLOW-UP intent (highest priority!)**
-   - Does the message reference previous conversation? ("repeat", "again", "said", "mentioned", "that")
-   - Does it ask to clarify, expand, or summarize previous content?
-   - If YES → **follow_up** (determine follow_up_type: repeat/clarify/expand/summarize)
-
-2. **SECOND: Scan conversation context for call IDs (HORIZON-XXX-YYYY-ZZ format)**
-   - Look in USER messages and AI messages
-   - If found, note it for step 3
-
-3. **THEN: Analyze the current message**
-   - Does it ask a question WITHOUT a new call ID?
-   - Does it use "it", "that", "the call", "this call", or just direct questions like "what's the deadline?"
-   - If YES + call ID found in context → **call_specific** (extract call ID from context!)
-   
-4. **Otherwise: Look for explicit indicators in the message itself:**
-   - "find", "show", "search" + "projects" → search_projects
-   - "find", "show", "search" + "calls/opportunities/grants" → search_calls
-   - Call ID mentioned (HORIZON-XXX-YYYY-ZZ) + question → call_specific
-   - "write", "draft", "help", "generate", "export" + "proposal" → proposal_writing
-   - General questions, "how to", "what is", "explain" → faq
-
-5. **Extract relevant information:**
-   - **IMPORTANT**: If call ID present IN MESSAGE **OR CONTEXT**, extract it (format: HORIZON-XXX-YYYY-...)
-   - If proposal writing: determine action (draft/improve/export/navigate)
-   - If searching: extract search keywords
-   - If follow_up: determine follow_up_type (repeat/clarify/expand/summarize)
-
-6. **Provide confidence** (0.0-1.0):
-   - 0.9-1.0: Very clear intent
-   - 0.7-0.9: Clear intent with some ambiguity
-   - 0.5-0.7: Moderate confidence
-   - Below 0.5: Uncertain (default to faq)
-
-**AVAILABLE TOOLS (use these EXACT names):**
-- **eu_portal_search** - For search_calls intent (searching funding opportunities)
-- **search_cordis_projects** - For search_projects intent (searching research projects)
-- **search_local_database** - For faq intent (general knowledge base queries)
-- **search_call_documents** - For call_specific intent (when call ID is known)
-
-**OUTPUT FORMAT (JSON):**
-```json
+OUTPUT JSON:
 {{
-  "primary_intent": "follow_up|faq|search_projects|search_calls|call_specific|proposal_writing",
-  "confidence": 0.95,
-  "reasoning": "Clear explanation of why you chose this intent",
-  "requires_tools": true,
-  "tool_plan": [
-    {{
-      "tool_name": "eu_portal_search",
-      "parameters": {{"query": "user message or cleaned query"}},
-      "reason": "Why this tool"
-    }}
-  ],
-  "call_id": "HORIZON-XXX-YYYY-ZZ or null",
-  "section_id": "excellence.objectives or null",
-  "project_keywords": ["keyword1", "keyword2"],
-  "call_keywords": ["keyword1", "keyword2"],
-  "proposal_action": "draft|improve|export|navigate or null",
-  "follow_up_type": "repeat|clarify|expand|summarize or null"
+  "primary_intent": "faq|search_projects|search_calls|call_specific|proposal_writing|follow_up",
+  "confidence": 0.0-1.0,
+  "reasoning": "brief explanation",
+  "complexity_type": "simple|comparison|analysis|multi_source|validation",
+  "requires_multi_tool": true/false,
+  "complexity_reasoning": "why this complexity",
+  "suggested_tools": ["tool1", "tool2"],
+  "requires_tools": true/false,
+  "tool_plan": [],
+  "call_id": null,
+  "project_keywords": [],
+  "call_keywords": [],
+  "proposal_action": null,
+  "follow_up_type": null
 }}
-```
 
-**CRITICAL:** Always use the EXACT tool names from the "AVAILABLE TOOLS" list above!
+INTENT RULES:
+- follow_up: references previous message ("repeat", "again", "said", "that")
+- faq: general questions about funding, eligibility, process
+- search_projects: wants to find funded projects
+- search_calls: wants to find funding opportunities
+- call_specific: asks about specific call ID (HORIZON-XXX-...)
+- proposal_writing: help writing/editing proposal
 
-**IMPORTANT RULES:**
-- Be decisive - choose ONE primary intent
-- **CHECK FOR FOLLOW-UP FIRST** - if user refers to previous content → follow_up
-- **ALWAYS check conversation context for call IDs** when user uses "it", "that", "the call"
-- If previous messages mention a call ID and current question refers to it → call_specific
-- Extract call IDs from MESSAGE OR CONTEXT (format: HORIZON-XXX-YYYY-...)
-- For proposal writing, identify the specific action
-- For follow_up, identify the follow_up_type (repeat/clarify/expand/summarize)
-- Provide clear, logical reasoning
+COMPLEXITY RULES:
+- simple: single question, single source answers it
+- comparison: comparing 2+ things (EIC vs ERC) → requires_multi_tool=true
+- analysis: asking WHY or to analyze trends → requires_multi_tool=true
+- multi_source: needs stats AND documents → requires_multi_tool=true
+- validation: verify/confirm information → requires_multi_tool=true
 
-Now classify the message above:"""
+TOOLS: get_programme_statistics, get_country_statistics, compare_programmes, search_documents, search_specific_topic, search_funding_calls, get_call_details, search_projects, verify_eligibility, cross_reference
+
+Respond with ONLY the JSON, no other text."""
     
     def _build_conversation_context(self, recent_messages: List[Dict[str, str]]) -> str:
         """Build conversation context string"""
@@ -303,12 +208,38 @@ Now classify the message above:"""
         """Parse the AI's classification response"""
         
         try:
-            # Extract JSON from response
-            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-            if not json_match:
+            # Extract JSON from response - try multiple approaches
+            json_str = None
+            
+            # Method 1: Look for JSON in code block
+            code_block_match = re.search(r'```json\s*(.*?)\s*```', response_text, re.DOTALL)
+            if code_block_match:
+                json_str = code_block_match.group(1)
+            
+            # Method 2: Look for raw JSON object
+            if not json_str:
+                json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', response_text, re.DOTALL)
+                if json_match:
+                    json_str = json_match.group()
+            
+            if not json_str:
+                logger.error(f"No JSON found in response. Full response:\n{response_text[:800]}")
                 raise ValueError("No JSON found in response")
             
-            data = json.loads(json_match.group())
+            # Clean up common JSON issues
+            json_str = json_str.strip()
+            # Fix trailing commas before closing braces
+            json_str = re.sub(r',\s*}', '}', json_str)
+            json_str = re.sub(r',\s*]', ']', json_str)
+            
+            try:
+                data = json.loads(json_str)
+            except json.JSONDecodeError as e:
+                # Try to fix common issues and retry
+                logger.warning(f"Initial JSON parse failed: {e}, attempting fix")
+                # Remove any control characters
+                json_str = ''.join(char for char in json_str if ord(char) >= 32 or char in '\n\t')
+                data = json.loads(json_str)
             
             # Build tool plan
             tool_plan = []
@@ -318,6 +249,18 @@ Now classify the message above:"""
                 # Auto-generate tool plan based on intent
                 tool_plan = self._generate_tool_plan(data, user_message, conversation_id)
             
+            # Extract complexity info (NEW - LLM determines this, not regex!)
+            complexity_type = data.get('complexity_type', 'simple')
+            requires_multi_tool = data.get('requires_multi_tool', False)
+            suggested_tools = data.get('suggested_tools', [])
+            complexity_reasoning = data.get('complexity_reasoning', '')
+            
+            # Log complexity decision
+            if requires_multi_tool:
+                logger.info(f"🧠 LLM determined COMPLEX query: {complexity_type}")
+                logger.info(f"   Suggested tools: {suggested_tools}")
+                logger.info(f"   Reasoning: {complexity_reasoning[:100]}...")
+            
             # Create unified intent
             intent = UnifiedIntent(
                 primary_intent=data['primary_intent'],
@@ -325,6 +268,12 @@ Now classify the message above:"""
                 reasoning=data['reasoning'],
                 requires_tools=data.get('requires_tools', False),
                 tool_plan=tool_plan,
+                # NEW: Complexity fields
+                complexity_type=complexity_type,
+                requires_multi_tool=requires_multi_tool,
+                suggested_tools=suggested_tools,
+                complexity_reasoning=complexity_reasoning,
+                # Context extraction
                 call_id=data.get('call_id'),
                 section_id=data.get('section_id'),
                 project_keywords=data.get('project_keywords', []),
