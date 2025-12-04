@@ -10,6 +10,8 @@ import json
 import os
 import google.generativeai as genai
 
+from .call_understanding_service import CallUnderstandingService, CallUnderstanding
+
 logger = logging.getLogger(__name__)
 
 
@@ -17,14 +19,15 @@ class ProposalDraftGenerator:
     """
     Generate AI-powered drafts for proposal sections
     """
-    
+
     def __init__(self, call_doc_service, template_service):
         self.call_doc_service = call_doc_service
         self.template_service = template_service
-        
+        self.call_understanding_service = CallUnderstandingService()
+
         # Initialize Gemini
         genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
-        self.model = genai.GenerativeModel('gemini-flash-lite-latest')
+        self.model = genai.GenerativeModel('gemini-2.0-flash-lite')
         
     async def generate_section_draft(
         self,
@@ -58,18 +61,33 @@ class ProposalDraftGenerator:
         
         logger.info(f"Generating draft for {section_id} in call {call_id}")
         
-        # 1. Get section-specific guidance (not async)
+        # 1. Understand the call dynamically (no hardcoded domains)
+        call_docs = self.call_doc_service.get_call_documents(call_id)
+        call_text = " ".join([
+            doc.get('title', '') + " " + doc.get('content', '')
+            for doc in call_docs.get('documents', [])
+        ])
+        call_metadata = self._get_call_metadata(call_id)
+
+        call_understanding = await self.call_understanding_service.understand_call(
+            call_id=call_id,
+            call_text=call_text,
+            call_title=call_metadata.get('title')
+        )
+
+        # 2. Get section-specific guidance (not async)
         guidance = self.template_service.get_section_guidance(call_id, section_id)
-        
-        # 2. Get evaluation criteria for this section
+
+        # 3. Get evaluation criteria for this section
         template = await self.template_service.generate_template(call_id)
         section_name = section_id.split('.')[0]  # 'excellence', 'impact', or 'implementation'
         criteria = template["evaluation_criteria"].get(section_name, [])
-        
-        # 3. Build AI prompt
+
+        # 4. Build AI prompt using call understanding
         prompt = self._build_draft_prompt(
             section_id=section_id,
             call_id=call_id,
+            call_understanding=call_understanding,
             guidance=guidance,
             criteria=criteria,
             user_context=user_context
@@ -81,7 +99,7 @@ class ProposalDraftGenerator:
             draft_text = response.text
             
             # 5. Post-process to ensure EU alignment terms are included
-            draft_text = self._ensure_eu_alignment_terms(draft_text, section_id)
+            draft_text = self._ensure_eu_alignment_terms(draft_text, section_id, call_understanding)
             
             # 6. Analyze draft quality
             analysis = self._analyze_draft(draft_text, criteria)
@@ -103,14 +121,15 @@ class ProposalDraftGenerator:
         self,
         section_id: str,
         call_id: str,
+        call_understanding: CallUnderstanding,
         guidance: Dict,
         criteria: List[str],
         user_context: Dict
     ) -> str:
         """
-        Build the AI prompt for draft generation
+        Build the AI prompt for draft generation using dynamic call understanding.
         """
-        
+
         section_names = {
             "excellence.objectives": "Objectives and Ambition",
             "excellence.methodology": "Methodology",
@@ -120,39 +139,49 @@ class ProposalDraftGenerator:
             "implementation.work_plan": "Work Plan and Resources",
             "implementation.consortium": "Consortium and Management"
         }
-        
+
         section_name = section_names.get(section_id, section_id)
-        
-        # Get call documents to understand the specific topic
-        call_docs = self.call_doc_service.get_call_documents(call_id)
-        call_text = " ".join([doc.get('title', '') + " " + doc.get('content', '') for doc in call_docs.get('documents', [])])
 
-        # Extract the main topic from call documents
-        call_topic = self._extract_call_topic(call_text)
-
-        # Get call-specific metadata for better context
+        # Get call-specific metadata
         call_metadata = self._get_call_metadata(call_id)
-        
+
+        # Build terminology string from call understanding
+        terminology_str = ", ".join(call_understanding.terminology[:15]) if call_understanding.terminology else "standard EU terminology"
+
+        # Build EU priorities string
+        priorities_str = ", ".join(call_understanding.eu_priorities[:5]) if call_understanding.eu_priorities else "Horizon Europe objectives"
+
+        # Build sub-topics string
+        sub_topics_str = ", ".join(call_understanding.sub_topics[:5]) if call_understanding.sub_topics else "as defined in the call"
+
         prompt = f"""You are an expert Horizon Europe proposal writer with 15+ years of experience writing successful RIA, IA, and CSA proposals.
 
 TASK: Write the "{section_name}" section for a Horizon Europe proposal for call {call_id}.
 
-IMPORTANT: This call is specifically about {call_topic}. Your content MUST be relevant to this topic. Do NOT write about unrelated topics like soil health, agriculture, or environmental issues unless they are directly related to {call_topic}.
-
-CALL SPECIFICS:
+CALL UNDERSTANDING:
 - Call ID: {call_id}
+- Cluster: {call_understanding.cluster.value}
+- Main Topic: {call_understanding.topic}
+- Sub-topics: {sub_topics_str}
+- Target TRL: {call_understanding.target_trl or 'Not specified'}
+- Action Type: {call_understanding.action_type or 'Not specified'}
+
+CALL METADATA:
 - Call Title: {call_metadata.get('title', 'Not specified')}
-- Main Topic: {call_topic}
-- Section: {section_name}
 - Deadline: {call_metadata.get('deadline_date', 'Not specified')}
 - Budget Range: €{call_metadata.get('min_contribution', 0):,} - €{call_metadata.get('max_contribution', 0):,}
-- Eligible Countries: {call_metadata.get('eligible_countries', 'Member States and Associated Countries')}
 
 OFFICIAL GUIDANCE FROM CALL DOCUMENTS:
-{json.dumps(guidance['guidance_text'], indent=2)}
+{json.dumps(guidance.get('guidance_text', 'Follow standard Horizon Europe guidelines'), indent=2)}
 
 EVALUATION CRITERIA TO ADDRESS:
 {json.dumps(criteria, indent=2)}
+
+KEY OBJECTIVES FROM CALL:
+{json.dumps(call_understanding.key_objectives, indent=2) if call_understanding.key_objectives else "Address the call's stated objectives"}
+
+EXPECTED OUTCOMES:
+{json.dumps(call_understanding.expected_outcomes, indent=2) if call_understanding.expected_outcomes else "Deliver measurable results aligned with EU priorities"}
 
 USER'S PROJECT INFORMATION:
 - Project Idea: {user_context.get('project_idea', 'Not provided')}
@@ -163,66 +192,44 @@ USER'S PROJECT INFORMATION:
 - Duration: {user_context.get('duration_months', 36)} months
 
 CRITICAL INSTRUCTIONS:
-1. Reference the specific call ID ({call_id}) and its objectives throughout the section
-2. Write content SPECIFICALLY about {call_topic} - cybersecurity, AI applications, threat detection, etc.
-3. Do NOT mention soil, agriculture, environment, or unrelated topics
-4. Write a compelling, professional section that DIRECTLY ADDRESSES all evaluation criteria
-5. Use clear, concise language appropriate for EU evaluators
-6. Include specific, measurable objectives and outcomes relevant to {call_topic}
-7. Demonstrate innovation and beyond state-of-the-art thinking in {call_topic}
-8. Show EU added value and alignment with EU cybersecurity priorities
-9. Use active voice and future-focused language
-10. Be concrete and specific - avoid vague statements
-11. Include relevant technical details about {call_topic} but keep it accessible
-12. Target 800-1200 words for this section
-13. Explicitly mention how the project addresses the call's specific challenges
-14. INCLUDE EU TERMINOLOGY: Use terms like TRL levels, Technology Readiness Level, work packages, WP, deliverables, milestones, KPIs, European added value, strategic alignment, European Green Deal, Digital Europe Programme, European Research Area, ERA, GDPR, Cybersecurity Act, NIS Directive, European Digital Strategy, cross-border collaboration, multi-country partnerships, SME involvement, stakeholder engagement, end-user participation, policy maker consultation
-15. REFERENCE EU STRATEGIES: Align with European Digital Strategy, Cybersecurity Strategy, UN Sustainable Development Goals, SDGs, European values, fundamental rights, European Green Deal objectives
-16. EMPHASIZE EU IMPACT: Highlight contributions to single market, digital sovereignty, strategic autonomy, European resilience, European competitiveness, European leadership, benefit to EU, European citizens, European society, European economy
-17. INCLUDE IMPACT FRAMEWORK: Structure content around European impact pathways, EU value creation, contribution to Europe, European societal benefits, economic advantages for EU
-18. DEMONSTRATE CROSS-BORDER VALUE: Emphasize multi-country collaboration, cross-border benefits, pan-European impact, international cooperation within EU framework
+1. Write content SPECIFICALLY about {call_understanding.topic}
+2. Reference the call ID ({call_id}) and its objectives throughout
+3. DIRECTLY ADDRESS all evaluation criteria listed above
+4. Use clear, concise language appropriate for EU evaluators
+5. Include specific, measurable objectives and outcomes
+6. Demonstrate innovation and beyond state-of-the-art thinking
+7. Show EU added value and alignment with EU priorities
+8. Use active voice and future-focused language
+9. Be concrete and specific - avoid vague statements
+10. Target 800-1200 words for this section
 
-MANDATORY EU TERMS TO INCLUDE (must appear at least once):
+DOMAIN-SPECIFIC TERMINOLOGY TO USE:
+{terminology_str}
+
+EU PRIORITIES TO REFERENCE:
+{priorities_str}
+
+MANDATORY EU TERMS TO INCLUDE (at least once each):
 - European added value OR EU added value
-- European values OR European fundamental rights
 - European citizens OR European society
-- multi-country OR cross-border
-- SME involvement OR Small and Medium-sized Enterprise
-- stakeholder engagement OR stakeholder participation
-- European Green Deal OR Digital Europe Programme
-- European Digital Strategy OR Cybersecurity Strategy
-- single market OR digital sovereignty OR strategic autonomy
-- contribution to Europe OR benefit to EU
+- multi-country OR cross-border collaboration
+- stakeholder engagement
+- At least one relevant EU policy/strategy from: {priorities_str}
 
 WRITING STYLE:
 - Professional and persuasive
 - Evidence-based and factual
 - Technical but accessible
 - Clear structure with headings/subheadings
-- Comprehensive EU terminology integration
-- Focus on cybersecurity applications and AI technologies
-- European policy alignment and strategic impact
-- Emphasis on European value creation and societal impact
+- Domain-appropriate terminology
+- European policy alignment
 
 OUTPUT FORMAT:
 Generate ONLY the section content. Do not include meta-commentary.
 Use clear subsection headings where appropriate.
 Write as if this is going directly into the proposal document.
-Ensure all content is directly related to {call_topic} and references {call_id}.
 
-Begin writing the section now:
-
-IMPORTANT EU IMPACT REQUIREMENTS:
-Your content MUST include the following specific phrases to achieve 100% EU alignment:
-- "European Green Deal" (reference to sustainability goals)
-- "Digital Europe Programme" (align with EU digital strategy)
-- "EU added value" or "European added value" (demonstrate EU benefit)
-- "European citizens" (show benefit to people)
-- "contribution to Europe" or "benefit to EU" (highlight EU impact)
-- "European economy" or "European society" (socio-economic impact)
-- "European resilience" or "European competitiveness" (strategic impact)
-
-Ensure these phrases are naturally integrated into your content, not just listed."""
+Begin writing the section now:"""
 
         return prompt
     
@@ -245,40 +252,8 @@ Ensure these phrases are naturally integrated into your content, not just listed
             'eligible_countries': 'Member States and Associated Countries'
         }
 
-    def _extract_call_topic(self, call_text: str) -> str:
-        """
-        Extract the main topic from call documents
-        """
-        # Look for cybersecurity-related keywords in the call text
-        cybersecurity_keywords = [
-            'cybersecurity', 'cyber security', 'cyber-security',
-            'threat detection', 'threat intelligence', 'malware',
-            'ransomware', 'phishing', 'intrusion detection',
-            'network security', 'information security',
-            'generative ai', 'artificial intelligence', 'ai',
-            'machine learning', 'deep learning', 'neural networks',
-            'cyber attacks', 'cyber threats', 'cyber defence',
-            'digital security', 'information assurance'
-        ]
+    # Note: _extract_call_topic removed - now handled by CallUnderstandingService
 
-        text_lower = call_text.lower()
-
-        # Check for cybersecurity keywords
-        found_keywords = [kw for kw in cybersecurity_keywords if kw in text_lower]
-
-        if found_keywords:
-            return f"cybersecurity and AI applications, focusing on {', '.join(found_keywords[:3])}"
-
-        # Fallback - try to extract from title or main content
-        if 'generative ai' in text_lower and 'cybersecurity' in text_lower:
-            return "Generative AI for cybersecurity applications"
-        elif 'cybersecurity' in text_lower:
-            return "cybersecurity applications"
-        elif 'artificial intelligence' in text_lower or 'ai' in text_lower:
-            return "AI applications"
-        else:
-            return "research and innovation"
-    
     def _analyze_draft(self, draft_text: str, criteria: List[str]) -> Dict[str, Any]:
         """
         Analyze draft quality and criteria coverage
@@ -332,134 +307,173 @@ Ensure these phrases are naturally integrated into your content, not just listed
             "suggestions": suggestions
         }
     
-    def _ensure_eu_alignment_terms(self, text: str, section_id: str) -> str:
+    def _ensure_eu_alignment_terms(
+        self,
+        text: str,
+        section_id: str,
+        call_understanding: Optional[CallUnderstanding] = None
+    ) -> str:
         """
-        Ensure critical EU alignment terms are included in the draft
+        Ensure critical EU alignment terms are included in the draft.
+        Now cluster-aware - uses CallUnderstanding to select appropriate terms.
         """
-        
-        # Define critical EU terms that must be included
-        critical_terms = {
+
+        # Universal terms required for all sections
+        universal_terms = {
             'excellence.objectives': [
-                "European Green Deal",
-                "Digital Europe Programme",
                 "EU added value",
                 "European citizens",
-                "contribution to Europe",
-                "European Commission",
                 "Horizon Europe",
-                "European values",
-                "fundamental rights"
             ],
             'excellence.methodology': [
                 "European Research Area",
                 "GDPR",
-                "Cybersecurity Act",
-                "strategic autonomy",
-                "European values",
-                "Data Protection Regulation",
-                "NIS Directive",
-                "risk management",
                 "data management"
             ],
             'impact.pathways': [
                 "European society",
                 "European economy",
-                "European resilience",
-                "European competitiveness",
-                "benefit to EU",
-                "European impact",
-                "European leadership",
                 "dissemination",
-                "exploitation",
-                "communication"
+                "exploitation"
             ],
             'implementation.work_plan': [
                 "work package",
                 "deliverable",
                 "milestone",
-                "TRL",
-                "Technology Readiness Level",
-                "consortium",
-                "excellence",
-                "implementation",
-                "innovation",
-                "state of the art",
-                "SOTA"
+                "consortium"
             ]
         }
-        
-        # Get required terms for this section
-        required_terms = critical_terms.get(section_id, [])
-        
+
+        # Get base required terms for this section
+        required_terms = universal_terms.get(section_id, []).copy()
+
+        # Add cluster-specific terms if we have call understanding
+        if call_understanding:
+            # Add relevant EU priorities from the cluster
+            required_terms.extend(call_understanding.eu_priorities[:2])
+
         # Check which terms are missing
         text_lower = text.lower()
-        missing_terms = []
-        
-        for term in required_terms:
-            if term.lower() not in text_lower:
-                missing_terms.append(term)
-        
+        missing_terms = [term for term in required_terms if term.lower() not in text_lower]
+
         # If terms are missing, add them naturally
         if missing_terms:
             logger.info(f"Adding {len(missing_terms)} missing EU terms to {section_id}")
-            
+
             # Create contextual insertions for missing terms
-            insertions = self._create_contextual_insertions(missing_terms, section_id, text)
-            
+            insertions = self._create_contextual_insertions(
+                missing_terms, section_id, text, call_understanding
+            )
+
             # Insert terms at appropriate positions
             for position, insertion in insertions:
                 text = self._insert_at_position(text, position, insertion)
-        
+
         return text
-    
-    def _create_contextual_insertions(self, missing_terms, section_id, text):
+
+    def _create_contextual_insertions(
+        self,
+        missing_terms: List[str],
+        section_id: str,
+        text: str,
+        call_understanding: Optional[CallUnderstanding] = None
+    ) -> List[tuple]:
         """
-        Create contextual insertions for missing EU terms
+        Create contextual insertions for missing EU terms.
+        Now cluster-aware - generates appropriate text based on call topic.
         """
         insertions = []
-        
-        # Find appropriate insertion points (after paragraphs)
-        paragraphs = text.split('\n\n')
-        
+
+        # Get topic context for insertions
+        topic = call_understanding.topic if call_understanding else "research and innovation"
+        cluster = call_understanding.cluster if call_understanding else None
+
+        # Build cluster-appropriate context phrases
+        topic_phrase = self._get_topic_phrase(cluster, topic)
+        impact_phrase = self._get_impact_phrase(cluster, topic)
+
         if section_id == 'excellence.objectives':
-            # Insert EU alignment terms in objectives section
-            if "European Green Deal" in missing_terms:
-                insertions.append((1, "This project directly supports the European Green Deal objectives by enhancing cybersecurity resilience across critical infrastructure sectors."))
             if "EU added value" in missing_terms:
-                insertions.append((2, "The EU added value of this project lies in its pan-European approach to cybersecurity, creating solutions that benefit all member states."))
+                insertions.append((1, f"The EU added value of this project lies in its pan-European approach to {topic_phrase}, creating solutions that benefit all member states."))
             if "European citizens" in missing_terms:
-                insertions.append((3, "Ultimately, this project will enhance the digital security and privacy of European citizens, strengthening trust in critical digital services."))
-        
+                insertions.append((2, f"Ultimately, this project will {impact_phrase}, strengthening trust and delivering tangible benefits to European citizens."))
+            # Add cluster-specific EU priority if missing
+            if call_understanding:
+                for priority in call_understanding.eu_priorities[:1]:
+                    if priority in missing_terms:
+                        insertions.append((3, f"This project directly contributes to {priority} objectives through its innovative approach to {topic_phrase}."))
+
         elif section_id == 'excellence.methodology':
-            # Insert methodology-specific EU terms
             if "European Research Area" in missing_terms:
                 insertions.append((1, "Our methodology aligns with the European Research Area objectives of open science and collaborative research excellence."))
             if "GDPR" in missing_terms:
                 insertions.append((2, "All data processing will comply with GDPR requirements, ensuring the highest standards of data protection and privacy."))
-            if "strategic autonomy" in missing_terms:
-                insertions.append((3, "This approach enhances European strategic autonomy in cybersecurity, reducing dependence on non-European technologies."))
-        
+            if "data management" in missing_terms:
+                insertions.append((3, "A comprehensive data management plan will ensure FAIR principles are followed throughout the project lifecycle."))
+
         elif section_id == 'impact.pathways':
-            # Insert impact-specific EU terms
             if "European economy" in missing_terms:
-                insertions.append((1, "The project will contribute significantly to the European economy by protecting critical digital infrastructure and enabling secure digital transformation."))
-            if "European resilience" in missing_terms:
-                insertions.append((2, "By strengthening cybersecurity capabilities, this project enhances European resilience against evolving cyber threats."))
-            if "benefit to EU" in missing_terms:
-                insertions.append((3, "The clear benefit to EU includes improved security coordination across member states and strengthened collective defense capabilities."))
-        
+                insertions.append((1, f"The project will contribute significantly to the European economy by advancing {topic_phrase} and enabling sustainable growth."))
+            if "European society" in missing_terms:
+                insertions.append((2, f"By {impact_phrase}, this project enhances European society's capacity to address current and future challenges."))
+            if "dissemination" in missing_terms:
+                insertions.append((3, "A robust dissemination strategy will ensure project results reach relevant stakeholders across Europe."))
+            if "exploitation" in missing_terms:
+                insertions.append((4, "The exploitation plan identifies clear pathways for commercial uptake and policy implementation."))
+
         elif section_id == 'implementation.work_plan':
-            # Insert implementation-specific EU terms
             if "work package" in missing_terms:
                 insertions.append((1, "The project will be structured into distinct work packages, each with clear deliverables and milestones."))
-            if "TRL" in missing_terms:
-                insertions.append((2, "We will advance the technology from TRL 4 to TRL 7, ensuring practical applicability in real-world scenarios."))
-            if "Technology Readiness Level" in missing_terms:
-                insertions.append((3, "Each component will be validated at the appropriate Technology Readiness Level to ensure maturity and readiness."))
-        
+            if "deliverable" in missing_terms:
+                insertions.append((2, "Each work package produces specific deliverables that contribute to the overall project objectives."))
+            if "milestone" in missing_terms:
+                insertions.append((3, "Key milestones mark critical decision points and enable effective project monitoring."))
+            if "consortium" in missing_terms:
+                insertions.append((4, "The consortium brings together complementary expertise from across Europe to achieve the project goals."))
+
         return insertions
-    
-    def _insert_at_position(self, text, position, insertion):
+
+    def _get_topic_phrase(self, cluster: Optional['HorizonCluster'], topic: str) -> str:
+        """Generate a cluster-appropriate topic phrase."""
+        from .call_understanding_service import HorizonCluster
+
+        if not cluster:
+            return topic
+
+        cluster_phrases = {
+            HorizonCluster.CL1_HEALTH: "health research and medical innovation",
+            HorizonCluster.CL2_CULTURE: "cultural heritage and democratic innovation",
+            HorizonCluster.CL3_SECURITY: "civil security and societal resilience",
+            HorizonCluster.CL4_DIGITAL: "digital transformation and technological excellence",
+            HorizonCluster.CL5_CLIMATE: "climate action and sustainable energy solutions",
+            HorizonCluster.CL6_FOOD: "sustainable food systems and bioeconomy",
+            HorizonCluster.ERC: "frontier research and scientific excellence",
+            HorizonCluster.EIC: "breakthrough innovation and market creation",
+            HorizonCluster.MSCA: "researcher mobility and skills development",
+        }
+        return cluster_phrases.get(cluster, topic)
+
+    def _get_impact_phrase(self, cluster: Optional['HorizonCluster'], topic: str) -> str:
+        """Generate a cluster-appropriate impact phrase."""
+        from .call_understanding_service import HorizonCluster
+
+        if not cluster:
+            return f"advance {topic}"
+
+        impact_phrases = {
+            HorizonCluster.CL1_HEALTH: "improve health outcomes and healthcare delivery across Europe",
+            HorizonCluster.CL2_CULTURE: "strengthen democratic participation and cultural diversity",
+            HorizonCluster.CL3_SECURITY: "enhance security and protect critical infrastructure",
+            HorizonCluster.CL4_DIGITAL: "accelerate digital transformation and technological sovereignty",
+            HorizonCluster.CL5_CLIMATE: "advance climate neutrality and sustainable development",
+            HorizonCluster.CL6_FOOD: "ensure food security and sustainable resource management",
+            HorizonCluster.ERC: "push the boundaries of scientific knowledge",
+            HorizonCluster.EIC: "bring breakthrough innovations to market",
+            HorizonCluster.MSCA: "develop the next generation of research talent",
+        }
+        return impact_phrases.get(cluster, f"advance {topic}")
+
+    def _insert_at_position(self, text: str, position: int, insertion: str) -> str:
         """
         Insert text at a specific paragraph position
         """

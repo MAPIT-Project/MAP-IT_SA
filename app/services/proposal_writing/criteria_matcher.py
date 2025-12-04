@@ -1,28 +1,26 @@
 """
 Evaluation Criteria Matcher
 
-Analyzes proposal content against evaluation criteria.
+Analyzes proposal content against evaluation criteria using structured AI outputs.
 """
 
 import logging
 from typing import Dict, Any, List
-import re
-import os
-import google.generativeai as genai
+
+from .proposal_ai_service import ProposalAIService
+from .schemas.ai_schemas import CRITERIA_ANALYSIS_SCHEMA
 
 logger = logging.getLogger(__name__)
 
 
 class EvaluationCriteriaMatcher:
     """
-    Match proposal content to evaluation criteria
+    Match proposal content to evaluation criteria using structured AI analysis.
     """
-    
+
     def __init__(self):
-        # Initialize Gemini for AI analysis
-        genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
-        self.model = genai.GenerativeModel('gemini-flash-lite-latest')
-    
+        self.ai_service = ProposalAIService()
+
     async def analyze_section(
         self,
         section_text: str,
@@ -30,188 +28,144 @@ class EvaluationCriteriaMatcher:
         call_id: str
     ) -> Dict[str, Any]:
         """
-        Analyze how well a section addresses evaluation criteria
-        
-        Returns:
-            {
-                "overall_score": 0.85,
-                "criteria_coverage": {
-                    "Scientific excellence": {
-                        "addressed": True,
-                        "strength": 0.9,
-                        "evidence": ["paragraph 2", "paragraph 5"],
-                        "gaps": []
-                    },
-                    ...
-                },
-                "recommendations": [...]
-            }
+        Analyze how well a section addresses evaluation criteria.
+
+        Returns structured analysis with guaranteed fields.
         """
-        
+
         logger.info(f"Analyzing section against {len(evaluation_criteria)} criteria")
-        
-        # Build AI prompt for detailed analysis
+
         prompt = self._build_analysis_prompt(section_text, evaluation_criteria)
-        
+
         try:
-            # Get AI analysis
-            response = self.model.generate_content(prompt)
-            
-            # Parse response (would use structured output in production)
-            analysis_text = response.text
-            
-            # Extract structured data from AI response
-            analysis = self._parse_analysis_response(
-                analysis_text,
-                evaluation_criteria
+            # Use structured output - no more regex parsing!
+            result = await self.ai_service.generate_structured(
+                prompt=prompt,
+                response_schema=CRITERIA_ANALYSIS_SCHEMA,
+                temperature=0.2  # Low temperature for consistent evaluation
             )
-            
-            return analysis
-            
+
+            # Transform to expected format
+            return self._transform_result(result, evaluation_criteria)
+
         except Exception as e:
             logger.error(f"Error analyzing section: {e}")
-            # Fallback to simple analysis
             return self._simple_criteria_analysis(section_text, evaluation_criteria)
-    
+
     def _build_analysis_prompt(
         self,
         section_text: str,
         criteria: List[str]
     ) -> str:
-        """
-        Build prompt for AI-powered criteria analysis
-        """
-        
+        """Build prompt for structured criteria analysis."""
+
+        criteria_list = "\n".join([f"{i+1}. {c}" for i, c in enumerate(criteria)])
+
         return f"""You are an expert Horizon Europe proposal evaluator. Analyze this proposal section against the evaluation criteria.
 
 PROPOSAL SECTION:
 {section_text}
 
 EVALUATION CRITERIA:
-{chr(10).join([f"{i+1}. {c}" for i, c in enumerate(criteria)])}
+{criteria_list}
 
 TASK:
-For each evaluation criterion:
-1. Determine if it's addressed (yes/no)
-2. Rate the strength of addressing (0.0 to 1.0)
-3. Identify specific evidence (which paragraphs/sentences)
-4. Identify any gaps or weaknesses
-5. Suggest specific improvements
-
-OUTPUT FORMAT:
 For each criterion, provide:
+1. Whether it's addressed (true/false)
+2. Strength score (0.0 to 1.0)
+3. Specific evidence from the text
+4. Any gaps or weaknesses
+5. Specific improvement suggestion
 
-CRITERION: [criterion name]
-ADDRESSED: [Yes/No]
-STRENGTH: [0.0-1.0]
-EVIDENCE: [specific quotes or paragraph references]
-GAPS: [what's missing or weak]
-IMPROVEMENT: [specific suggestion]
+Also provide:
+- Overall score (average of all criteria strengths)
+- Summary of the analysis
+- Top 3 improvements ranked by impact
 
----
+Be thorough but concise. Base scores on actual content, not assumptions."""
 
-Begin analysis:"""
-
-    def _parse_analysis_response(
+    def _transform_result(
         self,
-        response_text: str,
+        result: Dict[str, Any],
         criteria: List[str]
     ) -> Dict[str, Any]:
-        """
-        Parse AI response into structured format
-        """
-        
-        # Initialize result
+        """Transform structured result to expected format."""
+
+        # Build criteria coverage dict
         coverage = {}
         recommendations = []
-        total_strength = 0
-        criteria_count = len(criteria)
-        
-        # Split by criterion sections
-        sections = response_text.split('CRITERION:')[1:]  # Skip first empty split
-        
-        for section, criterion in zip(sections, criteria):
-            # Extract information using regex
-            addressed_match = re.search(r'ADDRESSED:\s*(Yes|No)', section, re.IGNORECASE)
-            strength_match = re.search(r'STRENGTH:\s*([\d.]+)', section)
-            evidence_match = re.search(r'EVIDENCE:\s*(.+?)(?=GAPS:|IMPROVEMENT:|$)', section, re.DOTALL)
-            gaps_match = re.search(r'GAPS:\s*(.+?)(?=IMPROVEMENT:|$)', section, re.DOTALL)
-            improvement_match = re.search(r'IMPROVEMENT:\s*(.+?)(?=---|\Z)', section, re.DOTALL)
-            
-            addressed = addressed_match.group(1).lower() == 'yes' if addressed_match else False
-            strength = float(strength_match.group(1)) if strength_match else 0.5
-            evidence = evidence_match.group(1).strip() if evidence_match else ""
-            gaps = gaps_match.group(1).strip() if gaps_match else ""
-            improvement = improvement_match.group(1).strip() if improvement_match else ""
-            
-            coverage[criterion] = {
-                "addressed": addressed,
-                "strength": strength,
-                "evidence": evidence.split('\n') if evidence else [],
-                "gaps": gaps.split('\n') if gaps else []
-            }
-            
-            total_strength += strength
-            
-            # Add to recommendations if gaps exist
-            if gaps:
-                recommendations.append({
-                    "criterion": criterion,
-                    "type": "gap",
-                    "priority": "high" if strength < 0.5 else "medium",
-                    "text": improvement
-                })
-        
-        overall_score = total_strength / criteria_count if criteria_count > 0 else 0
-        
+
+        for analysis in result.get("criteria_analysis", []):
+            criterion_name = analysis.get("criterion_name", "")
+
+            # Find matching criterion from input list
+            matched_criterion = None
+            for c in criteria:
+                if criterion_name.lower() in c.lower() or c.lower() in criterion_name.lower():
+                    matched_criterion = c
+                    break
+
+            if matched_criterion:
+                coverage[matched_criterion] = {
+                    "addressed": analysis.get("addressed", False),
+                    "strength": analysis.get("strength", 0.5),
+                    "evidence": analysis.get("evidence", []),
+                    "gaps": analysis.get("gaps", [])
+                }
+
+                # Add recommendation if there are gaps
+                if analysis.get("gaps"):
+                    recommendations.append({
+                        "criterion": matched_criterion,
+                        "type": "gap",
+                        "priority": "high" if analysis.get("strength", 0.5) < 0.5 else "medium",
+                        "text": analysis.get("improvement_suggestion", "")
+                    })
+
         return {
-            "overall_score": round(overall_score, 2),
+            "overall_score": result.get("overall_score", 0.5),
             "criteria_coverage": coverage,
-            "recommendations": recommendations
+            "recommendations": recommendations,
+            "summary": result.get("summary", ""),
+            "top_improvements": result.get("top_improvements", [])
         }
-    
+
     def _simple_criteria_analysis(
         self,
         section_text: str,
         criteria: List[str]
     ) -> Dict[str, Any]:
-        """
-        Fallback: Simple keyword-based analysis
-        """
-        
+        """Fallback: Simple keyword-based analysis."""
+
         coverage = {}
         total_score = 0
-        
+
         for criterion in criteria:
-            # Extract keywords from criterion
             keywords = [
                 word.lower() for word in criterion.split()
-                if len(word) > 4 and word.lower() not in [
-                    'the', 'and', 'for', 'with', 'that', 'this', 'from'
-                ]
+                if len(word) > 4 and word.lower() not in ['the', 'and', 'for', 'with', 'that']
             ]
-            
-            # Count keyword matches
+
             matches = sum(1 for kw in keywords if kw in section_text.lower())
             strength = min(matches / len(keywords) if keywords else 0, 1.0)
-            
+
             coverage[criterion] = {
                 "addressed": strength > 0.3,
                 "strength": strength,
                 "evidence": [],
                 "gaps": [] if strength > 0.5 else ["Limited evidence found"]
             }
-            
+
             total_score += strength
-        
-        overall_score = total_score / len(criteria) if criteria else 0
-        
+
         return {
-            "overall_score": round(overall_score, 2),
+            "overall_score": round(total_score / len(criteria), 2) if criteria else 0,
             "criteria_coverage": coverage,
-            "recommendations": []
+            "recommendations": [],
+            "summary": "Fallback analysis used - AI analysis unavailable",
+            "top_improvements": []
         }
-    
+
     async def compare_versions(
         self,
         version1: str,
@@ -219,27 +173,27 @@ Begin analysis:"""
         criteria: List[str]
     ) -> Dict[str, Any]:
         """
-        Compare two versions of a section against criteria
+        Compare two versions of a section against criteria.
         """
-        
+
         analysis1 = await self.analyze_section(version1, criteria, "")
         analysis2 = await self.analyze_section(version2, criteria, "")
-        
+
         # Calculate improvement
         score_change = analysis2["overall_score"] - analysis1["overall_score"]
-        
+
         # Identify specific improvements per criterion
         criterion_changes = {}
         for criterion in criteria:
             old_strength = analysis1["criteria_coverage"].get(criterion, {}).get("strength", 0)
             new_strength = analysis2["criteria_coverage"].get(criterion, {}).get("strength", 0)
-            
+
             criterion_changes[criterion] = {
                 "old_strength": old_strength,
                 "new_strength": new_strength,
                 "improvement": new_strength - old_strength
             }
-        
+
         return {
             "version1_score": analysis1["overall_score"],
             "version2_score": analysis2["overall_score"],
@@ -247,4 +201,3 @@ Begin analysis:"""
             "criterion_changes": criterion_changes,
             "recommendation": "Version 2" if score_change > 0 else "Version 1"
         }
-
