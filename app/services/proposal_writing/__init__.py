@@ -59,6 +59,26 @@ from .retry import (
     STANDARD_RETRY,
     GENTLE_RETRY,
 )
+from .proposal_learning_service import (
+    ProposalLearningService,
+    SimilarProject,
+    SuccessPattern,
+)
+from .example_extractor import (
+    ExampleExtractor,
+    ExampleEnricher,
+    ExampleType,
+    ExtractedExample,
+)
+from .semantic_benchmarking import (
+    SemanticBenchmarkingService,
+    BenchmarkResult,
+    BenchmarkExample,
+    BenchmarkDimension,
+    DimensionScore,
+    BenchmarkVisualizer,
+    RealTimeBenchmarker,
+)
 
 __all__ = [
     'ProposalTemplateService',
@@ -110,5 +130,22 @@ __all__ = [
     'AGGRESSIVE_RETRY',
     'STANDARD_RETRY',
     'GENTLE_RETRY',
+    # Learning Service (Task 05)
+    'ProposalLearningService',
+    'SimilarProject',
+    'SuccessPattern',
+    # Example Extractor (Task 06)
+    'ExampleExtractor',
+    'ExampleEnricher',
+    'ExampleType',
+    'ExtractedExample',
+    # Semantic Benchmarking (Task 07)
+    'SemanticBenchmarkingService',
+    'BenchmarkResult',
+    'BenchmarkExample',
+    'BenchmarkDimension',
+    'DimensionScore',
+    'BenchmarkVisualizer',
+    'RealTimeBenchmarker',
 ]
 
