@@ -1,18 +1,17 @@
 """
-Comprehensive tests for the ToolAnalyticsService.
+Tests for the ToolAnalyticsService.
 
 Tests:
-- Tool usage event tracking
-- Buffered writes
-- Statistics retrieval
-- Tool performance analysis
-- Error rate tracking
-- Async operations
+- ToolUsageEvent dataclass
+- Service initialization
+- Event tracking
+- Session metrics
+- Buffer management
 """
 
 import pytest
 import asyncio
-from unittest.mock import Mock, patch, MagicMock, AsyncMock
+from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime, timedelta
 import sys
 import os
@@ -33,84 +32,122 @@ class TestToolUsageEventDataclass:
         """Test event with required fields."""
         event = ToolUsageEvent(
             tool_name="search_funding_calls",
+            parameters={"keywords": "hydrogen"},
             execution_time_ms=150,
             success=True
         )
 
         assert event.tool_name == "search_funding_calls"
+        assert event.parameters == {"keywords": "hydrogen"}
         assert event.execution_time_ms == 150
-        assert event.success == True
+        assert event.success is True
 
     def test_optional_fields_default(self):
-        """Test optional fields default to None."""
+        """Test optional fields default to None or False."""
         event = ToolUsageEvent(
             tool_name="test_tool",
+            parameters={},
             execution_time_ms=100,
             success=True
         )
 
-        assert event.query_type is None
-        assert event.result_count is None
         assert event.error_message is None
+        assert event.result_count is None
+        assert event.result_quality_score is None
         assert event.conversation_id is None
+        assert event.query_hash is None
+        assert event.speculative is False
 
     def test_all_fields(self):
         """Test event with all fields."""
         event = ToolUsageEvent(
             tool_name="search_projects",
+            parameters={"query": "AI research"},
             execution_time_ms=500,
             success=True,
-            query_type="search_projects",
-            result_count=25,
             error_message=None,
-            conversation_id="conv-123"
+            result_count=25,
+            result_quality_score=0.85,
+            conversation_id="conv-123",
+            query_hash="abc123",
+            speculative=True
         )
 
         assert event.result_count == 25
+        assert event.result_quality_score == 0.85
         assert event.conversation_id == "conv-123"
+        assert event.query_hash == "abc123"
+        assert event.speculative is True
 
     def test_failed_event(self):
         """Test failed event with error message."""
         event = ToolUsageEvent(
             tool_name="search_funding_calls",
+            parameters={"keywords": "test"},
             execution_time_ms=50,
             success=False,
             error_message="Database connection timeout"
         )
 
-        assert event.success == False
+        assert event.success is False
         assert "timeout" in event.error_message
+
+    def test_timestamp_auto_generated(self):
+        """Test timestamp is auto-generated."""
+        event = ToolUsageEvent(
+            tool_name="test_tool",
+            parameters={},
+            execution_time_ms=100,
+            success=True
+        )
+
+        assert event.timestamp is not None
+        assert isinstance(event.timestamp, datetime)
 
 
 class TestToolAnalyticsServiceInitialization:
     """Tests for service initialization."""
 
+    def test_service_singleton(self):
+        """Test singleton pattern."""
+        # Reset singleton
+        ToolAnalyticsService._instance = None
+
+        with patch.dict(os.environ, {'DATABASE_URL': ''}, clear=False):
+            service1 = ToolAnalyticsService()
+            service2 = ToolAnalyticsService()
+
+            assert service1 is service2
+
     def test_service_initialization_without_db(self):
         """Test service initializes without database."""
-        with patch.dict(os.environ, {'DATABASE_URL': ''}, clear=False):
-            # Reset singleton
-            ToolAnalyticsService._instance = None
+        ToolAnalyticsService._instance = None
 
+        with patch.dict(os.environ, {'DATABASE_URL': ''}, clear=False):
             service = ToolAnalyticsService()
 
-            assert service._initialized == True
+            assert service._initialized is True
+            assert service.enabled is False
 
     def test_buffer_initialized(self):
         """Test buffer is initialized."""
         ToolAnalyticsService._instance = None
-        service = ToolAnalyticsService()
 
-        assert hasattr(service, '_buffer')
-        assert isinstance(service._buffer, list)
+        with patch.dict(os.environ, {'DATABASE_URL': ''}, clear=False):
+            service = ToolAnalyticsService()
 
-    def test_singleton_pattern(self):
-        """Test singleton returns same instance."""
+            assert hasattr(service, 'buffer')
+            assert isinstance(service.buffer, list)
+            assert len(service.buffer) == 0
+
+    def test_session_metrics_initialized(self):
+        """Test session metrics are initialized."""
         ToolAnalyticsService._instance = None
 
-        service1 = ToolAnalyticsService()
-        service2 = ToolAnalyticsService()
+        with patch.dict(os.environ, {'DATABASE_URL': ''}, clear=False):
+            service = ToolAnalyticsService()
 
-        assert service1 is service2
+            assert hasattr(service, 'session_metrics')
 
 
 class TestToolUsageTracking:
@@ -120,362 +157,253 @@ class TestToolUsageTracking:
     def mock_service(self):
         """Create mock service."""
         ToolAnalyticsService._instance = None
-        service = ToolAnalyticsService()
-        service._buffer = []
-        return service
+        with patch.dict(os.environ, {'DATABASE_URL': ''}, clear=False):
+            service = ToolAnalyticsService()
+            service.enabled = True  # Enable for testing
+            service.buffer = []
+            return service
 
-    def test_track_tool_usage_adds_to_buffer(self, mock_service):
-        """Test tracking adds event to buffer."""
+    @pytest.mark.asyncio
+    async def test_track_tool_usage_updates_session_metrics(self, mock_service):
+        """Test tracking updates session metrics."""
         event = ToolUsageEvent(
             tool_name="search_funding_calls",
+            parameters={"keywords": "hydrogen"},
             execution_time_ms=100,
             success=True
         )
 
-        mock_service.track_tool_usage(event)
+        # Mock _flush_buffer to avoid DB call
+        mock_service._flush_buffer = AsyncMock()
 
-        assert len(mock_service._buffer) == 1
-        assert mock_service._buffer[0].tool_name == "search_funding_calls"
+        await mock_service.track_tool_usage(event)
 
-    def test_multiple_events_buffered(self, mock_service):
-        """Test multiple events are buffered."""
-        for i in range(5):
+        metrics = mock_service.session_metrics["search_funding_calls"]
+        assert metrics['calls'] == 1
+        assert metrics['successes'] == 1
+
+    @pytest.mark.asyncio
+    async def test_track_failed_event(self, mock_service):
+        """Test tracking failed event."""
+        event = ToolUsageEvent(
+            tool_name="test_tool",
+            parameters={},
+            execution_time_ms=50,
+            success=False,
+            error_message="Error occurred"
+        )
+
+        mock_service._flush_buffer = AsyncMock()
+
+        await mock_service.track_tool_usage(event)
+
+        metrics = mock_service.session_metrics["test_tool"]
+        assert metrics['calls'] == 1
+        assert metrics['successes'] == 0
+
+    @pytest.mark.asyncio
+    async def test_track_speculative_event(self, mock_service):
+        """Test tracking speculative event."""
+        event = ToolUsageEvent(
+            tool_name="search_projects",
+            parameters={"query": "AI"},
+            execution_time_ms=200,
+            success=True,
+            speculative=True
+        )
+
+        mock_service._flush_buffer = AsyncMock()
+
+        await mock_service.track_tool_usage(event)
+
+        metrics = mock_service.session_metrics["search_projects"]
+        assert metrics['speculative_hits'] == 1
+
+
+class TestSessionMetrics:
+    """Tests for session metrics."""
+
+    @pytest.fixture
+    def service_with_metrics(self):
+        """Create service with pre-populated metrics."""
+        ToolAnalyticsService._instance = None
+        with patch.dict(os.environ, {'DATABASE_URL': ''}, clear=False):
+            service = ToolAnalyticsService()
+            service.enabled = True
+
+            # Populate metrics
+            service.session_metrics["search_funding_calls"] = {
+                'calls': 10,
+                'successes': 9,
+                'total_time_ms': 1000,
+                'speculative_hits': 3
+            }
+            service.session_metrics["search_projects"] = {
+                'calls': 5,
+                'successes': 5,
+                'total_time_ms': 750,
+                'speculative_hits': 1
+            }
+
+            return service
+
+    def test_get_session_metrics(self, service_with_metrics):
+        """Test getting session metrics."""
+        metrics = service_with_metrics.get_session_metrics()
+
+        assert "search_funding_calls" in metrics
+        assert "search_projects" in metrics
+
+    def test_session_metrics_calculations(self, service_with_metrics):
+        """Test session metrics calculations."""
+        metrics = service_with_metrics.get_session_metrics()
+
+        funding_metrics = metrics["search_funding_calls"]
+        assert funding_metrics['total_calls'] == 10
+        assert funding_metrics['successful_calls'] == 9
+        assert funding_metrics['success_rate'] == 90.0
+        assert funding_metrics['avg_time_ms'] == 100.0  # 1000/10
+        assert funding_metrics['speculative_hits'] == 3
+
+
+class TestBufferManagement:
+    """Tests for buffer management."""
+
+    @pytest.fixture
+    def mock_service(self):
+        """Create mock service."""
+        ToolAnalyticsService._instance = None
+        with patch.dict(os.environ, {'DATABASE_URL': ''}, clear=False):
+            service = ToolAnalyticsService()
+            service.enabled = True
+            service.buffer = []
+            service.buffer_size = 5  # Small buffer for testing
+            return service
+
+    @pytest.mark.asyncio
+    async def test_buffer_fills_before_flush(self, mock_service):
+        """Test buffer fills before flush."""
+        mock_service._flush_buffer = AsyncMock()
+
+        for i in range(3):
             event = ToolUsageEvent(
                 tool_name=f"tool_{i}",
+                parameters={},
                 execution_time_ms=i * 100,
                 success=True
             )
-            mock_service.track_tool_usage(event)
+            await mock_service.track_tool_usage(event)
 
-        assert len(mock_service._buffer) == 5
+        # Buffer should have events (not flushed yet)
+        assert len(mock_service.buffer) == 3
 
-    def test_timestamp_added_if_missing(self, mock_service):
-        """Test timestamp is added to event."""
-        event = ToolUsageEvent(
-            tool_name="test_tool",
-            execution_time_ms=100,
-            success=True
-        )
+    @pytest.mark.asyncio
+    async def test_buffer_flushes_when_full(self, mock_service):
+        """Test buffer flushes when full."""
+        flush_called = False
 
-        mock_service.track_tool_usage(event)
+        async def mock_flush():
+            nonlocal flush_called
+            flush_called = True
+            mock_service.buffer.clear()
 
-        assert mock_service._buffer[0].timestamp is not None
+        mock_service._flush_buffer = mock_flush
 
-
-class TestBufferedWrites:
-    """Tests for buffered writes to database."""
-
-    @pytest.fixture
-    def mock_service_with_db(self):
-        """Create service with mocked database."""
-        ToolAnalyticsService._instance = None
-        service = ToolAnalyticsService()
-        service.enabled = True
-
-        mock_conn = MagicMock()
-        mock_cursor = MagicMock()
-        mock_conn.cursor.return_value = mock_cursor
-
-        mock_pool = MagicMock()
-        mock_pool.getconn.return_value = mock_conn
-        service._pool = mock_pool
-
-        return service
-
-    def test_flush_buffer_clears_buffer(self, mock_service_with_db):
-        """Test flushing buffer clears it."""
-        mock_service_with_db._buffer = [
-            ToolUsageEvent("tool1", 100, True),
-            ToolUsageEvent("tool2", 200, True)
-        ]
-
-        asyncio.run(mock_service_with_db._flush_buffer())
-
-        assert len(mock_service_with_db._buffer) == 0
-
-    def test_buffer_flush_threshold(self, mock_service_with_db):
-        """Test buffer flushes at threshold."""
-        # Default threshold is typically around 100
-        threshold = getattr(mock_service_with_db, '_buffer_threshold', 100)
-        assert threshold > 0
-
-
-class TestStatisticsRetrieval:
-    """Tests for statistics retrieval."""
-
-    @pytest.fixture
-    def mock_service_with_stats(self):
-        """Create service with mocked stats data."""
-        ToolAnalyticsService._instance = None
-        service = ToolAnalyticsService()
-        service.enabled = True
-
-        mock_conn = MagicMock()
-        mock_cursor = MagicMock()
-
-        # Mock usage stats
-        mock_cursor.fetchall.return_value = [
-            {'tool_name': 'search_funding_calls', 'usage_count': 500,
-             'avg_time_ms': 150, 'success_rate': 0.95},
-            {'tool_name': 'search_projects', 'usage_count': 300,
-             'avg_time_ms': 200, 'success_rate': 0.92}
-        ]
-
-        mock_conn.cursor.return_value = mock_cursor
-
-        mock_pool = MagicMock()
-        mock_pool.getconn.return_value = mock_conn
-        service._pool = mock_pool
-
-        return service
-
-    def test_get_tool_stats_structure(self, mock_service_with_stats):
-        """Test tool stats have correct structure."""
-        stats = asyncio.run(mock_service_with_stats.get_tool_statistics())
-
-        assert isinstance(stats, dict) or isinstance(stats, list)
-
-    def test_get_tool_stats_disabled(self):
-        """Test stats return empty when disabled."""
-        ToolAnalyticsService._instance = None
-        service = ToolAnalyticsService()
-        service.enabled = False
-
-        stats = asyncio.run(service.get_tool_statistics())
-
-        assert stats == {} or stats == [] or 'error' in stats
-
-
-class TestToolPerformanceAnalysis:
-    """Tests for tool performance analysis."""
-
-    @pytest.fixture
-    def mock_service(self):
-        """Create mock service."""
-        ToolAnalyticsService._instance = None
-        service = ToolAnalyticsService()
-        service._buffer = []
-        return service
-
-    def test_track_slow_tool(self, mock_service):
-        """Test tracking slow tool execution."""
-        event = ToolUsageEvent(
-            tool_name="slow_tool",
-            execution_time_ms=5000,  # 5 seconds
-            success=True
-        )
-
-        mock_service.track_tool_usage(event)
-
-        assert mock_service._buffer[0].execution_time_ms == 5000
-
-    def test_track_fast_tool(self, mock_service):
-        """Test tracking fast tool execution."""
-        event = ToolUsageEvent(
-            tool_name="fast_tool",
-            execution_time_ms=10,
-            success=True
-        )
-
-        mock_service.track_tool_usage(event)
-
-        assert mock_service._buffer[0].execution_time_ms == 10
-
-
-class TestErrorRateTracking:
-    """Tests for error rate tracking."""
-
-    @pytest.fixture
-    def mock_service(self):
-        """Create mock service."""
-        ToolAnalyticsService._instance = None
-        service = ToolAnalyticsService()
-        service._buffer = []
-        return service
-
-    def test_track_successful_execution(self, mock_service):
-        """Test tracking successful execution."""
-        event = ToolUsageEvent(
-            tool_name="test_tool",
-            execution_time_ms=100,
-            success=True
-        )
-
-        mock_service.track_tool_usage(event)
-
-        assert mock_service._buffer[0].success == True
-
-    def test_track_failed_execution(self, mock_service):
-        """Test tracking failed execution."""
-        event = ToolUsageEvent(
-            tool_name="test_tool",
-            execution_time_ms=50,
-            success=False,
-            error_message="Connection refused"
-        )
-
-        mock_service.track_tool_usage(event)
-
-        assert mock_service._buffer[0].success == False
-        assert mock_service._buffer[0].error_message == "Connection refused"
-
-    def test_track_various_errors(self, mock_service):
-        """Test tracking various error types."""
-        errors = [
-            "Database timeout",
-            "Invalid parameters",
-            "Rate limit exceeded",
-            "Network error"
-        ]
-
-        for error in errors:
+        for i in range(6):  # More than buffer_size
             event = ToolUsageEvent(
-                tool_name="test_tool",
-                execution_time_ms=50,
-                success=False,
-                error_message=error
+                tool_name=f"tool_{i}",
+                parameters={},
+                execution_time_ms=100,
+                success=True
             )
-            mock_service.track_tool_usage(event)
+            await mock_service.track_tool_usage(event)
 
-        assert len(mock_service._buffer) == 4
+        assert flush_called
 
 
-class TestGetAnalyticsServiceSingleton:
+class TestQueryHashing:
+    """Tests for query hashing."""
+
+    def test_hash_query(self):
+        """Test query hashing produces consistent results."""
+        query = "Find hydrogen funding calls"
+
+        hash1 = ToolAnalyticsService.hash_query(query)
+        hash2 = ToolAnalyticsService.hash_query(query)
+
+        assert hash1 == hash2
+        assert len(hash1) == 16  # Should be 16 chars
+
+    def test_different_queries_different_hashes(self):
+        """Test different queries produce different hashes."""
+        hash1 = ToolAnalyticsService.hash_query("Query one")
+        hash2 = ToolAnalyticsService.hash_query("Query two")
+
+        assert hash1 != hash2
+
+
+class TestGetAnalyticsService:
     """Tests for get_analytics_service function."""
 
-    def test_get_analytics_service_returns_instance(self):
+    def test_returns_instance(self):
         """Test function returns instance."""
-        # Reset singleton
         import app.services.analytics.tool_analytics_service as module
-        module._analytics_instance = None
+        module._analytics_service = None
+        ToolAnalyticsService._instance = None
 
-        service = get_analytics_service()
+        with patch.dict(os.environ, {'DATABASE_URL': ''}, clear=False):
+            service = get_analytics_service()
 
-        assert service is not None
-        assert isinstance(service, ToolAnalyticsService)
+            assert service is not None
+            assert isinstance(service, ToolAnalyticsService)
 
-    def test_get_analytics_service_singleton(self):
+    def test_returns_same_instance(self):
         """Test function returns same instance."""
         import app.services.analytics.tool_analytics_service as module
-        module._analytics_instance = None
+        module._analytics_service = None
+        ToolAnalyticsService._instance = None
 
-        service1 = get_analytics_service()
-        service2 = get_analytics_service()
+        with patch.dict(os.environ, {'DATABASE_URL': ''}, clear=False):
+            service1 = get_analytics_service()
+            service2 = get_analytics_service()
 
-        assert service1 is service2
+            assert service1 is service2
 
 
-class TestQueryTypeTracking:
-    """Tests for query type tracking."""
+class TestToolPerformanceQueries:
+    """Tests for tool performance queries (with mocked DB)."""
 
     @pytest.fixture
-    def mock_service(self):
-        """Create mock service."""
+    def service_with_mock_db(self):
+        """Create service with mocked database."""
         ToolAnalyticsService._instance = None
-        service = ToolAnalyticsService()
-        service._buffer = []
-        return service
+        with patch.dict(os.environ, {'DATABASE_URL': 'postgresql://test'}, clear=False):
+            with patch.object(ToolAnalyticsService, '_init_pool'):
+                service = ToolAnalyticsService()
+                service.enabled = True
+                return service
 
-    def test_track_faq_query_type(self, mock_service):
-        """Test tracking FAQ query type."""
-        event = ToolUsageEvent(
-            tool_name="search_documents",
-            execution_time_ms=100,
-            success=True,
-            query_type="faq"
-        )
-
-        mock_service.track_tool_usage(event)
-
-        assert mock_service._buffer[0].query_type == "faq"
-
-    def test_track_search_calls_query_type(self, mock_service):
-        """Test tracking search_calls query type."""
-        event = ToolUsageEvent(
-            tool_name="search_funding_calls",
-            execution_time_ms=150,
-            success=True,
-            query_type="search_calls"
-        )
-
-        mock_service.track_tool_usage(event)
-
-        assert mock_service._buffer[0].query_type == "search_calls"
-
-
-class TestResultCountTracking:
-    """Tests for result count tracking."""
-
-    @pytest.fixture
-    def mock_service(self):
-        """Create mock service."""
+    def test_get_tool_performance_disabled(self):
+        """Test get_tool_performance when disabled."""
         ToolAnalyticsService._instance = None
-        service = ToolAnalyticsService()
-        service._buffer = []
-        return service
+        with patch.dict(os.environ, {'DATABASE_URL': ''}, clear=False):
+            service = ToolAnalyticsService()
+            service.enabled = False
 
-    def test_track_zero_results(self, mock_service):
-        """Test tracking query with zero results."""
-        event = ToolUsageEvent(
-            tool_name="search_projects",
-            execution_time_ms=100,
-            success=True,
-            result_count=0
-        )
+            result = service.get_tool_performance()
 
-        mock_service.track_tool_usage(event)
+            assert "error" in result
 
-        assert mock_service._buffer[0].result_count == 0
-
-    def test_track_many_results(self, mock_service):
-        """Test tracking query with many results."""
-        event = ToolUsageEvent(
-            tool_name="search_projects",
-            execution_time_ms=500,
-            success=True,
-            result_count=150
-        )
-
-        mock_service.track_tool_usage(event)
-
-        assert mock_service._buffer[0].result_count == 150
-
-
-class TestConversationTracking:
-    """Tests for conversation ID tracking."""
-
-    @pytest.fixture
-    def mock_service(self):
-        """Create mock service."""
+    def test_get_slow_tools_disabled(self):
+        """Test get_slow_tools when disabled."""
         ToolAnalyticsService._instance = None
-        service = ToolAnalyticsService()
-        service._buffer = []
-        return service
+        with patch.dict(os.environ, {'DATABASE_URL': ''}, clear=False):
+            service = ToolAnalyticsService()
+            service.enabled = False
 
-    def test_track_with_conversation_id(self, mock_service):
-        """Test tracking with conversation ID."""
-        event = ToolUsageEvent(
-            tool_name="search_funding_calls",
-            execution_time_ms=100,
-            success=True,
-            conversation_id="conv-abc123"
-        )
+            result = service.get_slow_tools()
 
-        mock_service.track_tool_usage(event)
-
-        assert mock_service._buffer[0].conversation_id == "conv-abc123"
-
-    def test_track_without_conversation_id(self, mock_service):
-        """Test tracking without conversation ID."""
-        event = ToolUsageEvent(
-            tool_name="search_funding_calls",
-            execution_time_ms=100,
-            success=True
-        )
-
-        mock_service.track_tool_usage(event)
-
-        assert mock_service._buffer[0].conversation_id is None
+            assert result == []
 
 
 class TestEdgeCases:
@@ -485,59 +413,80 @@ class TestEdgeCases:
     def mock_service(self):
         """Create mock service."""
         ToolAnalyticsService._instance = None
-        service = ToolAnalyticsService()
-        service._buffer = []
-        return service
+        with patch.dict(os.environ, {'DATABASE_URL': ''}, clear=False):
+            service = ToolAnalyticsService()
+            service.enabled = True
+            service.buffer = []
+            return service
 
-    def test_very_long_tool_name(self, mock_service):
-        """Test handling very long tool name."""
+    @pytest.mark.asyncio
+    async def test_track_with_empty_parameters(self, mock_service):
+        """Test tracking with empty parameters."""
+        mock_service._flush_buffer = AsyncMock()
+
         event = ToolUsageEvent(
-            tool_name="a" * 500,
+            tool_name="test_tool",
+            parameters={},
             execution_time_ms=100,
             success=True
         )
 
-        # Should not crash
-        mock_service.track_tool_usage(event)
-        assert len(mock_service._buffer) == 1
+        await mock_service.track_tool_usage(event)
+        assert len(mock_service.buffer) == 1
 
-    def test_very_long_error_message(self, mock_service):
-        """Test handling very long error message."""
+    @pytest.mark.asyncio
+    async def test_track_with_large_parameters(self, mock_service):
+        """Test tracking with large parameters."""
+        mock_service._flush_buffer = AsyncMock()
+
+        large_params = {"data": "x" * 10000}
         event = ToolUsageEvent(
             tool_name="test_tool",
-            execution_time_ms=50,
-            success=False,
-            error_message="Error: " + "x" * 10000
-        )
-
-        # Should not crash
-        mock_service.track_tool_usage(event)
-        assert len(mock_service._buffer) == 1
-
-    def test_negative_execution_time(self, mock_service):
-        """Test handling negative execution time (edge case)."""
-        event = ToolUsageEvent(
-            tool_name="test_tool",
-            execution_time_ms=-1,  # Should not happen but handle gracefully
+            parameters=large_params,
+            execution_time_ms=100,
             success=True
         )
 
-        mock_service.track_tool_usage(event)
-        assert len(mock_service._buffer) == 1
+        await mock_service.track_tool_usage(event)
+        assert len(mock_service.buffer) == 1
 
-    def test_concurrent_tracking(self, mock_service):
-        """Test concurrent event tracking."""
-        async def track_many():
-            for i in range(100):
-                event = ToolUsageEvent(
-                    tool_name=f"tool_{i % 10}",
-                    execution_time_ms=i * 10,
-                    success=True
-                )
-                mock_service.track_tool_usage(event)
+    @pytest.mark.asyncio
+    async def test_track_with_zero_execution_time(self, mock_service):
+        """Test tracking with zero execution time."""
+        mock_service._flush_buffer = AsyncMock()
 
-        asyncio.run(track_many())
-        assert len(mock_service._buffer) == 100
+        event = ToolUsageEvent(
+            tool_name="test_tool",
+            parameters={},
+            execution_time_ms=0,
+            success=True
+        )
+
+        await mock_service.track_tool_usage(event)
+        assert mock_service.session_metrics["test_tool"]['total_time_ms'] == 0
+
+    @pytest.mark.asyncio
+    async def test_tracking_disabled(self, mock_service):
+        """Test tracking when disabled."""
+        mock_service.enabled = False
+
+        event = ToolUsageEvent(
+            tool_name="test_tool",
+            parameters={},
+            execution_time_ms=100,
+            success=True
+        )
+
+        await mock_service.track_tool_usage(event)
+
+        # Should not add to buffer when disabled
+        assert len(mock_service.buffer) == 0
+
+
+# Helper for async mocking
+class AsyncMock(Mock):
+    async def __call__(self, *args, **kwargs):
+        return super().__call__(*args, **kwargs)
 
 
 if __name__ == "__main__":
