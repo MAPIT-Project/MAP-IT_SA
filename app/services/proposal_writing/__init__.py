@@ -79,6 +79,76 @@ from .semantic_benchmarking import (
     BenchmarkVisualizer,
     RealTimeBenchmarker,
 )
+from .evaluator_simulator import (
+    EvaluatorSimulator,
+    EvaluationResult,
+    CriterionScore,
+    ScoreLevel,
+)
+from .score_visualizer import (
+    generate_score_bar,
+    generate_score_summary,
+    generate_criterion_table,
+    generate_section_report,
+    generate_comparison_chart_data,
+    generate_funding_probability_gauge,
+    format_improvement_priority_list,
+)
+from .score_storage_service import (
+    ScoreStorageService,
+    StoredScore,
+    ScoreHistoryEntry,
+    ProposalScoreSummary,
+    TriggerType,
+)
+from .gap_analysis_service import (
+    GapAnalysisService,
+    GapProgressTracker,
+    GapAnalysisResult,
+    Gap,
+    GapSeverity,
+    GapCategory,
+    EffortLevel,
+)
+from .smart_rewriter import (
+    SmartRewriter,
+    RewriteResult,
+    RewriteStyle,
+)
+from .inline_suggestions_service import (
+    InlineSuggestionsService,
+    RealTimeAnalyzer,
+    InlineSuggestion,
+    AnalysisResult,
+    TextSpan,
+    SuggestionCategory,
+    SuggestionPriority,
+)
+from .realtime_quality_service import (
+    RealTimeQualityService,
+    StreamingQualityIndicator,
+    StreamingFeedback,
+    FeedbackType,
+    QualityTier,
+)
+from .progress_tracking_service import (
+    ProgressTrackingService,
+    Achievement,
+    UserAchievement,
+    ProgressSnapshot,
+    Streak,
+    AchievementCategory,
+    AchievementRarity,
+)
+from .dashboard_service import (
+    DashboardService,
+    DashboardData,
+    SectionSummary,
+    NextAction,
+    ReadinessCheck,
+    SectionStatus,
+    ActionPriority,
+)
 
 __all__ = [
     'ProposalTemplateService',
@@ -147,5 +217,66 @@ __all__ = [
     'DimensionScore',
     'BenchmarkVisualizer',
     'RealTimeBenchmarker',
+    # Evaluator Simulator (Task 08)
+    'EvaluatorSimulator',
+    'EvaluationResult',
+    'CriterionScore',
+    'ScoreLevel',
+    # Score Visualizer (Task 08)
+    'generate_score_bar',
+    'generate_score_summary',
+    'generate_criterion_table',
+    'generate_section_report',
+    'generate_comparison_chart_data',
+    'generate_funding_probability_gauge',
+    'format_improvement_priority_list',
+    # Score Storage (Task 09)
+    'ScoreStorageService',
+    'StoredScore',
+    'ScoreHistoryEntry',
+    'ProposalScoreSummary',
+    'TriggerType',
+    # Gap Analysis (Task 10)
+    'GapAnalysisService',
+    'GapProgressTracker',
+    'GapAnalysisResult',
+    'Gap',
+    'GapSeverity',
+    'GapCategory',
+    'EffortLevel',
+    # Smart Rewriter (Task 11)
+    'SmartRewriter',
+    'RewriteResult',
+    'RewriteStyle',
+    # Inline Suggestions (Task 13)
+    'InlineSuggestionsService',
+    'RealTimeAnalyzer',
+    'InlineSuggestion',
+    'AnalysisResult',
+    'TextSpan',
+    'SuggestionCategory',
+    'SuggestionPriority',
+    # Real-Time Quality (Task 14)
+    'RealTimeQualityService',
+    'StreamingQualityIndicator',
+    'StreamingFeedback',
+    'FeedbackType',
+    'QualityTier',
+    # Progress Tracking (Task 15)
+    'ProgressTrackingService',
+    'Achievement',
+    'UserAchievement',
+    'ProgressSnapshot',
+    'Streak',
+    'AchievementCategory',
+    'AchievementRarity',
+    # Dashboard Service (Task 16)
+    'DashboardService',
+    'DashboardData',
+    'SectionSummary',
+    'NextAction',
+    'ReadinessCheck',
+    'SectionStatus',
+    'ActionPriority',
 ]
 
