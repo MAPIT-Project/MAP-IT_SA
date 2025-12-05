@@ -369,11 +369,11 @@ class ProgressTrackingService:
         if user_id in self._user_streaks_cache:
             return self._user_streaks_cache[user_id]
 
-        # Return default streak
+        # Return default streak (no activity yet)
         streak = Streak(
             current_streak=0,
             longest_streak=0,
-            last_activity_date=date.today(),
+            last_activity_date=None,  # None indicates no activity recorded yet
             is_active=False
         )
 
@@ -386,18 +386,22 @@ class ProgressTrackingService:
         today = date.today()
         yesterday = today - timedelta(days=1)
 
+        # Already recorded today - return as is
         if current_streak.last_activity_date == today:
-            # Already recorded today
             return current_streak
 
-        if current_streak.last_activity_date == yesterday:
-            # Continue streak
+        # Determine new streak value
+        if current_streak.last_activity_date is None:
+            # First ever activity
+            current_streak.current_streak = 1
+        elif current_streak.last_activity_date == yesterday:
+            # Continue streak from yesterday
             current_streak.current_streak += 1
-        elif current_streak.last_activity_date and current_streak.last_activity_date < yesterday:
-            # Streak broken, start new one
+        elif current_streak.last_activity_date < yesterday:
+            # Streak broken (missed a day), start new one
             current_streak.current_streak = 1
         else:
-            # First activity
+            # Edge case: future date somehow, reset
             current_streak.current_streak = 1
 
         current_streak.last_activity_date = today
