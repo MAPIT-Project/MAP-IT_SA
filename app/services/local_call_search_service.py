@@ -875,12 +875,19 @@ class LocalCallSearchService:
             match = re.search(pattern, content, re.IGNORECASE)
             if match:
                 amount = match.group(1).replace(',', '')
+                # Skip if amount is empty or only contains dots
+                if not amount or not amount.replace('.', ''):
+                    continue
                 unit = match.group(2) if len(match.groups()) > 1 else ''
                 if unit:
                     return f"EUR {amount} {unit}"
-                elif float(amount.replace('.', '')) > 1000:
-                    return f"EUR {amount}"
-        
+                try:
+                    if float(amount.replace('.', '')) > 1000:
+                        return f"EUR {amount}"
+                except ValueError:
+                    # Skip invalid amounts
+                    continue
+
         return None
     
     def _extract_deadline(self, content: str, call_year: Optional[int] = None) -> Optional[str]:

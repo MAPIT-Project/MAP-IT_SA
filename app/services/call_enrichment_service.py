@@ -160,12 +160,110 @@ class CallEnrichmentService:
     def _fetch_from_api(self, topic_code: str) -> Optional[Dict[str, Any]]:
         """
         Fetch call details from EU Portal API.
-        
-        Uses the same multipart POST approach as ImprovedCallSearchService.
+
+        First tries the direct topic details endpoint, then falls back to search API.
+        """
+        # Try direct topic details endpoint first (simpler and more reliable)
+        direct_result = self._fetch_direct_topic_details(topic_code)
+        if direct_result:
+            return direct_result
+
+        # Fall back to search API
+        return self._fetch_via_search_api(topic_code)
+
+    def _fetch_direct_topic_details(self, topic_code: str) -> Optional[Dict[str, Any]]:
+        """
+        Fetch topic details directly from the EU Portal topic details JSON endpoint.
+
+        This endpoint returns complete details for a specific topic by ID.
+        """
+        try:
+            # The EU Portal has a direct JSON endpoint for topic details
+            # Format: https://ec.europa.eu/info/funding-tenders/opportunities/data/topicDetails/{topic_code}.json
+            # IMPORTANT: The endpoint requires LOWERCASE topic codes
+            url = f"{EU_PORTAL_TOPIC_DETAILS}/{topic_code.lower()}.json"
+            logger.info(f"📡 Fetching direct topic details from: {url}")
+
+            response = self.client.get(url)
+
+            if response.status_code == 200:
+                data = response.json()
+                topic_data = data.get('TopicDetails', {})
+
+                if topic_data:
+                    logger.info(f"✅ Got direct topic details for {topic_code}")
+
+                    # Extract deadline
+                    deadline = None
+                    deadline_model = topic_data.get('deadlineModel', [])
+                    if deadline_model and isinstance(deadline_model, list) and len(deadline_model) > 0:
+                        deadline_str = deadline_model[0].get('deadlineDate', '')
+                        if deadline_str:
+                            try:
+                                # Parse ISO format date
+                                if 'T' in deadline_str:
+                                    deadline = datetime.fromisoformat(deadline_str.replace('Z', '+00:00')).date()
+                                else:
+                                    deadline = datetime.strptime(deadline_str, '%Y-%m-%d').date()
+                            except Exception as e:
+                                logger.debug(f"Could not parse deadline: {e}")
+
+                    # Determine status from statusOfTopic
+                    status_data = topic_data.get('statusOfTopic', {})
+                    status_abbr = status_data.get('abbreviation', '').lower() if isinstance(status_data, dict) else str(status_data).lower()
+                    if 'open' in status_abbr:
+                        status = 'open'
+                    elif 'closed' in status_abbr:
+                        status = 'closed'
+                    elif 'forthcoming' in status_abbr or 'upcoming' in status_abbr:
+                        status = 'upcoming'
+                    else:
+                        status = 'closed'  # Default to closed for past calls
+
+                    # Extract budget
+                    budget = None
+                    budget_data = topic_data.get('budgetOverviewModel', {})
+                    if budget_data:
+                        budget = budget_data.get('budgetTopicActionValue')
+
+                    # Extract action type
+                    action_type_data = topic_data.get('typeOfMGA', [])
+                    action_type = ''
+                    if action_type_data and isinstance(action_type_data, list) and len(action_type_data) > 0:
+                        action_type = action_type_data[0].get('abbreviation', '')
+
+                    return {
+                        'topic_code': topic_data.get('identifier', topic_code).upper(),
+                        'title': topic_data.get('title', ''),
+                        'scope': topic_data.get('description', ''),
+                        'expected_outcome': topic_data.get('expectedImpact', ''),
+                        'deadline': deadline,
+                        'status': status,
+                        'action_type': action_type,
+                        'budget': budget,
+                        'budget_total': Decimal(str(budget)) if budget else None,
+                        'call_identifier': topic_data.get('callIdentifier'),
+                        'portal_url': f"https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/{topic_code.lower()}",
+                        'enriched_from_api': True,
+                        'enriched_at': datetime.now().isoformat(),
+                    }
+
+            logger.info(f"Direct topic details endpoint returned {response.status_code} for {topic_code}")
+            return None
+
+        except Exception as e:
+            logger.warning(f"Direct topic details fetch failed for {topic_code}: {e}")
+            return None
+
+    def _fetch_via_search_api(self, topic_code: str) -> Optional[Dict[str, Any]]:
+        """
+        Fetch call details via the EU Portal search API.
+
+        Uses multipart POST approach.
         """
         try:
             import json
-            
+
             # Build search query - include all statuses to find the call
             search_query = {
                 "bool": {

@@ -152,6 +152,29 @@ There is NO single fixed budget limit for Innovation Actions (IA) or other actio
 | **EIC Accelerator** | Up to €2.5M grant + €15M equity | Blended finance |
 
 **How to find actual limits:** Check the specific Call Topic in the Work Programme - it states "Expected EU contribution per project: €X-Y million"
+
+### Getting Started with Proposal Writing
+If someone asks "How do I start writing a proposal?" or "Where do I start?", provide this guidance:
+
+1. **Find a relevant call**: Search for open calls on the EU Funding & Tenders Portal that match your research area
+2. **Understand the call**: Read the Work Programme topic carefully - understand scope, expected outcomes, and evaluation criteria
+3. **Build your consortium**: Most calls require 3+ partners from 3+ different EU/Associated countries
+4. **Write the proposal**: Follow the template structure (Excellence, Impact, Implementation)
+5. **Use the search tools**: Search for similar funded projects to learn from successful proposals
+
+### Proposal Template Structure (Part B)
+Standard RIA/IA proposals have 3 main sections:
+- **Section 1: Excellence** - Scientific quality, objectives, methodology, ambition (beyond state-of-art)
+- **Section 2: Impact** - Expected outcomes, pathways to impact, dissemination, exploitation
+- **Section 3: Implementation** - Work plan, consortium, resources, management
+
+### Evaluation Criteria
+| Section | Threshold | Weight | Key aspects |
+|---------|-----------|--------|-------------|
+| Excellence | 4/5 | ~1/3 | Objectives, methodology, ambition |
+| Impact | 4/5 | ~1/3 | Outcomes, dissemination, exploitation |
+| Implementation | 3/5 | ~1/3 | Work plan, consortium, resources |
+| **Overall** | **10/15** | - | Must pass all thresholds |
 """
 
     # System prompt for the reasoning LLM
@@ -185,13 +208,16 @@ When the user refers to previous conversation:
    - Identify if this is a new question or follow-up
 
 2. **DECIDE**: What tools to use (or answer directly if you can)
-   - For funding calls → use search_funding_calls
+   - For **general guidance** ("how do I start?", "where do I begin?") → Answer from BUILT-IN KNOWLEDGE above, no search needed!
+   - For **proposal structure** questions → Answer from BUILT-IN KNOWLEDGE (see "Getting Started" and "Proposal Template Structure")
+   - For **specific call ID** (user gives ID like HORIZON-*, CREA-*, EIC-*) → use get_call_details (fetches from EU Portal API)
+   - For **finding/searching** funding calls by topic → use search_funding_calls
    - For projects → use search_projects
    - For statistics → use get_programme_statistics or get_country_statistics
    - For budget/funding questions → use get_budget_benchmark (returns real data from funded projects)
    - For consortium composition → use get_consortium_patterns (org types, country distribution, coordinator profiles)
    - For finding partners → use find_experienced_partners (organizations with track records in specific topics)
-   - For eligibility rules → use search_documents
+   - For eligibility rules → use search_documents (use SPECIFIC queries like "consortium eligibility", NOT the full user message)
    - For comparing things → use compare_programmes
 
 3. **EXECUTE**: Call the tools
@@ -224,6 +250,8 @@ Respond ONLY with JSON (no other text):
 3. For calls/projects, use the dedicated search tools (not search_documents)
 4. Can call multiple tools in parallel if independent
 5. Cite your sources in the conclusion
+6. **NEVER use the full user message as a search query** - extract key terms only (e.g., "consortium eligibility" not "I want to know about consortium eligibility for my project")
+7. For general "how to start" questions, use BUILT-IN KNOWLEDGE directly - don't search
 
 ## Response Guidelines
 
@@ -520,13 +548,14 @@ What is your next step? Remember: Output ONLY JSON."""
         
         self.register_tool(Tool(
             name="get_call_details",
-            description="Get detailed information about a specific funding call",
+            description="Get detailed information about a specific funding call by its ID. Use this when the user provides a call ID (e.g., HORIZON-*, CREA-*, EIC-*). This tool fetches from the EU Portal API if not found locally.",
             category=ToolCategory.CALLS,
             parameters={
-                "call_id": "The call identifier (e.g., 'HORIZON-CL5-2025-D3-01')"
+                "call_id": "The call identifier (e.g., 'HORIZON-CL5-2025-D3-01', 'CREA-MEDIA-2026-FILMSALES')"
             },
             examples=[
-                "get_call_details(call_id='HORIZON-CL5-2025-D3-01')"
+                "get_call_details(call_id='HORIZON-CL5-2025-D3-01')",
+                "get_call_details(call_id='CREA-MEDIA-2026-FILMSALES')"
             ]
         ))
         
@@ -1714,10 +1743,12 @@ What is your next step? Remember: Output ONLY JSON."""
                 }
 
             # Fallback: Search for the call using keywords
+            # Include closed calls since user is looking for a specific call ID
             logger.info(f"🔎 Fallback: Searching for {call_id}...")
             results = call_service.search_calls(
                 query=call_id,
-                num_results=10
+                num_results=10,
+                include_closed=True  # Include closed calls when looking up specific call IDs
             )
 
             calls = results.get('calls', [])
@@ -1748,7 +1779,7 @@ What is your next step? Remember: Output ONLY JSON."""
                 if len(parts) >= 4:
                     base_call = '-'.join(parts[:4])  # e.g., HORIZON-CL5-2026-02
                     logger.info(f"🔎 Trying base call search: {base_call}")
-                    results = call_service.search_calls(query=base_call, num_results=15)
+                    results = call_service.search_calls(query=base_call, num_results=15, include_closed=True)
                     calls = results.get('calls', [])
                     for call in calls:
                         topic_code = call.get('topic_code', '') or ''
@@ -1767,7 +1798,33 @@ What is your next step? Remember: Output ONLY JSON."""
                                 "url": call.get('url') or call.get('portal_url'),
                             }
 
-            logger.warning(f"❌ No details found for {call_id}")
+            logger.warning(f"❌ No details found for {call_id} in local searches")
+
+            # Last resort: Try direct API fetch via enrichment service
+            logger.info(f"🌐 Trying direct EU Portal API fetch for {call_id}...")
+            try:
+                from ..call_enrichment_service import CallEnrichmentService
+                from app.core.config import settings
+                enrichment = CallEnrichmentService(settings.database_url)
+                api_result = enrichment.get_call_details(call_id, force_refresh=True)
+                if api_result and (api_result.get('topic_code') or api_result.get('title')):
+                    logger.info(f"✅ Found {call_id} via direct API fetch!")
+                    return {
+                        "call_id": api_result.get('topic_code') or call_id,
+                        "title": api_result.get('title'),
+                        "description": api_result.get('scope') or api_result.get('description', ''),
+                        "expected_outcome": api_result.get('expected_outcome', ''),
+                        "deadline": str(api_result.get('deadline')) if api_result.get('deadline') else None,
+                        "type": api_result.get('action_type'),
+                        "cluster": api_result.get('cluster'),
+                        "budget": api_result.get('budget') or api_result.get('budget_total'),
+                        "status": api_result.get('status'),
+                        "url": api_result.get('portal_url') or f"https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/{call_id}",
+                    }
+                else:
+                    logger.info(f"⚠️ Direct API fetch returned no valid data for {call_id}")
+            except Exception as api_err:
+                logger.warning(f"Direct API fetch failed: {api_err}")
 
             # Try to find similar calls to suggest
             similar_calls = []
@@ -1776,7 +1833,7 @@ What is your next step? Remember: Output ONLY JSON."""
                 # Search for calls in the same cluster/year
                 if len(parts) >= 3:
                     search_term = '-'.join(parts[:3])  # e.g., HORIZON-CL5-2026
-                    results = call_service.search_calls(query=search_term, num_results=5)
+                    results = call_service.search_calls(query=search_term, num_results=5, include_closed=True)
                     for call in results.get('calls', [])[:5]:
                         topic_code = call.get('topic_code', '')
                         title = call.get('title', '')
