@@ -1,9 +1,12 @@
+import logging
 from typing import List, Dict, Any, Optional, AsyncGenerator
 import google.generativeai as genai
 import json
 import re
 import os
 
+
+logger = logging.getLogger(__name__)
 try:
     import openai
     OPENAI_AVAILABLE = True
@@ -109,7 +112,7 @@ class GroundedResponseGenerator:
                     if "429" in str(e) and attempt < max_retries - 1:
                         import time
                         wait_time = (2 ** attempt) + 0.1  # Exponential backoff
-                        print(f"Response generation rate limit, retrying in {wait_time:.2f}s (attempt {attempt + 1}/{max_retries})")
+                        logger.info(f"Response generation rate limit, retrying in {wait_time:.2f}s (attempt {attempt + 1}/{max_retries})")
                         time.sleep(wait_time)
                         continue
                     else:
@@ -121,7 +124,7 @@ class GroundedResponseGenerator:
             return parsed_response
             
         except Exception as e:
-            print(f"Generation error: {e}")
+            logger.info(f"Generation error: {e}")
             return {
                 'answer': "I encountered an error generating the response.",
                 'citations': [],
@@ -198,7 +201,7 @@ class GroundedResponseGenerator:
                     if "429" in str(e) and attempt < max_retries - 1:
                         import time
                         wait_time = (2 ** attempt) + 0.1
-                        print(f"Streaming response rate limit, retrying in {wait_time:.2f}s (attempt {attempt + 1}/{max_retries})")
+                        logger.info(f"Streaming response rate limit, retrying in {wait_time:.2f}s (attempt {attempt + 1}/{max_retries})")
                         time.sleep(wait_time)
                         continue
                     else:

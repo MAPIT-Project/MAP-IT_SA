@@ -432,16 +432,16 @@ class ImprovedCallSearchService:
 # Test function
 def test_improved_search():
     """Test the improved search functionality."""
-    print("🧪 Testing Improved Call Search Service")
-    print("=" * 60)
+    logger.info("🧪 Testing Improved Call Search Service")
+    logger.info("=" * 60)
     
     service = ImprovedCallSearchService()
     
     # Test the problematic query
     test_query = "please search calls about clean energy"
     
-    print(f"\n🔍 Testing: '{test_query}'")
-    print("-" * 40)
+    logger.info(f"\n🔍 Testing: '{test_query}'")
+    logger.info("-" * 40)
     
     start_time = time.time()
     result = service.search_calls_simple(
@@ -452,19 +452,19 @@ def test_improved_search():
     elapsed = time.time() - start_time
     
     if result['status'] == 'success':
-        print(f"✅ Found {len(result['results'])} results in {elapsed:.2f}s")
-        print(f"📊 Search method: {result['search_metadata']['search_method']}")
+        logger.info(f"✅ Found {len(result['results'])} results in {elapsed:.2f}s")
+        logger.info(f"📊 Search method: {result['search_metadata']['search_method']}")
         
         # Show results
         for i, res in enumerate(result['results'][:3], 1):
-            print(f"\n{i}. {res.title}")
-            print(f"   Status: {res.status}")
-            print(f"   Deadline: {res.deadline}")
-            print(f"   Score: {res.score:.3f}")
+            logger.info(f"\n{i}. {res.title}")
+            logger.info(f"   Status: {res.status}")
+            logger.info(f"   Deadline: {res.deadline}")
+            logger.info(f"   Score: {res.score:.3f}")
     else:
-        print(f"❌ Search failed: {result.get('search_metadata', {}).get('error', 'Unknown error')}")
+        logger.error(f"❌ Search failed: {result.get('search_metadata', {}).get('error', 'Unknown error')}")
     
-    print("\n🎉 Improved search testing completed!")
+    logger.info("\n🎉 Improved search testing completed!")
 
 if __name__ == "__main__":
     test_improved_search()

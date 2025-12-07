@@ -2266,29 +2266,29 @@ Returns comprehensive analysis including:
         Print available tools in a readable format for manual inspection.
         """
         if not self.tools:
-            print("No tools registered.")
+            logger.info("No tools registered.")
             return
 
-        print(f"\n{'='*60}")
-        print("REGISTERED TOOLS")
-        print(f"{'='*60}")
+        logger.info(f"\n{'='*60}")
+        logger.info("REGISTERED TOOLS")
+        logger.info(f"{'='*60}")
 
         for i, tool in enumerate(self.tools.values(), 1):
-            print(f"\n{i}. Tool: {tool.name}")
-            print(f"   Description: {tool.description}")
-            print(f"   Cache TTL: {tool.cache_ttl} seconds")
-            print(f"   Parallel Safe: {tool.parallel_safe}")
+            logger.info(f"\n{i}. Tool: {tool.name}")
+            logger.info(f"   Description: {tool.description}")
+            logger.info(f"   Cache TTL: {tool.cache_ttl} seconds")
+            logger.info(f"   Parallel Safe: {tool.parallel_safe}")
 
-            print("   Parameters:")
+            logger.info("   Parameters:")
             for param_name, param_info in tool.parameters_schema.items():
                 required = param_info.get('required', False)
                 param_type = param_info.get('type', 'unknown')
                 default = param_info.get('default', 'N/A')
-                print(f"     - {param_name} ({param_type}) {'[required]' if required else '[optional]'} default: {default}")
+                logger.info(f"     - {param_name} ({param_type}) {'[required]' if required else '[optional]'} default: {default}")
 
-        print(f"\n{'='*60}")
-        print(f"Total tools: {len(self.tools)}")
-        print(f"{'='*60}\n")
+        logger.info(f"\n{'='*60}")
+        logger.info(f"Total tools: {len(self.tools)}")
+        logger.info(f"{'='*60}\n")
     
     def get_execution_stats(self, conversation_id: Optional[int] = None) -> Dict[str, Any]:
         """

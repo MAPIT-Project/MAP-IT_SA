@@ -1,3 +1,4 @@
+import logging
 import json
 import re
 from typing import List, Dict, Any, Optional, Tuple
@@ -8,6 +9,8 @@ from .short_term_memory import ConversationTurn
 from .long_term_memory import ConversationSummary, ConversationFact, EntityCard
 import os
 
+
+logger = logging.getLogger(__name__)
 try:
     import openai
     OPENAI_AVAILABLE = True
@@ -147,7 +150,7 @@ FORMAT YOUR RESPONSE AS JSON:
             )
             
         except Exception as e:
-            print(f"Error in summarize_turn: {e}")
+            logger.error(f"Error in summarize_turn: {e}")
             # Return a basic summary on error
             return ConversationSummary(
                 conversation_id=0,
@@ -240,7 +243,7 @@ FORMAT YOUR RESPONSE AS JSON:
             return facts
             
         except Exception as e:
-            print(f"Error in extract_facts: {e}")
+            logger.error(f"Error in extract_facts: {e}")
             return []
     
     def extract_entities(self,
@@ -328,7 +331,7 @@ FORMAT YOUR RESPONSE AS JSON:
             return entities
             
         except Exception as e:
-            print(f"Error in extract_entities: {e}")
+            logger.error(f"Error in extract_entities: {e}")
             return []
     
     def recompute_from_scratch(self,

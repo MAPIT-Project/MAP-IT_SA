@@ -14,6 +14,7 @@ Based on the ReAct (Reasoning + Acting) pattern.
 import logging
 import asyncio
 import json
+import os
 import re
 from datetime import datetime
 from typing import Dict, Any, List, Optional, Tuple, Callable, Awaitable, AsyncGenerator
@@ -21,6 +22,127 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# CONTEXT WINDOW MANAGEMENT
+# =============================================================================
+
+@dataclass
+class ContextLimits:
+    """Configuration for context window limits."""
+    # Maximum tokens for various components (approximate, using char/4 ratio)
+    max_context_chars: int = 100000  # ~25k tokens
+    max_tool_result_chars: int = 5000  # Per tool result
+    max_observation_chars: int = 1500  # Per reasoning step
+    max_document_chars: int = 600  # Per document in synthesis
+    max_documents_per_result: int = 10  # Max docs to include
+    max_calls_per_result: int = 15  # Max calls to include
+    max_projects_per_result: int = 10  # Max projects to include
+    reserved_for_response: int = 4000  # Reserve for output
+
+    @classmethod
+    def from_env(cls) -> 'ContextLimits':
+        """Load limits from environment variables with defaults."""
+        return cls(
+            max_context_chars=int(os.getenv('MAX_CONTEXT_CHARS', '100000')),
+            max_tool_result_chars=int(os.getenv('MAX_TOOL_RESULT_CHARS', '5000')),
+            max_observation_chars=int(os.getenv('MAX_OBSERVATION_CHARS', '1500')),
+            max_document_chars=int(os.getenv('MAX_DOCUMENT_CHARS', '600')),
+        )
+
+
+class ContextWindowManager:
+    """Manages context window for LLM prompts to prevent overflow."""
+
+    def __init__(self, limits: Optional[ContextLimits] = None):
+        self.limits = limits or ContextLimits.from_env()
+        self._current_size = 0
+
+    def reset(self):
+        """Reset the context size tracker."""
+        self._current_size = 0
+
+    def truncate_text(self, text: str, max_chars: int, suffix: str = "...") -> str:
+        """Truncate text to max_chars, adding suffix if truncated."""
+        if not text:
+            return ""
+        if len(text) <= max_chars:
+            return text
+        return text[:max_chars - len(suffix)] + suffix
+
+    def truncate_tool_result(self, result: Any) -> str:
+        """Truncate a tool result to fit within limits."""
+        if result is None:
+            return "No results"
+
+        result_str = str(result) if not isinstance(result, str) else result
+        return self.truncate_text(result_str, self.limits.max_tool_result_chars)
+
+    def truncate_observation(self, observation: str) -> str:
+        """Truncate an observation to fit within limits."""
+        return self.truncate_text(observation, self.limits.max_observation_chars)
+
+    def truncate_document(self, content: str) -> str:
+        """Truncate document content to fit within limits."""
+        return self.truncate_text(content, self.limits.max_document_chars)
+
+    def estimate_prompt_size(self, prompt: str) -> int:
+        """Estimate the token count of a prompt (chars / 4 approximation)."""
+        return len(prompt) // 4
+
+    def would_exceed_limit(self, additional_chars: int) -> bool:
+        """Check if adding more content would exceed the context limit."""
+        return (self._current_size + additional_chars) > self.limits.max_context_chars
+
+    def add_to_context(self, content: str) -> str:
+        """Add content to context, truncating if necessary."""
+        available = self.limits.max_context_chars - self._current_size - self.limits.reserved_for_response
+        if available <= 0:
+            logger.warning("Context window exhausted, dropping content")
+            return ""
+
+        if len(content) > available:
+            content = self.truncate_text(content, available)
+            logger.warning(f"Content truncated to fit context window ({available} chars)")
+
+        self._current_size += len(content)
+        return content
+
+    def format_results_for_context(
+        self,
+        results: Dict[str, Any],
+        priority_keys: Optional[List[str]] = None
+    ) -> str:
+        """Format tool results for inclusion in context, respecting limits."""
+        if not results:
+            return "No tool results yet"
+
+        # Prioritize certain result types
+        priority_keys = priority_keys or ['calls', 'projects', 'documents']
+
+        formatted_parts = []
+        remaining_budget = self.limits.max_context_chars - self._current_size - self.limits.reserved_for_response
+
+        for name, result in results.items():
+            if remaining_budget <= 0:
+                logger.warning("Skipping remaining results due to context limits")
+                break
+
+            result_str = self.truncate_tool_result(result)
+            part = f"\n**{name}**: {result_str}\n"
+
+            if len(part) > remaining_budget:
+                part = self.truncate_text(part, remaining_budget)
+
+            formatted_parts.append(part)
+            remaining_budget -= len(part)
+
+        return "".join(formatted_parts)
+
+
+# Global context manager instance
+_context_manager = ContextWindowManager()
 
 
 class ToolCategory(Enum):
@@ -1142,22 +1264,24 @@ What is your next step? Remember: Output ONLY JSON."""
                 logger.info("🚀 Using cached reasoning plan")
                 return cached_plan
 
-        # Format previous steps
+        # Reset context manager for this reasoning step
+        _context_manager.reset()
+
+        # Format previous steps with context-aware truncation
         steps_text = ""
         for step in previous_steps:
-            steps_text += f"\n**Step {step.step_number}**\n"
-            steps_text += f"Thought: {step.thought}\n"
-            steps_text += f"Action: {step.action}\n"
+            step_text = f"\n**Step {step.step_number}**\n"
+            step_text += f"Thought: {step.thought}\n"
+            step_text += f"Action: {step.action}\n"
             if step.tool_calls:
-                steps_text += f"Tools called: {[tc.tool_name for tc in step.tool_calls]}\n"
+                step_text += f"Tools called: {[tc.tool_name for tc in step.tool_calls]}\n"
             if step.observation:
-                steps_text += f"Observation: {step.observation[:1500]}...\n"  # Increased from 300
-        
-        # Format tool results - use larger limit to show more results
-        results_text = ""
-        for name, result in tool_results.items():
-            result_str = str(result)[:5000] if result else "No results"  # Increased from 3000
-            results_text += f"\n**{name}**: {result_str}\n"
+                truncated_obs = _context_manager.truncate_observation(step.observation)
+                step_text += f"Observation: {truncated_obs}\n"
+            steps_text += step_text
+
+        # Format tool results with context-aware truncation
+        results_text = _context_manager.format_results_for_context(tool_results)
         
         # Build prompt
         prompt = self.REASONING_PROMPT.format(
@@ -1169,34 +1293,101 @@ What is your next step? Remember: Output ONLY JSON."""
             tool_results=results_text or "No tool results yet"
         )
         
+        # LLM timeout in seconds (configurable via env, default 30s)
+        import os
+        llm_timeout = int(os.getenv('LLM_TIMEOUT_SECONDS', '30'))
+
         try:
             if self.llm:
-                response = await asyncio.to_thread(
-                    self.llm.generate_content,
-                    prompt
-                )
-                
+                # Wrap LLM call with timeout protection
+                try:
+                    response = await asyncio.wait_for(
+                        asyncio.to_thread(self.llm.generate_content, prompt),
+                        timeout=llm_timeout
+                    )
+                except asyncio.TimeoutError:
+                    logger.warning(f"⏰ LLM call timed out after {llm_timeout}s, using fallback")
+                    return self._fallback_reasoning(query, previous_steps, tool_results)
+
                 # Parse JSON from response
                 response_text = response.text
-                
-                # Extract JSON block
+
+                # Extract JSON block - try multiple patterns for robustness
+                json_str = None
+
+                # Pattern 1: Fenced JSON block
                 json_match = re.search(r'```json\s*(.*?)\s*```', response_text, re.DOTALL)
                 if json_match:
                     json_str = json_match.group(1)
-                else:
-                    # Try to find raw JSON
+
+                # Pattern 2: Any fenced code block (might not have 'json' marker)
+                if not json_str:
+                    json_match = re.search(r'```\s*(.*?)\s*```', response_text, re.DOTALL)
+                    if json_match:
+                        potential_json = json_match.group(1).strip()
+                        if potential_json.startswith('{'):
+                            json_str = potential_json
+
+                # Pattern 3: Raw JSON object
+                if not json_str:
                     json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-                    json_str = json_match.group(0) if json_match else response_text
-                
-                return json.loads(json_str)
+                    json_str = json_match.group(0) if json_match else None
+
+                if not json_str:
+                    logger.warning("Could not extract JSON from LLM response, using fallback")
+                    return self._fallback_reasoning(query, previous_steps, tool_results)
+
+                try:
+                    return json.loads(json_str)
+                except json.JSONDecodeError as je:
+                    # Try to fix common JSON issues
+                    fixed_json = self._fix_malformed_json(json_str)
+                    if fixed_json:
+                        return fixed_json
+                    logger.warning(f"JSON decode failed: {je}, using fallback")
+                    return self._fallback_reasoning(query, previous_steps, tool_results)
             else:
                 # Fallback reasoning
                 return self._fallback_reasoning(query, previous_steps, tool_results)
-                
+
         except Exception as e:
             logger.error(f"Reasoning step failed: {e}")
             return self._fallback_reasoning(query, previous_steps, tool_results)
-    
+
+    def _fix_malformed_json(self, json_str: str) -> Optional[Dict[str, Any]]:
+        """Attempt to fix common JSON formatting issues from LLM responses."""
+        if not json_str:
+            return None
+
+        try:
+            # Try as-is first
+            return json.loads(json_str)
+        except json.JSONDecodeError:
+            pass
+
+        fixed = json_str
+
+        # Remove trailing commas before } or ]
+        fixed = re.sub(r',\s*([}\]])', r'\1', fixed)
+
+        # Fix single quotes to double quotes (but not inside strings)
+        # This is a simplified fix - may not work for all cases
+        if "'" in fixed and '"' not in fixed:
+            fixed = fixed.replace("'", '"')
+
+        # Remove control characters
+        fixed = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', fixed)
+
+        # Try to extract just the JSON object if there's extra text
+        obj_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', fixed, re.DOTALL)
+        if obj_match:
+            fixed = obj_match.group(0)
+
+        try:
+            return json.loads(fixed)
+        except json.JSONDecodeError:
+            return None
+
     def _fallback_reasoning(
         self,
         query: str,

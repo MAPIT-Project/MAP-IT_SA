@@ -172,42 +172,81 @@ async def clear_conversation_context(conversation_id: int):
 async def health_check():
     """
     Health check for the V3 conversation system.
+
+    Returns component health status with proper error handling.
     """
+    import asyncio
+
+    components = {
+        'redis': False,
+        'database': False,
+        'gemini': False
+    }
+    errors = {}
+
+    # Test Redis connection
     try:
-        # Test Redis connection
-        redis_ok = conversation_manager.memory_service.redis_client.ping()
-
-        # Test database connection
-        db_ok = True
-        try:
-            conversation_manager.memory_service.ltm.get_summary(99999)
-            db_ok = True
-        except:
-            db_ok = False
-
-        # Test Gemini connection
-        gemini_ok = True
-        try:
-            test_response = conversation_manager.response_generator.model.generate_content("Test")
-            gemini_ok = bool(test_response.text)
-        except:
-            gemini_ok = False
-
-        return {
-            'status': 'healthy' if all([redis_ok, db_ok, gemini_ok]) else 'degraded',
-            'architecture': 'simplified_v3',
-            'components': {
-                'redis': redis_ok,
-                'database': db_ok,
-                'gemini': gemini_ok
-            },
-            'timestamp': datetime.now().isoformat()
-        }
-
+        if conversation_manager.memory_service.redis_client:
+            components['redis'] = conversation_manager.memory_service.redis_client.ping()
+        else:
+            errors['redis'] = 'Redis client not initialized'
     except Exception as e:
-        return {
-            'status': 'unhealthy',
-            'architecture': 'simplified_v3',
-            'error': str(e),
-            'timestamp': datetime.now().isoformat()
-        }
+        errors['redis'] = str(e)
+        logger.warning(f"Health check - Redis failed: {e}")
+
+    # Test database connection
+    try:
+        if conversation_manager.memory_service.ltm:
+            # Use a non-existent ID to avoid loading real data
+            conversation_manager.memory_service.ltm.get_summary(99999)
+            components['database'] = True
+        else:
+            errors['database'] = 'Database not initialized'
+    except Exception as e:
+        errors['database'] = str(e)
+        logger.warning(f"Health check - Database failed: {e}")
+
+    # Test Gemini connection with timeout
+    try:
+        if hasattr(conversation_manager, 'response_generator') and conversation_manager.response_generator.model:
+            # Use asyncio timeout for the LLM call
+            try:
+                test_response = await asyncio.wait_for(
+                    asyncio.to_thread(
+                        conversation_manager.response_generator.model.generate_content,
+                        "ping"
+                    ),
+                    timeout=5.0  # 5 second timeout for health check
+                )
+                components['gemini'] = bool(test_response.text)
+            except asyncio.TimeoutError:
+                errors['gemini'] = 'Timeout waiting for response'
+                logger.warning("Health check - Gemini timed out")
+        else:
+            errors['gemini'] = 'Gemini model not initialized'
+    except Exception as e:
+        errors['gemini'] = str(e)
+        logger.warning(f"Health check - Gemini failed: {e}")
+
+    # Determine overall status
+    all_ok = all(components.values())
+    any_ok = any(components.values())
+
+    if all_ok:
+        status = 'healthy'
+    elif any_ok:
+        status = 'degraded'
+    else:
+        status = 'unhealthy'
+
+    response = {
+        'status': status,
+        'architecture': 'simplified_v3',
+        'components': components,
+        'timestamp': datetime.now().isoformat()
+    }
+
+    if errors:
+        response['errors'] = errors
+
+    return response

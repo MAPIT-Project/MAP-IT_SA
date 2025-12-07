@@ -1,7 +1,10 @@
+
+logger = logging.getLogger(__name__)
 """
 Unified memory service that combines all memory components.
 """
 
+import logging
 import os
 import redis
 from typing import Optional, List
@@ -30,10 +33,10 @@ class MemoryService:
             )
             # Test connection
             self.redis_client.ping()
-            print("✅ Redis connected successfully")
+            logger.info("✅ Redis connected successfully")
         except Exception as e:
-            print(f"⚠️ Redis connection failed: {e}")
-            print("🔄 Creating fallback Redis client")
+            logger.error(f"⚠️ Redis connection failed: {e}")
+            logger.info("🔄 Creating fallback Redis client")
             # Create a mock Redis client that doesn't fail
             self.redis_client = self._create_fallback_redis()
         
@@ -141,7 +144,7 @@ class MemoryService:
                 self.ltm.store_facts(conversation_id, facts)
                 
         except Exception as e:
-            print(f"Error updating summary: {e}")
+            logger.error(f"Error updating summary: {e}")
     
     def _extract_and_store_entities(self,
                                    conversation_id: int,
@@ -152,7 +155,7 @@ class MemoryService:
             for entity in entities:
                 self.ltm.update_entity_card(conversation_id, entity)
         except Exception as e:
-            print(f"Error extracting entities: {e}")
+            logger.error(f"Error extracting entities: {e}")
     
     def clear_conversation_memory(self, conversation_id: int) -> bool:
         """Clear all memory for a conversation"""
@@ -177,7 +180,7 @@ class MemoryService:
                 'entities_count': len(entities)
             }
         except Exception as e:
-            print(f"Error getting memory stats: {e}")
+            logger.error(f"Error getting memory stats: {e}")
             return {
                 'short_term': {'turn_count': 0, 'max_capacity': 12, 'utilization': 0},
                 'summary': {'exists': False, 'token_count': 0, 'key_points_count': 0},

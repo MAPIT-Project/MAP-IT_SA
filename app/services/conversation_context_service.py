@@ -1,3 +1,4 @@
+import logging
 import json
 from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime, timedelta
@@ -7,6 +8,8 @@ import psycopg2
 from psycopg2.extras import DictCursor
 import os
 
+
+logger = logging.getLogger(__name__)
 @dataclass
 class ProjectReference:
     """Reference to a project discussed in conversation"""
@@ -394,9 +397,9 @@ class ConversationContextService:
                         framework_programme='N/A'
                     ))
             
-            print(f"🔍 Extracted {len(projects_extracted)} projects from response")
+            logger.info(f"🔍 Extracted {len(projects_extracted)} projects from response")
             for proj in projects_extracted:
-                print(f"   - {proj['position'] + 1}. {proj['acronym']}: {proj['title'][:50]}...")
+                logger.info(f"   - {proj['position'] + 1}. {proj['acronym']}: {proj['title'][:50]}...")
         
         # Update cache
         self.context_cache[conversation_id] = (context, datetime.now())

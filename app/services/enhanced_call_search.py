@@ -1191,8 +1191,8 @@ class EnhancedCallSearchService:
 if __name__ == "__main__":
     def test_enhanced_search():
         """Test the enhanced search functionality."""
-        print("🧪 Testing Enhanced Call Search Service")
-        print("=" * 60)
+        logger.info("🧪 Testing Enhanced Call Search Service")
+        logger.info("=" * 60)
         
         service = EnhancedCallSearchService()
         
@@ -1204,8 +1204,8 @@ if __name__ == "__main__":
         ]
         
         for query in test_queries:
-            print(f"\n🔍 Testing: '{query}'")
-            print("-" * 40)
+            logger.info(f"\n🔍 Testing: '{query}'")
+            logger.info("-" * 40)
             
             start_time = time.time()
             result = service.search_calls_enhanced(
@@ -1216,20 +1216,20 @@ if __name__ == "__main__":
             elapsed = time.time() - start_time
             
             if result['status'] == 'success':
-                print(f"✅ Found {len(result['results'])} results in {elapsed:.2f}s")
-                print(f"📊 Facet categories: {len(result['facets'])}")
-                print(f"🏷️ Semantic tags: {result['search_metadata']['semantic_tags_used']}")
+                logger.info(f"✅ Found {len(result['results'])} results in {elapsed:.2f}s")
+                logger.info(f"📊 Facet categories: {len(result['facets'])}")
+                logger.info(f"🏷️ Semantic tags: {result['search_metadata']['semantic_tags_used']}")
                 
                 # Show top result
                 if result['results']:
                     top_result = result['results'][0]
-                    print(f"🥇 Top result: {top_result.title}")
-                    print(f"   Status: {top_result.status}")
-                    print(f"   Score: {top_result.score:.3f}")
+                    logger.info(f"🥇 Top result: {top_result.title}")
+                    logger.info(f"   Status: {top_result.status}")
+                    logger.info(f"   Score: {top_result.score:.3f}")
             else:
-                print(f"❌ Search failed: {result.get('search_metadata', {}).get('error', 'Unknown error')}")
+                logger.error(f"❌ Search failed: {result.get('search_metadata', {}).get('error', 'Unknown error')}")
         
-        print("\n🎉 Enhanced search testing completed!")
+        logger.info("\n🎉 Enhanced search testing completed!")
 
     if __name__ == "__main__":
         test_enhanced_search()

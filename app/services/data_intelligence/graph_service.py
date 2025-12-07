@@ -1746,41 +1746,41 @@ if __name__ == "__main__":
     # Test the service
     service = GraphSearchService()
     
-    print("\n" + "=" * 60)
-    print("GRAPH SEARCH SERVICE TEST")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("GRAPH SEARCH SERVICE TEST")
+    logger.info("=" * 60)
     
     # Test cluster overview
-    print("\n🎯 Cluster Overview:")
+    logger.info("\n🎯 Cluster Overview:")
     for cluster in service.get_cluster_overview():
-        print(f"   {cluster['code']}: {cluster['project_count']} projects, €{cluster['total_funding']:,.0f}")
+        logger.info(f"   {cluster['code']}: {cluster['project_count']} projects, €{cluster['total_funding']:,.0f}")
     
     # Test eligibility check
-    print("\n🌍 Eligibility Check (Germany):")
+    logger.info("\n🌍 Eligibility Check (Germany):")
     result = service.check_country_eligibility("DE")
-    print(f"   Status: {result['eligibility_status']}")
-    print(f"   Projects: {result['participation_history'].get('project_count', 0)}")
+    logger.info(f"   Status: {result['eligibility_status']}")
+    logger.info(f"   Projects: {result['participation_history'].get('project_count', 0)}")
     
-    print("\n🌍 Eligibility Check (Switzerland):")
+    logger.info("\n🌍 Eligibility Check (Switzerland):")
     result = service.check_country_eligibility("CH")
-    print(f"   Status: {result['eligibility_status']}")
-    print(f"   Notes: {result['notes']}")
+    logger.info(f"   Status: {result['eligibility_status']}")
+    logger.info(f"   Notes: {result['notes']}")
     
     # Test budget statistics
-    print("\n💰 Budget Statistics by Cluster:")
+    logger.info("\n💰 Budget Statistics by Cluster:")
     for stat in service.get_budget_statistics():
-        print(f"   {stat['cluster_code']}: avg €{stat['avg_budget']:,.0f}, max €{stat['max_budget']:,.0f}")
+        logger.info(f"   {stat['cluster_code']}: avg €{stat['avg_budget']:,.0f}, max €{stat['max_budget']:,.0f}")
     
     # Test consortium patterns
-    print("\n👥 Consortium Patterns:")
+    logger.info("\n👥 Consortium Patterns:")
     for pattern in service.get_consortium_patterns():
-        print(f"   {pattern['cluster_code']}: {pattern['avg_partners']:.1f} partners, {pattern['avg_countries']:.1f} countries")
+        logger.info(f"   {pattern['cluster_code']}: {pattern['avg_partners']:.1f} partners, {pattern['avg_countries']:.1f} countries")
     
     # Test topic search
-    print("\n🔍 Topic Search (DATA):")
+    logger.info("\n🔍 Topic Search (DATA):")
     topics = service.search_topics("DATA", limit=5)
     for t in topics:
-        print(f"   {t['code']}: {t['projectCount']} projects")
+        logger.info(f"   {t['code']}: {t['projectCount']} projects")
     
-    print("\n✅ Graph Search Service test complete!")
+    logger.info("\n✅ Graph Search Service test complete!")
 

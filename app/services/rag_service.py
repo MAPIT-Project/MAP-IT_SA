@@ -1,4 +1,5 @@
 import os
+import logging
 import requests
 import re
 import json
@@ -7,6 +8,8 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional, Tuple
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 try:
     import openai
     OPENAI_AVAILABLE = True
@@ -78,13 +81,13 @@ class CordisRAG:
                     min_connections, max_connections,  # Support more concurrent connections
                     db_url
                 )
-                print("✅ Local database connection established")
+                logger.info("Local database connection established")
                 
                 # Initialize database optimization
                 self._initialize_database_optimization()
                 
             except Exception as e:
-                print(f"❌ Database connection failed: {e}")
+                logger.error(f"Database connection failed: {e}")
                 raise
         
         # Performance optimizations
@@ -104,7 +107,7 @@ class CordisRAG:
         
         # Call-specific functionality is now integrated into EnhancedRAGService
         self.call_specific_rag = None
-        print("ℹ️ Call-specific functionality integrated into EnhancedRAGService")
+        logger.info("ℹ️ Call-specific functionality integrated into EnhancedRAGService")
         
         if self.ai_provider == "openai":
             if not OPENAI_AVAILABLE:
@@ -129,13 +132,13 @@ class CordisRAG:
         Search for Horizon Europe calls and topics, using appropriate data sources.
         Enhanced to use call-specific RAG for detailed call/topic queries.
         """
-        print(f"📞 V9: Searching for calls/topics related to: '{question}'")
+        logger.info(f"📞 V9: Searching for calls/topics related to: '{question}'")
         
         # Check cache first
         cache_key = f"calls_{hashlib.md5(f'{question}_{max_results}'.encode()).hexdigest()}"
         cached_result = self._get_from_cache(self._call_cache, cache_key)
         if cached_result is not None:
-            print(f"Using cached call search results")
+            logger.info(f"Using cached call search results")
             return cached_result
 
         try:
@@ -146,7 +149,7 @@ class CordisRAG:
                 # Only use call-specific RAG for very specific call/topic queries.
                 # For GENERAL or broad call queries we prefer the EU Funding & Tenders Portal API.
                 if intent_type in ["SPECIFIC_CALL", "SPECIFIC_TOPIC", "CLUSTER_SPECIFIC"]:
-                    print(f"🎯 Using call-specific RAG for {intent_type}: {call_identifier}")
+                    logger.info(f"🎯 Using call-specific RAG for {intent_type}: {call_identifier}")
                     
                     # Handle with call-specific RAG (enhanced search will be used automatically)
                     result = self.call_specific_rag.handle_call_specific_query(
@@ -169,13 +172,13 @@ class CordisRAG:
                         }
                     else:
                         # If call-specific RAG failed to find call docs, log and fall through to API search
-                        print("🔄 Call-specific RAG did not return results; falling back to EU Portal API")
+                        logger.info("🔄 Call-specific RAG did not return results; falling back to EU Portal API")
                 else:
                     # For GENERAL_CALL or other non-specific intents, prefer the EU Portal API
-                    print(f"🔁 Call-specific RAG skipped for intent: {intent_type}; using EU Portal API")
+                    logger.info(f"🔁 Call-specific RAG skipped for intent: {intent_type}; using EU Portal API")
 
             # Fall back to CORDIS API for general call searches
-            print("📞 Falling back to CORDIS API for general call search")
+            logger.info("📞 Falling back to CORDIS API for general call search")
             
             # Phase 1: Extract keywords from the question using existing logic with fallback
             try:
@@ -183,23 +186,23 @@ class CordisRAG:
                 queries, end_flag, _, _, problem_text, _ = self._extract_queries(role, quest)
 
                 if end_flag:
-                    print(f"⚠️ LLM query extraction had issues: {problem_text}")
-                    print("🔄 Using fallback query extraction...")
+                    logger.warning(f"⚠️ LLM query extraction had issues: {problem_text}")
+                    logger.info("🔄 Using fallback query extraction...")
                     queries = self._extract_queries_fallback(question)
                 
                 if not queries:
-                    print("⚠️ LLM returned no queries, using fallback...")
+                    logger.warning("⚠️ LLM returned no queries, using fallback...")
                     queries = self._extract_queries_fallback(question)
                     
             except Exception as llm_error:
-                print(f"⚠️ LLM query extraction failed: {llm_error}")
-                print("🔄 Using fallback query extraction...")
+                logger.error(f"⚠️ LLM query extraction failed: {llm_error}")
+                logger.info("🔄 Using fallback query extraction...")
                 queries = self._extract_queries_fallback(question)
 
             if not queries:
                 queries = [question.strip()]  # Final fallback to using the whole question
 
-            print(f"🔍 Extracted queries for call search: {queries}")
+            logger.info(f"🔍 Extracted queries for call search: {queries}")
 
             # Search for calls using CORDIS API - pass original question for better demo fallback
             calls_found = self._search_cordis_calls_api(queries, max_results, original_question=question)
@@ -230,7 +233,7 @@ class CordisRAG:
             return result
 
         except Exception as e:
-            print(f"❌ Error searching for calls: {e}")
+            logger.error(f"❌ Error searching for calls: {e}")
             return {
                 'answer': f"I encountered an error while searching for open calls: {str(e)}. Please try rephrasing your question or try again later.",
                 'call_count': 0,
@@ -276,7 +279,7 @@ class CordisRAG:
         # Remove duplicates and limit to top 5
         unique_terms = list(dict.fromkeys(found_terms))[:5]
         
-        print(f"🔄 Fallback extraction found terms: {unique_terms}")
+        logger.info(f"🔄 Fallback extraction found terms: {unique_terms}")
         return unique_terms
 
     def _search_cordis_calls_api(self, queries: List[str], max_results: int, original_question: str = "") -> List[Dict[str, Any]]:
@@ -296,7 +299,7 @@ class CordisRAG:
             # CRITICAL FIX: Filter out project-specific date filters that don't work for calls
             # Projects have startDate/endDate, but calls have deadline dates with different API structure
             if any(filter_type in query_stripped.lower() for filter_type in ['startdate>', 'enddate>', 'totalcost']):
-                print(f"🚫 Skipping project-specific filter for call search: {query_stripped}")
+                logger.warning(f"🚫 Skipping project-specific filter for call search: {query_stripped}")
                 continue
                 
             # Handle OR conditions in queries
@@ -308,7 +311,7 @@ class CordisRAG:
         
         # If no valid search terms remain after filtering, extract from original question
         if not search_terms:
-            print(f"🔄 No valid search terms after filtering, extracting from original question: {original_question}")
+            logger.info(f"🔄 No valid search terms after filtering, extracting from original question: {original_question}")
             # Extract key terms from the original question
             question_words = original_question.lower().replace("what are some open calls for", "").replace("?", "").strip()
             if question_words:
@@ -319,11 +322,11 @@ class CordisRAG:
         # Combine search terms into a single search string
         search_text = " ".join(search_terms[:5]) if search_terms else "Horizon Europe"
         
-        print(f"🔍 Searching EU Portal for: '{search_text}'")
+        logger.info(f"🔍 Searching EU Portal for: '{search_text}'")
         
         # Log the verification URL for manual checking
         verification_url = f"https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search;freeTextSearchKeyword={search_text.replace(' ', '%20')};sortQuery=sortStatus;orderBy=asc"
-        print(f"🔗 Manual verification URL: {verification_url}")
+        logger.info(f"🔗 Manual verification URL: {verification_url}")
         
         try:
             start_time = time.time()
@@ -333,11 +336,11 @@ class CordisRAG:
             
             # If advanced query fails or returns no results, fallback to basic search
             if not calls_found:
-                print("⚠️ Advanced query returned no results, trying basic search...")
+                logger.warning("⚠️ Advanced query returned no results, trying basic search...")
                 calls_found = self._search_with_basic_params(api_url, search_text, max_results)
             
             elapsed = time.time() - start_time
-            print(f"📞 EU Portal API completed in {elapsed:.2f}s, found {len(calls_found)} relevant calls")
+            logger.info(f"📞 EU Portal API completed in {elapsed:.2f}s, found {len(calls_found)} relevant calls")
             
             # Save API response to JSON file for debugging
             self._save_debug_response(calls_found, search_text)
@@ -345,8 +348,8 @@ class CordisRAG:
             return calls_found
             
         except Exception as e:
-            print(f"⚠️ EU Funding & Tenders Portal API error: {e}")
-            print("❌ No demonstration data fallback - returning empty results")
+            logger.warning(f"⚠️ EU Funding & Tenders Portal API error: {e}")
+            logger.error("❌ No demonstration data fallback - returning empty results")
             return []
 
     def _search_with_advanced_json_query(self, api_url: str, search_text: str, max_results: int) -> List[Dict[str, Any]]:
@@ -440,11 +443,11 @@ class CordisRAG:
             "deadlineModel", "frameworkProgramme", "typesOfAction"
         ]
         
-        print("🔥 Using EXACT working EU portal query structure...")
-        print(f"📡 Advanced API Request Details:")
-        print(f"   URL: {api_url}")
-        print(f"   Params: {params}")
-        print(f"   Query (truncated): bool.must[0].bool.must = types[1,2,8], status[31094502], period[2021-2027]")
+        logger.info("🔥 Using EXACT working EU portal query structure...")
+        logger.info(f"📡 Advanced API Request Details:")
+        logger.info(f"   URL: {api_url}")
+        logger.info(f"   Params: {params}")
+        logger.info(f"   Query (truncated): bool.must[0].bool.must = types[1,2,8], status[31094502], period[2021-2027]")
         
         try:
             import httpx
@@ -461,10 +464,10 @@ class CordisRAG:
             )
             response.raise_for_status()
             data = response.json()
-            print(f"🎯 Fixed query returned {data.get('totalResults', 0)} total results")
+            logger.info(f"🎯 Fixed query returned {data.get('totalResults', 0)} total results")
             return self._process_api_results(data, max_results, "advanced_fixed")
         except Exception as e:
-            print(f"⚠️ Fixed advanced query failed: {e}")
+            logger.error(f"⚠️ Fixed advanced query failed: {e}")
             return []
 
     def _search_with_basic_params(self, api_url: str, search_text: str, max_results: int) -> List[Dict[str, Any]]:
@@ -480,10 +483,10 @@ class CordisRAG:
             "language": "en",
         }
         
-        print("🔧 Using basic parameter search as fallback...")
-        print(f"📡 Fallback API Request Details:")
-        print(f"   URL: {api_url}")
-        print(f"   Data: {search_params}")
+        logger.info("🔧 Using basic parameter search as fallback...")
+        logger.info(f"📡 Fallback API Request Details:")
+        logger.info(f"   URL: {api_url}")
+        logger.info(f"   Data: {search_params}")
         
         try:
             import httpx
@@ -493,7 +496,7 @@ class CordisRAG:
             data = response.json()
             return self._process_api_results(data, max_results, "basic")
         except Exception as e:
-            print(f"⚠️ Basic search also failed: {e}")
+            logger.error(f"⚠️ Basic search also failed: {e}")
             return []
 
     def _process_api_results(self, data: Dict[str, Any], max_results: int, query_type: str) -> List[Dict[str, Any]]:
@@ -503,7 +506,7 @@ class CordisRAG:
         results = data.get("results", [])
         total_results = data.get("totalResults", 0)
         
-        print(f"📊 {query_type.title()} query returned {len(results)} results (total: {total_results})")
+        logger.info(f"📊 {query_type.title()} query returned {len(results)} results (total: {total_results})")
         
         calls_found = []
         seen_identifiers = set()
@@ -517,13 +520,13 @@ class CordisRAG:
         for result in results:
             call_data = self._extract_eu_portal_call_data(result)
             if not call_data:
-                print("⚠️ Skipping result - no call data extracted")
+                logger.warning("⚠️ Skipping result - no call data extracted")
                 continue
                 
             # Check for duplicates
             identifier = call_data.get('identifier', 'N/A')
             if identifier in seen_identifiers:
-                print(f"🔄 Skipping duplicate: {identifier}")
+                logger.warning(f"🔄 Skipping duplicate: {identifier}")
                 continue
             seen_identifiers.add(identifier)
             
@@ -576,23 +579,23 @@ class CordisRAG:
             # Categorize calls for smart selection
             if status_readable == 'Open':
                 open_calls.append(call_data)
-                print(f"✅ Found OPEN call: {call_data.get('title', 'Unknown')} (ID: {identifier})")
+                logger.info(f"✅ Found OPEN call: {call_data.get('title', 'Unknown')} (ID: {identifier})")
             elif status_readable == 'Forthcoming':
                 forthcoming_calls.append(call_data)
-                print(f"🔜 Found FORTHCOMING call: {call_data.get('title', 'Unknown')} (ID: {identifier})")
+                logger.info(f"🔜 Found FORTHCOMING call: {call_data.get('title', 'Unknown')} (ID: {identifier})")
             elif status_readable == 'Closed' and is_recent:
                 recent_closed_calls.append(call_data)
-                print(f"📋 Found RECENT call: {call_data.get('title', 'Unknown')} (ID: {identifier})")
+                logger.info(f"📋 Found RECENT call: {call_data.get('title', 'Unknown')} (ID: {identifier})")
             elif (status_readable == 'Unknown' or 'Unknown' in status_readable) and programme_period and '2021' in programme_period and '2027' in programme_period:
                 # Include calls with unknown status from current programme period - they might be valid
                 recent_closed_calls.append(call_data)
-                print(f"❓ Found UNKNOWN status call from current period: {call_data.get('title', 'Unknown')} (ID: {identifier})")
+                logger.info(f"❓ Found UNKNOWN status call from current period: {call_data.get('title', 'Unknown')} (ID: {identifier})")
         
         # Smart selection priority: Open > Forthcoming > Recent closed calls (but only if no current calls)
-        print(f"\n📈 Call categories found:")
-        print(f"   🟢 Open calls: {len(open_calls)}")
-        print(f"   🔵 Forthcoming calls: {len(forthcoming_calls)}")
-        print(f"   🟡 Recent relevant calls: {len(recent_closed_calls)}")
+        logger.info(f"\n📈 Call categories found:")
+        logger.info(f"   🟢 Open calls: {len(open_calls)}")
+        logger.info(f"   🔵 Forthcoming calls: {len(forthcoming_calls)}")
+        logger.info(f"   🟡 Recent relevant calls: {len(recent_closed_calls)}")
         
         # Select the best calls to return - PRIORITIZE TRULY CURRENT CALLS
         calls_found = []
@@ -607,7 +610,7 @@ class CordisRAG:
         # ONLY add closed calls if we have NO open/forthcoming calls at all
         # This prevents showing old 2022 calls when users want current opportunities
         if len(calls_found) == 0:
-            print("⚠️ No open or forthcoming calls found - considering recent closed calls as examples")
+            logger.warning("⚠️ No open or forthcoming calls found - considering recent closed calls as examples")
             
             # Be more selective about which closed calls to show
             filtered_recent_calls = []
@@ -629,23 +632,23 @@ class CordisRAG:
             
             # If we still have no results, the truth is there are no current calls
             if not filtered_recent_calls:
-                print("💡 No current calls found - will inform user about the reality of EU funding timing")
+                logger.info("💡 No current calls found - will inform user about the reality of EU funding timing")
             else:
                 calls_found.extend(filtered_recent_calls[:max_results])
         else:
-            print(f"🎉 Found {len(calls_found)} current/forthcoming calls - no need to show closed calls")
+            logger.info(f"🎉 Found {len(calls_found)} current/forthcoming calls - no need to show closed calls")
         
         # Limit to requested number
         calls_found = calls_found[:max_results]
         
         if not calls_found:
-            print("⚠️ No current open calls found after strict filtering.")
-            print("💡 This could mean:")
-            print("   • No active calls in this specific area right now")
-            print("   • All matching calls have recently closed")
-            print("   • New calls may be published soon - check the EU portal directly")
+            logger.warning("⚠️ No current open calls found after strict filtering.")
+            logger.info("💡 This could mean:")
+            logger.info("   • No active calls in this specific area right now")
+            logger.info("   • All matching calls have recently closed")
+            logger.info("   • New calls may be published soon - check the EU portal directly")
         else:
-            print(f"🎯 Returning {len(calls_found)} current/relevant calls")
+            logger.info(f"🎯 Returning {len(calls_found)} current/relevant calls")
         
         return calls_found
 
@@ -697,12 +700,12 @@ class CordisRAG:
             # Set file permissions
             os.chmod(filename, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
             
-            print(f"💾 Debug data saved to: {filename}")
-            print(f"📂 You can inspect the raw API response in this file")
+            logger.info(f"💾 Debug data saved to: {filename}")
+            logger.info(f"📂 You can inspect the raw API response in this file")
         except Exception as save_error:
             # Just print the error but don't fail - debug saving is not critical
-            print(f"⚠️ Could not save debug data: {save_error}")
-            print(f"   Try running: sudo chown -R $USER:$USER debug/ && chmod -R 755 debug/")
+            logger.warning(f"⚠️ Could not save debug data: {save_error}")
+            logger.info(f"   Try running: sudo chown -R $USER:$USER debug/ && chmod -R 755 debug/")
     
     def _get_demonstration_calls(self, search_text: str, max_results: int) -> List[Dict[str, Any]]:
         """
@@ -711,7 +714,7 @@ class CordisRAG:
         
         ⚠️ NO FAKE DATA POLICY: This system only provides real funding opportunities from official sources.
         """
-        print("❌ _get_demonstration_calls called but DISABLED - no fake data will be provided")
+        logger.error("❌ _get_demonstration_calls called but DISABLED - no fake data will be provided")
         return []  # Always return empty list - no fake data ever
 
     def _extract_eu_portal_call_data(self, result: Dict[str, Any]) -> Dict[str, Any]:
@@ -1107,18 +1110,18 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
         """
         total_start_time = time.time()
         
-        print(f"🎯 SIMPLIFIED ROUTING: Processing question: '{question}'")
+        logger.info(f"🎯 SIMPLIFIED ROUTING: Processing question: '{question}'")
         
         try:
             # Simple intent determination
             from app.services.intent_service import IntentService
             user_intent, confidence = IntentService.determine_intent(question)
             
-            print(f"🎯 Intent: {user_intent} (confidence: {confidence:.2f})")
+            logger.info(f"🎯 Intent: {user_intent} (confidence: {confidence:.2f})")
             
             # Route to ONLY the 3 allowed functions
             if user_intent == "FAQ":
-                print(f"📚 Routing FAQ to Enhanced RAG")
+                logger.info(f"📚 Routing FAQ to Enhanced RAG")
                 try:
                     from .enhanced_rag_service import HorizonEuropeRAG
                     enhanced_rag = HorizonEuropeRAG()
@@ -1142,7 +1145,7 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
                     }
                     
                 except Exception as e:
-                    print(f"❌ Enhanced RAG failed: {e}")
+                    logger.error(f"❌ Enhanced RAG failed: {e}")
                     return {
                         'answer': 'I apologize, but I encountered an error accessing the documentation to answer your question. Please try rephrasing your question.',
                         'routing_decision': 'FAQ',
@@ -1153,7 +1156,7 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
                     }
             
             elif user_intent == "SEARCH_CALLS":
-                print(f"📞 Routing to Enhanced Call Search")
+                logger.info(f"📞 Routing to Enhanced Call Search")
                 try:
                     from .enhanced_rag_service import HorizonEuropeRAG
                     enhanced_rag = HorizonEuropeRAG(existing_cordis_rag=self)
@@ -1173,7 +1176,7 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
                     }
                     
                 except Exception as e:
-                    print(f"❌ Enhanced call search failed, falling back: {e}")
+                    logger.error(f"❌ Enhanced call search failed, falling back: {e}")
                     # Fallback to original call search
                     call_result = self.search_for_calls(question, max_results=max_cordis_results)
                     
@@ -1192,20 +1195,20 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
                     }
             
             elif user_intent == "SEARCH_PROJECTS":
-                print(f"🔬 Routing to Project Search")
-                print(f"🔬 DEBUG: Question: '{question}'")
-                print(f"🔬 DEBUG: Intent confidence: {confidence}")
+                logger.debug(f"🔬 Routing to Project Search")
+                logger.debug(f"🔬 DEBUG: Question: '{question}'")
+                logger.debug(f"🔬 DEBUG: Intent confidence: {confidence}")
 
                 # Extract queries
                 role, quest = self._get_phase1_prompt(question)
-                print(f"🔬 DEBUG: About to extract queries from question: '{question}'")
+                logger.debug(f"🔬 DEBUG: About to extract queries from question: '{question}'")
                 queries, end_flag, new_query_keys, rerank_criteria, problem_text, next_pass = self._extract_queries(role, quest)
-                print(f"🔬 DEBUG: Extracted queries: {queries}")
-                print(f"🔬 DEBUG: End flag: {end_flag}")
-                print(f"🔬 DEBUG: Problem text: {problem_text}")
+                logger.debug(f"🔬 DEBUG: Extracted queries: {queries}")
+                logger.debug(f"🔬 DEBUG: End flag: {end_flag}")
+                logger.debug(f"🔬 DEBUG: Problem text: {problem_text}")
 
                 if end_flag:
-                    print(f"🔬 DEBUG: Query extraction failed with problem: {problem_text}")
+                    logger.error(f"🔬 DEBUG: Query extraction failed with problem: {problem_text}")
                     return {
                         'answer': problem_text,
                         'routing_decision': 'SEARCH_PROJECTS',
@@ -1217,17 +1220,17 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
                 # Use HYBRID SEARCH: CORDIS API first, then database enrichment
                 try:
                     from app.services.hybrid_search_service import HybridSearchService
-                    print("🔄 Using Hybrid Search: CORDIS API → Database Enrichment")
-                    print(f"🔄 DEBUG: Queries being passed to hybrid search: {queries}")
-                    print(f"🔄 DEBUG: Max CORDIS results: {max_cordis_results}")
+                    logger.info("🔄 Using Hybrid Search: CORDIS API → Database Enrichment")
+                    logger.debug(f"🔄 DEBUG: Queries being passed to hybrid search: {queries}")
+                    logger.debug(f"🔄 DEBUG: Max CORDIS results: {max_cordis_results}")
 
                     hybrid_search = HybridSearchService()
                     project_data = hybrid_search.search_projects(queries, max_results=max_cordis_results)
 
-                    print(f"🔄 DEBUG: Hybrid search returned {len(project_data) if project_data else 0} projects")
+                    logger.debug(f"🔄 DEBUG: Hybrid search returned {len(project_data) if project_data else 0} projects")
                     if project_data:
                         for i, proj in enumerate(project_data[:3]):  # Log first 3 projects
-                            print(f"🔄 DEBUG: Project {i+1}: {proj.get('title', 'No title')[:100]}...")
+                            logger.debug(f"🔄 DEBUG: Project {i+1}: {proj.get('title', 'No title')[:100]}...")
 
                     # Determine data source based on enrichment
                     if project_data and any(p.get('enrichment_status') == 'complete' for p in project_data):
@@ -1240,7 +1243,7 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
                         project_data = self._adaptive_result_selection(project_data, question, max_projects_to_process)
                     
                 except ImportError as e:
-                    print(f"⚠️ Hybrid search not available: {e}, falling back to original method")
+                    logger.warning(f"⚠️ Hybrid search not available: {e}, falling back to original method")
                     # Fallback to original method
                     data_source = "Local Database" if self.use_local_db else "CORDIS API"
                     
@@ -1283,7 +1286,7 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
 
         except Exception as e:
             error_message = str(e)
-            print(f"❌ Simplified routing failed: {error_message}")
+            logger.error(f"❌ Simplified routing failed: {error_message}")
             
             return {
                 'answer': f"I apologize, but I encountered an error while processing your request: {error_message}",
@@ -1530,7 +1533,7 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
                     'frameworks': stats[3],
                     'funding_schemes': stats[4]
                 }
-                print(f"📊 Database contains {stats[0]} projects from {stats[1]} to {stats[2]}")
+                logger.info(f"📊 Database contains {stats[0]} projects from {stats[1]} to {stats[2]}")
             
             # Create text search indexes if they don't exist (for PostgreSQL)
             try:
@@ -1542,12 +1545,12 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
                     CREATE INDEX IF NOT EXISTS idx_organizations_text_search 
                     ON organizations USING gin(to_tsvector('english', name || ' ' || COALESCE(country, '')))
                 """)
-                print("✅ Full-text search indexes created/verified")
+                logger.info("✅ Full-text search indexes created/verified")
             except Exception as e:
-                print(f"⚠️ Could not create search indexes: {e}")
+                logger.warning(f"⚠️ Could not create search indexes: {e}")
             
         except Exception as e:
-            print(f"⚠️ Database optimization initialization failed: {e}")
+            logger.error(f"⚠️ Database optimization initialization failed: {e}")
         finally:
             if 'cursor' in locals():
                 cursor.close()
@@ -1644,10 +1647,10 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
                     
                     enhanced_query = f"{enhanced_query} {medical_exclusions}"
                     filtered_queries.append(enhanced_query)
-                    print(f"🚗🚨 Applied STRONG automotive filter: {enhanced_query}")
+                    logger.info(f"🚗🚨 Applied STRONG automotive filter: {enhanced_query}")
                 else:
                     # Skip mixed queries that contain both automotive and medical terms
-                    print(f"⚠️ Skipped mixed automotive/medical query: {query}")
+                    logger.warning(f"⚠️ Skipped mixed automotive/medical query: {query}")
                     continue
             else:
                 # Non-automotive queries pass through unchanged
@@ -1665,11 +1668,11 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
         # Check cache first
         cached_result = self._get_from_cache(self._db_cache, cache_key)
         if cached_result is not None:
-            print(f"Using cached database results for {len(queries)} queries")
+            logger.info(f"Using cached database results for {len(queries)} queries")
             return cached_result
         
         if not self.db_pool:
-            print("❌ Database pool not available")
+            logger.error("❌ Database pool not available")
             return []
         
         try:
@@ -1682,7 +1685,7 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
             # Apply disambiguation filters to avoid medical/automotive confusion
             filtered_queries = self._apply_disambiguation_filters(processed_queries)
             
-            print(f"🔍 Enhanced search for: {filtered_queries}")
+            logger.info(f"🔍 Enhanced search for: {filtered_queries}")
             
             # Separate text queries from date/budget queries
             text_queries = []
@@ -1699,10 +1702,10 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
                     try:
                         date_part = query.lower().split('startdate>')[1]
                         date_conditions.append(f"p.\"startDate\" >= '{date_part}'")
-                        print(f"📅 Added date condition: startDate >= {date_part}")
+                        logger.info(f"📅 Added date condition: startDate >= {date_part}")
                         continue
                     except:
-                        print(f"⚠️ Could not parse date query: {query}")
+                        logger.warning(f"⚠️ Could not parse date query: {query}")
                         continue
                 elif 'enddate>' in query.lower():
                     try:
@@ -1730,11 +1733,11 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
             # Cache the result
             self._set_cache(self._db_cache, cache_key, projects)
             
-            print(f"Enhanced database search completed, found {len(projects)} projects")
+            logger.info(f"Enhanced database search completed, found {len(projects)} projects")
             return projects
             
         except Exception as e:
-            print(f"Database query error: {e}")
+            logger.info(f"Database query error: {e}")
             import traceback
             traceback.print_exc()
             return []
@@ -1821,7 +1824,7 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
         cursor.execute(sql_query, all_params)
         rows = cursor.fetchall()
         
-        print(f"📊 Enhanced search returned {len(rows)} rows in {time.time() - start_time:.2f}s")
+        logger.info(f"📊 Enhanced search returned {len(rows)} rows in {time.time() - start_time:.2f}s")
         
         # Convert to structured project data
         projects = []
@@ -1829,7 +1832,7 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
             project = self._format_db_project_data(dict(row))
             project['relevance_score'] = float(row.get('relevance_score', 0))
             projects.append(project)
-            print(f"  - {project['title'][:50]}... (relevance: {project['relevance_score']:.3f})")
+            logger.info(f"  - {project['title'][:50]}... (relevance: {project['relevance_score']:.3f})")
         
         return projects
 
@@ -1870,7 +1873,7 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
             # Combine include and exclude parts
             if exclude_terms:
                 full_query = f"{include_tsquery} & {' & '.join(exclude_terms)}"
-                print(f"🔍 Converted query with exclusions: '{query}' -> '{full_query}'")
+                logger.info(f"🔍 Converted query with exclusions: '{query}' -> '{full_query}'")
                 return full_query
             else:
                 return include_tsquery
@@ -2307,7 +2310,7 @@ Instructions:
                     content = response.text
                     return content if content is not None else "I apologize, but I received an empty response."
         except Exception as e:
-            print(f"LLM generation error: {e}")
+            logger.info(f"LLM generation error: {e}")
         
         return "I apologize, but I encountered an error generating the response. Please try again."
 
@@ -2340,7 +2343,7 @@ Instructions:
             # If the AI interpreted it as CAR T-cell therapy, fix it
             problematic_terms = ["car t-cell", "car-t", "chimeric antigen receptor", "immunotherapy", "t cell", "cancer"]
             if any(term in ans_lower for term in problematic_terms):
-                print("🔧 Detected CAR T-cell therapy misinterpretation for automotive query - fixing...")
+                logger.info("🔧 Detected CAR T-cell therapy misinterpretation for automotive query - fixing...")
                 # Replace with automotive terms
                 fixed_ans = re.sub(r'CAR T-cell.*?therapy', 'automotive vehicles', ans, flags=re.IGNORECASE)
                 fixed_ans = re.sub(r'chimeric antigen receptor', 'automotive vehicles', fixed_ans, flags=re.IGNORECASE)
@@ -2357,7 +2360,7 @@ Instructions:
         if ("wind energy" in original_lower or "wind power" in original_lower):
             # Ensure wind energy projects are properly targeted
             if "wind" not in ans_lower and "renewable" not in ans_lower:
-                print("🔧 Adding wind energy terms to improve search...")
+                logger.info("🔧 Adding wind energy terms to improve search...")
                 # Add wind energy terms to queries
                 ans = re.sub(r'(queries\s*=\s*\[)', r'\1"wind energy OR wind power OR offshore wind OR renewable energy", ', ans)
         
@@ -2404,21 +2407,21 @@ Instructions:
         original_ans = ans
         ans = self._disambiguate_query_response(ans, quest)
         if ans != original_ans:
-            print("🔧 Query disambiguation applied - interpretation corrected")
+            logger.info("🔧 Query disambiguation applied - interpretation corrected")
         
         # Additional ULTRA STRONG disambiguation at query level
         if "cars" in quest.lower() or "automotive" in quest.lower() or "vehicle" in quest.lower():
             # Force automotive interpretation if detected
             if ("car t-cell" in ans.lower() or "chimeric antigen receptor" in ans.lower() or 
                 "immunotherapy" in ans.lower() or "leukemia" in ans.lower() or "cancer" in ans.lower()):
-                print("🚨🚗 ULTRA STRONG disambiguation: Forcing automotive interpretation and blocking ALL medical content")
+                logger.info("🚨🚗 ULTRA STRONG disambiguation: Forcing automotive interpretation and blocking ALL medical content")
                 # Completely replace with automotive-specific queries that exclude all medical terms
                 ans = re.sub(r'queries\s*=\s*\[.*?\]', 
                            'queries = ["(automotive OR vehicles OR transportation OR mobility OR electric OR driving) AND NOT (immunotherapy OR cancer OR leukemia OR therapy OR medical OR clinical)", "startDate>2019-01-01"]', 
                            ans, flags=re.IGNORECASE)
             elif "cars" in ans.lower() and not ("automotive" in ans.lower() or "vehicle" in ans.lower()):
                 # If just using generic "cars", make it more automotive-specific
-                print("🚗 Making 'cars' query more automotive-specific")
+                logger.info("🚗 Making 'cars' query more automotive-specific")
                 ans = ans.replace('"cars"', '"automotive OR vehicles OR transportation OR mobility"')
                 ans = ans.replace("'cars'", "'automotive OR vehicles OR transportation OR mobility'")
                 ans = ans.replace("cars", "automotive OR vehicles OR transportation")
@@ -2446,9 +2449,9 @@ Instructions:
                     lst_quoted = re.sub(r'""', r'"', lst_quoted)
                     try:
                         queries = eval(lst_quoted)
-                        print(f"Fixed queries parsing: {lst} -> {lst_quoted}")
+                        logger.info(f"Fixed queries parsing: {lst} -> {lst_quoted}")
                     except (SyntaxError, ValueError, NameError) as e2:
-                        print(f"Error parsing queries: {lst} -> {lst_quoted}. Error: {e2}")
+                        logger.error(f"Error parsing queries: {lst} -> {lst_quoted}. Error: {e2}")
                         queries = []  # Fallback to empty list
             if "second_stage" in line:
                 if "True" in line:
@@ -2465,9 +2468,9 @@ Instructions:
                     lst_quoted = re.sub(r'""', r'"', lst_quoted)
                     try:
                         new_query_keys = eval(lst_quoted)
-                        print(f"Fixed required_information parsing: {lst} -> {lst_quoted}")
+                        logger.info(f"Fixed required_information parsing: {lst} -> {lst_quoted}")
                     except (SyntaxError, ValueError, NameError) as e2:
-                        print(f"Error parsing required_information: {lst} -> {lst_quoted}. Error: {e2}")
+                        logger.error(f"Error parsing required_information: {lst} -> {lst_quoted}. Error: {e2}")
                         new_query_keys = []  # Fallback to empty list
             if "ranking_criteria=" in line or "ranking_criteria =" in line:
                 lst = line[line.index("["):line.index("]")+1]
@@ -2481,7 +2484,7 @@ Instructions:
                 try:
                     rerank_criteria = eval(lst_quoted)
                 except (SyntaxError, ValueError) as e:
-                    print(f"Error parsing rerank_criteria: {lst} -> {lst_quoted}. Error: {e}")
+                    logger.error(f"Error parsing rerank_criteria: {lst} -> {lst_quoted}. Error: {e}")
                     rerank_criteria = []  # Fallback to empty list
         if end_flag:
             full = "\n".join(ans_lines)
@@ -2493,7 +2496,7 @@ Instructions:
                 problem_text = "Problematic question."
         # Return result directly (caching disabled for consistency testing)
         result = (queries, end_flag, new_query_keys, rerank_criteria, problem_text, next_pass)
-        print(f"🎯 Generated {len(queries)} queries: {queries}")
+        logger.info(f"🎯 Generated {len(queries)} queries: {queries}")
         
         return result
 
@@ -2504,7 +2507,7 @@ Instructions:
         # Check cache first
         cached_result = self._get_from_cache(self._api_cache, cache_key)
         if cached_result is not None:
-            print(f"Using cached CORDIS API results for {len(queries)} queries")
+            logger.info(f"Using cached CORDIS API results for {len(queries)} queries")
             return cached_result
         
         base_api_url = "https://cordis.europa.eu/api/search/results"
@@ -2559,10 +2562,10 @@ Instructions:
             
             # Cache the result
             self._set_cache(self._api_cache, cache_key, project_items)
-            print(f"CORDIS API call completed in {time.time() - start_time:.2f}s, found {len(project_items)} projects")
+            logger.info(f"CORDIS API call completed in {time.time() - start_time:.2f}s, found {len(project_items)} projects")
             
         except Exception as e:
-            print(f"CORDIS API error: {e}")
+            logger.info(f"CORDIS API error: {e}")
         return project_items
 
     def _extract_project_data(self, project_json: Dict[str, Any]) -> Dict[str, Any]:
@@ -2729,9 +2732,9 @@ Instructions:
             lst_quoted = re.sub(r'""', r'"', lst_quoted)
             try:
                 sorted_titles = eval(lst_quoted)
-                print(f"Fixed sorted_titles parsing: {list_str} -> {lst_quoted}")
+                logger.info(f"Fixed sorted_titles parsing: {list_str} -> {lst_quoted}")
             except (SyntaxError, ValueError, NameError) as e2:
-                print(f"Error parsing sorted_titles: {list_str} -> {lst_quoted}. Error: {e2}")
+                logger.error(f"Error parsing sorted_titles: {list_str} -> {lst_quoted}. Error: {e2}")
                 sorted_titles = []  # Fallback to empty list
         reranked_jsons = []
         for title in sorted_titles[:5]:
@@ -2863,7 +2866,7 @@ Instructions:
                 pipeline_logs['projects_retrieved'] = len(project_items)
                 pipeline_logs['projects_processed'] = len(project_data)
                 
-                print(f"📊 Phase 3 (Data extraction) completed in {phase_time:.2f}s")
+                logger.info(f"📊 Phase 3 (Data extraction) completed in {phase_time:.2f}s")
                 
                 # Phase 3.5: XML enrichment (only for API mode)
                 phase_start = time.time()
@@ -2881,7 +2884,7 @@ Instructions:
                     'error_message': None
                 }
                 pipeline_logs['phases'].append(phase_log)
-                print(f"🔗 Phase 3.5 (XML enrichment) completed in {phase_time:.2f}s")
+                logger.info(f"🔗 Phase 3.5 (XML enrichment) completed in {phase_time:.2f}s")
             
             # Phase 4: Enhanced reranking
             if rerank_criteria and len(project_data) > 1:
@@ -3033,7 +3036,7 @@ Instructions:
                         yield {'type': 'token', 'content': chunk.choices[0].delta.content}
                         # No artificial delay for OpenAI streaming - it's already throttled
             except Exception as e:
-                print(f"OpenAI streaming error: {e}")
+                logger.info(f"OpenAI streaming error: {e}")
                 # Fallback to non-streaming
                 answer = self._call_llm_for_generation(role, prompt)
                 # Stream by chunks instead of words for better performance
@@ -3065,7 +3068,7 @@ Instructions:
         This enables more intelligent, conversational responses.
         """
         
-        print(f"🧠 Context-First Processing: '{question}'")
+        logger.info(f"🧠 Context-First Processing: '{question}'")
         
         # Step 1: Analyze conversation context FIRST
         try:
@@ -3080,7 +3083,7 @@ Instructions:
             )
             
             if result['success']:
-                print(f"✅ Context-first approach: {result['approach']}")
+                logger.info(f"✅ Context-first approach: {result['approach']}")
                 
                 # Format response to match expected structure
                 response = {
@@ -3115,13 +3118,13 @@ Instructions:
                 
                 return response
             else:
-                print("⚠️ Context-first processing failed, falling back")
+                logger.error("⚠️ Context-first processing failed, falling back")
                 
         except Exception as e:
-            print(f"⚠️ Context-first RAG failed: {e}, falling back to regular processing")
+            logger.error(f"⚠️ Context-first RAG failed: {e}, falling back to regular processing")
         
         # Fallback to original method if context-first fails
-        print("🔄 Using fallback context-aware processing")
+        logger.info("🔄 Using fallback context-aware processing")
         
         # Resolve references in the question
         from app.services.conversation_context_service import ConversationContextService
@@ -3384,9 +3387,9 @@ Enhanced answer:
 if __name__ == "__main__":
     def test_local_database():
         """Test the local database functionality"""
-        print("="*60)
-        print("TESTING LOCAL DATABASE INTEGRATION")
-        print("="*60)
+        logger.info("="*60)
+        logger.info("TESTING LOCAL DATABASE INTEGRATION")
+        logger.info("="*60)
         
         try:
             # Test with local database
@@ -3399,8 +3402,8 @@ if __name__ == "__main__":
             ]
             
             for i, question in enumerate(test_questions, 1):
-                print(f"\n🧪 Test {i}: {question}")
-                print("-" * 50)
+                logger.info(f"\n🧪 Test {i}: {question}")
+                logger.info("-" * 50)
                 
                 start_time = time.time()
                 result = rag_local.get_ai_response(question, max_projects_to_process=3)
@@ -3410,30 +3413,30 @@ if __name__ == "__main__":
                 answer = result.get('answer', '') if isinstance(result, dict) else result
                 logs = result.get('logs', {}) if isinstance(result, dict) else {}
                 
-                print(f"✅ Test {i} completed in {elapsed:.2f}s")
-                print(f"Response length: {len(answer)} characters")
-                print(f"Contains CORDIS links: {'cordis.europa.eu' in answer}")
+                logger.info(f"✅ Test {i} completed in {elapsed:.2f}s")
+                logger.info(f"Response length: {len(answer)} characters")
+                logger.info(f"Contains CORDIS links: {'cordis.europa.eu' in answer}")
                 
                 # Log information
                 if logs:
-                    print(f"Model used: {logs.get('model_used', 'Unknown')}")
-                    print(f"Projects retrieved: {logs.get('projects_retrieved', 0)}")
-                    print(f"Projects processed: {logs.get('projects_processed', 0)}")
-                    print(f"Pipeline phases: {len(logs.get('phases', []))}")
+                    logger.info(f"Model used: {logs.get('model_used', 'Unknown')}")
+                    logger.info(f"Projects retrieved: {logs.get('projects_retrieved', 0)}")
+                    logger.info(f"Projects processed: {logs.get('projects_processed', 0)}")
+                    logger.info(f"Pipeline phases: {len(logs.get('phases', []))}")
                 
                 # Show a snippet of the response
-                print(f"Response preview: {answer[:200]}...")
+                logger.info(f"Response preview: {answer[:200]}...")
                 
             return True
             
         except Exception as e:
-            print(f"❌ Local database test failed: {e}")
+            logger.error(f"❌ Local database test failed: {e}")
             return False
     
     def compare_performance():
         """Compare performance between local database and API"""
-        print("="*60)
-        print("PERFORMANCE COMPARISON: LOCAL DB vs CORDIS API")
+        logger.info("="*60)
+        logger.info("PERFORMANCE COMPARISON: LOCAL DB vs CORDIS API")
         def get_ai_response_with_context(
             self,
             question: str,
@@ -3451,8 +3454,8 @@ if __name__ == "__main__":
             context_service = ConversationContextService(os.getenv("DATABASE_URL"))
             resolved_question = context_service.resolve_references(question, conversation_context)
             
-            print(f"🧠 Original question: {question}")
-            print(f"🎯 Resolved question: {resolved_question}")
+            logger.info(f"🧠 Original question: {question}")
+            logger.info(f"🎯 Resolved question: {resolved_question}")
             
             # Build context-aware prompt
             context_prompt = self._build_context_prompt(conversation_context)
@@ -3551,13 +3554,13 @@ if __name__ == "__main__":
             
             return enhanced
     
-        print("="*60)
+        logger.info("="*60)
         
         question = "machine learning projects in healthcare"
         
         try:
             # Test local database
-            print("\n🔍 Testing Local Database...")
+            logger.info("\n🔍 Testing Local Database...")
             rag_local = CordisRAG(use_local_db=True)
             start_time = time.time()
             result_local = rag_local.get_ai_response(question, max_projects_to_process=3)
@@ -3567,14 +3570,14 @@ if __name__ == "__main__":
             response_local = result_local.get('answer', '') if isinstance(result_local, dict) else result_local
             logs_local = result_local.get('logs', {}) if isinstance(result_local, dict) else {}
             
-            print(f"✅ Local DB completed in {local_time:.2f}s")
-            print(f"Local response length: {len(response_local)} characters")
+            logger.info(f"✅ Local DB completed in {local_time:.2f}s")
+            logger.info(f"Local response length: {len(response_local)} characters")
             if logs_local:
-                print(f"Projects retrieved: {logs_local.get('projects_retrieved', 0)}")
-                print(f"Pipeline phases: {len(logs_local.get('phases', []))}")
+                logger.info(f"Projects retrieved: {logs_local.get('projects_retrieved', 0)}")
+                logger.info(f"Pipeline phases: {len(logs_local.get('phases', []))}")
             
             # Test CORDIS API
-            print("\n🌐 Testing CORDIS API...")
+            logger.info("\n🌐 Testing CORDIS API...")
             rag_api = CordisRAG(use_local_db=False)
             start_time = time.time()
             result_api = rag_api.get_ai_response(question, max_projects_to_process=3, max_cordis_results=5)
@@ -3584,35 +3587,35 @@ if __name__ == "__main__":
             response_api = result_api.get('answer', '') if isinstance(result_api, dict) else result_api
             logs_api = result_api.get('logs', {}) if isinstance(result_api, dict) else {}
             
-            print(f"✅ CORDIS API completed in {api_time:.2f}s")
-            print(f"API response length: {len(response_api)} characters")
+            logger.info(f"✅ CORDIS API completed in {api_time:.2f}s")
+            logger.info(f"API response length: {len(response_api)} characters")
             if logs_api:
-                print(f"Projects retrieved: {logs_api.get('projects_retrieved', 0)}")
-                print(f"Pipeline phases: {len(logs_api.get('phases', []))}")
+                logger.info(f"Projects retrieved: {logs_api.get('projects_retrieved', 0)}")
+                logger.info(f"Pipeline phases: {len(logs_api.get('phases', []))}")
             
             # Performance comparison
             speedup = api_time / local_time if local_time > 0 else 0
-            print(f"\n📊 Performance Results:")
-            print(f"Local Database: {local_time:.2f}s")
-            print(f"CORDIS API: {api_time:.2f}s")
-            print(f"Speedup: {speedup:.1f}x faster with local database")
+            logger.info(f"\n📊 Performance Results:")
+            logger.info(f"Local Database: {local_time:.2f}s")
+            logger.info(f"CORDIS API: {api_time:.2f}s")
+            logger.info(f"Speedup: {speedup:.1f}x faster with local database")
             
             return True
             
         except Exception as e:
-            print(f"❌ Performance comparison failed: {e}")
+            logger.error(f"❌ Performance comparison failed: {e}")
             return False
     
     # Run tests
-    print("🚀 Starting V5 Local Database Tests...")
+    logger.info("🚀 Starting V5 Local Database Tests...")
     
     db_test_passed = test_local_database()
-    print("\n" + "="*60)
+    logger.info("\n" + "="*60)
     
     if db_test_passed:
         compare_performance()
-        print("\n🎉 ALL V5 TESTS PASSED! Local database integration working correctly.")
+        logger.info("\n🎉 ALL V5 TESTS PASSED! Local database integration working correctly.")
     else:
-        print("\n❌ Local database tests failed.")
+        logger.error("\n❌ Local database tests failed.")
     
-    print("="*60)
+    logger.info("="*60)

@@ -1,3 +1,5 @@
+
+logger = logging.getLogger(__name__)
 """
 Professional AI-Powered Context Understanding System
 
@@ -7,6 +9,7 @@ semantically and intelligently resolve any user query based on conversation hist
 NO PATTERN MATCHING - Pure AI intelligence.
 """
 
+import logging
 import os
 import json
 import re
@@ -32,20 +35,20 @@ class ProfessionalContextAI:
                 from google.genai import types
                 self.gemini_client = google_genai_sdk.Client(api_key=os.getenv("GEMINI_API_KEY"))
                 self.types = types
-                print("✅ Gemini AI client initialized")
+                logger.info("✅ Gemini AI client initialized")
             except Exception as e:
-                print(f"⚠️ Gemini client initialization failed: {e}")
+                logger.error(f"⚠️ Gemini client initialization failed: {e}")
                 self.gemini_client = None
         elif ai_provider == "openai":
             import openai
             self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-            print("✅ OpenAI client initialized")
+            logger.info("✅ OpenAI client initialized")
     
     def get_conversation_messages(self, conversation_id: int, limit: int = 20) -> List[Dict]:
         """Get conversation messages from database"""
         try:
             if not self.db_url:
-                print("⚠️ No database URL provided")
+                logger.warning("⚠️ No database URL provided")
                 return []
                 
             conn = psycopg2.connect(self.db_url)
@@ -71,11 +74,11 @@ class ProfessionalContextAI:
             cursor.close()
             conn.close()
             
-            print(f"✅ Retrieved {len(messages)} messages from database")
+            logger.info(f"✅ Retrieved {len(messages)} messages from database")
             return messages
             
         except Exception as e:
-            print(f"⚠️ Failed to get conversation messages: {e}")
+            logger.error(f"⚠️ Failed to get conversation messages: {e}")
             return []
     
     def analyze_and_respond(self, question: str, conversation_id: int) -> Dict[str, Any]:
@@ -84,7 +87,7 @@ class ProfessionalContextAI:
         This is the professional, AI-powered approach.
         """
         
-        print(f"🧠 Professional AI Context Analysis for: '{question}'")
+        logger.info(f"🧠 Professional AI Context Analysis for: '{question}'")
         
         # Get conversation history
         messages = self.get_conversation_messages(conversation_id, limit=20)
@@ -194,7 +197,7 @@ Analyze and respond:"""
             return self._parse_ai_response(ai_response_text, question)
             
         except Exception as e:
-            print(f"⚠️ AI analysis failed: {e}")
+            logger.error(f"⚠️ AI analysis failed: {e}")
             return self._fallback_response(question)
     
     def _parse_ai_response(self, ai_response: str, question: str) -> Dict[str, Any]:
@@ -245,7 +248,7 @@ Analyze and respond:"""
                 }
                 
         except Exception as e:
-            print(f"⚠️ Failed to parse AI response: {e}")
+            logger.error(f"⚠️ Failed to parse AI response: {e}")
             return self._fallback_response(question)
     
     def _fallback_response(self, question: str) -> Dict[str, Any]:
@@ -307,7 +310,7 @@ def get_professional_ai_response(question: str, conversation_id: int) -> Dict[st
     This is the entry point for the best possible system.
     """
     
-    print(f"🚀 Professional AI Context System: Processing '{question}'")
+    logger.info(f"🚀 Professional AI Context System: Processing '{question}'")
     
     # Initialize professional AI system
     ai_system = ProfessionalContextAI(ai_provider="gemini")
@@ -315,7 +318,7 @@ def get_professional_ai_response(question: str, conversation_id: int) -> Dict[st
     # Get AI-powered analysis and response
     result = ai_system.analyze_and_respond(question, conversation_id)
     
-    print(f"📊 AI Analysis Result: {result.get('approach', 'unknown')}")
-    print(f"✅ Success: {result.get('success', False)}")
+    logger.info(f"📊 AI Analysis Result: {result.get('approach', 'unknown')}")
+    logger.info(f"✅ Success: {result.get('success', False)}")
     
     return result

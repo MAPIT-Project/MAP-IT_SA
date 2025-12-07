@@ -9,7 +9,7 @@ Usage:
     
     service = DataIntelligenceService()
     result = await service.search("Can Switzerland participate in Cluster 4?")
-    print(result.answer_context)
+    logger.info(result.answer_context)
 """
 
 import logging
@@ -757,7 +757,7 @@ async def intelligent_search(query: str, context: str = "") -> IntelligentSearch
     
     Usage:
         result = await intelligent_search("Can Switzerland participate?")
-        print(result.answer_context)
+        logger.info(result.answer_context)
     """
     service = DataIntelligenceService()
     return await service.search(query, context)
@@ -767,19 +767,19 @@ if __name__ == "__main__":
     import asyncio
     
     async def test_service():
-        print("\n" + "=" * 60)
-        print("DATA INTELLIGENCE SERVICE TEST")
-        print("=" * 60)
+        logger.info("\n" + "=" * 60)
+        logger.info("DATA INTELLIGENCE SERVICE TEST")
+        logger.info("=" * 60)
         
         service = DataIntelligenceService()
         
         # Check status
         status = service.get_service_status()
-        print(f"\n📊 Service Status:")
-        print(f"   Graph: {'✓' if status['graph_available'] else '✗'}")
-        print(f"   Vector: {'✓' if status['vector_available'] else '✗'}")
-        print(f"   Planner: {'✓' if status['planner_available'] else '✗'}")
-        print(f"   Fully Operational: {'✓' if status['fully_operational'] else '✗'}")
+        logger.info(f"\n📊 Service Status:")
+        logger.info(f"   Graph: {'✓' if status['graph_available'] else '✗'}")
+        logger.info(f"   Vector: {'✓' if status['vector_available'] else '✗'}")
+        logger.info(f"   Planner: {'✓' if status['planner_available'] else '✗'}")
+        logger.info(f"   Fully Operational: {'✓' if status['fully_operational'] else '✗'}")
         
         # Test queries
         test_queries = [
@@ -789,33 +789,33 @@ if __name__ == "__main__":
         ]
         
         for query in test_queries:
-            print(f"\n{'='*60}")
-            print(f"📝 Query: {query}")
-            print("=" * 60)
+            logger.info(f"\n{'='*60}")
+            logger.info(f"📝 Query: {query}")
+            logger.info("=" * 60)
             
             result = await service.search(query)
             
-            print(f"   Intent: {result.intent_type} (confidence: {result.confidence:.2f})")
-            print(f"   Graph results: {len(result.graph_results)}")
-            print(f"   Vector results: {len(result.vector_results)}")
-            print(f"   Sources used: {[s['type'] for s in result.sources]}")
-            print(f"   Time: {result.total_time_ms:.0f}ms")
-            print(f"   Success: {'✓' if result.success else '✗'}")
+            logger.info(f"   Intent: {result.intent_type} (confidence: {result.confidence:.2f})")
+            logger.info(f"   Graph results: {len(result.graph_results)}")
+            logger.info(f"   Vector results: {len(result.vector_results)}")
+            logger.info(f"   Sources used: {[s['type'] for s in result.sources]}")
+            logger.info(f"   Time: {result.total_time_ms:.0f}ms")
+            logger.info(f"   Success: {'✓' if result.success else '✗'}")
             
             if result.graph_results:
-                print(f"\n   📊 Sample Graph Result:")
+                logger.info(f"\n   📊 Sample Graph Result:")
                 sample = result.graph_results[0]
                 for k, v in list(sample.items())[:5]:
                     if v and k != "source":
-                        print(f"      {k}: {v}")
+                        logger.info(f"      {k}: {v}")
             
-            print(f"\n   📄 Context Preview ({len(result.answer_context)} chars):")
+            logger.info(f"\n   📄 Context Preview ({len(result.answer_context)} chars):")
             preview = result.answer_context[:300].replace('\n', '\n      ')
-            print(f"      {preview}...")
+            logger.info(f"      {preview}...")
         
-        print("\n" + "=" * 60)
-        print("✅ Data Intelligence Service test complete!")
-        print("=" * 60)
+        logger.info("\n" + "=" * 60)
+        logger.info("✅ Data Intelligence Service test complete!")
+        logger.info("=" * 60)
     
     asyncio.run(test_service())
 

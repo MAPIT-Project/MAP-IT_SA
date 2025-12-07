@@ -177,10 +177,10 @@ class ConversationManager:
             self.config = self._load_configuration()
 
             agentic_status = "✓" if getattr(self, '_agentic_available', False) else "✗"
-            print(f"✅ ConversationManager initialized (AI-only intent + Proposal Writing + Agentic Loop: {agentic_status})")
+            logger.info(f"✅ ConversationManager initialized (AI-only intent + Proposal Writing + Agentic Loop: {agentic_status})")
             
         except Exception as e:
-            print(f"⚠️ ConversationManager initialization error: {e}")
+            logger.warning(f"⚠️ ConversationManager initialization error: {e}")
             raise
     
     async def process_message(self,
@@ -1084,20 +1084,20 @@ Provide a clear, well-structured answer. If the results include calls or project
         """
         retrieval_results = []
         
-        print(f"🔄 DEBUG: _convert_tool_results_to_retrieval called with {len(tool_results)} tool results")
+        logger.debug(f"🔄 DEBUG: _convert_tool_results_to_retrieval called with {len(tool_results)} tool results")
         
         for tool_name, tool_result_obj in tool_results.items():
-            print(f"🔍 DEBUG: Processing tool: {tool_name}, success: {tool_result_obj.success}")
+            logger.debug(f"🔍 DEBUG: Processing tool: {tool_name}, success: {tool_result_obj.success}")
             try:
                 if tool_result_obj.success:
                     tool_data = tool_result_obj.result
-                    print(f"📊 DEBUG: Tool data type: {type(tool_data)}, keys: {list(tool_data.keys()) if isinstance(tool_data, dict) else 'Not a dict'}")
+                    logger.debug(f"📊 DEBUG: Tool data type: {type(tool_data)}, keys: {list(tool_data.keys()) if isinstance(tool_data, dict) else 'Not a dict'}")
                     
                     if tool_name == 'eu_portal_search':
-                        print(f"🔍 DEBUG: eu_portal_search - checking for 'calls' key...")
-                        print(f"📋 DEBUG: tool_data has 'calls': {('calls' in tool_data) if isinstance(tool_data, dict) else False}")
+                        logger.debug(f"🔍 DEBUG: eu_portal_search - checking for 'calls' key...")
+                        logger.debug(f"📋 DEBUG: tool_data has 'calls': {('calls' in tool_data) if isinstance(tool_data, dict) else False}")
                         if isinstance(tool_data, dict):
-                            print(f"🔢 DEBUG: calls count: {len(tool_data.get('calls', []))}")
+                            logger.debug(f"🔢 DEBUG: calls count: {len(tool_data.get('calls', []))}")
                         # Format call search results
                         if tool_data.get('calls'):
                             for call in tool_data['calls'][:5]:
@@ -1160,12 +1160,12 @@ Provide a clear, well-structured answer. If the results include calls or project
 
                     elif tool_name == 'intelligent_search':
                         # Format intelligent search results (graph + vector + planner)
-                        print(f"🧠 DEBUG: intelligent_search - extracting answer_context...")
+                        logger.debug(f"🧠 DEBUG: intelligent_search - extracting answer_context...")
                         results = tool_data.get('results', {})
                         answer_context = results.get('answer_context', '')
 
                         if answer_context:
-                            print(f"🧠 DEBUG: answer_context found: {len(answer_context)} chars")
+                            logger.debug(f"🧠 DEBUG: answer_context found: {len(answer_context)} chars")
                             retrieval_results.append({
                                 'content': answer_context,
                                 'citation': f"Intelligent Search - {results.get('intent_type', 'general')}",
@@ -1224,9 +1224,9 @@ Provide a clear, well-structured answer. If the results include calls or project
                         })
                         
             except Exception as e:
-                print(f"Error converting tool result {tool_name}: {e}")
+                logger.error(f"Error converting tool result {tool_name}: {e}")
         
-        print(f"🔄 Converted {len(tool_results)} tool results to {len(retrieval_results)} retrieval chunks")
+        logger.info(f"🔄 Converted {len(tool_results)} tool results to {len(retrieval_results)} retrieval chunks")
         return retrieval_results
     
 
@@ -1252,7 +1252,7 @@ Provide a clear, well-structured answer. If the results include calls or project
             Tuple of (intent_analysis, context, tool_plan)
         """
         try:
-            print("🔧 AI-ONLY PHASE: Starting intent analysis...")
+            logger.info("🔧 AI-ONLY PHASE: Starting intent analysis...")
 
             # Get conversation context for AI analysis
             summary = self.memory_service.ltm.get_summary(conversation_id)
@@ -1264,7 +1264,7 @@ Provide a clear, well-structured answer. If the results include calls or project
                 for turn in recent_turns
             ])
 
-            print(f"🔧 AI-ONLY PHASE: Analyzing intent for: '{user_message[:100]}...'")
+            logger.info(f"🔧 AI-ONLY PHASE: Analyzing intent for: '{user_message[:100]}...'")
 
             # Use AI-only intent service
             intent_analysis = await self.ai_intent_service.analyze_intent(
@@ -1274,7 +1274,7 @@ Provide a clear, well-structured answer. If the results include calls or project
                 conversation_id=conversation_id
             )
 
-            print(f"🤖 AI-ONLY PHASE: Intent analysis complete - {intent_analysis.intent_type} (confidence: {intent_analysis.confidence:.2f})")
+            logger.info(f"🤖 AI-ONLY PHASE: Intent analysis complete - {intent_analysis.intent_type} (confidence: {intent_analysis.confidence:.2f})")
 
             # Build context string
             context = f"Intent Analysis: {intent_analysis.reasoning}\n"
@@ -1294,7 +1294,7 @@ Provide a clear, well-structured answer. If the results include calls or project
                     )
                     tool_calls.append(tool_call)
                 tool_plan = tool_calls
-                print(f"   Tools planned: {len(tool_calls)}")
+                logger.info(f"   Tools planned: {len(tool_calls)}")
 
             # Convert IntentAnalysis to dict format for compatibility
             intent_dict = {
@@ -1309,7 +1309,7 @@ Provide a clear, well-structured answer. If the results include calls or project
             return intent_dict, context, tool_plan
 
         except Exception as e:
-            print(f"AI-only intent analysis error: {e}")
+            logger.info(f"AI-only intent analysis error: {e}")
             # Simple fallback
             return {
                 "intent_type": "conversational",
@@ -1453,7 +1453,7 @@ This metadata was extracted directly from the EU Portal API and represents the o
             logger.warning("⚠️ Intelligent retrieval not available - returning empty results")
             return []
         except Exception as e:
-            print(f"Retrieval error: {e}")
+            logger.info(f"Retrieval error: {e}")
             return []
     
     async def _generate_response(self,
@@ -1629,7 +1629,7 @@ This metadata was extracted directly from the EU Portal API and represents the o
                 'retrieval_stats': self.retriever.get_retrieval_stats(conversation_id)
             }
         except Exception as e:
-            print(f"Response generation error: {e}")
+            logger.info(f"Response generation error: {e}")
             return self._create_error_response(str(e))
     
     async def _generate_streaming_response_with_processing(self,
@@ -3076,7 +3076,7 @@ Be helpful and conversational."""
             # Use your existing RAG service instead of mock data
             from ..enhanced_rag_service import HorizonEuropeRAG
             self.existing_rag = HorizonEuropeRAG()
-            print("✅ Using existing HorizonEuropeRAG service")
+            logger.info("✅ Using existing HorizonEuropeRAG service")
             
             # Still create hybrid search for future use
             return HybridSearchPipeline(
@@ -3085,7 +3085,7 @@ Be helpful and conversational."""
                 embedding_service=MockEmbeddingService()
             )
         except Exception as e:
-            print(f"⚠️ Using mock services for hybrid search: {e}")
+            logger.warning(f"⚠️ Using mock services for hybrid search: {e}")
             self.existing_rag = None
             return HybridSearchPipeline(
                 vector_store=MockVectorStore(),
@@ -3288,7 +3288,7 @@ Be helpful and conversational."""
                 'config': self.config
             }
         except Exception as e:
-            print(f"Error getting conversation stats: {e}")
+            logger.error(f"Error getting conversation stats: {e}")
             return {}
     
     def clear_conversation(self, conversation_id: int) -> bool:
@@ -3296,7 +3296,7 @@ Be helpful and conversational."""
         try:
             return self.memory_service.clear_conversation_memory(conversation_id)
         except Exception as e:
-            print(f"Error clearing conversation: {e}")
+            logger.error(f"Error clearing conversation: {e}")
             return False
 
     def _serialize_tool_results(self, tool_results: Dict[str, Any]) -> Dict[str, Any]:
@@ -4475,7 +4475,7 @@ async def test_conversation_manager():
         # Test conversation
         conv_id = 12345
 
-        print("Testing conversation manager...")
+        logger.info("Testing conversation manager...")
 
         # First message
         response1 = await manager.process_message(
@@ -4485,7 +4485,7 @@ async def test_conversation_manager():
             streaming=False
         )
 
-        print(f"Response 1: {response1.get('response', 'No response')[:100]}...")
+        logger.info(f"Response 1: {response1.get('response', 'No response')[:100]}...")
 
         # Follow-up message
         response2 = await manager.process_message(
@@ -4495,16 +4495,16 @@ async def test_conversation_manager():
             streaming=False
         )
 
-        print(f"Response 2: {response2.get('response', 'No response')[:100]}...")
+        logger.info(f"Response 2: {response2.get('response', 'No response')[:100]}...")
 
         # Get stats
         stats = manager.get_conversation_stats(conv_id)
-        print(f"Conversation stats: {stats}")
+        logger.info(f"Conversation stats: {stats}")
 
-        print("✅ Conversation manager test completed!")
+        logger.info("✅ Conversation manager test completed!")
 
     except Exception as e:
-        print(f"❌ Test failed: {e}")
+        logger.error(f"❌ Test failed: {e}")
 
 async def test_project_search_improvements():
     """Test the improved project search detection with conversation examples."""
@@ -4514,7 +4514,7 @@ async def test_project_search_improvements():
         # Test conversation ID
         conv_id = 999
 
-        print("🧪 Testing improved project search detection...")
+        logger.info("🧪 Testing improved project search detection...")
 
         # Simulate the conversation from the user's example
         test_messages = [
@@ -4526,7 +4526,7 @@ async def test_project_search_improvements():
         ]
 
         for i, message in enumerate(test_messages, 1):
-            print(f"\n📝 Test {i}: '{message}'")
+            logger.info(f"\n📝 Test {i}: '{message}'")
 
             response = await manager.process_message(
                 conversation_id=conv_id,
@@ -4539,21 +4539,21 @@ async def test_project_search_improvements():
             tools_executed = response.get('tools_executed', False)
             response_type = "TOOL-BASED" if tools_executed else "CONVERSATIONAL"
 
-            print(f"   Result: {response_type}")
-            print(f"   Tools executed: {tools_executed}")
-            print(f"   Response preview: {response.get('response', 'No response')[:150]}...")
+            logger.info(f"   Result: {response_type}")
+            logger.info(f"   Tools executed: {tools_executed}")
+            logger.info(f"   Response preview: {response.get('response', 'No response')[:150]}...")
 
             # For project search messages, we expect tools to be executed
             if i >= 2:  # Messages 2-5 are project searches
                 if not tools_executed:
-                    print(f"   ⚠️  WARNING: Expected tools for project search but got conversational response")
+                    logger.warning(f"   ⚠️  WARNING: Expected tools for project search but got conversational response")
                 else:
-                    print(f"   ✅ SUCCESS: Correctly routed to tools for project search")
+                    logger.info(f"   ✅ SUCCESS: Correctly routed to tools for project search")
 
-        print("\n✅ Project search improvement test completed!")
+        logger.info("\n✅ Project search improvement test completed!")
 
     except Exception as e:
-        print(f"❌ Project search test failed: {e}")
+        logger.error(f"❌ Project search test failed: {e}")
         import traceback
         traceback.print_exc()
 
@@ -4565,12 +4565,12 @@ async def test_single_project_message():
         # Test conversation ID
         conv_id = 1000
 
-        print("🧪 Testing single project search message...")
+        logger.info("🧪 Testing single project search message...")
 
         # Test the most explicit project search message
         message = "SEARCH ON CORDIS FOR PROJECTS WITH THE TERM CLEAN ENERGY"
 
-        print(f"\n📝 Test message: '{message}'")
+        logger.info(f"\n📝 Test message: '{message}'")
 
         response = await manager.process_message(
             conversation_id=conv_id,
@@ -4583,19 +4583,19 @@ async def test_single_project_message():
         tools_executed = response.get('tools_executed', False)
         response_type = "TOOL-BASED" if tools_executed else "CONVERSATIONAL"
 
-        print(f"   Result: {response_type}")
-        print(f"   Tools executed: {tools_executed}")
-        print(f"   Response preview: {response.get('response', 'No response')[:200]}...")
+        logger.info(f"   Result: {response_type}")
+        logger.info(f"   Tools executed: {tools_executed}")
+        logger.info(f"   Response preview: {response.get('response', 'No response')[:200]}...")
 
         if not tools_executed:
-            print(f"   ⚠️  WARNING: Expected tools for project search but got conversational response")
+            logger.warning(f"   ⚠️  WARNING: Expected tools for project search but got conversational response")
         else:
-            print(f"   ✅ SUCCESS: Correctly routed to tools for project search")
+            logger.info(f"   ✅ SUCCESS: Correctly routed to tools for project search")
 
-        print("\n✅ Single message test completed!")
+        logger.info("\n✅ Single message test completed!")
 
     except Exception as e:
-        print(f"❌ Single message test failed: {e}")
+        logger.error(f"❌ Single message test failed: {e}")
         import traceback
         traceback.print_exc()
 

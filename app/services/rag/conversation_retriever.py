@@ -1,3 +1,4 @@
+import logging
 import hashlib
 import json
 from typing import List, Dict, Any, Optional, Tuple
@@ -6,6 +7,8 @@ import redis
 from dataclasses import dataclass
 from .hybrid_search import HybridSearchPipeline, SearchResult
 
+
+logger = logging.getLogger(__name__)
 @dataclass
 class RetrievalContext:
     """Context for retrieval operations"""
@@ -266,7 +269,7 @@ class ConversationAwareRetriever:
             return None
             
         except Exception as e:
-            print(f"Cache retrieval error: {e}")
+            logger.info(f"Cache retrieval error: {e}")
             return None
     
     def _cache_results(self,
@@ -299,7 +302,7 @@ class ConversationAwareRetriever:
                 self.cache.expire(chunk_key, 86400)
                 
         except Exception as e:
-            print(f"Cache storage error: {e}")
+            logger.info(f"Cache storage error: {e}")
     
     def _was_previously_retrieved(self,
                                  conversation_id: int,

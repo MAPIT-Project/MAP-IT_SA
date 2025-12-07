@@ -465,25 +465,25 @@ async def test_ai_intent_service():
             "Tell me more about that last project you mentioned"
         ]
 
-        print("🧪 Testing AI Intent Service...")
-        print("=" * 60)
+        logger.info("🧪 Testing AI Intent Service...")
+        logger.info("=" * 60)
 
         for i, query in enumerate(test_queries, 1):
-            print(f"\n{i}. Query: '{query}'")
+            logger.info(f"\n{i}. Query: '{query}'")
 
             analysis = await service.analyze_intent(query)
 
-            print(f"   Intent: {analysis.intent_type}")
-            print(f"   Confidence: {analysis.confidence:.2f}")
-            print(f"   Requires Tools: {analysis.requires_tools}")
-            print(f"   Processing Type: {analysis.processing_type}")
-            print(f"   Tools: {len(analysis.tool_plan)} planned")
-            print(f"   Reasoning: {analysis.reasoning[:100]}...")
+            logger.info(f"   Intent: {analysis.intent_type}")
+            logger.info(f"   Confidence: {analysis.confidence:.2f}")
+            logger.info(f"   Requires Tools: {analysis.requires_tools}")
+            logger.info(f"   Processing Type: {analysis.processing_type}")
+            logger.info(f"   Tools: {len(analysis.tool_plan)} planned")
+            logger.info(f"   Reasoning: {analysis.reasoning[:100]}...")
 
-        print("\n✅ AI Intent Service test completed!")
+        logger.info("\n✅ AI Intent Service test completed!")
 
     except Exception as e:
-        print(f"❌ Test failed: {e}")
+        logger.error(f"❌ Test failed: {e}")
         import traceback
         traceback.print_exc()
 

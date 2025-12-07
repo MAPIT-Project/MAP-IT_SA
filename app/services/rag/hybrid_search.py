@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
@@ -7,6 +8,8 @@ import hashlib
 import json
 import os
 
+
+logger = logging.getLogger(__name__)
 @dataclass
 class SearchResult:
     """Represents a search result with scoring"""
@@ -54,7 +57,7 @@ class HybridSearchPipeline:
             from sentence_transformers import CrossEncoder
             self.cross_encoder = CrossEncoder(reranker_model)
         except ImportError:
-            print("Warning: sentence-transformers not available, reranking disabled")
+            logger.warning("Warning: sentence-transformers not available, reranking disabled")
             self.cross_encoder = None
         
         # Search configuration
@@ -156,7 +159,7 @@ class HybridSearchPipeline:
             return search_results
             
         except Exception as e:
-            print(f"Vector search error: {e}")
+            logger.info(f"Vector search error: {e}")
             return []
     
     async def _keyword_search_async(self,
@@ -207,7 +210,7 @@ class HybridSearchPipeline:
             return search_results
             
         except Exception as e:
-            print(f"Keyword search error: {e}")
+            logger.info(f"Keyword search error: {e}")
             return []
     
     def _process_query_for_keywords(self, query: str) -> str:
@@ -297,7 +300,7 @@ class HybridSearchPipeline:
             
             return results
         except Exception as e:
-            print(f"Reranking error: {e}")
+            logger.info(f"Reranking error: {e}")
             return results
     
     def update_weights(self,

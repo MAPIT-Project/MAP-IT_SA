@@ -1,3 +1,4 @@
+import logging
 import json
 from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime
@@ -7,6 +8,8 @@ from psycopg2.extras import RealDictCursor
 import hashlib
 import os
 
+
+logger = logging.getLogger(__name__)
 @dataclass
 class ConversationSummary:
     """Represents a conversation summary"""
@@ -115,7 +118,7 @@ class LongTermMemory:
             return True
             
         except Exception as e:
-            print(f"Database error in store_summary: {e}")
+            logger.info(f"Database error in store_summary: {e}")
             return False
     
     def get_summary(self, conversation_id: int) -> Optional[ConversationSummary]:
@@ -158,7 +161,7 @@ class LongTermMemory:
             return None
             
         except Exception as e:
-            print(f"Database error in get_summary: {e}")
+            logger.info(f"Database error in get_summary: {e}")
             return None
     
     def store_facts(self, 
@@ -199,7 +202,7 @@ class LongTermMemory:
             return True
             
         except Exception as e:
-            print(f"Database error in store_facts: {e}")
+            logger.info(f"Database error in store_facts: {e}")
             return False
     
     def get_facts(self, 
@@ -252,7 +255,7 @@ class LongTermMemory:
             return facts
             
         except Exception as e:
-            print(f"Database error in get_facts: {e}")
+            logger.info(f"Database error in get_facts: {e}")
             return []
     
     def update_entity_card(self, 
@@ -297,7 +300,7 @@ class LongTermMemory:
             return True
             
         except Exception as e:
-            print(f"Database error in update_entity_card: {e}")
+            logger.info(f"Database error in update_entity_card: {e}")
             return False
     
     def get_entity_cards(self,
@@ -350,5 +353,5 @@ class LongTermMemory:
             return entities
             
         except Exception as e:
-            print(f"Database error in get_entity_cards: {e}")
+            logger.info(f"Database error in get_entity_cards: {e}")
             return []

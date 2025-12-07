@@ -366,12 +366,12 @@ def get_reranker(model_type: str = "fast") -> CrossEncoderReranker:
 
 if __name__ == "__main__":
     # Test the reranker
-    print("\n" + "=" * 60)
-    print("CROSS-ENCODER RERANKER TEST")
-    print("=" * 60 + "\n")
+    logger.info("\n" + "=" * 60)
+    logger.info("CROSS-ENCODER RERANKER TEST")
+    logger.info("=" * 60 + "\n")
     
     reranker = CrossEncoderReranker(model_type="fast")
-    print(f"Model info: {reranker.get_model_info()}")
+    logger.info(f"Model info: {reranker.get_model_info()}")
     
     # Test documents
     query = "What is the budget for climate research projects?"
@@ -382,22 +382,22 @@ if __name__ == "__main__":
         {"content": "Climate research funding in the EU is substantial.", "source": "doc4", "score": 0.6},
     ]
     
-    print(f"\nQuery: {query}")
-    print(f"Documents: {len(documents)}")
-    print("\nOriginal order:")
+    logger.info(f"\nQuery: {query}")
+    logger.info(f"Documents: {len(documents)}")
+    logger.info("\nOriginal order:")
     for i, doc in enumerate(documents):
-        print(f"  {i+1}. [score: {doc['score']}] {doc['content'][:50]}...")
+        logger.info(f"  {i+1}. [score: {doc['score']}] {doc['content'][:50]}...")
     
     # Rerank
-    print("\nReranking...")
+    logger.info("\nReranking...")
     results = reranker.rerank(query, documents, top_k=3)
     
-    print("\nReranked results:")
+    logger.info("\nReranked results:")
     for r in results:
-        print(f"  [{r.original_rank} → {r.new_rank}] Rerank Score: {r.rerank_score:.3f} (was {r.original_score})")
-        print(f"      {r.content[:60]}...")
+        logger.info(f"  [{r.original_rank} → {r.new_rank}] Rerank Score: {r.rerank_score:.3f} (was {r.original_score})")
+        logger.info(f"      {r.content[:60]}...")
     
-    print("\n" + "=" * 60)
-    print("✅ Cross-Encoder Reranker test complete!")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("✅ Cross-Encoder Reranker test complete!")
+    logger.info("=" * 60)
 

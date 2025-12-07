@@ -38,10 +38,10 @@ class HybridSearchService:
                     1, 5,  # min and max connections
                     self.db_url
                 )
-                print("✅ Hybrid Search: Database connection established for enrichment")
+                logger.info("✅ Hybrid Search: Database connection established for enrichment")
             except Exception as e:
-                print(f"⚠️ Hybrid Search: Database connection failed: {e}")
-                print("   Will use CORDIS API only without local enrichment")
+                logger.error(f"⚠️ Hybrid Search: Database connection failed: {e}")
+                logger.info("   Will use CORDIS API only without local enrichment")
     
     def search_projects(self, queries: List[str], max_results: int = 10) -> List[Dict[str, Any]]:
         """
@@ -54,23 +54,23 @@ class HybridSearchService:
         Returns:
             List of enriched project data
         """
-        print(f"🔍 Hybrid Search: Starting with {len(queries)} queries")
+        logger.info(f"🔍 Hybrid Search: Starting with {len(queries)} queries")
         
         # Step 1: Search CORDIS API
         api_projects = self._query_legacy_cordis_api(queries, max_results)
-        print(f"📡 CORDIS API returned {len(api_projects)} projects")
+        logger.info(f"📡 CORDIS API returned {len(api_projects)} projects")
         
         if not api_projects:
-            print("⚠️ No projects found via CORDIS API")
+            logger.warning("⚠️ No projects found via CORDIS API")
             return []
         
         # Step 2: Enrich with local database if available
         if self.db_pool:
             enriched_projects = self._enrich_with_database(api_projects)
-            print(f"✨ Enriched {len(enriched_projects)} projects with database data")
+            logger.info(f"✨ Enriched {len(enriched_projects)} projects with database data")
             return enriched_projects
         else:
-            print("ℹ️ Database not available, returning CORDIS API data only")
+            logger.info("ℹ️ Database not available, returning CORDIS API data only")
             return api_projects
     
     def search_projects_local_first(
@@ -96,7 +96,7 @@ class HybridSearchService:
         """
         start_time = datetime.now()
         logger.info(f"Starting local-first hybrid search: {len(queries)} queries, limit={limit}")
-        print(f"🔍 Local-First Hybrid Search: {len(queries)} queries")
+        logger.info(f"🔍 Local-First Hybrid Search: {len(queries)} queries")
         
         # Use injected repository or create default instance
         if repository is None:
@@ -105,7 +105,7 @@ class HybridSearchService:
                 repository = CordisProjectRepository()
             except ImportError as e:
                 logger.error(f"Repository not available: {e}, falling back to legacy API")
-                print(f"⚠️ Repository not available: {e}, falling back to legacy API")
+                logger.warning(f"⚠️ Repository not available: {e}, falling back to legacy API")
                 return self._query_legacy_cordis_api(queries, limit)
         
         # Step 1: Search local repository
@@ -119,7 +119,7 @@ class HybridSearchService:
             
             elapsed = (datetime.now() - start_time).total_seconds()
             logger.info(f"Local repository search completed: {len(local_projects)} projects in {elapsed:.2f}s (total: {total_count})")
-            print(f"📚 Local repository returned {len(local_projects)} projects (total: {total_count})")
+            logger.info(f"📚 Local repository returned {len(local_projects)} projects (total: {total_count})")
             
             if local_projects:
                 # Convert DTOs to dicts for downstream compatibility
@@ -134,14 +134,14 @@ class HybridSearchService:
                 return projects
             else:
                 logger.info("No projects found in local repository, falling back to legacy API")
-                print("⚠️ No projects found in local repository")
+                logger.warning("⚠️ No projects found in local repository")
                 return self._query_legacy_cordis_api(queries, limit)
                 
         except Exception as e:
             elapsed = (datetime.now() - start_time).total_seconds()
             logger.error(f"Local repository search failed after {elapsed:.2f}s: {e}")
-            print(f"❌ Local repository search failed: {e}")
-            print("🔄 Falling back to legacy CORDIS API")
+            logger.error(f"❌ Local repository search failed: {e}")
+            logger.info("🔄 Falling back to legacy CORDIS API")
             return self._query_legacy_cordis_api(queries, limit)
     
     def _query_legacy_cordis_api(self, queries: List[str], max_results: int) -> List[Dict[str, Any]]:
@@ -200,7 +200,7 @@ class HybridSearchService:
             "archived": "true"
         }
         
-        print(f"📡 Calling CORDIS API with query: {q_value[:100]}...")
+        logger.info(f"📡 Calling CORDIS API with query: {q_value[:100]}...")
         
         try:
             response = requests.get(base_api_url, params=params, timeout=30)
@@ -221,7 +221,7 @@ class HybridSearchService:
             return []
             
         except Exception as e:
-            print(f"❌ CORDIS API error: {e}")
+            logger.error(f"❌ CORDIS API error: {e}")
             return []
     
     def _extract_cordis_project_data(self, item: Dict[str, Any]) -> Dict[str, Any]:
@@ -386,19 +386,19 @@ class HybridSearchService:
                     enriched_project['data_source'] = 'CORDIS API + Local Database'
                     enriched_project['enrichment_status'] = 'complete'
                     
-                    print(f"✅ Enriched project: {enriched_project.get('acronym', 'N/A')} - {enriched_project['frameworkProgramme']}")
+                    logger.info(f"✅ Enriched project: {enriched_project.get('acronym', 'N/A')} - {enriched_project['frameworkProgramme']}")
                     enriched_projects.append(enriched_project)
                 else:
                     # Project not found in database, use API data as-is
                     api_project['enrichment_status'] = 'not_in_database'
-                    print(f"ℹ️ Project not in database: {api_project.get('acronym', 'N/A')}")
+                    logger.info(f"ℹ️ Project not in database: {api_project.get('acronym', 'N/A')}")
                     enriched_projects.append(api_project)
             
             cursor.close()
             self.db_pool.putconn(conn)
             
         except Exception as e:
-            print(f"❌ Database enrichment error: {e}")
+            logger.error(f"❌ Database enrichment error: {e}")
             # Return original API data if enrichment fails
             return api_projects
         
@@ -457,28 +457,28 @@ class HybridSearchService:
 
 def test_hybrid_search():
     """Test the hybrid search functionality."""
-    print("="*80)
-    print("TESTING HYBRID SEARCH SERVICE")
-    print("="*80)
+    logger.info("="*80)
+    logger.info("TESTING HYBRID SEARCH SERVICE")
+    logger.info("="*80)
     
     # Initialize hybrid search
     hybrid = HybridSearchService()
     
     # Test search
     queries = ["nuclear energy", "startDate>2020-01-01"]
-    print(f"\nSearching for: {queries}")
-    print("-"*60)
+    logger.info(f"\nSearching for: {queries}")
+    logger.info("-"*60)
     
     # Perform hybrid search
     results = hybrid.search_projects(queries, max_results=5)
     
     # Display results
     formatted = hybrid.format_enriched_results(results)
-    print(formatted)
+    logger.info(formatted)
     
-    print("\n" + "="*80)
-    print("HYBRID SEARCH TEST COMPLETE")
-    print("="*80)
+    logger.info("\n" + "="*80)
+    logger.info("HYBRID SEARCH TEST COMPLETE")
+    logger.info("="*80)
 
 
 if __name__ == "__main__":

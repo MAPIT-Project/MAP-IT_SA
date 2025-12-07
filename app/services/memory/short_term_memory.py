@@ -1,3 +1,4 @@
+import logging
 import json
 import hashlib
 from typing import List, Dict, Any, Optional
@@ -7,6 +8,8 @@ import redis
 from redis.exceptions import RedisError
 import os
 
+
+logger = logging.getLogger(__name__)
 @dataclass
 class ConversationTurn:
     """Represents a single turn in conversation"""
@@ -105,7 +108,7 @@ class ShortTermMemory:
             return True
             
         except RedisError as e:
-            print(f"Redis error in add_turn: {e}")
+            logger.info(f"Redis error in add_turn: {e}")
             return False
     
     def get_recent_turns(self, 
@@ -139,7 +142,7 @@ class ShortTermMemory:
             return turns
             
         except RedisError as e:
-            print(f"Redis error in get_recent_turns: {e}")
+            logger.info(f"Redis error in get_recent_turns: {e}")
             return []
     
     def get_context_window(self, 
@@ -195,7 +198,7 @@ class ShortTermMemory:
             return True
             
         except RedisError as e:
-            print(f"Redis error in clear_conversation: {e}")
+            logger.info(f"Redis error in clear_conversation: {e}")
             return False
     
     def get_memory_stats(self, conversation_id: int) -> Dict[str, Any]:
@@ -230,5 +233,5 @@ class ShortTermMemory:
             }
             
         except RedisError as e:
-            print(f"Redis error in get_memory_stats: {e}")
+            logger.info(f"Redis error in get_memory_stats: {e}")
             return {}

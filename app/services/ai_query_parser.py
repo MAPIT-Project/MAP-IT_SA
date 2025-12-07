@@ -506,17 +506,17 @@ if __name__ == "__main__":
         "EIC Accelerator cut-offs for deep tech SMEs"
     ]
     
-    print("🧪 Testing AI Query Parser")
-    print("=" * 50)
+    logger.info("🧪 Testing AI Query Parser")
+    logger.info("=" * 50)
     
     for query in test_queries:
-        print(f"\n📝 Query: '{query}'")
+        logger.info(f"\n📝 Query: '{query}'")
         filters = parser.parse_query(query)
         
-        print(f"   Status filter: {filters.status_filter}")
-        print(f"   Date filter: {filters.date_filter}")
-        print(f"   Intention: {filters.filter_intention}")
-        print(f"   Clean query: '{filters.clean_query}'")
-        print(f"   User intent: {filters.user_intent_detected}")
-        print(f"   Specific filters: {filters.specific_filters}")
-        print(f"   Confidence: {filters.confidence:.2f}")
+        logger.info(f"   Status filter: {filters.status_filter}")
+        logger.info(f"   Date filter: {filters.date_filter}")
+        logger.info(f"   Intention: {filters.filter_intention}")
+        logger.info(f"   Clean query: '{filters.clean_query}'")
+        logger.info(f"   User intent: {filters.user_intent_detected}")
+        logger.info(f"   Specific filters: {filters.specific_filters}")
+        logger.info(f"   Confidence: {filters.confidence:.2f}")

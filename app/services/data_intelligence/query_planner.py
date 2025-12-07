@@ -478,15 +478,15 @@ if __name__ == "__main__":
     import asyncio
     
     async def test_planner():
-        print("\n" + "=" * 60)
-        print("QUERY PLANNER TEST")
-        print("=" * 60)
+        logger.info("\n" + "=" * 60)
+        logger.info("QUERY PLANNER TEST")
+        logger.info("=" * 60)
         
         try:
             planner = QueryPlanner()
         except ValueError as e:
-            print(f"❌ Could not initialize planner: {e}")
-            print("   Make sure GEMINI_API_KEY is set in environment")
+            logger.error(f"❌ Could not initialize planner: {e}")
+            logger.info("   Make sure GEMINI_API_KEY is set in environment")
             return
         
         test_queries = [
@@ -498,20 +498,20 @@ if __name__ == "__main__":
         ]
         
         for query in test_queries:
-            print(f"\n📝 Query: {query}")
+            logger.info(f"\n📝 Query: {query}")
             plan = await planner.generate_plan(query)
-            print(f"   Intent: {plan.intent_type} (confidence: {plan.confidence:.2f})")
-            print(f"   Steps: {len(plan.steps)}")
+            logger.info(f"   Intent: {plan.intent_type} (confidence: {plan.confidence:.2f})")
+            logger.info(f"   Steps: {len(plan.steps)}")
             for step in plan.steps:
-                print(f"      {step.step_number}. [{step.source}] {step.operation}")
-            print(f"   Graph: {plan.need_graph}, Vector: {plan.need_vector}")
-            print(f"   Time: {plan.planning_time_ms:.0f}ms")
+                logger.info(f"      {step.step_number}. [{step.source}] {step.operation}")
+            logger.info(f"   Graph: {plan.need_graph}, Vector: {plan.need_vector}")
+            logger.info(f"   Time: {plan.planning_time_ms:.0f}ms")
             if plan.extracted_entities.topic_codes:
-                print(f"   Topics: {plan.extracted_entities.topic_codes}")
+                logger.info(f"   Topics: {plan.extracted_entities.topic_codes}")
             if plan.extracted_entities.country_codes:
-                print(f"   Countries: {plan.extracted_entities.country_codes}")
+                logger.info(f"   Countries: {plan.extracted_entities.country_codes}")
         
-        print("\n✅ Query Planner test complete!")
+        logger.info("\n✅ Query Planner test complete!")
     
     asyncio.run(test_planner())
 
