@@ -1241,6 +1241,7 @@ What is your next step? Remember: Output ONLY JSON."""
 
     def _synthesize_from_results(self, query: str, tool_results: Dict[str, Any]) -> str:
         """Synthesize a coherent answer from tool results."""
+        import json
         content_pieces = []
 
         for name, result in tool_results.items():
@@ -1261,6 +1262,74 @@ What is your next step? Remember: Output ONLY JSON."""
                     call_id = call.get('topic_code', call.get('call_id', ''))
                     if title or call_id:
                         content_pieces.append(f"Call {call_id}: {title}")
+
+            # Extract budget calculation results
+            elif result.get('tool_name') == 'calculate_budget' and result.get('success'):
+                breakdown = result.get('breakdown', {})
+                budget = result.get('calculated_budget', {})
+                per_partner = result.get('per_partner', {})
+
+                budget_text = f"""Budget Calculation Results:
+- Total Budget: €{budget.get('total_cost', 0):,.0f}
+- EU Contribution: €{budget.get('eu_contribution', 0):,.0f} ({budget.get('funding_rate', '100%')})
+
+Breakdown:
+- Personnel: €{breakdown.get('personnel', {}).get('amount', 0):,.0f} ({breakdown.get('personnel', {}).get('percentage', 0)}%)
+- Equipment: €{breakdown.get('equipment', {}).get('amount', 0):,.0f} ({breakdown.get('equipment', {}).get('percentage', 0)}%)
+- Travel: €{breakdown.get('travel', {}).get('amount', 0):,.0f} ({breakdown.get('travel', {}).get('percentage', 0)}%)
+- Subcontracting: €{breakdown.get('subcontracting', {}).get('amount', 0):,.0f} ({breakdown.get('subcontracting', {}).get('percentage', 0)}%)
+- Other Direct Costs: €{breakdown.get('other_direct', {}).get('amount', 0):,.0f} ({breakdown.get('other_direct', {}).get('percentage', 0)}%)
+- Indirect Costs (25% flat rate): €{breakdown.get('indirect', {}).get('amount', 0):,.0f} ({breakdown.get('indirect', {}).get('percentage', 0)}%)
+
+Per Partner Distribution:
+- Average per partner: €{per_partner.get('average', 0):,.0f}
+- Coordinator (typical): €{per_partner.get('coordinator_typical', 0):,.0f}
+- Other partners (typical): €{per_partner.get('partner_typical', 0):,.0f}
+"""
+                content_pieces.append(budget_text)
+
+            # Extract call details
+            elif result.get('call_id') and result.get('title'):
+                call_text = f"""Call Details for {result.get('call_id')}:
+- Title: {result.get('title')}
+- Status: {result.get('status', 'Unknown')}
+- Type: {result.get('type', 'N/A')}
+- Deadline: {result.get('deadline', 'N/A')}
+- Description: {result.get('description', '')[:500]}"""
+                content_pieces.append(call_text)
+
+            # Extract statistics/benchmark results
+            elif result.get('statistics') or result.get('benchmark'):
+                stats = result.get('statistics', result.get('benchmark', {}))
+                content_pieces.append(f"Statistics: {json.dumps(stats, indent=2, default=str)[:1000]}")
+
+            # Extract timeline generation results
+            elif result.get('tool_name') == 'generate_timeline' and result.get('success'):
+                wps = result.get('work_packages', [])
+                timeline_text = f"""Project Timeline Generated:
+- Duration: {result.get('parameters', {}).get('duration_months', 'N/A')} months
+- Work Packages: {len(wps)}
+
+Work Package Summary:
+"""
+                for wp in wps[:6]:
+                    timeline_text += f"- WP{wp.get('number')}: {wp.get('title')} (M{wp.get('start_month')}-M{wp.get('end_month')}, {wp.get('effort_pms')} PMs)\n"
+
+                milestones = result.get('milestones', [])
+                if milestones:
+                    timeline_text += f"\nKey Milestones: {len(milestones)}\n"
+                    for ms in milestones[:5]:
+                        timeline_text += f"- {ms.get('id')}: {ms.get('title')} (M{ms.get('due_month')})\n"
+
+                content_pieces.append(timeline_text)
+
+            # Extract project results
+            elif 'projects' in result and isinstance(result['projects'], list):
+                for proj in result['projects'][:5]:
+                    acronym = proj.get('acronym', '')
+                    title = proj.get('title', '')
+                    if acronym or title:
+                        content_pieces.append(f"Project {acronym}: {title}")
 
         if not content_pieces:
             return "I found some information but couldn't extract specific details. Please try a more specific question."
