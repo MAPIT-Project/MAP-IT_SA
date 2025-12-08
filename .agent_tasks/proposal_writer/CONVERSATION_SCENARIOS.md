@@ -36,7 +36,7 @@ and guides user through initial setup.
 
 ### 1.2 Call Selection
 ```
-User: "I found a call about AI in healthcare. The ID is HORIZON-HLTH-2024-TOOL-11-01."
+User: "I found a call about AI in healthcare. The ID is HORIZON-HLTH-2025-01-CARE-01."
 
 Expected: AI fetches call details, explains requirements, and suggests
 which sections to prioritize.
