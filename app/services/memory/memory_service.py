@@ -1,18 +1,20 @@
-
-logger = logging.getLogger(__name__)
 """
 Unified memory service that combines all memory components.
 """
 
 import logging
 import os
-import redis
-from typing import Optional, List
 from datetime import datetime
-from .short_term_memory import ShortTermMemory, ConversationTurn
+from typing import List, Optional
+
+import redis
+
+from .context_manager import ContextWindowManager
 from .long_term_memory import LongTermMemory
 from .rolling_summarizer import RollingSummarizer
-from .context_manager import ContextWindowManager
+from .short_term_memory import ConversationTurn, ShortTermMemory
+
+logger = logging.getLogger(__name__)
 
 class MemoryService:
     """
