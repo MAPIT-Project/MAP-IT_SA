@@ -131,28 +131,39 @@ class LocalCallSearchService:
     def __init__(self):
         """Initialize the local call search service."""
         from ..core.config import settings
-        
+
         self._db_url = settings.database_url
         self._structured_available = False
         self._enrichment_service = None
-        
+        self._embedding_service = None
+        self._semantic_search_available = False
+
         # Try to check if funding_calls table exists
         try:
             conn = psycopg2.connect(self._db_url)
             cursor = conn.cursor()
             cursor.execute("""
                 SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
+                    SELECT FROM information_schema.tables
                     WHERE table_name = 'funding_calls'
                 )
             """)
             self._structured_available = cursor.fetchone()[0]
-            
+
             if self._structured_available:
                 cursor.execute("SELECT COUNT(*) FROM funding_calls")
                 count = cursor.fetchone()[0]
                 logger.info(f"✅ Structured call database available ({count} calls)")
-                
+
+                # Check if semantic search is available (embedding column exists and has data)
+                cursor.execute("""
+                    SELECT COUNT(*) FROM funding_calls WHERE embedding IS NOT NULL
+                """)
+                embedding_count = cursor.fetchone()[0]
+                if embedding_count > 0:
+                    self._semantic_search_available = True
+                    logger.info(f"✅ Semantic search available ({embedding_count} calls with embeddings)")
+
                 # Initialize enrichment service for on-demand API fetching
                 try:
                     from .call_enrichment_service import CallEnrichmentService
@@ -160,10 +171,21 @@ class LocalCallSearchService:
                     logger.info("✅ Call enrichment service available (will fetch missing data from EU Portal)")
                 except Exception as e:
                     logger.warning(f"Call enrichment service not available: {e}")
+
+                # Initialize embedding service for semantic search
+                if self._semantic_search_available:
+                    try:
+                        from .embedding_service import EmbeddingService
+                        self._embedding_service = EmbeddingService()
+                        logger.info("✅ Embedding service available for semantic search")
+                    except Exception as e:
+                        logger.warning(f"Embedding service not available: {e}")
+                        self._semantic_search_available = False
+
             conn.close()
         except Exception as e:
             logger.warning(f"Structured call database not available: {e}")
-        
+
         # Initialize vector service as fallback
         try:
             self.vector_service = VectorSearchService()
@@ -172,7 +194,55 @@ class LocalCallSearchService:
         except Exception as e:
             logger.error(f"❌ Failed to initialize LocalCallSearchService: {e}")
             self._available = False
-    
+
+    def _normalize_call_status(self, call_dict: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Normalize call status based on actual deadline date.
+
+        If a call has a deadline that has already passed, mark it as 'closed'
+        regardless of what status the API or database reports.
+        """
+        deadline = call_dict.get('deadline')
+        if not deadline:
+            return call_dict
+
+        # Parse deadline to date object for comparison
+        deadline_date = None
+        try:
+            if isinstance(deadline, date) and not isinstance(deadline, datetime):
+                # Already a date object
+                deadline_date = deadline
+            elif isinstance(deadline, datetime):
+                # datetime object - extract date
+                deadline_date = deadline.date()
+            elif hasattr(deadline, 'strftime'):
+                # Some other date-like object
+                deadline_date = date(deadline.year, deadline.month, deadline.day)
+            else:
+                # String - parse it
+                deadline_str = str(deadline)
+                for fmt in ['%Y-%m-%d', '%d %B %Y', '%d/%m/%Y', '%Y-%m-%dT%H:%M:%S']:
+                    try:
+                        parsed = datetime.strptime(
+                            deadline_str.split('T')[0] if 'T' in deadline_str else deadline_str,
+                            fmt
+                        )
+                        deadline_date = parsed.date()
+                        break
+                    except ValueError:
+                        continue
+        except Exception:
+            pass
+
+        # If deadline has passed, mark as closed
+        if deadline_date:
+            today = date.today()
+            if deadline_date < today:
+                call_dict['status'] = 'closed'
+                logger.debug(f"Status normalized to 'closed' for {call_dict.get('topic_code')} - deadline passed")
+
+        return call_dict
+
     def search_calls(
         self,
         query: str,
@@ -180,15 +250,17 @@ class LocalCallSearchService:
         cluster: Optional[str] = None,
         action_type: Optional[str] = None,
         include_closed: bool = False,
-        year_filter: Optional[str] = None
+        year_filter: Optional[str] = None,
+        use_semantic: bool = True
     ) -> Dict[str, Any]:
         """
         Search for calls matching the query in local Work Programme documents.
-        
+
         Strategy:
-        1. First try structured `funding_calls` table (fast, accurate)
-        2. Fall back to vector search if no structured results
-        
+        1. First try structured `funding_calls` table (fast, accurate keyword match)
+        2. If no results, try semantic search (finds related concepts)
+        3. Fall back to document vector search if needed
+
         Args:
             query: Search query (e.g., "clean energy", "hydrogen", "AI healthcare")
             num_results: Maximum number of results to return
@@ -196,7 +268,8 @@ class LocalCallSearchService:
             action_type: Optional filter by action type (RIA, IA, CSA, etc.)
             include_closed: If False, filter out calls from past years (default: False)
             year_filter: Only show calls from specific year (e.g., "2025", "2026")
-        
+            use_semantic: If True, use semantic search when keyword search fails
+
         Returns:
             Dict with 'calls' list and 'search_metadata'
         """
@@ -208,13 +281,13 @@ class LocalCallSearchService:
                 'calls_found': 0,
                 'calls': []
             }
-        
+
         # Get current date dynamically
         today = date.today()
         current_year = today.year
         logger.info(f"🔍 LOCAL SEARCH: '{query}' (cluster={cluster}, type={action_type}, include_closed={include_closed}, year={year_filter}, today={today})")
-        
-        # STRATEGY 1: Try structured database first (fast, accurate)
+
+        # STRATEGY 1: Try structured database first (fast, accurate keyword match)
         if self._structured_available:
             structured_results = self._search_structured_calls(
                 query=query,
@@ -225,7 +298,7 @@ class LocalCallSearchService:
                 year_filter=int(year_filter) if year_filter else None,
                 current_year=current_year
             )
-            
+
             if structured_results and len(structured_results) > 0:
                 logger.info(f"✅ Found {len(structured_results)} results from structured database")
                 return {
@@ -243,9 +316,47 @@ class LocalCallSearchService:
                         'current_year': current_year
                     }
                 }
-        
-        # STRATEGY 2: Fall back to vector search
-        logger.info("📄 Falling back to vector search...")
+
+        # STRATEGY 2: Try semantic search (finds related concepts even without keyword match)
+        if use_semantic and self._semantic_search_available:
+            logger.info("🧠 Trying semantic search for cross-domain matching...")
+            semantic_results = self._search_semantic_calls(
+                query=query,
+                num_results=num_results,
+                include_closed=include_closed,
+                similarity_threshold=0.4  # Adjust threshold as needed
+            )
+
+            if semantic_results and len(semantic_results) > 0:
+                # Format results
+                formatted_calls = []
+                for c in semantic_results:
+                    formatted = self._format_structured_call(c, enrich=False)
+                    # Add semantic match info
+                    formatted['match_type'] = 'semantic'
+                    formatted['similarity_score'] = c.get('similarity_score', 0)
+                    formatted_calls.append(formatted)
+
+                logger.info(f"✅ Found {len(formatted_calls)} results via semantic search")
+                return {
+                    'success': True,
+                    'query': query,
+                    'calls_found': len(formatted_calls),
+                    'calls': formatted_calls,
+                    'current_date': today.isoformat(),
+                    'search_metadata': {
+                        'source': 'funding_calls_table',
+                        'api_used': False,
+                        'search_method': 'semantic_similarity',
+                        'include_closed': include_closed,
+                        'year_filter': year_filter,
+                        'current_year': current_year,
+                        'note': 'Results found via semantic matching (related concepts)'
+                    }
+                }
+
+        # STRATEGY 3: Fall back to document vector search
+        logger.info("📄 Falling back to document vector search...")
         
         # Build enhanced query for better recall
         if not include_closed and not year_filter:
@@ -325,29 +436,59 @@ class LocalCallSearchService:
         
         logger.info(f"✅ Found {len(calls)} local results for '{query}' (filtered to current/upcoming)")
 
-        # Convert to dicts and enrich incomplete results
+        # Convert to dicts and enrich results to get status/deadline
         formatted_calls = []
         for c in calls:
             call_dict = c.to_dict()
-            # Enrich if title or description is missing/incomplete
+
+            # ALWAYS enrich if we have topic_code - we need status and deadline for filtering
+            # Vector search results don't have status/deadline, so we must fetch from DB/API
             if self._enrichment_service and c.topic_code:
-                title = call_dict.get('title') or ''
-                desc = call_dict.get('description') or ''
-                needs_enrichment = (
-                    len(title) < 20 or
-                    title == c.topic_code or
-                    len(desc) < 50
-                )
-                if needs_enrichment:
-                    logger.info(f"📡 Enriching vector result {c.topic_code}...")
-                    enriched = self._enrichment_service.get_call_details(c.topic_code)
-                    if enriched:
-                        # Merge enriched data
-                        call_dict = {**call_dict, **enriched}
-                        logger.info(f"✅ Enriched {c.topic_code}")
+                logger.info(f"📡 Enriching vector result {c.topic_code}...")
+                enriched = self._enrichment_service.get_call_details(c.topic_code)
+                if enriched:
+                    # Merge enriched data (status, deadline, better title/description)
+                    call_dict = {**call_dict, **enriched}
+                    logger.info(f"✅ Enriched {c.topic_code}: status={enriched.get('status')}, deadline={enriched.get('deadline')}")
+
+            # Normalize status based on deadline (mark as closed if deadline passed)
+            call_dict = self._normalize_call_status(call_dict)
+
+            # Filter out closed calls if include_closed is False
+            if not include_closed and call_dict.get('status') == 'closed':
+                logger.info(f"🚫 Filtering out closed call {c.topic_code} (status=closed)")
+                continue
+
+            # Filter out calls with PAST deadlines (but allow NULL deadlines)
+            deadline = call_dict.get('deadline')
+            if not include_closed and deadline:
+                # Check if deadline has passed
+                try:
+                    if isinstance(deadline, str):
+                        from datetime import datetime
+                        for fmt in ['%Y-%m-%d', '%d %B %Y', '%d/%m/%Y']:
+                            try:
+                                deadline_date = datetime.strptime(deadline, fmt).date()
+                                break
+                            except ValueError:
+                                continue
+                        else:
+                            deadline_date = None
+                    elif hasattr(deadline, 'date'):
+                        deadline_date = deadline.date() if hasattr(deadline, 'date') else deadline
+                    else:
+                        deadline_date = deadline
+
+                    if deadline_date and deadline_date < date.today():
+                        logger.info(f"🚫 Filtering out call {c.topic_code} (deadline {deadline} has passed)")
+                        continue
+                except Exception as e:
+                    logger.debug(f"Could not parse deadline for {c.topic_code}: {e}")
+
             formatted_calls.append(call_dict)
 
-        return {
+        # Build result with helpful message if no open calls found
+        result = {
             'success': True,
             'query': query,
             'calls_found': len(formatted_calls),
@@ -368,6 +509,17 @@ class LocalCallSearchService:
                 }
             }
         }
+
+        # Add helpful message when no open calls found but there were results before filtering
+        if len(formatted_calls) == 0 and len(calls) > 0:
+            result['message'] = (
+                f"Found {len(calls)} calls matching your query, but none are currently open "
+                f"(all have passed deadlines or are closed). "
+                f"Consider checking the EU Funding & Tenders Portal for upcoming calls, "
+                f"or search with include_closed=True to see past calls for reference."
+            )
+
+        return result
     
     def _search_structured_calls(
         self,
@@ -407,15 +559,50 @@ class LocalCallSearchService:
                 params.append(query.upper())  # Exact match
                 params.append(f"%{query.upper()}%")  # Partial match
             elif query:
-                # Full-text search on title, scope, expected_outcome
-                query_parts.append("""
-                    AND to_tsvector('english',
-                        COALESCE(title, '') || ' ' ||
-                        COALESCE(scope, '') || ' ' ||
-                        COALESCE(expected_outcome, '')
-                    ) @@ plainto_tsquery('english', %s)
-                """)
-                params.append(query)
+                # Combined search: full-text search OR word-boundary-aware matching
+                # For multi-word queries like "AI healthcare", ALL keywords must match (AND logic)
+                words = [w.strip() for w in query.split() if len(w.strip()) >= 2]
+
+                if words:
+                    # First add the FTS query parameter
+                    fts_param_index = len(params)
+                    params.append(query)  # This will be used for plainto_tsquery
+
+                    # Build conditions for each word with word-boundary awareness
+                    # ALL words must match (AND logic) to avoid false positives
+                    word_conditions = []
+                    for word in words[:5]:  # Limit to first 5 words
+                        # For short words (2-3 chars like "AI"), use word-boundary matching
+                        # to avoid matching inside other words like "sustAInable"
+                        if len(word) <= 3:
+                            # Use regex word boundary matching for short words
+                            # PostgreSQL regex: \m = word start, \M = word end
+                            word_conditions.append(
+                                "(topic_code ~* %s OR title ~* %s OR scope ~* %s OR expected_outcome ~* %s)"
+                            )
+                            word_boundary_pattern = f"\\m{word}\\M"
+                            params.extend([word_boundary_pattern] * 4)
+                        else:
+                            # For longer words, simple ILIKE is fine
+                            word_conditions.append(
+                                "(topic_code ILIKE %s OR title ILIKE %s OR scope ILIKE %s OR expected_outcome ILIKE %s)"
+                            )
+                            params.extend([f"%{word}%"] * 4)
+
+                    # Use AND to require ALL keywords match (not just any one)
+                    query_parts.append(f"""
+                        AND (
+                            to_tsvector('english',
+                                COALESCE(title, '') || ' ' ||
+                                COALESCE(scope, '') || ' ' ||
+                                COALESCE(expected_outcome, '')
+                            ) @@ plainto_tsquery('english', %s)
+                            OR ({' AND '.join(word_conditions)})
+                        )
+                    """)
+                else:
+                    # Fallback for empty query
+                    query_parts.append("AND 1=1")
             
             # Cluster filter
             if cluster:
@@ -438,9 +625,13 @@ class LocalCallSearchService:
                     query_parts.append("AND call_year >= %s")
                     params.append(current_year)
 
-                # Status filter
+                # Status filter - exclude closed calls and calls with PAST deadlines
+                # But ALLOW calls with NULL deadlines (we'll try to enrich them)
                 if not include_closed:
-                    query_parts.append("AND status != 'closed'")
+                    query_parts.append("""
+                        AND status != 'closed'
+                        AND (deadline IS NULL OR deadline >= CURRENT_DATE)
+                    """)
 
             # Order by relevance and deadline
             if is_topic_code:
@@ -477,11 +668,88 @@ class LocalCallSearchService:
             conn.close()
             logger.info(f"Structured search returned {len(results)} results for '{query}'")
             return [dict(r) for r in results]
-            
+
         except Exception as e:
             logger.error(f"Structured search failed: {e}")
             return []
-    
+
+    def _search_semantic_calls(
+        self,
+        query: str,
+        num_results: int = 10,
+        include_closed: bool = False,
+        similarity_threshold: float = 0.4
+    ) -> List[Dict[str, Any]]:
+        """
+        Search for calls using semantic similarity.
+
+        This enables cross-domain queries like "AI in healthcare" to find
+        relevant calls even if they don't contain the exact keywords.
+        """
+        if not self._semantic_search_available or not self._embedding_service:
+            logger.debug("Semantic search not available")
+            return []
+
+        try:
+            # Generate query embedding
+            query_embedding = self._embedding_service.generate_query_embedding(query)
+
+            if query_embedding is None or len(query_embedding) == 0:
+                logger.warning("Failed to generate query embedding")
+                return []
+
+            # Search using vector similarity
+            conn = psycopg2.connect(self._db_url)
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            # Build the semantic search query
+            embedding_list = query_embedding.tolist()
+
+            if include_closed:
+                cursor.execute("""
+                    SELECT
+                        id, topic_code, title, scope, expected_outcome,
+                        deadline, status, cluster, action_type, budget_total,
+                        destination, portal_url, call_year,
+                        1 - (embedding <=> %s::vector) as similarity
+                    FROM funding_calls
+                    WHERE embedding IS NOT NULL
+                    AND 1 - (embedding <=> %s::vector) > %s
+                    ORDER BY embedding <=> %s::vector
+                    LIMIT %s
+                """, (embedding_list, embedding_list, similarity_threshold, embedding_list, num_results))
+            else:
+                cursor.execute("""
+                    SELECT
+                        id, topic_code, title, scope, expected_outcome,
+                        deadline, status, cluster, action_type, budget_total,
+                        destination, portal_url, call_year,
+                        1 - (embedding <=> %s::vector) as similarity
+                    FROM funding_calls
+                    WHERE embedding IS NOT NULL
+                    AND status != 'closed'
+                    AND (deadline IS NULL OR deadline >= CURRENT_DATE)
+                    AND 1 - (embedding <=> %s::vector) > %s
+                    ORDER BY embedding <=> %s::vector
+                    LIMIT %s
+                """, (embedding_list, embedding_list, similarity_threshold, embedding_list, num_results))
+
+            results = cursor.fetchall()
+            conn.close()
+
+            logger.info(f"🧠 Semantic search returned {len(results)} results for '{query}' (threshold={similarity_threshold})")
+
+            # Add semantic match indicator
+            for r in results:
+                r['match_type'] = 'semantic'
+                r['similarity_score'] = r.get('similarity', 0)
+
+            return [dict(r) for r in results]
+
+        except Exception as e:
+            logger.error(f"Semantic search failed: {e}")
+            return []
+
     def _format_structured_call(self, call: Dict[str, Any], enrich: bool = True) -> Dict[str, Any]:
         """
         Format a structured call result to match the expected output format.
@@ -508,14 +776,54 @@ class LocalCallSearchService:
                 call = {**call, **enriched}
                 logger.info(f"✅ Enriched {topic_code} successfully")
         
-        # Format deadline
-        deadline = call.get('deadline')
-        if deadline:
-            if hasattr(deadline, 'strftime'):
-                deadline = deadline.strftime('%d %B %Y')
-            else:
-                deadline = str(deadline)
-        
+        # Format deadline and normalize status based on actual deadline date
+        deadline_raw = call.get('deadline')
+        deadline_date = None
+        deadline_str = None
+
+        if deadline_raw:
+            # Parse deadline to date object for status check
+            try:
+                if isinstance(deadline_raw, date) and not isinstance(deadline_raw, datetime):
+                    # Already a date object
+                    deadline_date = deadline_raw
+                    deadline_str = deadline_raw.strftime('%d %B %Y')
+                elif isinstance(deadline_raw, datetime):
+                    # datetime object
+                    deadline_date = deadline_raw.date()
+                    deadline_str = deadline_raw.strftime('%d %B %Y')
+                elif hasattr(deadline_raw, 'strftime'):
+                    # Some other date-like object
+                    deadline_date = date(deadline_raw.year, deadline_raw.month, deadline_raw.day)
+                    deadline_str = deadline_raw.strftime('%d %B %Y')
+                else:
+                    # String - parse it
+                    deadline_str = str(deadline_raw)
+                    for fmt in ['%Y-%m-%d', '%d %B %Y', '%d/%m/%Y', '%Y-%m-%dT%H:%M:%S']:
+                        try:
+                            parsed = datetime.strptime(
+                                deadline_str.split('T')[0] if 'T' in deadline_str else deadline_str,
+                                fmt
+                            )
+                            deadline_date = parsed.date()
+                            # Reformat for display
+                            deadline_str = parsed.strftime('%d %B %Y')
+                            break
+                        except ValueError:
+                            continue
+            except Exception:
+                deadline_str = str(deadline_raw) if deadline_raw else None
+
+        deadline = deadline_str
+
+        # Normalize status: if deadline has passed, mark as closed regardless of stored status
+        status = call.get('status', 'unknown')
+        if deadline_date:
+            today = date.today()
+            if deadline_date < today:
+                status = 'closed'
+                logger.debug(f"Status corrected to 'closed' for {call.get('topic_code')} - deadline {deadline} has passed")
+
         # Format budget
         budget = call.get('budget_total')
         if budget:
@@ -538,7 +846,7 @@ class LocalCallSearchService:
             'action_type': call.get('action_type'),
             'budget': budget,
             'deadline': deadline,
-            'status': call.get('status'),
+            'status': status,  # Use normalized status (corrected by deadline)
             'relevance_score': 1.0,  # Structured results are always relevant
             'url': call.get('portal_url'),
             'call_year': call.get('call_year'),

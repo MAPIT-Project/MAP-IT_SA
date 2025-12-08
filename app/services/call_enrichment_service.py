@@ -111,13 +111,17 @@ class CallEnrichmentService:
         return enriched
     
     def _is_complete(self, call: Dict[str, Any]) -> bool:
-        """Check if call has all important fields."""
+        """Check if call has all important fields including deadline."""
         required_fields = ['scope', 'title']
-        
+
         for field in required_fields:
             if not call.get(field) or len(str(call[field])) < 20:
                 return False
-        
+
+        # Deadline is required for a call to be considered complete
+        if not call.get('deadline'):
+            return False
+
         return True
     
     def _needs_enrichment(self, call: Dict[str, Any]) -> bool:
@@ -126,13 +130,15 @@ class CallEnrichmentService:
         scope = call.get('scope') or call.get('description') or ''
         if len(scope) < 50:
             return True
-        
-        # Missing deadline for current/upcoming calls
+
+        # Missing deadline - ALWAYS need to enrich to get deadline
         if not call.get('deadline'):
-            year = call.get('call_year') or call.get('year')
-            if year and int(year) >= date.today().year:
-                return True
-        
+            return True
+
+        # Missing status
+        if not call.get('status'):
+            return True
+
         return False
     
     def _get_local_call(self, topic_code: str) -> Optional[Dict[str, Any]]:
@@ -193,32 +199,61 @@ class CallEnrichmentService:
                 if topic_data:
                     logger.info(f"✅ Got direct topic details for {topic_code}")
 
-                    # Extract deadline
+                    # Extract deadline and status from 'actions' field (primary source)
                     deadline = None
-                    deadline_model = topic_data.get('deadlineModel', [])
-                    if deadline_model and isinstance(deadline_model, list) and len(deadline_model) > 0:
-                        deadline_str = deadline_model[0].get('deadlineDate', '')
-                        if deadline_str:
-                            try:
-                                # Parse ISO format date
-                                if 'T' in deadline_str:
-                                    deadline = datetime.fromisoformat(deadline_str.replace('Z', '+00:00')).date()
-                                else:
-                                    deadline = datetime.strptime(deadline_str, '%Y-%m-%d').date()
-                            except Exception as e:
-                                logger.debug(f"Could not parse deadline: {e}")
+                    status = 'unknown'
+                    actions = topic_data.get('actions', [])
+                    if actions and isinstance(actions, list) and len(actions) > 0:
+                        action = actions[0]
 
-                    # Determine status from statusOfTopic
-                    status_data = topic_data.get('statusOfTopic', {})
-                    status_abbr = status_data.get('abbreviation', '').lower() if isinstance(status_data, dict) else str(status_data).lower()
-                    if 'open' in status_abbr:
-                        status = 'open'
-                    elif 'closed' in status_abbr:
-                        status = 'closed'
-                    elif 'forthcoming' in status_abbr or 'upcoming' in status_abbr:
-                        status = 'upcoming'
-                    else:
-                        status = 'closed'  # Default to closed for past calls
+                        # Get deadline from deadlineDates (Unix timestamp in milliseconds)
+                        deadline_dates = action.get('deadlineDates', [])
+                        if deadline_dates and len(deadline_dates) > 0:
+                            try:
+                                # Parse Unix timestamp (milliseconds)
+                                timestamp_ms = int(deadline_dates[0])
+                                deadline = datetime.fromtimestamp(timestamp_ms / 1000).date()
+                                logger.debug(f"Extracted deadline from actions: {deadline}")
+                            except Exception as e:
+                                logger.debug(f"Could not parse deadline timestamp: {e}")
+
+                        # Get status from action.status
+                        status_info = action.get('status', {})
+                        if isinstance(status_info, dict):
+                            status_abbr = status_info.get('abbreviation', '').lower()
+                            if 'open' in status_abbr:
+                                status = 'open'
+                            elif 'closed' in status_abbr:
+                                status = 'closed'
+                            elif 'forthcoming' in status_abbr or 'upcoming' in status_abbr:
+                                status = 'upcoming'
+
+                    # Fallback to deadlineModel if actions didn't have deadline
+                    if not deadline:
+                        deadline_model = topic_data.get('deadlineModel', [])
+                        if deadline_model and isinstance(deadline_model, list) and len(deadline_model) > 0:
+                            deadline_str = deadline_model[0].get('deadlineDate', '')
+                            if deadline_str:
+                                try:
+                                    if 'T' in deadline_str:
+                                        deadline = datetime.fromisoformat(deadline_str.replace('Z', '+00:00')).date()
+                                    else:
+                                        deadline = datetime.strptime(deadline_str, '%Y-%m-%d').date()
+                                except Exception as e:
+                                    logger.debug(f"Could not parse deadline from deadlineModel: {e}")
+
+                    # Fallback to statusOfTopic if actions didn't have status
+                    if status == 'unknown':
+                        status_data = topic_data.get('statusOfTopic', {})
+                        status_abbr = status_data.get('abbreviation', '').lower() if isinstance(status_data, dict) else str(status_data).lower()
+                        if 'open' in status_abbr:
+                            status = 'open'
+                        elif 'closed' in status_abbr:
+                            status = 'closed'
+                        elif 'forthcoming' in status_abbr or 'upcoming' in status_abbr:
+                            status = 'upcoming'
+                        else:
+                            status = 'closed'  # Default to closed for past calls
 
                     # Extract budget
                     budget = None

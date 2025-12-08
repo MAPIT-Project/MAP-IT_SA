@@ -284,7 +284,8 @@ class SpeculativeExecutor:
     async def get_speculative_result(
         self,
         tool_name: str,
-        timeout: float = 0.1
+        timeout: float = 0.1,
+        requested_params: Optional[Dict[str, Any]] = None
     ) -> Optional[Dict[str, Any]]:
         """
         Get result from speculative execution if available.
@@ -292,13 +293,22 @@ class SpeculativeExecutor:
         Args:
             tool_name: Name of the tool
             timeout: Max time to wait (default 100ms)
+            requested_params: Parameters being requested (for validation)
 
         Returns:
-            Result dict if ready, None otherwise
+            Result dict if ready and params are compatible, None otherwise
         """
         # Check if we already have a cached result
         if tool_name in self.speculation_results:
             cached = self.speculation_results[tool_name]
+            cached_params = cached.get('params', {})
+
+            # Validate that speculative params are compatible with requested params
+            # For search tools, keywords/query must overlap
+            if requested_params and not self._params_compatible(tool_name, cached_params, requested_params):
+                logger.debug(f"⚠️ Speculative params don't match for {tool_name}, skipping cache")
+                return None
+
             logger.info(f"🎯 Using cached speculative result for: {tool_name}")
             return cached
 
@@ -349,6 +359,53 @@ class SpeculativeExecutor:
         # Clear caches
         self.speculation_cache.clear()
         self.speculation_results.clear()
+
+    def _params_compatible(self, tool_name: str, cached_params: Dict, requested_params: Dict) -> bool:
+        """
+        Check if cached speculative params are compatible with requested params.
+
+        For search tools, we require significant keyword overlap.
+        """
+        # Search tools require keyword/query overlap
+        search_tools = {'search_funding_calls', 'search_projects', 'search_documents',
+                        'find_experienced_partners', 'get_similar_funded_projects'}
+
+        if tool_name in search_tools:
+            # Extract keywords from both param sets
+            cached_keywords = set()
+            requested_keywords = set()
+
+            for key in ['keywords', 'query', 'topic']:
+                cached_val = cached_params.get(key, '')
+                req_val = requested_params.get(key, '')
+
+                if isinstance(cached_val, list):
+                    cached_keywords.update(w.lower() for w in cached_val)
+                elif cached_val:
+                    cached_keywords.update(cached_val.lower().split())
+
+                if isinstance(req_val, list):
+                    requested_keywords.update(w.lower() for w in req_val)
+                elif req_val:
+                    requested_keywords.update(req_val.lower().split())
+
+            # Require at least 50% overlap or at least 2 common keywords
+            if not cached_keywords or not requested_keywords:
+                return False
+
+            overlap = cached_keywords & requested_keywords
+            overlap_ratio = len(overlap) / min(len(cached_keywords), len(requested_keywords))
+
+            if overlap_ratio < 0.5 and len(overlap) < 2:
+                logger.debug(f"Low keyword overlap ({overlap_ratio:.0%}): cached={cached_keywords}, requested={requested_keywords}")
+                return False
+
+        return True
+
+    def clear_results(self):
+        """Clear all cached speculation results. Call at start of new query."""
+        self.speculation_results.clear()
+        logger.debug("🗑️ Cleared speculative results cache")
 
     def get_speculation_stats(self) -> Dict[str, Any]:
         """Get statistics about speculative execution."""

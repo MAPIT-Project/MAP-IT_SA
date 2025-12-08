@@ -1448,11 +1448,15 @@ What is your next step? Remember: Output ONLY JSON."""
 
             # Extract calls info
             elif 'calls' in result and isinstance(result['calls'], list):
-                for call in result['calls'][:10]:
-                    title = call.get('title', '')
-                    call_id = call.get('topic_code', call.get('call_id', ''))
-                    if title or call_id:
-                        content_pieces.append(f"Call {call_id}: {title}")
+                if len(result['calls']) == 0:
+                    # Explicitly note that no calls were found
+                    content_pieces.append("No open funding calls were found matching your search criteria. This could mean:\n- There are currently no open calls in this topic area\n- Relevant calls may have already closed\n- Upcoming calls may not yet be announced\n\nConsider checking the Horizon Europe Funding & Tenders Portal for the latest information.")
+                else:
+                    for call in result['calls'][:10]:
+                        title = call.get('title', '')
+                        call_id = call.get('topic_code', call.get('call_id', ''))
+                        if title or call_id:
+                            content_pieces.append(f"Call {call_id}: {title}")
 
             # Extract budget calculation results
             elif result.get('tool_name') == 'calculate_budget' and result.get('success'):
@@ -1569,11 +1573,13 @@ Work Package Summary:
                 reasoning=reasoning
             )
 
-            # Check for speculative result first
+            # Check for speculative result first (with param validation)
             speculative_result = None
             if self.speculative_executor:
                 speculative_result = await self.speculative_executor.get_speculative_result(
-                    tool_name, timeout=0.2  # 200ms timeout for speculative results
+                    tool_name,
+                    timeout=0.2,  # 200ms timeout for speculative results
+                    requested_params=params  # Pass params for compatibility check
                 )
 
             if speculative_result and speculative_result.get('result') is not None:
