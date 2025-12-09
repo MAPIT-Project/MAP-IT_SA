@@ -1,50 +1,133 @@
 """
 Timeline Generator Tool for Horizon Europe Proposals.
 
+ENHANCED with Hybrid Graph+SQL Architecture:
+- Uses Neo4j graph database for real project duration patterns
+- Uses PostgreSQL for project examples and duration statistics
+- Parallel query execution for performance
+- Cluster inference from keywords
+- Real-data grounded duration and WP recommendations
+
 Generates realistic project timelines with work packages, deliverables,
 and milestones based on best practices from funded projects.
 """
 
+import os
 import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
+import psycopg2
+from psycopg2.extras import RealDictCursor
+from dotenv import load_dotenv
 
+load_dotenv()
 logger = logging.getLogger(__name__)
 
 
+# Cluster keyword mapping for automatic cluster inference
+CLUSTER_KEYWORDS = {
+    'CLUSTER-1': [
+        'health', 'medical', 'clinical', 'disease', 'patient', 'healthcare',
+        'hospital', 'therapy', 'diagnosis', 'pharmaceutical', 'cancer',
+        'vaccine', 'drug', 'pandemic', 'infection', 'mental health'
+    ],
+    'CLUSTER-2': [
+        'culture', 'democracy', 'social', 'heritage', 'creative', 'inclusive',
+        'society', 'governance', 'media', 'migration', 'education'
+    ],
+    'CLUSTER-3': [
+        'security', 'cybersecurity', 'border', 'crime', 'disaster',
+        'resilience', 'defence', 'terrorism', 'critical infrastructure'
+    ],
+    'CLUSTER-4': [
+        'digital', 'AI', 'artificial intelligence', 'data', 'industry',
+        'space', 'manufacturing', 'robotics', 'computing', 'machine learning',
+        'quantum', 'electronics', 'semiconductor', 'cloud', 'IoT'
+    ],
+    'CLUSTER-5': [
+        'climate', 'energy', 'mobility', 'transport', 'hydrogen', 'battery',
+        'renewable', 'green', 'carbon', 'solar', 'wind', 'electric vehicle',
+        'decarbonization', 'sustainability', 'smart grid', 'fuel cell'
+    ],
+    'CLUSTER-6': [
+        'food', 'agriculture', 'bioeconomy', 'biodiversity', 'ocean', 'marine',
+        'environment', 'soil', 'water', 'forestry', 'fisheries', 'farming'
+    ]
+}
+
+# Cluster code normalization
+CLUSTER_MAP = {
+    'CL1': 'CLUSTER-1', 'CLUSTER1': 'CLUSTER-1', 'CLUSTER-1': 'CLUSTER-1', 'HEALTH': 'CLUSTER-1',
+    'CL2': 'CLUSTER-2', 'CLUSTER2': 'CLUSTER-2', 'CLUSTER-2': 'CLUSTER-2', 'CULTURE': 'CLUSTER-2',
+    'CL3': 'CLUSTER-3', 'CLUSTER3': 'CLUSTER-3', 'CLUSTER-3': 'CLUSTER-3', 'SECURITY': 'CLUSTER-3',
+    'CL4': 'CLUSTER-4', 'CLUSTER4': 'CLUSTER-4', 'CLUSTER-4': 'CLUSTER-4', 'DIGITAL': 'CLUSTER-4',
+    'CL5': 'CLUSTER-5', 'CLUSTER5': 'CLUSTER-5', 'CLUSTER-5': 'CLUSTER-5', 'CLIMATE': 'CLUSTER-5',
+    'CL6': 'CLUSTER-6', 'CLUSTER6': 'CLUSTER-6', 'CLUSTER-6': 'CLUSTER-6', 'FOOD': 'CLUSTER-6',
+}
+
+# Cluster-specific WP customizations
+CLUSTER_WP_CUSTOMIZATIONS = {
+    'CLUSTER-1': {  # Health
+        'research': {'title': 'Clinical Research & Development', 'additional_deliverables': ['Clinical Protocol', 'Ethical Approval Report']},
+        'validation': {'title': 'Clinical Validation & Trials', 'additional_deliverables': ['Trial Results Report']},
+    },
+    'CLUSTER-4': {  # Digital
+        'research': {'title': 'AI/ML Model Development', 'additional_deliverables': ['Model Architecture Report', 'Training Dataset']},
+        'validation': {'title': 'System Integration & Testing', 'additional_deliverables': ['Integration Test Report']},
+    },
+    'CLUSTER-5': {  # Climate/Energy
+        'research': {'title': 'Technology Development & Optimization', 'additional_deliverables': ['Technical Specifications']},
+        'pilot': {'title': 'Pilot Demonstration & Scale-up', 'additional_deliverables': ['Pilot Site Selection Report', 'Scale-up Strategy']},
+    },
+    'CLUSTER-6': {  # Food/Bio
+        'research': {'title': 'Bio-based Development', 'additional_deliverables': ['Life Cycle Assessment']},
+        'pilot': {'title': 'Field Trials & Demonstration', 'additional_deliverables': ['Field Trial Protocol', 'Environmental Impact Assessment']},
+    },
+}
+
+
 class TimelineGeneratorTool:
-    """Generate project timelines based on Horizon Europe best practices."""
+    """
+    Generate project timelines based on Horizon Europe best practices.
+
+    ENHANCED with Hybrid Graph+SQL Architecture:
+    - Graph service (Neo4j) for real project duration patterns
+    - SQL service (PostgreSQL) for project examples and statistics
+    - Parallel query execution for performance
+    - Cluster inference from keywords
+    """
 
     # Typical WP structure by action type
     WP_TEMPLATES = {
         'RIA': [
-            {'title': 'Project Management', 'effort_pct': 0.08, 'full_duration': True},
-            {'title': 'Requirements & State of the Art', 'effort_pct': 0.12, 'months': (1, 12)},
-            {'title': 'Core Research & Development', 'effort_pct': 0.35, 'months': (6, -6)},
-            {'title': 'Integration & Validation', 'effort_pct': 0.20, 'months': (12, -3)},
-            {'title': 'Dissemination & Exploitation', 'effort_pct': 0.15, 'full_duration': True},
-            {'title': 'Ethics & Data Management', 'effort_pct': 0.10, 'full_duration': True},
+            {'title': 'Project Management', 'effort_pct': 0.08, 'full_duration': True, 'type': 'management'},
+            {'title': 'Requirements & State of the Art', 'effort_pct': 0.12, 'months': (1, 12), 'type': 'requirements'},
+            {'title': 'Core Research & Development', 'effort_pct': 0.35, 'months': (6, -6), 'type': 'research'},
+            {'title': 'Integration & Validation', 'effort_pct': 0.20, 'months': (12, -3), 'type': 'validation'},
+            {'title': 'Dissemination & Exploitation', 'effort_pct': 0.15, 'full_duration': True, 'type': 'dissemination'},
+            {'title': 'Ethics & Data Management', 'effort_pct': 0.10, 'full_duration': True, 'type': 'ethics'},
         ],
         'IA': [
-            {'title': 'Project Management', 'effort_pct': 0.08, 'full_duration': True},
-            {'title': 'Market Analysis & Requirements', 'effort_pct': 0.10, 'months': (1, 9)},
-            {'title': 'Technology Development', 'effort_pct': 0.30, 'months': (3, -9)},
-            {'title': 'Pilot Deployment', 'effort_pct': 0.25, 'months': (12, -6)},
-            {'title': 'Business Model & Scale-up', 'effort_pct': 0.12, 'months': (18, -3)},
-            {'title': 'Dissemination & Exploitation', 'effort_pct': 0.15, 'full_duration': True},
+            {'title': 'Project Management', 'effort_pct': 0.08, 'full_duration': True, 'type': 'management'},
+            {'title': 'Market Analysis & Requirements', 'effort_pct': 0.10, 'months': (1, 9), 'type': 'requirements'},
+            {'title': 'Technology Development', 'effort_pct': 0.30, 'months': (3, -9), 'type': 'research'},
+            {'title': 'Pilot Deployment', 'effort_pct': 0.25, 'months': (12, -6), 'type': 'pilot'},
+            {'title': 'Business Model & Scale-up', 'effort_pct': 0.12, 'months': (18, -3), 'type': 'business'},
+            {'title': 'Dissemination & Exploitation', 'effort_pct': 0.15, 'full_duration': True, 'type': 'dissemination'},
         ],
         'CSA': [
-            {'title': 'Project Management', 'effort_pct': 0.10, 'full_duration': True},
-            {'title': 'Stakeholder Engagement', 'effort_pct': 0.25, 'full_duration': True},
-            {'title': 'Analysis & Best Practices', 'effort_pct': 0.25, 'months': (1, 18)},
-            {'title': 'Policy Recommendations', 'effort_pct': 0.20, 'months': (12, -3)},
-            {'title': 'Communication & Outreach', 'effort_pct': 0.20, 'full_duration': True},
+            {'title': 'Project Management', 'effort_pct': 0.10, 'full_duration': True, 'type': 'management'},
+            {'title': 'Stakeholder Engagement', 'effort_pct': 0.25, 'full_duration': True, 'type': 'communication'},
+            {'title': 'Analysis & Best Practices', 'effort_pct': 0.25, 'months': (1, 18), 'type': 'research'},
+            {'title': 'Policy Recommendations', 'effort_pct': 0.20, 'months': (12, -3), 'type': 'validation'},
+            {'title': 'Communication & Outreach', 'effort_pct': 0.20, 'full_duration': True, 'type': 'dissemination'},
         ],
         'ERC': [
-            {'title': 'Research Direction 1', 'effort_pct': 0.35, 'full_duration': True},
-            {'title': 'Research Direction 2', 'effort_pct': 0.30, 'full_duration': True},
-            {'title': 'Cross-cutting Activities', 'effort_pct': 0.20, 'full_duration': True},
-            {'title': 'Scientific Coordination', 'effort_pct': 0.15, 'full_duration': True},
+            {'title': 'Research Direction 1', 'effort_pct': 0.35, 'full_duration': True, 'type': 'research'},
+            {'title': 'Research Direction 2', 'effort_pct': 0.30, 'full_duration': True, 'type': 'research'},
+            {'title': 'Cross-cutting Activities', 'effort_pct': 0.20, 'full_duration': True, 'type': 'research'},
+            {'title': 'Scientific Coordination', 'effort_pct': 0.15, 'full_duration': True, 'type': 'management'},
         ],
     }
 
@@ -66,6 +149,51 @@ class TimelineGeneratorTool:
         'CO': 'Confidential',
     }
 
+    def __init__(self):
+        """Initialize with database connection and graph service."""
+        self.db_url = os.getenv("DATABASE_URL")
+
+        # Initialize graph service with graceful fallback
+        self._graph_service = None
+        try:
+            from ..data_intelligence.graph_service import GraphSearchService
+            self._graph_service = GraphSearchService()
+            logger.info("✅ Graph service available for timeline generator")
+        except Exception as e:
+            logger.warning(f"⚠️ Graph service not available for timeline generator: {e}")
+
+    def _get_connection(self):
+        """Get database connection."""
+        if not self.db_url:
+            return None
+        return psycopg2.connect(self.db_url)
+
+    def _normalize_cluster_code(self, cluster: Optional[str]) -> Optional[str]:
+        """Normalize cluster code to CLUSTER-N format."""
+        if not cluster:
+            return None
+        cluster_upper = cluster.upper().replace(' ', '').replace('-', '')
+        if cluster_upper.startswith('CL') and len(cluster_upper) == 3:
+            cluster_upper = f"CLUSTER{cluster_upper[2]}"
+        return CLUSTER_MAP.get(cluster_upper, cluster.upper() if cluster.upper().startswith('CLUSTER-') else None)
+
+    def _infer_clusters_from_keywords(self, keywords: str) -> List[str]:
+        """Infer clusters from research topic keywords."""
+        if not keywords:
+            return []
+
+        keywords_lower = keywords.lower()
+        inferred = []
+
+        for cluster, kw_list in CLUSTER_KEYWORDS.items():
+            for kw in kw_list:
+                if kw.lower() in keywords_lower:
+                    if cluster not in inferred:
+                        inferred.append(cluster)
+                    break
+
+        return inferred
+
     def generate_timeline(
         self,
         action_type: str,
@@ -74,10 +202,20 @@ class TimelineGeneratorTool:
         total_person_months: int,
         project_title: str = "Project",
         custom_wps: Optional[List[Dict]] = None,
-        start_date: Optional[str] = None
+        start_date: Optional[str] = None,
+        cluster: Optional[str] = None,
+        topic_keywords: Optional[str] = None,
+        use_real_patterns: bool = True,
+        include_similar_projects: bool = True
     ) -> Dict[str, Any]:
         """
         Generate a project timeline with work packages, deliverables, and milestones.
+
+        ENHANCED with Hybrid Graph+SQL Architecture:
+        - Uses graph database for real project duration patterns
+        - Uses SQL for project examples and statistics
+        - Cluster inference from keywords
+        - Cluster-specific WP customizations
 
         Args:
             action_type: RIA, IA, CSA, ERC
@@ -87,6 +225,10 @@ class TimelineGeneratorTool:
             project_title: Project title for naming
             custom_wps: Optional custom WP definitions
             start_date: Optional start date (YYYY-MM-DD)
+            cluster: Cluster code for context (e.g., "CL5", "CLUSTER-5")
+            topic_keywords: Keywords for cluster inference
+            use_real_patterns: Use real project patterns from graph (default: True)
+            include_similar_projects: Include similar project examples (default: True)
 
         Returns:
             Complete timeline with WPs, deliverables, milestones, Gantt data
@@ -95,8 +237,329 @@ class TimelineGeneratorTool:
         if action_type.startswith('ERC'):
             action_type = 'ERC'
 
-        templates = custom_wps or self.WP_TEMPLATES.get(action_type, self.WP_TEMPLATES['RIA'])
+        # Normalize cluster or infer from keywords
+        normalized_cluster = self._normalize_cluster_code(cluster)
+        inferred_clusters = []
+        if not normalized_cluster and topic_keywords:
+            inferred_clusters = self._infer_clusters_from_keywords(topic_keywords)
+            if inferred_clusters:
+                normalized_cluster = inferred_clusters[0]
+                logger.info(f"Inferred cluster from keywords: {normalized_cluster}")
 
+        # Use hybrid approach if graph service available and real patterns requested
+        if self._graph_service and use_real_patterns:
+            return self._generate_timeline_hybrid(
+                action_type=action_type,
+                duration_months=duration_months,
+                num_partners=num_partners,
+                total_person_months=total_person_months,
+                project_title=project_title,
+                custom_wps=custom_wps,
+                start_date=start_date,
+                cluster=normalized_cluster,
+                inferred_clusters=inferred_clusters,
+                include_similar_projects=include_similar_projects
+            )
+
+        # Fallback to template-based generation
+        return self._generate_timeline_template(
+            action_type=action_type,
+            duration_months=duration_months,
+            num_partners=num_partners,
+            total_person_months=total_person_months,
+            project_title=project_title,
+            custom_wps=custom_wps,
+            start_date=start_date,
+            cluster=normalized_cluster
+        )
+
+    def _generate_timeline_hybrid(
+        self,
+        action_type: str,
+        duration_months: int,
+        num_partners: int,
+        total_person_months: int,
+        project_title: str,
+        custom_wps: Optional[List[Dict]],
+        start_date: Optional[str],
+        cluster: Optional[str],
+        inferred_clusters: List[str],
+        include_similar_projects: bool
+    ) -> Dict[str, Any]:
+        """
+        Hybrid Graph+SQL timeline generation with real project patterns.
+        """
+        results = {
+            'graph': {},
+            'sql': {}
+        }
+
+        # Execute graph and SQL queries in parallel
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            futures = {}
+
+            # Graph queries
+            if self._graph_service:
+                if cluster:
+                    futures['graph_duration_stats'] = executor.submit(
+                        self._get_graph_duration_statistics,
+                        cluster, action_type
+                    )
+
+                    futures['graph_examples'] = executor.submit(
+                        self._get_graph_project_examples,
+                        cluster, action_type
+                    )
+
+            # SQL queries
+            futures['sql_duration_stats'] = executor.submit(
+                self._get_sql_duration_statistics,
+                action_type, cluster
+            )
+
+            if include_similar_projects:
+                futures['sql_examples'] = executor.submit(
+                    self._get_sql_project_examples,
+                    action_type, cluster
+                )
+
+            # Collect results
+            for key, future in futures.items():
+                try:
+                    if key.startswith('graph_'):
+                        results['graph'][key.replace('graph_', '')] = future.result()
+                    else:
+                        results['sql'][key.replace('sql_', '')] = future.result()
+                except Exception as e:
+                    logger.warning(f"Query {key} failed: {e}")
+                    if key.startswith('graph_'):
+                        results['graph'][key.replace('graph_', '')] = None
+                    else:
+                        results['sql'][key.replace('sql_', '')] = None
+
+        # Generate timeline with enhanced data
+        return self._generate_with_real_patterns(
+            results=results,
+            action_type=action_type,
+            duration_months=duration_months,
+            num_partners=num_partners,
+            total_person_months=total_person_months,
+            project_title=project_title,
+            custom_wps=custom_wps,
+            start_date=start_date,
+            cluster=cluster,
+            inferred_clusters=inferred_clusters,
+            include_similar_projects=include_similar_projects
+        )
+
+    def _get_graph_duration_statistics(
+        self,
+        cluster: str,
+        action_type: Optional[str]
+    ) -> Optional[Dict]:
+        """Get duration statistics from graph database."""
+        if not self._graph_service:
+            return None
+
+        try:
+            # Get project examples with duration info
+            stats = self._graph_service.get_budget_statistics(
+                cluster_code=cluster,
+                action_type=action_type
+            )
+            if stats and len(stats) > 0:
+                return stats[0] if isinstance(stats, list) else stats
+            return None
+        except Exception as e:
+            logger.warning(f"Graph duration statistics query failed: {e}")
+            return None
+
+    def _get_graph_project_examples(
+        self,
+        cluster: str,
+        action_type: Optional[str]
+    ) -> Optional[List[Dict]]:
+        """Get project examples from graph database."""
+        if not self._graph_service:
+            return None
+
+        try:
+            examples = self._graph_service.get_project_examples(
+                cluster_code=cluster,
+                funding_scheme=action_type,
+                min_budget=500000,
+                limit=5
+            )
+            return examples
+        except Exception as e:
+            logger.warning(f"Graph project examples query failed: {e}")
+            return None
+
+    def _get_sql_duration_statistics(
+        self,
+        action_type: str,
+        cluster: Optional[str]
+    ) -> Optional[Dict]:
+        """Get duration statistics from SQL database."""
+        try:
+            conn = self._get_connection()
+            if conn:
+                cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+                scheme_pattern = f"%{action_type.replace('-', '%')}%"
+                params = [scheme_pattern]
+
+                cluster_filter = ""
+                if cluster:
+                    cl_code = cluster.replace('CLUSTER-', 'CL')
+                    cluster_filter = "AND topics ILIKE %s"
+                    params.append(f"%{cl_code}%")
+
+                cursor.execute(f"""
+                    SELECT
+                        AVG(EXTRACT(YEAR FROM age("endDate", "startDate")) * 12 +
+                            EXTRACT(MONTH FROM age("endDate", "startDate"))) as avg_duration,
+                        MIN(EXTRACT(YEAR FROM age("endDate", "startDate")) * 12 +
+                            EXTRACT(MONTH FROM age("endDate", "startDate"))) as min_duration,
+                        MAX(EXTRACT(YEAR FROM age("endDate", "startDate")) * 12 +
+                            EXTRACT(MONTH FROM age("endDate", "startDate"))) as max_duration,
+                        PERCENTILE_CONT(0.5) WITHIN GROUP (
+                            ORDER BY EXTRACT(YEAR FROM age("endDate", "startDate")) * 12 +
+                                     EXTRACT(MONTH FROM age("endDate", "startDate"))
+                        ) as median_duration,
+                        COUNT(*) as project_count
+                    FROM projects
+                    WHERE "frameworkProgramme" = 'HORIZON'
+                      AND "fundingScheme" ILIKE %s
+                      AND "startDate" IS NOT NULL
+                      AND "endDate" IS NOT NULL
+                      AND "endDate" > "startDate"
+                      {cluster_filter}
+                """, params)
+
+                row = cursor.fetchone()
+                cursor.close()
+                conn.close()
+
+                if row and row['avg_duration'] and row['project_count'] > 5:
+                    return {
+                        'avg_duration': float(row['avg_duration']),
+                        'min_duration': float(row['min_duration']) if row['min_duration'] else None,
+                        'max_duration': float(row['max_duration']) if row['max_duration'] else None,
+                        'median_duration': float(row['median_duration']) if row['median_duration'] else None,
+                        'project_count': int(row['project_count']),
+                        'source': 'sql'
+                    }
+        except Exception as e:
+            logger.warning(f"SQL duration statistics query failed: {e}")
+
+        return None
+
+    def _get_sql_project_examples(
+        self,
+        action_type: str,
+        cluster: Optional[str]
+    ) -> Optional[List[Dict]]:
+        """Get project examples from SQL database."""
+        try:
+            conn = self._get_connection()
+            if conn:
+                cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+                scheme_pattern = f"%{action_type.replace('-', '%')}%"
+                params = [scheme_pattern]
+
+                cluster_filter = ""
+                if cluster:
+                    cl_code = cluster.replace('CLUSTER-', 'CL')
+                    cluster_filter = "AND topics ILIKE %s"
+                    params.append(f"%{cl_code}%")
+
+                cursor.execute(f"""
+                    SELECT
+                        acronym,
+                        title,
+                        "ecMaxContribution" as budget,
+                        "fundingScheme" as action_type,
+                        topics,
+                        "startDate" as start_date,
+                        "endDate" as end_date,
+                        EXTRACT(YEAR FROM age("endDate", "startDate")) * 12 +
+                        EXTRACT(MONTH FROM age("endDate", "startDate")) as duration_months
+                    FROM projects
+                    WHERE "frameworkProgramme" = 'HORIZON'
+                      AND "fundingScheme" ILIKE %s
+                      AND "ecMaxContribution" > 500000
+                      AND "startDate" IS NOT NULL
+                      AND "endDate" IS NOT NULL
+                      {cluster_filter}
+                    ORDER BY "startDate" DESC NULLS LAST
+                    LIMIT 5
+                """, params)
+
+                rows = cursor.fetchall()
+                cursor.close()
+                conn.close()
+
+                return [
+                    {
+                        'acronym': r['acronym'],
+                        'title': r['title'][:80] + '...' if len(r['title']) > 80 else r['title'],
+                        'budget': float(r['budget']) if r['budget'] else 0,
+                        'action_type': r['action_type'],
+                        'duration_months': int(r['duration_months']) if r['duration_months'] else None,
+                        'start_date': str(r['start_date'])[:10] if r['start_date'] else None,
+                        'end_date': str(r['end_date'])[:10] if r['end_date'] else None
+                    }
+                    for r in rows
+                ]
+        except Exception as e:
+            logger.warning(f"SQL project examples query failed: {e}")
+
+        return None
+
+    def _generate_with_real_patterns(
+        self,
+        results: Dict[str, Any],
+        action_type: str,
+        duration_months: int,
+        num_partners: int,
+        total_person_months: int,
+        project_title: str,
+        custom_wps: Optional[List[Dict]],
+        start_date: Optional[str],
+        cluster: Optional[str],
+        inferred_clusters: List[str],
+        include_similar_projects: bool
+    ) -> Dict[str, Any]:
+        """Generate timeline with real project patterns from graph and SQL."""
+
+        # Get duration statistics
+        graph_stats = results['graph'].get('duration_stats')
+        sql_stats = results['sql'].get('duration_stats')
+
+        # Merge duration statistics
+        duration_context = None
+        if graph_stats or sql_stats:
+            avg_duration = None
+            if graph_stats and graph_stats.get('avg_duration'):
+                avg_duration = graph_stats.get('avg_duration')
+            elif sql_stats and sql_stats.get('avg_duration'):
+                avg_duration = sql_stats['avg_duration']
+
+            if avg_duration:
+                duration_context = {
+                    'avg_duration': round(avg_duration, 0),
+                    'median_duration': round(sql_stats.get('median_duration', avg_duration), 0) if sql_stats else round(avg_duration, 0),
+                    'typical_range': f"{int(sql_stats.get('min_duration', avg_duration * 0.7))}-{int(sql_stats.get('max_duration', avg_duration * 1.3))} months" if sql_stats else None,
+                    'project_count': sql_stats.get('project_count', 0) if sql_stats else 0,
+                    'your_duration_vs_typical': self._compare_duration(duration_months, avg_duration)
+                }
+
+        # Get WP templates (customized for cluster if available)
+        templates = custom_wps or self._get_cluster_customized_templates(action_type, cluster)
+
+        # Generate timeline using templates
         work_packages = []
         all_deliverables = []
         all_milestones = []
@@ -111,21 +574,22 @@ class TimelineGeneratorTool:
             else:
                 months = template.get('months', (1, duration_months))
                 start_month = months[0]
-                # Handle negative values (months from end)
                 end_month = duration_months + months[1] if months[1] < 0 else months[1]
                 end_month = min(end_month, duration_months)
 
             # Calculate effort
             effort = int(total_person_months * template['effort_pct'])
 
-            # Generate deliverables
+            # Generate deliverables (with cluster-specific additions)
             wp_deliverables, deliverable_counter = self._generate_deliverables(
                 wp_num=i,
                 wp_title=template['title'],
                 start_month=start_month,
                 end_month=end_month,
                 action_type=action_type,
-                counter_start=deliverable_counter
+                counter_start=deliverable_counter,
+                cluster=cluster,
+                wp_type=template.get('type')
             )
 
             # Generate milestones
@@ -154,11 +618,10 @@ class TimelineGeneratorTool:
             all_deliverables.extend(wp_deliverables)
             all_milestones.extend(wp_milestones)
 
-        # Sort deliverables and milestones by due date
+        # Sort and deduplicate
         all_deliverables.sort(key=lambda d: (d['due_month'], d['wp']))
         all_milestones.sort(key=lambda m: m['due_month'])
 
-        # Deduplicate milestones (same title at same month)
         seen_milestones = set()
         unique_milestones = []
         for m in all_milestones:
@@ -168,19 +631,230 @@ class TimelineGeneratorTool:
                 unique_milestones.append(m)
         all_milestones = unique_milestones
 
-        # Renumber milestones sequentially
         for i, m in enumerate(all_milestones, 1):
             m['id'] = f'MS{i}'
 
-        # Renumber deliverables sequentially for cleaner output
-        # Keep WP association but use sequential numbering
         for i, d in enumerate(all_deliverables, 1):
-            d['seq_id'] = f'D{i}'  # Add sequential ID for easy reference
+            d['seq_id'] = f'D{i}'
 
         # Generate Gantt chart data
         gantt_data = self._generate_gantt_data(work_packages, duration_months)
 
         # Calculate effort distribution
+        effort_distribution = {wp['title']: wp['effort_pms'] for wp in work_packages}
+
+        # Generate recommendations (enhanced with real data)
+        recommendations = self._generate_timeline_recommendations_hybrid(
+            work_packages=work_packages,
+            duration=duration_months,
+            action_type=action_type,
+            num_partners=num_partners,
+            duration_context=duration_context,
+            cluster=cluster
+        )
+
+        # Build response
+        response = {
+            "success": True,
+            "tool_name": "generate_timeline",
+            "project_title": project_title,
+            "parameters": {
+                "action_type": action_type,
+                "duration_months": duration_months,
+                "num_partners": num_partners,
+                "total_person_months": total_person_months,
+                "start_date": start_date,
+                "cluster": cluster
+            },
+            "work_packages": work_packages,
+            "deliverables": all_deliverables,
+            "milestones": all_milestones,
+            "gantt_data": gantt_data,
+            "summary": {
+                "total_wps": len(work_packages),
+                "total_deliverables": len(all_deliverables),
+                "total_milestones": len(all_milestones),
+                "effort_distribution": effort_distribution,
+                "deliverables_by_type": self._count_by_type(all_deliverables),
+            },
+            "recommendations": recommendations,
+            "metadata": {
+                "search_type": "hybrid",
+                "sources_used": [],
+                "cluster_used": cluster,
+                "inferred_clusters": inferred_clusters,
+                "templates_customized": cluster is not None
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+
+        # Track sources used
+        if graph_stats or results['graph'].get('examples'):
+            response["metadata"]["sources_used"].append("graph")
+        if sql_stats or results['sql'].get('examples'):
+            response["metadata"]["sources_used"].append("sql")
+
+        # Add duration context
+        if duration_context:
+            response["duration_context"] = duration_context
+
+        # Add similar projects
+        if include_similar_projects:
+            graph_examples = results['graph'].get('examples', [])
+            sql_examples = results['sql'].get('examples', [])
+
+            all_examples = []
+            seen_acronyms = set()
+
+            for ex in (graph_examples or []):
+                if ex.get('acronym') and ex['acronym'] not in seen_acronyms:
+                    all_examples.append({
+                        'acronym': ex.get('acronym'),
+                        'title': ex.get('title', '')[:80],
+                        'budget': ex.get('budget', 0),
+                        'duration_months': ex.get('duration'),
+                        'source': 'graph'
+                    })
+                    seen_acronyms.add(ex['acronym'])
+
+            for ex in (sql_examples or []):
+                if ex.get('acronym') and ex['acronym'] not in seen_acronyms:
+                    all_examples.append({
+                        'acronym': ex.get('acronym'),
+                        'title': ex.get('title', ''),
+                        'budget': ex.get('budget', 0),
+                        'duration_months': ex.get('duration_months'),
+                        'source': 'sql'
+                    })
+                    seen_acronyms.add(ex['acronym'])
+
+            if all_examples:
+                response["similar_projects"] = all_examples[:5]
+
+        return response
+
+    def _get_cluster_customized_templates(
+        self,
+        action_type: str,
+        cluster: Optional[str]
+    ) -> List[Dict]:
+        """Get WP templates customized for the cluster."""
+        base_templates = self.WP_TEMPLATES.get(action_type, self.WP_TEMPLATES['RIA'])
+
+        if not cluster or cluster not in CLUSTER_WP_CUSTOMIZATIONS:
+            return base_templates
+
+        customizations = CLUSTER_WP_CUSTOMIZATIONS[cluster]
+        customized = []
+
+        for template in base_templates:
+            wp_type = template.get('type', 'default')
+            if wp_type in customizations:
+                custom = template.copy()
+                custom['title'] = customizations[wp_type].get('title', template['title'])
+                custom['additional_deliverables'] = customizations[wp_type].get('additional_deliverables', [])
+                customized.append(custom)
+            else:
+                customized.append(template)
+
+        return customized
+
+    def _compare_duration(self, user_duration: int, avg_duration: float) -> str:
+        """Compare user's duration to average."""
+        if user_duration < avg_duration * 0.7:
+            return "shorter than typical"
+        elif user_duration > avg_duration * 1.3:
+            return "longer than typical"
+        else:
+            return "within typical range"
+
+    def _generate_timeline_template(
+        self,
+        action_type: str,
+        duration_months: int,
+        num_partners: int,
+        total_person_months: int,
+        project_title: str,
+        custom_wps: Optional[List[Dict]],
+        start_date: Optional[str],
+        cluster: Optional[str]
+    ) -> Dict[str, Any]:
+        """Template-based timeline generation (fallback)."""
+        templates = custom_wps or self._get_cluster_customized_templates(action_type, cluster)
+
+        work_packages = []
+        all_deliverables = []
+        all_milestones = []
+        deliverable_counter = 1
+        milestone_counter = 1
+
+        for i, template in enumerate(templates, 1):
+            if template.get('full_duration'):
+                start_month = 1
+                end_month = duration_months
+            else:
+                months = template.get('months', (1, duration_months))
+                start_month = months[0]
+                end_month = duration_months + months[1] if months[1] < 0 else months[1]
+                end_month = min(end_month, duration_months)
+
+            effort = int(total_person_months * template['effort_pct'])
+
+            wp_deliverables, deliverable_counter = self._generate_deliverables(
+                wp_num=i,
+                wp_title=template['title'],
+                start_month=start_month,
+                end_month=end_month,
+                action_type=action_type,
+                counter_start=deliverable_counter,
+                cluster=cluster,
+                wp_type=template.get('type')
+            )
+
+            wp_milestones, milestone_counter = self._generate_milestones(
+                wp_num=i,
+                wp_title=template['title'],
+                start_month=start_month,
+                end_month=end_month,
+                counter_start=milestone_counter
+            )
+
+            wp = {
+                'number': i,
+                'title': template['title'],
+                'lead': f'Partner {((i - 1) % num_partners) + 1}',
+                'start_month': start_month,
+                'end_month': end_month,
+                'duration_months': end_month - start_month + 1,
+                'effort_pms': effort,
+                'effort_percentage': round(template['effort_pct'] * 100, 1),
+                'deliverables': wp_deliverables,
+                'milestones': wp_milestones,
+            }
+
+            work_packages.append(wp)
+            all_deliverables.extend(wp_deliverables)
+            all_milestones.extend(wp_milestones)
+
+        all_deliverables.sort(key=lambda d: (d['due_month'], d['wp']))
+        all_milestones.sort(key=lambda m: m['due_month'])
+
+        seen_milestones = set()
+        unique_milestones = []
+        for m in all_milestones:
+            key = (m['title'], m['due_month'])
+            if key not in seen_milestones:
+                seen_milestones.add(key)
+                unique_milestones.append(m)
+        all_milestones = unique_milestones
+
+        for i, m in enumerate(all_milestones, 1):
+            m['id'] = f'MS{i}'
+
+        for i, d in enumerate(all_deliverables, 1):
+            d['seq_id'] = f'D{i}'
+
+        gantt_data = self._generate_gantt_data(work_packages, duration_months)
         effort_distribution = {wp['title']: wp['effort_pms'] for wp in work_packages}
 
         return {
@@ -208,6 +882,10 @@ class TimelineGeneratorTool:
             "recommendations": self._generate_timeline_recommendations(
                 work_packages, duration_months, action_type, num_partners
             ),
+            "metadata": {
+                "search_type": "template_only",
+                "sources_used": ["template"]
+            },
             "timestamp": datetime.now().isoformat()
         }
 
@@ -218,15 +896,16 @@ class TimelineGeneratorTool:
         start_month: int,
         end_month: int,
         action_type: str,
-        counter_start: int
+        counter_start: int,
+        cluster: Optional[str] = None,
+        wp_type: Optional[str] = None
     ) -> tuple[List[Dict], int]:
         """Generate typical deliverables for a WP."""
         deliverables = []
         duration = end_month - start_month
         counter = counter_start
 
-        # Deliverable templates by WP type
-        wp_type = self._classify_wp_type(wp_title)
+        wp_type = wp_type or self._classify_wp_type(wp_title)
 
         deliverable_templates = {
             'management': [
@@ -253,6 +932,10 @@ class TimelineGeneratorTool:
                 {'title': 'Pilot Setup Report', 'type': 'R', 'level': 'CO', 'timing': 'mid'},
                 {'title': 'Pilot Evaluation Report', 'type': 'R', 'level': 'PU', 'timing': 'late'},
             ],
+            'business': [
+                {'title': 'Business Model Canvas', 'type': 'R', 'level': 'CO', 'timing': 'mid'},
+                {'title': 'Exploitation Plan', 'type': 'R', 'level': 'CO', 'timing': 'late'},
+            ],
             'dissemination': [
                 {'title': 'Dissemination and Exploitation Plan', 'type': 'R', 'level': 'PU', 'timing': 'early'},
                 {'title': 'Final Dissemination Report', 'type': 'R', 'level': 'PU', 'timing': 'final'},
@@ -273,7 +956,6 @@ class TimelineGeneratorTool:
         templates = deliverable_templates.get(wp_type, deliverable_templates['default'])
 
         for template in templates:
-            # Calculate due month based on timing
             if template['timing'] == 'early':
                 due_month = start_month + max(duration // 4, 3)
             elif template['timing'] == 'mid':
@@ -283,7 +965,6 @@ class TimelineGeneratorTool:
             elif template['timing'] == 'final':
                 due_month = end_month
             elif template['timing'] == 'periodic':
-                # Add periodic reports (every 12 months if long enough)
                 for period in range(12, duration + 1, 12):
                     deliverables.append({
                         'id': f'D{wp_num}.{counter}',
@@ -349,7 +1030,10 @@ class TimelineGeneratorTool:
                 {'title': 'Pilot Operational', 'timing': 'mid'},
                 {'title': 'Pilot Evaluation Completed', 'timing': 'end'},
             ],
-            'dissemination': [],  # Usually no specific milestones
+            'business': [
+                {'title': 'Business Model Validated', 'timing': 'end'},
+            ],
+            'dissemination': [],
             'default': [],
         }
 
@@ -377,13 +1061,9 @@ class TimelineGeneratorTool:
         return milestones, counter
 
     def _classify_wp_type(self, wp_title: str) -> str:
-        """Classify WP type based on title.
-
-        Order matters - more specific patterns checked first.
-        """
+        """Classify WP type based on title."""
         title_lower = wp_title.lower()
 
-        # Check specific patterns first (before generic 'management')
         if 'ethics' in title_lower or 'data management' in title_lower:
             return 'ethics'
         elif 'project management' in title_lower or 'coordination' in title_lower:
@@ -401,7 +1081,7 @@ class TimelineGeneratorTool:
         elif 'communication' in title_lower or 'outreach' in title_lower or 'stakeholder' in title_lower:
             return 'communication'
         elif 'market' in title_lower or 'business' in title_lower or 'scale' in title_lower:
-            return 'pilot'  # Business/market activities treated like pilot
+            return 'business'
         else:
             return 'default'
 
@@ -410,14 +1090,12 @@ class TimelineGeneratorTool:
         gantt_rows = []
 
         for wp in work_packages:
-            # Create a row for each WP
             row = {
                 'id': f'WP{wp["number"]}',
                 'label': f'WP{wp["number"]}: {wp["title"]}',
                 'start_month': wp['start_month'],
                 'end_month': wp['end_month'],
                 'effort': wp['effort_pms'],
-                # Create a visual bar representation
                 'bar': self._create_text_bar(wp['start_month'], wp['end_month'], duration)
             }
             gantt_rows.append(row)
@@ -442,7 +1120,6 @@ class TimelineGeneratorTool:
         """Identify project phases based on WP overlap patterns."""
         phases = []
 
-        # Simple phase detection based on typical project structure
         if duration >= 36:
             phases = [
                 {'name': 'Phase 1: Foundation', 'start': 1, 'end': 12},
@@ -477,10 +1154,9 @@ class TimelineGeneratorTool:
         action_type: str,
         num_partners: int
     ) -> List[str]:
-        """Generate recommendations for the timeline."""
+        """Generate recommendations for the timeline (template-based)."""
         recommendations = []
 
-        # Check WP count
         wp_count = len(work_packages)
         if wp_count < 4:
             recommendations.append(
@@ -493,7 +1169,6 @@ class TimelineGeneratorTool:
                 "Consider consolidating for easier management"
             )
 
-        # Check duration alignment
         typical_durations = {'RIA': (36, 48), 'IA': (36, 48), 'CSA': (24, 36), 'ERC': (60, 60)}
         typical = typical_durations.get(action_type, (36, 48))
 
@@ -508,7 +1183,6 @@ class TimelineGeneratorTool:
                 "Strong justification may be needed"
             )
 
-        # Check for WP overlap
         research_wps = [wp for wp in work_packages if 'research' in wp['title'].lower() or 'development' in wp['title'].lower()]
         if research_wps:
             avg_start = sum(wp['start_month'] for wp in research_wps) / len(research_wps)
@@ -518,7 +1192,6 @@ class TimelineGeneratorTool:
                     "Consider allowing time for requirements analysis first"
                 )
 
-        # Check deliverable distribution
         total_dels = sum(len(wp['deliverables']) for wp in work_packages)
         dels_per_year = total_dels / (duration / 12)
         if dels_per_year > 15:
@@ -532,7 +1205,6 @@ class TimelineGeneratorTool:
                 "Consider adding intermediate deliverables for progress tracking"
             )
 
-        # Partner involvement
         if num_partners > wp_count:
             recommendations.append(
                 f"More partners ({num_partners}) than WPs ({wp_count}). "
@@ -540,6 +1212,95 @@ class TimelineGeneratorTool:
             )
 
         return recommendations
+
+    def _generate_timeline_recommendations_hybrid(
+        self,
+        work_packages: List[Dict],
+        duration: int,
+        action_type: str,
+        num_partners: int,
+        duration_context: Optional[Dict],
+        cluster: Optional[str]
+    ) -> List[str]:
+        """Generate recommendations enhanced with real data."""
+        recommendations = []
+
+        # Duration comparison with real data
+        if duration_context:
+            comparison = duration_context.get('your_duration_vs_typical', 'within typical range')
+            avg_dur = duration_context.get('avg_duration', duration)
+
+            if comparison == "shorter than typical":
+                recommendations.append(
+                    f"Your duration ({duration} months) is shorter than typical for this type "
+                    f"(avg: {avg_dur:.0f} months based on {duration_context.get('project_count', 'N/A')} projects). "
+                    "Ensure scope is achievable"
+                )
+            elif comparison == "longer than typical":
+                recommendations.append(
+                    f"Your duration ({duration} months) is longer than typical "
+                    f"(avg: {avg_dur:.0f} months). Strong justification may be needed"
+                )
+            else:
+                recommendations.append(
+                    f"Duration ({duration} months) is within typical range for similar projects"
+                )
+        else:
+            # Fallback to template-based duration check
+            typical_durations = {'RIA': (36, 48), 'IA': (36, 48), 'CSA': (24, 36), 'ERC': (60, 60)}
+            typical = typical_durations.get(action_type, (36, 48))
+            if duration < typical[0]:
+                recommendations.append(
+                    f"Duration ({duration} months) is shorter than typical for {action_type}"
+                )
+            elif duration > typical[1]:
+                recommendations.append(
+                    f"Duration ({duration} months) exceeds typical for {action_type}"
+                )
+
+        # WP count recommendations
+        wp_count = len(work_packages)
+        if wp_count < 4:
+            recommendations.append(
+                f"Consider adding more work packages (currently {wp_count}). "
+                "Typical projects have 5-7 WPs"
+            )
+        elif wp_count > 10:
+            recommendations.append(
+                f"High number of work packages ({wp_count}). Consider consolidating"
+            )
+
+        # Deliverable density
+        total_dels = sum(len(wp['deliverables']) for wp in work_packages)
+        dels_per_year = total_dels / (duration / 12)
+        if dels_per_year > 15:
+            recommendations.append(
+                f"High deliverable density ({dels_per_year:.1f}/year). Consider spacing"
+            )
+        elif dels_per_year < 5:
+            recommendations.append(
+                f"Low deliverable density ({dels_per_year:.1f}/year). Consider adding intermediate deliverables"
+            )
+
+        # Partner/WP balance
+        if num_partners > wp_count:
+            recommendations.append(
+                f"More partners ({num_partners}) than WPs ({wp_count}). "
+                "Ensure all partners have meaningful roles"
+            )
+
+        # Cluster-specific advice
+        if cluster:
+            cluster_tips = {
+                'CLUSTER-1': "Health projects: Allow time for ethics approvals and clinical protocols",
+                'CLUSTER-4': "Digital projects: Plan for iterative development and testing cycles",
+                'CLUSTER-5': "Climate/Energy projects: Include buffer time for pilot site deployment",
+                'CLUSTER-6': "Food/Bio projects: Account for seasonal constraints in field trials",
+            }
+            if cluster in cluster_tips:
+                recommendations.append(cluster_tips[cluster])
+
+        return recommendations[:6]
 
 
 # Async wrapper for tool orchestrator compatibility
@@ -549,6 +1310,12 @@ async def generate_timeline_execute(params: Dict[str, Any], context: Dict[str, A
 
     This tool generates project timelines with work packages, deliverables,
     and milestones for Horizon Europe proposals.
+
+    ENHANCED with Hybrid Graph+SQL Architecture for:
+    - Real project duration patterns from funded projects
+    - Cluster-specific WP customizations
+    - Duration benchmarks from similar projects
+    - Similar project examples for reference
     """
     tool = TimelineGeneratorTool()
 
@@ -559,5 +1326,9 @@ async def generate_timeline_execute(params: Dict[str, Any], context: Dict[str, A
         total_person_months=params.get('total_person_months', 300),
         project_title=params.get('project_title', 'Project'),
         custom_wps=params.get('custom_wps'),
-        start_date=params.get('start_date')
+        start_date=params.get('start_date'),
+        cluster=params.get('cluster'),
+        topic_keywords=params.get('topic_keywords'),
+        use_real_patterns=params.get('use_real_patterns', True),
+        include_similar_projects=params.get('include_similar_projects', True)
     )

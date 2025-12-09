@@ -488,7 +488,7 @@ These tools help users improve proposal quality using **real data from 13,865+ f
 | `get_budget_benchmark` | Get budget statistics (HYBRID: Graph+SQL with weighted fusion) | `action_type`, `cluster`, `topic_keywords`, `include_org_type_breakdown`, `include_country_breakdown` |
 | `get_consortium_patterns` | Analyze consortium composition patterns (HYBRID: Graph+SQL with parallel queries) | `action_type`, `cluster`, `topic_keywords`, `include_successful_templates`, `include_coordinator_analysis` |
 | `find_experienced_partners` | Find organizations with track record (HYBRID: Graph+SQL with RRF fusion) | `keywords`, `country` (optional), `org_type` (optional), `limit` |
-| `get_similar_funded_projects` | Find semantically similar funded projects using embeddings | `query`, `action_type` (optional), `cluster` (optional), `limit` |
+| `get_similar_funded_projects` | Find semantically similar funded projects (HYBRID: Vector+Graph with combined scoring) | `description`, `cluster` (optional), `action_type` (optional), `limit`, `rerank_with_graph`, `include_graph_context` |
 | `analyze_call_history` | Analyze historical funding patterns (HYBRID: Graph+SQL with topic evolution) | `topic_pattern`, `cluster`, `keywords`, `year_from`, `year_to`, `include_topic_evolution`, `include_cluster_trends` |
 
 **Examples:**
@@ -545,12 +545,19 @@ find_experienced_partners(keywords='hydrogen fuel cells', country='Germany', org
 #   }
 # }
 
-# Similar projects - "Show funded projects like my AI healthcare idea"
-get_similar_funded_projects(query='AI diagnostic imaging for early cancer detection', limit=5)
+# Similar projects - "Show funded projects like my AI healthcare idea" (HYBRID: Vector+Graph)
+get_similar_funded_projects(description='AI diagnostic imaging for early cancer detection', limit=5, rerank_with_graph=True)
 # Returns: {
 #   "similar_projects": [
-#     {"acronym": "AISCREEN", "similarity_score": 0.67, "objective": "...", ...}
-#   ]
+#     {"acronym": "AISCREEN", "similarity_score": 0.67, "combined_score": 0.72,
+#      "graph_context": {"similar_projects_in_cluster": 12}, ...}
+#   ],
+#   "metadata": {
+#     "search_type": "hybrid",
+#     "sources_used": ["vector", "graph"],
+#     "reranked_with_graph": true,
+#     "inferred_clusters": ["CLUSTER-1", "CLUSTER-4"]
+#   }
 # }
 
 # Call history - "What got funded in Cluster 4 over the years?" (HYBRID: Graph+SQL)
@@ -606,6 +613,7 @@ The proposal support tools use a hybrid architecture for optimal results:
 | `get_consortium_patterns` | Weighted (60% SQL, 40% Graph) | Successful templates, coordinator analysis |
 | `analyze_call_history` | Merge with max values | Topic evolution, cluster trends, cluster statistics |
 | `calculate_budget` | Graph priority with SQL fallback | Cluster context, similar projects, data-grounded ratios |
+| `generate_timeline` | SQL duration stats with graph examples | Duration context, cluster-specific WPs, real project examples |
 
 ---
 

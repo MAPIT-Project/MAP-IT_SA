@@ -106,7 +106,7 @@ The system has 20 tools available for the multi-tool agent:
 
 **Proposal Planning Tools (NEW):**
 - `calculate_budget`: Generate detailed budget breakdown for a proposal (HYBRID: Graph+SQL with cluster context, similar projects, real-data grounded recommendations)
-- `generate_timeline`: Create project timeline with work packages, deliverables, and milestones
+- `generate_timeline`: Create project timeline with work packages, deliverables, and milestones (HYBRID: Graph+SQL with duration patterns, cluster-specific WPs, real project examples)
 
 ### Key Services
 
@@ -546,6 +546,98 @@ The Budget Calculator Tool uses a **hybrid Graph+SQL architecture** for budget p
     "search_type": "hybrid",
     "sources_used": ["graph", "sql"],
     "cluster_used": "CLUSTER-5",
+    "inferred_clusters": ["CLUSTER-5"]
+  }
+}
+```
+
+### Timeline Generator Tool (generate_timeline)
+The Timeline Generator Tool uses a **hybrid Graph+SQL architecture** for timeline planning:
+
+**Architecture:**
+- **Graph Service (Neo4j)**: Duration patterns, project examples from similar funded projects
+  - Budget statistics used as proxy for project scope
+  - Project examples with duration information
+- **SQL Service (PostgreSQL)**: Detailed duration statistics
+  - Average, min, max, median project durations
+  - Project examples with actual start/end dates
+- **Parallel Queries**: Graph and SQL queries execute in parallel via ThreadPoolExecutor
+
+**Features:**
+- **Cluster Inference**: Keywords automatically mapped to Horizon Europe clusters
+- **Cluster-Specific WP Customization**: WP titles adjusted for cluster context (e.g., "Clinical Research & Development" for Health)
+- **Duration Context**: Real-data comparison of user's duration vs typical
+- **Similar Projects**: Real project examples for reference
+
+**New Parameters:**
+- `cluster`: Cluster code for context (e.g., "CL5", "CLUSTER-5")
+- `topic_keywords`: Keywords for cluster inference
+- `use_real_patterns`: Use real project patterns from graph (default: True)
+- `include_similar_projects`: Include similar project examples (default: True)
+
+**Cluster-Specific WP Customizations:**
+- CLUSTER-1 (Health): "Clinical Research & Development", "Clinical Validation & Trials"
+- CLUSTER-4 (Digital): "AI/ML Model Development", "System Integration & Testing"
+- CLUSTER-5 (Climate): "Technology Development & Optimization", "Pilot Demonstration & Scale-up"
+- CLUSTER-6 (Food/Bio): "Bio-based Development", "Field Trials & Demonstration"
+
+**Response Metadata:**
+```json
+{
+  "success": true,
+  "work_packages": [...],
+  "deliverables": [...],
+  "milestones": [...],
+  "duration_context": {"avg_duration": 41, "your_duration_vs_typical": "within typical range"},
+  "similar_projects": [{"acronym": "...", "duration_months": 36, ...}],
+  "metadata": {
+    "search_type": "hybrid",
+    "sources_used": ["graph", "sql"],
+    "cluster_used": "CLUSTER-5",
+    "templates_customized": true
+  }
+}
+```
+
+### Similar Projects Tool (find_similar_projects / get_similar_funded_projects)
+The Similar Projects Tool uses a **hybrid Vector+Graph architecture** for semantic similarity search:
+
+**Architecture:**
+- **Vector Service (pgvector)**: Primary semantic similarity via 768-dim embeddings (Google text-embedding-004)
+- **Graph Service (Neo4j)**: Context enhancement and reranking signals
+  - Cluster-based similar project counts
+  - Consortium size and structure analysis
+  - Cross-project relationship discovery
+
+**Features:**
+- **Cluster Inference**: Automatic cluster detection from description keywords
+- **Graph Reranking**: Combined scoring using embedding similarity (75%) + graph signals
+- **Context Enhancement**: Adds graph-based project metadata (cluster, similar count)
+- **Filtering**: Support for cluster, action type, budget range, year filters
+
+**Combined Scoring Formula:**
+```python
+combined_score = (
+    embedding_score * 0.75 +      # Semantic similarity (primary)
+    graph_score * 0.10 +          # Similar projects in cluster
+    consortium_score * 0.10 +     # Consortium size signal
+    budget_score * 0.05           # Budget size signal
+)
+```
+
+**New Parameters:**
+- `rerank_with_graph`: Enable graph-based reranking (default: True)
+- `include_graph_context`: Include graph-enhanced details (default: True)
+
+**Response Metadata:**
+```json
+{
+  "success": true,
+  "similar_projects": [...],
+  "metadata": {
+    "search_type": "hybrid",
+    "sources_used": ["vector", "graph"],
+    "reranked_with_graph": true,
     "inferred_clusters": ["CLUSTER-5"]
   }
 }
