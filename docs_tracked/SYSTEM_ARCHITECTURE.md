@@ -486,10 +486,10 @@ These tools help users improve proposal quality using **real data from 13,865+ f
 | Tool | Description | Parameters |
 |------|-------------|------------|
 | `get_budget_benchmark` | Get budget statistics (HYBRID: Graph+SQL with weighted fusion) | `action_type`, `cluster`, `topic_keywords`, `include_org_type_breakdown`, `include_country_breakdown` |
-| `get_consortium_patterns` | Analyze consortium composition patterns | `action_type`, `cluster` (optional) |
+| `get_consortium_patterns` | Analyze consortium composition patterns (HYBRID: Graph+SQL with parallel queries) | `action_type`, `cluster`, `topic_keywords`, `include_successful_templates`, `include_coordinator_analysis` |
 | `find_experienced_partners` | Find organizations with track record (HYBRID: Graph+SQL with RRF fusion) | `keywords`, `country` (optional), `org_type` (optional), `limit` |
 | `get_similar_funded_projects` | Find semantically similar funded projects using embeddings | `query`, `action_type` (optional), `cluster` (optional), `limit` |
-| `analyze_call_history` | Analyze historical funding patterns for topics/clusters | `topic_pattern` (optional), `cluster` (optional), `keywords` (optional), `year_from`, `year_to` |
+| `analyze_call_history` | Analyze historical funding patterns (HYBRID: Graph+SQL with topic evolution) | `topic_pattern`, `cluster`, `keywords`, `year_from`, `year_to`, `include_topic_evolution`, `include_cluster_trends` |
 
 **Examples:**
 ```python
@@ -511,13 +511,20 @@ get_budget_benchmark(action_type='RIA', cluster='CL5', include_org_type_breakdow
 #   "budget_by_org_type": [{"org_type": "REC", "percentage_of_total": 34.0, ...}, ...]
 # }
 
-# Consortium patterns - "What's the typical makeup of Health IAs?"
-get_consortium_patterns(action_type='IA', cluster='HLTH')
+# Consortium patterns - "What's the typical makeup of Health IAs?" (HYBRID: Graph+SQL)
+get_consortium_patterns(action_type='IA', cluster='HLTH', include_successful_templates=True, include_coordinator_analysis=True)
 # Returns: {
-#   "total_projects": 89,
+#   "success": true,
+#   "consortium_size": {"avg_partners": 12.5, "avg_countries": 8.2},
 #   "org_type_distribution": {"HES": 35%, "REC": 28%, "PRC": 22%, "OTH": 15%},
 #   "country_distribution": {"Germany": 18%, "France": 14%, ...},
-#   "coordinator_profile": {"avg_experience": 4.2, "top_countries": [...]}
+#   "successful_templates": [{"project_acronym": "...", "budget": ..., "partner_count": 15, ...}],
+#   "coordinator_analysis": {"top_coordinators": [...]},
+#   "metadata": {
+#     "search_type": "hybrid",
+#     "sources_used": ["graph", "sql"],
+#     "inferred_clusters": []
+#   }
 # }
 
 # Partner discovery - "Find German SMEs with hydrogen experience" (HYBRID: Graph+SQL)
@@ -546,15 +553,34 @@ get_similar_funded_projects(query='AI diagnostic imaging for early cancer detect
 #   ]
 # }
 
-# Call history - "What got funded in Cluster 4 over the years?"
-analyze_call_history(cluster='CL4', year_from=2021, year_to=2025)
+# Call history - "What got funded in Cluster 4 over the years?" (HYBRID: Graph+SQL)
+analyze_call_history(cluster='CL4', year_from=2021, year_to=2025, include_topic_evolution=True, include_cluster_trends=True)
 # Returns: {
-#   "cluster": "CL4 - Digital, Industry, Space",
+#   "success": true,
+#   "calls_analyzed": 50,
 #   "projects_funded": 811,
-#   "total_funding": 4.79B EUR,
-#   "timeline": {2024: {"projects_funded": 289, "total_funding": ...}, ...},
-#   "action_type_breakdown": {"RIA": 60%, "IA": 25%, "CSA": 15%},
-#   "trend": "increasing"
+#   "total_funding_allocated": 4.79e9,
+#   "timeline": {2024: {"projects_funded": 289, "total_funding": ..., "calls": 15}, ...},
+#   "trends": {"funding_trend": "strongly_increasing", "year_over_year_funding_growth": 15.2},
+#   "topic_landscape": {"total_topics": 100, "top_topics": [...], "topics_by_year": {...}},
+#   "cluster_statistics": {"total_projects": 5000, "total_funding": 5.6e9, "avg_budget": 4.5e6},
+#   "metadata": {
+#     "search_type": "hybrid",
+#     "sources_used": ["graph", "sql"],
+#     "graph_trends_available": true,
+#     "inferred_clusters": []
+#   }
+# }
+
+# Call history with keyword inference (auto-detects cluster from keywords)
+analyze_call_history(keywords='hydrogen fuel cell', include_topic_evolution=True)
+# Returns: {
+#   "success": true,
+#   "metadata": {
+#     "inferred_clusters": ["CLUSTER-5"],  # Auto-inferred from keywords!
+#     "sources_used": ["graph", "sql"]
+#   },
+#   ...
 # }
 ```
 
@@ -563,6 +589,22 @@ analyze_call_history(cluster='CL4', year_from=2021, year_to=2025)
 - Helps users understand **realistic benchmarks** for their proposals
 - Uses **768-dim embeddings** (Google text-embedding-004) for semantic similarity
 - Timeline aggregations query **all matching projects** for accurate statistics
+
+**Hybrid Graph+SQL Architecture (Tier 1 & 2 Tools):**
+The proposal support tools use a hybrid architecture for optimal results:
+- **Graph Service (Neo4j)**: Pre-aggregated statistics, relationship traversal, consortium patterns
+- **SQL Service (PostgreSQL)**: Keyword filtering, detailed breakdowns, full project details
+- **Parallel Execution**: Graph and SQL queries run in parallel via ThreadPoolExecutor
+- **Result Fusion**: RRF (Reciprocal Rank Fusion) or weighted averaging depending on the tool
+- **Cluster Inference**: Keywords automatically mapped to Horizon Europe clusters (CLUSTER-1 through CLUSTER-6)
+- **SQL Fallback**: Tools gracefully degrade to SQL-only if Neo4j is unavailable
+
+| Tool | Fusion Method | New Features |
+|------|---------------|--------------|
+| `get_budget_benchmark` | Weighted averaging (by project count) | Org type/country breakdowns, consortium context |
+| `find_experienced_partners` | RRF (k=60) | 2-hop discovery, SQL enrichment |
+| `get_consortium_patterns` | Weighted (60% SQL, 40% Graph) | Successful templates, coordinator analysis |
+| `analyze_call_history` | Merge with max values | Topic evolution, cluster trends, cluster statistics |
 
 ---
 

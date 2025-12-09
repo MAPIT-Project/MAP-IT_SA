@@ -99,10 +99,10 @@ The system has 20 tools available for the multi-tool agent:
 
 **Proposal Support Tools (Group 2):**
 - `get_budget_benchmark`: Get budget statistics from similar funded projects (HYBRID: Graph+SQL with weighted fusion, org type/country breakdowns)
-- `get_consortium_patterns`: Analyze consortium composition patterns (org types, countries, sizes)
+- `get_consortium_patterns`: Analyze consortium composition patterns (HYBRID: Graph+SQL with parallel queries, successful templates, coordinator analysis)
 - `find_experienced_partners`: Find organizations with experience in specific research areas (HYBRID: Graph+SQL with RRF fusion)
 - `get_similar_funded_projects`: Find semantically similar funded projects using AI embeddings
-- `analyze_call_history`: Analyze historical funding patterns for topics/clusters (timeline, trends, action types)
+- `analyze_call_history`: Analyze historical funding patterns for topics/clusters (HYBRID: Graph+SQL with topic evolution, cluster trends, funding trends)
 
 **Proposal Planning Tools (NEW):**
 - `calculate_budget`: Generate detailed budget breakdown for a proposal (personnel, equipment, travel, etc.)
@@ -418,6 +418,94 @@ The Budget Benchmark Tool uses a **hybrid Graph+SQL architecture** for comprehen
   "consortium_context": {...},
   "budget_by_org_type": {...},
   "budget_by_country": {...}
+}
+```
+
+### Consortium Patterns Tool (get_consortium_patterns)
+The Consortium Patterns Tool uses a **hybrid Graph+SQL architecture** for comprehensive consortium analysis:
+
+**Architecture:**
+- **Graph Service (Neo4j)**: Pre-aggregated consortium patterns, coordinator analysis
+  - Cluster-level consortium statistics (avg partners, countries)
+  - Top coordinator countries and organizations
+  - Successful consortium templates from funded projects
+- **SQL Service (PostgreSQL)**: Keyword-based filtering, detailed breakdowns
+  - Organization type distribution
+  - Country participation patterns
+  - Project-level consortium details
+- **Parallel Queries**: Graph and SQL queries execute in parallel via ThreadPoolExecutor
+
+**Features:**
+- **Cluster Inference**: Keywords automatically mapped to Horizon Europe clusters
+- **Successful Templates**: Real consortium compositions from funded projects
+- **Coordinator Analysis**: Which organizations and countries successfully coordinate
+- **Weighted Fusion**: Consortium size metrics merged with 60% SQL, 40% Graph weighting
+
+**New Parameters:**
+- `include_successful_templates`: Include real consortium templates from graph (default: True)
+- `include_coordinator_analysis`: Include coordinator statistics (default: True)
+- `topic_keywords`: Keywords to infer cluster (alternative to explicit cluster)
+
+**Response Metadata:**
+```json
+{
+  "success": true,
+  "consortium_size": {"avg_partners": 12.5, "avg_countries": 8.2},
+  "org_type_distribution": {...},
+  "country_distribution": {...},
+  "successful_templates": [{...}, {...}],
+  "coordinator_analysis": {"top_coordinators": [...]},
+  "metadata": {
+    "search_type": "hybrid",
+    "sources_used": ["graph", "sql"],
+    "inferred_clusters": ["CLUSTER-5"]
+  }
+}
+```
+
+### Call History Analysis Tool (analyze_call_history)
+The Call History Analysis Tool uses a **hybrid Graph+SQL architecture** for comprehensive funding trend analysis:
+
+**Architecture:**
+- **Graph Service (Neo4j)**: Pre-aggregated funding trends, topic landscape
+  - Yearly funding trends (project count, total funding)
+  - Topic landscape by cluster (topics_by_year)
+  - Cluster-level statistics and budget statistics
+- **SQL Service (PostgreSQL)**: Detailed filtering, timeline aggregates
+  - Calls history with keyword filtering
+  - Timeline aggregates by year
+  - Funded projects with full details
+- **Parallel Queries**: Graph and SQL queries execute in parallel via ThreadPoolExecutor
+
+**Features:**
+- **Cluster Inference**: Keywords automatically mapped to Horizon Europe clusters
+- **Topic Evolution**: Track how topics have evolved over time within a cluster
+- **Trend Detection**: Automatic detection of funding trends (increasing/stable/decreasing)
+- **Cluster Statistics**: Comprehensive cluster-level statistics from graph
+
+**New Parameters:**
+- `include_topic_evolution`: Include topic landscape analysis from graph (default: True)
+- `include_cluster_trends`: Include cluster-level trends from graph (default: True)
+
+**New Methods:**
+- `get_cluster_evolution(cluster)`: Analyze how a cluster has evolved over time
+- `get_topic_history(topic_pattern)`: Get detailed history for a specific topic
+
+**Response Metadata:**
+```json
+{
+  "success": true,
+  "calls_analyzed": 50,
+  "projects_funded": 1234,
+  "timeline": {"2024": {...}, "2023": {...}},
+  "trends": {"funding_trend": "strongly_increasing", "year_over_year_funding_growth": 15.2},
+  "topic_landscape": {"total_topics": 100, "top_topics": [...]},
+  "cluster_statistics": {"total_projects": 5000, "total_funding": 5.6e9},
+  "metadata": {
+    "search_type": "hybrid",
+    "sources_used": ["graph", "sql"],
+    "inferred_clusters": ["CLUSTER-4"]
+  }
 }
 ```
 
