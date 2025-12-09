@@ -98,7 +98,7 @@ The system has 20 tools available for the multi-tool agent:
 - `search_by_cluster`: Find projects in a specific research cluster (e.g., Climate, Health, Digital)
 
 **Proposal Support Tools (Group 2):**
-- `get_budget_benchmark`: Get budget statistics from similar funded projects (by action type, cluster, year)
+- `get_budget_benchmark`: Get budget statistics from similar funded projects (HYBRID: Graph+SQL with weighted fusion, org type/country breakdowns)
 - `get_consortium_patterns`: Analyze consortium composition patterns (org types, countries, sizes)
 - `find_experienced_partners`: Find organizations with experience in specific research areas (HYBRID: Graph+SQL with RRF fusion)
 - `get_similar_funded_projects`: Find semantically similar funded projects using AI embeddings
@@ -380,6 +380,44 @@ The Partner Discovery Tool uses a **hybrid Graph+SQL architecture** for optimal 
   "inferred_clusters": ["CLUSTER-5"],
   "two_hop_partners_added": 8,
   "graph_partners_enriched": 5
+}
+```
+
+### Budget Benchmark Tool (get_budget_benchmark)
+The Budget Benchmark Tool uses a **hybrid Graph+SQL architecture** for comprehensive statistics:
+
+**Architecture:**
+- **Graph Service (Neo4j)**: Pre-aggregated cluster statistics, consortium patterns
+- **SQL Service (PostgreSQL)**: Keyword filtering, detailed breakdowns, sample projects
+- **Weighted Fusion**: Results merged using weighted averaging by project count
+
+**Features:**
+- **Cluster Inference**: Keywords automatically mapped to Horizon Europe clusters
+- **Parallel Queries**: Graph and SQL queries execute in parallel for performance
+- **Org Type Breakdown**: Budget distribution by organization type (HES, REC, PRC, PUB, OTH)
+- **Country Breakdown**: Top countries by funding with coordination counts
+- **Consortium Context**: Average partners, countries, top coordinator countries
+
+**New Parameters:**
+- `include_consortium_context`: Include consortium patterns from graph (default: True)
+- `include_org_type_breakdown`: Include budget by org type (default: True)
+- `include_country_breakdown`: Include budget by country (default: False)
+
+**Response Metadata:**
+```json
+{
+  "statistics": {...},
+  "recommendations": {...},
+  "metadata": {
+    "search_type": "hybrid",
+    "sources_used": ["graph", "sql"],
+    "graph_project_count": 496,
+    "sql_project_count": 408,
+    "inferred_clusters": ["CLUSTER-5"]
+  },
+  "consortium_context": {...},
+  "budget_by_org_type": {...},
+  "budget_by_country": {...}
 }
 ```
 

@@ -485,7 +485,7 @@ These tools help users improve proposal quality using **real data from 13,865+ f
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
-| `get_budget_benchmark` | Get budget statistics from similar funded projects | `action_type`, `cluster` (optional), `year_from` (optional) |
+| `get_budget_benchmark` | Get budget statistics (HYBRID: Graph+SQL with weighted fusion) | `action_type`, `cluster`, `topic_keywords`, `include_org_type_breakdown`, `include_country_breakdown` |
 | `get_consortium_patterns` | Analyze consortium composition patterns | `action_type`, `cluster` (optional) |
 | `find_experienced_partners` | Find organizations with track record (HYBRID: Graph+SQL with RRF fusion) | `keywords`, `country` (optional), `org_type` (optional), `limit` |
 | `get_similar_funded_projects` | Find semantically similar funded projects using embeddings | `query`, `action_type` (optional), `cluster` (optional), `limit` |
@@ -493,13 +493,22 @@ These tools help users improve proposal quality using **real data from 13,865+ f
 
 **Examples:**
 ```python
-# Budget benchmarking - "What's typical for a Climate RIA?"
-get_budget_benchmark(action_type='RIA', cluster='CL5')
+# Budget benchmarking - "What's typical for a Climate RIA?" (HYBRID: Graph+SQL)
+get_budget_benchmark(action_type='RIA', cluster='CL5', include_org_type_breakdown=True)
 # Returns: {
-#   "total_projects": 234,
-#   "budget": {"mean": 8.5M, "median": 7.2M, "min": 2.1M, "max": 25M},
-#   "consortium_size": {"mean": 12, "median": 10},
-#   "by_year": {...}
+#   "statistics": {
+#     "projects_analyzed": 496,
+#     "total_eu_contribution": {"min": 1.3M, "max": 20M, "average": 4.9M, "median": 4.5M},
+#     "consortium_size": {"average": 13.3, "median": 12}
+#   },
+#   "metadata": {
+#     "search_type": "hybrid",
+#     "sources_used": ["graph", "sql"],
+#     "graph_project_count": 496,
+#     "sql_project_count": 408
+#   },
+#   "consortium_context": {"avg_partners": 15.6, "avg_countries": 7.9, ...},
+#   "budget_by_org_type": [{"org_type": "REC", "percentage_of_total": 34.0, ...}, ...]
 # }
 
 # Consortium patterns - "What's the typical makeup of Health IAs?"
@@ -769,6 +778,121 @@ The tool returns detailed metadata about the hybrid search:
 
 ---
 
+### Budget Benchmark Tool Enhancement
+
+The `get_budget_benchmark` tool uses a **hybrid architecture** that combines Neo4j pre-aggregated statistics with PostgreSQL keyword filtering for comprehensive budget benchmarks.
+
+### Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        BUDGET BENCHMARK REQUEST                              │
+│                 cluster: "CLUSTER-5", action_type: "RIA"                     │
+│                 topic_keywords: "hydrogen fuel cells"                        │
+└─────────────────────────────┬───────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      CLUSTER INFERENCE (if no cluster)                       │
+│  topic_keywords → Horizon Europe Clusters                                    │
+│  "hydrogen" → CLUSTER-5 (Climate, Energy, Mobility)                         │
+└─────────────────────────────┬───────────────────────────────────────────────┘
+                              │
+              ┌───────────────┼───────────────┬───────────────┐
+              │               │               │               │
+              ▼               ▼               ▼               ▼
+┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+│  GRAPH STATS    │ │   SQL STATS     │ │ CONSORTIUM CTX  │ │ ORG TYPE/COUNTRY│
+│  (Neo4j)        │ │   (PostgreSQL)  │ │   (Neo4j)       │ │   (PostgreSQL)  │
+│                 │ │                 │ │                 │ │                 │
+│ Pre-aggregated  │ │ Keyword filter  │ │ Avg partners    │ │ Budget by HES   │
+│ cluster stats   │ │ Sample projects │ │ Avg countries   │ │ Budget by REC   │
+│ Budget ranges   │ │ Detailed stats  │ │ Top coordinators│ │ Budget by PRC   │
+│                 │ │                 │ │                 │ │ Top countries   │
+│ Returns: 496    │ │ Returns: 408    │ │                 │ │                 │
+└─────────────────┘ └─────────────────┘ └─────────────────┘ └─────────────────┘
+              │               │               │               │
+              └───────────────┼───────────────┴───────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    WEIGHTED FUSION (by project count)                        │
+│                                                                              │
+│  • Weight each source by project count                                      │
+│  • Weighted average for budget metrics                                      │
+│  • Use SQL for median (more accurate with filtering)                        │
+│  • Use extreme min/max from either source                                   │
+│  • Use max project count for confidence                                     │
+│                                                                              │
+│  Result: Comprehensive statistics with breakdowns                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Parallel Queries** | Graph, SQL, consortium, and breakdown queries run concurrently |
+| **Weighted Fusion** | Merges Graph and SQL stats weighted by project count |
+| **Cluster Inference** | Maps research keywords to Horizon Europe clusters automatically |
+| **Org Type Breakdown** | Budget distribution by HES, REC, PRC, PUB, OTH |
+| **Country Breakdown** | Top 15 countries by funding with coordination counts |
+| **Consortium Context** | Average partners, countries, top coordinator countries |
+
+### Response Metadata
+
+```json
+{
+  "statistics": {
+    "projects_analyzed": 496,
+    "total_eu_contribution": {"min": 1322523, "max": 19949437, "average": 4856520, "median": 4488616},
+    "consortium_size": {"average": 13.3, "median": 12}
+  },
+  "recommendations": {
+    "suggested_budget_range": "€3.4M - €5.5M",
+    "suggested_consortium_size": "10-15 partners",
+    "confidence": "high"
+  },
+  "metadata": {
+    "search_type": "hybrid",
+    "sources_used": ["graph", "sql"],
+    "graph_project_count": 496,
+    "sql_project_count": 408,
+    "inferred_clusters": ["CLUSTER-5"]
+  },
+  "consortium_context": {
+    "avg_partners": 15.6,
+    "avg_countries": 7.9,
+    "top_coordinator_countries": ["ES", "IT", "EL", "DE", "BE"]
+  },
+  "budget_by_org_type": {
+    "by_org_type": [
+      {"org_type": "REC", "percentage_of_total": 34.0, "total_contribution": 669624790},
+      {"org_type": "PRC", "percentage_of_total": 33.9, "total_contribution": 667374496},
+      {"org_type": "HES", "percentage_of_total": 27.6, "total_contribution": 543128363}
+    ]
+  }
+}
+```
+
+### File Location
+
+- **Implementation:** `app/services/tools/budget_benchmark.py`
+- **Key Methods:**
+  - `get_benchmark()` - Main entry point with all options
+  - `_get_benchmark_hybrid()` - Parallel query orchestration
+  - `_get_benchmark_graph()` - Neo4j pre-aggregated stats
+  - `_get_benchmark_sql()` - PostgreSQL keyword-filtered stats
+  - `_merge_benchmark_results()` - Weighted fusion of results
+  - `_get_budget_by_org_type()` - Breakdown by organization type
+  - `_get_budget_by_country()` - Breakdown by country
+  - `_get_consortium_context()` - Consortium patterns from graph
+  - `_infer_clusters_from_keywords()` - Keyword to cluster mapping
+  - `get_budget_trends()` - Funding trends over time
+  - `get_benchmark_comparison()` - Compare benchmarks across clusters
+
+---
+
 ## Key Services
 
 ### Core Services
@@ -983,6 +1107,7 @@ All planned improvements have been implemented. See details below:
 | 6 | Incremental embedding updates for new projects | ✅ Implemented | `app/services/embedding/incremental_embedding_service.py`, Celery tasks in `celery_app.py` |
 | 7 | V3 project formatter enhancements (publications, deliverables) | ✅ Implemented | Enhanced `app/services/response/v3_response_formatter.py`, new methods in `cordis_repository.py` |
 | 8 | Partner Discovery hybrid Graph+SQL architecture | ✅ Implemented | Enhanced `app/services/tools/partner_discovery.py` |
+| 9 | Budget Benchmark hybrid Graph+SQL architecture | ✅ Implemented | Enhanced `app/services/tools/budget_benchmark.py` |
 
 ### Implementation Details
 
@@ -1035,6 +1160,16 @@ All planned improvements have been implemented. See details below:
 - **SQL Enrichment**: Graph-only partners automatically enriched with SQL project details
 - **Cluster Inference**: Keywords mapped to Horizon Europe clusters (CLUSTER-1 to CLUSTER-6)
 - New methods: `_find_partners_hybrid()`, `_find_partners_graph()`, `_find_partners_sql()`, `_find_2hop_partners()`, `_merge_partner_results()`, `_enrich_graph_partners_with_sql()`, `_infer_clusters_from_keywords()`, `get_collaboration_network()`
+
+**9. Budget Benchmark Hybrid Graph+SQL Architecture (December 9, 2025)**
+- Combines Neo4j pre-aggregated statistics with PostgreSQL keyword filtering for comprehensive benchmarks
+- **Graph Service**: Pre-aggregated cluster statistics, budget ranges, consortium patterns
+- **SQL Service**: Keyword filtering, sample projects, detailed breakdowns, org type/country stats
+- **Weighted Fusion**: Merges results weighted by project count for accurate statistics
+- **Parallel Queries**: Graph, SQL, consortium context, and breakdown queries run concurrently
+- **New Breakdowns**: Budget by organization type (HES, REC, PRC, PUB, OTH), budget by country
+- **Cluster Inference**: Keywords mapped to Horizon Europe clusters automatically
+- New methods: `_get_benchmark_hybrid()`, `_get_benchmark_graph()`, `_get_benchmark_sql()`, `_merge_benchmark_results()`, `_get_budget_by_org_type()`, `_get_budget_by_country()`, `_get_consortium_context()`, `get_budget_trends()`, `get_benchmark_comparison()`
 
 ### Tool Count Update
 
