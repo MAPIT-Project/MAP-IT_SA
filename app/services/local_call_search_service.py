@@ -186,6 +186,15 @@ class LocalCallSearchService:
         except Exception as e:
             logger.warning(f"Structured call database not available: {e}")
 
+        # Initialize graph service for relationship-based search
+        self._graph_service = None
+        try:
+            from .data_intelligence.graph_service import GraphSearchService
+            self._graph_service = GraphSearchService()
+            logger.info("✅ Graph service available for relationship-based search")
+        except Exception as e:
+            logger.warning(f"Graph service not available: {e}")
+
         # Initialize vector service as fallback
         try:
             self.vector_service = VectorSearchService()
@@ -301,6 +310,10 @@ class LocalCallSearchService:
 
             if structured_results and len(structured_results) > 0:
                 logger.info(f"✅ Found {len(structured_results)} results from structured database")
+
+                # Enhance with graph context (related clusters, experienced orgs)
+                graph_context = self._search_graph_enhanced(query) if self._graph_service else None
+
                 return {
                     'success': True,
                     'query': query,
@@ -313,7 +326,8 @@ class LocalCallSearchService:
                         'search_method': 'structured_fulltext',
                         'include_closed': include_closed,
                         'year_filter': year_filter,
-                        'current_year': current_year
+                        'current_year': current_year,
+                        'graph_context': graph_context if graph_context else None
                     }
                 }
 
@@ -338,6 +352,10 @@ class LocalCallSearchService:
                     formatted_calls.append(formatted)
 
                 logger.info(f"✅ Found {len(formatted_calls)} results via semantic search")
+
+                # Enhance with graph context (related clusters, experienced orgs)
+                graph_context = self._search_graph_enhanced(query)
+
                 return {
                     'success': True,
                     'query': query,
@@ -351,11 +369,52 @@ class LocalCallSearchService:
                         'include_closed': include_closed,
                         'year_filter': year_filter,
                         'current_year': current_year,
-                        'note': 'Results found via semantic matching (related concepts)'
+                        'note': 'Results found via semantic matching (related concepts)',
+                        'graph_context': graph_context if graph_context else None
                     }
                 }
 
-        # STRATEGY 3: Fall back to document vector search
+        # STRATEGY 3: Try graph-enhanced search (find calls via related topics/clusters)
+        if self._graph_service:
+            logger.info("📊 Trying graph-enhanced search for relationship-based discovery...")
+            graph_context = self._search_graph_enhanced(query)
+
+            if graph_context.get('topic_codes_to_search'):
+                # Search for calls matching topics found in the graph
+                topic_calls = self._search_by_topic_codes(
+                    graph_context['topic_codes_to_search'],
+                    include_closed=include_closed
+                )
+
+                if topic_calls and len(topic_calls) > 0:
+                    # Format results
+                    formatted_calls = []
+                    for c in topic_calls[:num_results]:
+                        formatted = self._format_structured_call(c, enrich=False)
+                        formatted['match_type'] = 'graph_relationship'
+                        formatted_calls.append(formatted)
+
+                    logger.info(f"✅ Found {len(formatted_calls)} results via graph-enhanced search")
+                    return {
+                        'success': True,
+                        'query': query,
+                        'calls_found': len(formatted_calls),
+                        'calls': formatted_calls,
+                        'current_date': today.isoformat(),
+                        'search_metadata': {
+                            'source': 'funding_calls_table',
+                            'api_used': False,
+                            'search_method': 'graph_enhanced',
+                            'include_closed': include_closed,
+                            'year_filter': year_filter,
+                            'current_year': current_year,
+                            'note': 'Results found via graph relationship analysis',
+                            'related_clusters': graph_context.get('related_clusters', []),
+                            'experienced_orgs': graph_context.get('experienced_orgs', [])[:5]
+                        }
+                    }
+
+        # STRATEGY 4: Fall back to document vector search
         logger.info("📄 Falling back to document vector search...")
         
         # Build enhanced query for better recall
@@ -749,6 +808,178 @@ class LocalCallSearchService:
         except Exception as e:
             logger.error(f"Semantic search failed: {e}")
             return []
+
+    def _search_graph_enhanced(
+        self,
+        query: str,
+        num_results: int = 10,
+        include_closed: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Use graph database to enhance call search with relationship-based discovery.
+
+        This finds:
+        1. Calls in clusters related to the query (based on funded projects)
+        2. Related topic codes from similar funded projects
+        3. Experienced organizations in the domain
+
+        Returns:
+            Dict with 'related_clusters', 'related_topics', 'experienced_orgs'
+        """
+        if not self._graph_service:
+            return {}
+
+        try:
+            result = {
+                'related_clusters': [],
+                'related_topics': [],
+                'experienced_orgs': [],
+                'topic_codes_to_search': []
+            }
+
+            # Map query terms to potential clusters
+            cluster_keywords = {
+                'CLUSTER-1': ['health', 'medical', 'clinical', 'disease', 'patient', 'healthcare', 'hospital', 'therapy', 'diagnosis', 'pharmaceutical', 'cancer', 'vaccine', 'drug'],
+                'CLUSTER-2': ['culture', 'democracy', 'social', 'heritage', 'creative', 'inclusive', 'society', 'governance', 'media'],
+                'CLUSTER-3': ['security', 'cybersecurity', 'border', 'crime', 'disaster', 'resilience', 'defence', 'terrorism'],
+                'CLUSTER-4': ['digital', 'AI', 'artificial intelligence', 'data', 'industry', 'space', 'manufacturing', 'robotics', 'computing', 'machine learning', 'quantum', 'electronics'],
+                'CLUSTER-5': ['climate', 'energy', 'mobility', 'transport', 'hydrogen', 'battery', 'renewable', 'green', 'carbon', 'solar', 'wind', 'electric vehicle'],
+                'CLUSTER-6': ['food', 'agriculture', 'bioeconomy', 'biodiversity', 'ocean', 'environment', 'soil', 'water', 'forestry', 'marine']
+            }
+
+            query_lower = query.lower()
+            matched_clusters = []
+
+            for cluster_code, keywords in cluster_keywords.items():
+                if any(kw in query_lower for kw in keywords):
+                    matched_clusters.append(cluster_code)
+
+            # If no cluster matched but query has meaningful keywords, search topics directly
+            if not matched_clusters:
+                # Extract meaningful words from query (2+ characters, not stopwords)
+                stopwords = {'the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'her', 'was', 'one', 'our', 'out', 'has', 'have', 'been', 'this', 'with', 'from', 'what', 'how', 'who', 'where', 'when', 'which', 'find', 'search', 'looking'}
+                keywords = [w.strip() for w in query_lower.split() if len(w.strip()) >= 2 and w.strip() not in stopwords]
+
+                if keywords:
+                    # Try to find topics matching any keyword
+                    for keyword in keywords[:3]:  # Search up to 3 keywords
+                        try:
+                            topics = self._graph_service.search_topics(keyword, limit=5)
+                            if topics:
+                                result['related_topics'].extend(topics)
+                                topic_codes = [t.get('code') for t in topics if t.get('code')]
+                                result['topic_codes_to_search'].extend(topic_codes)
+                                logger.info(f"📊 Graph: Found {len(topics)} topics for keyword '{keyword}'")
+                        except Exception as e:
+                            logger.debug(f"Topic search for '{keyword}' failed: {e}")
+
+            if matched_clusters:
+                result['related_clusters'] = matched_clusters
+                logger.info(f"📊 Graph: Matched clusters from query: {matched_clusters}")
+
+                # Get top organizations from matched clusters
+                for cluster in matched_clusters[:2]:  # Limit to top 2 clusters
+                    try:
+                        top_orgs = self._graph_service.get_top_organizations(
+                            cluster_code=cluster,
+                            limit=5
+                        )
+                        if top_orgs:
+                            result['experienced_orgs'].extend(top_orgs)
+                    except Exception as e:
+                        logger.warning(f"Failed to get top organizations for {cluster}: {e}")
+
+                    # Get topics from the matched clusters (using BELONGS_TO relationship)
+                    try:
+                        cluster_topics = self._graph_service.get_topics_by_cluster(cluster, limit=10)
+                        if cluster_topics:
+                            result['related_topics'].extend(cluster_topics)
+                            topic_codes = [t.get('code') for t in cluster_topics if t.get('code')]
+                            result['topic_codes_to_search'].extend(topic_codes)
+                            logger.info(f"📊 Graph: Found {len(cluster_topics)} topics in {cluster}")
+                    except Exception as e:
+                        logger.warning(f"Failed to get topics for {cluster}: {e}")
+
+                # Also search for topic codes that match the query directly
+                try:
+                    topics = self._graph_service.search_topics(query, limit=10)
+                    if topics:
+                        result['related_topics'].extend(topics)
+                        # Extract topic codes to search in funding_calls
+                        topic_codes = [t.get('code') for t in topics if t.get('code')]
+                        result['topic_codes_to_search'].extend(topic_codes)
+                        logger.info(f"📊 Graph: Found {len(topics)} topics matching query")
+                except Exception as e:
+                    logger.warning(f"Failed to search topics: {e}")
+
+            # Deduplicate topic codes
+            result['topic_codes_to_search'] = list(set(result['topic_codes_to_search']))
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Graph-enhanced search failed: {e}")
+            return {}
+
+    def _search_by_topic_codes(
+        self,
+        topic_codes: List[str],
+        include_closed: bool = False
+    ) -> List[Dict[str, Any]]:
+        """
+        Search for calls matching specific topic codes from graph results.
+        """
+        if not topic_codes or not self._structured_available:
+            return []
+
+        try:
+            conn = psycopg2.connect(self._db_url)
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            # Build query for multiple topic codes
+            placeholders = ','.join(['%s'] * len(topic_codes))
+
+            if include_closed:
+                cursor.execute(f"""
+                    SELECT id, topic_code, title, scope, expected_outcome,
+                           deadline, status, cluster, action_type, budget_total,
+                           destination, portal_url, call_year
+                    FROM funding_calls
+                    WHERE topic_code IN ({placeholders})
+                    ORDER BY deadline ASC NULLS LAST
+                """, topic_codes)
+            else:
+                cursor.execute(f"""
+                    SELECT id, topic_code, title, scope, expected_outcome,
+                           deadline, status, cluster, action_type, budget_total,
+                           destination, portal_url, call_year
+                    FROM funding_calls
+                    WHERE topic_code IN ({placeholders})
+                    AND status != 'closed'
+                    AND (deadline IS NULL OR deadline >= CURRENT_DATE)
+                    ORDER BY deadline ASC NULLS LAST
+                """, topic_codes)
+
+            results = cursor.fetchall()
+            conn.close()
+
+            logger.info(f"📊 Found {len(results)} calls matching graph topic codes")
+            return [dict(r) for r in results]
+
+        except Exception as e:
+            logger.error(f"Topic code search failed: {e}")
+            return []
+
+    def get_graph_context(self, query: str) -> Dict[str, Any]:
+        """
+        Get enriched context from the graph for a query.
+
+        Use this to provide additional insights alongside search results:
+        - Which clusters are most relevant
+        - Top organizations with expertise
+        - Related funded projects
+        """
+        return self._search_graph_enhanced(query)
 
     def _format_structured_call(self, call: Dict[str, Any], enrich: bool = True) -> Dict[str, Any]:
         """

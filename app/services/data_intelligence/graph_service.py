@@ -172,7 +172,44 @@ class GraphSearchService:
         except Exception as e:
             logger.error(f"Error searching topics: {e}")
             return []
-    
+
+    def get_topics_by_cluster(self, cluster_code: str, limit: int = 50) -> List[Dict[str, Any]]:
+        """
+        Get topics that belong to a specific cluster.
+
+        Uses the BELONGS_TO relationship between Topics and Clusters
+        which was inferred from Project->Topic and Project->Cluster relationships.
+
+        Args:
+            cluster_code: Cluster code (e.g., "CLUSTER-1", "CLUSTER-4")
+            limit: Maximum number of topics to return
+
+        Returns:
+            List of topics with their project counts
+        """
+        query = """
+        MATCH (t:Topic)-[r:BELONGS_TO]->(c:Cluster {code: $cluster_code})
+        RETURN t.code as code,
+               t.title as title,
+               r.project_count as projectCount
+        ORDER BY r.project_count DESC
+        LIMIT $limit
+        """
+
+        try:
+            results = self.db.execute_query(query, {"cluster_code": cluster_code, "limit": limit})
+            return [
+                {
+                    "code": r.get("code"),
+                    "title": r.get("title"),
+                    "projectCount": r.get("projectCount", 0)
+                }
+                for r in results
+            ]
+        except Exception as e:
+            logger.error(f"Error getting topics by cluster: {e}")
+            return []
+
     # ========================================================================
     # QUERY TYPE B: Eligibility Checks
     # ========================================================================
