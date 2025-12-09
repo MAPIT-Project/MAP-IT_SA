@@ -3,11 +3,17 @@ Partner Discovery Tool for Horizon Europe Projects.
 
 Helps users find potential consortium partners based on their track record
 in relevant Horizon Europe projects.
+
+Enhanced with Neo4j graph database integration for:
+- Relationship-based partner discovery
+- 2-hop partner discovery (partners of partners)
+- Collaboration network analysis
+- Network centrality scoring
 """
 
 import os
 import logging
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Set
 from datetime import datetime
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -15,6 +21,25 @@ from dotenv import load_dotenv
 
 load_dotenv()
 logger = logging.getLogger(__name__)
+
+# Cluster keyword mapping for research area -> cluster inference
+CLUSTER_KEYWORDS = {
+    'CLUSTER-1': ['health', 'medical', 'clinical', 'disease', 'patient', 'healthcare',
+                  'hospital', 'therapy', 'diagnosis', 'pharmaceutical', 'cancer',
+                  'vaccine', 'drug', 'biomedical', 'genomics', 'personalized medicine'],
+    'CLUSTER-2': ['culture', 'democracy', 'social', 'heritage', 'creative', 'inclusive',
+                  'society', 'governance', 'media', 'arts', 'humanities'],
+    'CLUSTER-3': ['security', 'cybersecurity', 'border', 'crime', 'disaster', 'resilience',
+                  'defence', 'terrorism', 'critical infrastructure', 'surveillance'],
+    'CLUSTER-4': ['digital', 'AI', 'artificial intelligence', 'data', 'industry', 'space',
+                  'manufacturing', 'robotics', 'computing', 'machine learning', 'quantum',
+                  'electronics', 'semiconductor', 'cloud', 'iot', 'internet of things'],
+    'CLUSTER-5': ['climate', 'energy', 'mobility', 'transport', 'hydrogen', 'battery',
+                  'renewable', 'green', 'carbon', 'solar', 'wind', 'electric vehicle',
+                  'sustainable', 'decarbonization', 'clean energy'],
+    'CLUSTER-6': ['food', 'agriculture', 'bioeconomy', 'biodiversity', 'ocean', 'environment',
+                  'soil', 'water', 'forestry', 'marine', 'circular economy', 'farming']
+}
 
 # Organization type descriptions
 ORG_TYPE_DESCRIPTIONS = {
@@ -86,13 +111,29 @@ ORG_TYPE_MAP = {
 
 
 class PartnerDiscoveryTool:
-    """Tool to find experienced partners for consortium building."""
+    """Tool to find experienced partners for consortium building.
+
+    Enhanced with Neo4j graph integration for:
+    - Faster relationship-based queries
+    - 2-hop partner discovery (partners of partners)
+    - Collaboration network analysis
+    - Network centrality scoring
+    """
 
     def __init__(self):
-        """Initialize with database connection."""
+        """Initialize with database connection and graph service."""
         self.db_url = os.getenv("DATABASE_URL")
         if not self.db_url:
             logger.warning("DATABASE_URL not set - partner discovery will be limited")
+
+        # Initialize Neo4j graph service for relationship-based queries
+        self._graph_service = None
+        try:
+            from ..data_intelligence.graph_service import GraphSearchService
+            self._graph_service = GraphSearchService()
+            logger.info("✅ Graph service available for partner discovery")
+        except Exception as e:
+            logger.warning(f"⚠️ Graph service not available: {e}")
 
     def _get_connection(self):
         """Get database connection."""
@@ -124,6 +165,368 @@ class PartnerDiscoveryTool:
         cluster_upper = cluster.upper().replace(' ', '').replace('-', '')
         return CLUSTER_MAP.get(cluster_upper, cluster.upper())
 
+    def _infer_clusters_from_keywords(self, keywords: str) -> List[str]:
+        """
+        Infer relevant Horizon Europe clusters from research keywords.
+
+        Returns list of cluster codes (e.g., ['CLUSTER-4', 'CLUSTER-1'])
+        """
+        keywords_lower = keywords.lower()
+        matched_clusters = []
+
+        for cluster_code, cluster_keywords in CLUSTER_KEYWORDS.items():
+            if any(kw in keywords_lower for kw in cluster_keywords):
+                matched_clusters.append(cluster_code)
+
+        return matched_clusters if matched_clusters else ['CLUSTER-4']  # Default to digital
+
+    def _find_partners_graph(
+        self,
+        topic_keywords: str,
+        country: Optional[str] = None,
+        organization_type: Optional[str] = None,
+        cluster: Optional[str] = None,
+        min_projects: int = 2,
+        limit: int = 20,
+        include_2hop: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Find partners using Neo4j graph database.
+
+        Advantages over SQL:
+        - Faster relationship traversal
+        - 2-hop partner discovery (partners of partners)
+        - Network centrality awareness
+        """
+        if not self._graph_service:
+            return None
+
+        try:
+            # Determine cluster(s) to search
+            if cluster:
+                clusters_to_search = [self._normalize_cluster(cluster)]
+            else:
+                clusters_to_search = self._infer_clusters_from_keywords(topic_keywords)
+
+            logger.info(f"📊 Graph partner search: keywords='{topic_keywords}', clusters={clusters_to_search}")
+
+            all_partners = []
+            seen_org_names: Set[str] = set()
+
+            for cluster_code in clusters_to_search[:2]:  # Limit to top 2 clusters
+                # Get partner suggestions from graph
+                suggestions = self._graph_service.suggest_consortium_partners(
+                    cluster_code=cluster_code,
+                    coordinator_country=None,
+                    target_partner_count=limit * 2  # Get more for filtering
+                )
+
+                for partner in suggestions.get('suggestions', []):
+                    org_name = partner.get('name', '')
+
+                    # Skip duplicates
+                    if org_name in seen_org_names:
+                        continue
+                    seen_org_names.add(org_name)
+
+                    # Apply filters
+                    if country:
+                        country_code = self._normalize_country(country)
+                        if partner.get('country') != country_code:
+                            continue
+
+                    if organization_type:
+                        org_type_code = self._normalize_org_type(organization_type)
+                        if partner.get('entity_type') != org_type_code:
+                            continue
+
+                    # Filter by min projects
+                    if partner.get('project_count', 0) < min_projects:
+                        continue
+
+                    # Calculate experience score
+                    experience_score = self._calculate_experience_score(
+                        relevant_projects=partner.get('project_count', 0),
+                        as_coordinator=partner.get('coordinations', 0),
+                        total_projects=partner.get('project_count', 0),
+                        funding=partner.get('total_funding', 0)
+                    )
+
+                    formatted_partner = {
+                        "name": org_name,
+                        "short_name": partner.get('short_name') or org_name,
+                        "country": partner.get('country', 'Unknown'),
+                        "city": "",
+                        "type": partner.get('entity_type', 'Unknown'),
+                        "type_description": ORG_TYPE_DESCRIPTIONS.get(
+                            partner.get('entity_type'), partner.get('entity_type_name', 'Unknown')
+                        ),
+                        "track_record": {
+                            "total_he_projects": partner.get('project_count', 0),
+                            "relevant_projects": partner.get('project_count', 0),
+                            "as_coordinator": partner.get('coordinations', 0),
+                            "as_participant": partner.get('project_count', 0) - partner.get('coordinations', 0),
+                            "funding_in_relevant": partner.get('total_funding', 0)
+                        },
+                        "relevant_projects": [],  # Graph doesn't return project details
+                        "experience_score": experience_score,
+                        "discovery_type": "direct",
+                        "matched_cluster": cluster_code
+                    }
+
+                    all_partners.append(formatted_partner)
+
+            # Find 2-hop partners if requested and we found direct partners
+            two_hop_partners = []
+            if include_2hop and all_partners:
+                two_hop_partners = self._find_2hop_partners(
+                    all_partners[:5],  # Use top 5 as seeds
+                    seen_org_names,
+                    country,
+                    organization_type,
+                    min_projects,
+                    limit=10
+                )
+
+            # Combine results
+            all_partners.extend(two_hop_partners)
+
+            # Sort by experience score
+            all_partners.sort(key=lambda x: x['experience_score'], reverse=True)
+
+            # Limit results
+            all_partners = all_partners[:limit]
+
+            if not all_partners:
+                return None  # Fall back to SQL
+
+            # Generate insights
+            insights = self._generate_insights(all_partners, topic_keywords)
+
+            return {
+                "success": True,
+                "tool_name": "find_experienced_partners",
+                "query_params": {
+                    "topic_keywords": topic_keywords,
+                    "country": country,
+                    "organization_type": organization_type,
+                    "cluster": cluster,
+                    "min_projects": min_projects
+                },
+                "total_found": len(all_partners),
+                "experienced_partners": all_partners,
+                "aggregated_insights": insights,
+                "search_tips": self._generate_search_tips(all_partners, topic_keywords, country, organization_type),
+                "data_source": "neo4j_graph",
+                "search_metadata": {
+                    "method": "graph_enhanced",
+                    "clusters_searched": clusters_to_search,
+                    "include_2hop": include_2hop,
+                    "direct_partners": len([p for p in all_partners if p.get('discovery_type') == 'direct']),
+                    "two_hop_partners": len([p for p in all_partners if p.get('discovery_type') == '2-hop'])
+                },
+                "timestamp": datetime.now().isoformat()
+            }
+
+        except Exception as e:
+            logger.error(f"Graph partner search failed: {e}")
+            return None  # Fall back to SQL
+
+    def _find_2hop_partners(
+        self,
+        seed_partners: List[Dict],
+        seen_names: Set[str],
+        country: Optional[str],
+        organization_type: Optional[str],
+        min_projects: int,
+        limit: int = 10
+    ) -> List[Dict]:
+        """
+        Find 2-hop partners (partners of partners).
+
+        These are organizations that have collaborated with our top direct partners
+        but haven't been found in the direct search. Great for finding:
+        - Smaller but well-connected organizations
+        - Partners from underrepresented countries
+        - Organizations with strong collaboration networks
+
+        Note: min_projects is relaxed for 2-hop (uses min(min_projects, 2)) since
+        these are discovered via relationships, not keyword matching.
+        """
+        if not self._graph_service:
+            return []
+
+        two_hop_partners = []
+
+        # Relax min_projects for 2-hop (relationship-based discovery)
+        relaxed_min = min(min_projects, 2)
+
+        # Track collaboration strength for ranking
+        partner_strength: Dict[str, int] = {}
+
+        for seed in seed_partners[:5]:  # Use top 5 seeds for better coverage
+            seed_name = seed.get('name', '')
+            if not seed_name:
+                continue
+
+            try:
+                # Get collaboration network
+                network = self._graph_service.get_organization_collaboration_network(
+                    seed_name,
+                    depth=1,
+                    limit=30  # Get more partners per seed
+                )
+
+                for partner in network.get('partners', []):
+                    partner_name = partner.get('name', '')
+
+                    # Skip if already seen as direct partner
+                    if partner_name in seen_names:
+                        # But track if they collaborate with multiple seeds
+                        if partner_name in partner_strength:
+                            partner_strength[partner_name] += partner.get('collaborations', 0)
+                        continue
+
+                    # Apply filters (relaxed)
+                    if country:
+                        country_code = self._normalize_country(country)
+                        if partner.get('country') != country_code:
+                            continue
+
+                    if organization_type:
+                        org_type_code = self._normalize_org_type(organization_type)
+                        partner_type = partner.get('type', '')
+                        if partner_type and partner_type != org_type_code:
+                            continue
+
+                    collaborations = partner.get('collaborations', 0)
+                    if collaborations < relaxed_min:
+                        continue
+
+                    seen_names.add(partner_name)
+
+                    # Track total collaboration strength (may see same partner via multiple seeds)
+                    if partner_name in partner_strength:
+                        partner_strength[partner_name] += collaborations
+                    else:
+                        partner_strength[partner_name] = collaborations
+
+                    # Calculate experience score based on collaboration strength
+                    # Higher base score for 2-hop partners with strong connections
+                    experience_score = min(0.3 + (collaborations / 20), 0.6)
+
+                    formatted_partner = {
+                        "name": partner_name,
+                        "short_name": partner_name.split()[0] if partner_name else "Unknown",
+                        "country": partner.get('country', 'Unknown'),
+                        "city": "",
+                        "type": partner.get('type', 'Unknown'),
+                        "type_description": ORG_TYPE_DESCRIPTIONS.get(
+                            partner.get('type'), 'Unknown'
+                        ),
+                        "track_record": {
+                            "total_he_projects": collaborations,
+                            "relevant_projects": collaborations,
+                            "as_coordinator": 0,
+                            "as_participant": collaborations,
+                            "funding_in_relevant": 0
+                        },
+                        "relevant_projects": [],
+                        "experience_score": experience_score,
+                        "discovery_type": "2-hop",
+                        "connected_via": seed_name,
+                        "shared_projects_with_seed": collaborations
+                    }
+
+                    two_hop_partners.append(formatted_partner)
+
+            except Exception as e:
+                logger.debug(f"Error getting 2-hop partners for {seed_name}: {e}")
+                continue
+
+        # Sort by collaboration strength and limit
+        two_hop_partners.sort(
+            key=lambda x: partner_strength.get(x.get('name', ''), x.get('shared_projects_with_seed', 0)),
+            reverse=True
+        )
+
+        logger.info(f"📊 Found {len(two_hop_partners)} 2-hop partners")
+        return two_hop_partners[:limit]
+
+    def get_collaboration_network(
+        self,
+        organization_name: str,
+        depth: int = 1,
+        limit: int = 30
+    ) -> Dict[str, Any]:
+        """
+        Get the collaboration network for a specific organization.
+
+        This shows which organizations have partnered with the target organization
+        across Horizon Europe projects.
+
+        Args:
+            organization_name: Name of the organization to analyze
+            depth: How many hops to traverse (1 = direct partners)
+            limit: Maximum number of partners to return
+
+        Returns:
+            Dict with organization details and partner list
+        """
+        if not self._graph_service:
+            return {
+                "success": False,
+                "error": "Graph service not available for network analysis",
+                "tool_name": "get_collaboration_network"
+            }
+
+        try:
+            network = self._graph_service.get_organization_collaboration_network(
+                organization_name,
+                depth=depth,
+                limit=limit
+            )
+
+            if not network.get('success', False) and not network.get('organization'):
+                return {
+                    "success": False,
+                    "error": f"Organization '{organization_name}' not found in database",
+                    "tool_name": "get_collaboration_network"
+                }
+
+            # Format partners with more detail
+            formatted_partners = []
+            for partner in network.get('partners', []):
+                formatted_partners.append({
+                    "name": partner.get('name', 'Unknown'),
+                    "country": partner.get('country', 'Unknown'),
+                    "type": partner.get('type', 'Unknown'),
+                    "is_sme": partner.get('is_sme', False),
+                    "collaborations": partner.get('collaborations', 0)
+                })
+
+            # Sort by collaboration count
+            formatted_partners.sort(key=lambda x: x['collaborations'], reverse=True)
+
+            return {
+                "success": True,
+                "tool_name": "get_collaboration_network",
+                "organization": network.get('organization', organization_name),
+                "country": network.get('country', 'Unknown'),
+                "total_partners": len(formatted_partners),
+                "partners": formatted_partners,
+                "data_source": "neo4j_graph",
+                "timestamp": datetime.now().isoformat()
+            }
+
+        except Exception as e:
+            logger.error(f"Collaboration network error: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "tool_name": "get_collaboration_network"
+            }
+
     def find_partners(
         self,
         topic_keywords: str,
@@ -132,10 +535,17 @@ class PartnerDiscoveryTool:
         cluster: Optional[str] = None,
         min_projects: int = 2,
         role_filter: Optional[str] = None,
-        limit: int = 20
+        limit: int = 20,
+        include_2hop: bool = True
     ) -> Dict[str, Any]:
         """
         Find organizations with proven track records in relevant Horizon Europe projects.
+
+        Uses a HYBRID approach combining:
+        1. Graph (Neo4j): Fast relationship-based discovery + 2-hop partners
+        2. SQL (PostgreSQL): Precise keyword matching + detailed project examples
+
+        Results are combined using Reciprocal Rank Fusion (RRF) for optimal relevance.
 
         Args:
             topic_keywords: Required keywords describing the research area
@@ -145,21 +555,192 @@ class PartnerDiscoveryTool:
             min_projects: Minimum projects to be considered experienced
             role_filter: Filter by role (coordinator, participant, or None for both)
             limit: Max results to return
+            include_2hop: Include 2-hop partners (partners of partners) - graph only
 
         Returns:
-            List of experienced partners with track records
+            List of experienced partners with track records from both sources
         """
+        return self._find_partners_hybrid(
+            topic_keywords=topic_keywords,
+            country=country,
+            organization_type=organization_type,
+            cluster=cluster,
+            min_projects=min_projects,
+            role_filter=role_filter,
+            limit=limit,
+            include_2hop=include_2hop
+        )
+
+    def _find_partners_hybrid(
+        self,
+        topic_keywords: str,
+        country: Optional[str] = None,
+        organization_type: Optional[str] = None,
+        cluster: Optional[str] = None,
+        min_projects: int = 2,
+        role_filter: Optional[str] = None,
+        limit: int = 20,
+        include_2hop: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Hybrid partner discovery combining Graph and SQL sources.
+
+        Strategy:
+        1. Graph search: Find partners via cluster relationships + 2-hop discovery
+        2. SQL search: Find partners via precise keyword matching in project text
+        3. Merge: Combine results using RRF, enrich graph results with SQL details
+        """
+        sources_used = []
+        graph_partners = []
+        sql_partners = []
+
+        # Normalize inputs
+        country_code = self._normalize_country(country)
+        org_type_code = self._normalize_org_type(organization_type)
+        cluster_code = self._normalize_cluster(cluster) if cluster else None
+
+        # ========================================================================
+        # SOURCE 1: Graph-based discovery (relationships + 2-hop)
+        # ========================================================================
+        if self._graph_service:
+            try:
+                graph_result = self._find_partners_graph(
+                    topic_keywords=topic_keywords,
+                    country=country,
+                    organization_type=organization_type,
+                    cluster=cluster,
+                    min_projects=min_projects,
+                    limit=limit * 2,  # Get more for merging
+                    include_2hop=include_2hop
+                )
+                if graph_result and graph_result.get('experienced_partners'):
+                    graph_partners = graph_result['experienced_partners']
+                    sources_used.append('neo4j_graph')
+                    logger.info(f"📊 Graph source: {len(graph_partners)} partners found")
+            except Exception as e:
+                logger.warning(f"Graph search failed: {e}")
+
+        # ========================================================================
+        # SOURCE 2: SQL-based discovery (keyword matching + project details)
+        # ========================================================================
         try:
-            conn = self._get_connection()
-            if not conn:
-                return self._get_fallback_response(topic_keywords)
+            sql_result = self._find_partners_sql(
+                topic_keywords=topic_keywords,
+                country_code=country_code,
+                org_type_code=org_type_code,
+                cluster_code=cluster_code,
+                min_projects=min_projects,
+                role_filter=role_filter,
+                limit=limit * 2  # Get more for merging
+            )
+            if sql_result:
+                sql_partners = sql_result
+                sources_used.append('postgresql')
+                logger.info(f"📊 SQL source: {len(sql_partners)} partners found")
+        except Exception as e:
+            logger.warning(f"SQL search failed: {e}")
 
+        # ========================================================================
+        # MERGE: Combine results using RRF and enrich
+        # ========================================================================
+        if not graph_partners and not sql_partners:
+            return {
+                "success": True,
+                "tool_name": "find_experienced_partners",
+                "query_params": {
+                    "topic_keywords": topic_keywords,
+                    "country": country,
+                    "organization_type": organization_type,
+                    "cluster": cluster,
+                    "min_projects": min_projects
+                },
+                "total_found": 0,
+                "experienced_partners": [],
+                "message": f"No organizations found with {min_projects}+ projects matching '{topic_keywords}'. Try broader keywords or reduce min_projects.",
+                "suggestions": [
+                    "Try more general keywords",
+                    "Remove country or organization type filters",
+                    "Lower min_projects threshold to 1"
+                ],
+                "data_source": "none",
+                "sources_used": sources_used,
+                "timestamp": datetime.now().isoformat()
+            }
+
+        # Merge and deduplicate using RRF
+        merged_partners, graph_only_to_enrich = self._merge_partner_results(
+            graph_partners=graph_partners,
+            sql_partners=sql_partners,
+            topic_keywords=topic_keywords,
+            limit=limit
+        )
+
+        # Enrich graph-only partners with SQL project details
+        if graph_only_to_enrich:
+            logger.info(f"📊 Enriching {len(graph_only_to_enrich)} graph-only partners with SQL project details")
+            self._enrich_graph_partners_with_sql(graph_only_to_enrich, topic_keywords)
+
+        # Generate insights
+        insights = self._generate_insights(merged_partners, topic_keywords)
+
+        # Count sources
+        direct_count = len([p for p in merged_partners if p.get('discovery_type') == 'direct'])
+        two_hop_count = len([p for p in merged_partners if p.get('discovery_type') == '2-hop'])
+        sql_only_count = len([p for p in merged_partners if p.get('discovery_type') == 'keyword_match'])
+        enriched_count = len([p for p in merged_partners if 'sql_enriched' in p.get('found_in_sources', [])])
+        both_sources_count = len([p for p in merged_partners if p.get('found_in_sources') == ['graph', 'sql']])
+
+        return {
+            "success": True,
+            "tool_name": "find_experienced_partners",
+            "query_params": {
+                "topic_keywords": topic_keywords,
+                "country": country,
+                "organization_type": organization_type,
+                "cluster": cluster,
+                "min_projects": min_projects
+            },
+            "total_found": len(merged_partners),
+            "experienced_partners": merged_partners,
+            "aggregated_insights": insights,
+            "search_tips": self._generate_search_tips(merged_partners, topic_keywords, country, organization_type),
+            "data_source": "hybrid",
+            "search_metadata": {
+                "method": "hybrid_graph_sql",
+                "sources_used": sources_used,
+                "graph_results": len(graph_partners),
+                "sql_results": len(sql_partners),
+                "direct_partners": direct_count,
+                "two_hop_partners": two_hop_count,
+                "keyword_match_partners": sql_only_count,
+                "both_sources": both_sources_count,
+                "graph_enriched_with_sql": enriched_count,
+                "include_2hop": include_2hop
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+
+    def _find_partners_sql(
+        self,
+        topic_keywords: str,
+        country_code: Optional[str] = None,
+        org_type_code: Optional[str] = None,
+        cluster_code: Optional[str] = None,
+        min_projects: int = 2,
+        role_filter: Optional[str] = None,
+        limit: int = 20
+    ) -> List[Dict[str, Any]]:
+        """
+        SQL-based partner discovery with precise keyword matching.
+
+        Returns list of partners with full project details.
+        """
+        conn = self._get_connection()
+        if not conn:
+            return []
+
+        try:
             cursor = conn.cursor(cursor_factory=RealDictCursor)
-
-            # Normalize inputs
-            country_code = self._normalize_country(country)
-            org_type_code = self._normalize_org_type(organization_type)
-            cluster_code = self._normalize_cluster(cluster)
 
             # Build WHERE conditions for projects
             project_conditions = ["p.\"frameworkProgramme\" = 'HORIZON'"]
@@ -263,29 +844,10 @@ class PartnerDiscoveryTool:
             conn.close()
 
             if not results:
-                return {
-                    "success": True,
-                    "tool_name": "find_experienced_partners",
-                    "query_params": {
-                        "topic_keywords": topic_keywords,
-                        "country": country,
-                        "organization_type": organization_type,
-                        "cluster": cluster
-                    },
-                    "total_found": 0,
-                    "experienced_partners": [],
-                    "message": f"No organizations found with {min_projects}+ projects matching '{topic_keywords}'. Try broader keywords or reduce min_projects.",
-                    "suggestions": [
-                        "Try more general keywords",
-                        "Remove country or organization type filters",
-                        "Lower min_projects threshold to 1"
-                    ],
-                    "data_source": "cordis_database",
-                    "timestamp": datetime.now().isoformat()
-                }
+                return []
 
-            # Process results
-            experienced_partners = []
+            # Process results into partner list
+            partners = []
             for r in results:
                 # Parse projects JSON
                 projects_list = []
@@ -323,40 +885,197 @@ class PartnerDiscoveryTool:
                         "funding_in_relevant": round(float(r['funding_in_relevant'] or 0), 0)
                     },
                     "relevant_projects": projects_list,
-                    "experience_score": experience_score
+                    "experience_score": experience_score,
+                    "discovery_type": "keyword_match"  # Mark as SQL result
                 }
 
-                experienced_partners.append(partner)
+                partners.append(partner)
 
-            # Sort by experience score
-            experienced_partners.sort(key=lambda x: x['experience_score'], reverse=True)
-
-            # Generate insights
-            insights = self._generate_insights(experienced_partners, topic_keywords)
-
-            return {
-                "success": True,
-                "tool_name": "find_experienced_partners",
-                "query_params": {
-                    "topic_keywords": topic_keywords,
-                    "country": country,
-                    "organization_type": organization_type,
-                    "cluster": cluster,
-                    "min_projects": min_projects
-                },
-                "total_found": len(experienced_partners),
-                "experienced_partners": experienced_partners,
-                "aggregated_insights": insights,
-                "search_tips": self._generate_search_tips(experienced_partners, topic_keywords, country, organization_type),
-                "data_source": "cordis_database",
-                "timestamp": datetime.now().isoformat()
-            }
+            return partners
 
         except Exception as e:
-            logger.error(f"Partner discovery error: {e}")
-            import traceback
-            traceback.print_exc()
-            return self._get_fallback_response(topic_keywords)
+            logger.error(f"SQL partner search failed: {e}")
+            return []
+
+    def _merge_partner_results(
+        self,
+        graph_partners: List[Dict[str, Any]],
+        sql_partners: List[Dict[str, Any]],
+        topic_keywords: str = "",
+        limit: int = 20
+    ) -> List[Dict[str, Any]]:
+        """
+        Merge and deduplicate partner results from Graph and SQL sources.
+
+        Uses Reciprocal Rank Fusion (RRF) to combine rankings.
+        Enriches graph results with SQL project details when available.
+
+        RRF formula: score = sum(1 / (k + rank_i)) for each source
+        where k=60 is a constant that balances top and lower ranked results.
+
+        Additional boost for:
+        - Partners found in both sources (+0.005)
+        - 2-hop partners with high collaboration count (+0.002)
+        """
+        k = 60  # RRF constant
+
+        # Build name -> partner mapping for deduplication
+        partner_map: Dict[str, Dict[str, Any]] = {}
+
+        # Track RRF scores
+        rrf_scores: Dict[str, float] = {}
+
+        # Build SQL lookup for enrichment
+        sql_by_name: Dict[str, Dict[str, Any]] = {}
+        for partner in sql_partners:
+            name = partner.get('name', '').upper().strip()
+            if name:
+                sql_by_name[name] = partner
+
+        # Process graph partners (ranked by experience_score)
+        for rank, partner in enumerate(graph_partners, 1):
+            name = partner.get('name', '').upper().strip()
+            if not name:
+                continue
+
+            rrf_scores[name] = rrf_scores.get(name, 0) + (1.0 / (k + rank))
+
+            # Boost 2-hop partners with strong connections
+            if partner.get('discovery_type') == '2-hop':
+                shared_projects = partner.get('shared_projects_with_seed', 0)
+                if shared_projects >= 5:
+                    rrf_scores[name] += 0.002  # Boost well-connected 2-hop partners
+
+            partner_map[name] = partner
+
+        # Process SQL partners (ranked by experience_score and project count)
+        for rank, partner in enumerate(sql_partners, 1):
+            name = partner.get('name', '').upper().strip()
+            if not name:
+                continue
+
+            rrf_scores[name] = rrf_scores.get(name, 0) + (1.0 / (k + rank))
+
+            if name in partner_map:
+                # Enrich graph result with SQL details (project examples)
+                existing = partner_map[name]
+
+                # Keep SQL project details (more complete)
+                if partner.get('relevant_projects') and not existing.get('relevant_projects'):
+                    existing['relevant_projects'] = partner['relevant_projects']
+
+                # Keep better track record info (SQL has keyword-specific counts)
+                sql_track = partner.get('track_record', {})
+                existing_track = existing.get('track_record', {})
+
+                # SQL track record is keyword-specific, so prefer it
+                if sql_track.get('relevant_projects', 0) > 0:
+                    existing['track_record'] = sql_track
+                    existing['city'] = partner.get('city', existing.get('city', ''))
+
+                # Mark as found in both sources and boost score
+                existing['found_in_sources'] = ['graph', 'sql']
+                rrf_scores[name] += 0.005  # Boost for being in both sources
+            else:
+                # New partner from SQL only
+                partner_map[name] = partner
+                partner['found_in_sources'] = ['sql']
+
+        # Mark graph-only partners and try to enrich them
+        graph_only_names = []
+        for name, partner in partner_map.items():
+            if 'found_in_sources' not in partner:
+                partner['found_in_sources'] = ['graph']
+                graph_only_names.append(name)
+
+        # Sort by RRF score (higher is better)
+        sorted_names = sorted(rrf_scores.keys(), key=lambda n: rrf_scores[n], reverse=True)
+
+        # Build final list (limited)
+        merged = []
+        for name in sorted_names[:limit]:
+            partner = partner_map[name]
+            partner['rrf_score'] = round(rrf_scores[name], 4)
+            merged.append(partner)
+
+        # Collect graph-only partners that need enrichment
+        graph_only_to_enrich = [
+            p for p in merged
+            if p.get('found_in_sources') == ['graph'] and not p.get('relevant_projects')
+        ]
+
+        return merged, graph_only_to_enrich
+
+    def _enrich_graph_partners_with_sql(
+        self,
+        partners_to_enrich: List[Dict[str, Any]],
+        topic_keywords: str
+    ) -> None:
+        """
+        Fetch project details from SQL for graph-only partners.
+
+        Modifies partners in-place to add relevant_projects.
+        """
+        if not partners_to_enrich:
+            return
+
+        conn = self._get_connection()
+        if not conn:
+            return
+
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            for partner in partners_to_enrich:
+                org_name = partner.get('name', '')
+                if not org_name:
+                    continue
+
+                # Query for this organization's projects matching keywords
+                keywords = topic_keywords.split()
+                keyword_conditions = []
+                params = [org_name]
+
+                for kw in keywords[:3]:  # Limit to first 3 keywords
+                    keyword_conditions.append("(p.objective ILIKE %s OR p.title ILIKE %s)")
+                    params.extend([f"%{kw}%", f"%{kw}%"])
+
+                keyword_where = f"({' OR '.join(keyword_conditions)})" if keyword_conditions else "TRUE"
+
+                sql = f"""
+                    SELECT p.acronym, p.title, o.role, o."ecContribution", p."startDate"
+                    FROM organizations o
+                    JOIN projects p ON o."projectID" = p.id
+                    WHERE o.name = %s
+                    AND p."frameworkProgramme" = 'HORIZON'
+                    AND {keyword_where}
+                    ORDER BY p."startDate" DESC NULLS LAST
+                    LIMIT 5
+                """
+
+                cursor.execute(sql, params)
+                results = cursor.fetchall()
+
+                if results:
+                    projects_list = []
+                    for r in results:
+                        projects_list.append({
+                            "acronym": r.get('acronym', 'N/A'),
+                            "title": (r.get('title') or '')[:60] + ('...' if len(r.get('title') or '') > 60 else ''),
+                            "role": r.get('role', 'participant'),
+                            "funding": round(float(r.get('ecContribution') or 0), 0),
+                            "start_date": str(r.get('startDate', ''))[:10] if r.get('startDate') else None
+                        })
+
+                    partner['relevant_projects'] = projects_list
+                    partner['found_in_sources'].append('sql_enriched')
+                    logger.debug(f"Enriched {org_name} with {len(projects_list)} projects")
+
+            cursor.close()
+            conn.close()
+
+        except Exception as e:
+            logger.warning(f"Failed to enrich graph partners: {e}")
 
     def _calculate_experience_score(
         self,
@@ -473,6 +1192,11 @@ async def find_experienced_partners_execute(params: Dict[str, Any], context: Dic
     This tool finds organizations with proven track records in specific Horizon Europe topics.
     Use when users want to find potential consortium partners, identify experienced coordinators,
     or discover organizations working in a specific research area.
+
+    Uses HYBRID approach combining:
+    - Graph (Neo4j): Relationship-based discovery + 2-hop partners
+    - SQL (PostgreSQL): Precise keyword matching + project details
+    Results are merged using Reciprocal Rank Fusion (RRF).
     """
     tool = PartnerDiscoveryTool()
 
@@ -491,5 +1215,33 @@ async def find_experienced_partners_execute(params: Dict[str, Any], context: Dic
         cluster=params.get('cluster'),
         min_projects=params.get('min_projects', 2),
         role_filter=params.get('role_filter'),
-        limit=params.get('limit', 20)
+        limit=params.get('limit', 20),
+        include_2hop=params.get('include_2hop', True)
+    )
+
+
+async def get_collaboration_network_execute(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Get the collaboration network for a specific organization.
+
+    This tool shows which organizations have partnered with a target organization
+    across Horizon Europe projects. Useful for:
+    - Understanding an organization's partnership landscape
+    - Finding potential partners through existing networks
+    - Identifying key collaborators in a research area
+    """
+    tool = PartnerDiscoveryTool()
+
+    organization_name = params.get('organization_name') or params.get('name', '')
+    if not organization_name:
+        return {
+            "success": False,
+            "error": "organization_name is required",
+            "tool_name": "get_collaboration_network"
+        }
+
+    return tool.get_collaboration_network(
+        organization_name=organization_name,
+        depth=params.get('depth', 1),
+        limit=params.get('limit', 30)
     )

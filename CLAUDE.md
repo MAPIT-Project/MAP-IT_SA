@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Hard Rules
+1. Always go for the best possible working solution that would be production ready, even if that means sacrificing performance. 
+2. If benefitial, always make use of subagents.
+
 ## Project Overview
 
 This is a **production-grade Retrieval-Augmented Generation (RAG) system** for querying European research projects from the CORDIS database. The system implements sophisticated multi-source intelligent search, agentic AI capabilities, and comprehensive tooling for Horizon Europe research project queries.
@@ -96,7 +100,7 @@ The system has 20 tools available for the multi-tool agent:
 **Proposal Support Tools (Group 2):**
 - `get_budget_benchmark`: Get budget statistics from similar funded projects (by action type, cluster, year)
 - `get_consortium_patterns`: Analyze consortium composition patterns (org types, countries, sizes)
-- `find_experienced_partners`: Find organizations with experience in specific research areas
+- `find_experienced_partners`: Find organizations with experience in specific research areas (HYBRID: Graph+SQL with RRF fusion)
 - `get_similar_funded_projects`: Find semantically similar funded projects using AI embeddings
 - `analyze_call_history`: Analyze historical funding patterns for topics/clusters (timeline, trends, action types)
 
@@ -332,6 +336,52 @@ When results are insufficient, the system identifies causes:
 - **Purpose**: Live call data enrichment
 - **Used for**: Fetching missing call details, verifying deadlines, getting latest status, enriching local data
 - **Queries via**: `CallEnrichmentService`
+
+## Hybrid Graph+SQL Architecture
+
+### Partner Discovery Tool (find_experienced_partners)
+The Partner Discovery Tool uses a **hybrid Graph+SQL architecture** for optimal results:
+
+**Architecture:**
+- **Graph Service (Neo4j)**: Discovers partners through relationship traversal
+  - Cluster-based discovery: Organizations active in inferred research clusters
+  - 2-hop partner discovery: Partners of partners (extended network)
+  - Collaboration network analysis
+- **SQL Service (PostgreSQL)**: Keyword-based search with full project details
+  - Full-text search on project descriptions and objectives
+  - Complete project details (titles, funding, dates)
+  - Filtering by country, organization type, role
+
+**Result Fusion (RRF Algorithm):**
+- Results from both sources are merged using **Reciprocal Rank Fusion (RRF)**
+- RRF constant: `k=60` for balanced ranking
+- Score boosts:
+  - Partners found in **both sources**: +0.005 (higher confidence)
+  - Well-connected **2-hop partners** (5+ shared projects): +0.002
+- Deduplication by organization name (normalized)
+
+**SQL Enrichment for Graph-Only Partners:**
+- Partners found only via graph lack project details
+- Automatic enrichment: fetches project examples from SQL for graph-only partners
+- Metadata tracks: `graph_partners_enriched`, `graph_only_count`
+
+**Cluster Inference:**
+- Keywords automatically mapped to Horizon Europe clusters (CLUSTER-1 through CLUSTER-6)
+- Example: "hydrogen", "solar energy" → CLUSTER-5 (Climate, Energy, Mobility)
+
+**Response Metadata:**
+```json
+{
+  "search_type": "hybrid",
+  "sources_used": ["graph", "sql"],
+  "graph_partners": 15,
+  "sql_partners": 12,
+  "merged_total": 20,
+  "inferred_clusters": ["CLUSTER-5"],
+  "two_hop_partners_added": 8,
+  "graph_partners_enriched": 5
+}
+```
 
 ## Database Systems
 

@@ -487,7 +487,7 @@ These tools help users improve proposal quality using **real data from 13,865+ f
 |------|-------------|------------|
 | `get_budget_benchmark` | Get budget statistics from similar funded projects | `action_type`, `cluster` (optional), `year_from` (optional) |
 | `get_consortium_patterns` | Analyze consortium composition patterns | `action_type`, `cluster` (optional) |
-| `find_experienced_partners` | Find organizations with track record in specific areas | `keywords`, `country` (optional), `org_type` (optional), `limit` |
+| `find_experienced_partners` | Find organizations with track record (HYBRID: Graph+SQL with RRF fusion) | `keywords`, `country` (optional), `org_type` (optional), `limit` |
 | `get_similar_funded_projects` | Find semantically similar funded projects using embeddings | `query`, `action_type` (optional), `cluster` (optional), `limit` |
 | `analyze_call_history` | Analyze historical funding patterns for topics/clusters | `topic_pattern` (optional), `cluster` (optional), `keywords` (optional), `year_from`, `year_to` |
 
@@ -511,13 +511,22 @@ get_consortium_patterns(action_type='IA', cluster='HLTH')
 #   "coordinator_profile": {"avg_experience": 4.2, "top_countries": [...]}
 # }
 
-# Partner discovery - "Find German SMEs with hydrogen experience"
+# Partner discovery - "Find German SMEs with hydrogen experience" (HYBRID: Graph+SQL)
 find_experienced_partners(keywords='hydrogen fuel cells', country='Germany', org_type='SME', limit=10)
 # Returns: {
 #   "experienced_partners": [
-#     {"name": "...", "country": "DE", "project_count": 5, "experience_score": 0.82, ...}
+#     {"name": "...", "country": "DE", "project_count": 5, "experience_score": 0.82,
+#      "source": "both", "projects": [...], ...}
 #   ],
-#   "total_found": 47
+#   "total_found": 47,
+#   "metadata": {
+#     "search_type": "hybrid",
+#     "sources_used": ["graph", "sql"],
+#     "graph_partners": 15,
+#     "sql_partners": 12,
+#     "inferred_clusters": ["CLUSTER-5"],
+#     "two_hop_partners_added": 8
+#   }
 # }
 
 # Similar projects - "Show funded projects like my AI healthcare idea"
@@ -631,6 +640,132 @@ analyze_call_history(cluster='CL4', year_from=2021, year_to=2025)
 - Enriching local data
 
 **Queries via:** `CallEnrichmentService`
+
+---
+
+## Hybrid Graph+SQL Architecture
+
+### Partner Discovery Tool Enhancement
+
+The `find_experienced_partners` tool uses a **hybrid architecture** that combines Neo4j graph traversal with PostgreSQL keyword search for optimal partner discovery.
+
+### Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        PARTNER DISCOVERY REQUEST                             │
+│                 keywords: "hydrogen fuel cells"                              │
+│                 country: "Germany", org_type: "SME"                          │
+└─────────────────────────────┬───────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      CLUSTER INFERENCE                                       │
+│  Keywords → Horizon Europe Clusters                                          │
+│  "hydrogen" → CLUSTER-5 (Climate, Energy, Mobility)                         │
+│  "AI", "machine learning" → CLUSTER-4 (Digital, Industry, Space)            │
+└─────────────────────────────┬───────────────────────────────────────────────┘
+                              │
+              ┌───────────────┴───────────────┐
+              │                               │
+              ▼                               ▼
+┌─────────────────────────────┐ ┌─────────────────────────────────────────────┐
+│     GRAPH SERVICE           │ │           SQL SERVICE                        │
+│     (Neo4j)                 │ │           (PostgreSQL)                       │
+│                             │ │                                              │
+│  • Cluster-based discovery  │ │  • Full-text keyword search                  │
+│  • 2-hop partner discovery  │ │  • Complete project details                  │
+│  • Relationship traversal   │ │  • Country/type filtering                    │
+│  • Collaboration networks   │ │  • Role-based filtering                      │
+│                             │ │                                              │
+│  Returns: 15 partners       │ │  Returns: 12 partners                        │
+│  (may lack project details) │ │  (with full project info)                    │
+└─────────────────────────────┘ └─────────────────────────────────────────────┘
+              │                               │
+              └───────────────┬───────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    RRF FUSION (Reciprocal Rank Fusion)                       │
+│                                                                              │
+│  • Merge results from both sources (k=60)                                   │
+│  • Boost partners found in BOTH sources: +0.005                             │
+│  • Boost well-connected 2-hop partners: +0.002                              │
+│  • Deduplicate by normalized organization name                              │
+│                                                                              │
+│  Result: 20 unique partners, ranked by combined score                        │
+└─────────────────────────────┬───────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    SQL ENRICHMENT (Graph-Only Partners)                      │
+│                                                                              │
+│  • Partners from graph may lack project details                             │
+│  • Fetch project examples from SQL for graph-only partners                  │
+│  • Add project titles, funding, dates to enrich results                     │
+│                                                                              │
+│  Enriched: 5 graph-only partners now have project details                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Cluster Inference** | Maps research keywords to Horizon Europe clusters (CLUSTER-1 to CLUSTER-6) |
+| **Graph Discovery** | Neo4j traversal finds organizations through relationships, not just keywords |
+| **2-Hop Partners** | Discovers "partners of partners" - extended collaboration network |
+| **RRF Fusion** | Combines rankings from Graph and SQL using Reciprocal Rank Fusion |
+| **Score Boosting** | Partners in both sources get +0.005; connected 2-hop partners get +0.002 |
+| **SQL Enrichment** | Graph-only partners are enriched with SQL project details |
+
+### Cluster Keyword Mapping
+
+```python
+CLUSTER_KEYWORDS = {
+    'CLUSTER-1': ['health', 'medical', 'clinical', 'disease', 'pandemic', ...],
+    'CLUSTER-2': ['culture', 'heritage', 'democracy', 'migration', ...],
+    'CLUSTER-3': ['security', 'cybersecurity', 'border', 'defense', ...],
+    'CLUSTER-4': ['digital', 'AI', 'artificial intelligence', 'data', 'cloud', ...],
+    'CLUSTER-5': ['climate', 'energy', 'hydrogen', 'solar', 'wind', 'transport', ...],
+    'CLUSTER-6': ['food', 'agriculture', 'biodiversity', 'ocean', 'water', ...]
+}
+```
+
+### Response Metadata
+
+The tool returns detailed metadata about the hybrid search:
+
+```json
+{
+  "experienced_partners": [...],
+  "total_found": 20,
+  "metadata": {
+    "search_type": "hybrid",
+    "sources_used": ["graph", "sql"],
+    "graph_partners": 15,
+    "sql_partners": 12,
+    "merged_total": 20,
+    "inferred_clusters": ["CLUSTER-5"],
+    "two_hop_partners_added": 8,
+    "graph_partners_enriched": 5,
+    "graph_only_count": 5
+  }
+}
+```
+
+### File Location
+
+- **Implementation:** `app/services/tools/partner_discovery.py`
+- **Key Methods:**
+  - `_find_partners_hybrid()` - Main hybrid orchestration
+  - `_find_partners_graph()` - Neo4j graph-based discovery
+  - `_find_partners_sql()` - PostgreSQL keyword search
+  - `_find_2hop_partners()` - Partners of partners discovery
+  - `_merge_partner_results()` - RRF fusion with boosts
+  - `_enrich_graph_partners_with_sql()` - SQL enrichment for graph-only partners
+  - `_infer_clusters_from_keywords()` - Keyword to cluster mapping
+  - `get_collaboration_network()` - Get organization's collaboration network
 
 ---
 
@@ -833,7 +968,8 @@ When using the streaming endpoint, progress updates are sent as SSE:
 
 ## Recently Implemented Improvements
 
-> **Implementation Date:** December 3, 2025
+> **Latest Update:** December 9, 2025
+> **Previous Update:** December 3, 2025
 
 All planned improvements have been implemented. See details below:
 
@@ -846,6 +982,7 @@ All planned improvements have been implemented. See details below:
 | 5 | Add user feedback loop for quality improvement | ✅ Implemented | `app/services/feedback/feedback_service.py`, `app/api/feedback_routes.py`, `migration/009_user_feedback.sql` |
 | 6 | Incremental embedding updates for new projects | ✅ Implemented | `app/services/embedding/incremental_embedding_service.py`, Celery tasks in `celery_app.py` |
 | 7 | V3 project formatter enhancements (publications, deliverables) | ✅ Implemented | Enhanced `app/services/response/v3_response_formatter.py`, new methods in `cordis_repository.py` |
+| 8 | Partner Discovery hybrid Graph+SQL architecture | ✅ Implemented | Enhanced `app/services/tools/partner_discovery.py` |
 
 ### Implementation Details
 
@@ -888,6 +1025,16 @@ All planned improvements have been implemented. See details below:
 - `_format_single_project()` now includes publications, deliverables, impact metrics
 - New repository methods: `get_project_publications()`, `get_project_deliverables()`, `get_project_impact_metrics()`
 - Rich formatting with 📚 Publications and 📦 Deliverables sections
+
+**8. Partner Discovery Hybrid Graph+SQL Architecture (December 9, 2025)**
+- Combines Neo4j graph traversal with PostgreSQL keyword search for optimal results
+- **Graph Service**: Cluster-based discovery, 2-hop partners (partners of partners), collaboration networks
+- **SQL Service**: Full-text keyword search with complete project details
+- **RRF Fusion**: Reciprocal Rank Fusion (k=60) merges results from both sources
+- **Score Boosts**: Partners in both sources (+0.005), well-connected 2-hop partners (+0.002)
+- **SQL Enrichment**: Graph-only partners automatically enriched with SQL project details
+- **Cluster Inference**: Keywords mapped to Horizon Europe clusters (CLUSTER-1 to CLUSTER-6)
+- New methods: `_find_partners_hybrid()`, `_find_partners_graph()`, `_find_partners_sql()`, `_find_2hop_partners()`, `_merge_partner_results()`, `_enrich_graph_partners_with_sql()`, `_infer_clusters_from_keywords()`, `get_collaboration_network()`
 
 ### Tool Count Update
 
