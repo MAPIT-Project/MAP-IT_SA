@@ -105,7 +105,7 @@ The system has 20 tools available for the multi-tool agent:
 - `analyze_call_history`: Analyze historical funding patterns for topics/clusters (HYBRID: Graph+SQL with topic evolution, cluster trends, funding trends)
 
 **Proposal Planning Tools (NEW):**
-- `calculate_budget`: Generate detailed budget breakdown for a proposal (personnel, equipment, travel, etc.)
+- `calculate_budget`: Generate detailed budget breakdown for a proposal (HYBRID: Graph+SQL with cluster context, similar projects, real-data grounded recommendations)
 - `generate_timeline`: Create project timeline with work packages, deliverables, and milestones
 
 ### Key Services
@@ -505,6 +505,48 @@ The Call History Analysis Tool uses a **hybrid Graph+SQL architecture** for comp
     "search_type": "hybrid",
     "sources_used": ["graph", "sql"],
     "inferred_clusters": ["CLUSTER-4"]
+  }
+}
+```
+
+### Budget Calculator Tool (calculate_budget)
+The Budget Calculator Tool uses a **hybrid Graph+SQL architecture** for budget planning:
+
+**Architecture:**
+- **Graph Service (Neo4j)**: Cluster-specific budget statistics, consortium patterns
+  - Budget benchmarks by cluster and action type
+  - Consortium composition patterns (avg partners, countries)
+  - Similar project examples with partner counts
+- **SQL Service (PostgreSQL)**: Detailed benchmarks with percentile analysis
+  - Budget percentiles (p10, p25, p50, p75, p90)
+  - Action-type specific sample projects
+- **Parallel Queries**: Graph and SQL queries execute in parallel via ThreadPoolExecutor
+
+**Features:**
+- **Cluster Inference**: Keywords automatically mapped to Horizon Europe clusters
+- **Cluster Context**: Graph-enhanced consortium recommendations
+- **Similar Projects**: Real project examples from both graph and SQL
+- **Data-Grounded Ratios**: Cost ratios adjusted based on cluster-specific data
+
+**New Parameters:**
+- `cluster`: Cluster code for context (e.g., "CL5", "CLUSTER-5")
+- `topic_keywords`: Keywords for cluster inference (alternative to cluster)
+- `include_cluster_context`: Include cluster-specific context from graph (default: True)
+- `include_similar_projects`: Include similar project examples (default: True)
+
+**Response Metadata:**
+```json
+{
+  "success": true,
+  "calculated_budget": {"total_cost": 5000000, "eu_contribution": 5000000, "funding_rate": "100%"},
+  "breakdown": {"personnel": {...}, "equipment": {...}, ...},
+  "cluster_context": {"avg_partners": 15.6, "avg_countries": 7.9, ...},
+  "similar_projects": [{"acronym": "...", "budget": 4500000, ...}],
+  "metadata": {
+    "search_type": "hybrid",
+    "sources_used": ["graph", "sql"],
+    "cluster_used": "CLUSTER-5",
+    "inferred_clusters": ["CLUSTER-5"]
   }
 }
 ```

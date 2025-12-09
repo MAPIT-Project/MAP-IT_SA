@@ -605,6 +605,7 @@ The proposal support tools use a hybrid architecture for optimal results:
 | `find_experienced_partners` | RRF (k=60) | 2-hop discovery, SQL enrichment |
 | `get_consortium_patterns` | Weighted (60% SQL, 40% Graph) | Successful templates, coordinator analysis |
 | `analyze_call_history` | Merge with max values | Topic evolution, cluster trends, cluster statistics |
+| `calculate_budget` | Graph priority with SQL fallback | Cluster context, similar projects, data-grounded ratios |
 
 ---
 
