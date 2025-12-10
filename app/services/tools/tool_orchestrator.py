@@ -1586,12 +1586,17 @@ This tool should be preferred over basic search for complex questions about:
                         {
                             'call_id': c.get('call_id', c.get('topic_code', '')),
                             'title': c.get('title', ''),
-                            'description': c.get('description', '')[:300] if c.get('description') else '',
+                            'description': c.get('description', ''),
+                            'scope': c.get('scope', ''),
+                            'expected_outcome': c.get('expected_outcome', ''),
                             'deadline': c.get('deadline', ''),
+                            'status': c.get('status', 'open'),
+                            'type': c.get('action_type', ''),
                             'action_type': c.get('action_type', ''),
                             'cluster': c.get('cluster', ''),
                             'budget': c.get('budget', ''),
-                            'work_programme': c.get('work_programme', '')
+                            'work_programme': c.get('work_programme', ''),
+                            'url': c.get('url', c.get('portal_url', ''))
                         }
                         for c in calls[:max_results]
                     ],

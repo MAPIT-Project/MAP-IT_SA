@@ -33,25 +33,32 @@ class HorizonEuropeExtractor(CallExtractor):
     programme_name = "Horizon Europe"
     
     # Topic code patterns
+    # NOTE: All patterns must end with a word boundary or alphanumeric to prevent trailing dashes
     topic_patterns = [
-        # Standard cluster format: HORIZON-CL5-2026-02-D3-14
-        re.compile(r'HORIZON-CL\d+-\d{4}-\d+-[A-Z0-9-]+', re.IGNORECASE),
+        # Standard cluster format: HORIZON-CL5-2026-02-D3-14 (must end with number or letter)
+        re.compile(r'HORIZON-CL\d+-\d{4}-\d+-[A-Z0-9]+(?:-[A-Z0-9]+)*[A-Z0-9](?=\s|:|$|[^\w-])', re.IGNORECASE),
         # EIC format: HORIZON-EIC-2026-ACCELERATOR-01
         re.compile(r'HORIZON-EIC-\d{4}-[A-Z]+-\d+', re.IGNORECASE),
         # ERC format: HORIZON-ERC-2026-STG-01 or ERC-2026-STG
-        re.compile(r'(?:HORIZON-)?ERC-\d{4}-[A-Z]+-?\d*', re.IGNORECASE),
+        re.compile(r'(?:HORIZON-)?ERC-\d{4}-[A-Z]+(?:-\d+)?(?=\s|:|$|[^\w-])', re.IGNORECASE),
         # MSCA format: HORIZON-MSCA-2025-PF-01
         re.compile(r'HORIZON-MSCA-\d{4}-[A-Z]+-\d+', re.IGNORECASE),
-        # Health cluster: HORIZON-HLTH-2025-...
-        re.compile(r'HORIZON-HLTH-\d{4}-[A-Z0-9-]+', re.IGNORECASE),
-        # Infrastructure: HORIZON-INFRA-2025-...
-        re.compile(r'HORIZON-INFRA-\d{4}-[A-Z0-9-]+', re.IGNORECASE),
-        # Widening: HORIZON-WIDERA-2025-...
-        re.compile(r'HORIZON-WIDERA-\d{4}-[A-Z0-9-]+', re.IGNORECASE),
+        # Health cluster: HORIZON-HLTH-2025-... (must end with alphanumeric)
+        re.compile(r'HORIZON-HLTH-\d{4}-[A-Z0-9]+(?:-[A-Z0-9]+)*[A-Z0-9](?=\s|:|$|[^\w-])', re.IGNORECASE),
+        # Infrastructure: HORIZON-INFRA-2025-... (must end with alphanumeric)
+        re.compile(r'HORIZON-INFRA-\d{4}-[A-Z0-9]+(?:-[A-Z0-9]+)*[A-Z0-9](?=\s|:|$|[^\w-])', re.IGNORECASE),
+        # Widening: HORIZON-WIDERA-2025-... (must end with alphanumeric)
+        re.compile(r'HORIZON-WIDERA-\d{4}-[A-Z0-9]+(?:-[A-Z0-9]+)*[A-Z0-9](?=\s|:|$|[^\w-])', re.IGNORECASE),
+        # EUSPA: HORIZON-EUSPA-2026-SPACE-... (must end with alphanumeric)
+        re.compile(r'HORIZON-EUSPA-\d{4}-[A-Z0-9]+(?:-[A-Z0-9]+)*[A-Z0-9](?=\s|:|$|[^\w-])', re.IGNORECASE),
+        # Missions: HORIZON-MISS-2026-... (must end with alphanumeric)
+        re.compile(r'HORIZON-MISS-\d{4}-[A-Z0-9]+(?:-[A-Z0-9]+)*[A-Z0-9](?=\s|:|$|[^\w-])', re.IGNORECASE),
+        # EIE: HORIZON-EIE-2026-... (must end with alphanumeric)
+        re.compile(r'HORIZON-EIE-\d{4}-[A-Z0-9]+(?:-[A-Z0-9]+)*[A-Z0-9](?=\s|:|$|[^\w-])', re.IGNORECASE),
         # Two-stage calls: HORIZON-CL5-2025-01-TWO-STAGE
         re.compile(r'HORIZON-CL\d+-\d{4}-\d+-TWO-STAGE', re.IGNORECASE),
-        # Generic fallback
-        re.compile(r'HORIZON-[A-Z0-9]+-\d{4}-[A-Z0-9-]+', re.IGNORECASE),
+        # Generic fallback (must end with alphanumeric, not dash)
+        re.compile(r'HORIZON-[A-Z]{2,6}-\d{4}-[A-Z0-9]+(?:-[A-Z0-9]+)*[A-Z0-9](?=\s|:|$|[^\w-])', re.IGNORECASE),
     ]
     
     # Action types and their full names

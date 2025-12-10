@@ -89,12 +89,26 @@ class FundingCall:
     
     def is_valid(self) -> bool:
         """Check if the call has minimum required data."""
-        return bool(
-            self.programme and 
-            self.topic_code and 
-            self.title and 
-            len(self.title) > 5
-        )
+        if not (self.programme and self.topic_code and self.title):
+            return False
+
+        # Title must be meaningful (not just the topic code, not garbled)
+        if len(self.title) < 10:
+            return False
+        if self.title.upper().startswith('HORIZON-') and len(self.title) < 50:
+            return False  # Title is just the topic code
+        if re.match(r'^(Overview of|Topics Type|Proposals are|EUR\s+million|\d+\s+Proposals)', self.title, re.IGNORECASE):
+            return False  # Garbled title from PDF extraction
+
+        # Topic code must not end with a dash (incomplete)
+        if self.topic_code.endswith('-'):
+            return False
+
+        # Topic code must have a year
+        if not re.search(r'-\d{4}-', self.topic_code):
+            return False
+
+        return True
 
 
 class CallExtractor(ABC):

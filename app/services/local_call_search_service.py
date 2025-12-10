@@ -991,12 +991,14 @@ class LocalCallSearchService:
         topic_code = call.get('topic_code')
         scope = call.get('scope') or ''
         title = call.get('title') or ''
+        deadline = call.get('deadline')
 
-        # Enrich if: scope is short OR title is missing/same as topic_code
+        # Enrich if: scope is short OR title is missing/same as topic_code OR deadline is missing
         needs_enrichment = (
             len(scope) < 50 or
             len(title) < 20 or
-            title == topic_code  # Title is just the call ID
+            title == topic_code or  # Title is just the call ID
+            not deadline  # Missing deadline - ALWAYS enrich to get deadline
         )
 
         if enrich and self._enrichment_service and needs_enrichment and topic_code:

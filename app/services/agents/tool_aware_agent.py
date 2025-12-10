@@ -1709,31 +1709,44 @@ Work Package Summary:
 
             programme = params.get('programme', '')
 
-            # Map programme names to cluster codes
+            # Map programme names to cluster codes (Neo4j uses CLUSTER-X format)
             cluster_map = {
-                'cluster 5': 'CL5',
-                'cl5': 'CL5',
-                'climate': 'CL5',
-                'energy': 'CL5',
-                'mobility': 'CL5',
-                'cluster 4': 'CL4',
-                'cl4': 'CL4',
-                'digital': 'CL4',
-                'cluster 6': 'CL6',
-                'cl6': 'CL6',
-                'food': 'CL6',
-                'cluster 1': 'CL1',
-                'cl1': 'CL1',
-                'health': 'CL1',
-                'cluster 2': 'CL2',
-                'cl2': 'CL2',
-                'culture': 'CL2',
-                'cluster 3': 'CL3',
-                'cl3': 'CL3',
-                'security': 'CL3',
+                'cluster 5': 'CLUSTER-5',
+                'cluster-5': 'CLUSTER-5',
+                'cl5': 'CLUSTER-5',
+                'climate': 'CLUSTER-5',
+                'energy': 'CLUSTER-5',
+                'mobility': 'CLUSTER-5',
+                'cluster 4': 'CLUSTER-4',
+                'cluster-4': 'CLUSTER-4',
+                'cl4': 'CLUSTER-4',
+                'digital': 'CLUSTER-4',
+                'industry': 'CLUSTER-4',
+                'space': 'CLUSTER-4',
+                'cluster 6': 'CLUSTER-6',
+                'cluster-6': 'CLUSTER-6',
+                'cl6': 'CLUSTER-6',
+                'food': 'CLUSTER-6',
+                'bioeconomy': 'CLUSTER-6',
+                'agriculture': 'CLUSTER-6',
+                'cluster 1': 'CLUSTER-1',
+                'cluster-1': 'CLUSTER-1',
+                'cl1': 'CLUSTER-1',
+                'health': 'CLUSTER-1',
+                'cluster 2': 'CLUSTER-2',
+                'cluster-2': 'CLUSTER-2',
+                'cl2': 'CLUSTER-2',
+                'culture': 'CLUSTER-2',
+                'creativity': 'CLUSTER-2',
+                'cluster 3': 'CLUSTER-3',
+                'cluster-3': 'CLUSTER-3',
+                'cl3': 'CLUSTER-3',
+                'security': 'CLUSTER-3',
                 'eic': 'EIC',
+                'eic accelerator': 'EIC',
                 'erc': 'ERC',
                 'msca': 'MSCA',
+                'marie curie': 'MSCA',
             }
 
             # Try to find a matching cluster code
@@ -1851,15 +1864,19 @@ Work Package Summary:
             prog_a = params.get('programme_a', '')
             prog_b = params.get('programme_b', '')
 
-            # Use the same cluster mapping as get_programme_stats
+            # Use the same cluster mapping as get_programme_stats (Neo4j uses CLUSTER-X format)
             cluster_map = {
-                'cluster 5': 'CL5', 'cl5': 'CL5', 'climate': 'CL5', 'energy': 'CL5', 'mobility': 'CL5',
-                'cluster 4': 'CL4', 'cl4': 'CL4', 'digital': 'CL4',
-                'cluster 6': 'CL6', 'cl6': 'CL6', 'food': 'CL6',
-                'cluster 1': 'CL1', 'cl1': 'CL1', 'health': 'CL1',
-                'cluster 2': 'CL2', 'cl2': 'CL2', 'culture': 'CL2',
-                'cluster 3': 'CL3', 'cl3': 'CL3', 'security': 'CL3',
-                'eic': 'EIC', 'erc': 'ERC', 'msca': 'MSCA',
+                'cluster 5': 'CLUSTER-5', 'cluster-5': 'CLUSTER-5', 'cl5': 'CLUSTER-5',
+                'climate': 'CLUSTER-5', 'energy': 'CLUSTER-5', 'mobility': 'CLUSTER-5',
+                'cluster 4': 'CLUSTER-4', 'cluster-4': 'CLUSTER-4', 'cl4': 'CLUSTER-4',
+                'digital': 'CLUSTER-4', 'industry': 'CLUSTER-4', 'space': 'CLUSTER-4',
+                'cluster 6': 'CLUSTER-6', 'cluster-6': 'CLUSTER-6', 'cl6': 'CLUSTER-6',
+                'food': 'CLUSTER-6', 'bioeconomy': 'CLUSTER-6', 'agriculture': 'CLUSTER-6',
+                'cluster 1': 'CLUSTER-1', 'cluster-1': 'CLUSTER-1', 'cl1': 'CLUSTER-1', 'health': 'CLUSTER-1',
+                'cluster 2': 'CLUSTER-2', 'cluster-2': 'CLUSTER-2', 'cl2': 'CLUSTER-2',
+                'culture': 'CLUSTER-2', 'creativity': 'CLUSTER-2',
+                'cluster 3': 'CLUSTER-3', 'cluster-3': 'CLUSTER-3', 'cl3': 'CLUSTER-3', 'security': 'CLUSTER-3',
+                'eic': 'EIC', 'eic accelerator': 'EIC', 'erc': 'ERC', 'msca': 'MSCA', 'marie curie': 'MSCA',
                 'ria': 'RIA', 'ia': 'IA', 'csa': 'CSA',
             }
 

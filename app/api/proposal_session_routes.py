@@ -107,6 +107,74 @@ class SectionGenerateRequest(BaseModel):
 
 
 # =============================================================================
+# Helper Functions
+# =============================================================================
+
+async def _ensure_proposal_exists(
+    manager,
+    proposal_id: int,
+    call_id: str,
+    title: str,
+    proposal_type: str,
+    user_id: str
+) -> int:
+    """
+    Ensure a proposal exists in the database, creating it if needed.
+
+    Args:
+        manager: ProposalSessionManager instance
+        proposal_id: Requested proposal ID
+        call_id: Funding call identifier
+        title: Proposal title
+        proposal_type: Type of proposal (RIA, IA, CSA, etc.)
+        user_id: User identifier
+
+    Returns:
+        The actual proposal_id to use (may be different if auto-created)
+    """
+    conn = manager.db_pool.getconn()
+    try:
+        from psycopg2.extras import RealDictCursor
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            # Check if proposal exists
+            cur.execute(
+                "SELECT id FROM proposals WHERE id = %s",
+                (proposal_id,)
+            )
+            existing = cur.fetchone()
+
+            if existing:
+                logger.info(f"✅ Found existing proposal: {proposal_id}")
+                return proposal_id
+
+            # Proposal doesn't exist - create it
+            logger.info(f"📝 Creating new proposal (requested id={proposal_id})")
+            cur.execute(
+                """
+                INSERT INTO proposals (
+                    call_identifier, proposal_title, proposal_type,
+                    status, user_id, created_at, updated_at
+                ) VALUES (%s, %s, %s, 'draft', %s, NOW(), NOW())
+                RETURNING id
+                """,
+                (call_id, title, proposal_type, user_id)
+            )
+            new_row = cur.fetchone()
+            conn.commit()
+
+            new_id = new_row["id"]
+            logger.info(f"✅ Created new proposal with id={new_id}")
+            return new_id
+
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"❌ Failed to ensure proposal exists: {e}")
+        raise
+    finally:
+        manager.db_pool.putconn(conn)
+
+
+# =============================================================================
 # Session Management Endpoints
 # =============================================================================
 
@@ -121,13 +189,25 @@ async def create_session(
     This creates a unified session that tracks both:
     - Conversation state (chat history, agent context)
     - Document state (sections, scores, suggestions)
+
+    If the proposal doesn't exist, it will be auto-created.
     """
     try:
         manager = get_session_manager()
 
+        # Ensure proposal exists in database (auto-create if needed)
+        proposal_id = await _ensure_proposal_exists(
+            manager=manager,
+            proposal_id=request.proposal_id,
+            call_id=request.call_id,
+            title=request.title,
+            proposal_type=request.proposal_type,
+            user_id=user_id
+        )
+
         session = await manager.create_session(
             user_id=user_id,
-            proposal_id=request.proposal_id,
+            proposal_id=proposal_id,
             call_id=request.call_id,
             title=request.title,
             proposal_type=request.proposal_type,
