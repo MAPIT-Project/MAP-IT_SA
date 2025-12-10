@@ -336,10 +336,11 @@ When the user refers to previous conversation:
    - For **finding/searching** funding calls by topic → use search_funding_calls
    - For projects → use search_projects
    - For statistics → use get_programme_statistics or get_country_statistics
+   - For **country eligibility** ("Can X participate?", "Is Y eligible?") → use get_country_statistics (provides clear YES/NO answer with participation data)
    - For budget/funding questions → use get_budget_benchmark (returns real data from funded projects)
    - For consortium composition → use get_consortium_patterns (org types, country distribution, coordinator profiles)
    - For finding partners → use find_experienced_partners (organizations with track records in specific topics)
-   - For eligibility rules → use search_documents (use SPECIFIC queries like "consortium eligibility", NOT the full user message)
+   - For **general eligibility rules** (not country-specific) → use search_documents (use SPECIFIC queries like "consortium eligibility", NOT the full user message)
    - For comparing things → use compare_programmes
 
 3. **EXECUTE**: Call the tools
@@ -1528,6 +1529,231 @@ Work Package Summary:
                     if acronym or title:
                         content_pieces.append(f"Project {acronym}: {title}")
 
+            # Extract country statistics results
+            elif 'country_code' in result and 'eligibility' in result:
+                country = result.get('country', result.get('country_code', 'Unknown'))
+                eligibility = result.get('eligibility', {})
+                top_orgs = result.get('top_organizations', [])
+
+                # Get participation history from eligibility
+                participation = eligibility.get('participation_history', {})
+                org_count = participation.get('organization_count', result.get('organization_count', 0))
+                proj_count = participation.get('project_count', 0)
+                total_funding = participation.get('total_funding_received', 0)
+
+                # Build clear eligibility answer first
+                is_eligible = eligibility.get('is_eligible', False)
+                eligibility_status = eligibility.get('eligibility_status', 'Unknown')
+
+                country_text = f"""Country: {country}
+**Can participate in Horizon Europe: {'YES' if is_eligible else 'NO'}**
+- Status: {eligibility_status}"""
+
+                # Add notes if available
+                notes = eligibility.get('notes', [])
+                if notes:
+                    country_text += f"\n- {notes[0]}"
+
+                # Add participation stats
+                if proj_count > 0:
+                    country_text += f"""
+
+Participation Statistics:
+- Organizations Participating: {org_count:,}
+- Projects Involved: {proj_count:,}
+- Total Funding Received: €{total_funding:,.0f}"""
+
+                if top_orgs:
+                    country_text += f"\n\nTop Organizations ({len(top_orgs)} shown):"
+                    for org in top_orgs[:10]:
+                        org_name = org.get('name', org.get('organization_name', 'Unknown'))
+                        org_projects = org.get('project_count', org.get('projects', 0))
+                        org_funding = org.get('total_funding', org.get('funding', 0))
+                        country_text += f"\n- {org_name}: {org_projects} projects, €{org_funding:,.0f}"
+
+                content_pieces.append(country_text)
+
+            # Extract programme/cluster statistics results
+            elif 'cluster_code' in result or ('programme' in result and 'statistics' in result):
+                programme = result.get('programme', result.get('cluster_code', 'Unknown'))
+                programme_type = result.get('programme_type', '')
+                stats = result.get('statistics', {})
+                budget = result.get('budget_details', {})
+
+                programme_text = f"""Programme Statistics for {programme}:"""
+                if programme_type:
+                    programme_text += f"\n({programme_type})"
+
+                # Handle EIC/ERC/MSCA format with success_rates dict
+                if 'success_rates' in stats:
+                    success_rates = stats['success_rates']
+                    programme_text += f"\n\n{stats.get('description', '')}\n"
+                    programme_text += "\nSuccess Rates:"
+                    for key, value in success_rates.items():
+                        if key != 'note':
+                            programme_text += f"\n- {key.replace('_', ' ').title()}: {value}"
+                    if success_rates.get('note'):
+                        programme_text += f"\n\nNote: {success_rates['note']}"
+
+                    # Add funding info
+                    if 'funding' in stats:
+                        programme_text += "\n\nFunding Available:"
+                        for key, value in stats['funding'].items():
+                            programme_text += f"\n- {key.replace('_', ' ').title()}: {value}"
+
+                    # Add eligibility
+                    if stats.get('eligibility'):
+                        programme_text += f"\n\nEligibility: {stats['eligibility']}"
+
+                    if stats.get('trl_range'):
+                        programme_text += f"\nTRL Range: {stats['trl_range']}"
+
+                    # Add evaluation criteria
+                    if stats.get('evaluation_criteria'):
+                        programme_text += "\n\nEvaluation Criteria:"
+                        for criterion in stats['evaluation_criteria']:
+                            programme_text += f"\n- {criterion}"
+                else:
+                    # Standard cluster statistics format
+                    if stats:
+                        total_projects = stats.get('total_projects', stats.get('project_count', 'N/A'))
+                        total_funding = stats.get('total_funding', stats.get('total_budget', 0))
+                        avg_budget = stats.get('avg_project_budget', stats.get('average_funding', 0))
+
+                        programme_text += f"""
+- Total Projects: {total_projects:,}""" if isinstance(total_projects, int) else f"""
+- Total Projects: {total_projects}"""
+                        programme_text += f"""
+- Total Funding: €{total_funding:,.0f}
+- Success Rate: {stats.get('success_rate', 'N/A')}%
+- Average Project Budget: €{avg_budget:,.0f}"""
+
+                    if budget:
+                        programme_text += f"""
+
+Budget Breakdown:
+- Min Budget: €{budget.get('min_budget', 0):,.0f}
+- Max Budget: €{budget.get('max_budget', 0):,.0f}
+- Median Budget: €{budget.get('median_budget', 0):,.0f}"""
+
+                content_pieces.append(programme_text)
+
+            # Extract call history analysis results
+            elif result.get('tool_name') == 'analyze_call_history' or ('timeline' in result and 'trends' in result):
+                query_params = result.get('query_params', {})
+                keywords = query_params.get('keywords', 'specified criteria')
+                cluster = query_params.get('cluster', '')
+
+                calls_analyzed = result.get('calls_analyzed', 0)
+                projects_funded = result.get('projects_funded', 0)
+                total_funding = result.get('total_funding_allocated', 0)
+                timeline = result.get('timeline', {})
+                trends = result.get('trends', {})
+                top_topics = result.get('top_funded_topics', [])
+                sample_projects = result.get('sample_funded_projects', [])
+                recommendations = result.get('recommendations', [])
+
+                # Build header
+                search_desc = keywords if keywords else (f"Cluster {cluster}" if cluster else "Horizon Europe")
+                history_text = f"""## Funding History Analysis: {search_desc}
+
+**Overview:**
+- Calls Analyzed: {calls_analyzed}
+- Projects Funded: {projects_funded:,}
+- Total Funding: €{total_funding/1_000_000_000:.2f} billion
+"""
+
+                # Add trend info
+                funding_trend = trends.get('funding_trend', 'unknown')
+                yoy_growth = trends.get('year_over_year_funding_growth', 0)
+                if funding_trend and funding_trend != 'insufficient_data':
+                    history_text += f"- Funding Trend: {funding_trend.replace('_', ' ').title()} ({yoy_growth:+.1f}% YoY)\n"
+
+                # Add timeline
+                if timeline:
+                    history_text += "\n**Funding by Year:**\n"
+                    sorted_years = sorted(timeline.keys(), reverse=True)
+                    for year in sorted_years[:5]:
+                        data = timeline[year]
+                        year_projects = data.get('projects_funded', 0)
+                        year_funding = data.get('total_funding', 0)
+                        avg_budget = data.get('avg_project_budget', 0)
+                        history_text += f"- **{year}**: {year_projects:,} projects, €{year_funding/1_000_000:.0f}M total (avg €{avg_budget/1_000_000:.1f}M/project)\n"
+
+                # Add top topics
+                if top_topics:
+                    history_text += "\n**Top Funded Topics:**\n"
+                    for topic in top_topics[:5]:
+                        topic_name = topic.get('topic', topic.get('name', 'N/A'))
+                        topic_projects = topic.get('projects', topic.get('count', 0))
+                        topic_funding = topic.get('total_funding', 0)
+                        if topic_funding > 0:
+                            history_text += f"- {topic_name}: {topic_projects} projects, €{topic_funding/1_000_000:.0f}M\n"
+                        else:
+                            history_text += f"- {topic_name}: {topic_projects} projects\n"
+
+                # Add sample projects
+                if sample_projects:
+                    history_text += "\n**Sample Funded Projects:**\n"
+                    for proj in sample_projects[:5]:
+                        acronym = proj.get('acronym', 'N/A')
+                        title = proj.get('title', '')[:60]
+                        budget = proj.get('budget', proj.get('ec_contribution', 0))
+                        history_text += f"- **{acronym}**: {title}... (€{budget/1_000_000:.1f}M)\n"
+
+                # Add recommendations
+                if recommendations:
+                    history_text += "\n**Recommendations:**\n"
+                    for rec in recommendations[:3]:
+                        history_text += f"- {rec}\n"
+
+                content_pieces.append(history_text)
+
+            # Extract partner discovery results
+            elif result.get('tool_name') == 'find_experienced_partners' or 'experienced_partners' in result:
+                partners = result.get('experienced_partners', [])
+                total_found = result.get('total_found', 0)
+                query_params = result.get('query_params', {})
+                keywords = query_params.get('topic_keywords', 'specified criteria')
+
+                if not partners and total_found == 0:
+                    partner_text = f"""Partner Search Results for '{keywords}':
+No organizations found matching your criteria.
+
+Suggestions:
+- Try broader keywords (e.g., "energy storage" instead of "solid-state battery")
+- Remove the cluster filter to search across all Horizon Europe
+- Reduce the minimum projects requirement
+- Try searching for related topics"""
+                    content_pieces.append(partner_text)
+                else:
+                    partner_text = f"""Found {total_found} organizations with experience in '{keywords}':
+
+"""
+                    for p in partners[:10]:
+                        name = p.get('short_name') or p.get('name', 'Unknown')
+                        country = p.get('country', 'N/A')
+                        org_type = p.get('type', 'N/A')
+                        track = p.get('track_record', {})
+                        relevant = track.get('relevant_projects', 0)
+                        coord = track.get('as_coordinator', 0)
+                        total_funding = track.get('total_funding', 0)
+
+                        partner_text += f"• **{name}** ({country}, {org_type})\n"
+                        partner_text += f"  - Relevant projects: {relevant}"
+                        if coord > 0:
+                            partner_text += f" ({coord} as coordinator)"
+                        partner_text += f"\n  - Total funding: €{total_funding:,.0f}\n\n"
+
+                    # Add insights if available
+                    insights = result.get('aggregated_insights', {})
+                    if insights.get('top_countries_in_topic'):
+                        partner_text += f"Top countries for this topic: {', '.join(insights['top_countries_in_topic'][:5])}\n"
+                    if insights.get('top_org_types'):
+                        partner_text += f"Common organization types: {', '.join(insights['top_org_types'][:3])}\n"
+
+                    content_pieces.append(partner_text)
+
         if not content_pieces:
             return "I found some information but couldn't extract specific details. Please try a more specific question."
 
@@ -1546,9 +1772,10 @@ Work Package Summary:
         # Take top pieces and format
         body_parts = []
         for i, content in enumerate(unique_content[:5], 1):
-            # Truncate long pieces
-            if len(content) > 600:
-                content = content[:600] + "..."
+            # Truncate long pieces (use higher limit for statistics)
+            max_len = 2000 if any(k in content.lower() for k in ['statistics', 'eligibility', 'organizations', 'funding']) else 800
+            if len(content) > max_len:
+                content = content[:max_len] + "..."
             body_parts.append(f"**Finding {i}:**\n{content}")
 
         return intro + "\n\n".join(body_parts)
@@ -1708,6 +1935,7 @@ Work Package Summary:
             graph = GraphSearchService()
 
             programme = params.get('programme', '')
+            programme_lower = programme.lower()
 
             # Map programme names to cluster codes (Neo4j uses CLUSTER-X format)
             cluster_map = {
@@ -1742,22 +1970,103 @@ Work Package Summary:
                 'cluster-3': 'CLUSTER-3',
                 'cl3': 'CLUSTER-3',
                 'security': 'CLUSTER-3',
-                'eic': 'EIC',
-                'eic accelerator': 'EIC',
-                'erc': 'ERC',
-                'msca': 'MSCA',
-                'marie curie': 'MSCA',
             }
 
-            # Try to find a matching cluster code
+            # Handle EIC/ERC/MSCA separately - these are pillars, not clusters
+            # Return known statistics from official EC sources
+            if 'eic' in programme_lower or 'accelerator' in programme_lower:
+                return {
+                    "programme": "EIC Accelerator",
+                    "programme_type": "Pillar 3 - Innovative Europe",
+                    "statistics": {
+                        "description": "EIC Accelerator supports high-risk, high-impact SMEs and startups with breakthrough innovations",
+                        "success_rates": {
+                            "overall": "2-5%",
+                            "short_proposal_to_full": "~25-30%",
+                            "full_proposal_to_interview": "~20-25%",
+                            "interview_to_funding": "~50-60%",
+                            "note": "Success rates vary by cut-off date and are highly competitive"
+                        },
+                        "funding": {
+                            "grant_only": "Up to €2.5 million",
+                            "blended_finance": "Up to €2.5M grant + up to €15M equity",
+                            "equity_only": "Up to €15 million"
+                        },
+                        "eligibility": "Single SMEs (including startups) from EU/Associated Countries",
+                        "trl_range": "TRL 5-9 (close to market)",
+                        "evaluation_criteria": [
+                            "Excellence (Breakthrough innovation, Technology readiness)",
+                            "Impact (Market potential, Scalability, Team capability)",
+                            "Implementation (Business plan, Milestones, Resources)",
+                            "Level of risk and need for EU support"
+                        ]
+                    },
+                    "source": "official_ec_data"
+                }
+
+            if 'erc' in programme_lower:
+                return {
+                    "programme": "European Research Council (ERC)",
+                    "programme_type": "Pillar 1 - Excellent Science",
+                    "statistics": {
+                        "description": "ERC funds frontier research by individual investigators",
+                        "success_rates": {
+                            "starting_grant": "~10-15%",
+                            "consolidator_grant": "~12-15%",
+                            "advanced_grant": "~10-12%",
+                            "synergy_grant": "~8-10%",
+                            "proof_of_concept": "~35-40%"
+                        },
+                        "funding": {
+                            "starting_grant": "Up to €1.5M for 5 years",
+                            "consolidator_grant": "Up to €2M for 5 years",
+                            "advanced_grant": "Up to €2.5M for 5 years",
+                            "synergy_grant": "Up to €10M for 6 years (2-4 PIs)"
+                        },
+                        "eligibility": "Researchers at any career stage hosted by EU/AC institutions",
+                        "evaluation_criteria": [
+                            "Excellence of the PI (track record, scientific leadership)",
+                            "Excellence of the research project (groundbreaking nature, methodology)"
+                        ]
+                    },
+                    "source": "official_ec_data"
+                }
+
+            if 'msca' in programme_lower or 'marie' in programme_lower or 'curie' in programme_lower:
+                return {
+                    "programme": "Marie Skłodowska-Curie Actions (MSCA)",
+                    "programme_type": "Pillar 1 - Excellent Science",
+                    "statistics": {
+                        "description": "MSCA supports researcher mobility, training and career development",
+                        "success_rates": {
+                            "postdoctoral_fellowships": "~12-15%",
+                            "doctoral_networks": "~8-12%",
+                            "staff_exchanges": "~25-30%",
+                            "cofund": "~20-25%",
+                            "citizens": "Varied (outreach programme)"
+                        },
+                        "funding": {
+                            "postdoctoral_fellowships": "Living allowance + mobility + research costs",
+                            "doctoral_networks": "Up to €360,000/researcher"
+                        },
+                        "eligibility": "Researchers at all career stages, with mobility requirements",
+                        "evaluation_criteria": [
+                            "Excellence (Quality of research/training)",
+                            "Impact (Career development, Knowledge transfer)",
+                            "Implementation (Work plan, Management)"
+                        ]
+                    },
+                    "source": "official_ec_data"
+                }
+
+            # Try to find a matching cluster code for Pillar 2 clusters
             cluster_code = None
-            programme_lower = programme.lower()
             for key, code in cluster_map.items():
                 if key in programme_lower:
                     cluster_code = code
                     break
 
-            # Get cluster statistics
+            # Get cluster statistics from Neo4j
             result = await asyncio.to_thread(
                 graph.get_cluster_statistics,
                 cluster_code
@@ -1779,7 +2088,7 @@ Work Package Summary:
                     "source": "neo4j_graph"
                 }
 
-            return {"message": f"No statistics found for {programme}"}
+            return {"message": f"No statistics found for {programme}. Try specific cluster names (e.g., 'Cluster 5 - Climate', 'Health') or programmes (EIC, ERC, MSCA)."}
         except Exception as e:
             logger.error(f"Programme stats error: {e}")
             return {"error": str(e)}
@@ -2674,6 +2983,103 @@ Work Package Summary:
             recommendations = result.get('recommendations', [])[:2]
             if recommendations:
                 parts.append(f"\nRecommendations: {'; '.join(recommendations)}")
+
+            return "\n".join(parts)
+
+        # Handle country statistics results
+        if 'country_code' in result and 'eligibility' in result:
+            country = result.get('country', result.get('country_code', 'Unknown'))
+            eligibility = result.get('eligibility', {})
+            top_orgs = result.get('top_organizations', [])
+
+            # Get participation history from eligibility
+            participation = eligibility.get('participation_history', {})
+            org_count = participation.get('organization_count', result.get('organization_count', 0))
+            proj_count = participation.get('project_count', 0)
+            total_funding = participation.get('total_funding_received', 0)
+
+            # Build clear eligibility answer first
+            is_eligible = eligibility.get('is_eligible', False)
+            eligibility_status = eligibility.get('eligibility_status', 'Unknown')
+
+            parts = [f"Country: {country}"]
+            parts.append(f"**Can participate in Horizon Europe: {'YES' if is_eligible else 'NO'}**")
+            parts.append(f"- Status: {eligibility_status}")
+
+            # Add notes if available
+            notes = eligibility.get('notes', [])
+            if notes:
+                parts.append(f"- {notes[0]}")
+
+            if proj_count > 0:
+                parts.append(f"\nParticipation Statistics:")
+                parts.append(f"- Organizations: {org_count:,}")
+                parts.append(f"- Projects: {proj_count:,}")
+                parts.append(f"- Total Funding: €{total_funding:,.0f}")
+
+            if top_orgs:
+                parts.append(f"\nTop {min(len(top_orgs), 10)} Organizations:")
+                for org in top_orgs[:10]:
+                    org_name = org.get('name', org.get('organization_name', 'Unknown'))
+                    org_projects = org.get('project_count', org.get('projects', 0))
+                    org_funding = org.get('total_funding', org.get('funding', 0))
+                    parts.append(f"- {org_name}: {org_projects} projects, €{org_funding:,.0f}")
+
+            return "\n".join(parts)
+
+        # Handle programme/cluster statistics results
+        if 'cluster_code' in result or ('programme' in result and 'statistics' in result):
+            programme = result.get('programme', result.get('cluster_code', 'Unknown'))
+            programme_type = result.get('programme_type', '')
+            stats = result.get('statistics', {})
+            budget = result.get('budget_details', {})
+
+            parts = [f"Programme Statistics for {programme}:"]
+            if programme_type:
+                parts.append(f"({programme_type})")
+
+            # Handle EIC/ERC/MSCA format with success_rates dict
+            if 'success_rates' in stats:
+                success_rates = stats['success_rates']
+                if stats.get('description'):
+                    parts.append(f"\n{stats['description']}")
+                parts.append("\nSuccess Rates:")
+                for key, value in success_rates.items():
+                    if key != 'note':
+                        parts.append(f"- {key.replace('_', ' ').title()}: {value}")
+                if success_rates.get('note'):
+                    parts.append(f"\nNote: {success_rates['note']}")
+
+                # Add funding info
+                if 'funding' in stats:
+                    parts.append("\nFunding Available:")
+                    for key, value in stats['funding'].items():
+                        parts.append(f"- {key.replace('_', ' ').title()}: {value}")
+
+                if stats.get('eligibility'):
+                    parts.append(f"\nEligibility: {stats['eligibility']}")
+
+                if stats.get('trl_range'):
+                    parts.append(f"TRL Range: {stats['trl_range']}")
+
+            else:
+                # Standard cluster statistics format
+                if stats:
+                    total_projects = stats.get('total_projects', stats.get('project_count', 'N/A'))
+                    total_funding = stats.get('total_funding', stats.get('total_budget', 0))
+                    success_rate = stats.get('success_rate', 'N/A')
+                    avg_budget = stats.get('avg_project_budget', stats.get('average_funding', 0))
+
+                    parts.append(f"- Total Projects: {total_projects:,}" if isinstance(total_projects, int) else f"- Total Projects: {total_projects}")
+                    parts.append(f"- Total Funding: €{total_funding:,.0f}")
+                    parts.append(f"- Success Rate: {success_rate}%")
+                    parts.append(f"- Average Project Budget: €{avg_budget:,.0f}")
+
+                if budget:
+                    parts.append("\nBudget Breakdown:")
+                    parts.append(f"- Min Budget: €{budget.get('min_budget', 0):,.0f}")
+                    parts.append(f"- Max Budget: €{budget.get('max_budget', 0):,.0f}")
+                    parts.append(f"- Median Budget: €{budget.get('median_budget', 0):,.0f}")
 
             return "\n".join(parts)
 

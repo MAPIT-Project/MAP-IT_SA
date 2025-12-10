@@ -236,7 +236,17 @@ class GraphSearchService:
             eligibility_status = "EU Member State - Fully Eligible"
             is_eligible = True
         elif country_code in self.ASSOCIATED_COUNTRIES:
-            eligibility_status = "Associated Country - Check specific call conditions"
+            # Provide more specific status for key associated countries
+            if country_code == "CH":
+                eligibility_status = "Associated Country - Fully Eligible (Association Agreement effective since 2024)"
+            elif country_code == "UK":
+                eligibility_status = "Associated Country - Fully Eligible (Association Agreement effective since January 2024)"
+            elif country_code == "NO" or country_code == "IS":
+                eligibility_status = "Associated Country - Fully Eligible (EEA/EFTA member)"
+            elif country_code == "IL":
+                eligibility_status = "Associated Country - Fully Eligible"
+            else:
+                eligibility_status = "Associated Country - Eligible (verify specific call conditions)"
             is_eligible = True
         else:
             eligibility_status = "Third Country - Limited eligibility, check call text"
@@ -279,11 +289,13 @@ class GraphSearchService:
             # Generate notes based on status
             notes = []
             if country_code == "CH":
-                notes.append("Switzerland: Check current association status - may have restrictions")
-            if country_code == "UK":
-                notes.append("UK: Post-Brexit association - verify current participation rules")
-            if not is_eligible:
-                notes.append("Third countries may participate under specific conditions - check call text")
+                notes.append("Switzerland is fully associated to Horizon Europe since 2024. Swiss entities participate on equal terms with EU Member States.")
+            elif country_code == "UK":
+                notes.append("UK is fully associated to Horizon Europe since January 2024. UK entities participate on equal terms with EU Member States.")
+            elif country_code == "NO" or country_code == "IS":
+                notes.append("As an EEA/EFTA member, entities participate on equal terms with EU Member States.")
+            elif not is_eligible:
+                notes.append("Third countries may participate under specific conditions - check call text for eligibility.")
             
             return {
                 "country_code": country_code,
@@ -833,48 +845,101 @@ class GraphSearchService:
     ) -> List[Dict[str, Any]]:
         """
         Get top organizations by project participation.
-        
+
         Args:
             cluster_code: Optional filter by cluster
             country_code: Optional filter by country
             limit: Maximum results
-            
+
         Returns:
             List of organizations with participation stats
         """
-        where_clauses = []
         params = {"limit": limit}
-        
-        if cluster_code:
-            where_clauses.append("c.code = $cluster_code")
-            params["cluster_code"] = cluster_code.upper()
-        
+
+        # Build query based on filters
+        # Use MATCH (not OPTIONAL MATCH) for country when filtering by country
         if country_code:
-            where_clauses.append("co.isoCode = $country_code")
             params["country_code"] = country_code.upper()
-        
-        where_clause = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
-        
-        query = f"""
-        MATCH (o:Organization)-[r:PARTICIPATES_IN]->(p:Project)
-        OPTIONAL MATCH (p)-[:TARGETS]->(c:Cluster)
-        OPTIONAL MATCH (o)-[:LOCATED_IN]->(co:Country)
-        {where_clause}
-        
-        WITH o, co,
-             COUNT(DISTINCT p) as projectCount,
-             SUM(r.ecContribution) as totalFunding,
-             COUNT(CASE WHEN r.role = 'coordinator' THEN 1 END) as coordinations
-        
-        RETURN o.name as name,
-               o.shortName as shortName,
-               co.isoCode as country,
-               projectCount,
-               totalFunding,
-               coordinations
-        ORDER BY projectCount DESC
-        LIMIT $limit
-        """
+
+            if cluster_code:
+                params["cluster_code"] = cluster_code.upper()
+                query = """
+                MATCH (o:Organization)-[:LOCATED_IN]->(co:Country {isoCode: $country_code})
+                MATCH (o)-[r:PARTICIPATES_IN]->(p:Project)-[:TARGETS]->(c:Cluster {code: $cluster_code})
+
+                WITH o, co,
+                     COUNT(DISTINCT p) as projectCount,
+                     SUM(r.ecContribution) as totalFunding,
+                     COUNT(CASE WHEN r.role = 'coordinator' THEN 1 END) as coordinations
+
+                RETURN o.name as name,
+                       o.shortName as shortName,
+                       co.isoCode as country,
+                       projectCount,
+                       totalFunding,
+                       coordinations
+                ORDER BY projectCount DESC
+                LIMIT $limit
+                """
+            else:
+                query = """
+                MATCH (o:Organization)-[:LOCATED_IN]->(co:Country {isoCode: $country_code})
+                MATCH (o)-[r:PARTICIPATES_IN]->(p:Project)
+
+                WITH o, co,
+                     COUNT(DISTINCT p) as projectCount,
+                     SUM(r.ecContribution) as totalFunding,
+                     COUNT(CASE WHEN r.role = 'coordinator' THEN 1 END) as coordinations
+
+                RETURN o.name as name,
+                       o.shortName as shortName,
+                       co.isoCode as country,
+                       projectCount,
+                       totalFunding,
+                       coordinations
+                ORDER BY projectCount DESC
+                LIMIT $limit
+                """
+        elif cluster_code:
+            params["cluster_code"] = cluster_code.upper()
+            query = """
+            MATCH (o:Organization)-[r:PARTICIPATES_IN]->(p:Project)-[:TARGETS]->(c:Cluster {code: $cluster_code})
+            OPTIONAL MATCH (o)-[:LOCATED_IN]->(co:Country)
+
+            WITH o, co,
+                 COUNT(DISTINCT p) as projectCount,
+                 SUM(r.ecContribution) as totalFunding,
+                 COUNT(CASE WHEN r.role = 'coordinator' THEN 1 END) as coordinations
+
+            RETURN o.name as name,
+                   o.shortName as shortName,
+                   co.isoCode as country,
+                   projectCount,
+                   totalFunding,
+                   coordinations
+            ORDER BY projectCount DESC
+            LIMIT $limit
+            """
+        else:
+            # No filters - get overall top organizations
+            query = """
+            MATCH (o:Organization)-[r:PARTICIPATES_IN]->(p:Project)
+            OPTIONAL MATCH (o)-[:LOCATED_IN]->(co:Country)
+
+            WITH o, co,
+                 COUNT(DISTINCT p) as projectCount,
+                 SUM(r.ecContribution) as totalFunding,
+                 COUNT(CASE WHEN r.role = 'coordinator' THEN 1 END) as coordinations
+
+            RETURN o.name as name,
+                   o.shortName as shortName,
+                   co.isoCode as country,
+                   projectCount,
+                   totalFunding,
+                   coordinations
+            ORDER BY projectCount DESC
+            LIMIT $limit
+            """
         
         try:
             results = self.db.execute_query(query, params)

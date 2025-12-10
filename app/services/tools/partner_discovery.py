@@ -159,9 +159,20 @@ class PartnerDiscoveryTool:
         return ORG_TYPE_MAP.get(org_lower, org_type.upper())
 
     def _normalize_cluster(self, cluster: Optional[str]) -> Optional[str]:
-        """Normalize cluster code."""
+        """Normalize cluster code.
+
+        Handles various formats:
+        - Single codes: "CL5", "CLUSTER-5", "cluster 5"
+        - Comma-separated (takes first): "CL4, CL5" -> "CL4"
+        """
         if not cluster:
             return None
+
+        # Handle comma-separated values - take the first one
+        if ',' in cluster:
+            cluster = cluster.split(',')[0].strip()
+            logger.debug(f"Cluster had multiple values, using first: {cluster}")
+
         cluster_upper = cluster.upper().replace(' ', '').replace('-', '')
         return CLUSTER_MAP.get(cluster_upper, cluster.upper())
 

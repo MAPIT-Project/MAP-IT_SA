@@ -443,9 +443,15 @@ class CallHistoryTool:
                 params.extend([f"%{cluster}%", cluster])
 
             if keywords:
-                where_conditions.append("(title ILIKE %s OR scope ILIKE %s OR expected_outcome ILIKE %s)")
-                keyword_pattern = f"%{keywords}%"
-                params.extend([keyword_pattern, keyword_pattern, keyword_pattern])
+                # Split keywords by comma and search for each individually
+                keyword_list = [k.strip() for k in keywords.split(',') if k.strip()]
+                if keyword_list:
+                    keyword_conditions = []
+                    for kw in keyword_list:
+                        keyword_conditions.append("(title ILIKE %s OR scope ILIKE %s OR expected_outcome ILIKE %s)")
+                        params.extend([f"%{kw}%", f"%{kw}%", f"%{kw}%"])
+                    # Use OR to match ANY of the keywords
+                    where_conditions.append(f"({' OR '.join(keyword_conditions)})")
 
             if year_from:
                 where_conditions.append("(call_year >= %s OR topic_code ~ %s)")
@@ -965,9 +971,15 @@ class CallHistoryTool:
             params.extend([f"%{p}%" for p in patterns])
 
         if keywords:
-            where_conditions.append("(title ILIKE %s OR objective ILIKE %s)")
-            keyword_pattern = f"%{keywords}%"
-            params.extend([keyword_pattern, keyword_pattern])
+            # Split keywords by comma and search for each individually
+            keyword_list = [k.strip() for k in keywords.split(',') if k.strip()]
+            if keyword_list:
+                keyword_conditions = []
+                for kw in keyword_list:
+                    keyword_conditions.append("(title ILIKE %s OR objective ILIKE %s)")
+                    params.extend([f"%{kw}%", f"%{kw}%"])
+                # Use OR to match ANY of the keywords
+                where_conditions.append(f"({' OR '.join(keyword_conditions)})")
 
         if year_from:
             where_conditions.append("EXTRACT(YEAR FROM \"startDate\") >= %s")

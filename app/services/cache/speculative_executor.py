@@ -47,11 +47,15 @@ class SpeculativeExecutor:
         ('statistics', 'success rate', 'funding rate', 'how many'): ['get_programme_statistics'],
         ('country', 'germany', 'france', 'spain', 'italy', 'participation'): ['get_country_statistics'],
 
+        # Country eligibility queries - use get_country_statistics for clear YES/NO answers
+        ('can switzerland', 'can uk', 'can israel', 'can norway', 'switzerland participate', 'uk participate'): ['get_country_statistics'],
+        ('is switzerland', 'is uk', 'is israel', 'is norway', 'switzerland eligible', 'uk eligible'): ['get_country_statistics'],
+
         # Comparison queries
         ('compare', 'difference', 'vs', 'versus', 'between'): ['compare_programmes'],
 
-        # Document/eligibility queries
-        ('eligible', 'eligibility', 'requirement', 'rule', 'can i'): ['search_documents'],
+        # Document/eligibility queries (for general rules, not country-specific)
+        ('consortium eligibility', 'eligibility requirement', 'eligibility rule', 'who can apply'): ['search_documents'],
         ('page limit', 'pages', 'format', 'template'): ['search_documents'],
 
         # History/trends
@@ -365,7 +369,30 @@ class SpeculativeExecutor:
         Check if cached speculative params are compatible with requested params.
 
         For search tools, we require significant keyword overlap.
+        For statistics tools, we require exact parameter matches.
         """
+        # Tools that require exact parameter match (country, programme, etc.)
+        exact_match_tools = {
+            'get_country_statistics': 'country',
+            'get_programme_statistics': 'programme',
+            'compare_programmes': None,  # Multiple params, just skip speculative cache
+        }
+
+        if tool_name in exact_match_tools:
+            param_key = exact_match_tools[tool_name]
+            if param_key is None:
+                # For tools like compare_programmes, don't use speculative cache
+                return False
+
+            cached_val = cached_params.get(param_key, '').lower().strip()
+            requested_val = requested_params.get(param_key, '').lower().strip()
+
+            if cached_val != requested_val:
+                logger.debug(f"Parameter mismatch for {tool_name}: cached '{cached_val}' != requested '{requested_val}'")
+                return False
+
+            return True
+
         # Search tools require keyword/query overlap
         search_tools = {'search_funding_calls', 'search_projects', 'search_documents',
                         'find_experienced_partners', 'get_similar_funded_projects'}
