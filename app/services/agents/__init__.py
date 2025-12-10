@@ -11,16 +11,25 @@ Provides self-correcting, iterative query processing that can:
 
 Usage:
     from app.services.agents import AgenticManager
-    
+
     # Simple queries (self-correcting)
     manager = AgenticManager()
     response = await manager.process_query("What are the consortium requirements?")
-    
+
     # Complex queries (multi-tool reasoning)
     from app.services.agents import ToolAwareAgent
-    
+
     agent = ToolAwareAgent()
     response = await agent.process_query("Compare EIC Accelerator vs ERC success rates")
+
+    # Proposal-aware queries (proposal context injection)
+    from app.services.agents import ProposalAwareAgent
+
+    agent = ProposalAwareAgent()
+    response = await agent.process_query(
+        "Write the objectives section",
+        proposal_context=session.get_context_for_agent()
+    )
 """
 
 from .agent_context import AgentContext, AgentState
@@ -29,6 +38,7 @@ from .reflector import Reflector, ReflectionResult
 from .replanner import Replanner
 from .agentic_manager import AgenticManager
 from .tool_aware_agent import ToolAwareAgent, Tool, ToolCall, ToolCategory
+from .proposal_aware_agent import ProposalAwareAgent
 
 __all__ = [
     'AgentContext',
@@ -43,4 +53,5 @@ __all__ = [
     'Tool',
     'ToolCall',
     'ToolCategory',
+    'ProposalAwareAgent',
 ]

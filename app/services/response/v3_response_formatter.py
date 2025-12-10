@@ -67,8 +67,10 @@ class V3ResponseFormatter:
         deadline = call.get('deadline') or call.get('application_deadline') or ''
         cluster = call.get('cluster') or call.get('programme') or call.get('work_programme') or ''
         budget = call.get('budget') or call.get('estimated_budget') or ''
-        scope = call.get('scope') or call.get('description') or call.get('objective') or call.get('expected_outcome') or ''
         url = call.get('url') or call.get('portal_url') or ''
+
+        # Get call summary - prioritize description/expected_outcome over scope (which is often verbose)
+        summary = self._get_call_summary(call)
 
         # Validate and clean call_type - filter out numeric IDs and invalid types
         call_type_upper = call_type.upper() if call_type else ''
@@ -83,9 +85,6 @@ class V3ResponseFormatter:
 
         # Format budget
         budget_str = self._format_budget(budget)
-
-        # Clean up scope - remove document fragments and noise
-        scope = self._clean_scope_text(scope)
 
         # Build the formatted entry
         lines = [f"**{index}. {title}**"]
@@ -108,10 +107,8 @@ class V3ResponseFormatter:
         if budget_str:
             lines.append(f"💰 **Budget:** {budget_str}")
 
-        if scope:
-            # Truncate scope to reasonable length
-            scope_text = scope[:300] + "..." if len(scope) > 300 else scope
-            lines.append(f"\n**Scope:** {scope_text}")
+        if summary:
+            lines.append(f"\n📝 **Summary:** {summary}")
 
         # Add apply link - use provided URL or generate from call_id
         if url:
@@ -123,6 +120,115 @@ class V3ResponseFormatter:
         lines.append("\n---")
 
         return "\n".join(lines)
+
+    def _get_call_summary(self, call: Dict) -> str:
+        """
+        Extract a clean, concise summary from call data.
+
+        Prioritizes:
+        1. description field (if clean and concise)
+        2. expected_outcome (usually has clear bullet points)
+        3. scope (as fallback, cleaned up)
+        """
+        # Try description first (often already a good summary)
+        description = call.get('description', '')
+        if description:
+            cleaned = self._clean_html_and_extract_summary(description)
+            if cleaned and len(cleaned) >= 50:
+                return cleaned
+
+        # Try expected_outcome (usually more structured)
+        expected_outcome = call.get('expected_outcome', '')
+        if expected_outcome:
+            cleaned = self._clean_html_and_extract_summary(expected_outcome)
+            if cleaned and len(cleaned) >= 50:
+                return cleaned
+
+        # Fall back to scope
+        scope = call.get('scope', '')
+        if scope:
+            cleaned = self._clean_html_and_extract_summary(scope)
+            if cleaned:
+                return cleaned
+
+        # Try objective as last resort
+        objective = call.get('objective', '')
+        if objective:
+            cleaned = self._clean_html_and_extract_summary(objective)
+            if cleaned:
+                return cleaned
+
+        return ""
+
+    def _clean_html_and_extract_summary(self, text: str) -> str:
+        """
+        Clean HTML tags and extract a readable summary from call text.
+
+        Returns a clean, concise summary (max ~250 chars).
+        """
+        if not text:
+            return ""
+
+        # Remove HTML tags
+        text = re.sub(r'<[^>]+>', ' ', text)
+
+        # Remove HTML entities
+        text = re.sub(r'&[a-zA-Z]+;', ' ', text)
+        text = re.sub(r'&#\d+;', ' ', text)
+
+        # Remove common noise patterns at the start
+        noise_prefixes = [
+            r'^Expected Outcome:?\s*',
+            r'^Scope:?\s*',
+            r'^Description:?\s*',
+            r'^Objective:?\s*',
+            r'^\s*Project results are expected to contribute to (all of )?the following (expected )?outcomes?:?\s*',
+        ]
+        for pattern in noise_prefixes:
+            text = re.sub(pattern, '', text, flags=re.IGNORECASE)
+
+        # Remove document noise
+        noise_patterns = [
+            r'The Director-General responsible.*?$',
+            r'All deadlines are at.*?$',
+            r'Legal and financial.*?$',
+            r'\[?\d+\]',  # Reference numbers like [1]
+        ]
+        for pattern in noise_patterns:
+            text = re.sub(pattern, '', text, flags=re.MULTILINE)
+
+        # Normalize whitespace
+        text = re.sub(r'\s+', ' ', text).strip()
+
+        # If text is too short after cleaning, return empty
+        if len(text) < 30:
+            return ""
+
+        # Extract first meaningful sentence or first ~250 chars
+        # Try to end at a sentence boundary
+        max_len = 250
+        if len(text) <= max_len:
+            return text
+
+        # Find a good break point (end of sentence)
+        truncated = text[:max_len]
+
+        # Look for sentence end (.!?) followed by space or end
+        sentence_end = -1
+        for i in range(len(truncated) - 1, max(len(truncated) - 100, 0), -1):
+            if truncated[i] in '.!?' and (i == len(truncated) - 1 or truncated[i + 1] == ' '):
+                sentence_end = i + 1
+                break
+
+        if sentence_end > 100:  # Found a reasonable sentence break
+            return truncated[:sentence_end].strip()
+        else:
+            # No good sentence break, truncate at word boundary
+            last_space = truncated.rfind(' ')
+            if last_space > 150:
+                return truncated[:last_space].strip() + "..."
+            else:
+                return truncated.strip() + "..."
 
     def _clean_scope_text(self, scope: str) -> str:
         """Clean up scope text to remove document fragments and noise."""
@@ -373,23 +479,51 @@ class V3ResponseFormatter:
     def format_from_tool_results(self, tool_results: Dict[str, Any], query: str = "") -> Optional[str]:
         """
         Detect the type of results and format appropriately.
+        Merges results from multiple tool calls and deduplicates.
         Returns None if no formattable results found.
         """
+        # Collect ALL calls and projects from ALL tool results
+        all_calls = []
+        all_projects = []
+        seen_call_ids = set()
+        seen_project_ids = set()
+
         for tool_name, result in tool_results.items():
             if not isinstance(result, dict):
                 continue
 
-            # Funding calls
+            # Collect funding calls from this tool result
             if 'calls' in result and isinstance(result['calls'], list):
-                calls = result['calls']
-                if calls:
-                    return self.format_funding_calls(calls, query)
+                for call in result['calls']:
+                    # Deduplicate by call_id
+                    call_id = call.get('call_id') or call.get('topic_code') or call.get('topic_id') or call.get('identifier', '')
+                    if call_id and call_id not in seen_call_ids:
+                        seen_call_ids.add(call_id)
+                        all_calls.append(call)
+                    elif not call_id:
+                        # No ID, include but might be duplicate
+                        all_calls.append(call)
 
-            # Projects
+            # Collect projects from this tool result
             if 'projects' in result and isinstance(result['projects'], list):
-                projects = result['projects']
-                if projects:
-                    return self.format_projects(projects, query)
+                for project in result['projects']:
+                    # Deduplicate by project_id
+                    project_id = project.get('id') or project.get('project_id', '')
+                    if project_id and project_id not in seen_project_ids:
+                        seen_project_ids.add(project_id)
+                        all_projects.append(project)
+                    elif not project_id:
+                        # No ID, include but might be duplicate
+                        all_projects.append(project)
+
+        # Format the merged results (prefer calls over projects if both present)
+        if all_calls:
+            logger.info(f"📋 Formatting {len(all_calls)} merged funding calls (deduplicated from {len(seen_call_ids)} unique IDs)")
+            return self.format_funding_calls(all_calls, query)
+
+        if all_projects:
+            logger.info(f"📋 Formatting {len(all_projects)} merged projects (deduplicated from {len(seen_project_ids)} unique IDs)")
+            return self.format_projects(all_projects, query)
 
         return None
 

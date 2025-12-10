@@ -908,12 +908,13 @@ What is your next step? Remember: Output ONLY JSON."""
                 # Execute tool calls
                 tool_calls = reasoning_result.get('tool_calls', [])
                 step.tool_calls = await self._execute_tool_calls(tool_calls)
-                
-                # Collect results
-                for tc in step.tool_calls:
+
+                # Collect results - use unique keys for each tool call
+                for idx, tc in enumerate(step.tool_calls):
                     if tc.success:
-                        all_tool_results[f"{tc.tool_name}_{iteration}"] = tc.result
-                
+                        # Use iteration_idx format to ensure uniqueness when same tool called multiple times
+                        all_tool_results[f"{tc.tool_name}_{iteration}_{idx}"] = tc.result
+
                 step.observation = self._summarize_tool_results(step.tool_calls)
                 step.next_action_needed = reasoning_result.get('needs_more_info', True)
                 
@@ -1094,7 +1095,7 @@ What is your next step? Remember: Output ONLY JSON."""
                 step.tool_calls = await self._execute_tool_calls(tool_calls)
 
                 # YIELD: Tool result events after execution
-                for tc in step.tool_calls:
+                for idx, tc in enumerate(step.tool_calls):
                     result_count = self._count_results(tc.result) if tc.success else 0
                     yield {
                         'type': 'tool_result',
@@ -1107,7 +1108,8 @@ What is your next step? Remember: Output ONLY JSON."""
                     }
 
                     if tc.success:
-                        all_tool_results[f"{tc.tool_name}_{iteration}"] = tc.result
+                        # Use iteration_idx format to ensure uniqueness when same tool called multiple times
+                        all_tool_results[f"{tc.tool_name}_{iteration}_{idx}"] = tc.result
 
                 step.observation = self._summarize_tool_results(step.tool_calls)
                 step.next_action_needed = reasoning_result.get('needs_more_info', True)

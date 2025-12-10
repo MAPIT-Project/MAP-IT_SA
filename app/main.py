@@ -68,6 +68,10 @@ app.include_router(proposal_document_router)
 from .api.feedback_routes import router as feedback_router
 app.include_router(feedback_router)
 
+# V4 Proposal Session routes - unified AI Proposal Writer
+from .api.proposal_session_routes import router as proposal_session_router
+app.include_router(proposal_session_router)
+
 # Exception handlers
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc):
