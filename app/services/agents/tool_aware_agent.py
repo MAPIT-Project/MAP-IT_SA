@@ -297,6 +297,32 @@ Standard RIA/IA proposals have 3 main sections:
 | Impact | 4/5 | ~1/3 | Outcomes, dissemination, exploitation |
 | Implementation | 3/5 | ~1/3 | Work plan, consortium, resources |
 | **Overall** | **10/15** | - | Must pass all thresholds |
+
+### Why Some Countries Have Higher Success Rates (Analytical Knowledge)
+When users ask about country success rate disparities, provide this analysis:
+
+**Key Factors Affecting Country Success Rates:**
+
+1. **National R&D Investment**: Countries with higher R&D spending (% of GDP) tend to have stronger research institutions and more competitive proposals. Nordic countries (Sweden, Finland, Denmark) and central European nations (Germany, Netherlands) consistently perform well.
+
+2. **Institutional Experience**: Organizations with extensive EU funding track records understand evaluation criteria better, have established partnerships, and write more competitive proposals. First-time applicants face a steep learning curve.
+
+3. **National Support Systems**: Some countries have dedicated National Contact Points (NCPs), proposal writing support services, and pre-submission review programs that significantly improve proposal quality.
+
+4. **Language Proficiency**: Proposals are evaluated in English. Non-native English speaking countries may face subtle disadvantages in proposal clarity and persuasiveness.
+
+5. **Consortium Networks**: Countries with strong international research networks can more easily build competitive consortiums with complementary partners.
+
+6. **Strategic Focus**: Some countries strategically target calls where they have comparative advantages, rather than spreading efforts across all areas.
+
+7. **Coordination Culture**: Countries with traditions of collaborative research (vs. competitive individual research) adapt better to consortium-based EU funding.
+
+**Typical Success Rates by Country Type:**
+- **EU-15 established members**: 12-18% average success rate
+- **EU-13 newer members**: 8-12% average success rate (improving with Widening participation actions)
+- **Associated Countries**: Varies widely (Switzerland historically ~20%, UK post-Brexit ~15%)
+
+**Note**: Success rates vary significantly by programme. For specific country data, use the get_country_statistics tool with a specific country name.
 """
 
     # System prompt for the reasoning LLM
@@ -340,11 +366,13 @@ When user asks to broaden scope after a funding/history analysis (e.g., "what ab
 2. **DECIDE**: What tools to use (or answer directly if you can)
    - For **general guidance** ("how do I start?", "where do I begin?") → Answer from BUILT-IN KNOWLEDGE above, no search needed!
    - For **proposal structure** questions → Answer from BUILT-IN KNOWLEDGE (see "Getting Started" and "Proposal Template Structure")
+   - For **WHY questions about country success rates** ("Why do some countries...", "What factors affect...") → Answer from BUILT-IN KNOWLEDGE (see "Why Some Countries Have Higher Success Rates"), no tool needed!
    - For **specific call ID** (user gives ID like HORIZON-*, CREA-*, EIC-*) → use get_call_details (fetches from EU Portal API)
    - For **finding/searching** funding calls by topic → use search_funding_calls
    - For projects → use search_projects
    - For statistics → use get_programme_statistics or get_country_statistics
    - For **country eligibility** ("Can X participate?", "Is Y eligible?") → use get_country_statistics (provides clear YES/NO answer with participation data)
+   - For **specific country stats** (e.g., "Germany's success rate", "top orgs in France") → use get_country_statistics with the specific country name (NOT "EU" - that's not a valid country)
    - For budget/funding questions → use get_budget_benchmark (returns real data from funded projects)
    - For consortium composition → use get_consortium_patterns (org types, country distribution, coordinator profiles)
    - For finding partners → use find_experienced_partners (organizations with track records in specific topics)
@@ -532,10 +560,15 @@ What is your next step? Remember: Output ONLY JSON."""
         
         self.register_tool(Tool(
             name="get_country_statistics",
-            description="Get participation and success statistics for a specific country",
+            description="""Get participation statistics and top organizations for ONE SPECIFIC country.
+
+**IMPORTANT**: This tool is for SINGLE COUNTRY lookups only. Use a real country name/code (Germany, FR, Netherlands, etc.).
+DO NOT use "EU" as a country - it's not valid. For analytical "why" questions about country differences, use BUILT-IN KNOWLEDGE instead.
+
+Returns: Eligibility status, top organizations in that country, and participation data.""",
             category=ToolCategory.STATISTICS,
             parameters={
-                "country": "Country name or code",
+                "country": "Country name (e.g., 'Germany', 'France') or ISO code (e.g., 'DE', 'FR'). NOT 'EU'.",
                 "programme": "Optional: filter by programme"
             },
             examples=[
