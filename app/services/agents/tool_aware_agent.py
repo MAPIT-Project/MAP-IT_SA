@@ -401,6 +401,16 @@ When action is "conclude", you MUST:
 5. If you found relevant info, explain it - don't say "results don't contain information"
 6. Structure answers with: Overview → Details → Key Points/Recommendations
 
+**SPECIAL CASE - Timeline Generation:**
+When the generate_timeline tool was used, your conclusion MUST include the COMPLETE timeline output:
+- ALL work packages with their full details (lead, participants, objectives, tasks, effort, duration)
+- ALL deliverables with due dates, types, and dissemination levels
+- ALL milestones with due months
+- The COMPLETE ASCII Gantt chart (do not truncate or summarize it)
+- WP dependencies
+- All recommendations
+This is critical because users need the full timeline for their proposals. Do NOT summarize or shorten it.
+
 Example good conclusion:
 "The minimum consortium composition for Horizon Europe RIA/IA projects is **3 independent legal entities from 3 different EU Member States or Associated Countries**.
 
@@ -1503,15 +1513,39 @@ Per Partner Distribution:
 """
                 content_pieces.append(budget_text)
 
-            # Extract call details
+            # Extract call details - ENHANCED with full description
             elif result.get('call_id') and result.get('title'):
-                call_text = f"""Call Details for {result.get('call_id')}:
-- Title: {result.get('title')}
-- Status: {result.get('status', 'Unknown')}
-- Type: {result.get('type', 'N/A')}
-- Deadline: {result.get('deadline', 'N/A')}
-- Description: {result.get('description', '')[:500]}"""
-                content_pieces.append(call_text)
+                call_parts = []
+                call_parts.append(f"## Call Details: {result.get('call_id')}\n")
+                call_parts.append(f"**Title:** {result.get('title')}")
+                call_parts.append(f"**Status:** {result.get('status', 'Unknown')}")
+                call_parts.append(f"**Type:** {result.get('type', 'N/A')}")
+                call_parts.append(f"**Deadline:** {result.get('deadline', 'N/A')}")
+
+                # Full description without truncation
+                description = result.get('description', '')
+                if description:
+                    # Clean HTML tags if present
+                    import re
+                    clean_desc = re.sub(r'<[^>]+>', ' ', description)
+                    clean_desc = re.sub(r'\s+', ' ', clean_desc).strip()
+                    call_parts.append(f"\n**Description:**\n{clean_desc}")
+
+                # Add expected outcomes if available
+                expected_outcomes = result.get('expected_outcomes', [])
+                if expected_outcomes:
+                    call_parts.append("\n**Expected Outcomes:**")
+                    for outcome in expected_outcomes[:10]:
+                        call_parts.append(f"- {outcome}")
+
+                # Add scope if available
+                scope = result.get('scope', '')
+                if scope and scope != description:
+                    clean_scope = re.sub(r'<[^>]+>', ' ', scope)
+                    clean_scope = re.sub(r'\s+', ' ', clean_scope).strip()
+                    call_parts.append(f"\n**Scope:**\n{clean_scope}")
+
+                content_pieces.append('\n'.join(call_parts))
 
             # Extract statistics/benchmark results
             elif result.get('statistics') or result.get('benchmark'):
@@ -1607,6 +1641,64 @@ Per Partner Distribution:
                         timeline_parts.append(f"- {rec}")
 
                 content_pieces.append('\n'.join(timeline_parts))
+
+            # Extract similar projects results - ENHANCED with full details
+            elif 'similar_projects' in result and isinstance(result.get('similar_projects'), list):
+                projects = result['similar_projects']
+                query_desc = result.get('query_description', '')
+                matches = result.get('matches_found', len(projects))
+                filters = result.get('filters_applied', {})
+
+                if not projects:
+                    content_pieces.append(f"## Similar Projects Search\n\nNo projects found matching: *{query_desc}*")
+                else:
+                    similar_parts = []
+                    similar_parts.append(f"## Similar Funded Projects\n")
+                    similar_parts.append(f"**Query:** {query_desc}")
+                    if filters:
+                        filter_str = ", ".join([f"{k}: {v}" for k, v in filters.items() if v])
+                        if filter_str:
+                            similar_parts.append(f"**Filters:** {filter_str}")
+                    similar_parts.append(f"**Found:** {matches} similar projects\n")
+
+                    for i, p in enumerate(projects[:10], 1):
+                        acronym = p.get('acronym', 'N/A')
+                        title = p.get('title', 'N/A')
+                        score = p.get('similarity_score', 0)
+                        budget = p.get('eu_contribution', p.get('total_cost', 0))
+                        consortium = p.get('consortium', {})
+                        size = consortium.get('size', p.get('partner_count', 0))
+                        action_type = p.get('action_type', 'N/A')
+                        objective = p.get('objective', '')
+                        start_date = p.get('start_date', '')
+                        end_date = p.get('end_date', '')
+                        coordinator = consortium.get('coordinator', {}).get('name', '')
+                        cluster = p.get('cluster', '')
+
+                        budget_str = f"€{budget/1_000_000:.1f}M" if budget > 0 else "N/A"
+
+                        similar_parts.append(f"### {i}. {acronym} [{score:.0%} match]")
+                        similar_parts.append(f"**{title}**")
+                        similar_parts.append(f"- Type: {action_type} | Budget: {budget_str} | Partners: {size}")
+                        if cluster:
+                            similar_parts.append(f"- Cluster: {cluster}")
+                        if start_date and end_date:
+                            similar_parts.append(f"- Duration: {start_date[:7]} to {end_date[:7]}")
+                        if coordinator:
+                            similar_parts.append(f"- Coordinator: {coordinator}")
+                        if objective:
+                            obj_preview = objective[:300] + "..." if len(objective) > 300 else objective
+                            similar_parts.append(f"- Objective: *{obj_preview}*")
+                        similar_parts.append("")
+
+                    # Add insights
+                    insights = result.get('insights', [])
+                    if insights:
+                        similar_parts.append("**Key Insights:**")
+                        for insight in insights[:5]:
+                            similar_parts.append(f"- {insight}")
+
+                    content_pieces.append('\n'.join(similar_parts))
 
             # Extract project results
             elif 'projects' in result and isinstance(result['projects'], list):
@@ -1854,23 +1946,53 @@ Suggestions:
                 unique_content.append(piece)
 
         # Build a structured response
-        # Check if this is a timeline generation - use direct output without "Finding" wrapper
-        is_timeline = any('## Project Timeline Generated' in c for c in unique_content)
+        # Check for special formatted outputs that should bypass the "Finding X:" wrapper
+        # These are detailed outputs that should be returned directly without truncation
 
-        if is_timeline:
-            # For timeline, return the full content directly without generic intro
-            for content in unique_content:
-                if '## Project Timeline Generated' in content:
-                    return content
+        # Markers for detailed content types - prioritize similar projects over call details
+        # (since user wants similar projects, not just call info)
+        direct_output_markers_priority = [
+            '## Similar Funded Projects',  # Highest priority - what user wants
+            '## Similar Projects Search',
+            '## Project Timeline Generated',
+            '## Funding History Analysis:',
+            '## Call Details:',  # Lower priority - context, not main answer
+        ]
+
+        # Collect ALL content pieces with direct output markers
+        direct_outputs = []
+        regular_content = []
+
+        for content in unique_content:
+            is_direct = False
+            for marker in direct_output_markers_priority:
+                if marker in content:
+                    direct_outputs.append((marker, content))
+                    is_direct = True
+                    break
+            if not is_direct:
+                regular_content.append(content)
+
+        # If we have direct outputs, combine them (prioritizing similar projects)
+        if direct_outputs:
+            # Sort by priority (lower index = higher priority)
+            direct_outputs.sort(key=lambda x: direct_output_markers_priority.index(x[0]) if x[0] in direct_output_markers_priority else 999)
+
+            # Combine all direct outputs
+            combined_parts = []
+            for marker, content in direct_outputs:
+                combined_parts.append(content)
+
+            return "\n\n---\n\n".join(combined_parts)
 
         intro = f"Based on my search for information about '{query}', here's what I found:\n\n"
 
         # Take top pieces and format
         body_parts = []
         for i, content in enumerate(unique_content[:5], 1):
-            # Truncate long pieces (use higher limit for statistics, timeline, and detailed results)
-            is_detailed = any(k in content.lower() for k in ['statistics', 'eligibility', 'organizations', 'funding', 'timeline', 'work package', 'deliverable', 'milestone', 'gantt'])
-            max_len = 5000 if is_detailed else 800
+            # Truncate long pieces (use higher limit for statistics and detailed results)
+            is_detailed = any(k in content.lower() for k in ['statistics', 'eligibility', 'organizations', 'funding', 'timeline', 'work package', 'deliverable', 'milestone', 'gantt', 'similar', 'call details', 'budget'])
+            max_len = 8000 if is_detailed else 1500
             if len(content) > max_len:
                 content = content[:max_len] + "..."
             body_parts.append(f"**Finding {i}:**\n{content}")
@@ -3018,33 +3140,62 @@ Suggestions:
 
             return "\n".join(parts)
 
-        # Handle similar projects results
+        # Handle similar projects results - ENHANCED with full details
         if 'similar_projects' in result and isinstance(result['similar_projects'], list):
             projects = result['similar_projects']
-            query_desc = result.get('query_description', '')[:50]
+            query_desc = result.get('query_description', '')
             matches = result.get('matches_found', len(projects))
+            filters = result.get('filters_applied', {})
 
             if not projects:
-                return f"Similar Projects: No projects found matching '{query_desc}'"
+                return f"## Similar Projects Search\n\nNo projects found matching: *{query_desc}*"
 
-            parts = [f"Found {matches} similar projects:"]
+            parts = []
+            parts.append(f"## Similar Funded Projects\n")
+            parts.append(f"**Query:** {query_desc}")
+            if filters:
+                filter_str = ", ".join([f"{k}: {v}" for k, v in filters.items() if v])
+                if filter_str:
+                    parts.append(f"**Filters:** {filter_str}")
+            parts.append(f"**Found:** {matches} similar projects\n")
 
-            for p in projects[:5]:
+            for i, p in enumerate(projects[:10], 1):
                 acronym = p.get('acronym', 'N/A')
-                title = p.get('title', 'N/A')[:60]
+                title = p.get('title', 'N/A')
                 score = p.get('similarity_score', 0)
-                budget = p.get('eu_contribution', 0)
+                budget = p.get('eu_contribution', p.get('total_cost', 0))
                 consortium = p.get('consortium', {})
-                size = consortium.get('size', 0)
+                size = consortium.get('size', p.get('partner_count', 0))
                 action_type = p.get('action_type', 'N/A')
+                objective = p.get('objective', '')
+                start_date = p.get('start_date', '')
+                end_date = p.get('end_date', '')
+                coordinator = consortium.get('coordinator', {}).get('name', '')
+                cluster = p.get('cluster', '')
 
                 budget_str = f"€{budget/1_000_000:.1f}M" if budget > 0 else "N/A"
-                parts.append(f"- [{score:.0%}] {acronym}: {title}... ({action_type}, {budget_str}, {size} partners)")
+
+                parts.append(f"### {i}. {acronym} [{score:.0%} match]")
+                parts.append(f"**{title}**")
+                parts.append(f"- Type: {action_type} | Budget: {budget_str} | Partners: {size}")
+                if cluster:
+                    parts.append(f"- Cluster: {cluster}")
+                if start_date and end_date:
+                    parts.append(f"- Duration: {start_date[:7]} to {end_date[:7]}")
+                if coordinator:
+                    parts.append(f"- Coordinator: {coordinator}")
+                if objective:
+                    # Show first 300 chars of objective
+                    obj_preview = objective[:300] + "..." if len(objective) > 300 else objective
+                    parts.append(f"- Objective: *{obj_preview}*")
+                parts.append("")
 
             # Add insights
             insights = result.get('insights', [])
             if insights:
-                parts.append(f"\nInsights: {'; '.join(insights[:3])}")
+                parts.append("**Key Insights:**")
+                for insight in insights[:5]:
+                    parts.append(f"- {insight}")
 
             return "\n".join(parts)
 
