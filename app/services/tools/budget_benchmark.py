@@ -9,6 +9,7 @@ for optimal results using RRF (Reciprocal Rank Fusion).
 """
 
 import os
+import re
 import logging
 from typing import Optional, Dict, Any, List, Tuple
 from datetime import datetime
@@ -123,8 +124,11 @@ class BudgetBenchmarkTool:
         Returns:
             Budget statistics with recommendations from hybrid sources
         """
+        logger.info(f"get_benchmark called with: cluster={cluster!r}, action_type={action_type!r}, topic_keywords={topic_keywords!r}")
+
         # Normalize cluster code
         normalized_cluster = self._normalize_cluster_code(cluster)
+        logger.info(f"get_benchmark: normalized_cluster={normalized_cluster!r}")
 
         # Infer clusters from keywords if no cluster specified
         inferred_clusters = []
@@ -154,21 +158,62 @@ class BudgetBenchmarkTool:
     def _normalize_cluster_code(self, cluster: Optional[str]) -> Optional[str]:
         """Normalize cluster code to CLUSTER-X format."""
         if not cluster:
+            logger.debug(f"_normalize_cluster_code: input is None or empty")
+            return None
+
+        # Handle various input types
+        if not isinstance(cluster, str):
+            cluster = str(cluster)
+            logger.debug(f"_normalize_cluster_code: converted non-string to '{cluster}'")
+
+        # Strip whitespace
+        cluster = cluster.strip()
+        if not cluster:
+            logger.debug(f"_normalize_cluster_code: empty after strip")
             return None
 
         cluster_upper = cluster.upper().replace(' ', '').replace('-', '')
+        logger.debug(f"_normalize_cluster_code: input='{cluster}', normalized='{cluster_upper}'")
 
         # Map various formats to standard CLUSTER-X format
         cluster_map = {
-            'CL1': 'CLUSTER-1', 'CLUSTER1': 'CLUSTER-1', 'HEALTH': 'CLUSTER-1', 'HLTH': 'CLUSTER-1',
-            'CL2': 'CLUSTER-2', 'CLUSTER2': 'CLUSTER-2', 'CULTURE': 'CLUSTER-2',
-            'CL3': 'CLUSTER-3', 'CLUSTER3': 'CLUSTER-3', 'SECURITY': 'CLUSTER-3',
-            'CL4': 'CLUSTER-4', 'CLUSTER4': 'CLUSTER-4', 'DIGITAL': 'CLUSTER-4',
-            'CL5': 'CLUSTER-5', 'CLUSTER5': 'CLUSTER-5', 'CLIMATE': 'CLUSTER-5', 'ENERGY': 'CLUSTER-5',
-            'CL6': 'CLUSTER-6', 'CLUSTER6': 'CLUSTER-6', 'FOOD': 'CLUSTER-6',
+            # Full names
+            'CLUSTER1': 'CLUSTER-1', 'CLUSTER2': 'CLUSTER-2', 'CLUSTER3': 'CLUSTER-3',
+            'CLUSTER4': 'CLUSTER-4', 'CLUSTER5': 'CLUSTER-5', 'CLUSTER6': 'CLUSTER-6',
+            # Short codes CL1-CL6
+            'CL1': 'CLUSTER-1', 'CL2': 'CLUSTER-2', 'CL3': 'CLUSTER-3',
+            'CL4': 'CLUSTER-4', 'CL5': 'CLUSTER-5', 'CL6': 'CLUSTER-6',
+            # Just numbers (1-6)
+            '1': 'CLUSTER-1', '2': 'CLUSTER-2', '3': 'CLUSTER-3',
+            '4': 'CLUSTER-4', '5': 'CLUSTER-5', '6': 'CLUSTER-6',
+            # Thematic names
+            'HEALTH': 'CLUSTER-1', 'HLTH': 'CLUSTER-1',
+            'CULTURE': 'CLUSTER-2', 'SOCIETY': 'CLUSTER-2',
+            'SECURITY': 'CLUSTER-3', 'CIVIL': 'CLUSTER-3',
+            'DIGITAL': 'CLUSTER-4', 'INDUSTRY': 'CLUSTER-4', 'SPACE': 'CLUSTER-4',
+            'CLIMATE': 'CLUSTER-5', 'ENERGY': 'CLUSTER-5', 'MOBILITY': 'CLUSTER-5',
+            'FOOD': 'CLUSTER-6', 'BIO': 'CLUSTER-6', 'BIOECONOMY': 'CLUSTER-6',
         }
 
-        return cluster_map.get(cluster_upper, cluster.upper() if cluster.upper().startswith('CLUSTER') else None)
+        result = cluster_map.get(cluster_upper)
+        if result:
+            logger.debug(f"_normalize_cluster_code: mapped '{cluster_upper}' to '{result}'")
+            return result
+
+        # Fallback for formats like "CLUSTER-4" that are already correct
+        if cluster.upper().startswith('CLUSTER'):
+            # Extract number and format properly
+            match = re.search(r'(\d+)', cluster)
+            if match:
+                num = match.group(1)
+                result = f"CLUSTER-{num}"
+                logger.debug(f"_normalize_cluster_code: extracted number, result='{result}'")
+                return result
+            logger.warning(f"_normalize_cluster_code: starts with CLUSTER but no number found: '{cluster}'")
+            return cluster.upper()
+
+        logger.warning(f"_normalize_cluster_code: could not normalize '{cluster}', returning None")
+        return None
 
     def _get_benchmark_hybrid(
         self,

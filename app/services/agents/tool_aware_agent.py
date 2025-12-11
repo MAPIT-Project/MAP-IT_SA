@@ -2191,7 +2191,22 @@ Suggestions:
             return {"error": str(e)}
     
     # ==================== Tool Implementations ====================
-    
+
+    def _extract_cluster_param(self, params: Dict) -> Optional[str]:
+        """
+        Extract cluster parameter from tool params with fallback alternatives.
+        LLM might use different names for the cluster parameter.
+        """
+        cluster = (
+            params.get('cluster') or
+            params.get('cluster_code') or
+            params.get('cluster_id') or
+            params.get('pillar')  # Sometimes LLM confuses pillar with cluster
+        )
+        if cluster:
+            logger.debug(f"_extract_cluster_param: extracted '{cluster}' from params")
+        return cluster
+
     async def _tool_get_programme_stats(self, params: Dict) -> Dict:
         """Get programme/cluster statistics from graph DB."""
         try:
@@ -2857,9 +2872,10 @@ Suggestions:
         try:
             from ..local_project_search_service import LocalProjectSearchService
             service = LocalProjectSearchService()
-            
-            cluster = params.get('cluster', '')
-            
+
+            # Extract cluster with fallback alternatives
+            cluster = self._extract_cluster_param(params) or ''
+
             if not cluster:
                 return {"error": "cluster parameter is required", "projects": []}
             
@@ -2879,9 +2895,16 @@ Suggestions:
         try:
             from ..tools.budget_benchmark import BudgetBenchmarkTool
 
+            # Log the incoming params
+            logger.info(f"_tool_get_budget_benchmark called with params: {params}")
+
+            # Extract cluster with fallback alternatives
+            cluster_param = self._extract_cluster_param(params)
+            logger.info(f"_tool_get_budget_benchmark: cluster param = {cluster_param!r}")
+
             tool = BudgetBenchmarkTool()
             result = tool.get_benchmark(
-                cluster=params.get('cluster'),
+                cluster=cluster_param,
                 action_type=params.get('action_type'),
                 topic_keywords=params.get('topic_keywords'),
                 year=params.get('year')
@@ -2898,9 +2921,12 @@ Suggestions:
         try:
             from ..tools.consortium_patterns import ConsortiumPatternsTool
 
+            # Extract cluster with fallback alternatives
+            cluster_param = self._extract_cluster_param(params)
+
             tool = ConsortiumPatternsTool()
             result = tool.get_patterns(
-                cluster=params.get('cluster'),
+                cluster=cluster_param,
                 action_type=params.get('action_type'),
                 topic_keywords=params.get('topic_keywords'),
                 min_projects=params.get('min_projects', 10)
@@ -2917,12 +2943,15 @@ Suggestions:
         try:
             from ..tools.partner_discovery import PartnerDiscoveryTool
 
+            # Extract cluster with fallback alternatives
+            cluster_param = self._extract_cluster_param(params)
+
             tool = PartnerDiscoveryTool()
             result = tool.find_partners(
                 topic_keywords=params.get('topic_keywords', params.get('keywords', '')),
                 country=params.get('country'),
                 organization_type=params.get('organization_type'),
-                cluster=params.get('cluster'),
+                cluster=cluster_param,
                 min_projects=params.get('min_projects', 2),
                 role_filter=params.get('role_filter'),
                 limit=params.get('limit', 20)
@@ -2939,10 +2968,13 @@ Suggestions:
         try:
             from ..tools.similar_projects import SimilarProjectsTool
 
+            # Extract cluster with fallback alternatives
+            cluster_param = self._extract_cluster_param(params)
+
             tool = SimilarProjectsTool()
             result = tool.find_similar(
                 description=params.get('description', ''),
-                cluster=params.get('cluster'),
+                cluster=cluster_param,
                 action_type=params.get('action_type'),
                 min_budget=params.get('min_budget'),
                 max_budget=params.get('max_budget'),
@@ -2966,10 +2998,13 @@ Suggestions:
         try:
             from ..tools.call_history import CallHistoryTool
 
+            # Extract cluster with fallback alternatives
+            cluster_param = self._extract_cluster_param(params)
+
             tool = CallHistoryTool()
             result = tool.analyze_history(
                 topic_pattern=params.get('topic_pattern'),
-                cluster=params.get('cluster'),
+                cluster=cluster_param,
                 keywords=params.get('keywords'),
                 year_from=params.get('year_from'),
                 year_to=params.get('year_to'),
@@ -3422,6 +3457,9 @@ Suggestions:
             if isinstance(stats, list):
                 stats = stats[0] if stats else {}
             budget = result.get('budget_details', {})
+            # Ensure budget is a dict, not a list
+            if isinstance(budget, list):
+                budget = budget[0] if budget else {}
 
             parts = [f"Programme Statistics for {programme}:"]
             if programme_type:
