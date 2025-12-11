@@ -1518,25 +1518,95 @@ Per Partner Distribution:
                 stats = result.get('statistics', result.get('benchmark', {}))
                 content_pieces.append(f"Statistics: {json.dumps(stats, indent=2, default=str)[:1000]}")
 
-            # Extract timeline generation results
+            # Extract timeline generation results - ENHANCED with full details
             elif result.get('tool_name') == 'generate_timeline' and result.get('success'):
                 wps = result.get('work_packages', [])
-                timeline_text = f"""Project Timeline Generated:
-- Duration: {result.get('parameters', {}).get('duration_months', 'N/A')} months
-- Work Packages: {len(wps)}
-
-Work Package Summary:
-"""
-                for wp in wps[:6]:
-                    timeline_text += f"- WP{wp.get('number')}: {wp.get('title')} (M{wp.get('start_month')}-M{wp.get('end_month')}, {wp.get('effort_pms')} PMs)\n"
-
+                deliverables = result.get('deliverables', [])
                 milestones = result.get('milestones', [])
-                if milestones:
-                    timeline_text += f"\nKey Milestones: {len(milestones)}\n"
-                    for ms in milestones[:5]:
-                        timeline_text += f"- {ms.get('id')}: {ms.get('title')} (M{ms.get('due_month')})\n"
+                params = result.get('parameters', {})
+                gantt = result.get('gantt_data', {})
+                recommendations = result.get('recommendations', [])
 
-                content_pieces.append(timeline_text)
+                timeline_parts = []
+                timeline_parts.append("## Project Timeline Generated\n")
+                timeline_parts.append(f"**Project Parameters:**")
+                timeline_parts.append(f"- Duration: {params.get('duration_months', 36)} months")
+                timeline_parts.append(f"- Action Type: {params.get('action_type', 'RIA')}")
+                timeline_parts.append(f"- Partners: {params.get('num_partners', 8)}")
+                timeline_parts.append(f"- Total Effort: {params.get('total_person_months', 0)} person-months")
+                timeline_parts.append("")
+
+                # Work Packages with full details
+                timeline_parts.append("### Work Packages\n")
+                for wp in wps:
+                    wp_num = wp.get('number', 0)
+                    title = wp.get('title', '')
+                    lead = wp.get('lead', 'P1')
+                    participants = wp.get('participants', [])
+                    start = wp.get('start_month', 1)
+                    end = wp.get('end_month', 36)
+                    effort = wp.get('effort_pms', 0)
+                    objective = wp.get('objective', '')
+                    tasks = wp.get('tasks', [])
+
+                    timeline_parts.append(f"**WP{wp_num}: {title}**")
+                    timeline_parts.append(f"- Lead: {lead} | Participants: {', '.join(participants[:4]) if participants else 'All'}")
+                    timeline_parts.append(f"- Duration: M{start} - M{end} ({end - start + 1} months)")
+                    timeline_parts.append(f"- Effort: {effort} person-months")
+                    if objective:
+                        timeline_parts.append(f"- Objective: *{objective}*")
+                    if tasks:
+                        timeline_parts.append(f"- Tasks: {'; '.join(tasks[:4])}")
+                    timeline_parts.append("")
+
+                # Deliverables
+                if deliverables:
+                    timeline_parts.append(f"### Deliverables ({len(deliverables)} total)\n")
+                    for d in deliverables[:15]:
+                        d_id = d.get('id', d.get('seq_id', 'D?'))
+                        d_title = d.get('title', '')[:60]
+                        d_month = d.get('due_month', 0)
+                        d_type = d.get('type', 'R')
+                        d_level = d.get('dissemination_level', 'PU')
+                        timeline_parts.append(f"- **{d_id}**: {d_title} (M{d_month}, {d_type}, {d_level})")
+                    if len(deliverables) > 15:
+                        timeline_parts.append(f"- ... and {len(deliverables) - 15} more deliverables")
+                    timeline_parts.append("")
+
+                # Milestones
+                if milestones:
+                    timeline_parts.append(f"### Milestones ({len(milestones)} total)\n")
+                    for m in milestones:
+                        m_id = m.get('id', 'MS?')
+                        m_title = m.get('title', '')
+                        m_month = m.get('due_month', 0)
+                        timeline_parts.append(f"- **{m_id}**: {m_title} (M{m_month})")
+                    timeline_parts.append("")
+
+                # ASCII Gantt Chart
+                ascii_chart = gantt.get('ascii_chart', '')
+                if ascii_chart:
+                    timeline_parts.append("### Gantt Chart\n")
+                    timeline_parts.append("```")
+                    timeline_parts.append(ascii_chart)
+                    timeline_parts.append("```")
+                    timeline_parts.append("")
+
+                # WP Dependencies
+                dependencies = gantt.get('dependencies', [])
+                if dependencies:
+                    timeline_parts.append("### WP Dependencies\n")
+                    for dep in dependencies[:6]:
+                        timeline_parts.append(f"- {dep.get('from')} → {dep.get('to')}: {dep.get('description', '')}")
+                    timeline_parts.append("")
+
+                # Recommendations
+                if recommendations:
+                    timeline_parts.append("### Recommendations\n")
+                    for rec in recommendations[:5]:
+                        timeline_parts.append(f"- {rec}")
+
+                content_pieces.append('\n'.join(timeline_parts))
 
             # Extract project results
             elif 'projects' in result and isinstance(result['projects'], list):
@@ -1784,13 +1854,23 @@ Suggestions:
                 unique_content.append(piece)
 
         # Build a structured response
+        # Check if this is a timeline generation - use direct output without "Finding" wrapper
+        is_timeline = any('## Project Timeline Generated' in c for c in unique_content)
+
+        if is_timeline:
+            # For timeline, return the full content directly without generic intro
+            for content in unique_content:
+                if '## Project Timeline Generated' in content:
+                    return content
+
         intro = f"Based on my search for information about '{query}', here's what I found:\n\n"
 
         # Take top pieces and format
         body_parts = []
         for i, content in enumerate(unique_content[:5], 1):
-            # Truncate long pieces (use higher limit for statistics)
-            max_len = 2000 if any(k in content.lower() for k in ['statistics', 'eligibility', 'organizations', 'funding']) else 800
+            # Truncate long pieces (use higher limit for statistics, timeline, and detailed results)
+            is_detailed = any(k in content.lower() for k in ['statistics', 'eligibility', 'organizations', 'funding', 'timeline', 'work package', 'deliverable', 'milestone', 'gantt'])
+            max_len = 5000 if is_detailed else 800
             if len(content) > max_len:
                 content = content[:max_len] + "..."
             body_parts.append(f"**Finding {i}:**\n{content}")
@@ -2965,6 +3045,94 @@ Suggestions:
             insights = result.get('insights', [])
             if insights:
                 parts.append(f"\nInsights: {'; '.join(insights[:3])}")
+
+            return "\n".join(parts)
+
+        # Handle timeline generator results
+        if 'work_packages' in result and 'deliverables' in result and 'milestones' in result:
+            wps = result.get('work_packages', [])
+            deliverables = result.get('deliverables', [])
+            milestones = result.get('milestones', [])
+            params = result.get('parameters', {})
+            summary = result.get('summary', {})
+            gantt = result.get('gantt_data', {})
+
+            parts = []
+            parts.append(f"**Project Timeline Generated**")
+            parts.append(f"- Duration: {params.get('duration_months', 36)} months")
+            parts.append(f"- Action Type: {params.get('action_type', 'RIA')}")
+            parts.append(f"- Partners: {params.get('num_partners', 8)}")
+            parts.append(f"- Total Effort: {params.get('total_person_months', 0)} person-months")
+            parts.append("")
+
+            # Work Packages Summary
+            parts.append("**Work Packages:**")
+            for wp in wps:
+                wp_num = wp.get('number', 0)
+                title = wp.get('title', '')
+                lead = wp.get('lead', 'P1')
+                start = wp.get('start_month', 1)
+                end = wp.get('end_month', 36)
+                effort = wp.get('effort_pms', 0)
+                objective = wp.get('objective', '')
+
+                parts.append(f"\n**WP{wp_num}: {title}** (Lead: {lead})")
+                parts.append(f"  M{start}-M{end} | {effort} PMs")
+                if objective:
+                    parts.append(f"  *{objective[:100]}*")
+
+                # Show tasks
+                tasks = wp.get('tasks', [])
+                if tasks:
+                    parts.append(f"  Tasks: {'; '.join(tasks[:3])}")
+
+            # Deliverables
+            parts.append("")
+            parts.append(f"**Deliverables ({len(deliverables)} total):**")
+            for d in deliverables[:10]:  # Show first 10
+                d_id = d.get('id', 'D?')
+                d_title = d.get('title', '')[:50]
+                d_month = d.get('due_month', 0)
+                d_type = d.get('type', 'R')
+                d_level = d.get('dissemination_level', 'PU')
+                parts.append(f"  {d_id}: {d_title} (M{d_month}, {d_type}, {d_level})")
+
+            if len(deliverables) > 10:
+                parts.append(f"  ... and {len(deliverables) - 10} more")
+
+            # Milestones
+            parts.append("")
+            parts.append(f"**Milestones ({len(milestones)} total):**")
+            for m in milestones:
+                m_id = m.get('id', 'MS?')
+                m_title = m.get('title', '')
+                m_month = m.get('due_month', 0)
+                parts.append(f"  {m_id}: {m_title} (M{m_month})")
+
+            # ASCII Gantt Chart
+            ascii_chart = gantt.get('ascii_chart', '')
+            if ascii_chart:
+                parts.append("")
+                parts.append("**Gantt Chart:**")
+                parts.append("```")
+                parts.append(ascii_chart)
+                parts.append("```")
+
+            # Dependencies
+            dependencies = gantt.get('dependencies', [])
+            if dependencies:
+                parts.append("")
+                parts.append("**WP Dependencies:**")
+                for dep in dependencies[:5]:
+                    parts.append(f"  {dep.get('from')} → {dep.get('to')}: {dep.get('description', '')}")
+
+            # Recommendations
+            recommendations = result.get('recommendations', [])
+            if recommendations:
+                parts.append("")
+                parts.append("**Recommendations:**")
+                for rec in recommendations[:4]:
+                    parts.append(f"  - {rec}")
 
             return "\n".join(parts)
 

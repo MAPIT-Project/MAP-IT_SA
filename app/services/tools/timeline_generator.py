@@ -98,36 +98,183 @@ class TimelineGeneratorTool:
     - Cluster inference from keywords
     """
 
-    # Typical WP structure by action type
+    # Typical WP structure by action type (enhanced with descriptions and tasks)
     WP_TEMPLATES = {
         'RIA': [
-            {'title': 'Project Management', 'effort_pct': 0.08, 'full_duration': True, 'type': 'management'},
-            {'title': 'Requirements & State of the Art', 'effort_pct': 0.12, 'months': (1, 12), 'type': 'requirements'},
-            {'title': 'Core Research & Development', 'effort_pct': 0.35, 'months': (6, -6), 'type': 'research'},
-            {'title': 'Integration & Validation', 'effort_pct': 0.20, 'months': (12, -3), 'type': 'validation'},
-            {'title': 'Dissemination & Exploitation', 'effort_pct': 0.15, 'full_duration': True, 'type': 'dissemination'},
-            {'title': 'Ethics & Data Management', 'effort_pct': 0.10, 'full_duration': True, 'type': 'ethics'},
+            {
+                'title': 'Project Management',
+                'effort_pct': 0.08,
+                'full_duration': True,
+                'type': 'management',
+                'objective': 'Ensure efficient coordination, quality management, and timely delivery of project outcomes.',
+                'tasks': ['Overall project coordination and monitoring', 'Quality assurance and risk management', 'Financial management and reporting', 'Consortium communication and meetings']
+            },
+            {
+                'title': 'Requirements & State of the Art',
+                'effort_pct': 0.12,
+                'months': (1, 12),
+                'type': 'requirements',
+                'objective': 'Establish comprehensive requirements and analyze existing solutions and knowledge gaps.',
+                'tasks': ['User and stakeholder requirements analysis', 'State-of-the-art review and gap analysis', 'Technical specifications development', 'Use case definition and validation scenarios']
+            },
+            {
+                'title': 'Core Research & Development',
+                'effort_pct': 0.35,
+                'months': (6, -6),
+                'type': 'research',
+                'objective': 'Conduct core research activities and develop innovative solutions addressing project objectives.',
+                'tasks': ['Novel methodology/algorithm development', 'Prototype implementation', 'Component development and testing', 'Technical documentation']
+            },
+            {
+                'title': 'Integration & Validation',
+                'effort_pct': 0.20,
+                'months': (12, -3),
+                'type': 'validation',
+                'objective': 'Integrate developed components and validate against requirements through comprehensive testing.',
+                'tasks': ['System integration and configuration', 'Validation against requirements', 'User acceptance testing', 'Performance benchmarking']
+            },
+            {
+                'title': 'Dissemination & Exploitation',
+                'effort_pct': 0.15,
+                'full_duration': True,
+                'type': 'dissemination',
+                'objective': 'Maximize project impact through effective dissemination, communication, and exploitation activities.',
+                'tasks': ['Publication and conference activities', 'Stakeholder engagement and workshops', 'Exploitation planning and market analysis', 'Standardization activities']
+            },
+            {
+                'title': 'Ethics & Data Management',
+                'effort_pct': 0.10,
+                'full_duration': True,
+                'type': 'ethics',
+                'objective': 'Ensure ethical compliance and responsible data management throughout the project lifecycle.',
+                'tasks': ['Ethics requirements implementation', 'Data management plan maintenance', 'GDPR compliance and data protection', 'Open science and FAIR data practices']
+            },
         ],
         'IA': [
-            {'title': 'Project Management', 'effort_pct': 0.08, 'full_duration': True, 'type': 'management'},
-            {'title': 'Market Analysis & Requirements', 'effort_pct': 0.10, 'months': (1, 9), 'type': 'requirements'},
-            {'title': 'Technology Development', 'effort_pct': 0.30, 'months': (3, -9), 'type': 'research'},
-            {'title': 'Pilot Deployment', 'effort_pct': 0.25, 'months': (12, -6), 'type': 'pilot'},
-            {'title': 'Business Model & Scale-up', 'effort_pct': 0.12, 'months': (18, -3), 'type': 'business'},
-            {'title': 'Dissemination & Exploitation', 'effort_pct': 0.15, 'full_duration': True, 'type': 'dissemination'},
+            {
+                'title': 'Project Management',
+                'effort_pct': 0.08,
+                'full_duration': True,
+                'type': 'management',
+                'objective': 'Coordinate project activities and ensure delivery of innovation objectives on time and budget.',
+                'tasks': ['Project coordination and governance', 'Quality and risk management', 'Financial management', 'IP and innovation management']
+            },
+            {
+                'title': 'Market Analysis & Requirements',
+                'effort_pct': 0.10,
+                'months': (1, 9),
+                'type': 'requirements',
+                'objective': 'Understand market needs and define requirements for commercially viable solutions.',
+                'tasks': ['Market analysis and competitive assessment', 'Customer requirements gathering', 'Business requirements specification', 'Regulatory requirements analysis']
+            },
+            {
+                'title': 'Technology Development',
+                'effort_pct': 0.30,
+                'months': (3, -9),
+                'type': 'research',
+                'objective': 'Develop and optimize technology for deployment at higher TRL levels.',
+                'tasks': ['Technology adaptation and optimization', 'Prototype development and testing', 'Manufacturing process development', 'Technical documentation']
+            },
+            {
+                'title': 'Pilot Deployment',
+                'effort_pct': 0.25,
+                'months': (12, -6),
+                'type': 'pilot',
+                'objective': 'Deploy and validate solutions in real-world operational environments.',
+                'tasks': ['Pilot site preparation and setup', 'System deployment and configuration', 'Operational testing and monitoring', 'Performance evaluation and optimization']
+            },
+            {
+                'title': 'Business Model & Scale-up',
+                'effort_pct': 0.12,
+                'months': (18, -3),
+                'type': 'business',
+                'objective': 'Develop sustainable business models and prepare for market scale-up.',
+                'tasks': ['Business model development and validation', 'Go-to-market strategy', 'Investment and funding roadmap', 'Scale-up planning']
+            },
+            {
+                'title': 'Dissemination & Exploitation',
+                'effort_pct': 0.15,
+                'full_duration': True,
+                'type': 'dissemination',
+                'objective': 'Maximize commercial and societal impact through targeted dissemination and exploitation.',
+                'tasks': ['Industry engagement and demonstrations', 'Exploitation planning and IP strategy', 'Standards and policy engagement', 'Communication activities']
+            },
         ],
         'CSA': [
-            {'title': 'Project Management', 'effort_pct': 0.10, 'full_duration': True, 'type': 'management'},
-            {'title': 'Stakeholder Engagement', 'effort_pct': 0.25, 'full_duration': True, 'type': 'communication'},
-            {'title': 'Analysis & Best Practices', 'effort_pct': 0.25, 'months': (1, 18), 'type': 'research'},
-            {'title': 'Policy Recommendations', 'effort_pct': 0.20, 'months': (12, -3), 'type': 'validation'},
-            {'title': 'Communication & Outreach', 'effort_pct': 0.20, 'full_duration': True, 'type': 'dissemination'},
+            {
+                'title': 'Project Management',
+                'effort_pct': 0.10,
+                'full_duration': True,
+                'type': 'management',
+                'objective': 'Coordinate support and coordination activities effectively.',
+                'tasks': ['Project coordination', 'Quality management', 'Administrative and financial management', 'Reporting']
+            },
+            {
+                'title': 'Stakeholder Engagement',
+                'effort_pct': 0.25,
+                'full_duration': True,
+                'type': 'communication',
+                'objective': 'Build and maintain strong stakeholder networks and communities.',
+                'tasks': ['Stakeholder mapping and engagement', 'Community building activities', 'Event organization', 'Network facilitation']
+            },
+            {
+                'title': 'Analysis & Best Practices',
+                'effort_pct': 0.25,
+                'months': (1, 18),
+                'type': 'research',
+                'objective': 'Conduct analysis and identify best practices to inform recommendations.',
+                'tasks': ['Data collection and analysis', 'Best practice identification', 'Comparative studies', 'Documentation and synthesis']
+            },
+            {
+                'title': 'Policy Recommendations',
+                'effort_pct': 0.20,
+                'months': (12, -3),
+                'type': 'validation',
+                'objective': 'Develop actionable recommendations for policy and practice.',
+                'tasks': ['Policy analysis', 'Recommendation development', 'Consultation and validation', 'Roadmap development']
+            },
+            {
+                'title': 'Communication & Outreach',
+                'effort_pct': 0.20,
+                'full_duration': True,
+                'type': 'dissemination',
+                'objective': 'Ensure wide dissemination and uptake of project outputs.',
+                'tasks': ['Communication strategy implementation', 'Publication and dissemination', 'Training and capacity building', 'Impact assessment']
+            },
         ],
         'ERC': [
-            {'title': 'Research Direction 1', 'effort_pct': 0.35, 'full_duration': True, 'type': 'research'},
-            {'title': 'Research Direction 2', 'effort_pct': 0.30, 'full_duration': True, 'type': 'research'},
-            {'title': 'Cross-cutting Activities', 'effort_pct': 0.20, 'full_duration': True, 'type': 'research'},
-            {'title': 'Scientific Coordination', 'effort_pct': 0.15, 'full_duration': True, 'type': 'management'},
+            {
+                'title': 'Research Direction 1',
+                'effort_pct': 0.35,
+                'full_duration': True,
+                'type': 'research',
+                'objective': 'Pursue primary research direction with groundbreaking scientific inquiry.',
+                'tasks': ['Fundamental research activities', 'Data collection and analysis', 'Theory development', 'Publication preparation']
+            },
+            {
+                'title': 'Research Direction 2',
+                'effort_pct': 0.30,
+                'full_duration': True,
+                'type': 'research',
+                'objective': 'Explore complementary research direction expanding project scope.',
+                'tasks': ['Secondary research activities', 'Cross-disciplinary exploration', 'Methodology development', 'Knowledge synthesis']
+            },
+            {
+                'title': 'Cross-cutting Activities',
+                'effort_pct': 0.20,
+                'full_duration': True,
+                'type': 'research',
+                'objective': 'Address cross-cutting themes and integrate research directions.',
+                'tasks': ['Integration activities', 'Collaboration with external partners', 'Training and supervision', 'Scientific outreach']
+            },
+            {
+                'title': 'Scientific Coordination',
+                'effort_pct': 0.15,
+                'full_duration': True,
+                'type': 'management',
+                'objective': 'Ensure scientific coherence and effective resource management.',
+                'tasks': ['Research coordination', 'Team management', 'Resource allocation', 'Scientific reporting']
+            },
         ],
     }
 
@@ -601,15 +748,26 @@ class TimelineGeneratorTool:
                 counter_start=milestone_counter
             )
 
+            # Assign partners to WP (distribute leadership across partners)
+            lead_partner_idx = ((i - 1) % num_partners) + 1
+            # Calculate participant partners (all others involved proportionally)
+            participant_partners = [
+                f'P{p}' for p in range(1, num_partners + 1) if p != lead_partner_idx
+            ][:min(4, num_partners - 1)]  # Max 4 participants listed
+
             wp = {
                 'number': i,
                 'title': template['title'],
-                'lead': f'Partner {((i - 1) % num_partners) + 1}',
+                'objective': template.get('objective', ''),
+                'lead': f'P{lead_partner_idx}',
+                'lead_partner': f'Partner {lead_partner_idx}',
+                'participants': participant_partners,
                 'start_month': start_month,
                 'end_month': end_month,
                 'duration_months': end_month - start_month + 1,
                 'effort_pms': effort,
                 'effort_percentage': round(template['effort_pct'] * 100, 1),
+                'tasks': template.get('tasks', []),
                 'deliverables': wp_deliverables,
                 'milestones': wp_milestones,
             }
@@ -819,15 +977,25 @@ class TimelineGeneratorTool:
                 counter_start=milestone_counter
             )
 
+            # Assign partners to WP (distribute leadership across partners)
+            lead_partner_idx = ((i - 1) % num_partners) + 1
+            participant_partners = [
+                f'P{p}' for p in range(1, num_partners + 1) if p != lead_partner_idx
+            ][:min(4, num_partners - 1)]
+
             wp = {
                 'number': i,
                 'title': template['title'],
-                'lead': f'Partner {((i - 1) % num_partners) + 1}',
+                'objective': template.get('objective', ''),
+                'lead': f'P{lead_partner_idx}',
+                'lead_partner': f'Partner {lead_partner_idx}',
+                'participants': participant_partners,
                 'start_month': start_month,
                 'end_month': end_month,
                 'duration_months': end_month - start_month + 1,
                 'effort_pms': effort,
                 'effort_percentage': round(template['effort_pct'] * 100, 1),
+                'tasks': template.get('tasks', []),
                 'deliverables': wp_deliverables,
                 'milestones': wp_milestones,
             }
@@ -1096,15 +1264,124 @@ class TimelineGeneratorTool:
                 'start_month': wp['start_month'],
                 'end_month': wp['end_month'],
                 'effort': wp['effort_pms'],
+                'lead': wp.get('lead', ''),
                 'bar': self._create_text_bar(wp['start_month'], wp['end_month'], duration)
             }
             gantt_rows.append(row)
 
+        # Generate ASCII Gantt chart
+        ascii_gantt = self._generate_ascii_gantt(work_packages, duration)
+
+        # Generate WP dependencies based on timing
+        dependencies = self._generate_wp_dependencies(work_packages)
+
         return {
             'rows': gantt_rows,
             'total_months': duration,
-            'phases': self._identify_phases(work_packages, duration)
+            'phases': self._identify_phases(work_packages, duration),
+            'ascii_chart': ascii_gantt,
+            'dependencies': dependencies
         }
+
+    def _generate_ascii_gantt(self, work_packages: List[Dict], duration: int) -> str:
+        """Generate a formatted ASCII Gantt chart."""
+        lines = []
+
+        # Header with year markers
+        year_marks = duration // 12
+        header_line = "                                        "  # Space for WP labels
+        for y in range(year_marks + 1):
+            month = y * 12 + 1
+            if month <= duration:
+                header_line += f"Y{y + 1:<11}"
+        lines.append(header_line)
+
+        # Month scale
+        scale_line = "Work Package                    Lead     "
+        for m in range(1, duration + 1):
+            if m % 6 == 1:
+                scale_line += f"M{m:<5}"
+            elif m % 6 == 0:
+                scale_line += "|"
+            else:
+                scale_line += " "
+        lines.append(scale_line)
+        lines.append("-" * (42 + duration))
+
+        # WP bars
+        for wp in work_packages:
+            wp_num = wp['number']
+            title = wp['title'][:24].ljust(24)
+            lead = wp.get('lead', 'P1')[:4].ljust(4)
+            bar = self._create_text_bar(wp['start_month'], wp['end_month'], duration)
+
+            # Add milestone markers to bar
+            bar_list = list(bar)
+            for ms in wp.get('milestones', []):
+                ms_month = ms.get('due_month', 0)
+                if 0 < ms_month <= duration:
+                    bar_list[ms_month - 1] = '◆'  # Milestone marker
+
+            # Add deliverable markers
+            for d in wp.get('deliverables', []):
+                d_month = d.get('due_month', 0)
+                if 0 < d_month <= duration and bar_list[d_month - 1] != '◆':
+                    bar_list[d_month - 1] = '▼'  # Deliverable marker
+
+            bar = ''.join(bar_list)
+            lines.append(f"WP{wp_num}: {title} {lead} {bar}")
+
+        # Legend
+        lines.append("-" * (42 + duration))
+        lines.append("Legend: █ = Active  ░ = Inactive  ◆ = Milestone  ▼ = Deliverable")
+
+        return '\n'.join(lines)
+
+    def _generate_wp_dependencies(self, work_packages: List[Dict]) -> List[Dict]:
+        """Generate WP dependencies based on timing and logical sequence."""
+        dependencies = []
+
+        # Sort WPs by start time
+        sorted_wps = sorted(work_packages, key=lambda x: x['start_month'])
+
+        for i, wp in enumerate(sorted_wps):
+            wp_num = wp['number']
+            wp_type = self._classify_wp_type(wp['title'])
+
+            # Find WPs that this WP depends on (start before and overlap)
+            for other_wp in sorted_wps:
+                if other_wp['number'] == wp_num:
+                    continue
+
+                other_type = self._classify_wp_type(other_wp['title'])
+
+                # Logical dependencies
+                if wp_type == 'research' and other_type == 'requirements':
+                    if other_wp['end_month'] >= wp['start_month']:
+                        dependencies.append({
+                            'from': f"WP{other_wp['number']}",
+                            'to': f"WP{wp_num}",
+                            'type': 'depends_on',
+                            'description': f"Research depends on requirements"
+                        })
+                elif wp_type == 'validation' and other_type == 'research':
+                    if other_wp['start_month'] < wp['start_month']:
+                        dependencies.append({
+                            'from': f"WP{other_wp['number']}",
+                            'to': f"WP{wp_num}",
+                            'type': 'depends_on',
+                            'description': f"Validation depends on research outputs"
+                        })
+                elif wp_type == 'pilot' and other_type == 'validation':
+                    if other_wp['start_month'] < wp['start_month']:
+                        dependencies.append({
+                            'from': f"WP{other_wp['number']}",
+                            'to': f"WP{wp_num}",
+                            'type': 'depends_on',
+                            'description': f"Pilot depends on validated components"
+                        })
+
+        return dependencies
 
     def _create_text_bar(self, start: int, end: int, total: int) -> str:
         """Create a simple text representation of a Gantt bar."""
