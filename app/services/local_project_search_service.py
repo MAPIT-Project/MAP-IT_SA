@@ -395,11 +395,14 @@ class LocalProjectSearchService:
         
         # 4. Deduplicate by project_id
         unique_results = self._deduplicate(fused_results)
-        
+
         # 5. Take top N
         final_results = unique_results[:limit]
-        
-        # 6. Format response
+
+        # 6. Enrich coordinator data for results from Neo4j/Vector sources
+        final_results = self._enrich_coordinator_data(final_results)
+
+        # 7. Format response
         elapsed = time.time() - start_time
         
         return {
@@ -802,38 +805,43 @@ class LocalProjectSearchService:
             if has_country_filter:
                 # Query with country filter via organization
                 params['countries'] = filters['countries']
-                
+
                 status_clause = ""
                 if 'status' in filters:
                     status_clause = "AND p.status = $status"
                     params['status'] = filters['status']
-                
+
                 cypher = f"""
                 MATCH (o:Organization)-[:PARTICIPATES_IN]->(p:Project)
                 WHERE o.country IN $countries
                   AND (toLower(p.title) CONTAINS toLower($search)
                        OR toLower(p.objective) CONTAINS toLower($search))
                   {status_clause}
-                
+
                 WITH DISTINCT p
-                
+
                 // Get related cluster and topic info
                 OPTIONAL MATCH (p)-[:TARGETS]->(c:Cluster)
                 OPTIONAL MATCH (p)-[:FUNDED_UNDER]->(t:Topic)
-                
-                RETURN p.id as id, 
-                       p.title as title, 
+
+                // Get coordinator organization
+                OPTIONAL MATCH (coord:Organization)-[r:PARTICIPATES_IN {{role: 'coordinator'}}]->(p)
+
+                RETURN p.id as id,
+                       p.title as title,
                        p.acronym as acronym,
-                       p.objective as objective, 
-                       p.startDate as startDate, 
+                       p.objective as objective,
+                       p.startDate as startDate,
                        p.endDate as endDate,
-                       p.totalCost as totalCost, 
+                       p.totalCost as totalCost,
                        p.ecMaxContribution as ecMaxContribution,
-                       p.status as status, 
+                       p.status as status,
                        p.fundingScheme as fundingScheme,
-                       COLLECT(DISTINCT c.name)[0] as clusterName, 
-                       COLLECT(DISTINCT c.code)[0] as clusterCode, 
-                       COLLECT(DISTINCT t.code) as topicCodes
+                       COLLECT(DISTINCT c.name)[0] as clusterName,
+                       COLLECT(DISTINCT c.code)[0] as clusterCode,
+                       COLLECT(DISTINCT t.code) as topicCodes,
+                       coord.name as coordinatorName,
+                       coord.country as coordinatorCountry
                 ORDER BY p.startDate DESC
                 LIMIT $limit
                 """
@@ -843,36 +851,41 @@ class LocalProjectSearchService:
                 if 'status' in filters:
                     status_clause = "AND p.status = $status"
                     params['status'] = filters['status']
-                
+
                 cypher = f"""
                 MATCH (p:Project)
                 WHERE (toLower(p.title) CONTAINS toLower($search)
                        OR toLower(p.objective) CONTAINS toLower($search))
                   {status_clause}
-                
+
                 // Get related cluster and topic info
                 OPTIONAL MATCH (p)-[:TARGETS]->(c:Cluster)
                 OPTIONAL MATCH (p)-[:FUNDED_UNDER]->(t:Topic)
-                
-                RETURN p.id as id, 
-                       p.title as title, 
+
+                // Get coordinator organization
+                OPTIONAL MATCH (coord:Organization)-[r:PARTICIPATES_IN {{role: 'coordinator'}}]->(p)
+
+                RETURN p.id as id,
+                       p.title as title,
                        p.acronym as acronym,
-                       p.objective as objective, 
-                       p.startDate as startDate, 
+                       p.objective as objective,
+                       p.startDate as startDate,
                        p.endDate as endDate,
-                       p.totalCost as totalCost, 
+                       p.totalCost as totalCost,
                        p.ecMaxContribution as ecMaxContribution,
-                       p.status as status, 
+                       p.status as status,
                        p.fundingScheme as fundingScheme,
-                       COLLECT(DISTINCT c.name)[0] as clusterName, 
-                       COLLECT(DISTINCT c.code)[0] as clusterCode, 
-                       COLLECT(DISTINCT t.code) as topicCodes
+                       COLLECT(DISTINCT c.name)[0] as clusterName,
+                       COLLECT(DISTINCT c.code)[0] as clusterCode,
+                       COLLECT(DISTINCT t.code) as topicCodes,
+                       coord.name as coordinatorName,
+                       coord.country as coordinatorCountry
                 ORDER BY p.startDate DESC
                 LIMIT $limit
                 """
             
             results = self._graph_service.db.execute_query(cypher, params)
-            
+
             # Convert to standard format
             formatted = []
             for i, r in enumerate(results):
@@ -893,6 +906,8 @@ class LocalProjectSearchService:
                     'topics': ', '.join([t for t in topic_codes if t]) if topic_codes else '',
                     'cluster_name': r.get('clusterName'),
                     'cluster_code': r.get('clusterCode'),
+                    'coordinator_name': r.get('coordinatorName'),
+                    'coordinator_country': r.get('coordinatorCountry'),
                     '_source': 'neo4j',
                     '_rank': i + 1
                 })
@@ -1061,13 +1076,115 @@ class LocalProjectSearchService:
             if pid not in seen:
                 seen.add(pid)
                 unique.append(project)
-        
+
         return unique
-    
+
+    def _enrich_coordinator_data(self, projects: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Enrich projects with coordinator data from PostgreSQL.
+
+        Neo4j and Vector search results may not include coordinator info.
+        This method fetches coordinator data for projects missing it.
+
+        Args:
+            projects: List of project dictionaries
+
+        Returns:
+            Projects with coordinator_name and coordinator_country populated
+        """
+        if not self._postgres_repo or not self._postgres_repo.db_pool:
+            return projects
+
+        # Find projects missing coordinator data
+        projects_needing_enrichment = []
+        for p in projects:
+            # Check if coordinator info is missing
+            has_coordinator = (
+                p.get('coordinator_name') is not None or
+                p.get('coordinator', {}).get('name') is not None
+            )
+            if not has_coordinator and p.get('id'):
+                projects_needing_enrichment.append(str(p.get('id')))
+
+        if not projects_needing_enrichment:
+            return projects
+
+        logger.info(f"📡 Enriching coordinator data for {len(projects_needing_enrichment)} projects")
+
+        try:
+            conn = self._postgres_repo.db_pool.getconn()
+            cursor = conn.cursor()
+
+            # Batch fetch coordinator data
+            placeholders = ','.join(['%s'] * len(projects_needing_enrichment))
+            cursor.execute(f"""
+                SELECT
+                    p.id,
+                    MAX(CASE WHEN o.role = 'coordinator' THEN o.name END) as coordinator_name,
+                    MAX(CASE WHEN o.role = 'coordinator' THEN o.country END) as coordinator_country,
+                    COUNT(DISTINCT o."organisationID") as participant_count,
+                    COUNT(DISTINCT o.country) as country_count,
+                    COUNT(CASE WHEN o."SME" = true THEN 1 END) as sme_count,
+                    ARRAY_AGG(DISTINCT o.country) FILTER (WHERE o.country IS NOT NULL) as participant_countries
+                FROM projects p
+                LEFT JOIN organizations o ON p.id = o."projectID"
+                WHERE p.id IN ({placeholders})
+                GROUP BY p.id
+            """, projects_needing_enrichment)
+
+            # Build lookup map
+            coordinator_map = {}
+            for row in cursor.fetchall():
+                coordinator_map[str(row[0])] = {
+                    'coordinator_name': row[1],
+                    'coordinator_country': row[2],
+                    'participant_count': row[3] or 0,
+                    'country_count': row[4] or 0,
+                    'sme_count': row[5] or 0,
+                    'participant_countries': row[6] or []
+                }
+
+            cursor.close()
+            self._postgres_repo.db_pool.putconn(conn)
+
+            # Enrich projects
+            enriched_count = 0
+            for p in projects:
+                pid = str(p.get('id'))
+                if pid in coordinator_map:
+                    coord_data = coordinator_map[pid]
+                    p['coordinator_name'] = coord_data['coordinator_name']
+                    p['coordinator_country'] = coord_data['coordinator_country']
+                    # Also enrich consortium data if missing
+                    if not p.get('participant_count'):
+                        p['participant_count'] = coord_data['participant_count']
+                        p['country_count'] = coord_data['country_count']
+                        p['sme_count'] = coord_data['sme_count']
+                        p['participant_countries'] = coord_data['participant_countries']
+                    enriched_count += 1
+
+            logger.info(f"✅ Enriched {enriched_count} projects with coordinator data")
+
+        except Exception as e:
+            logger.error(f"Failed to enrich coordinator data: {e}")
+
+        return projects
+
     def _format_project(self, project: Dict[str, Any]) -> Dict[str, Any]:
         """Format project for API response."""
         project_id = project.get('id', '')
-        
+
+        # Get coordinator info - use "Data not yet available" for missing data
+        coordinator_name = project.get('coordinator_name')
+        coordinator_country = project.get('coordinator_country')
+
+        # If coordinator info is None but project has organizations, it's truly unknown
+        # Otherwise, mark as "data not yet available" for new projects
+        if coordinator_name is None:
+            coordinator_name = "Data not yet available"
+        if coordinator_country is None:
+            coordinator_country = "N/A"
+
         return {
             'id': project_id,
             'rcn': project.get('rcn', ''),
@@ -1083,8 +1200,8 @@ class LocalProjectSearchService:
             'funding_scheme': project.get('fundingScheme', ''),
             'topics': project.get('topics', ''),
             'coordinator': {
-                'name': project.get('coordinator_name'),
-                'country': project.get('coordinator_country')
+                'name': coordinator_name,
+                'country': coordinator_country
             },
             'consortium': {
                 'participant_count': project.get('participant_count', 0),

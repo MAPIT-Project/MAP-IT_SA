@@ -204,6 +204,128 @@ class LocalCallSearchService:
             logger.error(f"❌ Failed to initialize LocalCallSearchService: {e}")
             self._available = False
 
+    def _resolve_parent_calls_to_children(
+        self,
+        results: List[Dict[str, Any]],
+        include_closed: bool = False
+    ) -> List[Dict[str, Any]]:
+        """
+        Resolve parent call identifiers to their child calls.
+
+        Parent calls have topic_code ending with '-' (e.g., 'HORIZON-CL4-2025-03-DIGITAL-')
+        and represent call groups with multiple specific calls underneath.
+
+        This method:
+        1. Identifies parent calls in results (topic_code ends with '-')
+        2. Queries for children matching the parent pattern
+        3. Replaces parent with children if children exist
+        4. Keeps parent if no children found (edge case)
+
+        Args:
+            results: List of call dictionaries from search
+            include_closed: Whether to include closed calls in child results
+
+        Returns:
+            List with parent calls replaced by their children
+        """
+        if not results:
+            return results
+
+        # Separate parent calls from regular calls
+        parent_calls = []
+        regular_calls = []
+
+        for call in results:
+            topic_code = call.get('topic_code', '')
+            if topic_code and topic_code.endswith('-'):
+                parent_calls.append(call)
+            else:
+                regular_calls.append(call)
+
+        if not parent_calls:
+            # No parent calls to resolve
+            return results
+
+        logger.info(f"🔄 Resolving {len(parent_calls)} parent calls to children...")
+
+        # Query for children of each parent call
+        resolved_children = []
+        parents_with_no_children = []
+
+        try:
+            conn = psycopg2.connect(self._db_url)
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            for parent in parent_calls:
+                parent_code = parent.get('topic_code', '')
+                # Remove trailing '-' to create the search pattern
+                parent_pattern = parent_code.rstrip('-')
+
+                # Search for children: codes that start with parent pattern
+                # but are NOT the parent itself (don't end with '-')
+                if include_closed:
+                    cursor.execute("""
+                        SELECT * FROM funding_calls
+                        WHERE topic_code LIKE %s
+                        AND topic_code NOT LIKE '%%-'
+                        ORDER BY topic_code ASC
+                    """, (f"{parent_pattern}%",))
+                else:
+                    cursor.execute("""
+                        SELECT * FROM funding_calls
+                        WHERE topic_code LIKE %s
+                        AND topic_code NOT LIKE '%%-'
+                        AND status != 'closed'
+                        AND (deadline IS NULL OR deadline >= CURRENT_DATE)
+                        ORDER BY topic_code ASC
+                    """, (f"{parent_pattern}%",))
+
+                children = cursor.fetchall()
+
+                if children:
+                    logger.info(f"  ✅ Parent '{parent_code}' → {len(children)} children found")
+                    for child in children:
+                        child_dict = dict(child)
+                        resolved_children.append(child_dict)
+                else:
+                    logger.info(f"  ⚠️ Parent '{parent_code}' has no children in database")
+                    # Keep parent only if explicitly searching for it (not as a side effect)
+                    # For general searches, we don't want orphan parents
+                    parents_with_no_children.append(parent)
+
+            conn.close()
+
+        except Exception as e:
+            logger.error(f"Failed to resolve parent calls: {e}")
+            # On error, return original results (with parent filter still applied)
+            return [r for r in results if not r.get('topic_code', '').endswith('-')]
+
+        # Combine: regular calls + resolved children
+        # Deduplicate by topic_code (children may be duplicates of regular_calls or each other)
+        seen_codes = set()
+        combined = []
+
+        # Add regular calls first
+        for call in regular_calls:
+            topic_code = call.get('topic_code', '')
+            if topic_code and topic_code not in seen_codes:
+                seen_codes.add(topic_code)
+                combined.append(call)
+
+        # Add resolved children (deduplicated)
+        for call in resolved_children:
+            topic_code = call.get('topic_code', '')
+            if topic_code and topic_code not in seen_codes:
+                seen_codes.add(topic_code)
+                combined.append(call)
+
+        # Log summary
+        logger.info(f"🔄 Resolution complete: {len(regular_calls)} regular + {len(resolved_children)} children = {len(combined)} total")
+        if parents_with_no_children:
+            logger.info(f"  ⚠️ {len(parents_with_no_children)} parents had no children (excluded)")
+
+        return combined
+
     def _normalize_call_status(self, call_dict: Dict[str, Any]) -> Dict[str, Any]:
         """
         Normalize call status based on actual deadline date.
@@ -311,14 +433,22 @@ class LocalCallSearchService:
             if structured_results and len(structured_results) > 0:
                 logger.info(f"✅ Found {len(structured_results)} results from structured database")
 
+                # Resolve parent calls to their children
+                resolved_results = self._resolve_parent_calls_to_children(
+                    structured_results, include_closed=include_closed
+                )
+
                 # Enhance with graph context (related clusters, experienced orgs)
                 graph_context = self._search_graph_enhanced(query) if self._graph_service else None
+
+                # Limit to num_results after resolution (children may expand count)
+                final_results = resolved_results[:num_results]
 
                 return {
                     'success': True,
                     'query': query,
-                    'calls_found': len(structured_results),
-                    'calls': [self._format_structured_call(c) for c in structured_results],
+                    'calls_found': len(final_results),
+                    'calls': [self._format_structured_call(c) for c in final_results],
                     'current_date': today.isoformat(),
                     'search_metadata': {
                         'source': 'funding_calls_table',
@@ -327,6 +457,7 @@ class LocalCallSearchService:
                         'include_closed': include_closed,
                         'year_filter': year_filter,
                         'current_year': current_year,
+                        'parent_calls_resolved': len(structured_results) != len(resolved_results),
                         'graph_context': graph_context if graph_context else None
                     }
                 }
@@ -342,9 +473,14 @@ class LocalCallSearchService:
             )
 
             if semantic_results and len(semantic_results) > 0:
+                # Resolve parent calls to their children
+                resolved_results = self._resolve_parent_calls_to_children(
+                    semantic_results, include_closed=include_closed
+                )
+
                 # Format results
                 formatted_calls = []
-                for c in semantic_results:
+                for c in resolved_results[:num_results]:
                     formatted = self._format_structured_call(c, enrich=False)
                     # Add semantic match info
                     formatted['match_type'] = 'semantic'
@@ -370,6 +506,7 @@ class LocalCallSearchService:
                         'year_filter': year_filter,
                         'current_year': current_year,
                         'note': 'Results found via semantic matching (related concepts)',
+                        'parent_calls_resolved': len(semantic_results) != len(resolved_results),
                         'graph_context': graph_context if graph_context else None
                     }
                 }
@@ -604,6 +741,8 @@ class LocalCallSearchService:
             is_topic_code = query.upper().startswith('HORIZON-')
 
             # Build the query
+            # Note: Parent calls (ending with '-') are included in search
+            # They will be resolved to their children in _resolve_parent_calls_to_children
             query_parts = ["SELECT * FROM funding_calls WHERE 1=1"]
             params = []
 
@@ -764,6 +903,8 @@ class LocalCallSearchService:
             # Build the semantic search query
             embedding_list = query_embedding.tolist()
 
+            # Note: Parent calls (ending with '-') are included in search
+            # They will be resolved to their children in _resolve_parent_calls_to_children
             if include_closed:
                 cursor.execute("""
                     SELECT
