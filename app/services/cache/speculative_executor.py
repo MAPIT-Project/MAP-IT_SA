@@ -150,6 +150,7 @@ class SpeculativeExecutor:
                 'programme_b': 'ERC'
             },
             'analyze_call_history': {
+                'keywords': keywords,  # Include keywords for keyword-based history searches
                 'cluster': self._extract_cluster(query),
                 'year_from': 2021,
                 'year_to': 2025
@@ -254,6 +255,15 @@ class SpeculativeExecutor:
             # Generate default parameters based on query
             params = self._generate_default_params(tool_name, query)
 
+            # Store the speculative params immediately (before task completes)
+            # This allows param validation even while task is still running
+            self.speculation_results[tool_name] = {
+                'result': None,  # Will be populated when task completes
+                'params': params,
+                'speculative': True,
+                'pending': True
+            }
+
             # Start execution as background task
             task = asyncio.create_task(
                 self._execute_with_tracking(tool_name, params),
@@ -271,18 +281,23 @@ class SpeculativeExecutor:
             result = await self.tool_executor(tool_name, params)
             duration = (datetime.now() - start).total_seconds() * 1000
 
-            # Store result for later use
+            # Update the stored result (keeping params, removing pending flag)
             self.speculation_results[tool_name] = {
                 'result': result,
                 'params': params,
                 'duration_ms': duration,
-                'speculative': True
+                'speculative': True,
+                'pending': False  # Mark as completed
             }
 
             logger.debug(f"🔮 Speculative result ready: {tool_name} ({duration:.0f}ms)")
             return result
         except Exception as e:
             logger.warning(f"Speculative execution failed for {tool_name}: {e}")
+            # Mark as failed (not pending, but no result)
+            if tool_name in self.speculation_results:
+                self.speculation_results[tool_name]['pending'] = False
+                self.speculation_results[tool_name]['error'] = str(e)
             return None
 
     async def get_speculative_result(
@@ -302,19 +317,24 @@ class SpeculativeExecutor:
         Returns:
             Result dict if ready and params are compatible, None otherwise
         """
-        # Check if we already have a cached result
+        # Check if we already have a cached result (and it's actually completed, not pending)
         if tool_name in self.speculation_results:
             cached = self.speculation_results[tool_name]
-            cached_params = cached.get('params', {})
 
-            # Validate that speculative params are compatible with requested params
-            # For search tools, keywords/query must overlap
-            if requested_params and not self._params_compatible(tool_name, cached_params, requested_params):
-                logger.debug(f"⚠️ Speculative params don't match for {tool_name}, skipping cache")
-                return None
+            # Skip if result is still pending (task not yet completed)
+            if cached.get('pending', False) or cached.get('result') is None:
+                pass  # Fall through to task waiting below
+            else:
+                cached_params = cached.get('params', {})
 
-            logger.info(f"🎯 Using cached speculative result for: {tool_name}")
-            return cached
+                # Validate that speculative params are compatible with requested params
+                # For search tools, keywords/query must overlap
+                if requested_params and not self._params_compatible(tool_name, cached_params, requested_params):
+                    logger.debug(f"⚠️ Speculative params don't match for {tool_name}, skipping cache")
+                    return None
+
+                logger.info(f"🎯 Using cached speculative result for: {tool_name}")
+                return cached
 
         # Check if task is running
         task = self.speculation_cache.get(tool_name)
@@ -327,6 +347,15 @@ class SpeculativeExecutor:
                 asyncio.shield(task),  # Don't cancel if timeout
                 timeout=timeout
             )
+
+            # Get cached params to validate against requested params
+            cached_entry = self.speculation_results.get(tool_name, {})
+            cached_params = cached_entry.get('params', {})
+
+            # Validate params compatibility before returning
+            if requested_params and not self._params_compatible(tool_name, cached_params, requested_params):
+                logger.debug(f"⚠️ Speculative params don't match for {tool_name} (from task), skipping cache")
+                return None
 
             logger.info(f"🎯 Speculative result ready for: {tool_name}")
             return {
@@ -395,7 +424,8 @@ class SpeculativeExecutor:
 
         # Search tools require keyword/query overlap
         search_tools = {'search_funding_calls', 'search_projects', 'search_documents',
-                        'find_experienced_partners', 'get_similar_funded_projects'}
+                        'find_experienced_partners', 'get_similar_funded_projects',
+                        'analyze_call_history'}  # History tool also uses keyword-based filtering
 
         if tool_name in search_tools:
             # Extract keywords from both param sets

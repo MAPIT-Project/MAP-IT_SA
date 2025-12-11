@@ -7,6 +7,7 @@ ENHANCED with Hybrid Graph+SQL Architecture:
 - Parallel query execution for performance
 - Cluster inference from keywords
 - Topic evolution and landscape analysis
+- AI-powered keyword expansion for broader scope searches
 
 Analyzes historical funding patterns for specific topic areas, showing what got
 funded, when, and under which calls. Helps users understand funding landscape
@@ -16,6 +17,7 @@ and identify trends.
 import os
 import logging
 import re
+import json
 from typing import Optional, Dict, Any, List, Tuple
 from datetime import datetime
 from collections import defaultdict
@@ -23,6 +25,14 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
+
+# Import Gemini for AI-powered keyword expansion
+try:
+    import google.generativeai as genai
+    GEMINI_AVAILABLE = True
+except ImportError:
+    GEMINI_AVAILABLE = False
+    genai = None
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -112,6 +122,19 @@ class CallHistoryTool:
         except Exception as e:
             logger.warning(f"⚠️ Graph service not available for call history analysis: {e}")
 
+        # Initialize Gemini for AI-powered keyword expansion
+        self._gemini_model = None
+        if GEMINI_AVAILABLE:
+            try:
+                api_key = os.getenv('GEMINI_API_KEY')
+                if api_key:
+                    genai.configure(api_key=api_key)
+                    model_name = os.getenv('GEMINI_MODEL', 'gemini-flash-latest')
+                    self._gemini_model = genai.GenerativeModel(model_name)
+                    logger.info(f"✅ Gemini available for keyword expansion (model: {model_name})")
+            except Exception as e:
+                logger.warning(f"⚠️ Gemini not available for keyword expansion: {e}")
+
     def _get_connection(self):
         """Get database connection."""
         if not self.db_url:
@@ -133,7 +156,11 @@ class CallHistoryTool:
         if not keywords:
             return []
 
-        keywords_lower = keywords.lower()
+        # Handle both string and list inputs for keywords
+        if isinstance(keywords, list):
+            keywords_lower = ' '.join(str(k) for k in keywords).lower()
+        else:
+            keywords_lower = str(keywords).lower()
         inferred = []
 
         for cluster, kw_list in CLUSTER_KEYWORDS.items():
@@ -144,6 +171,115 @@ class CallHistoryTool:
                     break
 
         return inferred
+
+    # Common keyword expansions for fallback when AI fails
+    FALLBACK_EXPANSIONS = {
+        'ai': ['artificial intelligence', 'AI', 'machine learning', 'deep learning', 'neural network',
+               'computer vision', 'natural language processing', 'NLP', 'predictive analytics',
+               'data-driven', 'intelligent systems', 'automated', 'cognitive computing'],
+        'artificial intelligence': ['artificial intelligence', 'AI', 'machine learning', 'deep learning',
+                                   'neural network', 'computer vision', 'NLP', 'intelligent systems'],
+        'hydrogen': ['hydrogen', 'H2', 'fuel cell', 'electrolyzer', 'green hydrogen', 'clean hydrogen',
+                    'hydrogen storage', 'hydrogen production', 'power-to-gas', 'FCEV'],
+        'battery': ['battery', 'energy storage', 'lithium-ion', 'solid-state battery', 'EV battery',
+                   'battery management', 'BMS', 'cell chemistry', 'gigafactory'],
+        'quantum': ['quantum', 'quantum computing', 'quantum communication', 'quantum sensing',
+                   'qubit', 'quantum cryptography', 'quantum algorithms'],
+        'climate': ['climate', 'climate change', 'decarbonization', 'net-zero', 'greenhouse gas',
+                   'carbon neutral', 'climate adaptation', 'climate mitigation'],
+        'cybersecurity': ['cybersecurity', 'cyber security', 'information security', 'data protection',
+                         'threat detection', 'encryption', 'secure systems', 'privacy'],
+        'robotics': ['robotics', 'robot', 'autonomous systems', 'industrial automation', 'cobots',
+                    'manipulation', 'mobile robotics', 'human-robot interaction'],
+    }
+
+    def _expand_keywords_with_ai(self, keywords: str) -> List[str]:
+        """
+        Use AI to expand keywords to include related terms for broader scope searches.
+
+        For example, "AI" → ["artificial intelligence", "AI", "machine learning",
+        "deep learning", "neural network", "computer vision", "NLP", etc.]
+
+        This allows finding projects that USE a technology rather than just focus on it.
+        Falls back to predefined expansions if AI fails.
+        """
+        # Handle list input
+        if isinstance(keywords, list):
+            original_keywords = ', '.join(keywords)
+        else:
+            original_keywords = keywords
+
+        # Check for fallback expansion first (common topics)
+        keywords_lower = original_keywords.lower().strip()
+        for key, expansion in self.FALLBACK_EXPANSIONS.items():
+            if key in keywords_lower or keywords_lower == key:
+                logger.info(f"🔍 Using fallback expansion for '{original_keywords}': {len(expansion)} terms")
+                return expansion
+
+        if not self._gemini_model:
+            logger.warning("⚠️ Gemini not available - using original keywords only")
+            return [original_keywords]
+
+        prompt = f"""You are a research topic expert helping to find EU research projects. Given a topic keyword, expand it to include all related terms, techniques, methods, and applications.
+
+Task: Expand the topic "{original_keywords}" into related search terms.
+
+Requirements:
+- Include the original term(s)
+- Add synonyms, acronyms, and full forms
+- Add specific techniques, methods, and sub-fields
+- Add common applications and use cases
+- Keep each term concise (1-3 words)
+- Return 10-20 related terms
+- Focus on terms likely to appear in scientific research titles or descriptions
+
+Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
+
+        try:
+            response = self._gemini_model.generate_content(
+                prompt,
+                generation_config=genai.types.GenerationConfig(
+                    temperature=0.3,
+                    max_output_tokens=500,
+                )
+            )
+
+            # Try to get text, handle blocked responses
+            try:
+                response_text = response.text.strip()
+            except Exception:
+                # Response might be blocked - check for candidates
+                if hasattr(response, 'candidates') and response.candidates:
+                    for candidate in response.candidates:
+                        if hasattr(candidate, 'content') and candidate.content:
+                            for part in candidate.content.parts:
+                                if hasattr(part, 'text'):
+                                    response_text = part.text.strip()
+                                    break
+                else:
+                    raise ValueError("No valid response from AI")
+
+            # Parse JSON response
+            # Handle markdown code blocks if present
+            if response_text.startswith('```'):
+                lines = response_text.split('\n')
+                response_text = '\n'.join(lines[1:-1])  # Remove first and last lines
+
+            expanded = json.loads(response_text)
+
+            if isinstance(expanded, list) and len(expanded) > 0:
+                logger.info(f"🔍 AI expanded '{original_keywords}' to {len(expanded)} terms: {expanded[:5]}...")
+                return expanded
+            else:
+                logger.warning(f"⚠️ AI expansion returned unexpected format, using original")
+                return [original_keywords]
+
+        except json.JSONDecodeError as e:
+            logger.warning(f"⚠️ Failed to parse AI expansion response: {e}")
+            return [original_keywords]
+        except Exception as e:
+            logger.warning(f"⚠️ AI keyword expansion failed: {e}, using original")
+            return [original_keywords]
 
     def _extract_year_from_topic(self, topic_code: str) -> Optional[int]:
         """Extract year from topic code like HORIZON-CL5-2024-D3-01-04."""
@@ -165,6 +301,8 @@ class CallHistoryTool:
         include_projects: bool = True,
         include_topic_evolution: bool = True,
         include_cluster_trends: bool = True,
+        strict_match: bool = True,  # Use stricter keyword matching
+        expand_scope: bool = False,  # NEW: Expand keywords to include related terms
         limit: int = 500
     ) -> Dict[str, Any]:
         """
@@ -175,6 +313,8 @@ class CallHistoryTool:
         - Uses SQL for detailed filtering and keyword search
         - Parallel query execution for performance
         - Cluster inference from keywords
+        - Strict matching mode for accurate topic-specific results
+        - AI-powered keyword expansion for broader scope searches
 
         Args:
             topic_pattern: Topic code pattern (e.g., "HORIZON-CL4-2023")
@@ -186,12 +326,26 @@ class CallHistoryTool:
             include_projects: Include funded project examples
             include_topic_evolution: Include topic landscape analysis from graph
             include_cluster_trends: Include cluster-level trends from graph
+            strict_match: Use stricter keyword matching (title-focused, word boundaries)
+            expand_scope: Use AI to expand keywords to related terms (for "projects using X" queries)
             limit: Max results per query
 
         Returns:
             Comprehensive analysis of funding history with graph-enhanced insights
         """
         try:
+            # Handle keyword expansion for broader scope searches
+            original_keywords = keywords
+            expanded_keywords_list = None
+            if expand_scope and keywords:
+                expanded_keywords_list = self._expand_keywords_with_ai(keywords)
+                # Join expanded keywords for search (using comma separation)
+                keywords = ', '.join(expanded_keywords_list)
+                # When expanding scope, don't use strict_match (we want broader results)
+                strict_match = False
+                # Also don't auto-apply cluster filter (we want cross-cluster results)
+                logger.info(f"🔍 Expanded scope: '{original_keywords}' → {len(expanded_keywords_list)} related terms")
+
             # Normalize cluster if provided
             normalized_cluster = None
             graph_cluster = None
@@ -207,11 +361,26 @@ class CallHistoryTool:
                     graph_cluster = inferred_clusters[0]  # Use first inferred cluster for graph queries
                     logger.info(f"Inferred clusters from keywords: {inferred_clusters}")
 
+            # For AI-specific queries, auto-apply cluster filter for better accuracy
+            # BUT NOT when expand_scope is True (user wants broader results)
+            effective_cluster = normalized_cluster
+            if not cluster and keywords and strict_match and not expand_scope:
+                # Check if this is an AI-specific query
+                keywords_lower = keywords.lower() if isinstance(keywords, str) else ' '.join(keywords).lower()
+                ai_keywords = ['artificial intelligence', ' ai ', 'ai,', ',ai', 'machine learning', 'deep learning', 'neural network']
+                if any(kw in keywords_lower or keywords_lower.startswith('ai') for kw in ai_keywords):
+                    # Auto-apply CL4 (Digital) cluster for AI queries
+                    effective_cluster = 'CL4'
+                    if not graph_cluster:
+                        graph_cluster = 'CLUSTER-4'
+                    logger.info(f"Auto-applied CL4 cluster filter for AI-specific query")
+
             # Use hybrid approach if graph service available
-            if self._graph_service and (graph_cluster or topic_pattern):
+            # Now also trigger for keyword searches (not just cluster)
+            if self._graph_service and (graph_cluster or topic_pattern or keywords):
                 return self._analyze_history_hybrid(
                     topic_pattern=topic_pattern,
-                    cluster=normalized_cluster,
+                    cluster=effective_cluster,
                     graph_cluster=graph_cluster,
                     keywords=keywords,
                     year_from=year_from,
@@ -221,18 +390,23 @@ class CallHistoryTool:
                     include_topic_evolution=include_topic_evolution,
                     include_cluster_trends=include_cluster_trends,
                     inferred_clusters=inferred_clusters,
+                    strict_match=strict_match,
+                    expand_scope=expand_scope,
+                    original_keywords=original_keywords,
+                    expanded_keywords_list=expanded_keywords_list,
                     limit=limit
                 )
 
             # Fallback to SQL-only analysis
             return self._analyze_history_sql(
                 topic_pattern=topic_pattern,
-                cluster=normalized_cluster,
+                cluster=effective_cluster,
                 keywords=keywords,
                 year_from=year_from,
                 year_to=year_to,
                 action_types=action_types,
                 include_projects=include_projects,
+                strict_match=strict_match,
                 limit=limit
             )
 
@@ -260,12 +434,17 @@ class CallHistoryTool:
         include_topic_evolution: bool,
         include_cluster_trends: bool,
         inferred_clusters: List[str],
-        limit: int
+        strict_match: bool = True,
+        expand_scope: bool = False,
+        original_keywords: Optional[str] = None,
+        expanded_keywords_list: Optional[List[str]] = None,
+        limit: int = 500
     ) -> Dict[str, Any]:
         """
         Hybrid Graph+SQL analysis for funding history.
 
         Uses parallel queries to graph and SQL for comprehensive analysis.
+        With strict_match=True, uses stricter keyword matching for accuracy.
         """
         results = {
             'graph': {},
@@ -273,7 +452,7 @@ class CallHistoryTool:
         }
 
         # Execute graph and SQL queries in parallel
-        with ThreadPoolExecutor(max_workers=4) as executor:
+        with ThreadPoolExecutor(max_workers=6) as executor:
             futures = {}
 
             # Graph queries (if graph service available)
@@ -297,24 +476,44 @@ class CallHistoryTool:
                         graph_cluster
                     )
 
-            # SQL queries
+                # NEW: Graph-based keyword search for projects
+                # This gives much better results than SQL ILIKE for semantic queries
+                if keywords:
+                    futures['graph_projects'] = executor.submit(
+                        self._get_graph_projects_by_keywords,
+                        keywords,
+                        graph_cluster,
+                        limit
+                    )
+
+                    # Also get funding trends for keyword-matched projects
+                    futures['graph_keyword_trends'] = executor.submit(
+                        self._get_graph_keyword_funding_trends,
+                        keywords,
+                        graph_cluster
+                    )
+
+            # SQL queries (as fallback/complement)
             futures['sql_calls'] = executor.submit(
                 self._get_calls_history_sql,
                 topic_pattern, cluster, keywords,
-                year_from, year_to, action_types, limit
+                year_from, year_to, action_types, limit,
+                strict_match
             )
 
             futures['sql_timeline'] = executor.submit(
                 self._get_timeline_aggregates_sql,
                 topic_pattern, cluster, keywords,
-                year_from, year_to
+                year_from, year_to,
+                strict_match
             )
 
             if include_projects:
                 futures['sql_projects'] = executor.submit(
                     self._get_funded_projects_sql,
                     topic_pattern, cluster, keywords,
-                    year_from, year_to, limit
+                    year_from, year_to, limit,
+                    strict_match
                 )
 
             # Collect results
@@ -342,7 +541,10 @@ class CallHistoryTool:
             year_to=year_to,
             action_types=action_types,
             inferred_clusters=inferred_clusters,
-            include_projects=include_projects
+            include_projects=include_projects,
+            expand_scope=expand_scope,
+            original_keywords=original_keywords,
+            expanded_keywords_list=expanded_keywords_list
         )
 
     def _get_graph_funding_trends(self, cluster: str) -> Optional[List[Dict]]:
@@ -412,6 +614,169 @@ class CallHistoryTool:
             logger.warning(f"Graph cluster statistics query failed: {e}")
             return None
 
+    def _get_graph_projects_by_keywords(
+        self,
+        keywords: str,
+        cluster: Optional[str],
+        limit: int
+    ) -> Optional[List[Dict]]:
+        """
+        Get projects matching keywords using graph database.
+
+        Much more effective than SQL ILIKE for semantic queries because:
+        - Graph uses regex patterns that match word boundaries better
+        - Can traverse relationships (project -> topic -> cluster)
+        - Better for multi-word queries
+        """
+        if not self._graph_service:
+            return None
+
+        try:
+            # Handle both string and list inputs for keywords
+            if isinstance(keywords, list):
+                keyword_list = [k.strip() for k in keywords if k and k.strip()]
+            else:
+                keyword_list = [k.strip() for k in str(keywords).split(',') if k.strip()]
+
+            # Use graph service's keyword search
+            projects = self._graph_service.search_projects_by_keywords(
+                keywords=keyword_list,
+                status=None,  # Get all statuses
+                limit=limit
+            )
+
+            if projects:
+                logger.info(f"📊 Graph keyword search found {len(projects)} projects for '{keywords}'")
+
+            return projects
+
+        except Exception as e:
+            logger.warning(f"Graph keyword project search failed: {e}")
+            return None
+
+    def _get_graph_keyword_funding_trends(
+        self,
+        keywords: str,
+        cluster: Optional[str]
+    ) -> Optional[Dict]:
+        """
+        Get funding trends for keyword-matched projects from graph.
+
+        Calculates year-by-year funding for projects matching keywords.
+        """
+        if not self._graph_service:
+            return None
+
+        try:
+            # Handle both string and list inputs for keywords
+            if isinstance(keywords, list):
+                keyword_list = [k.strip() for k in keywords if k and k.strip()]
+            else:
+                keyword_list = [k.strip() for k in str(keywords).split(',') if k.strip()]
+
+            # Build word boundary patterns for short keywords (like "AI") to avoid false positives
+            # Neo4j regex uses \\b for word boundaries
+            pattern_parts = []
+            for kw in keyword_list:
+                kw_lower = kw.lower()
+                if len(kw) <= 3:
+                    # Short keywords need word boundary matching
+                    pattern_parts.append(f"\\\\b{kw_lower}\\\\b")
+                else:
+                    # Longer keywords can use partial match
+                    pattern_parts.append(kw_lower)
+            search_pattern = '|'.join(pattern_parts)
+
+            # Build query to get funding by year for matching projects
+            keyword_where = f"(toLower(p.title) =~ '.*({search_pattern}).*' OR toLower(p.objective) =~ '.*({search_pattern}).*')"
+
+            if cluster:
+                # If cluster filter is provided, use MATCH instead of OPTIONAL MATCH
+                query = f"""
+                MATCH (p:Project)-[:TARGETS]->(c:Cluster)
+                WHERE {keyword_where}
+                  AND p.startDate IS NOT NULL
+                  AND c.code = $cluster
+
+                WITH p,
+                     substring(p.startDate, 0, 4) as year
+
+                RETURN year,
+                       COUNT(p) as project_count,
+                       SUM(p.ecMaxContribution) as total_funding,
+                       AVG(p.ecMaxContribution) as avg_funding,
+                       COLLECT(DISTINCT p.fundingScheme) as funding_schemes
+                ORDER BY year DESC
+                """
+                params = {'cluster': cluster}
+            else:
+                # No cluster filter - use OPTIONAL MATCH
+                query = f"""
+                MATCH (p:Project)
+                WHERE {keyword_where}
+                  AND p.startDate IS NOT NULL
+                OPTIONAL MATCH (p)-[:TARGETS]->(c:Cluster)
+
+                WITH p,
+                     substring(p.startDate, 0, 4) as year
+
+                RETURN year,
+                       COUNT(p) as project_count,
+                       SUM(p.ecMaxContribution) as total_funding,
+                       AVG(p.ecMaxContribution) as avg_funding,
+                       COLLECT(DISTINCT p.fundingScheme) as funding_schemes
+                ORDER BY year DESC
+                """
+                params = {}
+            results = self._graph_service.db.execute_query(query, params)
+
+            if results:
+                trends = {
+                    'by_year': {},
+                    'total_projects': 0,
+                    'total_funding': 0
+                }
+
+                for r in results:
+                    year = r.get('year')
+                    if year and year.isdigit():
+                        year_int = int(year)
+                        project_count = r.get('project_count', 0)
+                        total_funding = r.get('total_funding', 0) or 0
+                        avg_funding = r.get('avg_funding', 0) or 0
+
+                        trends['by_year'][year_int] = {
+                            'projects': project_count,
+                            'total_funding': total_funding,
+                            'avg_funding': avg_funding,
+                            'funding_schemes': r.get('funding_schemes', [])
+                        }
+                        trends['total_projects'] += project_count
+                        trends['total_funding'] += total_funding
+
+                logger.info(f"📊 Graph keyword trends: {trends['total_projects']} projects, €{trends['total_funding']/1_000_000:.0f}M")
+                return trends
+
+            return None
+
+        except Exception as e:
+            logger.warning(f"Graph keyword funding trends query failed: {e}")
+            return None
+
+    def _get_graph_cluster_statistics_old(self, cluster: str) -> Optional[Dict]:
+        """Get cluster statistics from graph (original method kept for reference)."""
+        if not self._graph_service:
+            return None
+
+        try:
+            stats = self._graph_service.get_cluster_statistics(cluster_code=cluster)
+            if stats:
+                return stats[0] if isinstance(stats, list) and len(stats) > 0 else stats
+            return None
+        except Exception as e:
+            logger.warning(f"Graph cluster statistics query failed: {e}")
+            return None
+
     def _get_calls_history_sql(
         self,
         topic_pattern: Optional[str],
@@ -420,9 +785,15 @@ class CallHistoryTool:
         year_from: Optional[int],
         year_to: Optional[int],
         action_types: Optional[List[str]],
-        limit: int
+        limit: int,
+        strict_match: bool = True
     ) -> List[Dict]:
-        """Get calls from funding_calls table (SQL)."""
+        """Get calls from funding_calls table (SQL).
+
+        With strict_match=True:
+        - Prioritizes title matches over scope/outcome
+        - Uses word boundary matching where possible
+        """
         conn = self._get_connection()
         if not conn:
             return []
@@ -443,13 +814,34 @@ class CallHistoryTool:
                 params.extend([f"%{cluster}%", cluster])
 
             if keywords:
-                # Split keywords by comma and search for each individually
-                keyword_list = [k.strip() for k in keywords.split(',') if k.strip()]
+                # Handle both string and list inputs for keywords
+                if isinstance(keywords, list):
+                    keyword_list = [k.strip() for k in keywords if k and k.strip()]
+                else:
+                    keyword_list = [k.strip() for k in str(keywords).split(',') if k.strip()]
                 if keyword_list:
                     keyword_conditions = []
                     for kw in keyword_list:
-                        keyword_conditions.append("(title ILIKE %s OR scope ILIKE %s OR expected_outcome ILIKE %s)")
-                        params.extend([f"%{kw}%", f"%{kw}%", f"%{kw}%"])
+                        if strict_match:
+                            # Strict mode: Use word boundary matching with regex for short keywords
+                            # and require match in title OR (scope AND outcome) for better precision
+                            if len(kw) <= 3:  # Short keywords like "AI" need word boundary
+                                # PostgreSQL regex for word boundary: \m for start, \M for end
+                                keyword_conditions.append(
+                                    "(title ~* %s OR (scope ~* %s AND expected_outcome ~* %s))"
+                                )
+                                word_pattern = f"\\m{kw}\\M"  # Word boundary match
+                                params.extend([word_pattern, word_pattern, word_pattern])
+                            else:
+                                # Longer keywords: title match OR both scope and outcome
+                                keyword_conditions.append(
+                                    "(title ILIKE %s OR (scope ILIKE %s AND expected_outcome ILIKE %s))"
+                                )
+                                params.extend([f"%{kw}%", f"%{kw}%", f"%{kw}%"])
+                        else:
+                            # Non-strict: Original behavior - match anywhere
+                            keyword_conditions.append("(title ILIKE %s OR scope ILIKE %s OR expected_outcome ILIKE %s)")
+                            params.extend([f"%{kw}%", f"%{kw}%", f"%{kw}%"])
                     # Use OR to match ANY of the keywords
                     where_conditions.append(f"({' OR '.join(keyword_conditions)})")
 
@@ -526,7 +918,8 @@ class CallHistoryTool:
         cluster: Optional[str],
         keywords: Optional[str],
         year_from: Optional[int],
-        year_to: Optional[int]
+        year_to: Optional[int],
+        strict_match: bool = True
     ) -> Dict[int, Dict]:
         """Get aggregated timeline data from SQL (no limit)."""
         conn = self._get_connection()
@@ -536,7 +929,7 @@ class CallHistoryTool:
         try:
             cursor = conn.cursor(cursor_factory=RealDictCursor)
             where_clause, params = self._build_where_clause(
-                topic_pattern, cluster, keywords, year_from, year_to
+                topic_pattern, cluster, keywords, year_from, year_to, strict_match
             )
 
             sql = f"""
@@ -557,6 +950,8 @@ class CallHistoryTool:
             results = cursor.fetchall()
 
             timeline = {}
+            total_projects = 0
+            total_funding = 0.0
             for r in results:
                 year = r['year']
                 if year:
@@ -567,6 +962,11 @@ class CallHistoryTool:
                         "calls": 0,  # Will be updated from calls data
                         "key_topics": []
                     }
+                    total_projects += timeline[year]["projects_funded"]
+                    total_funding += timeline[year]["total_funding"]
+
+            logger.info(f"📊 SQL timeline query: cluster={cluster}, keywords={keywords}, strict={strict_match}")
+            logger.info(f"📊 SQL timeline results: {total_projects} projects, €{total_funding/1e6:.0f}M")
 
             cursor.close()
             conn.close()
@@ -585,7 +985,8 @@ class CallHistoryTool:
         keywords: Optional[str],
         year_from: Optional[int],
         year_to: Optional[int],
-        limit: int
+        limit: int,
+        strict_match: bool = True
     ) -> List[Dict]:
         """Get funded projects matching criteria (SQL)."""
         conn = self._get_connection()
@@ -595,7 +996,7 @@ class CallHistoryTool:
         try:
             cursor = conn.cursor(cursor_factory=RealDictCursor)
             where_clause, params = self._build_where_clause(
-                topic_pattern, cluster, keywords, year_from, year_to
+                topic_pattern, cluster, keywords, year_from, year_to, strict_match
             )
 
             sql = f"""
@@ -659,7 +1060,10 @@ class CallHistoryTool:
         year_to: Optional[int],
         action_types: Optional[List[str]],
         inferred_clusters: List[str],
-        include_projects: bool
+        include_projects: bool,
+        expand_scope: bool = False,
+        original_keywords: Optional[str] = None,
+        expanded_keywords_list: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """Merge graph and SQL results into comprehensive response."""
 
@@ -671,7 +1075,48 @@ class CallHistoryTool:
         graph_topics = results['graph'].get('topics')
         graph_stats = results['graph'].get('stats')
 
-        if not calls and not timeline and not graph_trends:
+        # NEW: Get graph keyword search results
+        graph_projects = results['graph'].get('projects', [])
+        graph_keyword_trends = results['graph'].get('keyword_trends')
+
+        # Merge graph projects with SQL projects (graph first, then SQL)
+        if graph_projects:
+            # Create a set of existing project IDs to avoid duplicates
+            existing_ids = {p.get('id') for p in projects if p.get('id')}
+            for gp in graph_projects:
+                if gp.get('id') not in existing_ids:
+                    projects.append(gp)
+                    existing_ids.add(gp.get('id'))
+            logger.info(f"📊 Merged {len(graph_projects)} graph projects with SQL results")
+
+        # Use graph keyword trends if available (more accurate for keyword searches)
+        if graph_keyword_trends and graph_keyword_trends.get('by_year'):
+            keyword_timeline = graph_keyword_trends['by_year']
+            # Merge or replace timeline with graph keyword results
+            for year, data in keyword_timeline.items():
+                if year not in timeline:
+                    timeline[year] = {
+                        "projects_funded": 0,
+                        "total_funding": 0,
+                        "avg_project_budget": 0,
+                        "calls": 0,
+                        "key_topics": []
+                    }
+                # Use graph data as it's more accurate for keyword searches
+                timeline[year]["projects_funded"] = max(
+                    timeline[year]["projects_funded"],
+                    data.get('projects', 0)
+                )
+                timeline[year]["total_funding"] = max(
+                    timeline[year]["total_funding"],
+                    data.get('total_funding', 0)
+                )
+                if data.get('avg_funding'):
+                    timeline[year]["avg_project_budget"] = data['avg_funding']
+            logger.info(f"📊 Enhanced timeline with graph keyword trends")
+
+        # Check if we have any results now
+        if not calls and not timeline and not graph_trends and not graph_keyword_trends:
             return {
                 "success": True,
                 "tool_name": "analyze_call_history",
@@ -703,7 +1148,10 @@ class CallHistoryTool:
                 timeline[year]["calls"] += 1
 
         # Enhance timeline with graph trends if available
-        if graph_trends:
+        # IMPORTANT: Only use cluster-wide graph_trends when there are NO keywords
+        # When keywords are provided, graph_keyword_trends already has accurate filtered data
+        # Using cluster-wide trends would inflate the numbers significantly
+        if graph_trends and not keywords:
             for trend in graph_trends:
                 period = trend.get('period')
                 if period and period.isdigit():
@@ -768,16 +1216,22 @@ class CallHistoryTool:
                 "search_type": "hybrid",
                 "sources_used": [],
                 "graph_trends_available": graph_trends is not None,
-                "sql_projects_found": len(projects),
-                "inferred_clusters": inferred_clusters
+                "graph_keyword_search_used": graph_keyword_trends is not None,
+                "graph_projects_found": len(graph_projects) if graph_projects else 0,
+                "sql_projects_found": len(results['sql'].get('projects', [])),
+                "total_projects_merged": len(projects),
+                "inferred_clusters": inferred_clusters,
+                "scope_expanded": expand_scope,
+                "original_keywords": original_keywords if expand_scope else None,
+                "expanded_keywords": expanded_keywords_list if expand_scope else None
             },
             "timestamp": datetime.now().isoformat()
         }
 
         # Track sources used
-        if graph_trends or graph_topics or graph_stats:
+        if graph_trends or graph_topics or graph_stats or graph_keyword_trends or graph_projects:
             response["metadata"]["sources_used"].append("graph")
-        if calls or timeline or projects:
+        if calls or results['sql'].get('timeline') or results['sql'].get('projects'):
             response["metadata"]["sources_used"].append("sql")
 
         # Add topic landscape from graph if available
@@ -943,9 +1397,15 @@ class CallHistoryTool:
         cluster: Optional[str],
         keywords: Optional[str],
         year_from: Optional[int],
-        year_to: Optional[int]
+        year_to: Optional[int],
+        strict_match: bool = True
     ) -> tuple:
-        """Build WHERE clause and params for project queries."""
+        """Build WHERE clause and params for project queries.
+
+        With strict_match=True:
+        - Short keywords (<=3 chars) use word boundary regex
+        - Matches prioritize title over objective
+        """
         where_conditions = ["\"frameworkProgramme\" = 'HORIZON'"]
         params = []
 
@@ -971,13 +1431,29 @@ class CallHistoryTool:
             params.extend([f"%{p}%" for p in patterns])
 
         if keywords:
-            # Split keywords by comma and search for each individually
-            keyword_list = [k.strip() for k in keywords.split(',') if k.strip()]
+            # Handle both string and list inputs for keywords
+            if isinstance(keywords, list):
+                keyword_list = [k.strip() for k in keywords if k and k.strip()]
+            else:
+                keyword_list = [k.strip() for k in str(keywords).split(',') if k.strip()]
             if keyword_list:
                 keyword_conditions = []
                 for kw in keyword_list:
-                    keyword_conditions.append("(title ILIKE %s OR objective ILIKE %s)")
-                    params.extend([f"%{kw}%", f"%{kw}%"])
+                    if strict_match:
+                        # Strict mode: Use word boundary for short keywords, prioritize title
+                        if len(kw) <= 3:  # Short keywords like "AI" need word boundary
+                            # PostgreSQL regex for word boundary
+                            keyword_conditions.append("(title ~* %s OR objective ~* %s)")
+                            word_pattern = f"\\m{kw}\\M"  # Word boundary match
+                            params.extend([word_pattern, word_pattern])
+                        else:
+                            # Longer keywords: standard ILIKE but prioritize title
+                            keyword_conditions.append("(title ILIKE %s OR objective ILIKE %s)")
+                            params.extend([f"%{kw}%", f"%{kw}%"])
+                    else:
+                        # Non-strict: Original behavior
+                        keyword_conditions.append("(title ILIKE %s OR objective ILIKE %s)")
+                        params.extend([f"%{kw}%", f"%{kw}%"])
                 # Use OR to match ANY of the keywords
                 where_conditions.append(f"({' OR '.join(keyword_conditions)})")
 
@@ -1038,8 +1514,17 @@ class CallHistoryTool:
         for project in projects:
             topic = project.get('topics', '')
             if topic:
-                # Use first topic if multiple
-                main_topic = topic.split(';')[0].strip()
+                # Handle both list (from graph) and string (from SQL) formats
+                if isinstance(topic, list):
+                    # Graph returns topics as a list
+                    main_topic = topic[0] if topic else ''
+                else:
+                    # SQL returns topics as semicolon-separated string
+                    main_topic = str(topic).split(';')[0].strip()
+
+                if not main_topic:
+                    continue
+
                 # Extract topic prefix (e.g., HORIZON-CL5-2024)
                 parts = main_topic.split('-')
                 if len(parts) >= 3:
@@ -1177,18 +1662,27 @@ class CallHistoryTool:
 
     def _format_sample_projects(self, projects: List[Dict]) -> List[Dict]:
         """Format sample projects for output."""
-        return [
-            {
+        formatted = []
+        for p in projects:
+            # Handle topics which can be list (from graph) or string (from SQL)
+            topics = p.get('topics', '')
+            if isinstance(topics, list):
+                topic_str = topics[0][:50] if topics else 'N/A'
+            elif topics:
+                topic_str = str(topics).split(';')[0][:50]
+            else:
+                topic_str = 'N/A'
+
+            formatted.append({
                 "acronym": p.get('acronym', 'N/A'),
                 "title": p.get('title', '')[:80] + "..." if len(p.get('title', '')) > 80 else p.get('title', ''),
-                "topic": p.get('topics', '').split(';')[0][:50] if p.get('topics') else 'N/A',
+                "topic": topic_str,
                 "eu_contribution": p.get('eu_contribution', 0),
                 "start_date": p.get('start_date'),
                 "action_type": p.get('action_type'),
                 "cordis_url": f"https://cordis.europa.eu/project/id/{p.get('id')}"
-            }
-            for p in projects
-        ]
+            })
+        return formatted
 
     def get_cluster_evolution(
         self,

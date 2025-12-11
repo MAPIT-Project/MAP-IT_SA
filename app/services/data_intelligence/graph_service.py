@@ -1673,9 +1673,18 @@ class GraphSearchService:
         Returns:
             List of matching projects
         """
-        # Build search pattern - case-insensitive regex
-        search_pattern = '|'.join(keywords).lower()
-        
+        # Build search pattern - case-insensitive regex with word boundaries for short keywords
+        pattern_parts = []
+        for kw in keywords:
+            kw_lower = kw.lower().strip()
+            if len(kw_lower) <= 3:
+                # Short keywords (like "AI") need word boundary matching to avoid false positives
+                pattern_parts.append(f"\\\\b{kw_lower}\\\\b")
+            else:
+                # Longer keywords can use partial match
+                pattern_parts.append(kw_lower)
+        search_pattern = '|'.join(pattern_parts)
+
         where_clauses = [
             f"(toLower(p.title) =~ '.*({search_pattern}).*' OR toLower(p.objective) =~ '.*({search_pattern}).*')"
         ]

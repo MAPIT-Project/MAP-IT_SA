@@ -317,11 +317,19 @@ The user's message may:
 - REFER to previous results: "the 4th one", "that call", "tell me more about it"
 - BE A COMPLAINT: "only 1 result", "that's not enough", "wtf" → They want more/better results
 - ASK FOR MORE: "show me more", "any others" → Search again with same topic
+- **CHANGE SCOPE**: "what about projects USING X", "X as part of projects", "applied X" → Re-run the SAME analysis tool with expand_scope=True
 
 When the user refers to previous conversation:
 - Look at CONVERSATION HISTORY to understand what they mean
 - If they say "the 3rd call" - find the 3rd call ID from the history
 - If they complain about results - search again for the SAME TOPIC with more results
+
+**CRITICAL: Scope Change Follow-ups**
+When user asks to broaden scope after a funding/history analysis (e.g., "what about projects where AI is used?" after asking about AI funding):
+- This is NOT a request for different tools (like budget_benchmark or consortium_patterns)
+- This IS a request to re-run analyze_call_history with expand_scope=True
+- The user wants the SAME type of analysis (funding evolution, trends) but for a BROADER set of projects
+- Example: "AI funding evolution" → user asks "what about projects using AI" → re-run analyze_call_history(keywords='AI', expand_scope=True)
 
 ## Your Task
 
@@ -605,7 +613,14 @@ What is your next step? Remember: Output ONLY JSON."""
         # Call history analysis tool
         self.register_tool(Tool(
             name="analyze_call_history",
-            description="Analyze historical funding patterns for Horizon Europe topics. Shows what got funded, when, funding trends over time, and recommendations.",
+            description="""Analyze historical funding patterns for Horizon Europe topics. Shows what got funded, when, funding trends over time, and recommendations.
+
+IMPORTANT - Scope Control with 'expand_scope':
+- expand_scope=False (default): Searches for projects where the topic IS the main focus (e.g., "AI research projects")
+- expand_scope=True: Searches for projects where the topic is USED/APPLIED (e.g., "projects that use AI as a tool")
+
+When user asks about "projects using X" or "X as part of projects" or "applied X", set expand_scope=True.
+This uses AI to automatically expand keywords to related terms (e.g., "AI" → includes "machine learning", "neural networks", "deep learning", etc.)""",
             category=ToolCategory.STATISTICS,
             parameters={
                 "topic_pattern": "Optional: Topic code pattern (e.g., 'HORIZON-CL4-2023')",
@@ -614,10 +629,12 @@ What is your next step? Remember: Output ONLY JSON."""
                 "year_from": "Optional: Starting year filter",
                 "year_to": "Optional: Ending year filter",
                 "action_types": "Optional: List of action types (RIA, IA, CSA)",
-                "include_projects": "Optional: Include funded project examples (default true)"
+                "include_projects": "Optional: Include funded project examples (default true)",
+                "expand_scope": "Optional: Set to true to include projects where the topic is USED/APPLIED, not just focused on it. Uses AI to expand keywords to related terms."
             },
             examples=[
-                "analyze_call_history(cluster='CL4', keywords='artificial intelligence')",
+                "analyze_call_history(cluster='CL4', keywords='artificial intelligence')  # AI-focused projects only",
+                "analyze_call_history(keywords='artificial intelligence', expand_scope=True)  # Projects USING AI",
                 "analyze_call_history(keywords='hydrogen', year_from=2022)",
                 "analyze_call_history(cluster='CL5', action_types=['RIA', 'IA'])"
             ]
@@ -2694,7 +2711,11 @@ Suggestions:
             return {"error": str(e)}
 
     async def _tool_analyze_call_history(self, params: Dict) -> Dict:
-        """Analyze historical funding patterns for Horizon Europe topics."""
+        """Analyze historical funding patterns for Horizon Europe topics.
+
+        Supports expand_scope parameter for broader searches (projects USING a technology
+        rather than just focusing on it).
+        """
         try:
             from ..tools.call_history import CallHistoryTool
 
@@ -2707,6 +2728,7 @@ Suggestions:
                 year_to=params.get('year_to'),
                 action_types=params.get('action_types'),
                 include_projects=params.get('include_projects', True),
+                expand_scope=params.get('expand_scope', False),  # NEW: AI-powered keyword expansion
                 limit=params.get('limit', 50)
             )
 
@@ -3032,6 +3054,9 @@ Suggestions:
             programme = result.get('programme', result.get('cluster_code', 'Unknown'))
             programme_type = result.get('programme_type', '')
             stats = result.get('statistics', {})
+            # Ensure stats is a dict, not a list
+            if isinstance(stats, list):
+                stats = stats[0] if stats else {}
             budget = result.get('budget_details', {})
 
             parts = [f"Programme Statistics for {programme}:"]
