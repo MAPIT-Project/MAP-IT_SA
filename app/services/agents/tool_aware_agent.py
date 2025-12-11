@@ -599,13 +599,18 @@ What is your next step? Remember: Output ONLY JSON."""
             ]
         ))
 
-        # Similar funded projects tool (semantic search)
+        # Similar funded projects tool (semantic search) - FOR PROPOSAL SUPPORT ONLY
         self.register_tool(Tool(
             name="get_similar_funded_projects",
-            description="Find funded Horizon Europe projects semantically similar to a description using AI embeddings. Returns projects ranked by similarity with details, consortiums, and insights.",
+            description="""Find projects similar to a SPECIFIC PROPOSAL IDEA for proposal writing support.
+
+**USE THIS TOOL WHEN**: User is writing a proposal and wants to find similar funded projects to learn from.
+**DO NOT USE FOR**: General project searches like "find projects about X" - use search_projects instead.
+
+This tool uses AI embeddings to match a detailed proposal description to funded projects.""",
             category=ToolCategory.PROJECTS,
             parameters={
-                "description": "Required: Project idea or description to match (min 20 chars)",
+                "description": "Required: Detailed project idea/proposal description to match (min 20 chars)",
                 "cluster": "Optional: Cluster code filter (CL4, CL5, EIC, etc.)",
                 "action_type": "Optional: Action type filter (RIA, IA, CSA)",
                 "min_budget": "Optional: Minimum EU contribution filter",
@@ -614,9 +619,8 @@ What is your next step? Remember: Output ONLY JSON."""
                 "limit": "Optional: Number of results (default 10)"
             },
             examples=[
-                "get_similar_funded_projects(description='AI system for cancer detection using medical imaging')",
-                "get_similar_funded_projects(description='Green hydrogen production', cluster='CL5', action_type='RIA')",
-                "get_similar_funded_projects(description='Quantum computing applications in drug discovery', limit=5)"
+                "get_similar_funded_projects(description='Our proposal develops an AI-powered diagnostic system for early cancer detection using deep learning on medical imaging data, targeting integration with existing hospital workflows')",
+                "get_similar_funded_projects(description='Novel green hydrogen production using advanced electrolyzers with 30% efficiency improvement', cluster='CL5')"
             ]
         ))
 
@@ -712,16 +716,24 @@ This uses AI to automatically expand keywords to related terms (e.g., "AI" → i
         # Project search tools
         self.register_tool(Tool(
             name="search_projects",
-            description="Search CORDIS database for funded projects",
+            description="""Search the CORDIS database for funded Horizon Europe projects by topic/keywords.
+
+**USE THIS TOOL FOR**: General project searches like "find projects about AI", "show me quantum computing projects", "projects on climate change"
+**Returns**: List of funded projects matching the keywords with titles, budgets, consortiums, and descriptions.
+
+This is the PRIMARY tool for finding projects by topic.""",
             category=ToolCategory.PROJECTS,
             parameters={
-                "keywords": "Keywords to search for",
-                "programme": "Optional: filter by programme",
-                "country": "Optional: filter by country"
+                "keywords": "Required: Keywords/topic to search for (e.g., 'AI healthcare', 'quantum computing', 'green hydrogen')",
+                "programme": "Optional: Filter by programme (Horizon Europe, EIC, ERC, etc.)",
+                "country": "Optional: Filter by coordinator/participant country",
+                "limit": "Optional: Number of results (default 10)"
             },
             examples=[
+                "search_projects(keywords='AI in healthcare')",
                 "search_projects(keywords='quantum computing')",
-                "search_projects(keywords='renewable energy', country='Sweden')"
+                "search_projects(keywords='renewable energy', country='Germany')",
+                "search_projects(keywords='battery technology', limit=15)"
             ]
         ))
         
