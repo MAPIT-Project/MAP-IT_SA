@@ -1,0 +1,47 @@
+---
+# ServiceAccount for MAP-IT pods
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mapit-sa
+  namespace: mapit
+  labels:
+    app: mapit
+
+---
+# Role for limited in-namespace permissions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: mapit-role
+  namespace: mapit
+  labels:
+    app: mapit
+rules:
+  # Allow reading configmaps and secrets
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "list", "watch"]
+
+  # Allow reading pods (for health checking)
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+
+---
+# Bind role to service account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: mapit-rolebinding
+  namespace: mapit
+  labels:
+    app: mapit
+subjects:
+  - kind: ServiceAccount
+    name: mapit-sa
+    namespace: mapit
+roleRef:
+  kind: Role
+  name: mapit-role
+  apiGroup: rbac.authorization.k8s.io

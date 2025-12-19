@@ -1,0 +1,33 @@
+---
+# PodDisruptionBudget for API - ensure availability during node maintenance
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: mapit-api-pdb
+  namespace: mapit
+  labels:
+    app: mapit
+    component: api
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: mapit
+      component: api
+
+---
+# PodDisruptionBudget for Celery Workers
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: mapit-celery-worker-pdb
+  namespace: mapit
+  labels:
+    app: mapit
+    component: celery-worker
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: mapit
+      component: celery-worker

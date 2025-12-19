@@ -1,0 +1,9 @@
+---
+# Namespace for MAP-IT application
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mapit
+  labels:
+    app: mapit
+    environment: production

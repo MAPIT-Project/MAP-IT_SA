@@ -1,0 +1,38 @@
+---
+# ConfigMap for non-sensitive configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mapit-config
+  namespace: mapit
+  labels:
+    app: mapit
+data:
+  # Application settings
+  APP_ENV: "production"
+  LOG_LEVEL: "INFO"
+  DEFAULT_AI_PROVIDER: "gemini"
+  GEMINI_MODEL: "gemini-flash-latest"
+
+  # Database pool settings
+  DB_MIN_CONNECTIONS: "2"
+  DB_MAX_CONNECTIONS: "20"
+  DB_POOL_TIMEOUT: "30"
+
+  # Redis settings
+  REDIS_MAX_CONNECTIONS: "50"
+
+  # Agent settings
+  AGENTIC_MAX_ITERATIONS: "3"
+  TOOL_AWARE_MAX_ITERATIONS: "5"
+  SUFFICIENT_SCORE: "0.65"
+
+  # Rate limiting
+  RATE_LIMIT_ENABLED: "true"
+
+  # Timeout settings (seconds)
+  REQUEST_TIMEOUT: "120"
+  STREAM_TIMEOUT: "300"
+  LLM_CALL_TIMEOUT: "60"
+  TOOL_EXECUTION_TIMEOUT: "30"
+  DATABASE_QUERY_TIMEOUT: "10"

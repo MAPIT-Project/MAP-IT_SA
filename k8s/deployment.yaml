@@ -1,0 +1,273 @@
+---
+# Main API Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mapit-api
+  namespace: mapit
+  labels:
+    app: mapit
+    component: api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: mapit
+      component: api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: mapit
+        component: api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: mapit-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      containers:
+        - name: mapit
+          image: mapit:latest
+          imagePullPolicy: Always
+
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+
+          envFrom:
+            - configMapRef:
+                name: mapit-config
+            - secretRef:
+                name: mapit-secrets
+
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+
+          # Liveness probe - is the container running?
+          livenessProbe:
+            httpGet:
+              path: /api/health/live
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          # Readiness probe - can the container serve traffic?
+          readinessProbe:
+            httpGet:
+              path: /api/health/ready
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          # Startup probe - for slow-starting containers
+          startupProbe:
+            httpGet:
+              path: /api/health/live
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /app/.cache
+
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: cache
+          emptyDir: {}
+
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - mapit
+                topologyKey: kubernetes.io/hostname
+
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: mapit
+
+---
+# Celery Worker Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mapit-celery-worker
+  namespace: mapit
+  labels:
+    app: mapit
+    component: celery-worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mapit
+      component: celery-worker
+  template:
+    metadata:
+      labels:
+        app: mapit
+        component: celery-worker
+    spec:
+      serviceAccountName: mapit-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      containers:
+        - name: celery-worker
+          image: mapit:latest
+          imagePullPolicy: Always
+          command: ["celery"]
+          args: ["-A", "app.services.celery_app", "worker", "--loglevel=info", "-c", "4"]
+
+          envFrom:
+            - configMapRef:
+                name: mapit-config
+            - secretRef:
+                name: mapit-secrets
+
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+
+          livenessProbe:
+            exec:
+              command:
+                - celery
+                - -A
+                - app.services.celery_app
+                - inspect
+                - ping
+            initialDelaySeconds: 30
+            periodSeconds: 60
+            timeoutSeconds: 10
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+
+      volumes:
+        - name: tmp
+          emptyDir: {}
+
+---
+# Celery Beat (Scheduler) Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mapit-celery-beat
+  namespace: mapit
+  labels:
+    app: mapit
+    component: celery-beat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mapit
+      component: celery-beat
+  template:
+    metadata:
+      labels:
+        app: mapit
+        component: celery-beat
+    spec:
+      serviceAccountName: mapit-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      containers:
+        - name: celery-beat
+          image: mapit:latest
+          imagePullPolicy: Always
+          command: ["celery"]
+          args: ["-A", "app.services.celery_app", "beat", "--loglevel=info"]
+
+          envFrom:
+            - configMapRef:
+                name: mapit-config
+            - secretRef:
+                name: mapit-secrets
+
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "250m"
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: celerybeat-schedule
+              mountPath: /app/celerybeat-schedule
+
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: celerybeat-schedule
+          emptyDir: {}

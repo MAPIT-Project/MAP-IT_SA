@@ -1,0 +1,56 @@
+---
+# Kustomization for MAP-IT Kubernetes deployment
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: mapit-production
+  annotations:
+    config.kubernetes.io/local-config: "true"
+
+namespace: mapit
+
+# Resources to deploy
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secrets.yaml
+  - rbac.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+  - hpa.yaml
+  - pdb.yaml
+
+# Common labels to apply to all resources
+commonLabels:
+  app.kubernetes.io/name: mapit
+  app.kubernetes.io/part-of: mapit
+  app.kubernetes.io/managed-by: kustomize
+
+# Image configuration (override in overlays)
+images:
+  - name: mapit
+    newName: ghcr.io/your-org/mapit
+    newTag: latest
+
+# Config generation (optional)
+# configMapGenerator:
+#   - name: mapit-config
+#     behavior: merge
+#     literals:
+#       - APP_ENV=production
+
+# Secret generation (optional - use external secret management in production)
+# secretGenerator:
+#   - name: mapit-secrets
+#     behavior: merge
+#     literals:
+#       - DATABASE_URL=postgresql://...
+
+# Patches for environment-specific changes
+# patches:
+#   - path: patches/production-replicas.yaml
+#     target:
+#       kind: Deployment
+#       name: mapit-api
