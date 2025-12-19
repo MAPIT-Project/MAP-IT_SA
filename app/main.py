@@ -79,6 +79,10 @@ app.include_router(feedback_router)
 from .api.proposal_session_routes import router as proposal_session_router
 app.include_router(proposal_session_router)
 
+# Batch operations routes (Priority 4.2)
+from .api.batch_routes import router as batch_router
+app.include_router(batch_router)
+
 
 # Startup and shutdown events
 @app.on_event("startup")

@@ -1,147 +1,169 @@
 # SHARED_TASK_NOTES.md
 
-## Current Status: Priority 1, 2, and 3 Complete
+## Current Status: Priority 1-4 Complete (~70%)
 
 **Last Updated:** December 19, 2025
 
 ### What Was Done This Iteration
 
-Implemented Priority 3 (Performance Optimization) from `docs_tracked/IMPROVEMENT_ROADMAP.md`:
+Implemented remaining items from Priority 1-4:
 
-**Priority 3 - Performance:**
-1. `app/services/cache/result_cache.py` - Result caching with Redis
-   - Type-specific TTLs (stats cached 24h, calls cached 1h)
-   - Compression for large results (>10KB)
-   - Cache statistics and monitoring
-   - Decorators for easy caching (`@cached_result`)
+**Priority 1.3 - Graceful Degradation:**
+- `app/core/service_availability.py` - Service availability checker
+  - Parallel health checks with caching
+  - Tool-service mapping for filtering
+  - Degradable tools support (can work with reduced functionality)
+  - `get_available_tools()` filters based on service availability
 
-2. `app/services/data/query_optimizer.py` - SQL query optimization
-   - Optimized SQL templates for common queries
-   - Recommended indexes (full-text, partial, vector)
-   - Migration SQL for creating indexes
-   - Query cost estimation utilities
+**Priority 2.4 - Database Connection Pool:**
+- `app/core/database.py` - Managed connection pool
+  - ThreadedConnectionPool with monitoring
+  - Connection statistics (requests, failures, latency)
+  - Health check integration
+  - `PoolManager` singleton pattern
 
-3. `app/api/streaming_optimizer.py` - SSE streaming optimization
-   - StreamBuffer for batching small events
-   - Priority-based event handling (immediate/high/normal)
-   - Token batching to reduce SSE overhead
-   - Performance metrics tracking
+**Priority 4.2 - Batch Operations API:**
+- `app/api/batch_routes.py` - Full batch API
+  - `POST /api/batch/execute` - Parallel execution
+  - `POST /api/batch/async` - Async with status polling
+  - `GET /api/batch/{id}/status` - Check status
+  - `DELETE /api/batch/{id}` - Cancel batch
+  - Supports 10 operation types
 
-**Note:** Parallel tool execution was already implemented in `tool_aware_agent.py` using `asyncio.gather`.
+**Priority 4.3 - Webhook Notifications:**
+- `app/services/webhooks/webhook_service.py` - Webhook service
+  - HMAC-SHA256 signature verification
+  - Retry with exponential backoff
+  - Event types: proposal, batch, call, system
+  - Helper functions for common events
 
-### Verification
-```bash
-# Verify all imports work
-python3 -c "from app.main import app"
-
-# Verify new modules
-python3 -c "
-from app.services.cache import ResultCache, get_result_cache
-from app.services.data import QueryOptimizer
-from app.api.streaming_optimizer import StreamingOptimizer
-print('All imports successful!')
-"
-```
+**Priority 4.4 - 100% Embedding Coverage:**
+- `migration/016_ensure_embedding_coverage.sql`
+  - `embedding_queue` table with priorities
+  - Trigger on project insert/update
+  - `claim_embedding_batch()` for worker processing
+  - `embedding_coverage_stats` view
 
 ---
 
 ## Next Steps (For Next Iteration)
 
-### Priority 4: Feature Completeness
-From `docs_tracked/IMPROVEMENT_ROADMAP.md`:
-
-1. **Batch Operations API** - Create `app/api/batch_routes.py`
-   - POST `/api/batch/execute` - Parallel batch operations
-   - POST `/api/batch/async` - Async batch with status polling
-   - GET `/api/batch/{id}/status` - Check batch status
-
-2. **Webhook Notifications** - Create `app/services/webhooks/webhook_service.py`
-   - HMAC signature verification
-   - Event types: proposal.section.completed, batch.completed, call.deadline.approaching
-
-3. **100% Embedding Coverage** - Create migration `016_ensure_embedding_coverage.sql`
-   - View for projects needing embeddings
-   - Trigger to queue new projects
-   - Celery task for background processing
-
 ### Priority 5: Premium Features
 1. **Analytics Dashboard API** - Create `app/api/analytics_routes.py`
-2. **Saved Searches** - Create `app/services/alerts/saved_search_service.py`
+   - Extend existing `ToolAnalyticsService`
+   - Aggregate metrics (usage, performance, feedback)
+   - Time-series trends
+
+2. **Saved Searches and Alerts** - Create `app/services/alerts/saved_search_service.py`
+   - Store search configurations
+   - Celery periodic task to check for new results
+   - Email/webhook notifications on matches
+
 3. **AI Proposal Reviewer** - Create `app/services/proposal_writing/comprehensive_reviewer.py`
+   - Multi-pass review (excellence, impact, implementation)
+   - Consistency checking
+   - Scoring against criteria
 
 ### Priority 6: Enterprise Readiness
-1. **Authentication** - Create `app/core/auth.py` with JWT
-2. **Rate Limiting** - Create `app/core/rate_limit.py` with tiered limits
-3. **Audit Logging** - Create `app/services/audit/audit_service.py`
-4. **Kubernetes** - Create `k8s/` directory with deployment manifests
+1. **Authentication** - Create `app/core/auth.py`
+   - JWT-based authentication
+   - Role-based access control
+   - Integration with routes
+
+2. **Rate Limiting** - Create `app/core/rate_limit.py`
+   - Tiered limits (free/basic/premium/enterprise)
+   - Redis-backed counters
+   - Middleware integration
+
+3. **Kubernetes** - Create `k8s/` directory
+   - Deployment with 3 replicas
+   - HPA for auto-scaling
+   - Secrets management
 
 ---
 
 ## Files Created This Iteration
 
 ```
-app/services/cache/result_cache.py     - Result caching service (~350 lines)
-app/services/data/query_optimizer.py   - Query optimization (~400 lines)
-app/services/data/__init__.py          - Data module exports
-app/api/streaming_optimizer.py         - SSE streaming optimization (~280 lines)
+app/core/database.py                         - Database pool manager (~350 lines)
+app/core/service_availability.py             - Service availability checker (~450 lines)
+app/api/batch_routes.py                      - Batch operations API (~550 lines)
+app/services/webhooks/__init__.py            - Webhook module exports
+app/services/webhooks/webhook_service.py     - Webhook service (~500 lines)
+migration/016_ensure_embedding_coverage.sql  - Embedding queue migration (~150 lines)
+```
+
+---
+
+## Verification Commands
+
+```bash
+# Verify all imports work
+python3 -c "from app.main import app; print('Import successful')"
+
+# Verify new modules
+python3 -c "
+from app.core.database import DatabasePool, get_pool_manager
+from app.core.service_availability import ServiceAvailabilityChecker, get_availability_checker
+from app.api.batch_routes import router as batch_router
+from app.services.webhooks import WebhookService, get_webhook_service
+print('All new modules imported successfully!')
+"
 ```
 
 ---
 
 ## Integration Notes
 
-### Using Result Cache in Tools
+### Using Service Availability in Agent
 
 ```python
-from app.services.cache import get_result_cache
+from app.core.service_availability import get_availability_checker
 
-cache = get_result_cache()
+checker = get_availability_checker()
+availability = await checker.check_all_services()
 
-# Check cache first
-cached = await cache.get("programme_statistics", {"programme": "EIC"})
-if cached:
-    return cached
+# Filter tools based on available services
+available_tools = await checker.get_available_tools(all_tools)
 
-# Execute and cache
-result = await execute_query(...)
-await cache.set("programme_statistics", {"programme": "EIC"}, result)
-return result
+# Get degradation notice for users
+notice = checker.get_degradation_notice(availability)
 ```
 
-### Using Query Optimizer
+### Using Batch Operations
 
 ```python
-from app.services.data import QueryOptimizer
+# Synchronous batch
+POST /api/batch/execute
+{
+    "operations": [
+        {"id": "stats-eic", "type": "get_statistics", "params": {"programme": "EIC"}},
+        {"id": "calls", "type": "search_calls", "params": {"keywords": "hydrogen"}}
+    ],
+    "timeout_seconds": 30
+}
 
-# Get optimized query
-query = QueryOptimizer.optimize_project_search(
-    keywords="hydrogen energy",
-    status="closed",
-    limit=20
-)
-# query.sql contains optimized SQL
-# query.params contains parameters
+# Async batch
+POST /api/batch/async
+GET /api/batch/{batch_id}/status
 ```
 
-### Using Streaming Optimizer
+### Using Webhooks
 
 ```python
-from app.api.streaming_optimizer import create_optimized_stream_response
+from app.services.webhooks import emit_webhook, WebhookEventType
 
-# Wrap existing generator
-optimized_stream = create_optimized_stream_response(
-    event_source=original_generator,
-    max_buffer_size=10,
-    flush_interval_ms=100,
-    max_token_batch=5
+await emit_webhook(
+    WebhookEventType.BATCH_COMPLETED,
+    {"batch_id": "abc", "completed": 10, "failed": 0}
 )
 ```
 
 ---
 
-## Remaining Items for Production Readiness
+## Remaining for Production Readiness
 
-1. **Database Connection Pool** (Priority 2.4) - Still pending
-2. **Graceful Degradation** (Priority 1.3) - Service fallbacks in agent needed
-3. **Integration** - Circuit breakers, retry decorators need to be wired into services
-4. **Database Indexes** - Run `QueryOptimizer.get_index_creation_sql()` migration
+1. **Priority 5** - Premium features (analytics, saved searches, AI reviewer)
+2. **Priority 6** - Enterprise features (auth, rate limiting, K8s)
+3. **Integration Testing** - End-to-end tests for new features
+4. **Documentation** - API docs for batch and webhook endpoints
