@@ -1,8 +1,9 @@
 """
-Tool orchestration system for context-aware AI.
+Tool orchestration system for V3 agentic architecture.
+
+V3 uses ToolAwareAgent with dedicated tools for hybrid Graph+SQL operations.
 """
 
-from .tool_orchestrator import ToolOrchestrator, Tool, ToolCall, ToolResult
 from .budget_benchmark import BudgetBenchmarkTool, get_budget_benchmark_execute
 from .consortium_patterns import ConsortiumPatternsTool, get_consortium_patterns_execute
 from .partner_discovery import PartnerDiscoveryTool, find_experienced_partners_execute
@@ -12,10 +13,6 @@ from .budget_calculator import BudgetCalculatorTool, calculate_budget_execute
 from .timeline_generator import TimelineGeneratorTool, generate_timeline_execute
 
 __all__ = [
-    'ToolOrchestrator',
-    'Tool',
-    'ToolCall',
-    'ToolResult',
     'BudgetBenchmarkTool',
     'get_budget_benchmark_execute',
     'ConsortiumPatternsTool',

@@ -15,12 +15,9 @@ from ..memory.context_manager import ConversationContext
 from ..rag.conversation_retriever import ConversationAwareRetriever, RetrievalContext
 from ..rag.response_generator import GroundedResponseGenerator
 from ..rag.hybrid_search import HybridSearchPipeline, MockVectorStore, MockKeywordStore, MockEmbeddingService
-from ..tools.tool_orchestrator import create_research_orchestrator, ToolCall
 from ..response.unified_formatter import UnifiedResponseFormatter
-from ..ai_intent_service import AIIntentService
 from ..unified_intent_classifier import UnifiedIntentClassifier
 from ..call_document_service import CallDocumentService
-from ..intelligent_retrieval import IntelligentRetrieval
 from ..proposal_writing import (
     ProposalTemplateService,
     ProposalDraftGenerator,
@@ -69,14 +66,12 @@ class ConversationManager:
             if self.db_pool:
                 self.call_doc_service = CallDocumentService(self.db_pool)
                 logger.info("✅ Call document service initialized")
-                
-                # Intelligent retrieval service (uses comprehensive document library)
-                self.intelligent_retrieval = IntelligentRetrieval(self.db_pool)
-                logger.info("✅ Intelligent retrieval service initialized")
             else:
                 self.call_doc_service = None
-                self.intelligent_retrieval = None
                 logger.warning("⚠️ Document services disabled (no DATABASE_URL)")
+
+            # V2 intelligent retrieval removed - V3 uses ToolAwareAgent
+            self.intelligent_retrieval = None
             
             # RAG components
             self.retriever = ConversationAwareRetriever(
@@ -89,16 +84,14 @@ class ConversationManager:
                 openrouter_api_key=os.getenv('OPENROUTER_API_KEY')
             )
             
-            # Tool orchestration
-            self.tool_orchestrator = create_research_orchestrator(
-                cache_client=self.memory_service.redis_client
-            )
-            
+            # V2 tool orchestration removed - V3 uses ToolAwareAgent with its own tools
+            self.tool_orchestrator = None
+
             # Response formatting
             self.unified_formatter = UnifiedResponseFormatter()
 
-            # AI-only intent analysis
-            self.ai_intent_service = AIIntentService()
+            # V2 AI intent service removed - V3 uses ToolAwareAgent
+            self.ai_intent_service = None
             
             # Unified intent classifier (handles ALL 5 intent types)
             self.unified_classifier = UnifiedIntentClassifier()
@@ -166,7 +159,8 @@ class ConversationManager:
                     self.call_doc_service,
                     self.db_pool
                 )
-                self.quality_improver = QualityImprover(self.ai_intent_service)
+                # V2 quality improver disabled - relied on removed ai_intent_service
+                self.quality_improver = None
                 logger.info("✅ Proposal writing services initialized")
             else:
                 self.proposal_template_service = None
@@ -1284,7 +1278,7 @@ Provide a clear, well-structured answer. If the results include calls or project
             # Convert tool plan to ToolCall objects if needed
             tool_plan = None
             if intent_analysis.requires_tools and intent_analysis.tool_plan:
-                from ..tools.tool_orchestrator import ToolCall
+                from ..agents.tool_aware_agent import ToolCall
                 tool_calls = []
                 for i, tool_spec in enumerate(intent_analysis.tool_plan):
                     tool_call = ToolCall(
@@ -3071,27 +3065,17 @@ Be helpful and conversational."""
             self.db_pool.putconn(conn)
 
     def _init_hybrid_search(self):
-        """Initialize hybrid search pipeline."""
-        try:
-            # Use your existing RAG service instead of mock data
-            from ..enhanced_rag_service import HorizonEuropeRAG
-            self.existing_rag = HorizonEuropeRAG()
-            logger.info("✅ Using existing HorizonEuropeRAG service")
-            
-            # Still create hybrid search for future use
-            return HybridSearchPipeline(
-                vector_store=MockVectorStore(),
-                keyword_store=MockKeywordStore(),
-                embedding_service=MockEmbeddingService()
-            )
-        except Exception as e:
-            logger.warning(f"⚠️ Using mock services for hybrid search: {e}")
-            self.existing_rag = None
-            return HybridSearchPipeline(
-                vector_store=MockVectorStore(),
-                keyword_store=MockKeywordStore(),
-                embedding_service=MockEmbeddingService()
-            )
+        """Initialize hybrid search pipeline with mock services.
+
+        V3 architecture uses ToolAwareAgent with dedicated tools instead.
+        """
+        # V2 HorizonEuropeRAG removed - V3 uses ToolAwareAgent
+        self.existing_rag = None
+        return HybridSearchPipeline(
+            vector_store=MockVectorStore(),
+            keyword_store=MockKeywordStore(),
+            embedding_service=MockEmbeddingService()
+        )
     
     def _load_configuration(self) -> Dict[str, Any]:
         """Load system configuration."""

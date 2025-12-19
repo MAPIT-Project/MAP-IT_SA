@@ -354,7 +354,6 @@ class UnifiedResponseFormatter:
     def _format_eu_calls(self, call_data: Dict[str, Any]) -> str:
         """
         Format EU funding calls with beautiful styling.
-        Uses the excellent formatting from rag_service._generate_calls_answer
         """
         # Handle different data structures from tool results
         calls = []

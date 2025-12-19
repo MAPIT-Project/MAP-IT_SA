@@ -12,14 +12,15 @@ This is a **production-grade Retrieval-Augmented Generation (RAG) system** for q
 
 ## Key Architecture Components
 
-### Core Services Architecture
+### Core Services Architecture (V3)
 - **Multi-Source Intelligent Search**: Combines graph search (Neo4j), vector search (Supabase), and keyword search
-- **Agentic AI System**: Tool orchestrator with reflection, evaluation, and replanning capabilities
-- **Intent Detection Pipeline**: Multi-stage classification with LLM-based and rule-based fallbacks
+- **Agentic AI System**: ToolAwareAgent with reflection, evaluation, and replanning capabilities
 - **Data Intelligence Service**: Query planning, multi-source execution, and result fusion
 - **Conversation Management**: Short-term/long-term memory with professional context injection
 
-### V3 Simplified Architecture (Recommended)
+**Note**: V1 and V2 architectures have been removed. The codebase now uses V3 (conversation) and V4 (proposal sessions) exclusively.
+
+### V3 Architecture
 The V3 architecture uses a **single agentic loop** without intent classification:
 - **No intent classification** - The agent decides what tools to use based on query and context
 - **Single ToolAwareAgent** - Handles all query types with ReAct pattern
@@ -67,9 +68,12 @@ The system uses a sophisticated **agentic architecture** that can:
 - `response/` - Response generation utilities and V3 formatter
 
 ### API Layer Organization (`app/api/`)
-- `routes.py` - Legacy V2 API routes
-- `conversation_routes_v3.py` - V3 simplified architecture routes
+- `conversation_routes_v3.py` - V3 simplified architecture routes (main conversation API)
+- `proposal_session_routes.py` - V4 Proposal Session routes (unified AI Proposal Writer)
 - `feedback_routes.py` - User feedback API endpoints
+- `proposal_routes.py` - Proposal writing API endpoints
+- `document_routes.py` - Document management endpoints
+- `call_document_routes.py` - Call document access endpoints
 
 ### Available Tools (20 Tools)
 The system has 20 tools available for the multi-tool agent:

@@ -40,7 +40,6 @@ from ..services.proposal_writing import (
     SuggestionPriority,
 )
 from ..services.call_document_service import CallDocumentService
-from ..services.ai_intent_service import AIIntentService
 import psycopg2.pool
 import os
 
@@ -729,9 +728,8 @@ async def analyze_quality(
         section_content, section_id_str = row
         db_pool.putconn(conn)
         
-        # Analyze quality
-        ai_service = AIIntentService()
-        quality_improver = QualityImprover(ai_service)
+        # Analyze quality (uses ProposalAIService internally)
+        quality_improver = QualityImprover()
         
         analysis = await quality_improver.analyze_quality(
             section_text=section_content,

@@ -73,10 +73,9 @@ class ProposalToolExecutor:
 
             elif service_name == "quality_improver":
                 from ..proposal_writing import QualityImprover
-                from ..ai_intent_service import AIIntentService
 
-                ai_service = AIIntentService()
-                self._services[service_name] = QualityImprover(ai_service)
+                # QualityImprover uses ProposalAIService internally
+                self._services[service_name] = QualityImprover()
 
             elif service_name == "smart_rewriter":
                 from ..proposal_writing import SmartRewriter

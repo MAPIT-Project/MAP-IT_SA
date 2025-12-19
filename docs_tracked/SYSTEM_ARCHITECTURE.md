@@ -1,7 +1,7 @@
 # MAP-IT System Architecture
 
-> **Last Updated:** December 3, 2025
-> **Version:** 3.0 (V3 Simplified Architecture with Rich Response Formatting)
+> **Last Updated:** December 19, 2025
+> **Version:** 3.1 (V3/V4 Only - V1/V2 Removed)
 
 ---
 
@@ -47,16 +47,18 @@ MAP-IT is an intelligent research assistant for EU funding programs (Horizon Eur
 
 ## V3 Simplified Architecture
 
-**Version 3.0** introduces a simplified architecture that removes intent classification in favor of a single agentic loop that handles all queries.
+**Version 3.0** introduced a simplified architecture that removes intent classification in favor of a single agentic loop that handles all queries.
 
-### Key Changes from V2
+> **Note:** As of December 2025, V1 and V2 have been completely removed from the codebase. The system now uses only V3 (conversation) and V4 (proposal sessions).
 
-| Aspect | V2 (Legacy) | V3 (Simplified) |
-|--------|-------------|-----------------|
-| **Intent Classification** | UnifiedIntentClassifier analyzes every query | No classification - agent decides |
-| **Routing** | Routes to different handlers based on intent | Single ToolAwareAgent handles all |
-| **Response Formatting** | LLM generates formatted response | Post-processor formats structured data |
-| **API Enrichment** | Manual enrichment calls | Automatic on-demand enrichment |
+### V3 Architecture Highlights
+
+| Aspect | Description |
+|--------|-------------|
+| **Intent Classification** | None - the agent decides what tools to use |
+| **Routing** | Single ToolAwareAgent handles all queries |
+| **Response Formatting** | Post-processor formats structured data with rich formatting |
+| **API Enrichment** | Automatic on-demand enrichment for missing call data |
 
 ### V3 API Endpoints
 
@@ -67,6 +69,12 @@ MAP-IT is an intelligent research assistant for EU funding programs (Horizon Eur
 | `/api/v3/conversation/{id}/context` | GET | Get conversation history |
 | `/api/v3/conversation/{id}/context` | DELETE | Clear conversation memory |
 | `/api/v3/conversation/health` | GET | Health check |
+
+### V4 API Endpoints (Proposal Sessions)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v4/proposal-session/...` | Various | Unified AI Proposal Writer endpoints |
 
 ### V3 Components
 
@@ -138,17 +146,6 @@ I found **15 funding opportunities** for your query:
                                   │
                                   ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                      UNIFIED INTENT CLASSIFIER                               │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │  Classifies into: faq | search_calls | search_projects |            │   │
-│  │                   call_specific | proposal_writing | follow_up       │   │
-│  └─────────────────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────┬───────────────────────────────────────────┘
-                                  │
-                    ┌─────────────┴─────────────┐
-                    │                           │
-                    ▼                           ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
 │                     ALL QUERIES → TOOL-AWARE AGENT                          │
 │                        (ReAct Multi-Tool Reasoning)                         │
 │                                                                             │
@@ -196,64 +193,37 @@ I found **15 funding opportunities** for your query:
 
 ---
 
-## Query Processing Pipeline
+## Query Processing Pipeline (V3)
 
-### Phase 1: Intent Classification
+In V3, there is no intent classification. All queries go directly to the ToolAwareAgent.
 
-The `UnifiedIntentClassifier` analyzes the user's message and classifies it into one of these intents:
+### Phase 1: Query Reception
 
-| Intent | Description | Example |
-|--------|-------------|---------|
-| `faq` | General questions about EU funding | "What are RIA eligibility requirements?" |
-| `search_calls` | Looking for funding opportunities | "Find hydrogen funding calls" |
-| `search_projects` | Looking for funded projects | "Show me AI healthcare projects" |
-| `call_specific` | Questions about a specific call | "What's the deadline for HORIZON-CL5-2025-D3-01?" |
-| `proposal_writing` | Help with proposal drafting | "Help me write the excellence section" |
-| `follow_up` | References previous conversation | "Can you explain that more?" |
+The query is received via V3 API endpoints and passed directly to the ToolAwareAgent.
 
-### Phase 2: LLM-Driven Complexity Detection
+### Phase 2: Agentic Processing
 
-For `faq` queries, the **LLM determines complexity** (not regex!):
+The ToolAwareAgent uses the ReAct pattern (Reasoning + Acting):
 
-The `UnifiedIntentClassifier` outputs:
-```json
-{
-  "primary_intent": "faq",
-  "complexity_type": "comparison|analysis|multi_source|validation|simple",
-  "requires_multi_tool": true,
-  "suggested_tools": ["compare_programmes", "get_programme_statistics"],
-  "complexity_reasoning": "User wants to compare two programmes..."
-}
-```
+1. **THINK**: Analyze query, decide which tools to use
+2. **ACT**: Call tools (can run multiple in parallel)
+3. **OBSERVE**: Review results from tools
+4. **REPEAT**: If more info needed, think again and call more tools
+5. **CONCLUDE**: Synthesize final answer from all gathered data
 
-**Complexity Types:**
-| Type | Description | Example |
-|------|-------------|---------|
-| `simple` | Single source answers | "What is RIA?" |
-| `comparison` | Comparing 2+ things | "Compare EIC vs ERC" |
-| `analysis` | Explaining WHY | "Why do some countries succeed more?" |
-| `multi_source` | Needs multiple info types | "Eligibility AND success rates" |
-| `validation` | Verify/confirm | "Is EIC success rate really 8%?" |
+**Smart Behavior:**
+- Simple queries ("What is RIA?") → 1-2 iterations, fast
+- Complex queries ("Compare EIC vs ERC") → Up to 5 iterations, thorough
+- 20 tools available: stats, docs, calls, projects, proposal support
 
-**Routing (v2.2):**
-- **ALL queries** → Tool-Aware Agent (ReAct) for best results
-- The agent is smart: simple queries finish in 1-2 iterations, complex ones use up to 5
-- Simple loop is only used as fallback if ToolAwareAgent is unavailable
-
-### Phase 3: Execution
-
-Depending on complexity, the query is processed by either:
-
-1. **Agentic Manager** - Self-correcting single-source search
-2. **Tool-Aware Agent** - Multi-tool ReAct reasoning
-
-### Phase 4: Response Generation
+### Phase 3: Response Generation
 
 Results are synthesized into a final response with:
-- Answer text
+- Answer text with rich formatting
 - Source citations
 - Confidence level
 - Reasoning trace (for complex queries)
+- Streaming tokens for real-time UX
 
 ---
 
@@ -951,10 +921,9 @@ The `get_budget_benchmark` tool uses a **hybrid architecture** that combines Neo
 | Service | File | Purpose |
 |---------|------|---------|
 | `ConversationManager` | `conversation_manager.py` | Main orchestrator |
-| `AgenticManager` | `agentic_manager.py` | Self-correcting loop (V2) |
-| `ToolAwareAgent` | `tool_aware_agent.py` | Multi-tool reasoning (V3 primary) |
-| `UnifiedIntentClassifier` | `unified_intent_classifier.py` | Intent detection (V2 only) |
-| `V3ResponseFormatter` | `response/v3_response_formatter.py` | Rich formatting for calls/projects (V3) |
+| `ToolAwareAgent` | `tool_aware_agent.py` | Multi-tool reasoning (primary) |
+| `AgenticManager` | `agentic_manager.py` | Self-correcting loop (fallback) |
+| `V3ResponseFormatter` | `response/v3_response_formatter.py` | Rich formatting for calls/projects |
 
 ### Data Services
 
@@ -1143,10 +1112,22 @@ When using the streaming endpoint, progress updates are sent as SSE:
 
 ## Recently Implemented Improvements
 
-> **Latest Update:** December 9, 2025
-> **Previous Update:** December 3, 2025
+> **Latest Update:** December 19, 2025
+> **Previous Update:** December 9, 2025
 
-All planned improvements have been implemented. See details below:
+### December 19, 2025: V1/V2 Removal
+
+V1 and V2 architectures have been completely removed from the codebase. The system now uses only:
+- **V3**: Conversation routes (`/api/v3/conversation/*`) - Simplified agentic architecture
+- **V4**: Proposal session routes - Unified AI Proposal Writer
+
+**Files Removed:**
+- Route files: `routes.py`, `conversation_routes.py`, `conversation_routes_v2.py`
+- Service files: `rag_service.py`, `enhanced_rag_service.py`, `celery_app.py`, `ai_agent.py`, `ai_intent_service.py`, `tool_orchestrator.py`, and others
+- Test files: Various V1/V2 test files
+- Config files: `docker-compose-v2.yml`, `requirements-v2.txt`
+
+All previous improvements have been implemented. See details below:
 
 | # | Improvement | Status | Files Created |
 |---|-------------|--------|---------------|
