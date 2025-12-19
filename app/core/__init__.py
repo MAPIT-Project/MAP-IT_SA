@@ -7,6 +7,8 @@ This module provides:
 - Timeout configuration (timeouts.py)
 - Retry utilities (retry.py)
 - Circuit breaker pattern (circuit_breaker.py)
+- Database connection pool (database.py)
+- Service availability checking (service_availability.py)
 - Neo4j connection management (neo4j_config.py)
 - Application dependencies (dependencies.py)
 """
