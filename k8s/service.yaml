@@ -1,0 +1,44 @@
+---
+# API Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: mapit-api
+  namespace: mapit
+  labels:
+    app: mapit
+    component: api
+spec:
+  type: ClusterIP
+  selector:
+    app: mapit
+    component: api
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8000
+      protocol: TCP
+
+---
+# Headless service for WebSocket connections (sticky sessions)
+apiVersion: v1
+kind: Service
+metadata:
+  name: mapit-api-ws
+  namespace: mapit
+  labels:
+    app: mapit
+    component: api
+  annotations:
+    service.kubernetes.io/topology-aware-hints: "auto"
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app: mapit
+    component: api
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8000
+      protocol: TCP
