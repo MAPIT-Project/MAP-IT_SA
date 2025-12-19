@@ -922,6 +922,14 @@ async def get_similar_funded_projects_execute(params: Dict[str, Any], context: D
     - Graph-enhanced consortium context
     - Cluster inference from description
     """
+    # Extract cluster with fallback alternatives (LLM might use different parameter names)
+    cluster_param = (
+        params.get('cluster') or
+        params.get('cluster_code') or
+        params.get('cluster_id') or
+        params.get('pillar')
+    )
+
     tool = SimilarProjectsTool()
 
     description = params.get('description', '')
@@ -934,7 +942,7 @@ async def get_similar_funded_projects_execute(params: Dict[str, Any], context: D
 
     return tool.find_similar(
         description=description,
-        cluster=params.get('cluster'),
+        cluster=cluster_param,
         action_type=params.get('action_type'),
         min_budget=params.get('min_budget'),
         max_budget=params.get('max_budget'),

@@ -1209,6 +1209,14 @@ async def find_experienced_partners_execute(params: Dict[str, Any], context: Dic
     - SQL (PostgreSQL): Precise keyword matching + project details
     Results are merged using Reciprocal Rank Fusion (RRF).
     """
+    # Extract cluster with fallback alternatives (LLM might use different parameter names)
+    cluster_param = (
+        params.get('cluster') or
+        params.get('cluster_code') or
+        params.get('cluster_id') or
+        params.get('pillar')
+    )
+
     tool = PartnerDiscoveryTool()
 
     topic_keywords = params.get('topic_keywords') or params.get('keywords', '')
@@ -1223,7 +1231,7 @@ async def find_experienced_partners_execute(params: Dict[str, Any], context: Dic
         topic_keywords=topic_keywords,
         country=params.get('country'),
         organization_type=params.get('organization_type'),
-        cluster=params.get('cluster'),
+        cluster=cluster_param,
         min_projects=params.get('min_projects', 2),
         role_filter=params.get('role_filter'),
         limit=params.get('limit', 20),

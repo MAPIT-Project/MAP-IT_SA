@@ -1841,11 +1841,19 @@ async def analyze_call_history_execute(params: Dict[str, Any], context: Dict[str
     - Cluster-level statistics
     - Automatic cluster inference from keywords
     """
+    # Extract cluster with fallback alternatives (LLM might use different parameter names)
+    cluster_param = (
+        params.get('cluster') or
+        params.get('cluster_code') or
+        params.get('cluster_id') or
+        params.get('pillar')
+    )
+
     tool = CallHistoryTool()
 
     return tool.analyze_history(
         topic_pattern=params.get('topic_pattern'),
-        cluster=params.get('cluster'),
+        cluster=cluster_param,
         keywords=params.get('keywords'),
         year_from=params.get('year_from'),
         year_to=params.get('year_to'),

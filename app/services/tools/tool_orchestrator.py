@@ -1683,12 +1683,19 @@ Use this tool when the user asks about:
             """
             try:
                 from ..data_intelligence.graph_service import GraphSearchService
-                
-                cluster_code = params.get('cluster_code', '')
+
+                # Extract cluster with fallback alternatives (LLM might use different parameter names)
+                cluster_code = (
+                    params.get('cluster_code') or
+                    params.get('cluster') or
+                    params.get('cluster_id') or
+                    params.get('pillar') or
+                    ''
+                )
                 topic_code = params.get('topic_code')
                 coordinator_country = params.get('coordinator_country')
                 target_partners = params.get('target_partners', 5)
-                
+
                 if not cluster_code:
                     return {
                         'success': False,
@@ -2472,11 +2479,17 @@ def create_research_orchestrator(cache_client = None) -> ToolOrchestrator:
         """
         from ..local_call_search_service import LocalCallSearchService
         from datetime import date
-        
+
         try:
             query = params.get('query', '')
             max_results = params.get('max_results', 10)
-            cluster = params.get('cluster')  # Optional: CL1-CL6
+            # Extract cluster with fallback alternatives (LLM might use different parameter names)
+            cluster = (
+                params.get('cluster') or
+                params.get('cluster_code') or
+                params.get('cluster_id') or
+                params.get('pillar')
+            )
             action_type = params.get('action_type')  # Optional: RIA, IA, CSA, etc.
             include_closed = params.get('include_closed', False)  # Default: only open/upcoming
             year_filter = params.get('year', None)  # Optional: specific year

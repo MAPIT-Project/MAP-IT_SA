@@ -924,10 +924,18 @@ async def get_consortium_patterns_execute(params: Dict[str, Any], context: Dict[
 
     HYBRID ARCHITECTURE: Combines Neo4j graph patterns with PostgreSQL for detailed analysis.
     """
+    # Extract cluster with fallback alternatives (LLM might use different parameter names)
+    cluster_param = (
+        params.get('cluster') or
+        params.get('cluster_code') or
+        params.get('cluster_id') or
+        params.get('pillar')
+    )
+
     tool = ConsortiumPatternsTool()
 
     return tool.get_patterns(
-        cluster=params.get('cluster'),
+        cluster=cluster_param,
         action_type=params.get('action_type'),
         topic_keywords=params.get('topic_keywords'),
         min_projects=params.get('min_projects', 10),

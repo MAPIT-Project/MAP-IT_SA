@@ -4,7 +4,7 @@ Enables real-time collaborative proposal writing with AI assistance.
 """
 
 from fastapi import APIRouter, HTTPException, Depends, Query
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Union
 from pydantic import BaseModel
 import logging
 from datetime import datetime
@@ -57,15 +57,15 @@ class ProposalSectionResponse(BaseModel):
 class ProposalDocumentResponse(BaseModel):
     """Response model for full proposal document"""
     proposal_id: int
-    call_id: str
-    proposal_title: str
-    proposal_acronym: str
-    proposal_type: str
-    status: str
-    created_at: str
-    updated_at: str
-    sections: List[ProposalSectionResponse]
-    progress: Dict[str, Any]
+    call_id: Optional[str] = ""
+    proposal_title: Optional[str] = ""
+    proposal_acronym: Optional[str] = ""
+    proposal_type: Optional[str] = "RIA"
+    status: Optional[str] = "draft"
+    created_at: Optional[str] = ""
+    updated_at: Optional[str] = ""
+    sections: List[ProposalSectionResponse] = []
+    progress: Dict[str, Any] = {}
 
 class AIEditRequest(BaseModel):
     """Request model for AI-powered section editing"""
@@ -101,8 +101,8 @@ async def get_proposal_document(proposal_id: int):
         try:
             # Get proposal metadata
             cursor.execute("""
-                SELECT 
-                    id, user_id, call_id, proposal_title, proposal_acronym,
+                SELECT
+                    id, user_id, call_identifier, proposal_title, proposal_acronym,
                     proposal_type, status, created_at, updated_at
                 FROM proposals
                 WHERE id = %s
@@ -112,14 +112,14 @@ async def get_proposal_document(proposal_id: int):
             if not proposal_row:
                 raise HTTPException(status_code=404, detail="Proposal not found")
             
-            # Get all sections
+            # Get all sections (only current versions)
             cursor.execute("""
-                SELECT 
-                    section_id, section_name, content, word_count,
-                    quality_score, created_at, updated_at
+                SELECT
+                    section_id, section_name, section_content, word_count,
+                    quality_score, created_at, COALESCE(created_at, NOW()) as updated_at
                 FROM proposal_sections
-                WHERE proposal_id = %s
-                ORDER BY section_id
+                WHERE proposal_id = %s AND is_current = TRUE
+                ORDER BY section_order, section_id
             """, (proposal_id,))
             
             sections = []
@@ -149,13 +149,13 @@ async def get_proposal_document(proposal_id: int):
             
             return ProposalDocumentResponse(
                 proposal_id=proposal_row[0],
-                call_id=proposal_row[2],
-                proposal_title=proposal_row[3],
-                proposal_acronym=proposal_row[4],
-                proposal_type=proposal_row[5],
-                status=proposal_row[6],
-                created_at=proposal_row[7].isoformat(),
-                updated_at=proposal_row[8].isoformat() if proposal_row[8] else proposal_row[7].isoformat(),
+                call_id=proposal_row[2] or "",
+                proposal_title=proposal_row[3] or "Untitled",
+                proposal_acronym=proposal_row[4] or "",
+                proposal_type=proposal_row[5] or "RIA",
+                status=proposal_row[6] or "draft",
+                created_at=proposal_row[7].isoformat() if proposal_row[7] else "",
+                updated_at=proposal_row[8].isoformat() if proposal_row[8] else (proposal_row[7].isoformat() if proposal_row[7] else ""),
                 sections=sections,
                 progress=progress
             )
@@ -191,11 +191,11 @@ async def get_proposal_section(proposal_id: int, section_id: str):
         
         try:
             cursor.execute("""
-                SELECT 
-                    section_id, section_name, content, word_count,
-                    quality_score, created_at, updated_at
+                SELECT
+                    section_id, section_name, section_content, word_count,
+                    quality_score, created_at, COALESCE(created_at, NOW()) as updated_at
                 FROM proposal_sections
-                WHERE proposal_id = %s AND section_id = %s
+                WHERE proposal_id = %s AND section_id = %s AND is_current = TRUE
             """, (proposal_id, section_id))
             
             row = cursor.fetchone()
@@ -249,21 +249,21 @@ async def update_proposal_section(
             # Calculate word count
             word_count = len(update.content.split())
             
-            # Check if section exists
+            # Check if section exists (current version)
             cursor.execute("""
                 SELECT id FROM proposal_sections
-                WHERE proposal_id = %s AND section_id = %s
+                WHERE proposal_id = %s AND section_id = %s AND is_current = TRUE
             """, (proposal_id, section_id))
-            
-            if cursor.fetchone():
-                # Update existing section
+
+            existing = cursor.fetchone()
+            if existing:
+                # Update existing section content
                 cursor.execute("""
                     UPDATE proposal_sections
-                    SET content = %s,
+                    SET section_content = %s,
                         word_count = %s,
-                        quality_score = %s,
-                        updated_at = NOW()
-                    WHERE proposal_id = %s AND section_id = %s
+                        quality_score = COALESCE(%s, quality_score)
+                    WHERE proposal_id = %s AND section_id = %s AND is_current = TRUE
                 """, (
                     update.content,
                     word_count,
@@ -274,13 +274,13 @@ async def update_proposal_section(
             else:
                 # Insert new section
                 cursor.execute("""
-                    INSERT INTO proposal_sections 
-                    (proposal_id, section_id, section_name, content, word_count, quality_score)
-                    VALUES (%s, %s, %s, %s, %s, %s)
+                    INSERT INTO proposal_sections
+                    (proposal_id, section_id, section_name, section_content, word_count, quality_score, is_current)
+                    VALUES (%s, %s, %s, %s, %s, %s, TRUE)
                 """, (
                     proposal_id,
                     section_id,
-                    section_id.split('.')[-1].title(),  # Use last part as name
+                    section_id.split('.')[-1].replace('_', ' ').title(),  # Use last part as name
                     update.content,
                     word_count,
                     update.metadata.get('quality_score') if update.metadata else None
@@ -368,13 +368,13 @@ async def get_proposal_progress(proposal_id: int):
         cursor = conn.cursor()
         
         try:
-            # Get all sections with their status
+            # Get all sections with their status (current versions only)
             cursor.execute("""
-                SELECT 
+                SELECT
                     section_id, section_name, word_count, quality_score
                 FROM proposal_sections
-                WHERE proposal_id = %s
-                ORDER BY section_id
+                WHERE proposal_id = %s AND is_current = TRUE
+                ORDER BY section_order, section_id
             """, (proposal_id,))
             
             sections_status = []
@@ -441,7 +441,7 @@ async def delete_proposal_section(proposal_id: int, section_id: str):
         try:
             cursor.execute("""
                 DELETE FROM proposal_sections
-                WHERE proposal_id = %s AND section_id = %s
+                WHERE proposal_id = %s AND section_id = %s AND is_current = TRUE
             """, (proposal_id, section_id))
             
             if cursor.rowcount == 0:
@@ -461,5 +461,276 @@ async def delete_proposal_section(proposal_id: int, section_id: str):
         raise
     except Exception as e:
         logger.error(f"Error deleting section: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# LIST & CREATE PROPOSALS
+# ============================================================================
+
+class ProposalCreateRequest(BaseModel):
+    """Request model for creating a new proposal"""
+    call_id: str
+    proposal_title: str
+    proposal_acronym: Optional[str] = None
+    proposal_type: Optional[str] = "RIA"
+    user_id: Optional[str] = None
+
+
+@router.get("", response_model=List[ProposalDocumentResponse])
+async def list_proposals(
+    user_id: Optional[str] = Query(None, description="Filter by user ID"),
+    status: Optional[str] = Query(None, description="Filter by status"),
+    limit: int = Query(50, description="Max results to return")
+):
+    """
+    List all proposals, optionally filtered by user or status.
+
+    **Use Case**: Display proposals list on dashboard
+    """
+    try:
+        db_pool = get_db_pool()
+        if not db_pool:
+            raise HTTPException(status_code=503, detail="Database not available")
+
+        conn = db_pool.getconn()
+        cursor = conn.cursor()
+
+        try:
+            # Build query with filters
+            query = """
+                SELECT
+                    id, user_id, call_identifier, proposal_title, proposal_acronym,
+                    proposal_type, status, created_at, updated_at
+                FROM proposals
+                WHERE 1=1
+            """
+            params = []
+
+            if user_id:
+                query += " AND user_id = %s"
+                params.append(user_id)
+
+            if status:
+                query += " AND status = %s"
+                params.append(status)
+
+            query += " ORDER BY updated_at DESC LIMIT %s"
+            params.append(limit)
+
+            cursor.execute(query, params)
+            proposals = []
+
+            for row in cursor.fetchall():
+                proposal_id = row[0]
+
+                # Get sections for this proposal
+                cursor.execute("""
+                    SELECT
+                        section_id, section_name, section_content, word_count,
+                        quality_score, created_at
+                    FROM proposal_sections
+                    WHERE proposal_id = %s AND is_current = TRUE
+                    ORDER BY section_order, section_id
+                """, (proposal_id,))
+
+                sections = []
+                for sec_row in cursor.fetchall():
+                    sections.append(ProposalSectionResponse(
+                        section_id=sec_row[0],
+                        section_name=sec_row[1],
+                        content=sec_row[2] or "",
+                        word_count=sec_row[3] or 0,
+                        estimated_pages=round((sec_row[3] or 0) / 500, 1),
+                        last_updated=sec_row[5].isoformat() if sec_row[5] else "",
+                        quality_score=sec_row[4]
+                    ))
+
+                # Calculate progress
+                total_sections = len(sections) or 12  # Default to 12 if no sections
+                completed_sections = sum(1 for s in sections if s.word_count > 100)
+                total_words = sum(s.word_count for s in sections)
+
+                progress = {
+                    "total_sections": total_sections,
+                    "completed_sections": completed_sections,
+                    "completion_percentage": round((completed_sections / total_sections * 100) if total_sections > 0 else 0, 1),
+                    "total_words": total_words,
+                    "estimated_pages": round(total_words / 500, 1)
+                }
+
+                proposals.append(ProposalDocumentResponse(
+                    proposal_id=row[0],
+                    call_id=row[2] or "",
+                    proposal_title=row[3] or "Untitled",
+                    proposal_acronym=row[4] or "",
+                    proposal_type=row[5] or "RIA",
+                    status=row[6] or "draft",
+                    created_at=row[7].isoformat() if row[7] else "",
+                    updated_at=row[8].isoformat() if row[8] else "",
+                    sections=sections,
+                    progress=progress
+                ))
+
+            return proposals
+
+        finally:
+            db_pool.putconn(conn)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error listing proposals: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def get_template_sections(proposal_type: str) -> List[tuple]:
+    """
+    Get the correct section structure based on proposal type.
+    Uses official Horizon Europe Part B templates.
+    """
+    proposal_type = (proposal_type or "RIA").upper()
+
+    if proposal_type in ["RIA", "IA"]:
+        # Standard RIA/IA template (Part B)
+        return [
+            ("excellence.objectives", "Objectives and ambition", 1),
+            ("excellence.methodology", "Methodology", 2),
+            ("excellence.beyond_sota", "Beyond the state of the art", 3),
+            ("impact.pathways", "Pathways to impact", 4),
+            ("impact.dissemination", "Dissemination and exploitation", 5),
+            ("implementation.work_plan", "Work plan and resources", 6),
+            ("implementation.consortium", "Consortium and management", 7),
+        ]
+
+    elif proposal_type == "CSA":
+        # Coordination and Support Action template
+        return [
+            ("excellence.objectives", "Objectives and activities", 1),
+            ("excellence.added_value", "European added value", 2),
+            ("impact.outcomes", "Expected outcomes", 3),
+            ("implementation.work_plan", "Work plan", 4),
+        ]
+
+    elif proposal_type in ["ERC-STG", "ERC-COG", "ERC-ADG"]:
+        # ERC template (different structure)
+        return [
+            ("excellence.groundbreaking", "Groundbreaking nature of the research", 1),
+            ("excellence.methodology", "Methodology", 2),
+            ("excellence.resources", "Resources", 3),
+            ("pi.cv", "Principal Investigator CV", 4),
+            ("pi.track_record", "Track record", 5),
+        ]
+
+    elif proposal_type in ["MSCA-PF", "MSCA-DN"]:
+        # MSCA template
+        return [
+            ("excellence.quality", "Quality and pertinence of the project", 1),
+            ("excellence.training", "Quality and appropriateness of the training", 2),
+            ("impact.career", "Career development", 3),
+            ("impact.contribution", "Contribution to EU policy objectives", 4),
+            ("implementation.workplan", "Work packages and methodology", 5),
+            ("implementation.institutional", "Institutional environment", 6),
+        ]
+
+    elif proposal_type in ["EIC-ACCELERATOR", "EIC-PATHFINDER"]:
+        # EIC template
+        return [
+            ("excellence.breakthrough", "Excellence - Breakthrough innovation", 1),
+            ("excellence.approach", "Excellence - Approach", 2),
+            ("impact.market", "Impact - Market potential", 3),
+            ("impact.scale_up", "Impact - Scale-up potential", 4),
+            ("implementation.team", "Implementation - Team", 5),
+            ("implementation.resources", "Implementation - Resources", 6),
+        ]
+
+    # Default to RIA template
+    return get_template_sections("RIA")
+
+
+@router.post("", response_model=Dict[str, Any])
+async def create_proposal(request: ProposalCreateRequest):
+    """
+    Create a new proposal with section structure based on proposal type.
+
+    Uses official Horizon Europe templates:
+    - RIA/IA: 7 sections (Excellence, Impact, Implementation)
+    - CSA: 4 sections
+    - ERC: 5 sections
+    - MSCA: 6 sections
+    - EIC: 6 sections
+
+    **Use Case**: Create new proposal from proposals dashboard
+
+    **Returns**: Created proposal with initialized sections
+    """
+    try:
+        db_pool = get_db_pool()
+        if not db_pool:
+            raise HTTPException(status_code=503, detail="Database not available")
+
+        conn = db_pool.getconn()
+        cursor = conn.cursor()
+
+        try:
+            proposal_type = request.proposal_type or "RIA"
+
+            # Insert the proposal
+            cursor.execute("""
+                INSERT INTO proposals
+                (call_identifier, proposal_title, proposal_acronym, proposal_type, user_id, status)
+                VALUES (%s, %s, %s, %s, %s, 'draft')
+                RETURNING id, created_at, updated_at
+            """, (
+                request.call_id,
+                request.proposal_title,
+                request.proposal_acronym or "",
+                proposal_type,
+                request.user_id
+            ))
+
+            result = cursor.fetchone()
+            proposal_id = result[0]
+            created_at = result[1]
+            updated_at = result[2]
+
+            # Get correct sections based on proposal type
+            template_sections = get_template_sections(proposal_type)
+
+            for section_id, section_name, order in template_sections:
+                cursor.execute("""
+                    INSERT INTO proposal_sections
+                    (proposal_id, section_id, section_name, section_content, word_count, section_order, is_current)
+                    VALUES (%s, %s, %s, '', 0, %s, TRUE)
+                """, (proposal_id, section_id, section_name, order))
+
+            conn.commit()
+
+            logger.info(f"✅ Created proposal {proposal_id} with {len(template_sections)} sections for {proposal_type}")
+
+            # Return the created proposal
+            return {
+                "success": True,
+                "proposal": {
+                    "proposal_id": proposal_id,
+                    "call_id": request.call_id,
+                    "proposal_title": request.proposal_title,
+                    "proposal_acronym": request.proposal_acronym or "",
+                    "proposal_type": proposal_type,
+                    "status": "draft",
+                    "created_at": created_at.isoformat() if created_at else "",
+                    "updated_at": updated_at.isoformat() if updated_at else ""
+                },
+                "sections_created": len(template_sections),
+                "message": f"Proposal created successfully with {len(template_sections)} sections for {proposal_type}"
+            }
+
+        finally:
+            db_pool.putconn(conn)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating proposal: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 

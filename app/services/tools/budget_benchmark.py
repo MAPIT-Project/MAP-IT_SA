@@ -1161,10 +1161,19 @@ async def get_budget_benchmark_execute(params: Dict[str, Any], context: Dict[str
 
     HYBRID ARCHITECTURE: Combines Neo4j graph data with PostgreSQL for comprehensive benchmarks.
     """
+    # Extract cluster with fallback alternatives (LLM might use different parameter names)
+    cluster_param = (
+        params.get('cluster') or
+        params.get('cluster_code') or
+        params.get('cluster_id') or
+        params.get('pillar')
+    )
+    logger.info(f"get_budget_benchmark_execute: params={params}, extracted cluster={cluster_param!r}")
+
     tool = BudgetBenchmarkTool()
 
     return tool.get_benchmark(
-        cluster=params.get('cluster'),
+        cluster=cluster_param,
         action_type=params.get('action_type'),
         topic_keywords=params.get('topic_keywords'),
         year=params.get('year'),
