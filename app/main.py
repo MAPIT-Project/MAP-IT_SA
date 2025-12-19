@@ -1,5 +1,11 @@
 """
 Main FastAPI application for CORDIS Research Projects RAG API.
+
+Production-ready application with:
+- Comprehensive error handling with MapItError exceptions
+- Health monitoring endpoints (Kubernetes ready)
+- Request context middleware for tracing
+- Circuit breaker support for external services
 """
 
 from fastapi import FastAPI, HTTPException
@@ -15,6 +21,8 @@ from .api.document_routes import router as document_router
 from .api.conversation_routes_v3 import router as conversation_router_v3
 from .api.call_document_routes import router as call_document_router
 from .api.proposal_routes import router as proposal_router
+from .api.health_routes import router as health_router
+from .api.error_handlers import register_exception_handlers, register_middleware
 from .models.schemas import ErrorResponse
 
 # Configure logging
@@ -43,7 +51,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Register global exception handlers and middleware
+register_exception_handlers(app)
+register_middleware(app)
+
 # Include API routes
+# Health routes - Kubernetes readiness/liveness probes
+app.include_router(health_router)
+
 app.include_router(document_router)
 # V3 conversation routes - simplified agentic architecture (no intent classification)
 app.include_router(conversation_router_v3)
@@ -63,43 +78,6 @@ app.include_router(feedback_router)
 # V4 Proposal Session routes - unified AI Proposal Writer
 from .api.proposal_session_routes import router as proposal_session_router
 app.include_router(proposal_session_router)
-
-# Exception handlers
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request, exc):
-    """Handle HTTP exceptions with consistent error format."""
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={
-            "error": "Error processing request",
-            "details": str(exc.detail)
-        }
-    )
-
-
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request, exc):
-    """Handle request validation errors."""
-    return JSONResponse(
-        status_code=422,
-        content={
-            "error": "Invalid request format",
-            "details": str(exc)
-        }
-    )
-
-
-@app.exception_handler(Exception)
-async def general_exception_handler(request, exc):
-    """Handle general exceptions."""
-    logger.error(f"Unhandled exception: {exc}")
-    return JSONResponse(
-        status_code=500,
-        content={
-            "error": "Internal server error",
-            "details": "An unexpected error occurred"
-        }
-    )
 
 
 # Startup and shutdown events
