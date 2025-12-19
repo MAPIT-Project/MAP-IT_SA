@@ -1,96 +1,90 @@
 # SHARED_TASK_NOTES.md
 
-## Current Status: Priority 1-4 Complete (~70%)
+## Current Status: Priority 1-6 Progress (~85%)
 
 **Last Updated:** December 19, 2025
 
 ### What Was Done This Iteration
 
-Implemented remaining items from Priority 1-4:
+Implemented Priority 5-6 items:
 
-**Priority 1.3 - Graceful Degradation:**
-- `app/core/service_availability.py` - Service availability checker
-  - Parallel health checks with caching
-  - Tool-service mapping for filtering
-  - Degradable tools support (can work with reduced functionality)
-  - `get_available_tools()` filters based on service availability
+**Priority 5.1 - Analytics Dashboard API:**
+- `app/api/analytics_routes.py` - Full analytics dashboard
+  - `GET /api/analytics/overview` - Usage, performance, content, proposal, feedback metrics
+  - `GET /api/analytics/tools` - Tool performance with slow tools detection
+  - `GET /api/analytics/trends` - Time-series trends (queries, response_time, error_rate, feedback)
+  - `GET /api/analytics/queries/popular` - Popular query patterns
+  - `GET /api/analytics/health` - Analytics service health
 
-**Priority 2.4 - Database Connection Pool:**
-- `app/core/database.py` - Managed connection pool
-  - ThreadedConnectionPool with monitoring
-  - Connection statistics (requests, failures, latency)
-  - Health check integration
-  - `PoolManager` singleton pattern
+**Priority 5.4 - AI-Powered Proposal Reviewer:**
+- `app/services/proposal_writing/comprehensive_reviewer.py`
+  - Multi-pass AI review simulating EU evaluators
+  - Excellence, Impact, Implementation criterion reviews
+  - Compliance review (ethics, gender, required sections)
+  - Language and consistency reviews
+  - Severity levels: critical, major, minor, suggestion
+  - Score estimation and submission recommendations
+  - Parallel execution for faster reviews
 
-**Priority 4.2 - Batch Operations API:**
-- `app/api/batch_routes.py` - Full batch API
-  - `POST /api/batch/execute` - Parallel execution
-  - `POST /api/batch/async` - Async with status polling
-  - `GET /api/batch/{id}/status` - Check status
-  - `DELETE /api/batch/{id}` - Cancel batch
-  - Supports 10 operation types
+**Priority 6.1 - Authentication:**
+- `app/core/auth.py` - Full JWT + API Key authentication
+  - `AuthService` with token creation/verification
+  - Role-based access control (RBAC)
+  - Tier-based access (free, basic, premium, enterprise)
+  - `get_current_user` dependency for routes
+  - `require_roles()` and `require_tier()` dependencies
+  - API key validation support
 
-**Priority 4.3 - Webhook Notifications:**
-- `app/services/webhooks/webhook_service.py` - Webhook service
-  - HMAC-SHA256 signature verification
-  - Retry with exponential backoff
-  - Event types: proposal, batch, call, system
-  - Helper functions for common events
-
-**Priority 4.4 - 100% Embedding Coverage:**
-- `migration/016_ensure_embedding_coverage.sql`
-  - `embedding_queue` table with priorities
-  - Trigger on project insert/update
-  - `claim_embedding_batch()` for worker processing
-  - `embedding_coverage_stats` view
+**Priority 6.2 - Rate Limiting:**
+- `app/core/rate_limit.py` - Tiered rate limiting
+  - Redis-backed with in-memory fallback
+  - Per-tier limits (minute, hour, day)
+  - `RateLimitMiddleware` for automatic limiting
+  - Special limits for expensive operations
+  - Rate limit headers in responses
 
 ---
 
 ## Next Steps (For Next Iteration)
 
-### Priority 5: Premium Features
-1. **Analytics Dashboard API** - Create `app/api/analytics_routes.py`
-   - Extend existing `ToolAnalyticsService`
-   - Aggregate metrics (usage, performance, feedback)
-   - Time-series trends
-
-2. **Saved Searches and Alerts** - Create `app/services/alerts/saved_search_service.py`
+### Priority 5 Remaining
+1. **Saved Searches and Alerts** - Create `app/services/alerts/saved_search_service.py`
    - Store search configurations
    - Celery periodic task to check for new results
    - Email/webhook notifications on matches
 
-3. **AI Proposal Reviewer** - Create `app/services/proposal_writing/comprehensive_reviewer.py`
-   - Multi-pass review (excellence, impact, implementation)
-   - Consistency checking
-   - Scoring against criteria
+2. **Collaboration Features** - Create `app/services/collaboration/collaboration_service.py`
+   - Real-time proposal collaboration
+   - Section locking
+   - Cursor tracking
+   - WebSocket support
 
-### Priority 6: Enterprise Readiness
-1. **Authentication** - Create `app/core/auth.py`
-   - JWT-based authentication
-   - Role-based access control
-   - Integration with routes
+### Priority 6 Remaining
+1. **Audit Logging** - Create `app/services/audit/audit_service.py`
+   - Log all operations
+   - Query audit trails
+   - SIEM integration
 
-2. **Rate Limiting** - Create `app/core/rate_limit.py`
-   - Tiered limits (free/basic/premium/enterprise)
-   - Redis-backed counters
-   - Middleware integration
+2. **Multi-tenancy** - Create `app/core/tenancy.py`
+   - Organization-based data isolation
+   - Tenant middleware
+   - Tenant-aware repositories
 
-3. **Kubernetes** - Create `k8s/` directory
-   - Deployment with 3 replicas
+3. **Kubernetes Config** - Create `k8s/` directory
+   - Deployment with replicas
    - HPA for auto-scaling
    - Secrets management
+   - Ingress configuration
 
 ---
 
 ## Files Created This Iteration
 
 ```
-app/core/database.py                         - Database pool manager (~350 lines)
-app/core/service_availability.py             - Service availability checker (~450 lines)
-app/api/batch_routes.py                      - Batch operations API (~550 lines)
-app/services/webhooks/__init__.py            - Webhook module exports
-app/services/webhooks/webhook_service.py     - Webhook service (~500 lines)
-migration/016_ensure_embedding_coverage.sql  - Embedding queue migration (~150 lines)
+app/api/analytics_routes.py                              - Analytics Dashboard API (~450 lines)
+app/services/proposal_writing/comprehensive_reviewer.py  - AI Proposal Reviewer (~550 lines)
+app/core/auth.py                                         - JWT Authentication (~350 lines)
+app/core/rate_limit.py                                   - Rate Limiting (~400 lines)
 ```
 
 ---
@@ -103,10 +97,10 @@ python3 -c "from app.main import app; print('Import successful')"
 
 # Verify new modules
 python3 -c "
-from app.core.database import DatabasePool, get_pool_manager
-from app.core.service_availability import ServiceAvailabilityChecker, get_availability_checker
-from app.api.batch_routes import router as batch_router
-from app.services.webhooks import WebhookService, get_webhook_service
+from app.api.analytics_routes import router as analytics_router
+from app.services.proposal_writing.comprehensive_reviewer import ComprehensiveReviewer
+from app.core.auth import AuthService, get_auth_service
+from app.core.rate_limit import RateLimiter, get_rate_limiter
 print('All new modules imported successfully!')
 "
 ```
@@ -115,55 +109,72 @@ print('All new modules imported successfully!')
 
 ## Integration Notes
 
-### Using Service Availability in Agent
+### Using Analytics Dashboard
 
 ```python
-from app.core.service_availability import get_availability_checker
-
-checker = get_availability_checker()
-availability = await checker.check_all_services()
-
-# Filter tools based on available services
-available_tools = await checker.get_available_tools(all_tools)
-
-# Get degradation notice for users
-notice = checker.get_degradation_notice(availability)
+# Endpoints available:
+GET /api/analytics/overview?days=30
+GET /api/analytics/tools?hours=24
+GET /api/analytics/trends?metric=queries&granularity=day&days=90
+GET /api/analytics/queries/popular?days=30&limit=20
+GET /api/analytics/health
 ```
 
-### Using Batch Operations
+### Using AI Proposal Reviewer
 
 ```python
-# Synchronous batch
-POST /api/batch/execute
-{
-    "operations": [
-        {"id": "stats-eic", "type": "get_statistics", "params": {"programme": "EIC"}},
-        {"id": "calls", "type": "search_calls", "params": {"keywords": "hydrogen"}}
-    ],
-    "timeout_seconds": 30
-}
+from app.services.proposal_writing.comprehensive_reviewer import get_comprehensive_reviewer
 
-# Async batch
-POST /api/batch/async
-GET /api/batch/{batch_id}/status
-```
-
-### Using Webhooks
-
-```python
-from app.services.webhooks import emit_webhook, WebhookEventType
-
-await emit_webhook(
-    WebhookEventType.BATCH_COMPLETED,
-    {"batch_id": "abc", "completed": 10, "failed": 0}
+reviewer = get_comprehensive_reviewer()
+result = await reviewer.full_review(
+    proposal={"excellence": "...", "impact": "...", "implementation": "..."},
+    call_requirements=None,
+    action_type="RIA"
 )
+# Returns: score, findings, recommendation, estimated_evaluator_score
+```
+
+### Using Authentication
+
+```python
+from app.core.auth import get_current_user, require_roles, require_tier
+
+# In route handlers:
+@router.get("/protected")
+async def protected_route(user: User = Depends(get_current_user)):
+    return {"user_id": user.id}
+
+@router.get("/admin")
+async def admin_route(user: User = Depends(require_roles(["admin"]))):
+    return {"admin": True}
+
+@router.get("/premium-feature")
+async def premium_route(user: User = Depends(require_tier("premium"))):
+    return {"premium": True}
+```
+
+### Using Rate Limiting
+
+```python
+# Add middleware to app (in main.py):
+from app.core.rate_limit import RateLimitMiddleware
+app.add_middleware(RateLimitMiddleware)
+
+# Or use dependency for specific routes:
+from app.core.rate_limit import check_rate_limit, check_expensive_operation_limit
+
+@router.post("/expensive")
+async def expensive_op(limit: RateLimitResult = Depends(check_expensive_operation_limit)):
+    # Already rate-limited
+    pass
 ```
 
 ---
 
 ## Remaining for Production Readiness
 
-1. **Priority 5** - Premium features (analytics, saved searches, AI reviewer)
-2. **Priority 6** - Enterprise features (auth, rate limiting, K8s)
-3. **Integration Testing** - End-to-end tests for new features
-4. **Documentation** - API docs for batch and webhook endpoints
+1. **Priority 5 remaining** - Saved searches, collaboration features
+2. **Priority 6 remaining** - Audit logging, multi-tenancy, Kubernetes config
+3. **Integration** - Register new routes in main.py, add middleware
+4. **Testing** - Unit and integration tests for new features
+5. **Documentation** - OpenAPI docs for new endpoints
