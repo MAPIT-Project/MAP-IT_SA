@@ -144,6 +144,21 @@ def _search_to_response(search) -> SavedSearchResponse:
 # =============================================================================
 
 
+@router.get("/health", status_code=status.HTTP_200_OK)
+async def health_check():
+    """
+    Health check endpoint for alerts service.
+
+    Returns:
+        Service health status
+    """
+    return {
+        "status": "healthy",
+        "service": "alerts",
+        "timestamp": datetime.utcnow().isoformat(),
+    }
+
+
 @router.post("", response_model=SavedSearchResponse, status_code=status.HTTP_201_CREATED)
 async def create_saved_search(
     request: CreateSavedSearchRequest,
@@ -382,18 +397,3 @@ async def process_alerts(
     result = await service.process_alerts(freq)
 
     return result
-
-
-@router.get("/health", status_code=status.HTTP_200_OK)
-async def health_check():
-    """
-    Health check endpoint for alerts service.
-
-    Returns:
-        Service health status
-    """
-    return {
-        "status": "healthy",
-        "service": "alerts",
-        "timestamp": datetime.utcnow().isoformat(),
-    }

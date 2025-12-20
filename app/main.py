@@ -83,6 +83,22 @@ app.include_router(proposal_session_router)
 from .api.batch_routes import router as batch_router
 app.include_router(batch_router)
 
+# Analytics dashboard routes (Priority 5.1)
+from .api.analytics_routes import router as analytics_router
+app.include_router(analytics_router)
+
+# Saved searches and alerts routes (Priority 5.2)
+from .api.alert_routes import router as alert_router
+app.include_router(alert_router)
+
+# Real-time collaboration routes (Priority 5.3)
+from .api.collaboration_routes import router as collaboration_router
+app.include_router(collaboration_router)
+
+# Audit logging routes (Priority 6.3)
+from .api.audit_routes import router as audit_router
+app.include_router(audit_router)
+
 
 # Startup and shutdown events
 @app.on_event("startup")
