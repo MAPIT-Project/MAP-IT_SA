@@ -1,0 +1,33 @@
+{
+  "download_date": "2025-12-01T23:42:27.810468",
+  "source": "https://data.europa.eu/data/datasets/cordis-eu-research-projects-under-horizon-europe-2021-2027",
+  "results": {
+    "downloaded": [
+      "projects_csv",
+      "deliverables",
+      "publications"
+    ],
+    "failed": [
+      "reports",
+      "ref_programmes",
+      "ref_topics",
+      "ref_countries",
+      "ref_organizationTypes",
+      "ref_fundingSchemes"
+    ],
+    "skipped": []
+  },
+  "files": [
+    "policyPriorities.csv",
+    "information.zip",
+    "webLink.csv",
+    "legalBasis.csv",
+    "projectPublications.csv",
+    "organization.csv",
+    "webItem.csv",
+    "projectDeliverables.csv",
+    "topics.csv",
+    "project.csv",
+    "euroSciVoc.csv"
+  ]
+}
