@@ -946,6 +946,19 @@ class BudgetBenchmarkTool:
         project_count: int
     ) -> Dict[str, Any]:
         """Generate budget recommendations based on statistics."""
+        # Ensure numeric types (handle string values from database)
+        try:
+            std_dev = float(std_dev) if std_dev else 0
+            median_budget = float(median_budget) if median_budget else 0
+            avg_budget = float(avg_budget) if avg_budget else 0
+            avg_partners = float(avg_partners) if avg_partners else 0
+            median_partners = float(median_partners) if median_partners else 0
+            avg_per_partner = float(avg_per_partner) if avg_per_partner else 0
+            project_count = int(project_count) if project_count else 0
+        except (ValueError, TypeError):
+            std_dev = 0
+            median_budget = 0
+            project_count = 0
 
         # Calculate suggested range (median ± 0.5 std_dev)
         if std_dev > 0:
