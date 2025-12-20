@@ -1,5 +1,14 @@
-#Wghostwriter 
+#Wghostwriter
 *.qss
+
+# Data directories (downloaded/generated data)
+data/cordis/
+data/manual_uploads/
+data/shared_documents/
+
+# Test outputs
+test_outputs/
+test_results_export.json
  
 
 # Byte-compiled / optimized / DLL files
