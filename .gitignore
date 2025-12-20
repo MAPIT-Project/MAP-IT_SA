@@ -158,6 +158,15 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# Data files (large CSVs, user uploads, etc.)
+data/cordis/
+data/manual_uploads/
+data/shared_documents/
+
+# Test outputs
+test_outputs/
+test_results_export.json
+
 # pytype static type analyzer
 .pytype/
 
