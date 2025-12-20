@@ -100,8 +100,8 @@ SCENARIOS = {
 }
 
 
-async def test_scenario(agent, scenario_id, query, name):
-    """Test a single scenario and return results."""
+async def run_scenario(agent, scenario_id, query, name):
+    """Run a single scenario and return results."""
     try:
         result = await agent.process_query(
             query=query,
@@ -156,7 +156,7 @@ async def run_all_tests():
 
     for scenario_id, (query, name) in SCENARIOS.items():
         print(f"Testing {scenario_id}: {name}...")
-        result = await test_scenario(agent, scenario_id, query, name)
+        result = await run_scenario(agent, scenario_id, query, name)
         results.append(result)
 
         status = "PASS" if result['is_meaningful'] else "FAIL"
