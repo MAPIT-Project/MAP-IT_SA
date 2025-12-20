@@ -330,11 +330,39 @@ def register_middleware(app: FastAPI) -> None:
     """
     Register middleware for error handling support.
 
+    Middleware is added in reverse order of execution (last added = first executed).
+    Execution order:
+    1. RequestContextMiddleware - Request ID and timing
+    2. TenantMiddleware - Multi-tenancy context from JWT/headers
+    3. RateLimitMiddleware - Rate limiting based on user tier
+
     Usage:
         from app.api.error_handlers import register_middleware
 
         app = FastAPI()
         register_middleware(app)
     """
+    import os
+
+    # Add RequestContextMiddleware (innermost - runs last)
     app.add_middleware(RequestContextMiddleware)
     logger.info("Registered request context middleware")
+
+    # Add TenantMiddleware for multi-tenancy support
+    # Only enable if ENABLE_MULTITENANCY is set (optional for development)
+    if os.getenv("ENABLE_MULTITENANCY", "false").lower() == "true":
+        from ..core.tenancy import TenantMiddleware, get_tenant_service
+        tenant_service = get_tenant_service()
+        app.add_middleware(TenantMiddleware, tenant_service=tenant_service)
+        logger.info("Registered tenant middleware (multi-tenancy enabled)")
+    else:
+        logger.info("Tenant middleware disabled (set ENABLE_MULTITENANCY=true to enable)")
+
+    # Add RateLimitMiddleware for API rate limiting
+    # Only enable if ENABLE_RATE_LIMITING is set (optional for development)
+    if os.getenv("ENABLE_RATE_LIMITING", "false").lower() == "true":
+        from ..core.rate_limit import RateLimitMiddleware
+        app.add_middleware(RateLimitMiddleware)
+        logger.info("Registered rate limit middleware (rate limiting enabled)")
+    else:
+        logger.info("Rate limit middleware disabled (set ENABLE_RATE_LIMITING=true to enable)")
