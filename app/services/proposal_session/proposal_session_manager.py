@@ -11,7 +11,7 @@ Central orchestrator for AI-assisted proposal writing sessions. Manages:
 import json
 import logging
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 import psycopg2
@@ -738,7 +738,7 @@ class ProposalSessionManager:
                 # Update version in memory
                 section.version += 1
                 section.is_dirty = False
-                section.last_updated = datetime.utcnow()
+                section.last_updated = datetime.now(timezone.utc)
         except Exception as e:
             conn.rollback()
             logger.error(f"❌ Failed to persist section {section_id}: {e}")
@@ -807,7 +807,7 @@ class ProposalSessionManager:
         Returns:
             Number of sessions cleaned up
         """
-        expiry_threshold = datetime.utcnow() - timedelta(hours=self.SESSION_EXPIRY_HOURS)
+        expiry_threshold = datetime.now(timezone.utc) - timedelta(hours=self.SESSION_EXPIRY_HOURS)
 
         conn = self.db_pool.getconn()
         try:

@@ -15,7 +15,7 @@ import logging
 import threading
 import time
 from contextlib import contextmanager
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, Generator
 from dataclasses import dataclass, field
 
@@ -45,13 +45,13 @@ class PoolStats:
     peak_in_use: int = 0
     avg_wait_time_ms: float = 0.0
     total_wait_time_ms: float = 0.0
-    pool_created_at: datetime = field(default_factory=datetime.utcnow)
+    pool_created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     last_health_check: Optional[datetime] = None
     last_health_check_success: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for API responses."""
-        uptime = datetime.utcnow() - self.pool_created_at
+        uptime = datetime.now(timezone.utc) - self.pool_created_at
         return {
             "total_connections_created": self.total_connections_created,
             "total_connections_closed": self.total_connections_closed,
@@ -318,7 +318,7 @@ class DatabasePool:
             result["message"] = "Connection successful"
 
             with self._lock:
-                self._stats.last_health_check = datetime.utcnow()
+                self._stats.last_health_check = datetime.now(timezone.utc)
                 self._stats.last_health_check_success = True
 
         except Exception as e:
@@ -328,7 +328,7 @@ class DatabasePool:
             result["message"] = str(e)
 
             with self._lock:
-                self._stats.last_health_check = datetime.utcnow()
+                self._stats.last_health_check = datetime.now(timezone.utc)
                 self._stats.last_health_check_success = False
 
         return result

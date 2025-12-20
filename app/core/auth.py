@@ -7,7 +7,7 @@ JWT-based authentication with role-based access control for MAP-IT.
 import os
 import logging
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Dict, Any
 from functools import wraps
 
@@ -78,7 +78,7 @@ class AuthService:
         expires_delta: Optional[timedelta] = None
     ) -> str:
         """Create JWT access token."""
-        expires = datetime.utcnow() + (expires_delta or self.access_token_expire)
+        expires = datetime.now(timezone.utc) + (expires_delta or self.access_token_expire)
 
         payload = {
             "sub": user_id,
@@ -87,7 +87,7 @@ class AuthService:
             "org_id": organization_id,
             "tier": tier,
             "exp": expires,
-            "iat": datetime.utcnow(),
+            "iat": datetime.now(timezone.utc),
             "type": "access"
         }
 
@@ -95,12 +95,12 @@ class AuthService:
 
     def create_refresh_token(self, user_id: str) -> str:
         """Create refresh token for token renewal."""
-        expires = datetime.utcnow() + self.refresh_token_expire
+        expires = datetime.now(timezone.utc) + self.refresh_token_expire
 
         payload = {
             "sub": user_id,
             "exp": expires,
-            "iat": datetime.utcnow(),
+            "iat": datetime.now(timezone.utc),
             "type": "refresh"
         }
 

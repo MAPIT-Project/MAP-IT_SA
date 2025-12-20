@@ -9,7 +9,7 @@ from supabase import create_client, Client
 from dotenv import load_dotenv
 import numpy as np
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from ..core.config import settings
 
@@ -55,9 +55,9 @@ class SupabaseVectorStore:
             
             # Add timestamps if not present
             if 'created_at' not in document_data:
-                document_data['created_at'] = datetime.utcnow().isoformat()
+                document_data['created_at'] = datetime.now(timezone.utc).isoformat()
             if 'last_updated' not in document_data:
-                document_data['last_updated'] = datetime.utcnow().isoformat()
+                document_data['last_updated'] = datetime.now(timezone.utc).isoformat()
             
             response = self.client.table("horizon_documents").insert(document_data).execute()
             
@@ -86,7 +86,7 @@ class SupabaseVectorStore:
                 
                 # Add timestamp if not present
                 if 'created_at' not in processed_chunk:
-                    processed_chunk['created_at'] = datetime.utcnow().isoformat()
+                    processed_chunk['created_at'] = datetime.now(timezone.utc).isoformat()
                 
                 processed_chunks.append(processed_chunk)
             
@@ -224,16 +224,16 @@ class SupabaseVectorStore:
         try:
             update_data = {
                 "status": status,
-                "last_updated": datetime.utcnow().isoformat()
+                "last_updated": datetime.now(timezone.utc).isoformat()
             }
             
             if metadata:
                 update_data["metadata"] = metadata
             
             if status == "processing":
-                update_data["processing_started_at"] = datetime.utcnow().isoformat()
+                update_data["processing_started_at"] = datetime.now(timezone.utc).isoformat()
             elif status in ["active", "failed"]:
-                update_data["processing_completed_at"] = datetime.utcnow().isoformat()
+                update_data["processing_completed_at"] = datetime.now(timezone.utc).isoformat()
             
             response = self.client.table("horizon_documents")\
                 .update(update_data)\
@@ -283,7 +283,7 @@ class SupabaseVectorStore:
                 self.client.table("embedding_cache")\
                     .update({
                         "usage_count": response.data.get("usage_count", 0) + 1,
-                        "last_used": datetime.utcnow().isoformat()
+                        "last_used": datetime.now(timezone.utc).isoformat()
                     })\
                     .eq("text_hash", text_hash)\
                     .execute()
@@ -309,8 +309,8 @@ class SupabaseVectorStore:
                 "text_hash": text_hash,
                 "text_content": text_content[:1000],  # Store first 1000 chars for reference
                 "embedding": embedding.tolist(),
-                "created_at": datetime.utcnow().isoformat(),
-                "last_used": datetime.utcnow().isoformat()
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "last_used": datetime.now(timezone.utc).isoformat()
             }
             
             self.client.table("embedding_cache").upsert(cache_data).execute()
@@ -402,7 +402,7 @@ class SupabaseVectorStore:
     def cleanup_old_cache(self, days_old: int = 30) -> int:
         """Clean up old cached embeddings."""
         try:
-            cutoff_date = datetime.utcnow().replace(day=datetime.utcnow().day - days_old)
+            cutoff_date = datetime.now(timezone.utc).replace(day=datetime.now(timezone.utc).day - days_old)
             
             response = self.client.table("embedding_cache")\
                 .delete()\

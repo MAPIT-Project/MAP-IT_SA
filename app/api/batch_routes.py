@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, validator
 from typing import Dict, Any, List, Optional
 from enum import Enum
-from datetime import datetime
+from datetime import datetime, timezone
 import asyncio
 import uuid
 import time
@@ -294,7 +294,7 @@ async def process_batch_background(batch_id: str, request: BatchRequest):
             "completed_operations": 0,
             "failed_operations": 0,
             "progress_percent": 0.0,
-            "started_at": datetime.utcnow().isoformat(),
+            "started_at": datetime.now(timezone.utc).isoformat(),
             "completed_at": None,
             "results": {},
             "error": None
@@ -356,7 +356,7 @@ async def process_batch_background(batch_id: str, request: BatchRequest):
             "failed_operations": failed,
             "progress_percent": 100.0,
             "started_at": (await get_batch_status(batch_id))["started_at"],
-            "completed_at": datetime.utcnow().isoformat(),
+            "completed_at": datetime.now(timezone.utc).isoformat(),
             "results": results,
             "error": None
         })
@@ -373,7 +373,7 @@ async def process_batch_background(batch_id: str, request: BatchRequest):
             "failed_operations": len(request.operations),
             "progress_percent": 0.0,
             "started_at": (await get_batch_status(batch_id) or {}).get("started_at"),
-            "completed_at": datetime.utcnow().isoformat(),
+            "completed_at": datetime.now(timezone.utc).isoformat(),
             "results": None,
             "error": str(e)
         })
@@ -526,7 +526,7 @@ async def execute_batch_async(
         status="pending",
         total_operations=len(request.operations),
         status_url=f"/api/batch/{batch_id}/status",
-        created_at=datetime.utcnow().isoformat()
+        created_at=datetime.now(timezone.utc).isoformat()
     )
 
 
@@ -589,7 +589,7 @@ async def cancel_batch(batch_id: str) -> Dict[str, Any]:
     await store_batch_status(batch_id, {
         **status,
         "status": "cancelled",
-        "completed_at": datetime.utcnow().isoformat(),
+        "completed_at": datetime.now(timezone.utc).isoformat(),
         "error": "Batch cancelled by user"
     })
 

@@ -7,7 +7,7 @@ proposal writing.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 import uuid
@@ -124,7 +124,7 @@ class ProposalDocument:
             section.content = content
             section.word_count = len(content.split()) if content else 0
             section.is_dirty = True
-            section.last_updated = datetime.utcnow()
+            section.last_updated = datetime.now(timezone.utc)
 
             # Update status based on content
             if not content or section.word_count < 10:
@@ -203,7 +203,7 @@ class ConversationState:
             message_id=str(uuid.uuid4()),
             role=role,
             content=content,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             metadata=metadata or {},
             tools_used=tools_used or [],
             sections_affected=sections_affected or [],
@@ -280,8 +280,8 @@ class ProposalSessionState:
             call_id=call_id,
             title=title,
             proposal_type=proposal_type,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
         )
 
         # Initialize standard sections for RIA/IA proposals
@@ -313,14 +313,14 @@ class ProposalSessionState:
 
     def update_activity(self) -> None:
         """Update the last activity timestamp."""
-        self.last_activity_at = datetime.utcnow()
+        self.last_activity_at = datetime.now(timezone.utc)
 
     def lock_section(self, section_id: str, lock_type: SectionLockStatus = SectionLockStatus.LOCKED_BY_AI) -> bool:
         """Lock a section for AI generation."""
         section = self.document.get_section(section_id)
         if section and section.lock_status == SectionLockStatus.UNLOCKED:
             section.lock_status = lock_type
-            section.locked_at = datetime.utcnow()
+            section.locked_at = datetime.now(timezone.utc)
             return True
         return False
 

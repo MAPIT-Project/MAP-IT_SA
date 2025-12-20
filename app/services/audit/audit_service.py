@@ -20,7 +20,7 @@ import json
 import logging
 from collections import deque
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Deque, Dict, List, Optional
 from uuid import uuid4
@@ -221,7 +221,7 @@ class AuditService:
 
         # In-memory buffer for batch writes
         self._buffer: Deque[AuditEvent] = deque(maxlen=self.BUFFER_SIZE)
-        self._last_flush = datetime.utcnow()
+        self._last_flush = datetime.now(timezone.utc)
         self._flush_lock = asyncio.Lock()
 
     # =========================================================================
@@ -244,7 +244,7 @@ class AuditService:
         # Check if we should flush
         should_flush = (
             len(self._buffer) >= self.BUFFER_SIZE
-            or (datetime.utcnow() - self._last_flush).seconds >= self.FLUSH_INTERVAL_SECONDS
+            or (datetime.now(timezone.utc) - self._last_flush).seconds >= self.FLUSH_INTERVAL_SECONDS
             or self._is_high_priority(event)
         )
 
@@ -283,7 +283,7 @@ class AuditService:
 
             events = list(self._buffer)
             self._buffer.clear()
-            self._last_flush = datetime.utcnow()
+            self._last_flush = datetime.now(timezone.utc)
 
         if self.db_pool:
             await self._write_to_db(events)
@@ -355,7 +355,7 @@ class AuditService:
             event_id=str(uuid4()),
             event_type=AuditEventType.QUERY_COMPLETED if success else AuditEventType.QUERY_FAILED,
             action=AuditAction.EXECUTE,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             user_id=user_id,
             session_id=conversation_id,
             resource_type="conversation",
@@ -393,7 +393,7 @@ class AuditService:
             event_id=str(uuid4()),
             event_type=event_type,
             action=AuditAction.LOGIN if "login" in event_type.value else AuditAction.LOGOUT,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             user_id=user_id,
             resource_type="auth",
             success=success,
@@ -425,7 +425,7 @@ class AuditService:
             event_id=str(uuid4()),
             event_type=event_type,
             action=action,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             user_id=user_id,
             session_id=session_id,
             resource_type="proposal",
@@ -464,7 +464,7 @@ class AuditService:
             event_id=str(uuid4()),
             event_type=event_type_map.get(search_type, AuditEventType.DOCUMENT_SEARCH),
             action=AuditAction.READ,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             user_id=user_id,
             resource_type="search",
             duration_ms=duration_ms,
@@ -495,7 +495,7 @@ class AuditService:
             event_id=str(uuid4()),
             event_type=event_type,
             action=action,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             user_id=admin_user_id,
             resource_type="admin",
             resource_id=target_user_id,
@@ -609,7 +609,7 @@ class AuditService:
         if not self.db_pool:
             return {}
 
-        start_time = datetime.utcnow() - timedelta(days=days)
+        start_time = datetime.now(timezone.utc) - timedelta(days=days)
 
         query = """
             SELECT
@@ -662,7 +662,7 @@ class AuditService:
 
         return await self.get_audit_trail(
             event_types=security_types,
-            start_time=datetime.utcnow() - timedelta(hours=hours),
+            start_time=datetime.now(timezone.utc) - timedelta(hours=hours),
             limit=limit,
         )
 
@@ -676,7 +676,7 @@ class AuditService:
             return 0
 
         days = retention_days or self.RETENTION_DAYS
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
 
         query = "DELETE FROM audit_events WHERE timestamp < %s"
 
@@ -694,7 +694,7 @@ class AuditService:
         if not self.db_pool:
             return {}
 
-        start_time = datetime.utcnow() - timedelta(days=days)
+        start_time = datetime.now(timezone.utc) - timedelta(days=days)
 
         stats_query = """
             SELECT

@@ -12,7 +12,7 @@ from bs4 import BeautifulSoup
 import requests
 from urllib.parse import urljoin, urlparse
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from ..core.config import settings
 
@@ -140,7 +140,7 @@ class DocumentProcessor:
             file_hash = hashlib.sha256(f.read()).hexdigest()
         
         metadata["file_hash"] = file_hash
-        metadata["extraction_date"] = datetime.utcnow().isoformat()
+        metadata["extraction_date"] = datetime.now(timezone.utc).isoformat()
         metadata["content_length"] = len(text_content)
         
         logger.info(f"✅ PDF processed: {metadata['page_count']} pages, {len(text_content)} chars")
@@ -169,7 +169,7 @@ class DocumentProcessor:
             "file_size": Path(file_path).stat().st_size,
             "file_hash": file_hash,
             "extraction_method": "direct_read",
-            "extraction_date": datetime.utcnow().isoformat(),
+            "extraction_date": datetime.now(timezone.utc).isoformat(),
             "content_length": len(text_content)
         }
         
@@ -206,7 +206,7 @@ class DocumentProcessor:
             "file_size": Path(file_path).stat().st_size,
             "file_hash": file_hash,
             "extraction_method": "beautifulsoup",
-            "extraction_date": datetime.utcnow().isoformat(),
+            "extraction_date": datetime.now(timezone.utc).isoformat(),
             "content_length": len(text_content),
             "html_title": title_text
         }
@@ -224,7 +224,7 @@ class DocumentProcessor:
             "source_url": url,
             "extraction_method": "web_scraping",
             "document_type": document_type or "web",
-            "extraction_date": datetime.utcnow().isoformat()
+            "extraction_date": datetime.now(timezone.utc).isoformat()
         }
         
         try:

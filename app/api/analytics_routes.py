@@ -6,7 +6,7 @@ performance, and quality metrics.
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, List, Optional
 from fastapi import APIRouter, Query, HTTPException
 from pydantic import BaseModel, Field
@@ -127,7 +127,7 @@ async def get_analytics_overview(
             raise HTTPException(status_code=503, detail="Database unavailable")
 
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        start_date = datetime.utcnow() - timedelta(days=days)
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
 
         # Usage metrics
         usage = await _get_usage_metrics(cursor, start_date, days)
@@ -150,14 +150,14 @@ async def get_analytics_overview(
             "period": {
                 "days": days,
                 "start_date": start_date.isoformat(),
-                "end_date": datetime.utcnow().isoformat()
+                "end_date": datetime.now(timezone.utc).isoformat()
             },
             "usage": usage,
             "performance": performance,
             "content": content,
             "proposals": proposals,
             "feedback": feedback,
-            "generated_at": datetime.utcnow().isoformat()
+            "generated_at": datetime.now(timezone.utc).isoformat()
         }
 
     except HTTPException:
@@ -198,7 +198,7 @@ async def get_tool_analytics(
         "slow_tools": slow_tools,
         "popular_combinations": combinations.get("combinations", []),
         "current_session": session_metrics,
-        "generated_at": datetime.utcnow().isoformat()
+        "generated_at": datetime.now(timezone.utc).isoformat()
     }
 
 
@@ -220,7 +220,7 @@ async def get_metric_trends(
             raise HTTPException(status_code=503, detail="Database unavailable")
 
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        start_date = datetime.utcnow() - timedelta(days=days)
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
 
         # Map granularity to PostgreSQL date_trunc
         granularity_map = {
@@ -298,7 +298,7 @@ async def get_metric_trends(
             "granularity": granularity,
             "days": days,
             "data": data,
-            "generated_at": datetime.utcnow().isoformat()
+            "generated_at": datetime.now(timezone.utc).isoformat()
         }
 
     except HTTPException:
@@ -323,7 +323,7 @@ async def get_popular_queries(
             raise HTTPException(status_code=503, detail="Database unavailable")
 
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        start_date = datetime.utcnow() - timedelta(days=days)
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
 
         cursor.execute("""
             SELECT
@@ -344,7 +344,7 @@ async def get_popular_queries(
         return {
             "period_days": days,
             "popular_queries": [dict(r) for r in results],
-            "generated_at": datetime.utcnow().isoformat()
+            "generated_at": datetime.now(timezone.utc).isoformat()
         }
 
     except Exception as e:
@@ -364,7 +364,7 @@ async def analytics_health() -> Dict[str, Any]:
         "buffer_size": len(analytics_service.buffer),
         "last_flush": analytics_service.last_flush.isoformat(),
         "session_tools_tracked": len(analytics_service.session_metrics),
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
 

@@ -11,7 +11,7 @@ Provides endpoints for:
 import asyncio
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect, status
@@ -291,7 +291,7 @@ async def websocket_endpoint(
             elif event_type == "operation":
                 # Apply edit operation
                 operation = EditOperation(
-                    operation_id=payload.get("operation_id", str(datetime.utcnow().timestamp())),
+                    operation_id=payload.get("operation_id", str(datetime.now(timezone.utc).timestamp())),
                     section_id=payload["section_id"],
                     operation_type=OperationType(payload["operation_type"]),
                     position=payload["position"],
@@ -488,7 +488,7 @@ async def apply_operation(
     service = get_collaboration_service()
 
     operation = EditOperation(
-        operation_id=str(datetime.utcnow().timestamp()),
+        operation_id=str(datetime.now(timezone.utc).timestamp()),
         section_id=section_id,
         operation_type=OperationType(request.operation_type),
         position=request.position,
@@ -513,5 +513,5 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "collaboration",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }

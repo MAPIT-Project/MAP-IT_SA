@@ -13,7 +13,7 @@ import json
 import time
 import logging
 from typing import List, Dict, Any, Optional, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 from dataclasses import dataclass, asdict, field
 import hashlib
 import re
@@ -182,7 +182,7 @@ class EnhancedCallSearchService:
             if include_closed:
                 # Normalize status using deadline: if deadline is past, mark as Closed
                 try:
-                    now = datetime.utcnow()
+                    now = datetime.now(timezone.utc)
                     for r in processed_results:
                         if getattr(r, 'deadline', None) and isinstance(r.deadline, str) and r.deadline not in ('Not specified', ''):
                             try:

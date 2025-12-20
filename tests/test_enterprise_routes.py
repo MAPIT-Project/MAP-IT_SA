@@ -15,7 +15,7 @@ import json
 import os
 import sys
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi import FastAPI
@@ -92,7 +92,7 @@ class TestAnalyticsRoutesHealth:
         mock = MagicMock()
         mock.enabled = True
         mock.buffer = []
-        mock.last_flush = datetime.utcnow()
+        mock.last_flush = datetime.now(timezone.utc)
         mock.session_metrics = {}
         return mock
 
@@ -124,7 +124,7 @@ class TestAnalyticsRoutesHealth:
         mock_service = MagicMock()
         mock_service.enabled = False
         mock_service.buffer = []
-        mock_service.last_flush = datetime.utcnow()
+        mock_service.last_flush = datetime.now(timezone.utc)
         mock_service.session_metrics = {}
 
         app = FastAPI()
@@ -356,8 +356,8 @@ class TestAlertRoutesCRUD:
             "search_type": "calls",
             "parameters": {"keywords": "test"},
             "alert_config": {"enabled": False},
-            "created_at": datetime.utcnow().isoformat(),
-            "updated_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
             "last_run": None,
             "is_active": True,
             "run_count": 0,
@@ -738,7 +738,7 @@ class TestCollaborationRoutesSession:
         mock_lock.to_dict.return_value = {
             "section_id": "section-1",
             "locked_by": "user-456",
-            "locked_at": datetime.utcnow().isoformat(),
+            "locked_at": datetime.now(timezone.utc).isoformat(),
         }
         mock_collaboration_service.lock_section = AsyncMock(return_value=mock_lock)
 
@@ -1004,7 +1004,7 @@ class TestAuditRoutesQueries:
                     "event_id": "event-123",
                     "event_type": "query.completed",
                     "action": "execute",
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                     "user_id": "user-456",
                     "success": True,
                 }
@@ -1274,7 +1274,7 @@ class TestEnterpriseRoutesIntegration:
         mock_analytics = MagicMock()
         mock_analytics.enabled = True
         mock_analytics.buffer = []
-        mock_analytics.last_flush = datetime.utcnow()
+        mock_analytics.last_flush = datetime.now(timezone.utc)
         mock_analytics.session_metrics = {}
 
         mock_audit = MagicMock()

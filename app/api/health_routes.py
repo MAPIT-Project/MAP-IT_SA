@@ -12,7 +12,7 @@ Supports Kubernetes readiness/liveness probes.
 """
 
 from fastapi import APIRouter, Response
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 import asyncio
 import logging
@@ -396,7 +396,7 @@ async def health_check() -> Dict[str, Any]:
     return {
         "status": overall_status,
         "services": services,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "version": settings.app_version,
         "environment": "docker" if settings.docker_env else "local"
     }
@@ -437,7 +437,7 @@ async def readiness_check(response: Response) -> Dict[str, Any]:
     return {
         "ready": ready,
         "checks": checks,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
 
@@ -453,7 +453,7 @@ async def liveness_check() -> Dict[str, Any]:
     """
     return {
         "alive": True,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
 
@@ -498,7 +498,7 @@ async def dependencies_status() -> Dict[str, Any]:
             "vector_search_enabled": settings.vector_search_enabled,
             "ai_provider": settings.default_ai_provider
         },
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
 
@@ -538,6 +538,6 @@ async def health_metrics() -> Dict[str, Any]:
             }
 
     metrics["mapit_health_status"] = overall_min
-    metrics["timestamp"] = datetime.utcnow().isoformat()
+    metrics["timestamp"] = datetime.now(timezone.utc).isoformat()
 
     return metrics

@@ -7,7 +7,7 @@ Generates structured proposal templates based on call requirements.
 import logging
 from typing import Dict, Any, List, Optional
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +53,7 @@ class ProposalTemplateService:
         template = {
             "call_id": call_id,
             "proposal_type": proposal_type,
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
             "structure": base_template,
             "requirements": requirements,
             "evaluation_criteria": criteria_mapping,

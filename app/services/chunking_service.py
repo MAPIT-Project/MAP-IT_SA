@@ -7,7 +7,7 @@ from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 import tiktoken
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 import hashlib
 
 from ..core.config import settings
@@ -516,7 +516,7 @@ class TextChunker:
                 'chunk_size': self.config.chunk_size,
                 'chunk_overlap': self.config.chunk_overlap
             },
-            'created_at': datetime.utcnow().isoformat()
+            'created_at': datetime.now(timezone.utc).isoformat()
         })
         
         return chunk
