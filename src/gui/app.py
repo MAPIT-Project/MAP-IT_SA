@@ -12,8 +12,14 @@ from pathlib import Path
 
 # Environment variables and constants
 DGRAPH_URL = os.environ.get('DGRAPH_URL', 'localhost:9080')
-BASE_INFO_DIR = os.environ.get('MAPIT_BASE_INFO_DIR', '/home/mdumont/CORDIS/Small')
-API_KEY = os.environ.get('MAPIT_LLM_KEY', 'QfQwLoMaW1z2C56UNHSv8pX5Bqq9Oh9V')
+BASE_INFO_DIR = os.environ.get('MAPIT_BASE_INFO_DIR')
+API_KEY = os.environ.get('MAPIT_LLM_KEY')
+
+# Validate required environment variables
+if not BASE_INFO_DIR:
+    raise ValueError("MAPIT_BASE_INFO_DIR environment variable is required")
+if not API_KEY:
+    raise ValueError("MAPIT_LLM_KEY environment variable is required")
  
 PORT = os.environ.get('MAPIT_PORT', '16000')
 HOST = os.environ.get('MAPIT_HOST', '0.0.0.0')

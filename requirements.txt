@@ -1,15 +1,31 @@
-#requirements to load (with pip). Make sure that the environment is set correctly: python -m venv . (when in the root of the project; so not here)
-owlready2
-#NLP
-#spacy
-#predicate processing
-#crosslingual-coreference
-#logics
-#graph
-pydgraph
-pandas
-xmltodict
-pybars3
-sentence_transformers
-mistralai
-pdfminer-six
+# MAPIT AI Requirements
+# Install with: pip install -r requirements.txt
+# Ensure venv is activated: python -m venv venv && source venv/bin/activate
+
+# Web Framework
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+pydantic>=2.5.0
+python-dotenv>=1.0.0
+
+# Database
+psycopg2-binary>=2.9.9
+pydgraph>=21.3.0
+
+# AI/ML
+sentence_transformers>=2.2.0
+mistralai>=0.0.12
+
+# Data Processing
+pandas>=2.0.0
+xmltodict>=0.13.0
+pybars3>=0.9.7
+pdfminer-six>=20221105
+
+# Graph/Ontology
+owlready2>=0.46
+
+# Testing (optional)
+pytest>=7.4.0
+pytest-asyncio>=0.23.0
+httpx>=0.26.0

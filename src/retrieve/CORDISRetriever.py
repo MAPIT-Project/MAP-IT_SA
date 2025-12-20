@@ -267,9 +267,15 @@ if __name__ == "__main__":
     if 'DGRAPH_URL' in os.environ:
         dgraph_url = os.environ['DGRAPH_URL']
         
-    #TODO temporaly key by marco (wil expire soon). We need a MAPIT key
-    api_key = os.environ.get('MAPIT_LLM_KEY', "QfQwLoMaW1z2C56UNHSv8pX5Bqq9Oh9V")        
-    base_info_dir = os.environ.get('MAPIT_BASE_INFO_DIR', "/home/mdumont/CORDIS/pdfs")
+    api_key = os.environ.get('MAPIT_LLM_KEY')
+    if not api_key:
+        logging.error("MAPIT_LLM_KEY environment variable is required but not set")
+        raise ValueError("MAPIT_LLM_KEY environment variable is required")
+
+    base_info_dir = os.environ.get('MAPIT_BASE_INFO_DIR')
+    if not base_info_dir:
+        logging.error("MAPIT_BASE_INFO_DIR environment variable is required but not set")
+        raise ValueError("MAPIT_BASE_INFO_DIR environment variable is required")
         
          
     logging.info(f"Using {dgraph_url} as DGRAPH_URL environment variable, specify if needed!")
