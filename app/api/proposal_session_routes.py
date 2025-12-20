@@ -12,7 +12,7 @@ This is the V4 API - uses ProposalAwareAgent with proposal context injection.
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Query
@@ -745,5 +745,5 @@ async def health_check():
         "architecture": "proposal_aware_v4",
         "components": components,
         "errors": errors if errors else None,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }

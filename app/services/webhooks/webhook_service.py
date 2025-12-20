@@ -16,7 +16,7 @@ import hashlib
 import json
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, List, Callable
 from dataclasses import dataclass, field
 from enum import Enum
@@ -388,7 +388,7 @@ class WebhookService:
 
                 if response.status_code < 400:
                     delivery.status = "success"
-                    delivery.completed_at = datetime.utcnow()
+                    delivery.completed_at = datetime.now(timezone.utc)
                     logger.info(
                         f"Webhook delivered: {delivery.id} -> {url} "
                         f"(attempt {attempt}, status {response.status_code})"
@@ -415,11 +415,11 @@ class WebhookService:
             # Calculate next retry delay with exponential backoff
             if attempt < max_retries:
                 delay = retry_delay * (2 ** (attempt - 1))
-                delivery.next_retry_at = datetime.utcnow() + timedelta(seconds=delay)
+                delivery.next_retry_at = datetime.now(timezone.utc) + timedelta(seconds=delay)
                 await asyncio.sleep(delay)
 
         delivery.status = "failed"
-        delivery.completed_at = datetime.utcnow()
+        delivery.completed_at = datetime.now(timezone.utc)
         logger.error(f"Webhook failed after {max_retries} attempts: {delivery.id} -> {url}")
         return False
 
@@ -517,7 +517,7 @@ class WebhookService:
             id=delivery.event_id,
             event_type=WebhookEventType(delivery.url.split("/")[-1]),  # fallback
             payload={},  # Would need to store original payload
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc)
         )
 
         return await self.send_notification(webhook, event)
@@ -532,7 +532,7 @@ class WebhookService:
         days: int = 7
     ) -> Dict[str, Any]:
         """Get webhook delivery statistics."""
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         deliveries = [
             d for d in self._deliveries
             if d.created_at > cutoff and (not webhook_id or d.webhook_id == webhook_id)
@@ -608,7 +608,7 @@ async def emit_proposal_section_completed(
             "session_id": session_id,
             "section_id": section_id,
             "section_title": section_title,
-            "completed_at": datetime.utcnow().isoformat()
+            "completed_at": datetime.now(timezone.utc).isoformat()
         },
         user_id=user_id
     )
@@ -632,7 +632,7 @@ async def emit_batch_completed(
             "failed_operations": failed,
             "processing_time_ms": processing_time_ms,
             "status": "completed" if failed == 0 else "partial",
-            "completed_at": datetime.utcnow().isoformat()
+            "completed_at": datetime.now(timezone.utc).isoformat()
         },
         user_id=user_id
     )
@@ -653,7 +653,7 @@ async def emit_call_deadline_approaching(
             "call_title": call_title,
             "deadline": deadline.isoformat(),
             "days_remaining": days_remaining,
-            "alert_sent_at": datetime.utcnow().isoformat()
+            "alert_sent_at": datetime.now(timezone.utc).isoformat()
         },
         user_id=user_id
     )
@@ -674,7 +674,7 @@ async def emit_saved_search_results(
             "search_name": search_name,
             "new_results_count": new_results_count,
             "results": results[:10],  # Limit to first 10
-            "found_at": datetime.utcnow().isoformat()
+            "found_at": datetime.now(timezone.utc).isoformat()
         },
         user_id=user_id
     )

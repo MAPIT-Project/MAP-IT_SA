@@ -8,7 +8,7 @@ Provides endpoints for:
 - Viewing user statistics
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -155,7 +155,7 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "alerts",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 

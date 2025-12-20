@@ -7,7 +7,7 @@ import uuid
 from typing import List, Dict, Any, Optional, Tuple
 from pathlib import Path
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
@@ -119,7 +119,7 @@ class DocumentIngestionService:
                 **doc_metadata,
                 'total_chunks': len(inserted_chunks),
                 'chunking_stats': self.chunker.get_chunking_stats(chunks),
-                'ingestion_completed_at': datetime.utcnow().isoformat()
+                'ingestion_completed_at': datetime.now(timezone.utc).isoformat()
             }
             
             self.supabase.update_document_status(document_id, 'active', final_metadata)
@@ -143,7 +143,7 @@ class DocumentIngestionService:
                 self.supabase.update_document_status(
                     document_id, 
                     'failed', 
-                    {'error': str(e), 'failed_at': datetime.utcnow().isoformat()}
+                    {'error': str(e), 'failed_at': datetime.now(timezone.utc).isoformat()}
                 )
             
             return {
@@ -321,7 +321,7 @@ class DocumentIngestionService:
                 **doc_metadata,
                 'total_chunks': len(inserted_chunks),
                 'chunking_stats': self.chunker.get_chunking_stats(chunks),
-                'ingestion_completed_at': datetime.utcnow().isoformat()
+                'ingestion_completed_at': datetime.now(timezone.utc).isoformat()
             }
             
             self.supabase.update_document_status(document_id, 'active', final_metadata)
@@ -343,7 +343,7 @@ class DocumentIngestionService:
             self.supabase.update_document_status(
                 document_id, 
                 'failed', 
-                {'error': str(e), 'failed_at': datetime.utcnow().isoformat()}
+                {'error': str(e), 'failed_at': datetime.now(timezone.utc).isoformat()}
             )
             
             raise e

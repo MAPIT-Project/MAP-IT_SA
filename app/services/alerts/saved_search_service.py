@@ -17,7 +17,7 @@ import hashlib
 import json
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
@@ -210,7 +210,7 @@ class SavedSearchService:
         Returns:
             Created SavedSearch
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         search = SavedSearch(
             id=str(uuid4()),
             user_id=user_id,
@@ -302,7 +302,7 @@ class SavedSearchService:
         if is_active is not None:
             search.is_active = is_active
 
-        search.updated_at = datetime.utcnow()
+        search.updated_at = datetime.now(timezone.utc)
 
         await self._update_in_db(search)
         logger.info(f"Updated saved search: {search_id}")
@@ -374,7 +374,7 @@ class SavedSearchService:
             new_count=len(new_results),
             result_hash=result_hash,
             execution_time_ms=execution_time,
-            executed_at=datetime.utcnow(),
+            executed_at=datetime.now(timezone.utc),
         )
 
         # Update search metadata
@@ -501,7 +501,7 @@ class SavedSearchService:
                 cur.execute(query, (
                     result.executed_at,
                     result.result_hash,
-                    datetime.utcnow(),
+                    datetime.now(timezone.utc),
                     search.id,
                 ))
                 conn.commit()
@@ -523,7 +523,7 @@ class SavedSearchService:
         if not self.db_pool:
             return []
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         # Build query based on frequency
         query = """
@@ -599,7 +599,7 @@ class SavedSearchService:
             "searches_processed": processed,
             "alerts_sent": alerts_sent,
             "errors": errors,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
     async def _send_alert(self, search: SavedSearch, result: SearchResult):

@@ -7,7 +7,7 @@ for API responses.
 """
 
 from typing import Dict, Any, Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 logger = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ class MapItError(Exception):
         self.details = details or {}
         self.recoverable = recoverable
         self.http_status = http_status
-        self.timestamp = datetime.utcnow().isoformat()
+        self.timestamp = datetime.now(timezone.utc).isoformat()
         super().__init__(message)
 
     def to_dict(self) -> Dict[str, Any]:

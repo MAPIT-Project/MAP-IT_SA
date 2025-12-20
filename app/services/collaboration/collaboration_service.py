@@ -20,7 +20,7 @@ import hashlib
 import json
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Set
 from uuid import uuid4
@@ -100,7 +100,7 @@ class SectionLock:
             "locked_by_name": self.locked_by_name,
             "locked_at": self.locked_at.isoformat(),
             "expires_at": self.expires_at.isoformat(),
-            "is_expired": datetime.utcnow() > self.expires_at,
+            "is_expired": datetime.now(timezone.utc) > self.expires_at,
         }
 
 
@@ -314,14 +314,14 @@ class CollaborationService:
                 data = self.redis.hget(key, user_id)
                 if data:
                     user_dict = json.loads(data)
-                    user_dict["last_activity"] = datetime.utcnow().isoformat()
+                    user_dict["last_activity"] = datetime.now(timezone.utc).isoformat()
                     self.redis.hset(key, user_id, json.dumps(user_dict))
             except Exception as e:
                 logger.warning(f"Redis error updating heartbeat: {e}")
         else:
             session = self._local_sessions.get(session_id, {}).get(user_id)
             if session:
-                session.last_activity = datetime.utcnow()
+                session.last_activity = datetime.now(timezone.utc)
 
     # =========================================================================
     # Cursor Tracking
@@ -353,7 +353,7 @@ class CollaborationService:
                     user_dict = json.loads(data)
                     user_dict["cursor"] = cursor.to_dict()
                     user_dict["active_section"] = cursor.section_id
-                    user_dict["last_activity"] = datetime.utcnow().isoformat()
+                    user_dict["last_activity"] = datetime.now(timezone.utc).isoformat()
                     self.redis.hset(key, user_id, json.dumps(user_dict))
             except Exception as e:
                 logger.warning(f"Redis error updating cursor: {e}")
@@ -362,7 +362,7 @@ class CollaborationService:
             if session:
                 session.cursor = cursor
                 session.active_section = cursor.section_id
-                session.last_activity = datetime.utcnow()
+                session.last_activity = datetime.now(timezone.utc)
 
         # Broadcast cursor update
         await self._broadcast(
@@ -403,7 +403,7 @@ class CollaborationService:
             SectionLock if acquired, None if already locked
         """
         lock_key = f"collab:lock:{session_id}:{section_id}"
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         expires_at = now + timedelta(seconds=self.LOCK_EXPIRY_SECONDS)
 
         lock = SectionLock(
@@ -539,7 +539,7 @@ class CollaborationService:
                     lock_data = json.loads(existing)
                     if lock_data["locked_by"] == user_id:
                         lock_data["expires_at"] = (
-                            datetime.utcnow() + timedelta(seconds=self.LOCK_EXPIRY_SECONDS)
+                            datetime.now(timezone.utc) + timedelta(seconds=self.LOCK_EXPIRY_SECONDS)
                         ).isoformat()
                         self.redis.setex(
                             lock_key,
@@ -572,13 +572,13 @@ class CollaborationService:
                             expires_at=datetime.fromisoformat(lock_dict["expires_at"]),
                         )
                         # Only include non-expired locks
-                        if lock.expires_at > datetime.utcnow():
+                        if lock.expires_at > datetime.now(timezone.utc):
                             locks.append(lock)
             except Exception as e:
                 logger.warning(f"Redis error getting locks: {e}")
         else:
             session_locks = self._local_locks.get(session_id, {})
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             locks = [l for l in session_locks.values() if l.expires_at > now]
 
         return locks
@@ -881,7 +881,7 @@ class CollaborationService:
 
     async def cleanup_inactive_sessions(self):
         """Cleanup inactive collaborator sessions."""
-        timeout = datetime.utcnow() - timedelta(seconds=self.INACTIVITY_TIMEOUT_SECONDS)
+        timeout = datetime.now(timezone.utc) - timedelta(seconds=self.INACTIVITY_TIMEOUT_SECONDS)
 
         for session_id, collaborators in list(self._local_sessions.items()):
             for user_id, session in list(collaborators.items()):

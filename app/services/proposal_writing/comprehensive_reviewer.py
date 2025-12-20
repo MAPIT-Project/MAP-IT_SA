@@ -11,7 +11,7 @@ import json
 import asyncio
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field, asdict
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 import google.generativeai as genai
@@ -176,7 +176,7 @@ class ComprehensiveReviewer:
                 "sections_reviewed": list(proposal.keys()),
                 "total_findings": len(all_findings),
                 "duration_ms": round(duration_ms),
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             }
         }
 

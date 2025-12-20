@@ -11,7 +11,7 @@ import asyncio
 import logging
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Dict, List, Optional, Set
 
@@ -191,7 +191,7 @@ class ServiceAvailabilityChecker:
         async with self._lock:
             # Return cached if still valid
             if not force_refresh and self._cache:
-                age = datetime.utcnow() - self._cache.checked_at
+                age = datetime.now(timezone.utc) - self._cache.checked_at
                 if age < self.cache_ttl:
                     return self._cache
 
@@ -219,7 +219,7 @@ class ServiceAvailabilityChecker:
 
             self._cache = ServiceAvailability(
                 services=services,
-                checked_at=datetime.utcnow()
+                checked_at=datetime.now(timezone.utc)
             )
 
             return self._cache
@@ -250,7 +250,7 @@ class ServiceAvailabilityChecker:
                 availability.services.get(svc, ServiceStatus(
                     service=svc,
                     status=AvailabilityStatus.UNKNOWN,
-                    last_check=datetime.utcnow()
+                    last_check=datetime.now(timezone.utc)
                 )).is_available
                 for svc in required_services
             )
@@ -268,7 +268,7 @@ class ServiceAvailabilityChecker:
                     availability.services.get(svc, ServiceStatus(
                         service=svc,
                         status=AvailabilityStatus.UNKNOWN,
-                        last_check=datetime.utcnow()
+                        last_check=datetime.now(timezone.utc)
                     )).is_available
                     for svc in essential_services
                 )
@@ -325,7 +325,7 @@ class ServiceAvailabilityChecker:
                 return ServiceStatus(
                     service=ServiceType.POSTGRES,
                     status=AvailabilityStatus.UNAVAILABLE,
-                    last_check=datetime.utcnow(),
+                    last_check=datetime.now(timezone.utc),
                     error_message="Not configured"
                 )
 
@@ -341,7 +341,7 @@ class ServiceAvailabilityChecker:
             return ServiceStatus(
                 service=ServiceType.POSTGRES,
                 status=AvailabilityStatus.AVAILABLE,
-                last_check=datetime.utcnow(),
+                last_check=datetime.now(timezone.utc),
                 latency_ms=latency
             )
 
@@ -350,7 +350,7 @@ class ServiceAvailabilityChecker:
             return ServiceStatus(
                 service=ServiceType.POSTGRES,
                 status=AvailabilityStatus.UNAVAILABLE,
-                last_check=datetime.utcnow(),
+                last_check=datetime.now(timezone.utc),
                 latency_ms=latency,
                 error_message=str(e)
             )
@@ -367,7 +367,7 @@ class ServiceAvailabilityChecker:
                 return ServiceStatus(
                     service=ServiceType.NEO4J,
                     status=AvailabilityStatus.AVAILABLE,
-                    last_check=datetime.utcnow(),
+                    last_check=datetime.now(timezone.utc),
                     latency_ms=latency
                 )
             else:
@@ -375,7 +375,7 @@ class ServiceAvailabilityChecker:
                 return ServiceStatus(
                     service=ServiceType.NEO4J,
                     status=AvailabilityStatus.UNAVAILABLE,
-                    last_check=datetime.utcnow(),
+                    last_check=datetime.now(timezone.utc),
                     latency_ms=latency,
                     error_message="Connection test failed"
                 )
@@ -385,7 +385,7 @@ class ServiceAvailabilityChecker:
             return ServiceStatus(
                 service=ServiceType.NEO4J,
                 status=AvailabilityStatus.UNAVAILABLE,
-                last_check=datetime.utcnow(),
+                last_check=datetime.now(timezone.utc),
                 latency_ms=latency,
                 error_message=str(e)
             )
@@ -405,7 +405,7 @@ class ServiceAvailabilityChecker:
             return ServiceStatus(
                 service=ServiceType.REDIS,
                 status=AvailabilityStatus.AVAILABLE,
-                last_check=datetime.utcnow(),
+                last_check=datetime.now(timezone.utc),
                 latency_ms=latency
             )
 
@@ -414,7 +414,7 @@ class ServiceAvailabilityChecker:
             return ServiceStatus(
                 service=ServiceType.REDIS,
                 status=AvailabilityStatus.DEGRADED,  # Redis is non-critical
-                last_check=datetime.utcnow(),
+                last_check=datetime.now(timezone.utc),
                 latency_ms=latency,
                 error_message=str(e)
             )
@@ -429,7 +429,7 @@ class ServiceAvailabilityChecker:
                 return ServiceStatus(
                     service=ServiceType.EMBEDDINGS,
                     status=AvailabilityStatus.DEGRADED,
-                    last_check=datetime.utcnow(),
+                    last_check=datetime.now(timezone.utc),
                     error_message="Not configured"
                 )
 
@@ -441,7 +441,7 @@ class ServiceAvailabilityChecker:
                 return ServiceStatus(
                     service=ServiceType.EMBEDDINGS,
                     status=AvailabilityStatus.AVAILABLE,
-                    last_check=datetime.utcnow(),
+                    last_check=datetime.now(timezone.utc),
                     latency_ms=latency
                 )
             else:
@@ -449,7 +449,7 @@ class ServiceAvailabilityChecker:
                 return ServiceStatus(
                     service=ServiceType.EMBEDDINGS,
                     status=AvailabilityStatus.DEGRADED,
-                    last_check=datetime.utcnow(),
+                    last_check=datetime.now(timezone.utc),
                     latency_ms=latency,
                     error_message="Test generation failed"
                 )
@@ -459,7 +459,7 @@ class ServiceAvailabilityChecker:
             return ServiceStatus(
                 service=ServiceType.EMBEDDINGS,
                 status=AvailabilityStatus.DEGRADED,  # Embeddings are non-critical
-                last_check=datetime.utcnow(),
+                last_check=datetime.now(timezone.utc),
                 latency_ms=latency,
                 error_message=str(e)
             )
@@ -474,7 +474,7 @@ class ServiceAvailabilityChecker:
                 return ServiceStatus(
                     service=ServiceType.GEMINI,
                     status=AvailabilityStatus.UNAVAILABLE,
-                    last_check=datetime.utcnow(),
+                    last_check=datetime.now(timezone.utc),
                     error_message="Not configured"
                 )
 
@@ -486,7 +486,7 @@ class ServiceAvailabilityChecker:
             return ServiceStatus(
                 service=ServiceType.GEMINI,
                 status=AvailabilityStatus.AVAILABLE,
-                last_check=datetime.utcnow(),
+                last_check=datetime.now(timezone.utc),
                 latency_ms=latency
             )
 
@@ -495,7 +495,7 @@ class ServiceAvailabilityChecker:
             return ServiceStatus(
                 service=ServiceType.GEMINI,
                 status=AvailabilityStatus.UNAVAILABLE,
-                last_check=datetime.utcnow(),
+                last_check=datetime.now(timezone.utc),
                 latency_ms=latency,
                 error_message=str(e)
             )

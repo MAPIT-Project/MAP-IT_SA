@@ -8,7 +8,7 @@ Provides endpoints for:
 - Audit statistics
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, Query, status
@@ -101,9 +101,9 @@ async def get_audit_trail(
 
     # Default time range if not specified
     if not start_time:
-        start_time = datetime.utcnow() - timedelta(days=days)
+        start_time = datetime.now(timezone.utc) - timedelta(days=days)
     if not end_time:
-        end_time = datetime.utcnow()
+        end_time = datetime.now(timezone.utc)
 
     # Parse event types
     event_types = None
@@ -201,7 +201,7 @@ async def get_user_events(
 
     events = await service.get_audit_trail(
         user_id=user_id,
-        start_time=datetime.utcnow() - timedelta(days=days),
+        start_time=datetime.now(timezone.utc) - timedelta(days=days),
         limit=limit,
         offset=offset,
     )
@@ -307,7 +307,7 @@ async def cleanup_old_events(
         "success": True,
         "deleted_count": deleted_count,
         "retention_days": retention_days,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -323,5 +323,5 @@ async def health_check():
         "status": "healthy",
         "service": "audit",
         "buffer_size": len(service._buffer),
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
