@@ -1,47 +1,51 @@
 # SHARED_TASK_NOTES.md
 
-## Current Status: ALL TESTS PASSING (929 tests)
+## Current Status: ALL TESTS PASSING (949 tests total)
 
-**Last Updated:** December 21, 2025 (Iteration 1)
+**Last Updated:** December 21, 2025 (Iteration 2)
 
 ---
 
-## What Was Done This Iteration
+## What Was Done This Iteration (Iteration 2)
 
-**Integrated ResponseQualityAnalyzer into Production Pipeline:**
+**Added Live AI Response Quality Testing:**
 
-### 1. ToolAwareAgent Quality Analysis Integration
-- **Location:** `app/services/agents/tool_aware_agent.py`
-- **Changes:**
-  - Added `_init_quality_analyzer()` method to initialize ResponseQualityAnalyzer
-  - Added `_analyze_response_quality()` method to analyze response quality
-  - Added `enable_quality_analysis` parameter to `__init__` (default: True)
-  - Modified `process_query()` to include quality_analysis in returned dict
-  - Modified `process_query_streaming()` to include quality_analysis in results
-  - Added quality logging for monitoring (warns on deflections, logs scores)
-
-### 2. Conversation Manager Metadata Update
-- **Location:** `app/services/conversation/conversation_manager.py`
-- **Changes:**
-  - Added `quality_analysis` to response metadata (non-streaming)
-  - Added `quality_analysis` to streaming complete event metadata
-
-### 3. Quality Analysis Integration Tests
-- **Location:** `tests/test_tool_aware_agent.py`
-- **Tests Added:** 7 new tests
+### 1. Live Integration Test Suite
+- **Location:** `tests/test_ai_quality/test_live_response_quality.py`
+- **Tests Added:** 20 live tests that actually call the V3 API
 - **Coverage:**
-  - Agent has quality analyzer initialization
-  - Quality analyzer can be disabled
-  - `_analyze_response_quality` method exists and works
-  - Deflection detection works
-  - `process_query` includes quality_analysis in result
-  - Quality analysis handles tool results
+  - API health verification
+  - Simple FAQ quality testing
+  - Eligibility FAQ quality testing
+  - Call search quality testing
+  - Project search quality testing
+  - Budget benchmark quality testing
+  - Partner discovery quality testing
+  - Quality metadata validation
+  - Deflection detection
+  - Quality score threshold verification
+  - Response performance benchmarks
+  - Conversation context handling
+
+### 2. LiveAPIClient Implementation
+- Client class that calls V3 API and runs ResponseQualityAnalyzer
+- Automatic quality logging for production monitoring
+- Logs warnings for deflections and low quality scores
+- Performance timing included
+
+### 3. Quality Assertions
+- MIN_QUALITY_SCORE = 60 (relaxed for live tests)
+- MIN_RESPONSE_LENGTH = 100
+- Deflection detection with fail-fast
+- Content validation for query types
 
 ---
 
 ## Test Status
 
-**Tests: 929 passed, 2 skipped, 75 warnings** (up from 922 - added 7 new tests)
+**Unit/Integration Tests:** 929 passed, 2 skipped
+**Live AI Tests:** 20 passed (in ~105 seconds)
+**Total:** 949 tests passing
 
 ---
 
@@ -51,57 +55,43 @@ All containers healthy. API responding correctly.
 
 ---
 
-## Files Modified
+## Files Added/Modified
 
-**Modified:**
-- `app/services/agents/tool_aware_agent.py` - Added quality analysis integration
-- `app/services/conversation/conversation_manager.py` - Added quality_analysis to metadata
-- `tests/test_tool_aware_agent.py` - Added 7 new quality analysis tests
+**Added:**
+- `tests/test_ai_quality/test_live_response_quality.py` - 20 live API tests
 
 ---
 
-## Response Metadata Now Includes quality_analysis
+## Running Live Tests
 
-```json
-{
-  "response": "...",
-  "metadata": {
-    "intent_type": "agentic_v3",
-    "confidence": 0.8,
-    "tools_used": ["search_funding_calls_1_0"],
-    "iterations": 1,
-    "processing_time_ms": 1234,
-    "architecture": "simplified_v3",
-    "quality_analysis": {
-      "score": 85,
-      "category": "complete",
-      "confidence": 0.85,
-      "query_type": "call_info",
-      "missing_elements": [],
-      "deflection_phrases_found": [],
-      "recommendations": [],
-      "elements_found": ["call_id", "deadline", "budget", "type"],
-      "response_length": 456,
-      "timestamp": "2025-12-21T12:00:00Z"
-    }
-  }
-}
+```bash
+# Run all live tests (requires Docker containers running)
+pytest tests/test_ai_quality/test_live_response_quality.py -v
+
+# Run just health check
+pytest tests/test_ai_quality/test_live_response_quality.py::TestAPIHealth -v
+
+# Run specific quality test
+pytest tests/test_ai_quality/test_live_response_quality.py::TestLiveResponseQuality::test_simple_faq_quality -v
+
+# Skip live tests in CI
+pytest tests/test_ai_quality/test_live_response_quality.py -v -m "not live_ai"
 ```
 
 ---
 
 ## Next Steps (For Future Iterations)
 
-### Priority 1: Live AI Response Quality Testing (Recommended Next)
-- Create integration tests that actually call the AI
-- Test real tool responses against quality analyzer
-- Add quality thresholds to CI/CD
-- Monitor quality scores in production logs
+### Priority 1: Quality Score Alerting (Recommended Next)
+- Add quality score thresholds to CI/CD pipeline
+- Create dashboard for quality metrics over time
+- Add alerting for sustained low quality scores
+- Track quality trends per query type
 
-### Priority 2: Quality Score Alerting
-- Add quality score thresholds to fail tests
-- Add monitoring/alerting for low quality scores
-- Dashboard for quality metrics over time
+### Priority 2: Streaming Quality Testing
+- Add tests for streaming endpoint quality
+- Verify quality_analysis in streaming complete event
+- Test SSE event sequence with quality checks
 
 ### Priority 3: External Library Deprecations (Low Priority)
 - PyPDF2 is deprecated - consider migrating to `pypdf`
@@ -111,28 +101,22 @@ All containers healthy. API responding correctly.
 ### Priority 4: Documentation
 - Add OpenAPI descriptions for quality_analysis in response
 - Document quality thresholds and categories
+- Add quality testing guide
 
 ---
 
-## Key Usage
+## Key Files
 
-```python
-# In ToolAwareAgent - quality analysis is automatic
-from app.services.agents.tool_aware_agent import ToolAwareAgent
+```
+tests/test_ai_quality/
+├── test_response_quality.py          # 86 unit tests for ResponseQualityAnalyzer
+└── test_live_response_quality.py     # 20 live API quality tests
 
-agent = ToolAwareAgent()  # Quality analysis enabled by default
-result = await agent.process_query("What is Horizon Europe?", "", [])
+app/services/quality/
+└── response_quality_analyzer.py       # Core quality analyzer
 
-# Check quality in result
-if result.get('quality_analysis'):
-    qa = result['quality_analysis']
-    if qa['category'] == 'deflection':
-        logger.warning(f"Deflection detected: {qa['deflection_phrases_found']}")
-    elif qa['score'] < 70:
-        logger.warning(f"Low quality score: {qa['score']}")
-
-# Disable quality analysis if needed
-agent_no_qa = ToolAwareAgent(enable_quality_analysis=False)
+app/services/agents/
+└── tool_aware_agent.py                # Integrated quality analysis
 ```
 
 ---
@@ -140,18 +124,21 @@ agent_no_qa = ToolAwareAgent(enable_quality_analysis=False)
 ## Verification Commands
 
 ```bash
-# Run quality analysis tests
-pytest tests/test_tool_aware_agent.py::TestQualityAnalysisIntegration -v
-
-# Run AI quality tests
+# Run all quality tests (unit + live)
 pytest tests/test_ai_quality/ -v
 
-# Run all tests
-pytest tests/ --ignore=tests/test_embeddings.py --ignore=tests/test_embeddings_live.py --ignore=tests/test_live_rag.py
+# Run unit tests only
+pytest tests/test_ai_quality/test_response_quality.py -v
+
+# Run live tests only
+pytest tests/test_ai_quality/test_live_response_quality.py -v
+
+# Run all tests except live
+pytest tests/ --ignore=tests/test_embeddings.py --ignore=tests/test_embeddings_live.py --ignore=tests/test_live_rag.py --ignore=tests/test_ai_quality/test_live_response_quality.py
 
 # Check Docker status
 docker compose ps
 
 # Check API health
-curl -s http://localhost:8000/api/v3/conversation/health
+curl -s http://localhost:8000/api/v3/conversation/health | jq
 ```
