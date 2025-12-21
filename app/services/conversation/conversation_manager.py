@@ -630,6 +630,9 @@ class ConversationManager:
             # 7. Build response
             processing_time = (datetime.now() - start_time).total_seconds() * 1000
 
+            # Extract quality analysis if available
+            quality_analysis = agent_result.get('quality_analysis')
+
             return {
                 'response': answer,
                 'metadata': {
@@ -639,7 +642,8 @@ class ConversationManager:
                     'reasoning_steps': agent_result.get('reasoning_steps', []),
                     'iterations': agent_result.get('iterations', 0),
                     'processing_time_ms': processing_time,
-                    'architecture': 'simplified_v3'
+                    'architecture': 'simplified_v3',
+                    'quality_analysis': quality_analysis
                 }
             }
 
@@ -840,6 +844,9 @@ class ConversationManager:
             # 7. Complete event
             processing_time = (datetime.now() - start_time).total_seconds() * 1000
 
+            # Extract quality analysis if available
+            quality_analysis = agent_result.get('quality_analysis') if agent_result else None
+
             yield {
                 'type': 'complete',
                 'metadata': {
@@ -848,7 +855,8 @@ class ConversationManager:
                     'iterations': agent_result.get('iterations', 0) if agent_result else 0,
                     'tools_used': agent_result.get('sources_used', []) if agent_result else [],
                     'reasoning_steps': agent_result.get('reasoning_steps', []) if agent_result else [],
-                    'processing_time_ms': processing_time
+                    'processing_time_ms': processing_time,
+                    'quality_analysis': quality_analysis
                 }
             }
 

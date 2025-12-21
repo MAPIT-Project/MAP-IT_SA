@@ -1,49 +1,47 @@
 # SHARED_TASK_NOTES.md
 
-## Current Status: ALL TESTS PASSING
+## Current Status: ALL TESTS PASSING (929 tests)
 
-**Last Updated:** December 20, 2025 (Iteration 4)
+**Last Updated:** December 21, 2025 (Iteration 1)
 
 ---
 
 ## What Was Done This Iteration
 
-**Added AI Response Quality Testing Framework:**
+**Integrated ResponseQualityAnalyzer into Production Pipeline:**
 
-### 1. ResponseQualityAnalyzer Class (Priority 1)
-- **Location:** `app/services/quality/response_quality_analyzer.py`
-- **Purpose:** Analyzes AI response quality to detect deflections, incomplete responses, and validate content requirements
-- **Features:**
-  - Deflection phrase detection (35+ phrases like "could not find", "I am not sure")
-  - Query type inference (8 types: call_info, programme_comparison, eligibility_faq, budget_benchmark, partner_discovery, project_search, consortium_pattern, statistics)
-  - Content requirement validation per query type
-  - Quality scoring (0-100) with multi-dimensional analysis
-  - Response categorization (complete, partial, deflection, empty, error)
-  - Actionable recommendations generation
+### 1. ToolAwareAgent Quality Analysis Integration
+- **Location:** `app/services/agents/tool_aware_agent.py`
+- **Changes:**
+  - Added `_init_quality_analyzer()` method to initialize ResponseQualityAnalyzer
+  - Added `_analyze_response_quality()` method to analyze response quality
+  - Added `enable_quality_analysis` parameter to `__init__` (default: True)
+  - Modified `process_query()` to include quality_analysis in returned dict
+  - Modified `process_query_streaming()` to include quality_analysis in results
+  - Added quality logging for monitoring (warns on deflections, logs scores)
 
-### 2. Comprehensive AI Quality Test Suite
-- **Location:** `tests/test_ai_quality/test_response_quality.py`
-- **Tests Added:** 86 new tests
+### 2. Conversation Manager Metadata Update
+- **Location:** `app/services/conversation/conversation_manager.py`
+- **Changes:**
+  - Added `quality_analysis` to response metadata (non-streaming)
+  - Added `quality_analysis` to streaming complete event metadata
+
+### 3. Quality Analysis Integration Tests
+- **Location:** `tests/test_tool_aware_agent.py`
+- **Tests Added:** 7 new tests
 - **Coverage:**
-  - 5 specific call ID queries
-  - 5 programme comparison queries
-  - 5 eligibility/FAQ queries
-  - 3 budget benchmark queries
-  - 3 partner discovery queries
-  - 2 project search queries
-  - 2 consortium pattern queries
-  - Deflection detection tests
-  - Query type inference tests
-  - Content requirements validation tests
-  - Quality scoring tests
-  - Response categorization tests
-  - Edge case tests
+  - Agent has quality analyzer initialization
+  - Quality analyzer can be disabled
+  - `_analyze_response_quality` method exists and works
+  - Deflection detection works
+  - `process_query` includes quality_analysis in result
+  - Quality analysis handles tool results
 
 ---
 
 ## Test Status
 
-**Tests: 922 passed, 2 skipped, 68 warnings** (up from 836 - added 86 new tests)
+**Tests: 929 passed, 2 skipped, 75 warnings** (up from 922 - added 7 new tests)
 
 ---
 
@@ -53,26 +51,57 @@ All containers healthy. API responding correctly.
 
 ---
 
-## Files Created/Modified
+## Files Modified
 
-**Created:**
-- `app/services/quality/__init__.py`
-- `app/services/quality/response_quality_analyzer.py`
-- `tests/test_ai_quality/test_response_quality.py`
+**Modified:**
+- `app/services/agents/tool_aware_agent.py` - Added quality analysis integration
+- `app/services/conversation/conversation_manager.py` - Added quality_analysis to metadata
+- `tests/test_tool_aware_agent.py` - Added 7 new quality analysis tests
+
+---
+
+## Response Metadata Now Includes quality_analysis
+
+```json
+{
+  "response": "...",
+  "metadata": {
+    "intent_type": "agentic_v3",
+    "confidence": 0.8,
+    "tools_used": ["search_funding_calls_1_0"],
+    "iterations": 1,
+    "processing_time_ms": 1234,
+    "architecture": "simplified_v3",
+    "quality_analysis": {
+      "score": 85,
+      "category": "complete",
+      "confidence": 0.85,
+      "query_type": "call_info",
+      "missing_elements": [],
+      "deflection_phrases_found": [],
+      "recommendations": [],
+      "elements_found": ["call_id", "deadline", "budget", "type"],
+      "response_length": 456,
+      "timestamp": "2025-12-21T12:00:00Z"
+    }
+  }
+}
+```
 
 ---
 
 ## Next Steps (For Future Iterations)
 
-### Priority 1: Integrate ResponseQualityAnalyzer
-- Add quality analysis to ToolAwareAgent responses
-- Add quality metrics to response metadata
-- Log quality scores for monitoring
-
-### Priority 2: Live AI Response Quality Testing
-- Create integration tests that actually call the AI (not mocks)
+### Priority 1: Live AI Response Quality Testing (Recommended Next)
+- Create integration tests that actually call the AI
 - Test real tool responses against quality analyzer
 - Add quality thresholds to CI/CD
+- Monitor quality scores in production logs
+
+### Priority 2: Quality Score Alerting
+- Add quality score thresholds to fail tests
+- Add monitoring/alerting for low quality scores
+- Dashboard for quality metrics over time
 
 ### Priority 3: External Library Deprecations (Low Priority)
 - PyPDF2 is deprecated - consider migrating to `pypdf`
@@ -80,30 +109,30 @@ All containers healthy. API responding correctly.
 - Redis/Supabase client deprecations
 
 ### Priority 4: Documentation
-- Add OpenAPI descriptions for new endpoints
-- Document ResponseQualityAnalyzer usage
+- Add OpenAPI descriptions for quality_analysis in response
+- Document quality thresholds and categories
 
 ---
 
-## Key Classes/Functions
+## Key Usage
 
 ```python
-from app.services.quality import ResponseQualityAnalyzer, QualityAnalysis, ResponseCategory
+# In ToolAwareAgent - quality analysis is automatic
+from app.services.agents.tool_aware_agent import ToolAwareAgent
 
-analyzer = ResponseQualityAnalyzer()
-analysis = analyzer.analyze(
-    query="Tell me about HORIZON-CL5-2026-D3-01",
-    response="...",
-    tool_results={...}  # Optional
-)
+agent = ToolAwareAgent()  # Quality analysis enabled by default
+result = await agent.process_query("What is Horizon Europe?", "", [])
 
-# Check if quality is sufficient
-if analyzer.is_quality_sufficient(analysis, min_score=70):
-    # Good response
-    pass
-else:
-    # Needs investigation
-    print(analysis.recommendations)
+# Check quality in result
+if result.get('quality_analysis'):
+    qa = result['quality_analysis']
+    if qa['category'] == 'deflection':
+        logger.warning(f"Deflection detected: {qa['deflection_phrases_found']}")
+    elif qa['score'] < 70:
+        logger.warning(f"Low quality score: {qa['score']}")
+
+# Disable quality analysis if needed
+agent_no_qa = ToolAwareAgent(enable_quality_analysis=False)
 ```
 
 ---
@@ -111,7 +140,10 @@ else:
 ## Verification Commands
 
 ```bash
-# Run AI quality tests only
+# Run quality analysis tests
+pytest tests/test_tool_aware_agent.py::TestQualityAnalysisIntegration -v
+
+# Run AI quality tests
 pytest tests/test_ai_quality/ -v
 
 # Run all tests

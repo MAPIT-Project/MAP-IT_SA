@@ -470,15 +470,22 @@ Example BAD conclusion (never do this):
 
 What is your next step? Remember: Output ONLY JSON."""
 
-    def __init__(self, max_iterations: int = 5):
-        """Initialize the tool-aware agent."""
+    def __init__(self, max_iterations: int = 5, enable_quality_analysis: bool = True):
+        """Initialize the tool-aware agent.
+
+        Args:
+            max_iterations: Maximum number of reasoning iterations.
+            enable_quality_analysis: Whether to analyze response quality (default: True).
+        """
         self.max_iterations = max_iterations
+        self.enable_quality_analysis = enable_quality_analysis
         self.tools: Dict[str, Tool] = {}
         self._init_tools()
         self._init_llm()
         self._init_cache()
         self._init_analytics()
         self._init_speculative_executor()
+        self._init_quality_analyzer()
 
         logger.info(f"🛠️ ToolAwareAgent initialized with {len(self.tools)} tools")
 
@@ -519,7 +526,69 @@ What is your next step? Remember: Output ONLY JSON."""
         except Exception as e:
             logger.warning(f"⚠️ Speculative executor unavailable: {e}")
             self.speculative_executor = None
-    
+
+    def _init_quality_analyzer(self):
+        """Initialize response quality analyzer for monitoring and validation."""
+        if not self.enable_quality_analysis:
+            self.quality_analyzer = None
+            logger.info("📊 Quality analysis disabled")
+            return
+
+        try:
+            from ..quality.response_quality_analyzer import ResponseQualityAnalyzer
+            self.quality_analyzer = ResponseQualityAnalyzer()
+            logger.info("✅ Response quality analyzer initialized")
+        except Exception as e:
+            logger.warning(f"⚠️ Response quality analyzer unavailable: {e}")
+            self.quality_analyzer = None
+
+    def _analyze_response_quality(
+        self,
+        query: str,
+        answer: str,
+        tool_results: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
+        """Analyze the quality of a generated response.
+
+        Args:
+            query: The user's original query.
+            answer: The generated answer text.
+            tool_results: Results from tool executions.
+
+        Returns:
+            Quality analysis dict or None if analyzer unavailable.
+        """
+        if not self.quality_analyzer:
+            return None
+
+        try:
+            # Analyze the response
+            analysis = self.quality_analyzer.analyze(
+                query=query,
+                response=answer,
+                tool_results=tool_results
+            )
+
+            # Log quality metrics for monitoring
+            if analysis.category.value in ('deflection', 'empty'):
+                logger.warning(
+                    f"⚠️ Response quality issue detected: "
+                    f"category={analysis.category.value}, score={analysis.score}, "
+                    f"deflections={len(analysis.deflection_phrases_found)}"
+                )
+            else:
+                logger.info(
+                    f"📊 Response quality: score={analysis.score}, "
+                    f"category={analysis.category.value}, "
+                    f"confidence={analysis.confidence:.2f}"
+                )
+
+            return analysis.to_dict()
+
+        except Exception as e:
+            logger.warning(f"Quality analysis failed: {e}")
+            return None
+
     def _init_llm(self):
         """Initialize the LLM for reasoning."""
         import os
@@ -1046,8 +1115,18 @@ This is the PRIMARY tool for finding projects by topic.""",
                     quality_score=plan.confidence or 0.8
                 )
 
+        # Compute the answer before quality analysis
+        answer = plan.final_answer or self._build_fallback_answer(plan)
+
+        # Analyze response quality
+        quality_analysis = self._analyze_response_quality(
+            query=query,
+            answer=answer,
+            tool_results=all_tool_results
+        )
+
         return {
-            'answer': plan.final_answer or self._build_fallback_answer(plan),
+            'answer': answer,
             'success': plan.final_answer is not None,
             'reasoning_steps': [
                 {
@@ -1064,7 +1143,8 @@ This is the PRIMARY tool for finding projects by topic.""",
             'complexity': plan.complexity,
             'iterations': iteration,
             'confidence': plan.confidence,
-            'total_time_ms': total_time
+            'total_time_ms': total_time,
+            'quality_analysis': quality_analysis  # Response quality metrics
         }
 
     async def process_query_streaming(
@@ -1238,9 +1318,19 @@ This is the PRIMARY tool for finding projects by topic.""",
                     quality_score=plan.confidence or 0.8
                 )
 
+        # Compute the answer before quality analysis
+        answer = plan.final_answer or self._build_fallback_answer(plan)
+
+        # Analyze response quality
+        quality_analysis = self._analyze_response_quality(
+            query=query,
+            answer=answer,
+            tool_results=all_tool_results
+        )
+
         # YIELD: Final complete event with full result
         final_result = {
-            'answer': plan.final_answer or self._build_fallback_answer(plan),
+            'answer': answer,
             'success': plan.final_answer is not None,
             'reasoning_steps': [
                 {
@@ -1257,7 +1347,8 @@ This is the PRIMARY tool for finding projects by topic.""",
             'complexity': plan.complexity,
             'iterations': iteration,
             'confidence': plan.confidence,
-            'total_time_ms': total_time
+            'total_time_ms': total_time,
+            'quality_analysis': quality_analysis  # Response quality metrics
         }
 
         yield {

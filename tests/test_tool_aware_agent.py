@@ -591,5 +591,137 @@ class TestEdgeCases:
         assert result is not None
 
 
+class TestQualityAnalysisIntegration:
+    """Tests for quality analysis integration in ToolAwareAgent."""
+
+    def test_agent_has_quality_analyzer(self):
+        """Test that agent initializes quality analyzer by default."""
+        from app.services.agents.tool_aware_agent import ToolAwareAgent
+
+        agent = ToolAwareAgent()
+
+        assert hasattr(agent, 'quality_analyzer')
+        assert hasattr(agent, 'enable_quality_analysis')
+        assert agent.enable_quality_analysis is True
+
+    def test_agent_quality_analyzer_can_be_disabled(self):
+        """Test that quality analyzer can be disabled."""
+        from app.services.agents.tool_aware_agent import ToolAwareAgent
+
+        agent = ToolAwareAgent(enable_quality_analysis=False)
+
+        assert agent.enable_quality_analysis is False
+        assert agent.quality_analyzer is None
+
+    def test_analyze_response_quality_method_exists(self):
+        """Test that _analyze_response_quality method exists."""
+        from app.services.agents.tool_aware_agent import ToolAwareAgent
+
+        agent = ToolAwareAgent()
+
+        assert hasattr(agent, '_analyze_response_quality')
+        assert callable(agent._analyze_response_quality)
+
+    def test_analyze_response_quality_returns_dict(self):
+        """Test that _analyze_response_quality returns a dict or None."""
+        from app.services.agents.tool_aware_agent import ToolAwareAgent
+
+        agent = ToolAwareAgent()
+
+        result = agent._analyze_response_quality(
+            query="What is Horizon Europe?",
+            answer="Horizon Europe is the EU's research and innovation funding programme.",
+            tool_results={}
+        )
+
+        # Should return a dict if analyzer is available, None otherwise
+        if agent.quality_analyzer:
+            assert isinstance(result, dict)
+            assert 'score' in result
+            assert 'category' in result
+            assert 'confidence' in result
+        else:
+            # If analyzer not available, should return None
+            assert result is None
+
+    def test_analyze_response_quality_with_deflection(self):
+        """Test quality analysis detects deflection responses."""
+        from app.services.agents.tool_aware_agent import ToolAwareAgent
+
+        agent = ToolAwareAgent()
+
+        # Test with a deflection response
+        result = agent._analyze_response_quality(
+            query="Tell me about HORIZON-CL5-2026-D3-01",
+            answer="I could not find any information about this call.",
+            tool_results={}
+        )
+
+        if agent.quality_analyzer:
+            assert isinstance(result, dict)
+            assert result['category'] == 'deflection'
+            assert len(result['deflection_phrases_found']) > 0
+
+    def test_process_query_includes_quality_analysis(self):
+        """Test that process_query includes quality_analysis in result."""
+        from app.services.agents.tool_aware_agent import ToolAwareAgent
+
+        agent = ToolAwareAgent()
+        mock_response = MagicMock()
+        mock_response.text = """{
+            "thought": "This is a simple FAQ question.",
+            "action": "conclude",
+            "conclusion": "Horizon Europe is the EU's key funding programme for research.",
+            "confidence": 0.9
+        }"""
+
+        if hasattr(agent, 'llm') and agent.llm:
+            agent.llm.generate_content = MagicMock(return_value=mock_response)
+        else:
+            agent.llm = MagicMock()
+            agent.llm.generate_content.return_value = mock_response
+
+        result = asyncio.run(agent.process_query(
+            query="What is Horizon Europe?",
+            context="",
+            conversation_history=[]
+        ))
+
+        assert result is not None
+        assert 'quality_analysis' in result
+
+        # If analyzer is available, should have quality metrics
+        if agent.quality_analyzer:
+            qa = result['quality_analysis']
+            assert qa is not None
+            assert 'score' in qa
+            assert 'category' in qa
+
+    def test_quality_analysis_handles_tool_results(self):
+        """Test quality analysis with tool results."""
+        from app.services.agents.tool_aware_agent import ToolAwareAgent
+
+        agent = ToolAwareAgent()
+
+        tool_results = {
+            "search_funding_calls_1_0": {
+                "success": True,
+                "calls_found": 5,
+                "results": [{"call_id": "HORIZON-CL5-2026-D3-01"}]
+            }
+        }
+
+        result = agent._analyze_response_quality(
+            query="Find hydrogen funding calls",
+            answer="I found 5 hydrogen funding opportunities including HORIZON-CL5-2026-D3-01. The deadline is January 2026.",
+            tool_results=tool_results
+        )
+
+        if agent.quality_analyzer:
+            assert isinstance(result, dict)
+            # Good response with tool results should have high score
+            assert result['score'] >= 50
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
