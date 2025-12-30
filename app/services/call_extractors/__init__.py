@@ -8,13 +8,14 @@ Supported Programmes:
     - Horizon Europe (2021-2027) - Main EU R&I programme
     - Digital Europe (2021-2027) - Digital technology deployment
     - LIFE (2021-2027) - Environment and climate action
+    - Erasmus+ (2021-2027) - Education, training, youth, and sport
 
 Usage:
     from app.services.call_extractors import HorizonEuropeExtractor
-    
+
     extractor = HorizonEuropeExtractor()
     calls = extractor.extract_from_content(content, "Document Title")
-    
+
 Adding New Programmes:
     See .agent_tasks/ADDING_NEW_FUNDING_PROGRAMMES.md
 """
@@ -23,12 +24,14 @@ from .base import CallExtractor, FundingCall
 from .horizon_europe import HorizonEuropeExtractor
 from .digital_europe import DigitalEuropeExtractor
 from .life_programme import LIFEExtractor
+from .erasmus_plus import ErasmusPlusExtractor
 
 # Map programme IDs to extractor classes
 EXTRACTORS = {
     'horizon_europe': HorizonEuropeExtractor,
     'digital_europe': DigitalEuropeExtractor,
     'life': LIFEExtractor,
+    'erasmus_plus': ErasmusPlusExtractor,
 }
 
 def get_extractor(programme: str) -> CallExtractor:
@@ -39,10 +42,11 @@ def get_extractor(programme: str) -> CallExtractor:
 
 __all__ = [
     'CallExtractor',
-    'FundingCall', 
+    'FundingCall',
     'HorizonEuropeExtractor',
     'DigitalEuropeExtractor',
     'LIFEExtractor',
+    'ErasmusPlusExtractor',
     'EXTRACTORS',
     'get_extractor',
 ]
