@@ -124,9 +124,67 @@ Verified with inline tests:
 
 ---
 
+## Iteration 3/20 - EU4Health Programme Call Extractor
+
+**Date:** 2025-12-31
+**Focus Area:** Program Expansion
+**Priority Level:** 2
+
+### What was improved
+Added comprehensive EU4Health Programme call extractor to support the EU's largest health funding programme (€5.3B budget), created as a response to COVID-19.
+
+### Why this was prioritized
+EU4Health is the EU's flagship health programme and critical for healthcare institutions, public health organizations, and health research. Adding it completes coverage of major sector-specific programmes and serves a distinct user base focused on public health, crisis preparedness, and healthcare systems.
+
+### What was changed
+
+**New Files:**
+- `app/services/call_extractors/eu4health.py` - Complete EU4HealthExtractor implementation
+
+**Modified Files:**
+- `app/services/call_extractors/__init__.py` - Added EU4HealthExtractor to exports
+
+**Key Features Implemented:**
+1. **Topic Code Recognition:** 5 regex patterns for EU4Health formats
+   - Standard format (EU4H-2025-PJ-01)
+   - Full name format (EU4HEALTH-2025-PJ-01)
+   - Alternative formats
+
+2. **Action Types:** 18 action types mapped
+   - Grants: PJ (Project), OA (Operating), JA (Joint Action), SGA, DA, CSA
+   - Procurement: PPI, PCP, FWC, SC
+   - Thematic: CANCER, AMR, PHARMA, MH, CRISIS, etc.
+
+3. **EU4Health-Specific Features:**
+   - Variable funding rates by action type (60-100%)
+   - Joint Action support (requires Member State participation)
+   - Priority area classification (Cancer, AMR, Pharma, etc.)
+   - Budget ranges per action type
+   - Consortium requirements (varies by action type)
+   - Eligible entity types specific to health sector
+
+4. **Programme Information Method:** Includes flagship initiatives like Europe's Beating Cancer Plan, HERA, European Health Data Space
+
+### Testing
+Verified with inline tests:
+- ✅ Basic instantiation
+- ✅ get_extractor('eu4health') registry lookup
+- ✅ Topic code extraction (3/3 codes found)
+- ✅ Full call extraction with correct action types
+- ✅ Correct funding rates (60% for PJ/OA, 80% for JA)
+- ✅ Programme info with general objectives and flagship initiatives
+
+### Follow-up items
+- [ ] Ingest actual EU4Health Work Programme documents
+- [ ] Add EU4Health to ToolAwareAgent tool discovery
+- [ ] Create search_eu4health_calls tool
+- [ ] Add health-specific proposal writing templates
+- [ ] Support for Joint Action workflow (Member State participation)
+
+---
+
 ## Upcoming Iterations
 
-**Iteration 3:** EU4Health Programme Call Extractor
 **Iteration 4:** Update tool orchestration for multi-programme support
 **Iteration 5:** Add multi-programme search tool
 **Iterations 6-10:** Testing and validation

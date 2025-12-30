@@ -26,6 +26,7 @@ from .digital_europe import DigitalEuropeExtractor
 from .life_programme import LIFEExtractor
 from .erasmus_plus import ErasmusPlusExtractor
 from .creative_europe import CreativeEuropeExtractor
+from .eu4health import EU4HealthExtractor
 
 # Map programme IDs to extractor classes
 EXTRACTORS = {
@@ -34,6 +35,7 @@ EXTRACTORS = {
     'life': LIFEExtractor,
     'erasmus_plus': ErasmusPlusExtractor,
     'creative_europe': CreativeEuropeExtractor,
+    'eu4health': EU4HealthExtractor,
 }
 
 def get_extractor(programme: str) -> CallExtractor:
@@ -50,6 +52,7 @@ __all__ = [
     'LIFEExtractor',
     'ErasmusPlusExtractor',
     'CreativeEuropeExtractor',
+    'EU4HealthExtractor',
     'EXTRACTORS',
     'get_extractor',
 ]
