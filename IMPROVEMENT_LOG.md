@@ -65,9 +65,67 @@ Verified with inline tests:
 
 ---
 
+## Iteration 2/20 - Creative Europe Programme Call Extractor
+
+**Date:** 2025-12-31
+**Focus Area:** Program Expansion
+**Priority Level:** 2
+
+### What was improved
+Added comprehensive Creative Europe Programme call extractor to support the EU's cultural and creative sectors funding (€2.44B budget).
+
+### Why this was prioritized
+Creative Europe supports a different user base from Horizon Europe - cultural organizations, media companies, film producers, and creative industries. This expands MAPIT AI's utility to the arts and culture sector, making it a more comprehensive EU funding tool.
+
+### What was changed
+
+**New Files:**
+- `app/services/call_extractors/creative_europe.py` - Complete CreativeEuropeExtractor implementation
+
+**Modified Files:**
+- `app/services/call_extractors/__init__.py` - Added CreativeEuropeExtractor to exports
+
+**Key Features Implemented:**
+1. **Topic Code Recognition:** 5 regex patterns for Creative Europe formats
+   - Culture strand (CREA-CULTURE-2025-COOP-1)
+   - MEDIA strand (CREA-MEDIA-2025-DEVSLATE)
+   - Cross-sectoral strand (CREA-CROSS-2025-MEDIALITERACY)
+
+2. **Action Types:** 27 distinct action types mapped across 3 strands
+   - CULTURE: COOP-1/2/3, PLATF, NET, LIT, CIRC
+   - MEDIA: DEVSLATE, DEVSINGLE, DEVVG, TVONLINE, FESTIV, etc.
+   - CROSS: MEDIALITERACY, CREATIVELAB, NEWS, MEDIAFREEDOM
+
+3. **Creative Europe-Specific Features:**
+   - Variable funding rates by action (60-80%)
+   - Consortium requirements per action type
+   - Budget ranges per action
+   - Duration ranges per action
+   - Strand-specific eligibility (cultural orgs, audiovisual, news media)
+   - Eligible countries including partial association
+
+4. **Programme Information Method:** `get_programme_info()` returns comprehensive programme details
+
+### Testing
+Verified with inline tests:
+- ✅ Basic instantiation
+- ✅ get_extractor('creative_europe') registry lookup
+- ✅ Topic code extraction (3/3 codes found)
+- ✅ Full call extraction with correct strand detection
+- ✅ Funding rate extraction (80% for COOP-1, 70% for DEVSLATE)
+- ✅ CROSS strand correctly identified (not confused with MEDIA)
+
+### Follow-up items
+- [ ] Ingest actual Creative Europe Work Programme documents
+- [ ] Add Creative Europe to ToolAwareAgent tool discovery
+- [ ] Create search_creative_europe_calls tool
+- [ ] Add Cultural/MEDIA-specific proposal writing support
+- [ ] Test with real-world Creative Europe call documents
+
+---
+
 ## Upcoming Iterations
 
-**Iteration 2:** Creative Europe Programme Call Extractor
 **Iteration 3:** EU4Health Programme Call Extractor
 **Iteration 4:** Update tool orchestration for multi-programme support
 **Iteration 5:** Add multi-programme search tool
