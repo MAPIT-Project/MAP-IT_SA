@@ -11,6 +11,12 @@ from .similar_projects import SimilarProjectsTool, get_similar_funded_projects_e
 from .call_history import CallHistoryTool, analyze_call_history_execute
 from .budget_calculator import BudgetCalculatorTool, calculate_budget_execute
 from .timeline_generator import TimelineGeneratorTool, generate_timeline_execute
+from .multi_programme_search import (
+    MultiProgrammeSearchTool,
+    search_all_programmes_execute,
+    get_programme_recommendations_execute,
+    get_programme_info_execute,
+)
 
 __all__ = [
     'BudgetBenchmarkTool',
@@ -26,5 +32,10 @@ __all__ = [
     'BudgetCalculatorTool',
     'calculate_budget_execute',
     'TimelineGeneratorTool',
-    'generate_timeline_execute'
+    'generate_timeline_execute',
+    # Multi-programme tools
+    'MultiProgrammeSearchTool',
+    'search_all_programmes_execute',
+    'get_programme_recommendations_execute',
+    'get_programme_info_execute',
 ]

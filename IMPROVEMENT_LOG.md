@@ -183,10 +183,80 @@ Verified with inline tests:
 
 ---
 
+## Iteration 4/20 - Multi-Programme Search Tool
+
+**Date:** 2025-12-31
+**Focus Area:** Feature Enhancement
+**Priority Level:** 3
+
+### What was improved
+Added unified multi-programme search tool that enables searching across all 6 EU funding programmes in a single query - the key differentiator for MAPIT AI.
+
+### Why this was prioritized
+With 6 programme extractors now available, users need a unified way to discover funding opportunities across all programmes. This is the core value proposition of MAPIT AI - being the single source for all EU funding discovery, not just Horizon Europe.
+
+### What was changed
+
+**New Files:**
+- `app/services/tools/multi_programme_search.py` - Complete MultiProgrammeSearchTool implementation
+
+**Modified Files:**
+- `app/services/tools/__init__.py` - Added multi-programme search tools to exports
+
+**Key Features Implemented:**
+1. **Unified Search:** `search_all_programmes_execute()`
+   - Cross-programme keyword search
+   - Full-text search with relevance scoring
+   - Programme-specific filtering
+   - Status and year filtering
+   - Results grouped by programme
+
+2. **Programme Recommendations:** `get_programme_recommendations_execute()`
+   - AI-powered programme matching based on project description
+   - Organization type consideration
+   - Scoring with reasoning
+   - Top 5 programme recommendations
+
+3. **Programme Information:** `get_programme_info_execute()`
+   - Detailed programme information
+   - Integration with programme extractors
+   - Budget, focus, website, eligibility info
+
+4. **Smart Detection:**
+   - Keywords automatically mapped to relevant programmes
+   - 60+ programme-specific keywords per programme
+   - Detected programmes highlighted in results
+
+**Programme Coverage:**
+- Horizon Europe (€95.5B) - 🔬 Research & Innovation
+- Erasmus+ (€26.2B) - 🎓 Education, Training, Youth, Sport
+- Creative Europe (€2.44B) - 🎨 Culture & Media
+- EU4Health (€5.3B) - 🏥 Health & Crisis Preparedness
+- Digital Europe (€7.5B) - 💻 Digital Transformation
+- LIFE (€5.4B) - 🌍 Environment & Climate
+
+### Testing
+Verified with inline tests:
+- ✅ Multi-programme search tools import
+- ✅ get_programme_info_execute() returns all 6 programmes
+- ✅ Specific programme info includes extractor details (e.g., Erasmus+ Key Actions)
+- ✅ Programme recommendations work for energy/mobility project
+- ✅ Recommendations correctly suggest Horizon Europe for research
+
+### Follow-up items
+- [ ] Integrate with ToolAwareAgent for natural language queries
+- [ ] Add semantic search across programmes
+- [ ] Add deadline-based sorting and filtering
+- [ ] Create UI component for programme comparison
+- [ ] Add programme eligibility checker tool
+
+---
+
 ## Upcoming Iterations
 
-**Iteration 4:** Update tool orchestration for multi-programme support
-**Iteration 5:** Add multi-programme search tool
-**Iterations 6-10:** Testing and validation
-**Iterations 11-15:** Proposal writing enhancements
-**Iterations 16-20:** Security, performance, documentation
+**Iteration 5:** Integrate multi-programme tools into ToolAwareAgent
+**Iteration 6:** Add proposal quality scoring tool
+**Iteration 7:** Add budget validation tool
+**Iterations 8-12:** Testing and validation
+**Iterations 13-17:** Proposal writing enhancements
+**Iterations 18-20:** Security, performance, documentation
