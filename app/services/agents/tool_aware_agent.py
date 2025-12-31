@@ -153,6 +153,7 @@ class ToolCategory(Enum):
     PROJECTS = "projects"         # CORDIS project search
     COMPARISON = "comparison"     # Cross-reference tools
     VALIDATION = "validation"     # Fact-checking tools
+    PROGRAMMES = "programmes"     # Multi-programme discovery and info
 
 
 @dataclass
@@ -955,6 +956,74 @@ This is the PRIMARY tool for finding projects by topic.""",
             examples=[
                 "generate_timeline(action_type='RIA', duration_months=36, num_partners=8, total_person_months=300)",
                 "generate_timeline(action_type='IA', duration_months=48, num_partners=12, total_person_months=500, project_title='GreenHydrogen')"
+            ]
+        ))
+
+        # =====================================================================
+        # Multi-Programme Tools (NEW)
+        # Search across all 6 EU programmes: Horizon Europe, Erasmus+,
+        # Creative Europe, EU4Health, Digital Europe, LIFE
+        # =====================================================================
+
+        self.register_tool(Tool(
+            name="search_all_programmes",
+            description="""Search for funding opportunities across ALL EU programmes in one query.
+Searches: Horizon Europe (€95.5B), Erasmus+ (€26.2B), Creative Europe (€2.44B),
+EU4Health (€5.3B), Digital Europe (€7.5B), LIFE (€5.4B).
+
+Use this when user asks about funding in a general area (education, health, culture, etc.)
+or wants to compare options across different EU programmes.""",
+            category=ToolCategory.PROGRAMMES,
+            parameters={
+                "keywords": "Required: Search keywords (e.g., 'renewable energy', 'youth mobility', 'digital health')",
+                "programmes": "Optional: List of programmes to search (e.g., ['horizon_europe', 'erasmus_plus']). If not specified, searches all.",
+                "status": "Optional: Filter by status ('open', 'upcoming')",
+                "year": "Optional: Filter by call year"
+            },
+            examples=[
+                "search_all_programmes(keywords='renewable energy')",
+                "search_all_programmes(keywords='digital skills', programmes=['erasmus_plus', 'digital_europe'])",
+                "search_all_programmes(keywords='cancer research', status='open')"
+            ]
+        ))
+
+        self.register_tool(Tool(
+            name="recommend_programmes",
+            description="""Recommend the best EU funding programmes for a given project or organization.
+Returns ranked recommendations with reasoning based on project description,
+organization type, and sector.
+
+Use this when user asks "Which programme should I apply to?" or describes their
+project and wants to know where to find funding.""",
+            category=ToolCategory.PROGRAMMES,
+            parameters={
+                "description": "Required: Description of the project or activity",
+                "organization_type": "Optional: Type of organization (university, SME, NGO, hospital, school, etc.)",
+                "sector": "Optional: Primary sector (health, education, culture, research, environment, digital)"
+            },
+            examples=[
+                "recommend_programmes(description='Develop AI tools for early cancer detection', organization_type='university')",
+                "recommend_programmes(description='Student exchange programme between European universities', sector='education')",
+                "recommend_programmes(description='Documentary film about European cultural heritage')"
+            ]
+        ))
+
+        self.register_tool(Tool(
+            name="get_programme_info",
+            description="""Get detailed information about a specific EU funding programme.
+Returns budget, focus areas, action types, eligibility, key actions (for Erasmus+),
+strands (for Creative Europe), and priority areas (for EU4Health).
+
+Available programmes: horizon_europe, erasmus_plus, creative_europe, eu4health,
+digital_europe, life""",
+            category=ToolCategory.PROGRAMMES,
+            parameters={
+                "programme": "Optional: Specific programme ID (e.g., 'erasmus_plus', 'eu4health'). If not specified, returns info for all programmes."
+            },
+            examples=[
+                "get_programme_info(programme='erasmus_plus')",
+                "get_programme_info(programme='creative_europe')",
+                "get_programme_info()"
             ]
         ))
 
@@ -2275,6 +2344,13 @@ Suggestions:
                 return await self._tool_calculate_budget(params)
             elif tool_name == 'generate_timeline':
                 return await self._tool_generate_timeline(params)
+            # Multi-programme tools
+            elif tool_name == 'search_all_programmes':
+                return await self._tool_search_all_programmes(params)
+            elif tool_name == 'recommend_programmes':
+                return await self._tool_recommend_programmes(params)
+            elif tool_name == 'get_programme_info':
+                return await self._tool_get_programme_info(params)
             else:
                 return {"error": f"Tool {tool_name} not implemented"}
         except Exception as e:
@@ -3154,6 +3230,59 @@ Suggestions:
         except Exception as e:
             logger.error(f"Timeline generator error: {e}")
             return {"error": str(e)}
+
+    async def _tool_search_all_programmes(self, params: Dict) -> Dict:
+        """Search across all EU funding programmes (Horizon Europe, Erasmus+, Creative Europe, EU4Health, Digital Europe, LIFE)."""
+        try:
+            from ..tools.multi_programme_search import search_all_programmes_execute
+
+            result = search_all_programmes_execute(
+                keywords=params.get('keywords', ''),
+                programmes=params.get('programmes'),
+                status=params.get('status'),
+                year=params.get('year'),
+                action_type=params.get('action_type'),
+                limit=params.get('limit', 20),
+                include_closed=params.get('include_closed', False),
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Multi-programme search error: {e}")
+            return {"error": str(e), "success": False}
+
+    async def _tool_recommend_programmes(self, params: Dict) -> Dict:
+        """Recommend EU funding programmes based on project/activity description."""
+        try:
+            from ..tools.multi_programme_search import get_programme_recommendations_execute
+
+            result = get_programme_recommendations_execute(
+                description=params.get('description', ''),
+                organization_type=params.get('organization_type'),
+                sector=params.get('sector'),
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Programme recommendations error: {e}")
+            return {"error": str(e), "success": False}
+
+    async def _tool_get_programme_info(self, params: Dict) -> Dict:
+        """Get detailed information about EU funding programmes."""
+        try:
+            from ..tools.multi_programme_search import get_programme_info_execute
+
+            result = get_programme_info_execute(
+                programme=params.get('programme'),
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Programme info error: {e}")
+            return {"error": str(e), "success": False}
 
     def _summarize_tool_results(self, tool_calls: List[ToolCall]) -> str:
         """Summarize results from tool calls in a human-readable format."""

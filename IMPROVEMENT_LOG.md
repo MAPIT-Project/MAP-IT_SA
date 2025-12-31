@@ -252,9 +252,71 @@ Verified with inline tests:
 
 ---
 
+## Iteration 5/20 - Multi-Programme Tools Integration into ToolAwareAgent
+
+**Date:** 2025-12-31
+**Focus Area:** Feature Enhancement
+**Priority Level:** 3
+
+### What was improved
+Integrated the multi-programme search, recommendation, and information tools directly into ToolAwareAgent, enabling natural language queries across all 6 EU funding programmes.
+
+### Why this was prioritized
+With the multi-programme tools created in Iteration 4, users couldn't actually use them without direct API calls. Integration into ToolAwareAgent enables the AI agent to automatically use these tools when users ask about funding opportunities across different programmes.
+
+### What was changed
+
+**Modified Files:**
+- `app/services/agents/tool_aware_agent.py` - Added 3 new tools and their implementations
+
+**Key Features Implemented:**
+
+1. **New ToolCategory:**
+   - Added `ToolCategory.PROGRAMMES` for multi-programme tools
+
+2. **Tool Definitions (in `_init_tools()`):**
+   - `search_all_programmes` - Search across all EU programmes with keywords, filters
+   - `recommend_programmes` - Get AI-powered programme recommendations
+   - `get_programme_info` - Get detailed programme information
+
+3. **Tool Routing (in `_execute_single_tool()`):**
+   - Added routing for all 3 new tools to their implementations
+
+4. **Tool Implementations:**
+   - `_tool_search_all_programmes()` - Calls `search_all_programmes_execute()`
+   - `_tool_recommend_programmes()` - Calls `get_programme_recommendations_execute()`
+   - `_tool_get_programme_info()` - Calls `get_programme_info_execute()`
+
+**Example Use Cases Now Possible:**
+```
+User: "What EU funding programmes can support my AI healthcare research?"
+Agent: Uses recommend_programmes() → Returns EU4Health, Horizon Europe, Digital Europe
+
+User: "Find open calls for renewable energy across all programmes"
+Agent: Uses search_all_programmes() → Returns calls from Horizon Europe, LIFE, Digital Europe
+
+User: "Tell me about the Erasmus+ programme"
+Agent: Uses get_programme_info() → Returns full Erasmus+ details including Key Actions
+```
+
+### Testing
+Verified with Python tests:
+- ✅ ToolAwareAgent class loads with programme-related methods
+- ✅ All 3 tool implementation methods exist
+- ✅ Tool imports from multi_programme_search work
+- ✅ get_programme_info returns all 6 programmes
+- ✅ recommend_programmes returns scored recommendations
+
+### Follow-up items
+- [ ] Add semantic search across programmes using embeddings
+- [ ] Add programme comparison tool
+- [ ] Add eligibility checker tool
+- [ ] Create integration tests for natural language queries
+
+---
+
 ## Upcoming Iterations
 
-**Iteration 5:** Integrate multi-programme tools into ToolAwareAgent
 **Iteration 6:** Add proposal quality scoring tool
 **Iteration 7:** Add budget validation tool
 **Iterations 8-12:** Testing and validation
