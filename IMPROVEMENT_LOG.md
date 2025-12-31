@@ -454,8 +454,75 @@ Verified with Python tests:
 
 ---
 
+## Iteration 8/20 - Integration Tests for New Tools
+
+**Date:** 2025-12-31
+**Focus Area:** Testing & Stability
+**Priority Level:** 5
+
+### What was improved
+Added comprehensive integration tests for all new tools created in iterations 4-7, ensuring code quality and preventing regressions.
+
+### Why this was prioritized
+New functionality requires test coverage to ensure reliability. Testing early in the iteration cycle catches issues before they compound.
+
+### What was changed
+
+**New Files:**
+- `tests/test_new_tools_integration.py` - Comprehensive test suite
+
+**Modified Files:**
+- `app/services/agents/tool_aware_agent.py` - Added `ToolCategory.PROPOSAL` enum
+
+**Test Coverage:**
+
+1. **Multi-Programme Search Tests:**
+   - Programme configuration validation (all 6 programmes)
+   - Keyword detection coverage
+   - get_programme_info_execute()
+   - get_programme_recommendations_execute()
+   - Research/Education/Health project matching
+
+2. **Proposal Quality Scoring Tests:**
+   - Quality level configuration
+   - Criteria for all sections
+   - quick_quality_check_execute()
+   - Short content rejection
+   - Invalid section type handling
+
+3. **Budget Validation Tests:**
+   - Funding rates configuration
+   - Cost category limits
+   - Consortium requirements
+   - Valid RIA budget validation
+   - IA funding rate warnings
+   - Insufficient partners detection
+   - Cost breakdown validation
+   - Budget range warnings
+   - Indirect costs validation
+
+4. **ToolAwareAgent Integration Tests:**
+   - All 7 new tools registered
+   - Implementation methods exist
+   - Tool descriptions present
+
+### Testing Results
+All tests passing:
+- ✅ 6 programmes configured
+- ✅ Programme recommendations work
+- ✅ Quality scoring tools functional
+- ✅ Budget validation catches issues
+- ✅ All tools integrated in ToolAwareAgent
+
+### Follow-up items
+- [ ] Add async integration tests with mocked LLM
+- [ ] Add end-to-end conversation tests
+- [ ] Set up CI/CD test pipeline
+
+---
+
 ## Upcoming Iterations
 
-**Iterations 8-12:** Testing and validation
+**Iterations 9-12:** Additional testing and validation
 **Iterations 13-17:** Proposal writing enhancements
 **Iterations 18-20:** Security, performance, documentation

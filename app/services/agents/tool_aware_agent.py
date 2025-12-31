@@ -154,6 +154,7 @@ class ToolCategory(Enum):
     COMPARISON = "comparison"     # Cross-reference tools
     VALIDATION = "validation"     # Fact-checking tools
     PROGRAMMES = "programmes"     # Multi-programme discovery and info
+    PROPOSAL = "proposal"         # Proposal writing and quality tools
 
 
 @dataclass
