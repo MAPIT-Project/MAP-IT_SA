@@ -23,6 +23,10 @@ from .proposal_quality_scorer import (
     score_full_proposal_execute,
     quick_quality_check_execute,
 )
+from .budget_validator import (
+    BudgetValidatorTool,
+    validate_budget_execute,
+)
 
 __all__ = [
     'BudgetBenchmarkTool',
@@ -49,4 +53,7 @@ __all__ = [
     'score_proposal_section_execute',
     'score_full_proposal_execute',
     'quick_quality_check_execute',
+    # Budget validation tools
+    'BudgetValidatorTool',
+    'validate_budget_execute',
 ]

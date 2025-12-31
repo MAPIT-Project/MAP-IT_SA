@@ -381,9 +381,81 @@ Verified with Python tests:
 
 ---
 
+## Iteration 7/20 - Budget Validation Tool
+
+**Date:** 2025-12-31
+**Focus Area:** Feature Enhancement
+**Priority Level:** 3
+
+### What was improved
+Added a comprehensive budget validation tool that checks proposal budgets against EU Horizon Europe funding rules, cost category constraints, and consortium requirements.
+
+### Why this was prioritized
+Budget errors are a common reason for proposal rejection or score reduction. While MAPIT AI had budget calculation and benchmarking tools, it lacked validation to catch compliance issues before submission. This tool provides proactive validation.
+
+### What was changed
+
+**New Files:**
+- `app/services/tools/budget_validator.py` - Complete BudgetValidatorTool implementation
+
+**Modified Files:**
+- `app/services/tools/__init__.py` - Added budget validator exports
+- `app/services/agents/tool_aware_agent.py` - Added validate_budget tool
+
+**Key Features Implemented:**
+
+1. **Funding Rate Validation:**
+   - RIA: 100%, IA: 70% for for-profit, CSA: 100%
+   - ERC (STG/COG/ADG): 100%
+   - EIC: 70%, MSCA: 100%
+
+2. **Cost Category Constraints:**
+   - Personnel, equipment, travel, subcontracting, other direct
+   - Min/max percentages by action type
+   - Indirect costs: 25% flat rate validation
+
+3. **Consortium Requirements:**
+   - Minimum partners (3 for RIA/IA, 1 for ERC/CSA)
+   - Country coverage requirements
+   - Coordinator budget share limits
+
+4. **Budget Range Validation:**
+   - Action-type specific min/max budgets
+   - Duration constraints
+   - Budget-per-partner-per-year reasonableness
+
+5. **Multi-Level Issue Classification:**
+   - CRITICAL: Would disqualify proposal
+   - HIGH: Likely evaluator concern
+   - MEDIUM: Suboptimal but acceptable
+   - LOW: Suggestions for improvement
+
+**Example Use Cases:**
+```
+User: "Is my €4M budget for a 36-month RIA with 8 partners reasonable?"
+Agent: Uses validate_budget() → Returns compliance score, passed checks, any issues
+
+User: "Check if our IA budget is compliant"
+Agent: Uses validate_budget() → Flags 70% funding rate for for-profit entities
+```
+
+### Testing
+Verified with Python tests:
+- ✅ Valid RIA budget passes with 100/100 score
+- ✅ IA with 100% funding rate flags medium-priority issue
+- ✅ Cost breakdown validation works correctly
+- ✅ All passed checks reported
+
+### Follow-up items
+- [ ] Add call-specific budget rules from EU Portal API
+- [ ] Integrate with budget calculator for combined calculate+validate
+- [ ] Add SME-specific validation rules
+- [ ] Historical data comparison for budget reasonableness
+
+---
+
 ## Upcoming Iterations
 
-**Iteration 7:** Add budget validation tool
 **Iterations 8-12:** Testing and validation
 **Iterations 13-17:** Proposal writing enhancements
 **Iterations 18-20:** Security, performance, documentation

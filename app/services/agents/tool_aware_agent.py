@@ -1075,6 +1075,26 @@ digital_europe, life""",
             ]
         )
 
+        self.tools['validate_budget'] = Tool(
+            name="validate_budget",
+            description="Validate a proposal budget against EU Horizon Europe funding rules. Checks funding rates, cost categories, consortium requirements, and budget ranges. Returns compliance score and issues.",
+            category=ToolCategory.PROPOSAL,
+            parameters={
+                "total_cost": "Total project cost in EUR (required)",
+                "eu_contribution": "Requested EU contribution in EUR (required)",
+                "action_type": "Action type: 'RIA', 'IA', 'CSA', 'ERC-STG', 'ERC-COG', 'ERC-ADG', 'EIC', 'MSCA' (default: 'RIA')",
+                "duration_months": "Project duration in months (default: 36)",
+                "num_partners": "Number of consortium partners (default: 3)",
+                "cost_breakdown": "Optional dict with personnel, equipment, travel, subcontracting, other_direct, indirect costs",
+                "call_budget_cap": "Optional call-specific maximum budget"
+            },
+            examples=[
+                "validate_budget(total_cost=4000000, eu_contribution=4000000, action_type='RIA', num_partners=8)",
+                "validate_budget(total_cost=6000000, eu_contribution=4200000, action_type='IA', duration_months=42)",
+                "validate_budget(total_cost=2000000, eu_contribution=2000000, action_type='CSA', cost_breakdown={'personnel': 1300000, 'travel': 200000})"
+            ]
+        )
+
     def register_tool(self, tool: Tool):
         """Register a tool with the agent."""
         self.tools[tool.name] = tool
@@ -2406,6 +2426,9 @@ Suggestions:
                 return await self._tool_score_full_proposal(params)
             elif tool_name == 'quick_quality_check':
                 return await self._tool_quick_quality_check(params)
+            # Budget validation tool
+            elif tool_name == 'validate_budget':
+                return await self._tool_validate_budget(params)
             else:
                 return {"error": f"Tool {tool_name} not implemented"}
         except Exception as e:
@@ -3391,6 +3414,28 @@ Suggestions:
 
         except Exception as e:
             logger.error(f"Quick quality check error: {e}")
+            return {"error": str(e), "success": False}
+
+    async def _tool_validate_budget(self, params: Dict) -> Dict:
+        """Validate proposal budget against EU Horizon Europe funding rules."""
+        try:
+            from ..tools.budget_validator import validate_budget_execute
+
+            result = validate_budget_execute(
+                total_cost=params.get('total_cost', 0),
+                eu_contribution=params.get('eu_contribution', 0),
+                action_type=params.get('action_type', 'RIA'),
+                duration_months=params.get('duration_months', 36),
+                num_partners=params.get('num_partners', 3),
+                cost_breakdown=params.get('cost_breakdown'),
+                consortium=params.get('consortium'),
+                call_budget_cap=params.get('call_budget_cap'),
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Budget validation error: {e}")
             return {"error": str(e), "success": False}
 
     def _summarize_tool_results(self, tool_calls: List[ToolCall]) -> str:
