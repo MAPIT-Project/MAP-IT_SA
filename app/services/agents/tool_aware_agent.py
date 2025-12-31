@@ -1027,6 +1027,54 @@ digital_europe, life""",
             ]
         ))
 
+        # Proposal Quality Scoring Tools
+        self.tools['score_proposal_section'] = Tool(
+            name="score_proposal_section",
+            description="Evaluate a proposal section using EU Horizon Europe evaluation criteria. Returns score (0-5), quality level, strengths, weaknesses, and improvement suggestions. Use this when users want to assess proposal quality.",
+            category=ToolCategory.PROPOSAL,
+            parameters={
+                "content": "The proposal section text to evaluate (required, minimum 50 characters)",
+                "section_type": "Type of section: 'excellence', 'impact', or 'implementation' (required)",
+                "section_id": "Optional specific section: 'objectives', 'methodology', 'state_of_art', 'pathways', 'dissemination', 'work_plan', 'consortium'",
+                "action_type": "Optional action type: 'RIA', 'IA', or 'CSA' (default: 'RIA')"
+            },
+            examples=[
+                "score_proposal_section(content='Our project aims to...', section_type='excellence')",
+                "score_proposal_section(content='The methodology involves...', section_type='excellence', section_id='methodology')",
+                "score_proposal_section(content='Expected impacts include...', section_type='impact', action_type='IA')"
+            ]
+        )
+
+        self.tools['score_full_proposal'] = Tool(
+            name="score_full_proposal",
+            description="Evaluate a complete proposal with all three main sections. Returns overall score (0-15), funding probability, and section-by-section breakdown. Use this for comprehensive proposal assessment.",
+            category=ToolCategory.PROPOSAL,
+            parameters={
+                "excellence_content": "Excellence section content (objectives, methodology, state-of-art)",
+                "impact_content": "Impact section content (pathways, dissemination, exploitation)",
+                "implementation_content": "Implementation section content (work plan, consortium, resources)",
+                "action_type": "Optional action type: 'RIA', 'IA', or 'CSA' (default: 'RIA')"
+            },
+            examples=[
+                "score_full_proposal(excellence_content='...', impact_content='...', implementation_content='...')",
+                "score_full_proposal(excellence_content='...', impact_content='...', implementation_content='...', action_type='IA')"
+            ]
+        )
+
+        self.tools['quick_quality_check'] = Tool(
+            name="quick_quality_check",
+            description="Quick quality check for draft proposal text without full AI evaluation. Returns quality indicators and improvement suggestions. Use this for rapid feedback on early drafts.",
+            category=ToolCategory.PROPOSAL,
+            parameters={
+                "text": "The draft text to check (required)",
+                "context": "Optional context hint: 'objectives', 'methodology', 'impact', etc."
+            },
+            examples=[
+                "quick_quality_check(text='This project will develop innovative solutions...')",
+                "quick_quality_check(text='The work plan consists of 5 WPs...', context='implementation')"
+            ]
+        )
+
     def register_tool(self, tool: Tool):
         """Register a tool with the agent."""
         self.tools[tool.name] = tool
@@ -2351,6 +2399,13 @@ Suggestions:
                 return await self._tool_recommend_programmes(params)
             elif tool_name == 'get_programme_info':
                 return await self._tool_get_programme_info(params)
+            # Proposal quality scoring tools
+            elif tool_name == 'score_proposal_section':
+                return await self._tool_score_proposal_section(params)
+            elif tool_name == 'score_full_proposal':
+                return await self._tool_score_full_proposal(params)
+            elif tool_name == 'quick_quality_check':
+                return await self._tool_quick_quality_check(params)
             else:
                 return {"error": f"Tool {tool_name} not implemented"}
         except Exception as e:
@@ -3282,6 +3337,60 @@ Suggestions:
 
         except Exception as e:
             logger.error(f"Programme info error: {e}")
+            return {"error": str(e), "success": False}
+
+    async def _tool_score_proposal_section(self, params: Dict) -> Dict:
+        """Score a proposal section using EU Horizon Europe evaluation criteria."""
+        try:
+            from ..tools.proposal_quality_scorer import score_proposal_section_execute
+
+            result = await score_proposal_section_execute(
+                content=params.get('content', ''),
+                section_type=params.get('section_type', 'excellence'),
+                section_id=params.get('section_id'),
+                action_type=params.get('action_type', 'RIA'),
+                call_id=params.get('call_id'),
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Proposal section scoring error: {e}")
+            return {"error": str(e), "success": False}
+
+    async def _tool_score_full_proposal(self, params: Dict) -> Dict:
+        """Score a complete proposal with all three main sections."""
+        try:
+            from ..tools.proposal_quality_scorer import score_full_proposal_execute
+
+            result = await score_full_proposal_execute(
+                excellence_content=params.get('excellence_content', ''),
+                impact_content=params.get('impact_content', ''),
+                implementation_content=params.get('implementation_content', ''),
+                action_type=params.get('action_type', 'RIA'),
+                call_id=params.get('call_id'),
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Full proposal scoring error: {e}")
+            return {"error": str(e), "success": False}
+
+    async def _tool_quick_quality_check(self, params: Dict) -> Dict:
+        """Quick quality check for draft proposal text."""
+        try:
+            from ..tools.proposal_quality_scorer import quick_quality_check_execute
+
+            result = await quick_quality_check_execute(
+                text=params.get('text', ''),
+                context=params.get('context', 'general'),
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Quick quality check error: {e}")
             return {"error": str(e), "success": False}
 
     def _summarize_tool_results(self, tool_calls: List[ToolCall]) -> str:

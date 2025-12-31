@@ -17,6 +17,12 @@ from .multi_programme_search import (
     get_programme_recommendations_execute,
     get_programme_info_execute,
 )
+from .proposal_quality_scorer import (
+    ProposalQualityScorerTool,
+    score_proposal_section_execute,
+    score_full_proposal_execute,
+    quick_quality_check_execute,
+)
 
 __all__ = [
     'BudgetBenchmarkTool',
@@ -38,4 +44,9 @@ __all__ = [
     'search_all_programmes_execute',
     'get_programme_recommendations_execute',
     'get_programme_info_execute',
+    # Proposal quality tools
+    'ProposalQualityScorerTool',
+    'score_proposal_section_execute',
+    'score_full_proposal_execute',
+    'quick_quality_check_execute',
 ]

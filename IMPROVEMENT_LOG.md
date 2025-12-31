@@ -315,9 +315,74 @@ Verified with Python tests:
 
 ---
 
+## Iteration 6/20 - Proposal Quality Scoring Tool
+
+**Date:** 2025-12-31
+**Focus Area:** Feature Enhancement
+**Priority Level:** 3
+
+### What was improved
+Added a unified proposal quality scoring tool that evaluates proposals using EU Horizon Europe evaluation criteria, providing scores, quality levels, and actionable improvement suggestions.
+
+### Why this was prioritized
+Users need to assess proposal quality before submission. While the codebase had proposal evaluation services (EvaluatorSimulator, GapAnalysisService), these weren't accessible through the ToolAwareAgent. This tool provides a unified interface for proposal quality assessment.
+
+### What was changed
+
+**New Files:**
+- `app/services/tools/proposal_quality_scorer.py` - Complete ProposalQualityScorerTool implementation
+
+**Modified Files:**
+- `app/services/tools/__init__.py` - Added proposal quality scorer exports
+- `app/services/agents/tool_aware_agent.py` - Added 3 new tools and their implementations
+
+**Key Features Implemented:**
+
+1. **ProposalQualityScorerTool Class:**
+   - `score_section()` - Evaluate individual sections (0-5 scale)
+   - `score_full_proposal()` - Evaluate complete proposals (0-15 scale)
+   - `quick_quality_check()` - Fast quality indicators for drafts
+
+2. **Quality Classification:**
+   - EXCELLENT (4.5-5.0), VERY_GOOD (3.5-4.4), GOOD (3.0-3.4), NEEDS_IMPROVEMENT (2.0-2.9), WEAK (0-1.9)
+   - Funding probability estimation (high, medium-high, medium, low, very_low)
+
+3. **EU Criteria Coverage:**
+   - Excellence: objectives, methodology, state-of-art
+   - Impact: pathways, dissemination
+   - Implementation: work_plan, consortium
+
+4. **Tool Integration:**
+   - `score_proposal_section` - Section-level evaluation
+   - `score_full_proposal` - Complete proposal evaluation
+   - `quick_quality_check` - Rapid quality feedback
+
+**Example Use Cases:**
+```
+User: "Score this objectives section for me"
+Agent: Uses score_proposal_section() → Returns score 3.8/5.0, quality level, improvements
+
+User: "How good is my draft?"
+Agent: Uses quick_quality_check() → Returns quality estimate, indicators, suggestions
+```
+
+### Testing
+Verified with Python tests:
+- ✅ ProposalQualityScorerTool imports successfully
+- ✅ ToolAwareAgent has quality-related methods
+- ✅ quick_quality_check returns quality estimate and suggestions
+- ✅ Integration with existing EvaluatorSimulator (lazy loaded)
+
+### Follow-up items
+- [ ] Add semantic benchmarking against successful proposals
+- [ ] Implement streaming quality indicators
+- [ ] Add criterion-level improvement tracking
+- [ ] Cache evaluation results for unchanged content
+
+---
+
 ## Upcoming Iterations
 
-**Iteration 6:** Add proposal quality scoring tool
 **Iteration 7:** Add budget validation tool
 **Iterations 8-12:** Testing and validation
 **Iterations 13-17:** Proposal writing enhancements
