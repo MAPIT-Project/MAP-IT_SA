@@ -713,6 +713,7 @@ New database tables added for analytics and feedback (in `migration/` directory)
 - `scripts/ingest_erasmus_documents.py` - Ingest Erasmus+ Programme Guide and Work Programmes
 - `scripts/sync_erasmus_calls_from_api.py` - Sync Erasmus+ funding calls from EU Portal API
 - `scripts/ingest_erasmus_templates.py` - Ingest Erasmus+ application templates (categorizes by Key Action, Sector, Document Type)
+- `scripts/ingest_erasmus_to_neo4j.py` - Populate Neo4j with Erasmus+ reference data (ErasmusAction, ErasmusSector, PartnerRegion nodes)
 
 ## Special Considerations
 

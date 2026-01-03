@@ -1300,6 +1300,29 @@ Full integration of Erasmus+ programme support:
 - Directory structure for templates by Key Action and sector
 - Automatic categorization by document type
 
+**Phase 5: Neo4j Graph Integration**
+- Added Erasmus+ reference data to Neo4j graph database
+- New node types: `ErasmusAction`, `ErasmusSector`, `PartnerRegion`
+- New relationships: `AVAILABLE_IN`, `REQUIRES_COORDINATOR_FROM`, `ALLOWS_PARTNERS_FROM`, `MEMBER_OF`
+- Graph-based eligibility checking for dynamic action/country rules
+- Hybrid mode: Neo4j enriches hardcoded rules with budget/duration data
+
+**Neo4j Erasmus+ Schema:**
+```
+(ErasmusAction) -[:AVAILABLE_IN]-> (ErasmusSector)
+              -[:REQUIRES_COORDINATOR_FROM]-> (PartnerRegion)
+              -[:ALLOWS_PARTNERS_FROM]-> (PartnerRegion)
+(Country) -[:MEMBER_OF]-> (PartnerRegion)
+```
+
+**New Graph Methods in `graph_service.py`:**
+- `get_erasmus_actions(key_action, sector)` - Get actions with metadata
+- `get_erasmus_sectors()` - Get all sectors with action counts
+- `check_erasmus_country_eligibility(country_code, action_code)` - Country-based eligibility
+- `get_erasmus_action_details(action_code)` - Detailed action requirements
+- `find_eligible_erasmus_actions(country_code, sector, role)` - Find eligible actions
+- `get_partner_regions()` - Get all partner regions with countries
+
 **Files Created:**
 - `app/services/tools/erasmus_eligibility.py`
 - `app/services/tools/erasmus_budget_calculator.py`
@@ -1307,4 +1330,5 @@ Full integration of Erasmus+ programme support:
 - `scripts/ingest_erasmus_documents.py`
 - `scripts/sync_erasmus_calls_from_api.py`
 - `scripts/ingest_erasmus_templates.py`
+- `scripts/ingest_erasmus_to_neo4j.py` - Populate Neo4j with Erasmus+ reference data
 

@@ -411,6 +411,68 @@ class ErasmusEligibilityTool:
         return self.PARTNER_REGIONS.copy()
 
 
+# Country name to ISO code mapping for Neo4j lookups
+COUNTRY_NAME_TO_ISO = {
+    # EU Member States
+    'Austria': 'AT', 'Belgium': 'BE', 'Bulgaria': 'BG', 'Croatia': 'HR',
+    'Cyprus': 'CY', 'Czech Republic': 'CZ', 'Denmark': 'DK', 'Estonia': 'EE',
+    'Finland': 'FI', 'France': 'FR', 'Germany': 'DE', 'Greece': 'GR',
+    'Hungary': 'HU', 'Ireland': 'IE', 'Italy': 'IT', 'Latvia': 'LV',
+    'Lithuania': 'LT', 'Luxembourg': 'LU', 'Malta': 'MT', 'Netherlands': 'NL',
+    'Poland': 'PL', 'Portugal': 'PT', 'Romania': 'RO', 'Slovakia': 'SK',
+    'Slovenia': 'SI', 'Spain': 'ES', 'Sweden': 'SE',
+    # EEA
+    'Iceland': 'IS', 'Liechtenstein': 'LI', 'Norway': 'NO',
+    # Other Programme Countries
+    'North Macedonia': 'MK', 'Serbia': 'RS', 'Turkey': 'TR',
+    # Common variations
+    'UK': 'GB', 'United Kingdom': 'GB', 'Switzerland': 'CH',
+}
+
+
+def _try_graph_eligibility_check(
+    country: str,
+    action_type: Optional[str] = None,
+    role: str = "coordinator"
+) -> Optional[Dict[str, Any]]:
+    """
+    Try to use Neo4j graph for eligibility check.
+
+    Returns None if Neo4j data not available, otherwise returns graph results.
+    """
+    try:
+        from app.services.data_intelligence.graph_service import GraphSearchService
+        graph = GraphSearchService()
+
+        # Convert country name to ISO code
+        country_code = COUNTRY_NAME_TO_ISO.get(country, country.upper()[:2])
+
+        if action_type:
+            # Check specific action eligibility
+            result = graph.get_erasmus_action_details(action_type)
+            if result:
+                country_result = graph.check_erasmus_country_eligibility(country_code, action_type)
+                return {
+                    'action_details': result,
+                    'country_eligibility': country_result,
+                    'source': 'neo4j_graph'
+                }
+        else:
+            # Get all eligible actions for this country
+            actions = graph.find_eligible_erasmus_actions(country_code, role=role)
+            if actions:
+                return {
+                    'eligible_actions': actions,
+                    'country_code': country_code,
+                    'source': 'neo4j_graph'
+                }
+
+    except Exception as e:
+        logger.debug(f"Neo4j eligibility check not available: {e}")
+
+    return None
+
+
 # Tool execution function for ToolAwareAgent
 async def check_erasmus_eligibility_execute(
     org_type: str,
@@ -421,6 +483,9 @@ async def check_erasmus_eligibility_execute(
 ) -> Dict[str, Any]:
     """
     Check Erasmus+ eligibility for an organization.
+
+    Uses Neo4j graph database when available for dynamic eligibility data,
+    with fallback to hardcoded rules.
 
     Args:
         org_type: Organization type (HEI, SCHOOL, VET_PROVIDER, NGO, etc.)
@@ -433,6 +498,11 @@ async def check_erasmus_eligibility_execute(
         Eligibility result with requirements and recommendations
     """
     tool = ErasmusEligibilityTool()
+    source = 'hardcoded_rules'
+
+    # Try Neo4j first for enriched data
+    role = "coordinator" if is_coordinator else "participant"
+    graph_result = _try_graph_eligibility_check(country, action_type, role)
 
     if action_type:
         # Check specific action
@@ -443,15 +513,32 @@ async def check_erasmus_eligibility_execute(
             has_eche=has_eche,
             is_coordinator=is_coordinator,
         )
-        return {
+
+        response = {
             'success': True,
             'result': result.to_dict(),
             'metadata': {
                 'tool': 'check_erasmus_eligibility',
                 'query_type': 'specific_action',
                 'programme': 'erasmus_plus',
+                'source': source,
             }
         }
+
+        # Enrich with graph data if available
+        if graph_result and 'action_details' in graph_result:
+            action_details = graph_result['action_details']
+            response['action_details'] = {
+                'min_partners': action_details.get('requirements', {}).get('min_partners'),
+                'min_countries': action_details.get('requirements', {}).get('min_countries'),
+                'duration_months': action_details.get('duration'),
+                'typical_budget': action_details.get('budget'),
+                'sector': action_details.get('sector'),
+            }
+            response['country_eligibility'] = graph_result.get('country_eligibility')
+            response['metadata']['source'] = 'hybrid_graph_rules'
+
+        return response
     else:
         # Get all eligible actions
         eligible_actions = tool.get_eligible_actions(
@@ -459,7 +546,8 @@ async def check_erasmus_eligibility_execute(
             country=country,
             has_eche=has_eche,
         )
-        return {
+
+        response = {
             'success': True,
             'eligible_actions': eligible_actions,
             'total_eligible': len(eligible_actions),
@@ -469,5 +557,21 @@ async def check_erasmus_eligibility_execute(
                 'org_type': org_type,
                 'country': country,
                 'programme': 'erasmus_plus',
+                'source': source,
             }
         }
+
+        # Enrich with graph data if available
+        if graph_result and 'eligible_actions' in graph_result:
+            graph_actions = graph_result['eligible_actions']
+            # Add budget and duration info from graph
+            action_map = {a['code']: a for a in graph_actions}
+            for action in response['eligible_actions']:
+                code = action['action_type']
+                if code in action_map:
+                    graph_action = action_map[code]
+                    action['typical_budget'] = graph_action.get('typical_budget')
+                    action['requirements'] = graph_action.get('requirements')
+            response['metadata']['source'] = 'hybrid_graph_rules'
+
+        return response

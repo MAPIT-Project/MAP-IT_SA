@@ -1848,6 +1848,454 @@ class GraphSearchService:
             logger.error(f"Error getting cluster statistics: {e}")
             return []
 
+    # ========================================================================
+    # ERASMUS+ PROGRAMME QUERIES
+    # ========================================================================
+
+    def get_erasmus_actions(
+        self,
+        key_action: Optional[str] = None,
+        sector: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Get Erasmus+ actions with their metadata.
+
+        Args:
+            key_action: Filter by key action (KA1, KA2, KA3, JMO, SPORT)
+            sector: Filter by sector (HED, VET, SCH, ADU, YOU, SPORT)
+
+        Returns:
+            List of Erasmus+ actions with full metadata
+        """
+        where_clauses = []
+        params = {}
+
+        if key_action:
+            where_clauses.append("a.key_action = $key_action")
+            params["key_action"] = key_action.upper()
+
+        if sector:
+            where_clauses.append("a.sector = $sector")
+            params["sector"] = sector.upper()
+
+        where_clause = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+
+        query = f"""
+        MATCH (a:ErasmusAction)
+        {where_clause}
+        OPTIONAL MATCH (a)-[:AVAILABLE_IN]->(s:ErasmusSector)
+        OPTIONAL MATCH (a)-[:REQUIRES_COORDINATOR_FROM]->(cr:PartnerRegion)
+        OPTIONAL MATCH (a)-[:ALLOWS_PARTNERS_FROM]->(pr:PartnerRegion)
+
+        RETURN a.code as code,
+               a.name as name,
+               a.key_action as key_action,
+               a.description as description,
+               a.min_partners as min_partners,
+               a.min_countries as min_countries,
+               a.requires_eche as requires_eche,
+               a.duration_months_min as duration_min,
+               a.duration_months_max as duration_max,
+               a.typical_budget_min as budget_min,
+               a.typical_budget_max as budget_max,
+               a.funding_model as funding_model,
+               s.code as sector_code,
+               s.name as sector_name,
+               cr.code as coordinator_region,
+               pr.code as partner_region
+        ORDER BY a.key_action, a.code
+        """
+
+        try:
+            results = self.db.execute_query(query, params)
+            return [
+                {
+                    "code": r.get("code"),
+                    "name": r.get("name"),
+                    "key_action": r.get("key_action"),
+                    "description": r.get("description"),
+                    "min_partners": r.get("min_partners", 1),
+                    "min_countries": r.get("min_countries", 1),
+                    "requires_eche": r.get("requires_eche", False),
+                    "duration_months": {
+                        "min": r.get("duration_min"),
+                        "max": r.get("duration_max")
+                    },
+                    "typical_budget": {
+                        "min": r.get("budget_min"),
+                        "max": r.get("budget_max")
+                    },
+                    "funding_model": r.get("funding_model"),
+                    "sector": {
+                        "code": r.get("sector_code"),
+                        "name": r.get("sector_name")
+                    },
+                    "coordinator_region": r.get("coordinator_region"),
+                    "partner_region": r.get("partner_region"),
+                    "source": "neo4j_graph"
+                }
+                for r in results
+            ]
+        except Exception as e:
+            logger.error(f"Error getting Erasmus+ actions: {e}")
+            return []
+
+    def get_erasmus_sectors(self) -> List[Dict[str, Any]]:
+        """
+        Get all Erasmus+ sectors with their available actions.
+
+        Returns:
+            List of sectors with action counts
+        """
+        query = """
+        MATCH (s:ErasmusSector)
+        OPTIONAL MATCH (a:ErasmusAction)-[:AVAILABLE_IN]->(s)
+
+        WITH s, COLLECT(DISTINCT a.code) as actions, COUNT(DISTINCT a) as action_count
+
+        RETURN s.code as code,
+               s.name as name,
+               s.description as description,
+               s.org_types as org_types,
+               actions,
+               action_count
+        ORDER BY s.code
+        """
+
+        try:
+            results = self.db.execute_query(query)
+            return [
+                {
+                    "code": r.get("code"),
+                    "name": r.get("name"),
+                    "description": r.get("description"),
+                    "org_types": r.get("org_types", []),
+                    "actions": r.get("actions", []),
+                    "action_count": r.get("action_count", 0),
+                    "source": "neo4j_graph"
+                }
+                for r in results
+            ]
+        except Exception as e:
+            logger.error(f"Error getting Erasmus+ sectors: {e}")
+            return []
+
+    def check_erasmus_country_eligibility(
+        self,
+        country_code: str,
+        action_code: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Check if a country is eligible for Erasmus+ actions.
+
+        Args:
+            country_code: ISO country code (e.g., "DE", "FR")
+            action_code: Optional specific action code (e.g., "KA2-COOP-HED")
+
+        Returns:
+            Eligibility status with eligible actions
+        """
+        country_code = country_code.upper().strip()
+
+        # First check which regions the country belongs to
+        region_query = """
+        MATCH (r:PartnerRegion)
+        WHERE $country_code IN r.countries
+        RETURN r.code as region_code, r.name as region_name
+        """
+
+        try:
+            regions = self.db.execute_query(region_query, {"country_code": country_code})
+
+            is_programme_country = any(r.get("region_code") == "PROGRAMME" for r in regions)
+            region_codes = [r.get("region_code") for r in regions]
+
+            # Find eligible actions
+            action_params = {"regions": region_codes}
+            action_where = ""
+
+            if action_code:
+                action_where = "AND a.code = $action_code"
+                action_params["action_code"] = action_code.upper()
+
+            action_query = f"""
+            MATCH (a:ErasmusAction)
+            OPTIONAL MATCH (a)-[:REQUIRES_COORDINATOR_FROM]->(cr:PartnerRegion)
+            OPTIONAL MATCH (a)-[:ALLOWS_PARTNERS_FROM]->(pr:PartnerRegion)
+            WHERE (cr.code IN $regions OR pr.code IN $regions OR cr.code = 'WORLDWIDE' OR pr.code = 'WORLDWIDE')
+            {action_where}
+
+            RETURN a.code as code,
+                   a.name as name,
+                   a.key_action as key_action,
+                   a.requires_eche as requires_eche,
+                   cr.code as coordinator_region,
+                   pr.code as partner_region,
+                   CASE WHEN cr.code IN $regions OR cr.code = 'WORLDWIDE' THEN true ELSE false END as can_coordinate,
+                   CASE WHEN pr.code IN $regions OR pr.code = 'WORLDWIDE' THEN true ELSE false END as can_participate
+            ORDER BY a.key_action, a.code
+            """
+
+            eligible_actions = self.db.execute_query(action_query, action_params)
+
+            coordinator_actions = [a for a in eligible_actions if a.get("can_coordinate")]
+            participant_actions = [a for a in eligible_actions if a.get("can_participate")]
+
+            return {
+                "country_code": country_code,
+                "is_programme_country": is_programme_country,
+                "regions": region_codes,
+                "can_coordinate_actions": [
+                    {
+                        "code": a.get("code"),
+                        "name": a.get("name"),
+                        "key_action": a.get("key_action"),
+                        "requires_eche": a.get("requires_eche", False)
+                    }
+                    for a in coordinator_actions
+                ],
+                "can_participate_actions": [
+                    {
+                        "code": a.get("code"),
+                        "name": a.get("name"),
+                        "key_action": a.get("key_action")
+                    }
+                    for a in participant_actions
+                ],
+                "eligible_as_coordinator": len(coordinator_actions) > 0,
+                "eligible_as_partner": len(participant_actions) > 0,
+                "notes": [
+                    "Programme Countries can coordinate most actions" if is_programme_country
+                    else "Partner Countries have limited coordination options",
+                    "ECHE required for HEIs in Programme Countries for mobility actions"
+                ],
+                "source": "neo4j_graph"
+            }
+
+        except Exception as e:
+            logger.error(f"Error checking Erasmus+ country eligibility: {e}")
+            return {
+                "country_code": country_code,
+                "error": str(e),
+                "eligible_as_coordinator": False,
+                "eligible_as_partner": False,
+                "source": "fallback"
+            }
+
+    def get_erasmus_action_details(self, action_code: str) -> Optional[Dict[str, Any]]:
+        """
+        Get detailed information about a specific Erasmus+ action.
+
+        Args:
+            action_code: Action code (e.g., "KA2-COOP-HED", "JMO-MODULE")
+
+        Returns:
+            Detailed action information including requirements
+        """
+        query = """
+        MATCH (a:ErasmusAction {code: $action_code})
+        OPTIONAL MATCH (a)-[:AVAILABLE_IN]->(s:ErasmusSector)
+        OPTIONAL MATCH (a)-[:REQUIRES_COORDINATOR_FROM]->(cr:PartnerRegion)
+        OPTIONAL MATCH (a)-[:ALLOWS_PARTNERS_FROM]->(pr:PartnerRegion)
+
+        RETURN a.code as code,
+               a.name as name,
+               a.key_action as key_action,
+               a.description as description,
+               a.min_partners as min_partners,
+               a.min_countries as min_countries,
+               a.requires_eche as requires_eche,
+               a.coordinator_countries as coordinator_countries,
+               a.partner_countries as partner_countries,
+               a.duration_months_min as duration_min,
+               a.duration_months_max as duration_max,
+               a.typical_budget_min as budget_min,
+               a.typical_budget_max as budget_max,
+               a.funding_model as funding_model,
+               s.code as sector_code,
+               s.name as sector_name,
+               s.org_types as sector_org_types,
+               cr.code as coordinator_region,
+               cr.countries as coordinator_countries_list,
+               pr.code as partner_region,
+               pr.countries as partner_countries_list
+        """
+
+        try:
+            results = self.db.execute_query(query, {"action_code": action_code.upper()})
+
+            if not results:
+                return None
+
+            r = results[0]
+            return {
+                "code": r.get("code"),
+                "name": r.get("name"),
+                "key_action": r.get("key_action"),
+                "description": r.get("description"),
+                "requirements": {
+                    "min_partners": r.get("min_partners", 1),
+                    "min_countries": r.get("min_countries", 1),
+                    "requires_eche": r.get("requires_eche", False),
+                },
+                "duration": {
+                    "min_months": r.get("duration_min"),
+                    "max_months": r.get("duration_max")
+                },
+                "budget": {
+                    "typical_min": r.get("budget_min"),
+                    "typical_max": r.get("budget_max"),
+                    "funding_model": r.get("funding_model")
+                },
+                "sector": {
+                    "code": r.get("sector_code"),
+                    "name": r.get("sector_name"),
+                    "eligible_org_types": r.get("sector_org_types", [])
+                },
+                "country_eligibility": {
+                    "coordinator_region": r.get("coordinator_region"),
+                    "partner_region": r.get("partner_region")
+                },
+                "source": "neo4j_graph"
+            }
+
+        except Exception as e:
+            logger.error(f"Error getting Erasmus+ action details: {e}")
+            return None
+
+    def find_eligible_erasmus_actions(
+        self,
+        country_code: str,
+        sector: Optional[str] = None,
+        role: str = "participant"
+    ) -> List[Dict[str, Any]]:
+        """
+        Find Erasmus+ actions that an organization from a country can participate in.
+
+        Args:
+            country_code: ISO country code
+            sector: Optional sector filter (HED, VET, SCH, ADU, YOU, SPORT)
+            role: "coordinator" or "participant"
+
+        Returns:
+            List of eligible actions with requirements
+        """
+        country_code = country_code.upper()
+
+        # First determine which regions the country belongs to
+        region_query = """
+        MATCH (r:PartnerRegion)
+        WHERE $country_code IN r.countries
+        RETURN COLLECT(r.code) as regions
+        """
+
+        try:
+            region_result = self.db.execute_query(region_query, {"country_code": country_code})
+            regions = region_result[0].get("regions", []) if region_result else []
+
+            # Build action query
+            params = {"regions": regions}
+            sector_filter = ""
+
+            if sector:
+                sector_filter = "AND a.sector = $sector"
+                params["sector"] = sector.upper()
+
+            if role == "coordinator":
+                region_match = """
+                MATCH (a)-[:REQUIRES_COORDINATOR_FROM]->(r:PartnerRegion)
+                WHERE r.code IN $regions OR r.code = 'WORLDWIDE'
+                """
+            else:
+                region_match = """
+                MATCH (a)-[:ALLOWS_PARTNERS_FROM]->(r:PartnerRegion)
+                WHERE r.code IN $regions OR r.code = 'WORLDWIDE'
+                """
+
+            query = f"""
+            MATCH (a:ErasmusAction)
+            {region_match}
+            {sector_filter}
+            OPTIONAL MATCH (a)-[:AVAILABLE_IN]->(s:ErasmusSector)
+
+            RETURN a.code as code,
+                   a.name as name,
+                   a.key_action as key_action,
+                   a.description as description,
+                   a.min_partners as min_partners,
+                   a.min_countries as min_countries,
+                   a.requires_eche as requires_eche,
+                   a.typical_budget_min as budget_min,
+                   a.typical_budget_max as budget_max,
+                   s.code as sector_code,
+                   s.name as sector_name
+            ORDER BY a.key_action, a.code
+            """
+
+            results = self.db.execute_query(query, params)
+            return [
+                {
+                    "code": r.get("code"),
+                    "name": r.get("name"),
+                    "key_action": r.get("key_action"),
+                    "description": r.get("description"),
+                    "requirements": {
+                        "min_partners": r.get("min_partners", 1),
+                        "min_countries": r.get("min_countries", 1),
+                        "requires_eche": r.get("requires_eche", False)
+                    },
+                    "typical_budget": {
+                        "min": r.get("budget_min"),
+                        "max": r.get("budget_max")
+                    },
+                    "sector": {
+                        "code": r.get("sector_code"),
+                        "name": r.get("sector_name")
+                    },
+                    "eligible_role": role,
+                    "source": "neo4j_graph"
+                }
+                for r in results
+            ]
+
+        except Exception as e:
+            logger.error(f"Error finding eligible Erasmus+ actions: {e}")
+            return []
+
+    def get_partner_regions(self) -> List[Dict[str, Any]]:
+        """
+        Get all Erasmus+ partner regions with their countries.
+
+        Returns:
+            List of partner regions
+        """
+        query = """
+        MATCH (r:PartnerRegion)
+        RETURN r.code as code,
+               r.name as name,
+               r.description as description,
+               r.countries as countries,
+               SIZE(r.countries) as country_count
+        ORDER BY r.code
+        """
+
+        try:
+            results = self.db.execute_query(query)
+            return [
+                {
+                    "code": r.get("code"),
+                    "name": r.get("name"),
+                    "description": r.get("description"),
+                    "countries": r.get("countries", []),
+                    "country_count": r.get("country_count", 0),
+                    "source": "neo4j_graph"
+                }
+                for r in results
+            ]
+        except Exception as e:
+            logger.error(f"Error getting partner regions: {e}")
+            return []
+
 
 # Module-level instance for convenience
 graph_search = GraphSearchService()
