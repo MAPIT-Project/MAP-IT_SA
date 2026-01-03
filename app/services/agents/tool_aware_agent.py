@@ -1159,6 +1159,62 @@ digital_europe, life""",
             ]
         )
 
+        # Creative Europe specific tools
+        self.tools['check_creative_europe_eligibility'] = Tool(
+            name="check_creative_europe_eligibility",
+            description="Check if an organization is eligible for Creative Europe actions. Covers CULTURE strand (cooperation projects, networks, platforms), MEDIA strand (film development, distribution, festivals), and Cross-sectoral strand (innovation labs, news media). Use for eligibility questions about Creative Europe.",
+            category=ToolCategory.CALLS,
+            parameters={
+                "org_type": "Organization type: CULTURAL_ORG, AUDIOVISUAL, PRODUCTION, DISTRIBUTION, BROADCASTER, CINEMA, FESTIVAL, TRAINING, NGO, PUBLIC_BODY, SME, NEWS_MEDIA, RESEARCH (required)",
+                "country": "Country of the organization (required)",
+                "action_type": "Optional: Specific action to check (e.g., 'COOP-SMALL', 'DEVSLATE', 'INNOVLAB')",
+                "strand": "Optional: Filter by CULTURE, MEDIA, or CROSS-SECTORAL",
+                "is_coordinator": "Optional: Whether checking as coordinator (default: true)"
+            },
+            examples=[
+                "check_creative_europe_eligibility(org_type='PRODUCTION', country='France', action_type='DEVSLATE')",
+                "check_creative_europe_eligibility(org_type='CULTURAL_ORG', country='Germany', strand='CULTURE')",
+                "check_creative_europe_eligibility(org_type='NEWS_MEDIA', country='Spain', action_type='JOURPART')"
+            ]
+        )
+
+        self.tools['calculate_creative_europe_budget'] = Tool(
+            name="calculate_creative_europe_budget",
+            description="Calculate Creative Europe grant amounts based on strand and action type. Covers CULTURE (cooperation projects 200k-2M), MEDIA (development 30-210k, distribution, festivals), and Cross-sectoral (innovation labs 2-4M, news partnerships). Uses official funding rates and budget caps.",
+            category=ToolCategory.PROPOSAL,
+            parameters={
+                "action_type": "Action type: COOP-SMALL, COOP-MEDIUM, COOP-LARGE, DEVSLATE, DEVSINGLE, TVONLINE, FEST, INNOVLAB, JOURPART, etc. (required)",
+                "requested_amount": "Optional: Requested EU grant amount",
+                "project_scale": "'small', 'medium', or 'large' (default: 'medium')",
+                "num_partners": "Number of consortium partners (default: 3)",
+                "duration_months": "Optional: Project duration in months",
+                "strand": "Optional: For 'OVERVIEW' action_type, filter by strand"
+            },
+            examples=[
+                "calculate_creative_europe_budget(action_type='COOP-MEDIUM', num_partners=6, project_scale='large')",
+                "calculate_creative_europe_budget(action_type='DEVSLATE', requested_amount=180000)",
+                "calculate_creative_europe_budget(action_type='OVERVIEW', strand='MEDIA')  # Get all MEDIA action budgets"
+            ]
+        )
+
+        self.tools['search_creative_europe_templates'] = Tool(
+            name="search_creative_europe_templates",
+            description="Search Creative Europe documents (Work Programmes, CulturEU Funding Guide, strand overviews) for application guidance, eligibility criteria, and programme information. Use for Creative Europe application questions.",
+            category=ToolCategory.DOCUMENTS,
+            parameters={
+                "query": "What to search for (e.g., 'MEDIA development eligibility', 'cooperation project criteria')",
+                "strand": "Optional: Filter by CULTURE, MEDIA, or CROSS-SECTORAL",
+                "action_type": "Optional: Filter by action type (e.g., 'DEVSLATE', 'COOP-SMALL')",
+                "topic": "Optional: Specific topic (eligibility, budget, evaluation)",
+                "top_k": "Number of results (default: 5)"
+            },
+            examples=[
+                "search_creative_europe_templates(query='MEDIA development eligibility requirements')",
+                "search_creative_europe_templates(query='cooperation project evaluation criteria', strand='CULTURE')",
+                "search_creative_europe_templates(query='film distribution support', action_type='FILMDIST')"
+            ]
+        )
+
     def register_tool(self, tool: Tool):
         """Register a tool with the agent."""
         self.tools[tool.name] = tool
@@ -2500,6 +2556,13 @@ Suggestions:
                 return await self._tool_calculate_erasmus_budget(params)
             elif tool_name == 'search_erasmus_templates':
                 return await self._tool_search_erasmus_templates(params)
+            # Creative Europe specific tools
+            elif tool_name == 'check_creative_europe_eligibility':
+                return await self._tool_check_creative_europe_eligibility(params)
+            elif tool_name == 'calculate_creative_europe_budget':
+                return await self._tool_calculate_creative_europe_budget(params)
+            elif tool_name == 'search_creative_europe_templates':
+                return await self._tool_search_creative_europe_templates(params)
             else:
                 return {"error": f"Tool {tool_name} not implemented"}
         except Exception as e:
@@ -3570,6 +3633,64 @@ Suggestions:
 
         except Exception as e:
             logger.error(f"Erasmus+ template search error: {e}")
+            return {"error": str(e), "success": False}
+
+    async def _tool_check_creative_europe_eligibility(self, params: Dict) -> Dict:
+        """Check Creative Europe eligibility for an organization."""
+        try:
+            from ..tools.creative_europe_eligibility import check_creative_europe_eligibility_execute
+
+            result = await check_creative_europe_eligibility_execute(
+                org_type=params.get('org_type', 'CULTURAL_ORG'),
+                country=params.get('country', 'Germany'),
+                action_type=params.get('action_type'),
+                strand=params.get('strand'),
+                is_coordinator=params.get('is_coordinator', True),
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Creative Europe eligibility check error: {e}")
+            return {"error": str(e), "success": False}
+
+    async def _tool_calculate_creative_europe_budget(self, params: Dict) -> Dict:
+        """Calculate Creative Europe grant budget."""
+        try:
+            from ..tools.creative_europe_budget_calculator import calculate_creative_europe_budget_execute
+
+            result = await calculate_creative_europe_budget_execute(
+                action_type=params.get('action_type', 'COOP-SMALL'),
+                requested_amount=params.get('requested_amount'),
+                project_scale=params.get('project_scale', 'medium'),
+                num_partners=params.get('num_partners', 3),
+                duration_months=params.get('duration_months'),
+                strand=params.get('strand'),
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Creative Europe budget calculation error: {e}")
+            return {"error": str(e), "success": False}
+
+    async def _tool_search_creative_europe_templates(self, params: Dict) -> Dict:
+        """Search Creative Europe documents for application guidance."""
+        try:
+            from ..tools.creative_europe_template_search import search_creative_europe_templates_execute
+
+            result = await search_creative_europe_templates_execute(
+                query=params.get('query', ''),
+                strand=params.get('strand'),
+                action_type=params.get('action_type'),
+                topic=params.get('topic'),
+                top_k=params.get('top_k', 5),
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Creative Europe template search error: {e}")
             return {"error": str(e), "success": False}
 
     def _summarize_tool_results(self, tool_calls: List[ToolCall]) -> str:

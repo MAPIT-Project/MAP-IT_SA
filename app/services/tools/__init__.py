@@ -40,6 +40,19 @@ from .erasmus_template_search import (
     ErasmusTemplateSearchTool,
     search_erasmus_templates_execute,
 )
+# Creative Europe specific tools
+from .creative_europe_eligibility import (
+    CreativeEuropeEligibilityTool,
+    check_creative_europe_eligibility_execute,
+)
+from .creative_europe_budget_calculator import (
+    CreativeEuropeBudgetCalculator,
+    calculate_creative_europe_budget_execute,
+)
+from .creative_europe_template_search import (
+    CreativeEuropeTemplateSearchTool,
+    search_creative_europe_templates_execute,
+)
 
 __all__ = [
     'BudgetBenchmarkTool',
@@ -76,4 +89,11 @@ __all__ = [
     'calculate_erasmus_budget_execute',
     'ErasmusTemplateSearchTool',
     'search_erasmus_templates_execute',
+    # Creative Europe specific tools
+    'CreativeEuropeEligibilityTool',
+    'check_creative_europe_eligibility_execute',
+    'CreativeEuropeBudgetCalculator',
+    'calculate_creative_europe_budget_execute',
+    'CreativeEuropeTemplateSearchTool',
+    'search_creative_europe_templates_execute',
 ]

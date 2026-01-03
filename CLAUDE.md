@@ -12,6 +12,7 @@ This is a **production-grade Retrieval-Augmented Generation (RAG) system** for q
 
 - **Horizon Europe**: Research and innovation funding (CORDIS projects, calls, statistics)
 - **Erasmus+**: Education, training, youth and sport funding (Programme Guide 2026, AWP 2026, calls)
+- **Creative Europe**: Culture, media, and cross-sectoral funding (Work Programmes 2021-2026, CulturEU Guide, calls)
 
 ## Key Architecture Components
 
@@ -119,6 +120,11 @@ The system has 23 tools available for the multi-tool agent:
 - `check_erasmus_eligibility`: Check organization/participant eligibility for Erasmus+ actions by Key Action (KA1, KA2, KA3, JMO, SPORT) and sector (HED, VET, SCH, ADU, YOU)
 - `calculate_erasmus_budget`: Calculate Erasmus+ budgets using lump sum funding model with unit costs, travel bands, and activity-specific rates
 - `search_erasmus_templates`: Search Erasmus+ Programme Guide for application guidance, quality criteria, budget rules, and sector-specific information
+
+**Creative Europe Programme Tools:**
+- `check_creative_europe_eligibility`: Check organization eligibility for Creative Europe actions by strand (CULTURE, MEDIA, CROSS-SECTORAL) and action type (COOP, DEV, DIST, etc.)
+- `calculate_creative_europe_budget`: Calculate Creative Europe budgets based on action type, funding rates, and project scale
+- `search_creative_europe_templates`: Search Creative Europe documents (Work Programmes, CulturEU Guide) for application guidance and programme information
 
 ### Key Services
 
@@ -360,6 +366,22 @@ When results are insufficient, the system identifies causes:
 - **Sectors**: Higher Education (HED), VET, Schools (SCH), Adult Education (ADU), Youth (YOU), Sport
 - **Funding Model**: Lump sum with unit costs, travel distance bands, and activity-specific rates
 - **Queries via**: `VectorSearchService` with `programme="erasmus"` filter
+
+### 6. Creative Europe Data Sources
+- **Purpose**: Creative Europe programme guidance and funding calls
+- **Contains**:
+  - Annual Work Programmes (2021-2026)
+  - CulturEU Funding Guide
+  - Strand overviews (CULTURE, MEDIA, Cross-sectoral)
+  - Green aspects quality assessment guide
+  - Funding calls (128 calls synced from EU Portal API)
+- **Coverage**: Eligibility, budget/funding rules, evaluation criteria, strand-specific guidance
+- **Strands**:
+  - CULTURE: European Cooperation Projects (small/medium/large), Networks, Platforms, Literary Translation
+  - MEDIA: Development (slate, single, co-dev), Distribution, Training, Festivals, Cinema Networks, Audience Development
+  - CROSS-SECTORAL: Creative Innovation Labs, News Media Partnerships, Media Literacy, Music Moves Europe
+- **Funding Model**: Lump sum with co-financing requirements (60-80% funding rates)
+- **Queries via**: `VectorSearchService` with `programme="creative_europe"` filter
 
 ## Hybrid Graph+SQL Architecture
 
@@ -714,6 +736,10 @@ New database tables added for analytics and feedback (in `migration/` directory)
 - `scripts/sync_erasmus_calls_from_api.py` - Sync Erasmus+ funding calls from EU Portal API
 - `scripts/ingest_erasmus_templates.py` - Ingest Erasmus+ application templates (categorizes by Key Action, Sector, Document Type)
 - `scripts/ingest_erasmus_to_neo4j.py` - Populate Neo4j with Erasmus+ reference data (ErasmusAction, ErasmusSector, PartnerRegion nodes)
+
+**Creative Europe Data Scripts:**
+- `scripts/ingest_creative_europe_documents.py` - Ingest Creative Europe Work Programmes, CulturEU Guide, strand overviews
+- `scripts/sync_creative_europe_calls.py` - Sync Creative Europe funding calls from EU Portal API (CREA-CULT, CREA-MEDIA, CREA-CROSS topics)
 
 ## Special Considerations
 
