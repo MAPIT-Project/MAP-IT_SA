@@ -27,6 +27,15 @@ from .budget_validator import (
     BudgetValidatorTool,
     validate_budget_execute,
 )
+# Erasmus+ specific tools
+from .erasmus_eligibility import (
+    ErasmusEligibilityTool,
+    check_erasmus_eligibility_execute,
+)
+from .erasmus_budget_calculator import (
+    ErasmusBudgetCalculator,
+    calculate_erasmus_budget_execute,
+)
 
 __all__ = [
     'BudgetBenchmarkTool',
@@ -56,4 +65,9 @@ __all__ = [
     # Budget validation tools
     'BudgetValidatorTool',
     'validate_budget_execute',
+    # Erasmus+ specific tools
+    'ErasmusEligibilityTool',
+    'check_erasmus_eligibility_execute',
+    'ErasmusBudgetCalculator',
+    'calculate_erasmus_budget_execute',
 ]

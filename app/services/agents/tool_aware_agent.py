@@ -1096,6 +1096,50 @@ digital_europe, life""",
             ]
         )
 
+        # Erasmus+ specific tools
+        self.tools['check_erasmus_eligibility'] = Tool(
+            name="check_erasmus_eligibility",
+            description="Check if an organization is eligible for Erasmus+ actions. Considers organization type (HEI, school, NGO, etc.), country (Programme vs Partner), ECHE status, and Key Action requirements. Use for eligibility questions about Erasmus+.",
+            category=ToolCategory.CALLS,
+            parameters={
+                "org_type": "Organization type: HEI, SCHOOL, VET_PROVIDER, ADULT_ED, YOUTH_ORG, NGO, PUBLIC_BODY, ENTERPRISE, SPORT_ORG, RESEARCH (required)",
+                "country": "Country of the organization (required)",
+                "action_type": "Optional: Erasmus+ action to check (e.g., 'KA1-HED', 'KA2-COOP', 'KA2-SSP', 'JMO-MODULE', 'SPORT-COOP')",
+                "has_eche": "Optional: Whether the HEI has ECHE (default: false)",
+                "is_coordinator": "Optional: Whether checking as coordinator (default: true)"
+            },
+            examples=[
+                "check_erasmus_eligibility(org_type='HEI', country='Germany', action_type='KA1-HED', has_eche=True)",
+                "check_erasmus_eligibility(org_type='NGO', country='Spain', action_type='KA2-COOP')",
+                "check_erasmus_eligibility(org_type='SCHOOL', country='France')  # Returns all eligible actions"
+            ]
+        )
+
+        self.tools['calculate_erasmus_budget'] = Tool(
+            name="calculate_erasmus_budget",
+            description="Calculate Erasmus+ lump sum grants using official unit costs. Handles mobility (KA1), partnership (KA2), Jean Monnet, and Sport budgets. Uses travel bands, daily rates, and organizational support rates from the Programme Guide.",
+            category=ToolCategory.PROPOSAL,
+            parameters={
+                "action_type": "Action type: 'mobility', 'partnership', 'jean_monnet', 'sport', or specific codes like 'KA1-HED', 'KA2-COOP' (required)",
+                "num_participants": "Number of participants for mobility (default: 10)",
+                "duration_days": "Duration in days for mobility (default: 14)",
+                "duration_months": "Project duration in months for partnership (default: 24)",
+                "num_partners": "Number of partners for KA2 (default: 3)",
+                "destination_country": "Destination/coordinator country (default: 'Germany')",
+                "origin_country": "Origin country for mobility (default: 'Spain')",
+                "partnership_type": "'cooperation' (120-400k EUR) or 'small_scale' (30-60k EUR)",
+                "distance_band": "Travel distance: '100-499km', '500-1999km', '2000-2999km', etc.",
+                "green_travel": "Whether using sustainable travel (adds bonus)",
+                "target_budget": "Optional target budget for partnership"
+            },
+            examples=[
+                "calculate_erasmus_budget(action_type='mobility', num_participants=20, duration_days=10, destination_country='France')",
+                "calculate_erasmus_budget(action_type='partnership', num_partners=5, duration_months=36, partnership_type='cooperation')",
+                "calculate_erasmus_budget(action_type='jean_monnet', action_type='JMO-MODULE')",
+                "calculate_erasmus_budget(action_type='sport', partnership_type='small_scale', num_partners=3)"
+            ]
+        )
+
     def register_tool(self, tool: Tool):
         """Register a tool with the agent."""
         self.tools[tool.name] = tool
@@ -2430,6 +2474,11 @@ Suggestions:
             # Budget validation tool
             elif tool_name == 'validate_budget':
                 return await self._tool_validate_budget(params)
+            # Erasmus+ specific tools
+            elif tool_name == 'check_erasmus_eligibility':
+                return await self._tool_check_erasmus_eligibility(params)
+            elif tool_name == 'calculate_erasmus_budget':
+                return await self._tool_calculate_erasmus_budget(params)
             else:
                 return {"error": f"Tool {tool_name} not implemented"}
         except Exception as e:
@@ -3437,6 +3486,50 @@ Suggestions:
 
         except Exception as e:
             logger.error(f"Budget validation error: {e}")
+            return {"error": str(e), "success": False}
+
+    async def _tool_check_erasmus_eligibility(self, params: Dict) -> Dict:
+        """Check Erasmus+ eligibility for an organization."""
+        try:
+            from ..tools.erasmus_eligibility import check_erasmus_eligibility_execute
+
+            result = await check_erasmus_eligibility_execute(
+                org_type=params.get('org_type', 'HEI'),
+                country=params.get('country', 'Germany'),
+                action_type=params.get('action_type'),
+                has_eche=params.get('has_eche', False),
+                is_coordinator=params.get('is_coordinator', True),
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Erasmus+ eligibility check error: {e}")
+            return {"error": str(e), "success": False}
+
+    async def _tool_calculate_erasmus_budget(self, params: Dict) -> Dict:
+        """Calculate Erasmus+ lump sum budget."""
+        try:
+            from ..tools.erasmus_budget_calculator import calculate_erasmus_budget_execute
+
+            result = await calculate_erasmus_budget_execute(
+                action_type=params.get('action_type', 'partnership'),
+                num_participants=params.get('num_participants', 10),
+                duration_days=params.get('duration_days', 14),
+                duration_months=params.get('duration_months', 24),
+                num_partners=params.get('num_partners', 3),
+                destination_country=params.get('destination_country', 'Germany'),
+                origin_country=params.get('origin_country', 'Spain'),
+                partnership_type=params.get('partnership_type', 'cooperation'),
+                distance_band=params.get('distance_band', '500-1999km'),
+                green_travel=params.get('green_travel', False),
+                target_budget=params.get('target_budget'),
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Erasmus+ budget calculation error: {e}")
             return {"error": str(e), "success": False}
 
     def _summarize_tool_results(self, tool_calls: List[ToolCall]) -> str:
