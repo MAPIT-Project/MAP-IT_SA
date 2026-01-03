@@ -1,7 +1,7 @@
 # MAP-IT System Architecture
 
-> **Last Updated:** December 19, 2025
-> **Version:** 3.1 (V3/V4 Only - V1/V2 Removed)
+> **Last Updated:** January 3, 2026
+> **Version:** 3.2 (V3/V4 + Erasmus+ Integration)
 
 ---
 
@@ -23,7 +23,12 @@
 
 ## System Overview
 
-MAP-IT is an intelligent research assistant for EU funding programs (Horizon Europe, EIC, ERC, MSCA, etc.). It uses a sophisticated **agentic architecture** that can:
+MAP-IT is an intelligent research assistant for EU funding programs. It supports:
+
+- **Horizon Europe**: Research and innovation (EIC, ERC, MSCA, Clusters 1-6)
+- **Erasmus+**: Education, training, youth and sport (KA1, KA2, KA3, Jean Monnet, Sport)
+
+The system uses a sophisticated **agentic architecture** that can:
 
 - **Self-correct** when initial search results are insufficient
 - **Use multiple tools** to gather information from different sources
@@ -160,7 +165,7 @@ I found **15 funding opportunities** for your query:
 │  Smart Behavior:                                                            │
 │  • Simple queries ("What is RIA?") → 1-2 iterations, fast                  │
 │  • Complex queries ("Compare EIC vs ERC") → Up to 5 iterations, thorough   │
-│  • 20 tools available: stats, docs, calls, projects, proposal support      │
+│  • 23 tools available: stats, docs, calls, projects, proposal, Erasmus+    │
 │  • Speculative execution: pre-runs likely tools for faster responses       │
 │  • Plan caching: reuses query plans for repeated patterns                  │
 │                                                                             │
@@ -214,7 +219,7 @@ The ToolAwareAgent uses the ReAct pattern (Reasoning + Acting):
 **Smart Behavior:**
 - Simple queries ("What is RIA?") → 1-2 iterations, fast
 - Complex queries ("Compare EIC vs ERC") → Up to 5 iterations, thorough
-- 20 tools available: stats, docs, calls, projects, proposal support
+- 23 tools available: stats, docs, calls, projects, proposal support, Erasmus+
 
 ### Phase 3: Response Generation
 
@@ -356,7 +361,7 @@ For **complex queries** (comparisons, analysis, multi-source), the Tool-Aware Ag
 
 ## Available Tools
 
-The system has **18 tools** available for the multi-tool agent:
+The system has **23 tools** available for the multi-tool agent:
 
 ### Statistics Tools
 
@@ -585,6 +590,44 @@ The proposal support tools use a hybrid architecture for optimal results:
 | `calculate_budget` | Graph priority with SQL fallback | Cluster context, similar projects, data-grounded ratios |
 | `generate_timeline` | SQL duration stats with graph examples | Duration context, cluster-specific WPs, real project examples |
 
+### Erasmus+ Programme Tools
+
+These tools provide specialized support for Erasmus+ applications:
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `check_erasmus_eligibility` | Check eligibility for Erasmus+ actions | `key_action`, `sector`, `organization_type`, `country` |
+| `calculate_erasmus_budget` | Calculate Erasmus+ lump sum budgets | `key_action`, `sector`, `activity_type`, `participants`, `duration`, `destinations` |
+| `search_erasmus_templates` | Search Erasmus+ Programme Guide | `query`, `key_action`, `sector`, `document_type` |
+
+**Examples:**
+```python
+# Check eligibility for KA2 higher education partnerships
+check_erasmus_eligibility(key_action='KA2', sector='HED', organization_type='university', country='Germany')
+# Returns: { "eligible": true, "requirements": [...], "notes": [...] }
+
+# Calculate budget for KA1 student mobility
+calculate_erasmus_budget(
+    key_action='KA1',
+    sector='HED',
+    activity_type='student_mobility',
+    participants=50,
+    duration_days=150,
+    destinations=[{'country': 'France', 'count': 30}, {'country': 'Spain', 'count': 20}]
+)
+# Returns: { "total_budget": 125000, "breakdown": {...}, "unit_costs": {...} }
+
+# Search for quality criteria in Programme Guide
+search_erasmus_templates(query='quality criteria KA2 partnership', key_action='KA2')
+# Returns: [{ "content": "...", "section": "quality_criteria", ... }]
+```
+
+**Erasmus+ Funding Model:**
+- Uses **lump sum** funding (not actual cost reimbursement)
+- Unit costs based on activity type, duration, and destination
+- Travel bands calculated by distance (10-99km, 100-499km, 500-1999km, etc.)
+- Sector-specific rates for HED, VET, SCH, ADU, YOU, SPORT
+
 ---
 
 ## Data Sources
@@ -670,6 +713,31 @@ The proposal support tools use a hybrid architecture for optimal results:
 - Enriching local data
 
 **Queries via:** `CallEnrichmentService`
+
+### 5. Erasmus+ Data Sources
+
+**Purpose:** Erasmus+ programme guidance and funding calls
+
+**Contains:**
+- Programme Guide 2026 (537 document chunks)
+- Annual Work Programme 2026
+- Funding calls (277 calls: 216 closed, 51 open, 10 upcoming)
+
+**Coverage:**
+- Eligibility criteria for all Key Actions
+- Budget rules (lump sums, unit costs, travel bands)
+- Quality assessment criteria
+- Sector-specific requirements (HED, VET, SCH, ADU, YOU, SPORT)
+- Application deadlines and submission rounds
+
+**Key Actions:**
+- **KA1**: Learning Mobility of Individuals
+- **KA2**: Cooperation Partnerships, Small-Scale Partnerships, Capacity Building
+- **KA3**: Policy Support
+- **Jean Monnet**: EU Studies, Modules, Chairs, Centres of Excellence
+- **Sport**: Cooperation Partnerships, Not-for-Profit Events
+
+**Queries via:** `VectorSearchService` with `filters={"programme": "erasmus"}`
 
 ---
 
@@ -1205,6 +1273,38 @@ All previous improvements have been implemented. See details below:
 
 ### Tool Count Update
 
-The system now has **20 tools** available (increased from 18):
-- Added: `calculate_budget`, `generate_timeline`
+The system now has **23 tools** available (increased from 20):
+- Added: `check_erasmus_eligibility`, `calculate_erasmus_budget`, `search_erasmus_templates`
+
+### Erasmus+ Integration (January 2026)
+
+Full integration of Erasmus+ programme support:
+
+**Phase 1: Document Ingestion**
+- Ingested Erasmus+ Programme Guide 2026 (537 document chunks)
+- Ingested Annual Work Programme 2026
+- Full coverage of eligibility, budget rules, quality criteria, all Key Actions
+
+**Phase 2: API Sync**
+- Synced 277 Erasmus+ funding calls from EU Portal API
+- 216 closed, 51 open, 10 upcoming calls
+- Automatic status tracking and deadline monitoring
+
+**Phase 3: Erasmus+ Tools**
+- `check_erasmus_eligibility`: Organization/participant eligibility by KA and sector
+- `calculate_erasmus_budget`: Lump sum calculations with unit costs and travel bands
+- `search_erasmus_templates`: Programme Guide search with section detection
+
+**Phase 4: Template Infrastructure**
+- Created template ingestion script (`scripts/ingest_erasmus_templates.py`)
+- Directory structure for templates by Key Action and sector
+- Automatic categorization by document type
+
+**Files Created:**
+- `app/services/tools/erasmus_eligibility.py`
+- `app/services/tools/erasmus_budget_calculator.py`
+- `app/services/tools/erasmus_template_search.py`
+- `scripts/ingest_erasmus_documents.py`
+- `scripts/sync_erasmus_calls_from_api.py`
+- `scripts/ingest_erasmus_templates.py`
 

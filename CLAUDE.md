@@ -8,7 +8,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **production-grade Retrieval-Augmented Generation (RAG) system** for querying European research projects from the CORDIS database. The system implements sophisticated multi-source intelligent search, agentic AI capabilities, and comprehensive tooling for Horizon Europe research project queries.
+This is a **production-grade Retrieval-Augmented Generation (RAG) system** for querying European research and education funding programmes. The system implements sophisticated multi-source intelligent search, agentic AI capabilities, and comprehensive tooling for:
+
+- **Horizon Europe**: Research and innovation funding (CORDIS projects, calls, statistics)
+- **Erasmus+**: Education, training, youth and sport funding (Programme Guide 2026, AWP 2026, calls)
 
 ## Key Architecture Components
 
@@ -36,7 +39,7 @@ The V3 architecture uses a **single agentic loop** without intent classification
 ### Agentic Architecture (ReAct Pattern)
 The system uses a sophisticated **agentic architecture** that can:
 - **Self-correct** when initial search results are insufficient
-- **Use multiple tools** to gather information from different sources (20 tools available)
+- **Use multiple tools** to gather information from different sources (23 tools available)
 - **Reason iteratively** to answer complex comparison and analysis questions
 - **Synthesize answers** from graph databases, vector stores, and external APIs
 - **Speculatively execute** tools in parallel to reduce latency
@@ -60,7 +63,7 @@ The system uses a sophisticated **agentic architecture** that can:
 - `embedding/` - Incremental embedding updates for new projects
 - `feedback/` - User feedback collection and analysis
 - `rag/` - RAG-specific components (retrievers, chunkers, generators)
-- `tools/` - Tool orchestration for multi-step reasoning (20 tools available)
+- `tools/` - Tool orchestration for multi-step reasoning (23 tools available)
 - `call_extractors/` - Funding call document processing
 - `conversation/` - Conversation management and memory
 - `memory/` - Short/long-term memory systems
@@ -75,8 +78,8 @@ The system uses a sophisticated **agentic architecture** that can:
 - `document_routes.py` - Document management endpoints
 - `call_document_routes.py` - Call document access endpoints
 
-### Available Tools (20 Tools)
-The system has 20 tools available for the multi-tool agent:
+### Available Tools (23 Tools)
+The system has 23 tools available for the multi-tool agent:
 
 **Statistics Tools:**
 - `get_programme_statistics`: Success rates, funding amounts for a programme
@@ -108,9 +111,14 @@ The system has 20 tools available for the multi-tool agent:
 - `get_similar_funded_projects`: Find semantically similar funded projects using AI embeddings
 - `analyze_call_history`: Analyze historical funding patterns for topics/clusters (HYBRID: Graph+SQL with topic evolution, cluster trends, funding trends)
 
-**Proposal Planning Tools (NEW):**
+**Proposal Planning Tools:**
 - `calculate_budget`: Generate detailed budget breakdown for a proposal (HYBRID: Graph+SQL with cluster context, similar projects, real-data grounded recommendations)
 - `generate_timeline`: Create project timeline with work packages, deliverables, and milestones (HYBRID: Graph+SQL with duration patterns, cluster-specific WPs, real project examples)
+
+**Erasmus+ Programme Tools:**
+- `check_erasmus_eligibility`: Check organization/participant eligibility for Erasmus+ actions by Key Action (KA1, KA2, KA3, JMO, SPORT) and sector (HED, VET, SCH, ADU, YOU)
+- `calculate_erasmus_budget`: Calculate Erasmus+ budgets using lump sum funding model with unit costs, travel bands, and activity-specific rates
+- `search_erasmus_templates`: Search Erasmus+ Programme Guide for application guidance, quality criteria, budget rules, and sector-specific information
 
 ### Key Services
 
@@ -340,6 +348,18 @@ When results are insufficient, the system identifies causes:
 - **Purpose**: Live call data enrichment
 - **Used for**: Fetching missing call details, verifying deadlines, getting latest status, enriching local data
 - **Queries via**: `CallEnrichmentService`
+
+### 5. Erasmus+ Data Sources
+- **Purpose**: Erasmus+ programme guidance and funding calls
+- **Contains**:
+  - Programme Guide 2026 (537 document chunks with full topic coverage)
+  - Annual Work Programme 2026
+  - Funding calls (277 calls: 216 closed, 51 open, 10 upcoming)
+- **Coverage**: Eligibility, budget/funding rules, quality criteria, mobility, partnerships, deadlines, reporting
+- **Key Actions**: KA1 (Learning Mobility), KA2 (Cooperation Partnerships), KA3 (Policy Support), Jean Monnet, Sport
+- **Sectors**: Higher Education (HED), VET, Schools (SCH), Adult Education (ADU), Youth (YOU), Sport
+- **Funding Model**: Lump sum with unit costs, travel distance bands, and activity-specific rates
+- **Queries via**: `VectorSearchService` with `programme="erasmus"` filter
 
 ## Hybrid Graph+SQL Architecture
 
@@ -688,6 +708,11 @@ New database tables added for analytics and feedback (in `migration/` directory)
 - `scripts/` directory contains helper scripts for data ingestion and setup
 - `migration/` directory for database schema migrations
 - `cleanup/` directory for system maintenance scripts
+
+**Erasmus+ Data Scripts:**
+- `scripts/ingest_erasmus_documents.py` - Ingest Erasmus+ Programme Guide and Work Programmes
+- `scripts/sync_erasmus_calls_from_api.py` - Sync Erasmus+ funding calls from EU Portal API
+- `scripts/ingest_erasmus_templates.py` - Ingest Erasmus+ application templates (categorizes by Key Action, Sector, Document Type)
 
 ## Special Considerations
 
