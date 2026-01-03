@@ -36,6 +36,10 @@ from .erasmus_budget_calculator import (
     ErasmusBudgetCalculator,
     calculate_erasmus_budget_execute,
 )
+from .erasmus_template_search import (
+    ErasmusTemplateSearchTool,
+    search_erasmus_templates_execute,
+)
 
 __all__ = [
     'BudgetBenchmarkTool',
@@ -70,4 +74,6 @@ __all__ = [
     'check_erasmus_eligibility_execute',
     'ErasmusBudgetCalculator',
     'calculate_erasmus_budget_execute',
+    'ErasmusTemplateSearchTool',
+    'search_erasmus_templates_execute',
 ]

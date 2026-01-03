@@ -1140,6 +1140,25 @@ digital_europe, life""",
             ]
         )
 
+        self.tools['search_erasmus_templates'] = Tool(
+            name="search_erasmus_templates",
+            description="Search Erasmus+ Programme Guide for application guidance, eligibility rules, quality criteria, budget information, and sector-specific requirements. Use for any Erasmus+ application questions.",
+            category=ToolCategory.DOCUMENTS,
+            parameters={
+                "query": "What to search for (e.g., 'KA2 quality criteria', 'mobility eligibility')",
+                "key_action": "Optional: Filter by KA1, KA2, KA3, JMO, SPORT",
+                "sector": "Optional: Filter by HED, VET, SCH, ADU, YOU, SPORT",
+                "document_type": "Optional: eligibility, budget, quality_criteria, etc.",
+                "top_k": "Number of results (default: 5)"
+            },
+            examples=[
+                "search_erasmus_templates(query='quality assessment criteria', key_action='KA2')",
+                "search_erasmus_templates(query='budget lump sum calculation', sector='HED')",
+                "search_erasmus_templates(query='ECHE requirements for higher education')",
+                "search_erasmus_templates(query='partnership eligibility', key_action='KA2', sector='VET')"
+            ]
+        )
+
     def register_tool(self, tool: Tool):
         """Register a tool with the agent."""
         self.tools[tool.name] = tool
@@ -2479,6 +2498,8 @@ Suggestions:
                 return await self._tool_check_erasmus_eligibility(params)
             elif tool_name == 'calculate_erasmus_budget':
                 return await self._tool_calculate_erasmus_budget(params)
+            elif tool_name == 'search_erasmus_templates':
+                return await self._tool_search_erasmus_templates(params)
             else:
                 return {"error": f"Tool {tool_name} not implemented"}
         except Exception as e:
@@ -3530,6 +3551,25 @@ Suggestions:
 
         except Exception as e:
             logger.error(f"Erasmus+ budget calculation error: {e}")
+            return {"error": str(e), "success": False}
+
+    async def _tool_search_erasmus_templates(self, params: Dict) -> Dict:
+        """Search Erasmus+ Programme Guide for application guidance."""
+        try:
+            from ..tools.erasmus_template_search import search_erasmus_templates_execute
+
+            result = await search_erasmus_templates_execute(
+                query=params.get('query', ''),
+                key_action=params.get('key_action'),
+                sector=params.get('sector'),
+                document_type=params.get('document_type'),
+                top_k=params.get('top_k', 5),
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Erasmus+ template search error: {e}")
             return {"error": str(e), "success": False}
 
     def _summarize_tool_results(self, tool_calls: List[ToolCall]) -> str:
