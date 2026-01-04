@@ -62,6 +62,15 @@ from .eu4health_template_search import (
     EU4HealthTemplateSearchTool,
     search_eu4health_templates_execute,
 )
+# Digital Europe specific tools
+from .digital_europe_eligibility import (
+    DigitalEuropeEligibilityTool,
+    check_digital_europe_eligibility_execute,
+)
+from .digital_europe_template_search import (
+    DigitalEuropeTemplateSearchTool,
+    search_digital_europe_templates_execute,
+)
 
 __all__ = [
     'BudgetBenchmarkTool',
@@ -110,4 +119,9 @@ __all__ = [
     'check_eu4health_eligibility_execute',
     'EU4HealthTemplateSearchTool',
     'search_eu4health_templates_execute',
+    # Digital Europe specific tools
+    'DigitalEuropeEligibilityTool',
+    'check_digital_europe_eligibility_execute',
+    'DigitalEuropeTemplateSearchTool',
+    'search_digital_europe_templates_execute',
 ]
