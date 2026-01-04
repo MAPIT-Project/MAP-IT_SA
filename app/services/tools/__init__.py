@@ -53,6 +53,15 @@ from .creative_europe_template_search import (
     CreativeEuropeTemplateSearchTool,
     search_creative_europe_templates_execute,
 )
+# EU4Health specific tools
+from .eu4health_eligibility import (
+    EU4HealthEligibilityTool,
+    check_eu4health_eligibility_execute,
+)
+from .eu4health_template_search import (
+    EU4HealthTemplateSearchTool,
+    search_eu4health_templates_execute,
+)
 
 __all__ = [
     'BudgetBenchmarkTool',
@@ -96,4 +105,9 @@ __all__ = [
     'calculate_creative_europe_budget_execute',
     'CreativeEuropeTemplateSearchTool',
     'search_creative_europe_templates_execute',
+    # EU4Health specific tools
+    'EU4HealthEligibilityTool',
+    'check_eu4health_eligibility_execute',
+    'EU4HealthTemplateSearchTool',
+    'search_eu4health_templates_execute',
 ]
