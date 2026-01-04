@@ -71,6 +71,15 @@ from .digital_europe_template_search import (
     DigitalEuropeTemplateSearchTool,
     search_digital_europe_templates_execute,
 )
+# LIFE Programme specific tools
+from .life_eligibility import (
+    LIFEEligibilityTool,
+    check_life_eligibility_execute,
+)
+from .life_template_search import (
+    LIFETemplateSearchTool,
+    search_life_templates_execute,
+)
 
 __all__ = [
     'BudgetBenchmarkTool',
@@ -124,4 +133,9 @@ __all__ = [
     'check_digital_europe_eligibility_execute',
     'DigitalEuropeTemplateSearchTool',
     'search_digital_europe_templates_execute',
+    # LIFE Programme specific tools
+    'LIFEEligibilityTool',
+    'check_life_eligibility_execute',
+    'LIFETemplateSearchTool',
+    'search_life_templates_execute',
 ]
