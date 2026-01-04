@@ -382,6 +382,11 @@ When results are insufficient, the system identifies causes:
   - CROSS-SECTORAL: Creative Innovation Labs, News Media Partnerships, Media Literacy, Music Moves Europe
 - **Funding Model**: Lump sum with co-financing requirements (60-80% funding rates)
 - **Queries via**: `VectorSearchService` with `programme="creative_europe"` filter
+- **Neo4j Graph Data**:
+  - `CreativeEuropeStrand` nodes (3): CULTURE, MEDIA, CROSS-SECTORAL
+  - `CreativeEuropeAction` nodes (24): All action types with full metadata
+  - `CreativeEuropeRegion` nodes (3): Country eligibility by strand
+  - Relationships: BELONGS_TO_STRAND, ALLOWS_COORDINATOR_FROM, ALLOWS_PARTNER_FROM, MEMBER_OF
 
 ## Hybrid Graph+SQL Architecture
 
@@ -740,6 +745,7 @@ New database tables added for analytics and feedback (in `migration/` directory)
 **Creative Europe Data Scripts:**
 - `scripts/ingest_creative_europe_documents.py` - Ingest Creative Europe Work Programmes, CulturEU Guide, strand overviews
 - `scripts/sync_creative_europe_calls.py` - Sync Creative Europe funding calls from EU Portal API (CREA-CULT, CREA-MEDIA, CREA-CROSS topics)
+- `scripts/ingest_creative_europe_to_neo4j.py` - Populate Neo4j with Creative Europe reference data (CreativeEuropeAction, CreativeEuropeStrand, CreativeEuropeRegion nodes)
 
 ## Special Considerations
 

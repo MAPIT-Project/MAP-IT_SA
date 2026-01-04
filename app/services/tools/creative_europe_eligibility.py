@@ -644,15 +644,24 @@ async def check_creative_europe_eligibility_execute(
             is_coordinator=is_coordinator,
         )
 
-        return {
+        response = {
             'success': True,
             'result': result.to_dict(),
             'metadata': {
                 'tool': 'check_creative_europe_eligibility',
                 'query_type': 'specific_action',
                 'programme': 'creative_europe',
+                'source': 'hardcoded_rules',
             }
         }
+
+        # Try to enrich with Neo4j graph data
+        graph_result = _try_graph_eligibility_check(country, action_type=action_type)
+        if graph_result:
+            response['graph_data'] = graph_result
+            response['metadata']['source'] = 'hybrid_graph_rules'
+
+        return response
     else:
         # Get all eligible actions
         eligible_actions = tool.get_eligible_actions(
@@ -661,7 +670,7 @@ async def check_creative_europe_eligibility_execute(
             strand=strand,
         )
 
-        return {
+        response = {
             'success': True,
             'eligible_actions': eligible_actions,
             'total_eligible': len(eligible_actions),
@@ -673,5 +682,126 @@ async def check_creative_europe_eligibility_execute(
                 'country': country,
                 'strand_filter': strand,
                 'programme': 'creative_europe',
+                'source': 'hardcoded_rules',
             }
         }
+
+        # Try to enrich with Neo4j graph data
+        graph_result = _try_graph_eligibility_check(country, strand=strand)
+        if graph_result:
+            response['graph_data'] = graph_result
+            response['metadata']['source'] = 'hybrid_graph_rules'
+
+        return response
+
+
+# Country name to ISO code mapping for Neo4j lookups
+COUNTRY_NAME_TO_ISO = {
+    # EU Member States
+    'Austria': 'AT', 'Belgium': 'BE', 'Bulgaria': 'BG', 'Croatia': 'HR',
+    'Cyprus': 'CY', 'Czech Republic': 'CZ', 'Denmark': 'DK', 'Estonia': 'EE',
+    'Finland': 'FI', 'France': 'FR', 'Germany': 'DE', 'Greece': 'GR',
+    'Hungary': 'HU', 'Ireland': 'IE', 'Italy': 'IT', 'Latvia': 'LV',
+    'Lithuania': 'LT', 'Luxembourg': 'LU', 'Malta': 'MT', 'Netherlands': 'NL',
+    'Poland': 'PL', 'Portugal': 'PT', 'Romania': 'RO', 'Slovakia': 'SK',
+    'Slovenia': 'SI', 'Spain': 'ES', 'Sweden': 'SE',
+    # EEA
+    'Iceland': 'IS', 'Liechtenstein': 'LI', 'Norway': 'NO',
+    # Other Associated Countries
+    'Albania': 'AL', 'Bosnia and Herzegovina': 'BA', 'Georgia': 'GE',
+    'Kosovo': 'XK', 'Moldova': 'MD', 'Montenegro': 'ME',
+    'North Macedonia': 'MK', 'Serbia': 'RS', 'Tunisia': 'TN', 'Ukraine': 'UA',
+    # Common variations
+    'UK': 'GB', 'United Kingdom': 'GB', 'Switzerland': 'CH',
+}
+
+
+def _try_graph_eligibility_check(
+    country: str,
+    action_type: Optional[str] = None,
+    strand: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
+    """
+    Try to use Neo4j graph for Creative Europe eligibility check.
+
+    Returns None if Neo4j data not available, otherwise returns graph results.
+    """
+    try:
+        from app.core.neo4j_config import neo4j_db
+
+        # Convert country name to ISO code
+        country_code = COUNTRY_NAME_TO_ISO.get(country, country.upper()[:2])
+
+        if action_type:
+            # Get action details from graph
+            result = neo4j_db.execute_query("""
+                MATCH (a:CreativeEuropeAction {code: $action_code})
+                OPTIONAL MATCH (a)-[:BELONGS_TO_STRAND]->(s:CreativeEuropeStrand)
+                OPTIONAL MATCH (a)-[:ALLOWS_COORDINATOR_FROM]->(r:CreativeEuropeRegion)
+                RETURN a {
+                    .code, .name, .description, .min_partners, .min_countries,
+                    .grant_min, .grant_max, .funding_rate, .duration_months_max,
+                    .funding_model, .org_types
+                } as action,
+                s.code as strand,
+                r.countries as eligible_countries
+            """, {"action_code": action_type.upper()})
+
+            if result:
+                action_data = result[0]
+                eligible_countries = action_data.get('eligible_countries', [])
+                is_eligible = country_code in eligible_countries
+
+                return {
+                    'action_details': action_data.get('action'),
+                    'strand': action_data.get('strand'),
+                    'country_eligible': is_eligible,
+                    'country_code': country_code,
+                    'source': 'neo4j_graph'
+                }
+
+        elif strand:
+            # Get strand details and eligible actions from graph
+            result = neo4j_db.execute_query("""
+                MATCH (s:CreativeEuropeStrand {code: $strand_code})
+                OPTIONAL MATCH (a:CreativeEuropeAction)-[:BELONGS_TO_STRAND]->(s)
+                OPTIONAL MATCH (s)-[:ALLOWS_COUNTRIES]->(r:CreativeEuropeRegion)
+                RETURN s {.code, .name, .description, .budget_share, .org_types} as strand,
+                       collect(a {.code, .name, .grant_max, .funding_rate}) as actions,
+                       r.countries as eligible_countries
+            """, {"strand_code": strand.upper()})
+
+            if result:
+                strand_data = result[0]
+                eligible_countries = strand_data.get('eligible_countries', [])
+                is_eligible = country_code in eligible_countries
+
+                return {
+                    'strand_details': strand_data.get('strand'),
+                    'actions': strand_data.get('actions'),
+                    'country_eligible': is_eligible,
+                    'country_code': country_code,
+                    'source': 'neo4j_graph'
+                }
+
+        else:
+            # Get all strands and country eligibility
+            result = neo4j_db.execute_query("""
+                MATCH (c:Country {isoCode: $country_code})
+                RETURN c.creative_europe_eligible as eligible,
+                       c.creative_europe_media_eligible as media_eligible
+            """, {"country_code": country_code})
+
+            if result:
+                country_data = result[0]
+                return {
+                    'country_code': country_code,
+                    'eligible': country_data.get('eligible', False),
+                    'media_eligible': country_data.get('media_eligible', False),
+                    'source': 'neo4j_graph'
+                }
+
+    except Exception as e:
+        logger.debug(f"Neo4j eligibility check not available: {e}")
+
+    return None
