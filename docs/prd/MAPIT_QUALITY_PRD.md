@@ -65,7 +65,7 @@ Run with: `./ralphy.sh --prd MAPIT_QUALITY_PRD.md`
 - [x] FIX IF NEEDED: Read `tests/quality/results/prompt_002_thematic_fields.json`. If score < 85: use relevant skills (`mapit-tools`, `eu-funding-domain`) to fix, re-evaluate via `eval-orchestrator` until passing or 3 attempts.
 
 ### Prompt 003: Marie Skłodowska-Curie Actions
-- [ ] EVALUATE: Run prompt "What are Marie Curie Skłodowska Actions (MSCA)?" through MAPIT. Use `eval-orchestrator` subagent. Must explain MSCA-PF, MSCA-DN, MSCA-SE, MSCA-COFUND. Save result to `tests/quality/results/prompt_003_msca.json`.
+- [x] EVALUATE: Run prompt "What are Marie Curie Skłodowska Actions (MSCA)?" through MAPIT. Use `eval-orchestrator` subagent. Must explain MSCA-PF, MSCA-DN, MSCA-SE, MSCA-COFUND. Save result to `tests/quality/results/prompt_003_msca.json`.
 
 - [ ] FIX IF NEEDED: Read `tests/quality/results/prompt_003_msca.json`. If score < 85: fix using relevant skills and re-evaluate until passing or 3 attempts.
 

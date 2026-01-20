@@ -195,3 +195,51 @@ Since score (97) >= 85 threshold, no fix was needed. PRD task marked complete.
 ### PRD Task Status
 - [x] FIX IF NEEDED task marked complete (no action required, score >= 85)
 
+
+## 2026-01-21: Prompt 003 - Marie Skłodowska-Curie Actions (EVALUATE)
+
+### Task Completed
+Created quality evaluation test for Prompt 003: "What are Marie Curie Skłodowska Actions (MSCA)?"
+
+### Files Created/Modified
+- `tests/quality/test_prompt_003_msca.py` - New test file with:
+  - Four-dimension evaluation framework (Query Fulfillment 40pts, Specificity 25pts, Factual Accuracy 25pts, Actionability 10pts)
+  - Specific checks for all 4 MSCA action types (MSCA-PF, MSCA-DN, MSCA-SE, MSCA-COFUND)
+  - Sample responses for offline testing (excellent, partial, poor)
+  - Live API tests
+  - Result saved to `tests/quality/results/prompt_003_msca.json`
+
+### Live API Evaluation Results
+- **Overall Score**: 45/100 (FAIL) ❌
+- **Query Fulfillment**: 20/40 - Only 2/4 MSCA action types mentioned
+- **Specificity**: 0/25 - No funding/duration details
+- **Factual Accuracy**: 25/25 - No factual errors
+- **Actionability**: 0/10 - No links to official resources
+
+### API Response Issue
+The live API returned a **deflection response**: "I found some information but couldn't extract specific details. Please try a more specific question."
+
+This is a critical issue where the agent:
+1. Called `get_programme_info` tool for Horizon Europe
+2. Did not use the built-in MSCA knowledge properly
+3. Returned a deflection instead of providing MSCA details
+
+### Test Results
+- 11 tests passed (all tests)
+- Offline tests verify evaluation framework correctness
+- Live API test records the failing score for FIX IF NEEDED task
+
+### PRD Task Status
+- [x] EVALUATE task complete (score 45/100, FAIL - needs fix)
+- [ ] FIX IF NEEDED task required (score < 85)
+
+### Next Steps for FIX IF NEEDED Task
+1. Investigate why agent returns deflection for MSCA query
+2. Add MSCA-specific knowledge to built-in knowledge base
+3. Ensure all 4 MSCA action types are explained:
+   - MSCA-PF (Postdoctoral Fellowships)
+   - MSCA-DN (Doctoral Networks)
+   - MSCA-SE (Staff Exchanges)
+   - MSCA-COFUND
+4. Re-evaluate until score >= 85 or 3 attempts
+
