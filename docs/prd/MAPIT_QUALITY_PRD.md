@@ -62,7 +62,7 @@ Run with: `./ralphy.sh --prd MAPIT_QUALITY_PRD.md`
 ### Prompt 002: Thematic Fields
 - [x] EVALUATE: Run prompt "What are the thematic fields covered by Horizon Europe?" through MAPIT. Use `eval-orchestrator` subagent for evaluation. Must mention all 6 Clusters by name. Save result to `tests/quality/results/prompt_002_thematic_fields.json`.
 
-- [ ] FIX IF NEEDED: Read `tests/quality/results/prompt_002_thematic_fields.json`. If score < 85: use relevant skills (`mapit-tools`, `eu-funding-domain`) to fix, re-evaluate via `eval-orchestrator` until passing or 3 attempts.
+- [x] FIX IF NEEDED: Read `tests/quality/results/prompt_002_thematic_fields.json`. If score < 85: use relevant skills (`mapit-tools`, `eu-funding-domain`) to fix, re-evaluate via `eval-orchestrator` until passing or 3 attempts.
 
 ### Prompt 003: Marie Skłodowska-Curie Actions
 - [ ] EVALUATE: Run prompt "What are Marie Curie Skłodowska Actions (MSCA)?" through MAPIT. Use `eval-orchestrator` subagent. Must explain MSCA-PF, MSCA-DN, MSCA-SE, MSCA-COFUND. Save result to `tests/quality/results/prompt_003_msca.json`.
