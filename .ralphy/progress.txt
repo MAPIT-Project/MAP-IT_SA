@@ -130,3 +130,47 @@ Added to BUILT_IN_KNOWLEDGE:
 - [x] EVALUATE task complete
 - [x] FIX IF NEEDED task complete (1 attempt, score 80 → 91, PASS)
 
+
+## 2026-01-21: Prompt 002 - Thematic Fields (EVALUATE)
+
+### Task Completed
+Created quality evaluation test for Prompt 002: "What are the thematic fields covered by Horizon Europe?"
+
+### Files Created/Modified
+- `tests/quality/test_prompt_002_thematic_fields.py` - New test file with:
+  - Four-dimension evaluation framework (Query Fulfillment 40pts, Specificity 25pts, Factual Accuracy 25pts, Actionability 10pts)
+  - Specific checks for all 6 clusters by name
+  - Sample responses for offline testing (excellent, partial, poor)
+  - Live API tests (use saved results to avoid redundant API calls)
+  - Result saved to `tests/quality/results/prompt_002_thematic_fields.json`
+
+### Live API Evaluation Results
+- **Overall Score**: 92/100 (PASS) ✅
+- **Query Fulfillment**: 40/40 - All 6 clusters mentioned by name
+- **Specificity**: 18/25 - Good details, cluster descriptions included
+- **Factual Accuracy**: 25/25 - All facts verified correct
+- **Actionability**: 9/10 - Includes links to official resources
+
+### API Response Quality
+The live API returns a comprehensive ~3800 character response covering:
+- All three pillars (Excellent Science, Global Challenges, Innovative Europe)
+- All six clusters with detailed descriptions in a table format:
+  - Cluster 1: Health
+  - Cluster 2: Culture, Creativity and Inclusive Society
+  - Cluster 3: Civil Security for Society
+  - Cluster 4: Digital, Industry and Space
+  - Cluster 5: Climate, Energy and Mobility
+  - Cluster 6: Food, Bioeconomy, Natural Resources, Agriculture and Environment
+- Key areas and typical actions (RIA, IA, CSA) for each cluster
+- EU Missions and Partnerships mention
+- Actionable links to EU portal
+
+### Test Results
+- 10 tests passed (all tests including live API tests)
+- Offline tests verify evaluation framework correctness
+- Live API tests verify response quality meets threshold
+
+### PRD Task Status
+- [x] EVALUATE task complete (score 92/100, PASS)
+- FIX IF NEEDED task not needed (score >= 85)
+
