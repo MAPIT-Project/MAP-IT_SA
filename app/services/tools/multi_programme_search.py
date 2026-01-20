@@ -28,6 +28,21 @@ PROGRAMME_INFO = {
         'focus': 'Research & Innovation',
         'icon': '🔬',
         'website': 'https://research-and-innovation.ec.europa.eu/funding/funding-opportunities/funding-programmes-and-open-calls/horizon-europe_en',
+        'resources': {
+            'main_portal': 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home',
+            'work_programmes': 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON',
+            'how_to_participate': 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/how-to-participate/1',
+            'partner_search': 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search',
+            'call_calendar': 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/calls-calendar',
+            'cordis': 'https://cordis.europa.eu/',
+            'regulation': 'https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32021R0695',
+        },
+        'guidance': """🎯 **Getting Started with Horizon Europe:**
+• Register on [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)
+• Review the [Work Programmes](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON) for your cluster
+• Check eligibility via [How to Participate](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/how-to-participate/1)
+• Find partners using [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search)
+• Browse [Call Calendar](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/calls-calendar)""",
     },
     'erasmus_plus': {
         'name': 'Erasmus+',
@@ -36,6 +51,15 @@ PROGRAMME_INFO = {
         'focus': 'Education, Training, Youth, Sport',
         'icon': '🎓',
         'website': 'https://erasmus-plus.ec.europa.eu/',
+        'resources': {
+            'main_portal': 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home',
+            'programme_guide': 'https://erasmus-plus.ec.europa.eu/programme-guide/introduction',
+            'how_to_apply': 'https://erasmus-plus.ec.europa.eu/how-to-apply',
+        },
+        'guidance': """🎯 **Getting Started with Erasmus+:**
+• Review the [Programme Guide](https://erasmus-plus.ec.europa.eu/programme-guide/introduction)
+• Check [How to Apply](https://erasmus-plus.ec.europa.eu/how-to-apply)
+• Find open calls on [EU Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)""",
     },
     'creative_europe': {
         'name': 'Creative Europe',
@@ -44,6 +68,15 @@ PROGRAMME_INFO = {
         'focus': 'Culture & Media',
         'icon': '🎨',
         'website': 'https://creative-europe.ec.europa.eu/',
+        'resources': {
+            'main_portal': 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home',
+            'culture_strand': 'https://creative-europe.ec.europa.eu/culture',
+            'media_strand': 'https://creative-europe.ec.europa.eu/media',
+        },
+        'guidance': """🎯 **Getting Started with Creative Europe:**
+• Explore [Culture Strand](https://creative-europe.ec.europa.eu/culture)
+• Explore [MEDIA Strand](https://creative-europe.ec.europa.eu/media)
+• Find open calls on [EU Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)""",
     },
     'eu4health': {
         'name': 'EU4Health',
@@ -52,6 +85,13 @@ PROGRAMME_INFO = {
         'focus': 'Health & Crisis Preparedness',
         'icon': '🏥',
         'website': 'https://health.ec.europa.eu/funding/eu4health-programme-2021-2027_en',
+        'resources': {
+            'main_portal': 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home',
+            'programme_info': 'https://health.ec.europa.eu/funding/eu4health-programme-2021-2027_en',
+        },
+        'guidance': """🎯 **Getting Started with EU4Health:**
+• Review [Programme Information](https://health.ec.europa.eu/funding/eu4health-programme-2021-2027_en)
+• Find open calls on [EU Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)""",
     },
     'digital_europe': {
         'name': 'Digital Europe',
@@ -60,6 +100,13 @@ PROGRAMME_INFO = {
         'focus': 'Digital Transformation',
         'icon': '💻',
         'website': 'https://digital-strategy.ec.europa.eu/en/activities/digital-programme',
+        'resources': {
+            'main_portal': 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home',
+            'programme_info': 'https://digital-strategy.ec.europa.eu/en/activities/digital-programme',
+        },
+        'guidance': """🎯 **Getting Started with Digital Europe:**
+• Review [Programme Overview](https://digital-strategy.ec.europa.eu/en/activities/digital-programme)
+• Find open calls on [EU Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)""",
     },
     'life': {
         'name': 'LIFE Programme',
@@ -68,6 +115,13 @@ PROGRAMME_INFO = {
         'focus': 'Environment & Climate',
         'icon': '🌍',
         'website': 'https://cinea.ec.europa.eu/programmes/life_en',
+        'resources': {
+            'main_portal': 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home',
+            'programme_info': 'https://cinea.ec.europa.eu/programmes/life_en',
+        },
+        'guidance': """🎯 **Getting Started with LIFE:**
+• Review [Programme Information](https://cinea.ec.europa.eu/programmes/life_en)
+• Find open calls on [EU Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)""",
     },
 }
 
@@ -573,7 +627,7 @@ def get_programme_info_execute(
         programme: Specific programme to get info for (None = all)
 
     Returns:
-        Programme information
+        Programme information including actionable guidance and official links
     """
     if programme and programme in PROGRAMME_INFO:
         # Get info for specific programme
@@ -588,15 +642,35 @@ def get_programme_info_execute(
                 detailed_info = extractor.get_programme_info()
                 info.update(detailed_info)
 
-        return {
+        # Build response with prominent actionable guidance
+        response = {
             'success': True,
             'programme': programme,
             'info': info,
         }
 
+        # Add top-level actionable content for easy agent access
+        if 'guidance' in info:
+            response['actionable_guidance'] = info['guidance']
+        if 'resources' in info:
+            response['official_resources'] = info['resources']
+        if 'website' in info:
+            response['official_website'] = info['website']
+
+        return response
+
     # Return all programmes
     tool = MultiProgrammeSearchTool()
+    all_info = tool.get_all_programme_info()
+
+    # Add guidance for all programmes
+    all_guidance = {}
+    for prog_key, prog_info in PROGRAMME_INFO.items():
+        if 'guidance' in prog_info:
+            all_guidance[prog_key] = prog_info['guidance']
+
     return {
         'success': True,
-        'programmes': tool.get_all_programme_info(),
+        'programmes': all_info,
+        'actionable_guidance': all_guidance,
     }

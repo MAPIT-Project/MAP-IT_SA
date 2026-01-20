@@ -57,7 +57,7 @@ Run with: `./ralphy.sh --prd MAPIT_QUALITY_PRD.md`
 ### Prompt 001: Horizon Europe Structure
 - [x] EVALUATE: Run prompt "What is the structure of the Horizon Europe programme?" through MAPIT. Use the `eval-orchestrator` subagent which will: (1) invoke `query-decomposer` to break down the query, (2) invoke `quality-evaluator` to score against rubrics using `eu-funding-domain` for fact-checking. Save result to `tests/quality/results/prompt_001_horizon_structure.json` with score breakdown and fix suggestions. THIS TASK HAS BEEN DONE BEFORE BUT THE LIVE API WASN'T LIVE. IT IS RIGHT NOW SO REDO IT PLEASE!
 
-- [ ] FIX IF NEEDED: Read `tests/quality/results/prompt_001_horizon_structure.json`. If score < 85: use `mapit-tools` skill to understand tool patterns, `mapit-neo4j` skill for graph fixes, implement the fix, re-run evaluation via `eval-orchestrator`. Repeat until score >= 85 or 3 attempts. Update JSON with fix history.
+- [x] FIX IF NEEDED: Read `tests/quality/results/prompt_001_horizon_structure.json`. If score < 85: use `mapit-tools` skill to understand tool patterns, `mapit-neo4j` skill for graph fixes, implement the fix, re-run evaluation via `eval-orchestrator`. Repeat until score >= 85 or 3 attempts. Update JSON with fix history.
 
 ### Prompt 002: Thematic Fields
 - [ ] EVALUATE: Run prompt "What are the thematic fields covered by Horizon Europe?" through MAPIT. Use `eval-orchestrator` subagent for evaluation. Must mention all 6 Clusters by name. Save result to `tests/quality/results/prompt_002_thematic_fields.json`.

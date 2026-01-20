@@ -224,6 +224,16 @@ class ToolAwareAgent:
     BUILT_IN_KNOWLEDGE = """
 ## Quick Reference: Horizon Europe Facts
 
+### Official Resources (ALWAYS include when explaining programme structure)
+When answering questions about Horizon Europe structure, ALWAYS include these actionable links at the end:
+
+🎯 **Getting Started with Horizon Europe:**
+• Register on [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)
+• Review the [Work Programmes](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON) for your cluster
+• Check eligibility via [How to Participate](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/how-to-participate/1)
+• Find partners using [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search)
+• Browse [Call Calendar](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/calls-calendar)
+
 ### Page Limits for Proposals (Part B - Technical Description)
 | Action Type | Standard Page Limit | Notes |
 |-------------|---------------------|-------|
@@ -420,6 +430,11 @@ Respond ONLY with JSON (no other text):
 - Include call IDs so users can reference them (e.g., "tell me more about #3")
 - For funding calls: include title, call ID, type, deadline, cluster, and scope
 - Be comprehensive but organized
+- **ALWAYS include actionable links** at the end of your response:
+  - For programme info queries: include the 'actionable_guidance' from the tool response
+  - For call searches: include links to the EU Portal and Work Programmes
+  - For project searches: include CORDIS links
+  - This helps users take immediate next steps (e.g., official programme page, portal link)
 
 ## CRITICAL: Synthesizing Answers
 
@@ -1014,6 +1029,10 @@ project and wants to know where to find funding.""",
             description="""Get detailed information about a specific EU funding programme.
 Returns budget, focus areas, action types, eligibility, key actions (for Erasmus+),
 strands (for Creative Europe), and priority areas (for EU4Health).
+
+IMPORTANT: Also returns 'actionable_guidance' with official links and next steps.
+When explaining a programme's structure, ALWAYS include these actionable links
+at the end of your response to help users take next steps.
 
 Available programmes: horizon_europe, erasmus_plus, creative_europe, eu4health,
 digital_europe, life""",

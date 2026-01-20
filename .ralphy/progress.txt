@@ -68,11 +68,65 @@ The live API consistently returns comprehensive 3000-3800 character responses co
 
 ### PRD Task Status
 - [x] EVALUATE task marked complete
-- [ ] FIX IF NEEDED task pending (may be needed if consistent scores < 85)
+- [x] FIX IF NEEDED task completed (see below)
 
-### Next Steps
-If live API scores remain consistently below 85, run the FIX IF NEEDED task to improve:
-- Add specific ERC budget figures (STG: €1.5M, COG: €2M, ADG: €2.5M)
-- Include TRL ranges for EIC components
-- Add links to EC Funding & Tenders Portal for actionability
+
+## 2026-01-21: Prompt 001 - Horizon Europe Structure (FIX IF NEEDED)
+
+### Task Completed
+Fixed actionability issue that was causing scores below 85. Score improved from 80 to 91.
+
+### Problem Identified
+The previous evaluation showed:
+- **Overall Score**: 80/100 (NEEDS_REVIEW)
+- **Actionability Score**: 0-2/10 - No links to official resources
+
+### Root Cause Analysis
+The agent was using built-in knowledge to answer programme structure questions without calling the `get_programme_info` tool. Even when calling the tool, the response lacked actionable links.
+
+### Fix Implementation (1 attempt - successful)
+
+#### Files Modified:
+1. **`app/services/tools/multi_programme_search.py`**:
+   - Added `resources` dict with official EU portal links for all programmes
+   - Added `guidance` field with actionable "Getting Started" guidance including markdown links
+   - Enhanced `get_programme_info_execute()` to return `actionable_guidance` at top level
+
+2. **`app/services/agents/tool_aware_agent.py`**:
+   - Added actionable links section to `BUILT_IN_KNOWLEDGE` with instructions to always include when explaining programme structure
+   - Updated `get_programme_info` tool description to indicate it returns actionable guidance
+   - Added "ALWAYS include actionable links" guideline to Response Guidelines section
+
+### Fix Details
+
+Added to BUILT_IN_KNOWLEDGE:
+```markdown
+### Official Resources (ALWAYS include when explaining programme structure)
+🎯 **Getting Started with Horizon Europe:**
+• Register on [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)
+• Review the [Work Programmes](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON)
+• Check eligibility via [How to Participate](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/how-to-participate/1)
+• Find partners using [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search)
+• Browse [Call Calendar](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/calls-calendar)
+```
+
+### Post-Fix Evaluation Results
+- **Overall Score**: 91/100 (PASS) ✅
+- **Query Fulfillment**: 40/40
+- **Specificity**: 19/25
+- **Factual Accuracy**: 25/25
+- **Actionability**: 7/10 (improved from 0-2)
+
+### Score Improvement
+| Dimension | Before | After | Change |
+|-----------|--------|-------|--------|
+| Query Fulfillment | 40 | 40 | - |
+| Specificity | 15-17 | 19 | +2-4 |
+| Factual Accuracy | 25 | 25 | - |
+| Actionability | 0-2 | 7 | +5-7 |
+| **Overall** | **80** | **91** | **+11** |
+
+### PRD Task Status
+- [x] EVALUATE task complete
+- [x] FIX IF NEEDED task complete (1 attempt, score 80 → 91, PASS)
 
