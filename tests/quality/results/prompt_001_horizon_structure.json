@@ -1,0 +1,33 @@
+{
+  "prompt_id": "001",
+  "query": "What is the structure of the Horizon Europe programme?",
+  "response": "\n**Horizon Europe Programme Structure**\n\nHorizon Europe is the EU's main funding programme for research and innovation\nwith a budget of \u20ac95.5 billion for 2021-2027. It is structured around three\nmain pillars:\n\n## Pillar I - Excellent Science\nThis pillar focuses on strengthening the EU's scientific base through:\n- **European Research Council (ERC)**: Supports frontier research projects\n  (ERC Starting Grants: \u20ac1.5M, Consolidator: \u20ac2M, Advanced: \u20ac2.5M)\n- **Marie Sk\u0142odowska-Curie Actions (MSCA)**: Funds researcher mobility\n  (MSCA-PF, MSCA-DN, MSCA-SE, MSCA-COFUND)\n- **Research Infrastructures**: Supports access to world-class facilities\n\n## Pillar II - Global Challenges & European Industrial Competitiveness\nThis pillar addresses societal challenges through six thematic clusters:\n1. **Cluster 1 - Health**: Disease, clinical research, health systems\n2. **Cluster 2 - Culture, Creativity & Inclusive Society**: Heritage, democracy\n3. **Cluster 3 - Civil Security for Society**: Cybersecurity, disaster resilience\n4. **Cluster 4 - Digital, Industry & Space**: AI, robotics, manufacturing, space\n5. **Cluster 5 - Climate, Energy & Mobility**: Clean energy, transport\n6. **Cluster 6 - Food, Bioeconomy, Natural Resources**: Sustainable food\n\n## Pillar III - Innovative Europe\nThis pillar supports breakthrough innovation through:\n- **European Innovation Council (EIC)**: EIC Pathfinder (TRL 1-4),\n  EIC Transition (TRL 4-6), EIC Accelerator for scale-up\n- **European Institute of Innovation & Technology (EIT)**: KICs\n- **European Innovation Ecosystems**: Supporting national/regional innovation\n\n## Action Types\n- **RIA (Research & Innovation Action)**: 100% funding, TRL 1-5\n- **IA (Innovation Action)**: 70% funding (100% for non-profit), TRL 5-8\n- **CSA (Coordination & Support Action)**: 100% funding\n\nFor more information, visit the EC Funding Portal or consult the Work Programme\n2024-2025.\n",
+  "overall_score": 96,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "structure_overview",
+      "description": "Complete structural overview of Horizon Europe",
+      "fulfillment": 40,
+      "specificity": 25,
+      "accuracy": 25,
+      "actionability": 6,
+      "total": 96,
+      "notes": "Fulfillment: All structural components addressed; Specificity: Good specificity with concrete details; Accuracy: Accuracy check: 3/3 key placements verified; Actionability: Good actionability with guidance provided"
+    }
+  ],
+  "factual_errors": [],
+  "fix_suggestions": [
+    "Improve actionability: Add links to EC portal, mention Work Programmes"
+  ],
+  "strengths": [
+    "Comprehensive coverage of Horizon Europe structure",
+    "Rich in specific programme details",
+    "Factually accurate"
+  ],
+  "evaluation_timestamp": "2026-01-20T23:03:44.384452+00:00",
+  "response_metadata": {
+    "source": "test_json_save"
+  },
+  "fix_history": []
+}
