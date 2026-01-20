@@ -67,7 +67,7 @@ Run with: `./ralphy.sh --prd MAPIT_QUALITY_PRD.md`
 ### Prompt 003: Marie Skłodowska-Curie Actions
 - [x] EVALUATE: Run prompt "What are Marie Curie Skłodowska Actions (MSCA)?" through MAPIT. Use `eval-orchestrator` subagent. Must explain MSCA-PF, MSCA-DN, MSCA-SE, MSCA-COFUND. Save result to `tests/quality/results/prompt_003_msca.json`.
 
-- [ ] FIX IF NEEDED: Read `tests/quality/results/prompt_003_msca.json`. If score < 85: fix using relevant skills and re-evaluate until passing or 3 attempts.
+- [x] FIX IF NEEDED: Read `tests/quality/results/prompt_003_msca.json`. If score < 85: fix using relevant skills and re-evaluate until passing or 3 attempts.
 
 ### Prompt 004: Clusters and Missions
 - [ ] EVALUATE: Run prompt "What are Clusters and Missions in Horizon Europe?" through MAPIT. Use `eval-orchestrator` subagent. Must list all 6 Clusters and 5 Missions with descriptions. Save result to `tests/quality/results/prompt_004_clusters_missions.json`.

@@ -52,6 +52,8 @@ PILLAR III - Innovative Europe
 | **ERC-POC** | ERC Proof of Concept | 100% | €150K | TRL 3-4 |
 | **MSCA-PF** | Postdoctoral Fellowship | 100% | €200-300K | N/A |
 | **MSCA-DN** | Doctoral Network | 100% | €2-4M | N/A |
+| **MSCA-SE** | Staff Exchanges | 100% | €0.5-1.5M | N/A |
+| **MSCA-COFUND** | Co-funding Programmes | 100% | up to €10M | N/A |
 | **EIC-Pathfinder** | High-risk breakthrough | 100% | €3-4M | TRL 1-4 |
 | **EIC-Transition** | Lab to market | 100% | €0.5-2.5M | TRL 4-6 |
 | **EIC-Accelerator** | Scale-up support | 70% grant + equity | €2.5M + €15M | TRL 6-9 |
@@ -80,6 +82,8 @@ PILLAR III - Innovative Europe
 | ERC | 1 | Host in EU/Associated | Single PI, no consortium |
 | MSCA-PF | 1 | Host in EU/Associated | Single researcher |
 | MSCA-DN | 3 | 3 different countries | Doctoral training |
+| MSCA-SE | 3 | 2 different countries | Inter-sector required |
+| MSCA-COFUND | 1 | EU/Associated | Fellowship programme |
 | EIC-Pathfinder | 3 | 3 different EU/Associated | For Open calls |
 | EIC-Accelerator | 1 | EU/Associated | Single company |
 

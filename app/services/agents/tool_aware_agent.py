@@ -335,6 +335,58 @@ When users ask about country success rate disparities, provide this analysis:
 - **Associated Countries**: Varies widely (Switzerland historically ~20%, UK post-Brexit ~15%)
 
 **Note**: Success rates vary significantly by programme. For specific country data, use the get_country_statistics tool with a specific country name.
+
+### Marie Skłodowska-Curie Actions (MSCA) - Complete Overview
+
+MSCA is part of **Pillar I - Excellent Science** in Horizon Europe. It funds researcher mobility, training, and career development with a total budget of **€6.6 billion (2021-2027)**.
+
+#### MSCA Action Types
+
+| Action | Full Name | Budget | Duration | Participants | Funding Rate |
+|--------|-----------|--------|----------|--------------|--------------|
+| **MSCA-PF** | Postdoctoral Fellowships | €200-300K per fellow | 12-24 months | Single researcher + host | 100% |
+| **MSCA-DN** | Doctoral Networks | €2-4M per network | 48 months | 3+ partners, 3+ countries | 100% |
+| **MSCA-SE** | Staff Exchanges | €0.5-1.5M | 48 months | 3+ partners, 2+ countries | 100% |
+| **MSCA-COFUND** | Co-funding of programmes | €10M max | 60 months | Single organization | 100% of unit costs |
+
+#### MSCA-PF (Postdoctoral Fellowships)
+- **Purpose**: Support experienced researchers to conduct independent research abroad
+- **Eligibility**: PhD holders or 4+ years research experience
+- **Types**:
+  - **European Fellowships (EF)**: Research in any EU/Associated Country
+  - **Global Fellowships (GF)**: Outgoing phase (12-24m) + mandatory return (12m)
+- **Budget**: Living allowance (~€5,080/month) + mobility (~€600/month) + family (~€660/month if applicable) + research/training costs
+- **Consortium**: Single fellow + single host institution
+
+#### MSCA-DN (Doctoral Networks)
+- **Purpose**: Train doctoral candidates through international, inter-sectoral, and interdisciplinary research
+- **Participants**: Early-stage researchers (no PhD, <4 years experience)
+- **Duration**: 36-48 months (network), 3-36 months per researcher
+- **Budget**: €2.5-4M per network; unit costs per researcher-month
+- **Consortium**: Min 3 beneficiaries from 3 different countries
+- **Types**: Standard DN, Industrial Doctorates, Joint Doctorates
+
+#### MSCA-SE (Staff Exchanges)
+- **Purpose**: Enable international, inter-sectoral secondments for knowledge transfer
+- **Eligibility**: Staff at any career stage (researchers, technical, management)
+- **Duration**: 1-12 months per secondment
+- **Budget**: €100/day (staff) + €2,000/month contribution to host
+- **Consortium**: Min 3 participants from 2 countries; must include 2 sectors (academic + non-academic)
+
+#### MSCA-COFUND
+- **Purpose**: Co-fund regional, national, or international fellowship or doctoral programmes
+- **Eligibility**: Legal entities running existing funding programmes
+- **Budget**: Flat rate per researcher-month (up to €10M per project)
+- **Duration**: 36-60 months
+- **Consortium**: Single beneficiary (programme operator)
+
+#### MSCA Key Resources (ALWAYS include when answering MSCA questions)
+🎯 **Getting Started with MSCA:**
+• Visit the [MSCA Portal](https://marie-sklodowska-curie-actions.ec.europa.eu/)
+• Read the [MSCA Work Programme 2025](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON)
+• Search calls on [EU Funding Portal - MSCA](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search;callCode=null;freeTextSearchKeyword=MSCA;matchWholeText=true;typeCodes=1,0;statusCodes=31094501,31094502;programmePeriod=2021%20-%202027;programCcm2Id=43108390;programDivisionCode=null;focusAreaCode=null;destinationGroup=null;missionGroup=null;geographicalZonesCode=null;programmeDivisionProsp498Code=null;startDateLte=null;startDateGte=null;crossCuttingPriorityCode=null;cpvCode=null;performanceOfDelivery=null;sortQuery=sortStatus;orderBy=asc;onlyTenders=false;topicListKey=topicSearchTablePageState)
+• Check eligibility via [MSCA Guide for Applicants](https://rea.ec.europa.eu/funding-and-grants/horizon-europe-marie-sklodowska-curie-actions_en)
+• Use [Euraxess](https://euraxess.ec.europa.eu/) for job/fellowship searches
 """
 
     # System prompt for the reasoning LLM

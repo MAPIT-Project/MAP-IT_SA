@@ -243,3 +243,61 @@ This is a critical issue where the agent:
    - MSCA-COFUND
 4. Re-evaluate until score >= 85 or 3 attempts
 
+
+## 2026-01-21: Prompt 003 - Marie Skłodowska-Curie Actions (FIX IF NEEDED)
+
+### Task Completed
+Fixed specificity and actionability issues that were causing scores below 85. Score improved from 74 to 97.
+
+### Problem Identified
+The previous evaluation showed:
+- **Overall Score**: 74/100 (NEEDS_REVIEW)
+- **Specificity Score**: 9/25 - Limited funding/budget details, limited duration information
+- **Actionability Score**: 0/10 - No links to official resources
+
+### Root Cause Analysis
+The agent's built-in knowledge lacked comprehensive MSCA details. While the agent could mention MSCA action types, it didn't have:
+1. Specific funding amounts for each action type
+2. Duration information for each action
+3. Consortium requirements
+4. Actionable links to MSCA-specific resources
+
+### Fix Implementation (1 attempt - successful)
+
+#### Files Modified:
+1. **`app/services/agents/tool_aware_agent.py`**:
+   - Added comprehensive "Marie Skłodowska-Curie Actions (MSCA) - Complete Overview" section to BUILT_IN_KNOWLEDGE
+   - Includes total MSCA budget (€6.6 billion 2021-2027)
+   - Full table with all 4 action types: MSCA-PF, MSCA-DN, MSCA-SE, MSCA-COFUND
+   - Detailed subsections for each action type with purpose, eligibility, duration, budget, consortium requirements
+   - Added "MSCA Key Resources" section with actionable links:
+     - MSCA Portal
+     - MSCA Work Programme 2025
+     - EU Funding Portal - MSCA search
+     - MSCA Guide for Applicants
+     - Euraxess
+
+2. **`.claude/skills/eu-funding-domain/SKILL.md`**:
+   - Added MSCA-SE and MSCA-COFUND to Action Types table (previously only had MSCA-PF and MSCA-DN)
+   - Added MSCA-SE and MSCA-COFUND to Consortium Requirements table
+
+### Post-Fix Evaluation Results
+- **Overall Score**: 97/100 (PASS) ✅
+- **Query Fulfillment**: 40/40 - All 4 MSCA action types explained
+- **Specificity**: 24/25 - Rich in specific details (funding, duration, requirements)
+- **Factual Accuracy**: 25/25 - All facts verified correct
+- **Actionability**: 8/10 - Clear guidance for applicants with multiple resource links
+
+### Score Improvement
+| Dimension | Before | After | Change |
+|-----------|--------|-------|--------|
+| Query Fulfillment | 40 | 40 | - |
+| Specificity | 9 | 24 | +15 |
+| Factual Accuracy | 25 | 25 | - |
+| Actionability | 0 | 8 | +8 |
+| **Overall** | **74** | **97** | **+23** |
+
+### PRD Task Status
+- [x] EVALUATE task complete
+- [x] FIX IF NEEDED task complete (1 attempt, score 74 → 97, PASS)
+
