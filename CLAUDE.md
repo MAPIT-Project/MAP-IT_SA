@@ -769,10 +769,22 @@ The system supports multiple LLM providers:
 ## Common Development Tasks
 
 ### Adding New Tools
-1. Create tool in `app/services/tools/` directory
-2. Register tool in `app/services/tools/__init__.py`
-3. Update tool orchestrator in `app/services/agents/tool_aware_agent.py`
-4. Add tests for new tool functionality
+
+**Detailed Guide**: See `.claude/skills/mapit-tools/SKILL.md` for comprehensive patterns, templates, and examples.
+
+**Quick Steps**:
+1. Create tool file in `app/services/tools/` (use template from `.claude/skills/mapit-tools/templates/tool_template.py`)
+2. Export in `app/services/tools/__init__.py`
+3. Register tool schema in `app/services/agents/tool_aware_agent.py:_init_tools()`
+4. Add router entry in `_execute_single_tool()`
+5. Add wrapper method `_tool_my_tool()`
+6. Add tests for new tool functionality
+
+**Key Patterns**:
+- Use hybrid Graph+SQL architecture for comprehensive results
+- Implement RRF fusion for merging ranked results
+- Always handle parameter fallbacks (LLMs use inconsistent names)
+- Include graceful degradation when services are unavailable
 
 ### Extending Data Sources
 1. Add data source connector in `app/services/data_intelligence_service.py`
