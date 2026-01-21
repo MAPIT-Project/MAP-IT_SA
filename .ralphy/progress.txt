@@ -1066,3 +1066,48 @@ The live API returns a comprehensive ~5975 character response covering:
 - [x] EVALUATE task complete (score 100/100, PASS)
 - [x] FIX IF NEEDED task not needed (score >= 85)
 
+
+
+## 2026-01-21: Prompt 016 - Local Government Climate Adaptation (EVALUATE + FIX IF NEEDED)
+
+### Task Completed
+Created quality evaluation test for Prompt 016: "I am a local government interested in climate change adaptation. What Horizon Europe opportunities exist for us?"
+
+### Files Created/Modified
+- `tests/quality/test_prompt_016_local_gov.py` - New test file with:
+  - Four-dimension evaluation framework (Query Fulfillment 40pts, Specificity 25pts, Factual Accuracy 25pts, Actionability 10pts)
+  - Checks for public body/local government eligibility (PUB)
+  - Checks for climate adaptation relevance (resilience, adaptation, climate-neutral)
+  - Checks for EU Missions (100 Cities, 150 Regions, Climate Adaptation)
+  - Checks for funding instruments (RIA 100%, IA 100% for non-profit, CSA 100%)
+  - Sample responses for offline testing (excellent, partial, poor)
+  - Live API tests
+  - Result saved to `tests/quality/results/prompt_016_local_gov.json`
+
+### Live API Evaluation Results
+- **Overall Score**: 98/100 (PASS) ✅
+- **Query Fulfillment**: 40/40 - All key components covered (public body eligibility, EU Missions, climate adaptation, funding instruments)
+- **Specificity**: 23/25 - Good specificity with funding details, call IDs, deadlines
+- **Factual Accuracy**: 25/25 - All facts verified correct (100% funding for public bodies, Mission targets)
+- **Actionability**: 10/10 - Clear guidance with links to official resources
+
+### API Response Quality
+The live API returns a comprehensive ~5751 character response covering:
+- **Public body eligibility**: Correctly identifies 100% funding rate for local governments (PUB)
+- **EU Mission on Adaptation to Climate Change**: Primary opportunity for regional/local authorities, 150+ regions by 2030
+- **EU Mission Climate-Neutral Cities**: 100 cities by 2030
+- **Cluster 5 (Climate, Energy, Mobility)**: Specific call examples (HORIZON-CL5-2026-02-D4-03)
+- **Cluster 6 (Environment)**: Nature-based solutions, water management
+- **Funding instruments**: RIA (100%), CSA (100%), IA (100% for non-profit public bodies)
+- **Public body roles**: Living labs, testbeds, demonstration sites, policy implementation
+- **Concrete call examples**: HORIZON-MISS-2026-01 (CSA/IA for regional authorities)
+- **Actionable links**: EU Funding Portal, EU Missions Portal, Climate Mission Portal, Partner Search
+
+### Test Results
+- 10 tests passed (6 offline + 4 live API tests)
+- All linting passed
+
+### PRD Task Status
+- [x] EVALUATE task complete (score 98/100, PASS)
+- [x] FIX IF NEEDED task not needed (score >= 85)
+

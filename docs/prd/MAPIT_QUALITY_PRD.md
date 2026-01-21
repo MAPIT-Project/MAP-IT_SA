@@ -138,9 +138,9 @@ Run with: `./ralphy.sh --prd MAPIT_QUALITY_PRD.md`
 - [x] FIX IF NEEDED: Read `tests/quality/results/prompt_015_ngo_climate.json`. If score < 85: fix and re-evaluate until passing or 3 attempts.
 
 ### Prompt 016: Local Government Opportunities
-- [ ] EVALUATE: Run prompt "I am a local government interested in climate change adaptation. What Horizon Europe opportunities exist for us?" through MAPIT. Use `eval-orchestrator` subagent. Must explain public body (PUB) eligibility per `eu-funding-domain`. Save result to `tests/quality/results/prompt_016_local_gov.json`.
+- [x] EVALUATE: Run prompt "I am a local government interested in climate change adaptation. What Horizon Europe opportunities exist for us?" through MAPIT. Use `eval-orchestrator` subagent. Must explain public body (PUB) eligibility per `eu-funding-domain`. Save result to `tests/quality/results/prompt_016_local_gov.json`.
 
-- [ ] FIX IF NEEDED: Read `tests/quality/results/prompt_016_local_gov.json`. If score < 85: fix and re-evaluate until passing or 3 attempts.
+- [x] FIX IF NEEDED: Read `tests/quality/results/prompt_016_local_gov.json`. If score < 85: fix and re-evaluate until passing or 3 attempts.
 
 ### ==========================================================
 ### SECTION 4: CORDIS Projects Database - Thematic Searches
