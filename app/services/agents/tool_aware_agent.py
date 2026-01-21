@@ -599,6 +599,96 @@ Agriculture and food research is covered by **Cluster 6: Food, Bioeconomy, Natur
 • EU Bioeconomy: [Bioeconomy Strategy](https://research-and-innovation.ec.europa.eu/research-area/environment/bioeconomy_en)
 • MSCA Portal: [MSCA Actions](https://marie-sklodowska-curie-actions.ec.europa.eu/)
 • Search Cluster 6 calls: [EU Portal - Cluster 6](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search;callCode=null;freeTextSearchKeyword=;matchWholeText=true;typeCodes=1,0;statusCodes=31094501,31094502;programmePeriod=2021%20-%202027;programCcm2Id=43108390;programDivisionCode=43108567)
+
+### Third Country Eligibility and Participation (Non-EU, Non-Associated Countries)
+
+When a researcher asks about eligibility from a **non-EU, non-Associated country** (e.g., Japan, USA, China, South Korea, Australia, Canada, Brazil, India), provide this guidance:
+
+#### Country Classification
+
+| Category | Countries | Horizon Europe Participation |
+|----------|-----------|------------------------------|
+| **EU Member States (27)** | AT, BE, BG, CY, CZ, DE, DK, EE, EL, ES, FI, FR, HR, HU, IE, IT, LT, LU, LV, MT, NL, PL, PT, RO, SE, SI, SK | ✅ Full eligibility, full funding |
+| **Associated Countries** | CH*, IL*, IS, NO, UK*, AL, BA, XK, ME, MK, RS, TR, GE, MD, UA | ✅ Full eligibility (check current status) |
+| **Third Countries** | Japan, USA, China, South Korea, Australia, Canada, Brazil, India, etc. | ⚠️ Limited participation, restrictions apply |
+
+*Check association status - some may be pending/suspended (e.g., Switzerland since 2021)*
+
+#### Third Country Participation Rules
+
+**Key Facts:**
+- Third country organizations are **NOT automatically eligible** for EU funding
+- Participation is possible but with **significant restrictions**
+- Must check **specific call text** for third country eligibility conditions
+- When allowed, typically must be **self-funded** (no EU contribution to third country partners)
+- **Cannot be consortium coordinator** in most collaborative calls
+- May need existing **bilateral agreements** or specific topic exceptions
+
+#### Best Pathways for Third Country Researchers
+
+| Pathway | Eligibility | Funding | Description |
+|---------|-------------|---------|-------------|
+| **MSCA-PF (Postdoctoral Fellowships)** | ✅ **BEST OPTION** | Full EU funding | Move to EU/AC host institution; €200-300K fellowship; 12-24 months |
+| **ERC Grants** | ✅ Yes (at EU host) | Full EU funding | Work at EU/AC institution; Starting €1.5M, Consolidator €2M, Advanced €2.5M |
+| **Collaborative Projects (partner)** | ⚠️ Check topic | Usually self-funded | Join consortium as partner; check call conditions |
+| **Bilateral Programmes** | ✅ Varies | Shared funding | Japan-EU, US-EU joint programmes may offer funded options |
+
+#### MSCA-PF: The Primary Pathway for Third Country Researchers
+
+**MSCA Postdoctoral Fellowships are the MOST accessible option** for researchers from third countries:
+
+1. **Eligibility**: PhD holders (or 4+ years research experience) of ANY nationality
+2. **Requirement**: Must move to and conduct research at an EU or Associated Country host institution
+3. **Types**:
+   - **European Fellowships (EF)**: Research in any EU/AC country (12-24 months)
+   - **Global Fellowships (GF)**: Outgoing phase to third country (12-24m) + mandatory return to EU (12m)
+4. **Funding**: Full EU funding including living allowance (~€5,080/month), mobility (~€600/month), research costs
+5. **Deadline**: Usually September each year (check EU Portal for exact dates)
+
+#### ERC Grants for Third Country Nationals
+
+**ERC grants are open to researchers of any nationality** if they meet these conditions:
+- Must conduct research at an **EU or Associated Country host institution**
+- Must commit to spend 50%+ of research time at EU/AC host
+- Scientific excellence is the only criterion (no nationality restrictions on PI)
+
+| Grant Type | Career Stage | Funding | Duration |
+|------------|--------------|---------|----------|
+| ERC Starting | 2-7 years post-PhD | Up to €1.5M | 5 years |
+| ERC Consolidator | 7-12 years post-PhD | Up to €2M | 5 years |
+| ERC Advanced | Track record of 10+ years | Up to €2.5M | 5 years |
+
+#### Collaborative Projects: Checking Third Country Eligibility
+
+For RIA/IA/CSA collaborative calls:
+
+1. **Read the call text carefully** - look for "Eligibility" section
+2. **Check for phrases like**:
+   - "Entities from third countries may participate"
+   - "Third country participation is eligible for funding in exceptional cases"
+   - "Organizations from [specific countries] are automatically eligible"
+3. **If allowed**:
+   - Usually as **partner only** (not coordinator)
+   - Typically **self-funded** (bring own funding or co-funding)
+   - Must bring essential expertise/infrastructure not available in EU
+4. **Some topics have automatic third country eligibility** - check Work Programme
+
+#### Third Country Participation Key Resources
+
+🎯 **For Third Country Researchers:**
+• MSCA Portal (primary pathway): [MSCA Actions](https://marie-sklodowska-curie-actions.ec.europa.eu/)
+• ERC Opportunities: [ERC Grants](https://erc.europa.eu/funding/starting-grants)
+• EU Funding Portal: [Search Open Calls](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search)
+• Check Eligibility: [How to Participate](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/how-to-participate/1)
+• Third Country Rules: [Third Country Participation Guide](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/aga_en.pdf)
+
+**For Japan Specifically:**
+• JSPS Brussels Office: [JSPS EU Liaison](https://www.jsps-sto.se/) - Japanese NCP for Horizon Europe
+• JST International: [JST International Programmes](https://www.jst.go.jp/inter/english/) - Potential bilateral opportunities
+
+**For Other Third Countries:**
+• Check your country's NCP or science agency for bilateral EU programmes
+• Many countries have funded joint calls with EU (e.g., NSF-EU, UKRI-EU)
 """
 
     # System prompt for the reasoning LLM
@@ -656,8 +746,12 @@ When user asks to broaden scope after a funding/history analysis (e.g., "what ab
    - For **finding/searching** funding calls by topic → use search_funding_calls
    - For projects → use search_projects
    - For statistics → use get_programme_statistics or get_country_statistics
-   - For **country eligibility** ("Can X participate?", "Is Y eligible?") → use get_country_statistics (provides clear YES/NO answer with participation data)
+   - For **country eligibility** ("Can X participate?", "Is Y eligible?") → Check BUILT-IN KNOWLEDGE first:
+     * For EU Member States (AT, BE, BG, CY, CZ, DE, DK, EE, EL, ES, FI, FR, HR, HU, IE, IT, LT, LU, LV, MT, NL, PL, PT, RO, SE, SI, SK): Full eligibility, answer from knowledge
+     * For Associated Countries (NO, IS, TR, etc.): Full eligibility, answer from knowledge
+     * For **THIRD COUNTRIES** (Japan, USA, China, South Korea, Australia, Canada, Brazil, India, etc.): Use "Third Country Eligibility" section in BUILT-IN KNOWLEDGE - explain restrictions, MSCA pathway, ERC pathway, self-funded participation rules
    - For **specific country stats** (e.g., "Germany's success rate", "top orgs in France") → use get_country_statistics with the specific country name (NOT "EU" - that's not a valid country)
+   - For **third country researcher seeking calls** ("I'm from Japan/USA/China...") → Use BUILT-IN KNOWLEDGE "Third Country Eligibility" section: explain pathways (MSCA-PF as primary, ERC, bilateral programmes), restrictions (self-funded in consortia), and resources
    - For budget/funding questions → use get_budget_benchmark (returns real data from funded projects)
    - For consortium composition → use get_consortium_patterns (org types, country distribution, coordinator profiles)
    - For finding partners → use find_experienced_partners (organizations with track records in specific topics)

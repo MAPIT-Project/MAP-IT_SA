@@ -1,0 +1,92 @@
+{
+  "prompt_id": "013",
+  "query": "I am from Japan working in research. Are there any open calls that would be relevant for me?",
+  "response": "As a researcher from Japan (a Third Country), you are highly encouraged to participate in Horizon Europe. While collaboration in large consortia has specific funding limitations, the EU offers dedicated, fully funded pathways for individual researchers, particularly through Pillar I: Excellent Science.\n\nHere is a breakdown of your eligibility and the most relevant funding pathways:\n\n### 1. The Primary Funded Pathway: Individual Grants\n\nThe most straightforward way for you to secure full EU funding is by applying for individual grants where you conduct your research at a host institution located in an EU Member State or an Associated Country. Your nationality does not affect eligibility for these grants.\n\n#### A. Marie Sk\u0142odowska-Curie Postdoctoral Fellowships (MSCA-PF)\n\nMSCA-PF is the most accessible route for international researchers, funding excellent research mobility and career development. The grant is awarded to you and your EU/AC host institution.\n\n*   **Eligibility**: You must hold a PhD (or have 4+ years of full-time research experience).\n*   **Requirement**: You must move to or have lived in the host country for no more than 12 months in the last 3 years (mobility rule).\n*   **Funding**: **100% EU funded**. Provides a competitive salary/living allowance (~\u20ac5,080/month) plus mobility, family, and research costs (totaling \u20ac200-300K).\n*   **Types Relevant to Japan**:\n    *   **European Fellowships (EF)**: 12-24 months research period in the EU/AC.\n    *   **Global Fellowships (GF)**: Outgoing phase (12-24 months) to Japan (or any third country) + a mandatory return phase (12 months) to the EU/AC host. This is perfect if you wish to maintain a strong link to your Japanese institution while securing EU funding.\n*   **Typical Deadline**: Usually **September** each year.\n\n#### B. European Research Council (ERC) Grants\n\nERC grants support ground-breaking frontier research in any field, based purely on scientific excellence. They are highly competitive but fully open to researchers of any nationality.\n\n*   **Requirement**: You must establish your primary research base (host institution) in an EU Member State or Associated Country.\n*   **Funding**: **100% EU funded**.\n*   **Grant Types**:\n    *   **Starting Grant (StG)**: Up to \u20ac1.5 million (2-7 years post-PhD).\n    *   **Consolidator Grant (CoG)**: Up to \u20ac2 million (7-12 years post-PhD).\n    *   **Advanced Grant (AdG)**: Up to \u20ac2.5 million (established research leaders).\n\n### 2. Participation in Collaborative Projects (RIA/IA/CSA)\n\nJapanese organizations (universities, research institutes, companies) are eligible to participate in most Horizon Europe collaborative projects (Research and Innovation Actions - RIA, Innovation Actions - IA, Coordination and Support Actions - CSA).\n\n*   **Eligibility Rule**: Japan is typically classified as a **Third Country, generally not eligible for EU funding**.\n*   **Funding Restriction**: If you participate as a partner in a standard RIA or IA consortium, your Japanese organization will generally need to **self-fund** its activities. You will receive an EU Grant Agreement but with \u20ac0 contribution for the Japanese costs.\n*   **Exceptions**: Some topics explicitly invite and fund specific international partners (e.g., through dedicated bilateral agreements). You must check the specific call text under the eligibility section for exceptions to this self-funding rule.\n\n***\n\n### Next Steps and Resources for Japanese Researchers\n\nTo maximize your funding chances, focus on the MSCA-PF call (with a typical September deadline) or the ERC scheme, and begin identifying potential EU host institutions and mentors now.\n\n\ud83c\udfaf **Getting Started with Individual Grants:**\n*   Visit the **MSCA Portal** (primary pathway): [MSCA Actions](https://marie-sklodowska-curie-actions.ec.europa.eu/)\n*   Review **ERC Opportunities**: [ERC Grants](https://erc.europa.eu/funding/starting-grants)\n\n\ud83c\udfaf **General Horizon Europe Resources:**\n*   Register on the **EU Funding & Tenders Portal**: [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)\n*   Check General **Eligibility**: [How to Participate](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/how-to-participate/1)\n*   Consult your national support system: The **JSPS Brussels Office** often acts as the liaison and National Contact Point (NCP) for Japanese researchers interested in EU funding (check the JSPS website for their latest guidance on Horizon Europe).",
+  "overall_score": 100,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "japan_eligibility",
+      "description": "Japan third country eligibility and participation rules",
+      "fulfillment": 40,
+      "specificity": 25,
+      "accuracy": 25,
+      "actionability": 10,
+      "total": 100,
+      "notes": "Fulfillment: All key components covered; Specificity: Good specificity with participation details; Accuracy: Accuracy check: 25/25 points; Actionability: Good actionability with clear guidance",
+      "missing_items": [],
+      "found_items": [
+        "Japan third country status explained",
+        "Participation pathways described",
+        "Specific rules/conditions mentioned"
+      ]
+    }
+  ],
+  "factual_errors": [],
+  "fix_suggestions": [],
+  "strengths": [
+    "Comprehensive coverage of Japan's status and pathways",
+    "Rich in specific programme details and rules",
+    "Factually accurate on third country participation",
+    "Provides clear guidance for Japanese researchers"
+  ],
+  "evaluation_timestamp": "2026-01-21T09:56:47.538115+00:00",
+  "response_metadata": {
+    "intent_type": "agentic_v3",
+    "confidence": 0.8,
+    "tools_used": [
+      "search_funding_calls_1_0",
+      "search_funding_calls_1_1",
+      "search_funding_calls_2_0",
+      "search_funding_calls_2_1"
+    ],
+    "reasoning_steps": [
+      {
+        "step": 1,
+        "thought": "The user is a researcher from Japan. I need to address two main points: 1) Japan's eligibility status in Horizon Europe, and 2) current open calls relevant to an international researcher. Since Japan is classified as a 'Third Country eligible for funding' (sometimes automatically, sometimes case-by-case), the most relevant opportunities are often the researcher-centric Pillar I programmes (ERC, MSCA). I will search for open calls in MSCA and ERC first, as these are the most globally accessible actions. I will then explain Japan's eligibility for participation and funding.",
+        "action": "call_tools",
+        "tools_called": [
+          "search_funding_calls",
+          "search_funding_calls"
+        ],
+        "observation": "Found 13 funding call(s)\nFound 1 funding call(s)"
+      },
+      {
+        "step": 2,
+        "thought": "The user is a researcher from Japan, a Third Country. I must first explain their eligibility status (typically self-funded for collaborative projects, but fully funded for individual grants like ERC and MSCA if hosted in the EU/AC). The previous search only yielded the ERC Proof of Concept (unsuitable for new applicants) and Mission calls (unfunded for Japanese partners unless specified). I need to search for the core ERC (Starting, Consolidator, Advanced) and MSCA Postdoctoral Fellowships (PF) calls, as these are the primary funded pathways for international researchers.",
+        "action": "call_tools",
+        "tools_called": [
+          "search_funding_calls",
+          "search_funding_calls"
+        ],
+        "observation": "Found 15 funding call(s)\nFound 10 funding call(s)"
+      },
+      {
+        "step": 3,
+        "thought": "The user is a researcher from Japan (a Third Country) asking about relevant open calls. The most critical information is Japan's eligibility status, especially regarding funding.\n1.  Acknowledge Japan's status as a Third Country.\n2.  Explain the two main pathways:\n    a.  **Individual Grants (ERC, MSCA-PF):** Fully funded pathway, requiring relocation to an EU/AC host.\n    b.  **Collaborative Projects (RIA/IA/CSA):** Participation is possible, but usually requires self-funding (unless explicitly noted in the call).\n3.  Since the search tools only returned ERC-POC (unsuitable for new applicants) and future 2026 calls, I will rely on the built-in knowledge to explain the continuous opportunities (MSCA-PF, ERC) and their typical annual schedule.\n4.  Provide specific next steps and resources for Japanese researchers (JSPS info, MSCA Portal, ERC).",
+        "action": "conclude",
+        "tools_called": [],
+        "observation": ""
+      }
+    ],
+    "iterations": 3,
+    "processing_time_ms": 19893.534,
+    "architecture": "simplified_v3",
+    "quality_analysis": {
+      "score": 100,
+      "category": "complete",
+      "confidence": 0.85,
+      "query_type": "general",
+      "missing_elements": [],
+      "deflection_phrases_found": [],
+      "recommendations": [],
+      "elements_found": [
+        "answer",
+        "context"
+      ],
+      "response_length": 4534,
+      "timestamp": "2026-01-21T09:56:47.527872+00:00"
+    }
+  },
+  "fix_history": []
+}

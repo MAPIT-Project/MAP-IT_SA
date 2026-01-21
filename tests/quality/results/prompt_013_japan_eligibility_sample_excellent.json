@@ -1,0 +1,38 @@
+{
+  "prompt_id": "013",
+  "query": "I am from Japan working in research. Are there any open calls that would be relevant for me?",
+  "response": "\n## Horizon Europe Participation for Japanese Researchers\n\n### Japan's Eligibility Status\n\nJapan is classified as a **non-associated third country** in Horizon Europe, which means:\n\n- Japanese organizations are **NOT automatically eligible** for EU funding\n- Participation is possible but with **significant restrictions**\n- Must check **specific call conditions** for third country eligibility\n- When allowed, typically must be **self-funded** (no EU contribution)\n\n### Pathways for Japanese Researchers\n\nDespite the restrictions, there are several pathways for Japanese researchers:\n\n#### 1. MSCA Postdoctoral Fellowships (MSCA-PF)\n**Best option for individual researchers!**\n\n- Japanese researchers **CAN apply** if they plan to move to an EU/Associated Country\n- You work at a European host institution\n- Full EU funding available (living allowance + mobility allowance)\n- Budget: \u20ac200-300K for 12-24 month fellowship\n- 2025 deadline: September 2025 (check EU Portal for exact date)\n\n#### 2. ERC Grants\n- Japanese nationals **CAN apply** for ERC Starting/Consolidator/Advanced grants\n- **Requirement**: Must conduct research at an EU or Associated Country institution\n- Budget: \u20ac1.5M (Starting), \u20ac2M (Consolidator), \u20ac2.5M (Advanced)\n\n#### 3. Collaborative Projects (as Third Country Partner)\n- Japanese organizations MAY participate as partners in **some** calls\n- Must check topic text for \"third country eligibility\"\n- Typically **NOT funded** by EC (must bring own funding or co-fund)\n- Cannot be consortium coordinator in most cases\n\n### Specific Calls to Check\n\n| Programme | Japan Eligibility | Notes |\n|-----------|-------------------|-------|\n| MSCA-PF | \u2705 Yes (moving to EU) | Full funding if hosting in EU/AC |\n| ERC grants | \u2705 Yes (at EU institution) | Must work at EU/AC host |\n| Cluster 1-6 RIA/IA | \u26a0\ufe0f Check topic | Usually self-funded if allowed |\n| EIC Pathfinder | \u274c Limited | Usually EU/AC only |\n| Erasmus+ | \u26a0\ufe0f Partner country rules | Limited actions available |\n\n### How to Proceed\n\n1. **MSCA-PF Route** (Recommended):\n   - Find a host institution in EU/Associated Country\n   - Apply during 2025 MSCA-PF call\n   - Full funding available\n\n2. **For Collaborative Projects**:\n   - Partner with EU consortium\n   - Check each call's eligibility conditions\n   - Prepare for self-funding or co-funding\n\n3. **Japan-EU Bilateral Programmes**:\n   - Check JST (Japan Science and Technology Agency) for joint calls\n   - JSPS (Japan Society for Promotion of Science) collaboration programmes\n\n### Important Resources\n\n- EU Funding Portal: https://ec.europa.eu/info/funding-tenders/opportunities/portal/\n- MSCA Work Programme: Check \"third country\" sections\n- Japanese NCP: JSPS Brussels Office can advise on options\n- JST International Programmes: Potential bilateral opportunities\n\n### Key Points to Remember\n\n\u26a0\ufe0f **Always check the specific call text** for third country conditions\n\u26a0\ufe0f **EU funding typically not available** for Japanese institutions\n\u2705 **Individual mobility** (MSCA, ERC) offers the best pathways\n\u2705 **Bilateral programmes** may offer funded opportunities\n",
+  "overall_score": 100,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "japan_eligibility",
+      "description": "Japan third country eligibility and participation rules",
+      "fulfillment": 40,
+      "specificity": 25,
+      "accuracy": 25,
+      "actionability": 10,
+      "total": 100,
+      "notes": "Fulfillment: All key components covered; Specificity: Good specificity with participation details; Accuracy: Accuracy check: 25/25 points; Actionability: Good actionability with clear guidance",
+      "missing_items": [],
+      "found_items": [
+        "Japan third country status explained",
+        "Participation pathways described",
+        "Specific rules/conditions mentioned"
+      ]
+    }
+  ],
+  "factual_errors": [],
+  "fix_suggestions": [],
+  "strengths": [
+    "Comprehensive coverage of Japan's status and pathways",
+    "Rich in specific programme details and rules",
+    "Factually accurate on third country participation",
+    "Provides clear guidance for Japanese researchers"
+  ],
+  "evaluation_timestamp": "2026-01-21T09:57:15.271360+00:00",
+  "response_metadata": {
+    "source": "sample_excellent"
+  },
+  "fix_history": []
+}

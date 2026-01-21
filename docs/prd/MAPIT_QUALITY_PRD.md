@@ -123,9 +123,9 @@ Run with: `./ralphy.sh --prd MAPIT_QUALITY_PRD.md`
 - [x] FIX IF NEEDED: Read `tests/quality/results/prompt_012_austria_agri.json`. If score < 85: fix and re-evaluate until passing or 3 attempts.
 
 ### Prompt 013: Japan Researcher Eligibility
-- [ ] EVALUATE: Run prompt "I am from Japan working in research. Are there any open calls that would be relevant for me?" through MAPIT. Use `eval-orchestrator` subagent. Must correctly explain third country participation rules per `eu-funding-domain`. Save result to `tests/quality/results/prompt_013_japan_eligibility.json`.
+- [x] EVALUATE: Run prompt "I am from Japan working in research. Are there any open calls that would be relevant for me?" through MAPIT. Use `eval-orchestrator` subagent. Must correctly explain third country participation rules per `eu-funding-domain`. Save result to `tests/quality/results/prompt_013_japan_eligibility.json`.
 
-- [ ] FIX IF NEEDED: Read `tests/quality/results/prompt_013_japan_eligibility.json`. If score < 85: fix and re-evaluate until passing or 3 attempts.
+- [x] FIX IF NEEDED: Read `tests/quality/results/prompt_013_japan_eligibility.json`. If score < 85: fix and re-evaluate until passing or 3 attempts.
 
 ### Prompt 014: SME Climate Change Opportunities
 - [ ] EVALUATE: Run prompt "I am an SME interested in climate change. What are the opportunities for an organization like me?" through MAPIT. Use `eval-orchestrator` subagent. Must mention EIC Accelerator, IA projects, and SME instrument options per `eu-funding-domain`. Save result to `tests/quality/results/prompt_014_sme_climate.json`.

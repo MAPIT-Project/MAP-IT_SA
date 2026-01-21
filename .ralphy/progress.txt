@@ -885,3 +885,101 @@ The fixed API now returns a comprehensive ~4300 character response covering:
 - [x] EVALUATE task complete
 - [x] FIX IF NEEDED task complete (1 attempt, score 74 → 95, PASS)
 
+
+## 2026-01-21: Prompt 013 - Japan Researcher Eligibility (EVALUATE + FIX)
+
+### Task Completed
+Created quality evaluation test and fixed Prompt 013: "I am from Japan working in research. Are there any open calls that would be relevant for me?"
+
+### Files Created/Modified
+- `tests/quality/test_prompt_013_japan_eligibility.py` - New test file with:
+  - Four-dimension evaluation framework (Query Fulfillment 40pts, Specificity 25pts, Factual Accuracy 25pts, Actionability 10pts)
+  - Checks for Japan's third country status explanation
+  - Checks for participation pathways (MSCA-PF, ERC, bilateral programmes)
+  - Checks for funding restrictions (self-funded in consortia)
+  - Sample responses for offline testing (excellent, partial, poor)
+  - Live API tests
+  - Result saved to `tests/quality/results/prompt_013_japan_eligibility.json`
+
+- `app/services/agents/tool_aware_agent.py` - Added comprehensive third country guidance:
+  - Added "Third Country Eligibility and Participation" section to BUILT_IN_KNOWLEDGE
+  - Country classification table (EU Member States, Associated Countries, Third Countries)
+  - Third country participation rules and restrictions
+  - Best pathways table (MSCA-PF, ERC, Collaborative projects, Bilateral)
+  - Detailed MSCA-PF guidance as primary pathway
+  - ERC grants for third country nationals
+  - Collaborative project participation rules (self-funded, partner only)
+  - Third country resources (MSCA Portal, ERC, JSPS Brussels Office, JST)
+  - Updated REASONING_PROMPT with third country handling guidance
+
+### Initial Evaluation Results (FAIL)
+- **Overall Score**: 33/100 (FAIL) ❌
+- **Query Fulfillment**: 0/40 - No Japan status explanation
+- **Specificity**: 6/25 - Limited details
+- **Factual Accuracy**: 25/25 - No factual errors
+- **Actionability**: 2/10 - No guidance
+
+### API Response Issue (Before Fix)
+The agent returned a deflection: "Based on my search... Finding 1: Call ERC-2026-POC..." without:
+1. Explaining Japan's third country status
+2. Describing participation pathways (MSCA-PF, ERC)
+3. Explaining funding restrictions
+4. Providing actionable links
+
+### Root Cause Analysis
+The agent's BUILT_IN_KNOWLEDGE lacked third country participation guidance. While it had guidance for EU Member States and Associated Countries, it did not have:
+1. Third country classification and rules
+2. MSCA-PF as primary pathway for third country researchers
+3. ERC grants eligibility for third country nationals
+4. Self-funded participation rules in consortia
+5. Resources for Japanese researchers (JSPS, JST)
+
+### Fix Implementation (1 attempt - successful)
+
+#### Changes Made:
+1. **BUILT_IN_KNOWLEDGE section**: Added comprehensive "Third Country Eligibility and Participation" with:
+   - Country classification table (EU-27, Associated, Third Countries)
+   - Third country participation rules (restrictions, self-funded, no coordinator)
+   - Best pathways table (MSCA-PF as primary, ERC, bilateral)
+   - Detailed MSCA-PF guidance (eligibility, types, funding, deadlines)
+   - ERC grants for third country nationals (at EU host)
+   - Collaborative project participation rules
+   - Third country resources (MSCA Portal, ERC, JSPS, JST)
+
+2. **REASONING_PROMPT section**: Added guidance for:
+   - Country eligibility handling (EU vs Associated vs Third Country)
+   - Third country researcher seeking calls → use built-in knowledge
+   - Pathways to explain (MSCA-PF primary, ERC, bilateral)
+
+### Post-Fix Evaluation Results
+- **Overall Score**: 99/100 (PASS) ✅
+- **Query Fulfillment**: 40/40 - Japan status explained, pathways described
+- **Specificity**: 24/25 - Rich programme details, funding rules
+- **Factual Accuracy**: 25/25 - All facts verified correct
+- **Actionability**: 10/10 - Clear guidance with links
+
+### Score Improvement
+| Dimension | Before | After | Change |
+|-----------|--------|-------|--------|
+| Query Fulfillment | 0 | 40 | +40 |
+| Specificity | 6 | 24 | +18 |
+| Factual Accuracy | 25 | 25 | - |
+| Actionability | 2 | 10 | +8 |
+| **Overall** | **33** | **99** | **+66** |
+
+### API Response Quality (After Fix)
+The fixed API now returns a comprehensive ~4900 character response covering:
+- **Japan status**: Correctly identifies as Third Country with participation restrictions
+- **MSCA-PF pathway** (primary): €5,080/month living allowance, European/Global Fellowships
+- **ERC grants**: Starting €1.5M, Consolidator €2M, Advanced €2.5M (at EU host)
+- **Collaborative projects**: Self-funded partner role, unique expertise required
+- **Actionable links**: MSCA Portal, ERC, EU Portal, Call Calendar
+
+### Test Results
+- 10 tests passed (6 offline + 4 live API tests)
+- All linting passed
+
+### PRD Task Status
+- [x] EVALUATE task complete
+- [x] FIX IF NEEDED task complete (1 attempt, score 33 → 99, PASS)
+
