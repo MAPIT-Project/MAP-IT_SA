@@ -1,0 +1,49 @@
+# Scenario: Basic Funding Call Search
+# Tests the standard flow of searching for funding calls
+
+name: "Funding Call Search"
+description: "User searches for open funding calls and asks follow-up questions"
+tags: ["basic", "calls", "search"]
+stop_on_error: true
+
+steps:
+  - message: "Find me open funding calls for hydrogen research"
+    validations:
+      - type: "response_contains"
+        name: "mentions_funding"
+        patterns: ["funding", "call"]
+      - type: "tools_used"
+        name: "uses_call_search"
+        expected: ["search_funding_calls"]
+      - type: "no_error"
+        name: "no_errors"
+    delay_ms: 0
+
+  - message: "What are the deadlines for these calls?"
+    validations:
+      - type: "response_contains"
+        name: "mentions_deadline"
+        patterns: ["deadline", "date"]
+      - type: "no_error"
+        name: "no_errors"
+    delay_ms: 500
+
+  - message: "Which one has the largest budget?"
+    validations:
+      - type: "response_contains"
+        name: "mentions_budget"
+        patterns: ["budget", "million", "EUR"]
+      - type: "follow_up_resolved"
+        name: "resolves_reference"
+        description: "Should reference previous call results"
+      - type: "no_error"
+        name: "no_errors"
+    delay_ms: 500
+
+final_validations:
+  - type: "context_integrity"
+    name: "context_preserved"
+    description: "All messages should be stored properly"
+  - type: "quality_non_degradation"
+    name: "quality_stable"
+    description: "Quality should not drop significantly"

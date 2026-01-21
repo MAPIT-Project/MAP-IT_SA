@@ -1,0 +1,55 @@
+# Scenario: Follow-up for More Details
+# Tests handling of "tell me more" type requests
+
+name: "Follow-up More Details"
+description: "User asks for elaboration on previous response"
+tags: ["follow_up", "elaboration", "detail"]
+stop_on_error: true
+
+steps:
+  - message: "What is the EIC Accelerator?"
+    validations:
+      - type: "response_contains"
+        name: "explains_eic"
+        patterns: ["EIC", "Accelerator", "SME", "innovation"]
+      - type: "no_error"
+        name: "no_errors"
+    delay_ms: 0
+
+  - message: "Tell me more"
+    validations:
+      - type: "follow_up_resolved"
+        name: "understands_context"
+        description: "Should continue talking about EIC Accelerator"
+      - type: "response_contains"
+        name: "more_eic_details"
+        patterns: ["EIC"]
+      - type: "no_error"
+        name: "no_errors"
+    delay_ms: 500
+
+  - message: "Can you elaborate on the funding rates?"
+    validations:
+      - type: "response_contains"
+        name: "mentions_funding_rate"
+        patterns: ["funding", "rate", "%", "grant"]
+      - type: "context_preserved"
+        name: "still_about_eic"
+        from_turn: 0
+      - type: "no_error"
+        name: "no_errors"
+    delay_ms: 500
+
+  - message: "What about success rates?"
+    validations:
+      - type: "response_contains"
+        name: "mentions_success"
+        patterns: ["success", "rate", "%"]
+      - type: "no_error"
+        name: "no_errors"
+    delay_ms: 500
+
+final_validations:
+  - type: "context_integrity"
+    name: "topic_maintained"
+    description: "Conversation should stay on EIC topic"

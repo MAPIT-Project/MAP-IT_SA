@@ -1,0 +1,58 @@
+# Scenario: Basic Project Search
+# Tests the standard flow of searching for funded projects
+
+name: "Project Search"
+description: "User searches for funded projects and explores details"
+tags: ["basic", "projects", "search"]
+stop_on_error: true
+
+steps:
+  - message: "Find AI research projects funded by Horizon Europe"
+    validations:
+      - type: "response_contains"
+        name: "mentions_projects"
+        patterns: ["project"]
+      - type: "tools_used"
+        name: "uses_project_search"
+        expected: ["search_projects"]
+      - type: "no_error"
+        name: "no_errors"
+    delay_ms: 0
+
+  - message: "Tell me more about the first project"
+    validations:
+      - type: "follow_up_resolved"
+        name: "resolves_reference"
+        description: "Should understand 'first project' reference"
+      - type: "response_contains"
+        name: "has_details"
+        patterns: ["budget", "partner", "funding"]
+      - type: "no_error"
+        name: "no_errors"
+    delay_ms: 500
+
+  - message: "What organizations are involved?"
+    validations:
+      - type: "response_contains"
+        name: "mentions_orgs"
+        patterns: ["organization", "partner", "university", "consortium"]
+      - type: "context_preserved"
+        name: "context_from_previous"
+        from_turn: 1
+      - type: "no_error"
+        name: "no_errors"
+    delay_ms: 500
+
+  - message: "Are there similar projects in the health sector?"
+    validations:
+      - type: "tools_used"
+        name: "searches_similar"
+        expected: ["search_projects"]
+      - type: "no_error"
+        name: "no_errors"
+    delay_ms: 500
+
+final_validations:
+  - type: "context_integrity"
+    name: "context_preserved"
+    description: "All 4 messages should be in context"

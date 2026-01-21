@@ -1,0 +1,48 @@
+# Scenario: Rapid Message Sequence
+# Tests handling of messages sent in quick succession
+
+name: "Rapid Messages"
+description: "Messages sent rapidly to test race condition handling"
+tags: ["concurrent", "race", "stress"]
+stop_on_error: false
+
+steps:
+  - message: "What is Horizon Europe?"
+    validations:
+      - type: "response_contains"
+        patterns: ["Horizon", "Europe", "funding"]
+      - type: "no_error"
+    delay_ms: 0
+
+  - message: "What are the main pillars?"
+    validations:
+      - type: "response_contains"
+        patterns: ["pillar"]
+      - type: "no_error"
+    delay_ms: 100  # Very short delay
+
+  - message: "Tell me about Pillar 2"
+    validations:
+      - type: "response_contains"
+        patterns: ["Pillar", "2", "Cluster"]
+      - type: "no_error"
+    delay_ms: 100
+
+  - message: "What clusters are in it?"
+    validations:
+      - type: "response_contains"
+        patterns: ["Cluster"]
+      - type: "no_error"
+    delay_ms: 100
+
+  - message: "How much budget does Cluster 5 have?"
+    validations:
+      - type: "response_contains"
+        patterns: ["Cluster", "5", "budget"]
+      - type: "no_error"
+    delay_ms: 100
+
+final_validations:
+  - type: "context_integrity"
+    name: "no_message_loss"
+    description: "All 5 messages should be stored despite rapid sending"

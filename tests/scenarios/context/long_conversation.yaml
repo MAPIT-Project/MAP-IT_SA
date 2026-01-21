@@ -1,0 +1,91 @@
+# Scenario: Long Conversation (10+ turns)
+# Tests context preservation over extended conversations
+
+name: "Long Conversation"
+description: "Extended conversation to test memory management"
+tags: ["context", "memory", "long"]
+stop_on_error: false  # Continue even on errors to test full flow
+
+steps:
+  - message: "I'm interested in climate research funding"
+    validations:
+      - type: "response_contains"
+        patterns: ["climate", "funding", "Horizon"]
+      - type: "no_error"
+    delay_ms: 0
+
+  - message: "What clusters cover this area?"
+    validations:
+      - type: "response_contains"
+        patterns: ["Cluster", "5", "Climate"]
+      - type: "no_error"
+    delay_ms: 300
+
+  - message: "What types of projects are funded?"
+    validations:
+      - type: "response_contains"
+        patterns: ["RIA", "IA", "project"]
+      - type: "no_error"
+    delay_ms: 300
+
+  - message: "Tell me about RIA projects specifically"
+    validations:
+      - type: "response_contains"
+        patterns: ["RIA", "Research", "Innovation"]
+      - type: "no_error"
+    delay_ms: 300
+
+  - message: "What's the typical budget?"
+    validations:
+      - type: "response_contains"
+        patterns: ["budget", "million", "EUR"]
+      - type: "context_preserved"
+        from_turn: 3
+      - type: "no_error"
+    delay_ms: 300
+
+  - message: "How many partners are usually needed?"
+    validations:
+      - type: "response_contains"
+        patterns: ["partner", "consortium", "3"]
+      - type: "no_error"
+    delay_ms: 300
+
+  - message: "What countries participate most?"
+    validations:
+      - type: "response_contains"
+        patterns: ["Germany", "France", "country"]
+      - type: "no_error"
+    delay_ms: 300
+
+  - message: "Are there any open calls right now?"
+    validations:
+      - type: "tools_used"
+        expected: ["search_funding_calls"]
+      - type: "no_error"
+    delay_ms: 300
+
+  - message: "What's the deadline for the first one?"
+    validations:
+      - type: "follow_up_resolved"
+      - type: "response_contains"
+        patterns: ["deadline", "date"]
+      - type: "no_error"
+    delay_ms: 300
+
+  - message: "Can you remind me what we started talking about?"
+    validations:
+      - type: "response_contains"
+        name: "remembers_start"
+        patterns: ["climate", "research", "funding"]
+        description: "Should remember initial topic from turn 1"
+      - type: "no_error"
+    delay_ms: 300
+
+final_validations:
+  - type: "context_integrity"
+    name: "context_preserved_10_turns"
+    description: "Context should be maintained across 10 turns"
+  - type: "quality_non_degradation"
+    name: "no_quality_drop"
+    description: "Quality should remain stable"

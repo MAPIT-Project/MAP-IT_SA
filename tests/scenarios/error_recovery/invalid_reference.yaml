@@ -1,0 +1,47 @@
+# Scenario: Invalid Reference Handling
+# Tests graceful handling of invalid follow-up references
+
+name: "Invalid Reference"
+description: "User makes invalid references that should be handled gracefully"
+tags: ["error", "reference", "recovery"]
+stop_on_error: false
+
+steps:
+  - message: "Show me 3 open calls for AI research"
+    validations:
+      - type: "tools_used"
+        expected: ["search_funding_calls"]
+      - type: "no_error"
+    delay_ms: 0
+
+  - message: "Tell me about the 50th one"
+    validations:
+      - type: "no_error"
+        name: "handles_invalid_gracefully"
+        description: "Should handle invalid reference without crashing"
+    delay_ms: 500
+
+  - message: "What about the purple call?"
+    validations:
+      - type: "no_error"
+        name: "handles_nonsense"
+        description: "Should handle nonsense reference gracefully"
+    delay_ms: 500
+
+  - message: "Tell me about that project we discussed earlier"
+    validations:
+      - type: "no_error"
+        name: "handles_false_reference"
+        description: "Should handle reference to non-existent discussion"
+    delay_ms: 500
+
+  - message: "Actually, let's go back to the first call you mentioned"
+    validations:
+      - type: "follow_up_resolved"
+        name: "recovers_valid_reference"
+      - type: "no_error"
+    delay_ms: 500
+
+final_validations:
+  - type: "context_integrity"
+    description: "Conversation should remain functional after errors"

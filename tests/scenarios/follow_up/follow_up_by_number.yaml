@@ -1,0 +1,58 @@
+# Scenario: Follow-up by Number Reference
+# Tests ability to resolve numbered references to previous results
+
+name: "Follow-up by Number"
+description: "User references specific results by number"
+tags: ["follow_up", "reference", "numbered"]
+stop_on_error: true
+
+steps:
+  - message: "Show me open calls for digital transformation"
+    validations:
+      - type: "tools_used"
+        name: "uses_search"
+        expected: ["search_funding_calls"]
+      - type: "min_results"
+        name: "has_results"
+        count: 2
+      - type: "no_error"
+        name: "no_errors"
+    delay_ms: 0
+
+  - message: "Tell me about the third one"
+    validations:
+      - type: "follow_up_resolved"
+        name: "resolves_third"
+        description: "Should understand 'third one' refers to third call"
+      - type: "response_contains"
+        name: "has_specific_details"
+        patterns: ["call", "deadline"]
+      - type: "no_error"
+        name: "no_errors"
+    delay_ms: 500
+
+  - message: "Compare it with the first one"
+    validations:
+      - type: "follow_up_resolved"
+        name: "resolves_comparison"
+        description: "Should compare third and first calls"
+      - type: "response_contains"
+        name: "has_comparison"
+        patterns: ["compare", "difference", "both"]
+      - type: "no_error"
+        name: "no_errors"
+    delay_ms: 500
+
+  - message: "What about number 5?"
+    validations:
+      - type: "follow_up_resolved"
+        name: "resolves_fifth"
+        description: "Should understand 'number 5' reference"
+      - type: "no_error"
+        name: "no_errors"
+    delay_ms: 500
+
+final_validations:
+  - type: "context_integrity"
+    name: "all_references_tracked"
+    description: "All numbered references should be in context"

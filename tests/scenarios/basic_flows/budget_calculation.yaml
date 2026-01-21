@@ -1,0 +1,49 @@
+# Scenario: Budget Calculation Flow
+# Tests the proposal budget calculation workflow
+
+name: "Budget Calculation"
+description: "User requests budget calculation for a proposal"
+tags: ["basic", "budget", "proposal"]
+stop_on_error: true
+
+steps:
+  - message: "I need to calculate a budget for a 4-year RIA project in clean energy"
+    validations:
+      - type: "tools_used"
+        name: "uses_budget_tool"
+        expected: ["calculate_budget"]
+      - type: "response_contains"
+        name: "mentions_budget"
+        patterns: ["budget", "cost", "EUR"]
+      - type: "no_error"
+        name: "no_errors"
+    delay_ms: 0
+
+  - message: "What would be a typical personnel cost breakdown?"
+    validations:
+      - type: "response_contains"
+        name: "mentions_personnel"
+        patterns: ["personnel", "staff", "researcher", "cost"]
+      - type: "context_preserved"
+        name: "remembers_context"
+        from_turn: 0
+      - type: "no_error"
+        name: "no_errors"
+    delay_ms: 500
+
+  - message: "How does this compare to similar funded projects?"
+    validations:
+      - type: "tools_used"
+        name: "uses_benchmark"
+        expected: ["get_budget_benchmark"]
+      - type: "response_contains"
+        name: "has_comparison"
+        patterns: ["similar", "average", "typical", "compare"]
+      - type: "no_error"
+        name: "no_errors"
+    delay_ms: 500
+
+final_validations:
+  - type: "context_integrity"
+    name: "context_preserved"
+    description: "Budget context should be maintained"

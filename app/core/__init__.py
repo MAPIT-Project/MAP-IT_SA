@@ -11,6 +11,8 @@ This module provides:
 - Service availability checking (service_availability.py)
 - Neo4j connection management (neo4j_config.py)
 - Application dependencies (dependencies.py)
+- Conversation locking (conversation_lock.py) - prevents race conditions
+- Atomic storage (atomic_storage.py) - ensures message consistency
 """
 
 from .config import settings
@@ -43,6 +45,15 @@ from .circuit_breaker import (
     get_neo4j_circuit,
     get_gemini_circuit,
     get_eu_portal_circuit,
+)
+from .conversation_lock import (
+    ConversationLockManager,
+    get_conversation_lock,
+)
+from .atomic_storage import (
+    AtomicMessageStorage,
+    StorageResult,
+    get_atomic_storage,
 )
 
 __all__ = [
@@ -78,4 +89,11 @@ __all__ = [
     "get_neo4j_circuit",
     "get_gemini_circuit",
     "get_eu_portal_circuit",
+    # Conversation Locking
+    "ConversationLockManager",
+    "get_conversation_lock",
+    # Atomic Storage
+    "AtomicMessageStorage",
+    "StorageResult",
+    "get_atomic_storage",
 ]
