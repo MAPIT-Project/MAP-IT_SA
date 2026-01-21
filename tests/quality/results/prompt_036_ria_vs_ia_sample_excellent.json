@@ -1,0 +1,46 @@
+{
+  "prompt_id": "036",
+  "query": "Compare RIA and IA instruments in Horizon Europe. When should I choose one over the other?",
+  "response": "\n## RIA vs IA: Understanding Horizon Europe Instruments\n\nResearch and Innovation Actions (RIA) and Innovation Actions (IA) are the two main\nfunding instruments in Horizon Europe. Understanding their differences is essential\nfor choosing the right instrument for your project.\n\n### Key Differences at a Glance\n\n| Aspect | RIA (Research & Innovation Action) | IA (Innovation Action) |\n|--------|-----------------------------------|------------------------|\n| **Funding Rate** | 100% | 70% (100% for non-profit) |\n| **TRL Focus** | TRL 1-5 | TRL 5-8 |\n| **Primary Goal** | New knowledge & technology | Demonstration & deployment |\n| **Activity Type** | Research, development, testing | Pilots, prototypes, market-ready |\n| **Typical Budget** | \u20ac3-6M | \u20ac5-15M |\n| **Consortium Size** | 5-15 partners | 8-20 partners |\n\n### Research and Innovation Actions (RIA)\n\n**Purpose**: Create new knowledge, explore novel approaches, develop new technologies\n\n**Key Characteristics:**\n- \ud83d\udcaf **100% funding rate** for all eligible costs\n- \ud83d\udd2c **TRL Range**: 1-5 (basic principles to validation in lab/relevant environment)\n- \ud83d\udcca **Typical Budget**: \u20ac3-6 million per project\n- \ud83d\udc65 **Consortium Size**: Usually 5-15 partners\n\n**When to Choose RIA:**\n\u2705 Your project is primarily research-oriented\n\u2705 You're exploring new scientific questions or methodologies\n\u2705 The technology is in early development stages (TRL 1-5)\n\u2705 You want maximum funding coverage (100%)\n\u2705 Activities focus on knowledge generation, not market deployment\n\u2705 You need to develop and test new concepts\n\n**RIA Activities Include:**\n- Fundamental and applied research\n- Technology development\n- Testing and validation in controlled environments\n- Knowledge creation and scientific publications\n\n### Innovation Actions (IA)\n\n**Purpose**: Bring innovations closer to market through demonstration and deployment\n\n**Key Characteristics:**\n- \ud83d\udcb0 **70% funding rate** (100% for non-profit organizations)\n- \ud83d\ude80 **TRL Range**: 5-8 (validation through to market-ready)\n- \ud83d\udcca **Typical Budget**: \u20ac5-15 million per project\n- \ud83d\udc65 **Consortium Size**: Usually 8-20 partners (larger, more diverse)\n\n**When to Choose IA:**\n\u2705 You have validated technology ready for demonstration\n\u2705 Your project focuses on pilots, prototyping, or scale-up\n\u2705 You want to bring innovation closer to market\n\u2705 Your partners include industry players ready for deployment\n\u2705 Technology is at TRL 5+ and needs real-world validation\n\u2705 Activities focus on demonstration rather than research\n\n**IA Activities Include:**\n- Prototyping and pilot demonstrations\n- Testing in operational environments\n- Market replication studies\n- First-of-a-kind deployment\n- Scale-up activities\n\n### Decision Guide: RIA or IA?\n\n| Your Situation | Recommended Instrument |\n|---------------|----------------------|\n| Early-stage research (TRL 1-4) | RIA |\n| Need 100% funding coverage | RIA |\n| Technology ready for piloting (TRL 5+) | IA |\n| Demonstration project with industry | IA |\n| Basic research consortium | RIA |\n| Market deployment focus | IA |\n| Academic-heavy consortium | RIA |\n| Industry-led consortium | IA |\n\n### Funding Rate Details\n\n**RIA Funding:**\n- 100% of eligible costs reimbursed\n- No own contribution required\n- Applies to all organization types\n\n**IA Funding:**\n- 70% of eligible costs reimbursed\n- **Exception**: Non-profit organizations receive 100%\n- Remaining 30% must be covered by own contribution\n- Reflects closer-to-market nature of activities\n\n### Practical Considerations\n\n**Choose RIA if:**\n1. Your research question is still being explored\n2. You need laboratory testing and validation\n3. Your consortium is research-focused\n4. Full funding coverage is important for your organization\n5. Publications and knowledge outputs are key deliverables\n\n**Choose IA if:**\n1. You have proven technology ready for real-world testing\n2. Your consortium includes industry partners for deployment\n3. You're targeting commercial application\n4. Larger budget is needed for demonstration activities\n5. Market uptake is a primary project goal\n\n### Resources & Next Steps\n\n- **Funding Portal**: https://ec.europa.eu/info/funding-tenders/\n- **Work Programmes**: Check cluster-specific work programmes for call details\n- **Participant Portal**: Register your organization before applying\n- **National Contact Points**: Get country-specific guidance\n\n### Summary\n\n| Aspect | Choose RIA | Choose IA |\n|--------|-----------|-----------|\n| Research Focus | \u2705 | |\n| Demonstration Focus | | \u2705 |\n| TRL 1-4 | \u2705 | |\n| TRL 5-8 | | \u2705 |\n| 100% Funding Needed | \u2705 | (only for non-profit) |\n| Industry Deployment | | \u2705 |\n| Knowledge Generation | \u2705 | |\n| Market Uptake | | \u2705 |\n",
+  "overall_score": 93,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "ria_vs_ia_comparison",
+      "description": "RIA vs IA instruments comparison",
+      "fulfillment": 35,
+      "specificity": 25,
+      "accuracy": 23,
+      "actionability": 10,
+      "total": 93,
+      "notes": "Fulfillment: Missing: More specific guidance on when to choose each; Specificity: Good specificity with detailed info; Accuracy: Accuracy check: 23/25 points; 1 issue(s) found; Actionability: Good actionability with clear guidance",
+      "missing_items": [
+        "More specific guidance on when to choose each"
+      ],
+      "found_items": [
+        "Clear RIA vs IA comparison structure",
+        "Some selection guidance",
+        "Both instruments well explained"
+      ]
+    }
+  ],
+  "factual_errors": [
+    {
+      "claim": "IA TRL range stated as TRL 1-5",
+      "correct_value": "IA typically covers TRL 5-8",
+      "source": "eu-funding-domain"
+    }
+  ],
+  "fix_suggestions": [],
+  "strengths": [
+    "Clear RIA vs IA comparison with selection guidance",
+    "Rich in specific details (funding rates, TRLs, budgets)",
+    "Factually accurate instrument information",
+    "Provides useful decision guidance and resources"
+  ],
+  "evaluation_timestamp": "2026-01-21T16:28:14.475778+00:00",
+  "response_metadata": {
+    "source": "sample_excellent"
+  },
+  "fix_history": []
+}

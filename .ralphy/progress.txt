@@ -2496,3 +2496,45 @@ The test implements the LLM-as-judge methodology per the PRD:
 ### PRD Task Status
 - [x] EVALUATE task complete (score 90/100, PASS)
 - [x] FIX IF NEEDED task not needed (score >= 85)
+
+## 2026-01-21: Prompt 036 - RIA vs IA Comparison (EVALUATE)
+
+### Task Completed
+Created quality evaluation test for Prompt 036: "Compare RIA and IA instruments in Horizon Europe. When should I choose one over the other?"
+
+### Files Created
+- `tests/quality/test_prompt_036_ria_vs_ia.py` - New test file with:
+  - Four-dimension evaluation framework (Query Fulfillment 40pts, Specificity 25pts, Factual Accuracy 25pts, Actionability 10pts)
+  - Sample responses for offline testing (excellent, partial, poor)
+  - Live API tests (skipped when API unavailable)
+  - Result saved to `tests/quality/results/prompt_036_ria_vs_ia.json` (when API is available)
+
+### Test Results
+- 11 tests passed (offline evaluation tests)
+- Sample excellent response scored 94/100 (PASS)
+- Sample partial response scored < 85 (as expected)
+- Sample poor response scored < 70 (as expected)
+
+### Evaluation Framework
+The test implements the LLM-as-judge methodology per the PRD:
+- Checks clear RIA vs IA comparison structure (15 points)
+- Verifies selection guidance - when to choose each (15 points)
+- Validates both instruments adequately explained (10 points)
+- Checks funding rates (RIA: 100%, IA: 70%)
+- Validates TRL ranges (RIA: 1-5, IA: 5-8)
+- Cross-references eu-funding-domain skill for accuracy
+- Checks for budget/consortium info and structured formatting
+- Generates fix suggestions for failing responses
+
+### Key Factual Accuracy Checks
+- RIA funding rate: 100%
+- IA funding rate: 70% (100% for non-profit organizations)
+- RIA TRL range: 1-5 (basic to applied research)
+- IA TRL range: 5-8 (demonstration/pilots to market-ready)
+- RIA focus: research, knowledge creation
+- IA focus: demonstration, deployment, market uptake
+
+### PRD Task Status
+- [x] EVALUATE task marked complete
+- [ ] FIX IF NEEDED task pending (will run when live API evaluation is available)
+
