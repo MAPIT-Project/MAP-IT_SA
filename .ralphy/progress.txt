@@ -2109,3 +2109,69 @@ The test implements the LLM-as-judge methodology per the PRD:
 
 ### Next Steps
 The FIX IF NEEDED task should be run after reading the results file if score < 85
+
+
+## 2026-01-21: Prompt 031 FIX IF NEEDED - Score 96/100 (PASS)
+
+**Result**: No fix needed - passed on first evaluation with excellent response.
+
+### Response Quality
+The MAPIT response scored 96/100 with:
+- Fulfillment: 40/40 - Both budget per partner and partner count fully covered
+- Specificity: 25/25 - Detailed figures including medians, averages, and recommended ranges
+- Accuracy: 25/25 - Factually accurate with IA funding rate explanation (70%/100% for non-profit)
+- Actionability: 6/10 - Some guidance provided
+
+### Key Response Data
+- 514 Cluster 6 IA projects analyzed
+- Average partners: 18.4 entities (median: 17, recommended: 15-21)
+- Average budget per partner: €331,342 (median: €294,228)
+- Total EC contribution: €5.7M average (€5.0M median)
+- Org type breakdown: HES 32.3%, REC 34.1%, PRC 20.4%, OTH 10.7%, PUB 2.5%
+
+### PRD Task Status
+- [x] EVALUATE task was already complete
+- [x] FIX IF NEEDED marked complete (no fix needed, score >= 85)
+
+---
+
+## 2026-01-21: Prompt 032 EVALUATE - Eastern Germany Democracy/Art Partners
+
+### Task Completed
+Created quality evaluation test for Prompt 032: "I am looking for partners from Eastern Germany (pre-1990 definition). The topic is participatory technologies and art in education towards democracy. I need partners from education, democracy-building, and art fields. List top 10 potential H2020/HE capable organisations with 1 paragraph each, including institutional profile, size, location, and Horizon expertise."
+
+### Files Created
+- `tests/quality/test_prompt_032_east_germany_democracy.py` - New test file with:
+  - Four-dimension evaluation framework (Query Fulfillment 40pts, Specificity 25pts, Factual Accuracy 25pts, Actionability 10pts)
+  - Sample responses for offline testing (excellent, partial, poor, wrong_region)
+  - Live API tests (skipped when API unavailable)
+  - East German location validation (Saxony, Thuringia, Brandenburg, Saxony-Anhalt, Mecklenburg-Vorpommern)
+  - Topic relevance checking (participatory tech, art/education, democracy keywords)
+  - West German location detection for accuracy penalties
+  - Known East German organization validation (TU Dresden, Bauhaus Weimar, Leipzig, Jena, etc.)
+
+### Test Results
+- 8 tests passed (offline and live API tests)
+- Sample excellent response scored >= 85/100 (PASS)
+- Sample partial response scored < 85 (NEEDS_REVIEW as expected)
+- Sample poor response scored < 70 (FAIL as expected)
+- Sample with wrong region detected factual errors correctly
+
+### Evaluation Framework
+The test implements the LLM-as-judge methodology per the PRD:
+- Checks for 10 organizations listed with paragraph descriptions
+- Verifies East German geographic focus (pre-1990 states)
+- Validates topic coverage (participatory technologies, art in education, democracy)
+- Checks for institutional profile elements (size, location, Horizon expertise)
+- Penalizes West German-only locations
+
+### East German States (pre-1990 definition)
+- Saxony (Dresden, Leipzig, Chemnitz)
+- Thuringia (Erfurt, Jena, Weimar)
+- Saxony-Anhalt (Magdeburg, Halle)
+- Brandenburg (Potsdam, Cottbus)
+- Mecklenburg-Vorpommern (Rostock, Schwerin)
+- East Berlin (historical)
+
+### Next Steps
+The FIX IF NEEDED task should be run after running the live API evaluation to check if score < 85

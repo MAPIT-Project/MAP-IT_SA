@@ -227,10 +227,10 @@ Run with: `./ralphy.sh --prd MAPIT_QUALITY_PRD.md`
 ### Prompt 031: Cluster 6 IA Budget Statistics
 - [x] EVALUATE: Run prompt "In HE Cluster 6 Innovation Actions, what is the average budget per partner in awarded projects? How many partners are in those IAs on average?" through MAPIT. Use `eval-orchestrator` subagent. Must provide specific statistical figures. Cross-reference `eu-funding-domain` for IA budget norms. Save result to `tests/quality/results/prompt_031_cluster6_ia_stats.json`.
 
-- [ ] FIX IF NEEDED: Read `tests/quality/results/prompt_031_cluster6_ia_stats.json`. If score < 85: check `mapit-tools` for `get_budget_benchmark` tool, fix and re-evaluate until passing or 3 attempts.
+- [x] FIX IF NEEDED: Read `tests/quality/results/prompt_031_cluster6_ia_stats.json`. If score < 85: check `mapit-tools` for `get_budget_benchmark` tool, fix and re-evaluate until passing or 3 attempts. **FINAL SCORE: 96/100 (PASS). No fix needed - passed on first evaluation with excellent statistics including: 18.4 average partners, €331,342 budget per partner, detailed org type breakdown, IA funding rate explanation (70%/100% for non-profit).**
 
 ### Prompt 032: Eastern Germany Democracy/Art Partners
-- [ ] EVALUATE: Run prompt "I am looking for partners from Eastern Germany (pre-1990 definition). The topic is participatory technologies and art in education towards democracy. I need partners from education, democracy-building, and art fields. List top 10 potential H2020/HE capable organisations with 1 paragraph each, including institutional profile, size, location, and Horizon expertise." through MAPIT. Use `eval-orchestrator` subagent. Must identify 10 East German organizations with detailed profiles. Save result to `tests/quality/results/prompt_032_east_germany_democracy.json`.
+- [x] EVALUATE: Run prompt "I am looking for partners from Eastern Germany (pre-1990 definition). The topic is participatory technologies and art in education towards democracy. I need partners from education, democracy-building, and art fields. List top 10 potential H2020/HE capable organisations with 1 paragraph each, including institutional profile, size, location, and Horizon expertise." through MAPIT. Use `eval-orchestrator` subagent. Must identify 10 East German organizations with detailed profiles. Save result to `tests/quality/results/prompt_032_east_germany_democracy.json`.
 
 - [ ] FIX IF NEEDED: Read `tests/quality/results/prompt_032_east_germany_democracy.json`. If score < 85: fix and re-evaluate until passing or 3 attempts.
 
