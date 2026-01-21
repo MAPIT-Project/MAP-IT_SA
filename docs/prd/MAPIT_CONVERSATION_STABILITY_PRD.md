@@ -263,12 +263,12 @@ TEST_API_URL=http://localhost:8000 pytest tests/test_conversation_scenarios.py -
 - [x] RUN & FIX: If race conditions detected, verify `ConversationLockManager` is properly integrated.
 
 ### Task 021: Interleaved Conversations Test
-- [ ] CREATE TEST: Create test with 2 `ConversationFlowAgent` instances on different conversation IDs, sending messages alternately. Verify:
+- [x] CREATE TEST: Create test with 2 `ConversationFlowAgent` instances on different conversation IDs, sending messages alternately. Verify:
   1. No cross-contamination of context
   2. Each conversation maintains its own state
   3. Concurrent processing works.
 
-- [ ] RUN & FIX: Fix any issues with conversation isolation.
+- [x] RUN & FIX: Fix any issues with conversation isolation.
 
 ### ==========================================================
 ### PHASE 7: Quality Validation

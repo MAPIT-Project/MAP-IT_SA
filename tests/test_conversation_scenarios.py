@@ -1130,6 +1130,229 @@ class TestConcurrentAccess:
             f"  Missing: {len(race_result.missing)}"
         )
 
+    @pytest.mark.asyncio
+    @pytest.mark.skipif(not os.environ.get("DATABASE_URL"), reason="DATABASE_URL not set")
+    async def test_interleaved_conversations_task_021(
+        self,
+        api_base_url: str,
+        context_validator: ContextValidatorAgent,
+    ):
+        """
+        Test interleaved conversations per PRD Task 021.
+
+        This test validates:
+        1. No cross-contamination of context between two concurrent conversations
+        2. Each conversation maintains its own state
+        3. Concurrent processing works correctly
+
+        Uses two ConversationFlowAgent instances on different conversation IDs,
+        sending messages alternately to verify conversation isolation.
+        """
+        # Create two separate conversation agents with different IDs
+        agent1 = ConversationFlowAgent(base_url=api_base_url)
+        agent2 = ConversationFlowAgent(base_url=api_base_url)
+
+        # Ensure different conversation IDs
+        assert agent1.conversation_id != agent2.conversation_id, (
+            "Agents should have different conversation IDs"
+        )
+
+        # Define topic-specific messages for each conversation
+        # Agent 1: Hydrogen research topic
+        agent1_messages = [
+            "I'm researching hydrogen energy funding opportunities",
+            "What clusters support hydrogen research?",
+            "Tell me about Cluster 5 specifically",
+        ]
+
+        # Agent 2: Healthcare AI topic (completely different)
+        agent2_messages = [
+            "I'm looking for AI healthcare projects",
+            "What programmes fund digital health?",
+            "Tell me about Cluster 1 Health",
+        ]
+
+        # Send messages alternately between the two conversations
+        agent1_turns = []
+        agent2_turns = []
+
+        for i in range(max(len(agent1_messages), len(agent2_messages))):
+            # Agent 1 sends message
+            if i < len(agent1_messages):
+                turn1 = await agent1.send_message(agent1_messages[i])
+                agent1_turns.append(turn1)
+                logger.info(f"Agent 1 turn {i + 1}: {len(turn1.response_text)} chars")
+
+            # Small delay
+            await asyncio.sleep(0.2)
+
+            # Agent 2 sends message
+            if i < len(agent2_messages):
+                turn2 = await agent2.send_message(agent2_messages[i])
+                agent2_turns.append(turn2)
+                logger.info(f"Agent 2 turn {i + 1}: {len(turn2.response_text)} chars")
+
+            # Small delay before next round
+            await asyncio.sleep(0.2)
+
+        # Allow time for storage operations to complete
+        await asyncio.sleep(2.0)
+
+        # VALIDATION 1: No crashes - both conversations should complete
+        agent1_success = sum(1 for t in agent1_turns if not t.has_error)
+        agent2_success = sum(1 for t in agent2_turns if not t.has_error)
+
+        assert agent1_success >= 2, (
+            f"Agent 1 should have at least 2 successful turns: {agent1_success}/3. "
+            f"Errors: {[t.error for t in agent1_turns if t.has_error]}"
+        )
+        assert agent2_success >= 2, (
+            f"Agent 2 should have at least 2 successful turns: {agent2_success}/3. "
+            f"Errors: {[t.error for t in agent2_turns if t.has_error]}"
+        )
+
+        # VALIDATION 2: No cross-contamination of context
+        # Agent 1's responses should NOT contain Agent 2's topic keywords
+        for turn in agent1_turns:
+            if turn.response_text:
+                response_lower = turn.response_text.lower()
+                # Allow "health" only if it's in context of energy or environment
+                # but not if it's clearly healthcare focused
+                contamination_found = False
+                for keyword in ["healthcare", "medical", "patient", "clinical"]:
+                    if keyword in response_lower:
+                        # Check if it's incidental mention vs main topic
+                        # Count hydrogen mentions vs healthcare mentions
+                        hydrogen_count = response_lower.count("hydrogen")
+                        health_count = response_lower.count(keyword)
+                        if health_count > hydrogen_count:
+                            contamination_found = True
+                            break
+
+                assert not contamination_found, (
+                    f"Agent 1 (hydrogen topic) has cross-contamination from Agent 2 "
+                    f"(healthcare topic). Response: {turn.response_text[:300]}..."
+                )
+
+        # Agent 2's responses should NOT contain Agent 1's topic keywords
+        for turn in agent2_turns:
+            if turn.response_text:
+                response_lower = turn.response_text.lower()
+                contamination_found = False
+                for keyword in ["hydrogen", "h2", "fuel cell", "green hydrogen"]:
+                    if keyword in response_lower:
+                        # Check if it's incidental mention vs main topic
+                        # Count healthcare mentions vs hydrogen mentions
+                        healthcare_count = response_lower.count("health")
+                        hydrogen_count = response_lower.count(keyword)
+                        if hydrogen_count > healthcare_count:
+                            contamination_found = True
+                            break
+
+                assert not contamination_found, (
+                    f"Agent 2 (healthcare topic) has cross-contamination from Agent 1 "
+                    f"(hydrogen topic). Response: {turn.response_text[:300]}..."
+                )
+
+        # VALIDATION 3: Each conversation maintains its own state
+        # Check context integrity for both conversations
+        integrity1 = await context_validator.validate_context_integrity(agent1.conversation_id)
+        integrity2 = await context_validator.validate_context_integrity(agent2.conversation_id)
+
+        # Both should have messages stored
+        assert integrity1.db_message_count > 0, (
+            f"Agent 1 should have messages in DB: {integrity1.db_message_count}"
+        )
+        assert integrity2.db_message_count > 0, (
+            f"Agent 2 should have messages in DB: {integrity2.db_message_count}"
+        )
+
+        # Order should be preserved within each conversation
+        assert integrity1.order_preserved, "Agent 1 message order should be preserved"
+        assert integrity2.order_preserved, "Agent 2 message order should be preserved"
+
+        # VALIDATION 4: Verify conversation IDs are independent
+        # Get messages from DB and verify no overlap
+        db_messages_1 = []
+        db_messages_2 = []
+
+        if context_validator._db_pool:
+            async with context_validator._db_pool.acquire() as conn:
+                rows1 = await conn.fetch(
+                    """
+                    SELECT conversation_id, content FROM conversation_messages
+                    WHERE conversation_id = $1
+                    """,
+                    str(agent1.conversation_id),
+                )
+                rows2 = await conn.fetch(
+                    """
+                    SELECT conversation_id, content FROM conversation_messages
+                    WHERE conversation_id = $1
+                    """,
+                    str(agent2.conversation_id),
+                )
+                db_messages_1 = [r["content"] for r in rows1]
+                db_messages_2 = [r["content"] for r in rows2]
+
+        # Verify messages are in the correct conversation
+        for msg in agent1_messages:
+            # Check that this message is in agent1's conversation, not agent2's
+            in_conv1 = any(msg in content for content in db_messages_1)
+            in_conv2 = any(msg in content for content in db_messages_2)
+            # Should be in conv1 OR not stored yet (acceptable), but NOT in conv2
+            assert not in_conv2, f"Agent 1's message found in Agent 2's conversation: {msg}"
+
+        for msg in agent2_messages:
+            # Check that this message is in agent2's conversation, not agent1's
+            in_conv1 = any(msg in content for content in db_messages_1)
+            in_conv2 = any(msg in content for content in db_messages_2)
+            # Should be in conv2 OR not stored yet (acceptable), but NOT in conv1
+            assert not in_conv1, f"Agent 2's message found in Agent 1's conversation: {msg}"
+
+        # VALIDATION 5: Final context check - each conversation should reference its topic
+        # Agent 1's last response should still be about hydrogen
+        if agent1_turns and agent1_turns[-1].response_text:
+            response1 = agent1_turns[-1].response_text.lower()
+            topic_relevant = (
+                "hydrogen" in response1
+                or "cluster 5" in response1
+                or "energy" in response1
+                or "climate" in response1
+            )
+            assert topic_relevant, (
+                f"Agent 1's final response should be about hydrogen/energy. "
+                f"Got: {agent1_turns[-1].response_text[:200]}..."
+            )
+
+        # Agent 2's last response should still be about healthcare
+        if agent2_turns and agent2_turns[-1].response_text:
+            response2 = agent2_turns[-1].response_text.lower()
+            topic_relevant = (
+                "health" in response2
+                or "cluster 1" in response2
+                or "digital" in response2
+                or "medical" in response2
+                or "ai" in response2
+            )
+            assert topic_relevant, (
+                f"Agent 2's final response should be about healthcare/AI. "
+                f"Got: {agent2_turns[-1].response_text[:200]}..."
+            )
+
+        # Log success summary
+        logger.info(
+            f"Task 021 test completed:\n"
+            f"  Conversation 1 (hydrogen): {agent1.conversation_id}\n"
+            f"    - Turns: {len(agent1_turns)}, Successful: {agent1_success}\n"
+            f"    - Messages in DB: {integrity1.db_message_count}\n"
+            f"  Conversation 2 (healthcare): {agent2.conversation_id}\n"
+            f"    - Turns: {len(agent2_turns)}, Successful: {agent2_success}\n"
+            f"    - Messages in DB: {integrity2.db_message_count}\n"
+            f"  Cross-contamination: None detected\n"
+            f"  Conversation isolation: Verified"
+        )
+
 
 # =============================================================================
 # CONTEXT VALIDATION TESTS
