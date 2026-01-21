@@ -1,0 +1,65 @@
+# Scenario: Follow-up Comparison Between Results
+# Tests ability to compare items referenced from previous results
+# Per PRD Task 012: Tests comparison correctly references previous results
+
+name: "Follow-up Comparison"
+description: "User asks to compare specific items from previous search results"
+tags: ["follow_up", "comparison", "reference"]
+stop_on_error: true
+
+steps:
+  # Step 1: Initial query requesting 3 results for digital innovation
+  - message: "Show me 3 calls for digital innovation"
+    validations:
+      - type: "tools_used"
+        name: "uses_search"
+        expected: ["search_funding_calls"]
+      - type: "min_results"
+        name: "has_results"
+        count: 2
+      - type: "response_contains"
+        name: "has_digital_results"
+        patterns: ["digital", "call"]
+      - type: "no_error"
+        name: "no_errors"
+    delay_ms: 0
+
+  # Step 2: Follow-up asking to compare first and second calls
+  - message: "Compare the first and second ones"
+    validations:
+      - type: "follow_up_resolved"
+        name: "resolves_comparison"
+        description: "Should understand reference to first and second calls from results"
+      - type: "response_contains_any"
+        name: "has_comparison_content"
+        patterns: ["compar", "both", "differ", "similar", "first", "second"]
+      - type: "response_min_length"
+        name: "substantial_comparison"
+        min_length: 200
+      - type: "no_error"
+        name: "no_errors"
+    delay_ms: 500
+
+  # Step 3: Follow-up asking which has higher budget (builds on comparison context)
+  - message: "Which has a higher budget?"
+    validations:
+      - type: "follow_up_resolved"
+        name: "resolves_budget_question"
+        description: "Should understand 'which' refers to the two calls being compared"
+      - type: "response_contains_any"
+        name: "mentions_budget"
+        patterns: ["budget", "funding", "million", "€", "EUR", "higher", "larger", "more"]
+      - type: "context_preserved"
+        name: "maintains_comparison_context"
+        from_turn: 1
+      - type: "no_error"
+        name: "no_errors"
+    delay_ms: 500
+
+final_validations:
+  - type: "context_integrity"
+    name: "comparison_context_tracked"
+    description: "Comparison context should be properly tracked across turns"
+  - type: "context_preserved"
+    name: "digital_innovation_context_maintained"
+    description: "Digital innovation search context should be maintained throughout"

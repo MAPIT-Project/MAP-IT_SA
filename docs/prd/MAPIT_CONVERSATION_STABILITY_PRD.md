@@ -172,13 +172,13 @@ TEST_API_URL=http://localhost:8000 pytest tests/test_conversation_scenarios.py -
 - [x] RUN & FIX: Execute scenario. Fix any failures and re-run until passing.
 
 ### Task 012: Comparison Follow-Up Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/follow_up/follow_up_comparison.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/follow_up/follow_up_comparison.yaml` with steps:
   1. "Show me 3 calls for digital innovation"
   2. "Compare the first and second ones"
   3. "Which has a higher budget?"
   Validations: comparison correctly references previous results.
 
-- [ ] RUN & FIX: Execute scenario. Fix and re-run until passing.
+- [x] RUN & FIX: Execute scenario. Fix and re-run until passing.
 
 ### ==========================================================
 ### PHASE 4: Context Preservation Testing
@@ -441,6 +441,7 @@ pytest tests/test_conversation_scenarios.py --cov=app/services/conversation -v
 - [x] `tests/scenarios/basic_flows/timeline_generation.yaml`
 - [x] `tests/scenarios/follow_up/follow_up_by_number.yaml`
 - [x] `tests/scenarios/follow_up/follow_up_more_details.yaml`
+- [x] `tests/scenarios/follow_up/follow_up_comparison.yaml`
 - [x] `tests/scenarios/context/long_conversation.yaml`
 - [x] `tests/scenarios/error_recovery/invalid_reference.yaml`
 - [x] `tests/scenarios/concurrent/rapid_messages.yaml`

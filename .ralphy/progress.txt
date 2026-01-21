@@ -3040,3 +3040,38 @@ Implemented Task 011: "Tell Me More" Scenario from Phase 3 (Follow-Up Reference 
 ### PRD Task Status
 - [x] CREATE SCENARIO: follow_up_more_details.yaml created with all 4 steps
 - [x] RUN & FIX: Scenario executed successfully, all tests pass
+
+
+## 2026-01-21: Task 012 - Comparison Follow-Up Scenario
+
+### Task Completed
+Implemented Task 012: Comparison Follow-Up Scenario for conversation stability testing.
+
+### Files Created
+- `tests/scenarios/follow_up/follow_up_comparison.yaml` - New scenario file with:
+  - Step 1: "Show me 3 calls for digital innovation" (tests search_funding_calls tool)
+  - Step 2: "Compare the first and second ones" (tests comparison reference resolution)
+  - Step 3: "Which has a higher budget?" (tests context preservation for comparison)
+  - Validations: tools_used, follow_up_resolved, response_contains, context_preserved
+
+### Files Modified
+- `docs/prd/MAPIT_CONVERSATION_STABILITY_PRD.md`:
+  - Marked Task 012 CREATE SCENARIO as complete
+  - Marked Task 012 RUN & FIX as complete
+  - Added scenario file to appendix section
+
+### Test Results
+- All 3 follow-up scenario tests passed (including the new comparison scenario)
+- Tests completed in 134 seconds
+- Scenario loads correctly via ConversationFlowAgent.from_yaml()
+- YAML validation passed
+
+### Implementation Details
+The scenario tests the system's ability to:
+1. Resolve references to multiple items from previous results ("first and second")
+2. Generate meaningful comparisons between funding calls
+3. Preserve comparison context for follow-up questions about budget
+4. Maintain digital innovation topic context throughout conversation
+
+### Next Task
+Task 013: Long Conversation Scenario (PHASE 4: Context Preservation Testing)
