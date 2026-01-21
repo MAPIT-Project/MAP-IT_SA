@@ -2312,3 +2312,60 @@ Added ICT/sensor-related terms to cluster keyword mapping:
 ### PRD Task Status
 - [x] EVALUATE task was already complete (84/100)
 - [x] FIX IF NEEDED marked complete (87/100 PASS)
+
+---
+
+## 2026-01-21: Prompt 034 EVALUATE - Policy Evaluation Academic Partner
+
+### Task Completed
+Created quality evaluation test for Prompt 034: "I am looking for a partner from France, Germany or the BENELUX countries who is institutionally a university or academic centre (not a company) and works with socioeconomic policy evaluation and monitoring, with Horizon expertise. Please list all matching organizations, focusing on policy EVALUATION and MONITORING specifically."
+
+### Files Created
+- `tests/quality/test_prompt_034_policy_evaluation.py` - New test file with:
+  - Four-dimension evaluation framework (Query Fulfillment 40pts, Specificity 25pts, Factual Accuracy 25pts, Actionability 10pts)
+  - Sample responses for offline testing (excellent, partial, poor, non-academic, wrong-countries)
+  - Live API tests (skipped when API unavailable)
+  - Geographic validation for target countries (FR, DE, BE, NL, LU)
+  - Academic/HES indicator validation
+  - Policy evaluation/monitoring keyword detection
+  - Non-academic (consulting firm) detection for accuracy penalties
+  - Known university validation for target countries
+
+### Test Results
+- 10 tests passed (6 offline + 4 live API tests)
+- All linting passed
+
+### Live API Evaluation Results
+- **Overall Score**: 84/100 (NEEDS_REVIEW)
+- **Query Fulfillment**: 35/40 - 10 academic partners listed, good geographic coverage
+- **Specificity**: 23/25 - Good institutional details and project specifics
+- **Factual Accuracy**: 20/25 - Good but minor false positive detection
+- **Actionability**: 6/10 - Needs more CORDIS links and categorization
+
+### API Response Quality
+The live API returns a comprehensive response covering:
+- **10 academic partners** from target countries (BE, NL, LU, FR, DE)
+- **Strong institutions listed**: KU Leuven, Utrecht University, LISER, JRC, CNRS, DLR, UGent, LMU, INSERM, Sorbonne
+- **Organization types**: HES (Higher Education) and REC (Research) - no companies
+- **Project counts and funding amounts** included
+- **Policy relevance** explained for key partners (LISER, JRC, KU Leuven)
+- **EU Portal links** provided
+
+### Evaluation Framework
+The test implements the LLM-as-judge methodology per the PRD:
+- Checks for academic/university partners (HES/REC org types)
+- Validates geographic coverage (FR, DE, BE, NL, LU)
+- Checks for policy evaluation/monitoring expertise
+- Verifies Horizon track record
+- Detects consulting firms to ensure academic focus
+
+### Expected Domain Knowledge (from eu-funding-domain skill)
+- HES: Higher Education Sector (universities)
+- REC: Research organizations
+- Target region: France, Germany, BENELUX (Belgium, Netherlands, Luxembourg)
+- Policy focus: Evaluation and monitoring specifically (not just policy research)
+- Horizon expertise: H2020 or Horizon Europe project participation
+
+### Next Steps
+The FIX IF NEEDED task should be run to improve the response to achieve score >= 85
+
