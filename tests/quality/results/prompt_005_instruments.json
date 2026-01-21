@@ -1,0 +1,68 @@
+{
+  "prompt_id": "005",
+  "query": "What are the instruments in Horizon Europe (RIA, CSA, IA etc)?",
+  "response": "The primary funding instruments (called 'Action Types') in Horizon Europe define the nature of the project, its maturity level (TRL), and the applicable funding rules. The three core instruments are Research and Innovation Actions (RIA), Innovation Actions (IA), and Coordination and Support Actions (CSA).\n\nHere is a summary of the main Horizon Europe Action Types:\n\n### 1. Research and Innovation Actions (RIA)\n\n| Aspect | Details |\n| :--- | :--- |\n| **Focus** | Research, experimentation, and knowledge generation. Projects focus on establishing new knowledge and exploring novel technologies. |\n| **TRL Range** | Low to Medium (Typically **TRL 2 \u2013 TRL 5**) |\n| **Funding Rate** | **100%** of eligible costs (for all participant types) |\n| **Typical Budget** | \u20ac3\u20138 million (Varies widely by topic) |\n| **Proposal Page Limit** | 45 pages (for single-stage and two-stage full proposals) |\n\n### 2. Innovation Actions (IA)\n\n| Aspect | Details |\n| :--- | :--- |\n| **Focus** | Demonstration, piloting, prototyping, and large-scale validation of technologies and solutions closer to market. |\n| **TRL Range** | Medium to High (Typically **TRL 5 \u2013 TRL 8**) |\n| **Funding Rate** | **70%** for for-profit entities (e.g., Large Companies, SMEs) and **100%** for non-profit entities (e.g., Universities, Research Institutes, NGOs). |\n| **Typical Budget** | \u20ac5\u201315 million (Often larger, reflecting high demonstration costs) |\n| **Proposal Page Limit** | 45 pages (for single-stage and two-stage full proposals) |\n\n### 3. Coordination and Support Actions (CSA)\n\n| Aspect | Details |\n| :--- | :--- |\n| **Focus** | Networking, standardisation, dissemination, awareness-raising, and supporting research policy. CSAs do not typically fund research or demonstration themselves. |\n| **TRL Range** | Not Applicable (N/A) |\n| **Funding Rate** | **100%** of eligible costs (for all participant types) |\n| **Typical Budget** | \u20ac1\u20133 million (Reflects networking and communication costs) |\n| **Proposal Page Limit** | 30 pages |\n\n***\n\n### Other Key Instruments\n\nBesides the main consortium-based actions (RIA/IA/CSA), Horizon Europe funds specific types of grants under Pillar I and Pillar III:\n\n*   **ERC Grants (European Research Council):** Funds frontier research driven by a single Principal Investigator (PI).\n*   **MSCA (Marie Sk\u0142odowska-Curie Actions):** Funds researcher mobility, training, and career development (e.g., Postdoctoral Fellowships, Doctoral Networks).\n*   **EIC Accelerator (European Innovation Council):** Provides blended finance (grant + equity) for single SMEs with disruptive, market-creating innovations (TRL 6+).\n\n### Standard Consortium Requirements\n\nFor most RIA, IA, and CSA calls, the minimum consortium requirement is:\n\n> **3 independent legal entities from 3 different EU Member States or Associated Countries.**\n\n***\n\n### \ud83c\udfaf Getting Started with Horizon Europe:\n\nTo find instruments relevant to your field, start here:\n\n\u2022 Register on [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)\n\u2022 Review the [Work Programmes](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON) for your cluster\n\u2022 Check eligibility via [How to Participate](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/how-to-participate/1)\n\u2022 Find partners using [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search)\n\u2022 Browse [Call Calendar](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/calls-calendar)",
+  "overall_score": 96,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "instruments",
+      "description": "Horizon Europe Instruments explanation",
+      "fulfillment": 39,
+      "specificity": 25,
+      "accuracy": 25,
+      "actionability": 7,
+      "total": 96,
+      "notes": "Fulfillment: All core instruments (RIA, IA, CSA) explained; Also mentions: ERC (European Research Council), MSCA (Marie Sk\u0142odowska-Curie Actions), EIC (European Innovation Council); Core: 3/3, Additional: 3/3; Specificity: Good specificity with concrete details; Accuracy: Accuracy check: 25/25 points; Actionability: Good actionability with guidance provided",
+      "missing_instruments": [],
+      "additional_instruments_found": [
+        "ERC (European Research Council)",
+        "MSCA (Marie Sk\u0142odowska-Curie Actions)",
+        "EIC (European Innovation Council)"
+      ]
+    }
+  ],
+  "factual_errors": [],
+  "fix_suggestions": [
+    "Improve actionability: Add links to EU Funding Portal, Work Programmes, and guidance on choosing between instruments"
+  ],
+  "strengths": [
+    "Comprehensive coverage of instruments",
+    "Rich in specific details (rates, TRLs, budgets)",
+    "Factually accurate"
+  ],
+  "evaluation_timestamp": "2026-01-21T00:06:12.462285+00:00",
+  "response_metadata": {
+    "intent_type": "agentic_v3",
+    "confidence": 0.8,
+    "tools_used": [],
+    "reasoning_steps": [
+      {
+        "step": 1,
+        "thought": "The user is asking for definitions and details regarding the main Horizon Europe funding instruments (Action Types). This information is readily available in the built-in knowledge base (Action Types Summary). I will define RIA, IA, and CSA, detailing TRL, funding rates, and consortium requirements, and include the required actionable links.",
+        "action": "conclude",
+        "tools_called": [],
+        "observation": ""
+      }
+    ],
+    "iterations": 1,
+    "processing_time_ms": 5809.72,
+    "architecture": "simplified_v3",
+    "quality_analysis": {
+      "score": 100,
+      "category": "complete",
+      "confidence": 0.85,
+      "query_type": "general",
+      "missing_elements": [],
+      "deflection_phrases_found": [],
+      "recommendations": [],
+      "elements_found": [
+        "answer",
+        "context"
+      ],
+      "response_length": 3657,
+      "timestamp": "2026-01-21T00:06:12.456652+00:00"
+    }
+  },
+  "fix_history": []
+}

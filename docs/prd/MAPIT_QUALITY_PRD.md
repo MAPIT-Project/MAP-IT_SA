@@ -75,9 +75,9 @@ Run with: `./ralphy.sh --prd MAPIT_QUALITY_PRD.md`
 - [x] FIX IF NEEDED: Read `tests/quality/results/prompt_004_clusters_missions.json`. If score < 85: fix and re-evaluate until passing or 3 attempts.
 
 ### Prompt 005: Instruments (RIA, CSA, IA)
-- [ ] EVALUATE: Run prompt "What are the instruments in Horizon Europe (RIA, CSA, IA etc)?" through MAPIT. Use `eval-orchestrator` subagent. Cross-reference `eu-funding-domain` skill: RIA (100% funding), IA (70% funding), CSA (100% funding) with TRL ranges. Save result to `tests/quality/results/prompt_005_instruments.json`.
+- [x] EVALUATE: Run prompt "What are the instruments in Horizon Europe (RIA, CSA, IA etc)?" through MAPIT. Use `eval-orchestrator` subagent. Cross-reference `eu-funding-domain` skill: RIA (100% funding), IA (70% funding), CSA (100% funding) with TRL ranges. Save result to `tests/quality/results/prompt_005_instruments.json`.
 
-- [ ] FIX IF NEEDED: Read `tests/quality/results/prompt_005_instruments.json`. If score < 85: fix and re-evaluate until passing or 3 attempts.
+- [x] FIX IF NEEDED: Read `tests/quality/results/prompt_005_instruments.json`. If score < 85: fix and re-evaluate until passing or 3 attempts.
 
 ### Prompt 006: After Horizon Europe
 - [ ] EVALUATE: Run prompt "What will come after Horizon Europe?" through MAPIT. Use `eval-orchestrator` subagent. Should mention FP10 discussions, timeline, and note uncertainty. Save result to `tests/quality/results/prompt_006_after_he.json`.

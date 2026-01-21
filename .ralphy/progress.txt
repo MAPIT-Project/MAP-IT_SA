@@ -372,3 +372,45 @@ The agent's built-in knowledge lacked Clusters and Missions information. The age
 - [x] EVALUATE task complete
 - [x] FIX IF NEEDED task complete (1 attempt, score 30 → 89, PASS)
 
+
+## 2026-01-21: Prompt 005 - Instruments (RIA, CSA, IA) (EVALUATE + FIX IF NEEDED)
+
+### Task Completed
+Created quality evaluation test for Prompt 005: "What are the instruments in Horizon Europe (RIA, CSA, IA etc)?"
+
+### Files Created/Modified
+- `tests/quality/test_prompt_005_instruments.py` - New test file with:
+  - Four-dimension evaluation framework (Query Fulfillment 40pts, Specificity 25pts, Factual Accuracy 25pts, Actionability 10pts)
+  - Checks for core instruments (RIA, IA, CSA): 10 points each = 30 points
+  - Checks for additional instruments (ERC, MSCA, EIC): 3 points each = 9 points (bonus)
+  - Specificity checks for funding rates (100%, 70%), TRL ranges, budget ranges, consortium requirements
+  - Factual accuracy verification against eu-funding-domain skill
+  - Sample responses for offline testing (excellent, partial, poor)
+  - Live API tests
+  - Result saved to `tests/quality/results/prompt_005_instruments.json`
+
+### Live API Evaluation Results
+- **Overall Score**: 96/100 (PASS) ✅
+- **Query Fulfillment**: 39/40 - All core instruments (RIA, IA, CSA) + all additional (ERC, MSCA, EIC) explained
+- **Specificity**: 25/25 - Full funding rates, TRL ranges, budget ranges, consortium requirements
+- **Factual Accuracy**: 25/25 - All facts verified correct
+- **Actionability**: 7/10 - Includes links to EU portal and guidance
+
+### API Response Quality
+The live API returns a comprehensive ~3600 character response covering:
+- All three core instruments with detailed tables:
+  - RIA: 100% funding, TRL 2-5, €3-8M
+  - IA: 70%/100% funding, TRL 5-8, €5-15M
+  - CSA: 100% funding, N/A TRL, €1-3M
+- Additional instruments (ERC, MSCA, EIC)
+- Standard consortium requirements (3 partners from 3 countries)
+- Actionable links to EU Funding Portal, Work Programmes, Partner Search
+
+### Test Results
+- 10 tests passed (6 offline + 4 live API tests)
+- All linting passed
+
+### PRD Task Status
+- [x] EVALUATE task complete (score 96/100, PASS)
+- [x] FIX IF NEEDED task not needed (score >= 85)
+
