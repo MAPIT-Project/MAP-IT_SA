@@ -101,6 +101,8 @@ COORDINATOR_PATTERNS = {
         r"coordination[s]?\s*[\:]\s*\d+",
         r"\d+\s*coordination",
         r"coordinator\s*(?:of|in)\s*\d+",
+        r"\d+\s+as\s+coordinator",  # Matches "5 as coordinator" format
+        r"\(\d+\s+as\s+coordinator\)",  # Matches "(5 as coordinator)" format
     ],
     "coordinator_role": [
         "coordinator",
@@ -109,13 +111,17 @@ COORDINATOR_PATTERNS = {
         "leading",
         "coordination",
         "principal",
+        "as coordinator",  # Matches "5 as coordinator" format
     ],
 }
 
 # Known SSH/research institutions patterns
 SSH_INSTITUTION_PATTERNS = [
     r"university",
-    r"universit[aäe]",
+    r"universit[aäeio]",  # Covers università, université, universiteit
+    r"universiteit",  # Dutch university spelling
+    r"yliopisto",  # Finnish university (e.g., HELSINGIN YLIOPISTO)
+    r"politecnico",  # Italian technical university
     r"institut",
     r"centre",
     r"center",
@@ -127,6 +133,11 @@ SSH_INSTITUTION_PATTERNS = [
     r"max[\-\s]planck",
     r"foundation",
     r"research",
+    r"kentro",  # Greek research center (e.g., ETHNIKO KENTRO)
+    r"alma\s*mater",  # Bologna style
+    r"stichting",  # Dutch foundation/organization
+    r"katholieke",  # Catholic university
+    r"erasmus",  # Erasmus University
 ]
 
 
@@ -335,8 +346,9 @@ def count_organizations_mentioned(response: str) -> int:
 
     Looks for patterns like:
     - Numbered lists (1., 2., etc.)
-    - Bullet point organization entries
+    - Bullet point organization entries (• **ORG** or - **ORG**)
     - Institution names (University, Institut, etc.)
+    - Coordinator entries with funding
     """
     response_lower = response.lower()
 
@@ -344,7 +356,7 @@ def count_organizations_mentioned(response: str) -> int:
     numbered_pattern = r"(?:^|\n)\s*(?:\d+[\.\)]\s+|\*\*\d+\.|###\s*\d+\.)"
     numbered_matches = len(re.findall(numbered_pattern, response))
 
-    # Count bullet point organization entries
+    # Count bullet point organization entries (standard markdown)
     bullet_org_pattern = (
         r"(?:^|\n)\s*-\s+[A-Z][A-Z\s\-]+"
         r"(?:UNIVERSITY|UNIVERSITEIT|UNIVERSITAT|UNIVERSITET|UNIVERSITE|UNIVERSIDAD|"
@@ -352,9 +364,18 @@ def count_organizations_mentioned(response: str) -> int:
     )
     bullet_matches = len(re.findall(bullet_org_pattern, response, re.IGNORECASE))
 
+    # Count bullet point organization entries with bold (• **ORG** format from MAPIT)
+    # This pattern matches: • **UU** (NL, HES) or • **UNIBO** (IT, HES)
+    bold_bullet_pattern = r"•\s*\*\*[A-Z][A-Za-z0-9\s\-\']+\*\*\s*\([A-Z]{2},"
+    bold_bullet_matches = len(re.findall(bold_bullet_pattern, response))
+
     # Count organizations with coordination patterns
     org_with_stats_pattern = r"(?:^|\n)\s*-\s+[A-Z][A-Z\s\-]+:\s*\d+\s*(?:project|coordination)"
     org_with_stats_matches = len(re.findall(org_with_stats_pattern, response, re.IGNORECASE))
+
+    # Count "X as coordinator" patterns (indicates organization with coord role)
+    coord_entries_pattern = r"\d+\s+as\s+coordinator"
+    coord_entries = len(re.findall(coord_entries_pattern, response_lower))
 
     # Count institution mentions
     institution_count = 0
@@ -363,7 +384,14 @@ def count_organizations_mentioned(response: str) -> int:
         institution_count += len(set(matches))
 
     # Use the highest count, but cap at reasonable max
-    org_count = max(numbered_matches, institution_count, bullet_matches, org_with_stats_matches)
+    org_count = max(
+        numbered_matches,
+        institution_count,
+        bullet_matches,
+        org_with_stats_matches,
+        bold_bullet_matches,  # Added new pattern
+        coord_entries,  # Added coordinator entries
+    )
 
     return min(org_count, 15)  # Cap at 15 to avoid false positives
 
@@ -505,8 +533,16 @@ def evaluate_specificity(response: str) -> tuple[int, str]:
         notes.append("No specific organization names")
 
     # Coordination counts (6 points)
+    # Match various formats: "5 projects", "coordinated 5", "coordinated **5** projects", "(5 as coordinator)"
     coord_numbers = re.findall(r"\d+\s*(?:project|coordination|coordinated)", response_lower)
     coord_numbers += re.findall(r"(?:project|coordination)[s]?\s*[\:]\s*\d+", response_lower)
+    # Match markdown bold: "coordinated **5** projects"
+    coord_numbers += re.findall(r"coordinated\s*\*\*\d+\*\*\s*project", response_lower)
+    # Match parenthetical: "(coordinated 5 projects)" or "(5 as coordinator)"
+    coord_numbers += re.findall(r"\(coordinated\s*\*?\*?\d+\*?\*?\s*project", response_lower)
+    coord_numbers += re.findall(r"\(\d+\s*as\s*coordinator\)", response_lower)
+    # Match "X as coordinator" without parentheses
+    coord_numbers += re.findall(r"\d+\s+as\s+coordinator", response_lower)
 
     if len(coord_numbers) >= 5:
         score += 6

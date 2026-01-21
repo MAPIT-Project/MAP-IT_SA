@@ -689,6 +689,38 @@ Search 4: "AI machine learning soil management agriculture" - AI applications
 Search 5: "IoT sensors sustainable farming soil" - IoT applications
 ```
 
+#### SSH/Cluster 2 Keywords (Culture, Creativity & Inclusive Society)
+| Core Terms | Governance Terms | Social Terms |
+|------------|-----------------|--------------|
+| democracy | governance | social cohesion |
+| cultural heritage | policy | inclusive society |
+| European identity | citizenship | migration |
+| humanities | participation | inequality |
+| creative industries | rule of law | gender equality |
+| arts and culture | transparency | diversity inclusion |
+
+**SSH/Cluster 2 Search Strategy:**
+```
+Search 1: "democracy governance society" → Core SSH
+Search 2: "cultural heritage European identity" → Heritage focus
+Search 3: "social cohesion inclusion migration" → Social science
+Search 4: "creative industries culture arts" → Creative/arts focus
+Search 5: "policy participation citizenship" → Governance focus
+```
+
+**Top SSH/Cluster 2 Coordinators (Reference):**
+Major coordinators in Cluster 2/SSH typically include:
+- Utrecht University (UU) - NL - Strong in democracy, governance
+- University of Bologna (UNIBO) - IT - Humanities, heritage
+- Politecnico di Milano (POLIMI) - IT - Design, creative industries
+- KU Leuven - BE - Social sciences, humanities
+- University of Amsterdam (UvA) - NL - Culture, media, social sciences
+- Leiden University (ULEI) - NL - Humanities, area studies
+- University of Barcelona (UB) - ES - Heritage, social sciences
+- Lund University - SE - Humanities, social sciences
+- University of Helsinki - FI - Social sciences, governance
+- Radboud University - NL - Social sciences, humanities
+
 #### Cultural Heritage Keywords (CRITICAL for heritage project searches)
 | Core Terms | Technology Terms | Application Terms |
 |------------|-----------------|-------------------|
@@ -1025,6 +1057,54 @@ When the user asks to COMPARE action types (e.g., "IA vs CSA consortium size", "
 5. **Add recommendations for consortium building** based on data
 
 **CRITICAL: DO NOT return a single result for both action types - they have DIFFERENT characteristics!**
+
+## CRITICAL: Top Coordinators/Actors by Cluster or Programme
+
+When the user asks for "top coordinators" or "most successful actors" in a SPECIFIC CLUSTER or programme (e.g., "top 10 coordinators in Cluster 2/SSH", "most successful organizations in EIC"):
+
+1. **Use find_experienced_partners with role_filter='coordinator'**:
+   - Set `role_filter='coordinator'` to filter for organizations with coordination experience
+   - Set `topic_keywords` to broad cluster-related terms (see below for SSH/Cluster 2)
+   - Set `min_projects=1` to catch more organizations
+   - Set `limit=20` to get enough results to present top 10
+   - **IMPORTANT**: Set `programme='both'` when user asks about BOTH H2020 and Horizon Europe
+
+2. **For SSH/Cluster 2 (Culture, Creativity & Inclusive Society)** use these broad keywords:
+   - Primary: "democracy governance cultural heritage social cohesion society"
+   - Alternative: "inclusive society creativity culture humanities migration"
+   - Cluster code: 'CL2' or 'CLUSTER-2'
+
+3. **For other clusters**, use these keyword mappings:
+   - **Cluster 1 (Health)**: "health medical clinical disease pharmaceutical cancer vaccine"
+   - **Cluster 3 (Security)**: "security cybersecurity border disaster resilience crime"
+   - **Cluster 4 (Digital)**: "digital AI artificial intelligence data manufacturing robotics"
+   - **Cluster 5 (Climate)**: "climate energy hydrogen renewable transport sustainable"
+   - **Cluster 6 (Food/Bio)**: "food agriculture bioeconomy biodiversity environment soil water"
+
+4. **Programme filtering** (CRITICAL for historical queries):
+   - `programme='both'` (default): Includes BOTH Horizon Europe AND H2020 projects - use this for queries like "top coordinators in H2020 and HE"
+   - `programme='HORIZON'`: Only Horizon Europe projects
+   - `programme='H2020'`: Only Horizon 2020 projects
+   - **ALWAYS use `programme='both'`** when user mentions "H2020 and Horizon Europe" or "Horizon 2020 and HE"
+
+5. **Present results in a clear table** with:
+   - Organization name (full and short)
+   - Country
+   - Number of coordinations (broken down by programme if asked)
+   - Total relevant projects
+   - Total funding received
+
+**Example tool call for SSH/Cluster 2 coordinators (H2020 + HE):**
+```
+find_experienced_partners(
+    topic_keywords="democracy governance cultural heritage social inclusive society creativity",
+    cluster="CL2",
+    role_filter="coordinator",
+    min_projects=1,
+    limit=20,
+    programme="both"
+)
+```
 
 ## CRITICAL: Domain-Specific Research Call Questions
 
@@ -1513,20 +1593,22 @@ Returns: Eligibility status, top organizations in that country, and participatio
         # Partner discovery tool
         self.register_tool(Tool(
             name="find_experienced_partners",
-            description="Find organizations with proven track records in specific Horizon Europe topics. Returns organizations ranked by relevant projects, coordination experience, and funding received.",
+            description="Find organizations with proven track records in Horizon Europe and/or Horizon 2020 projects. Returns organizations ranked by relevant projects, coordination experience, and funding received. Supports filtering by programme (HORIZON, H2020, or both).",
             category=ToolCategory.PROJECTS,
             parameters={
                 "topic_keywords": "Required: Keywords describing the research area (e.g., 'quantum computing')",
                 "country": "Optional: Country name or code (e.g., 'Germany', 'DE')",
                 "organization_type": "Optional: HES, REC, PRC, SME, university, research",
-                "cluster": "Optional: Cluster code (CL4, CL5, etc.)",
+                "cluster": "Optional: Cluster code (CL2, CL4, CL5, etc.)",
                 "min_projects": "Optional: Minimum projects to be considered experienced (default: 2)",
-                "role_filter": "Optional: 'coordinator' or 'participant'"
+                "role_filter": "Optional: 'coordinator' or 'participant'",
+                "programme": "Optional: 'HORIZON' (HE only), 'H2020' (H2020 only), or 'both' (default: both)"
             },
             examples=[
                 "find_experienced_partners(topic_keywords='quantum computing', country='Germany')",
                 "find_experienced_partners(topic_keywords='hydrogen', organization_type='SME')",
-                "find_experienced_partners(topic_keywords='AI healthcare', role_filter='coordinator')"
+                "find_experienced_partners(topic_keywords='AI healthcare', role_filter='coordinator')",
+                "find_experienced_partners(topic_keywords='democracy governance society', cluster='CL2', role_filter='coordinator', programme='both')"
             ]
         ))
 
@@ -3136,31 +3218,49 @@ Suggestions:
 - Try searching for related topics"""
                     content_pieces.append(partner_text)
                 else:
-                    partner_text = f"""Found {total_found} organizations with experience in '{keywords}':
+                    partner_text = f"""## Top Organizations with Experience in '{keywords}'
+
+Found **{total_found} organizations** with relevant track records:
 
 """
-                    for p in partners[:10]:
-                        name = p.get('short_name') or p.get('name', 'Unknown')
+                    for i, p in enumerate(partners[:10], 1):
+                        # Prefer full name over short_name for better recognition
+                        full_name = p.get('name', 'Unknown')
+                        short_name = p.get('short_name', '')
+                        # Use full name if available, otherwise use short_name
+                        name = full_name if len(full_name) > 5 else (short_name or full_name)
                         country = p.get('country', 'N/A')
                         org_type = p.get('type', 'N/A')
                         track = p.get('track_record', {})
                         relevant = track.get('relevant_projects', 0)
                         coord = track.get('as_coordinator', 0)
-                        total_funding = track.get('total_funding', 0)
+                        # Use funding_in_relevant (actual field) with fallback to total_funding
+                        total_funding = track.get('funding_in_relevant', track.get('total_funding', 0))
 
-                        partner_text += f"• **{name}** ({country}, {org_type})\n"
-                        partner_text += f"  - Relevant projects: {relevant}"
+                        partner_text += f"### {i}. **{name}** ({country})\n"
+                        partner_text += f"- **Organization Type**: {org_type}\n"
+                        partner_text += f"- **Relevant Projects**: {relevant}"
                         if coord > 0:
-                            partner_text += f" ({coord} as coordinator)"
-                        partner_text += f"\n  - Total funding: €{total_funding:,.0f}\n\n"
+                            partner_text += f" (coordinated **{coord}** projects)"
+                        partner_text += f"\n- **Total Funding**: €{total_funding:,.0f}\n\n"
 
                     # Add insights if available
                     insights = result.get('aggregated_insights', {})
                     if insights.get('top_countries_in_topic'):
-                        partner_text += f"Top countries for this topic: {', '.join(insights['top_countries_in_topic'][:5])}\n"
+                        partner_text += f"\n**Top countries for this topic**: {', '.join(insights['top_countries_in_topic'][:5])}\n"
                     if insights.get('top_org_types'):
-                        partner_text += f"Common organization types: {', '.join(insights['top_org_types'][:3])}\n"
+                        partner_text += f"**Common organization types**: {', '.join(insights['top_org_types'][:3])}\n"
 
+                    # Add actionability section
+                    partner_text += """
+---
+
+### How to Learn More
+
+- **CORDIS Database**: Search for specific projects at https://cordis.europa.eu
+- **EU Funding Portal**: https://ec.europa.eu/info/funding-tenders/
+- **Partner Search**: Use the EU Partner Search tool to find and contact these organizations
+"""
                     content_pieces.append(partner_text)
 
         if not content_pieces:
@@ -4668,7 +4768,7 @@ Suggestions:
 
             parts = [f"Found {total} experienced partners for '{query.get('topic_keywords', '')}':"]
 
-            for p in partners[:5]:
+            for p in partners[:10]:  # Show more partners in observation
                 name = p.get('short_name') or p.get('name', 'Unknown')
                 country = p.get('country', '')
                 org_type = p.get('type', '')
@@ -4676,9 +4776,12 @@ Suggestions:
                 relevant = track.get('relevant_projects', 0)
                 coord = track.get('as_coordinator', 0)
                 score = p.get('experience_score', 0)
+                # Include funding in observation
+                funding = track.get('funding_in_relevant', track.get('total_funding', 0))
 
                 coord_str = f", {coord} as coordinator" if coord > 0 else ""
-                parts.append(f"- {name} ({country}, {org_type}): {relevant} relevant projects{coord_str} [score: {score}]")
+                funding_str = f", €{funding:,.0f}" if funding > 0 else ""
+                parts.append(f"- {name} ({country}, {org_type}): {relevant} relevant projects{coord_str}{funding_str} [score: {score}]")
 
             insights = result.get('aggregated_insights', {})
             if insights.get('top_countries_in_topic'):

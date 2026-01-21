@@ -28,7 +28,10 @@ CLUSTER_KEYWORDS = {
                   'hospital', 'therapy', 'diagnosis', 'pharmaceutical', 'cancer',
                   'vaccine', 'drug', 'biomedical', 'genomics', 'personalized medicine'],
     'CLUSTER-2': ['culture', 'democracy', 'social', 'heritage', 'creative', 'inclusive',
-                  'society', 'governance', 'media', 'arts', 'humanities'],
+                  'society', 'governance', 'media', 'arts', 'humanities', 'SSH',
+                  'migration', 'identity', 'citizen', 'participation', 'cohesion',
+                  'european identity', 'cultural', 'societal', 'democratic', 'policy',
+                  'education', 'gender', 'inequality', 'inclusion', 'diversity'],
     'CLUSTER-3': ['security', 'cybersecurity', 'border', 'crime', 'disaster', 'resilience',
                   'defence', 'terrorism', 'critical infrastructure', 'surveillance'],
     'CLUSTER-4': ['digital', 'AI', 'artificial intelligence', 'data', 'industry', 'space',
@@ -547,10 +550,11 @@ class PartnerDiscoveryTool:
         min_projects: int = 2,
         role_filter: Optional[str] = None,
         limit: int = 20,
-        include_2hop: bool = True
+        include_2hop: bool = True,
+        programme: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Find organizations with proven track records in relevant Horizon Europe projects.
+        Find organizations with proven track records in Horizon Europe and/or H2020 projects.
 
         Uses a HYBRID approach combining:
         1. Graph (Neo4j): Fast relationship-based discovery + 2-hop partners
@@ -567,6 +571,8 @@ class PartnerDiscoveryTool:
             role_filter: Filter by role (coordinator, participant, or None for both)
             limit: Max results to return
             include_2hop: Include 2-hop partners (partners of partners) - graph only
+            programme: Optional programme filter: 'HORIZON' (HE only), 'H2020' (H2020 only),
+                       'both' or None (includes both programmes for comprehensive results)
 
         Returns:
             List of experienced partners with track records from both sources
@@ -579,7 +585,8 @@ class PartnerDiscoveryTool:
             min_projects=min_projects,
             role_filter=role_filter,
             limit=limit,
-            include_2hop=include_2hop
+            include_2hop=include_2hop,
+            programme=programme
         )
 
     def _find_partners_hybrid(
@@ -591,7 +598,8 @@ class PartnerDiscoveryTool:
         min_projects: int = 2,
         role_filter: Optional[str] = None,
         limit: int = 20,
-        include_2hop: bool = True
+        include_2hop: bool = True,
+        programme: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Hybrid partner discovery combining Graph and SQL sources.
@@ -642,7 +650,8 @@ class PartnerDiscoveryTool:
                 cluster_code=cluster_code,
                 min_projects=min_projects,
                 role_filter=role_filter,
-                limit=limit * 2  # Get more for merging
+                limit=limit * 2,  # Get more for merging
+                programme=programme
             )
             if sql_result:
                 sql_partners = sql_result
@@ -663,7 +672,8 @@ class PartnerDiscoveryTool:
                     "country": country,
                     "organization_type": organization_type,
                     "cluster": cluster,
-                    "min_projects": min_projects
+                    "min_projects": min_projects,
+                    "programme": programme
                 },
                 "total_found": 0,
                 "experienced_partners": [],
@@ -709,7 +719,8 @@ class PartnerDiscoveryTool:
                 "country": country,
                 "organization_type": organization_type,
                 "cluster": cluster,
-                "min_projects": min_projects
+                "min_projects": min_projects,
+                "programme": programme
             },
             "total_found": len(merged_partners),
             "experienced_partners": merged_partners,
@@ -726,7 +737,8 @@ class PartnerDiscoveryTool:
                 "keyword_match_partners": sql_only_count,
                 "both_sources": both_sources_count,
                 "graph_enriched_with_sql": enriched_count,
-                "include_2hop": include_2hop
+                "include_2hop": include_2hop,
+                "programme_filter": programme or "both"
             },
             "timestamp": datetime.now().isoformat()
         }
@@ -739,10 +751,24 @@ class PartnerDiscoveryTool:
         cluster_code: Optional[str] = None,
         min_projects: int = 2,
         role_filter: Optional[str] = None,
-        limit: int = 20
+        limit: int = 20,
+        programme: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """
         SQL-based partner discovery with precise keyword matching.
+
+        Args:
+            topic_keywords: Keywords to search for in project descriptions
+            country_code: Optional country filter (2-letter code)
+            org_type_code: Optional organization type filter
+            cluster_code: Optional cluster filter
+            min_projects: Minimum projects required
+            role_filter: Optional role filter ('coordinator' or 'participant')
+            limit: Maximum results to return
+            programme: Optional programme filter:
+                       - 'HORIZON' for Horizon Europe only
+                       - 'H2020' for Horizon 2020 only
+                       - 'both' or None for both programmes (default)
 
         Returns list of partners with full project details.
         """
@@ -754,8 +780,15 @@ class PartnerDiscoveryTool:
             cursor = conn.cursor(cursor_factory=RealDictCursor)
 
             # Build WHERE conditions for projects
-            project_conditions = ["p.\"frameworkProgramme\" = 'HORIZON'"]
+            # Default: Include both HORIZON (HE) and H2020 for comprehensive results
             params = []
+            if programme and programme.upper() == 'HORIZON':
+                project_conditions = ["p.\"frameworkProgramme\" = 'HORIZON'"]
+            elif programme and programme.upper() == 'H2020':
+                project_conditions = ["p.\"frameworkProgramme\" = 'H2020'"]
+            else:
+                # Default: Include both programmes for comprehensive results
+                project_conditions = ["p.\"frameworkProgramme\" IN ('HORIZON', 'H2020')"]
 
             # Topic keywords filter (search in objective and title)
             keywords = topic_keywords.split()
@@ -1054,11 +1087,12 @@ class PartnerDiscoveryTool:
                 keyword_where = f"({' OR '.join(keyword_conditions)})" if keyword_conditions else "TRUE"
 
                 sql = f"""
-                    SELECT p.acronym, p.title, o.role, o."ecContribution", p."startDate"
+                    SELECT p.acronym, p.title, o.role, o."ecContribution", p."startDate",
+                           p."frameworkProgramme" as programme
                     FROM organizations o
                     JOIN projects p ON o."projectID" = p.id
                     WHERE o.name = %s
-                    AND p."frameworkProgramme" = 'HORIZON'
+                    AND p."frameworkProgramme" IN ('HORIZON', 'H2020')
                     AND {keyword_where}
                     ORDER BY p."startDate" DESC NULLS LAST
                     LIMIT 5
@@ -1200,7 +1234,7 @@ async def find_experienced_partners_execute(params: Dict[str, Any], context: Dic
     """
     Execute partner discovery tool.
 
-    This tool finds organizations with proven track records in specific Horizon Europe topics.
+    This tool finds organizations with proven track records in Horizon Europe and H2020 topics.
     Use when users want to find potential consortium partners, identify experienced coordinators,
     or discover organizations working in a specific research area.
 
@@ -1216,6 +1250,17 @@ async def find_experienced_partners_execute(params: Dict[str, Any], context: Dic
         params.get('cluster_id') or
         params.get('pillar')
     )
+
+    # Extract programme filter with fallback alternatives
+    # Supports: 'HORIZON', 'H2020', 'both', 'all', or None (default: both)
+    programme_param = (
+        params.get('programme') or
+        params.get('framework_programme') or
+        params.get('framework')
+    )
+    # Normalize 'all' to 'both'
+    if programme_param and programme_param.lower() == 'all':
+        programme_param = 'both'
 
     tool = PartnerDiscoveryTool()
 
@@ -1235,7 +1280,8 @@ async def find_experienced_partners_execute(params: Dict[str, Any], context: Dic
         min_projects=params.get('min_projects', 2),
         role_filter=params.get('role_filter'),
         limit=params.get('limit', 20),
-        include_2hop=params.get('include_2hop', True)
+        include_2hop=params.get('include_2hop', True),
+        programme=programme_param
     )
 
 
