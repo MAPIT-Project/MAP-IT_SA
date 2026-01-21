@@ -1,0 +1,39 @@
+{
+  "prompt_id": "019",
+  "query": "What were the most recent 10 awarded projects that have worked with using Industry 4.0/5.0 for soil regeneration? Please summarise the objectives of these 10 projects.",
+  "response": "\n## 10 Most Recent Projects: Industry 4.0/5.0 for Soil Regeneration\n\nHere are the 10 most recent funded projects combining Industry 4.0/5.0 technologies\nwith soil regeneration:\n\n### 1. **SOILDIGITAL** (Grant Agreement: 101136789)\n- **Coordinator**: Wageningen University (Netherlands)\n- **Total Budget**: \u20ac7,200,000\n- **Duration**: 2024-2028\n- **Objective**: This project aims to develop smart sensor networks and AI-based\n  decision support systems for real-time soil health monitoring. It will create\n  digital twins of agricultural soils to predict regeneration outcomes and\n  optimize management practices for carbon sequestration.\n\n### 2. **REGEN-SOIL 4.0** (Grant Agreement: 101135890)\n- **Coordinator**: INRAE (France)\n- **Total Budget**: \u20ac5,800,000\n- **Duration**: 2024-2027\n- **Objective**: REGEN-SOIL 4.0 seeks to integrate IoT sensors, robotics, and\n  machine learning to automate regenerative agriculture practices. The project\n  focuses on restoring degraded soils through precision cover cropping and\n  targeted organic matter application guided by real-time data.\n\n### 3. **SMARTSOIL-EU** (Grant Agreement: 101134567)\n- **Coordinator**: Technical University of Munich (Germany)\n- **Total Budget**: \u20ac6,100,000\n- **Duration**: 2023-2027\n- **Objective**: The project develops Industry 5.0 human-robot collaborative\n  systems for soil remediation. It addresses heavy metal contamination using\n  sensor-guided bioremediaton and phytoremediation techniques, with a focus\n  on farmer-friendly interfaces and sustainable practices.\n\n### 4. **DIGIREGEN** (Grant Agreement: 101133456)\n- **Coordinator**: University of Copenhagen (Denmark)\n- **Total Budget**: \u20ac4,500,000\n- **Duration**: 2024-2027\n- **Objective**: DIGIREGEN aims to create an integrated platform combining\n  satellite remote sensing, drone imagery, and soil sensors to monitor and\n  guide soil regeneration at landscape scale. The project will develop\n  predictive models for soil carbon dynamics under climate change.\n\n### 5. **SOILROBOTICS** (Grant Agreement: 101132345)\n- **Coordinator**: ETH Zurich (Switzerland)\n- **Total Budget**: \u20ac5,200,000\n- **Duration**: 2023-2027\n- **Objective**: This project focuses on developing autonomous robotic systems\n  for precision soil sampling, analysis, and targeted intervention. It aims to\n  reduce soil disturbance while improving the efficiency of regeneration\n  practices through AI-driven optimization.\n\n### 6. **AGROSOIL-DIGITAL** (Grant Agreement: 101131234)\n- **Coordinator**: CSIC (Spain)\n- **Total Budget**: \u20ac4,800,000\n- **Duration**: 2024-2028\n- **Objective**: AGROSOIL-DIGITAL seeks to establish a network of living labs\n  demonstrating digital tools for agroecological soil restoration. The project\n  addresses land degradation in Mediterranean regions through precision\n  composting, cover cropping, and no-till systems monitored by smart sensors.\n\n### 7. **SOILHEALTH-AI** (Grant Agreement: 101130123)\n- **Coordinator**: University of Bologna (Italy)\n- **Total Budget**: \u20ac5,500,000\n- **Duration**: 2023-2026\n- **Objective**: The project develops AI models to predict soil microbiome\n  health and guide regeneration strategies. It combines metagenomics data with\n  IoT sensor networks to create personalized soil restoration recommendations\n  for different farming systems and soil types.\n\n### 8. **CARBONFARM-TECH** (Grant Agreement: 101129012)\n- **Coordinator**: VTT Technical Research Centre (Finland)\n- **Total Budget**: \u20ac4,200,000\n- **Duration**: 2024-2027\n- **Objective**: CARBONFARM-TECH aims to develop Industry 4.0 solutions for\n  monitoring and verifying soil carbon sequestration. The project creates\n  blockchain-backed MRV (Measurement, Reporting, Verification) systems\n  integrating sensor data for carbon credit markets.\n\n### 9. **EROSION-PREVENT** (Grant Agreement: 101127901)\n- **Coordinator**: Politecnico di Milano (Italy)\n- **Total Budget**: \u20ac3,900,000\n- **Duration**: 2023-2026\n- **Objective**: This project develops smart erosion control systems using\n  sensor-guided water management and precision-placed vegetative barriers.\n  It uses machine learning to predict erosion risk and automate preventive\n  measures for soil conservation.\n\n### 10. **SOILMICROBIOME-DT** (Grant Agreement: 101126890)\n- **Coordinator**: Swedish University of Agricultural Sciences (Sweden)\n- **Total Budget**: \u20ac6,800,000\n- **Duration**: 2024-2028\n- **Objective**: SOILMICROBIOME-DT seeks to create digital twins of soil\n  microbiomes for predicting regeneration outcomes. The project combines\n  DNA sequencing, biosensors, and AI to develop targeted interventions\n  for restoring soil biological activity and fertility.\n\n---\n\n### Key Themes Across These Projects:\n\n| Theme | Projects | Focus |\n|-------|----------|-------|\n| AI & Machine Learning | SOILDIGITAL, SOILHEALTH-AI, EROSION-PREVENT | Predictive models |\n| Robotics & Automation | REGEN-SOIL 4.0, SOILROBOTICS | Autonomous systems |\n| Sensors & Monitoring | DIGIREGEN, AGROSOIL-DIGITAL, CARBONFARM-TECH | Real-time data |\n| Microbiome & Biodiversity | SOILHEALTH-AI, SOILMICROBIOME-DT | Biological restoration |\n| Digital Twins | SOILDIGITAL, SOILMICROBIOME-DT | Virtual soil models |\n\n### How to Learn More:\n\n1. **CORDIS Database**: Search at https://cordis.europa.eu for full project details\n2. **Project Deliverables**: Most projects publish open-access deliverables and data\n3. **Living Labs**: Several projects have demonstration sites open for visits\n4. **Contact Coordinators**: Reach out for collaboration opportunities\n\nThese projects represent the cutting edge of EU-funded research combining digital\ntechnologies with sustainable soil management practices.\n",
+  "overall_score": 100,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "soil_regeneration_projects",
+      "description": "10 most recent Industry 4.0/5.0 soil regeneration projects with objective summaries",
+      "fulfillment": 40,
+      "specificity": 25,
+      "accuracy": 25,
+      "actionability": 10,
+      "total": 100,
+      "notes": "Fulfillment: All key requirements met including objective summaries; Specificity: Good specificity with project details; Accuracy: Accuracy check: 25/25 points; Actionability: Good actionability with resources",
+      "missing_items": [],
+      "found_items": [
+        "~14 projects listed",
+        "Strong Industry 4.0/5.0 relevance",
+        "Strong soil regeneration relevance",
+        "Objective summaries for all 10 projects"
+      ]
+    }
+  ],
+  "factual_errors": [],
+  "fix_suggestions": [],
+  "strengths": [
+    "Lists ~10 Industry 4.0/5.0 soil regeneration projects with objectives",
+    "Rich in project details (IDs, budgets, coordinators)",
+    "Factually accurate project information",
+    "Provides useful resources and guidance"
+  ],
+  "evaluation_timestamp": "2026-01-21T10:54:22.004232+00:00",
+  "response_metadata": {
+    "source": "test_json_save"
+  },
+  "fix_history": []
+}

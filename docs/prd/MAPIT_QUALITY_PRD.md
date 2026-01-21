@@ -157,7 +157,7 @@ Run with: `./ralphy.sh --prd MAPIT_QUALITY_PRD.md`
 - [x] FIX IF NEEDED: Read `tests/quality/results/prompt_018_industry40_agri.json`. If score < 85: fix and re-evaluate until passing or 3 attempts.
 
 ### Prompt 019: Industry 4.0 Soil Regeneration
-- [ ] EVALUATE: Run prompt "What were the most recent 10 awarded projects that have worked with using Industry 4.0/5.0 for soil regeneration? Please summarise the objectives of these 10 projects." through MAPIT. Use `eval-orchestrator` subagent. Must return 10 projects with objective summaries. Save result to `tests/quality/results/prompt_019_soil_regeneration.json`.
+- [x] EVALUATE: Run prompt "What were the most recent 10 awarded projects that have worked with using Industry 4.0/5.0 for soil regeneration? Please summarise the objectives of these 10 projects." through MAPIT. Use `eval-orchestrator` subagent. Must return 10 projects with objective summaries. Save result to `tests/quality/results/prompt_019_soil_regeneration.json`.
 
 - [ ] FIX IF NEEDED: Read `tests/quality/results/prompt_019_soil_regeneration.json`. If score < 85: fix and re-evaluate until passing or 3 attempts.
 

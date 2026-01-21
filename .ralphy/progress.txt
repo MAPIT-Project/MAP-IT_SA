@@ -1258,3 +1258,55 @@ The live API returns a comprehensive ~2979 character response covering:
 - [x] EVALUATE task complete (score 92/100, PASS)
 - [x] FIX IF NEEDED task not needed (score >= 85)
 
+
+
+## 2026-01-21: Prompt 019 - Industry 4.0 Soil Regeneration (EVALUATE)
+
+### Task Completed
+Created quality evaluation test for Prompt 019: "What were the most recent 10 awarded projects that have worked with using Industry 4.0/5.0 for soil regeneration? Please summarise the objectives of these 10 projects."
+
+### Files Created/Modified
+- `tests/quality/test_prompt_019_soil_regeneration.py` - New test file with:
+  - Four-dimension evaluation framework (Query Fulfillment 40pts, Specificity 25pts, Factual Accuracy 25pts, Actionability 10pts)
+  - Special checks for objective summaries (key requirement for this prompt)
+  - Industry 4.0/5.0 keywords: digitalization, automation, robotics, IoT, sensors, AI, digital twin, precision, monitoring, remote sensing
+  - Soil regeneration keywords: soil, regeneration, carbon sequestration, soil health, land degradation, erosion, fertility, microbiome, agroecology
+  - Sample responses for offline testing (excellent, partial, poor)
+  - Live API tests
+  - Result saved to `tests/quality/results/prompt_019_soil_regeneration.json`
+
+### Live API Evaluation Results
+- **Overall Score**: 68/100 (FAIL) ❌
+- **Query Fulfillment**: 27/40 - Only 4 projects listed instead of 10, only 4 objective summaries
+- **Specificity**: 11/25 - Missing budget figures, limited coordinator details
+- **Factual Accuracy**: 25/25 - All facts verified correct
+- **Actionability**: 5/10 - Has CORDIS links and guidance
+
+### API Response Issue
+The live API returned only 4 projects instead of the requested 10:
+- ScaleAgData (101086355): Data-driven agriculture
+- D4AgEcol (101060759): Digitalization for agroecology
+- ADSOILS (101123039): Advanced soils for agritech
+- CAFE (101063239): Circular Agri-Food Ecosystems
+
+The agent acknowledged in its reasoning that "this highly specific combination yielded only four truly relevant and recent Horizon Europe projects."
+
+### Root Cause Analysis
+The search for the specific intersection of "Industry 4.0/5.0" AND "soil regeneration" is very niche:
+1. The agent tried multiple search strategies but found limited results
+2. The database may not have many projects explicitly combining these two concepts
+3. The agent correctly noted this is typically covered under Cluster 6 and EU Mission "A Soil Deal for Europe"
+
+### Test Results
+- 10 tests passed (6 offline + 4 live API tests)
+- All linting passed
+
+### PRD Task Status
+- [x] EVALUATE task complete (score 68/100, FAIL - needs fix)
+- [ ] FIX IF NEEDED task required (score < 85)
+
+### Next Steps for FIX IF NEEDED Task
+1. Investigate search strategy for niche topic intersections
+2. Consider broadening search to related topics (precision agriculture, digital farming, smart soil monitoring)
+3. Potentially add guidance for the agent on how to handle requests for 10 projects when fewer exist
+4. Re-evaluate until score >= 85 or 3 attempts
