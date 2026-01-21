@@ -162,14 +162,14 @@ TEST_API_URL=http://localhost:8000 pytest tests/test_conversation_scenarios.py -
 - [x] RUN & FIX: Execute scenario. Use `ContextValidatorAgent.validate_follow_up_context()` to debug failures. Fix and re-run.
 
 ### Task 011: "Tell Me More" Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/follow_up/follow_up_more_details.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/follow_up/follow_up_more_details.yaml` with steps:
   1. "What is the EIC Accelerator?"
   2. "Tell me more about the application process"
   3. "What about the budget?"
   4. "And the success rate?"
   Validations: each follow-up builds on previous context.
 
-- [ ] RUN & FIX: Execute scenario. Fix any failures and re-run until passing.
+- [x] RUN & FIX: Execute scenario. Fix any failures and re-run until passing.
 
 ### Task 012: Comparison Follow-Up Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/follow_up/follow_up_comparison.yaml` with steps:

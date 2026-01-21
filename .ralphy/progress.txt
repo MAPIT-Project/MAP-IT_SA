@@ -2994,3 +2994,49 @@ Implemented Task 010: Numbered Reference Scenario from Phase 3 (Follow-Up Refere
 ### PRD Task Status
 - [x] CREATE SCENARIO: follow_up_by_number.yaml created with all 4 steps
 - [x] RUN & FIX: Scenario executed successfully, all tests pass
+
+
+## 2026-01-21: Task 011 - "Tell Me More" Scenario (COMPLETED)
+
+### Task Completed
+Implemented Task 011: "Tell Me More" Scenario from Phase 3 (Follow-Up Reference Testing)
+
+### Changes Made
+1. **Updated `tests/scenarios/follow_up/follow_up_more_details.yaml`**:
+   - Updated to match PRD requirements exactly:
+     - Step 1: "What is the EIC Accelerator?" 
+     - Step 2: "Tell me more about the application process"
+     - Step 3: "What about the budget?"
+     - Step 4: "And the success rate?"
+   - Each step validates that follow-up builds on previous context
+   - Added comprehensive validation patterns for each step
+   - Added `context_preserved` validations to verify EIC context maintained
+   - Added final validation for incremental information building
+
+### Scenario Steps (per PRD)
+1. "What is the EIC Accelerator?" - Initial question about EIC
+2. "Tell me more about the application process" - Follow-up building on EIC context
+3. "What about the budget?" - Follow-up about EIC budget/funding
+4. "And the success rate?" - Follow-up about EIC success rate
+
+### Validations
+- `response_contains`: EIC, Accelerator, SME/innovation patterns
+- `response_contains_any`: Application/process, budget/funding/grant, success/rate patterns
+- `follow_up_resolved`: Each step understands context from previous
+- `context_preserved`: EIC context maintained throughout
+- `context_integrity`: Topic maintained across all turns
+- `no_duplicate_info`: Each response builds incrementally
+
+### Test Results
+- All 2 TestFollowUpHandling tests passed (70.15s)
+- "Tell Me More" scenario validates correctly
+- Each follow-up properly builds on EIC Accelerator context
+- No errors encountered
+
+### Files Modified
+- `tests/scenarios/follow_up/follow_up_more_details.yaml` - Updated scenario per PRD
+- `docs/prd/MAPIT_CONVERSATION_STABILITY_PRD.md` - Marked Task 011 as complete
+
+### PRD Task Status
+- [x] CREATE SCENARIO: follow_up_more_details.yaml created with all 4 steps
+- [x] RUN & FIX: Scenario executed successfully, all tests pass

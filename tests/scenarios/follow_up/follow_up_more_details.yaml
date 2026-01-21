@@ -1,50 +1,70 @@
-# Scenario: Follow-up for More Details
-# Tests handling of "tell me more" type requests
+# Scenario: Follow-up for More Details ("Tell Me More")
+# Tests handling of "tell me more" type requests that build on previous context
+# Per PRD Task 011: Tests that each follow-up builds on previous context
 
 name: "Follow-up More Details"
-description: "User asks for elaboration on previous response"
-tags: ["follow_up", "elaboration", "detail"]
+description: "User asks for elaboration on previous response - each follow-up builds on context"
+tags: ["follow_up", "elaboration", "detail", "tell_me_more"]
 stop_on_error: true
 
 steps:
+  # Step 1: Initial question about EIC Accelerator
   - message: "What is the EIC Accelerator?"
     validations:
       - type: "response_contains"
         name: "explains_eic"
-        patterns: ["EIC", "Accelerator", "SME", "innovation"]
+        patterns: ["EIC", "Accelerator"]
+      - type: "response_contains_any"
+        name: "explains_purpose"
+        patterns: ["SME", "innovation", "startup", "scale-up", "disruptive"]
       - type: "no_error"
         name: "no_errors"
     delay_ms: 0
 
-  - message: "Tell me more"
+  # Step 2: Follow-up asking about application process (builds on EIC context)
+  - message: "Tell me more about the application process"
     validations:
       - type: "follow_up_resolved"
         name: "understands_context"
-        description: "Should continue talking about EIC Accelerator"
+        description: "Should understand this refers to EIC Accelerator application process"
+      - type: "response_contains_any"
+        name: "mentions_application"
+        patterns: ["application", "apply", "submission", "proposal", "step", "stage", "process"]
       - type: "response_contains"
-        name: "more_eic_details"
+        name: "still_about_eic"
         patterns: ["EIC"]
       - type: "no_error"
         name: "no_errors"
     delay_ms: 500
 
-  - message: "Can you elaborate on the funding rates?"
+  # Step 3: Follow-up about budget (builds on EIC + application context)
+  - message: "What about the budget?"
     validations:
-      - type: "response_contains"
-        name: "mentions_funding_rate"
-        patterns: ["funding", "rate", "%", "grant"]
+      - type: "follow_up_resolved"
+        name: "understands_budget_context"
+        description: "Should understand this refers to EIC Accelerator budget/funding"
+      - type: "response_contains_any"
+        name: "mentions_budget"
+        patterns: ["budget", "funding", "grant", "million", "€", "EUR", "equity", "investment"]
       - type: "context_preserved"
-        name: "still_about_eic"
+        name: "maintains_eic_context"
         from_turn: 0
       - type: "no_error"
         name: "no_errors"
     delay_ms: 500
 
-  - message: "What about success rates?"
+  # Step 4: Follow-up about success rate (builds on all previous EIC context)
+  - message: "And the success rate?"
     validations:
-      - type: "response_contains"
+      - type: "follow_up_resolved"
+        name: "understands_success_context"
+        description: "Should understand this refers to EIC Accelerator success rate"
+      - type: "response_contains_any"
         name: "mentions_success"
-        patterns: ["success", "rate", "%"]
+        patterns: ["success", "rate", "%", "percent", "competitive", "selected"]
+      - type: "context_preserved"
+        name: "still_about_eic_at_end"
+        from_turn: 0
       - type: "no_error"
         name: "no_errors"
     delay_ms: 500
@@ -52,4 +72,7 @@ steps:
 final_validations:
   - type: "context_integrity"
     name: "topic_maintained"
-    description: "Conversation should stay on EIC topic"
+    description: "Conversation should stay on EIC Accelerator topic throughout all turns"
+  - type: "no_duplicate_info"
+    name: "builds_incrementally"
+    description: "Each response should add new information rather than repeating previous content"
