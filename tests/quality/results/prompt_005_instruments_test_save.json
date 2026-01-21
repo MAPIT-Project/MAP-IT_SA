@@ -1,0 +1,44 @@
+{
+  "prompt_id": "005",
+  "query": "What are the instruments in Horizon Europe (RIA, CSA, IA etc)?",
+  "response": "\n**Horizon Europe Funding Instruments**\n\nHorizon Europe uses several **funding instruments** to support different types of activities,\nfrom basic research to market-ready innovation. Here are the main instruments:\n\n## Main Collaborative Instruments\n\n### RIA - Research & Innovation Action\n- **Funding Rate**: 100% of eligible costs\n- **Typical Budget**: \u20ac3-10 million\n- **TRL Focus**: TRL 1-5 (basic to applied research)\n- **Consortium**: Minimum 3 partners from 3 different EU/Associated countries\n- **Purpose**: Generating new knowledge, exploring feasibility, testing new technologies\n\n### IA - Innovation Action\n- **Funding Rate**: 70% (100% for non-profit organizations)\n- **Typical Budget**: \u20ac5-20 million\n- **TRL Focus**: TRL 5-8 (demonstration to market-ready)\n- **Consortium**: Minimum 3 partners from 3 different EU/Associated countries\n- **Purpose**: Prototyping, testing, demonstrating, piloting, scaling up\n\n### CSA - Coordination & Support Action\n- **Funding Rate**: 100% of eligible costs\n- **Typical Budget**: \u20ac1-3 million\n- **Consortium**: Single beneficiary allowed\n- **Purpose**: Networking, coordination, standardization, policy support\n\n## Excellence Instruments (Pillar I)\n\n### ERC - European Research Council\n- **ERC Starting Grant (ERC-STG)**: \u20ac1.5M, 5 years, 2-7 years post-PhD\n- **ERC Consolidator Grant (ERC-COG)**: \u20ac2M, 5 years, 7-12 years post-PhD\n- **ERC Advanced Grant (ERC-ADG)**: \u20ac2.5M, 5 years, established leaders\n- **ERC Proof of Concept (ERC-POC)**: \u20ac150K, for existing ERC grantees\n- **Funding Rate**: 100%\n\n### MSCA - Marie Sk\u0142odowska-Curie Actions\n- **MSCA-PF**: Postdoctoral Fellowships (individual mobility)\n- **MSCA-DN**: Doctoral Networks (PhD training)\n- **MSCA-SE**: Staff Exchanges (inter-sector secondments)\n- **MSCA-COFUND**: Co-funding of fellowship programmes\n\n## Innovation Instruments (Pillar III)\n\n### EIC - European Innovation Council\n- **EIC Pathfinder**: \u20ac3-4M, TRL 1-4, breakthrough research\n- **EIC Transition**: \u20ac0.5-2.5M, TRL 4-6, lab-to-market validation\n- **EIC Accelerator**: \u20ac2.5M grant + up to \u20ac15M equity, TRL 6-9, scale-up\n\n## How to Choose the Right Instrument\n\n| If you want to... | Choose... |\n|-------------------|-----------|\n| Basic research | RIA or ERC |\n| Applied research | RIA |\n| Prototype/demonstrate | IA |\n| Network/coordinate | CSA |\n| Individual mobility | MSCA-PF |\n| Breakthrough innovation | EIC Pathfinder |\n| Scale a startup | EIC Accelerator |\n\n## Getting Started\n\nFor more information on instruments and open calls:\n- [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/)\n- [Horizon Europe Work Programmes](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents)\n",
+  "overall_score": 96,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "instruments",
+      "description": "Horizon Europe Instruments explanation",
+      "fulfillment": 39,
+      "specificity": 25,
+      "accuracy": 22,
+      "actionability": 10,
+      "total": 96,
+      "notes": "Fulfillment: All core instruments (RIA, IA, CSA) explained; Also mentions: ERC (European Research Council), MSCA (Marie Sk\u0142odowska-Curie Actions), EIC (European Innovation Council); Core: 3/3, Additional: 3/3; Specificity: Good specificity with concrete details; Accuracy: Accuracy check: 22/25 points; 1 error(s) found; Actionability: Good actionability with guidance provided",
+      "missing_instruments": [],
+      "additional_instruments_found": [
+        "ERC (European Research Council)",
+        "MSCA (Marie Sk\u0142odowska-Curie Actions)",
+        "EIC (European Innovation Council)"
+      ]
+    }
+  ],
+  "factual_errors": [
+    {
+      "claim": "IA has 100% funding rate (without mentioning 70%)",
+      "correct_value": "IA has 70% funding (100% for non-profits)",
+      "source": "EU Funding Domain Skill"
+    }
+  ],
+  "fix_suggestions": [],
+  "strengths": [
+    "Comprehensive coverage of instruments",
+    "Rich in specific details (rates, TRLs, budgets)",
+    "Factually accurate",
+    "Provides clear guidance for researchers"
+  ],
+  "evaluation_timestamp": "2026-01-21T10:35:06.048470+00:00",
+  "response_metadata": {
+    "source": "test_json_save"
+  },
+  "fix_history": []
+}

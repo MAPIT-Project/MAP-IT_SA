@@ -1,0 +1,33 @@
+{
+  "prompt_id": "003",
+  "query": "What are Marie Curie Sk\u0142odowska Actions (MSCA)?",
+  "response": "\n**Marie Sk\u0142odowska-Curie Actions (MSCA)**\n\nMSCA is the EU's flagship programme for doctoral education and postdoctoral training,\npart of **Pillar I (Excellent Science)** in Horizon Europe with a budget of approximately\n\u20ac6.6 billion for 2021-2027.\n\n## Key Features\n- **Bottom-up**: Open to all research disciplines\n- **Excellence-driven**: Focus on high-quality research training\n- **International mobility**: Cross-border collaboration required\n- **Career development**: Skills training and secondments included\n\n## MSCA Action Types\n\n### MSCA-PF (Postdoctoral Fellowships)\n- **Target**: Experienced researchers (PhD holders)\n- **Funding**: 100% (lump sum)\n- **Duration**: 12-24 months (European) or 12-36 months (Global)\n- **Budget**: ~\u20ac200-300K per fellow\n- **Types**: European Fellowships (EF) and Global Fellowships (GF)\n- **Requirements**: PhD + max 8 years postdoctoral experience; mobility rule applies\n\n### MSCA-DN (Doctoral Networks)\n- **Target**: Early-stage researchers (no PhD yet)\n- **Funding**: 100%\n- **Duration**: 3-4 years\n- **Consortium**: Min 3 participants from 3 different countries\n- **Budget**: \u20ac2-4M per network\n- **Output**: Joint/double/multiple doctoral degrees encouraged\n- **Training**: Combined research + transferable skills\n\n### MSCA-SE (Staff Exchanges)\n- **Target**: Research and technical staff at all career levels\n- **Funding**: 100% (unit costs for secondments)\n- **Duration**: 4 years maximum\n- **Focus**: International and intersectoral mobility\n- **Partners**: Academic and non-academic sectors\n- **Secondments**: 1-12 months per staff member\n\n### MSCA-COFUND\n- **Target**: Regional/national/international mobility programmes\n- **Funding**: Co-financing existing programmes (40% EU contribution)\n- **Types**: Doctoral programmes and Fellowship programmes\n- **Duration**: 3-5 years\n- **Purpose**: Spread MSCA practices across Europe\n\n## How to Apply\n\n\ud83c\udfaf **Getting Started:**\n\u2022 Register on the EU Funding & Tenders Portal\n\u2022 Check MSCA Work Programme for annual calls\n\u2022 Review MSCA online manual for guidance\n\u2022 Use Partner Search for consortium building\n",
+  "overall_score": 100,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "msca_actions",
+      "description": "Marie Sk\u0142odowska-Curie Actions explanation",
+      "fulfillment": 40,
+      "specificity": 25,
+      "accuracy": 25,
+      "actionability": 10,
+      "total": 100,
+      "notes": "Fulfillment: All 4 MSCA action types explained; Action types covered: 4/4; Specificity: Good specificity with concrete details; Accuracy: Accuracy check: 25/25 points; Actionability: Good actionability with guidance provided",
+      "missing_actions": []
+    }
+  ],
+  "factual_errors": [],
+  "fix_suggestions": [],
+  "strengths": [
+    "Comprehensive coverage of all MSCA action types",
+    "Rich in specific details (funding, duration, requirements)",
+    "Factually accurate",
+    "Provides clear guidance for applicants"
+  ],
+  "evaluation_timestamp": "2026-01-21T10:34:42.984812+00:00",
+  "response_metadata": {
+    "source": "test_json_save"
+  },
+  "fix_history": []
+}

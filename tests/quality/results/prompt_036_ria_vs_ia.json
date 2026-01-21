@@ -1,8 +1,8 @@
 {
   "prompt_id": "036",
   "query": "Compare RIA and IA instruments in Horizon Europe. When should I choose one over the other?",
-  "response": "The choice between Research and Innovation Actions (RIA) and Innovation Actions (IA) depends fundamentally on the **Technology Readiness Level (TRL)** of your project and its primary goal (creating new knowledge vs. market demonstration).\n\nHere is a detailed comparison of the two instruments based on official rules and data from funded Horizon Europe projects:\n\n---\n\n## Comparison of RIA and IA Instruments\n\n| Feature | Research and Innovation Action (RIA) | Innovation Action (IA) |\n| :--- | :--- | :--- |\n| **Primary Goal** | Creating new knowledge, researching new technologies, foundational science. | Demonstrating feasibility, piloting, large-scale validation, market uptake. |\n| **Technology Readiness Level (TRL)** | **Low to Mid** (TRL 2-5) | **Mid to High** (TRL 5-8) |\n| **Funding Rate** | **100%** of eligible costs for all participants. | **70%** of eligible costs (100% for non-profit entities like universities, research institutes, and NGOs). |\n| **Focus** | Research, experimentation, proof-of-concept. | Demonstration, piloting, scaling, first market replication. |\n| **Proposal Page Limit** | **45 pages** (single-stage/full proposal) | **45 pages** (single-stage/full proposal) |\n\n### Consortium Characteristics (Data-Driven Insights)\n\nBased on an analysis of over 5,500 funded Horizon Europe projects (RIA and IA):\n\n| Metric | RIA (Research Focus) | IA (Demonstration Focus) |\n| :--- | :--- | :--- |\n| **Average Partners** | **14.8** (Recommended: 12-17) | **16.1** (Recommended: 14-19) |\n| **Industry Participation (PRC/SME)** | ~31.7% | **~37.7%** (Higher share) |\n| **Academic/Research Presence (HES/REC)** | **~56.5%** (Dominant) | ~49.3% |\n| **Consortium Size** | Slightly smaller, focused on research excellence. | Larger, as demonstration requires more end-users, pilot sites, and industry involvement. |\n| **Typical Coordinators** | Research Organizations (REC) and Higher Education Institutions (HES) | Research Organizations (REC) and Higher Education Institutions (HES) (PRC has higher coordination share than in RIA) |\n\n## When to Choose Which Instrument\n\n### Choose RIA when...\n\n1.  **Your TRL is Low/Mid (TRL 2-5):** Your project is still in the experimental or fundamental proof-of-concept phase, aiming to establish basic viability or develop new methodologies.\n2.  **Your Primary Goal is Knowledge Creation:** The core output is scientific publications, new experimental data, or innovative theoretical models, rather than a commercially ready product.\n3.  **You Need 100% Funding:** Since research costs are often high and speculative, RIA offers 100% funding reimbursement for all partners, including private companies.\n4.  **Your Consortium is Research-Led:** Your consortium is dominated by universities and research centers, with industry partners playing a supporting role in technology transfer rather than deployment.\n\n### Choose IA when...\n\n1.  **Your TRL is Mid/High (TRL 5-8):** You already have a validated prototype and are ready to test it in operational environments (pilots, large-scale demonstrators) to prove market readiness.\n2.  **Your Primary Goal is Demonstration and Scaling:** The core output must be a replicable system, proven technology, or successful market uptake. The project needs clear expected outcomes related to deployment and market impact.\n3.  **Industry Involvement is Essential:** IA requires significant engagement from end-users, utility providers, and industry partners who will deploy the final innovation. The consortium composition should reflect a strong industry presence (35-45% Private Companies).\n4.  **The Lower Funding Rate (70% for For-Profit) is Acceptable:** Private companies must co-fund 30% of their costs, demonstrating commitment to the market potential of the innovation.\n\n---\n\n\ud83c\udfaf **Getting Started with Horizon Europe:**\n\n\u2022 Register on [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)\n\u2022 Review the [Work Programmes](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON) for specific TRL requirements and expected project types.\n\u2022 Check eligibility via [How to Participate](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/how-to-participate/1)",
-  "overall_score": 89,
+  "response": "The choice between a Research and Innovation Action (RIA) and an Innovation Action (IA) depends primarily on the **Technological Readiness Level (TRL)** of your project and its **primary goal** (research vs. market demonstration).\n\nBoth instruments are collaborative funding schemes under Horizon Europe, primarily found in Pillar II (Global Challenges and European Industrial Competitiveness).\n\n---\n\n## RIA vs. IA: Head-to-Head Comparison\n\n| Feature | Research & Innovation Action (RIA) | Innovation Action (IA) |\n| :--- | :--- | :--- |\n| **Primary Goal** | Generating new knowledge, basic and applied research, developing new technology | Demonstration, piloting, large-scale testing, market replication, standardization |\n| **TRL Range** | **Low to Mid** (TRL 2-5) | **Mid to High** (TRL 5-8) |\n| **EU Funding Rate** | **100%** of eligible costs | **70%** of eligible costs (100% for non-profit organizations) |\n| **Proposal Page Limit** | 45 pages (standard single-stage) | 45 pages (standard single-stage) |\n| **Typical Duration** | 36-48 months | 36-48 months |\n\n---\n\n## Data-Driven Consortium Analysis\n\nBased on analysis of thousands of funded projects, IA projects tend to be slightly larger and more industry-focused than RIA projects, as they require deployment and end-user engagement.\n\n| Consortium Metric | RIA (Research Focus) | IA (Innovation Focus) |\n| :--- | :--- | :--- |\n| **Average Partners** | 14.8 | **16.1** |\n| **Recommended Range** | 12-17 partners | **14-19 partners** |\n| **Industry Share (PRC/SME)** | 31.7% | **37.7%** |\n| **Academic Share (HES)** | **31.1%** | 26.0% |\n| **Coordinator Type** | Research and Academic institutions frequently coordinate | Research and Academic institutions still frequently coordinate, but industry coordination is more common than in RIA |\n\n### Key Consortium Takeaway:\n\n*   **RIA** consortia are balanced, leaning slightly toward Higher Education Institutions (HES) and Research Organizations (REC) to drive the fundamental research.\n*   **IA** consortia must include a stronger industrial/end-user component (PRC/SME, Public Bodies) to ensure market uptake and deployment.\n\n---\n\n## When to Choose Which Instrument\n\n### Choose RIA when:\n\n1.  **Your Technology is Early Stage (TRL 2-5):** You are developing fundamentally new concepts, validating scientific principles, or performing laboratory-scale prototyping.\n2.  **Your Goal is Knowledge Generation:** The main output is scientific publications, patents, new research methodologies, or proof-of-concept.\n3.  **Maximum Funding is Critical:** The need for 100% funding outweighs the need for large-scale demonstration.\n4.  **The Consortium is Research-Driven:** Your core partners are primarily universities, research institutes, and science-focused SMEs.\n\n### Choose IA when:\n\n1.  **Your Technology is Mature (TRL 5-8):** You are validating performance in an operational environment, performing large-scale system integration, or conducting market replication.\n2.  **Your Goal is Market Impact:** The main output is a deployable product, a standardized solution, a pilot site, or a successful demonstration in an actual operating environment.\n3.  **Industry Partnership is Essential:** You need end-users, utility operators, large companies, or public procurers to validate the results and pave the way for commercialization.\n4.  **The Topic Demands Piloting:** The specific Horizon Europe Work Programme topic explicitly uses terms like *\u201cdemonstration,\u201d \u201cpilots,\u201d \u201creplicability,\u201d* or *\u201cmarket uptake.\u201d*\n\n---\n\n## Next Steps\n\n1.  **Check the Topic TRL:** Always verify the expected TRL and action type (RIA, IA, or CSA) specified in the relevant **Work Programme** topic.\n2.  **Review the Work Programmes** for your cluster to see if the topic specifies RIA or IA (it usually dictates the TRL).\n3.  **Build a Balanced Consortium:** Ensure your consortium composition aligns with the action type (more industry/end-users for IA; more research for RIA).\n\n\ud83c\udfaf **Getting Started with Horizon Europe:**\n\u2022 Review the [Work Programmes](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON) for your cluster\n\u2022 Register on [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)",
+  "overall_score": 88,
   "result": "PASS",
   "component_scores": [
     {
@@ -10,10 +10,10 @@
       "description": "RIA vs IA instruments comparison",
       "fulfillment": 35,
       "specificity": 22,
-      "accuracy": 25,
-      "actionability": 7,
-      "total": 89,
-      "notes": "Fulfillment: Missing: More specific guidance on when to choose each; Specificity: Add funding rates for both instruments; Accuracy: Accuracy check: 25/25 points; Actionability: More decision guidance helpful; Could provide more specific next steps",
+      "accuracy": 23,
+      "actionability": 8,
+      "total": 88,
+      "notes": "Fulfillment: Missing: More specific guidance on when to choose each; Specificity: Add funding rates for both instruments; Accuracy: Accuracy check: 23/25 points; 1 issue(s) found; Actionability: More decision guidance helpful",
       "missing_items": [
         "More specific guidance on when to choose each"
       ],
@@ -24,16 +24,21 @@
       ]
     }
   ],
-  "factual_errors": [],
-  "fix_suggestions": [
-    "Improve actionability: Add decision guidance on which instrument to choose, links to funding portal, and next steps for applicants"
+  "factual_errors": [
+    {
+      "claim": "IA TRL range stated as TRL 2-5",
+      "correct_value": "IA typically covers TRL 5-8",
+      "source": "eu-funding-domain"
+    }
   ],
+  "fix_suggestions": [],
   "strengths": [
     "Clear RIA vs IA comparison with selection guidance",
     "Rich in specific details (funding rates, TRLs, budgets)",
-    "Factually accurate instrument information"
+    "Factually accurate instrument information",
+    "Provides useful decision guidance and resources"
   ],
-  "evaluation_timestamp": "2026-01-21T16:28:05.907652+00:00",
+  "evaluation_timestamp": "2026-01-21T16:30:44.411701+00:00",
   "response_metadata": {
     "intent_type": "agentic_v3",
     "confidence": 0.8,
@@ -54,14 +59,14 @@
       },
       {
         "step": 2,
-        "thought": "I have executed the consortium pattern analysis for both RIA and IA. The results provide quantitative data on consortium size and partner composition. I will now synthesize this data with the built-in knowledge regarding TRL levels, funding rates, and strategic focus to provide a complete comparison and guidance on instrument selection.",
+        "thought": "The user wants a comparison between RIA and IA instruments, including criteria for selection. I have gathered data on consortium patterns (size, composition) for both via the consortium_patterns tool and will combine this with built-in knowledge on TRL, funding rates, and focus to deliver a comprehensive answer and advice.",
         "action": "conclude",
         "tools_called": [],
         "observation": ""
       }
     ],
     "iterations": 2,
-    "processing_time_ms": 10811.832,
+    "processing_time_ms": 8415.089,
     "architecture": "simplified_v3",
     "quality_analysis": {
       "score": 100,
@@ -77,8 +82,8 @@
         "comparison_aspect",
         "recommendation"
       ],
-      "response_length": 4317,
-      "timestamp": "2026-01-21T16:28:05.902056+00:00"
+      "response_length": 4310,
+      "timestamp": "2026-01-21T16:30:44.399015+00:00"
     }
   },
   "fix_history": []

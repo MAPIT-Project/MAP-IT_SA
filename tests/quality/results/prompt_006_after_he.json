@@ -1,8 +1,8 @@
 {
   "prompt_id": "006",
   "query": "What will come after Horizon Europe?",
-  "response": "The funding programme that will succeed Horizon Europe (which runs until the end of 2027) is currently known as the **Tenth Framework Programme (FP10)**, set to begin in **2028**.\n\nWhile the official legislative proposal has not yet been published, the preparatory phase is well underway. The structure, priorities, and budget of FP10 will be based on comprehensive evaluations of Horizon Europe and strategic foresight.\n\n### Current Status and Timeline\n\n1.  **Horizon Europe Evaluation (2024-2025):** The primary input for FP10 comes from the interim and final evaluations of Horizon Europe. These evaluations assess the effectiveness of current instruments, such as the EU Missions, the European Innovation Council (EIC), and the Widening participation actions.\n2.  **Strategic Planning and Policy Input (2024-2025):** The European Commission is currently gathering input from stakeholders, Member States, and high-level expert groups. Key policy drivers include strengthening the European Research Area (ERA), enhancing European technological sovereignty, and integrating research more tightly with EU industrial competitiveness and the Green/Digital transitions.\n3.  **Key Focus Areas:** Discussions suggest FP10 will likely focus on maximizing the impact achieved through large-scale, challenge-driven initiatives (like the Missions), simplifying participation rules, and potentially boosting support for deep tech and scaling up breakthrough innovations (building on the EIC experience).\n4.  **Legislative Proposal:** The European Commission is expected to publish the official legislative proposal for FP10 in **mid-2025 or early 2026**. This proposal will detail the programme structure, budget, and specific instrument types for the 2028\u20132034 period, coinciding with the next Multiannual Financial Framework (MFF).\n\n### Anticipated Continuity and Change\n\nIt is highly anticipated that FP10 will maintain the three-pillar structure established in Horizon 2020 and Horizon Europe, ensuring continuity in core areas:\n\n*   **Pillar I (Excellent Science):** Continued strong funding for foundational research (ERC) and mobility/training (MSCA).\n*   **Pillar II (Global Challenges and European Industrial Competitiveness):** Likely maintaining a cluster structure or mission-based approach, focusing resources on strategic, high-impact societal challenges (Climate, Health, Digital, etc.).\n*   **Pillar III (Innovative Europe):** Ongoing support for the ecosystem, with a potentially refined role for the EIC to address market gaps and attract private investment more effectively.",
-  "overall_score": 93,
+  "response": "The programme that will succeed Horizon Europe (which runs until 2027) is currently in the preparatory phase and is informally referred to as the **10th Framework Programme (FP10)**, expected to cover the period from **2028 to 2034**.\n\nWhile the official structure, budget, and name have not yet been finalized, the European Commission has initiated the strategic process to define the programme.\n\n***\n\n## 1. Current Status and Timeline (FP10)\n\nThe process for defining FP10 follows a standard EU policy cycle, driven by evaluation, consultation, and legislative proposals:\n\n| Phase | Timeline | Description |\n| :--- | :--- | :--- |\n| **Evaluation** | 2024 \u2013 2025 | Mid-term review and final evaluation of Horizon Europe to identify strengths, weaknesses, and necessary changes. |\n| **Strategic Definition** | 2024 \u2013 2026 | High-level expert groups (like the former Lab-Fab-App group) convene to provide input on structure, priorities, and implementation rules. The Commission launches public consultations. |\n| **Legislative Proposal** | Mid-2026 | The European Commission is expected to publish its legislative proposal for FP10. This proposal defines the scope, pillars, and total budget, linked to the next Multiannual Financial Framework (MFF 2028\u20132034). |\n| **Co-Decision** | 2026 \u2013 2027 | Negotiation and adoption by the European Parliament and the Council. |\n| **Launch** | 2028 | FP10 officially begins. |\n\n## 2. Key Themes and Potential Changes\n\nDiscussions around the successor programme generally focus on increasing effectiveness, simplification, and better integrating R&I into EU policy goals. Key themes currently being explored include:\n\n### A. Radical Simplification\n\nOne of the strongest recurring demands is for radical simplification, potentially including:\n\n*   **Further reducing bureaucracy:** Streamlining application, reporting, and auditing processes.\n*   **Broader use of lump sums:** Extending the use of simplified funding methods (like unit costs and lump sums) to reduce administrative burden on participants (especially SMEs and universities).\n\n### B. Strengthening the Three Pillars\n\nFP10 is likely to retain the successful three-pillar structure introduced in Horizon Europe, but with potential refinements:\n\n1.  **Pillar I (Excellent Science):** Expected to remain largely stable, with continued strong support for the **European Research Council (ERC)** and **Marie Sk\u0142odowska-Curie Actions (MSCA)**, focusing solely on excellence and fundamental science.\n2.  **Pillar II (Global Challenges & European Industrial Competitiveness):** Likely to evolve to reflect new geopolitical and technological realities. This may involve:\n    *   **Strategic Sovereignty:** Increased focus on critical technologies (like AI, quantum, and biotech) where Europe needs to reduce reliance on non-EU actors.\n    *   **Continuation of Missions:** The EU Missions approach (Cancer, Climate, Ocean, etc.) is largely considered a success and will likely be reinforced and potentially expanded.\n3.  **Pillar III (Innovative Europe):** The **European Innovation Council (EIC)** is expected to be maintained, possibly with refined governance to ensure faster scale-up of breakthrough technologies.\n\n### C. Enhanced International Cooperation & Security\n\nGiven the current geopolitical context, FP10 will likely place greater emphasis on:\n\n*   **Reciprocity:** Defining clearer rules on funding and access for third countries based on reciprocal access to their R&I systems.\n*   **Security Screening:** Implementing stronger mechanisms to safeguard research results and technologies relevant to critical EU interests.\n\n***\n\n## 3. How to Follow Developments\n\nResearchers and organizations interested in FP10 should monitor the following official sources over the next few years:\n\n*   **EU R&I Policy Portal:** The main source for news on the strategic plan and preparatory work.\n*   **European Commission's Directorate-General for Research and Innovation (DG RTD):** Look for public consultations and reports from high-level expert groups.\n*   **National Contact Points (NCPs):** Your national representatives will be key conduits for information and feedback during the consultation phase.",
+  "overall_score": 99,
   "result": "PASS",
   "component_scores": [
     {
@@ -11,9 +11,9 @@
       "fulfillment": 40,
       "specificity": 25,
       "accuracy": 25,
-      "actionability": 3,
-      "total": 93,
-      "notes": "Fulfillment: All key content present; Score breakdown: FP10=15, Timeline=15, Uncertainty=10; Specificity: Good specificity with concrete details; Accuracy: Accuracy check: 25/25 points; Actionability: No links to official resources",
+      "actionability": 9,
+      "total": 99,
+      "notes": "Fulfillment: All key content present; Score breakdown: FP10=15, Timeline=15, Uncertainty=10; Specificity: Good specificity with concrete details; Accuracy: Accuracy check: 25/25 points; Actionability: Good actionability with guidance provided",
       "missing_content": [],
       "found_content": [
         "FP10/Successor programme",
@@ -25,21 +25,19 @@
     }
   ],
   "factual_errors": [],
-  "fix_suggestions": [
-    "Improve actionability: Add links to EC R&I portal, provide guidance on staying informed (monitor consultations, continue HE participation, engage with National Contact Points)"
-  ],
+  "fix_suggestions": [],
   "strengths": [
     "Comprehensive coverage of FP10/successor programme",
     "Rich in specific details (dates, policy, process)",
-    "Factually accurate with appropriate uncertainty"
+    "Factually accurate with appropriate uncertainty",
+    "Provides clear guidance for researchers"
   ],
-  "evaluation_timestamp": "2026-01-21T00:11:51.983307+00:00",
+  "evaluation_timestamp": "2026-01-21T10:35:18.719431+00:00",
   "response_metadata": {
     "intent_type": "agentic_v3",
     "confidence": 0.8,
     "tools_used": [
-      "search_documents_1_0",
-      "search_documents_2_0"
+      "search_documents_1_0"
     ],
     "reasoning_steps": [
       {
@@ -53,23 +51,14 @@
       },
       {
         "step": 2,
-        "thought": "The user is asking about the successor to Horizon Europe, commonly referred to as FP10 (Framework Programme 10), which will cover the period starting in 2028. The previous generic search failed. I will try a more specific search for 'Tenth Framework Programme' to find strategic planning documents.",
-        "action": "call_tools",
-        "tools_called": [
-          "search_documents"
-        ],
-        "observation": "Found 15 relevant document(s):\nFrom horizon_europe_regulation.pdf: ing components:\n\n(i) widening participation and spreading excellence;\n\n(ii) reforming and enhancing the European R&I System.\n\n2.\n\nThe"
-      },
-      {
-        "step": 3,
-        "thought": "The user is asking about the successor to Horizon Europe, which is generally referred to as the Tenth Framework Programme (FP10), starting in 2028. Standard document searches for 'successor' or 'FP10' often yield results related to current Horizon Europe planning rather than future legislative proposals, as the latter are still in the early preparation phase (2024). I will synthesize the known policy context about the preparation for FP10.",
+        "thought": "The user is asking about the successor to Horizon Europe (post-2027), often informally called FP10. The initial search using `search_documents` did not return specific policy documents regarding the next Framework Programme (FP10) preparation, as the programme is still in the early strategic definition phase. I will provide a comprehensive answer based on known EU policy timelines and the ongoing consultation process for the next Framework Programme.",
         "action": "conclude",
         "tools_called": [],
         "observation": ""
       }
     ],
-    "iterations": 3,
-    "processing_time_ms": 10367.127999999999,
+    "iterations": 2,
+    "processing_time_ms": 12648.986,
     "architecture": "simplified_v3",
     "quality_analysis": {
       "score": 100,
@@ -83,8 +72,8 @@
         "answer",
         "context"
       ],
-      "response_length": 2583,
-      "timestamp": "2026-01-21T00:11:51.976797+00:00"
+      "response_length": 4198,
+      "timestamp": "2026-01-21T10:35:18.714747+00:00"
     }
   },
   "fix_history": []

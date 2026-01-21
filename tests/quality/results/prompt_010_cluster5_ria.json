@@ -1,7 +1,7 @@
 {
   "prompt_id": "010",
   "query": "What is the max project length and the payment modality for Cluster 5 RIA projects?",
-  "response": "The duration and payment modality for Research and Innovation Actions (RIA) under Cluster 5 (Climate, Energy & Mobility) generally follow the standard Horizon Europe rules for RIA. \n\n### 1. Maximum Project Length (Duration)\n\nThe duration is project-specific, but the standard ranges defined in the Model Grant Agreement (MGA) apply:\n\n| Duration Type | Range | Notes |\n|---|---|---|\n| **Typical** | **36-48 months** | Standard for most RIA topics |\n| **Maximum** | **Up to 60 months** | Reserved for complex, large-scale research demanding longer timelines |\n| **Minimum** | **24 months** | Rare, for focused/shorter topics |\n\n**Critical Note:** You must always check the specific Cluster 5 Work Programme topic you are applying to, as the 'Expected Duration' is often specified and strictly enforced by the granting authority.\n\n### 2. Payment Modality (Actual Costs Model)\n\nCluster 5 RIA projects use the **Actual Cost** model with a **100% reimbursement rate** of eligible costs. The payment schedule is tied to periodic financial and technical reports.\n\n#### Cost Categories and Funding Rate:\n*   **Direct Costs:** 100% reimbursed (e.g., personnel, equipment, travel).\n*   **Indirect Costs:** **25% flat rate** calculated on the total eligible direct costs (excluding subcontracting).\n*   **SME/Large Company Funding Rate:** Unlike Innovation Actions (IA) where for-profit entities receive 70%, RIA projects fund **all participants (including SMEs and Large Companies) at 100%**.\n\n#### Payment Schedule:\n\n| Payment Type | Timing | Amount/Details |\n|---|---|---|\n| **Pre-financing** | Within 30 days of grant signature | Typically **40-50%** of the total estimated EU contribution, paid as an advance. |\n| **Interim Payment(s)** | After periodic reporting (usually every 18 months) | Based on actual costs reported and accepted, minus pre-financing consumed. |\n| **Final Payment** | After final report approval (technical and financial) | The remaining balance (typically 5-10% retained until final review). |\n\n\n\ud83c\udfaf **RIA Resources for Further Details:**\n\u2022 Review the [Work Programmes](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON) for your specific Cluster 5 topic to find the exact expected duration.\n\u2022 Consult the [Model Grant Agreement](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/aga_en.pdf) for complete payment and cost eligibility rules.",
+  "response": "Research and Innovation Actions (RIA) in Cluster 5 (Climate, Energy & Mobility) follow the standard administrative rules for Horizon Europe RIA grants regarding duration and payment modality.\n\n### 1. Project Duration (Maximum Length)\n\nWhile the specific duration is defined by each individual topic in the Cluster 5 Work Programme, the standard parameters for RIA projects are:\n\n| Duration Type | Range |\n|---|---|\n| **Typical** | **36-48 months** |\n| **Maximum** | **Up to 60 months** |\n\n**Note**: Projects in Cluster 5 addressing highly complex, multi-year technological developments (e.g., hydrogen or battery large-scale prototyping) may require the maximum duration of 60 months, but you must always check the 'Expected Duration' listed in the specific call topic description.\n\n### 2. Payment Modality\n\nRIA projects use the **Actual Cost** model with **100% reimbursement** of eligible costs, including a 25% flat rate for indirect costs.\n\n#### Cost Model and Funding Rate\n\n*   **Funding Rate**: 100% of eligible costs.\n*   **Cost Model**: Actual costs, plus a **25% flat rate** applied to direct costs (excluding subcontracting).\n\n#### Payment Schedule\n\nThe funding follows a standard payment schedule:\n\n1.  **Pre-financing**: An initial advance payment (typically **40-50%** of the total EC contribution) is transferred within 30 days of the Grant Agreement signature. This is held by the consortium to cover initial costs.\n2.  **Interim Payment(s)**: Payments are made after each periodic reporting period (typically every **18 months**). The amount is calculated based on the actual costs reported by the consortium, minus the pre-financing consumed.\n3.  **Final Payment**: The remaining balance (usually 5-10%) is paid after the final technical and financial report is approved by the granting authority, following the final review.\n\n***\n\n\ud83c\udfaf **RIA Resources:**\n\n\u2022 [Model Grant Agreement](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/aga_en.pdf) - Complete payment and cost rules\n\u2022 [Work Programmes](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON) - Check the Cluster 5 document for topic-specific expected durations and budgets",
   "overall_score": 95,
   "result": "PASS",
   "component_scores": [
@@ -29,7 +29,7 @@
     "Factually accurate",
     "Provides useful resources and guidance"
   ],
-  "evaluation_timestamp": "2026-01-21T09:36:45.196061+00:00",
+  "evaluation_timestamp": "2026-01-21T10:37:02.563999+00:00",
   "response_metadata": {
     "intent_type": "agentic_v3",
     "confidence": 0.8,
@@ -50,14 +50,14 @@
       },
       {
         "step": 2,
-        "thought": "The user is asking for the standard duration and payment rules for Research and Innovation Actions (RIA) under Cluster 5. This information is standardized across Horizon Europe and is available in the Built-in Knowledge (RIA Project Details). I will synthesize the general RIA rules, noting that specific topics may mandate different durations.",
+        "thought": "The user is asking about the project duration and payment modality for RIA projects, specifically within Cluster 5. These are standardized administrative rules for Horizon Europe's RIA action type and are covered comprehensively in the Built-in Knowledge (RIA Project Details and Payment Modality). I will synthesize this information directly.",
         "action": "conclude",
         "tools_called": [],
         "observation": ""
       }
     ],
     "iterations": 2,
-    "processing_time_ms": 9215.275,
+    "processing_time_ms": 8743.596,
     "architecture": "simplified_v3",
     "quality_analysis": {
       "score": 100,
@@ -71,8 +71,8 @@
         "answer",
         "context"
       ],
-      "response_length": 2471,
-      "timestamp": "2026-01-21T09:36:45.187735+00:00"
+      "response_length": 2260,
+      "timestamp": "2026-01-21T10:37:02.560045+00:00"
     }
   },
   "fix_history": []

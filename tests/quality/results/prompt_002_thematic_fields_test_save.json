@@ -1,0 +1,39 @@
+{
+  "prompt_id": "002",
+  "query": "What are the thematic fields covered by Horizon Europe?",
+  "response": "\n**Thematic Fields in Horizon Europe**\n\nHorizon Europe addresses major societal challenges through six thematic **Clusters**\nunder Pillar II (Global Challenges and European Industrial Competitiveness). Each\ncluster covers specific research and innovation areas:\n\n## Cluster 1: Health\nFocus areas include:\n- Health promotion and disease prevention\n- Infectious diseases and public health\n- Diagnostics, treatments, and personalized medicine\n- Health systems and digital health solutions\nBudget: ~\u20ac8.2 billion\n\n## Cluster 2: Culture, Creativity and Inclusive Society\nFocus areas include:\n- Democratic governance and citizen participation\n- Cultural heritage preservation and access\n- Social and economic transformation\n- Migration and inclusion\nBudget: ~\u20ac2.3 billion\n\n## Cluster 3: Civil Security for Society\nFocus areas include:\n- Cybersecurity and data protection\n- Disaster-resilient societies\n- Border management and security\n- Fighting crime and terrorism\nBudget: ~\u20ac1.6 billion\n\n## Cluster 4: Digital, Industry and Space\nFocus areas include:\n- Artificial Intelligence and robotics\n- Advanced manufacturing and materials\n- Digital technologies and data\n- Space research and applications\nBudget: ~\u20ac15.3 billion\n\n## Cluster 5: Climate, Energy and Mobility\nFocus areas include:\n- Climate science and solutions\n- Clean and efficient energy\n- Sustainable and smart mobility\n- Smart cities and communities\nBudget: ~\u20ac15.1 billion\n\n## Cluster 6: Food, Bioeconomy, Natural Resources, Agriculture and Environment\nFocus areas include:\n- Sustainable food systems\n- Biodiversity and natural capital\n- Circular economy and bioeconomy\n- Environmental observation\nBudget: ~\u20ac9 billion\n\n**Cross-cutting themes:** Many topics span multiple clusters, including digital\ntransformation, green transition, and citizen engagement.\n\n\ud83c\udfaf **Find Relevant Calls:**\n\u2022 Browse calls by cluster on the [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search)\n\u2022 Review Work Programmes for detailed topic descriptions\n",
+  "overall_score": 93,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "thematic_fields",
+      "description": "Thematic fields/clusters in Horizon Europe",
+      "fulfillment": 40,
+      "specificity": 24,
+      "accuracy": 20,
+      "actionability": 9,
+      "total": 93,
+      "notes": "Fulfillment: All 6 clusters mentioned; Clusters found: 6/6; Specificity: Good specificity with concrete details; Accuracy: Accuracy check: 20/25 points; 1 error(s) found; Actionability: Good actionability with guidance provided",
+      "missing_clusters": []
+    }
+  ],
+  "factual_errors": [
+    {
+      "claim": "Clusters placed in wrong pillar",
+      "correct_value": "Clusters are under Pillar II (Global Challenges)",
+      "source": "EU Funding Domain Skill"
+    }
+  ],
+  "fix_suggestions": [],
+  "strengths": [
+    "Comprehensive coverage of all 6 clusters",
+    "Rich in specific topic details",
+    "Factually accurate",
+    "Provides clear guidance for users"
+  ],
+  "evaluation_timestamp": "2026-01-21T10:34:28.608501+00:00",
+  "response_metadata": {
+    "source": "test_json_save"
+  },
+  "fix_history": []
+}

@@ -1,0 +1,40 @@
+{
+  "prompt_id": "006",
+  "query": "What will come after Horizon Europe?",
+  "response": "\n**What Comes After Horizon Europe?**\n\nHorizon Europe, the EU's current research and innovation framework programme,\nruns from **2021 to 2027** with a budget of \u20ac95.5 billion. The successor programme\nis commonly referred to as the\n**10th Framework Programme (FP10)**.\n\n## FP10 Overview\n\n### Timeline\n- **Horizon Europe**: 2021-2027 (current programme)\n- **FP10**: Expected to start **2028** (subject to legislative approval)\n- **Legislative Proposal**: Expected late 2025 - early 2026\n- **MFF Negotiations**: FP10 budget tied to next Multiannual Financial Framework (2028-2034)\n\n### Current Status (Important: Subject to Change)\nAs of now, FP10 is still in the **preparation and consultation phase**. Key developments include:\n\n1. **Interim Evaluations**: The European Commission has conducted interim\n   evaluations of Horizon Europe to inform FP10 design\n2. **Stakeholder Consultations**: Ongoing consultations with research community, Member States,\n   and industry\n3. **Policy Priorities**: Expected focus on strategic autonomy, green/digital transitions,\n   competitiveness, and simplification\n\n### Expected Focus Areas for FP10\nWhile not finalized, discussions suggest FP10 may emphasize:\n- **Simplification**: Reduced administrative burden based on lessons learned\n- **Impact**: Stronger focus on demonstrable societal and economic impact\n- **Strategic Autonomy**: R&I support for European technological sovereignty\n- **Green & Digital**: Continued alignment with European Green Deal and digital transformation\n- **Widening Participation**: Enhanced support for underrepresented countries\n\n### Budget Considerations\nThe FP10 budget will be determined during MFF negotiations. Key considerations:\n- Research community advocating for significant budget increase\n- Competition with other EU priorities (defense, cohesion, agriculture)\n- Budget discussions expected to intensify in 2025-2026\n\n## How to Stay Informed\n\n\u26a0\ufe0f **Note**: Details about FP10 are still evolving. For the latest updates:\n- [European Commission R&I Portal](https://research-and-innovation.ec.europa.eu/)\n- [Horizon Europe Website](https://ec.europa.eu/info/horizon-europe)\n- Follow Official EC Press Releases on R&I Policy\n- Monitor European Parliament discussions on next MFF\n\n## Current Actions\nWhile waiting for FP10:\n1. **Continue participating in Horizon Europe** calls through 2027\n2. **Engage in consultations** when the Commission opens public feedback\n3. **Build networks** and track record for future FP10 applications\n4. **Monitor policy developments** via the R&I community and National Contact Points\n",
+  "overall_score": 100,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "after_horizon_europe",
+      "description": "After Horizon Europe / FP10 explanation",
+      "fulfillment": 40,
+      "specificity": 25,
+      "accuracy": 25,
+      "actionability": 10,
+      "total": 100,
+      "notes": "Fulfillment: All key content present; Score breakdown: FP10=15, Timeline=15, Uncertainty=10; Specificity: Good specificity with concrete details; Accuracy: Accuracy check: 25/25 points; Actionability: Good actionability with guidance provided",
+      "missing_content": [],
+      "found_content": [
+        "FP10/Successor programme",
+        "2027 (HE end date)",
+        "2028 (FP10 expected start)",
+        "MFF reference",
+        "Uncertainty acknowledged"
+      ]
+    }
+  ],
+  "factual_errors": [],
+  "fix_suggestions": [],
+  "strengths": [
+    "Comprehensive coverage of FP10/successor programme",
+    "Rich in specific details (dates, policy, process)",
+    "Factually accurate with appropriate uncertainty",
+    "Provides clear guidance for researchers"
+  ],
+  "evaluation_timestamp": "2026-01-21T10:35:25.937712+00:00",
+  "response_metadata": {
+    "source": "sample_excellent"
+  },
+  "fix_history": []
+}

@@ -1,18 +1,18 @@
 {
   "prompt_id": "005",
   "query": "What are the instruments in Horizon Europe (RIA, CSA, IA etc)?",
-  "response": "The primary funding instruments (called 'Action Types') in Horizon Europe define the nature of the project, its maturity level (TRL), and the applicable funding rules. The three core instruments are Research and Innovation Actions (RIA), Innovation Actions (IA), and Coordination and Support Actions (CSA).\n\nHere is a summary of the main Horizon Europe Action Types:\n\n### 1. Research and Innovation Actions (RIA)\n\n| Aspect | Details |\n| :--- | :--- |\n| **Focus** | Research, experimentation, and knowledge generation. Projects focus on establishing new knowledge and exploring novel technologies. |\n| **TRL Range** | Low to Medium (Typically **TRL 2 \u2013 TRL 5**) |\n| **Funding Rate** | **100%** of eligible costs (for all participant types) |\n| **Typical Budget** | \u20ac3\u20138 million (Varies widely by topic) |\n| **Proposal Page Limit** | 45 pages (for single-stage and two-stage full proposals) |\n\n### 2. Innovation Actions (IA)\n\n| Aspect | Details |\n| :--- | :--- |\n| **Focus** | Demonstration, piloting, prototyping, and large-scale validation of technologies and solutions closer to market. |\n| **TRL Range** | Medium to High (Typically **TRL 5 \u2013 TRL 8**) |\n| **Funding Rate** | **70%** for for-profit entities (e.g., Large Companies, SMEs) and **100%** for non-profit entities (e.g., Universities, Research Institutes, NGOs). |\n| **Typical Budget** | \u20ac5\u201315 million (Often larger, reflecting high demonstration costs) |\n| **Proposal Page Limit** | 45 pages (for single-stage and two-stage full proposals) |\n\n### 3. Coordination and Support Actions (CSA)\n\n| Aspect | Details |\n| :--- | :--- |\n| **Focus** | Networking, standardisation, dissemination, awareness-raising, and supporting research policy. CSAs do not typically fund research or demonstration themselves. |\n| **TRL Range** | Not Applicable (N/A) |\n| **Funding Rate** | **100%** of eligible costs (for all participant types) |\n| **Typical Budget** | \u20ac1\u20133 million (Reflects networking and communication costs) |\n| **Proposal Page Limit** | 30 pages |\n\n***\n\n### Other Key Instruments\n\nBesides the main consortium-based actions (RIA/IA/CSA), Horizon Europe funds specific types of grants under Pillar I and Pillar III:\n\n*   **ERC Grants (European Research Council):** Funds frontier research driven by a single Principal Investigator (PI).\n*   **MSCA (Marie Sk\u0142odowska-Curie Actions):** Funds researcher mobility, training, and career development (e.g., Postdoctoral Fellowships, Doctoral Networks).\n*   **EIC Accelerator (European Innovation Council):** Provides blended finance (grant + equity) for single SMEs with disruptive, market-creating innovations (TRL 6+).\n\n### Standard Consortium Requirements\n\nFor most RIA, IA, and CSA calls, the minimum consortium requirement is:\n\n> **3 independent legal entities from 3 different EU Member States or Associated Countries.**\n\n***\n\n### \ud83c\udfaf Getting Started with Horizon Europe:\n\nTo find instruments relevant to your field, start here:\n\n\u2022 Register on [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)\n\u2022 Review the [Work Programmes](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON) for your cluster\n\u2022 Check eligibility via [How to Participate](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/how-to-participate/1)\n\u2022 Find partners using [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search)\n\u2022 Browse [Call Calendar](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/calls-calendar)",
-  "overall_score": 96,
+  "response": "Horizon Europe primarily uses three main types of grants (Action Types) to classify activities based on the Technology Readiness Level (TRL) and the scope of work. Understanding these instruments is crucial as they determine the expected outcomes, funding rates, and consortium structure.\n\nHere is a summary of the main Action Types:\n\n### 1. Research and Innovation Actions (RIA)\n\n*   **Focus:** Establishing new knowledge, exploring new technologies, and developing initial prototypes or concepts. The emphasis is on research.\n*   **TRL Range:** Typically **TRL 2 \u2013 5** (low to mid-range).\n*   **Funding Rate:** **100%** of eligible costs for all participants (universities, research institutes, companies).\n*   **Typical Duration:** 36\u201348 months.\n*   **Consortium:** Minimum 3 independent entities from 3 different EU Member States or Associated Countries.\n*   **Proposal Page Limit (Part B):** 45 pages (for single-stage or full two-stage proposals).\n\n### 2. Innovation Actions (IA)\n\n*   **Focus:** Activities focused on demonstrating the viability of new or improved products, processes, or services. The primary goal is demonstration, piloting, testing, or scaling up.\n*   **TRL Range:** Typically **TRL 5 \u2013 8** (mid to high-range).\n*   **Funding Rate:**\n    *   **100%** for non-profit entities (universities, research institutes, NGOs, public bodies).\n    *   **70%** for profit-making entities (SMEs, Large Companies).\n*   **Typical Duration:** 36\u201360 months.\n*   **Consortium:** Minimum 3 independent entities from 3 different EU Member States or Associated Countries.\n*   **Proposal Page Limit (Part B):** 45 pages (for single-stage or full two-stage proposals).\n\n### 3. Coordination and Support Actions (CSA)\n\n*   **Focus:** Non-research activities that coordinate or support existing research and innovation activities (e.g., networking, setting standards, awareness-raising, training, dissemination, policy support).\n*   **TRL Range:** Not applicable (N/A).\n*   **Funding Rate:** **100%** of eligible costs for all participants.\n*   **Typical Duration:** 12\u201336 months (shorter scope).\n*   **Consortium:** Minimum 3 independent entities from 3 different EU Member States or Associated Countries (though some topics permit a single beneficiary).\n*   **Proposal Page Limit (Part B):** 30 pages.\n\n***\n\n### Key Individual and Frontier Research Instruments\n\nWhile RIA, IA, and CSA cover collaborative projects (Pillar II), Horizon Europe also features dedicated grants for individual researchers (Pillar I):\n\n| Instrument | Action Type | Focus | Key Feature |\n|---|---|---|---|\n| **ERC Grants** | Frontier Research | High-risk, high-gain research driven by a single Principal Investigator (PI). | Evaluated solely on scientific excellence. Monobeneficiary. |\n| **MSCA** | Researcher Mobility/Training | Funding for mobility, training, and career development. Includes Postdoctoral Fellowships (PF) and Doctoral Networks (DN). | Open to all research domains (thematic-neutral). |\n| **EIC Accelerator** | Market Innovation | Grant (\u20ac2.5M max) combined with equity (up to \u20ac15M) for single SMEs or spin-offs developing deep-tech with market-creating potential. | Focus on fast time-to-market. |\n\n***\n\n### Next Steps for Applicants\n\nTo apply for any of these instruments, you must first identify the specific topic in the Work Programme that aligns with your research and the required action type (RIA, IA, or CSA).\n\n\ud83c\udfaf **Getting Started with Horizon Europe:**\n\n\u2022 Register on [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)\n\u2022 Review the [Work Programmes](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON) for your cluster\n\u2022 Check eligibility via [How to Participate](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/how-to-participate/1)\n\u2022 Find partners using [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search)\n\u2022 Browse [Call Calendar](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/calls-calendar)",
+  "overall_score": 94,
   "result": "PASS",
   "component_scores": [
     {
       "component_id": "instruments",
       "description": "Horizon Europe Instruments explanation",
       "fulfillment": 39,
-      "specificity": 25,
+      "specificity": 23,
       "accuracy": 25,
       "actionability": 7,
-      "total": 96,
+      "total": 94,
       "notes": "Fulfillment: All core instruments (RIA, IA, CSA) explained; Also mentions: ERC (European Research Council), MSCA (Marie Sk\u0142odowska-Curie Actions), EIC (European Innovation Council); Core: 3/3, Additional: 3/3; Specificity: Good specificity with concrete details; Accuracy: Accuracy check: 25/25 points; Actionability: Good actionability with guidance provided",
       "missing_instruments": [],
       "additional_instruments_found": [
@@ -31,7 +31,7 @@
     "Rich in specific details (rates, TRLs, budgets)",
     "Factually accurate"
   ],
-  "evaluation_timestamp": "2026-01-21T00:06:12.462285+00:00",
+  "evaluation_timestamp": "2026-01-21T10:34:59.987247+00:00",
   "response_metadata": {
     "intent_type": "agentic_v3",
     "confidence": 0.8,
@@ -39,14 +39,14 @@
     "reasoning_steps": [
       {
         "step": 1,
-        "thought": "The user is asking for definitions and details regarding the main Horizon Europe funding instruments (Action Types). This information is readily available in the built-in knowledge base (Action Types Summary). I will define RIA, IA, and CSA, detailing TRL, funding rates, and consortium requirements, and include the required actionable links.",
+        "thought": "The user is asking for an overview of the main funding instruments (Action Types) within Horizon Europe (RIA, CSA, IA). This information is readily available in the Built-in Knowledge under 'Action Types Summary' and 'Proposal Template Structure'. I will provide a comprehensive summary of RIA, IA, and CSA, including their focus, TRL range, funding rates, and typical proposal page limits.",
         "action": "conclude",
         "tools_called": [],
         "observation": ""
       }
     ],
     "iterations": 1,
-    "processing_time_ms": 5809.72,
+    "processing_time_ms": 6278.494000000001,
     "architecture": "simplified_v3",
     "quality_analysis": {
       "score": 100,
@@ -60,8 +60,8 @@
         "answer",
         "context"
       ],
-      "response_length": 3657,
-      "timestamp": "2026-01-21T00:06:12.456652+00:00"
+      "response_length": 4184,
+      "timestamp": "2026-01-21T10:34:59.971954+00:00"
     }
   },
   "fix_history": []

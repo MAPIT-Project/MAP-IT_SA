@@ -1,19 +1,19 @@
 {
   "prompt_id": "012",
   "query": "I am from Austria working in agricultural studies. Are there any open calls or upcoming calls that would be relevant for me?",
-  "response": "As an intelligent research assistant for EU funding, I can confirm that agricultural studies, sustainable food systems, and soil health are key priorities within Horizon Europe, specifically in **Cluster 6 (Food, Bioeconomy, Natural Resources, Agriculture & Environment)** and the **EU Missions**.\n\nAustria is an eligible EU Member State, allowing full participation and coordination in all these calls. Below are relevant open or upcoming opportunities:\n\n### 1. Primary Funding: Cluster 6 & EU Missions\n\nYour most relevant calls are found under Cluster 6 (focused on Farm to Fork strategy) and the specific Mission on Soil Health.\n\n| ID | Title Summary | Type | Relevance | Status |\n|---|---|---|---|---|\n| **HORIZON-CL6-2025-02-FARM2FORK-19** | Developing agroecology living labs and lighthouses for climate action... | RIA/IA | Sustainable farming, climate resilience, agroecology networks. | Open/Upcoming |\n| **HORIZON-MISS-2025-SOIL-01-02** | Living Labs for soil remediation and green redevelopment of brownfields | RIA | Focused on practical, large-scale soil health demonstration and land rehabilitation. | Open/Upcoming |\n| **HORIZON-CL6-*-BIODIV-*** (Upcoming) | Topics focused on biodiversity, ecosystem services, and sustainable land management (Check Work Programme for specifics). | RIA/IA | Biodiversity conservation related to agriculture. | Upcoming (2025/2026) |\n\n**Note on CL6 Consortiums**: These Cluster 6 calls typically fund Research and Innovation Actions (RIA) or Innovation Actions (IA), meaning they require multinational consortiums (min 3 partners from 3 EU/AC countries) with budgets usually ranging from **\u20ac5 to \u20ac10 million**.\n\n### 2. Cross-Cutting & Related Opportunities\n\nAgricultural expertise is often crucial for projects in the energy and environment sectors (Cluster 5 and Cluster 6, Zero Pollution). \n\n| ID | Title Summary | Cluster | Relevance |\n|---|---|---|---|\n| **HORIZON-CL5-2026-02-D3-02** | Advanced biofuels and renewable fuels of non-biological origin value chains | Cluster 5 | Projects concerning biomass feedstock, sustainable farming, regenerative practices, and carbon removal technologies are highly relevant here. |\n| **HORIZON-MISS-2026-07-CROSS-03** | Advancing lead markets and proof-of-concept for deep tech solutions contributing to EU Missions | Missions | For agricultural deep-tech innovations that support the Soil Mission or Climate Adaptation. |\n\n### 3. Individual/Mobility Funding: MSCA\n\nAs a researcher, you are also eligible for the thematic-neutral Marie Sk\u0142odowska-Curie Actions (MSCA), which are open to **ALL research domains**, including agriculture:\n\n*   **MSCA Postdoctoral Fellowships (MSCA-PF)**: Supports experienced researchers (PhD holders) to undertake 1 to 2 years of individual research and mobility abroad. Excellent for individual career development and establishing international partnerships. Typical grant value is **\u20ac200,000 \u2013 \u20ac300,000** per fellow.\n*   **MSCA Doctoral Networks (MSCA-DN)**: Supports international consortiums (min 3 partners) to train doctoral candidates in specific research areas, including sustainable agriculture and food systems. Typical grant value is **\u20ac2 \u2013 \u20ac4 million** per network.\n\n---\n\n### Next Steps and Resources for Agriculture/Food Research\n\n1.  **Review Topic Scope**: Carefully read the **Work Programme** descriptions for the specific call IDs (e.g., HORIZON-CL6-2025-02-FARM2FORK-19) to ensure your project idea aligns perfectly with the expected outcomes.\n2.  **Find Partners**: Most calls require a consortium. Look for organizations with complementary expertise across the EU/Associated Countries.\n\n\ud83c\udfaf **Agriculture/Food Research Resources:**\n\u2022 **Cluster 6 Work Programme**: [Food, Bioeconomy, Natural Resources](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON)\n\u2022 **EU Mission Soil Portal**: [Soil Mission Portal](https://research-and-innovation.ec.europa.eu/funding/funding-opportunities/funding-programmes-and-open-calls/horizon-europe/eu-missions-horizon-europe/soil-deal-europe_en)\n\u2022 **MSCA Portal**: [MSCA Actions](https://marie-sklodowska-curie-actions.ec.europa.eu/)\n\u2022 **Search Calls**: [EU Funding Portal - Topic Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/calls-calendar)",
-  "overall_score": 95,
+  "response": "As an intelligent research assistant specializing in EU funding, I can confirm that agricultural studies, particularly focusing on sustainability, food systems, and environment, are highly prioritized in Horizon Europe, mainly under **Cluster 6** and several **EU Missions**. Since Austria is an EU Member State, your organization is fully eligible for participation and funding.\n\nHere is an overview of the relevant open and upcoming calls, categorized by programme area:\n\n### 1. Horizon Europe Cluster 6: Food, Bioeconomy, Natural Resources\n\nCluster 6 is the primary area for sustainable agriculture, food systems (Farm to Fork), soil health, and environmental research. You should look for topics under the `HORIZON-CL6-2025-*` work programme.\n\nWe found the following highly relevant call in your domain:\n\n| Call ID | Title | Cluster | Budget | Status | Notes |\n| :--- | :--- | :--- | :--- | :--- | :--- |\n| **HORIZON-CL6-2025-02-FARM2FORK-19** | Developing agroecology living labs and lighthouses for climate action under the Food and Nutrition Security and Sustainable Agriculture (FNSSA)... | CL6 | \u20ac9.9M | Open | Highly relevant RIA/IA call focusing on transitioning agriculture toward climate resilience and sustainability, often requiring demonstration activities (TRL 5-7). |\n\n***(Note: While the tool also returned a CL5 Biofuels topic, we prioritize Cluster 6 and Mission calls for direct relevance to agriculture.)***\n\n**Key Focus Areas within Cluster 6 (check the Work Programme for specific calls):**\n*   **Sustainable Farming Systems**: Agroecology, smart agriculture, animal welfare, and reduced use of pesticides/fertilisers.\n*   **Food Systems**: Farm to Fork transition, nutrition security, and sustainable food processing.\n*   **Circular Bioeconomy**: Utilizing agricultural waste and biomass for materials and energy.\n*   **Biodiversity**: Impact of agriculture on biodiversity and ecosystem services.\n\n### 2. EU Missions (Crucial for Agricultural Research)\n\nEU Missions provide challenge-driven funding opportunities that are highly relevant to agricultural land use, especially:\n\n#### A. Mission: A Soil Deal for Europe\n\nThis Mission directly targets the health and sustainability of agricultural soils. Calls under this Mission aim to establish **100 living labs and lighthouses** for soil health by 2030.\n\n*   **Relevance**: Topics often focus on regenerative agriculture, soil monitoring, carbon sequestration in farmland, and integrated land management.\n*   **Call ID Pattern**: Look for topics starting with `HORIZON-MISS-*-SOIL-*`.\n\n#### B. Mission: Adaptation to Climate Change\n\nThis Mission addresses regional resilience, which includes the adaptation of farming practices and land management to extreme weather events (droughts, floods).\n\n*   **Relevance**: Climate risk assessment for agriculture, early warning systems, and implementing adaptation pathways in rural regions.\n\n### 3. Cross-Cutting Researcher Mobility (MSCA)\n\n**Marie Sk\u0142odowska-Curie Actions (MSCA)** are thematic-neutral and available for researchers in ANY field, including agricultural studies. These are excellent options for individual researchers or international training networks:\n\n*   **MSCA Postdoctoral Fellowships (MSCA-PF)**: Supports experienced researchers (PhD holders) to undertake a research project in another country (typically 12-24 months) with a host institution. Excellent funding rate (100% of unit costs).\n*   **MSCA Doctoral Networks (MSCA-DN)**: Funds consortia to train doctoral candidates through international, inter-sectoral networks. Ideal for academic institutions collaborating with industry/SMEs on specialized agricultural training.\n\n### Next Steps for Austrian Applicants\n\n1.  **Review Work Programmes**: Thoroughly read the **Cluster 6 Work Programme** and the **Mission: Soil Deal for Europe Implementation Plan** to find detailed topics matching your expertise.\n2.  **Check Consortium Requirements**: Most RIA/IA calls require a minimum consortium of **3 independent entities from 3 different EU/Associated Countries**.\n3.  **Register**: Ensure your organization is registered on the Funding & Tenders Portal and has a valid PIC (Participant Identification Code).\n\n\ud83c\udfaf **Agriculture/Food Research Resources:**\n\n\u2022 **Cluster 6 Work Programme**: Review the official documents for current and upcoming calls: [Reference Documents (HORIZON)](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON)\n\u2022 **EU Mission Soil**: Learn about the mission objectives and calls: [Soil Mission Portal](https://research-and-innovation.ec.europa.eu/funding/funding-opportunities/funding-programmes-and-open-calls/horizon-europe/eu-missions-horizon-europe/soil-deal-europe_en)\n\u2022 **MSCA Portal**: Explore individual and network funding: [MSCA Actions](https://marie-sklodowska-curie-actions.ec.europa.eu/)\n\u2022 **Search Calls**: Find all open topics on the [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)",
+  "overall_score": 92,
   "result": "PASS",
   "component_scores": [
     {
       "component_id": "austria_agri",
       "description": "Austria eligibility and agricultural calls",
       "fulfillment": 40,
-      "specificity": 22,
+      "specificity": 19,
       "accuracy": 25,
       "actionability": 8,
-      "total": 95,
-      "notes": "Fulfillment: All key components covered; Specificity: Good specificity with call details; Accuracy: Accuracy check: 25/25 points; Actionability: Good actionability with clear guidance",
+      "total": 92,
+      "notes": "Fulfillment: All key components covered; Specificity: Limited deadline information; Accuracy: Accuracy check: 25/25 points; Actionability: Good actionability with clear guidance",
       "missing_items": [],
       "found_items": [
         "Austria eligibility explained",
@@ -23,21 +23,20 @@
     }
   ],
   "factual_errors": [],
-  "fix_suggestions": [],
+  "fix_suggestions": [
+    "Add more specificity: Include specific call IDs (HORIZON-CL6-*-FARM-*), deadlines with dates, budget figures (\u20acM), and call status (open/upcoming)"
+  ],
   "strengths": [
     "Comprehensive coverage of Austria eligibility and agriculture",
-    "Rich in specific call details (IDs, deadlines, budgets)",
     "Factually accurate on Austria status and funding rates",
     "Provides clear guidance for Austrian applicants"
   ],
-  "evaluation_timestamp": "2026-01-21T09:48:33.972082+00:00",
+  "evaluation_timestamp": "2026-01-21T10:37:52.117865+00:00",
   "response_metadata": {
     "intent_type": "agentic_v3",
     "confidence": 0.8,
     "tools_used": [
-      "search_funding_calls_1_0",
-      "search_funding_calls_2_0",
-      "search_funding_calls_2_1"
+      "search_funding_calls_1_0"
     ],
     "reasoning_steps": [
       {
@@ -51,24 +50,14 @@
       },
       {
         "step": 2,
-        "thought": "The user is an agricultural researcher from Austria (eligible country) looking for open/upcoming funding calls. The primary funding source is Horizon Europe, specifically Cluster 6 (Food, Bioeconomy, Natural Resources, Agriculture & Environment), and the EU Missions (Soil Deal, Climate Adaptation). I will perform two targeted searches to cover the main themes: 1) General sustainable farming/food systems (Cluster 6), and 2) The highly relevant Soil Mission. I will then synthesize the results, including cross-cutting MSCA opportunities, as required by the built-in knowledge.",
-        "action": "call_tools",
-        "tools_called": [
-          "search_funding_calls",
-          "search_funding_calls"
-        ],
-        "observation": "Found 4 funding call(s)\nFound 4 funding call(s)"
-      },
-      {
-        "step": 3,
-        "thought": "The user is an agricultural researcher. The primary sources of funding are Horizon Europe Cluster 6 (Food, Bioeconomy, Natural Resources) and the EU Mission 'A Soil Deal for Europe'. I have successfully run targeted searches that returned highly relevant open/upcoming calls from Cluster 6, Cluster 5 (biofuels/biomass relevance), and the Soil Mission. I will synthesize these results, ensuring I also mention the cross-cutting MSCA opportunities.",
+        "thought": "The user is an agricultural researcher from Austria, meaning they are fully eligible for Horizon Europe funding. Agriculture is primarily covered by Cluster 6 (Food, Bioeconomy, Natural Resources, Agriculture and Environment). I have performed an initial search (4 results found, partially displayed). I will synthesize the available search results, mandatory Mission opportunities (Soil, Climate Adaptation), and cross-cutting MSCA options to provide a complete answer, leveraging the comprehensive built-in knowledge for this domain.",
         "action": "conclude",
         "tools_called": [],
         "observation": ""
       }
     ],
-    "iterations": 3,
-    "processing_time_ms": 17933.547000000002,
+    "iterations": 2,
+    "processing_time_ms": 11753.936,
     "architecture": "simplified_v3",
     "quality_analysis": {
       "score": 100,
@@ -82,8 +71,8 @@
         "answer",
         "context"
       ],
-      "response_length": 4340,
-      "timestamp": "2026-01-21T09:48:33.964716+00:00"
+      "response_length": 5051,
+      "timestamp": "2026-01-21T10:37:52.113633+00:00"
     }
   },
   "fix_history": []
