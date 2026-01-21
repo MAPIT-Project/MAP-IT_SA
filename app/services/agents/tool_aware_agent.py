@@ -691,14 +691,14 @@ Search 5: "IoT sensors sustainable farming soil" - IoT applications
 ```
 
 #### SSH/Cluster 2 Keywords (Culture, Creativity & Inclusive Society)
-| Core Terms | Governance Terms | Social Terms |
-|------------|-----------------|--------------|
-| democracy | governance | social cohesion |
-| cultural heritage | policy | inclusive society |
-| European identity | citizenship | migration |
-| humanities | participation | inequality |
-| creative industries | rule of law | gender equality |
-| arts and culture | transparency | diversity inclusion |
+| Core Terms | Governance Terms | Social Terms | Policy Evaluation Terms |
+|------------|-----------------|--------------|------------------------|
+| democracy | governance | social cohesion | policy evaluation |
+| cultural heritage | policy | inclusive society | impact assessment |
+| European identity | citizenship | migration | monitoring indicators |
+| humanities | participation | inequality | socioeconomic analysis |
+| creative industries | rule of law | gender equality | welfare systems |
+| arts and culture | transparency | diversity inclusion | labor market policy |
 
 **SSH/Cluster 2 Search Strategy:**
 ```
@@ -707,6 +707,7 @@ Search 2: "cultural heritage European identity" → Heritage focus
 Search 3: "social cohesion inclusion migration" → Social science
 Search 4: "creative industries culture arts" → Creative/arts focus
 Search 5: "policy participation citizenship" → Governance focus
+Search 6: "policy evaluation monitoring socioeconomic" → Policy evaluation focus
 ```
 
 **Top SSH/Cluster 2 Coordinators (Reference):**
@@ -1242,6 +1243,91 @@ When the user asks for **ICT partners**, **technology SMEs**, **sensor/monitorin
    - Recommend checking organization websites for SME status
    - Suggest using EU SME self-declaration tool
    - Link to CORDIS project pages to verify sensor/ICT capabilities from project objectives
+
+## CRITICAL: Policy Evaluation and Monitoring Academic Partner Discovery
+
+When the user asks for **academic partners** (universities, research centers) specializing in **policy evaluation**, **socioeconomic monitoring**, **impact assessment**, or **policy analysis**:
+
+1. **Use find_experienced_partners with policy-focused keywords**:
+   - Combine policy terms with evaluation/monitoring methodologies
+   - Include: "policy evaluation monitoring impact assessment socioeconomic analysis governance indicators"
+   - Add specific policy domains: "welfare labor market social cohesion public policy"
+
+2. **For Policy Evaluation partners (FR, DE, BENELUX)** use these keywords:
+   ```
+   find_experienced_partners(
+       topic_keywords="policy evaluation monitoring impact assessment socioeconomic analysis governance indicators welfare",
+       country="DE",  # or "FR", "NL", "BE", "LU" - run separate searches
+       organization_type="HES",  # or "REC" for research centers
+       cluster="CL2",
+       min_projects=1,
+       limit=20,
+       programme="both"
+   )
+   ```
+
+3. **CRITICAL: Distinguish evaluation types in your response**:
+   - **Impact Evaluation**: Assessing outcomes and effects of policies (ex-post evaluation)
+   - **Process Monitoring**: Tracking implementation and progress indicators
+   - **Policy Analysis**: Designing and analyzing policy options (ex-ante)
+   - **Indicator Development**: Creating metrics and monitoring frameworks
+
+4. **Policy Evaluation Partner response structure** (USE THIS FORMAT):
+   ```
+   Based on H2020/HE project data, here are **academic/research partners** with **policy evaluation and monitoring** expertise in [COUNTRIES]:
+
+   ### Category 1: Impact Evaluation Specialists
+   **1. [ORGANIZATION NAME]** ([HES/REC] - [COUNTRY])
+   - **Relevant Projects**: X projects (Y as coordinator)
+   - **Total Funding**: €X.XM
+   - **Evaluation Expertise**: [Describe specific evaluation methods: RCT, quasi-experimental, counterfactual analysis]
+   - **Policy Domains**: [Welfare, labor market, social cohesion, etc.]
+   - **Example Project**: [ACRONYM] - [Focus on evaluation methodology used]
+
+   ### Category 2: Policy Monitoring & Indicator Development
+   **1. [ORGANIZATION NAME]** ([HES/REC] - [COUNTRY])
+   - **Relevant Projects**: X projects (Y as coordinator)
+   - **Evaluation Expertise**: [Indicator frameworks, monitoring systems, data collection]
+   - **Policy Domains**: [Specific policy areas monitored]
+   ```
+
+5. **Key Policy Evaluation Keywords by Method**:
+   | Evaluation Type | Keywords to Use |
+   |-----------------|-----------------|
+   | Impact Evaluation | impact assessment, counterfactual, RCT, quasi-experimental |
+   | Process Monitoring | monitoring indicators, progress tracking, implementation |
+   | Policy Analysis | policy design, ex-ante, foresight, scenario analysis |
+   | Socioeconomic | socioeconomic, welfare, labor market, social protection |
+   | Governance | governance indicators, transparency, accountability |
+
+6. **Key Academic Institutions for Policy Evaluation** (Reference):
+   - **LISER (LU)**: Luxembourg Institute of Socio-Economic Research - welfare, labor market
+   - **ZEW (DE)**: Centre for European Economic Research - economic policy evaluation
+   - **DIW Berlin (DE)**: German Institute for Economic Research - socioeconomic monitoring
+   - **CPB (NL)**: Netherlands Bureau for Economic Policy Analysis
+   - **CEPS (BE)**: Centre for European Policy Studies - EU policy analysis
+   - **INSEE (FR)**: National statistics, socioeconomic indicators
+   - **Sciences Po (FR)**: Governance, policy evaluation methods
+   - **KU Leuven HIVA (BE)**: Research Institute for Work and Society - social policy
+
+7. **CRITICAL: Emphasize EVALUATION and MONITORING methods in your response**:
+   - **ALWAYS mention specific evaluation methodologies** for each partner:
+     - **RCTs (Randomized Control Trials)** for experimental evaluation
+     - **Quasi-experimental methods** (difference-in-differences, regression discontinuity)
+     - **Counterfactual analysis** for impact assessment
+     - **Microsimulation** for policy modeling
+     - **Panel data analysis** for longitudinal monitoring
+     - **Theory-based evaluation** and **realist evaluation**
+   - Don't just list institutions - describe their evaluation methodologies
+   - Mention if they specialize in quantitative vs qualitative methods
+   - Highlight any indicator frameworks they've developed (SOEP, MIPEX, etc.)
+   - Note their experience with EU policy monitoring (CAP, Cohesion Policy, etc.)
+
+8. **Add actionable guidance for policy evaluation partners**:
+   - Link to CORDIS project pages to verify evaluation methodologies used
+   - Recommend checking published evaluation reports and working papers
+   - Mention relevant EU networks: EENEE (education), ESPN (social policy), ESPON (territorial)
+   - Link to EU JRC for policy evaluation standards and frameworks
 
 ## CRITICAL: Geographic Diversification by Country Groups
 

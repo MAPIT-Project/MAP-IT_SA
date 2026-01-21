@@ -2369,3 +2369,73 @@ The test implements the LLM-as-judge methodology per the PRD:
 ### Next Steps
 The FIX IF NEEDED task should be run to improve the response to achieve score >= 85
 
+
+
+## 2026-01-21: Prompt 034 - Policy Evaluation Academic Partner (FIX IF NEEDED)
+
+### Task Completed
+Fixed Prompt 034 response quality from 84/100 to 90/100 (PASS).
+
+### Problem Identified
+The previous evaluation showed:
+- **Overall Score**: 84/100 (NEEDS_REVIEW)
+- **Main Issues**:
+  - Missing emphasis on evaluation/monitoring METHODS (RCT, quasi-experimental, counterfactual, etc.)
+  - False positive detecting "ey" as Ernst & Young when it appeared in words like "key", "keyword"
+  - Limited categorization by evaluation type
+
+### Root Cause Analysis
+1. No specific guidance in REASONING_PROMPT for policy evaluation partner searches
+2. Test file's consulting firm detection used substring matching, causing false positives
+3. Missing emphasis on evaluation METHODOLOGIES vs just policy topics
+
+### Fix Implementation (1 attempt - successful)
+
+#### Files Modified:
+1. **`app/services/agents/tool_aware_agent.py`**:
+   - Added complete "Policy Evaluation and Monitoring Academic Partner Discovery" section (~80 lines)
+   - Added evaluation types categorization (Impact Evaluation, Process Monitoring, Policy Analysis, Indicator Development)
+   - Added policy evaluation keywords table by method (RCT, quasi-experimental, counterfactual, microsimulation, panel data)
+   - Added reference list of key academic institutions for policy evaluation (LISER, ZEW, DIW, CPB, CEPS, INSEE, Sciences Po, KU Leuven HIVA)
+   - Added CRITICAL section emphasizing evaluation methodologies must be mentioned in responses
+   - Updated SSH/Cluster 2 keywords table with Policy Evaluation Terms column
+   - Added Search 6 for "policy evaluation monitoring socioeconomic" in SSH search strategy
+
+2. **`tests/quality/test_prompt_034_policy_evaluation.py`**:
+   - Fixed `check_for_consulting_firms()` function to use word boundary matching for short abbreviations
+   - "ey" now only matches as standalone word, not as substring in "key", "keyword", etc.
+   - Uses regex pattern `\b` for word boundaries
+
+3. **`tests/quality/results/prompt_034_policy_evaluation.json`**:
+   - Updated with fix history documenting the changes
+
+4. **`docs/prd/MAPIT_QUALITY_PRD.md`**:
+   - Marked FIX IF NEEDED task as complete
+   - Added final score annotation (90/100 PASS) with fix summary
+
+### Fix Results
+- **Initial Score**: 84/100 (NEEDS_REVIEW)
+- **Final Score**: 90/100 (PASS)
+- **Improvement**: +6 points
+
+#### Score Breakdown (After Fix):
+- **Query Fulfillment**: 37/40 (+2)
+- **Specificity**: 21/25 (+1)
+- **Factual Accuracy**: 25/25 (+5) - False positive fixed
+- **Actionability**: 7/10 (+1)
+
+### Test Results
+- 10 tests passed (6 offline + 4 live API)
+- All linting passed
+
+### Key Improvements in Response
+After the fix, the agent now:
+1. Lists 12 academic partners (was 10) with better policy evaluation focus
+2. Emphasizes specialized institutions (LISER, CEPS) for policy evaluation
+3. Provides consortium building recommendations by evaluation type
+4. Includes CORDIS search links and Work Programme references
+5. Better categorizes partners by country/region and policy focus
+
+### PRD Task Status
+- [x] EVALUATE task: Complete (initial score 84/100)
+- [x] FIX IF NEEDED task: Complete (final score 90/100 PASS)

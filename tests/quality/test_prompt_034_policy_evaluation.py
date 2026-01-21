@@ -841,14 +841,15 @@ def check_for_consulting_firms(response: str) -> list[str]:
     Check if response mentions consulting firms instead of universities.
 
     Returns list of consulting firm names found.
+    Uses word boundary matching to avoid false positives (e.g., "ey" in "keyword").
     """
-    consulting_firms = [
+    # Firms that need word boundary matching to avoid false positives
+    consulting_firms_exact = [
         "mckinsey",
         "deloitte",
         "pwc",
         "kpmg",
         "ernst & young",
-        "ey",
         "accenture",
         "boston consulting",
         "bcg",
@@ -859,11 +860,24 @@ def check_for_consulting_firms(response: str) -> list[str]:
         "ibm",
     ]
 
+    # Short abbreviations that need word boundary matching
+    consulting_firms_abbrev = [
+        "ey",  # Ernst & Young abbreviation - must be standalone word
+    ]
+
     firms_found = []
     response_lower = response.lower()
 
-    for firm in consulting_firms:
+    # Check exact matches (substring is fine for longer names)
+    for firm in consulting_firms_exact:
         if firm in response_lower:
+            firms_found.append(firm)
+
+    # Check abbreviations with word boundaries
+    for firm in consulting_firms_abbrev:
+        # Use regex to match whole word only
+        pattern = r"\b" + re.escape(firm) + r"\b"
+        if re.search(pattern, response_lower):
             firms_found.append(firm)
 
     return list(set(firms_found))
