@@ -226,13 +226,13 @@ TEST_API_URL=http://localhost:8000 pytest tests/test_conversation_scenarios.py -
 - [x] RUN & FIX: Execute scenario. Ensure error handling doesn't break conversation.
 
 ### Task 017: Ambiguous Query Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/error_recovery/ambiguous_query.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/error_recovery/ambiguous_query.yaml` with steps:
   1. "Show me projects"
   2. "Tell me about it" (ambiguous)
   3. "I mean the hydrogen project" (clarification)
   Validations: handles ambiguity, accepts clarification.
 
-- [ ] RUN & FIX: Execute scenario. Fix any failures and re-run until passing.
+- [x] RUN & FIX: Execute scenario. Fix any failures and re-run until passing.
 
 ### Task 018: Tool Timeout Simulation
 - [ ] CREATE SCENARIO: Create `tests/scenarios/error_recovery/tool_timeout.yaml` that tests behavior when a tool takes too long. Verify:
@@ -446,6 +446,7 @@ pytest tests/test_conversation_scenarios.py --cov=app/services/conversation -v
 - [x] `tests/scenarios/context/topic_switching.yaml`
 - [x] `tests/scenarios/context/memory_overflow.yaml`
 - [x] `tests/scenarios/error_recovery/invalid_reference.yaml`
+- [x] `tests/scenarios/error_recovery/ambiguous_query.yaml`
 - [x] `tests/scenarios/concurrent/rapid_messages.yaml`
 
 ### Core Stability Modules

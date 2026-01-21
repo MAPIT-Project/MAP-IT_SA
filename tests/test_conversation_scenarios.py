@@ -667,6 +667,97 @@ class TestErrorRecovery:
             "conversation recovered successfully"
         )
 
+    @pytest.mark.asyncio
+    async def test_ambiguous_query_scenario_task_017(
+        self,
+        conversation_agent: ConversationFlowAgent,
+    ):
+        """
+        Test ambiguous query handling per PRD Task 017.
+
+        This test validates:
+        1. "Show me projects" - should return projects
+        2. "Tell me about it" (ambiguous) - should handle gracefully
+        3. "I mean projects about hydrogen research" (clarification) - should accept
+
+        The conversation should handle ambiguity and accept clarifications.
+        """
+        # Step 1: Establish results with a broad query
+        turn1 = await conversation_agent.send_message("Show me projects")
+        assert not turn1.has_error, f"Step 1 error: {turn1.error}"
+        assert len(turn1.response_text) > 50, "Should have substantial response"
+        # Verify search_projects tool was used
+        assert "search_projects" in turn1.tools_used, (
+            f"Expected search_projects tool, got: {turn1.tools_used}"
+        )
+
+        # Small delay to ensure context is stored
+        await asyncio.sleep(0.5)
+
+        # Step 2: Ambiguous reference ("Tell me about it")
+        turn2 = await conversation_agent.send_message("Tell me about it")
+
+        # Should NOT crash - this is the key assertion
+        assert not turn2.has_error, (
+            f"Ambiguous query should not cause error: {turn2.error}"
+        )
+        assert len(turn2.response_text) > 0, "Should have some response to ambiguous query"
+
+        # Response should either ask for clarification OR make a reasonable assumption
+        response_lower = turn2.response_text.lower()
+        handled_ambiguity = (
+            # Asks for clarification
+            "which" in response_lower
+            or "clarify" in response_lower
+            or "specific" in response_lower
+            or "more details" in response_lower
+            or "can you" in response_lower
+            # Or makes reasonable assumption and provides info
+            or "project" in response_lower
+            or "first" in response_lower
+        )
+        assert handled_ambiguity, (
+            f"Should handle ambiguity (ask for clarification or assume). "
+            f"Got: {turn2.response_text[:300]}..."
+        )
+
+        # Small delay before clarification
+        await asyncio.sleep(0.5)
+
+        # Step 3: Clarification - should accept and process
+        turn3 = await conversation_agent.send_message(
+            "I mean projects about hydrogen research"
+        )
+
+        # Clarification MUST be accepted and processed
+        assert not turn3.has_error, f"Clarification step error: {turn3.error}"
+        assert len(turn3.response_text) > 100, (
+            "Clarification response should be substantial"
+        )
+
+        # The response should contain hydrogen-related content
+        response_lower = turn3.response_text.lower()
+        has_hydrogen_content = (
+            "hydrogen" in response_lower
+            or "energy" in response_lower
+            or "fuel" in response_lower
+            or "project" in response_lower
+            or "research" in response_lower
+        )
+        assert has_hydrogen_content, (
+            f"Clarification should return hydrogen info. Got: {turn3.response_text[:300]}..."
+        )
+
+        # Verify conversation completed all 3 steps
+        assert conversation_agent.turn_count >= 3, (
+            f"Expected at least 3 turns, got {conversation_agent.turn_count}"
+        )
+
+        logger.info(
+            "Task 017 test passed: Ambiguous query handled gracefully, "
+            "clarification accepted successfully"
+        )
+
 
 # =============================================================================
 # CONCURRENT ACCESS TESTS

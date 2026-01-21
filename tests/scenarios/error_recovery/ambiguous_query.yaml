@@ -1,0 +1,86 @@
+# Scenario: Ambiguous Query Handling
+# Tests graceful handling of ambiguous queries and clarification acceptance
+# Per PRD Task 017: Tests that ambiguous references are handled gracefully
+# and clarifications are accepted to resolve ambiguity
+
+name: "Ambiguous Query"
+description: "User makes ambiguous queries that should prompt clarification or be handled gracefully"
+tags: ["error", "ambiguous", "clarification", "recovery"]
+stop_on_error: false
+
+steps:
+  # Step 1: Establish context with projects (PRD: "Show me projects")
+  - message: "Show me projects"
+    validations:
+      - type: "tools_used"
+        expected: ["search_projects"]
+      - type: "response_contains_any"
+        name: "has_project_results"
+        patterns: ["project", "funded", "research"]
+      - type: "no_error"
+    delay_ms: 0
+
+  # Step 2: Ambiguous reference (PRD: "Tell me about it")
+  - message: "Tell me about it"
+    validations:
+      - type: "no_error"
+        name: "handles_ambiguous_gracefully"
+        description: "Should handle ambiguous reference without crashing"
+      - type: "response_contains_any"
+        name: "responds_to_ambiguous"
+        patterns: ["which", "clarify", "specific", "project", "more details", "first", "can you"]
+        description: "Should either ask for clarification or make reasonable assumption"
+    delay_ms: 500
+
+  # Step 3: Clarification (PRD: "I mean the hydrogen project")
+  - message: "I mean projects about hydrogen research"
+    validations:
+      - type: "no_error"
+        name: "accepts_clarification"
+        description: "Should accept and process the clarification"
+      - type: "response_contains_any"
+        name: "has_hydrogen_content"
+        patterns: ["hydrogen", "energy", "fuel", "project", "research"]
+        description: "Should return hydrogen-related content after clarification"
+    delay_ms: 500
+
+  # Step 4: Another ambiguous query - vague topic
+  - message: "What about the funding?"
+    validations:
+      - type: "no_error"
+        name: "handles_vague_topic"
+        description: "Should handle vague topic reference gracefully"
+      - type: "response_contains_any"
+        name: "has_funding_content"
+        patterns: ["funding", "budget", "euro", "€", "million", "cost", "grant"]
+        description: "Should provide some funding-related information"
+    delay_ms: 500
+
+  # Step 5: Ambiguous pronoun reference
+  - message: "Is it still open?"
+    validations:
+      - type: "no_error"
+        name: "handles_pronoun_reference"
+        description: "Should handle pronoun reference gracefully"
+    delay_ms: 500
+
+  # Step 6: Clear query to verify conversation continues
+  - message: "Show me open funding calls for hydrogen research"
+    validations:
+      - type: "no_error"
+        name: "conversation_continues"
+        description: "Conversation should continue to work after ambiguous queries"
+      - type: "tools_used"
+        expected: ["search_funding_calls"]
+      - type: "response_contains_any"
+        name: "has_call_results"
+        patterns: ["call", "funding", "open", "deadline", "hydrogen"]
+    delay_ms: 500
+
+final_validations:
+  - type: "context_integrity"
+    name: "ambiguous_query_integrity"
+    description: "Conversation should remain functional after handling ambiguous queries"
+  - type: "no_crash"
+    name: "no_crash_on_ambiguous"
+    description: "No crashes should occur when handling ambiguous queries"

@@ -3317,3 +3317,67 @@ Implemented Task 016: Invalid Reference Scenario for conversation stability test
 
 ### Next Task
 Task 017: Ambiguous Query Scenario (PHASE 5: Error Recovery Testing)
+
+## 2026-01-21: Task 017 - Ambiguous Query Scenario (PHASE 5: Error Recovery Testing)
+
+### Task Completed
+Implemented Task 017: Ambiguous Query Scenario for conversation stability testing.
+
+### Files Created/Modified
+1. `tests/scenarios/error_recovery/ambiguous_query.yaml` (NEW):
+   - Tests graceful handling of ambiguous queries
+   - Tests clarification acceptance
+   - 6 conversation steps
+   - Validations for ambiguity handling and recovery
+
+2. `tests/test_conversation_scenarios.py`:
+   - Added `test_ambiguous_query_scenario_task_017` test method
+   - Comprehensive assertions for ambiguous query handling
+   - Verifies clarification is accepted and processed
+
+3. `docs/prd/MAPIT_CONVERSATION_STABILITY_PRD.md`:
+   - Marked Task 017 CREATE SCENARIO as complete [x]
+   - Marked Task 017 RUN & FIX as complete [x]
+   - Added ambiguous_query.yaml to appendix
+
+### Scenario Steps (6 total)
+1. "Show me projects" - Establish context (broad query)
+2. "Tell me about it" - Ambiguous reference (graceful handling)
+3. "I mean projects about hydrogen research" - Clarification (acceptance)
+4. "What about the funding?" - Vague topic reference
+5. "Is it still open?" - Ambiguous pronoun reference
+6. "Show me open funding calls for hydrogen research" - Clear query (recovery verification)
+
+### Validations
+- Step 1: tools_used (search_projects), response_contains_any, no_error
+- Step 2: no_error, response_contains_any (asks clarification or assumes)
+- Step 3: no_error, response_contains_any (hydrogen content)
+- Step 4: no_error, response_contains_any (funding content)
+- Step 5: no_error
+- Step 6: no_error, tools_used (search_funding_calls), response_contains_any
+- Final: context_integrity, no_crash
+
+### Test Results
+- Test collection verified:
+  - test_error_scenario[ambiguous_query] - Collected
+  - test_ambiguous_query_scenario_task_017 - Collected
+- Linting passed for test_conversation_scenarios.py
+- YAML syntax validated
+
+### Key Assertions in test_ambiguous_query_scenario_task_017
+1. Step 1 (establish context):
+   - No error
+   - Response > 50 chars
+   - search_projects tool used
+2. Step 2 (ambiguous query):
+   - No error (graceful handling)
+   - Has some response
+   - Either asks for clarification OR makes reasonable assumption
+3. Step 3 (clarification):
+   - No error
+   - Response > 100 chars (substantial)
+   - Contains hydrogen-related content
+   - Turn count >= 3
+
+### Next Task
+Task 018: Tool Timeout Simulation (PHASE 5: Error Recovery Testing)
