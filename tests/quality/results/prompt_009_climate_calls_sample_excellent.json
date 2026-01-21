@@ -1,0 +1,39 @@
+{
+  "prompt_id": "009",
+  "query": "I am working in climate change monitoring. What are the upcoming calls relevant for me?",
+  "response": "\n## Relevant Funding Opportunities for Climate Change Monitoring Research\n\nBased on your research focus in climate change monitoring, here are the relevant calls:\n\n### Cluster 5 - Climate, Energy and Mobility\n\nCluster 5 is a primary destination for climate research in Horizon Europe. It covers:\n- Climate Science and Solutions\n- Energy Systems and Transition\n- Sustainable Mobility and Transport\n\n#### Open/Upcoming Calls:\n\n| Call ID | Topic | Deadline | Budget |\n|---------|-------|----------|--------|\n| HORIZON-CL5-2025-D1-01-01 | Climate monitoring systems | April 2025 | \u20ac10M RIA |\n| HORIZON-CL5-2025-D1-01-02 | Carbon emission tracking | May 2025 | \u20ac8M RIA |\n| HORIZON-CL5-2025-D3-01-01 | Sustainable energy monitoring | June 2025 | \u20ac12M IA |\n| HORIZON-CL5-2026-D1-01-01 | Climate adaptation solutions | Jan 2026 | \u20ac15M RIA |\n\n**Funding rates**: RIA = 100%, IA = 70% (100% for non-profits)\n\n### Cluster 6 - Food, Bioeconomy, Natural Resources\n\nCluster 6 is **highly relevant** for environmental monitoring aspects:\n- Biodiversity monitoring\n- Ocean and water systems\n- Soil health and ecosystem services\n- Land use and forestry monitoring\n\n| Call ID | Topic | Deadline | Budget |\n|---------|-------|----------|--------|\n| HORIZON-CL6-2025-BIODIV-01-01 | Biodiversity monitoring systems | April 2025 | \u20ac6M RIA |\n| HORIZON-CL6-2025-ZEROPOL-01-01 | Environmental pollution monitoring | May 2025 | \u20ac8M RIA |\n| HORIZON-CL6-2025-CircBio-01-01 | Circular bioeconomy | June 2025 | \u20ac5M IA |\n\n### Multidisciplinary & Cross-Cluster Opportunities\n\nClimate monitoring is **multidisciplinary** - it spans multiple clusters:\n\n| Focus Area | Relevant Clusters | Opportunities |\n|------------|-------------------|---------------|\n| Atmospheric monitoring | CL5 (Climate) | Emission tracking, weather |\n| Ocean/marine monitoring | CL6 (Environment) | Marine ecosystems, sea level |\n| Land use monitoring | CL5 + CL6 | Deforestation, urban sprawl |\n| Biodiversity impacts | CL6 (Bioeconomy) | Species monitoring, ecosystems |\n\n### EU Missions on Climate\n\nTwo EU Missions are highly relevant:\n\n1. **Mission: Adaptation to Climate Change**\n   - HORIZON-MISS-2025-CLIMA-01: Climate resilient regions (\u20ac15M, April 2025)\n   - Focus on monitoring for climate adaptation\n\n2. **Mission: Restore our Ocean and Waters**\n   - HORIZON-MISS-2025-OCEAN-01: Marine monitoring systems (\u20ac10M, May 2025)\n\n### Cross-Cutting Opportunities\n\n- **MSCA Postdoctoral Fellowships**: For individual climate researchers\n- **EIC Pathfinder**: For breakthrough climate monitoring technologies\n\n### How to Get Started\n\n1. **Register** on the EU Funding & Tenders Portal\n2. **Check Work Programmes** for Cluster 5 and Cluster 6 topic descriptions\n3. **Find Partners** using Partner Search tool - consider multidisciplinary consortia\n4. **Review** the EU Green Deal priorities\n\nPortal: https://ec.europa.eu/info/funding-tenders/opportunities/portal/\n\n### Key Requirements\n- **RIA projects**: 100% funding, 3+ partners from 3 EU/Associated countries\n- **IA projects**: 70% funding (100% for non-profits), focus on TRL 5-8\n- **Multidisciplinary**: Consider partners from climate, environmental, and digital sectors\n",
+  "overall_score": 99,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "climate_calls",
+      "description": "Climate change monitoring calls from Cluster 5, Cluster 6, and multidisciplinary opportunities",
+      "fulfillment": 40,
+      "specificity": 24,
+      "accuracy": 25,
+      "actionability": 10,
+      "total": 99,
+      "notes": "Fulfillment: All key components covered; Specificity: Good specificity with call details; Accuracy: Accuracy check: 25/25 points; Actionability: Good actionability with clear guidance",
+      "missing_items": [],
+      "found_items": [
+        "Cluster 5/Climate content",
+        "Cluster 6/Environment content",
+        "Multidisciplinary/cross-cluster aspect",
+        "Call identifiers/details"
+      ]
+    }
+  ],
+  "factual_errors": [],
+  "fix_suggestions": [],
+  "strengths": [
+    "Comprehensive coverage of Cluster 5, Cluster 6, and multidisciplinary",
+    "Rich in specific call details (IDs, deadlines, budgets)",
+    "Factually accurate",
+    "Provides clear guidance for applicants"
+  ],
+  "evaluation_timestamp": "2026-01-21T00:39:47.910134+00:00",
+  "response_metadata": {
+    "source": "sample_excellent"
+  },
+  "fix_history": []
+}

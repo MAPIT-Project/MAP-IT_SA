@@ -478,6 +478,43 @@ For health or cancer researchers, include:
 • EU Mission on Cancer: [Mission Cancer Portal](https://research-and-innovation.ec.europa.eu/funding/funding-opportunities/funding-programmes-and-open-calls/horizon-europe/eu-missions-horizon-europe/eu-mission-cancer_en)
 • MSCA Portal: [MSCA Actions](https://marie-sklodowska-curie-actions.ec.europa.eu/)
 • Search Health calls: [EU Portal - Health Cluster](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search;callCode=null;freeTextSearchKeyword=;matchWholeText=true;typeCodes=1,0;statusCodes=31094501,31094502;programmePeriod=2021%20-%202027;programCcm2Id=43108390;programDivisionCode=43108557)
+
+#### Example: Climate Change Monitoring Research Calls (MULTIDISCIPLINARY)
+
+Climate monitoring research is **inherently multidisciplinary** - it spans MULTIPLE clusters. Include:
+
+**Primary: Cluster 5 - Climate, Energy and Mobility (HORIZON-CL5-*):**
+- Climate science and climate services
+- Earth system observation
+- Climate change mitigation technologies
+- Carbon capture and storage
+- Sustainable energy systems
+
+**Also Critical: Cluster 6 - Food, Bioeconomy, Natural Resources (HORIZON-CL6-*):**
+- Environmental monitoring and biodiversity
+- Ocean and water systems monitoring
+- Soil health and ecosystem services
+- Land use and forestry monitoring
+- Circular economy and resource efficiency
+
+**Relevant EU Missions (ALWAYS mention these for climate monitoring):**
+- **Mission: Adaptation to Climate Change** (HORIZON-MISS-*-CLIMA-*): Climate-resilient regions, monitoring for adaptation
+- **Mission: Restore our Ocean and Waters** (HORIZON-MISS-*-OCEAN-*): Marine monitoring, healthy oceans by 2030
+- **Mission: A Soil Deal for Europe** (HORIZON-MISS-*-SOIL-*): Soil health monitoring, 100 living labs
+
+**Cross-Cutting Opportunities:**
+- **MSCA**: MSCA-PF and MSCA-DN for climate/environmental researchers
+- **EIC Pathfinder**: Breakthrough climate monitoring technologies
+- **ERC**: Frontier research on climate science
+
+🎯 **Climate/Environment Research Resources:**
+• Cluster 5 Work Programme: [Climate, Energy, Mobility](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON)
+• Cluster 6 Work Programme: [Food, Bioeconomy, Natural Resources](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON)
+• EU Mission Climate Adaptation: [Climate Mission Portal](https://research-and-innovation.ec.europa.eu/funding/funding-opportunities/funding-programmes-and-open-calls/horizon-europe/eu-missions-horizon-europe/adaptation-climate-change_en)
+• EU Mission Ocean: [Ocean Mission Portal](https://research-and-innovation.ec.europa.eu/funding/funding-opportunities/funding-programmes-and-open-calls/horizon-europe/eu-missions-horizon-europe/restore-our-ocean-and-waters_en)
+• EU Mission Soil: [Soil Mission Portal](https://research-and-innovation.ec.europa.eu/funding/funding-opportunities/funding-programmes-and-open-calls/horizon-europe/eu-missions-horizon-europe/soil-deal-europe_en)
+• European Green Deal: [Green Deal Priorities](https://commission.europa.eu/strategy-and-policy/priorities-2019-2024/european-green-deal_en)
+• MSCA Portal: [MSCA Actions](https://marie-sklodowska-curie-actions.ec.europa.eu/)
 """
 
     # System prompt for the reasoning LLM
@@ -524,10 +561,12 @@ When user asks to broaden scope after a funding/history analysis (e.g., "what ab
    - For **Clusters and Missions** questions ("What are clusters?", "What are EU Missions?", "Clusters and Missions") → Answer from BUILT-IN KNOWLEDGE (see "Horizon Europe Clusters and EU Missions"), no search needed!
    - For **MSCA** questions ("What is MSCA?", "Marie Curie", "postdoctoral fellowships") → Answer from BUILT-IN KNOWLEDGE (see "Marie Skłodowska-Curie Actions"), no search needed!
    - For **WHY questions about country success rates** ("Why do some countries...", "What factors affect...") → Answer from BUILT-IN KNOWLEDGE (see "Why Some Countries Have Higher Success Rates"), no tool needed!
-   - For **DOMAIN-SPECIFIC CALL SEARCHES** ("health research calls", "cancer funding", "AI research opportunities") → See "Searching for Calls by Research Domain" in BUILT-IN KNOWLEDGE:
-     * Search the PRIMARY cluster (e.g., "health" → Cluster 1, search with keywords="health cancer")
+   - For **DOMAIN-SPECIFIC CALL SEARCHES** ("health research calls", "cancer funding", "AI research opportunities", "climate research", "environment monitoring") → See "Searching for Calls by Research Domain" in BUILT-IN KNOWLEDGE:
+     * Search the PRIMARY cluster (e.g., "health" → Cluster 1, "climate" → Cluster 5)
+     * For **CLIMATE/ENVIRONMENT** queries: Search BOTH Cluster 5 AND Cluster 6 (climate is multidisciplinary)
      * ALWAYS mention MSCA as cross-cutting opportunity (MSCA-PF, MSCA-DN are open to ALL domains)
-     * Check relevant EU Missions (e.g., EU Mission on Cancer for cancer research)
+     * Check relevant EU Missions (e.g., EU Mission on Cancer, Mission Climate Adaptation, Mission Ocean)
+     * Include actionable resource links from BUILT-IN KNOWLEDGE in your final answer
    - For **specific call ID** (user gives ID like HORIZON-*, CREA-*, EIC-*) → use get_call_details (fetches from EU Portal API)
    - For **finding/searching** funding calls by topic → use search_funding_calls
    - For projects → use search_projects
@@ -596,6 +635,17 @@ When answering "What calls are available for [domain] research?" or similar doma
 3. **Check relevant EU Missions** - e.g., EU Mission on Cancer for cancer research
 4. **Include domain-specific resources** from BUILT-IN KNOWLEDGE
 
+**SPECIAL: Climate/Environment Research (MULTIDISCIPLINARY)**
+Climate change monitoring is inherently multidisciplinary. For climate/environment queries, include:
+1. **Cluster 5 calls** (HORIZON-CL5-*): Climate science, energy systems, sustainable transport
+2. **Cluster 6 calls** (HORIZON-CL6-*): Environmental monitoring, biodiversity, ocean, soil
+3. **EU Missions** (MANDATORY for climate):
+   - Mission: Adaptation to Climate Change (HORIZON-MISS-*-CLIMA-*)
+   - Mission: Restore our Ocean and Waters (HORIZON-MISS-*-OCEAN-*)
+   - Mission: A Soil Deal for Europe (HORIZON-MISS-*-SOIL-*)
+4. **MSCA cross-cutting opportunities** (available for ALL domains)
+5. **Links to resources**: See "Climate/Environment Research Resources" in BUILT-IN KNOWLEDGE
+
 ## CRITICAL: Synthesizing Answers
 
 When action is "conclude", you MUST:
@@ -605,6 +655,22 @@ When action is "conclude", you MUST:
 4. If documents mention specific rules/requirements, state them clearly
 5. If you found relevant info, explain it - don't say "results don't contain information"
 6. Structure answers with: Overview → Details → Key Points/Recommendations
+
+**SPECIAL CASE - Domain-Specific Call Searches (climate, health, AI, etc.):**
+When the user asks for calls in a research domain, your conclusion MUST include:
+1. **Primary Cluster calls** found in search results (e.g., Cluster 5 for climate)
+2. **Related Cluster calls** from BUILT-IN KNOWLEDGE (e.g., Cluster 6 for environment when asking about climate)
+3. **Relevant EU Missions** from BUILT-IN KNOWLEDGE (e.g., Mission Climate Adaptation, Mission Ocean)
+4. **MSCA cross-cutting opportunities** (ALWAYS mention: MSCA-PF and MSCA-DN are available for ALL domains)
+5. **Resource links** from BUILT-IN KNOWLEDGE (EU Funding Portal, Work Programmes, Mission Portals)
+6. **Next steps** for applicants (register on portal, check work programmes, find partners)
+
+For **climate/environment** queries specifically, ALWAYS mention that it is MULTIDISCIPLINARY:
+- Cluster 5 (Climate, Energy, Mobility) - primary for climate
+- Cluster 6 (Food, Bioeconomy, Natural Resources) - critical for environmental monitoring
+- EU Missions: Climate Adaptation, Ocean & Waters, Soil
+- MSCA and EIC Pathfinder for cross-cutting opportunities
+- Include links to Climate/Environment Research Resources from BUILT-IN KNOWLEDGE
 
 **SPECIAL CASE - Timeline Generation:**
 When the generate_timeline tool was used, your conclusion MUST include the COMPLETE timeline output:
