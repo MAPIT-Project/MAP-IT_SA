@@ -1948,3 +1948,46 @@ The live API successfully returns:
 - `app/services/agents/tool_aware_agent.py`: Registered tool, added execution routing, response formatting, and guidance
 - `tests/quality/test_prompt_028_country_diversity.py`: Created test file with evaluation framework
 - `docs/prd/MAPIT_QUALITY_PRD.md`: Marked task as complete
+
+
+## 2026-01-21: Prompt 029 - Nordic Green Energy Partner (EVALUATE)
+
+### Task Completed
+Created quality evaluation test for Prompt 029: "I am looking for a potential partner from the Nordic countries for a project on reindustrialization and green energy use. Who are the top 10 players in H2020 and HE? Please provide 1 paragraph descriptions indicating relevant projects they coordinated/partnered."
+
+### Files Created/Modified
+- `tests/quality/test_prompt_029_nordic_green_energy.py` - New test file with:
+  - Four-dimension evaluation framework (Query Fulfillment 40pts, Specificity 25pts, Factual Accuracy 25pts, Actionability 10pts)
+  - Sample responses for offline testing (excellent, partial, poor, wrong countries)
+  - Live API tests
+  - Nordic organization validation (SINTEF, VTT, DTU, Chalmers, RISE, etc.)
+  - Green energy/reindustrialization keyword checking
+  - Project reference detection including bold project names
+  - Country indicator detection (NO, DK, SE, FI, IS) in various formats
+
+### Test Results
+- 8 tests passed (all tests including live API tests)
+- Sample excellent response scored >= 85 (PASS)
+- Sample partial response scored < 85 (as expected)
+- Sample poor response scored < 70 (FAIL)
+- Sample wrong countries response detected non-Nordic organizations
+
+### Live API Evaluation Results
+- **Overall Score**: 92/100 (PASS)
+- **Query Fulfillment**: 38/40 - Lists 10 Nordic organizations with paragraph descriptions
+- **Specificity**: 21/25 - Organization names, types, project counts, funding amounts
+- **Factual Accuracy**: 25/25 - All organizations are from Nordic countries (DK, FI, NO, SE)
+- **Actionability**: 8/10 - CORDIS links, Partner Search portal, collaboration guidance
+
+### API Response Quality
+The live API response includes:
+- 10 Nordic organizations: DTU, VTT, AU, KTH, SINTEF, NTNU, UCPH, LU, Chalmers, AAU
+- Table with project counts, coordination counts, funding amounts
+- Detailed paragraph descriptions per organization
+- Relevant project examples (BiOBreW, ACTPAC, ChargFlex, GRACE, etc.)
+- Next steps for collaboration with EU portal links
+
+### PRD Task Status
+- [x] EVALUATE task completed (score 92/100 PASS)
+- [x] FIX IF NEEDED task completed (N/A - already passes)
+
