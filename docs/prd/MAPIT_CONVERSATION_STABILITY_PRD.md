@@ -205,12 +205,12 @@ TEST_API_URL=http://localhost:8000 pytest tests/test_conversation_scenarios.py -
 - [x] RUN & FIX: Execute scenario. Fix any failures and re-run until passing.
 
 ### Task 015: Memory Overflow Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/context/memory_overflow.yaml` with 15+ steps to exceed STM capacity (12 turns). Verify:
+- [x] CREATE SCENARIO: Create `tests/scenarios/context/memory_overflow.yaml` with 15+ steps to exceed STM capacity (12 turns). Verify:
   1. Recent messages are preserved
   2. Earlier context is summarized in LTM
   3. Quality doesn't catastrophically degrade.
 
-- [ ] RUN & FIX: Execute scenario. Check `ContextValidatorAgent.validate_context_integrity()` for consistency.
+- [x] RUN & FIX: Execute scenario. Check `ContextValidatorAgent.validate_context_integrity()` for consistency.
 
 ### ==========================================================
 ### PHASE 5: Error Recovery Testing
@@ -443,6 +443,8 @@ pytest tests/test_conversation_scenarios.py --cov=app/services/conversation -v
 - [x] `tests/scenarios/follow_up/follow_up_more_details.yaml`
 - [x] `tests/scenarios/follow_up/follow_up_comparison.yaml`
 - [x] `tests/scenarios/context/long_conversation.yaml`
+- [x] `tests/scenarios/context/topic_switching.yaml`
+- [x] `tests/scenarios/context/memory_overflow.yaml`
 - [x] `tests/scenarios/error_recovery/invalid_reference.yaml`
 - [x] `tests/scenarios/concurrent/rapid_messages.yaml`
 

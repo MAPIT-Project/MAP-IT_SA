@@ -1,0 +1,172 @@
+# Scenario: Memory Overflow (15+ turns)
+# Tests STM capacity handling when conversation exceeds 12-turn limit
+# Per PRD Task 015: Tests that recent messages are preserved, earlier context
+# is summarized in LTM, and quality doesn't catastrophically degrade
+
+name: "Memory Overflow"
+description: "Extended conversation to test STM overflow and LTM summarization"
+tags: ["context", "memory", "overflow", "stm", "ltm"]
+stop_on_error: false  # Continue even on errors to test full flow
+
+steps:
+  # Turn 1: Establish initial topic (renewable energy funding)
+  - message: "I'm researching renewable energy funding opportunities"
+    validations:
+      - type: "response_contains_any"
+        name: "acknowledges_topic"
+        patterns: ["renewable", "energy", "funding", "Horizon"]
+      - type: "no_error"
+    delay_ms: 0
+
+  # Turn 2: Explore programmes
+  - message: "Which EU programmes support this area?"
+    validations:
+      - type: "response_contains_any"
+        name: "mentions_programmes"
+        patterns: ["Horizon Europe", "Cluster", "programme"]
+      - type: "no_error"
+    delay_ms: 300
+
+  # Turn 3: Focus on Cluster 5
+  - message: "Tell me about Cluster 5 specifically"
+    validations:
+      - type: "response_contains_any"
+        name: "explains_cluster5"
+        patterns: ["Cluster 5", "Climate", "Energy", "Mobility"]
+      - type: "no_error"
+    delay_ms: 300
+
+  # Turn 4: Project types
+  - message: "What types of projects are funded?"
+    validations:
+      - type: "response_contains_any"
+        name: "mentions_project_types"
+        patterns: ["RIA", "IA", "CSA", "Innovation Action", "Research"]
+      - type: "no_error"
+    delay_ms: 300
+
+  # Turn 5: RIA details
+  - message: "What's the difference between RIA and IA?"
+    validations:
+      - type: "response_contains"
+        name: "explains_ria_ia"
+        patterns: ["RIA", "IA"]
+      - type: "no_error"
+    delay_ms: 300
+
+  # Turn 6: Budget information
+  - message: "What's a typical budget for these projects?"
+    validations:
+      - type: "response_contains_any"
+        name: "mentions_budget"
+        patterns: ["budget", "million", "EUR", "funding"]
+      - type: "no_error"
+    delay_ms: 300
+
+  # Turn 7: Consortium requirements
+  - message: "How many partners do I need in my consortium?"
+    validations:
+      - type: "response_contains_any"
+        name: "mentions_partners"
+        patterns: ["partner", "consortium", "3", "entities", "countries"]
+      - type: "no_error"
+    delay_ms: 300
+
+  # Turn 8: Country participation
+  - message: "Which countries participate most in these projects?"
+    validations:
+      - type: "response_contains_any"
+        name: "mentions_countries"
+        patterns: ["Germany", "France", "Spain", "Italy", "country", "participation"]
+      - type: "no_error"
+    delay_ms: 300
+
+  # Turn 9: Success rates
+  - message: "What are the success rates?"
+    validations:
+      - type: "response_contains_any"
+        name: "mentions_success"
+        patterns: ["success", "rate", "%", "competitive"]
+      - type: "no_error"
+    delay_ms: 300
+
+  # Turn 10: Open calls
+  - message: "Are there any open calls right now?"
+    validations:
+      - type: "tools_used"
+        expected: ["search_funding_calls"]
+      - type: "no_error"
+    delay_ms: 300
+
+  # Turn 11: Deadline information
+  - message: "What are the upcoming deadlines?"
+    validations:
+      - type: "response_contains_any"
+        name: "mentions_deadlines"
+        patterns: ["deadline", "date", "2025", "2026"]
+      - type: "no_error"
+    delay_ms: 300
+
+  # Turn 12: Evaluation criteria (at STM limit)
+  - message: "How are proposals evaluated?"
+    validations:
+      - type: "response_contains_any"
+        name: "mentions_evaluation"
+        patterns: ["evaluation", "criteria", "excellence", "impact"]
+      - type: "no_error"
+    delay_ms: 300
+
+  # ====== BEYOND STM LIMIT (turns 13-17) ======
+
+  # Turn 13: Specific topic - hydrogen
+  - message: "I'm particularly interested in hydrogen projects"
+    validations:
+      - type: "response_contains_any"
+        name: "mentions_hydrogen"
+        patterns: ["hydrogen", "clean", "green", "energy"]
+      - type: "no_error"
+    delay_ms: 300
+
+  # Turn 14: Funded projects
+  - message: "Show me some funded hydrogen projects"
+    validations:
+      - type: "tools_used"
+        expected: ["search_projects"]
+      - type: "no_error"
+    delay_ms: 300
+
+  # Turn 15: Similar projects
+  - message: "Are there similar projects I could learn from?"
+    validations:
+      - type: "response_contains_any"
+        name: "mentions_similar"
+        patterns: ["project", "similar", "example", "funded"]
+      - type: "no_error"
+    delay_ms: 300
+
+  # Turn 16: Test recent context (should work - within STM)
+  - message: "What was the budget of these projects?"
+    validations:
+      - type: "follow_up_resolved"
+        name: "recent_context_works"
+        description: "Should resolve reference to recently discussed hydrogen projects"
+      - type: "no_error"
+    delay_ms: 300
+
+  # Turn 17: Test early context (should be summarized in LTM)
+  - message: "Remind me what we started talking about"
+    validations:
+      - type: "response_contains_any"
+        name: "remembers_initial_topic"
+        patterns: ["renewable", "energy", "funding", "research"]
+        description: "Should remember initial topic from turn 1 via LTM summary"
+      - type: "no_error"
+    delay_ms: 300
+
+final_validations:
+  - type: "context_integrity"
+    name: "memory_overflow_integrity"
+    description: "Context should handle STM overflow gracefully"
+  - type: "quality_non_degradation"
+    name: "quality_stable_after_overflow"
+    description: "Quality should remain stable even after STM overflow"

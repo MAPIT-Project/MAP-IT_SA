@@ -22,27 +22,23 @@ Usage:
     TEST_API_URL=http://localhost:8000 pytest tests/test_conversation_scenarios.py -v
 """
 
-import pytest
 import asyncio
-import os
 import logging
+import os
 from pathlib import Path
-from typing import List, Dict, Any
-import yaml
+
+import pytest
+from tests.agents.context_validator_agent import (
+    ContextValidatorAgent,
+)
 
 # Import test agents
 from tests.agents.conversation_flow_agent import (
     ConversationFlowAgent,
     ConversationScenario,
-    ScenarioResult,
-)
-from tests.agents.context_validator_agent import (
-    ContextValidatorAgent,
-    IntegrityResult,
 )
 from tests.agents.quality_evaluator_agent import (
     QualityEvaluatorAgent,
-    ConversationQualityResult,
 )
 
 logger = logging.getLogger(__name__)
@@ -111,7 +107,7 @@ def quality_evaluator():
 # =============================================================================
 
 
-def load_scenarios_from_directory(directory: Path) -> List[ConversationScenario]:
+def load_scenarios_from_directory(directory: Path) -> list[ConversationScenario]:
     """Load all scenarios from a directory."""
     scenarios = []
 
@@ -128,7 +124,7 @@ def load_scenarios_from_directory(directory: Path) -> List[ConversationScenario]
     return scenarios
 
 
-def load_all_scenarios() -> Dict[str, List[ConversationScenario]]:
+def load_all_scenarios() -> dict[str, list[ConversationScenario]]:
     """Load all scenarios organized by category."""
     categories = {}
 
@@ -142,7 +138,7 @@ def load_all_scenarios() -> Dict[str, List[ConversationScenario]]:
     return categories
 
 
-def get_scenario_ids(scenarios: List[ConversationScenario]) -> List[str]:
+def get_scenario_ids(scenarios: list[ConversationScenario]) -> list[str]:
     """Get test IDs for scenarios."""
     return [s.name.lower().replace(" ", "_") for s in scenarios]
 
@@ -403,6 +399,125 @@ class TestContextPreservation:
         # Log quality trend for debugging
         logger.info(
             f"Long conversation quality: avg={quality_result.average_score:.1f}, "
+            f"trend={quality_result.trend}, turns={len(quality_result.turn_scores)}"
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.skipif(not os.environ.get("DATABASE_URL"), reason="DATABASE_URL not set")
+    async def test_memory_overflow_with_context_validation(
+        self,
+        conversation_agent: ConversationFlowAgent,
+        context_validator: ContextValidatorAgent,
+        quality_evaluator: QualityEvaluatorAgent,
+    ):
+        """
+        Test memory overflow (15+ turns) with context integrity validation.
+
+        Task 015: Memory Overflow Scenario
+        - Runs a 15+ turn conversation to exceed STM capacity (12 turns)
+        - Uses ContextValidatorAgent.validate_context_integrity() for consistency
+        - Verifies recent messages are preserved
+        - Verifies earlier context is summarized in LTM
+        - Validates quality doesn't catastrophically degrade
+        """
+        # 17-turn conversation about renewable energy funding
+        messages = [
+            "I'm researching renewable energy funding opportunities",
+            "Which EU programmes support this area?",
+            "Tell me about Cluster 5 specifically",
+            "What types of projects are funded?",
+            "What's the difference between RIA and IA?",
+            "What's a typical budget for these projects?",
+            "How many partners do I need in my consortium?",
+            "Which countries participate most in these projects?",
+            "What are the success rates?",
+            "Are there any open calls right now?",
+            "What are the upcoming deadlines?",
+            "How are proposals evaluated?",
+            # Beyond STM limit (12 turns)
+            "I'm particularly interested in hydrogen projects",
+            "Show me some funded hydrogen projects",
+            "Are there similar projects I could learn from?",
+            "What was the budget of these projects?",
+            "Remind me what we started talking about",
+        ]
+
+        turns_data = []
+        for i, msg in enumerate(messages):
+            turn = await conversation_agent.send_message(msg)
+            # Allow some flexibility - don't fail on single turn errors
+            if turn.has_error:
+                logger.warning(f"Turn {i + 1} error: {turn.error}")
+            turns_data.append(
+                {
+                    "query": msg,
+                    "response": turn.response_text or f"Error: {turn.error}",
+                }
+            )
+            # Small delay between turns to allow context processing
+            await asyncio.sleep(0.3)
+
+        # Verify we completed all 17 turns (15+ as required)
+        assert len(turns_data) >= 15, f"Expected 15+ turns, got {len(turns_data)}"
+
+        # Give time for storage to complete
+        await asyncio.sleep(1.0)
+
+        # Validate context integrity using ContextValidatorAgent
+        integrity = await context_validator.validate_context_integrity(
+            conversation_agent.conversation_id
+        )
+
+        # Check that context integrity is maintained
+        # Note: For long conversations, we expect Redis to have STM limit (12 turns)
+        # while DB should have all messages
+        logger.info(
+            f"Memory overflow context: DB messages={integrity.db_message_count}, "
+            f"Redis turns={integrity.redis_turn_count}"
+        )
+
+        # DB should have all messages (17 turns * 2 = 34 messages)
+        assert integrity.db_message_count >= 30, (
+            f"DB should have most messages: {integrity.db_message_count}"
+        )
+
+        # Redis STM should be capped at limit (12 turns)
+        # This validates that STM overflow is handled correctly
+        stm_limit = 12
+        assert integrity.redis_turn_count <= stm_limit, (
+            f"Redis STM should be capped at {stm_limit} turns: {integrity.redis_turn_count}"
+        )
+
+        # Evaluate quality across the full conversation
+        quality_result = await quality_evaluator.evaluate_conversation(turns_data)
+
+        # Check for quality degradation (drop of 15+ points)
+        assert not quality_result.degradation_detected, (
+            f"Quality degradation detected at turn {quality_result.degradation_turn}: "
+            f"dropped {quality_result.degradation_amount} points"
+        )
+
+        # Check average quality is reasonable (55+ out of 100 for long conversations)
+        assert quality_result.average_score >= 55, (
+            f"Average quality too low: {quality_result.average_score}/100"
+        )
+
+        # Check that final turn references initial topic (renewable energy)
+        final_response = conversation_agent.message_history[-1].response_text.lower()
+        initial_topic_referenced = (
+            "renewable" in final_response
+            or "energy" in final_response
+            or "funding" in final_response
+            or "research" in final_response
+        )
+        assert initial_topic_referenced, (
+            f"Final turn should reference initial topic (renewable energy funding). "
+            f"Got: {final_response[:200]}..."
+        )
+
+        # Log quality trend for debugging
+        logger.info(
+            f"Memory overflow quality: avg={quality_result.average_score:.1f}, "
             f"trend={quality_result.trend}, turns={len(quality_result.turn_scores)}"
         )
 
