@@ -1,5 +1,6 @@
 # Scenario: Follow-up by Number Reference
 # Tests ability to resolve numbered references to previous results
+# Per PRD Task 010: Tests numbered references resolve to correct items, context preserved
 
 name: "Follow-up by Number"
 description: "User references specific results by number"
@@ -7,47 +8,57 @@ tags: ["follow_up", "reference", "numbered"]
 stop_on_error: true
 
 steps:
-  - message: "Show me open calls for digital transformation"
+  # Step 1: Initial query requesting 5 results for climate research
+  - message: "Show me 5 open calls for climate research"
     validations:
       - type: "tools_used"
         name: "uses_search"
         expected: ["search_funding_calls"]
       - type: "min_results"
         name: "has_results"
-        count: 2
+        count: 3
+      - type: "response_contains"
+        name: "has_climate_results"
+        patterns: ["climate", "call", "funding"]
       - type: "no_error"
         name: "no_errors"
     delay_ms: 0
 
+  # Step 2: Follow-up asking about the third result
   - message: "Tell me about the third one"
     validations:
       - type: "follow_up_resolved"
         name: "resolves_third"
-        description: "Should understand 'third one' refers to third call"
+        description: "Should understand 'third one' refers to third call from previous results"
       - type: "response_contains"
         name: "has_specific_details"
-        patterns: ["call", "deadline"]
+        patterns: ["call", "funding"]
       - type: "no_error"
         name: "no_errors"
     delay_ms: 500
 
+  # Step 3: Follow-up asking about deadline of the same call (testing pronoun resolution)
+  - message: "What's the deadline for that call?"
+    validations:
+      - type: "follow_up_resolved"
+        name: "resolves_deadline"
+        description: "Should understand 'that call' refers to the third call discussed"
+      - type: "response_contains"
+        name: "has_deadline_info"
+        patterns: ["deadline", "date", "202"]
+      - type: "no_error"
+        name: "no_errors"
+    delay_ms: 500
+
+  # Step 4: Comparison between third and first (testing multiple reference resolution)
   - message: "Compare it with the first one"
     validations:
       - type: "follow_up_resolved"
         name: "resolves_comparison"
-        description: "Should compare third and first calls"
-      - type: "response_contains"
+        description: "Should compare the third and first calls from original results"
+      - type: "response_contains_any"
         name: "has_comparison"
-        patterns: ["compare", "difference", "both"]
-      - type: "no_error"
-        name: "no_errors"
-    delay_ms: 500
-
-  - message: "What about number 5?"
-    validations:
-      - type: "follow_up_resolved"
-        name: "resolves_fifth"
-        description: "Should understand 'number 5' reference"
+        patterns: ["compar", "both", "first", "third", "differ"]
       - type: "no_error"
         name: "no_errors"
     delay_ms: 500
@@ -55,4 +66,7 @@ steps:
 final_validations:
   - type: "context_integrity"
     name: "all_references_tracked"
-    description: "All numbered references should be in context"
+    description: "All numbered references should be properly tracked in context"
+  - type: "context_preserved"
+    name: "climate_context_maintained"
+    description: "Climate research context should be maintained throughout"

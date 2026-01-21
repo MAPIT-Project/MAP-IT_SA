@@ -152,14 +152,14 @@ TEST_API_URL=http://localhost:8000 pytest tests/test_conversation_scenarios.py -
 ### ==========================================================
 
 ### Task 010: Numbered Reference Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/follow_up/follow_up_by_number.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/follow_up/follow_up_by_number.yaml` with steps:
   1. "Show me 5 open calls for climate research"
   2. "Tell me about the third one"
   3. "What's the deadline for that call?"
   4. "Compare it with the first one"
   Validations: numbered references resolve to correct items, context preserved.
 
-- [ ] RUN & FIX: Execute scenario. Use `ContextValidatorAgent.validate_follow_up_context()` to debug failures. Fix and re-run.
+- [x] RUN & FIX: Execute scenario. Use `ContextValidatorAgent.validate_follow_up_context()` to debug failures. Fix and re-run.
 
 ### Task 011: "Tell Me More" Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/follow_up/follow_up_more_details.yaml` with steps:

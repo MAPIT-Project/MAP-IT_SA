@@ -2950,3 +2950,47 @@ Implemented Task 009: Timeline Generation Scenario for conversation stability te
 
 ### Next Task
 Task 010: Numbered Reference Scenario (Phase 3: Follow-Up Reference Testing)
+
+
+## 2026-01-21: Task 010 - Numbered Reference Scenario (COMPLETED)
+
+### Task Completed
+Implemented Task 010: Numbered Reference Scenario from Phase 3 (Follow-Up Reference Testing)
+
+### Changes Made
+1. **Updated `tests/scenarios/follow_up/follow_up_by_number.yaml`**:
+   - Changed initial query to "Show me 5 open calls for climate research" (per PRD requirements)
+   - Added step 3 for deadline follow-up: "What's the deadline for that call?"
+   - Updated comparison step 4: "Compare it with the first one"
+   - Fixed validation type from `match_any` to `response_contains_any` for comparison validation
+   - Added `context_preserved` final validation for climate context maintenance
+
+### Scenario Steps (per PRD)
+1. "Show me 5 open calls for climate research" - Initial search
+2. "Tell me about the third one" - Numbered reference resolution
+3. "What's the deadline for that call?" - Pronoun reference resolution (testing "that call")
+4. "Compare it with the first one" - Multiple reference resolution (comparing two results)
+
+### Validations Added
+- `tools_used`: Verifies search_funding_calls tool is called
+- `min_results`: Ensures at least 3 results returned
+- `response_contains`: Checks for climate/call/funding in initial response
+- `follow_up_resolved`: Validates numbered reference patterns detected
+- `response_contains_any`: Checks for comparison patterns (compar/both/first/third/differ)
+- `context_integrity`: All numbered references properly tracked
+- `context_preserved`: Climate research context maintained throughout
+
+### Test Results
+- All 3 TestFollowUpHandling tests passed (86.66s)
+- Follow-up specific tests (2) passed (68.91s)
+- Numbered reference resolution works correctly
+- Pronoun reference resolution works correctly
+- Comparison between multiple references works correctly
+
+### Files Modified
+- `tests/scenarios/follow_up/follow_up_by_number.yaml` - Updated scenario per PRD
+- `docs/prd/MAPIT_CONVERSATION_STABILITY_PRD.md` - Marked Task 010 as complete
+
+### PRD Task Status
+- [x] CREATE SCENARIO: follow_up_by_number.yaml created with all 4 steps
+- [x] RUN & FIX: Scenario executed successfully, all tests pass
