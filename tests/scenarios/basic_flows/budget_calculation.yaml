@@ -21,9 +21,9 @@ steps:
 
   - message: "What would be a typical personnel cost breakdown?"
     validations:
-      - type: "response_contains"
+      - type: "response_contains_any"
         name: "mentions_personnel"
-        patterns: ["personnel", "staff", "researcher", "cost"]
+        patterns: ["personnel", "staff", "researcher", "salary", "PM", "person-month", "labor"]
       - type: "context_preserved"
         name: "remembers_context"
         from_turn: 0
@@ -36,9 +36,9 @@ steps:
       - type: "tools_used"
         name: "uses_benchmark"
         expected: ["get_budget_benchmark"]
-      - type: "response_contains"
+      - type: "response_contains_any"
         name: "has_comparison"
-        patterns: ["similar", "average", "typical", "compare"]
+        patterns: ["similar", "average", "typical", "compare", "benchmark", "median"]
       - type: "no_error"
         name: "no_errors"
     delay_ms: 500

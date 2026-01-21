@@ -130,13 +130,13 @@ TEST_API_URL=http://localhost:8000 pytest tests/test_conversation_scenarios.py -
 - [x] RUN & FIX: Execute scenario. Fix any failures and re-run until passing.
 
 ### Task 008: Budget Calculation Scenario
-- [ ] VERIFY SCENARIO: Verify `tests/scenarios/basic_flows/budget_calculation.yaml` runs correctly with steps:
+- [x] VERIFY SCENARIO: Verify `tests/scenarios/basic_flows/budget_calculation.yaml` runs correctly with steps:
   1. Budget calculation request
   2. Personnel breakdown follow-up
   3. Comparison with similar projects
   Validations: tools_used includes calculate_budget and get_budget_benchmark.
 
-- [ ] RUN & FIX: Execute scenario. Fix any failures and re-run until passing.
+- [x] RUN & FIX: Execute scenario. Fix any failures and re-run until passing.
 
 ### Task 009: Timeline Generation Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/basic_flows/timeline_generation.yaml` with steps:

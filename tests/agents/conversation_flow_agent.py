@@ -494,10 +494,11 @@ class ConversationFlowAgent:
         if "error" in context:
             return False
 
-        # Check in recent messages
-        recent_messages = context.get("recent_messages", [])
-        for msg in recent_messages:
-            content = msg.get("content", "") or msg.get("message", "")
+        # Check in messages (V3 API uses "messages" with "text" field)
+        messages = context.get("messages", []) or context.get("recent_messages", [])
+        for msg in messages:
+            # Handle different field names across API versions
+            content = msg.get("text", "") or msg.get("content", "") or msg.get("message", "")
             if expected_content.lower() in content.lower():
                 return True
 
