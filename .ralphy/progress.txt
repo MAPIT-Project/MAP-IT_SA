@@ -414,3 +414,46 @@ The live API returns a comprehensive ~3600 character response covering:
 - [x] EVALUATE task complete (score 96/100, PASS)
 - [x] FIX IF NEEDED task not needed (score >= 85)
 
+
+## 2026-01-21: Prompt 006 - After Horizon Europe (EVALUATE + FIX IF NEEDED)
+
+### Task Completed
+Created quality evaluation test for Prompt 006: "What will come after Horizon Europe?"
+
+### Files Created/Modified
+- `tests/quality/test_prompt_006_after_he.py` - New test file with:
+  - Four-dimension evaluation framework (Query Fulfillment 40pts, Specificity 25pts, Factual Accuracy 25pts, Actionability 10pts)
+  - Checks for FP10/successor programme mention (15 points)
+  - Checks for timeline information - 2027, 2028, MFF (15 points)
+  - Checks for uncertainty acknowledgement (10 points)
+  - Factual accuracy checks (correct dates, no false certainty)
+  - Sample responses for offline testing (excellent, partial, poor)
+  - Live API tests
+  - Result saved to `tests/quality/results/prompt_006_after_he.json`
+
+### Live API Evaluation Results
+- **Overall Score**: 93/100 (PASS) ✅
+- **Query Fulfillment**: 40/40 - FP10 mentioned, complete timeline, uncertainty acknowledged
+- **Specificity**: 25/25 - Specific dates (2027, 2028, 2025-2026), MFF, policy priorities
+- **Factual Accuracy**: 25/25 - All facts verified correct, appropriate uncertainty
+- **Actionability**: 3/10 - No links to official resources (area for improvement)
+
+### API Response Quality
+The live API returns a comprehensive ~2600 character response covering:
+- FP10 / Tenth Framework Programme as successor
+- Timeline: HE ends 2027, FP10 starts 2028
+- Legislative proposal expected mid-2025 or early 2026
+- Connection to next MFF (2028-2034)
+- Current status: preparation and consultation phase
+- Key focus areas: Missions, simplification, deep tech, EIC
+- Three-pillar structure continuity
+- Uncertainty appropriately acknowledged ("not yet published", "expected", "anticipated")
+
+### Test Results
+- 10 tests passed (6 offline + 4 live API tests)
+- All linting passed
+
+### PRD Task Status
+- [x] EVALUATE task complete (score 93/100, PASS)
+- [x] FIX IF NEEDED task not needed (score >= 85)
+
