@@ -1503,3 +1503,50 @@ The live API returns a comprehensive ~6300 character response covering:
 ### PRD Task Status
 - [x] EVALUATE task complete (score 81/100, NEEDS_REVIEW)
 - [x] FIX IF NEEDED task complete (3 attempts, max reached, final score 81/100)
+
+
+## 2026-01-21: Prompt 022 - Water & Health Urban/Rural (EVALUATE)
+
+### Task Completed
+Created quality evaluation test for Prompt 022: "I am participating in a Horizon project on Urbanisation, Energy Efficiency, Energy poverty and health. I want to build a project on health impact of drinking water and sewage systems in urban and rural communities. Show me state-of-the-art projects in this field, participants from those projects, and any upcoming relevant calls."
+
+### Files Created/Modified
+- `tests/quality/test_prompt_022_water_health.py` - New test file with:
+  - Four-dimension evaluation framework (Query Fulfillment 40pts, Specificity 25pts, Factual Accuracy 25pts, Actionability 10pts)
+  - Complex multi-part query evaluation (3 parts: projects, participants, calls)
+  - Checks for water/health keywords, urban/rural context
+  - Checks for state-of-the-art projects with grant IDs, budgets, coordinators
+  - Checks for participant/partner lists
+  - Checks for upcoming calls with deadlines, budgets, call IDs
+  - Sample responses for offline testing (excellent, partial, poor)
+  - Live API tests
+  - Result saved to `tests/quality/results/prompt_022_water_health.json`
+
+### Live API Evaluation Results
+- **Overall Score**: 67/100 (FAIL) ❌
+- **Query Fulfillment**: 24/40 - Only 2 projects found, limited participant info, need more call details
+- **Specificity**: 9/25 - No detailed participant lists, no specific call IDs
+- **Factual Accuracy**: 25/25 - All facts verified correct
+- **Actionability**: 9/10 - Good resources with EU Portal and CORDIS links
+
+### API Response Quality
+The live API returns a ~6600 character response covering:
+- **2 relevant projects** (OneAquaHealth, StopUP) with grant IDs, budgets, coordinators
+- **Participant guidance** (directs to CORDIS for full partner lists)
+- **Call guidance** by cluster (Cluster 1 Health, Cluster 6 Environment, EU Missions)
+- **Cross-cutting opportunities** (MSCA, ERC)
+- **Actionable links** to EU Funding Portal, CORDIS, Work Programmes
+
+### Issues Identified
+1. Only 2 projects listed instead of more state-of-the-art projects
+2. No detailed participant lists (only coordinator info)
+3. No specific call IDs with deadlines and budgets
+4. Need more projects covering urban/rural dimension
+
+### Test Results
+- 10 tests passed (6 offline + 4 live API tests)
+- All linting passed (ruff check)
+
+### PRD Task Status
+- [x] EVALUATE task complete (score 67/100, FAIL - needs fix)
+- [ ] FIX IF NEEDED task required (score < 85)
