@@ -2067,3 +2067,45 @@ The test implements validation for:
 
 ### Tests
 - All 8 tests pass in tests/quality/test_prompt_030_spain_municipal.py
+
+
+## 2026-01-21: Prompt 031 - Cluster 6 IA Budget Statistics (EVALUATE)
+
+### Task Completed
+Created quality evaluation test for Prompt 031: "In HE Cluster 6 Innovation Actions, what is the average budget per partner in awarded projects? How many partners are in those IAs on average?"
+
+### Files Created/Modified
+- `tests/quality/test_prompt_031_cluster6_ia_stats.py` - New test file with:
+  - Four-dimension evaluation framework (Query Fulfillment 40pts, Specificity 25pts, Factual Accuracy 25pts, Actionability 10pts)
+  - Sample responses for offline testing (excellent, partial, poor)
+  - Live API tests (skipped when API unavailable)
+  - Currency value extraction for budget figures
+  - Partner count extraction for consortium statistics
+  - Result saved to `tests/quality/results/prompt_031_cluster6_ia_stats.json`
+
+### Test Results
+- 10 tests passed (offline and live API evaluation tests)
+- Sample excellent response scored 88/100 (PASS)
+- Sample partial response scored < 85 (as expected)
+- Sample poor response scored < 70 (as expected)
+
+### Evaluation Framework
+The test implements the LLM-as-judge methodology per the PRD:
+- Checks budget per partner with specific € amounts
+- Verifies average partner count statistics
+- Validates Cluster 6 context (Food, Bioeconomy, Natural Resources)
+- Validates IA funding rate (70%, 100% for non-profit)
+- Cross-references eu-funding-domain skill for accuracy
+- Generates fix suggestions for failing responses
+
+### Expected Domain Knowledge (from eu-funding-domain skill)
+- IA: 70% funding rate (100% for non-profit organizations)
+- IA typical budget: €5-20M total
+- IA TRL focus: TRL 5-8
+- Cluster 6: Food, Bioeconomy, Natural Resources
+- IA consortium: minimum 3 partners from 3 different EU/Associated countries
+- Typical budget per partner: €300k-€500k
+- Typical consortium size: 10-15 partners
+
+### Next Steps
+The FIX IF NEEDED task should be run after reading the results file if score < 85

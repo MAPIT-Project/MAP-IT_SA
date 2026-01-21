@@ -1,0 +1,82 @@
+{
+  "prompt_id": "031",
+  "query": "In HE Cluster 6 Innovation Actions, what is the average budget per partner in awarded projects? How many partners are in those IAs on average?",
+  "response": "Based on the analysis of 514 awarded Cluster 6 Innovation Action (IA) projects in Horizon Europe, here are the key statistics regarding consortium size and budget distribution:\n\n### 1. Average Consortium Size\n\n| Metric | Average | Median | Recommended Range |\n|---|---|---|---|\n| **Number of Partners** | **18.4 entities** | 17 entities | **15 \u2013 21 partners** |\n\nCluster 6 IAs are demonstration-focused and generally require large, multidisciplinary consortia to cover all aspects of the value chain, from research (universities) to technology deployment (private companies) and end-user engagement (public bodies, farmers, NGOs).\n\n### 2. Average Budget Per Partner\n\n| Metric | Average | Median | Recommended Range |\n|---|---|---|---|\n| **Total EC Contribution** (per project) | **\u20ac5.7 Million** | \u20ac5.0 Million | \u20ac3.8M \u2013 \u20ac6.2M |\n| **Budget Per Partner** | **\u20ac331,342** | \u20ac294,228 | \u20ac232k \u2013 \u20ac431k |\n\n**Note on Funding Rate:** Innovation Actions (IA) typically have a funding rate of **70%** of eligible costs, except for non-profit organizations (universities, research institutes, NGOs, public bodies), which receive **100%** funding. The average per-partner budget reflects a blended rate due to the high participation of both research and private entities.\n\n### 3. Consortium Composition Patterns\n\nCluster 6 IA projects show a strong focus on balancing research excellence with implementation capabilities. The typical partner distribution is:\n\n| Organization Type | Average Partners/Project | Contribution Share |\n|---|---|---|\n| **Higher Education (HES)** | 5.2 | 32.3% |\n| **Research Organizations (REC)** | 4.8 | 34.1% |\n| **Private Companies (PRC)** | 4.9 | 20.4% |\n| **Other (OTH)** (e.g., NGOs, associations) | 2.6 | 10.7% |\n| **Public Bodies (PUB)** | 0.9 | 2.5% |\n\n**Key Takeaway:** You should aim for a consortium of **16 to 21 partners** across **9 to 11 different EU/Associated Countries**, ensuring roughly equal participation from universities, research centers, and private companies to cover the demonstration and market exploitation aspects required by Innovation Actions.\n\n### Recommended Next Steps\n\nTo ensure your project aligns with successful IAs, you should review the following resources:\n\n\ud83c\udfaf **Getting Started with Horizon Europe:**\n\u2022 Review the [Work Programmes](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON) for Cluster 6\n\u2022 Find partners using [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search)\n\u2022 Browse [Call Calendar](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/calls-calendar)",
+  "overall_score": 96,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "cluster6_ia_stats",
+      "description": "Cluster 6 IA budget per partner and average partner count",
+      "fulfillment": 40,
+      "specificity": 25,
+      "accuracy": 25,
+      "actionability": 6,
+      "total": 96,
+      "notes": "Fulfillment: Both budget per partner and partner count fully covered; Specificity: Good specificity with detailed figures; Accuracy: Accuracy check: 25/25 points; Actionability: Some guidance provided",
+      "missing_items": [],
+      "found_items": [
+        "Budget per partner with specific figures",
+        "Average partner count: [21, 21, 18, 5, 5]"
+      ]
+    }
+  ],
+  "factual_errors": [],
+  "fix_suggestions": [
+    "Improve actionability: Add links to CORDIS/EU Portal, guidance on using statistics for budget planning, and reference to get_budget_benchmark tool"
+  ],
+  "strengths": [
+    "Both budget per partner and partner count fully addressed",
+    "Rich in specific numbers and data",
+    "Factually accurate"
+  ],
+  "evaluation_timestamp": "2026-01-21T15:38:28.077171+00:00",
+  "response_metadata": {
+    "intent_type": "agentic_v3",
+    "confidence": 0.8,
+    "tools_used": [
+      "get_budget_benchmark_1_0",
+      "get_consortium_patterns_1_1"
+    ],
+    "reasoning_steps": [
+      {
+        "step": 1,
+        "thought": "The user requires specific quantitative data for Innovation Actions (IA) within Horizon Europe Cluster 6 (Food, Bioeconomy, Natural Resources, Agriculture & Environment). Specifically, the average budget per partner and the average number of partners. I need to use the statistical benchmarking tools for this.",
+        "action": "call_tools",
+        "tools_called": [
+          "get_budget_benchmark",
+          "get_consortium_patterns"
+        ],
+        "observation": "Budget Benchmark Analysis (514 projects):\n- EU Contribution: \u20ac5.0M median, \u20ac5.7M average\n- Range: \u20ac1.3M - \u20ac17.1M\n- Consortium Size: 17 partners (avg: 18.4)\n- Recommended Budget: \u20ac3.8M - \u20ac6.2M\n- Recomm"
+      },
+      {
+        "step": 2,
+        "thought": "The user requested the average budget per partner and the average consortium size for Cluster 6 (Food, Bioeconomy, Natural Resources, Agriculture & Environment) Innovation Actions (IA). I have run both the budget and consortium pattern tools and the results are consistent and definitive. I will synthesize the key statistics and provide context and recommendations.",
+        "action": "conclude",
+        "tools_called": [],
+        "observation": ""
+      }
+    ],
+    "iterations": 2,
+    "processing_time_ms": 13701.449,
+    "architecture": "simplified_v3",
+    "quality_analysis": {
+      "score": 100,
+      "category": "complete",
+      "confidence": 0.85,
+      "query_type": "budget_benchmark",
+      "missing_elements": [],
+      "deflection_phrases_found": [],
+      "recommendations": [],
+      "elements_found": [
+        "budget_range",
+        "average",
+        "consortium_size",
+        "recommendation"
+      ],
+      "response_length": 2702,
+      "timestamp": "2026-01-21T15:38:28.069436+00:00"
+    }
+  },
+  "fix_history": []
+}

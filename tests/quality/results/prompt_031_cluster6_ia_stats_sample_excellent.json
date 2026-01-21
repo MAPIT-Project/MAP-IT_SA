@@ -1,0 +1,37 @@
+{
+  "prompt_id": "031",
+  "query": "In HE Cluster 6 Innovation Actions, what is the average budget per partner in awarded projects? How many partners are in those IAs on average?",
+  "response": "\n## Cluster 6 Innovation Actions: Budget and Partner Statistics\n\nBased on analysis of **287 funded Innovation Actions in Cluster 6 (Food, Bioeconomy,\nNatural Resources)** from Horizon Europe:\n\n### Budget per Partner\n\n| Metric | Value |\n|--------|-------|\n| **Average budget per partner** | \u20ac412,000 |\n| **Median budget per partner** | \u20ac385,000 |\n| **Range** | \u20ac150,000 - \u20ac850,000 |\n\nThe budget per partner varies based on:\n- Organization type (universities vs SMEs vs large industry)\n- Role in consortium (coordinator typically receives larger share)\n- Work package responsibilities\n\n**Organization Type Breakdown:**\n- Higher Education Institutions (HES): \u20ac380,000 average\n- Research Organizations (REC): \u20ac420,000 average\n- Private companies (PRC): \u20ac450,000 average\n- Public bodies (PUB): \u20ac350,000 average\n\n### Average Partners per Project\n\n| Metric | Value |\n|--------|-------|\n| **Average partners** | 12.3 |\n| **Median partners** | 11 |\n| **Typical range** | 8-18 partners |\n| **Average countries** | 8.5 |\n\n**Consortium Composition Insights:**\n- Most successful IAs have 10-15 partners\n- Industry participation: 35-45% of consortium\n- SME participation: typically 25-35%\n- Academic partners: 40-50%\n\n### Total Project Budgets\n\nFor context, Cluster 6 IAs typically have total budgets of:\n- **Average**: \u20ac5.2 million\n- **Range**: \u20ac3 million to \u20ac12 million\n- **Funding rate**: 70% (100% for non-profit organizations)\n\n### Key Considerations\n\n**Funding Rate:**\nInnovation Actions receive **70% funding** of eligible costs (100% for non-profit\nentities). This affects how budgets are structured across partners.\n\n**Cluster 6 Specifics:**\nCluster 6 focuses on:\n- Sustainable food systems (agri-food)\n- Circular bioeconomy\n- Natural resources management\n- Environmental observation\n\n### Resources\n\n- **CORDIS Database**: https://cordis.europa.eu - Search funded Cluster 6 projects\n- **EU Funding Portal**: https://ec.europa.eu/info/funding-tenders/\n- **Cluster 6 Work Programme**: Check destination-specific budgets and topics\n\n### How to Use This Data\n\nWhen planning your budget:\n1. Use \u20ac350,000-\u20ac450,000 per partner as a baseline\n2. Adjust for organization type and responsibilities\n3. Plan for 10-15 partners for typical IA\n4. Remember: coordinator typically receives 15-20% larger allocation\n5. Consult the `get_budget_benchmark` tool for cluster-specific data\n",
+  "overall_score": 100,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "cluster6_ia_stats",
+      "description": "Cluster 6 IA budget per partner and average partner count",
+      "fulfillment": 40,
+      "specificity": 25,
+      "accuracy": 25,
+      "actionability": 10,
+      "total": 100,
+      "notes": "Fulfillment: Both budget per partner and partner count fully covered; Specificity: Good specificity with detailed figures; Accuracy: Accuracy check: 25/25 points; Actionability: Good actionability with resources and guidance",
+      "missing_items": [],
+      "found_items": [
+        "Budget per partner with specific figures",
+        "Average partner count: [18, 15, 15, 12, 8, 5, 8, 18, 10, 15, 10, 15, 25]"
+      ]
+    }
+  ],
+  "factual_errors": [],
+  "fix_suggestions": [],
+  "strengths": [
+    "Both budget per partner and partner count fully addressed",
+    "Rich in specific numbers and data",
+    "Factually accurate",
+    "Provides useful resources and guidance"
+  ],
+  "evaluation_timestamp": "2026-01-21T15:38:38.892520+00:00",
+  "response_metadata": {
+    "source": "sample_excellent"
+  },
+  "fix_history": []
+}
