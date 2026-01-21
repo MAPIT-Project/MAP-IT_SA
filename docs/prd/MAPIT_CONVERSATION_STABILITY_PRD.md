@@ -275,9 +275,9 @@ TEST_API_URL=http://localhost:8000 pytest tests/test_conversation_scenarios.py -
 ### ==========================================================
 
 ### Task 022: Quality Baseline Measurement
-- [ ] MEASURE: Run all basic_flows scenarios and record quality scores using `QualityEvaluatorAgent.evaluate_conversation()`. Save baseline to `tests/quality/results/conversation_quality_baseline.json`.
+- [x] MEASURE: Run all basic_flows scenarios and record quality scores using `QualityEvaluatorAgent.evaluate_conversation()`. Save baseline to `tests/quality/results/conversation_quality_baseline.json`.
 
-- [ ] DOCUMENT: Create summary of average scores per scenario, identify lowest scoring areas.
+- [x] DOCUMENT: Create summary of average scores per scenario, identify lowest scoring areas.
 
 ### Task 023: Quality Degradation Detection
 - [ ] IMPLEMENT: Add quality degradation detection to `test_conversation_scenarios.py` that fails if quality drops more than 15 points during a conversation.
