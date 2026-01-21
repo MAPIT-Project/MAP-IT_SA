@@ -11,15 +11,16 @@ An advanced agent that can:
 Based on the ReAct (Reasoning + Acting) pattern.
 """
 
-import logging
 import asyncio
 import json
+import logging
 import os
 import re
-from datetime import datetime
-from typing import Dict, Any, List, Optional, Tuple, Callable, Awaitable, AsyncGenerator
+from collections.abc import AsyncGenerator, Awaitable, Callable
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +56,7 @@ class ContextLimits:
 class ContextWindowManager:
     """Manages context window for LLM prompts to prevent overflow."""
 
-    def __init__(self, limits: Optional[ContextLimits] = None):
+    def __init__(self, limits: ContextLimits | None = None):
         self.limits = limits or ContextLimits.from_env()
         self._current_size = 0
 
@@ -111,8 +112,8 @@ class ContextWindowManager:
 
     def format_results_for_context(
         self,
-        results: Dict[str, Any],
-        priority_keys: Optional[List[str]] = None
+        results: dict[str, Any],
+        priority_keys: list[str] | None = None
     ) -> str:
         """Format tool results for inclusion in context, respecting limits."""
         if not results:
@@ -163,9 +164,9 @@ class Tool:
     name: str
     description: str
     category: ToolCategory
-    parameters: Dict[str, Any]
-    examples: List[str] = field(default_factory=list)
-    executor: Optional[Callable[..., Awaitable[Any]]] = None
+    parameters: dict[str, Any]
+    examples: list[str] = field(default_factory=list)
+    executor: Callable[..., Awaitable[Any]] | None = None
     
     def to_prompt_format(self) -> str:
         """Format tool for LLM prompt."""
@@ -177,11 +178,11 @@ class Tool:
 class ToolCall:
     """A planned or executed tool call."""
     tool_name: str
-    parameters: Dict[str, Any]
+    parameters: dict[str, Any]
     reasoning: str = ""
     result: Any = None
     success: bool = False
-    error: Optional[str] = None
+    error: str | None = None
     execution_time_ms: float = 0
 
 
@@ -191,7 +192,7 @@ class ReasoningStep:
     step_number: int
     thought: str
     action: str  # "call_tool", "analyze", "conclude", "compare"
-    tool_calls: List[ToolCall] = field(default_factory=list)
+    tool_calls: list[ToolCall] = field(default_factory=list)
     observation: str = ""
     next_action_needed: bool = True
 
@@ -201,11 +202,11 @@ class AgentPlan:
     """The agent's plan for answering a complex question."""
     query: str
     complexity: str  # "simple", "multi_source", "comparison", "analysis"
-    required_sources: List[str]
-    reasoning_steps: List[ReasoningStep] = field(default_factory=list)
-    final_answer: Optional[str] = None
+    required_sources: list[str]
+    reasoning_steps: list[ReasoningStep] = field(default_factory=list)
+    final_answer: str | None = None
     confidence: float = 0.0
-    sources_used: List[str] = field(default_factory=list)
+    sources_used: list[str] = field(default_factory=list)
 
 
 class ToolAwareAgent:
@@ -1165,6 +1166,83 @@ When the user asks for partners with **municipal ties**, **testbed capabilities*
    - Suggest searching for specific city partnerships in project descriptions
    - Link to EU Partner Search, CORDIS, regional networks (e.g., FEMP for Spanish municipalities)
 
+## CRITICAL: ICT/Technology SME Partner Discovery
+
+When the user asks for **ICT partners**, **technology SMEs**, **sensor/monitoring companies**, or **IoT/data platform providers**:
+
+1. **Use find_experienced_partners with ICT-focused keywords**:
+   - Combine domain keywords with technology-specific terms
+   - Include: "ICT sensors IoT monitoring data platform digital technology automation"
+   - For specific applications, add domain terms (e.g., "water", "agriculture", "environment")
+
+2. **For Nature-based Solutions + ICT/Sensors (water management)** use these keywords:
+   ```
+   find_experienced_partners(
+       topic_keywords="water sensors IoT monitoring smart data platform digital technology agriculture urban environmental",
+       organization_type="SME",
+       min_projects=1,
+       limit=20,
+       programme="both"
+   )
+   ```
+
+3. **For environmental monitoring/sensors** use these keywords:
+   ```
+   find_experienced_partners(
+       topic_keywords="environmental monitoring sensors IoT data platform smart agriculture precision farming water quality",
+       organization_type="SME",
+       min_projects=1,
+       limit=20
+   )
+   ```
+
+4. **CRITICAL: Note about SME classification in CORDIS**:
+   - CORDIS classifies SMEs as **PRC** (Private Company) - there is no separate SME category
+   - When user asks for SMEs, search with `organization_type="SME"` (maps to PRC internally)
+   - In your response, clarify that these are **Private Companies (PRC)** that likely include SMEs
+   - Recommend verifying SME status via the organization's website or EU SME definition check
+
+5. **CRITICAL: Filter out large corporations when user asks for SMEs**:
+   - When results include organizations with **>40 Horizon projects** or **>€20M funding**, these are likely LARGE corporations, NOT SMEs
+   - **Exclude or clearly mark** large corporations like: ATOS, ENGINEERING INGEGNERIA, THALES, SIEMENS, SAP, RINA CONSULTING (66+ projects), F6S (67+ projects), NETCOMPANY (63+ projects)
+   - Prefer organizations with: **1-15 projects**, **€0.5M-€10M funding** - these are likely true SMEs
+   - When presenting results, **SKIP large corporations** and focus on smaller companies that fit the SME profile
+   - If all results are large corporations, explicitly state: "The search returned mainly large corporations. For true SMEs, consider searching with more specific technology keywords or use the EU Partner Search for SME-flagged organizations."
+
+6. **ICT/Technology SME Partner response structure** (USE THIS FORMAT):
+   ```
+   Based on H2020/HE project data, here are potential **ICT SME partners** with sensor/monitoring expertise:
+
+   **Note on SME Classification**: CORDIS doesn't distinguish SMEs from large corporations - all are "PRC" (Private Company). Organizations below are filtered to smaller companies (1-15 projects, <€10M funding) more likely to be true SMEs. Always verify SME status via company websites.
+
+   **1. [ORGANIZATION NAME]** (PRC - likely SME)
+   - **Country**: [XX]
+   - **Relevant Projects**: X projects (Y as coordinator)
+   - **Total Funding**: €X.XM
+   - **ICT/Sensor Expertise**: [Describe sensor/monitoring/IoT capabilities]
+   - **Example Project**: [ACRONYM] - [Brief ICT/sensor application]
+
+   [List 5-10 organizations fitting SME profile]
+   ```
+
+7. **ICT Keyword Mapping by Application Domain**:
+   - **Water/Environment**: sensors, monitoring, IoT, smart water, water quality, environmental data, SCADA, telemetry
+   - **Agriculture**: precision farming, smart agriculture, crop monitoring, soil sensors, irrigation automation, AgriTech
+   - **Urban/Smart City**: urban sensors, smart city, environmental monitoring, air quality, noise monitoring
+   - **Energy**: smart grid, energy monitoring, building automation, HVAC sensors, power quality
+   - **Health**: medical devices, wearables, remote monitoring, mHealth, patient sensors
+
+8. **SME Definition Reminder** (EU criteria):
+   - Staff headcount < 250 employees
+   - Annual turnover ≤ €50 million OR balance sheet total ≤ €43 million
+   - Autonomous (not >25% owned by larger enterprise)
+
+9. **Add actionable guidance for ICT partner verification**:
+   - Explain that CORDIS PRC includes both SMEs and large corporations
+   - Recommend checking organization websites for SME status
+   - Suggest using EU SME self-declaration tool
+   - Link to CORDIS project pages to verify sensor/ICT capabilities from project objectives
+
 ## CRITICAL: Geographic Diversification by Country Groups
 
 When the user asks about **country group diversification**, **geographic diversity patterns**, or **share of projects with partners from specific European regions** (Nordic, South Europe, CEE, Baltic, Western Balkans, EPC, Islands, Western Europe):
@@ -1538,7 +1616,7 @@ What is your next step? Remember: Output ONLY JSON."""
         """
         self.max_iterations = max_iterations
         self.enable_quality_analysis = enable_quality_analysis
-        self.tools: Dict[str, Tool] = {}
+        self.tools: dict[str, Tool] = {}
         self._init_tools()
         self._init_llm()
         self._init_cache()
@@ -1605,8 +1683,8 @@ What is your next step? Remember: Output ONLY JSON."""
         self,
         query: str,
         answer: str,
-        tool_results: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+        tool_results: dict[str, Any]
+    ) -> dict[str, Any] | None:
         """Analyze the quality of a generated response.
 
         Args:
@@ -2343,8 +2421,8 @@ digital_europe, life""",
         self,
         query: str,
         context: str = "",
-        conversation_history: List[Dict] = None
-    ) -> Dict[str, Any]:
+        conversation_history: list[dict] = None
+    ) -> dict[str, Any]:
         """
         Process a complex query using multi-tool reasoning.
 
@@ -2513,8 +2591,8 @@ digital_europe, life""",
         self,
         query: str,
         context: str = "",
-        conversation_history: List[Dict] = None
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+        conversation_history: list[dict] = None
+    ) -> AsyncGenerator[dict[str, Any], None]:
         """
         Process a query and yield events in real-time as reasoning happens.
 
@@ -2736,7 +2814,7 @@ digital_europe, life""",
         
         return 'simple'
     
-    def _identify_required_sources(self, query: str) -> List[str]:
+    def _identify_required_sources(self, query: str) -> list[str]:
         """Identify which data sources are needed."""
         sources = []
         query_lower = query.lower()
@@ -2759,7 +2837,7 @@ digital_europe, life""",
         
         return sources if sources else ['documents']
 
-    def _count_results(self, result: Any) -> Optional[int]:
+    def _count_results(self, result: Any) -> int | None:
         """Count the number of results from a tool response."""
         if result is None:
             return 0
@@ -2780,9 +2858,9 @@ digital_europe, life""",
         self,
         query: str,
         context: str,
-        previous_steps: List[ReasoningStep],
-        tool_results: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+        previous_steps: list[ReasoningStep],
+        tool_results: dict[str, Any]
+    ) -> dict[str, Any] | None:
         """Use LLM to reason about the next step."""
 
         # Check cache for first step only (no previous steps or results)
@@ -2833,7 +2911,7 @@ digital_europe, life""",
                         asyncio.to_thread(self.llm.generate_content, prompt),
                         timeout=llm_timeout
                     )
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     logger.warning(f"⏰ LLM call timed out after {llm_timeout}s, using fallback")
                     return self._fallback_reasoning(query, previous_steps, tool_results)
 
@@ -2882,7 +2960,7 @@ digital_europe, life""",
             logger.error(f"Reasoning step failed: {e}")
             return self._fallback_reasoning(query, previous_steps, tool_results)
 
-    def _fix_malformed_json(self, json_str: str) -> Optional[Dict[str, Any]]:
+    def _fix_malformed_json(self, json_str: str) -> dict[str, Any] | None:
         """Attempt to fix common JSON formatting issues from LLM responses."""
         if not json_str:
             return None
@@ -2919,9 +2997,9 @@ digital_europe, life""",
     def _fallback_reasoning(
         self,
         query: str,
-        previous_steps: List[ReasoningStep],
-        tool_results: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        previous_steps: list[ReasoningStep],
+        tool_results: dict[str, Any]
+    ) -> dict[str, Any]:
         """Fallback reasoning when LLM fails."""
 
         if not previous_steps:
@@ -2958,7 +3036,7 @@ digital_europe, life""",
             'needs_more_info': False
         }
 
-    def _synthesize_from_results(self, query: str, tool_results: Dict[str, Any]) -> str:
+    def _synthesize_from_results(self, query: str, tool_results: dict[str, Any]) -> str:
         """Synthesize a coherent answer from tool results."""
         import json
         content_pieces = []
@@ -3061,7 +3139,7 @@ Per Partner Distribution:
 
                 timeline_parts = []
                 timeline_parts.append("## Project Timeline Generated\n")
-                timeline_parts.append(f"**Project Parameters:**")
+                timeline_parts.append("**Project Parameters:**")
                 timeline_parts.append(f"- Duration: {params.get('duration_months', 36)} months")
                 timeline_parts.append(f"- Action Type: {params.get('action_type', 'RIA')}")
                 timeline_parts.append(f"- Partners: {params.get('num_partners', 8)}")
@@ -3151,7 +3229,7 @@ Per Partner Distribution:
                     content_pieces.append(f"## Similar Projects Search\n\nNo projects found matching: *{query_desc}*")
                 else:
                     similar_parts = []
-                    similar_parts.append(f"## Similar Funded Projects\n")
+                    similar_parts.append("## Similar Funded Projects\n")
                     similar_parts.append(f"**Query:** {query_desc}")
                     if filters:
                         filter_str = ", ".join([f"{k}: {v}" for k, v in filters.items() if v])
@@ -3620,7 +3698,7 @@ Found **{total_found} organizations** with relevant track records:
 
         return intro + "\n\n".join(body_parts)
     
-    async def _execute_tool_calls(self, tool_calls: List[Dict]) -> List[ToolCall]:
+    async def _execute_tool_calls(self, tool_calls: list[dict]) -> list[ToolCall]:
         """Execute multiple tool calls (in parallel when possible).
 
         If speculative execution is enabled, check for pre-computed results first.
@@ -3713,7 +3791,7 @@ Found **{total_found} organizations** with relevant track records:
 
         return results
     
-    async def _execute_single_tool(self, tool_name: str, params: Dict) -> Any:
+    async def _execute_single_tool(self, tool_name: str, params: dict) -> Any:
         """Execute a single tool."""
         
         tool = self.tools.get(tool_name)
@@ -3801,7 +3879,7 @@ Found **{total_found} organizations** with relevant track records:
     
     # ==================== Tool Implementations ====================
 
-    def _extract_cluster_param(self, params: Dict) -> Optional[str]:
+    def _extract_cluster_param(self, params: dict) -> str | None:
         """
         Extract cluster parameter from tool params with fallback alternatives.
         LLM might use different names for the cluster parameter.
@@ -3816,7 +3894,7 @@ Found **{total_found} organizations** with relevant track records:
             logger.debug(f"_extract_cluster_param: extracted '{cluster}' from params")
         return cluster
 
-    async def _tool_get_programme_stats(self, params: Dict) -> Dict:
+    async def _tool_get_programme_stats(self, params: dict) -> dict:
         """Get programme/cluster statistics from graph DB."""
         try:
             from ..data_intelligence.graph_service import GraphSearchService
@@ -3981,7 +4059,7 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Programme stats error: {e}")
             return {"error": str(e)}
     
-    async def _tool_get_country_stats(self, params: Dict) -> Dict:
+    async def _tool_get_country_stats(self, params: dict) -> dict:
         """Get country statistics from graph DB."""
         try:
             from ..data_intelligence.graph_service import GraphSearchService
@@ -4052,7 +4130,7 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Country stats error: {e}")
             return {"error": str(e)}
     
-    async def _tool_compare_programmes(self, params: Dict) -> Dict:
+    async def _tool_compare_programmes(self, params: dict) -> dict:
         """Compare two programmes/clusters."""
         try:
             from ..data_intelligence.graph_service import GraphSearchService
@@ -4077,7 +4155,7 @@ Found **{total_found} organizations** with relevant track records:
                 'ria': 'RIA', 'ia': 'IA', 'csa': 'CSA',
             }
 
-            def get_cluster_code(prog: str) -> Optional[str]:
+            def get_cluster_code(prog: str) -> str | None:
                 prog_lower = prog.lower()
                 for key, code in cluster_map.items():
                     if key in prog_lower:
@@ -4108,7 +4186,7 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Compare programmes error: {e}")
             return {"error": str(e)}
     
-    async def _tool_search_documents(self, params: Dict) -> Dict:
+    async def _tool_search_documents(self, params: dict) -> dict:
         """Search documents using vector search."""
         try:
             from ..vector_search_service import VectorSearchService
@@ -4145,7 +4223,7 @@ Found **{total_found} organizations** with relevant track records:
         except Exception as e:
             return {"error": str(e)}
 
-    async def _tool_search_funding_calls(self, params: Dict) -> Dict:
+    async def _tool_search_funding_calls(self, params: dict) -> dict:
         """Search funding calls."""
         try:
             from ..local_call_search_service import LocalCallSearchService
@@ -4193,7 +4271,7 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Funding calls search error: {e}")
             return {"error": str(e), "calls": []}
     
-    async def _tool_get_call_details(self, params: Dict) -> Dict:
+    async def _tool_get_call_details(self, params: dict) -> dict:
         """Get details for a specific call."""
         try:
             call_id = params.get('call_id', '')
@@ -4285,8 +4363,9 @@ Found **{total_found} organizations** with relevant track records:
             # Last resort: Try direct API fetch via enrichment service
             logger.info(f"🌐 Trying direct EU Portal API fetch for {call_id}...")
             try:
-                from ..call_enrichment_service import CallEnrichmentService
                 from app.core.config import settings
+
+                from ..call_enrichment_service import CallEnrichmentService
                 enrichment = CallEnrichmentService(settings.database_url)
                 api_result = enrichment.get_call_details(call_id, force_refresh=True)
                 if api_result and (api_result.get('topic_code') or api_result.get('title')):
@@ -4336,7 +4415,7 @@ Found **{total_found} organizations** with relevant track records:
             traceback.print_exc()
             return {"error": str(e)}
     
-    async def _tool_search_projects(self, params: Dict) -> Dict:
+    async def _tool_search_projects(self, params: dict) -> dict:
         """Search CORDIS projects using LOCAL database."""
         try:
             from ..local_project_search_service import LocalProjectSearchService
@@ -4373,7 +4452,7 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Project search error: {e}")
             return {"error": str(e), "projects": []}
     
-    async def _tool_find_similar_projects(self, params: Dict) -> Dict:
+    async def _tool_find_similar_projects(self, params: dict) -> dict:
         """Find projects similar to a given project."""
         try:
             from ..data_intelligence.graph_service import GraphSearchService
@@ -4402,7 +4481,7 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Similar projects search error: {e}")
             return {"error": str(e), "projects": []}
 
-    async def _tool_find_semantically_similar_projects(self, params: Dict) -> Dict:
+    async def _tool_find_semantically_similar_projects(self, params: dict) -> dict:
         """Find semantically similar projects using vector embeddings."""
         try:
             from ..local_project_search_service import LocalProjectSearchService
@@ -4424,7 +4503,7 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Semantic similarity search error: {e}")
             return {"error": str(e), "projects": []}
 
-    async def _tool_find_organization_projects(self, params: Dict) -> Dict:
+    async def _tool_find_organization_projects(self, params: dict) -> dict:
         """Find projects by organization."""
         try:
             from ..data_intelligence.graph_service import GraphSearchService
@@ -4453,7 +4532,7 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Organization projects search error: {e}")
             return {"error": str(e), "projects": []}
     
-    async def _tool_get_collaboration_network(self, params: Dict) -> Dict:
+    async def _tool_get_collaboration_network(self, params: dict) -> dict:
         """Get collaboration network for an organization."""
         try:
             from ..data_intelligence.graph_service import GraphSearchService
@@ -4476,7 +4555,7 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Collaboration network error: {e}")
             return {"error": str(e), "partners": []}
     
-    async def _tool_search_by_cluster(self, params: Dict) -> Dict:
+    async def _tool_search_by_cluster(self, params: dict) -> dict:
         """Search projects in a specific cluster."""
         try:
             from ..local_project_search_service import LocalProjectSearchService
@@ -4499,7 +4578,7 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Cluster search error: {e}")
             return {"error": str(e), "projects": []}
 
-    async def _tool_get_budget_benchmark(self, params: Dict) -> Dict:
+    async def _tool_get_budget_benchmark(self, params: dict) -> dict:
         """Get budget benchmarks from funded Horizon Europe projects."""
         try:
             from ..tools.budget_benchmark import BudgetBenchmarkTool
@@ -4525,7 +4604,7 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Budget benchmark error: {e}")
             return {"error": str(e)}
 
-    async def _tool_get_consortium_patterns(self, params: Dict) -> Dict:
+    async def _tool_get_consortium_patterns(self, params: dict) -> dict:
         """Get consortium composition patterns from funded projects."""
         try:
             from ..tools.consortium_patterns import ConsortiumPatternsTool
@@ -4547,7 +4626,7 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Consortium patterns error: {e}")
             return {"error": str(e)}
 
-    async def _tool_analyze_geographic_diversification(self, params: Dict) -> Dict:
+    async def _tool_analyze_geographic_diversification(self, params: dict) -> dict:
         """Analyze geographic diversification of country partners by country groups."""
         try:
             from ..tools.consortium_patterns import GeographicDiversificationTool
@@ -4569,7 +4648,7 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Geographic diversification error: {e}")
             return {"error": str(e)}
 
-    async def _tool_find_experienced_partners(self, params: Dict) -> Dict:
+    async def _tool_find_experienced_partners(self, params: dict) -> dict:
         """Find experienced partners for consortium building."""
         try:
             from ..tools.partner_discovery import PartnerDiscoveryTool
@@ -4594,7 +4673,7 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Partner discovery error: {e}")
             return {"error": str(e)}
 
-    async def _tool_get_similar_funded_projects(self, params: Dict) -> Dict:
+    async def _tool_get_similar_funded_projects(self, params: dict) -> dict:
         """Find funded projects semantically similar to a description."""
         try:
             from ..tools.similar_projects import SimilarProjectsTool
@@ -4620,7 +4699,7 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Similar projects error: {e}")
             return {"error": str(e)}
 
-    async def _tool_analyze_call_history(self, params: Dict) -> Dict:
+    async def _tool_analyze_call_history(self, params: dict) -> dict:
         """Analyze historical funding patterns for Horizon Europe topics.
 
         Supports expand_scope parameter for broader searches (projects USING a technology
@@ -4651,7 +4730,7 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Call history analysis error: {e}")
             return {"error": str(e)}
 
-    async def _tool_calculate_budget(self, params: Dict) -> Dict:
+    async def _tool_calculate_budget(self, params: dict) -> dict:
         """Calculate budget breakdown for a Horizon Europe proposal."""
         try:
             from ..tools.budget_calculator import BudgetCalculatorTool
@@ -4673,7 +4752,7 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Budget calculator error: {e}")
             return {"error": str(e)}
 
-    async def _tool_generate_timeline(self, params: Dict) -> Dict:
+    async def _tool_generate_timeline(self, params: dict) -> dict:
         """Generate project timeline with work packages, deliverables, and milestones."""
         try:
             from ..tools.timeline_generator import TimelineGeneratorTool
@@ -4695,7 +4774,7 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Timeline generator error: {e}")
             return {"error": str(e)}
 
-    async def _tool_search_all_programmes(self, params: Dict) -> Dict:
+    async def _tool_search_all_programmes(self, params: dict) -> dict:
         """Search across all EU funding programmes (Horizon Europe, Erasmus+, Creative Europe, EU4Health, Digital Europe, LIFE)."""
         try:
             from ..tools.multi_programme_search import search_all_programmes_execute
@@ -4716,7 +4795,7 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Multi-programme search error: {e}")
             return {"error": str(e), "success": False}
 
-    async def _tool_recommend_programmes(self, params: Dict) -> Dict:
+    async def _tool_recommend_programmes(self, params: dict) -> dict:
         """Recommend EU funding programmes based on project/activity description."""
         try:
             from ..tools.multi_programme_search import get_programme_recommendations_execute
@@ -4733,7 +4812,7 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Programme recommendations error: {e}")
             return {"error": str(e), "success": False}
 
-    async def _tool_get_programme_info(self, params: Dict) -> Dict:
+    async def _tool_get_programme_info(self, params: dict) -> dict:
         """Get detailed information about EU funding programmes."""
         try:
             from ..tools.multi_programme_search import get_programme_info_execute
@@ -4748,7 +4827,7 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Programme info error: {e}")
             return {"error": str(e), "success": False}
 
-    async def _tool_score_proposal_section(self, params: Dict) -> Dict:
+    async def _tool_score_proposal_section(self, params: dict) -> dict:
         """Score a proposal section using EU Horizon Europe evaluation criteria."""
         try:
             from ..tools.proposal_quality_scorer import score_proposal_section_execute
@@ -4767,7 +4846,7 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Proposal section scoring error: {e}")
             return {"error": str(e), "success": False}
 
-    async def _tool_score_full_proposal(self, params: Dict) -> Dict:
+    async def _tool_score_full_proposal(self, params: dict) -> dict:
         """Score a complete proposal with all three main sections."""
         try:
             from ..tools.proposal_quality_scorer import score_full_proposal_execute
@@ -4786,7 +4865,7 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Full proposal scoring error: {e}")
             return {"error": str(e), "success": False}
 
-    async def _tool_quick_quality_check(self, params: Dict) -> Dict:
+    async def _tool_quick_quality_check(self, params: dict) -> dict:
         """Quick quality check for draft proposal text."""
         try:
             from ..tools.proposal_quality_scorer import quick_quality_check_execute
@@ -4802,7 +4881,7 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Quick quality check error: {e}")
             return {"error": str(e), "success": False}
 
-    async def _tool_validate_budget(self, params: Dict) -> Dict:
+    async def _tool_validate_budget(self, params: dict) -> dict:
         """Validate proposal budget against EU Horizon Europe funding rules."""
         try:
             from ..tools.budget_validator import validate_budget_execute
@@ -4824,7 +4903,7 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Budget validation error: {e}")
             return {"error": str(e), "success": False}
 
-    async def _tool_check_erasmus_eligibility(self, params: Dict) -> Dict:
+    async def _tool_check_erasmus_eligibility(self, params: dict) -> dict:
         """Check Erasmus+ eligibility for an organization."""
         try:
             from ..tools.erasmus_eligibility import check_erasmus_eligibility_execute
@@ -4843,7 +4922,7 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Erasmus+ eligibility check error: {e}")
             return {"error": str(e), "success": False}
 
-    async def _tool_calculate_erasmus_budget(self, params: Dict) -> Dict:
+    async def _tool_calculate_erasmus_budget(self, params: dict) -> dict:
         """Calculate Erasmus+ lump sum budget."""
         try:
             from ..tools.erasmus_budget_calculator import calculate_erasmus_budget_execute
@@ -4868,7 +4947,7 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Erasmus+ budget calculation error: {e}")
             return {"error": str(e), "success": False}
 
-    async def _tool_search_erasmus_templates(self, params: Dict) -> Dict:
+    async def _tool_search_erasmus_templates(self, params: dict) -> dict:
         """Search Erasmus+ Programme Guide for application guidance."""
         try:
             from ..tools.erasmus_template_search import search_erasmus_templates_execute
@@ -4887,10 +4966,12 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Erasmus+ template search error: {e}")
             return {"error": str(e), "success": False}
 
-    async def _tool_check_creative_europe_eligibility(self, params: Dict) -> Dict:
+    async def _tool_check_creative_europe_eligibility(self, params: dict) -> dict:
         """Check Creative Europe eligibility for an organization."""
         try:
-            from ..tools.creative_europe_eligibility import check_creative_europe_eligibility_execute
+            from ..tools.creative_europe_eligibility import (
+                check_creative_europe_eligibility_execute,
+            )
 
             result = await check_creative_europe_eligibility_execute(
                 org_type=params.get('org_type', 'CULTURAL_ORG'),
@@ -4906,10 +4987,12 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Creative Europe eligibility check error: {e}")
             return {"error": str(e), "success": False}
 
-    async def _tool_calculate_creative_europe_budget(self, params: Dict) -> Dict:
+    async def _tool_calculate_creative_europe_budget(self, params: dict) -> dict:
         """Calculate Creative Europe grant budget."""
         try:
-            from ..tools.creative_europe_budget_calculator import calculate_creative_europe_budget_execute
+            from ..tools.creative_europe_budget_calculator import (
+                calculate_creative_europe_budget_execute,
+            )
 
             result = await calculate_creative_europe_budget_execute(
                 action_type=params.get('action_type', 'COOP-SMALL'),
@@ -4926,10 +5009,12 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Creative Europe budget calculation error: {e}")
             return {"error": str(e), "success": False}
 
-    async def _tool_search_creative_europe_templates(self, params: Dict) -> Dict:
+    async def _tool_search_creative_europe_templates(self, params: dict) -> dict:
         """Search Creative Europe documents for application guidance."""
         try:
-            from ..tools.creative_europe_template_search import search_creative_europe_templates_execute
+            from ..tools.creative_europe_template_search import (
+                search_creative_europe_templates_execute,
+            )
 
             result = await search_creative_europe_templates_execute(
                 query=params.get('query', ''),
@@ -4945,7 +5030,7 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Creative Europe template search error: {e}")
             return {"error": str(e), "success": False}
 
-    def _summarize_tool_results(self, tool_calls: List[ToolCall]) -> str:
+    def _summarize_tool_results(self, tool_calls: list[ToolCall]) -> str:
         """Summarize results from tool calls in a human-readable format."""
         summaries = []
 
@@ -5118,7 +5203,7 @@ Found **{total_found} organizations** with relevant track records:
                 return f"## Similar Projects Search\n\nNo projects found matching: *{query_desc}*"
 
             parts = []
-            parts.append(f"## Similar Funded Projects\n")
+            parts.append("## Similar Funded Projects\n")
             parts.append(f"**Query:** {query_desc}")
             if filters:
                 filter_str = ", ".join([f"{k}: {v}" for k, v in filters.items() if v])
@@ -5176,7 +5261,7 @@ Found **{total_found} organizations** with relevant track records:
             gantt = result.get('gantt_data', {})
 
             parts = []
-            parts.append(f"**Project Timeline Generated**")
+            parts.append("**Project Timeline Generated**")
             parts.append(f"- Duration: {params.get('duration_months', 36)} months")
             parts.append(f"- Action Type: {params.get('action_type', 'RIA')}")
             parts.append(f"- Partners: {params.get('num_partners', 8)}")
@@ -5320,7 +5405,7 @@ Found **{total_found} organizations** with relevant track records:
                 parts.append(f"- {notes[0]}")
 
             if proj_count > 0:
-                parts.append(f"\nParticipation Statistics:")
+                parts.append("\nParticipation Statistics:")
                 parts.append(f"- Organizations: {org_count:,}")
                 parts.append(f"- Projects: {proj_count:,}")
                 parts.append(f"- Total Funding: €{total_funding:,.0f}")

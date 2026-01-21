@@ -2250,3 +2250,65 @@ The test implements the LLM-as-judge methodology per the PRD:
 
 ### Next Steps
 The FIX IF NEEDED task should be run to improve the response to achieve score >= 85
+
+---
+
+## 2026-01-21: Prompt 033 FIX IF NEEDED - ICT SME Water Sensors Partner
+
+### Task Completed
+Fixed the Prompt 033 response to achieve score >= 85. Initial score was 84/100 (NEEDS_REVIEW), final score is 87/100 (PASS).
+
+### Issue Identified
+The response was listing large corporations (ENGINEERING INGEGNERIA with 73 projects, F6S with 67 projects, ATOS with 44 projects, NETCOMPANY with 63 projects) instead of true SMEs. CORDIS classifies all private companies as "PRC" without distinguishing SMEs from large corporations.
+
+### Fixes Applied
+
+#### 1. Added ICT/Technology SME Partner Discovery Guidance (tool_aware_agent.py)
+Added new section "CRITICAL: ICT/Technology SME Partner Discovery" to REASONING_PROMPT with:
+- ICT-focused keyword guidance for water/agriculture/environment domains
+- Response structure template emphasizing SME filtering
+- SME definition reminder (EU criteria: <250 employees, ≤€50M turnover)
+- ICT keyword mapping by application domain
+
+#### 2. Added Large Corporation Filtering Guidance (tool_aware_agent.py)
+Added filtering criteria to exclude large corporations when SME is requested:
+- Organizations with >40 Horizon projects likely LARGE corporations
+- Organizations with >€20M funding likely LARGE corporations
+- Named exclusions: ATOS, ENGINEERING INGEGNERIA, THALES, SIEMENS, SAP, RINA CONSULTING, F6S, NETCOMPANY
+- Prefer organizations with 1-15 projects, €0.5M-€10M funding
+
+#### 3. Enhanced CLUSTER_KEYWORDS (partner_discovery.py)
+Added ICT/sensor-related terms to cluster keyword mapping:
+- CLUSTER-4 (Digital): sensor, monitoring, ICT, smart technology, data platform, automation, embedded systems, telemetry, edge computing
+- CLUSTER-6 (Food/Bio): precision agriculture, smart farming, environmental monitoring, water management, nature-based solutions, irrigation, aridity, water quality, soil sensors, agritech
+- CLUSTER-5 (Climate): smart grid, energy monitoring, building automation
+- CLUSTER-1 (Health): medical device, wearable, health monitoring, telemedicine
+
+### Files Modified
+- `app/services/agents/tool_aware_agent.py` - Added ICT/SME partner discovery guidance and large corporation filtering
+- `app/services/tools/partner_discovery.py` - Enhanced CLUSTER_KEYWORDS with ICT/sensor terms
+
+### Test Results
+- 8 tests passed (offline and live API tests)
+- Live API evaluation: 87/100 (PASS)
+
+### Response Quality Improvement
+**Before Fix (Score 84/100):**
+- Listed large corporations: ENGINEERING (73 projects, €29.6M), F6S (67 projects), ATOS (44 projects)
+- Generic ICT companies without sensor/monitoring focus
+
+**After Fix (Score 87/100):**
+- Filtered out large corporations
+- Lists smaller companies more likely to be SMEs: SUITE5 (25 projects, €11.7M), IOTAM (7 projects, €2.4M), AEGIS IT (7 projects, €2.5M)
+- Agent explicitly notes SME classification limitations and filtering criteria
+- Better ICT/sensor relevance in selected organizations
+
+### Evaluation Breakdown
+- Fulfillment: 35/40 - Good partner list with relevant expertise
+- Specificity: 19/25 - SME characteristics mentioned, good country coverage
+- Accuracy: 25/25 - Correctly filtered for smaller companies
+- Actionability: 8/10 - Good partnership guidance and verification steps
+
+### PRD Task Status
+- [x] EVALUATE task was already complete (84/100)
+- [x] FIX IF NEEDED marked complete (87/100 PASS)

@@ -11,22 +11,25 @@ Enhanced with Neo4j graph database integration for:
 - Network centrality scoring
 """
 
-import os
 import logging
-from typing import Optional, Dict, Any, List, Set
+import os
 from datetime import datetime
+from typing import Any
+
 import psycopg2
-from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
+from psycopg2.extras import RealDictCursor
 
 load_dotenv()
 logger = logging.getLogger(__name__)
 
 # Cluster keyword mapping for research area -> cluster inference
+# Note: ICT/sensor keywords can map to multiple clusters based on application domain
 CLUSTER_KEYWORDS = {
     'CLUSTER-1': ['health', 'medical', 'clinical', 'disease', 'patient', 'healthcare',
                   'hospital', 'therapy', 'diagnosis', 'pharmaceutical', 'cancer',
-                  'vaccine', 'drug', 'biomedical', 'genomics', 'personalized medicine'],
+                  'vaccine', 'drug', 'biomedical', 'genomics', 'personalized medicine',
+                  'medical device', 'wearable', 'health monitoring', 'telemedicine'],
     'CLUSTER-2': ['culture', 'democracy', 'social', 'heritage', 'creative', 'inclusive',
                   'society', 'governance', 'media', 'arts', 'humanities', 'SSH',
                   'migration', 'identity', 'citizen', 'participation', 'cohesion',
@@ -36,12 +39,18 @@ CLUSTER_KEYWORDS = {
                   'defence', 'terrorism', 'critical infrastructure', 'surveillance'],
     'CLUSTER-4': ['digital', 'AI', 'artificial intelligence', 'data', 'industry', 'space',
                   'manufacturing', 'robotics', 'computing', 'machine learning', 'quantum',
-                  'electronics', 'semiconductor', 'cloud', 'iot', 'internet of things'],
+                  'electronics', 'semiconductor', 'cloud', 'iot', 'internet of things',
+                  'sensor', 'monitoring', 'ICT', 'smart technology', 'data platform',
+                  'automation', 'embedded systems', 'telemetry', 'edge computing'],
     'CLUSTER-5': ['climate', 'energy', 'mobility', 'transport', 'hydrogen', 'battery',
                   'renewable', 'green', 'carbon', 'solar', 'wind', 'electric vehicle',
-                  'sustainable', 'decarbonization', 'clean energy'],
+                  'sustainable', 'decarbonization', 'clean energy', 'smart grid',
+                  'energy monitoring', 'building automation'],
     'CLUSTER-6': ['food', 'agriculture', 'bioeconomy', 'biodiversity', 'ocean', 'environment',
-                  'soil', 'water', 'forestry', 'marine', 'circular economy', 'farming']
+                  'soil', 'water', 'forestry', 'marine', 'circular economy', 'farming',
+                  'precision agriculture', 'smart farming', 'environmental monitoring',
+                  'water management', 'nature-based solutions', 'irrigation', 'aridity',
+                  'water quality', 'soil sensors', 'agritech']
 }
 
 # Organization type descriptions
@@ -144,7 +153,7 @@ class PartnerDiscoveryTool:
             return None
         return psycopg2.connect(self.db_url)
 
-    def _normalize_country(self, country: Optional[str]) -> Optional[str]:
+    def _normalize_country(self, country: str | None) -> str | None:
         """Normalize country name to code."""
         if not country:
             return None
@@ -154,14 +163,14 @@ class PartnerDiscoveryTool:
             return country_lower.upper()
         return COUNTRY_CODES.get(country_lower, country.upper())
 
-    def _normalize_org_type(self, org_type: Optional[str]) -> Optional[str]:
+    def _normalize_org_type(self, org_type: str | None) -> str | None:
         """Normalize organization type to code."""
         if not org_type:
             return None
         org_lower = org_type.lower().strip()
         return ORG_TYPE_MAP.get(org_lower, org_type.upper())
 
-    def _normalize_cluster(self, cluster: Optional[str]) -> Optional[str]:
+    def _normalize_cluster(self, cluster: str | None) -> str | None:
         """Normalize cluster code.
 
         Handles various formats:
@@ -179,7 +188,7 @@ class PartnerDiscoveryTool:
         cluster_upper = cluster.upper().replace(' ', '').replace('-', '')
         return CLUSTER_MAP.get(cluster_upper, cluster.upper())
 
-    def _infer_clusters_from_keywords(self, keywords: str) -> List[str]:
+    def _infer_clusters_from_keywords(self, keywords: str) -> list[str]:
         """
         Infer relevant Horizon Europe clusters from research keywords.
 
@@ -197,13 +206,13 @@ class PartnerDiscoveryTool:
     def _find_partners_graph(
         self,
         topic_keywords: str,
-        country: Optional[str] = None,
-        organization_type: Optional[str] = None,
-        cluster: Optional[str] = None,
+        country: str | None = None,
+        organization_type: str | None = None,
+        cluster: str | None = None,
         min_projects: int = 2,
         limit: int = 20,
         include_2hop: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Find partners using Neo4j graph database.
 
@@ -225,7 +234,7 @@ class PartnerDiscoveryTool:
             logger.info(f"📊 Graph partner search: keywords='{topic_keywords}', clusters={clusters_to_search}")
 
             all_partners = []
-            seen_org_names: Set[str] = set()
+            seen_org_names: set[str] = set()
 
             for cluster_code in clusters_to_search[:2]:  # Limit to top 2 clusters
                 # Get partner suggestions from graph
@@ -348,13 +357,13 @@ class PartnerDiscoveryTool:
 
     def _find_2hop_partners(
         self,
-        seed_partners: List[Dict],
-        seen_names: Set[str],
-        country: Optional[str],
-        organization_type: Optional[str],
+        seed_partners: list[dict],
+        seen_names: set[str],
+        country: str | None,
+        organization_type: str | None,
         min_projects: int,
         limit: int = 10
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Find 2-hop partners (partners of partners).
 
@@ -376,7 +385,7 @@ class PartnerDiscoveryTool:
         relaxed_min = min(min_projects, 2)
 
         # Track collaboration strength for ranking
-        partner_strength: Dict[str, int] = {}
+        partner_strength: dict[str, int] = {}
 
         for seed in seed_partners[:5]:  # Use top 5 seeds for better coverage
             seed_name = seed.get('name', '')
@@ -472,7 +481,7 @@ class PartnerDiscoveryTool:
         organization_name: str,
         depth: int = 1,
         limit: int = 30
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get the collaboration network for a specific organization.
 
@@ -544,15 +553,15 @@ class PartnerDiscoveryTool:
     def find_partners(
         self,
         topic_keywords: str,
-        country: Optional[str] = None,
-        organization_type: Optional[str] = None,
-        cluster: Optional[str] = None,
+        country: str | None = None,
+        organization_type: str | None = None,
+        cluster: str | None = None,
         min_projects: int = 2,
-        role_filter: Optional[str] = None,
+        role_filter: str | None = None,
         limit: int = 20,
         include_2hop: bool = True,
-        programme: Optional[str] = None
-    ) -> Dict[str, Any]:
+        programme: str | None = None
+    ) -> dict[str, Any]:
         """
         Find organizations with proven track records in Horizon Europe and/or H2020 projects.
 
@@ -592,15 +601,15 @@ class PartnerDiscoveryTool:
     def _find_partners_hybrid(
         self,
         topic_keywords: str,
-        country: Optional[str] = None,
-        organization_type: Optional[str] = None,
-        cluster: Optional[str] = None,
+        country: str | None = None,
+        organization_type: str | None = None,
+        cluster: str | None = None,
         min_projects: int = 2,
-        role_filter: Optional[str] = None,
+        role_filter: str | None = None,
         limit: int = 20,
         include_2hop: bool = True,
-        programme: Optional[str] = None
-    ) -> Dict[str, Any]:
+        programme: str | None = None
+    ) -> dict[str, Any]:
         """
         Hybrid partner discovery combining Graph and SQL sources.
 
@@ -746,14 +755,14 @@ class PartnerDiscoveryTool:
     def _find_partners_sql(
         self,
         topic_keywords: str,
-        country_code: Optional[str] = None,
-        org_type_code: Optional[str] = None,
-        cluster_code: Optional[str] = None,
+        country_code: str | None = None,
+        org_type_code: str | None = None,
+        cluster_code: str | None = None,
         min_projects: int = 2,
-        role_filter: Optional[str] = None,
+        role_filter: str | None = None,
         limit: int = 20,
-        programme: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        programme: str | None = None
+    ) -> list[dict[str, Any]]:
         """
         SQL-based partner discovery with precise keyword matching.
 
@@ -943,11 +952,11 @@ class PartnerDiscoveryTool:
 
     def _merge_partner_results(
         self,
-        graph_partners: List[Dict[str, Any]],
-        sql_partners: List[Dict[str, Any]],
+        graph_partners: list[dict[str, Any]],
+        sql_partners: list[dict[str, Any]],
         topic_keywords: str = "",
         limit: int = 20
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Merge and deduplicate partner results from Graph and SQL sources.
 
@@ -964,13 +973,13 @@ class PartnerDiscoveryTool:
         k = 60  # RRF constant
 
         # Build name -> partner mapping for deduplication
-        partner_map: Dict[str, Dict[str, Any]] = {}
+        partner_map: dict[str, dict[str, Any]] = {}
 
         # Track RRF scores
-        rrf_scores: Dict[str, float] = {}
+        rrf_scores: dict[str, float] = {}
 
         # Build SQL lookup for enrichment
-        sql_by_name: Dict[str, Dict[str, Any]] = {}
+        sql_by_name: dict[str, dict[str, Any]] = {}
         for partner in sql_partners:
             name = partner.get('name', '').upper().strip()
             if name:
@@ -1052,7 +1061,7 @@ class PartnerDiscoveryTool:
 
     def _enrich_graph_partners_with_sql(
         self,
-        partners_to_enrich: List[Dict[str, Any]],
+        partners_to_enrich: list[dict[str, Any]],
         topic_keywords: str
     ) -> None:
         """
@@ -1148,9 +1157,9 @@ class PartnerDiscoveryTool:
 
     def _generate_insights(
         self,
-        partners: List[Dict],
+        partners: list[dict],
         keywords: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate aggregated insights from results."""
         if not partners:
             return {}
@@ -1181,11 +1190,11 @@ class PartnerDiscoveryTool:
 
     def _generate_search_tips(
         self,
-        partners: List[Dict],
+        partners: list[dict],
         keywords: str,
-        country: Optional[str],
-        organization_type: Optional[str] = None
-    ) -> List[str]:
+        country: str | None,
+        organization_type: str | None = None
+    ) -> list[str]:
         """Generate helpful search tips."""
         tips = []
 
@@ -1211,7 +1220,7 @@ class PartnerDiscoveryTool:
 
         return tips
 
-    def _get_fallback_response(self, keywords: str) -> Dict[str, Any]:
+    def _get_fallback_response(self, keywords: str) -> dict[str, Any]:
         """Return fallback when database unavailable."""
         return {
             "success": False,
@@ -1230,7 +1239,7 @@ class PartnerDiscoveryTool:
 
 
 # Async wrapper for tool orchestrator compatibility
-async def find_experienced_partners_execute(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+async def find_experienced_partners_execute(params: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
     """
     Execute partner discovery tool.
 
@@ -1285,7 +1294,7 @@ async def find_experienced_partners_execute(params: Dict[str, Any], context: Dic
     )
 
 
-async def get_collaboration_network_execute(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+async def get_collaboration_network_execute(params: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
     """
     Get the collaboration network for a specific organization.
 
