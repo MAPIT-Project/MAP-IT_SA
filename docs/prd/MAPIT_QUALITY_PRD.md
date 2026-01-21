@@ -94,9 +94,9 @@ Run with: `./ralphy.sh --prd MAPIT_QUALITY_PRD.md`
 - [x] FIX IF NEEDED: Read `tests/quality/results/prompt_007_health_calls.json`. If score < 85: check `mapit-tools` skill for `search_funding_calls` tool patterns, fix and re-evaluate until passing or 3 attempts.
 
 ### Prompt 008: AI Research Calls
-- [ ] EVALUATE: Run prompt "I am working in AI and machine learning research. What are the upcoming calls relevant for me?" through MAPIT. Use `eval-orchestrator` subagent. Must include Cluster 4 Digital calls and potentially cross-cluster opportunities. Save result to `tests/quality/results/prompt_008_ai_calls.json`.
+- [x] EVALUATE: Run prompt "I am working in AI and machine learning research. What are the upcoming calls relevant for me?" through MAPIT. Use `eval-orchestrator` subagent. Must include Cluster 4 Digital calls and potentially cross-cluster opportunities. Save result to `tests/quality/results/prompt_008_ai_calls.json`.
 
-- [ ] FIX IF NEEDED: Read `tests/quality/results/prompt_008_ai_calls.json`. If score < 85: fix and re-evaluate until passing or 3 attempts.
+- [x] FIX IF NEEDED: Read `tests/quality/results/prompt_008_ai_calls.json`. If score < 85: fix and re-evaluate until passing or 3 attempts.
 
 ### Prompt 009: Climate Change Monitoring Calls
 - [ ] EVALUATE: Run prompt "I am working in climate change monitoring. What are the upcoming calls relevant for me?" through MAPIT. Use `eval-orchestrator` subagent. Must include Cluster 5 and Cluster 6 calls, mention multidisciplinarity. Save result to `tests/quality/results/prompt_009_climate_calls.json`.

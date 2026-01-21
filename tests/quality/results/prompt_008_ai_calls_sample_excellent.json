@@ -1,0 +1,38 @@
+{
+  "prompt_id": "008",
+  "query": "I am working in AI and machine learning research. What are the upcoming calls relevant for me?",
+  "response": "\n## Relevant Funding Opportunities for AI and Machine Learning Research\n\nBased on your research focus in AI and machine learning, here are the relevant calls:\n\n### Cluster 4 - Digital, Industry and Space\n\nCluster 4 is the primary destination for AI/ML research in Horizon Europe. It covers:\n- Artificial Intelligence and Robotics\n- Next Generation Computing\n- Data and Cloud Technologies\n- Cybersecurity\n\n#### Open/Upcoming Calls:\n\n| Call ID | Topic | Deadline | Budget |\n|---------|-------|----------|--------|\n| HORIZON-CL4-2025-HUMAN-01-01 | Trustworthy AI systems | April 2025 | \u20ac10M RIA |\n| HORIZON-CL4-2025-DATA-01-02 | AI for data analytics | May 2025 | \u20ac8M RIA |\n| HORIZON-CL4-2025-DIGITAL-01-03 | Edge AI computing | June 2025 | \u20ac12M IA |\n| HORIZON-CL4-2025-TWIN-01-01 | Digital twins with AI | April 2025 | \u20ac15M IA |\n\n**Funding rates**: RIA = 100%, IA = 70% (100% for non-profits)\n\n### Cross-Cluster AI Opportunities\n\nAI/ML is **cross-cutting** - applicable across multiple clusters:\n\n| Cluster | AI Application | Example Topics |\n|---------|----------------|----------------|\n| Cluster 1 (Health) | AI for diagnostics | Medical imaging, drug discovery |\n| Cluster 5 (Climate) | AI for climate modeling | Weather prediction, energy optimization |\n| Cluster 6 (Food) | AI in agriculture | Precision farming, crop monitoring |\n\n### EIC Pathfinder (for breakthrough AI innovations)\n\nIf your AI research involves novel approaches at low TRL:\n- **EIC Pathfinder Open**: TRL 1-4, \u20ac3-4M, 100% funding\n- Suitable for high-risk/high-gain breakthrough AI research\n- Topics: Neuromorphic computing, quantum ML, explainable AI\n\n### MSCA Opportunities (Cross-Cutting)\n\nMarie Sk\u0142odowska-Curie Actions support AI researchers:\n- **MSCA-PF-2025**: Postdoctoral Fellowships, September 2025, \u20ac200-300K\n- **MSCA-DN-2025**: Doctoral Networks, November 2025, \u20ac2-4M\n- Both support AI/ML research under any thematic area\n\n### How to Get Started\n\n1. **Register** on the EU Funding & Tenders Portal\n2. **Check Work Programme** for Cluster 4 topics and eligibility\n3. **Find Partners** using Partner Search tool\n4. **Review** Cluster 4 Work Programme 2025 (Destinations: Human-centric AI, Data)\n\nPortal: https://ec.europa.eu/info/funding-tenders/opportunities/portal/\n\n### Key Requirements\n- **RIA projects**: 100% funding, 3+ partners from 3 EU/Associated countries\n- **IA projects**: 70% funding (100% for non-profits), focus on TRL 5-8\n- **EIC Pathfinder**: Individual or small consortium, breakthrough research\n",
+  "overall_score": 97,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "ai_calls",
+      "description": "AI/ML research calls and cross-cluster opportunities",
+      "fulfillment": 40,
+      "specificity": 24,
+      "accuracy": 25,
+      "actionability": 8,
+      "total": 97,
+      "notes": "Fulfillment: All key components covered; Specificity: Good specificity with call details; Accuracy: Accuracy check: 25/25 points; Actionability: Good actionability with clear guidance",
+      "missing_items": [],
+      "found_items": [
+        "Cluster 4/Digital/AI content",
+        "Cross-cluster/EIC opportunities",
+        "Call identifiers/details"
+      ]
+    }
+  ],
+  "factual_errors": [],
+  "fix_suggestions": [],
+  "strengths": [
+    "Comprehensive coverage of Cluster 4 and cross-cluster AI",
+    "Rich in specific call details (IDs, deadlines, budgets)",
+    "Factually accurate",
+    "Provides clear guidance for applicants"
+  ],
+  "evaluation_timestamp": "2026-01-21T00:31:09.124919+00:00",
+  "response_metadata": {
+    "source": "sample_excellent"
+  },
+  "fix_history": []
+}

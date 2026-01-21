@@ -1,0 +1,78 @@
+{
+  "prompt_id": "008",
+  "query": "I am working in AI and machine learning research. What are the upcoming calls relevant for me?",
+  "response": "As an AI and Machine Learning researcher, your opportunities exist primarily within Horizon Europe **Pillar II (Cluster 4)** for collaborative projects and **Pillar I (ERC, MSCA)** for individual grants. We have identified several upcoming opportunities, including highly strategic, large-scale calls.\n\n### 1. Major Strategic Opportunity (EIC/Flagship)\n\nOne significant upcoming opportunity is offered by the European Innovation Council (EIC) under its Challenge-Driven framework. This type of call typically funds high-risk, high-impact breakthroughs in technology.\n\n| ID | Title | Programme | Deadline | Focus |\n|---|---|---|---|---|\n| **HORIZON-EIC-2026-AIC-01** | Accelerating Physical AI: Embodied Intelligence for the Next Frontier of AI-Powered Robotics | EIC Pathfinder | February 2026 | Physical AI, Robotics, Multimodal Perception, Trustworthy AI (expected total budget EUR 219M) |\n\n### 2. Cluster 4: Digital, Industry & Space\n\nThe primary source for collaborative Research and Innovation Actions (RIA) and Innovation Actions (IA) in your field is **Cluster 4**. Upcoming calls usually focus on:\n\n*   **Next Generation Computing:** Quantum AI, trustworthy data infrastructure, edge AI devices.\n*   **AI for Manufacturing:** Integrating AI/ML into production lines (Industry 5.0).\n*   **Trustworthy AI:** Implementing the EU AI Act, ensuring safety, robustness, and ethics in AI applications.\n*   **Digital Twins and Robotics:** Advanced perception and autonomy systems.\n\n*To find specific topics, look for Call IDs starting with `HORIZON-CL4-*` in the upcoming 2025/2026 Work Programmes.*\n\n### 3. Cross-Cutting Funding for Individual Researchers (Pillar I)\n\nCrucially, as a researcher, you are also eligible for the thematic-neutral funding schemes, which support excellence in any field, including AI and ML:\n\n#### A. Marie Sk\u0142odowska-Curie Actions (MSCA)\n\nMSCA funds researcher mobility, training, and career development. These calls are open to proposals on AI/ML research in any application domain.\n\n| Action | Focus | Eligibility | Typical Deadline |\n|---|---|---|---|\n| **MSCA Postdoctoral Fellowships (PF)** | Support experienced researchers (PhD holders) to conduct research abroad. | PhD holders (or 4+ years research experience) | September (Annual) |\n| **MSCA Doctoral Networks (DN)** | Fund collaborative training networks for PhD candidates across sectors. | Consortium (Min 3 partners) | November (Annual) |\n| **MSCA Staff Exchanges (SE)** | Short-term secondments for staff to transfer knowledge. | Consortium (Min 3 partners) | February/March (Annual) |\n\n#### B. European Research Council (ERC) Grants\n\nERC grants support ground-breaking, high-risk, high-gain frontier research conducted by excellent Principal Investigators (PIs) in any field (including theoretical and applied AI/ML).\n\n| Grant Type | PI Profile | Focus | Typical Funding (Max) |\n|---|---|---|---|\n| **Starting Grant (StG)** | 2-7 years post-PhD | Establishing independence | \u20ac1.5 Million (5 years) |\n| **Consolidator Grant (CoG)** | 7-12 years post-PhD | Consolidating research independence | \u20ac2 Million (5 years) |\n| **Advanced Grant (AdG)** | Established research leaders | Major research breakthroughs | \u20ac2.5 Million (5 years) |\n\n### Actionable Guidance\n\nTo prepare for these upcoming calls, we recommend the following steps:\n\n\ud83c\udfaf **Getting Started with Horizon Europe:**\n\u2022 Register on [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)\n\u2022 Review the [Work Programmes](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON) for **Cluster 4** and **EIC**.\n\u2022 Search for similar funded AI projects using [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search) to identify potential consortium members.\n\u2022 Check the [Call Calendar](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/calls-calendar) for precise deadlines.",
+  "overall_score": 98,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "ai_calls",
+      "description": "AI/ML research calls and cross-cluster opportunities",
+      "fulfillment": 40,
+      "specificity": 25,
+      "accuracy": 25,
+      "actionability": 8,
+      "total": 98,
+      "notes": "Fulfillment: All key components covered; Specificity: Good specificity with call details; Accuracy: Accuracy check: 25/25 points; Actionability: Good actionability with clear guidance",
+      "missing_items": [],
+      "found_items": [
+        "Cluster 4/Digital/AI content",
+        "Cross-cluster/EIC opportunities",
+        "Call identifiers/details"
+      ]
+    }
+  ],
+  "factual_errors": [],
+  "fix_suggestions": [],
+  "strengths": [
+    "Comprehensive coverage of Cluster 4 and cross-cluster AI",
+    "Rich in specific call details (IDs, deadlines, budgets)",
+    "Factually accurate",
+    "Provides clear guidance for applicants"
+  ],
+  "evaluation_timestamp": "2026-01-21T00:31:36.802190+00:00",
+  "response_metadata": {
+    "intent_type": "agentic_v3",
+    "confidence": 0.8,
+    "tools_used": [
+      "search_funding_calls_1_0"
+    ],
+    "reasoning_steps": [
+      {
+        "step": 1,
+        "thought": "The user is an AI/Machine Learning researcher looking for upcoming calls. AI/ML primarily falls under Cluster 4 (Digital, Industry & Space). I need to search for open calls using relevant keywords. I must also mention MSCA and ERC opportunities, as they are cross-cutting and thematic-neutral, crucial for individual researchers.",
+        "action": "call_tools",
+        "tools_called": [
+          "search_funding_calls"
+        ],
+        "observation": "Found 8 funding call(s)"
+      },
+      {
+        "step": 2,
+        "thought": "The user is an AI/Machine Learning researcher seeking upcoming funding calls. AI/ML primarily falls under Horizon Europe Cluster 4 (Digital, Industry & Space) and the EIC. The initial search found 8 results, including a highly strategic EIC call. I must synthesize this, highlight specific Cluster 4 areas (even if detailed results are not visible in the snippet), and critically, include the thematic-neutral MSCA and ERC options as required by the built-in knowledge.",
+        "action": "conclude",
+        "tools_called": [],
+        "observation": ""
+      }
+    ],
+    "iterations": 2,
+    "processing_time_ms": 15658.626,
+    "architecture": "simplified_v3",
+    "quality_analysis": {
+      "score": 100,
+      "category": "complete",
+      "confidence": 0.85,
+      "query_type": "general",
+      "missing_elements": [],
+      "deflection_phrases_found": [],
+      "recommendations": [],
+      "elements_found": [
+        "answer",
+        "context"
+      ],
+      "response_length": 4040,
+      "timestamp": "2026-01-21T00:31:36.797492+00:00"
+    }
+  },
+  "fix_history": []
+}
