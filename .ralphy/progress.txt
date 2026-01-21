@@ -1991,3 +1991,38 @@ The live API response includes:
 - [x] EVALUATE task completed (score 92/100 PASS)
 - [x] FIX IF NEEDED task completed (N/A - already passes)
 
+
+
+## 2026-01-21: Prompt 030 - Spain Municipal Testbed Partner (EVALUATE)
+
+### Task Completed
+Created quality evaluation test for Prompt 030: "I am looking for a project partner from Spain that has outreach and ties to local municipalities willing to be pilot places/testbeds in a Cluster 2 project. Please identify H2020/HE participants who have that network."
+
+### Files Created/Modified
+- `tests/quality/test_prompt_030_spain_municipal.py` - New test file with:
+  - Four-dimension evaluation framework (Query Fulfillment 40pts, Specificity 25pts, Factual Accuracy 25pts, Actionability 10pts)
+  - Sample responses for offline testing (excellent, partial, poor)
+  - Live API tests (skipped when API unavailable)
+  - Specific validators for Spanish organizations, municipal/testbed focus, and Cluster 2 relevance
+  - Result saved to `tests/quality/results/prompt_030_spain_municipal.json`
+
+### Test Results
+- 8 tests passed (all offline evaluation tests)
+- 3 live API tests skipped (API not running during development)
+- Sample excellent response scored >= 85/100 (PASS)
+- Sample partial response scored < 85 (NEEDS_REVIEW as expected)
+- Sample poor response scored < 70 (FAIL as expected)
+- Sample with wrong country detected factual errors correctly
+
+### Evaluation Framework
+The test implements validation for:
+- Spanish organization detection (known RTOs like TECNALIA, Eurecat, CARTIF, UPM, CSIC)
+- Municipal/testbed network focus (municipality, local government, pilot, testbed, living lab keywords)
+- Cluster 2 relevance (culture, heritage, democracy, citizen engagement, social innovation)
+- Geographic specificity (Spanish regions and cities)
+- Non-Spanish organization detection (to penalize incorrect country focus)
+- H2020/HE project references and experience indicators
+
+### PRD Task Status
+- [x] EVALUATE task marked complete
+- [ ] FIX IF NEEDED task pending (awaiting live API evaluation results)

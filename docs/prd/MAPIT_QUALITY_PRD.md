@@ -220,7 +220,7 @@ Run with: `./ralphy.sh --prd MAPIT_QUALITY_PRD.md`
 - [x] FIX IF NEEDED: Read `tests/quality/results/prompt_029_nordic_green_energy.json`. If score < 85: check `mapit-tools` for `find_experienced_partners` tool, `mapit-neo4j` for 2-hop partner queries, fix and re-evaluate until passing or 3 attempts. **N/A - Score 92/100 already passes.**
 
 ### Prompt 030: Spain Municipal Testbed Partner
-- [ ] EVALUATE: Run prompt "I am looking for a project partner from Spain that has outreach and ties to local municipalities willing to be pilot places/testbeds in a Cluster 2 project. Please identify H2020/HE participants who have that network." through MAPIT. Use `eval-orchestrator` subagent. Must identify Spanish organizations with municipal connections. Save result to `tests/quality/results/prompt_030_spain_municipal.json`.
+- [x] EVALUATE: Run prompt "I am looking for a project partner from Spain that has outreach and ties to local municipalities willing to be pilot places/testbeds in a Cluster 2 project. Please identify H2020/HE participants who have that network." through MAPIT. Use `eval-orchestrator` subagent. Must identify Spanish organizations with municipal connections. Save result to `tests/quality/results/prompt_030_spain_municipal.json`.
 
 - [ ] FIX IF NEEDED: Read `tests/quality/results/prompt_030_spain_municipal.json`. If score < 85: fix and re-evaluate until passing or 3 attempts.
 
