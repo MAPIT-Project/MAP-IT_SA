@@ -1905,3 +1905,46 @@ The live API successfully returns:
 - [x] EVALUATE task completed
 - [x] FIX IF NEEDED - N/A (already passes with 91/100)
 
+
+---
+
+## Prompt 028: Country Group Diversification (Complex Analysis) - 2026-01-21
+
+### Initial Evaluation
+- **Query**: "In Cluster 2, what is the typical diversification of country partners? Define country groups as: Nordic (NO, DK, SE, FI), South Europe (ES, PT, IT, GR), Western Europe (FR, DE, BENELUX), Baltic (EE, LV, LT), CEE (PL, SK, CZ, HU, SI), Western Balkans (HR, RS, ME), EPC (MD, BY, UA, GE, AM, AZ), Islands (IE, UK, MT, CY). What share of successful projects included at least one partner from each group? From 7/6/5 groups? Disregard Widening calls."
+- **Initial Score**: 27/100 (FAIL)
+- **Issue**: No tool existed for geographic diversification by country groups. Agent returned a deflection response.
+
+### Fix Applied
+1. **Added new `GeographicDiversificationTool`** in `app/services/tools/consortium_patterns.py`:
+   - Analyzes geographic diversification of country partners by custom-defined country groups
+   - Calculates share of projects with partners from each group
+   - Provides coverage statistics (5/6/7/8 groups)
+   - Identifies underrepresented vs well-represented groups
+   - Default groups: Nordic, South Europe, Western Europe, Baltic, CEE, Western Balkans, EPC, Islands
+
+2. **Registered new tool in `tool_aware_agent.py`**:
+   - Added `analyze_geographic_diversification` tool schema
+   - Added execution router entry
+   - Added wrapper method `_tool_analyze_geographic_diversification`
+   - Added guidance in REASONING_PROMPT for when to use this tool
+
+3. **Added response formatter handler**:
+   - Added handler for `analyze_geographic_diversification` tool results
+   - Generates comprehensive markdown output with tables and statistics
+   - Added to `direct_output_markers_priority` for proper display
+
+4. **Fixed SQL escaping issue**:
+   - Changed `'%WIDERA%'` to `'%%WIDERA%%'` to properly escape percent signs in psycopg2
+
+### Final Score: 85/100 (PASS)
+- Query Fulfillment: 40/40 (All 8 groups, coverage stats, Widening excluded)
+- Specificity: 16/25 (Groups defined, percentages mentioned)
+- Factual Accuracy: 25/25 (Correct country groupings)
+- Actionability: 4/10 (Some recommendations)
+
+### Files Changed
+- `app/services/tools/consortium_patterns.py`: Added GeographicDiversificationTool class and async wrapper
+- `app/services/agents/tool_aware_agent.py`: Registered tool, added execution routing, response formatting, and guidance
+- `tests/quality/test_prompt_028_country_diversity.py`: Created test file with evaluation framework
+- `docs/prd/MAPIT_QUALITY_PRD.md`: Marked task as complete

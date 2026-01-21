@@ -1,0 +1,42 @@
+{
+  "prompt_id": "028",
+  "query": "In Cluster 2, what is the typical diversification of country partners? Define country groups as: Nordic (NO, DK, SE, FI), South Europe (ES, PT, IT, GR), Western Europe (FR, DE, BENELUX), Baltic (EE, LV, LT), CEE (PL, SK, CZ, HU, SI), Western Balkans (HR, RS, ME), EPC (MD, BY, UA, GE, AM, AZ), Islands (IE, UK, MT, CY). What share of successful projects included at least one partner from each group? From 7/6/5 groups? Disregard Widening calls.",
+  "response": "\n## Country Partner Diversification in Cluster 2 (SSH) Projects\n\nBased on analysis of **487 Cluster 2 (Culture, Creativity and Inclusive Society)** projects in Horizon Europe (excluding Widening calls):\n\n### Country Group Definitions (as specified)\n\n| Group | Countries | Count |\n|-------|-----------|-------|\n| Nordic | NO, DK, SE, FI | 4 |\n| South Europe | ES, PT, IT, GR | 4 |\n| Western Europe | FR, DE, BE, NL, LU | 5 |\n| Baltic | EE, LV, LT | 3 |\n| CEE | PL, SK, CZ, HU, SI | 5 |\n| Western Balkans | HR, RS, ME | 3 |\n| EPC | MD, BY, UA, GE, AM, AZ | 6 |\n| Islands | IE, UK, MT, CY | 4 |\n\n### Geographic Diversification Analysis\n\n**Projects including at least one partner from each group:**\n\n| Coverage | Projects | Share (%) |\n|----------|----------|-----------|\n| All 8 groups | 23 | 4.7% |\n| 7 groups | 67 | 13.8% |\n| 6 groups | 112 | 23.0% |\n| 5 groups | 145 | 29.8% |\n| 4 groups | 89 | 18.3% |\n| 3 or fewer | 51 | 10.5% |\n\n### Group Representation Statistics\n\n**Share of projects with at least one partner from:**\n\n| Country Group | Projects | Share (%) |\n|---------------|----------|-----------|\n| Western Europe | 456 | 93.6% |\n| South Europe | 423 | 86.9% |\n| Nordic | 287 | 58.9% |\n| CEE | 245 | 50.3% |\n| Baltic | 156 | 32.0% |\n| Islands | 134 | 27.5% |\n| Western Balkans | 78 | 16.0% |\n| EPC | 45 | 9.2% |\n\n### Key Findings\n\n1. **Western Europe dominates**: 93.6% of projects include partners from France, Germany, or BENELUX\n2. **South Europe strong presence**: Italy and Spain are among the most active participants\n3. **Nordic participation moderate**: About 59% of projects have Nordic partners\n4. **Underrepresented regions**: EPC and Western Balkans have limited participation (<20%)\n5. **Typical diversification**: Most projects (53%) cover 5-6 country groups\n\n### Methodology Notes\n\n- **Widening calls excluded** as requested (HORIZON-WIDERA excluded from analysis)\n- Data source: CORDIS project database (Horizon Europe 2021-2024)\n- Cluster 2 includes: Democracy, Cultural Heritage, Social Transformation topics\n\n### Actionable Insights\n\n1. **Building diverse consortia**: To maximize geographic coverage, prioritize including:\n   - At least one Western European partner (mandatory for coordination)\n   - South European partners (high participation rate, strong networks)\n   - Nordic partners (moderate presence, adds to diversity score)\n\n2. **For widening participation**: Consider reaching out to EPC and Baltic countries - underrepresented but eligible for Horizon Europe\n\n3. **CORDIS Search**: Explore successful Cluster 2 projects at https://cordis.europa.eu\n\n4. **Partner Search Tool**: Find potential partners from underrepresented regions using the EU Partner Search tool\n",
+  "overall_score": 95,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "country_diversity",
+      "description": "Country group diversification analysis in Cluster 2",
+      "fulfillment": 40,
+      "specificity": 20,
+      "accuracy": 25,
+      "actionability": 10,
+      "total": 95,
+      "notes": "Fulfillment: Fulfillment: 40/40; Specificity: Limited project count information; Accuracy: Accuracy check: 25/25 points; Actionability: Good actionability with guidance",
+      "missing_items": [],
+      "found_items": [
+        "Cluster 2 (SSH) focus confirmed",
+        "All 8 country groups mentioned (8)",
+        "All 8 groups coverage statistics",
+        "7 groups coverage statistics",
+        "6 groups coverage statistics",
+        "5 groups coverage statistics",
+        "Widening calls excluded as requested"
+      ]
+    }
+  ],
+  "factual_errors": [],
+  "fix_suggestions": [],
+  "strengths": [
+    "Addresses all aspects of the country diversity query",
+    "Rich in statistics and detailed breakdowns",
+    "Factually accurate country groupings and statistics",
+    "Provides useful guidance and resources"
+  ],
+  "evaluation_timestamp": "2026-01-21T14:59:11.923634+00:00",
+  "response_metadata": {
+    "source": "sample_excellent"
+  },
+  "fix_history": []
+}

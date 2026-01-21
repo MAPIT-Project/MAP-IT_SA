@@ -975,6 +975,7 @@ When user asks to broaden scope after a funding/history analysis (e.g., "what ab
    - For **third country researcher seeking calls** ("I'm from Japan/USA/China...") → Use BUILT-IN KNOWLEDGE "Third Country Eligibility" section: explain pathways (MSCA-PF as primary, ERC, bilateral programmes), restrictions (self-funded in consortia), and resources
    - For budget/funding questions → use get_budget_benchmark (returns real data from funded projects)
    - For consortium composition → use get_consortium_patterns (org types, country distribution, coordinator profiles)
+   - For **geographic diversification by country groups** → use analyze_geographic_diversification (share of projects with partners from Nordic, South Europe, CEE, Baltic, Western Balkans, EPC, Islands, Western Europe groups)
    - For finding partners → use find_experienced_partners (organizations with track records in specific topics)
    - For **general eligibility rules** (not country-specific) → use search_documents (use SPECIFIC queries like "consortium eligibility", NOT the full user message)
    - For comparing things → use compare_programmes
@@ -1103,6 +1104,56 @@ find_experienced_partners(
     min_projects=1,
     limit=20,
     programme="both"
+)
+```
+
+## CRITICAL: Geographic Diversification by Country Groups
+
+When the user asks about **country group diversification**, **geographic diversity patterns**, or **share of projects with partners from specific European regions** (Nordic, South Europe, CEE, Baltic, Western Balkans, EPC, Islands, Western Europe):
+
+1. **Use the analyze_geographic_diversification tool**:
+   - Set `cluster` for cluster-specific analysis (e.g., 'CL2' for Cluster 2/SSH)
+   - Set `exclude_widening=True` if user asks to disregard Widening calls
+   - Default country groups match standard European regional definitions
+
+2. **Default country groups** (used if not specified):
+   - **Nordic**: NO, DK, SE, FI
+   - **South Europe**: ES, PT, IT, GR
+   - **Western Europe**: FR, DE, BE, NL, LU (BENELUX)
+   - **Baltic**: EE, LV, LT
+   - **CEE**: PL, SK, CZ, HU, SI (Central and Eastern Europe)
+   - **Western Balkans**: HR, RS, ME
+   - **EPC**: MD, BY, UA, GE, AM, AZ (Eastern Partnership Countries)
+   - **Islands**: IE, UK, MT, CY
+
+3. **Expected output includes**:
+   - Share of projects with at least one partner from EACH group
+   - Coverage statistics: projects with 8/7/6/5 groups represented
+   - Cumulative "at least N groups" statistics
+   - Underrepresented vs well-represented groups
+   - Consortium building recommendations
+
+4. **Present results in tables**:
+   ```
+   | Country Group | Projects | Share (%) |
+   |--------------|----------|-----------|
+   | Western Europe | 850 | 93.5% |
+   | South Europe | 800 | 88.0% |
+   ...
+
+   | Coverage | Projects | Share (%) |
+   |----------|----------|-----------|
+   | All 8 groups | 45 | 5.0% |
+   | 7 groups | 120 | 13.2% |
+   | 6 groups | 210 | 23.1% |
+   | 5 groups | 270 | 29.7% |
+   ```
+
+**Example tool call for Cluster 2 geographic diversification:**
+```
+analyze_geographic_diversification(
+    cluster="CL2",
+    exclude_widening=True
 )
 ```
 
@@ -1587,6 +1638,42 @@ Returns: Eligibility status, top organizations in that country, and participatio
                 "get_consortium_patterns(cluster='CL4', action_type='RIA')",
                 "get_consortium_patterns(action_type='IA')",
                 "get_consortium_patterns(topic_keywords='hydrogen')"
+            ]
+        ))
+
+        # Geographic diversification tool
+        self.register_tool(Tool(
+            name="analyze_geographic_diversification",
+            description="""Analyze geographic diversification of country partners in consortia by custom country groups.
+
+**USE THIS TOOL WHEN**: User asks about country group coverage, geographic diversity patterns, or share of projects with partners from specific European regions (Nordic, South Europe, Baltic, CEE, Western Balkans, EPC, Islands, Western Europe).
+
+Returns:
+- Share of projects with at least one partner from each country group
+- Coverage statistics (how many projects have 5/6/7/8 groups)
+- Underrepresented vs well-represented groups
+- Recommendations for consortium building
+
+Default country groups:
+- Nordic: NO, DK, SE, FI
+- South Europe: ES, PT, IT, GR
+- Western Europe: FR, DE, BE, NL, LU (BENELUX)
+- Baltic: EE, LV, LT
+- CEE: PL, SK, CZ, HU, SI
+- Western Balkans: HR, RS, ME
+- EPC (Eastern Partnership): MD, BY, UA, GE, AM, AZ
+- Islands: IE, UK, MT, CY""",
+            category=ToolCategory.STATISTICS,
+            parameters={
+                "cluster": "Optional: Cluster code (e.g., 'CL2' for Cluster 2/SSH)",
+                "exclude_widening": "Optional: Exclude Widening calls (default: True)",
+                "min_partners": "Optional: Minimum partners for consortium inclusion (default: 3)",
+                "country_groups": "Optional: Custom country group definitions (dict of group_name -> [country_codes])"
+            },
+            examples=[
+                "analyze_geographic_diversification(cluster='CL2', exclude_widening=True)",
+                "analyze_geographic_diversification(cluster='CL5')",
+                "analyze_geographic_diversification()"
             ]
         ))
 
@@ -3200,6 +3287,84 @@ Budget Breakdown:
 
                 content_pieces.append(history_text)
 
+            # Extract geographic diversification results
+            elif result.get('tool_name') == 'analyze_geographic_diversification' or 'group_representation' in result:
+                query_params = result.get('query_params', {})
+                cluster = query_params.get('cluster', 'All Horizon Europe')
+                total_projects = result.get('total_projects_analyzed', 0)
+                country_groups = result.get('country_groups', {})
+                group_stats = result.get('group_representation', [])
+                coverage_stats = result.get('coverage_statistics', {})
+                at_least_stats = result.get('at_least_coverage', {})
+                insights = result.get('insights', {})
+                recommendations = result.get('recommendations', {})
+                exclude_widening = query_params.get('exclude_widening', True)
+
+                # Build comprehensive output
+                geo_text = f"""## Geographic Diversification Analysis: {cluster}
+
+**Analysis Parameters:**
+- Projects Analyzed: {total_projects:,}
+- Widening Calls: {'Excluded' if exclude_widening else 'Included'}
+- Country Groups Defined: {len(country_groups)}
+
+**Country Group Definitions:**
+"""
+                for group_name, countries in country_groups.items():
+                    geo_text += f"- **{group_name}**: {', '.join(countries)}\n"
+
+                geo_text += "\n**Group Representation (% of projects with at least one partner):**\n"
+                geo_text += "| Country Group | Projects | Share (%) |\n"
+                geo_text += "|---------------|----------|----------|\n"
+                for stat in group_stats:
+                    group_name = stat.get('group', 'Unknown')
+                    projects = stat.get('projects_with_partner', 0)
+                    share = stat.get('share_percentage', 0)
+                    geo_text += f"| {group_name} | {projects:,} | {share}% |\n"
+
+                geo_text += "\n**Coverage Distribution (number of groups per project):**\n"
+                geo_text += "| Coverage | Projects | Share (%) |\n"
+                geo_text += "|----------|----------|----------|\n"
+                for coverage_key, coverage_data in coverage_stats.items():
+                    if isinstance(coverage_data, dict):
+                        count = coverage_data.get('count', 0)
+                        share = coverage_data.get('share_percentage', 0)
+                        label = coverage_key.replace('_', ' ').title()
+                        geo_text += f"| {label} | {count:,} | {share}% |\n"
+
+                geo_text += "\n**Cumulative Coverage (projects with at least N groups):**\n"
+                for coverage_key, coverage_data in at_least_stats.items():
+                    if isinstance(coverage_data, dict):
+                        share = coverage_data.get('share_percentage', 0)
+                        label = coverage_key.replace('_', ' ').replace('at least', 'At least')
+                        geo_text += f"- {label}: {share}%\n"
+
+                geo_text += "\n**Key Insights:**\n"
+                typical = insights.get('typical_coverage', 'N/A')
+                avg_presence = insights.get('avg_group_presence', 0)
+                well_rep = insights.get('well_represented_groups', [])
+                under_rep = insights.get('underrepresented_groups', [])
+
+                geo_text += f"- Typical consortium covers: {typical}\n"
+                geo_text += f"- Average group presence: {avg_presence}%\n"
+                if well_rep:
+                    geo_text += f"- Well-represented groups: {', '.join(well_rep)}\n"
+                if under_rep:
+                    geo_text += f"- Underrepresented groups: {', '.join(under_rep)}\n"
+
+                geo_text += "\n**Recommendations:**\n"
+                if recommendations.get('consortium_building'):
+                    geo_text += f"- {recommendations['consortium_building']}\n"
+                if recommendations.get('evaluation_note'):
+                    geo_text += f"- {recommendations['evaluation_note']}\n"
+
+                geo_text += """
+**Resources:**
+- **CORDIS Database**: https://cordis.europa.eu
+- **EU Partner Search**: https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search
+"""
+                content_pieces.append(geo_text)
+
             # Extract partner discovery results
             elif result.get('tool_name') == 'find_experienced_partners' or 'experienced_partners' in result:
                 partners = result.get('experienced_partners', [])
@@ -3286,6 +3451,7 @@ Found **{total_found} organizations** with relevant track records:
             '## Similar Projects Search',
             '## Project Timeline Generated',
             '## Funding History Analysis:',
+            '## Geographic Diversification Analysis:',  # Country group analysis
             '## Call Details:',  # Lower priority - context, not main answer
         ]
 
@@ -3459,6 +3625,8 @@ Found **{total_found} organizations** with relevant track records:
                 return await self._tool_get_budget_benchmark(params)
             elif tool_name == 'get_consortium_patterns':
                 return await self._tool_get_consortium_patterns(params)
+            elif tool_name == 'analyze_geographic_diversification':
+                return await self._tool_analyze_geographic_diversification(params)
             elif tool_name == 'find_experienced_partners':
                 return await self._tool_find_experienced_partners(params)
             elif tool_name == 'get_similar_funded_projects':
@@ -4252,6 +4420,28 @@ Found **{total_found} organizations** with relevant track records:
 
         except Exception as e:
             logger.error(f"Consortium patterns error: {e}")
+            return {"error": str(e)}
+
+    async def _tool_analyze_geographic_diversification(self, params: Dict) -> Dict:
+        """Analyze geographic diversification of country partners by country groups."""
+        try:
+            from ..tools.consortium_patterns import GeographicDiversificationTool
+
+            # Extract cluster with fallback alternatives
+            cluster_param = self._extract_cluster_param(params)
+
+            tool = GeographicDiversificationTool()
+            result = tool.analyze_geographic_diversification(
+                cluster=cluster_param,
+                country_groups=params.get('country_groups'),
+                exclude_widening=params.get('exclude_widening', True),
+                min_partners=params.get('min_partners', 3)
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Geographic diversification error: {e}")
             return {"error": str(e)}
 
     async def _tool_find_experienced_partners(self, params: Dict) -> Dict:
