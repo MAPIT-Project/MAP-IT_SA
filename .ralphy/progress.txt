@@ -3803,3 +3803,85 @@ This approach ensures stable quality assessment across different query topics.
 
 ### Next Task
 Task 024: Regression Test Suite (PHASE 7: Quality Validation)
+
+---
+
+## 2026-01-22: Task 024 - Regression Test Suite
+
+### Task Completed
+Created comprehensive regression test suite `tests/test_conversation_regression.py` that consolidates critical tests for all Phase 1 infrastructure fixes.
+
+### Files Created
+- `tests/test_conversation_regression.py` - Regression test suite with 41 tests covering:
+
+### Test Coverage
+
+**1. Task 001: Race Condition Prevention (8 tests)**
+- `test_singleton_pattern`: Verify ConversationLockManager singleton
+- `test_basic_lock_acquisition_and_release`: Lock acquire/release
+- `test_lock_info_tracking`: Lock metadata tracking
+- `test_five_concurrent_messages_no_duplicates`: CRITICAL - 5 concurrent messages, no duplicates
+- `test_same_conversation_processed_serially`: Verify serialization
+- `test_different_conversations_parallel`: Parallel processing of different conversations
+- `test_lock_timeout_on_contention`: Timeout behavior
+- `test_helper_function_acquires_lock`: get_conversation_lock helper
+
+**2. Task 002: Atomic Storage (8 tests)**
+- `test_initialization`: AtomicMessageStorage init
+- `test_successful_message_pair_storage`: Atomic message pair storage
+- `test_db_failure_returns_failure_result`: CRITICAL - DB failure reported, not silent
+- `test_partial_storage_is_rolled_back`: CRITICAL - Rollback on partial failure
+- `test_error_is_not_silent`: CRITICAL - Error explicitly reported
+- `test_client_error_event_info_available`: Error info for client events
+- `test_memory_failure_adds_warning_not_failure`: Memory failure handling
+- `test_is_degraded_without_pool`: Degraded mode detection
+
+**3. Task 003: Storage Before Streaming (3 tests)**
+- `test_storage_before_first_token`: CRITICAL - Storage happens before streaming
+- `test_follow_up_query_can_access_stored_message`: CRITICAL - Immediate message access
+- `test_message_ids_available_before_streaming`: IDs available for streaming metadata
+
+**4. Task 004: Redis Fallback Warning (10 tests)**
+- `test_is_fallback_mode_returns_true`: CRITICAL - is_fallback_mode property
+- `test_ping_logs_warning`: Ping operation logs WARNING
+- `test_rpush_logs_warning`: rpush operation logs WARNING
+- `test_get_logs_warning`: get operation logs WARNING
+- `test_lrange_logs_warning`: lrange operation logs WARNING
+- `test_hset_logs_warning`: hset operation logs WARNING
+- `test_delete_logs_warning`: delete operation logs WARNING
+- `test_fallback_metrics_initial`: Initial metrics structure
+- `test_operation_counts_increment`: Operation counting
+- `test_multiple_operations_log_multiple_warnings`: Multi-operation logging
+
+**5. Task 005: Context Window Reset (9 tests)**
+- `test_reset_clears_current_size`: Reset sets size to 0
+- `test_add_to_context_accumulates`: Context accumulation
+- `test_reset_then_add_starts_fresh`: Fresh start after reset
+- `test_global_context_manager_exists`: Global _context_manager exists
+- `test_simulated_query_sequence_no_accumulation`: CRITICAL - 10 queries bounded
+- `test_context_bounded_across_many_iterations`: 50 queries bounded
+- `test_process_query_resets_context_at_start`: reset() called at start
+- `test_reset_when_already_zero_is_safe`: Safe reset when zero
+- `test_default_limits_reasonable`: Default limits configuration
+
+**6. Combined Integration Regression Tests (3 tests)**
+- `test_locking_with_atomic_storage_flow`: Lock + Storage integration
+- `test_concurrent_storage_with_locking`: Concurrent storage serialization
+- `test_context_reset_doesnt_affect_storage`: Context reset independence
+
+### Test Results
+```bash
+pytest tests/test_conversation_regression.py -v
+# 41 passed in 3.38s
+```
+
+### Linting
+- `ruff check tests/test_conversation_regression.py` - All checks passed
+- `ruff format tests/test_conversation_regression.py` - Applied formatting
+
+### PRD Task Status
+- [x] CREATE: Created `tests/test_conversation_regression.py` with tests for each fixed issue
+- [x] RUN: Executed full regression suite - All 41 tests pass
+
+### Next Task
+Task 025: GitHub Actions Workflow (PHASE 8: CI/CD Integration)
