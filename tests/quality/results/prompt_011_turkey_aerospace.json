@@ -1,0 +1,92 @@
+{
+  "prompt_id": "011",
+  "query": "I am from Turkey working in aerospace studies. Are there any open calls or upcoming calls that would be relevant for me?",
+  "response": "As an intelligent research assistant, I have analyzed your request regarding funding opportunities in the aerospace domain. I am happy to confirm your eligibility and provide a list of relevant open or upcoming calls, primarily under Horizon Europe's **Cluster 4 (Digital, Industry & Space)** and the **EUSPA Work Programme**.\n\n### 1. Eligibility Status for Researchers from Turkey (TR)\n\nTurkey is an **Associated Country** to the Horizon Europe Programme. This means Turkish institutions and researchers (including universities, research institutes, and companies like TUBITAK and Ko\u00e7 University) are fully eligible to participate in most Horizon Europe calls (RIA, IA, CSA) under the same conditions as EU Member States. You can generally be a coordinator or a partner in multi-beneficiary projects.\n\n### 2. Relevant Open & Upcoming Calls (Space/Aerospace)\n\nFunding for aerospace and space studies is primarily located in **Cluster 4: Digital, Industry & Space** and the **European Union Agency for the Space Programme (EUSPA) Work Programme**. Here are the most relevant opportunities found:\n\n| # | Call ID | Title | Type | Budget (Indicative) | Deadline | Focus | \n|---|---|---|---|---|---|---|\n| 1 | HORIZON-EUSPA-2026-SPACE-02-51 | Space Data Economy | RIA/IA (TBD) | \u20ac10.0 million | 24 February 2026 | Supports scale-up and mass adoption of EU space data (Copernicus/Galileo) in priority areas like Energy, Climate Adaptation, and urban environments. Highly relevant for downstream applications of satellite data. |\n| 2 | HORIZON-CL4-2025-02-SPACE-HADEA | Common regulatory practices and guidelines for European spaceports | CSA | \u20ac1.0 million | TBD (2025) | A Coordination and Support Action focused on assessing best practices, standards, and guidelines for safe and sustainable launch operations from European spaceports. |\n| 3 | HORIZON-CL4-2025-03 | Overview of this call7 Proposals are invited against the following Destinations... | RIA | Varies | TBD (2025) | This cluster call includes multiple topics on advanced manufacturing, low-carbon industrial solutions, and AI for industrial data management, which often includes applications critical to aerospace supply chains. |\n\n*(Note: Always consult the official Work Programme for exact budgets and specific requirements.)*\n\n### 3. Cross-Cutting Funding for Researchers (MSCA & ERC)\n\nIn addition to Cluster-specific topics, you should consider the **thematic-neutral** programmes that focus on research excellence and mobility:\n\n| Programme | Action | Focus | Budget & Duration | \n|---|---|---|---|\n| **MSCA** | **Postdoctoral Fellowships (MSCA-PF)** | Excellent research and mobility for experienced researchers (PhD holders) in ANY domain, including aerospace. | \u20ac200\u2013300K per fellow; 12\u201324 months of fellowship. |\n| **MSCA** | **Doctoral Networks (MSCA-DN)** | Training for PhD candidates through international, inter-sectoral networks. Excellent for developing a specific aerospace training program. | \u20ac2\u20134M per network; 48 months. |\n| **ERC** | **ERC Starting/Consolidator/Advanced** | Supports high-risk, high-gain frontier research led by a single Principal Investigator (PI) in ANY field, including fundamental aerospace science. | Up to \u20ac1.5\u20132.5M over 5 years. |\n\n### 4. Next Steps for Applicants\n\n1.  **Review Work Programmes:** Carefully read the **Cluster 4 Work Programme** and the **EUSPA Work Programme** for detailed topic descriptions, expected outcomes, and budget constraints.\n2.  **Find Partners:** Aerospace projects require strong consortiums. Given Turkey's high participation rate (e.g., TUBITAK, METU are top performers), you may look to successful Turkish organizations or use the [Partner Search] tool to find partners with complementary skills.\n3.  **Register:** Ensure your organization is registered on the EU Funding & Tenders Portal.\n\n\ud83c\udfaf **Getting Started with Horizon Europe:**\n\u2022 Register on [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)\n\u2022 Review the [Work Programmes](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON) for Cluster 4 (Digital, Industry & Space)\n\u2022 Check eligibility via [How to Participate](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/how-to-participate/1)\n\u2022 Find partners using [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search)\n\u2022 Browse [Call Calendar](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/calls-calendar)",
+  "overall_score": 100,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "turkey_aerospace",
+      "description": "Turkey eligibility and aerospace calls",
+      "fulfillment": 40,
+      "specificity": 25,
+      "accuracy": 25,
+      "actionability": 10,
+      "total": 100,
+      "notes": "Fulfillment: All key components covered; Specificity: Good specificity with call details; Accuracy: Accuracy check: 25/25 points; Actionability: Good actionability with clear guidance",
+      "missing_items": [],
+      "found_items": [
+        "Turkey eligibility explained",
+        "Aerospace/space content",
+        "Call identifiers/details"
+      ]
+    }
+  ],
+  "factual_errors": [],
+  "fix_suggestions": [],
+  "strengths": [
+    "Comprehensive coverage of Turkey eligibility and aerospace",
+    "Rich in specific call details (IDs, deadlines, budgets)",
+    "Factually accurate on Turkey status and funding rates",
+    "Provides clear guidance for Turkish applicants"
+  ],
+  "evaluation_timestamp": "2026-01-21T09:42:22.014328+00:00",
+  "response_metadata": {
+    "intent_type": "agentic_v3",
+    "confidence": 0.8,
+    "tools_used": [
+      "search_funding_calls_1_0",
+      "get_country_statistics_1_1",
+      "search_funding_calls_2_0",
+      "get_country_statistics_2_1"
+    ],
+    "reasoning_steps": [
+      {
+        "step": 1,
+        "thought": "The user is an aerospace researcher from Turkey (an Associated Country). I need to find open or upcoming calls relevant to aerospace/space. The primary funding area for space is Cluster 4 (Digital, Industry & Space). I will first search for relevant calls using keywords, and simultaneously confirm Turkey's eligibility status within Horizon Europe.",
+        "action": "call_tools",
+        "tools_called": [
+          "search_funding_calls",
+          "get_country_statistics"
+        ],
+        "observation": "Found 12 funding call(s)\nget_country_statistics: Could not identify country code for 'Turkey'. Try using ISO codes like DE, FR, IT."
+      },
+      {
+        "step": 2,
+        "thought": "The user is an aerospace researcher from Turkey. The initial search was too broad and failed to confirm eligibility for 'Turkey' as a country name. I need to refine the call search to focus on Cluster 4 (Digital, Industry & Space) using keywords like 'space' and 'aerospace'. I will also re-attempt to confirm Turkey's eligibility using the ISO code 'TR' before concluding.\n\nRefined search strategy:\n1. Search for open/upcoming calls using 'space' and 'aerospace' keywords, specifically filtering for Cluster 4.\n2. Get country statistics for 'TR' (Turkey) to confirm Associated Country status and eligibility.",
+        "action": "call_tools",
+        "tools_called": [
+          "search_funding_calls",
+          "get_country_statistics"
+        ],
+        "observation": "Found 9 funding call(s)\nCountry: TR\n**Can participate in Horizon Europe: YES**\n- Status: Associated Country - Eligible (verify specific call conditions)\n\nParticipation Statistics:\n- Organizations: 433"
+      },
+      {
+        "step": 3,
+        "thought": "The user, an aerospace researcher from Turkey (TR), wants relevant open or upcoming calls. I have successfully confirmed Turkey's status as an eligible Associated Country and found several relevant calls in the Space domain (Cluster 4 and EUSPA). I also have participation statistics for Turkey. I can now synthesize the complete answer, including cross-cutting MSCA opportunities, and provide actionable guidance.",
+        "action": "conclude",
+        "tools_called": [],
+        "observation": ""
+      }
+    ],
+    "iterations": 3,
+    "processing_time_ms": 13250.525,
+    "architecture": "simplified_v3",
+    "quality_analysis": {
+      "score": 100,
+      "category": "complete",
+      "confidence": 0.85,
+      "query_type": "general",
+      "missing_elements": [],
+      "deflection_phrases_found": [],
+      "recommendations": [],
+      "elements_found": [
+        "answer",
+        "context"
+      ],
+      "response_length": 4622,
+      "timestamp": "2026-01-21T09:42:22.008800+00:00"
+    }
+  },
+  "fix_history": []
+}

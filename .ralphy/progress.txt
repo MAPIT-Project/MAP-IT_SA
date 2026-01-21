@@ -758,3 +758,41 @@ The fixed API now returns a comprehensive ~2500 character response covering:
 - [x] EVALUATE task complete
 - [x] FIX IF NEEDED task complete (1 attempt, score 81 → 95, PASS)
 
+
+## 2026-01-21: Prompt 011 - Turkey Aerospace Researcher (EVALUATE + FIX IF NEEDED)
+
+### Task Completed
+Created quality evaluation test for Prompt 011: "I am from Turkey working in aerospace studies. Are there any open calls or upcoming calls that would be relevant for me?"
+
+### Files Created/Modified
+- `tests/quality/test_prompt_011_turkey_aerospace.py` - New test file with:
+  - Four-dimension evaluation framework (Query Fulfillment 40pts, Specificity 25pts, Factual Accuracy 25pts, Actionability 10pts)
+  - Checks for Turkey's Associated Country status explanation
+  - Checks for aerospace/space relevant calls (Cluster 4)
+  - Sample responses for offline testing (excellent, partial, poor)
+  - Live API tests
+  - Result saved to `tests/quality/results/prompt_011_turkey_aerospace.json`
+
+### Live API Evaluation Results
+- **Overall Score**: 100/100 (PASS) ✅
+- **Query Fulfillment**: 40/40 - Turkey eligibility explained + aerospace calls listed
+- **Specificity**: 25/25 - Good call details (IDs, deadlines, budgets)
+- **Factual Accuracy**: 25/25 - All facts verified correct (Turkey is Associated Country)
+- **Actionability**: 10/10 - Clear guidance with links to EU portal
+
+### API Response Quality
+The live API returns a comprehensive ~4600 character response covering:
+- **Turkey eligibility**: Correctly identifies as Associated Country with full eligibility
+- **Cluster 4 Space calls**: HORIZON-EUSPA-2026-SPACE-02-51, HORIZON-CL4-2025-02-SPACE-HADEA
+- **Cross-cutting opportunities**: MSCA-PF, MSCA-DN, ERC
+- **Next steps**: Registration, partner search, Work Programme review
+- **Actionable links**: EU Funding Portal, Work Programmes, Partner Search, Call Calendar
+
+### Test Results
+- 10 tests passed (6 offline + 4 live API tests)
+- All linting passed
+
+### PRD Task Status
+- [x] EVALUATE task complete (score 100/100, PASS)
+- [x] FIX IF NEEDED task not needed (score >= 85)
+

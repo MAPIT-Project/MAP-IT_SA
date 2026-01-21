@@ -1,0 +1,38 @@
+{
+  "prompt_id": "011",
+  "query": "I am from Turkey working in aerospace studies. Are there any open calls or upcoming calls that would be relevant for me?",
+  "response": "\n## Relevant Funding Opportunities for Turkish Aerospace Researchers\n\n### Turkey's Eligibility Status\n\n**Great news!** Turkey is an **Associated Country** in Horizon Europe, which means:\n- Turkish organizations can participate with **full eligibility**\n- You can be a **coordinator** or partner in consortium projects\n- You can receive EU funding on the same terms as EU Member States\n- Standard consortium rules apply (3 partners from 3 different EU/Associated countries)\n\n### Aerospace-Relevant Calls in Horizon Europe\n\nAerospace research primarily falls under **Cluster 4: Digital, Industry and Space**, with some\nopportunities also in **Cluster 5: Climate, Energy and Mobility** (aviation/transport).\n\n#### Open/Upcoming Calls:\n\n| Call ID | Topic | Deadline | Budget | Type |\n|---------|-------|----------|--------|------|\n| HORIZON-CL4-2025-SPACE-01-11 | Space Technologies | April 2025 | \u20ac10M | RIA |\n| HORIZON-CL4-2025-SPACE-01-21 | Earth Observation | May 2025 | \u20ac8M | RIA |\n| HORIZON-CL4-2025-DIGITAL-02-04 | Autonomous Systems | March 2025 | \u20ac12M | IA |\n| HORIZON-CL5-2025-D5-01-06 | Sustainable Aviation | June 2025 | \u20ac15M | RIA |\n| HORIZON-EUSPA-2025-SPACE-01 | Galileo/Copernicus Apps | April 2025 | \u20ac6M | IA |\n\n**Funding rates:**\n- **RIA**: 100% funding\n- **IA**: 70% (100% for non-profit organizations)\n\n### Cross-Cutting Opportunities\n\nAs a Turkish researcher, you're also eligible for:\n- **MSCA-PF** (Postdoctoral Fellowships): \u20ac200-300K for individual mobility\n- **MSCA-DN** (Doctoral Networks): For PhD training networks\n- **EIC Pathfinder**: For breakthrough aerospace technologies (\u20ac3-4M)\n\n### How to Get Started\n\n1. **Register** on the EU Funding & Tenders Portal\n2. **Find Consortium Partners** using Partner Search (you need EU/Associated partners)\n3. **Review** Cluster 4 Work Programme 2025 for detailed topic descriptions\n4. **Check** the annual Turkish National Contact Point events\n\n**Resources:**\n- EU Funding Portal: https://ec.europa.eu/info/funding-tenders/opportunities/portal/\n- Cluster 4 Work Programme: [Work Programme Documents]\n- T\u00dcB\u0130TAK (Turkish NCP): National Contact Point for guidance\n\n### Key Requirements for Turkish Applicants\n\n- **Legal Entity**: Must be a legal entity established in Turkey\n- **Consortium**: Usually need 2+ partners from other EU/Associated countries\n- **No Security Restrictions**: Check individual calls for security-classified topics\n",
+  "overall_score": 99,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "turkey_aerospace",
+      "description": "Turkey eligibility and aerospace calls",
+      "fulfillment": 40,
+      "specificity": 24,
+      "accuracy": 25,
+      "actionability": 10,
+      "total": 99,
+      "notes": "Fulfillment: All key components covered; Specificity: Good specificity with call details; Accuracy: Accuracy check: 25/25 points; Actionability: Good actionability with clear guidance",
+      "missing_items": [],
+      "found_items": [
+        "Turkey eligibility explained",
+        "Aerospace/space content",
+        "Call identifiers/details"
+      ]
+    }
+  ],
+  "factual_errors": [],
+  "fix_suggestions": [],
+  "strengths": [
+    "Comprehensive coverage of Turkey eligibility and aerospace",
+    "Rich in specific call details (IDs, deadlines, budgets)",
+    "Factually accurate on Turkey status and funding rates",
+    "Provides clear guidance for Turkish applicants"
+  ],
+  "evaluation_timestamp": "2026-01-21T09:41:57.819550+00:00",
+  "response_metadata": {
+    "source": "sample_excellent"
+  },
+  "fix_history": []
+}

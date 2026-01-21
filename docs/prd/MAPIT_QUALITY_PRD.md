@@ -113,9 +113,9 @@ Run with: `./ralphy.sh --prd MAPIT_QUALITY_PRD.md`
 ### ==========================================================
 
 ### Prompt 011: Turkey Aerospace Researcher
-- [ ] EVALUATE: Run prompt "I am from Turkey working in aerospace studies. Are there any open calls or upcoming calls that would be relevant for me?" through MAPIT. Use `eval-orchestrator` subagent. Cross-reference `eu-funding-domain` for Turkey's Associated Country status. Save result to `tests/quality/results/prompt_011_turkey_aerospace.json`.
+- [x] EVALUATE: Run prompt "I am from Turkey working in aerospace studies. Are there any open calls or upcoming calls that would be relevant for me?" through MAPIT. Use `eval-orchestrator` subagent. Cross-reference `eu-funding-domain` for Turkey's Associated Country status. Save result to `tests/quality/results/prompt_011_turkey_aerospace.json`.
 
-- [ ] FIX IF NEEDED: Read `tests/quality/results/prompt_011_turkey_aerospace.json`. If score < 85: check `mapit-neo4j` skill for Country eligibility patterns, fix and re-evaluate until passing or 3 attempts.
+- [x] FIX IF NEEDED: Read `tests/quality/results/prompt_011_turkey_aerospace.json`. If score < 85: check `mapit-neo4j` skill for Country eligibility patterns, fix and re-evaluate until passing or 3 attempts.
 
 ### Prompt 012: Austria Agricultural Research
 - [ ] EVALUATE: Run prompt "I am from Austria working in agricultural studies. Are there any open calls or upcoming calls that would be relevant for me?" through MAPIT. Use `eval-orchestrator` subagent. Must show Cluster 6 calls and Austria's full eligibility. Save result to `tests/quality/results/prompt_012_austria_agri.json`.
