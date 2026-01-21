@@ -6,14 +6,16 @@ build-backend = "setuptools.build_meta"
 line-length = 100
 target-version = ["py311"]
 include = "\\.(py|pyi)$"
-exclude = [
-    "/venv/",
-    "/.venv/",
-    "/.git/",
-    "/.mypy_cache/",
-    "/.ruff_cache/",
-    "/.pytest_cache/",
-]
+extend-exclude = '''
+/(
+    venv
+    | \.venv
+    | \.git
+    | \.mypy_cache
+    | \.ruff_cache
+    | \.pytest_cache
+)/
+'''
 
 [tool.isort]
 profile = "black"
@@ -54,5 +56,3 @@ markers = [
     "slow: marks tests as slow",
     "integration: marks integration tests",
 ]
-
-

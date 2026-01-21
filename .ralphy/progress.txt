@@ -3004,7 +3004,7 @@ Implemented Task 011: "Tell Me More" Scenario from Phase 3 (Follow-Up Reference 
 ### Changes Made
 1. **Updated `tests/scenarios/follow_up/follow_up_more_details.yaml`**:
    - Updated to match PRD requirements exactly:
-     - Step 1: "What is the EIC Accelerator?" 
+     - Step 1: "What is the EIC Accelerator?"
      - Step 2: "Tell me more about the application process"
      - Step 3: "What about the budget?"
      - Step 4: "And the success rate?"
@@ -3751,14 +3751,14 @@ Implemented quality degradation detection in `test_conversation_scenarios.py` th
      - Uses QualityEvaluatorAgent.evaluate_conversation() for authoritative degradation detection
      - Verifies average quality >= 55/100
      - Confirms final turn references initial topic (climate research funding)
-   
+
    - `test_quality_degradation_with_scenario_runner`: Additional test that:
      - Loads and runs the actual long_conversation scenario using ConversationFlowAgent.run_scenario()
      - Validates scenario completes at least 80% of turns
      - Evaluates quality across all turns
      - Checks no degradation (15+ point drops)
      - Verifies average quality >= 50/100
-   
+
    - `_calculate_response_quality()`: Helper method that provides consistent rule-based quality scoring:
      - Length component (max 35 points)
      - Structure component (max 25 points) - lists, sections, headers
@@ -3925,3 +3925,52 @@ Implemented GitHub Actions workflow for conversation stability tests per PRD Tas
 ### PRD Task Status
 - [x] CREATE workflow file with all 5 components
 - [x] TEST workflow configuration validates correctly
+
+## Task 026: Pre-commit Hook for Conversation Stability
+
+**Date**: 2026-01-22
+**Status**: COMPLETED
+
+### Implementation Summary
+
+1. **Created smoke test file**: `tests/test_conversation_smoke.py`
+   - 12 lightweight tests that run in ~0.6 seconds
+   - Tests conversation locking (acquisition, release, serialization)
+   - Tests atomic storage (success, failure reporting)
+   - Tests Redis fallback (mode detection, warnings, metrics)
+   - Tests context window (reset, no accumulation)
+   - Integration smoke test (lock + storage)
+
+2. **Updated pre-commit configuration**: `.pre-commit-config.yaml`
+   - Added local hook `conversation-smoke-tests`
+   - Only triggers when `conversation_manager.py` or `memory_service.py` are modified
+   - Uses `pass_filenames: false` to run full test suite
+   - Configured for `pre-commit` stage
+
+### Hook Configuration
+```yaml
+- repo: local
+  hooks:
+    - id: conversation-smoke-tests
+      name: conversation stability smoke tests
+      entry: pytest tests/test_conversation_smoke.py -v --tb=short -q
+      language: system
+      files: (conversation_manager\.py|memory_service\.py)$
+      pass_filenames: false
+      stages: [pre-commit]
+      types: [python]
+```
+
+### Verification
+- Ran `pre-commit run conversation-smoke-tests --files app/services/conversation/conversation_manager.py` - PASSED
+- Ran `pre-commit run conversation-smoke-tests --files app/services/memory/memory_service.py` - PASSED
+- Ran `pre-commit run conversation-smoke-tests --files app/main.py` - Correctly SKIPPED
+
+### Test Results
+- 12 smoke tests passed
+- Ruff linting passed
+- Pre-commit hooks installed and validated
+
+### PRD Task Status
+- [x] CREATE pre-commit hook for conversation stability
+- [x] VERIFY hook runs on target file changes

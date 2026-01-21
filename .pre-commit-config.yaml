@@ -24,3 +24,15 @@ repos:
       - id: trailing-whitespace
       - id: mixed-line-ending
 
+  # Local hook: Conversation stability smoke tests
+  # Runs quick tests when conversation_manager.py or memory_service.py are modified
+  - repo: local
+    hooks:
+      - id: conversation-smoke-tests
+        name: conversation stability smoke tests
+        entry: pytest tests/test_conversation_smoke.py -v --tb=short -q
+        language: system
+        files: (conversation_manager\.py|memory_service\.py)$
+        pass_filenames: false
+        stages: [pre-commit]
+        types: [python]

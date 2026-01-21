@@ -309,9 +309,9 @@ TEST_API_URL=http://localhost:8000 pytest tests/test_conversation_scenarios.py -
 - [x] TEST: Trigger workflow manually, verify it completes successfully.
 
 ### Task 026: Pre-commit Hook
-- [ ] CREATE: Add pre-commit hook that runs quick conversation smoke tests before allowing commits that modify `conversation_manager.py` or `memory_service.py`.
+- [x] CREATE: Add pre-commit hook that runs quick conversation smoke tests before allowing commits that modify `conversation_manager.py` or `memory_service.py`.
 
-- [ ] VERIFY: Make a test change and verify hook runs.
+- [x] VERIFY: Make a test change and verify hook runs.
 
 ### Task 027: Quality Gate
 - [ ] IMPLEMENT: Add quality gate to CI that fails PR if:
