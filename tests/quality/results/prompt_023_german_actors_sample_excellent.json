@@ -1,0 +1,48 @@
+{
+  "prompt_id": "023",
+  "query": "Show me the top 10 most successful German actors in Horizon Europe (in terms of coordinator/partner status or participation in largest-budgeted projects).",
+  "response": "\n## Top 10 Most Successful German Actors in Horizon Europe\n\nBased on analysis of coordinator/partner status and participation in large-budget projects:\n\n### 1. **Fraunhofer-Gesellschaft**\n- **Projects Coordinated**: 245\n- **Total Participations**: 890\n- **Total EC Funding**: \u20ac1.2 billion\n- **Key Areas**: Industry 4.0, AI, Energy, Health Technologies\n\n### 2. **Max Planck Society** (Max-Planck-Gesellschaft)\n- **Projects Coordinated**: 180\n- **Total Participations**: 520\n- **Total EC Funding**: \u20ac780 million\n- **Key Areas**: Fundamental Research, Life Sciences, Physics\n\n### 3. **Helmholtz Association**\n- **Projects Coordinated**: 165\n- **Total Participations**: 480\n- **Total EC Funding**: \u20ac720 million\n- **Key Areas**: Energy, Health, Earth & Environment\n\n### 4. **RWTH Aachen University**\n- **Projects Coordinated**: 85\n- **Total Participations**: 340\n- **Total EC Funding**: \u20ac410 million\n- **Key Areas**: Engineering, Materials, Digital Technologies\n\n### 5. **Technical University of Munich (TUM)**\n- **Projects Coordinated**: 78\n- **Total Participations**: 320\n- **Total EC Funding**: \u20ac385 million\n- **Key Areas**: AI, Robotics, Quantum Technologies\n\n### 6. **Karlsruhe Institute of Technology (KIT)**\n- **Projects Coordinated**: 72\n- **Total Participations**: 290\n- **Total EC Funding**: \u20ac350 million\n- **Key Areas**: Energy, Mobility, Computing\n\n### 7. **Leibniz Association**\n- **Projects Coordinated**: 65\n- **Total Participations**: 260\n- **Total EC Funding**: \u20ac310 million\n- **Key Areas**: Social Sciences, Humanities, Life Sciences\n\n### 8. **University of Heidelberg**\n- **Projects Coordinated**: 58\n- **Total Participations**: 210\n- **Total EC Funding**: \u20ac280 million\n- **Key Areas**: Life Sciences, Medicine, Physics\n\n### 9. **Ludwig-Maximilians-Universit\u00e4t M\u00fcnchen (LMU)**\n- **Projects Coordinated**: 52\n- **Total Participations**: 195\n- **Total EC Funding**: \u20ac250 million\n- **Key Areas**: Medicine, Humanities, Natural Sciences\n\n### 10. **TU Berlin**\n- **Projects Coordinated**: 48\n- **Total Participations**: 180\n- **Total EC Funding**: \u20ac220 million\n- **Key Areas**: Engineering, Urban Systems, Digital Technologies\n\n---\n\n### Summary Statistics\n\n| Rank | Organization | Coordinations | Total Projects | EC Funding |\n|------|-------------|---------------|----------------|------------|\n| 1 | Fraunhofer | 245 | 890 | \u20ac1.2B |\n| 2 | Max Planck | 180 | 520 | \u20ac780M |\n| 3 | Helmholtz | 165 | 480 | \u20ac720M |\n| 4 | RWTH Aachen | 85 | 340 | \u20ac410M |\n| 5 | TUM | 78 | 320 | \u20ac385M |\n\n### How to Learn More\n\n1. **CORDIS Database**: Search for German organizations at https://cordis.europa.eu\n2. **EU Funding Portal**: https://ec.europa.eu/info/funding-tenders/\n3. **Organization Websites**: Contact directly for collaboration opportunities\n4. **Partner Search**: Use EU Partner Search tool to find German partners\n",
+  "overall_score": 87,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "german_actors",
+      "description": "Top 10 most successful German actors in Horizon Europe",
+      "fulfillment": 37,
+      "specificity": 19,
+      "accuracy": 22,
+      "actionability": 9,
+      "total": 87,
+      "notes": "Fulfillment: Missing: Missing project counts; Specificity: No project counts; Accuracy: Accuracy check: 22/25 points; 1 issue(s) found; Actionability: Good actionability with resources",
+      "missing_items": [
+        "Missing project counts"
+      ],
+      "found_items": [
+        "~14 organizations listed",
+        "Strong German context",
+        "Budget/funding information",
+        "Coordinator/partner status shown"
+      ]
+    }
+  ],
+  "factual_errors": [
+    {
+      "claim": "Budget 1.2B seems too high for single org",
+      "correct_value": "German orgs typically \u20ac50M-\u20ac2B in HE",
+      "source": "Budget validation"
+    }
+  ],
+  "fix_suggestions": [
+    "Add more specificity: Include specific organization names, project counts, budget figures, and ranking metrics for all 10 organizations"
+  ],
+  "strengths": [
+    "Lists ~10 German organizations with statistics",
+    "Factually accurate organization information",
+    "Provides useful resources and guidance"
+  ],
+  "evaluation_timestamp": "2026-01-21T11:51:32.410738+00:00",
+  "response_metadata": {
+    "source": "sample_excellent"
+  },
+  "fix_history": []
+}

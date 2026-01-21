@@ -1621,3 +1621,51 @@ Water and health research is inherently multidisciplinary (Cluster 1 Health + Cl
 ### PRD Task Status
 - [x] EVALUATE task complete
 - [x] FIX IF NEEDED task complete (3 attempts, max reached, final score 70-80/100)
+
+
+## 2026-01-21: Prompt 023 - Top 10 German Actors (EVALUATE + FIX IF NEEDED)
+
+### Task Completed
+Created quality evaluation test for Prompt 023: "Show me the top 10 most successful German actors in Horizon Europe (in terms of coordinator/partner status or participation in largest-budgeted projects)."
+
+### Files Created/Modified
+- `tests/quality/test_prompt_023_german_actors.py` - New test file with:
+  - Four-dimension evaluation framework (Query Fulfillment 40pts, Specificity 25pts, Factual Accuracy 25pts, Actionability 10pts)
+  - Checks for 10 specific German organizations
+  - Checks for project counts and budget figures
+  - Checks for coordinator/partner status
+  - Validates organizations are recognizable German institutions
+  - Sample responses for offline testing (excellent, partial, poor)
+  - Live API tests
+  - Result saved to `tests/quality/results/prompt_023_german_actors.json`
+
+### Live API Evaluation Results
+- **Overall Score**: 90/100 (PASS) ✅
+- **Query Fulfillment**: 40/40 - All 10 German organizations listed with statistics
+- **Specificity**: 23/25 - Good organization details, project counts, budgets
+- **Factual Accuracy**: 25/25 - All organizations recognizable (Fraunhofer, Max Planck, TUM, etc.)
+- **Actionability**: 2/10 - No links to CORDIS or EU portal (area for improvement)
+
+### API Response Quality
+The live API returns a comprehensive response using `get_country_statistics` tool covering:
+- **Germany participation overview**: 3,148 organizations, 6,678 projects, €8.04 billion total funding
+- **Top 10 organizations** with details:
+  1. Fraunhofer-Gesellschaft: 624 projects, €488.5M
+  2. Max-Planck-Gesellschaft: 436 projects, €567.9M
+  3. TU München: 305 projects, €220.2M
+  4. Deutsches Zentrum für Luft- und Raumfahrt (DLR): 276 projects, €227.5M
+  5. Karlsruher Institut für Technologie (KIT): 208 projects, €180.5M
+  6. LMU München: 205 projects, €146.5M
+  7. RWTH Aachen: 171 projects, €95.1M
+  8. TU Dresden: 160 projects, €86.9M
+  9. Forschungszentrum Jülich: 160 projects, €150.0M
+  10. Charité Berlin: 128 projects, €93.3M
+
+### Test Results
+- 10 tests passed (6 offline + 4 live API tests)
+- All linting passed (ruff check)
+
+### PRD Task Status
+- [x] EVALUATE task complete (score 90/100, PASS)
+- [x] FIX IF NEEDED task not needed (score >= 85)
+
