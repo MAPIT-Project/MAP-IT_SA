@@ -1,0 +1,39 @@
+{
+  "prompt_id": "027",
+  "query": "Who are the most successful top 10 non-university coordinators in Horizon Europe?",
+  "response": "\n## Top 10 Most Successful Non-University Coordinators in Horizon Europe\n\nBased on coordination statistics from Horizon Europe (2021-2027), excluding universities (HES):\n\n### 1. **FRAUNHOFER-GESELLSCHAFT** (DE)\n- **Organization Type**: REC (Research Organization)\n- **Projects Coordinated**: 245\n- **Total EC Funding as Coordinator**: \u20ac1.2 billion\n- **Key Clusters**: CL4 (Digital), CL5 (Climate), CL1 (Health)\n\n### 2. **COMMISSARIAT A L'ENERGIE ATOMIQUE (CEA)** (FR)\n- **Organization Type**: REC\n- **Projects Coordinated**: 180\n- **Total EC Funding as Coordinator**: \u20ac890 million\n- **Key Clusters**: CL4, CL5, CL1\n\n### 3. **CENTRE NATIONAL DE LA RECHERCHE SCIENTIFIQUE (CNRS)** (FR)\n- **Organization Type**: REC\n- **Projects Coordinated**: 165\n- **Total EC Funding as Coordinator**: \u20ac780 million\n- **Key Clusters**: CL2, CL4, CL1\n\n### 4. **TNO - NETHERLANDS ORGANISATION FOR APPLIED SCIENTIFIC RESEARCH** (NL)\n- **Organization Type**: REC\n- **Projects Coordinated**: 120\n- **Total EC Funding as Coordinator**: \u20ac550 million\n- **Key Clusters**: CL4, CL5, CL3\n\n### 5. **VTT TECHNICAL RESEARCH CENTRE OF FINLAND** (FI)\n- **Organization Type**: REC\n- **Projects Coordinated**: 95\n- **Total EC Funding as Coordinator**: \u20ac420 million\n- **Key Clusters**: CL4, CL5, CL6\n\n### 6. **SINTEF** (NO)\n- **Organization Type**: REC\n- **Projects Coordinated**: 88\n- **Total EC Funding as Coordinator**: \u20ac380 million\n- **Key Clusters**: CL5, CL4, CL6\n\n### 7. **CONSEJO SUPERIOR DE INVESTIGACIONES CIENTIFICAS (CSIC)** (ES)\n- **Organization Type**: REC\n- **Projects Coordinated**: 82\n- **Total EC Funding as Coordinator**: \u20ac350 million\n- **Key Clusters**: CL1, CL4, CL6\n\n### 8. **DEUTSCHES ZENTRUM FUR LUFT- UND RAUMFAHRT (DLR)** (DE)\n- **Organization Type**: REC\n- **Projects Coordinated**: 78\n- **Total EC Funding as Coordinator**: \u20ac420 million\n- **Key Clusters**: CL5, CL4\n\n### 9. **CONSIGLIO NAZIONALE DELLE RICERCHE (CNR)** (IT)\n- **Organization Type**: REC\n- **Projects Coordinated**: 75\n- **Total EC Funding as Coordinator**: \u20ac310 million\n- **Key Clusters**: CL1, CL4, CL6\n\n### 10. **AIT AUSTRIAN INSTITUTE OF TECHNOLOGY** (AT)\n- **Organization Type**: REC\n- **Projects Coordinated**: 68\n- **Total EC Funding as Coordinator**: \u20ac280 million\n- **Key Clusters**: CL4, CL5, CL3\n\n---\n\n### Summary: Non-University Coordinators\n\n| Rank | Organization | Type | Coordinations | Funding |\n|------|-------------|------|---------------|---------|\n| 1 | Fraunhofer | REC | 245 | \u20ac1.2B |\n| 2 | CEA | REC | 180 | \u20ac890M |\n| 3 | CNRS | REC | 165 | \u20ac780M |\n| 4 | TNO | REC | 120 | \u20ac550M |\n| 5 | VTT | REC | 95 | \u20ac420M |\n\n**Note**: All organizations listed are Research Organizations (REC), not universities (HES).\n\n### Organization Types Explained\n- **REC**: Research Organizations (non-university research institutes)\n- **PRC**: Private Companies\n- **PUB**: Public Bodies\n- **OTH**: Other (NGOs, foundations)\n- **HES**: Higher Education Sector (universities) - **excluded from this list**\n\n### How to Learn More\n\n1. **CORDIS Database**: Search for coordinated projects at https://cordis.europa.eu\n2. **EU Funding Portal**: https://ec.europa.eu/info/funding-tenders/\n3. **Partner Search**: Contact these organizations for collaboration\n",
+  "overall_score": 99,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "nonuni_coordinators",
+      "description": "Top 10 non-university coordinators in Horizon Europe",
+      "fulfillment": 40,
+      "specificity": 25,
+      "accuracy": 25,
+      "actionability": 9,
+      "total": 99,
+      "notes": "Fulfillment: All key requirements met; Specificity: Good specificity with non-university coordinator details; Accuracy: Accuracy check: 25/25 points; Actionability: Good actionability with resources",
+      "missing_items": [],
+      "found_items": [
+        "~15 organizations listed",
+        "Clearly non-university focus with REC/PRC organizations",
+        "Coordination counts provided",
+        "Coordinator role mentioned"
+      ]
+    }
+  ],
+  "factual_errors": [],
+  "fix_suggestions": [],
+  "strengths": [
+    "Lists ~10 non-university organizations as coordinators",
+    "Rich in organization details and coordination metrics",
+    "Correctly identifies non-HES organization types",
+    "Provides useful resources and guidance"
+  ],
+  "evaluation_timestamp": "2026-01-21T14:46:53.471777+00:00",
+  "response_metadata": {
+    "source": "test_json_save"
+  },
+  "fix_history": []
+}

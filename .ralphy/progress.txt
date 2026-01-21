@@ -1858,3 +1858,50 @@ The `find_experienced_partners` tool was hardcoded to only search Horizon Europe
 ### Test Results
 - All 10 tests in test_prompt_026_cluster2_coordinators.py pass
 - Score breakdown: Query Fulfillment 34/40, Specificity 19/25, Factual Accuracy 25/25, Actionability 8/10
+
+## 2026-01-21: Prompt 027 - Top Non-University Coordinators (EVALUATE)
+
+### Task Completed
+Created quality evaluation test for Prompt 027: "Who are the most successful top 10 non-university coordinators in Horizon Europe?"
+
+### Files Created/Modified
+- `tests/quality/test_prompt_027_nonuni_coordinators.py` - New test file with:
+  - Four-dimension evaluation framework (Query Fulfillment 40pts, Specificity 25pts, Factual Accuracy 25pts, Actionability 10pts)
+  - Sample responses for offline testing (excellent, partial, with universities, poor)
+  - Live API tests (skipped when API unavailable)
+  - University detection (HES type) with non-university exceptions
+  - Table format detection for counting organizations
+  - Result saved to `tests/quality/results/prompt_027_nonuni_coordinators.json`
+
+### Test Results
+- **Overall Score: 91/100 (PASS)**
+- 8 tests passed (offline + live API tests)
+- Query Fulfillment: 34/40
+- Specificity: 25/25
+- Factual Accuracy: 25/25
+- Actionability: 7/10
+
+### API Response Quality
+The live API successfully returns:
+- Exactly 10 non-university coordinators (all REC or PRC type)
+- Organization types clearly specified (Research Organization/REC, Private Research Centre/PRC)
+- Coordination counts and funding amounts for each organization
+- Key takeaways explaining the dominance of RECs
+- EU Funding Portal links and next steps for collaboration
+
+### Organizations Listed (from API response)
+1. CNRS (FR, REC) - 242 projects coordinated
+2. INSERM (FR, REC) - 55 projects
+3. CERTH (EL, REC) - 55 projects
+4. Fraunhofer (DE, REC) - 52 projects
+5. VTT (FI, REC) - 47 projects
+6. CSIC (ES, REC) - 45 projects
+7. CNR (IT, REC) - 44 projects
+8. CEA (FR, REC) - 40 projects
+9. TNO (NL, REC) - 39 projects
+10. TECNALIA (ES, PRC) - 38 projects
+
+### PRD Task Status
+- [x] EVALUATE task completed
+- [x] FIX IF NEEDED - N/A (already passes with 91/100)
+

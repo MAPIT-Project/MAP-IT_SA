@@ -1,0 +1,81 @@
+{
+  "prompt_id": "027",
+  "query": "Who are the most successful top 10 non-university coordinators in Horizon Europe?",
+  "response": "Based on an analysis of coordination track records within Horizon Europe (HE) collaborative projects (Research and Innovation Actions, Innovation Actions, and Coordination and Support Actions), the most successful non-university organizations are primarily large national Research Organizations (REC).\n\nHere are the Top 10 Non-University Coordinators in Horizon Europe, ranked by the number of projects coordinated:\n\n| Rank | Organization (Short Name) | Country | Organization Type | HE Projects Coordinated |\n|------|---------------------------|---------|-------------------|-------------------------|\n| 1 | **CNRS** | France | Research Org (REC) | 242 |\n| 2 | **INSERM** | France | Research Org (REC) | 55 |\n| 3 | **CERTH** | Greece | Research Org (REC) | 55 |\n| 4 | **Fraunhofer-Gesellschaft** | Germany | Research Org (REC) | 52 |\n| 5 | **VTT Technical Research** | Finland | Research Org (REC) | 47 |\n| 6 | **SINTEF AS** | Norway | Research Org (REC) | 36 |\n| 7 | **TNO** | Netherlands | Research Org (REC) | 34 |\n| 8 | **CSIC** | Spain | Research Org (REC) | 31 |\n| 9 | **ENEA** | Italy | Research Org (REC) | 29 |\n| 10 | **AIT Austrian Institute** | Austria | Research Org (REC) | 28 |\n\n### Key Observations on Non-University Coordination\n\n1.  **Dominance of National Research Centers (REC):** The list is overwhelmingly dominated by major national Research Organizations (REC) such as CNRS, Fraunhofer, and CSIC. These entities possess the size, infrastructure, and institutional focus required to handle the management and financial complexity of large-scale Horizon Europe grants.\n\n2.  **Focus on Pillar II:** These organizations generally coordinate projects under **Pillar II: Global Challenges and European Industrial Competitiveness** (the Clusters), covering high-priority areas like health (INSERM), technology/digital (VTT, TNO), and climate/energy.\n\n3.  **Country Performance:** France leads the list with two institutions (CNRS and INSERM) securing the highest coordination counts, followed by Germany, Greece, and the Nordics (Finland, Norway).\n\n4.  **SMEs and Industry:** While Large Companies and SMEs are essential partners, they rarely appear in the top coordinator list for standard collaborative RIA/IA projects. Industry often leads in highly specialized areas or in programs like the **EIC Accelerator** (which focuses on single SME beneficiaries), but the administrative complexity of consortium grants tends to favor dedicated non-profit research institutes.",
+  "overall_score": 80,
+  "result": "NEEDS_REVIEW",
+  "component_scores": [
+    {
+      "component_id": "nonuni_coordinators",
+      "description": "Top 10 non-university coordinators in Horizon Europe",
+      "fulfillment": 34,
+      "specificity": 20,
+      "accuracy": 25,
+      "actionability": 1,
+      "total": 80,
+      "notes": "Fulfillment: Missing: Missing coordination counts; Specificity: No budget figures; Accuracy: Accuracy check: 25/25 points; Actionability: No links to CORDIS or EU portal",
+      "missing_items": [
+        "Missing coordination counts"
+      ],
+      "found_items": [
+        "~10 organizations listed",
+        "Clearly non-university focus with REC/PRC organizations",
+        "Coordinator role mentioned"
+      ]
+    }
+  ],
+  "factual_errors": [],
+  "fix_suggestions": [
+    "Improve actionability: Add CORDIS/EU portal links, guidance on how to find non-university coordinators, collaboration suggestions"
+  ],
+  "strengths": [
+    "Lists ~10 non-university organizations as coordinators",
+    "Rich in organization details and coordination metrics",
+    "Correctly identifies non-HES organization types"
+  ],
+  "evaluation_timestamp": "2026-01-21T14:46:40.888714+00:00",
+  "response_metadata": {
+    "intent_type": "agentic_v3",
+    "confidence": 0.8,
+    "tools_used": [
+      "find_experienced_partners_1_0"
+    ],
+    "reasoning_steps": [
+      {
+        "step": 1,
+        "thought": "The user wants to identify the top 10 most successful organizations (excluding universities/HEIs) acting as coordinators in Horizon Europe (HE) projects. I need to use the `find_experienced_partners` tool, filtering by the 'coordinator' role and the 'HORIZON' programme. Since I cannot exclude 'Universities' directly in the tool parameters, I will request the top 30 overall coordinators using broad keywords and then filter the results manually in the conclusion to meet the 'non-university' criterion and select the final top 10.",
+        "action": "call_tools",
+        "tools_called": [
+          "find_experienced_partners"
+        ],
+        "observation": "Found 30 experienced partners for 'research innovation technology climate health digital':\n- KU Leuven (BE, HES): 138 relevant projects, 138 as coordinator, \u20ac119,342,999 [score: 1.0]\n- CNRS (FR, REC):"
+      },
+      {
+        "step": 2,
+        "thought": "The user wants the top 10 most successful organizations, excluding universities (HES - Higher Education Institutions), based on their coordination track record in Horizon Europe (HE) projects. I previously ran a broad search and now I will filter the results to exclude HES organizations and rank the remaining research institutes, companies, and public bodies by the number of HE projects they coordinated. I have enough data from the initial 30 results to finalize the top 10 list.",
+        "action": "conclude",
+        "tools_called": [],
+        "observation": ""
+      }
+    ],
+    "iterations": 2,
+    "processing_time_ms": 11296.547999999999,
+    "architecture": "simplified_v3",
+    "quality_analysis": {
+      "score": 100,
+      "category": "complete",
+      "confidence": 0.85,
+      "query_type": "general",
+      "missing_elements": [],
+      "deflection_phrases_found": [],
+      "recommendations": [],
+      "elements_found": [
+        "answer",
+        "context"
+      ],
+      "response_length": 2488,
+      "timestamp": "2026-01-21T14:46:40.878180+00:00"
+    }
+  },
+  "fix_history": []
+}
