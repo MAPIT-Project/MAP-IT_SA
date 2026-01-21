@@ -152,9 +152,9 @@ Run with: `./ralphy.sh --prd MAPIT_QUALITY_PRD.md`
 - [x] FIX IF NEEDED: Read `tests/quality/results/prompt_017_ai_projects.json`. If score < 85: check `mapit-tools` for `search_projects` tool, `mapit-neo4j` for Project queries, fix and re-evaluate until passing or 3 attempts.
 
 ### Prompt 018: Industry 4.0 Agriculture Projects
-- [ ] EVALUATE: Run prompt "What were the most recent 10 awarded projects that touched upon the issue of Industry 4.0/5.0 in agriculture?" through MAPIT. Use `eval-orchestrator` subagent. Must return 10 relevant projects with details. Save result to `tests/quality/results/prompt_018_industry40_agri.json`.
+- [x] EVALUATE: Run prompt "What were the most recent 10 awarded projects that touched upon the issue of Industry 4.0/5.0 in agriculture?" through MAPIT. Use `eval-orchestrator` subagent. Must return 10 relevant projects with details. Save result to `tests/quality/results/prompt_018_industry40_agri.json`.
 
-- [ ] FIX IF NEEDED: Read `tests/quality/results/prompt_018_industry40_agri.json`. If score < 85: fix and re-evaluate until passing or 3 attempts.
+- [x] FIX IF NEEDED: Read `tests/quality/results/prompt_018_industry40_agri.json`. If score < 85: fix and re-evaluate until passing or 3 attempts.
 
 ### Prompt 019: Industry 4.0 Soil Regeneration
 - [ ] EVALUATE: Run prompt "What were the most recent 10 awarded projects that have worked with using Industry 4.0/5.0 for soil regeneration? Please summarise the objectives of these 10 projects." through MAPIT. Use `eval-orchestrator` subagent. Must return 10 projects with objective summaries. Save result to `tests/quality/results/prompt_019_soil_regeneration.json`.

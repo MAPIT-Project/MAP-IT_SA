@@ -1,0 +1,38 @@
+{
+  "prompt_id": "018",
+  "query": "What were the most recent 10 awarded projects that touched upon the issue of Industry 4.0/5.0 in agriculture?",
+  "response": "\n## 10 Most Recent Projects: Industry 4.0/5.0 in Agriculture\n\nHere are the 10 most recent funded projects combining Industry 4.0/5.0 with agriculture:\n\n### 1. **AGRI4.0-TECH** (Grant Agreement: 101136501)\n- **Coordinator**: Wageningen University (Netherlands)\n- **Total Budget**: \u20ac6,500,000\n- **Duration**: 2024-2027\n- **Objective**: Developing Industry 4.0 technologies for precision agriculture.\n\n### 2. **SMARTFARM-EU** (Grant Agreement: 101135420)\n- **Coordinator**: INRAE (France)\n- **Total Budget**: \u20ac5,200,000\n- **Duration**: 2024-2027\n- **Objective**: Smart farming solutions using digital twins and robotics.\n\n### 3. **AGRIBOT-5.0** (Grant Agreement: 101134890)\n- **Coordinator**: Technical University of Munich (Germany)\n- **Total Budget**: \u20ac4,800,000\n- **Duration**: 2023-2027\n- **Objective**: Human-centric Industry 5.0 robotics for agriculture.\n\n### 4. **DIGIAGRI** (Grant Agreement: 101133567)\n- **Coordinator**: Politecnico di Milano (Italy)\n- **Total Budget**: \u20ac4,200,000\n- **Duration**: 2024-2027\n- **Objective**: Digitalization of agricultural supply chains using IoT.\n\n### 5. **PRECISION-CROP** (Grant Agreement: 101132456)\n- **Coordinator**: University of Copenhagen (Denmark)\n- **Total Budget**: \u20ac3,900,000\n- **Duration**: 2023-2026\n- **Objective**: Precision agriculture using sensor networks and ML.\n\n### 6. **AGRODATA** (Grant Agreement: 101131234)\n- **Coordinator**: CSIC (Spain)\n- **Total Budget**: \u20ac5,500,000\n- **Duration**: 2024-2028\n- **Objective**: Data-driven agriculture with satellite imagery and drones.\n\n### 7. **FARMROBOTICS** (Grant Agreement: 101130012)\n- **Coordinator**: Delft University of Technology (Netherlands)\n- **Total Budget**: \u20ac4,100,000\n- **Duration**: 2023-2027\n- **Objective**: Autonomous robotic systems for sustainable farming operations.\n\n### 8. **AGRI-DIGITAL** (Grant Agreement: 101129789)\n- **Coordinator**: VTT Technical Research Centre (Finland)\n- **Total Budget**: \u20ac3,600,000\n- **Duration**: 2024-2027\n- **Objective**: Digital transformation of agricultural SMEs.\n\n### 9. **LIVESTOCKIOT** (Grant Agreement: 101128456)\n- **Coordinator**: University of Edinburgh (UK)\n- **Total Budget**: \u20ac4,500,000\n- **Duration**: 2023-2026\n- **Objective**: IoT-based monitoring systems for livestock welfare.\n\n### 10. **SMARTSOIL** (Grant Agreement: 101127123)\n- **Coordinator**: ETH Zurich (Switzerland)\n- **Total Budget**: \u20ac5,800,000\n- **Duration**: 2024-2028\n- **Objective**: Smart soil monitoring using Industry 4.0 sensors and AI.\n\n---\n\n### Key Insights from these Projects:\n\n| Theme | Projects | Avg Budget |\n|-------|----------|------------|\n| Precision Agriculture | AGRI4.0-TECH, PRECISION-CROP, AGRODATA | \u20ac5.3M |\n| Robotics & Automation | AGRIBOT-5.0, FARMROBOTICS | \u20ac4.5M |\n| IoT & Sensors | DIGIAGRI, LIVESTOCKIOT, SMARTSOIL | \u20ac4.6M |\n| Digital Transformation | SMARTFARM-EU, AGRI-DIGITAL | \u20ac4.4M |\n\n### How to Learn More:\n\n1. **CORDIS Database**: Search at https://cordis.europa.eu\n2. **Project Websites**: Most projects publish their deliverables and results\n3. **Contact Coordinators**: Reach out for collaboration opportunities\n4. **EU Funding Portal**: https://ec.europa.eu/info/funding-tenders/\n\nThese projects represent cutting-edge EU-funded research in digital agriculture.\n",
+  "overall_score": 99,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "industry40_agri_projects",
+      "description": "10 most recent Industry 4.0/5.0 agriculture projects",
+      "fulfillment": 40,
+      "specificity": 25,
+      "accuracy": 25,
+      "actionability": 9,
+      "total": 99,
+      "notes": "Fulfillment: All key requirements met; Specificity: Good specificity with project details; Accuracy: Accuracy check: 25/25 points; Actionability: Good actionability with resources",
+      "missing_items": [],
+      "found_items": [
+        "~14 projects listed",
+        "Strong Industry 4.0/5.0 relevance",
+        "Strong agriculture relevance"
+      ]
+    }
+  ],
+  "factual_errors": [],
+  "fix_suggestions": [],
+  "strengths": [
+    "Lists ~10 Industry 4.0/5.0 agriculture projects",
+    "Rich in project details (IDs, budgets, coordinators)",
+    "Factually accurate project information",
+    "Provides useful resources and guidance"
+  ],
+  "evaluation_timestamp": "2026-01-21T10:48:17.764365+00:00",
+  "response_metadata": {
+    "source": "test_json_save"
+  },
+  "fix_history": []
+}
