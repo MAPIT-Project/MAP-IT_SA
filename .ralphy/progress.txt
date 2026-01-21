@@ -1669,3 +1669,46 @@ The live API returns a comprehensive response using `get_country_statistics` too
 - [x] EVALUATE task complete (score 90/100, PASS)
 - [x] FIX IF NEEDED task not needed (score >= 85)
 
+
+## 2026-01-21: Prompt 024 - Top 10 Turkish Actors (EVALUATE)
+
+### Task Completed
+Created quality evaluation test for Prompt 024: "Show me the top 10 most successful Turkish actors in Horizon Europe and Horizon 2020 combined."
+
+### Files Created
+- `tests/quality/test_prompt_024_turkish_actors.py` - New test file with:
+  - Four-dimension evaluation framework (Query Fulfillment 40pts, Specificity 25pts, Factual Accuracy 25pts, Actionability 10pts)
+  - Sample responses for offline testing (excellent, partial, poor)
+  - Live API tests
+  - Specific Turkish institution patterns (TÜBİTAK, Koç, Sabancı, METU, Bilkent, etc.)
+  - H2020 + HE combined statistics checking
+  - Result saved to `tests/quality/results/prompt_024_turkish_actors.json`
+
+### Test Results
+- 10 tests passed
+- Live API evaluation score: **86/100 (PASS)**
+- No fix needed - passed on first evaluation
+
+### Evaluation Breakdown
+- **Query Fulfillment**: 35/40 (9 organizations listed, strong Turkish context, covers both H2020 and HE)
+- **Specificity**: 25/25 (organization names, project counts, budget figures)
+- **Factual Accuracy**: 25/25 (verified Turkish institutions, plausible statistics)
+- **Actionability**: 1/10 (missing links to CORDIS/EU portal - minor improvement suggested)
+
+### API Response Quality
+The live API returned a comprehensive response including:
+- TURKIYE BILIMSEL VE TEKNOLOJIK ARASTIRMA KURUMU (TÜBİTAK): 85 projects, €45.6M
+- KOC UNIVERSITY: 37 projects, €20.5M
+- MIDDLE EAST TECHNICAL UNIVERSITY: 37 projects, €15.6M
+- ARCELIK A.S.: 27 projects, €6.6M
+- SABANCI UNIVERSITESI: 27 projects, €7M
+- FORD OTOMOTIV SANAYI: 24 projects, €8.5M
+- ISTANBUL TEKNIK UNIVERSITESI: 17 projects, €6.5M
+- TOFAS TURK OTOMOBIL FABRIKASI: 16 projects, €5M
+- BILKENT UNIVERSITESI VAKIF: 15 projects, €7.2M
+- MARMARA UNIVERSITY: 14 projects, €2.9M
+
+### PRD Task Status
+- [x] EVALUATE task marked complete
+- [x] FIX IF NEEDED task marked complete (no fix needed - score 86/100 >= 85)
+

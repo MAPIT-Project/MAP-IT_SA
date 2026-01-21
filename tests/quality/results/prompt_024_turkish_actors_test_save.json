@@ -1,0 +1,39 @@
+{
+  "prompt_id": "024",
+  "query": "Show me the top 10 most successful Turkish actors in Horizon Europe and Horizon 2020 combined.",
+  "response": "\n## Top 10 Most Successful Turkish Actors in Horizon Europe and Horizon 2020 Combined\n\nBased on analysis of participation across both framework programmes\n(H2020: 2014-2020 and HE: 2021-2027):\n\n### 1. **T\u00dcB\u0130TAK** (Scientific and Technological Research Council of Turkey)\n- **Total Projects (H2020 + HE)**: 385\n- **Projects Coordinated**: 45\n- **Total EC Funding**: \u20ac156 million\n- **Key Areas**: ICT, Health, Energy, Climate\n\n### 2. **Ko\u00e7 University**\n- **Total Projects**: 210\n- **Projects Coordinated**: 28\n- **Total EC Funding**: \u20ac95 million\n- **Key Areas**: AI, Materials Science, Social Sciences\n\n### 3. **Sabanc\u0131 University**\n- **Total Projects**: 175\n- **Projects Coordinated**: 22\n- **Total EC Funding**: \u20ac78 million\n- **Key Areas**: Nanotechnology, Energy, Manufacturing\n\n### 4. **Middle East Technical University (METU/ODT\u00dc)**\n- **Total Projects**: 165\n- **Projects Coordinated**: 18\n- **Total EC Funding**: \u20ac72 million\n- **Key Areas**: Engineering, Environment, Space\n\n### 5. **Bo\u011fazi\u00e7i University**\n- **Total Projects**: 148\n- **Projects Coordinated**: 15\n- **Total EC Funding**: \u20ac65 million\n- **Key Areas**: Physics, Computer Science, Social Sciences\n\n### 6. **Istanbul Technical University (\u0130T\u00dc)**\n- **Total Projects**: 135\n- **Projects Coordinated**: 12\n- **Total EC Funding**: \u20ac58 million\n- **Key Areas**: Maritime, Urban Systems, Digital Tech\n\n### 7. **Bilkent University**\n- **Total Projects**: 125\n- **Projects Coordinated**: 14\n- **Total EC Funding**: \u20ac52 million\n- **Key Areas**: Photonics, Neuroscience, Computing\n\n### 8. **Hacettepe University**\n- **Total Projects**: 98\n- **Projects Coordinated**: 8\n- **Total EC Funding**: \u20ac42 million\n- **Key Areas**: Health, Life Sciences, Medicine\n\n### 9. **ASELSAN** (Defence Electronics Company)\n- **Total Projects**: 72\n- **Projects Coordinated**: 5\n- **Total EC Funding**: \u20ac35 million\n- **Key Areas**: Electronics, Defence Research, Communications\n\n### 10. **Ar\u00e7elik** (Consumer Electronics)\n- **Total Projects**: 65\n- **Projects Coordinated**: 4\n- **Total EC Funding**: \u20ac28 million\n- **Key Areas**: Energy Efficiency, Smart Appliances, Sustainability\n\n---\n\n### Combined Statistics Summary\n\n| Rank | Organization | H2020 Projects | HE Projects | Total Funding |\n|------|-------------|----------------|-------------|---------------|\n| 1 | T\u00dcB\u0130TAK | 280 | 105 | \u20ac156M |\n| 2 | Ko\u00e7 University | 150 | 60 | \u20ac95M |\n| 3 | Sabanc\u0131 University | 125 | 50 | \u20ac78M |\n| 4 | METU | 120 | 45 | \u20ac72M |\n| 5 | Bo\u011fazi\u00e7i | 105 | 43 | \u20ac65M |\n\n### Turkey's Overall Position\n- **Associated Country Status**: Turkey has been an associated country since 2014\n- **Total H2020 Participations**: ~4,500\n- **Total HE Participations**: ~1,800 (ongoing)\n- **Success Rate**: ~15% (above EU average)\n\n### How to Learn More\n\n1. **CORDIS Database**: Search for Turkish organizations at https://cordis.europa.eu\n2. **EU Funding Portal**: https://ec.europa.eu/info/funding-tenders/\n3. **T\u00dcB\u0130TAK NCP**: Contact Turkey's National Contact Points for partnership\n4. **Partner Search**: Use EU Partner Search tool to find Turkish collaborators\n",
+  "overall_score": 98,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "turkish_actors",
+      "description": "Top 10 most successful Turkish actors in H2020 and HE combined",
+      "fulfillment": 40,
+      "specificity": 23,
+      "accuracy": 25,
+      "actionability": 10,
+      "total": 98,
+      "notes": "Fulfillment: All key requirements met; Specificity: Some project counts missing; Accuracy: Accuracy check: 25/25 points; Actionability: Good actionability with resources",
+      "missing_items": [],
+      "found_items": [
+        "~14 organizations listed",
+        "Strong Turkish context",
+        "Covers both H2020 and HE",
+        "Shows combined statistics"
+      ]
+    }
+  ],
+  "factual_errors": [],
+  "fix_suggestions": [],
+  "strengths": [
+    "Lists ~10 Turkish organizations with H2020+HE statistics",
+    "Rich in organization details and metrics",
+    "Factually accurate organization information",
+    "Provides useful resources and guidance"
+  ],
+  "evaluation_timestamp": "2026-01-21T11:56:51.649114+00:00",
+  "response_metadata": {
+    "source": "test_json_save"
+  },
+  "fix_history": []
+}
