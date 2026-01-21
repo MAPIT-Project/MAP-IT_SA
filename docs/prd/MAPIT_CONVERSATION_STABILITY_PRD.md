@@ -121,13 +121,13 @@ TEST_API_URL=http://localhost:8000 pytest tests/test_conversation_scenarios.py -
 - [x] RUN & FIX: Execute scenario using `ConversationFlowAgent`. If any step fails, identify the issue using `ContextValidatorAgent`, fix, and re-run until passing.
 
 ### Task 007: Project Search Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/basic_flows/project_search.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/basic_flows/project_search.yaml` with steps:
   1. "Show me recent AI healthcare projects"
   2. "What was the budget of the largest one?"
   3. "Who coordinated it?"
   Validations: tools_used includes search_projects, specific project details returned.
 
-- [ ] RUN & FIX: Execute scenario. Fix any failures and re-run until passing.
+- [x] RUN & FIX: Execute scenario. Fix any failures and re-run until passing.
 
 ### Task 008: Budget Calculation Scenario
 - [ ] VERIFY SCENARIO: Verify `tests/scenarios/basic_flows/budget_calculation.yaml` runs correctly with steps:

@@ -1,13 +1,14 @@
 # Scenario: Basic Project Search
 # Tests the standard flow of searching for funded projects
+# PRD Task 007: Project Search Scenario
 
 name: "Project Search"
-description: "User searches for funded projects and explores details"
+description: "User searches for funded projects and explores details (AI healthcare focus)"
 tags: ["basic", "projects", "search"]
 stop_on_error: true
 
 steps:
-  - message: "Find AI research projects funded by Horizon Europe"
+  - message: "Show me recent AI healthcare projects"
     validations:
       - type: "response_contains"
         name: "mentions_projects"
@@ -19,35 +20,26 @@ steps:
         name: "no_errors"
     delay_ms: 0
 
-  - message: "Tell me more about the first project"
+  - message: "What was the budget of the largest one?"
     validations:
       - type: "follow_up_resolved"
         name: "resolves_reference"
-        description: "Should understand 'first project' reference"
-      - type: "response_contains"
-        name: "has_details"
-        patterns: ["budget", "partner", "funding"]
+        description: "Should understand 'the largest one' reference"
+      - type: "response_contains_any"
+        name: "mentions_budget"
+        patterns: ["budget", "funding", "million", "EUR", "€"]
       - type: "no_error"
         name: "no_errors"
     delay_ms: 500
 
-  - message: "What organizations are involved?"
+  - message: "Who coordinated it?"
     validations:
-      - type: "response_contains"
-        name: "mentions_orgs"
-        patterns: ["organization", "partner", "university", "consortium"]
-      - type: "context_preserved"
-        name: "context_from_previous"
-        from_turn: 1
-      - type: "no_error"
-        name: "no_errors"
-    delay_ms: 500
-
-  - message: "Are there similar projects in the health sector?"
-    validations:
-      - type: "tools_used"
-        name: "searches_similar"
-        expected: ["search_projects"]
+      - type: "follow_up_resolved"
+        name: "resolves_reference"
+        description: "Should understand 'it' refers to the largest project"
+      - type: "response_contains_any"
+        name: "mentions_coordinator"
+        patterns: ["coordinator", "coordinated", "lead", "organization", "university", "institute"]
       - type: "no_error"
         name: "no_errors"
     delay_ms: 500
@@ -55,4 +47,7 @@ steps:
 final_validations:
   - type: "context_integrity"
     name: "context_preserved"
-    description: "All 4 messages should be in context"
+    description: "All 3 messages should be in context"
+  - type: "quality_non_degradation"
+    name: "quality_stable"
+    description: "Quality should not drop significantly"

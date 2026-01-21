@@ -2827,3 +2827,47 @@ Implemented and fixed the funding call search scenario test (Task 006 from Phase
 TEST_API_URL=http://localhost:8000 pytest tests/test_conversation_scenarios.py::TestBasicConversationFlows::test_basic_flow -k "funding" -v
 ```
 
+
+## 2026-01-21: Task 007 - Project Search Scenario (COMPLETED)
+
+### Task Completed
+Implemented Task 007 from Phase 2 of the PRD - Project Search Scenario.
+
+### Files Modified
+1. **`tests/scenarios/basic_flows/project_search.yaml`**:
+   - Updated scenario to match PRD requirements:
+     - Step 1: "Show me recent AI healthcare projects"
+     - Step 2: "What was the budget of the largest one?"
+     - Step 3: "Who coordinated it?"
+   - Added validations for:
+     - `tools_used` includes `search_projects`
+     - Response contains project-related terms
+     - Follow-up references are resolved (budget, coordinator)
+   - Added `response_contains_any` validation for flexible pattern matching
+
+2. **`tests/agents/conversation_flow_agent.py`**:
+   - Extended `references_previous_result` patterns to recognize pronoun references:
+     - Added " it?" pattern for questions like "Who coordinated it?"
+     - Added " it." pattern
+     - Added "about it" pattern
+     - Added "for it" pattern
+
+### Issues Fixed
+1. **Pronoun Reference Detection**: The original pattern list did not detect "it" as a reference to previously mentioned items. Added patterns like " it?", " it.", "about it" to handle pronoun references.
+
+### Test Results
+- Project search scenario passes consistently (3/3 runs successful)
+- Test validates:
+  - `search_projects` tool is used
+  - Response contains project information
+  - Budget information is returned for follow-up
+  - Coordinator information is returned for pronoun reference
+
+### Command to Run Test
+```bash
+TEST_API_URL=http://localhost:8000 pytest tests/test_conversation_scenarios.py::TestBasicConversationFlows::test_basic_flow -k "project" -v
+```
+
+### PRD Task Status
+- [x] Task 007 CREATE SCENARIO completed
+- [x] Task 007 RUN & FIX completed

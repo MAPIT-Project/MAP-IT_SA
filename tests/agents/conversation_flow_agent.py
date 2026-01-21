@@ -100,6 +100,11 @@ class ConversationTurn:
             "the smallest",
             "the highest",
             "the lowest",
+            # Pronoun references to previously mentioned items
+            " it?",  # "about it?", "coordinated it?"
+            " it.",  # "about it.", "coordinated it."
+            "about it",
+            "for it",
         ]
         lower_msg = self.user_message.lower()
         return any(pattern in lower_msg for pattern in reference_patterns)
