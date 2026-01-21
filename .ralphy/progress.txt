@@ -2026,3 +2026,44 @@ The test implements validation for:
 ### PRD Task Status
 - [x] EVALUATE task marked complete
 - [ ] FIX IF NEEDED task pending (awaiting live API evaluation results)
+
+## 2026-01-21: Prompt 030 Fix (Spain Municipal Testbed Partner)
+
+**Initial Score**: 47/100 (FAIL)
+**Final Score**: 85/100 (PASS)
+
+### Root Cause
+- Agent only returned 1 partner (UAB) when tool found 20 partners
+- Observation truncation showed only first partner
+- No guidance for listing multiple partners in response
+
+### Fixes Applied
+1. **Added REASONING_PROMPT guidance** (lines 1111-1167):
+   - Partner Discovery for Testbed/Pilot/Municipal Networks section
+   - Spanish municipal/testbed partner example keywords
+   - "CRITICAL: List MULTIPLE partners (at least 5-10)" instruction
+
+2. **Response Guidelines** (line 1019):
+   - "For partner discovery: When user asks for 'partners' (PLURAL), list AT LEAST 5-10 organizations"
+
+3. **Compact observation format** (lines 5008-5038):
+   - Numbered list with abbreviated stats (Xp, Yc, €ZM)
+   - Shows up to 15 partners in observation
+
+4. **Enhanced response formatter** (lines 3490-3530):
+   - Project examples with acronyms and roles
+   - Organization type descriptions (HES=Higher Education, REC=Research Center)
+   - FEMP reference for Spain-filtered searches
+   - Municipal network verification guidance
+
+5. **Synthesizing Answers special case** (lines 1470-1508):
+   - "SPECIAL CASE - Partner Discovery Responses (CRITICAL)"
+   - Response structure example with numbered list
+
+### Files Modified
+- app/services/agents/tool_aware_agent.py
+- tests/quality/results/prompt_030_spain_municipal.json
+- docs/prd/MAPIT_QUALITY_PRD.md
+
+### Tests
+- All 8 tests pass in tests/quality/test_prompt_030_spain_municipal.py

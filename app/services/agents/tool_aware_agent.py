@@ -1019,6 +1019,7 @@ Respond ONLY with JSON (no other text):
 - Include call IDs so users can reference them (e.g., "tell me more about #3")
 - For funding calls: include title, call ID, type, deadline, cluster, and scope
 - Be comprehensive but organized
+- **For partner discovery**: When user asks for "partners" or "participants" (PLURAL), list AT LEAST 5-10 organizations with full details (name, type, projects, funding, expertise). NEVER return just 1-2 partners.
 - **ALWAYS include actionable links** at the end of your response:
   - For programme info queries: include the 'actionable_guidance' from the tool response
   - For call searches: include links to the EU Portal and Work Programmes
@@ -1106,6 +1107,63 @@ find_experienced_partners(
     programme="both"
 )
 ```
+
+## CRITICAL: Partner Discovery for Testbed/Pilot/Municipal Networks
+
+When the user asks for partners with **municipal ties**, **testbed capabilities**, **pilot site networks**, or **local government outreach**:
+
+1. **Use find_experienced_partners with targeted keywords**:
+   - Combine domain keywords (e.g., "social innovation", "Cluster 2 themes") with testbed/municipal keywords
+   - Include: "municipality pilot testbed urban city local government demonstration"
+   - For specific sectors, add relevant terms (e.g., "smart city" for urban tech, "living lab" for innovation)
+
+2. **For Spanish municipal/testbed partners (Cluster 2)** use these keywords:
+   ```
+   find_experienced_partners(
+       topic_keywords="social innovation governance municipality pilot testbed urban city living lab local government demonstration participatory",
+       country="ES",
+       cluster="CL2",
+       min_projects=1,
+       limit=20,
+       programme="both"
+   )
+   ```
+
+3. **CRITICAL: List MULTIPLE partners (at least 5-10)**:
+   - User asks for "participants" or "partners" (plural) → list AT LEAST 5-10 organizations
+   - For EACH partner, include:
+     - Full organization name
+     - Organization type (HES, REC, PRC, PUB)
+     - Number of relevant projects
+     - Coordination experience
+     - Funding received
+     - Brief description of municipal/testbed expertise based on project titles
+   - Organize by relevance score or project count
+
+4. **Municipal/testbed partner response structure**:
+   ```
+   Based on H2020/HE project data, here are **X organizations in [COUNTRY]** with municipal/testbed network experience:
+
+   **1. [ORGANIZATION NAME]** ([TYPE])
+   - **Relevant Projects**: X projects (Y as coordinator)
+   - **Total Funding**: €X.XM
+   - **Expertise**: [Brief description of their municipal/testbed work based on project themes]
+   - **Example Project**: [PROJECT_ACRONYM] - [Brief description]
+
+   **2. [ORGANIZATION NAME]** ([TYPE])
+   ...
+   ```
+
+5. **Key organization types for municipal partnerships**:
+   - **HES** (Universities): Often have urban research centers, living labs
+   - **REC** (Research Centers): Policy research, urban planning expertise
+   - **PUB** (Public Bodies): Direct government/municipality connections
+   - **PRC** (Companies): Smart city, urban technology providers
+
+6. **Add actionable guidance**:
+   - Explain how to verify municipal ties (check organization's website, CORDIS project pages)
+   - Suggest searching for specific city partnerships in project descriptions
+   - Link to EU Partner Search, CORDIS, regional networks (e.g., FEMP for Spanish municipalities)
 
 ## CRITICAL: Geographic Diversification by Country Groups
 
@@ -1408,6 +1466,47 @@ Example good conclusion:
 - Countries must be EU Member States or Associated Countries
 
 *Source: Horizon Europe Programme Guide*"
+
+**SPECIAL CASE - Partner Discovery Responses (CRITICAL):**
+When the user asks to **find partners/participants** for a project (especially with country or domain filters):
+
+1. **ALWAYS list MULTIPLE partners (minimum 5, ideally 10)** from the find_experienced_partners results:
+   - User asks for "partners" or "participants" (PLURAL) → YOU MUST list at least 5-10 organizations
+   - DO NOT summarize with "I found several partners" and only mention 1-2
+   - Include ALL partners returned by the tool (up to 10)
+
+2. **For EACH partner, include complete details from the tool results:**
+   - **Organization Name** (full name, not just abbreviation)
+   - **Type**: HES (University), REC (Research Center), PRC (Private Company), PUB (Public Body)
+   - **Relevant Projects**: Number of projects (X as coordinator if applicable)
+   - **Funding**: Total funding received (€XM format)
+   - **Brief expertise description** based on keywords/domain
+
+3. **Structure the response as a numbered list:**
+   ```
+   Based on H2020/HE project data, here are **10 organizations in Spain** with relevant experience:
+
+   **1. TECNALIA RESEARCH & INNOVATION (REC)**
+   - **Relevant Projects**: 114 (17 as coordinator)
+   - **Total Funding**: €68.1M
+   - **Expertise**: Research center with strong municipal/urban innovation focus
+
+   **2. FUNDACIO EURECAT (REC)**
+   - **Relevant Projects**: 50 (11 as coordinator)
+   - **Total Funding**: €26.7M
+   - **Expertise**: Technology transfer, smart city, innovation ecosystems
+
+   **3. UNIVERSITAT DE BARCELONA (HES)**
+   ...
+   ```
+
+4. **Add actionable guidance:**
+   - Link to CORDIS for detailed project information
+   - Link to EU Partner Search for contacting organizations
+   - Suggest verifying specific municipal/testbed ties via organization websites
+   - For Spanish municipal networks: mention FEMP (Federación Española de Municipios y Provincias)
+
+**NEVER return just 1-2 partners when the tool found 10-20. This is a CRITICAL requirement!**
 
 Example BAD conclusion (never do this):
 "From document X: The consortium shall... [raw text fragment]"
@@ -3396,18 +3495,39 @@ Found **{total_found} organizations** with relevant track records:
                         name = full_name if len(full_name) > 5 else (short_name or full_name)
                         country = p.get('country', 'N/A')
                         org_type = p.get('type', 'N/A')
+                        org_type_desc = {
+                            'HES': 'Higher Education', 'REC': 'Research Center',
+                            'PRC': 'Private Company', 'PUB': 'Public Body', 'OTH': 'Other'
+                        }.get(org_type, org_type)
                         track = p.get('track_record', {})
                         relevant = track.get('relevant_projects', 0)
                         coord = track.get('as_coordinator', 0)
                         # Use funding_in_relevant (actual field) with fallback to total_funding
                         total_funding = track.get('funding_in_relevant', track.get('total_funding', 0))
+                        # Get project examples (list of dicts with acronym, title, role)
+                        project_examples = p.get('relevant_projects', [])
 
                         partner_text += f"### {i}. **{name}** ({country})\n"
-                        partner_text += f"- **Organization Type**: {org_type}\n"
+                        partner_text += f"- **Organization Type**: {org_type} ({org_type_desc})\n"
                         partner_text += f"- **Relevant Projects**: {relevant}"
                         if coord > 0:
                             partner_text += f" (coordinated **{coord}** projects)"
-                        partner_text += f"\n- **Total Funding**: €{total_funding:,.0f}\n\n"
+                        partner_text += f"\n- **Total Funding**: €{total_funding:,.0f}\n"
+
+                        # Add project examples if available (shows municipal/testbed evidence)
+                        if project_examples and isinstance(project_examples, list):
+                            partner_text += "- **Example Projects**: "
+                            examples = []
+                            for proj in project_examples[:3]:  # Max 3 examples
+                                if isinstance(proj, dict):
+                                    acronym = proj.get('acronym', '')
+                                    role = proj.get('role', 'participant')
+                                    if acronym:
+                                        examples.append(f"{acronym} ({role})")
+                            if examples:
+                                partner_text += ", ".join(examples) + "\n"
+
+                        partner_text += "\n"
 
                     # Add insights if available
                     insights = result.get('aggregated_insights', {})
@@ -3416,16 +3536,21 @@ Found **{total_found} organizations** with relevant track records:
                     if insights.get('top_org_types'):
                         partner_text += f"**Common organization types**: {', '.join(insights['top_org_types'][:3])}\n"
 
-                    # Add actionability section
+                    # Add actionability section with country-specific resources
+                    country_filter = query_params.get('country', '')
                     partner_text += """
 ---
 
-### How to Learn More
+### How to Verify & Contact Partners
 
 - **CORDIS Database**: Search for specific projects at https://cordis.europa.eu
 - **EU Funding Portal**: https://ec.europa.eu/info/funding-tenders/
-- **Partner Search**: Use the EU Partner Search tool to find and contact these organizations
+- **Partner Search**: Use the EU Partner Search tool to find and contact organizations
+- **Verify Municipal Networks**: Check organizations' websites for urban/city partnerships, living labs, or pilot site descriptions
 """
+                    # Add Spain-specific resource for municipal networks
+                    if country_filter and country_filter.upper() in ['ES', 'SPAIN']:
+                        partner_text += "- **FEMP (Spanish Federation of Municipalities)**: http://www.femp.es - Contact for municipal network verification\n"
                     content_pieces.append(partner_text)
 
         if not content_pieces:
@@ -4956,26 +5081,29 @@ Found **{total_found} organizations** with relevant track records:
             if not partners:
                 return f"Partner Discovery: No organizations found matching '{query.get('topic_keywords', '')}'"
 
-            parts = [f"Found {total} experienced partners for '{query.get('topic_keywords', '')}':"]
+            # Use abbreviated keywords for header (first 60 chars) to save space
+            keywords = query.get('topic_keywords', '')
+            keywords_abbrev = keywords[:60] + '...' if len(keywords) > 60 else keywords
+            parts = [f"Found {total} experienced partners for '{keywords_abbrev}':"]
 
-            for p in partners[:10]:  # Show more partners in observation
+            # Include ALL partners (up to 15) with compact format for observation
+            # This ensures the agent sees all partners to present multiple in response
+            for i, p in enumerate(partners[:15], 1):
                 name = p.get('short_name') or p.get('name', 'Unknown')
                 country = p.get('country', '')
                 org_type = p.get('type', '')
                 track = p.get('track_record', {})
                 relevant = track.get('relevant_projects', 0)
                 coord = track.get('as_coordinator', 0)
-                score = p.get('experience_score', 0)
-                # Include funding in observation
                 funding = track.get('funding_in_relevant', track.get('total_funding', 0))
 
-                coord_str = f", {coord} as coordinator" if coord > 0 else ""
-                funding_str = f", €{funding:,.0f}" if funding > 0 else ""
-                parts.append(f"- {name} ({country}, {org_type}): {relevant} relevant projects{coord_str}{funding_str} [score: {score}]")
+                # Compact format: "1. NAME (CC, TYPE): Xp, Yc, €ZM"
+                coord_str = f", {coord}c" if coord > 0 else ""
+                funding_mil = funding / 1_000_000 if funding > 0 else 0
+                funding_str = f", €{funding_mil:.1f}M" if funding > 0 else ""
+                parts.append(f"{i}. {name} ({country}, {org_type}): {relevant}p{coord_str}{funding_str}")
 
-            insights = result.get('aggregated_insights', {})
-            if insights.get('top_countries_in_topic'):
-                parts.append(f"\nTop countries: {', '.join(insights['top_countries_in_topic'][:5])}")
+            # Skip insights to save space - partners list is more important
 
             return "\n".join(parts)
 
