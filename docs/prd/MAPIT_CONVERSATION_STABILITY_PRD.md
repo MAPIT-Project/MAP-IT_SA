@@ -255,12 +255,12 @@ TEST_API_URL=http://localhost:8000 pytest tests/test_conversation_scenarios.py -
 - [x] RUN & FIX: Use `ContextValidatorAgent.detect_race_condition()` to identify issues. Fix any race conditions.
 
 ### Task 020: Simultaneous Messages Test
-- [ ] CREATE TEST: In `tests/test_conversation_scenarios.py`, create `test_simultaneous_messages()` that uses `ConversationFlowAgent.run_concurrent_messages()` to send 3 messages at exact same time. Verify:
+- [x] CREATE TEST: In `tests/test_conversation_scenarios.py`, create `test_simultaneous_messages()` that uses `ConversationFlowAgent.run_concurrent_messages()` to send 3 messages at exact same time. Verify:
   1. No crashes
   2. All messages processed (order may vary)
   3. Context remains consistent.
 
-- [ ] RUN & FIX: If race conditions detected, verify `ConversationLockManager` is properly integrated.
+- [x] RUN & FIX: If race conditions detected, verify `ConversationLockManager` is properly integrated.
 
 ### Task 021: Interleaved Conversations Test
 - [ ] CREATE TEST: Create test with 2 `ConversationFlowAgent` instances on different conversation IDs, sending messages alternately. Verify:

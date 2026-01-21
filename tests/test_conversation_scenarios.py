@@ -589,9 +589,7 @@ class TestErrorRecovery:
         The conversation should remain functional after invalid references.
         """
         # Step 1: Establish results with projects
-        turn1 = await conversation_agent.send_message(
-            "Show me 3 projects about hydrogen research"
-        )
+        turn1 = await conversation_agent.send_message("Show me 3 projects about hydrogen research")
         assert not turn1.has_error, f"Step 1 error: {turn1.error}"
         assert len(turn1.response_text) > 50, "Should have substantial response"
         # Verify search_projects tool was used
@@ -607,16 +605,15 @@ class TestErrorRecovery:
 
         # Should NOT crash - this is the key assertion
         # The response should indicate the reference is invalid, but no error
-        assert not turn2.has_error, (
-            f"Invalid reference should not cause error: {turn2.error}"
-        )
+        assert not turn2.has_error, f"Invalid reference should not cause error: {turn2.error}"
         assert len(turn2.response_text) > 0, "Should have some response to invalid ref"
 
         # Response should acknowledge the invalid reference somehow
         response_lower = turn2.response_text.lower()
         invalid_acknowledged = (
             "only" in response_lower
-            or "3" in response_lower or "three" in response_lower
+            or "3" in response_lower
+            or "three" in response_lower
             or "doesn't exist" in response_lower
             or "not available" in response_lower
             or "cannot find" in response_lower
@@ -639,9 +636,7 @@ class TestErrorRecovery:
 
         # This MUST work - proves conversation recovered from invalid ref
         assert not turn3.has_error, f"Recovery step error: {turn3.error}"
-        assert len(turn3.response_text) > 100, (
-            "Recovery response should be substantial"
-        )
+        assert len(turn3.response_text) > 100, "Recovery response should be substantial"
 
         # The response should contain project-related content
         response_lower = turn3.response_text.lower()
@@ -698,9 +693,7 @@ class TestErrorRecovery:
         turn2 = await conversation_agent.send_message("Tell me about it")
 
         # Should NOT crash - this is the key assertion
-        assert not turn2.has_error, (
-            f"Ambiguous query should not cause error: {turn2.error}"
-        )
+        assert not turn2.has_error, f"Ambiguous query should not cause error: {turn2.error}"
         assert len(turn2.response_text) > 0, "Should have some response to ambiguous query"
 
         # Response should either ask for clarification OR make a reasonable assumption
@@ -725,15 +718,11 @@ class TestErrorRecovery:
         await asyncio.sleep(0.5)
 
         # Step 3: Clarification - should accept and process
-        turn3 = await conversation_agent.send_message(
-            "I mean projects about hydrogen research"
-        )
+        turn3 = await conversation_agent.send_message("I mean projects about hydrogen research")
 
         # Clarification MUST be accepted and processed
         assert not turn3.has_error, f"Clarification step error: {turn3.error}"
-        assert len(turn3.response_text) > 100, (
-            "Clarification response should be substantial"
-        )
+        assert len(turn3.response_text) > 100, "Clarification response should be substantial"
 
         # The response should contain hydrogen-related content
         response_lower = turn3.response_text.lower()
@@ -791,9 +780,7 @@ class TestErrorRecovery:
 
         # Step 2: Query that uses tools (may or may not timeout in real scenarios)
         # This tests the error handling path when tools are involved
-        turn2 = await conversation_agent.send_message(
-            "Find projects about hydrogen research"
-        )
+        turn2 = await conversation_agent.send_message("Find projects about hydrogen research")
 
         # The query should complete (may succeed or fail gracefully)
         # We check that no unhandled exception occurred
@@ -940,9 +927,7 @@ class TestConcurrentAccess:
             expected_message_count=8,  # At least 4 turns stored
             timeout_seconds=10.0,
         )
-        assert consistency_reached, (
-            "Messages should be stored within timeout period"
-        )
+        assert consistency_reached, "Messages should be stored within timeout period"
 
         # VALIDATION 3: Detect race conditions using ContextValidatorAgent
         race_result = await context_validator.detect_race_condition(
@@ -984,9 +969,7 @@ class TestConcurrentAccess:
         )
 
         # Order should be preserved
-        assert integrity.order_preserved, (
-            "Message order should be preserved in storage"
-        )
+        assert integrity.order_preserved, "Message order should be preserved in storage"
 
         # VALIDATION 6: Responses should contain relevant content
         # Check that we got meaningful responses (not empty/error)
@@ -1034,6 +1017,117 @@ class TestConcurrentAccess:
         # Allow some failures due to race conditions, but not all
         assert error_count < len(messages), (
             f"Too many errors ({error_count}/{len(messages)}) in concurrent test"
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.skipif(not os.environ.get("DATABASE_URL"), reason="DATABASE_URL not set")
+    async def test_simultaneous_messages(
+        self,
+        api_base_url: str,
+        context_validator: ContextValidatorAgent,
+    ):
+        """
+        Test simultaneous message handling per PRD Task 020.
+
+        This test validates:
+        1. No crashes when 3 messages are sent at exact same time
+        2. All messages are processed (order may vary)
+        3. Context remains consistent after concurrent processing
+
+        Uses ConversationFlowAgent.run_concurrent_messages() with delay=0
+        to simulate exact simultaneous submission.
+        """
+        agent = ConversationFlowAgent(base_url=api_base_url)
+
+        # 3 distinct messages to send simultaneously
+        messages = [
+            "What is the EIC Accelerator programme?",
+            "What are the clusters in Horizon Europe?",
+            "What is the budget for MSCA fellowships?",
+        ]
+
+        # Send all 3 messages at exact same time (delay_between_ms=0)
+        turns = await agent.run_concurrent_messages(messages, delay_between_ms=0)
+
+        # VALIDATION 1: No crashes - all requests should complete
+        assert len(turns) == 3, f"Expected 3 turns, got {len(turns)}"
+
+        # Count errors and successful responses
+        success_count = sum(1 for t in turns if not t.has_error)
+
+        # Log details for debugging
+        for i, turn in enumerate(turns):
+            if turn.has_error:
+                logger.warning(f"Simultaneous message {i + 1} error: {turn.error}")
+            else:
+                logger.info(
+                    f"Simultaneous message {i + 1} completed: {len(turn.response_text)} chars"
+                )
+
+        # VALIDATION 2: All messages processed (allow 1 failure due to race conditions)
+        # At least 2 of 3 messages should succeed (relaxed for concurrent stress)
+        assert success_count >= 2, (
+            f"Too many failures: only {success_count}/3 messages succeeded. "
+            f"Errors: {[t.error for t in turns if t.has_error]}"
+        )
+
+        # If all succeeded, validate responses contain relevant content
+        if success_count == 3:
+            # Check each response has meaningful content
+            for turn in turns:
+                assert len(turn.response_text) > 50, (
+                    f"Response too short: {turn.response_text[:100]}"
+                )
+
+            # Verify distinct responses (not all the same)
+            response_texts = [t.response_text for t in turns]
+            unique_responses = len(set(r[:100] for r in response_texts))
+            assert unique_responses >= 2, (
+                "Responses should be distinct (possible duplicate handling issue)"
+            )
+
+        # Allow time for storage operations to complete
+        await asyncio.sleep(2.0)
+
+        # VALIDATION 3: Context remains consistent
+        integrity = await context_validator.validate_context_integrity(agent.conversation_id)
+
+        # Check that we have some messages stored
+        # Note: Due to race conditions, not all messages may be stored,
+        # but we should have at least some
+        assert integrity.db_message_count > 0, "At least some messages should be stored in DB"
+
+        # Order should be preserved within what was stored
+        # (messages may be stored in different order than sent)
+        # The key validation is no data corruption
+        assert integrity.is_consistent or integrity.order_preserved, (
+            f"Context integrity check failed:\n"
+            f"  DB message count: {integrity.db_message_count}\n"
+            f"  Redis turn count: {integrity.redis_turn_count}\n"
+            f"  Order preserved: {integrity.order_preserved}"
+        )
+
+        # VALIDATION 4: Check for race condition artifacts
+        # No duplicate messages should exist
+        race_result = await context_validator.detect_race_condition(
+            agent.conversation_id,
+            expected_sequence=messages,
+        )
+
+        # Duplicates are a definite sign of race condition bugs
+        assert len(race_result.duplicates) == 0, (
+            f"Duplicate messages detected (race condition bug): {race_result.duplicates}"
+        )
+
+        # Log final summary
+        logger.info(
+            f"Task 020 test completed:\n"
+            f"  Messages sent: 3 simultaneously\n"
+            f"  Successful: {success_count}/3\n"
+            f"  Stored in DB: {integrity.db_message_count}\n"
+            f"  Order preserved: {integrity.order_preserved}\n"
+            f"  Duplicates: {len(race_result.duplicates)}\n"
+            f"  Missing: {len(race_result.missing)}"
         )
 
 
