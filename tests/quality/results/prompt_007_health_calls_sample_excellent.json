@@ -1,0 +1,38 @@
+{
+  "prompt_id": "007",
+  "query": "I am working in health/cancer research. What are the upcoming calls relevant for me?",
+  "response": "\n## Relevant Funding Opportunities for Health/Cancer Research\n\nBased on your research focus in health and cancer, here are the relevant calls:\n\n### Cluster 1 - Health Calls\n\nCluster 1 is the primary destination for health and cancer research in Horizon Europe.\n\n#### Open/Upcoming Calls:\n\n| Call ID | Topic | Deadline | Budget |\n|---------|-------|----------|--------|\n| HORIZON-HLTH-2025-DISEASE-07-01 | Cancer prevention | March 2025 | \u20ac8M RIA |\n| HORIZON-HLTH-2025-DISEASE-07-02 | Novel cancer therapies | April 2025 | \u20ac10M RIA |\n| HORIZON-HLTH-2025-DISEASE-03-01 | Cardiovascular disease | April 2025 | \u20ac6M RIA |\n| HORIZON-HLTH-2025-TOOLS-11-01 | Advanced diagnostics | May 2025 | \u20ac5M IA |\n\n**Funding rates**: RIA = 100%, IA = 70% (100% for non-profits)\n\n### Cross-Cutting MSCA Opportunities\n\nMarie Sk\u0142odowska-Curie Actions (MSCA) are **cross-cutting** - available for\nresearchers in ANY field, including health/cancer:\n\n| Action | Description | Deadline | Funding |\n|--------|-------------|----------|---------|\n| MSCA-PF-2025 | Postdoctoral Fellowships | September 2025 | \u20ac200-300K |\n| MSCA-DN-2025 | Doctoral Networks (PhD training) | November 2025 | \u20ac2-4M |\n| MSCA-SE-2025 | Staff Exchanges | March 2026 | \u20ac0.5-1.5M |\n\n**Why MSCA for cancer research?** MSCA is thematic-neutral - you can propose a\nhealth/cancer project under any MSCA action. Success rates are often higher.\n\n### EIC Pathfinder (for breakthrough innovations)\n\nIf your cancer research involves novel technologies at low TRL:\n- **EIC Pathfinder Open**: TRL 1-4, \u20ac3-4M, 100% funding\n- Suitable for high-risk/high-gain breakthrough research\n\n### How to Get Started\n\n1. **Register** on the EU Funding & Tenders Portal\n2. **Check Work Programme** for detailed topic descriptions and eligibility\n3. **Find Partners** using Partner Search tool\n4. **Review** Cluster 1 Work Programme 2025\n\nPortal: https://ec.europa.eu/info/funding-tenders/opportunities/portal/\n\n### Key Requirements\n- **RIA projects**: 100% funding, 3+ partners from 3 EU/Associated countries\n- **IA projects**: 70% funding (100% for non-profits)\n- **MSCA-PF**: Individual fellowship, 100% funding\n",
+  "overall_score": 98,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "health_calls",
+      "description": "Health/Cancer research calls and MSCA opportunities",
+      "fulfillment": 40,
+      "specificity": 24,
+      "accuracy": 25,
+      "actionability": 9,
+      "total": 98,
+      "notes": "Fulfillment: All key components covered; Specificity: Good specificity with call details; Accuracy: Accuracy check: 25/25 points; Actionability: Good actionability with clear guidance",
+      "missing_items": [],
+      "found_items": [
+        "Cluster 1/Health content",
+        "MSCA cross-cutting opportunities",
+        "Call identifiers/details"
+      ]
+    }
+  ],
+  "factual_errors": [],
+  "fix_suggestions": [],
+  "strengths": [
+    "Comprehensive coverage of Cluster 1 and MSCA",
+    "Rich in specific call details (IDs, deadlines, budgets)",
+    "Factually accurate",
+    "Provides clear guidance for applicants"
+  ],
+  "evaluation_timestamp": "2026-01-21T00:17:02.781424+00:00",
+  "response_metadata": {
+    "source": "sample_excellent"
+  },
+  "fix_history": []
+}

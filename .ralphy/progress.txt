@@ -457,3 +457,57 @@ The live API returns a comprehensive ~2600 character response covering:
 - [x] EVALUATE task complete (score 93/100, PASS)
 - [x] FIX IF NEEDED task not needed (score >= 85)
 
+
+## 2026-01-21: Prompt 007 - Health Research Calls (EVALUATE)
+
+### Task Completed
+Created quality evaluation test for Prompt 007: "I am working in health/cancer research. What are the upcoming calls relevant for me?"
+
+### Files Created/Modified
+- `tests/quality/test_prompt_007_health_calls.py` - New test file with:
+  - Four-dimension evaluation framework (Query Fulfillment 40pts, Specificity 25pts, Factual Accuracy 25pts, Actionability 10pts)
+  - Checks for Cluster 1 (Health) content: cancer, medical, disease, biomedical keywords
+  - Checks for MSCA cross-cutting opportunities: MSCA-PF, MSCA-DN, mobility
+  - Checks for call details: IDs, deadlines, budgets, status
+  - Sample responses for offline testing (excellent, partial, poor)
+  - Live API tests
+  - Result saved to `tests/quality/results/prompt_007_health_calls.json`
+
+### Live API Evaluation Results
+- **Overall Score**: 63/100 (FAIL) ❌
+- **Query Fulfillment**: 5/40 - Missing Cluster 1 Health calls and MSCA opportunities
+- **Specificity**: 24/25 - Good call details (IDs, deadlines, links)
+- **Factual Accuracy**: 25/25 - No factual errors
+- **Actionability**: 9/10 - Good guidance and links
+
+### API Response Issue
+The live API returned calls from:
+- Cluster 5 (Climate) - HORIZON-CL5-2025-03-D1-06
+- EIE (Innovation Ecosystems) - HORIZON-EIE-2025-01
+- Missions - HORIZON-MISS-2026-* calls
+
+Instead of the expected:
+- Cluster 1 (Health) calls - HORIZON-HLTH-* topics
+- MSCA opportunities - MSCA-PF, MSCA-DN (cross-cutting for all researchers)
+
+### Root Cause Analysis
+The search_funding_calls tool is not correctly filtering for health-related calls:
+1. The agent searched for "cancer" and "health" but got Cluster 5/Mission results
+2. MSCA calls are not being included in the search results
+3. The tool may need to map research domain keywords to specific clusters/topics
+
+### Test Results
+- 10 tests passed (6 offline + 4 live API tests)
+- All linting passed
+
+### PRD Task Status
+- [x] EVALUATE task complete (score 63/100, FAIL - needs fix)
+- [ ] FIX IF NEEDED task required (score < 85)
+
+### Next Steps for FIX IF NEEDED Task
+1. Investigate `search_funding_calls` tool in `mapit-tools` skill
+2. Ensure health keywords map to Cluster 1 (HORIZON-HLTH-*) calls
+3. Add MSCA opportunities to results (cross-cutting for all themes)
+4. Consider enhancing query expansion for domain-specific searches
+5. Re-evaluate until score >= 85 or 3 attempts
+
