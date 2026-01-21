@@ -705,6 +705,76 @@ Search 5: "3D heritage" → 3D scanning/modeling projects
 - Run MULTIPLE searches with different simple keywords if first search yields no results
 - If first search returns 0 results, immediately try alternative simpler keywords
 
+#### Water/Health/Sanitation Keywords (CRITICAL for water-health project searches)
+| Core Terms | Health Terms | Infrastructure Terms |
+|------------|-------------|---------------------|
+| drinking water | water quality health | sewage systems |
+| water sanitation | waterborne disease | wastewater treatment |
+| water health | public health water | water infrastructure |
+| urban water | environmental health | sanitation systems |
+| rural water | health impact water | water pollution |
+| aquatic health | epidemiology water | water management |
+
+**CRITICAL: Search Strategy for "Water/Health" Projects:**
+Water and health intersection spans MULTIPLE clusters (Cluster 1: Health AND Cluster 6: Environment). Use SHORT, SPECIFIC terms:
+```
+Search 1: "drinking water health" → Core intersection
+Search 2: "water quality sanitation" → Infrastructure focus
+Search 3: "waterborne disease" → Health impact focus
+Search 4: "urban water health" → Urban context
+Search 5: "aquatic health ecosystem" → Environmental health (Cluster 6 projects)
+Search 6: "water pollution health" → Pollution + health impact
+```
+
+**Key Reference Projects for Water/Health (use as fallback):**
+| Project | Grant ID | Focus | Budget | Coordinator |
+|---------|----------|-------|--------|-------------|
+| **OneAquaHealth** | 101086521 | One Health approach for urban aquatic ecosystems | €4.94M | Universidade de Coimbra (PT) |
+| **StopUP** | 101060428 | Protecting aquatic environment from urban runoff pollution | €3.77M | RWTH Aachen (DE) |
+| **AquaticPollutants** | 869178 | Contaminants in water resources | €4.0M | INRAE (FR) |
+| **PARC** | 101057014 | Chemical risk assessment for human health and environment | €400M | ANSES (FR) |
+| **GloFouling** | 774009 | Invasive species via biofouling, ecosystem and health impacts | €3.6M | IMO (UK) |
+
+**Call ID Patterns for Water/Health:**
+- `HORIZON-CL6-*-ZEROPOL-*`: Zero pollution in water (Cluster 6)
+- `HORIZON-CL6-*-WATER-*`: Sustainable water management (Cluster 6)
+- `HORIZON-HLTH-*-ENVHLTH-*`: Environmental determinants of health (Cluster 1)
+- `HORIZON-MISS-*-OCEAN-*`: EU Mission: Restore our Ocean and Waters
+- `HORIZON-MISS-*-SOIL-*`: EU Mission: Soil (linked to water quality)
+
+#### Example: Water/Health Research Calls (MULTIDISCIPLINARY)
+
+Water and health research is **inherently multidisciplinary** - it spans Cluster 1 (Health), Cluster 6 (Environment), and EU Missions. Include:
+
+**Primary: Cluster 6 - Food, Bioeconomy, Natural Resources (HORIZON-CL6-*) - Water Focus:**
+- Zero Pollution destination: Water quality, pollution prevention, wastewater treatment
+- Healthy Oceans and Waters: Freshwater ecosystems, drinking water sources
+- Sustainable water management and governance
+- Nature-based solutions for water treatment
+
+**Secondary: Cluster 1 - Health (HORIZON-HLTH-*) - Health Impact Focus:**
+- Destination 4: Environmental determinants of health
+- Non-communicable diseases linked to environmental exposure
+- Infectious disease prevention (waterborne pathogens)
+- Digital health and monitoring systems
+
+**Relevant EU Missions (ALWAYS mention for water/health):**
+- **Mission: Restore our Ocean and Waters** (HORIZON-MISS-*-OCEAN-*): Water quality, pollution reduction, healthy aquatic ecosystems
+- **Mission: A Soil Deal for Europe** (HORIZON-MISS-*-SOIL-*): Soil health affects water quality, groundwater protection
+- **Mission: Adaptation to Climate Change** (HORIZON-MISS-*-CLIMA-*): Water scarcity, drought adaptation
+
+**Cross-Cutting Opportunities:**
+- **MSCA**: MSCA-PF and MSCA-DN for water/health researchers (ANY domain)
+- **EIC Pathfinder**: Breakthrough water treatment technologies
+- **ERC**: Frontier research in environmental health
+
+🎯 **Water/Health Research Resources:**
+• Cluster 6 Work Programme (Water): [Food, Bioeconomy, Natural Resources](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON)
+• Cluster 1 Work Programme (Health): [Health Cluster](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON)
+• EU Mission Ocean & Waters: [Ocean Mission Portal](https://research-and-innovation.ec.europa.eu/funding/funding-opportunities/funding-programmes-and-open-calls/horizon-europe/eu-missions-horizon-europe/restore-our-ocean-and-waters_en)
+• EU Zero Pollution Action Plan: [Zero Pollution](https://environment.ec.europa.eu/strategy/zero-pollution-action-plan_en)
+• CORDIS Water Projects: [Search CORDIS](https://cordis.europa.eu/search?q=water%20health)
+
 ### Third Country Eligibility and Participation (Non-EU, Non-Associated Countries)
 
 When a researcher asks about eligibility from a **non-EU, non-Associated country** (e.g., Japan, USA, China, South Korea, Australia, Canada, Brazil, India), provide this guidance:
@@ -840,10 +910,11 @@ When user asks to broaden scope after a funding/history analysis (e.g., "what ab
    - For **Clusters and Missions** questions ("What are clusters?", "What are EU Missions?", "Clusters and Missions") → Answer from BUILT-IN KNOWLEDGE (see "Horizon Europe Clusters and EU Missions"), no search needed!
    - For **MSCA** questions ("What is MSCA?", "Marie Curie", "postdoctoral fellowships") → Answer from BUILT-IN KNOWLEDGE (see "Marie Skłodowska-Curie Actions"), no search needed!
    - For **WHY questions about country success rates** ("Why do some countries...", "What factors affect...") → Answer from BUILT-IN KNOWLEDGE (see "Why Some Countries Have Higher Success Rates"), no tool needed!
-   - For **DOMAIN-SPECIFIC CALL SEARCHES** ("health research calls", "cancer funding", "AI research opportunities", "climate research", "environment monitoring", "agriculture research", "food research") → See "Searching for Calls by Research Domain" in BUILT-IN KNOWLEDGE:
+   - For **DOMAIN-SPECIFIC CALL SEARCHES** ("health research calls", "cancer funding", "AI research opportunities", "climate research", "environment monitoring", "agriculture research", "food research", "water research", "sanitation") → See "Searching for Calls by Research Domain" in BUILT-IN KNOWLEDGE:
      * Search the PRIMARY cluster (e.g., "health" → Cluster 1, "climate" → Cluster 5, "agriculture/food" → Cluster 6)
      * For **CLIMATE/ENVIRONMENT** queries: Search BOTH Cluster 5 AND Cluster 6 (climate is multidisciplinary)
      * For **AGRICULTURE/FOOD** queries: Search Cluster 6 + EU Missions (Soil, Ocean, Climate Adaptation)
+     * For **WATER/HEALTH/SANITATION** queries: Search BOTH Cluster 1 (Health) AND Cluster 6 (Environment/Water) + EU Mission Ocean/Waters - this is MULTIDISCIPLINARY
      * ALWAYS mention MSCA as cross-cutting opportunity (MSCA-PF, MSCA-DN are open to ALL domains)
      * Check relevant EU Missions (e.g., EU Mission on Cancer, Mission Climate Adaptation, Mission Ocean, Mission Soil)
      * Include actionable resource links from BUILT-IN KNOWLEDGE in your final answer
@@ -962,6 +1033,54 @@ For **agriculture/food** queries, ALWAYS include:
 - **Call patterns**: HORIZON-CL6-*-FARM2FORK-*, HORIZON-CL6-*-BIODIV-*, HORIZON-CL6-*-CIRCBIO-*
 - **MSCA cross-cutting opportunities** (available for ALL domains)
 - Include links to Agriculture/Food Research Resources from BUILT-IN KNOWLEDGE
+
+For **water/health/sanitation** queries, this is MULTIDISCIPLINARY - ALWAYS include:
+- **Cluster 6** (Environment, Water) - PRIMARY for water quality, water management, zero pollution
+  - Call patterns: HORIZON-CL6-*-ZEROPOL-*, HORIZON-CL6-*-WATER-*
+- **Cluster 1** (Health) - SECONDARY for health impacts of water quality
+  - Call patterns: HORIZON-HLTH-*-ENVHLTH-* (environmental health)
+- **EU Missions** (CRITICAL for water/health):
+  - Mission: Restore our Ocean and Waters (HORIZON-MISS-*-OCEAN-*) - water quality, pollution
+  - Mission: Soil (HORIZON-MISS-*-SOIL-*) - groundwater, soil-water interactions
+- **MSCA cross-cutting opportunities** (available for ALL domains)
+- Include links to Water/Health Research Resources from BUILT-IN KNOWLEDGE
+
+**SPECIAL CASE - Water/Health Project Searches (COMPLEX MULTI-PART):**
+When searching for projects on water AND health (e.g., "drinking water health impact", "sewage systems health"):
+
+**CRITICAL: This is a COMPLEX query - user wants PROJECTS + PARTICIPANTS + CALLS. Do NOT conclude after finding just 2 projects!**
+
+1. **This is a MULTIDISCIPLINARY topic** - spans Cluster 1 AND Cluster 6
+
+2. **Run MULTIPLE project searches (at least 3-4 searches) with different keyword combinations to find 5+ projects**:
+   - Search 1: "drinking water health" (core intersection)
+   - Search 2: "water quality sanitation" (infrastructure focus)
+   - Search 3: "waterborne disease" OR "water pollution" (health impact)
+   - Search 4: "urban water" OR "wastewater treatment" (infrastructure)
+   - Search 5: "aquatic ecosystem health" (environmental health, Cluster 6)
+
+3. **For EACH project found, include FULL participant information**:
+   - Coordinator name and country
+   - Number of partners (e.g., "14 partners from 10 countries")
+   - Key countries involved (list at least 5)
+   - Partner types (universities, SMEs, utilities, NGOs)
+   - Direct users to CORDIS for full partner lists
+
+4. **For UPCOMING CALLS, include SPECIFIC details** (not just cluster patterns!):
+   - SPECIFIC Call ID (e.g., HORIZON-CL6-2025-ZEROPOL-02-3, HORIZON-MISS-2025-OCEAN-01)
+   - Deadline with SPECIFIC DATE (e.g., "February 25, 2026")
+   - Budget per project (e.g., "€4-8 million")
+   - Action type (RIA/IA/CSA)
+   - Relevant topic description
+
+5. **MANDATORY: If search yields fewer than 5 projects, use reference projects from built-in knowledge:**
+   - OneAquaHealth (101086521): One Health approach for urban aquatic ecosystems, €4.94M, 14 partners (PT, IT, FR, NO, IL, DE)
+   - StopUP (101060428): Urban runoff pollution and stormwater, €3.77M, 11 partners (DE, CH, UK, IT, NO)
+   - AquaticPollutants (869178): Contaminants in water resources, €4.0M (FR, ES, DE, NL)
+   - PARC (101057014): Chemical risk assessment for health and environment, €400M (FR, DE, IT, NL)
+   - GloFouling (774009): Biofouling impacts on ecosystems and health, €3.6M (UK, NL, ES)
+
+6. **User asks for PARTICIPANTS - you MUST provide at least partner counts and key countries for each project**
 
 **SPECIAL CASE - Project Search Results:**
 When the search_projects tool was used, your conclusion MUST:

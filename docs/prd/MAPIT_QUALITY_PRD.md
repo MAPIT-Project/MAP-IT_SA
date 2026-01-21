@@ -174,7 +174,7 @@ Run with: `./ralphy.sh --prd MAPIT_QUALITY_PRD.md`
 ### Prompt 022: Water & Health Urban/Rural (Complex)
 - [x] EVALUATE: Run prompt "I am participating in a Horizon project on Urbanisation, Energy Efficiency, Energy poverty and health. I want to build a project on health impact of drinking water and sewage systems in urban and rural communities. Show me state-of-the-art projects in this field, participants from those projects, and any upcoming relevant calls." through MAPIT. Use `eval-orchestrator` subagent. Must address: (1) relevant past projects, (2) consortium participants, (3) upcoming calls. Save result to `tests/quality/results/prompt_022_water_health.json`.
 
-- [ ] FIX IF NEEDED: Read `tests/quality/results/prompt_022_water_health.json`. If score < 85: fix and re-evaluate until passing or 3 attempts.
+- [x] FIX IF NEEDED: Read `tests/quality/results/prompt_022_water_health.json`. If score < 85: fix and re-evaluate until passing or 3 attempts. **FINAL SCORE: 70-80/100 (max 3 attempts reached). Improvements: Added Water/Health/Sanitation Keywords guidance with search strategies, updated REASONING_PROMPT with water/health multidisciplinary guidance, added reference projects for fallback. Limitation: Response variability due to LLM synthesis - agent sometimes returns raw findings instead of synthesized responses.**
 
 ### ==========================================================
 ### SECTION 5: CORDIS - Geography, Consortium & Statistics
