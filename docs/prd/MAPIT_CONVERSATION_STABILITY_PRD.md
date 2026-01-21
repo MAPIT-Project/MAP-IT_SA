@@ -103,9 +103,9 @@ TEST_API_URL=http://localhost:8000 pytest tests/test_conversation_scenarios.py -
 - [x] TEST: Create test that: (1) disconnects Redis, (2) sends message, (3) verifies WARNING is logged, (4) verifies `is_fallback_mode` returns True.
 
 ### Task 005: Add Context Window Reset
-- [ ] IMPLEMENT: In `app/services/agents/tool_aware_agent.py`, add automatic `context_window_manager.reset()` call at the start of each `process_query()` invocation to prevent memory leak across queries.
+- [x] IMPLEMENT: In `app/services/agents/tool_aware_agent.py`, add automatic `context_window_manager.reset()` call at the start of each `process_query()` invocation to prevent memory leak across queries.
 
-- [ ] TEST: Create test that processes 10 queries in sequence and verifies context size doesn't accumulate beyond expected limits.
+- [x] TEST: Create test that processes 10 queries in sequence and verifies context size doesn't accumulate beyond expected limits.
 
 ### ==========================================================
 ### PHASE 2: Basic Flow Scenario Testing

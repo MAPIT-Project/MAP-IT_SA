@@ -2742,3 +2742,49 @@ The FallbackRedis class now:
 2. Tracks all operations in `_operation_counts` dictionary
 3. Provides `is_fallback_mode` property (always True for this class)
 4. Provides `get_fallback_metrics()` returning operation counts and total
+
+
+## 2026-01-21: Task 005 - Add Context Window Reset (COMPLETE)
+
+### Task Completed
+Implemented automatic context window reset at the start of `process_query()` and `process_query_streaming()` to prevent memory leak across queries.
+
+### Files Modified
+1. **`app/services/agents/tool_aware_agent.py`**:
+   - Added `_context_manager.reset()` call at the start of `process_query()` method (line ~2526)
+   - Added `_context_manager.reset()` call at the start of `process_query_streaming()` method (line ~2702)
+   - Added `current_size` property to `ContextWindowManager` class for testing purposes
+
+### Files Created
+- **`tests/test_context_window_reset.py`** (21 tests):
+  - `TestContextWindowManagerBasics`: Tests for reset(), current_size property, add_to_context accumulation
+  - `TestContextWindowManagerLimits`: Tests for would_exceed_limit() and truncation behavior
+  - `TestGlobalContextManager`: Tests for global _context_manager instance
+  - `TestContextResetInProcessQuery`: Tests verifying reset is called at start of process_query()
+  - `TestContextAccumulationPrevention`: Key test simulating 10 queries in sequence verifying no accumulation
+  - `TestContextResetWithRealAgent`: Integration-style tests with real context manager
+  - `TestContextWindowManagerEdgeCases`: Edge cases (reset when zero, after truncation, concurrent)
+  - `TestContextLimitsConfiguration`: Tests for context limits configuration
+
+### Implementation Details
+The `ContextWindowManager` class uses `_current_size` to track accumulated context. Without reset:
+- Each reasoning step adds to context
+- Context could theoretically persist across queries via the global `_context_manager`
+
+With the fix:
+- `process_query()` now calls `_context_manager.reset()` at the very start
+- `process_query_streaming()` also calls reset at the start
+- This ensures each query starts with a clean context window (size = 0)
+
+### Test Requirements Covered
+1. ✅ Context window resets at start of each process_query() call
+2. ✅ 10 queries in sequence don't accumulate context beyond expected limits
+3. ✅ Each query maintains bounded context (~2000 chars per query, not 20000+)
+
+### Test Results
+- 21 tests passed
+- Linting passes (ruff check)
+
+### PRD Task Status
+- [x] Task 005 IMPLEMENT completed
+- [x] Task 005 TEST completed

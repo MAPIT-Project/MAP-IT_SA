@@ -64,6 +64,11 @@ class ContextWindowManager:
         """Reset the context size tracker."""
         self._current_size = 0
 
+    @property
+    def current_size(self) -> int:
+        """Get the current context size in characters."""
+        return self._current_size
+
     def truncate_text(self, text: str, max_chars: int, suffix: str = "...") -> str:
         """Truncate text to max_chars, adding suffix if truncated."""
         if not text:
@@ -2522,6 +2527,9 @@ digital_europe, life""",
         """
         start_time = datetime.now()
 
+        # Reset context window manager to prevent memory leak across queries
+        _context_manager.reset()
+
         # Initialize plan
         plan = AgentPlan(
             query=query,
@@ -2697,6 +2705,9 @@ digital_europe, life""",
             Dict events as processing happens
         """
         start_time = datetime.now()
+
+        # Reset context window manager to prevent memory leak across queries
+        _context_manager.reset()
 
         # Initialize plan
         plan = AgentPlan(
