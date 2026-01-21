@@ -299,14 +299,14 @@ TEST_API_URL=http://localhost:8000 pytest tests/test_conversation_scenarios.py -
 ### ==========================================================
 
 ### Task 025: GitHub Actions Workflow
-- [ ] CREATE: Create `.github/workflows/conversation-tests.yml` with:
+- [x] CREATE: Create `.github/workflows/conversation-tests.yml` with:
   1. Service containers (postgres, redis, neo4j)
   2. API server startup
   3. Scenario test execution
   4. Quality baseline comparison
   5. Artifact upload for results.
 
-- [ ] TEST: Trigger workflow manually, verify it completes successfully.
+- [x] TEST: Trigger workflow manually, verify it completes successfully.
 
 ### Task 026: Pre-commit Hook
 - [ ] CREATE: Add pre-commit hook that runs quick conversation smoke tests before allowing commits that modify `conversation_manager.py` or `memory_service.py`.
