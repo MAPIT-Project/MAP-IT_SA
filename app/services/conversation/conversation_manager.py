@@ -10,6 +10,7 @@ import logging
 import os
 import random
 
+from ...core.conversation_lock import get_conversation_lock
 from ..memory.memory_service import MemoryService
 from ..memory.context_manager import ConversationContext
 from ..rag.conversation_retriever import ConversationAwareRetriever, RetrievalContext
@@ -539,6 +540,13 @@ class ConversationManager:
         - When to iterate and when to conclude
 
         No intent classification. No complex routing. Just the agent.
+
+        RACE CONDITION PREVENTION:
+        This method uses conversation-level locking to ensure only one message
+        is processed at a time for each conversation. This prevents:
+        - Duplicate message storage
+        - Out-of-order message processing
+        - Context corruption from concurrent requests
         """
         start_time = datetime.now()
 
@@ -551,22 +559,24 @@ class ConversationManager:
                 streaming=streaming
             )
 
-        # For streaming, return the async generator
+        # For streaming, return an async generator that holds the lock
         if streaming:
-            return self._stream_v3_response(
+            return self._stream_v3_response_with_lock(
                 conversation_id=conversation_id,
                 user_message=user_message,
                 user_id=user_id,
                 start_time=start_time
             )
 
-        # Non-streaming: process synchronously
-        return await self._process_v3_sync(
-            conversation_id=conversation_id,
-            user_message=user_message,
-            user_id=user_id,
-            start_time=start_time
-        )
+        # Non-streaming: acquire lock and process
+        async with await get_conversation_lock(conversation_id, timeout=60.0):
+            logger.debug(f"🔒 Lock acquired for conversation {conversation_id} (sync)")
+            return await self._process_v3_sync(
+                conversation_id=conversation_id,
+                user_message=user_message,
+                user_id=user_id,
+                start_time=start_time
+            )
 
     async def _process_v3_sync(
         self,
@@ -652,6 +662,48 @@ class ConversationManager:
             import traceback
             traceback.print_exc()
             return self._create_error_response(str(e))
+
+    async def _stream_v3_response_with_lock(
+        self,
+        conversation_id: int,
+        user_message: str,
+        user_id: int,
+        start_time: datetime
+    ) -> AsyncGenerator[Dict[str, Any], None]:
+        """
+        Wrapper that acquires conversation lock before streaming response.
+
+        This ensures only one message is processed at a time for each conversation,
+        preventing race conditions in concurrent message scenarios.
+
+        The lock is held for the entire duration of the streaming response to ensure
+        the full message (user + assistant) is stored atomically before the next
+        message can be processed.
+        """
+        try:
+            async with await get_conversation_lock(conversation_id, timeout=60.0):
+                logger.debug(f"🔒 Lock acquired for conversation {conversation_id} (streaming)")
+                async for event in self._stream_v3_response(
+                    conversation_id=conversation_id,
+                    user_message=user_message,
+                    user_id=user_id,
+                    start_time=start_time
+                ):
+                    yield event
+        except TimeoutError as e:
+            logger.error(f"Lock timeout for conversation {conversation_id}: {e}")
+            yield {
+                'type': 'error',
+                'error': f'Conversation is busy processing another message. Please wait.',
+                'stage': 'lock_timeout'
+            }
+        except Exception as e:
+            logger.error(f"Error in locked streaming: {e}")
+            yield {
+                'type': 'error',
+                'error': str(e),
+                'stage': 'error'
+            }
 
     async def _stream_v3_response(
         self,

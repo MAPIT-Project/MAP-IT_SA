@@ -2568,3 +2568,47 @@ The live API response correctly includes:
 
 ### PRD Task Status
 - [x] FIX IF NEEDED task marked complete (N/A - Score 89/100 already passes)
+
+## 2026-01-21: Task 001 - Integrate Conversation Locking (COMPLETE)
+
+### Task Completed
+Implemented conversation-level locking in `conversation_manager.py` to prevent race conditions when multiple messages arrive for the same conversation.
+
+### Files Modified
+- `app/services/conversation/conversation_manager.py`:
+  - Added import for `get_conversation_lock` from `app.core.conversation_lock`
+  - Modified `process_message_v3()` to use conversation locking:
+    - Non-streaming: Wraps `_process_v3_sync()` with `async with await get_conversation_lock()`
+    - Streaming: Calls new `_stream_v3_response_with_lock()` wrapper
+  - Added new `_stream_v3_response_with_lock()` method that:
+    - Acquires conversation lock before streaming
+    - Holds lock for entire duration of response generation
+    - Yields all events from `_stream_v3_response()`
+    - Handles `TimeoutError` with user-friendly message
+    - Ensures lock is released after completion
+
+### Files Created
+- `tests/test_conversation_lock.py` - Comprehensive test suite with 15 tests:
+  - `TestConversationLockManagerBasics`: Singleton pattern, lock acquisition, lock info tracking
+  - `TestConversationLockTimeout`: Timeout on contention, acquisition after release
+  - `TestConcurrentMessages`: 5 concurrent messages verification (no duplicates, all stored, ordering)
+  - `TestConversationIsolation`: Different conversations parallel, same conversation serial
+  - `TestStaleLocksCleanup`: Cleanup of stale locks
+  - `TestGetConversationLockHelper`: Helper function verification
+  - `TestConversationManagerIntegration`: Simulated process_message_v3 and streaming flows
+
+### Key Test Results
+- All 15 tests pass
+- Verified: 5 concurrent messages to same conversation are all stored with no duplicates
+- Verified: Messages are processed sequentially (max concurrent = 1) for same conversation
+- Verified: Different conversations can be processed in parallel
+
+### Implementation Details
+1. **Sync Flow**: `process_message_v3()` -> `get_conversation_lock()` -> `_process_v3_sync()`
+2. **Streaming Flow**: `process_message_v3()` -> `_stream_v3_response_with_lock()` -> `_stream_v3_response()`
+3. Lock timeout: 60 seconds default
+4. Lock held for entire response generation to ensure message pair (user + assistant) is complete
+
+### PRD Task Status
+- [x] IMPLEMENT task complete
+- [x] TEST task complete
