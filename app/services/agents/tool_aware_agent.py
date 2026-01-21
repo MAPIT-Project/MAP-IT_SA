@@ -562,6 +562,43 @@ Climate monitoring research is **inherently multidisciplinary** - it spans MULTI
 • EU Mission Soil: [Soil Mission Portal](https://research-and-innovation.ec.europa.eu/funding/funding-opportunities/funding-programmes-and-open-calls/horizon-europe/eu-missions-horizon-europe/soil-deal-europe_en)
 • European Green Deal: [Green Deal Priorities](https://commission.europa.eu/strategy-and-policy/priorities-2019-2024/european-green-deal_en)
 • MSCA Portal: [MSCA Actions](https://marie-sklodowska-curie-actions.ec.europa.eu/)
+
+#### Example: Agriculture/Food Research Calls
+
+Agriculture and food research is covered by **Cluster 6: Food, Bioeconomy, Natural Resources, Agriculture and Environment**. Include:
+
+**Primary: Cluster 6 - Food, Bioeconomy, Natural Resources (HORIZON-CL6-*):**
+- Sustainable farming systems and agroecology
+- Food systems and nutrition security
+- Biodiversity and natural capital
+- Circular and bio-based solutions
+- Forestry and wood-based industries
+- Water, soil, and land management
+
+**Call ID Patterns (Cluster 6):**
+- `HORIZON-CL6-*-FARM2FORK-*`: Farm to Fork sustainable food systems
+- `HORIZON-CL6-*-BIODIV-*`: Biodiversity and ecosystem services
+- `HORIZON-CL6-*-CIRCBIO-*`: Circular bioeconomy
+- `HORIZON-CL6-*-ZEROPOL-*`: Zero pollution agriculture
+- `HORIZON-CL6-*-GOVERNANCE-*`: Land and resource governance
+
+**Relevant EU Missions (ALWAYS mention for agriculture/food):**
+- **Mission: A Soil Deal for Europe** (HORIZON-MISS-*-SOIL-*): Soil health, sustainable land use, 100 living labs by 2030
+- **Mission: Restore our Ocean and Waters** (HORIZON-MISS-*-OCEAN-*): Water quality, sustainable aquaculture
+- **Mission: Adaptation to Climate Change** (HORIZON-MISS-*-CLIMA-*): Climate-resilient agriculture
+
+**Cross-Cutting Opportunities:**
+- **MSCA**: MSCA-PF and MSCA-DN for agricultural/food researchers (ANY domain)
+- **EIC Pathfinder**: Breakthrough agritech innovations
+- **ERC**: Frontier research in agriculture and food science
+
+🎯 **Agriculture/Food Research Resources:**
+• Cluster 6 Work Programme: [Food, Bioeconomy, Natural Resources](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON)
+• EU Mission Soil: [Soil Mission Portal](https://research-and-innovation.ec.europa.eu/funding/funding-opportunities/funding-programmes-and-open-calls/horizon-europe/eu-missions-horizon-europe/soil-deal-europe_en)
+• Farm to Fork Strategy: [Farm to Fork](https://food.ec.europa.eu/horizontal-topics/farm-fork-strategy_en)
+• EU Bioeconomy: [Bioeconomy Strategy](https://research-and-innovation.ec.europa.eu/research-area/environment/bioeconomy_en)
+• MSCA Portal: [MSCA Actions](https://marie-sklodowska-curie-actions.ec.europa.eu/)
+• Search Cluster 6 calls: [EU Portal - Cluster 6](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search;callCode=null;freeTextSearchKeyword=;matchWholeText=true;typeCodes=1,0;statusCodes=31094501,31094502;programmePeriod=2021%20-%202027;programCcm2Id=43108390;programDivisionCode=43108567)
 """
 
     # System prompt for the reasoning LLM
@@ -608,11 +645,12 @@ When user asks to broaden scope after a funding/history analysis (e.g., "what ab
    - For **Clusters and Missions** questions ("What are clusters?", "What are EU Missions?", "Clusters and Missions") → Answer from BUILT-IN KNOWLEDGE (see "Horizon Europe Clusters and EU Missions"), no search needed!
    - For **MSCA** questions ("What is MSCA?", "Marie Curie", "postdoctoral fellowships") → Answer from BUILT-IN KNOWLEDGE (see "Marie Skłodowska-Curie Actions"), no search needed!
    - For **WHY questions about country success rates** ("Why do some countries...", "What factors affect...") → Answer from BUILT-IN KNOWLEDGE (see "Why Some Countries Have Higher Success Rates"), no tool needed!
-   - For **DOMAIN-SPECIFIC CALL SEARCHES** ("health research calls", "cancer funding", "AI research opportunities", "climate research", "environment monitoring") → See "Searching for Calls by Research Domain" in BUILT-IN KNOWLEDGE:
-     * Search the PRIMARY cluster (e.g., "health" → Cluster 1, "climate" → Cluster 5)
+   - For **DOMAIN-SPECIFIC CALL SEARCHES** ("health research calls", "cancer funding", "AI research opportunities", "climate research", "environment monitoring", "agriculture research", "food research") → See "Searching for Calls by Research Domain" in BUILT-IN KNOWLEDGE:
+     * Search the PRIMARY cluster (e.g., "health" → Cluster 1, "climate" → Cluster 5, "agriculture/food" → Cluster 6)
      * For **CLIMATE/ENVIRONMENT** queries: Search BOTH Cluster 5 AND Cluster 6 (climate is multidisciplinary)
+     * For **AGRICULTURE/FOOD** queries: Search Cluster 6 + EU Missions (Soil, Ocean, Climate Adaptation)
      * ALWAYS mention MSCA as cross-cutting opportunity (MSCA-PF, MSCA-DN are open to ALL domains)
-     * Check relevant EU Missions (e.g., EU Mission on Cancer, Mission Climate Adaptation, Mission Ocean)
+     * Check relevant EU Missions (e.g., EU Mission on Cancer, Mission Climate Adaptation, Mission Ocean, Mission Soil)
      * Include actionable resource links from BUILT-IN KNOWLEDGE in your final answer
    - For **specific call ID** (user gives ID like HORIZON-*, CREA-*, EIC-*) → use get_call_details (fetches from EU Portal API)
    - For **finding/searching** funding calls by topic → use search_funding_calls
@@ -718,6 +756,13 @@ For **climate/environment** queries specifically, ALWAYS mention that it is MULT
 - EU Missions: Climate Adaptation, Ocean & Waters, Soil
 - MSCA and EIC Pathfinder for cross-cutting opportunities
 - Include links to Climate/Environment Research Resources from BUILT-IN KNOWLEDGE
+
+For **agriculture/food** queries, ALWAYS include:
+- **Cluster 6** (Food, Bioeconomy, Natural Resources, Agriculture) - PRIMARY for agriculture
+- **EU Missions**: Soil (HORIZON-MISS-*-SOIL-*), Ocean (HORIZON-MISS-*-OCEAN-*), Climate Adaptation
+- **Call patterns**: HORIZON-CL6-*-FARM2FORK-*, HORIZON-CL6-*-BIODIV-*, HORIZON-CL6-*-CIRCBIO-*
+- **MSCA cross-cutting opportunities** (available for ALL domains)
+- Include links to Agriculture/Food Research Resources from BUILT-IN KNOWLEDGE
 
 **SPECIAL CASE - Timeline Generation:**
 When the generate_timeline tool was used, your conclusion MUST include the COMPLETE timeline output:

@@ -1,0 +1,38 @@
+{
+  "prompt_id": "012",
+  "query": "I am from Austria working in agricultural studies. Are there any open calls or upcoming calls that would be relevant for me?",
+  "response": "\n## Relevant Funding Opportunities for Austrian Agricultural Researchers\n\n### Austria's Eligibility Status\n\n**Great news!** Austria is an **EU Member State**, which means:\n- Austrian organizations have **full eligibility** in Horizon Europe\n- You can be a **coordinator** or partner in consortium projects\n- You receive EU funding on the same terms as all EU countries\n- Standard consortium rules apply (3 partners from 3 different EU/Associated countries)\n\n### Agricultural Research Calls in Horizon Europe\n\nAgricultural research primarily falls under **Cluster 6: Food, Bioeconomy, Natural Resources,\nAgriculture and Environment**, with some opportunities in **EU Missions** and **Cluster 5**.\n\n#### Open/Upcoming Calls:\n\n| Call ID | Topic | Deadline | Budget | Type |\n|---------|-------|----------|--------|------|\n| HORIZON-CL6-2025-FARM-01-04 | Sustainable Farming Systems | April 2025 | \u20ac12M | RIA |\n| HORIZON-CL6-2025-BIODIV-02-01 | Biodiversity in Agriculture | May 2025 | \u20ac8M | RIA |\n| HORIZON-CL6-2025-CIRCBIO-01-03 | Circular Bioeconomy | March 2025 | \u20ac10M | IA |\n| HORIZON-CL6-2025-ZEROPOL-01-02 | Zero Pollution Agriculture | June 2025 | \u20ac15M | RIA |\n| HORIZON-MISS-2025-SOIL-01-01 | Mission Soil Health | April 2025 | \u20ac6M | RIA |\n\n**Funding rates:**\n- **RIA**: 100% funding\n- **IA**: 70% (100% for non-profit organizations)\n\n### EU Missions Relevant to Agriculture\n\nAustria can participate in these **EU Missions** with agricultural relevance:\n- **Mission Soil**: Soil health and food security (100 living labs by 2030)\n- **Mission Ocean & Waters**: Water quality for agriculture\n- **Mission Climate Adaptation**: Climate-resilient farming\n\n### Cross-Cutting Opportunities\n\nAs an Austrian researcher, you're also eligible for:\n- **MSCA-PF** (Postdoctoral Fellowships): \u20ac200-300K for individual mobility\n- **MSCA-DN** (Doctoral Networks): For PhD training networks in agriculture\n- **ERC Grants**: For frontier agricultural research\n\n### How to Get Started\n\n1. **Register** on the EU Funding & Tenders Portal\n2. **Find Consortium Partners** using Partner Search (you need EU/Associated partners)\n3. **Review** Cluster 6 Work Programme 2025 for detailed topic descriptions\n4. **Contact FFG** (Austrian Research Promotion Agency) - National Contact Point\n\n**Resources:**\n- EU Funding Portal: https://ec.europa.eu/info/funding-tenders/opportunities/portal/\n- Cluster 6 Work Programme: [Work Programme Documents]\n- FFG (Austrian NCP): https://www.ffg.at/\n\n### Key Requirements for Austrian Applicants\n\n- **Legal Entity**: Must be a legal entity established in Austria\n- **Consortium**: Usually need 2+ partners from other EU/Associated countries\n- **Austrian Strengths**: Austria has strong track record in sustainable agriculture\n",
+  "overall_score": 99,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "austria_agri",
+      "description": "Austria eligibility and agricultural calls",
+      "fulfillment": 40,
+      "specificity": 24,
+      "accuracy": 25,
+      "actionability": 10,
+      "total": 99,
+      "notes": "Fulfillment: All key components covered; Specificity: Good specificity with call details; Accuracy: Accuracy check: 25/25 points; Actionability: Good actionability with clear guidance",
+      "missing_items": [],
+      "found_items": [
+        "Austria eligibility explained",
+        "Agriculture/Cluster 6 content",
+        "Call identifiers/details"
+      ]
+    }
+  ],
+  "factual_errors": [],
+  "fix_suggestions": [],
+  "strengths": [
+    "Comprehensive coverage of Austria eligibility and agriculture",
+    "Rich in specific call details (IDs, deadlines, budgets)",
+    "Factually accurate on Austria status and funding rates",
+    "Provides clear guidance for Austrian applicants"
+  ],
+  "evaluation_timestamp": "2026-01-21T09:48:47.522132+00:00",
+  "response_metadata": {
+    "source": "test_json_save"
+  },
+  "fix_history": []
+}

@@ -796,3 +796,92 @@ The live API returns a comprehensive ~4600 character response covering:
 - [x] EVALUATE task complete (score 100/100, PASS)
 - [x] FIX IF NEEDED task not needed (score >= 85)
 
+
+## 2026-01-21: Prompt 012 - Austria Agricultural Research (EVALUATE + FIX)
+
+### Task Completed
+Created quality evaluation test and fixed Prompt 012: "I am from Austria working in agricultural studies. Are there any open calls or upcoming calls that would be relevant for me?"
+
+### Files Created/Modified
+- `tests/quality/test_prompt_012_austria_agri.py` - New test file with:
+  - Four-dimension evaluation framework (Query Fulfillment 40pts, Specificity 25pts, Factual Accuracy 25pts, Actionability 10pts)
+  - Checks for Austria's EU Member State status (full eligibility)
+  - Checks for Cluster 6 (Food, Bioeconomy, Natural Resources, Agriculture) calls
+  - Sample responses for offline testing (excellent, partial, poor)
+  - Live API tests
+  - Result saved to `tests/quality/results/prompt_012_austria_agri.json`
+
+- `app/services/agents/tool_aware_agent.py` - Added agriculture/food domain guidance:
+  - Added "Example: Agriculture/Food Research Calls" section to BUILT_IN_KNOWLEDGE
+  - Added Cluster 6 call patterns (FARM2FORK, BIODIV, CIRCBIO, ZEROPOL)
+  - Added EU Missions guidance (Soil, Ocean, Climate Adaptation)
+  - Added agriculture-specific resource links (Cluster 6 WP, Mission Soil Portal, Farm to Fork, Bioeconomy)
+  - Updated REASONING_PROMPT domain-specific guidance to include agriculture
+
+### Initial Evaluation Results (NEEDS_REVIEW)
+- **Overall Score**: 74/100 (NEEDS_REVIEW)
+- **Query Fulfillment**: 32/40 - Austria mentioned but not detailed
+- **Specificity**: 17/25 - Limited budget information
+- **Factual Accuracy**: 25/25 - No factual errors
+- **Actionability**: 0/10 - No links to official resources
+
+### API Response Issue (Before Fix)
+The agent returned raw search results ("Based on my search...Finding 1...Finding 2...") without:
+1. Explaining Austria's EU Member State eligibility
+2. Including actionable links to resources
+3. Mentioning MSCA cross-cutting opportunities
+4. Referencing EU Missions (Soil, Ocean)
+
+### Root Cause Analysis
+The agent's BUILT_IN_KNOWLEDGE lacked agriculture/food-specific guidance. While it had health and climate examples, it did not have:
+1. Agriculture-specific cluster information (Cluster 6 details)
+2. Farm to Fork strategy and relevant call patterns
+3. EU Missions relevant to agriculture (Soil, Ocean, Climate)
+4. Agriculture-specific resource links
+
+### Fix Implementation (1 attempt - successful)
+
+#### Changes Made:
+1. **BUILT_IN_KNOWLEDGE section**: Added comprehensive "Example: Agriculture/Food Research Calls" with:
+   - Cluster 6 focus areas (sustainable farming, food systems, biodiversity, circular bioeconomy)
+   - Call ID patterns (HORIZON-CL6-*-FARM2FORK-*, HORIZON-CL6-*-BIODIV-*, etc.)
+   - EU Missions relevant to agriculture (Soil, Ocean, Climate Adaptation)
+   - Cross-cutting opportunities (MSCA, EIC Pathfinder, ERC)
+   - Resource links (Cluster 6 WP, Mission Soil Portal, Farm to Fork, Bioeconomy)
+
+2. **REASONING_PROMPT section**: Added agriculture guidance in:
+   - Domain-specific call searches list (added "agriculture research", "food research")
+   - Special case for agriculture/food queries with Cluster 6, EU Missions, call patterns
+
+### Post-Fix Evaluation Results
+- **Overall Score**: 95/100 (PASS) ✅
+- **Query Fulfillment**: 40/40 - Austria eligibility explained, Cluster 6 calls listed
+- **Specificity**: 22/25 - Good specificity with call details, budgets, timelines
+- **Factual Accuracy**: 25/25 - All facts verified correct
+- **Actionability**: 8/10 - Clear guidance with links to official resources
+
+### Score Improvement
+| Dimension | Before | After | Change |
+|-----------|--------|-------|--------|
+| Query Fulfillment | 32 | 40 | +8 |
+| Specificity | 17 | 22 | +5 |
+| Factual Accuracy | 25 | 25 | - |
+| Actionability | 0 | 8 | +8 |
+| **Overall** | **74** | **95** | **+21** |
+
+### API Response Quality (After Fix)
+The fixed API now returns a comprehensive ~4300 character response covering:
+- **Austria eligibility**: Correctly identifies as EU Member State with full eligibility
+- **Cluster 6 calls** (HORIZON-CL6-*): FARM2FORK, BIODIV, CIRCBIO topics
+- **EU Mission Soil** (HORIZON-MISS-*-SOIL-*): Living Labs for soil health
+- **MSCA cross-cutting opportunities**: MSCA-PF (€200-300K), MSCA-DN (€2-4M)
+- **Actionable links**: Cluster 6 WP, Mission Soil Portal, MSCA Portal
+
+### Test Results
+- 10 tests passed (6 offline + 4 live API tests)
+- All linting passed
+
+### PRD Task Status
+- [x] EVALUATE task complete
+- [x] FIX IF NEEDED task complete (1 attempt, score 74 → 95, PASS)
+
