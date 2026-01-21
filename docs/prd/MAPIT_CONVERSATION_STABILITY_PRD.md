@@ -88,9 +88,9 @@ TEST_API_URL=http://localhost:8000 pytest tests/test_conversation_scenarios.py -
 - [x] TEST: Create test in `tests/test_conversation_lock.py` that sends 5 concurrent messages to the same conversation and verifies: (1) all messages stored, (2) no duplicates, (3) correct ordering.
 
 ### Task 002: Integrate Atomic Storage
-- [ ] IMPLEMENT: Update `app/services/conversation/conversation_manager.py` to use `AtomicMessageStorage` instead of separate `_store_user_message` and `_store_assistant_message` calls. Use `store_message_pair()` for atomic transaction.
+- [x] IMPLEMENT: Update `app/services/conversation/conversation_manager.py` to use `AtomicMessageStorage` instead of separate `_store_user_message` and `_store_assistant_message` calls. Use `store_message_pair()` for atomic transaction.
 
-- [ ] TEST: Create test that simulates DB failure mid-storage and verifies: (1) partial storage is rolled back, (2) error is properly reported (not silent), (3) client receives error event.
+- [x] TEST: Create test that simulates DB failure mid-storage and verifies: (1) partial storage is rolled back, (2) error is properly reported (not silent), (3) client receives error event.
 
 ### Task 003: Fix Streaming Before Storage Issue
 - [ ] IMPLEMENT: In `process_message_v3_streaming()`, move the assistant message storage to happen BEFORE yielding response tokens. Current flow streams response then stores; change to store then stream.

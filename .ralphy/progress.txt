@@ -2612,3 +2612,52 @@ Implemented conversation-level locking in `conversation_manager.py` to prevent r
 ### PRD Task Status
 - [x] IMPLEMENT task complete
 - [x] TEST task complete
+
+## 2026-01-21: Task 002 - Integrate Atomic Storage (COMPLETE)
+
+### Task Completed
+Integrated atomic message storage in `conversation_manager.py` to ensure conversation consistency - both user and assistant messages are stored together or neither is stored.
+
+### Files Modified
+- `app/services/conversation/conversation_manager.py`:
+  - Added import for `StorageResult, get_atomic_storage` from `app.core.atomic_storage`
+  - Added `atomic_storage` initialization in `__init__()` using `get_atomic_storage()`
+  - Added new `_add_to_memory_only()` helper method for adding messages to STM without DB storage
+  - Modified `_process_v3_sync()` to use atomic storage:
+    - User message added to memory first (for context)
+    - Both messages stored atomically after processing via `store_message_pair()`
+    - Returns error info if storage fails (not silent)
+  - Modified `_stream_v3_response()` to use atomic storage:
+    - User message added to memory first
+    - Both messages stored atomically after processing
+    - Yields error event if storage fails (stage: 'storage_failed')
+    - Includes storage_success and storage_error in completion metadata
+
+### Files Created
+- `tests/test_atomic_storage.py` - Comprehensive test suite with 20 tests:
+  - `TestAtomicMessageStorageBasics`: Initialization, factory function, degraded mode detection
+  - `TestStoreMessagePair`: Successful storage, citations, memory storage
+  - `TestDBFailureSimulation`: DB failure returns failure result, no partial storage (rollback), commit failure, error not silent
+  - `TestClientErrorEvent`: StorageResult can be converted to client error event
+  - `TestMemoryStorageWarnings`: Memory failure adds warning but overall succeeds
+  - `TestNoDatabasePool`: No pool returns appropriate error
+  - `TestConversationManagerIntegration`: Sync flow success/failure, streaming flow error event
+  - `TestStorageResultDataclass`: Default values, add_warning functionality
+
+### Key Implementation Details
+1. **Atomic Transaction**: User and assistant messages stored in single DB transaction
+2. **Rollback on Failure**: If transaction fails, both messages are rolled back
+3. **Error Reporting**: Failures are explicitly reported (not silent):
+   - StorageResult.success = False
+   - StorageResult.error contains error message
+   - Client receives error event with stage='storage_failed'
+4. **Memory-First for Context**: User message added to STM before processing so agent has context
+5. **DB-First for Persistence**: DB is source of truth, memory failure is warning only
+
+### Test Results
+- All 20 atomic storage tests pass
+- All 15 conversation lock tests pass (no regressions)
+
+### PRD Task Status
+- [x] IMPLEMENT task complete
+- [x] TEST task complete

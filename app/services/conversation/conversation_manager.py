@@ -11,6 +11,7 @@ import os
 import random
 
 from ...core.conversation_lock import get_conversation_lock
+from ...core.atomic_storage import StorageResult, get_atomic_storage
 from ..memory.memory_service import MemoryService
 from ..memory.context_manager import ConversationContext
 from ..rag.conversation_retriever import ConversationAwareRetriever, RetrievalContext
@@ -70,6 +71,10 @@ class ConversationManager:
             else:
                 self.call_doc_service = None
                 logger.warning("⚠️ Document services disabled (no DATABASE_URL)")
+
+            # Atomic message storage for conversation consistency
+            self.atomic_storage = get_atomic_storage(self.db_pool, self.memory_service)
+            logger.info("✅ Atomic message storage initialized")
 
             # V2 intelligent retrieval removed - V3 uses ToolAwareAgent
             self.intelligent_retrieval = None
@@ -585,7 +590,7 @@ class ConversationManager:
         user_id: int,
         start_time: datetime
     ) -> Dict[str, Any]:
-        """Non-streaming V3 processing."""
+        """Non-streaming V3 processing with atomic message storage."""
         logger.info("=" * 60)
         logger.info("🚀 SIMPLIFIED ARCHITECTURE V3 (sync)")
         logger.info(f"   Query: {user_message[:100]}...")
@@ -598,13 +603,14 @@ class ConversationManager:
 
             logger.info(f"📋 Conversation context: {len(recent_messages)} messages")
 
-            # 2. Store user message in database AND memory
-            user_message_id = await self._store_user_message(
+            # 2. Add user message to memory for context during processing
+            # (DB storage happens atomically with assistant message later)
+            self._add_to_memory_only(
                 conversation_id=conversation_id,
-                user_id=user_id,
-                message=user_message
+                role='user',
+                content=user_message
             )
-            logger.info(f"💾 Stored user message {user_message_id} in database (V3)")
+            logger.info(f"📝 Added user message to memory for context (V3)")
 
             # 3. Run the agentic loop - THE AGENT DECIDES EVERYTHING
             agent_result = await self.tool_aware_agent.process_query(
@@ -629,13 +635,40 @@ class ConversationManager:
                     context=conversation_context
                 )
 
-            # 6. Store assistant response in database AND memory
+            # 6. Store BOTH messages atomically to database
+            # This ensures conversation consistency - both are stored or neither
             if answer:
-                assistant_message_id = await self._store_assistant_message(
+                storage_result: StorageResult = await self.atomic_storage.store_message_pair(
                     conversation_id=conversation_id,
-                    message=answer[:4000]  # Allow longer responses
+                    user_id=user_id,
+                    user_message=user_message,
+                    assistant_message=answer[:4000]  # Allow longer responses
                 )
-                logger.info(f"💾 Stored assistant message {assistant_message_id} in database (V3)")
+
+                if not storage_result.success:
+                    # Storage failed - report error (not silent!)
+                    logger.error(f"❌ Atomic storage failed: {storage_result.error}")
+                    return {
+                        'response': answer,  # Still return the answer
+                        'error': f"Message storage failed: {storage_result.error}",
+                        'storage_failed': True,
+                        'metadata': {
+                            'intent_type': 'agentic_v3',
+                            'confidence': agent_result.get('confidence', 0.8),
+                            'architecture': 'simplified_v3',
+                            'storage_error': storage_result.error
+                        }
+                    }
+
+                logger.info(
+                    f"💾 Atomically stored message pair: "
+                    f"user={storage_result.user_message_id}, "
+                    f"assistant={storage_result.assistant_message_id} (V3)"
+                )
+
+                # Log any warnings (e.g., memory storage issues)
+                for warning in storage_result.warnings:
+                    logger.warning(f"⚠️ Storage warning: {warning}")
 
             # 7. Build response
             processing_time = (datetime.now() - start_time).total_seconds() * 1000
@@ -770,13 +803,14 @@ class ConversationManager:
                 'message': f'Loaded {len(recent_messages)} messages from conversation history'
             }
 
-            # 2. Store user message in database AND memory
-            user_message_id = await self._store_user_message(
+            # 2. Add user message to memory for context during processing
+            # (DB storage happens atomically with assistant message later)
+            self._add_to_memory_only(
                 conversation_id=conversation_id,
-                user_id=user_id,
-                message=user_message
+                role='user',
+                content=user_message
             )
-            logger.info(f"💾 Stored user message {user_message_id} in database (V3 streaming)")
+            logger.info(f"📝 Added user message to memory for context (V3 streaming)")
 
             yield {
                 'type': 'status',
@@ -868,13 +902,37 @@ class ConversationManager:
             else:
                 answer = "I encountered an issue processing your request. Please try again."
 
-            # 5. Store assistant response in database AND memory
+            # 5. Store BOTH messages atomically to database
+            # This ensures conversation consistency - both are stored or neither
+            storage_result: StorageResult = None
             if answer:
-                assistant_message_id = await self._store_assistant_message(
+                storage_result = await self.atomic_storage.store_message_pair(
                     conversation_id=conversation_id,
-                    message=answer[:4000]  # Allow longer responses
+                    user_id=user_id,
+                    user_message=user_message,
+                    assistant_message=answer[:4000]  # Allow longer responses
                 )
-                logger.info(f"💾 Stored assistant message {assistant_message_id} in database (V3 streaming)")
+
+                if not storage_result.success:
+                    # Storage failed - report error to client (not silent!)
+                    logger.error(f"❌ Atomic storage failed: {storage_result.error}")
+                    yield {
+                        'type': 'error',
+                        'error': f"Message storage failed: {storage_result.error}",
+                        'stage': 'storage_failed',
+                        'response': answer  # Still include the answer
+                    }
+                    # Continue to stream the response even though storage failed
+                else:
+                    logger.info(
+                        f"💾 Atomically stored message pair: "
+                        f"user={storage_result.user_message_id}, "
+                        f"assistant={storage_result.assistant_message_id} (V3 streaming)"
+                    )
+
+                    # Log any warnings (e.g., memory storage issues)
+                    for warning in storage_result.warnings:
+                        logger.warning(f"⚠️ Storage warning: {warning}")
 
             # 6. Stream the response tokens
             yield {
@@ -908,7 +966,9 @@ class ConversationManager:
                     'tools_used': agent_result.get('sources_used', []) if agent_result else [],
                     'reasoning_steps': agent_result.get('reasoning_steps', []) if agent_result else [],
                     'processing_time_ms': processing_time,
-                    'quality_analysis': quality_analysis
+                    'quality_analysis': quality_analysis,
+                    'storage_success': storage_result.success if storage_result else False,
+                    'storage_error': storage_result.error if storage_result and not storage_result.success else None
                 }
             }
 
@@ -2966,7 +3026,38 @@ Maintain continuity with the conversation."""
             return """You are a friendly AI assistant.
 Respond appropriately to the user's message.
 Be helpful and conversational."""
-    
+
+    def _add_to_memory_only(
+        self,
+        conversation_id: int,
+        role: str,
+        content: str
+    ) -> None:
+        """
+        Add a message to short-term memory only (no database storage).
+
+        Used when we need the message in context for processing but will
+        store it atomically to the database later with the response.
+
+        Args:
+            conversation_id: The conversation ID
+            role: 'user' or 'assistant'
+            content: The message content
+        """
+        from ..memory.short_term_memory import ConversationTurn
+
+        # Use a temporary message ID (will be replaced when stored to DB)
+        temp_message_id = random.randint(100000, 999999)
+
+        turn = ConversationTurn(
+            message_id=temp_message_id,
+            role=role,
+            content=content,
+            timestamp=datetime.now()
+        )
+        self.memory_service.stm.add_turn(conversation_id, turn)
+        logger.debug(f"Added {role} message to memory (temp_id={temp_message_id})")
+
     async def _store_user_message(self,
                                  conversation_id: int,
                                  user_id: int,
