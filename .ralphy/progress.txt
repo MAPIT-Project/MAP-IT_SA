@@ -301,3 +301,74 @@ The agent's built-in knowledge lacked comprehensive MSCA details. While the agen
 - [x] EVALUATE task complete
 - [x] FIX IF NEEDED task complete (1 attempt, score 74 → 97, PASS)
 
+
+## 2026-01-21: Prompt 004 - Clusters and Missions (EVALUATE + FIX)
+
+### Task Completed
+Created quality evaluation test and fixed Prompt 004: "What are Clusters and Missions in Horizon Europe?"
+
+### Files Created/Modified
+- `tests/quality/test_prompt_004_clusters_missions.py` - New test file with:
+  - Four-dimension evaluation framework (Query Fulfillment 40pts, Specificity 25pts, Factual Accuracy 25pts, Actionability 10pts)
+  - Checks for all 6 Clusters by name (4 pts each = 24 pts)
+  - Checks for all 5 Missions by name (3 pts each + 1 bonus = 16 pts)
+  - Sample responses for offline testing (excellent, partial, poor)
+  - Live API tests
+  - Result saved to `tests/quality/results/prompt_004_clusters_missions.json`
+
+### Initial Evaluation Results (FAIL)
+- **Overall Score**: 30/100 (FAIL) ❌
+- **Query Fulfillment**: 4/40 - Only 1/6 Clusters, 0/5 Missions
+- **Specificity**: 1/25 - No details
+- **Factual Accuracy**: 25/25 - No errors
+- **Actionability**: 0/10 - No links
+
+### API Response Issue
+The live API returned a **deflection response**: "I found some information but couldn't extract specific details."
+
+### Root Cause Analysis
+The agent's built-in knowledge lacked Clusters and Missions information. The agent:
+1. Called `get_programme_info` tool
+2. Did not have detailed Clusters/Missions knowledge
+3. Returned a deflection instead of answering
+
+### Fix Implementation (1 attempt - successful)
+
+#### Files Modified:
+1. **`app/services/agents/tool_aware_agent.py`**:
+   - Added comprehensive "Horizon Europe Clusters and EU Missions - Complete Overview" section to BUILT_IN_KNOWLEDGE
+   - All 6 Clusters with names, focus areas, and budgets (€8.2B, €2.3B, €1.6B, €15.3B, €15.1B, €9B)
+   - All 5 Missions with targets and 2030 deadlines:
+     - Cancer: 3+ million lives improved
+     - Climate Adaptation: 150+ regions climate-resilient
+     - Ocean & Waters: Restore health by 2030
+     - Cities: 100 climate-neutral cities by 2030
+     - Soil: 100 living labs by 2030
+   - Key differences table (Clusters vs Missions)
+   - "Cluster Key Resources" section with actionable links to EU Missions Portal, Work Programmes, etc.
+   - Added guidance in REASONING_PROMPT for answering Cluster/Mission questions from built-in knowledge
+
+### Post-Fix Evaluation Results
+- **Overall Score**: 89/100 (PASS) ✅
+- **Query Fulfillment**: 36/40 - All 6 Clusters, 4/5 Missions detected
+- **Specificity**: 25/25 - Full budget figures and 2030 targets
+- **Factual Accuracy**: 20/25 - Minor false positive (detected "pillars" incorrectly)
+- **Actionability**: 8/10 - Links to official resources included
+
+### Score Improvement
+| Dimension | Before | After | Change |
+|-----------|--------|-------|--------|
+| Query Fulfillment | 4 | 36 | +32 |
+| Specificity | 1 | 25 | +24 |
+| Factual Accuracy | 25 | 20 | -5 (false positive) |
+| Actionability | 0 | 8 | +8 |
+| **Overall** | **30** | **89** | **+59** |
+
+### Test Results
+- 10 tests passed (6 offline + 4 live API tests)
+- All linting passed
+
+### PRD Task Status
+- [x] EVALUATE task complete
+- [x] FIX IF NEEDED task complete (1 attempt, score 30 → 89, PASS)
+

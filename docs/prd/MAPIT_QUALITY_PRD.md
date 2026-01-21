@@ -70,9 +70,9 @@ Run with: `./ralphy.sh --prd MAPIT_QUALITY_PRD.md`
 - [x] FIX IF NEEDED: Read `tests/quality/results/prompt_003_msca.json`. If score < 85: fix using relevant skills and re-evaluate until passing or 3 attempts.
 
 ### Prompt 004: Clusters and Missions
-- [ ] EVALUATE: Run prompt "What are Clusters and Missions in Horizon Europe?" through MAPIT. Use `eval-orchestrator` subagent. Must list all 6 Clusters and 5 Missions with descriptions. Save result to `tests/quality/results/prompt_004_clusters_missions.json`.
+- [x] EVALUATE: Run prompt "What are Clusters and Missions in Horizon Europe?" through MAPIT. Use `eval-orchestrator` subagent. Must list all 6 Clusters and 5 Missions with descriptions. Save result to `tests/quality/results/prompt_004_clusters_missions.json`.
 
-- [ ] FIX IF NEEDED: Read `tests/quality/results/prompt_004_clusters_missions.json`. If score < 85: fix and re-evaluate until passing or 3 attempts.
+- [x] FIX IF NEEDED: Read `tests/quality/results/prompt_004_clusters_missions.json`. If score < 85: fix and re-evaluate until passing or 3 attempts.
 
 ### Prompt 005: Instruments (RIA, CSA, IA)
 - [ ] EVALUATE: Run prompt "What are the instruments in Horizon Europe (RIA, CSA, IA etc)?" through MAPIT. Use `eval-orchestrator` subagent. Cross-reference `eu-funding-domain` skill: RIA (100% funding), IA (70% funding), CSA (100% funding) with TRL ranges. Save result to `tests/quality/results/prompt_005_instruments.json`.

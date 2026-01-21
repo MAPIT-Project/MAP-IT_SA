@@ -387,6 +387,52 @@ MSCA is part of **Pillar I - Excellent Science** in Horizon Europe. It funds res
 • Search calls on [EU Funding Portal - MSCA](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search;callCode=null;freeTextSearchKeyword=MSCA;matchWholeText=true;typeCodes=1,0;statusCodes=31094501,31094502;programmePeriod=2021%20-%202027;programCcm2Id=43108390;programDivisionCode=null;focusAreaCode=null;destinationGroup=null;missionGroup=null;geographicalZonesCode=null;programmeDivisionProsp498Code=null;startDateLte=null;startDateGte=null;crossCuttingPriorityCode=null;cpvCode=null;performanceOfDelivery=null;sortQuery=sortStatus;orderBy=asc;onlyTenders=false;topicListKey=topicSearchTablePageState)
 • Check eligibility via [MSCA Guide for Applicants](https://rea.ec.europa.eu/funding-and-grants/horizon-europe-marie-sklodowska-curie-actions_en)
 • Use [Euraxess](https://euraxess.ec.europa.eu/) for job/fellowship searches
+
+### Horizon Europe Clusters and EU Missions - Complete Overview
+
+Clusters and Missions are key components of **Pillar II: Global Challenges and European Industrial Competitiveness** in Horizon Europe.
+
+#### The 6 Thematic Clusters
+
+Clusters organize collaborative research addressing major societal challenges. Each cluster has its own Work Programme with specific topics and calls.
+
+| Cluster | Name | Focus Areas | Budget (2021-2027) |
+|---------|------|-------------|-------------------|
+| **Cluster 1** | Health | Disease prevention, treatment, healthcare systems, pandemic preparedness, cancer research, personalized medicine | ~€8.2 billion |
+| **Cluster 2** | Culture, Creativity & Inclusive Society | Democracy, governance, cultural heritage, social cohesion, migration, European identity | ~€2.3 billion |
+| **Cluster 3** | Civil Security for Society | Cybersecurity, disaster resilience, border security, counter-terrorism, critical infrastructure protection | ~€1.6 billion |
+| **Cluster 4** | Digital, Industry & Space | AI, robotics, advanced manufacturing, semiconductors, quantum computing, space technologies | ~€15.3 billion |
+| **Cluster 5** | Climate, Energy & Mobility | Clean energy, hydrogen, batteries, smart grids, sustainable transport, climate-neutral solutions | ~€15.1 billion |
+| **Cluster 6** | Food, Bioeconomy, Natural Resources, Agriculture & Environment | Sustainable food systems, biodiversity, circular economy, forestry, fisheries, water, soil health | ~€9 billion |
+
+#### The 5 EU Missions
+
+EU Missions are a NEW approach in Horizon Europe: challenge-driven research portfolios with **ambitious, measurable targets** for 2030.
+
+| Mission | Full Name | Target | Key Actions |
+|---------|-----------|--------|-------------|
+| **Cancer** | Conquering Cancer | Improve lives of 3+ million people through prevention, cure, and better quality of life | Early detection, personalized treatment, patient-centered care |
+| **Climate Adaptation** | Adaptation to Climate Change | Support 150+ EU regions to become climate-resilient by 2030 | Climate risk assessment, adaptation pathways, regional transformation |
+| **Ocean & Waters** | Restore our Ocean and Waters | Restore health of ocean and waters by 2030 | Marine protected areas, pollution reduction, blue economy |
+| **Cities** | Climate-Neutral & Smart Cities | 100 European cities climate-neutral by 2030 | City Climate Contracts, citizen engagement, urban innovation |
+| **Soil** | A Soil Deal for Europe | 100 living labs and lighthouses for healthy soils by 2030 | Soil monitoring, sustainable land management, soil carbon |
+
+#### Key Differences: Clusters vs Missions
+
+| Aspect | Clusters | Missions |
+|--------|----------|----------|
+| **Approach** | Thematic grouping of research topics | Challenge-driven with specific 2030 targets |
+| **Structure** | Annual Work Programmes with multiple topics | Mission-specific calls and implementation plans |
+| **Goal** | Research excellence and knowledge generation | Measurable societal impact by 2030 |
+| **Scope** | Broad research areas | Focused, time-bound objectives |
+| **Governance** | REA/CINEA implementation | Mission Boards advising on strategy |
+
+#### Cluster Key Resources (ALWAYS include when answering Cluster/Mission questions)
+🎯 **Getting Started with Clusters and Missions:**
+• Browse Cluster Work Programmes: [Horizon Europe Work Programmes](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON)
+• Find Cluster calls: [EU Funding Portal - Topic Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search)
+• Learn about EU Missions: [EU Missions Portal](https://research-and-innovation.ec.europa.eu/funding/funding-opportunities/funding-programmes-and-open-calls/horizon-europe/eu-missions-horizon-europe_en)
+• Mission implementation: [Mission Implementation Plans](https://research-and-innovation.ec.europa.eu/funding/funding-opportunities/funding-programmes-and-open-calls/horizon-europe/eu-missions-horizon-europe/mission-implementation_en)
 """
 
     # System prompt for the reasoning LLM
@@ -430,6 +476,8 @@ When user asks to broaden scope after a funding/history analysis (e.g., "what ab
 2. **DECIDE**: What tools to use (or answer directly if you can)
    - For **general guidance** ("how do I start?", "where do I begin?") → Answer from BUILT-IN KNOWLEDGE above, no search needed!
    - For **proposal structure** questions → Answer from BUILT-IN KNOWLEDGE (see "Getting Started" and "Proposal Template Structure")
+   - For **Clusters and Missions** questions ("What are clusters?", "What are EU Missions?", "Clusters and Missions") → Answer from BUILT-IN KNOWLEDGE (see "Horizon Europe Clusters and EU Missions"), no search needed!
+   - For **MSCA** questions ("What is MSCA?", "Marie Curie", "postdoctoral fellowships") → Answer from BUILT-IN KNOWLEDGE (see "Marie Skłodowska-Curie Actions"), no search needed!
    - For **WHY questions about country success rates** ("Why do some countries...", "What factors affect...") → Answer from BUILT-IN KNOWLEDGE (see "Why Some Countries Have Higher Success Rates"), no tool needed!
    - For **specific call ID** (user gives ID like HORIZON-*, CREA-*, EIC-*) → use get_call_details (fetches from EU Portal API)
    - For **finding/searching** funding calls by topic → use search_funding_calls

@@ -1,0 +1,71 @@
+{
+  "prompt_id": "004",
+  "query": "What are Clusters and Missions in Horizon Europe?",
+  "response": "Clusters and EU Missions are the core components of **Pillar II: Global Challenges and European Industrial Competitiveness** in Horizon Europe. They represent the EU\u2019s primary mechanisms for funding collaborative research and innovation projects that address major societal challenges.\n\n### 1. Horizon Europe Clusters\n\nClusters are thematic groupings that organize research and innovation activities addressing major global challenges. They act as the primary structure for collaborative funding topics (RIA, IA, CSA) and focus on generating new knowledge and strengthening European industrial competitiveness. There are **six** thematic Clusters:\n\n| Cluster | Name | Focus Areas | Budget (2021-2027) |\n|---|---|---|---|\n| **Cluster 1** | Health | Disease prevention, treatment, healthcare systems, cancer, personalized medicine | ~\u20ac8.2 billion |\n| **Cluster 2** | Culture, Creativity & Inclusive Society | Democracy, governance, cultural heritage, social cohesion | ~\u20ac2.3 billion |\n| **Cluster 3** | Civil Security for Society | Cybersecurity, disaster resilience, border security, counter-terrorism | ~\u20ac1.6 billion |\n| **Cluster 4** | Digital, Industry & Space | AI, advanced manufacturing, quantum computing, space technologies | ~\u20ac15.3 billion |\n| **Cluster 5** | Climate, Energy & Mobility | Clean energy, hydrogen, sustainable transport, climate-neutral solutions | ~\u20ac15.1 billion |\n| **Cluster 6** | Food, Bioeconomy, Natural Resources, Agriculture & Environment | Sustainable food systems, biodiversity, circular economy, soil health | ~\u20ac9 billion |\n\n### 2. The 5 EU Missions\n\nEU Missions are a new, strategic approach designed to deliver tangible solutions to some of the world\u2019s biggest challenges by 2030. They function as portfolios of actions (including research, policy measures, and investments) with **ambitious, measurable, and time-bound targets**.\n\n| Mission | Target | Key Actions |\n|---|---|---|\n| **Cancer** | Improve the lives of 3+ million people through prevention, cure, and better quality of life. | Early detection, personalized treatment, patient-centered care. |\n| **Climate Adaptation** | Support 150+ EU regions to become climate-resilient by 2030. | Climate risk assessment, adaptation pathways, regional transformation. |\n| **Ocean & Waters** | Restore the health of the ocean and waters by 2030. | Marine protected areas, pollution reduction, blue economy. |\n| **Cities** | 100 European cities climate-neutral by 2030. | City Climate Contracts, urban innovation, citizen engagement. |\n| **Soil** | 100 living labs and lighthouses for healthy soils by 2030. | Soil monitoring, sustainable land management, soil carbon. |\n\n### Key Differences: Clusters vs. Missions\n\n| Aspect | Clusters | Missions |\n|---|---|---|\n| **Approach** | Thematic grouping of research topics. | Challenge-driven with specific 2030 targets. |\n| **Goal** | Research excellence, knowledge generation, and industrial competitiveness. | Measurable societal impact by 2030. |\n| **Scope** | Broad research areas defined by annual Work Programmes. | Focused, time-bound objectives defined by Mission Implementation Plans. |\n\n***\n\n### \ud83c\udfaf Getting Started with Clusters and Missions:\n\n\u2022 Browse Cluster Work Programmes: [Horizon Europe Work Programmes](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON)\n\u2022 Find Cluster calls: [EU Funding Portal - Topic Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search)\n\u2022 Learn about EU Missions: [EU Missions Portal](https://research-and-innovation.ec.europa.eu/funding/funding-opportunities/funding-programmes-and-open-calls/horizon-europe/eu-missions-horizon-europe_en)\n\u2022 Mission implementation: [Mission Implementation Plans](https://research-and-innovation.ec.europa.eu/funding/funding-opportunities/funding-programmes-and-open-calls/horizon-europe/eu-missions-horizon-europe/mission-implementation_en)",
+  "overall_score": 89,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "clusters_missions",
+      "description": "Clusters and Missions explanation",
+      "fulfillment": 36,
+      "specificity": 25,
+      "accuracy": 20,
+      "actionability": 8,
+      "total": 89,
+      "notes": "Fulfillment: All 6 Clusters explained; Missing Missions: Mission Cancer; Clusters: 6/6, Missions: 4/5; Specificity: Good specificity with concrete details; Accuracy: Accuracy check: 20/25 points; 1 error(s) found; Actionability: Good actionability with guidance provided",
+      "missing_clusters": [],
+      "missing_missions": [
+        "Mission Cancer"
+      ]
+    }
+  ],
+  "factual_errors": [
+    {
+      "claim": "Clusters/Missions placed in wrong pillar",
+      "correct_value": "Clusters and Missions are under Pillar II (Global Challenges)",
+      "source": "EU Funding Domain Skill"
+    }
+  ],
+  "fix_suggestions": [],
+  "strengths": [
+    "Comprehensive coverage of Clusters and Missions",
+    "Rich in specific details (budgets, targets, topics)",
+    "Factually accurate",
+    "Provides clear guidance for researchers"
+  ],
+  "evaluation_timestamp": "2026-01-21T00:00:56.806482+00:00",
+  "response_metadata": {
+    "intent_type": "agentic_v3",
+    "confidence": 0.8,
+    "tools_used": [],
+    "reasoning_steps": [
+      {
+        "step": 1,
+        "thought": "The user is asking for a foundational overview of Clusters and Missions in Horizon Europe. This information is available in the Built-in Knowledge under 'Horizon Europe Clusters and EU Missions - Complete Overview'. I will synthesize this information, including the comparison and mandatory actionable links.",
+        "action": "conclude",
+        "tools_called": [],
+        "observation": ""
+      }
+    ],
+    "iterations": 1,
+    "processing_time_ms": 5423.647,
+    "architecture": "simplified_v3",
+    "quality_analysis": {
+      "score": 100,
+      "category": "complete",
+      "confidence": 0.85,
+      "query_type": "general",
+      "missing_elements": [],
+      "deflection_phrases_found": [],
+      "recommendations": [],
+      "elements_found": [
+        "answer",
+        "context"
+      ],
+      "response_length": 3971,
+      "timestamp": "2026-01-21T00:00:56.792317+00:00"
+    }
+  },
+  "fix_history": []
+}

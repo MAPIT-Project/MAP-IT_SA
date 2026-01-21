@@ -1,0 +1,40 @@
+{
+  "prompt_id": "004",
+  "query": "What are Clusters and Missions in Horizon Europe?",
+  "response": "\n**Clusters and Missions in Horizon Europe**\n\nHorizon Europe organizes its research and innovation activities into **Clusters** and **Missions**,\nboth primarily under **Pillar II: Global Challenges & European Industrial Competitiveness**.\n\n## The 6 Clusters\n\nClusters group related research topics to address major societal challenges. Each cluster has\nits own Work Programme and funding calls.\n\n### Cluster 1: Health\n- **Focus**: Medical research, disease prevention, healthcare systems, pandemic preparedness\n- **Key Topics**: Cancer research, infectious diseases, personalized medicine, health data\n- **Budget**: ~\u20ac8.2 billion (2021-2027)\n\n### Cluster 2: Culture, Creativity & Inclusive Society\n- **Focus**: Democracy, cultural heritage, social cohesion, European identity\n- **Key Topics**: Cultural industries, governance, migration, social innovation\n- **Budget**: ~\u20ac2.3 billion (2021-2027)\n\n### Cluster 3: Civil Security for Society\n- **Focus**: Disaster resilience, cybersecurity, border protection, counter-terrorism\n- **Key Topics**: Critical infrastructure, forensics, fighting crime, disaster response\n- **Budget**: ~\u20ac1.6 billion (2021-2027)\n\n### Cluster 4: Digital, Industry & Space\n- **Focus**: Digital transformation, industrial competitiveness, space applications\n- **Key Topics**: AI, robotics, advanced materials, manufacturing, semiconductors, space\n- **Budget**: ~\u20ac15.3 billion (2021-2027)\n\n### Cluster 5: Climate, Energy & Mobility\n- **Focus**: Climate action, clean energy, sustainable transport\n- **Key Topics**: Hydrogen, batteries, renewable energy, smart grids, green transport\n- **Budget**: ~\u20ac15.1 billion (2021-2027)\n\n### Cluster 6: Food, Bioeconomy, Natural Resources, Agriculture & Environment\n- **Focus**: Sustainable food systems, biodiversity, circular economy\n- **Key Topics**: Agriculture, fisheries, forestry, water, soil, ocean health\n- **Budget**: ~\u20ac9 billion (2021-2027)\n\n## The 5 EU Missions\n\nEU Missions are a new approach in Horizon Europe: challenge-driven portfolios of actions with\n**ambitious, measurable targets** to be achieved by specific deadlines (mainly 2030).\n\n### Mission 1: Conquering Cancer\n- **Target**: Improve lives of 3 million+ people through prevention, cure, living with cancer\n- **Approach**: Research, early detection, patient-centered care\n- **Timeline**: By 2030\n\n### Mission 2: Adaptation to Climate Change\n- **Target**: Support at least 150 regions to become climate-resilient\n- **Approach**: Climate risk assessments, adaptation solutions\n- **Timeline**: By 2030\n\n### Mission 3: Restore our Ocean and Waters\n- **Target**: Protect and restore ocean/water ecosystems\n- **Approach**: Marine protected areas, pollution reduction, sustainable blue economy\n- **Timeline**: By 2030\n\n### Mission 4: Climate-Neutral and Smart Cities\n- **Target**: 100 European cities to become climate-neutral by 2030\n- **Approach**: City contracts, citizen engagement, sustainable urban solutions\n- **Timeline**: By 2030\n\n### Mission 5: A Soil Deal for Europe\n- **Target**: 100 living labs and lighthouses for healthy soils\n- **Approach**: Soil monitoring, sustainable land management\n- **Timeline**: By 2030\n\n## Key Differences\n\n| Aspect | Clusters | Missions |\n|--------|----------|----------|\n| **Approach** | Thematic grouping | Challenge-driven |\n| **Structure** | Annual work programmes | Mission-specific calls |\n| **Targets** | Research excellence | Measurable impact targets |\n| **Scope** | Broad topics | Specific goals with deadlines |\n\n## How to Apply\n\nFor Cluster and Mission funding:\n- Register on the EU Funding & Tenders Portal\n- Check the Work Programme for your cluster/mission\n- Review open calls in your area of interest\n- Consider RIA, IA, or CSA action types\n",
+  "overall_score": 95,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "clusters_missions",
+      "description": "Clusters and Missions explanation",
+      "fulfillment": 40,
+      "specificity": 25,
+      "accuracy": 20,
+      "actionability": 10,
+      "total": 95,
+      "notes": "Fulfillment: All 6 Clusters explained; All 5 Missions explained; Clusters: 6/6, Missions: 5/5; Specificity: Good specificity with concrete details; Accuracy: Accuracy check: 20/25 points; 1 error(s) found; Actionability: Good actionability with guidance provided",
+      "missing_clusters": [],
+      "missing_missions": []
+    }
+  ],
+  "factual_errors": [
+    {
+      "claim": "Clusters/Missions placed in wrong pillar",
+      "correct_value": "Clusters and Missions are under Pillar II (Global Challenges)",
+      "source": "EU Funding Domain Skill"
+    }
+  ],
+  "fix_suggestions": [],
+  "strengths": [
+    "Comprehensive coverage of Clusters and Missions",
+    "Rich in specific details (budgets, targets, topics)",
+    "Factually accurate",
+    "Provides clear guidance for researchers"
+  ],
+  "evaluation_timestamp": "2026-01-21T00:01:01.748163+00:00",
+  "response_metadata": {
+    "source": "sample_excellent"
+  },
+  "fix_history": []
+}
