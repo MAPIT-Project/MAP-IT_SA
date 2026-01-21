@@ -1,0 +1,42 @@
+{
+  "prompt_id": "026",
+  "query": "Who are the most successful top 10 coordinators in SSH/Cluster 2 calls during Horizon 2020 and Horizon Europe?",
+  "response": "\n## Top 10 Most Successful SSH/Cluster 2 Coordinators in H2020 and Horizon Europe\n\nBased on coordination statistics from SSH-related calls in Horizon 2020 and Horizon Europe:\n\n### 1. **KU Leuven** (Belgium)\n- **Projects Coordinated**: 45 (H2020: 32, HE: 13)\n- **Key SSH Areas**: Social transformations, cultural heritage, democracy\n- **Total EC Funding Coordinated**: \u20ac125 million\n\n### 2. **Universitat de Barcelona** (Spain)\n- **Projects Coordinated**: 38 (H2020: 25, HE: 13)\n- **Key SSH Areas**: Migration, inclusive society, cultural diversity\n- **Total EC Funding Coordinated**: \u20ac98 million\n\n### 3. **University of Oxford** (UK)\n- **Projects Coordinated**: 35 (H2020: 28, HE: 7)\n- **Key SSH Areas**: Governance, democracy, social sciences\n- **Total EC Funding Coordinated**: \u20ac92 million\n\n### 4. **CNRS - Centre National de la Recherche Scientifique** (France)\n- **Projects Coordinated**: 33 (H2020: 24, HE: 9)\n- **Key SSH Areas**: Humanities, cultural heritage, social innovation\n- **Total EC Funding Coordinated**: \u20ac88 million\n\n### 5. **Vrije Universiteit Amsterdam** (Netherlands)\n- **Projects Coordinated**: 30 (H2020: 21, HE: 9)\n- **Key SSH Areas**: Inclusive society, democracy, heritage\n- **Total EC Funding Coordinated**: \u20ac82 million\n\n### 6. **Universit\u00e4t Wien** (Austria)\n- **Projects Coordinated**: 28 (H2020: 20, HE: 8)\n- **Key SSH Areas**: Cultural heritage, social transformations\n- **Total EC Funding Coordinated**: \u20ac75 million\n\n### 7. **University of Copenhagen** (Denmark)\n- **Projects Coordinated**: 26 (H2020: 18, HE: 8)\n- **Key SSH Areas**: Democracy, governance, societal challenges\n- **Total EC Funding Coordinated**: \u20ac72 million\n\n### 8. **Sciences Po Paris** (France)\n- **Projects Coordinated**: 24 (H2020: 17, HE: 7)\n- **Key SSH Areas**: Political science, democracy, governance\n- **Total EC Funding Coordinated**: \u20ac65 million\n\n### 9. **University College London** (UK)\n- **Projects Coordinated**: 22 (H2020: 16, HE: 6)\n- **Key SSH Areas**: Migration, inclusive society, humanities\n- **Total EC Funding Coordinated**: \u20ac60 million\n\n### 10. **Universit\u00e4t Heidelberg** (Germany)\n- **Projects Coordinated**: 20 (H2020: 14, HE: 6)\n- **Key SSH Areas**: Cultural heritage, humanities research\n- **Total EC Funding Coordinated**: \u20ac55 million\n\n---\n\n### Summary Statistics\n\n| Rank | Organization | H2020 | HE | Total | Funding |\n|------|-------------|-------|-----|-------|---------|\n| 1 | KU Leuven | 32 | 13 | 45 | \u20ac125M |\n| 2 | U Barcelona | 25 | 13 | 38 | \u20ac98M |\n| 3 | Oxford | 28 | 7 | 35 | \u20ac92M |\n| 4 | CNRS | 24 | 9 | 33 | \u20ac88M |\n| 5 | VU Amsterdam | 21 | 9 | 30 | \u20ac82M |\n\n### What is SSH/Cluster 2?\n\nSSH (Social Sciences & Humanities) in Horizon 2020 became **Cluster 2: Culture, Creativity\nand Inclusive Society** in Horizon Europe. Key themes include:\n- Democracy, governance and civil society\n- Cultural heritage preservation and access\n- Social and economic transformations\n- Migration and inclusive society\n\n### How to Learn More\n\n1. **CORDIS Database**: Search for SSH/Cluster 2 projects at https://cordis.europa.eu\n2. **EU Funding Portal**: https://ec.europa.eu/info/funding-tenders/\n3. **Partner Search**: Use EU Partner Search tool to find SSH coordinators\n4. **Contact**: Reach out to organizations directly for collaboration opportunities\n",
+  "overall_score": 88,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "cluster2_coordinators",
+      "description": "Top 10 SSH/Cluster 2 coordinators in H2020 and HE",
+      "fulfillment": 34,
+      "specificity": 19,
+      "accuracy": 25,
+      "actionability": 10,
+      "total": 88,
+      "notes": "Fulfillment: Missing: Missing coordination counts; Specificity: Some organization names could be more specific; Limited coordination count information; Accuracy: Accuracy check: 25/25 points; Actionability: Good actionability with resources",
+      "missing_items": [
+        "Missing coordination counts"
+      ],
+      "found_items": [
+        "~14 coordinators listed",
+        "Strong SSH/Cluster 2 context",
+        "Coordinator role mentioned",
+        "Both H2020 and HE covered"
+      ]
+    }
+  ],
+  "factual_errors": [],
+  "fix_suggestions": [
+    "Add more specificity: Include specific organization names, coordination counts, budget figures, and H2020/HE breakdown for all 10 coordinators"
+  ],
+  "strengths": [
+    "Lists ~10 SSH/Cluster 2 coordinators with statistics",
+    "Factually accurate organization information",
+    "Provides useful resources and guidance"
+  ],
+  "evaluation_timestamp": "2026-01-21T12:10:11.243750+00:00",
+  "response_metadata": {
+    "source": "sample_excellent"
+  },
+  "fix_history": []
+}

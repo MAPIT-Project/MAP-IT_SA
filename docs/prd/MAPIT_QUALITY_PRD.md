@@ -196,7 +196,7 @@ Run with: `./ralphy.sh --prd MAPIT_QUALITY_PRD.md`
 - [x] FIX IF NEEDED: Read `tests/quality/results/prompt_025_consortium_size.json`. If score < 85: check `mapit-tools` for `get_consortium_patterns` tool, fix and re-evaluate until passing or 3 attempts. **FINAL SCORE: 99/100 (PASS). Initial score was 25/100. Fix: Added "Action Type Comparisons" guidance to tool_aware_agent.py and "Typical Consortium Sizes" reference data to BUILT_IN_KNOWLEDGE.**
 
 ### Prompt 026: Top SSH/Cluster 2 Coordinators
-- [ ] EVALUATE: Run prompt "Who are the most successful top 10 coordinators in SSH/Cluster 2 calls during Horizon 2020 and Horizon Europe?" through MAPIT. Use `eval-orchestrator` subagent. Must list 10 specific organizations with coordination counts. Save result to `tests/quality/results/prompt_026_cluster2_coordinators.json`.
+- [x] EVALUATE: Run prompt "Who are the most successful top 10 coordinators in SSH/Cluster 2 calls during Horizon 2020 and Horizon Europe?" through MAPIT. Use `eval-orchestrator` subagent. Must list 10 specific organizations with coordination counts. Save result to `tests/quality/results/prompt_026_cluster2_coordinators.json`. **INITIAL SCORE: 41/100 (FAIL). Issue: find_experienced_partners tool returned no results for SSH/Cluster 2 keywords. Agent did not try alternative tools or approaches.**
 
 - [ ] FIX IF NEEDED: Read `tests/quality/results/prompt_026_cluster2_coordinators.json`. If score < 85: fix and re-evaluate until passing or 3 attempts.
 

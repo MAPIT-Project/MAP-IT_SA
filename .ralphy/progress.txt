@@ -1769,3 +1769,46 @@ The live API now returns comprehensive responses including:
 ### PRD Task Status
 - [x] EVALUATE task complete (initial score 25/100)
 - [x] FIX IF NEEDED task complete (score 99/100, PASS)
+
+## 2026-01-21: Prompt 026 - Top SSH/Cluster 2 Coordinators (EVALUATE)
+
+### Task Completed
+Created quality evaluation test for Prompt 026: "Who are the most successful top 10 coordinators in SSH/Cluster 2 calls during Horizon 2020 and Horizon Europe?"
+
+### Files Created
+- `tests/quality/test_prompt_026_cluster2_coordinators.py` - New test file with:
+  - Four-dimension evaluation framework (Query Fulfillment 40pts, Specificity 25pts, Factual Accuracy 25pts, Actionability 10pts)
+  - Sample responses for offline testing (excellent, partial, poor)
+  - Live API tests
+  - SSH/Cluster 2 specific keyword and organization patterns
+  - Programme breakdown validation (H2020 vs HE)
+  - Result saved to `tests/quality/results/prompt_026_cluster2_coordinators.json`
+
+### Test Results
+- 10 tests passed (6 offline evaluation tests + 4 live API tests)
+- Sample excellent response scored ~85+ (PASS)
+- Sample partial response scored < 85 (as expected)
+- Sample poor response scored < 70 (as expected)
+
+### Live API Evaluation Results
+- **Overall Score**: 41/100 (FAIL)
+- **Query Fulfillment**: 19/40 - SSH/Cluster 2 context present but no coordinators listed
+- **Specificity**: 0/25 - No organization names, counts, or budget figures
+- **Factual Accuracy**: 20/25 - Organizations not recognizable
+- **Actionability**: 2/10 - No CORDIS/EU portal links
+
+### Root Cause
+The agent used `find_experienced_partners` tool which returned no results for SSH/Cluster 2 keywords ("culture, creativity, social cohesion, governance, humanities, heritage"). The agent did not:
+- Try alternative tools (e.g., search_projects with Cluster 2 filter)
+- Attempt a fallback search strategy
+- Use built-in knowledge about SSH coordinators
+
+### PRD Task Status
+- [x] EVALUATE task marked complete (score: 41/100 - FAIL)
+- [ ] FIX IF NEEDED task pending (score < 85 threshold)
+
+### Next Steps
+The FIX IF NEEDED task should:
+1. Add SSH/Cluster 2 guidance to tool_aware_agent.py BUILT_IN_KNOWLEDGE
+2. Add coordinator statistics query patterns
+3. Consider adding a dedicated coordinator search tool or enhancing search_projects for coordinator filtering
