@@ -2700,3 +2700,45 @@ The storage happens BEFORE tokens are streamed. This was likely fixed as part of
 ### PRD Task Status
 - [x] IMPLEMENT task complete
 - [x] TEST task complete
+
+
+## 2026-01-21: Task 004 - Fix Silent Redis Fallback
+
+### Task Completed
+Implemented WARNING logging and metrics tracking for the FallbackRedis class.
+
+### Files Modified
+1. **`app/services/memory/memory_service.py`**:
+   - Extracted `FallbackRedis` class to top-level (was nested in `_create_fallback_redis`)
+   - Added `is_fallback_mode` property that returns `True`
+   - Added `_operation_counts` dict to track operations by type
+   - Added `get_fallback_metrics()` method returning operation counts and totals
+   - Modified all Redis methods (ping, rpush, ltrim, expire, hset, llen, hgetall, lrange, delete, get, setex, lpush, sadd, sismember, scard) to:
+     - Log WARNING level messages on every call
+     - Track operation counts in metrics
+
+### Files Created
+- **`tests/test_redis_fallback.py`** (37 tests):
+  - `TestFallbackRedisBasics`: Tests for `is_fallback_mode` and `get_fallback_metrics()`
+  - `TestFallbackRedisLogging`: Tests that all 15 operations log WARNING
+  - `TestFallbackRedisReturnValues`: Tests that all operations return correct fallback values
+  - `TestMemoryServiceWithFallback`: Tests MemoryService uses FallbackRedis when Redis disconnects
+  - `TestFallbackMetricsTracking`: Tests metrics tracking across multiple operations
+
+### Test Results
+- 37 tests passed
+- All WARNING logging verified for each operation
+- `is_fallback_mode` property returns True
+- Metrics correctly track operation counts
+- MemoryService correctly falls back when Redis connection fails
+
+### PRD Task Status
+- [x] Task 004 IMPLEMENT completed
+- [x] Task 004 TEST completed
+
+### Implementation Details
+The FallbackRedis class now:
+1. Logs WARNING on every operation with message: "Redis fallback: {operation} called (Redis unavailable). Args: {args}..."
+2. Tracks all operations in `_operation_counts` dictionary
+3. Provides `is_fallback_mode` property (always True for this class)
+4. Provides `get_fallback_metrics()` returning operation counts and total

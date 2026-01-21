@@ -98,9 +98,9 @@ TEST_API_URL=http://localhost:8000 pytest tests/test_conversation_scenarios.py -
 - [x] TEST: Create test that verifies: (1) message is in DB before first token is sent, (2) follow-up query immediately after response can access the stored message.
 
 ### Task 004: Fix Silent Redis Fallback
-- [ ] IMPLEMENT: Update `app/services/memory/memory_service.py` `FallbackRedis` class to log WARNING level messages on every operation and track fallback usage in metrics. Add `is_fallback_mode` property.
+- [x] IMPLEMENT: Update `app/services/memory/memory_service.py` `FallbackRedis` class to log WARNING level messages on every operation and track fallback usage in metrics. Add `is_fallback_mode` property.
 
-- [ ] TEST: Create test that: (1) disconnects Redis, (2) sends message, (3) verifies WARNING is logged, (4) verifies `is_fallback_mode` returns True.
+- [x] TEST: Create test that: (1) disconnects Redis, (2) sends message, (3) verifies WARNING is logged, (4) verifies `is_fallback_mode` returns True.
 
 ### Task 005: Add Context Window Reset
 - [ ] IMPLEMENT: In `app/services/agents/tool_aware_agent.py`, add automatic `context_window_manager.reset()` call at the start of each `process_query()` invocation to prevent memory leak across queries.
