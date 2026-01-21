@@ -858,6 +858,34 @@ For **agriculture/food** queries, ALWAYS include:
 - **MSCA cross-cutting opportunities** (available for ALL domains)
 - Include links to Agriculture/Food Research Resources from BUILT-IN KNOWLEDGE
 
+**SPECIAL CASE - Project Search Results:**
+When the search_projects tool was used, your conclusion MUST:
+1. **List ALL projects found** with their key details in a structured format
+2. For EACH project, include:
+   - **Project Title/Acronym** (in bold)
+   - **Grant Agreement ID** (6-9 digit number)
+   - **Coordinator** (organization name and country)
+   - **Budget** (total cost and EC contribution in €M)
+   - **Duration** (start and end dates)
+   - **Brief objective** (1-2 sentences)
+3. Use a consistent format (table or numbered list with clear structure)
+4. Include a **CORDIS link** for each project: https://cordis.europa.eu/project/id/{{project_id}}
+5. Add **how to learn more** at the end (CORDIS database, project websites, contact coordinators)
+
+Example good project search output:
+```
+### Recent AI Research Projects
+
+| # | Project | Budget | Coordinator | Description |
+|---|---------|--------|-------------|-------------|
+| 1 | **DEEPHEALTH** (101000001) | €5.2M | Karolinska Institute (SE) | Deep learning for medical imaging |
+| 2 | **AICLIMATE** (101000002) | €6.1M | ETH Zurich (CH) | ML models for climate prediction |
+
+#### How to Learn More:
+- **CORDIS Database**: Search for full details at https://cordis.europa.eu
+- **Contact Coordinators**: Reach out for collaboration opportunities
+```
+
 **SPECIAL CASE - Timeline Generation:**
 When the generate_timeline tool was used, your conclusion MUST include the COMPLETE timeline output:
 - ALL work packages with their full details (lead, participants, objectives, tasks, effort, duration)
@@ -1252,19 +1280,25 @@ This uses AI to automatically expand keywords to related terms (e.g., "AI" → i
 **USE THIS TOOL FOR**: General project searches like "find projects about AI", "show me quantum computing projects", "projects on climate change"
 **Returns**: List of funded projects matching the keywords with titles, budgets, consortiums, and descriptions.
 
+**SEARCH TIPS**:
+- For AI/ML research: Use keywords like "machine learning", "neural network", "deep learning", "artificial intelligence"
+- Short acronyms like "AI", "ML", "IoT", "HPC" are supported but may benefit from expanded terms
+- Combine specific terms for better results: "AI healthcare diagnostics" rather than just "AI"
+- The search uses full-text matching on project titles, objectives, and topics
+
 This is the PRIMARY tool for finding projects by topic.""",
             category=ToolCategory.PROJECTS,
             parameters={
-                "keywords": "Required: Keywords/topic to search for (e.g., 'AI healthcare', 'quantum computing', 'green hydrogen')",
+                "keywords": "Required: Keywords/topic to search for (e.g., 'machine learning healthcare', 'quantum computing', 'green hydrogen')",
                 "programme": "Optional: Filter by programme (Horizon Europe, EIC, ERC, etc.)",
                 "country": "Optional: Filter by coordinator/participant country",
                 "limit": "Optional: Number of results (default 10)"
             },
             examples=[
-                "search_projects(keywords='AI in healthcare')",
-                "search_projects(keywords='quantum computing')",
+                "search_projects(keywords='machine learning healthcare diagnostics')",
+                "search_projects(keywords='artificial intelligence robotics')",
                 "search_projects(keywords='renewable energy', country='Germany')",
-                "search_projects(keywords='battery technology', limit=15)"
+                "search_projects(keywords='deep learning computer vision', limit=15)"
             ]
         ))
         

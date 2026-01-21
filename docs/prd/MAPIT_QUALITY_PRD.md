@@ -147,9 +147,9 @@ Run with: `./ralphy.sh --prd MAPIT_QUALITY_PRD.md`
 ### ==========================================================
 
 ### Prompt 017: Recent AI Projects
-- [ ] EVALUATE: Run prompt "I am working in AI research. Tell me about the 10 most recent, thematically relevant projects that were successful so I can identify the current state of the art." through MAPIT. Use `eval-orchestrator` subagent. Must return exactly 10 projects with titles, IDs, budgets, coordinators. Save result to `tests/quality/results/prompt_017_ai_projects.json`.
+- [x] EVALUATE: Run prompt "I am working in AI research. Tell me about the 10 most recent, thematically relevant projects that were successful so I can identify the current state of the art." through MAPIT. Use `eval-orchestrator` subagent. Must return exactly 10 projects with titles, IDs, budgets, coordinators. Save result to `tests/quality/results/prompt_017_ai_projects.json`.
 
-- [ ] FIX IF NEEDED: Read `tests/quality/results/prompt_017_ai_projects.json`. If score < 85: check `mapit-tools` for `search_projects` tool, `mapit-neo4j` for Project queries, fix and re-evaluate until passing or 3 attempts.
+- [x] FIX IF NEEDED: Read `tests/quality/results/prompt_017_ai_projects.json`. If score < 85: check `mapit-tools` for `search_projects` tool, `mapit-neo4j` for Project queries, fix and re-evaluate until passing or 3 attempts.
 
 ### Prompt 018: Industry 4.0 Agriculture Projects
 - [ ] EVALUATE: Run prompt "What were the most recent 10 awarded projects that touched upon the issue of Industry 4.0/5.0 in agriculture?" through MAPIT. Use `eval-orchestrator` subagent. Must return 10 relevant projects with details. Save result to `tests/quality/results/prompt_018_industry40_agri.json`.

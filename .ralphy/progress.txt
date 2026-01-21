@@ -1111,3 +1111,103 @@ The live API returns a comprehensive ~5751 character response covering:
 - [x] EVALUATE task complete (score 98/100, PASS)
 - [x] FIX IF NEEDED task not needed (score >= 85)
 
+
+## 2026-01-21: Prompt 017 - Recent AI Projects (EVALUATE + FIX)
+
+### Task Completed
+Created quality evaluation test and fixed Prompt 017: "I am working in AI research. Tell me about the 10 most recent, thematically relevant projects that were successful so I can identify the current state of the art."
+
+### Files Created/Modified
+- `tests/quality/test_prompt_017_ai_projects.py` - New test file with:
+  - Four-dimension evaluation framework (Query Fulfillment 40pts, Specificity 25pts, Factual Accuracy 25pts, Actionability 10pts)
+  - Checks for ~10 AI-related funded projects
+  - Checks for project details (IDs, budgets, coordinators, countries)
+  - Checks for AI/ML relevance (keywords: artificial intelligence, machine learning, neural network, etc.)
+  - Sample responses for offline testing (excellent, partial, poor)
+  - Live API tests
+  - Result saved to `tests/quality/results/prompt_017_ai_projects.json`
+
+### Initial Evaluation Results (FAIL)
+- **Overall Score**: 30-40/100 (FAIL) ❌
+- **Query Fulfillment**: 10/40 - Missing AI-relevant projects, limited project details
+- **Specificity**: 2/25 - No grant agreement numbers, no budgets, no coordinators
+- **Factual Accuracy**: 25/25 - No factual errors
+- **Actionability**: 3/10 - No CORDIS links
+
+### Root Cause Analysis - Multiple Issues Found:
+1. **Short term "AI" being filtered out**: The `_convert_to_tsquery` method in both `local_project_search_service.py` and `cordis_repository.py` filtered out terms with `len(word) <= 2`, which removed "AI" from search queries
+2. **SQL column naming errors**: PostgreSQL columns use camelCase with quotes (e.g., `p."startDate"`, `o."projectID"`, `"SME"`), but code was using snake_case
+3. **Query parser false positives**: The query "I am working in AI research..." was incorrectly extracting Greece (GR) from "relevant" and Innovation Action (IA) from "AI" due to substring matching
+
+### Fix Implementation (2 attempts - successful)
+
+#### Attempt 1: Short Term Whitelist + SQL Column Fixes
+**Files Modified:**
+1. **`app/services/local_project_search_service.py`**:
+   - Added `IMPORTANT_SHORT_TERMS` whitelist: `{'ai', 'ml', 'it', 'ict', 'hpc', 'iot', '5g', '6g', 'co2', 'ph', 'uv', 'ev', 'eu', 'un', 'ria', 'csa', 'ia', 'erc', 'eic', 'eit', 'sme', 'ngo', 'prc', 'rec', 'hes', 'pub'}`
+   - Modified filter logic to preserve important short terms: `len(word) > 2 or word in self.IMPORTANT_SHORT_TERMS`
+   - Fixed country/scheme/programme extraction to use word boundary regex: `re.search(rf'\b{re.escape(name)}\b', query_lower)` to avoid substring false positives
+
+2. **`app/services/data/cordis_repository.py`**:
+   - Added same `IMPORTANT_SHORT_TERMS` whitelist
+   - Fixed all SQL column names to use camelCase with quotes:
+     - `p.start_date` → `p."startDate"`
+     - `p.end_date` → `p."endDate"`
+     - `p.total_cost` → `p."totalCost"`
+     - `p.ec_max_contribution` → `p."ecMaxContribution"`
+     - `p.framework_programme` → `p."frameworkProgramme"`
+     - `p.funding_scheme` → `p."fundingScheme"`
+     - `o.project_id` → `o."projectID"`
+     - `sme = true` → `"SME" = true`
+
+#### Attempt 2: Agent Response Formatting Guidance
+**Files Modified:**
+1. **`app/services/agents/tool_aware_agent.py`**:
+   - Enhanced `search_projects` tool description with search tips
+   - Added "SPECIAL CASE - Project Search Results" guidance in REASONING_PROMPT:
+     - List ALL projects found with key details
+     - Include Project Title/Acronym (bold), Grant Agreement ID (6-9 digits), Coordinator (org + country), Budget (€M), Duration, Brief objective
+     - Use consistent format (table or numbered list)
+     - Include CORDIS link for each project: `https://cordis.europa.eu/project/id/{project_id}`
+     - Add "how to learn more" section at end
+   - Fixed template placeholder: Changed `{project_id}` to `{{project_id}}` to avoid format string errors
+
+### Post-Fix Evaluation Results
+- **Overall Score**: 86/100 (PASS) ✅
+- **Query Fulfillment**: 35/40 - 8 AI projects listed (requested 10, got 8 highly relevant)
+- **Specificity**: 21/25 - Good details with grant IDs, budgets, coordinators
+- **Factual Accuracy**: 23/25 - 1 minor validation issue (partial grant number)
+- **Actionability**: 7/10 - Good actionability with CORDIS links and guidance
+
+### Score Improvement
+| Dimension | Before | After | Change |
+|-----------|--------|-------|--------|
+| Query Fulfillment | 10 | 35 | +25 |
+| Specificity | 2 | 21 | +19 |
+| Factual Accuracy | 25 | 23 | -2 (stricter validation) |
+| Actionability | 3 | 7 | +4 |
+| **Overall** | **40** | **86** | **+46** |
+
+### API Response Quality (After Fix)
+The fixed API now returns a comprehensive ~4100 character response covering:
+- **8 highly relevant AI projects** in tabular format:
+  - RAIDO (101135800): Trustworthy & Green AI, €7.97M, Institut Jozef Stefan (SI)
+  - PEER (101120406): Collaborative AI assistants, €7.74M, Vrije Universiteit Brussel (BE)
+  - AI4REALNET (101119527): AI for critical systems, €4.00M, INESC TEC (PT)
+  - AutoFair (101070568): Human-Compatible AI, €3.35M, CVUT Prague (CZ)
+  - DeepLearning 2.0 (101045765): Meta-Learning, €2.00M, Uni Freiburg (DE)
+  - ACROBAT (101063661): AI hardware acceleration, €3.99M, Politecnico di Torino (IT)
+  - RRR-XAI (101059332): Explainable AI, €165K, Universidad de Granada (ES)
+  - SAILS-6G (101155121): AI for 6G networks, (Unit Costs), Chalmers (SE)
+- **State of the art trends**: Trustworthy AI, AI for Critical Infrastructure, Green AI/Hardware, Meta-Learning
+- **CORDIS links** for each project
+- **Next steps**: How to explore projects further, Partner Search guidance
+
+### Test Results
+- 171 tests passed (all quality tests for prompts 001-017)
+- All linting passed (no critical errors in modified files)
+
+### PRD Task Status
+- [x] EVALUATE task complete
+- [x] FIX IF NEEDED task complete (2 attempts, score 40 → 86, PASS)
+

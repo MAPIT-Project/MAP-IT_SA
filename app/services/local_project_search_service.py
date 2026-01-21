@@ -83,6 +83,15 @@ class LocalProjectSearchService:
         'to', 'of', 'on', 'at', 'by', 'for', 'with', 'from', 'into', 'onto',
         'can', 'could', 'should', 'would', 'may', 'might', 'must', 'will', 'shall'
     }
+
+    # Important short terms that should NOT be filtered out despite being <= 2 chars
+    # These are domain-specific acronyms and abbreviations that carry meaning
+    IMPORTANT_SHORT_TERMS = {
+        'ai', 'ml', 'it', 'ict', 'hpc', 'iot', '5g', '6g',  # Technology
+        'co2', 'ph', 'uv', 'ev', 'eu', 'un',  # Science/Geography
+        'ria', 'csa', 'ia', 'erc', 'eic', 'eit',  # EU funding instruments
+        'sme', 'ngo', 'prc', 'rec', 'hes', 'pub',  # Organization types
+    }
     
     # Country name to code mapping for filter extraction
     COUNTRY_MAPPINGS = {
@@ -668,30 +677,33 @@ class LocalProjectSearchService:
         query_lower = query.lower()
         remaining_query = query
         
-        # Extract country mentions
+        # Extract country mentions (use word boundary to avoid substring matches)
         if 'countries' not in filters:
             found_countries = []
             for name, code in self.COUNTRY_MAPPINGS.items():
-                if name in query_lower:
+                # Use word boundary regex to avoid "el" matching inside "relevant"
+                if re.search(rf'\b{re.escape(name)}\b', query_lower):
                     found_countries.append(code)
                     # Remove from query to get cleaner search terms
-                    remaining_query = re.sub(rf'\b{name}\b', '', remaining_query, flags=re.IGNORECASE)
-            
+                    remaining_query = re.sub(rf'\b{re.escape(name)}\b', '', remaining_query, flags=re.IGNORECASE)
+
             if found_countries:
                 filters['countries'] = list(set(found_countries))
         
-        # Extract programme mentions
+        # Extract programme mentions (use word boundary for multi-word matches)
         if 'programme' not in filters:
             for name, code in self.PROGRAMME_MAPPINGS.items():
-                if name in query_lower:
+                # Use word boundary regex for accurate matching
+                if re.search(rf'\b{re.escape(name)}\b', query_lower):
                     filters['programme'] = code
                     remaining_query = re.sub(rf'\b{re.escape(name)}\b', '', remaining_query, flags=re.IGNORECASE)
                     break
         
-        # Extract funding scheme mentions
+        # Extract funding scheme mentions (use word boundary to avoid substring matches)
         if 'funding_scheme' not in filters:
             for name, code in self.SCHEME_KEYWORDS.items():
-                if name in query_lower:
+                # Use word boundary regex to avoid "ia" matching inside "AI"
+                if re.search(rf'\b{re.escape(name)}\b', query_lower):
                     filters['funding_scheme'] = code
                     remaining_query = re.sub(rf'\b{re.escape(name)}\b', '', remaining_query, flags=re.IGNORECASE)
                     break
@@ -718,10 +730,12 @@ class LocalProjectSearchService:
         # Remove punctuation and split into words
         words = re.findall(r'\b\w+\b', remaining_query.lower())
         
-        # Filter out stopwords and short words
+        # Filter out stopwords and short words (but keep important short terms)
         search_terms = [
-            word for word in words 
-            if word not in self.STOPWORDS and len(word) > 2
+            word for word in words
+            if word not in self.STOPWORDS and (
+                len(word) > 2 or word in self.IMPORTANT_SHORT_TERMS
+            )
         ]
         
         # If no meaningful search terms left, use the original query (cleaned)
