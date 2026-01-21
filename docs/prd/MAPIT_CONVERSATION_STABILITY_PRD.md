@@ -196,13 +196,13 @@ TEST_API_URL=http://localhost:8000 pytest tests/test_conversation_scenarios.py -
 - [x] RUN & FIX: Execute scenario. Use `QualityEvaluatorAgent.evaluate_conversation()` to track quality across turns. Fix any degradation.
 
 ### Task 014: Topic Switching Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/context/topic_switching.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/context/topic_switching.yaml` with steps:
   1. "Tell me about RIA projects"
   2. "What about Erasmus+ mobility?"
   3. "Going back to RIA, what's the funding rate?"
   Validations: can switch topics and return to previous topic.
 
-- [ ] RUN & FIX: Execute scenario. Fix any failures and re-run until passing.
+- [x] RUN & FIX: Execute scenario. Fix any failures and re-run until passing.
 
 ### Task 015: Memory Overflow Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/context/memory_overflow.yaml` with 15+ steps to exceed STM capacity (12 turns). Verify:

@@ -1,0 +1,62 @@
+# Scenario: Topic Switching
+# Tests ability to switch topics and return to previous topics
+# Per PRD Task 014: Tests that user can switch topics and return to previous topic
+
+name: "Topic Switching"
+description: "User switches between topics and returns to previous topic"
+tags: ["context", "topic_switch", "memory"]
+stop_on_error: true
+
+steps:
+  # Step 1: Initial question about RIA projects
+  - message: "Tell me about RIA projects"
+    validations:
+      - type: "response_contains"
+        name: "explains_ria"
+        patterns: ["RIA", "Research"]
+      - type: "response_contains_any"
+        name: "explains_ria_details"
+        patterns: ["Innovation Action", "100%", "funding", "research", "collaborative"]
+      - type: "no_error"
+        name: "no_errors"
+    delay_ms: 0
+
+  # Step 2: Switch to completely different topic (Erasmus+ mobility)
+  - message: "What about Erasmus+ mobility?"
+    validations:
+      - type: "response_contains"
+        name: "switches_to_erasmus"
+        patterns: ["Erasmus"]
+      - type: "response_contains_any"
+        name: "explains_mobility"
+        patterns: ["mobility", "student", "staff", "exchange", "learning", "training"]
+      - type: "no_error"
+        name: "no_errors"
+    delay_ms: 500
+
+  # Step 3: Return to RIA topic and ask follow-up question
+  - message: "Going back to RIA, what's the funding rate?"
+    validations:
+      - type: "follow_up_resolved"
+        name: "returns_to_ria"
+        description: "Should return to RIA topic from earlier in conversation"
+      - type: "response_contains"
+        name: "mentions_ria_again"
+        patterns: ["RIA"]
+      - type: "response_contains_any"
+        name: "mentions_funding_rate"
+        patterns: ["100%", "funding rate", "funded", "contribution", "EU contribution"]
+      - type: "context_preserved"
+        name: "remembers_ria_context"
+        from_turn: 0
+      - type: "no_error"
+        name: "no_errors"
+    delay_ms: 500
+
+final_validations:
+  - type: "context_integrity"
+    name: "topic_switch_preserved"
+    description: "Context should handle topic switching without confusion"
+  - type: "quality_non_degradation"
+    name: "quality_stable_on_switch"
+    description: "Quality should remain stable when switching topics"

@@ -3132,3 +3132,35 @@ The new test:
 
 ### Next Task
 Task 014: Topic Switching Scenario (PHASE 4: Context Preservation Testing)
+
+## 2026-01-21: Task 014 - Topic Switching Scenario
+
+### Task Completed
+Implemented Task 014: Topic Switching Scenario for conversation stability testing.
+
+### Files Created
+- `tests/scenarios/context/topic_switching.yaml` - New scenario file with 3 steps:
+  1. "Tell me about RIA projects" - Initial topic about RIA
+  2. "What about Erasmus+ mobility?" - Switch to completely different topic
+  3. "Going back to RIA, what's the funding rate?" - Return to original topic
+
+### Scenario Features
+- Tests ability to switch between different topics (Horizon Europe RIA vs Erasmus+ mobility)
+- Validates context preservation across topic switches
+- Validates return to previous topic with follow-up resolution
+- Includes final validations for context integrity and quality stability
+
+### Validations Implemented
+- Step 1: `response_contains` (RIA, Research), `response_contains_any` (Innovation Action, 100%, funding), `no_error`
+- Step 2: `response_contains` (Erasmus), `response_contains_any` (mobility, student, staff, exchange, learning, training), `no_error`
+- Step 3: `follow_up_resolved`, `response_contains` (RIA), `response_contains_any` (100%, funding rate), `context_preserved` (from turn 0), `no_error`
+- Final: `context_integrity`, `quality_non_degradation`
+
+### Test Results
+- All 4 context preservation tests passed (including new topic_switching scenario)
+- Tests completed in ~7 minutes with live API
+- Scenario loaded and validated correctly by ConversationScenario parser
+
+### PRD Status
+- [x] Task 014 marked complete in MAPIT_CONVERSATION_STABILITY_PRD.md
+
