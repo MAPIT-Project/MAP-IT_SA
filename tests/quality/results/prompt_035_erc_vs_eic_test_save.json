@@ -1,0 +1,44 @@
+{
+  "prompt_id": "035",
+  "query": "Compare ERC Starting Grants with EIC Pathfinder for early-stage research. Which is better suited for what type of researcher?",
+  "response": "\n## ERC Starting Grants vs EIC Pathfinder: A Detailed Comparison\n\nBoth ERC Starting Grants and EIC Pathfinder support early-stage research, but they serve\nfundamentally different researcher profiles and research goals.\n\n### Key Differences at a Glance\n\n| Aspect | ERC Starting Grant | EIC Pathfinder |\n|--------|-------------------|----------------|\n| **Budget** | Up to \u20ac1.5M | \u20ac3-4M |\n| **Duration** | 5 years | 3-4 years |\n| **Funding Rate** | 100% | 100% |\n| **TRL Focus** | TRL 1-3 (basic research) | TRL 1-4 (towards application) |\n| **Team Structure** | Single PI + team | Consortium (3+ partners) |\n| **Success Rate** | ~10-12% | ~5-8% |\n\n### ERC Starting Grants: For Curiosity-Driven Research\n\n**Best suited for:**\n- Early-career researchers (2-7 years post-PhD)\n- Academics pursuing fundamental, curiosity-driven research\n- Individual investigators building their research team\n- Those without market application goals\n\n**Key characteristics:**\n- \ud83c\udf93 **Single Principal Investigator** model (no consortium required)\n- \ud83d\udcca **Budget**: Up to \u20ac1.5 million for 5 years\n- \ud83d\udd2c **TRL Range**: 1-3 (basic principles to proof of concept)\n- \ud83c\udfdb\ufe0f **Host institution** must be in EU or Associated Country\n- \ud83d\udcaf **100% funding** rate\n- \ud83c\udfaf Focus on **scientific excellence** and frontier research\n\n**Eligibility requirements:**\n- 2-7 years since PhD completion (with extensions for career breaks)\n- No nationality restriction, but must work at EU/Associated host\n- Research must be \"high-risk, high-gain\" frontier science\n\n### EIC Pathfinder: For Technology Breakthroughs\n\n**Best suited for:**\n- Researchers with application-oriented mindset\n- Teams working on disruptive technology development\n- Consortia ready for interdisciplinary collaboration\n- Those aiming toward eventual market application\n\n**Key characteristics:**\n- \ud83d\udc65 **Consortium structure**: Minimum 3 partners from 3 different EU/Associated countries\n- \ud83d\udcca **Budget**: \u20ac3-4 million total for the consortium\n- \ud83d\udd2c **TRL Range**: 1-4 (basic research to lab validation)\n- \ud83c\udf10 **International collaboration** required\n- \ud83d\udcaf **100% funding** rate\n- \ud83c\udfaf Focus on **breakthrough technology** with innovation potential\n\n**Two pathways:**\n1. **Pathfinder Open**: Bottom-up, any breakthrough technology\n2. **Pathfinder Challenges**: Specific technology challenges defined by EC\n\n### Decision Guide: Which Programme Is Right for You?\n\n**Choose ERC Starting Grant if:**\n\u2705 You want full scientific independence\n\u2705 Your research is fundamentally curiosity-driven\n\u2705 You're building your first independent research group\n\u2705 You don't need/want consortium partners\n\u2705 Market application is not a near-term goal\n\u2705 You're 2-7 years post-PhD\n\n**Choose EIC Pathfinder if:**\n\u2705 Your research has clear technology application potential\n\u2705 You want to work with international partners\n\u2705 Your team has multidisciplinary expertise\n\u2705 You're aiming towards eventual commercialization\n\u2705 You need larger budget for consortium activities\n\u2705 You're working on disruptive innovation\n\n### Success Factors\n\n**For ERC Starting Grant:**\n- Groundbreaking research question\n- Strong track record relative to career stage\n- Clear scientific methodology\n- Ambitious but feasible timeline\n\n**For EIC Pathfinder:**\n- Truly disruptive innovation concept\n- Strong consortium with complementary expertise\n- Clear pathway from science to technology\n- Vision for future market impact\n\n### Resources & Next Steps\n\n- **ERC Portal**: https://erc.europa.eu\n- **EIC Portal**: https://eic.ec.europa.eu\n- **Funding & Tenders**: https://ec.europa.eu/info/funding-tenders/\n- **Call Calendar**: Check for annual deadlines (typically January-March)\n- **National Contact Points**: Get country-specific support\n\n### Summary\n\n| Researcher Type | Recommended Programme |\n|----------------|----------------------|\n| Early-career academic, curiosity-driven | ERC Starting Grant |\n| Innovation-focused, consortium-ready | EIC Pathfinder |\n| Individual PI, fundamental research | ERC Starting Grant |\n| Technology developer, application-minded | EIC Pathfinder |\n",
+  "overall_score": 97,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "erc_vs_eic_comparison",
+      "description": "ERC Starting Grant vs EIC Pathfinder comparison",
+      "fulfillment": 40,
+      "specificity": 25,
+      "accuracy": 22,
+      "actionability": 10,
+      "total": 97,
+      "notes": "Fulfillment: All query requirements met; Specificity: Good specificity with detailed info; Accuracy: Accuracy check: 22/25 points; 1 issue(s) found; Actionability: Good actionability with clear guidance",
+      "missing_items": [],
+      "found_items": [
+        "Clear ERC vs EIC comparison structure",
+        "Strong researcher suitability guidance",
+        "Both programmes well explained"
+      ]
+    }
+  ],
+  "factual_errors": [
+    {
+      "claim": "ERC stated as requiring consortium",
+      "correct_value": "ERC is single PI model, no consortium required",
+      "source": "eu-funding-domain"
+    }
+  ],
+  "fix_suggestions": [],
+  "strengths": [
+    "Clear ERC vs EIC comparison with researcher guidance",
+    "Rich in specific details (budgets, TRLs, requirements)",
+    "Factually accurate programme information",
+    "Provides useful decision guidance and resources"
+  ],
+  "evaluation_timestamp": "2026-01-21T16:23:19.274846+00:00",
+  "response_metadata": {
+    "source": "test_json_save"
+  },
+  "fix_history": []
+}

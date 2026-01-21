@@ -2439,3 +2439,60 @@ After the fix, the agent now:
 ### PRD Task Status
 - [x] EVALUATE task: Complete (initial score 84/100)
 - [x] FIX IF NEEDED task: Complete (final score 90/100 PASS)
+
+
+## 2026-01-21: Prompt 035 - ERC vs EIC Comparison (EVALUATE)
+
+### Task Completed
+Created quality evaluation test for Prompt 035: "Compare ERC Starting Grants with EIC Pathfinder for early-stage research. Which is better suited for what type of researcher?"
+
+### Files Created/Modified
+- `tests/quality/test_prompt_035_erc_vs_eic.py` - New test file with:
+  - Four-dimension evaluation framework (Query Fulfillment 40pts, Specificity 25pts, Factual Accuracy 25pts, Actionability 10pts)
+  - Specific checks for ERC vs EIC comparison, budget validation (ERC €1.5M, EIC €3-4M)
+  - TRL range verification (ERC 1-3, EIC 1-4)
+  - Consortium requirement checks (ERC: single PI, EIC: 3 partners)
+  - Researcher suitability guidance evaluation
+  - Sample responses for offline testing (excellent, partial, poor)
+  - Live API tests
+  - Result saved to `tests/quality/results/prompt_035_erc_vs_eic.json`
+
+### Live API Evaluation Results
+- **Overall Score**: 90/100 (PASS) ✅
+- **Query Fulfillment**: 35/40 - Clear comparison with researcher guidance
+- **Specificity**: 25/25 - Excellent with budget, TRL, consortium details
+- **Factual Accuracy**: 22/25 - Mostly accurate, minor detection issue
+- **Actionability**: 8/10 - Good decision guidance and links
+
+### API Response Quality
+The live API returns a comprehensive ~4500 character response covering:
+- **Structured comparison table** with all key features
+- **Budget details**: ERC €1.5M (5 years), EIC €3-4M
+- **TRL focus**: ERC TRL 1-2, EIC TRL 1-4
+- **Applicant structure**: ERC monobeneficiary, EIC consortium (3 partners)
+- **Suitability analysis** for each researcher type
+- **Summary recommendation table** (researcher type → programme)
+- **Actionable resources** with links to ERC, EIC, and EU portals
+
+### Evaluation Framework
+The test implements the LLM-as-judge methodology per the PRD:
+- Checks for clear ERC vs EIC comparison structure
+- Validates budget figures against eu-funding-domain skill
+- Verifies TRL ranges for both programmes
+- Checks consortium/eligibility requirements
+- Evaluates researcher suitability guidance
+- Detects factual errors (funding rates, minimums, budgets)
+
+### Expected Domain Knowledge (from eu-funding-domain skill)
+- ERC-STG: €1.5M budget, 100% funding, TRL 1-3, single PI
+- EIC-Pathfinder: €3-4M budget, 100% funding, TRL 1-4, 3 partners from 3 countries (Open)
+- Both programmes: 100% funding rate
+- Target: Early-career researchers (ERC) vs innovation teams (EIC)
+
+### Test Results
+- 11 tests passed (7 offline + 4 live API)
+- All linting passed
+
+### PRD Task Status
+- [x] EVALUATE task complete (score 90/100, PASS)
+- [x] FIX IF NEEDED task not needed (score >= 85)

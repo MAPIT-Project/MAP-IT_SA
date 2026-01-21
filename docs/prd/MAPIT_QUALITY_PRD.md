@@ -249,9 +249,9 @@ Run with: `./ralphy.sh --prd MAPIT_QUALITY_PRD.md`
 ### ==========================================================
 
 ### Prompt 035: ERC vs EIC Comparison
-- [ ] EVALUATE: Run prompt "Compare ERC Starting Grants with EIC Pathfinder for early-stage research. Which is better suited for what type of researcher?" through MAPIT. Use `eval-orchestrator` subagent. `query-decomposer` will create comparison components. Cross-reference `eu-funding-domain` for: budgets (ERC-STG €1.5M, EIC-Pathfinder €3-4M), eligibility, TRL ranges, consortium requirements, success rates. Save result to `tests/quality/results/prompt_035_erc_vs_eic.json`.
+- [x] EVALUATE: Run prompt "Compare ERC Starting Grants with EIC Pathfinder for early-stage research. Which is better suited for what type of researcher?" through MAPIT. Use `eval-orchestrator` subagent. `query-decomposer` will create comparison components. Cross-reference `eu-funding-domain` for: budgets (ERC-STG €1.5M, EIC-Pathfinder €3-4M), eligibility, TRL ranges, consortium requirements, success rates. Save result to `tests/quality/results/prompt_035_erc_vs_eic.json`. **FINAL SCORE: 90/100 (PASS). Response provides excellent structured comparison table with TRL, budget (ERC €1.5M, EIC €3-4M), applicant structure, and clear researcher suitability guidance for both programmes.**
 
-- [ ] FIX IF NEEDED: Read `tests/quality/results/prompt_035_erc_vs_eic.json`. If score < 85: check `mapit-tools` for `compare_programmes` tool, fix and re-evaluate until passing or 3 attempts.
+- [x] FIX IF NEEDED: Read `tests/quality/results/prompt_035_erc_vs_eic.json`. If score < 85: check `mapit-tools` for `compare_programmes` tool, fix and re-evaluate until passing or 3 attempts. **N/A - Score 90/100 already passes.**
 
 ### Prompt 036: RIA vs IA Comparison
 - [ ] EVALUATE: Run prompt "Compare RIA and IA instruments in Horizon Europe. When should I choose one over the other?" through MAPIT. Use `eval-orchestrator` subagent. Cross-reference `eu-funding-domain` for: funding rates (RIA=100%, IA=70%), TRL ranges (RIA=1-5, IA=5-8), typical budgets, consortium sizes, use cases. Save result to `tests/quality/results/prompt_036_ria_vs_ia.json`.
