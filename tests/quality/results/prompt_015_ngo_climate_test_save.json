@@ -1,0 +1,39 @@
+{
+  "prompt_id": "015",
+  "query": "I am an umbrella organization/NGO representing civil society. I am interested in climate change. What are the opportunities for an organization like me?",
+  "response": "\n## Horizon Europe Opportunities for NGOs/Umbrella Organizations in Climate Change\n\nAs an NGO or umbrella organization representing civil society with interest in climate\nchange, you have several excellent funding opportunities in Horizon Europe, particularly\nthrough instruments designed for coordination, stakeholder engagement, and policy support.\n\n### 1. Coordination and Support Actions (CSA) - Best Fit for NGOs\n\n**CSA is the primary instrument for civil society organizations:**\n\n| Aspect | Details |\n|--------|---------|\n| **Funding Rate** | 100% (full costs covered) |\n| **Budget Range** | EUR 1-3 million typically |\n| **TRL** | Not applicable (no technology development) |\n| **Consortium** | Usually 3+ partners from 3+ EU/Associated countries |\n\n**What CSAs fund:**\n- Networking and coordination activities\n- Policy support and stakeholder engagement\n- Dissemination and communication campaigns\n- Best practice exchange and knowledge sharing\n- Standardization and harmonization efforts\n\n**Climate-relevant CSA topics:**\n- Cluster 5 (Climate, Energy & Mobility): Stakeholder platforms, policy dialogues\n- Cluster 6 (Food, Bioeconomy, Environment): Civil society engagement, citizen science\n- EU Missions: Climate Adaptation, Ocean & Waters, Soil Health\n\n### 2. Research and Innovation Actions (RIA) - Partner Role\n\nNGOs can participate in RIA projects as partners:\n- **Funding Rate:** 100% for all participants\n- **Role:** Stakeholder engagement, dissemination, policy liaison\n- **Budget:** Your share typically EUR 100K-500K within larger consortium\n- **Value:** Bring civil society perspective and network access\n\n### 3. Innovation Actions (IA) - Partner Role with Full Funding\n\nFor non-profit NGOs, IA offers excellent terms:\n- **Funding Rate:** 100% for non-profit organizations (70% for for-profit)\n- **Role:** Demonstration, pilot testing, market uptake support\n- **Focus:** Near-market innovations with societal impact\n\n### 4. EU Missions - Strong Civil Society Engagement\n\nEU Missions actively seek NGO participation:\n\n| Mission | NGO Role |\n|---------|----------|\n| **Climate Adaptation** | Community engagement, local stakeholder networks |\n| **Ocean & Waters** | Environmental advocacy, citizen science |\n| **Soil Health** | Agricultural networks, land steward communities |\n| **Climate-Neutral Cities** | Urban advocacy, citizen participation |\n\n### Typical NGO Roles in Horizon Projects\n\nYour organization can contribute through:\n\n1. **Stakeholder Engagement**\n   - Identifying and mobilizing relevant stakeholders\n   - Organizing workshops and consultations\n   - Building policy networks\n\n2. **Dissemination & Communication**\n   - Reaching civil society audiences\n   - Policy briefs and position papers\n   - Social media and public engagement\n\n3. **Policy Support**\n   - Providing policy recommendations\n   - Liaising with decision-makers\n   - Supporting regulatory dialogues\n\n4. **Networking**\n   - Connecting project outputs to wider networks\n   - Facilitating knowledge exchange\n   - Building communities of practice\n\n### How to Get Started\n\n1. **Register on EU Funding Portal**\n   https://ec.europa.eu/info/funding-tenders/opportunities/portal/\n\n2. **Search for CSA Calls**\n   Filter by: Action Type = \"CSA\", Topics = \"climate\", \"environment\", \"stakeholder\"\n\n3. **Find Consortium Partners**\n   Use Partner Search tool or attend brokerage events\n\n4. **Check Current Calls**\n   - Work Programme 2025-2027 for Cluster 5 & 6\n   - EU Missions calls for civil society engagement\n\n### Key Resources\n\n- \ud83c\udfaf [EU Funding Portal](https://ec.europa.eu/info/funding-tenders/)\n- \ud83d\udccb [Cluster 5 Work Programme](https://ec.europa.eu/info/funding-tenders/)\n- \ud83d\udccb [Cluster 6 Work Programme](https://ec.europa.eu/info/funding-tenders/)\n- \ud83c\udf0a [EU Missions Portal](https://research-and-innovation.ec.europa.eu/funding/funding-opportunities/funding-programmes-and-open-calls/horizon-europe/eu-missions-horizon-europe_en)\n- \ud83d\udd0d [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search)\n\n### Key Advantages for NGOs\n\n\u2705 **CSA = 100% funding** - No co-financing required\n\u2705 **Non-profit IA = 100% funding** - Same as RIA rates\n\u2705 **Valued partner role** - Civil society perspective highly valued\n\u2705 **Network access** - Your existing networks are an asset\n\u2705 **Policy influence** - Direct connection to EU policy processes\n",
+  "overall_score": 100,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "ngo_climate",
+      "description": "NGO climate change funding opportunities",
+      "fulfillment": 40,
+      "specificity": 25,
+      "accuracy": 25,
+      "actionability": 10,
+      "total": 100,
+      "notes": "Fulfillment: All key components covered; Specificity: Good specificity with NGO funding details; Accuracy: Accuracy check: 25/25 points; Actionability: Good actionability with clear NGO guidance",
+      "missing_items": [],
+      "found_items": [
+        "NGO opportunities explained",
+        "CSA instrument described",
+        "Climate context addressed",
+        "Consortium partner roles explained"
+      ]
+    }
+  ],
+  "factual_errors": [],
+  "fix_suggestions": [],
+  "strengths": [
+    "Comprehensive coverage of NGO opportunities",
+    "Rich in specific funding and role details",
+    "Factually accurate on NGO funding rules",
+    "Provides clear guidance for NGO participation"
+  ],
+  "evaluation_timestamp": "2026-01-21T10:10:07.324375+00:00",
+  "response_metadata": {
+    "source": "test_json_save"
+  },
+  "fix_history": []
+}

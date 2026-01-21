@@ -1023,3 +1023,46 @@ The live API returns a comprehensive ~5700 character response covering:
 - [x] EVALUATE task complete (score 93/100, PASS)
 - [x] FIX IF NEEDED task not needed (score >= 85)
 
+
+## 2026-01-21: Prompt 015 - NGO/Umbrella Organization Climate (EVALUATE + FIX IF NEEDED)
+
+### Task Completed
+Created quality evaluation test for Prompt 015: "I am an umbrella organization/NGO representing civil society. I am interested in climate change. What are the opportunities for an organization like me?"
+
+### Files Created/Modified
+- `tests/quality/test_prompt_015_ngo_climate.py` - New test file with:
+  - Four-dimension evaluation framework (Query Fulfillment 40pts, Specificity 25pts, Factual Accuracy 25pts, Actionability 10pts)
+  - Checks for NGO opportunities (CSA, RIA, IA, dissemination, stakeholder engagement)
+  - Checks for CSA instrument (Coordination and Support Actions) - primary for NGOs
+  - Checks for climate context (Cluster 5, Cluster 6, EU Missions)
+  - Checks for consortium partner roles (dissemination, outreach, policy support)
+  - Sample responses for offline testing (excellent, partial, poor)
+  - Live API tests
+  - Result saved to `tests/quality/results/prompt_015_ngo_climate.json`
+
+### Live API Evaluation Results
+- **Overall Score**: 100/100 (PASS) ✅
+- **Query Fulfillment**: 40/40 - NGO opportunities explained, CSA described, climate context addressed, partner roles explained
+- **Specificity**: 25/25 - Good specificity with funding details (100% for non-profit), budgets, roles
+- **Factual Accuracy**: 25/25 - All facts verified correct
+- **Actionability**: 10/10 - Clear guidance with links to official resources
+
+### API Response Quality
+The live API returns a comprehensive ~5975 character response covering:
+- **NGO eligibility**: Correctly identifies 100% funding rate for non-profit organizations
+- **CSA (Coordination and Support Actions)**: Primary instrument for civil society, 100% funding, networking/policy
+- **RIA/IA participation**: NGOs can participate as partners for dissemination and stakeholder engagement
+- **EU Missions**: Climate Adaptation, Ocean & Waters, Soil - strong civil society engagement expected
+- **Cluster 5 & 6**: Climate, Energy, Mobility + Food, Bioeconomy, Natural Resources calls
+- **Concrete call examples**: HORIZON-MISS-2026-01 (CSA), HORIZON-CL5-2026 topics
+- **NGO roles**: Dissemination, communication, stakeholder engagement, policy support
+- **Actionable links**: EU Funding Portal, Work Programmes, Partner Search, Call Calendar
+
+### Test Results
+- 10 tests passed (6 offline + 4 live API tests)
+- All linting passed
+
+### PRD Task Status
+- [x] EVALUATE task complete (score 100/100, PASS)
+- [x] FIX IF NEEDED task not needed (score >= 85)
+
