@@ -1,0 +1,52 @@
+# Scenario: Timeline Generation Flow
+# Tests the proposal timeline generation workflow
+
+name: "Timeline Generation"
+description: "User requests timeline generation for a RIA project"
+tags: ["basic", "timeline", "proposal"]
+stop_on_error: true
+
+steps:
+  - message: "Generate a timeline for a 3-year RIA project on renewable energy"
+    validations:
+      - type: "tools_used"
+        name: "uses_timeline_tool"
+        expected: ["generate_timeline"]
+      - type: "response_contains"
+        name: "mentions_timeline"
+        patterns: ["timeline", "work package", "WP"]
+      - type: "response_contains_any"
+        name: "mentions_duration"
+        patterns: ["36 months", "3 years", "3-year", "month"]
+      - type: "no_error"
+        name: "no_errors"
+    delay_ms: 0
+
+  - message: "Can we add more deliverables in WP2?"
+    validations:
+      - type: "response_contains_any"
+        name: "mentions_deliverables"
+        patterns: ["deliverable", "D2", "WP2", "output", "report"]
+      - type: "context_preserved"
+        name: "remembers_context"
+        from_turn: 0
+      - type: "no_error"
+        name: "no_errors"
+    delay_ms: 500
+
+  - message: "What about milestones?"
+    validations:
+      - type: "response_contains_any"
+        name: "mentions_milestones"
+        patterns: ["milestone", "MS", "gate", "checkpoint", "review"]
+      - type: "context_preserved"
+        name: "remembers_timeline"
+        from_turn: 0
+      - type: "no_error"
+        name: "no_errors"
+    delay_ms: 500
+
+final_validations:
+  - type: "context_integrity"
+    name: "context_preserved"
+    description: "Timeline context should be maintained"

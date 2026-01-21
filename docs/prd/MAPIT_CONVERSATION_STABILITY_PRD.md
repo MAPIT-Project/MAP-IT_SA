@@ -139,13 +139,13 @@ TEST_API_URL=http://localhost:8000 pytest tests/test_conversation_scenarios.py -
 - [x] RUN & FIX: Execute scenario. Fix any failures and re-run until passing.
 
 ### Task 009: Timeline Generation Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/basic_flows/timeline_generation.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/basic_flows/timeline_generation.yaml` with steps:
   1. "Generate a timeline for a 3-year RIA project on renewable energy"
   2. "Can we add more deliverables in WP2?"
   3. "What about milestones?"
   Validations: tools_used includes generate_timeline, work packages returned.
 
-- [ ] RUN & FIX: Execute scenario. Fix any failures and re-run until passing.
+- [x] RUN & FIX: Execute scenario. Fix any failures and re-run until passing.
 
 ### ==========================================================
 ### PHASE 3: Follow-Up Reference Testing
@@ -438,6 +438,7 @@ pytest tests/test_conversation_scenarios.py --cov=app/services/conversation -v
 - [x] `tests/scenarios/basic_flows/funding_call_search.yaml`
 - [x] `tests/scenarios/basic_flows/project_search.yaml`
 - [x] `tests/scenarios/basic_flows/budget_calculation.yaml`
+- [x] `tests/scenarios/basic_flows/timeline_generation.yaml`
 - [x] `tests/scenarios/follow_up/follow_up_by_number.yaml`
 - [x] `tests/scenarios/follow_up/follow_up_more_details.yaml`
 - [x] `tests/scenarios/context/long_conversation.yaml`

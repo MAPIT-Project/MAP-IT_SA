@@ -2914,3 +2914,39 @@ TEST_API_URL=http://localhost:8000 pytest tests/test_conversation_scenarios.py::
 ### PRD Task Status
 - [x] Task 008 VERIFY SCENARIO completed
 - [x] Task 008 RUN & FIX completed
+
+
+## 2026-01-21: Task 009 - Timeline Generation Scenario
+
+### Task Completed
+Implemented Task 009: Timeline Generation Scenario for conversation stability testing.
+
+### Files Created
+- `tests/scenarios/basic_flows/timeline_generation.yaml` - New scenario file with:
+  - Step 1: "Generate a timeline for a 3-year RIA project on renewable energy"
+    - Validates: tools_used includes generate_timeline, response mentions timeline/WP/duration
+  - Step 2: "Can we add more deliverables in WP2?"
+    - Validates: response mentions deliverables, context preserved from step 1
+  - Step 3: "What about milestones?"
+    - Validates: response mentions milestones, context preserved
+  - Final validation: context_integrity check
+
+### Files Modified
+- `docs/prd/MAPIT_CONVERSATION_STABILITY_PRD.md`:
+  - Marked Task 009 CREATE SCENARIO as complete
+  - Marked Task 009 RUN & FIX as complete
+  - Added timeline_generation.yaml to Appendix scenarios list
+
+### Test Results
+- Timeline generation scenario test passes: 1 passed in 19.32s
+- All validations pass:
+  - uses_timeline_tool (tools_used includes generate_timeline)
+  - mentions_timeline (response contains timeline/work package/WP)
+  - mentions_duration (response contains 36 months/3 years/month)
+  - mentions_deliverables (response contains deliverable/D2/WP2/output/report)
+  - mentions_milestones (response contains milestone/MS/gate/checkpoint/review)
+  - context_preserved (context maintained across turns)
+  - no_errors (no errors in any step)
+
+### Next Task
+Task 010: Numbered Reference Scenario (Phase 3: Follow-Up Reference Testing)
