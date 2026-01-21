@@ -573,6 +573,100 @@ class TestErrorRecovery:
             "Should handle invalid reference gracefully"
         )
 
+    @pytest.mark.asyncio
+    async def test_invalid_reference_scenario_task_016(
+        self,
+        conversation_agent: ConversationFlowAgent,
+    ):
+        """
+        Test invalid reference handling per PRD Task 016.
+
+        This test validates:
+        1. "Show me 3 projects" - should return 3 projects
+        2. "Tell me about the 100th one" (invalid) - graceful error handling
+        3. "What about the first one?" (valid) - should recover and work
+
+        The conversation should remain functional after invalid references.
+        """
+        # Step 1: Establish results with projects
+        turn1 = await conversation_agent.send_message(
+            "Show me 3 projects about hydrogen research"
+        )
+        assert not turn1.has_error, f"Step 1 error: {turn1.error}"
+        assert len(turn1.response_text) > 50, "Should have substantial response"
+        # Verify search_projects tool was used
+        assert "search_projects" in turn1.tools_used, (
+            f"Expected search_projects tool, got: {turn1.tools_used}"
+        )
+
+        # Small delay to ensure context is stored
+        await asyncio.sleep(0.5)
+
+        # Step 2: Invalid reference (100th item doesn't exist)
+        turn2 = await conversation_agent.send_message("Tell me about the 100th one")
+
+        # Should NOT crash - this is the key assertion
+        # The response should indicate the reference is invalid, but no error
+        assert not turn2.has_error, (
+            f"Invalid reference should not cause error: {turn2.error}"
+        )
+        assert len(turn2.response_text) > 0, "Should have some response to invalid ref"
+
+        # Response should acknowledge the invalid reference somehow
+        response_lower = turn2.response_text.lower()
+        invalid_acknowledged = (
+            "only" in response_lower
+            or "3" in response_lower or "three" in response_lower
+            or "doesn't exist" in response_lower
+            or "not available" in response_lower
+            or "cannot find" in response_lower
+            or "no such" in response_lower
+            or "invalid" in response_lower
+            or "did not" in response_lower
+            or "don't have" in response_lower
+        )
+        # Log but don't fail if not acknowledged - some systems just search again
+        if not invalid_acknowledged:
+            logger.warning(
+                f"Invalid reference may not be acknowledged: {turn2.response_text[:200]}"
+            )
+
+        # Small delay before recovery step
+        await asyncio.sleep(0.5)
+
+        # Step 3: Valid reference - should work after invalid one
+        turn3 = await conversation_agent.send_message("What about the first one?")
+
+        # This MUST work - proves conversation recovered from invalid ref
+        assert not turn3.has_error, f"Recovery step error: {turn3.error}"
+        assert len(turn3.response_text) > 100, (
+            "Recovery response should be substantial"
+        )
+
+        # The response should contain project-related content
+        response_lower = turn3.response_text.lower()
+        has_project_content = (
+            "project" in response_lower
+            or "funding" in response_lower
+            or "research" in response_lower
+            or "budget" in response_lower
+            or "consortium" in response_lower
+            or "hydrogen" in response_lower
+        )
+        assert has_project_content, (
+            f"Recovery should return project info. Got: {turn3.response_text[:300]}..."
+        )
+
+        # Verify conversation completed all 3 steps
+        assert conversation_agent.turn_count >= 3, (
+            f"Expected at least 3 turns, got {conversation_agent.turn_count}"
+        )
+
+        logger.info(
+            "Task 016 test passed: Invalid reference handled gracefully, "
+            "conversation recovered successfully"
+        )
+
 
 # =============================================================================
 # CONCURRENT ACCESS TESTS

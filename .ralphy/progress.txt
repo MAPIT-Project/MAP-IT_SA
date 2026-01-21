@@ -3234,3 +3234,86 @@ The scenario tests the system's ability to:
 
 ### Next Task
 Task 016: Invalid Reference Scenario (PHASE 5: Error Recovery Testing)
+
+## 2026-01-21: Task 016 - Invalid Reference Scenario (PHASE 5: Error Recovery Testing)
+
+### Task Completed
+Implemented Task 016: Invalid Reference Scenario for conversation stability testing.
+
+### PRD Requirements
+- CREATE SCENARIO: Create `tests/scenarios/error_recovery/invalid_reference.yaml` with steps:
+  1. "Show me 3 projects"
+  2. "Tell me about the 100th one" (invalid)
+  3. "What about the first one?" (valid)
+  Validations: graceful error for invalid, recovery for valid.
+- RUN & FIX: Execute scenario. Ensure error handling doesn't break conversation.
+
+### Files Modified
+1. `tests/scenarios/error_recovery/invalid_reference.yaml`:
+   - Updated scenario to match PRD requirements more closely
+   - Changed step 1 from "calls" to "projects" per PRD
+   - Changed invalid reference from "50th" to "100th" per PRD
+   - Added step 3 "What about the first one?" for recovery testing
+   - Added additional steps for comprehensive error recovery testing:
+     - Step 4: Nonsense reference ("purple project")
+     - Step 5: False reference to non-existent discussion
+     - Step 6: Final valid reference to confirm full recovery
+   - Added response_contains_any validation for invalid reference indication
+   - Added context_integrity and no_crash final validations
+
+2. `tests/test_conversation_scenarios.py`:
+   - Added `test_invalid_reference_scenario_task_016()` test method
+   - Test validates 3-step flow per PRD:
+     1. Establish results with search_projects tool
+     2. Invalid reference (100th item) - should not crash
+     3. Valid reference ("first one") - should recover and work
+   - Comprehensive assertions for graceful error handling
+   - Verifies conversation remains functional after invalid references
+   - Added logging for debugging
+
+3. `docs/prd/MAPIT_CONVERSATION_STABILITY_PRD.md`:
+   - Marked Task 016 CREATE SCENARIO as complete [x]
+   - Marked Task 016 RUN & FIX as complete [x]
+
+### Scenario Steps (6 total)
+1. "Show me 3 projects about hydrogen research" - Establish results
+2. "Tell me about the 100th one" - Invalid reference (graceful handling)
+3. "What about the first one?" - Valid reference (recovery)
+4. "Tell me about the purple project" - Nonsense reference
+5. "Tell me about that call we discussed earlier" - False reference
+6. "Can you give me more details about the second project from the original list?" - Final valid reference
+
+### Validations
+- Step 1: tools_used (search_projects), response_contains_any, no_error
+- Step 2: no_error, response_contains_any (indicates invalid)
+- Step 3: follow_up_resolved, no_error
+- Step 4: no_error
+- Step 5: no_error
+- Step 6: follow_up_resolved, no_error
+- Final: context_integrity, no_crash
+
+### Test Results
+- 3 error recovery tests passed (80.28s total)
+  - test_error_scenario[invalid_reference] - PASSED
+  - test_graceful_invalid_reference - PASSED
+  - test_invalid_reference_scenario_task_016 - PASSED
+- Linting passed for test_conversation_scenarios.py
+- YAML syntax validated
+
+### Key Assertions in test_invalid_reference_scenario_task_016
+1. Step 1 (establish results):
+   - No error
+   - Response > 50 chars
+   - search_projects tool used
+2. Step 2 (invalid reference):
+   - No error (graceful handling)
+   - Has some response
+   - Optionally acknowledges invalid reference
+3. Step 3 (valid reference recovery):
+   - No error
+   - Response > 100 chars (substantial)
+   - Contains project-related content
+   - Turn count >= 3
+
+### Next Task
+Task 017: Ambiguous Query Scenario (PHASE 5: Error Recovery Testing)

@@ -217,13 +217,13 @@ TEST_API_URL=http://localhost:8000 pytest tests/test_conversation_scenarios.py -
 ### ==========================================================
 
 ### Task 016: Invalid Reference Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/error_recovery/invalid_reference.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/error_recovery/invalid_reference.yaml` with steps:
   1. "Show me 3 projects"
   2. "Tell me about the 100th one" (invalid)
   3. "What about the first one?" (valid)
   Validations: graceful error for invalid, recovery for valid.
 
-- [ ] RUN & FIX: Execute scenario. Ensure error handling doesn't break conversation.
+- [x] RUN & FIX: Execute scenario. Ensure error handling doesn't break conversation.
 
 ### Task 017: Ambiguous Query Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/error_recovery/ambiguous_query.yaml` with steps:

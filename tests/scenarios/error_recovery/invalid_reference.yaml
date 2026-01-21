@@ -1,5 +1,7 @@
 # Scenario: Invalid Reference Handling
 # Tests graceful handling of invalid follow-up references
+# Per PRD Task 016: Tests that invalid references are handled gracefully
+# and valid references still work after invalid ones
 
 name: "Invalid Reference"
 description: "User makes invalid references that should be handled gracefully"
@@ -7,41 +9,67 @@ tags: ["error", "reference", "recovery"]
 stop_on_error: false
 
 steps:
-  - message: "Show me 3 open calls for AI research"
+  # Step 1: Establish results (PRD: "Show me 3 projects")
+  - message: "Show me 3 projects about hydrogen research"
     validations:
       - type: "tools_used"
-        expected: ["search_funding_calls"]
+        expected: ["search_projects"]
+      - type: "response_contains_any"
+        name: "has_project_results"
+        patterns: ["project", "hydrogen", "research", "funded"]
       - type: "no_error"
     delay_ms: 0
 
-  - message: "Tell me about the 50th one"
+  # Step 2: Invalid reference (PRD: "Tell me about the 100th one")
+  - message: "Tell me about the 100th one"
     validations:
       - type: "no_error"
         name: "handles_invalid_gracefully"
         description: "Should handle invalid reference without crashing"
+      - type: "response_contains_any"
+        name: "indicates_invalid"
+        patterns: ["only", "3", "three", "doesn't exist", "not available", "cannot find", "no such", "invalid"]
+        description: "Should indicate the reference is invalid"
     delay_ms: 500
 
-  - message: "What about the purple call?"
+  # Step 3: Valid reference recovery (PRD: "What about the first one?")
+  - message: "What about the first one?"
+    validations:
+      - type: "follow_up_resolved"
+        name: "recovers_valid_reference"
+        description: "Valid reference should work after invalid one"
+      - type: "no_error"
+    delay_ms: 500
+
+  # Step 4: Additional invalid reference test - nonsense reference
+  - message: "Tell me about the purple project"
     validations:
       - type: "no_error"
         name: "handles_nonsense"
         description: "Should handle nonsense reference gracefully"
     delay_ms: 500
 
-  - message: "Tell me about that project we discussed earlier"
+  # Step 5: Additional invalid reference test - false reference
+  - message: "Tell me about that call we discussed earlier"
     validations:
       - type: "no_error"
         name: "handles_false_reference"
         description: "Should handle reference to non-existent discussion"
     delay_ms: 500
 
-  - message: "Actually, let's go back to the first call you mentioned"
+  # Step 6: Final valid reference to confirm conversation still works
+  - message: "Can you give me more details about the second project from the original list?"
     validations:
       - type: "follow_up_resolved"
-        name: "recovers_valid_reference"
+        name: "final_valid_reference"
+        description: "Conversation should still handle valid references after multiple invalid ones"
       - type: "no_error"
     delay_ms: 500
 
 final_validations:
   - type: "context_integrity"
+    name: "error_recovery_integrity"
     description: "Conversation should remain functional after errors"
+  - type: "no_crash"
+    name: "no_crash_on_errors"
+    description: "No crashes should occur during error handling"
