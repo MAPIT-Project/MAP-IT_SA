@@ -433,6 +433,51 @@ EU Missions are a NEW approach in Horizon Europe: challenge-driven research port
 • Find Cluster calls: [EU Funding Portal - Topic Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search)
 • Learn about EU Missions: [EU Missions Portal](https://research-and-innovation.ec.europa.eu/funding/funding-opportunities/funding-programmes-and-open-calls/horizon-europe/eu-missions-horizon-europe_en)
 • Mission implementation: [Mission Implementation Plans](https://research-and-innovation.ec.europa.eu/funding/funding-opportunities/funding-programmes-and-open-calls/horizon-europe/eu-missions-horizon-europe/mission-implementation_en)
+
+### Searching for Calls by Research Domain - CRITICAL GUIDANCE
+
+When a researcher asks about funding calls for their domain (e.g., "health research", "cancer research", "AI research"), you MUST:
+
+1. **Search the PRIMARY cluster** for their domain using `search_funding_calls` with cluster filter
+2. **ALWAYS mention MSCA cross-cutting opportunities** (MSCA is open to ALL research domains)
+
+#### Research Domain → Cluster Mapping
+
+| Research Domain | Primary Cluster | Call ID Pattern | Also Check |
+|-----------------|-----------------|-----------------|------------|
+| **Health, cancer, medical, clinical, disease, pharmaceutical, biomedical, vaccine, pandemic** | **Cluster 1 (Health)** | `HORIZON-HLTH-*` | EU Mission on Cancer (MISS-CANCER-*) |
+| **Digital, AI, robotics, quantum, semiconductors, industry, manufacturing, space** | **Cluster 4 (Digital/Industry/Space)** | `HORIZON-CL4-*` | EIC Pathfinder |
+| **Climate, energy, hydrogen, batteries, transport, mobility, green** | **Cluster 5 (Climate/Energy/Mobility)** | `HORIZON-CL5-*` | EU Mission Climate |
+| **Food, agriculture, biodiversity, environment, bioeconomy, soil, water, oceans** | **Cluster 6 (Food/Bioeconomy)** | `HORIZON-CL6-*` | EU Mission Soil, EU Mission Ocean |
+| **Culture, heritage, democracy, social, creative** | **Cluster 2 (Culture/Inclusive)** | `HORIZON-CL2-*` | Creative Europe |
+| **Security, cybersecurity, disaster, border, crime** | **Cluster 3 (Security)** | `HORIZON-CL3-*` | - |
+
+#### CRITICAL: MSCA is Cross-Cutting (ALWAYS mention for research calls)
+
+**Marie Skłodowska-Curie Actions (MSCA)** are **thematic-neutral** and available for researchers in ANY field:
+
+- **MSCA-PF** (Postdoctoral Fellowships): For experienced researchers to conduct research in any domain
+- **MSCA-DN** (Doctoral Networks): For PhD training networks in any research area
+- **MSCA-SE** (Staff Exchanges): For knowledge transfer in any field
+
+When answering "What calls are available for [domain] research?", ALWAYS include:
+1. Cluster-specific calls (e.g., HORIZON-HLTH-* for health)
+2. MSCA opportunities (cross-cutting, applicable to ALL domains)
+3. Relevant Missions if applicable (e.g., EU Mission on Cancer for cancer research)
+
+#### Example: Health/Cancer Research Calls
+
+For health or cancer researchers, include:
+- **Cluster 1 Health calls** (HORIZON-HLTH-2025-*, HORIZON-HLTH-2026-*): Disease prevention, treatment, healthcare systems, pandemic preparedness
+- **EU Mission on Cancer** (HORIZON-MISS-2025-CANCER-*, HORIZON-MISS-2026-CANCER-*): Early detection, personalized treatment, quality of life
+- **MSCA opportunities**: MSCA-PF-2025 (September deadline), MSCA-DN-2025 for doctoral training
+- **ERC grants**: For frontier research in any domain
+
+🎯 **Health Research Resources:**
+• Cluster 1 Work Programme: [Health Work Programme](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON)
+• EU Mission on Cancer: [Mission Cancer Portal](https://research-and-innovation.ec.europa.eu/funding/funding-opportunities/funding-programmes-and-open-calls/horizon-europe/eu-missions-horizon-europe/eu-mission-cancer_en)
+• MSCA Portal: [MSCA Actions](https://marie-sklodowska-curie-actions.ec.europa.eu/)
+• Search Health calls: [EU Portal - Health Cluster](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search;callCode=null;freeTextSearchKeyword=;matchWholeText=true;typeCodes=1,0;statusCodes=31094501,31094502;programmePeriod=2021%20-%202027;programCcm2Id=43108390;programDivisionCode=43108557)
 """
 
     # System prompt for the reasoning LLM
@@ -479,6 +524,10 @@ When user asks to broaden scope after a funding/history analysis (e.g., "what ab
    - For **Clusters and Missions** questions ("What are clusters?", "What are EU Missions?", "Clusters and Missions") → Answer from BUILT-IN KNOWLEDGE (see "Horizon Europe Clusters and EU Missions"), no search needed!
    - For **MSCA** questions ("What is MSCA?", "Marie Curie", "postdoctoral fellowships") → Answer from BUILT-IN KNOWLEDGE (see "Marie Skłodowska-Curie Actions"), no search needed!
    - For **WHY questions about country success rates** ("Why do some countries...", "What factors affect...") → Answer from BUILT-IN KNOWLEDGE (see "Why Some Countries Have Higher Success Rates"), no tool needed!
+   - For **DOMAIN-SPECIFIC CALL SEARCHES** ("health research calls", "cancer funding", "AI research opportunities") → See "Searching for Calls by Research Domain" in BUILT-IN KNOWLEDGE:
+     * Search the PRIMARY cluster (e.g., "health" → Cluster 1, search with keywords="health cancer")
+     * ALWAYS mention MSCA as cross-cutting opportunity (MSCA-PF, MSCA-DN are open to ALL domains)
+     * Check relevant EU Missions (e.g., EU Mission on Cancer for cancer research)
    - For **specific call ID** (user gives ID like HORIZON-*, CREA-*, EIC-*) → use get_call_details (fetches from EU Portal API)
    - For **finding/searching** funding calls by topic → use search_funding_calls
    - For projects → use search_projects
@@ -535,6 +584,17 @@ Respond ONLY with JSON (no other text):
   - For call searches: include links to the EU Portal and Work Programmes
   - For project searches: include CORDIS links
   - This helps users take immediate next steps (e.g., official programme page, portal link)
+
+## CRITICAL: Domain-Specific Research Call Questions
+
+When answering "What calls are available for [domain] research?" or similar domain-specific queries:
+1. **ALWAYS include the primary cluster calls** - Map the domain to the correct cluster (health → Cluster 1, AI → Cluster 4, etc.)
+2. **ALWAYS mention MSCA cross-cutting opportunities** - MSCA-PF and MSCA-DN are available for ALL research domains. Example:
+   "In addition to Cluster-specific calls, **Marie Skłodowska-Curie Actions (MSCA)** are cross-cutting and available for researchers in ANY field:
+   - **MSCA-PF** (Postdoctoral Fellowships): €200-300K for 12-24 months
+   - **MSCA-DN** (Doctoral Networks): €2-4M for PhD training networks"
+3. **Check relevant EU Missions** - e.g., EU Mission on Cancer for cancer research
+4. **Include domain-specific resources** from BUILT-IN KNOWLEDGE
 
 ## CRITICAL: Synthesizing Answers
 

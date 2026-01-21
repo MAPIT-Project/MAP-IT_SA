@@ -91,7 +91,7 @@ Run with: `./ralphy.sh --prd MAPIT_QUALITY_PRD.md`
 ### Prompt 007: Health Research Calls
 - [x] EVALUATE: Run prompt "I am working in health/cancer research. What are the upcoming calls relevant for me?" through MAPIT. Use `eval-orchestrator` subagent. Must include Cluster 1 calls AND cross-cutting MSCA opportunities (check via `eu-funding-domain`). Save result to `tests/quality/results/prompt_007_health_calls.json`.
 
-- [ ] FIX IF NEEDED: Read `tests/quality/results/prompt_007_health_calls.json`. If score < 85: check `mapit-tools` skill for `search_funding_calls` tool patterns, fix and re-evaluate until passing or 3 attempts.
+- [x] FIX IF NEEDED: Read `tests/quality/results/prompt_007_health_calls.json`. If score < 85: check `mapit-tools` skill for `search_funding_calls` tool patterns, fix and re-evaluate until passing or 3 attempts.
 
 ### Prompt 008: AI Research Calls
 - [ ] EVALUATE: Run prompt "I am working in AI and machine learning research. What are the upcoming calls relevant for me?" through MAPIT. Use `eval-orchestrator` subagent. Must include Cluster 4 Digital calls and potentially cross-cluster opportunities. Save result to `tests/quality/results/prompt_008_ai_calls.json`.
