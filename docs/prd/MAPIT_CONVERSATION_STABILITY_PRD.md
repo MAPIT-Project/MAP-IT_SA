@@ -93,9 +93,9 @@ TEST_API_URL=http://localhost:8000 pytest tests/test_conversation_scenarios.py -
 - [x] TEST: Create test that simulates DB failure mid-storage and verifies: (1) partial storage is rolled back, (2) error is properly reported (not silent), (3) client receives error event.
 
 ### Task 003: Fix Streaming Before Storage Issue
-- [ ] IMPLEMENT: In `process_message_v3_streaming()`, move the assistant message storage to happen BEFORE yielding response tokens. Current flow streams response then stores; change to store then stream.
+- [x] IMPLEMENT: In `process_message_v3_streaming()`, move the assistant message storage to happen BEFORE yielding response tokens. Current flow streams response then stores; change to store then stream.
 
-- [ ] TEST: Create test that verifies: (1) message is in DB before first token is sent, (2) follow-up query immediately after response can access the stored message.
+- [x] TEST: Create test that verifies: (1) message is in DB before first token is sent, (2) follow-up query immediately after response can access the stored message.
 
 ### Task 004: Fix Silent Redis Fallback
 - [ ] IMPLEMENT: Update `app/services/memory/memory_service.py` `FallbackRedis` class to log WARNING level messages on every operation and track fallback usage in metrics. Add `is_fallback_mode` property.

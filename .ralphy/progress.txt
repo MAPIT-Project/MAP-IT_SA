@@ -2661,3 +2661,42 @@ Integrated atomic message storage in `conversation_manager.py` to ensure convers
 ### PRD Task Status
 - [x] IMPLEMENT task complete
 - [x] TEST task complete
+
+
+## 2026-01-21: Task 003 - Fix Streaming Before Storage Issue (COMPLETE)
+
+### Task Completed
+Verified and tested that streaming storage happens BEFORE token streaming in `_stream_v3_response()`.
+
+### Analysis
+The current implementation in `conversation_manager.py` already implements the correct flow:
+1. Step 5 (lines 905-935): Store BOTH messages atomically to database
+2. Step 6 (lines 937-952): Stream the response tokens
+
+The storage happens BEFORE tokens are streamed. This was likely fixed as part of the atomic storage integration (Task 002).
+
+### Files Created
+- `tests/test_streaming_storage_order.py` - New test file with 7 tests:
+  - `TestStorageBeforeStreaming`:
+    - `test_storage_before_first_token_basic`: Verifies storage timestamp is before first token
+    - `test_message_accessible_immediately_after_storage`: Verifies follow-up can access stored messages
+  - `TestStreamingFlowOrder`:
+    - `test_simulated_streaming_flow_order`: Simulates full streaming flow, verifies storage_complete event index < first token index
+    - `test_concurrent_follow_up_can_access_stored_message`: Verifies follow-up immediately after storage works
+  - `TestStorageOrderWithErrors`:
+    - `test_storage_failure_still_streams_response`: Verifies response streams even if storage fails
+  - `TestStorageOrderVerification`:
+    - `test_storage_timestamp_before_token_timestamp`: Explicit timestamp ordering test
+    - `test_message_ids_available_before_streaming`: Verifies IDs available for metadata
+
+### Test Requirements Covered
+1. ✅ Message is in DB before first token is sent
+2. ✅ Follow-up query immediately after response can access the stored message
+
+### Test Results
+- All 7 streaming storage order tests pass
+- Linting passes (ruff check)
+
+### PRD Task Status
+- [x] IMPLEMENT task complete
+- [x] TEST task complete
