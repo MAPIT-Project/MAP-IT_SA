@@ -1,0 +1,39 @@
+{
+  "prompt_id": "014",
+  "query": "I am an SME interested in climate change. What are the opportunities for an organization like me?",
+  "response": "\n## SME Opportunities for Climate Change Innovation in Horizon Europe\n\nAs an SME interested in climate change, you have excellent funding opportunities in\nHorizon Europe, specifically designed for innovative companies like yours.\n\n### 1. EIC Accelerator (Best Option for Scale-ups)\n\nThe **European Innovation Council (EIC) Accelerator** is the flagship SME instrument:\n\n| Aspect | Details |\n|--------|---------|\n| **Target** | Single SMEs (including startups) |\n| **Funding** | Up to \u20ac2.5M grant (70%) + up to \u20ac15M equity investment |\n| **TRL** | 6-9 (close to market) |\n| **Focus** | Breakthrough innovation with scale-up potential |\n\n**Climate-relevant topics:**\n- Green Deal innovations\n- Clean energy technologies\n- Sustainable transport solutions\n- Climate tech startups\n\n**Application process:**\n1. Short application (online form)\n2. Full application (business plan)\n3. Interview with jury\n\n**2025 Deadlines:** Check EU Portal for cut-off dates\n\n### 2. EIC Pathfinder (Early-Stage Breakthrough)\n\nFor earlier-stage climate innovations:\n- **Funding:** Up to \u20ac3-4M (100% funding rate)\n- **TRL:** 1-4 (proof of concept to lab validation)\n- **Consortium:** Can apply as single SME or consortium (3+ partners)\n- **Focus:** High-risk, breakthrough science for climate solutions\n\n### 3. EIC Transition (Lab to Market)\n\nBridge between research and market:\n- **Funding:** \u20ac0.5-2.5M (100% funding rate)\n- **TRL:** 4-6 (technology validation to demonstration)\n- **Requirement:** Based on previous ERC or EIC Pathfinder results\n- **SME involvement:** Can lead or join consortium\n\n### 4. Innovation Actions (IA) in Cluster 5\n\nCollaborative projects with industry focus:\n- **Funding rate:** 70% (100% for non-profit)\n- **Budget:** \u20ac5-20M per project\n- **SME role:** Partner in consortium (3+ organizations from 3+ countries)\n- **Climate topics:** Clean hydrogen, smart grids, sustainable mobility\n\nCluster 5 (Climate, Energy & Mobility) IA calls particularly welcome SME participation.\n\n### 5. EIT Climate-KIC Programmes\n\nEuropean Institute of Innovation and Technology offers:\n- Accelerator programmes for climate startups\n- Access to investor networks\n- Business development support\n- Pilots with large corporates\n\n### 6. Cascade Funding / SME Support Actions\n\nSome projects offer small grants (\u20ac50K-\u20ac200K) to SMEs:\n- Innovation vouchers\n- Market access support\n- Technology testing\n\n### SME-Specific Advantages\n\n| Instrument | Funding Rate | Max Grant | SME Focus |\n|------------|-------------|-----------|-----------|\n| EIC Accelerator | 70% | \u20ac2.5M + \u20ac15M equity | \u2705 Single SME |\n| EIC Pathfinder | 100% | \u20ac3-4M | \u2705 SME can lead |\n| EIC Transition | 100% | \u20ac2.5M | \u2705 SME can lead |\n| IA (Cluster 5) | 70%* | \u20ac5-20M shared | \u2705 As partner |\n| RIA (Cluster 5) | 100% | \u20ac3-10M shared | \u2705 As partner |\n\n*100% for non-profit organizations\n\n### How to Get Started\n\n1. **Check your SME status** via EU SME definition (<250 employees, \u20ac50M turnover)\n2. **Review Work Programme 2025** for climate-relevant calls\n3. **Register on EU Funding Portal**: https://ec.europa.eu/info/funding-tenders/\n4. **EIC Work Programme**: https://eic.ec.europa.eu/eic-funding-opportunities\n5. **Find partners** if joining collaborative projects\n\n### Key Resources\n\n- \ud83c\udfaf [EIC Funding Portal](https://eic.ec.europa.eu/)\n- \ud83d\udccb [Cluster 5 Work Programme](https://ec.europa.eu/info/funding-tenders/)\n- \ud83d\udd0d [Partner Search Tool](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search)\n- \ud83d\udca1 [EIT Climate-KIC](https://www.climate-kic.org/)\n\n### Key Points for SMEs\n\n\u2705 **EIC Accelerator** is your best option for significant funding + equity support\n\u2705 **No consortium needed** for EIC Accelerator - apply as single company\n\u2705 **70% funding rate** in IAs, but 100% is available for non-profits\n\u2705 **Climate topics** are priority areas in EIC and Cluster 5\n\u2705 **Free coaching** available through EIC business acceleration services\n",
+  "overall_score": 100,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "sme_climate",
+      "description": "SME climate change funding opportunities",
+      "fulfillment": 40,
+      "specificity": 25,
+      "accuracy": 25,
+      "actionability": 10,
+      "total": 100,
+      "notes": "Fulfillment: All key components covered; Specificity: Good specificity with SME funding details; Accuracy: Accuracy check: 25/25 points; Actionability: Good actionability with clear SME guidance",
+      "missing_items": [],
+      "found_items": [
+        "SME opportunities explained",
+        "Climate context addressed",
+        "EIC programmes described",
+        "Innovation Actions mentioned"
+      ]
+    }
+  ],
+  "factual_errors": [],
+  "fix_suggestions": [],
+  "strengths": [
+    "Comprehensive coverage of SME opportunities",
+    "Rich in specific funding and eligibility details",
+    "Factually accurate on SME funding rules",
+    "Provides clear guidance for SMEs"
+  ],
+  "evaluation_timestamp": "2026-01-21T10:03:51.607703+00:00",
+  "response_metadata": {
+    "source": "sample_excellent"
+  },
+  "fix_history": []
+}

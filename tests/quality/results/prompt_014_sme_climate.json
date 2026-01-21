@@ -1,0 +1,83 @@
+{
+  "prompt_id": "014",
+  "query": "I am an SME interested in climate change. What are the opportunities for an organization like me?",
+  "response": "As an SME interested in climate change, you have excellent opportunities in Horizon Europe, especially within the dedicated instruments for market-creating innovation (EIC) and through collaborative projects in the Green Deal Clusters (Cluster 5 and Cluster 6) and EU Missions. SMEs are highly sought-after partners for their agility and proximity to the market. \n\n## 1. SME Funding Rules in Horizon Europe\n\nSMEs benefit from favorable funding rates designed to maximize participation in collaborative projects and single-beneficiary innovation:\n\n| Action Type | Focus | Funding Rate (For-Profit SME) |\n|---|---|---|\n| **RIA** (Research & Innovation Action) | TRL 2-5 (Research) | **100%** |\n| **IA** (Innovation Action) | TRL 5-8 (Demonstration) | **70%** (100% for non-profit entities) |\n| **EIC Accelerator** | TRL 5-9 (Market readiness) | Grant up to \u20ac2.5M (100%) + Equity up to \u20ac15M |\n\n## 2. Primary Funding Pathways for Climate Change\n\nClimate research is multidisciplinary, covering two main Clusters and several EU Missions:\n\n### Pathway A: European Innovation Council (EIC Accelerator)\n\nThe EIC Accelerator specifically supports single SMEs (or small groups of partners) to scale up high-impact, market-creating innovations. If your climate solution is disruptive, near market (TRL 5+), and has high growth potential, this is your primary target. It provides blended finance (Grant + Equity).\n\n*   **Target**: Deep-tech, market-ready innovations addressing global challenges, including climate and sustainability (Green Deal).\n*   **Calls**: The EIC Accelerator operates through open calls (no specific thematic restriction) and challenge calls (which often include Green Deal priorities).\n*   **Upcoming Call Example**: `HORIZON-EIC-2026-ACCELERATOROPEN-01220` (Upcoming 2026, targeting all areas, including green tech).\n\n### Pathway B: Collaborative Projects (Clusters & Missions)\n\nCollaborative projects require a consortium (minimum 3 entities from 3 countries) and focus on addressing specific policy challenges.\n\n#### Cluster 5: Climate, Energy and Mobility (HORIZON-CL5-*)\n\nThis cluster is crucial for technology development related to clean energy, transport, and industrial decarbonisation, where SMEs play a key role in implementation and demonstration (IA type projects).\n\n| # | Call ID | Title/Focus | Action Type | Deadline | \n|---|---|---|---|---|\n| 1 | **HORIZON-CL5-2026-02-D4-06** | Phase out fossil fuel in energy intensive industries through efficient integration of renewable energy sources (Focus on demonstration/piloting - IA) | IA | 17 February 2026 |\n| 2 | **HORIZON-CL5-2026-02-D4-03** | Innovative pathways for low carbon and climate resilient building stock and built environment (Built4People Partnership) | RIA/IA | 17 February 2026 |\n| 3 | **HORIZON-CL5-2025-03-D1-02** | Advancing Earth System Models to increase understanding of Earth system change (Research - RIA) | RIA | Open (2025 WP) |\n\n#### Cluster 6 & EU Missions: Environment and Resilience (HORIZON-CL6-*)\n\nIf your SME focuses on climate impacts on agriculture, biodiversity, soil, or water resources, Cluster 6 and the relevant EU Missions are highly relevant.\n\n| # | Call ID | Title/Focus | Action Type | Deadline | \n|---|---|---|---|---|\n| 4 | **HORIZON-MISS-2025-SOIL-01-02** | Living Labs for soil remediation and green redevelopment of brownfields (EU Mission Soil) | RIA | Open (2025 WP) |\n| 5 | **HORIZON-CL6-2025-02-FARM2FORK-19** | Developing agroecology living labs and lighthouses for climate action (Farm to Fork strategy) | RIA | Open (2025 WP) |\n\n### Pathway C: Marie Sk\u0142odowska-Curie Actions (MSCA)\n\nMSCA offers opportunities for staff mobility and knowledge transfer, regardless of research domain. \n\n*   **MSCA Staff Exchanges (MSCA-SE)**: Excellent for SMEs to exchange staff with universities or research centres (1-12 month secondments) for knowledge transfer in climate science or green technologies.\n\n## 3. Next Steps for Your SME\n\n1.  **Work Programme Review**: Thoroughly read the Work Programmes for Cluster 5 and Cluster 6 to identify specific topics that match your TRL (Technology Readiness Level) and specific climate technology.\n2.  **EIC Strategy**: If your solution is disruptive and near-market, explore the EIC Accelerator application process (short proposal submission is the first step).\n3.  **Consortium Building**: Use the Partner Search functionality to find experienced organizations (research institutes, other SMEs) that can complement your technology and address the call scope.\n\n\ud83c\udfaf **Getting Started with Horizon Europe:**\n\u2022 Register on [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)\n\u2022 Review the [Work Programmes](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON) for Cluster 5 and Cluster 6\n\u2022 Find partners using [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search)\n\u2022 Browse [Call Calendar](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/calls-calendar)",
+  "overall_score": 96,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "sme_climate",
+      "description": "SME climate change funding opportunities",
+      "fulfillment": 40,
+      "specificity": 21,
+      "accuracy": 25,
+      "actionability": 10,
+      "total": 96,
+      "notes": "Fulfillment: All key components covered; Specificity: Good specificity with SME funding details; Accuracy: Accuracy check: 25/25 points; Actionability: Good actionability with clear SME guidance",
+      "missing_items": [],
+      "found_items": [
+        "SME opportunities explained",
+        "Climate context addressed",
+        "EIC programmes described",
+        "Innovation Actions mentioned"
+      ]
+    }
+  ],
+  "factual_errors": [],
+  "fix_suggestions": [],
+  "strengths": [
+    "Comprehensive coverage of SME opportunities",
+    "Rich in specific funding and eligibility details",
+    "Factually accurate on SME funding rules",
+    "Provides clear guidance for SMEs"
+  ],
+  "evaluation_timestamp": "2026-01-21T10:03:41.601758+00:00",
+  "response_metadata": {
+    "intent_type": "agentic_v3",
+    "confidence": 0.8,
+    "tools_used": [
+      "search_funding_calls_1_0",
+      "search_funding_calls_1_1",
+      "search_funding_calls_1_2"
+    ],
+    "reasoning_steps": [
+      {
+        "step": 1,
+        "thought": "The user is an SME looking for funding opportunities related to climate change. Climate research is highly multidisciplinary, primarily covered by Cluster 5 (Climate, Energy, Mobility) and Cluster 6 (Food, Bioeconomy, Environment), as well as the EU Missions. I must also highlight the dedicated SME instrument, the EIC Accelerator, and the favorable funding rates for SMEs in Innovation Actions (IA). I will search for open/upcoming calls in the relevant clusters and the EIC to provide specific leads.\n\nSearch Plan:\n1. Search Cluster 5 for 'climate' calls.\n2. Search Cluster 6 for 'climate'/'environment' calls.\n3. Search EIC Accelerator calls.",
+        "action": "call_tools",
+        "tools_called": [
+          "search_funding_calls",
+          "search_funding_calls",
+          "search_funding_calls"
+        ],
+        "observation": "Found 14 funding call(s)\nFound 4 funding call(s)\nFound 15 funding call(s)"
+      },
+      {
+        "step": 2,
+        "thought": "The user is an SME looking for climate change opportunities. I have executed searches in the relevant multidisciplinary clusters (CL5, CL6) and the dedicated SME instrument (EIC Accelerator). I need to synthesize the results, focusing on SME eligibility rules (funding rates, EIC) and presenting the most relevant calls found.",
+        "action": "conclude",
+        "tools_called": [],
+        "observation": ""
+      }
+    ],
+    "iterations": 2,
+    "processing_time_ms": 9431.695,
+    "architecture": "simplified_v3",
+    "quality_analysis": {
+      "score": 100,
+      "category": "complete",
+      "confidence": 0.85,
+      "query_type": "general",
+      "missing_elements": [],
+      "deflection_phrases_found": [],
+      "recommendations": [],
+      "elements_found": [
+        "answer",
+        "context"
+      ],
+      "response_length": 5145,
+      "timestamp": "2026-01-21T10:03:41.594298+00:00"
+    }
+  },
+  "fix_history": []
+}

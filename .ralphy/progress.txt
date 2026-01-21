@@ -983,3 +983,43 @@ The fixed API now returns a comprehensive ~4900 character response covering:
 - [x] EVALUATE task complete
 - [x] FIX IF NEEDED task complete (1 attempt, score 33 → 99, PASS)
 
+
+## 2026-01-21: Prompt 014 - SME Climate Change Opportunities (EVALUATE + FIX IF NEEDED)
+
+### Task Completed
+Created quality evaluation test for Prompt 014: "I am an SME interested in climate change. What are the opportunities for an organization like me?"
+
+### Files Created/Modified
+- `tests/quality/test_prompt_014_sme_climate.py` - New test file with:
+  - Four-dimension evaluation framework (Query Fulfillment 40pts, Specificity 25pts, Factual Accuracy 25pts, Actionability 10pts)
+  - Checks for SME opportunities (EIC Accelerator, IA, RIA)
+  - Checks for climate context (Cluster 5, Cluster 6, EU Missions)
+  - Checks for EIC programmes (Accelerator, Pathfinder, Transition)
+  - Sample responses for offline testing (excellent, partial, poor)
+  - Live API tests
+  - Result saved to `tests/quality/results/prompt_014_sme_climate.json`
+
+### Live API Evaluation Results
+- **Overall Score**: 93/100 (PASS) ✅
+- **Query Fulfillment**: 40/40 - All key components covered (EIC, IA, climate clusters)
+- **Specificity**: 23/25 - Good specificity with funding details and call information
+- **Factual Accuracy**: 20/25 - Minor false positive on IA funding rate detection
+- **Actionability**: 10/10 - Clear guidance with links to official resources
+
+### API Response Quality
+The live API returns a comprehensive ~5700 character response covering:
+- **EIC Accelerator**: Flagship SME instrument (€2.5M grant + €15M equity, 70% funding, TRL 5-9)
+- **EIC Pathfinder**: For breakthrough innovation (€3-4M, 100% funding, TRL 1-4)
+- **EIC Transition**: Lab to market (€0.5-2.5M, 100% funding, TRL 4-6)
+- **Collaborative RIA/IA**: Cluster 5 (Climate) and Cluster 6 (Environment) calls with funding rates
+- **EU Missions**: Climate Adaptation, Ocean, Soil (relevant for SME participation)
+- **Actionable links**: EU Funding Portal, Work Programmes, Partner Search, EU Missions Portal
+
+### Test Results
+- 10 tests passed (6 offline + 4 live API tests)
+- All linting passed
+
+### PRD Task Status
+- [x] EVALUATE task complete (score 93/100, PASS)
+- [x] FIX IF NEEDED task not needed (score >= 85)
+
