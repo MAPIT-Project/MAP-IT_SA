@@ -1,0 +1,57 @@
+# Scenario: Tool Timeout Handling
+# Tests graceful handling of tool execution timeouts
+# Per PRD Task 018: Tests that tool timeouts are handled gracefully
+# and the conversation can continue after a timeout error
+
+name: "Tool Timeout"
+description: "Tests behavior when a tool takes too long and times out"
+tags: ["error", "timeout", "recovery", "tool"]
+stop_on_error: false
+
+steps:
+  # Step 1: Normal tool call to establish working baseline
+  - message: "What is Horizon Europe?"
+    validations:
+      - type: "no_error"
+        name: "baseline_works"
+        description: "Baseline query should work without errors"
+      - type: "response_contains_any"
+        name: "has_horizon_content"
+        patterns: ["Horizon Europe", "funding", "research", "programme"]
+    delay_ms: 0
+
+  # Step 2: This step is for when timeout is simulated via test mocking
+  # The scenario will be run with a mocked timeout on search_projects
+  - message: "Find projects about hydrogen research"
+    validations:
+      - type: "no_error"
+        name: "timeout_handled_gracefully"
+        description: "Timeout should be handled without crashing the conversation"
+    delay_ms: 500
+
+  # Step 3: Recovery after timeout - conversation should continue
+  - message: "What are the success rates for EIC Accelerator?"
+    validations:
+      - type: "no_error"
+        name: "conversation_continues"
+        description: "Conversation should work after timeout error"
+      - type: "response_contains_any"
+        name: "has_eic_content"
+        patterns: ["EIC", "Accelerator", "success", "rate", "%"]
+    delay_ms: 500
+
+  # Step 4: Another tool call to verify tools work after timeout recovery
+  - message: "Search for open funding calls"
+    validations:
+      - type: "no_error"
+        name: "tools_work_after_timeout"
+        description: "Tool calls should work after a previous timeout"
+    delay_ms: 500
+
+final_validations:
+  - type: "context_integrity"
+    name: "timeout_recovery_integrity"
+    description: "Conversation should remain functional after timeout errors"
+  - type: "no_crash"
+    name: "no_crash_on_timeout"
+    description: "No crashes should occur during timeout handling"

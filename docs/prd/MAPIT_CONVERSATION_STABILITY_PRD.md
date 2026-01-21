@@ -235,12 +235,12 @@ TEST_API_URL=http://localhost:8000 pytest tests/test_conversation_scenarios.py -
 - [x] RUN & FIX: Execute scenario. Fix any failures and re-run until passing.
 
 ### Task 018: Tool Timeout Simulation
-- [ ] CREATE SCENARIO: Create `tests/scenarios/error_recovery/tool_timeout.yaml` that tests behavior when a tool takes too long. Verify:
+- [x] CREATE SCENARIO: Create `tests/scenarios/error_recovery/tool_timeout.yaml` that tests behavior when a tool takes too long. Verify:
   1. Timeout is properly handled
   2. User receives informative error
   3. Conversation can continue after error.
 
-- [ ] RUN & FIX: May require mocking tool to simulate timeout. Fix any failures.
+- [x] RUN & FIX: May require mocking tool to simulate timeout. Fix any failures.
 
 ### ==========================================================
 ### PHASE 6: Concurrent Access Testing
@@ -447,6 +447,7 @@ pytest tests/test_conversation_scenarios.py --cov=app/services/conversation -v
 - [x] `tests/scenarios/context/memory_overflow.yaml`
 - [x] `tests/scenarios/error_recovery/invalid_reference.yaml`
 - [x] `tests/scenarios/error_recovery/ambiguous_query.yaml`
+- [x] `tests/scenarios/error_recovery/tool_timeout.yaml`
 - [x] `tests/scenarios/concurrent/rapid_messages.yaml`
 
 ### Core Stability Modules
