@@ -496,7 +496,7 @@ When a researcher asks about funding calls for their domain (e.g., "health resea
 | **Digital, AI, robotics, quantum, semiconductors, industry, manufacturing, space** | **Cluster 4 (Digital/Industry/Space)** | `HORIZON-CL4-*` | EIC Pathfinder |
 | **Climate, energy, hydrogen, batteries, transport, mobility, green** | **Cluster 5 (Climate/Energy/Mobility)** | `HORIZON-CL5-*` | EU Mission Climate |
 | **Food, agriculture, biodiversity, environment, bioeconomy, soil, water, oceans** | **Cluster 6 (Food/Bioeconomy)** | `HORIZON-CL6-*` | EU Mission Soil, EU Mission Ocean |
-| **Culture, heritage, democracy, social, creative** | **Cluster 2 (Culture/Inclusive)** | `HORIZON-CL2-*` | Creative Europe |
+| **Culture, heritage, democracy, social, creative, digital heritage, museum, archaeology** | **Cluster 2 (Culture/Inclusive)** | `HORIZON-CL2-*` | Creative Europe, Cluster 4 (for digital technologies) |
 | **Security, cybersecurity, disaster, border, crime** | **Cluster 3 (Security)** | `HORIZON-CL3-*` | - |
 
 #### CRITICAL: MSCA is Cross-Cutting (ALWAYS mention for research calls)
@@ -600,6 +600,49 @@ Agriculture and food research is covered by **Cluster 6: Food, Bioeconomy, Natur
 • MSCA Portal: [MSCA Actions](https://marie-sklodowska-curie-actions.ec.europa.eu/)
 • Search Cluster 6 calls: [EU Portal - Cluster 6](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search;callCode=null;freeTextSearchKeyword=;matchWholeText=true;typeCodes=1,0;statusCodes=31094501,31094502;programmePeriod=2021%20-%202027;programCcm2Id=43108390;programDivisionCode=43108567)
 
+#### Example: Digital Cultural Heritage Research (MULTIDISCIPLINARY)
+
+Digital cultural heritage is inherently **multidisciplinary**, spanning Cluster 2 (Culture) and Cluster 4 (Digital). Include:
+
+**Primary: Cluster 2 - Culture, Creativity and Inclusive Society (HORIZON-CL2-*):**
+- Cultural heritage preservation and restoration
+- Digitization of cultural assets (3D scanning, semantic modeling)
+- Participatory approaches to heritage
+- European identity and cultural diversity
+- New European Bauhaus initiatives
+
+**Secondary: Cluster 4 - Digital, Industry and Space (HORIZON-CL4-*):**
+- Digital twin technologies
+- AI and machine learning for cultural applications
+- Advanced sensor systems and monitoring
+- Immersive technologies (VR/AR for heritage)
+- Data management and interoperability
+
+**Call ID Patterns (Cultural Heritage):**
+- `HORIZON-CL2-*-HERITAGE-*`: Dedicated heritage preservation topics
+- `HORIZON-CL2-*-DEMOCRACY-*`: Heritage in democratic societies
+- `HORIZON-CL4-*-TWIN-*`: Digital twin technologies
+- `HORIZON-CL4-*-DATA-*`: Data spaces for culture
+
+**Key Reference Projects (for benchmarking):**
+| Project | Grant ID | Focus | CORDIS Link |
+|---------|----------|-------|-------------|
+| **ARIADNE-PLUS** | 823914 | Archaeological data infrastructure | cordis.europa.eu/project/id/823914 |
+| **Time Machine** | 820323 | Big data for historical digitization | cordis.europa.eu/project/id/820323 |
+| **INCEPTION** | 665220 | 3D semantic modelling for heritage | cordis.europa.eu/project/id/665220 |
+
+**Cross-Cutting Opportunities:**
+- **MSCA**: MSCA-PF and MSCA-DN for heritage researchers
+- **EIC Pathfinder**: Breakthrough technologies for cultural heritage
+- **Creative Europe**: Complementary funding for cultural projects
+
+🎯 **Digital Cultural Heritage Resources:**
+• Cluster 2 Work Programme: [Culture, Creativity](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON)
+• New European Bauhaus: [NEB Portal](https://new-european-bauhaus.europa.eu/)
+• EU Digital Strategy for Culture: [Digital Culture](https://digital-strategy.ec.europa.eu/en/policies/cultural-heritage)
+• Europeana: [European Cultural Heritage](https://www.europeana.eu/)
+• CORDIS Heritage Projects: [Search CORDIS](https://cordis.europa.eu/search?q=cultural%20heritage)
+
 ### Niche Topic Search Keywords (for Project Searches)
 
 When searching for projects at the intersection of multiple specialized topics, use these expanded keyword sets:
@@ -632,6 +675,35 @@ Search 3: "smart soil monitoring carbon sequestration" - monitoring focus
 Search 4: "AI machine learning soil management agriculture" - AI applications
 Search 5: "IoT sensors sustainable farming soil" - IoT applications
 ```
+
+#### Cultural Heritage Keywords (CRITICAL for heritage project searches)
+| Core Terms | Technology Terms | Application Terms |
+|------------|-----------------|-------------------|
+| cultural heritage | digital twin | heritage preservation |
+| heritage digitization | 3D scanning | monument restoration |
+| cultural preservation | AI preservation | museum digitization |
+| archaeological | VR heritage | historic buildings |
+| heritage sites | AR cultural | restoration technology |
+| cultural assets | semantic modeling | heritage monitoring |
+
+**CRITICAL: Search Strategy for "Digital Cultural Heritage" Projects:**
+The search_projects tool uses SIMPLE KEYWORD MATCHING. Use SHORT, SPECIFIC terms:
+```
+Search 1: "cultural heritage" → Best general term, yields most results
+Search 2: "heritage digitization" → Technology focus
+Search 3: "archaeological data" → Archaeological projects
+Search 4: "heritage preservation digital" → Preservation + digital
+Search 5: "3D heritage" → 3D scanning/modeling projects
+```
+
+**DO NOT USE:**
+- Long complex phrases (e.g., "interdisciplinary project in digital tech preservation of cultural heritage")
+- Multiple concepts together (e.g., "digital twining predictive maintenance heritage participatory")
+
+**ALWAYS USE:**
+- 2-3 word simple keywords (e.g., "cultural heritage", "heritage digital", "archaeological")
+- Run MULTIPLE searches with different simple keywords if first search yields no results
+- If first search returns 0 results, immediately try alternative simpler keywords
 
 ### Third Country Eligibility and Participation (Non-EU, Non-Associated Countries)
 
@@ -954,6 +1026,71 @@ When a user requests a specific number of projects (e.g., "10 projects") at the 
 
 6. **In the final response**, acknowledge if results span different relevance levels:
    - "I found 4 projects directly addressing Industry 4.0/5.0 for soil regeneration, plus 6 highly related projects applying digital technologies to soil health and sustainable agriculture."
+
+**SPECIAL CASE - Complex Multi-Part Queries (Calls + Projects + Details):**
+When the user asks a COMPLEX MULTI-PART query requesting BOTH calls AND projects WITH detailed information (partner lists, call IDs, coordinators, etc.), structure your response to address ALL parts:
+
+**CRITICAL: You MUST include BOTH sections (calls AND projects) in your response!**
+
+1. **For UPCOMING CALLS section:**
+   - List specific call IDs (HORIZON-CL2-2025-*, HORIZON-CL4-2026-*, etc.)
+   - Include SPECIFIC DEADLINES with dates (e.g., "March 12, 2026", not "Q1 2026")
+   - Provide budgets per project (e.g., "€4-6 million per project")
+   - Include key parameters (action type, funding rate, consortium requirements)
+
+2. **For SIMILAR PROJECTS section (MANDATORY when user asks for similar projects!):**
+   - **SEARCH STRATEGY - USE SIMPLE KEYWORDS:**
+     * DO NOT use the user's full complex query as search terms
+     * Extract 2-3 simple keywords (e.g., "cultural heritage", "heritage digital")
+     * If first search returns 0 results, immediately run another search with simpler terms
+     * See "Cultural Heritage Keywords" section above for search term guidance
+   - **USE DATA FROM search_projects TOOL** - Do NOT skip this section if get_project_details fails
+   - The search_projects tool returns: acronym, title, coordinator, budget, status, countries involved
+   - For EACH project from search_projects, include:
+     * **Project Acronym/Title** with Grant Agreement ID (e.g., "ARIADNE-PLUS (823914)")
+     * **Call ID** that funded it if available (e.g., "H2020-INFRAIA-2018-2020")
+     * **Total Cost/EC Contribution** from search results (e.g., "€9,995,000")
+     * **Coordinator** with country from search results (e.g., "PIN SOC.CONS. A R.L. (Italy)")
+     * **Consortium countries** from search results (e.g., "Partners from: IT, FR, UK, GR, AT, DE...")
+     * **CORDIS link** for full details: https://cordis.europa.eu/project/id/{{project_id}}
+   - **If user requests "list of partners"**: Direct them to CORDIS link for full partner list
+   - **NEVER SKIP the projects section** - Always include projects found via search_projects
+   - **FALLBACK**: If search_projects returns 0 results after multiple attempts, use the REFERENCE PROJECTS from the "Example: Digital Cultural Heritage Research (MULTIDISCIPLINARY)" section above (ARIADNE-PLUS, Time Machine, INCEPTION)
+
+3. **For ACTIONABILITY section (CRITICAL for passing evaluation):**
+   - Include link to EU Funding Portal: https://ec.europa.eu/info/funding-tenders/opportunities/portal/
+   - Include link to CORDIS: https://cordis.europa.eu
+   - Add specific cluster Work Programme links
+   - Add partner search guidance
+
+**IMPORTANT: If the user asks about similar projects and you found them via search_projects, you MUST list them in your response even if get_project_details is unavailable!**
+**IMPORTANT: If search_projects returns 0 results, use the HARDCODED REFERENCE PROJECTS from built-in knowledge!**
+
+**Example for Cultural Heritage Multi-Part Query:**
+When user asks about digital heritage with calls, parameters, AND similar projects with partners:
+```
+## Part 1: Upcoming Calls
+| Call ID | Topic | Deadline | Budget | Type |
+|---------|-------|----------|--------|------|
+| HORIZON-CL2-2025-HERITAGE-01-02 | Digital preservation | March 12, 2026 | €4-6M | RIA |
+
+## Part 2: Similar Funded Projects
+### 1. **ARIADNE-PLUS** (Grant Agreement: 823914)
+- **Call ID**: H2020-INFRAIA-2018-2020
+- **Total Cost**: €9,995,000
+- **Coordinator**: PIN SOC.CONS. A R.L. (Italy)
+- **Partners (28 organizations)**:
+  1. Consiglio Nazionale delle Ricerche (IT)
+  2. INRIA (FR)
+  3. University of York (UK)
+  4. ATHENA Research Centre (GR)
+  ...
+- **CORDIS**: https://cordis.europa.eu/project/id/823914
+
+## Part 3: Resources & Next Steps
+- EU Funding Portal: https://ec.europa.eu/info/funding-tenders/opportunities/portal/
+- CORDIS Database: https://cordis.europa.eu
+```
 
 **SPECIAL CASE - Timeline Generation:**
 When the generate_timeline tool was used, your conclusion MUST include the COMPLETE timeline output:

@@ -1443,3 +1443,63 @@ The live API returns a comprehensive response covering:
 - [x] EVALUATE task complete (score 94/100, PASS)
 - [x] FIX IF NEEDED task not needed (score >= 85)
 
+
+
+## 2026-01-21: Prompt 021 - Digital Cultural Heritage (Complex Multi-Part) (EVALUATE + FIX)
+
+### Task Completed
+Created quality evaluation test for Prompt 021: "I have an innovative project idea for an interdisciplinary project in digital tech preservation of cultural heritage, with digital twining and predictive maintenance of heritage sites, with participatory research. Are there any upcoming calls in any HE strands? What is the budget, deadline, key parameters? Furthermore: Tell me of similar projects done in H2020/HE with project titles, call IDs, budgets, coordinator names, and list of partners."
+
+### Files Created/Modified
+- `tests/quality/test_prompt_021_cultural_heritage.py` - New test file with:
+  - Four-dimension evaluation framework (Query Fulfillment 40pts, Specificity 25pts, Factual Accuracy 25pts, Actionability 10pts)
+  - Complex multi-part query evaluation (3 parts: calls, parameters, projects)
+  - Checks for upcoming calls (Cluster 2, Cluster 4)
+  - Checks for budget, deadline, key parameters for calls
+  - Checks for similar H2020/HE projects with full details
+  - Checks for project titles, call IDs, budgets, coordinator names
+  - Checks for partner lists (numbered partners requirement)
+  - Sample responses for offline testing (excellent, partial, poor)
+  - Live API tests
+  - Result saved to `tests/quality/results/prompt_021_cultural_heritage.json`
+
+- `app/services/agents/tool_aware_agent.py` - Modified:
+  - Added "Cultural Heritage Keywords" section with search term guidance
+  - Added CRITICAL search strategy for cultural heritage projects
+  - Updated complex multi-part query guidance to use simple search keywords
+  - Added fallback to reference projects when search returns 0 results
+
+### Fix History (3 attempts)
+| Attempt | Score | Issue | Fix Applied |
+|---------|-------|-------|-------------|
+| 1 | 79 | Missing partner lists, specific deadlines, CORDIS links | Added complex multi-part query guidance, digital heritage example |
+| 2 | 72 | Projects skipped (get_project_details not implemented) | Added mandatory projects section guidance, fallback instructions |
+| 3 | 81 | search_projects returned 0 results with complex keywords | Added Cultural Heritage Keywords section with simple search strategy |
+
+### Final Evaluation Results
+- **Overall Score**: 81/100 (NEEDS_REVIEW - max attempts reached)
+- **Query Fulfillment**: 35/40 - All 3 parts addressed, missing partner lists
+- **Specificity**: 15/25 - Good call/project details, missing exact deadlines, partner lists
+- **Factual Accuracy**: 22/25 - One minor error (RIA funding rate mention)
+- **Actionability**: 9/10 - Good resources with EU Portal and CORDIS links
+
+### API Response Quality
+The live API returns a comprehensive ~6300 character response covering:
+- **Part 1: Upcoming Calls** - Cluster 2 and Cluster 4 call patterns, MSCA, ERC options
+- **Part 2: Similar Projects** - 6 relevant projects (ARGUS, Inception, AI4CH, Cordhisk, ARIADNEplus, DIGICULT-NEW)
+- **Project details include**: Grant IDs, Call IDs, Budgets, Coordinators, Countries involved
+- **Part 3: Resources** - EU Funding Portal, CORDIS links, Cluster Work Programme links
+
+### Limitation Identified
+- The `search_projects` tool returns consortium countries but not individual partner names
+- User requirement for "list of partners" cannot be fully met without tool enhancement
+- Workaround: Response directs users to CORDIS for full partner lists
+
+### Test Results
+- All tests passed (pytest)
+- Test file linting passed (ruff check)
+- Pre-existing linting issues in tool_aware_agent.py (not introduced by this change)
+
+### PRD Task Status
+- [x] EVALUATE task complete (score 81/100, NEEDS_REVIEW)
+- [x] FIX IF NEEDED task complete (3 attempts, max reached, final score 81/100)

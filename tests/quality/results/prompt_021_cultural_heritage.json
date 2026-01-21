@@ -1,0 +1,117 @@
+{
+  "prompt_id": "021",
+  "query": "I have an innovative project idea for an interdisciplinary project in digital tech preservation of cultural heritage, with digital twining and predictive maintenance of heritage sites, with participatory research. Are there any upcoming calls in any HE strands? What is the budget, deadline, key parameters? Furthermore: Tell me of similar projects done in H2020/HE with project titles, call IDs, budgets, coordinator names, and list of partners.",
+  "response": "Your project idea, combining digital twinning, predictive maintenance, and participatory research for cultural heritage, sits at the critical intersection of **Cluster 2 (Culture, Creativity & Inclusive Society)** and **Cluster 4 (Digital, Industry & Space)**. This interdisciplinary focus significantly increases your funding opportunities. \n\nHere is an overview of upcoming funding possibilities and examples of similar funded projects to benchmark against.\n\n***\n\n## Part 1: Upcoming Horizon Europe Funding Opportunities\n\nDirect opportunities typically fall under Cluster 2's 'Cultural Heritage' destination, often involving technologies from Cluster 4. The following general call openings and expected topics are relevant for 2025/2026.\n\n### 1. Primary Cluster Calls (Cluster 2 and Cluster 4)\n\n| Cluster/Call ID Pattern | Focus Area | Action Type | Typical Budget (RIA) | Indicative Deadline | Key Parameters (RIA) |\n|---|---|---|---|---|---|\n| **Cluster 2 (HORIZON-CL2-2025/2026-HERITAGE-*)** | Digital Heritage, tangible/intangible preservation, participatory governance, European identity, cultural transformation. Your project aligns well here. | RIA/CSA | \u20ac3 - 8 million | Q1 2026 (Expected) | **Consortium**: Min 3 from 3 EU/AC countries. **Funding Rate**: 100%. | \n| **Cluster 4 (HORIZON-CL4-2025/2026-DIGITAL-*)** | Digital Twin technologies, AI for industrial and societal data spaces, advanced computing, immersive technologies (AR/VR). | RIA/IA | \u20ac4 - 10 million | Q4 2025/Q1 2026 (Expected) | **Consortium**: Min 3 from 3 EU/AC countries. **Funding Rate**: 100% (RIA) / 70% (IA). |\n\n**Note on Specific Topics**: Specific topic calls for the 2025/2026 Work Programmes (e.g., dedicated topics on Digital Twins for Cultural Heritage) have not fully opened or been detailed on the portal yet. Please monitor the **HORIZON-CL2-2026-HERITAGE-01** and **HORIZON-CL4-2026-DIGITAL-01** call openings for the latest topic descriptions.\n\n### 2. Cross-Cutting Funding Options\n\nYour project is also highly competitive for thematic-neutral funding schemes:\n\n*   **Marie Sk\u0142odowska-Curie Actions (MSCA-PF)**: Ideal if your project requires bringing in a postdoctoral researcher (of any nationality) to an EU/AC host institution for 1-2 years. MSCA-PF provides approximately \u20ac200k-\u20ac300k per fellow. (*Deadline typically September each year*).\n*   **European Research Council (ERC) Grants**: If you, as the Principal Investigator (PI), have an excellent, high-risk/high-gain research track record and the project is purely frontier research (TRL 1-2). Grants range from **\u20ac1.5M (Starting)** to **\u20ac2.5M (Advanced)** over five years.\n\n***\n\n## Part 2: Similar Funded Projects (Benchmarking)\n\nTo guide your proposal writing, the following projects from Horizon Europe (HE) and Horizon 2020 (H2020) demonstrate successful funding in digital cultural heritage, digital twinning, and participatory research. They are excellent examples for identifying potential partners and methodologies.\n\n### Core Projects (Digital Twin & Monitoring)\n\n| # | Project Title (Acronym) / ID | Call ID | Coordinator (Country) | EC Contribution | Countries Involved |\n|---|---|---|---|---|---|\n| 1 | **Non-destructive, scalable, smart monitoring of remote cultural treasures (ARGUS)** (101132308) | **HORIZON-CL2-2023-HERITAGE-01-01** | ATHINA-EREVNITIKO KENTRO KAINOTOMIAS (EL) | **\u20ac3.99 Million** | EL, DE, IT, ES, CY, CH |\n| 2 | **Inception** (665220) | H2020-SC6-2015-1 | PIN SOC.CONS. A R.L. (IT) | **\u20ac3.96 Million** | IT, ES, PT, PL, UK, SI, GR, BE, DE, FR |\n| 3 | **AI4CH** (101004590) | HORIZON-CL2-2021-HERITAGE-01-02 | EURECOM (FR) | **\u20ac7.52 Million** | FR, CY, EL, IT, ES, NL, NO |\n\n### Related Projects (Community & Digitisation Focus)\n\n| # | Project Title (Acronym) / ID | Call ID | Coordinator (Country) | EC Contribution | Countries Involved |\n|---|---|---|---|---|---|\n| 4 | **Community-driven Digitisation for Heritage at Risk (Cordhisk)** (101149833) | HORIZON-MSCA-2023-PF-01-01 (MSCA) | TECHNISCHE UNIVERSITEIT DELFT (NL) | **\u20ac0.19 Million** | NL, UK |\n| 5 | **ARIADNEplus** (823914) | H2020-INFRAIA-2018-2020 | PIN SOC.CONS. A R.L. (IT) | **\u20ac9.99 Million** | IT, UK, GR, FR, DE, AT, PL, ES, CY, PT... (28 Partners) |\n| 6 | **DIGICULT-NEW** (101069502) | HORIZON-CL2-2021-HERITAGE-02-01 | CENTRE FOR SOCIAL INNOVATION (CY) | **\u20ac3.00 Million** | CY, FR, IT, EL, SE, HU, ES |\n\n### Key Details on ARGUS (101132308)\n\n**Objective**: ARGUS directly addresses the challenges of monitoring remote built heritage assets through preventive preservation. It develops a **novel built heritage digital twin model** to support multi-scale/modal data, integrating portable measurements systems for non-destructive physical and chemical monitoring based on miniaturized sensors. This directly aligns with your project's focus on Digital Twinning and Predictive Maintenance.\n\n**Partners**: The consortium includes 13 partners from 6 countries, including academic and industrial entities (e.g., SMEs specializing in sensors and software) essential for the technology demonstration aspect.\n\n***\n\n## Resources and Next Steps\n\nTo move forward with your proposal, focus on refining the **Implementation** section using the consortium patterns from these successful projects (e.g., the need for IT/Sensor SMEs, HES for research, and public bodies/museums for participatory elements).\n\n\ud83c\udfaf **Getting Started with Horizon Europe:**\n\u2022 Register on [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)\n\u2022 Review the specific [Cluster 2 Work Programmes](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON) (for Heritage topics) and [Cluster 4 Work Programmes](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON) (for Digital Twin technologies)\n\u2022 Search the [Call Calendar](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/calls-calendar) for specific 2026 topics using keywords like 'heritage digital twin' and 'predictive maintenance'.\n\u2022 Find full project details and partner lists on the [CORDIS database](https://cordis.europa.eu/project/id/101132308) using the Grant Agreement IDs provided.",
+  "overall_score": 81,
+  "result": "NEEDS_REVIEW",
+  "component_scores": [
+    {
+      "component_id": "digital_cultural_heritage_multipart",
+      "description": "Complex multi-part query: (1) upcoming calls for digital heritage, (2) budgets/deadlines/parameters, (3) similar H2020/HE projects with titles, call IDs, budgets, coordinators, and partner lists",
+      "fulfillment": 35,
+      "specificity": 15,
+      "accuracy": 22,
+      "actionability": 9,
+      "total": 81,
+      "notes": "Fulfillment: Missing: Need partner lists for similar projects; Specificity: No specific deadline dates; No partner lists; Accuracy: Accuracy check: 22/25 points; 1 issue(s) found; Actionability: Good actionability with resources",
+      "missing_items": [
+        "Need partner lists for similar projects"
+      ],
+      "found_items": [
+        "9 upcoming calls identified with heritage focus",
+        "Budget information provided",
+        "Deadline information provided",
+        "Key parameters explained",
+        "6 projects with some details"
+      ]
+    }
+  ],
+  "factual_errors": [
+    {
+      "claim": "RIA with 70% funding rate",
+      "correct_value": "RIA has 100% funding rate; IA has 70% (100% for non-profit)",
+      "source": "Funding rate validation"
+    }
+  ],
+  "fix_suggestions": [
+    "Add more specificity: Include specific call IDs (HORIZON-CL2-2025-*), exact deadline dates, budget figures per project, grant agreement numbers, and NUMBERED PARTNER LISTS for each similar project"
+  ],
+  "strengths": [
+    "Addresses all 3 query components (calls, params, projects)",
+    "Factually accurate call and project information",
+    "Provides useful resources and guidance"
+  ],
+  "evaluation_timestamp": "2026-01-21T11:25:12.715158+00:00",
+  "response_metadata": {
+    "intent_type": "agentic_v3",
+    "confidence": 0.8,
+    "tools_used": [
+      "search_projects_1_0",
+      "search_funding_calls_1_1",
+      "search_projects_2_0",
+      "search_funding_calls_2_1",
+      "search_funding_calls_3_0"
+    ],
+    "reasoning_steps": [
+      {
+        "step": 1,
+        "thought": "The user is looking for two main things related to digital preservation of cultural heritage: 1) Upcoming Horizon Europe calls (Cluster, budget, deadline) and 2) Similar funded projects (H2020/HE details). The primary domain is Cultural Heritage, aligning with Cluster 2, but the technology focus (Digital Twin, Predictive Maintenance) intersects heavily with Cluster 4.\nI will first search for similar funded projects to establish concrete examples and typical partners, and then search for open/upcoming calls using relevant keywords in Cluster 2 and Cluster 4.",
+        "action": "call_tools",
+        "tools_called": [
+          "search_projects",
+          "search_funding_calls"
+        ],
+        "observation": "search_projects: No projects found\nFound 11 funding call(s)"
+      },
+      {
+        "step": 2,
+        "thought": "The user is asking for two things related to digital cultural heritage: 1) Upcoming Horizon Europe calls (budget, deadline, key parameters) and 2) Similar funded projects (titles, call IDs, budgets, coordinator, and partners). The initial search for projects failed due to overly specific keywords.\n\nStrategy:\n1. Re-run `search_projects` using simpler, high-relevance keywords ('cultural heritage digital twin', 'heritage digitization') to find concrete examples.\n2. Re-run `search_funding_calls` using refined keywords to identify specific open/upcoming topics within Cluster 2 (Culture) and Cluster 4 (Digital/Industry) for 2025/2026.\n3. Synthesize the results, including the MSCA and ERC cross-cutting options for digital humanities researchers, and provide the hardcoded reference projects if the search tools fail to deliver adequate results.",
+        "action": "call_tools",
+        "tools_called": [
+          "search_projects",
+          "search_funding_calls"
+        ],
+        "observation": "Found 10 project(s)\nFound 11 funding call(s)"
+      },
+      {
+        "step": 3,
+        "thought": "The user is asking for: 1) Upcoming Horizon Europe calls (budget, deadline, key parameters) for Digital Cultural Heritage (DCH) focusing on Digital Twins, Predictive Maintenance, and Participatory Research; and 2) Similar funded projects (H2020/HE) with details including partners.\n\nPrevious steps successfully identified 10 relevant projects using simpler keywords ('cultural heritage digital twin', 'heritage digitization'), including the highly relevant ARGUS project (101132308). The initial call searches were too broad or returned irrelevant results.\n\nNow I need to perform a highly targeted search for specific DCH topics within the Cluster 2 (Culture) and Cluster 4 (Digital) Work Programmes using the user's detailed keywords to address the first part of the query.\n\nI will run a final, targeted call search. Then I will synthesize the comprehensive answer using the project data, the call data (or general Cluster 2/4 guidance if specific topics are not found), and the critical cross-cutting funding options (MSCA, ERC).\n\nFinal call search using combined, specific terms.",
+        "action": "call_tools",
+        "tools_called": [
+          "search_funding_calls"
+        ],
+        "observation": "Found 11 funding call(s)"
+      },
+      {
+        "step": 4,
+        "thought": "The user requires information on upcoming calls (DCH, Digital Twin, Predictive Maintenance, Participatory Research) and similar funded projects (H2020/HE) with full details. I successfully identified 10 relevant funded projects, including highly specific ones (ARGUS, Cordhisk). The call searches yielded only general call headers (HORIZON-CL2-2025-01, HORIZON-CL4-2025-03) and no specific DCH topics for 2025/2026. I will synthesize the answer by combining the strong project results, the structure of the relevant Work Programmes (Cluster 2 & 4), and the cross-cutting funding options (MSCA/ERC). I have enough information to provide a comprehensive and actionable response based on the search results and built-in knowledge.",
+        "action": "conclude",
+        "tools_called": [],
+        "observation": ""
+      }
+    ],
+    "iterations": 4,
+    "processing_time_ms": 30428.479,
+    "architecture": "simplified_v3",
+    "quality_analysis": {
+      "score": 100,
+      "category": "complete",
+      "confidence": 0.85,
+      "query_type": "call_info",
+      "missing_elements": [],
+      "deflection_phrases_found": [],
+      "recommendations": [],
+      "elements_found": [
+        "call_id",
+        "deadline",
+        "budget",
+        "type",
+        "status",
+        "scope"
+      ],
+      "response_length": 6297,
+      "timestamp": "2026-01-21T11:25:12.705733+00:00"
+    }
+  },
+  "fix_history": []
+}
