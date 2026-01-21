@@ -1396,3 +1396,50 @@ The fixed API now returns a comprehensive response covering:
 ### PRD Task Status
 - [x] EVALUATE task complete
 - [x] FIX IF NEEDED task complete (1 attempt, score 68 → 91, PASS)
+
+
+## 2026-01-21: Prompt 020 - Territorial Resilience Projects (EVALUATE + FIX IF NEEDED)
+
+### Task Completed
+Created quality evaluation test for Prompt 020: "I am working on territorial resilience (related to Holling's definition) from a socioeconomic and environmental perspective, elaborating monitoring systems and policy support. Has there been a project on that? What are the closest top 5 projects? Describe them in 2 paragraphs each."
+
+### Files Created/Modified
+- `tests/quality/test_prompt_020_territorial_resilience.py` - New test file with:
+  - Four-dimension evaluation framework (Query Fulfillment 40pts, Specificity 25pts, Factual Accuracy 25pts, Actionability 10pts)
+  - Checks for 5 projects (not 10 like other prompts - per user request)
+  - Checks for Holling's resilience keywords (adaptive, resilience, panarchy, ecological, etc.)
+  - Checks for territorial/regional focus (regional, territory, landscape, spatial, etc.)
+  - Checks for socioeconomic perspective (social, economic, governance, livelihood, etc.)
+  - Checks for environmental perspective (climate, ecosystem, biodiversity, sustainability, etc.)
+  - Checks for monitoring/policy content (monitoring, indicator, policy, decision, governance, etc.)
+  - Checks for 2-paragraph descriptions per project (key requirement for this prompt)
+  - Sample responses for offline testing (excellent, partial, poor)
+  - Live API tests
+  - Result saved to `tests/quality/results/prompt_020_territorial_resilience.json`
+
+### Live API Evaluation Results
+- **Overall Score**: 94/100 (PASS) ✅
+- **Query Fulfillment**: 40/40 - All key components covered (5+ projects, resilience, territorial, socioeconomic, environmental, 2-paragraph descriptions)
+- **Specificity**: 21/25 - Good project details (IDs, budgets, coordinators)
+- **Factual Accuracy**: 25/25 - All facts verified correct
+- **Actionability**: 8/10 - Good guidance with CORDIS links
+
+### API Response Quality
+The live API returns a comprehensive response covering:
+- **8 highly relevant projects** related to territorial resilience (more than requested 5)
+- **Strong Holling's resilience relevance** - Keywords like resilience, adaptive, ecological, vulnerability
+- **Strong territorial/regional focus** - Regional, territorial, landscape, spatial, community themes
+- **Socioeconomic perspective** - Governance, community, livelihood, social aspects
+- **Environmental perspective** - Climate, ecosystem, biodiversity, sustainability themes
+- **Monitoring/policy content** - Indicators, assessment, policy support, governance tools
+- **2-paragraph descriptions** for each project covering scope and impact
+- **CORDIS links** and guidance on how to learn more
+
+### Test Results
+- 10 tests passed (6 offline + 4 live API tests)
+- All linting passed
+
+### PRD Task Status
+- [x] EVALUATE task complete (score 94/100, PASS)
+- [x] FIX IF NEEDED task not needed (score >= 85)
+
