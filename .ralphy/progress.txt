@@ -2538,3 +2538,33 @@ The test implements the LLM-as-judge methodology per the PRD:
 - [x] EVALUATE task marked complete
 - [ ] FIX IF NEEDED task pending (will run when live API evaluation is available)
 
+
+
+## 2026-01-21: Prompt 036 - RIA vs IA Comparison (FIX IF NEEDED)
+
+### Task Completed
+Reviewed evaluation result for Prompt 036. No fix needed - already passing.
+
+### Evaluation Result
+- **Overall Score**: 89/100 (PASS - threshold is 85)
+- **Query Fulfillment**: 35/40 - Comprehensive comparison table with TRL, funding rates, and selection guidance
+- **Specificity**: 22/25 - Detailed consortium statistics from actual funded projects (14.8 avg partners for RIA, 16.1 for IA)
+- **Factual Accuracy**: 25/25 - All facts verified (100% RIA, 70%/100% IA, TRL 2-5/5-8)
+- **Actionability**: 7/10 - Clear decision guidance and links to EU portal
+
+### Response Quality
+The live API response correctly includes:
+- Clear comparison table structure
+- TRL ranges (RIA 2-5, IA 5-8)
+- Funding rates (RIA 100%, IA 70%/100% for non-profit)
+- Data-driven consortium analysis (5,500+ funded projects analyzed)
+- Organization type distribution (RIA: 56.5% HES/REC, IA: 49.3% HES/REC with higher industry share)
+- Clear "When to Choose" decision guidance
+- Actionable links to EU Funding & Tenders Portal
+
+### Test Results
+- 11 tests passed (all offline evaluation tests)
+- Evaluation confirms PASS status
+
+### PRD Task Status
+- [x] FIX IF NEEDED task marked complete (N/A - Score 89/100 already passes)

@@ -256,7 +256,7 @@ Run with: `./ralphy.sh --prd MAPIT_QUALITY_PRD.md`
 ### Prompt 036: RIA vs IA Comparison
 - [x] EVALUATE: Run prompt "Compare RIA and IA instruments in Horizon Europe. When should I choose one over the other?" through MAPIT. Use `eval-orchestrator` subagent. Cross-reference `eu-funding-domain` for: funding rates (RIA=100%, IA=70%), TRL ranges (RIA=1-5, IA=5-8), typical budgets, consortium sizes, use cases. Save result to `tests/quality/results/prompt_036_ria_vs_ia.json`. **Test framework created with 11 passing tests. Offline evaluation sample excellent response scores 94/100 (PASS).**
 
-- [ ] FIX IF NEEDED: Read `tests/quality/results/prompt_036_ria_vs_ia.json`. If score < 85: fix and re-evaluate until passing or 3 attempts.
+- [x] FIX IF NEEDED: Read `tests/quality/results/prompt_036_ria_vs_ia.json`. If score < 85: fix and re-evaluate until passing or 3 attempts. **N/A - Score 89/100 already passes. Live API response includes comprehensive comparison table, TRL ranges, funding rates (100% RIA, 70% IA for for-profit), consortium size data from actual funded projects, and clear decision guidance.**
 
 ---
 
