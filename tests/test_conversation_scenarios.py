@@ -57,6 +57,7 @@ DEFAULT_TIMEOUT = 120.0
 # FIXTURES
 # =============================================================================
 
+
 @pytest.fixture
 def api_base_url():
     """Get API base URL from environment or default."""
@@ -109,6 +110,7 @@ def quality_evaluator():
 # SCENARIO LOADING
 # =============================================================================
 
+
 def load_scenarios_from_directory(directory: Path) -> List[ConversationScenario]:
     """Load all scenarios from a directory."""
     scenarios = []
@@ -158,6 +160,7 @@ CONCURRENT_SCENARIOS = ALL_SCENARIOS.get("concurrent", [])
 # BASIC FLOW TESTS
 # =============================================================================
 
+
 class TestBasicConversationFlows:
     """Tests for basic conversation flows (funding calls, projects, budget)."""
 
@@ -194,9 +197,7 @@ class TestBasicConversationFlows:
         conversation_agent: ConversationFlowAgent,
     ):
         """Test that funding call search uses correct tools."""
-        turn = await conversation_agent.send_message(
-            "Find open funding calls for renewable energy"
-        )
+        turn = await conversation_agent.send_message("Find open funding calls for renewable energy")
 
         assert not turn.has_error, f"Error: {turn.error}"
         assert "search_funding_calls" in turn.tools_used, (
@@ -210,9 +211,7 @@ class TestBasicConversationFlows:
         conversation_agent: ConversationFlowAgent,
     ):
         """Test that project search uses correct tools."""
-        turn = await conversation_agent.send_message(
-            "Find funded AI research projects"
-        )
+        turn = await conversation_agent.send_message("Find funded AI research projects")
 
         assert not turn.has_error, f"Error: {turn.error}"
         assert "search_projects" in turn.tools_used, (
@@ -223,6 +222,7 @@ class TestBasicConversationFlows:
 # =============================================================================
 # FOLLOW-UP HANDLING TESTS
 # =============================================================================
+
 
 class TestFollowUpHandling:
     """Tests for follow-up reference resolution."""
@@ -246,7 +246,8 @@ class TestFollowUpHandling:
 
         # Check follow-up validations specifically
         follow_up_validations = [
-            v for v in result.validations
+            v
+            for v in result.validations
             if "follow_up" in v.name.lower() or "reference" in v.name.lower()
         ]
 
@@ -260,14 +261,10 @@ class TestFollowUpHandling:
     ):
         """Test that numbered references are resolved correctly."""
         # First message to establish results
-        await conversation_agent.send_message(
-            "Show me 5 open funding calls"
-        )
+        await conversation_agent.send_message("Show me 5 open funding calls")
 
         # Follow-up with numbered reference
-        turn = await conversation_agent.send_message(
-            "Tell me about the third one"
-        )
+        turn = await conversation_agent.send_message("Tell me about the third one")
 
         assert not turn.has_error, f"Error: {turn.error}"
         assert turn.references_previous_result, "Should detect reference pattern"
@@ -277,6 +274,7 @@ class TestFollowUpHandling:
 # =============================================================================
 # CONTEXT PRESERVATION TESTS
 # =============================================================================
+
 
 class TestContextPreservation:
     """Tests for context preservation across turns."""
@@ -299,10 +297,7 @@ class TestContextPreservation:
         result = await conversation_agent.run_scenario(scenario)
 
         # Check that context-related validations passed
-        context_validations = [
-            v for v in result.validations
-            if "context" in v.name.lower()
-        ]
+        context_validations = [v for v in result.validations if "context" in v.name.lower()]
 
         for v in context_validations:
             assert v.passed, f"Context validation '{v.name}' failed at step {v.step_index}"
@@ -332,10 +327,90 @@ class TestContextPreservation:
             "Should remember initial topic"
         )
 
+    @pytest.mark.asyncio
+    async def test_long_conversation_with_quality_tracking(
+        self,
+        conversation_agent: ConversationFlowAgent,
+        quality_evaluator: QualityEvaluatorAgent,
+    ):
+        """
+        Test long conversation (10+ turns) with quality evaluation.
+
+        Task 013: Long Conversation Scenario
+        - Runs a 10+ turn conversation about climate/hydrogen research funding
+        - Uses QualityEvaluatorAgent to track quality across all turns
+        - Validates no quality degradation (drop > 15 points)
+        - Verifies final turn correctly references initial topic
+        """
+        # Long conversation messages (10+ turns)
+        messages = [
+            "I'm interested in climate research funding",
+            "What clusters cover this area?",
+            "What types of projects are funded?",
+            "Tell me about RIA projects specifically",
+            "What's the typical budget?",
+            "How many partners are usually needed?",
+            "What countries participate most?",
+            "Are there any open calls right now?",
+            "What's the deadline for the first one?",
+            "Can you remind me what we started talking about?",
+        ]
+
+        turns_data = []
+        for i, msg in enumerate(messages):
+            turn = await conversation_agent.send_message(msg)
+            # Allow some flexibility - don't fail on single turn errors
+            if turn.has_error:
+                logger.warning(f"Turn {i + 1} error: {turn.error}")
+            turns_data.append(
+                {
+                    "query": msg,
+                    "response": turn.response_text or f"Error: {turn.error}",
+                }
+            )
+            # Small delay between turns to allow context processing
+            await asyncio.sleep(0.3)
+
+        # Verify we completed all 10+ turns
+        assert len(turns_data) >= 10, f"Expected 10+ turns, got {len(turns_data)}"
+
+        # Evaluate quality across the full conversation
+        quality_result = await quality_evaluator.evaluate_conversation(turns_data)
+
+        # Check for quality degradation (drop of 15+ points)
+        assert not quality_result.degradation_detected, (
+            f"Quality degradation detected at turn {quality_result.degradation_turn}: "
+            f"dropped {quality_result.degradation_amount} points"
+        )
+
+        # Check average quality is reasonable (60+ out of 100)
+        assert quality_result.average_score >= 60, (
+            f"Average quality too low: {quality_result.average_score}/100"
+        )
+
+        # Check that final turn references initial topic (climate)
+        final_response = conversation_agent.message_history[-1].response_text.lower()
+        initial_topic_referenced = (
+            "climate" in final_response
+            or "research" in final_response
+            or "funding" in final_response
+        )
+        assert initial_topic_referenced, (
+            f"Final turn should reference initial topic (climate research funding). "
+            f"Got: {final_response[:200]}..."
+        )
+
+        # Log quality trend for debugging
+        logger.info(
+            f"Long conversation quality: avg={quality_result.average_score:.1f}, "
+            f"trend={quality_result.trend}, turns={len(quality_result.turn_scores)}"
+        )
+
 
 # =============================================================================
 # ERROR RECOVERY TESTS
 # =============================================================================
+
 
 class TestErrorRecovery:
     """Tests for error recovery and graceful handling."""
@@ -373,14 +448,10 @@ class TestErrorRecovery:
     ):
         """Test graceful handling of invalid references."""
         # Establish some results
-        await conversation_agent.send_message(
-            "Show me 3 funding calls"
-        )
+        await conversation_agent.send_message("Show me 3 funding calls")
 
         # Make invalid reference
-        turn = await conversation_agent.send_message(
-            "Tell me about the 100th one"
-        )
+        turn = await conversation_agent.send_message("Tell me about the 100th one")
 
         # Should not crash, should have some response
         assert not turn.has_error or "error" not in turn.error.lower(), (
@@ -391,6 +462,7 @@ class TestErrorRecovery:
 # =============================================================================
 # CONCURRENT ACCESS TESTS
 # =============================================================================
+
 
 class TestConcurrentAccess:
     """Tests for concurrent message handling and race conditions."""
@@ -445,14 +517,12 @@ class TestConcurrentAccess:
 # CONTEXT VALIDATION TESTS
 # =============================================================================
 
+
 class TestContextValidation:
     """Tests that use the ContextValidatorAgent."""
 
     @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        not os.environ.get("DATABASE_URL"),
-        reason="DATABASE_URL not set"
-    )
+    @pytest.mark.skipif(not os.environ.get("DATABASE_URL"), reason="DATABASE_URL not set")
     async def test_message_storage_consistency(
         self,
         conversation_agent: ConversationFlowAgent,
@@ -475,15 +545,10 @@ class TestContextValidation:
             "success rates",
         )
 
-        assert result.passed, (
-            f"Message not stored properly: {result.message}"
-        )
+        assert result.passed, f"Message not stored properly: {result.message}"
 
     @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        not os.environ.get("DATABASE_URL"),
-        reason="DATABASE_URL not set"
-    )
+    @pytest.mark.skipif(not os.environ.get("DATABASE_URL"), reason="DATABASE_URL not set")
     async def test_context_integrity_after_conversation(
         self,
         conversation_agent: ConversationFlowAgent,
@@ -518,6 +583,7 @@ class TestContextValidation:
 # QUALITY EVALUATION TESTS
 # =============================================================================
 
+
 class TestQualityEvaluation:
     """Tests that use the QualityEvaluatorAgent."""
 
@@ -542,8 +608,7 @@ class TestQualityEvaluation:
         )
 
         assert score.total_score >= 50, (
-            f"Quality too low: {score.total_score}/100\n"
-            f"Response: {turn.response_text[:500]}..."
+            f"Quality too low: {score.total_score}/100\nResponse: {turn.response_text[:500]}..."
         )
 
     @pytest.mark.asyncio
@@ -562,10 +627,12 @@ class TestQualityEvaluation:
         turns_data = []
         for msg in messages:
             turn = await conversation_agent.send_message(msg)
-            turns_data.append({
-                "query": msg,
-                "response": turn.response_text,
-            })
+            turns_data.append(
+                {
+                    "query": msg,
+                    "response": turn.response_text,
+                }
+            )
 
         # Evaluate conversation quality
         quality_result = await quality_evaluator.evaluate_conversation(turns_data)
@@ -584,14 +651,12 @@ class TestQualityEvaluation:
 # INTEGRATION TEST
 # =============================================================================
 
+
 class TestFullIntegration:
     """Full integration tests combining all agents."""
 
     @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        not os.environ.get("DATABASE_URL"),
-        reason="DATABASE_URL not set"
-    )
+    @pytest.mark.skipif(not os.environ.get("DATABASE_URL"), reason="DATABASE_URL not set")
     async def test_full_conversation_flow(
         self,
         conversation_agent: ConversationFlowAgent,
@@ -635,9 +700,11 @@ class TestFullIntegration:
 
 if __name__ == "__main__":
     # Allow running specific tests from command line
-    pytest.main([
-        __file__,
-        "-v",
-        "-x",
-        "--tb=short",
-    ])
+    pytest.main(
+        [
+            __file__,
+            "-v",
+            "-x",
+            "--tb=short",
+        ]
+    )

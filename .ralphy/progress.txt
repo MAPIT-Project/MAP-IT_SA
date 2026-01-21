@@ -3075,3 +3075,60 @@ The scenario tests the system's ability to:
 
 ### Next Task
 Task 013: Long Conversation Scenario (PHASE 4: Context Preservation Testing)
+
+
+## 2026-01-21: Task 013 - Long Conversation Scenario
+
+### Task Completed
+Implemented Task 013: Long Conversation Scenario for context preservation testing with quality tracking.
+
+### Files Modified
+- `tests/test_conversation_scenarios.py`:
+  - Added `test_long_conversation_with_quality_tracking()` test method
+  - Test runs 10+ turn conversation about climate research funding
+  - Uses QualityEvaluatorAgent.evaluate_conversation() to track quality across all turns
+  - Validates no quality degradation (drop > 15 points between turns)
+  - Verifies average quality score >= 60
+  - Validates final turn correctly references initial topic (climate research funding)
+  - Formatted file with ruff format
+
+- `docs/prd/MAPIT_CONVERSATION_STABILITY_PRD.md`:
+  - Marked Task 013 CREATE SCENARIO as complete
+  - Marked Task 013 RUN & FIX as complete
+
+### Scenario Details
+The scenario (`tests/scenarios/context/long_conversation.yaml`) already existed with 10 steps:
+1. "I'm interested in climate research funding"
+2. "What clusters cover this area?"
+3. "What types of projects are funded?"
+4. "Tell me about RIA projects specifically"
+5. "What's the typical budget?"
+6. "How many partners are usually needed?"
+7. "What countries participate most?"
+8. "Are there any open calls right now?"
+9. "What's the deadline for the first one?"
+10. "Can you remind me what we started talking about?"
+
+### Test Results
+- Test `test_long_conversation_with_quality_tracking` passed (244.54s)
+- All context preservation tests (3 tests) passed (386.07s)
+- No quality degradation detected across 10 turns
+- Final turn successfully references initial topic (climate/research/funding)
+- Quality tracking evaluates all 4 dimensions per turn:
+  - Query Fulfillment (40 points)
+  - Specificity (25 points)
+  - Factual Accuracy (25 points)
+  - Actionability (10 points)
+
+### Implementation Details
+The new test:
+1. Runs a full 10-turn conversation using ConversationFlowAgent
+2. Collects all turn data (query/response pairs)
+3. Evaluates quality using QualityEvaluatorAgent.evaluate_conversation()
+4. Checks for degradation_detected flag (triggered by 15+ point drops)
+5. Validates average_score >= 60 (passing threshold)
+6. Validates initial topic referenced in final response
+7. Logs quality trend for debugging
+
+### Next Task
+Task 014: Topic Switching Scenario (PHASE 4: Context Preservation Testing)

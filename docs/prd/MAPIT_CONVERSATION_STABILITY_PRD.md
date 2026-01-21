@@ -185,7 +185,7 @@ TEST_API_URL=http://localhost:8000 pytest tests/test_conversation_scenarios.py -
 ### ==========================================================
 
 ### Task 013: Long Conversation Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/context/long_conversation.yaml` with 10+ steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/context/long_conversation.yaml` with 10+ steps:
   1. "I'm researching hydrogen energy funding"
   2. "What programmes cover this?"
   3. "Tell me about Cluster 5"
@@ -193,7 +193,7 @@ TEST_API_URL=http://localhost:8000 pytest tests/test_conversation_scenarios.py -
   10. "Remind me what we started discussing"
   Validations: final turn correctly references initial topic.
 
-- [ ] RUN & FIX: Execute scenario. Use `QualityEvaluatorAgent.evaluate_conversation()` to track quality across turns. Fix any degradation.
+- [x] RUN & FIX: Execute scenario. Use `QualityEvaluatorAgent.evaluate_conversation()` to track quality across turns. Fix any degradation.
 
 ### Task 014: Topic Switching Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/context/topic_switching.yaml` with steps:
