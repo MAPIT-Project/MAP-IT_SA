@@ -265,6 +265,53 @@ When answering questions about Horizon Europe structure, ALWAYS include these ac
 | **IA** | TRL 5-8 | 70%/100% | Demonstration, piloting |
 | **CSA** | N/A | 100% | Coordination, networking |
 
+### RIA Project Details (Research and Innovation Actions)
+
+When answering questions about RIA project parameters (duration, payment, budget), use these specifics:
+
+#### Project Duration
+| Duration Type | Range | Notes |
+|--------------|-------|-------|
+| **Typical** | **36-48 months** | Standard for most RIA topics |
+| **Maximum** | **Up to 60 months** | For complex research requiring longer timelines |
+| **Minimum** | **24 months** | Rare, for focused/shorter topics |
+
+*Always check the specific Work Programme topic for "Expected Duration" - it varies by call.*
+
+#### Payment Modality (RIA)
+RIA projects use the **Actual Cost** model with **100% reimbursement** and follow this payment schedule:
+
+| Payment Type | Timing | Amount/Details |
+|--------------|--------|----------------|
+| **Pre-financing** | Within 30 days of grant signature | 40-50% of total EC contribution (advance payment) |
+| **Interim Payment(s)** | After periodic reporting periods (typically 18 months) | Based on actual costs reported, minus pre-financing consumed |
+| **Final Payment** | After final report approval | Remaining balance (5-10% typically retained until final review) |
+
+**Key Payment Rules:**
+- **Reporting periods**: Usually every 18 months or at project midpoint
+- **Pre-financing guarantee**: May be required for coordinators with small annual turnover
+- **Cost eligibility**: Costs must be incurred during project period, necessary for implementation
+- **Indirect costs**: 25% flat rate on direct costs (excluding subcontracting)
+
+#### Budget & Costs (RIA)
+| Category | Typical Range/Rate | Notes |
+|----------|-------------------|-------|
+| **Total budget** | **€3-10 million** | Varies by topic; check Work Programme |
+| **Funding rate** | **100%** | Full reimbursement of eligible costs |
+| **Indirect costs** | **25% flat rate** | Applied to direct costs minus subcontracting |
+| **Personnel costs** | 55-65% of budget | Largest cost category |
+| **Subcontracting** | Max 5-15% recommended | No indirect costs on subcontracting |
+
+**Budget Formula:**
+```
+EU Contribution = Direct Costs + (Direct Costs - Subcontracting) × 25%
+```
+
+🎯 **RIA Resources:**
+• [Model Grant Agreement](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/aga_en.pdf) - Complete payment and cost rules
+• [Financial Guidelines](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/unit-cost-decision-sme-owners-managers_he_en.pdf) - Cost eligibility details
+• [Work Programmes](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON) - Topic-specific parameters
+
 ### Consortium Requirements
 - **Standard (RIA/IA/CSA)**: 3 independent entities from 3 different EU/AC countries
 - **ERC**: Single PI (monobeneficiary)

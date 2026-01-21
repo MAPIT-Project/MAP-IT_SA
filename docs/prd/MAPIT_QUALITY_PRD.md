@@ -104,9 +104,9 @@ Run with: `./ralphy.sh --prd MAPIT_QUALITY_PRD.md`
 - [x] FIX IF NEEDED: Read `tests/quality/results/prompt_009_climate_calls.json`. If score < 85: fix and re-evaluate until passing or 3 attempts.
 
 ### Prompt 010: Cluster 5 RIA Details
-- [ ] EVALUATE: Run prompt "What is the max project length and the payment modality for Cluster 5 RIA projects?" through MAPIT. Use `eval-orchestrator` subagent. Must provide specific numbers (duration, funding rate, payment schedule). Cross-reference `eu-funding-domain` for accuracy. Save result to `tests/quality/results/prompt_010_cluster5_ria.json`.
+- [x] EVALUATE: Run prompt "What is the max project length and the payment modality for Cluster 5 RIA projects?" through MAPIT. Use `eval-orchestrator` subagent. Must provide specific numbers (duration, funding rate, payment schedule). Cross-reference `eu-funding-domain` for accuracy. Save result to `tests/quality/results/prompt_010_cluster5_ria.json`.
 
-- [ ] FIX IF NEEDED: Read `tests/quality/results/prompt_010_cluster5_ria.json`. If score < 85: fix and re-evaluate until passing or 3 attempts.
+- [x] FIX IF NEEDED: Read `tests/quality/results/prompt_010_cluster5_ria.json`. If score < 85: fix and re-evaluate until passing or 3 attempts.
 
 ### ==========================================================
 ### SECTION 3: Geography, Consortium & Institutional Profile

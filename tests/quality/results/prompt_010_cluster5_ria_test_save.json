@@ -1,0 +1,37 @@
+{
+  "prompt_id": "010",
+  "query": "What is the max project length and the payment modality for Cluster 5 RIA projects?",
+  "response": "\n## Cluster 5 RIA Project Parameters\n\n### Project Duration\n\nFor **Research and Innovation Actions (RIA)** in Cluster 5 (Climate, Energy and Mobility), the\ntypical project duration is:\n\n| Duration Type | Range | Notes |\n|--------------|-------|-------|\n| **Standard** | 36-48 months | Most common for RIA projects |\n| **Maximum** | Up to 60 months | For complex research requiring longer timelines |\n| **Minimum** | 24 months | Rare, but possible for focused topics |\n\nThe specific duration depends on the call topic and Work Programme requirements. Check the\nspecific topic text for any duration limits.\n\n### Funding Rate\n\nRIA projects receive **100% funding** of eligible costs. This applies to:\n- All types of beneficiaries (universities, research organizations, SMEs, large companies)\n- All cost categories (personnel, equipment, travel, subcontracting, etc.)\n\n**Note**: This is different from Innovation Actions (IA) which receive 70% funding (100% for\nnon-profit organizations).\n\n### Payment Modality\n\nHorizon Europe RIA projects follow a standard payment schedule:\n\n| Payment Type | Timing | Typical Amount |\n|-------------|--------|----------------|\n| **Pre-financing** | At project start | Up to 50% of EC contribution |\n| **Interim payment(s)** | After periodic reports | Based on costs reported |\n| **Final payment** | After final report | Remaining balance |\n\n**Payment Details:**\n1. **Pre-financing**: Provided within 30 days of grant signature (or later start date)\n   - Typically 30-50% of total EC contribution\n   - Secures initial project activities\n\n2. **Interim payments**:\n   - Released after approval of periodic reports\n   - Based on actual eligible costs incurred\n   - Usually at 18-month reporting periods\n\n3. **Final payment**:\n   - Released after final technical and financial reports\n   - Includes any remaining balance\n   - Subject to retention of 5-10% for contingencies\n\n### Budget Calculation\n\nFor Cluster 5 RIA projects:\n- **Typical budget**: \u20ac3-10 million\n- **Direct costs**: Personnel, equipment, travel, subcontracting, other\n- **Indirect costs**: 25% flat rate on direct costs (excluding subcontracting)\n\n**Formula:**\n```\nTotal Eligible Cost = Direct Costs + (Direct Costs - Subcontracting) \u00d7 0.25\nEU Contribution = Total Eligible Cost \u00d7 100%\n```\n\n### Key Resources\n\n- [Horizon Europe Work Programme - Cluster 5](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON)\n- [Model Grant Agreement](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/aga_en.pdf)\n- [EU Funding Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/)\n\n### Consortium Requirements\n- Minimum **3 partners** from **3 different EU/Associated countries**\n- No maximum, but typical consortia have 8-15 partners\n- Balance of academic, research, and industry partners recommended\n",
+  "overall_score": 100,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "cluster5_ria_details",
+      "description": "Cluster 5 RIA project duration and payment modality",
+      "fulfillment": 40,
+      "specificity": 25,
+      "accuracy": 25,
+      "actionability": 10,
+      "total": 100,
+      "notes": "Fulfillment: Both duration and payment modality fully covered; Specificity: Good specificity with numbers and rates; Accuracy: Accuracy check: 25/25 points; Actionability: Good actionability with resources and guidance",
+      "missing_items": [],
+      "found_items": [
+        "Project duration with specific numbers",
+        "Payment modality with structure details"
+      ]
+    }
+  ],
+  "factual_errors": [],
+  "fix_suggestions": [],
+  "strengths": [
+    "Comprehensive coverage of both duration and payment modality",
+    "Rich in specific numbers and rates",
+    "Factually accurate",
+    "Provides useful resources and guidance"
+  ],
+  "evaluation_timestamp": "2026-01-21T09:36:55.608195+00:00",
+  "response_metadata": {
+    "source": "test_json_save"
+  },
+  "fix_history": []
+}
