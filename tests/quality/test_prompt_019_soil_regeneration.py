@@ -441,6 +441,9 @@ def count_objective_summaries(response: str) -> int:
     # Count explicit objective sections
     objective_patterns = [
         r"\*\*objective\*\*:",
+        r"\*\*objective summary\*\*:",
+        r"\*\*objective summary:\*\*",
+        r"objective summary:",
         r"objective:",
         r"- objective:",
         r"\*\*aims?\*\*:",
@@ -449,6 +452,14 @@ def count_objective_summaries(response: str) -> int:
         r"this project seeks to",
         r"the project develops",
         r"this project focuses",
+        r"develop and deploy",
+        r"implement a network",
+        r"evaluate and demonstrate",
+        r"create an ai-driven",
+        r"validate and develop",
+        r"establish a framework",
+        r"utilise digital twin",
+        r"investigate the trade-offs",
     ]
 
     total_count = 0

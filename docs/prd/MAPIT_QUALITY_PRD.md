@@ -159,7 +159,7 @@ Run with: `./ralphy.sh --prd MAPIT_QUALITY_PRD.md`
 ### Prompt 019: Industry 4.0 Soil Regeneration
 - [x] EVALUATE: Run prompt "What were the most recent 10 awarded projects that have worked with using Industry 4.0/5.0 for soil regeneration? Please summarise the objectives of these 10 projects." through MAPIT. Use `eval-orchestrator` subagent. Must return 10 projects with objective summaries. Save result to `tests/quality/results/prompt_019_soil_regeneration.json`.
 
-- [ ] FIX IF NEEDED: Read `tests/quality/results/prompt_019_soil_regeneration.json`. If score < 85: fix and re-evaluate until passing or 3 attempts.
+- [x] FIX IF NEEDED: Read `tests/quality/results/prompt_019_soil_regeneration.json`. If score < 85: fix and re-evaluate until passing or 3 attempts.
 
 ### Prompt 020: Territorial Resilience Projects
 - [ ] EVALUATE: Run prompt "I am working on territorial resilience (related to Holling's definition) from a socioeconomic and environmental perspective, elaborating monitoring systems and policy support. Has there been a project on that? What are the closest top 5 projects? Describe them in 2 paragraphs each." through MAPIT. Use `eval-orchestrator` subagent (will use `query-decomposer` for multi-part breakdown). Must return 5 relevant projects with 2-paragraph descriptions. Save result to `tests/quality/results/prompt_020_territorial_resilience.json`.
