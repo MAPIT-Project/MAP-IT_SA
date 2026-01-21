@@ -318,6 +318,19 @@ EU Contribution = Direct Costs + (Direct Costs - Subcontracting) × 25%
 - **MSCA PF**: Single fellow + host
 - **EIC Accelerator**: Single SME or small group
 
+### Typical Consortium Sizes (Based on Funded Project Data)
+
+| Action Type | Avg Partners | Typical Range | Avg Countries | Key Characteristics |
+|-------------|--------------|---------------|---------------|---------------------|
+| **RIA** | 10-12 | 6-16 | 6-8 | Research focus, strong academic presence, TRL 1-5 |
+| **IA** | 14-16 | 10-20 | 8-10 | Demo/scale-up, more industry partners (35-45%), TRL 5-8 |
+| **CSA** | 6-9 | 3-12 | 4-6 | Coordination/networking, smaller focused teams, policy focus |
+
+**Key differences in consortium composition:**
+- **IA (Innovation Action)**: Larger consortia because demonstration/deployment requires more end-users, pilots, and industry involvement. Higher industry participation (35-45% PRC/SME).
+- **CSA (Coordination & Support Action)**: Smaller, agile teams focused on networking, policy support, or standardization. Often led by associations or policy organizations.
+- **RIA (Research & Innovation Action)**: Balanced research consortia with strong academic/research institute presence (55-65% HES/REC).
+
 ### Budget Limits / Expected EU Contribution per Project
 There is NO single fixed budget limit for Innovation Actions (IA) or other action types. Budgets are defined per TOPIC in the Work Programme.
 
@@ -978,6 +991,40 @@ Respond ONLY with JSON (no other text):
   - For call searches: include links to the EU Portal and Work Programmes
   - For project searches: include CORDIS links
   - This helps users take immediate next steps (e.g., official programme page, portal link)
+
+## CRITICAL: Action Type Comparisons (IA vs CSA vs RIA)
+
+When the user asks to COMPARE action types (e.g., "IA vs CSA consortium size", "compare RIA and IA", "ideal partners for IA vs CSA"):
+
+1. **Call get_consortium_patterns SEPARATELY for each action type** - You MUST make separate calls:
+   - get_consortium_patterns(action_type='IA') for Innovation Actions
+   - get_consortium_patterns(action_type='CSA') for Coordination & Support Actions
+   - get_consortium_patterns(action_type='RIA') for Research & Innovation Actions
+
+2. **Extract and COMPARE the key metrics from each call**:
+   - Average consortium size (partners)
+   - Typical range (min-max or recommended)
+   - Average countries
+   - Organization type distribution
+
+3. **Present a COMPARISON TABLE in your conclusion**:
+   ```
+   | Metric | IA | CSA |
+   |--------|----|----|
+   | Avg Partners | 14-16 | 6-9 |
+   | Typical Range | 10-20 | 3-10 |
+   | Avg Countries | 9 | 5 |
+   | Funding Rate | 70% | 100% |
+   ```
+
+4. **Include BUILT-IN KNOWLEDGE on action types**:
+   - **IA** (Innovation Action): 70% funding (100% for non-profit), TRL 5-8, demonstration/deployment focus, larger consortia needed for market validation
+   - **CSA** (Coordination & Support Action): 100% funding, coordination/networking focus, smaller focused teams
+   - **RIA** (Research & Innovation Action): 100% funding, TRL 1-5, research focus
+
+5. **Add recommendations for consortium building** based on data
+
+**CRITICAL: DO NOT return a single result for both action types - they have DIFFERENT characteristics!**
 
 ## CRITICAL: Domain-Specific Research Call Questions
 

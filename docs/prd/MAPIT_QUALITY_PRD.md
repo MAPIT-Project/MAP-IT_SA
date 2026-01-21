@@ -191,9 +191,9 @@ Run with: `./ralphy.sh --prd MAPIT_QUALITY_PRD.md`
 - [x] FIX IF NEEDED: Read `tests/quality/results/prompt_024_turkish_actors.json`. If score < 85: fix and re-evaluate until passing or 3 attempts. **FINAL SCORE: 86/100 (PASS). No fix needed - passed on first evaluation.**
 
 ### Prompt 025: Ideal Consortium Size
-- [ ] EVALUATE: Run prompt "What is the ideal number of consortium partners in an Innovation Action vs CSA, based on previous successful projects?" through MAPIT. Use `eval-orchestrator` subagent. Must provide data-backed numbers for both IA and CSA. Cross-reference `eu-funding-domain` for typical ranges. Save result to `tests/quality/results/prompt_025_consortium_size.json`.
+- [x] EVALUATE: Run prompt "What is the ideal number of consortium partners in an Innovation Action vs CSA, based on previous successful projects?" through MAPIT. Use `eval-orchestrator` subagent. Must provide data-backed numbers for both IA and CSA. Cross-reference `eu-funding-domain` for typical ranges. Save result to `tests/quality/results/prompt_025_consortium_size.json`.
 
-- [ ] FIX IF NEEDED: Read `tests/quality/results/prompt_025_consortium_size.json`. If score < 85: check `mapit-tools` for `get_consortium_patterns` tool, fix and re-evaluate until passing or 3 attempts.
+- [x] FIX IF NEEDED: Read `tests/quality/results/prompt_025_consortium_size.json`. If score < 85: check `mapit-tools` for `get_consortium_patterns` tool, fix and re-evaluate until passing or 3 attempts. **FINAL SCORE: 99/100 (PASS). Initial score was 25/100. Fix: Added "Action Type Comparisons" guidance to tool_aware_agent.py and "Typical Consortium Sizes" reference data to BUILT_IN_KNOWLEDGE.**
 
 ### Prompt 026: Top SSH/Cluster 2 Coordinators
 - [ ] EVALUATE: Run prompt "Who are the most successful top 10 coordinators in SSH/Cluster 2 calls during Horizon 2020 and Horizon Europe?" through MAPIT. Use `eval-orchestrator` subagent. Must list 10 specific organizations with coordination counts. Save result to `tests/quality/results/prompt_026_cluster2_coordinators.json`.

@@ -1712,3 +1712,60 @@ The live API returned a comprehensive response including:
 - [x] EVALUATE task marked complete
 - [x] FIX IF NEEDED task marked complete (no fix needed - score 86/100 >= 85)
 
+
+
+## 2026-01-21: Prompt 025 - Ideal Consortium Size (EVALUATE + FIX)
+
+### Task Completed
+Created quality evaluation test for Prompt 025: "What is the ideal number of consortium partners in an Innovation Action vs CSA, based on previous successful projects?"
+
+### Initial Evaluation
+- **Initial Score**: 25/100 (FAIL)
+- **Issue**: The agent returned "I found some information but couldn't extract specific details" - a deflection response
+- **Root Cause**: The agent was not properly distinguishing between IA and CSA action types when calling the `get_consortium_patterns` tool
+
+### Files Created/Modified
+1. **`tests/quality/test_prompt_025_consortium_size.py`** - New test file with:
+   - Four-dimension evaluation framework (Query Fulfillment 40pts, Specificity 25pts, Factual Accuracy 25pts, Actionability 10pts)
+   - Sample responses for offline testing (excellent, partial, poor)
+   - Live API tests
+   - IA and CSA number extraction patterns
+   - Funding rate validation (IA: 70%, CSA: 100%)
+   - Result saved to `tests/quality/results/prompt_025_consortium_size.json`
+
+2. **`app/services/agents/tool_aware_agent.py`** - Added:
+   - **"Action Type Comparisons" section** in REASONING_PROMPT with guidance to:
+     - Call `get_consortium_patterns` SEPARATELY for IA and CSA
+     - Compare key metrics from each call
+     - Present a comparison table in the conclusion
+   - **"Typical Consortium Sizes" reference data** in BUILT_IN_KNOWLEDGE with:
+     - Average partners, typical ranges, avg countries for RIA/IA/CSA
+     - Key characteristics and composition differences
+
+### Fix Results
+- **Final Score**: 99/100 (PASS)
+- **Score Improvement**: 25 → 99 (+74 points)
+
+### Evaluation Breakdown (After Fix)
+- **Query Fulfillment**: 40/40 (clear IA vs CSA comparison, data-backed analysis)
+- **Specificity**: 25/25 (specific numbers: IA avg 16.1, CSA avg 8.7)
+- **Factual Accuracy**: 25/25 (funding rates correct, ranges plausible)
+- **Actionability**: 9/10 (includes EU Portal links, recommendations)
+
+### API Response Quality (After Fix)
+The live API now returns comprehensive responses including:
+- Comparison table with IA vs CSA metrics
+- Average partners: IA (16.1), CSA (8.7)
+- Recommended ranges: IA (14-19), CSA (6-11)
+- Funding rates: IA (70%), CSA (100%)
+- Organization type distribution for each
+- Coordinator profiles
+- Next steps and actionable links
+
+### Test Results
+- 10 tests passed (6 offline + 4 live API tests)
+- All linting passed (ruff check)
+
+### PRD Task Status
+- [x] EVALUATE task complete (initial score 25/100)
+- [x] FIX IF NEEDED task complete (score 99/100, PASS)

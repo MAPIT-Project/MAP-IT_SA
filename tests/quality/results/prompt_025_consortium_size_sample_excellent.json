@@ -1,0 +1,40 @@
+{
+  "prompt_id": "025",
+  "query": "What is the ideal number of consortium partners in an Innovation Action vs CSA, based on previous successful projects?",
+  "response": "\n## Ideal Consortium Size: Innovation Actions vs CSA\n\nBased on analysis of **1,847 funded Horizon Europe projects**, here are the optimal\nconsortium sizes for each action type:\n\n### Innovation Actions (IA)\n\n| Metric | Value |\n|--------|-------|\n| **Average Partners** | 12.3 |\n| **Median Partners** | 11 |\n| **Typical Range** | 8-16 partners |\n| **Average Countries** | 7.2 |\n\n**Key Findings from Successful IA Projects:**\n- Most successful IAs have **10-15 partners**\n- Industry participation averages **35-45%** of consortium\n- At least **2-3 demonstration sites** recommended for scale-up activities\n- Minimum requirement: 3 partners from 3 different EU/Associated countries\n\n**Why Larger Consortia Work for IA:**\n- Innovation Actions (70% funding rate, TRL 5-8) focus on demonstrating technologies\n- Larger consortia provide diverse end-user perspectives\n- Multiple pilot sites increase market validation\n- Industry partners bring commercial expertise\n\n### Coordination & Support Actions (CSA)\n\n| Metric | Value |\n|--------|-------|\n| **Average Partners** | 5.8 |\n| **Median Partners** | 5 |\n| **Typical Range** | 3-8 partners |\n| **Average Countries** | 4.1 |\n\n**Key Findings from Successful CSA Projects:**\n- Most successful CSAs have **4-7 partners**\n- Often led by policy-oriented organizations or networks\n- Higher proportion of umbrella organizations and associations\n- Minimum requirement: 1 partner (single beneficiary allowed)\n\n**Why Smaller Consortia Work for CSA:**\n- CSAs (100% funding rate) focus on coordination, networking, policy support\n- Smaller teams are more agile for dissemination activities\n- Clear stakeholder mapping more important than partner count\n- Network/multiplier effects through associated partners outside consortium\n\n### Comparative Summary\n\n| Aspect | IA | CSA |\n|--------|----|----|\n| Ideal Partners | 10-15 | 4-7 |\n| Funding Rate | 70% | 100% |\n| TRL Focus | 5-8 | N/A |\n| Typical Budget | \u20ac5-15M | \u20ac1-3M |\n| Industry % | 35-45% | 10-20% |\n| Success Rate | ~12% | ~18% |\n\n### Recommendations for Consortium Building\n\n**For Innovation Actions:**\n1. Start with 3-4 core technology developers\n2. Add 4-6 end-users for demonstration activities\n3. Include 2-3 SMEs for market perspectives\n4. Add 1-2 research organizations for validation\n\n**For CSAs:**\n1. Keep the core consortium lean (4-6 partners)\n2. Focus on complementary expertise, not size\n3. Use associated partners for network reach\n4. Include 1-2 policy/regulatory bodies\n\n### Learn More\n\n- **EC Funding Portal**: https://ec.europa.eu/info/funding-tenders/\n- **CORDIS Database**: Search funded projects at https://cordis.europa.eu\n- **Partner Search**: Use the Funding & Tenders partner search tool\n- **get_consortium_patterns tool**: Use MAPIT's tool for cluster-specific data\n",
+  "overall_score": 97,
+  "result": "PASS",
+  "component_scores": [
+    {
+      "component_id": "consortium_size",
+      "description": "Ideal consortium size for IA vs CSA based on data",
+      "fulfillment": 40,
+      "specificity": 25,
+      "accuracy": 25,
+      "actionability": 7,
+      "total": 97,
+      "notes": "Fulfillment: All query requirements met; Specificity: Good specificity with detailed numbers; Accuracy: Accuracy check: 25/25 points; Actionability: No decision guidance",
+      "missing_items": [],
+      "found_items": [
+        "Clear IA vs CSA comparison",
+        "IA partner counts: [12, 5, 8]",
+        "CSA partner counts: [5, 5, 10]",
+        "Data-backed analysis"
+      ]
+    }
+  ],
+  "factual_errors": [],
+  "fix_suggestions": [
+    "Improve actionability: Add consortium building recommendations, links to resources, and guidance on factors affecting ideal size"
+  ],
+  "strengths": [
+    "Clear IA vs CSA comparison with data",
+    "Rich in specific statistics and ranges",
+    "Factually accurate consortium information"
+  ],
+  "evaluation_timestamp": "2026-01-21T12:04:41.365293+00:00",
+  "response_metadata": {
+    "source": "sample_excellent"
+  },
+  "fix_history": []
+}
