@@ -2175,3 +2175,78 @@ The test implements the LLM-as-judge methodology per the PRD:
 
 ### Next Steps
 The FIX IF NEEDED task should be run after running the live API evaluation to check if score < 85
+
+---
+
+## 2026-01-21: Prompt 032 FIX IF NEEDED - Score 86/100 (PASS)
+
+**Result**: No fix needed - passed on first evaluation.
+
+### Response Quality
+The MAPIT response scored 86/100 with:
+- Fulfillment: 40/40 - 10+ East German organizations listed with paragraphs
+- Specificity: 12/25 - Organization names and topic relevance present, but some profile details could be more specific
+- Accuracy: 25/25 - Correctly focuses on East Germany (Berlin, Brandenburg, Saxony, Thuringia)
+- Actionability: 9/10 - Good partnership guidance with next steps
+
+### Key Response Data
+- Lists 10+ organizations from East German states
+- Covers all three topic areas: participatory technologies, art in education, democracy
+- Includes: SPK, FU Berlin, EUV, Uni Jena, GPPI, Fraunhofer, MPG, Humboldt-Universität, Universität Leipzig, TU Dresden
+- Provides CORDIS links and partnership recommendations
+
+### PRD Task Status
+- [x] EVALUATE task was already complete
+- [x] FIX IF NEEDED marked complete (no fix needed, score >= 85)
+
+---
+
+## 2026-01-21: Prompt 033 EVALUATE - ICT SME Water Sensors Partner
+
+### Task Completed
+Created quality evaluation test for Prompt 033: "We are working with Nature-based solutions in water management and aridity for agricultural and urban areas. I am looking for an ICT partner that can support our work with sensors and monitoring technologies. Please list potential SME partners with at least one Horizon project awarded."
+
+### Files Created
+- `tests/quality/test_prompt_033_ict_water_sensors.py` - New test file with:
+  - Four-dimension evaluation framework (Query Fulfillment 40pts, Specificity 25pts, Factual Accuracy 25pts, Actionability 10pts)
+  - Sample responses for offline testing (excellent, partial, poor, non-sme)
+  - Live API tests (skipped when API unavailable)
+  - ICT/sensor keyword detection
+  - SME indicator validation
+  - Large corporation detection for accuracy penalties
+  - Water/environment domain keyword checking
+
+### Test Results
+- 8 tests passed (offline and live API tests)
+- Sample excellent response scored >= 85/100 (PASS)
+- Sample partial response scored < 85 (NEEDS_REVIEW as expected)
+- Sample poor response scored < 70 (FAIL as expected)
+- Sample with non-SME corporations detected factual errors correctly
+
+### Live API Evaluation Results
+- **Overall Score**: 84/100 (NEEDS_REVIEW)
+- **Query Fulfillment**: 31/40 - Partners listed but limited ICT/sensor focus
+- **Specificity**: 21/25 - Good details on companies and projects
+- **Factual Accuracy**: 25/25 - All PRC companies, no large corporations
+- **Actionability**: 7/10 - CORDIS links and guidance provided
+
+### Issue Identified
+The response lists PRC (private company) organizations but lacks ICT/sensor specificity. The `find_experienced_partners` tool returns general companies working in the water/agriculture domain, not specifically ICT/sensor specialists. The keywords used ("water management nature-based solutions aridity agriculture urban sensors monitoring ICT") may be too broad.
+
+### Evaluation Framework
+The test implements the LLM-as-judge methodology per the PRD:
+- Checks for multiple ICT SME partners with Horizon track record
+- Verifies sensor/monitoring technology focus
+- Validates SME status (not large corporations)
+- Checks water/environment domain relevance
+- Cross-references for known large corporations (Siemens, Bosch, etc.)
+
+### Expected Domain Knowledge (from eu-funding-domain skill)
+- SME: Small/Medium Enterprise (<250 employees, <€50M turnover)
+- PRC: Private Company organization type
+- ICT focus: sensors, IoT, monitoring, data platforms
+- NBS: Nature-based Solutions for water management
+- Relevant clusters: Cluster 5 (Climate), Cluster 6 (Food/Bio)
+
+### Next Steps
+The FIX IF NEEDED task should be run to improve the response to achieve score >= 85
