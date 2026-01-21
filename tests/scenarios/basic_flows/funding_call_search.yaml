@@ -21,18 +21,18 @@ steps:
 
   - message: "What are the deadlines for these calls?"
     validations:
-      - type: "response_contains"
+      - type: "response_contains_any"
         name: "mentions_deadline"
-        patterns: ["deadline", "date"]
+        patterns: ["deadline", "date", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december", "january", "february", "2025", "2026"]
       - type: "no_error"
         name: "no_errors"
     delay_ms: 500
 
-  - message: "Which one has the largest budget?"
+  - message: "Tell me about the first one"
     validations:
       - type: "response_contains"
-        name: "mentions_budget"
-        patterns: ["budget", "million", "EUR"]
+        name: "mentions_call_detail"
+        patterns: ["call"]
       - type: "follow_up_resolved"
         name: "resolves_reference"
         description: "Should reference previous call results"

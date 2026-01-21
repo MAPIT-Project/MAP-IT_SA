@@ -112,13 +112,13 @@ TEST_API_URL=http://localhost:8000 pytest tests/test_conversation_scenarios.py -
 ### ==========================================================
 
 ### Task 006: Funding Call Search Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/basic_flows/funding_call_search.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/basic_flows/funding_call_search.yaml` with steps:
   1. "Find open funding calls for hydrogen research"
   2. "What are the deadlines?"
   3. "Tell me about the first one"
   Validations: tools_used includes search_funding_calls, response contains call details, follow-up resolves correctly.
 
-- [ ] RUN & FIX: Execute scenario using `ConversationFlowAgent`. If any step fails, identify the issue using `ContextValidatorAgent`, fix, and re-run until passing.
+- [x] RUN & FIX: Execute scenario using `ConversationFlowAgent`. If any step fails, identify the issue using `ContextValidatorAgent`, fix, and re-run until passing.
 
 ### Task 007: Project Search Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/basic_flows/project_search.yaml` with steps:

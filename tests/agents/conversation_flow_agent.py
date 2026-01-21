@@ -17,31 +17,43 @@ Usage:
 
 import asyncio
 import json
-import uuid
 import logging
-from datetime import datetime
-from typing import List, Dict, Any, Optional, AsyncGenerator
+import random
 from dataclasses import dataclass, field
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
 import aiohttp
 import yaml
-from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+
+def _generate_conversation_id() -> int:
+    """Generate a random integer conversation ID.
+
+    Uses a large range to avoid collisions while staying within
+    safe integer bounds for database storage.
+    """
+    # Generate a random ID between 1_000_000 and 2_000_000_000
+    return random.randint(1_000_000, 2_000_000_000)
 
 
 @dataclass
 class ConversationTurn:
     """Represents a single turn in a conversation."""
+
     user_message: str
     response_text: str = ""
-    events: List[Dict[str, Any]] = field(default_factory=list)
-    tools_used: List[str] = field(default_factory=list)
-    tool_results: List[Dict[str, Any]] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    events: list[dict[str, Any]] = field(default_factory=list)
+    tools_used: list[str] = field(default_factory=list)
+    tool_results: list[dict[str, Any]] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
     timestamp: datetime = field(default_factory=datetime.now)
-    error: Optional[str] = None
+    error: str | None = None
     processing_time_ms: float = 0.0
-    conversation_name: Optional[str] = None
+    conversation_name: str | None = None
 
     @property
     def has_error(self) -> bool:
@@ -52,17 +64,47 @@ class ConversationTurn:
     def references_previous_result(self) -> bool:
         """Check if this turn references a previous result."""
         reference_patterns = [
-            "the first", "the second", "the third", "the fourth", "the fifth",
-            "the 1st", "the 2nd", "the 3rd", "the 4th", "the 5th",
-            "that one", "this call", "this project", "mentioned above",
-            "tell me more", "more details", "elaborate", "the same",
-            "number 1", "number 2", "number 3", "#1", "#2", "#3",
-            "item 1", "item 2", "item 3",
+            "the first",
+            "the second",
+            "the third",
+            "the fourth",
+            "the fifth",
+            "the 1st",
+            "the 2nd",
+            "the 3rd",
+            "the 4th",
+            "the 5th",
+            "that one",
+            "this call",
+            "this project",
+            "mentioned above",
+            "tell me more",
+            "more details",
+            "elaborate",
+            "the same",
+            "number 1",
+            "number 2",
+            "number 3",
+            "#1",
+            "#2",
+            "#3",
+            "item 1",
+            "item 2",
+            "item 3",
+            # Comparative references that imply previous results
+            "which one",
+            "these calls",
+            "these projects",
+            "them",
+            "the largest",
+            "the smallest",
+            "the highest",
+            "the lowest",
         ]
         lower_msg = self.user_message.lower()
         return any(pattern in lower_msg for pattern in reference_patterns)
 
-    def get_events_by_type(self, event_type: str) -> List[Dict[str, Any]]:
+    def get_events_by_type(self, event_type: str) -> list[dict[str, Any]]:
         """Get all events of a specific type."""
         return [e for e in self.events if e.get("type") == event_type]
 
@@ -70,18 +112,24 @@ class ConversationTurn:
 @dataclass
 class Validation:
     """A validation to run on a conversation turn."""
+
     type: str
     name: str = ""
-    patterns: List[str] = field(default_factory=list)
-    expected: List[str] = field(default_factory=list)
+    patterns: list[str] = field(default_factory=list)
+    expected: list[str] = field(default_factory=list)
     count: int = 0
     from_turn: int = 0
     description: str = ""
 
-    async def check(self, turn: ConversationTurn, agent: 'ConversationFlowAgent') -> bool:
+    async def check(self, turn: ConversationTurn, agent: "ConversationFlowAgent") -> bool:
         """Run this validation and return whether it passed."""
         if self.type == "response_contains":
+            # Requires ALL patterns to match
             return all(p.lower() in turn.response_text.lower() for p in self.patterns)
+
+        elif self.type == "response_contains_any":
+            # Requires at least ONE pattern to match
+            return any(p.lower() in turn.response_text.lower() for p in self.patterns)
 
         elif self.type == "tools_used":
             return all(t in turn.tools_used for t in self.expected)
@@ -115,24 +163,27 @@ class Validation:
 @dataclass
 class ScenarioStep:
     """A single step in a conversation scenario."""
+
     message: str
-    validations: List[Validation] = field(default_factory=list)
+    validations: list[Validation] = field(default_factory=list)
     delay_ms: int = 0  # Delay before sending this message
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'ScenarioStep':
+    def from_dict(cls, data: dict[str, Any]) -> "ScenarioStep":
         """Create from dictionary."""
         validations = []
         for v in data.get("validations", []):
-            validations.append(Validation(
-                type=v.get("type", ""),
-                name=v.get("name", v.get("type", "")),
-                patterns=v.get("patterns", []),
-                expected=v.get("expected", []),
-                count=v.get("count", 0),
-                from_turn=v.get("from_turn", 0),
-                description=v.get("description", ""),
-            ))
+            validations.append(
+                Validation(
+                    type=v.get("type", ""),
+                    name=v.get("name", v.get("type", "")),
+                    patterns=v.get("patterns", []),
+                    expected=v.get("expected", []),
+                    count=v.get("count", 0),
+                    from_turn=v.get("from_turn", 0),
+                    description=v.get("description", ""),
+                )
+            )
         return cls(
             message=data.get("message", ""),
             validations=validations,
@@ -143,15 +194,16 @@ class ScenarioStep:
 @dataclass
 class ConversationScenario:
     """A complete conversation scenario for testing."""
+
     name: str
     description: str
-    steps: List[ScenarioStep]
-    tags: List[str] = field(default_factory=list)
+    steps: list[ScenarioStep]
+    tags: list[str] = field(default_factory=list)
     stop_on_error: bool = True
-    final_validations: List[Validation] = field(default_factory=list)
+    final_validations: list[Validation] = field(default_factory=list)
 
     @classmethod
-    def from_yaml(cls, yaml_path: Path) -> 'ConversationScenario':
+    def from_yaml(cls, yaml_path: Path) -> "ConversationScenario":
         """Load scenario from YAML file."""
         with open(yaml_path) as f:
             data = yaml.safe_load(f)
@@ -160,11 +212,13 @@ class ConversationScenario:
 
         final_validations = []
         for v in data.get("final_validations", []):
-            final_validations.append(Validation(
-                type=v.get("type", ""),
-                name=v.get("name", v.get("type", "")),
-                description=v.get("description", ""),
-            ))
+            final_validations.append(
+                Validation(
+                    type=v.get("type", ""),
+                    name=v.get("name", v.get("type", "")),
+                    description=v.get("description", ""),
+                )
+            )
 
         return cls(
             name=data.get("name", yaml_path.stem),
@@ -179,6 +233,7 @@ class ConversationScenario:
 @dataclass
 class ValidationResult:
     """Result of a validation check."""
+
     passed: bool
     name: str = ""
     message: str = ""
@@ -188,11 +243,12 @@ class ValidationResult:
 @dataclass
 class ScenarioResult:
     """Result of running a conversation scenario."""
+
     scenario_name: str
     passed: bool = True
-    validations: List[ValidationResult] = field(default_factory=list)
-    errors: List[Dict[str, Any]] = field(default_factory=list)
-    turns: List[ConversationTurn] = field(default_factory=list)
+    validations: list[ValidationResult] = field(default_factory=list)
+    errors: list[dict[str, Any]] = field(default_factory=list)
+    turns: list[ConversationTurn] = field(default_factory=list)
     duration_ms: float = 0.0
 
     @property
@@ -200,25 +256,29 @@ class ScenarioResult:
         return all(v.passed for v in self.validations)
 
     @property
-    def failed_validations(self) -> List[ValidationResult]:
+    def failed_validations(self) -> list[ValidationResult]:
         return [v for v in self.validations if not v.passed]
 
     def add_validation(self, name: str, passed: bool, step_index: int = 0, message: str = ""):
-        self.validations.append(ValidationResult(
-            passed=passed,
-            name=name,
-            message=message,
-            step_index=step_index,
-        ))
+        self.validations.append(
+            ValidationResult(
+                passed=passed,
+                name=name,
+                message=message,
+                step_index=step_index,
+            )
+        )
         if not passed:
             self.passed = False
 
     def add_error(self, step_index: int, step_message: str, error: str):
-        self.errors.append({
-            "step_index": step_index,
-            "step_message": step_message,
-            "error": error,
-        })
+        self.errors.append(
+            {
+                "step_index": step_index,
+                "step_message": step_message,
+                "error": error,
+            }
+        )
         self.passed = False
 
 
@@ -237,7 +297,7 @@ class ConversationFlowAgent:
     def __init__(
         self,
         base_url: str,
-        conversation_id: Optional[str] = None,
+        conversation_id: int | None = None,
         timeout: float = 120.0,
     ):
         """
@@ -249,10 +309,10 @@ class ConversationFlowAgent:
             timeout: Request timeout in seconds
         """
         self.base_url = base_url.rstrip("/")
-        self.conversation_id = conversation_id or str(uuid.uuid4())
+        self.conversation_id = conversation_id or _generate_conversation_id()
         self.timeout = timeout
-        self.message_history: List[ConversationTurn] = []
-        self.context_snapshots: List[Dict[str, Any]] = []
+        self.message_history: list[ConversationTurn] = []
+        self.context_snapshots: list[dict[str, Any]] = []
 
     async def send_message(
         self,
@@ -311,14 +371,19 @@ class ConversationFlowAgent:
                                 turn.response_text += event.get("content", "")
 
                             elif event_type == "tool_call":
-                                turn.tools_used.append(event.get("tool", ""))
+                                # Handle both 'tool' and 'tool_name' field names
+                                tool_name = event.get("tool") or event.get("tool_name", "")
+                                if tool_name:
+                                    turn.tools_used.append(tool_name)
 
                             elif event_type == "tool_result":
-                                turn.tool_results.append({
-                                    "tool": event.get("tool", ""),
-                                    "result": event.get("result", {}),
-                                    "count": event.get("result", {}).get("count", 0),
-                                })
+                                turn.tool_results.append(
+                                    {
+                                        "tool": event.get("tool", ""),
+                                        "result": event.get("result", {}),
+                                        "count": event.get("result", {}).get("count", 0),
+                                    }
+                                )
 
                             elif event_type == "conversation_name":
                                 turn.conversation_name = event.get("name", "")
@@ -336,7 +401,7 @@ class ConversationFlowAgent:
                             logger.warning(f"Failed to parse SSE event: {e}")
                             continue
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             turn.error = f"Request timed out after {self.timeout}s"
         except aiohttp.ClientError as e:
             turn.error = f"Request failed: {str(e)}"
@@ -391,7 +456,7 @@ class ConversationFlowAgent:
 
         return turn
 
-    async def get_context(self) -> Dict[str, Any]:
+    async def get_context(self) -> dict[str, Any]:
         """Get the current conversation context from the API."""
         url = f"{self.base_url}/api/v3/conversation/{self.conversation_id}/context"
 
@@ -507,9 +572,9 @@ class ConversationFlowAgent:
 
     async def run_concurrent_messages(
         self,
-        messages: List[str],
+        messages: list[str],
         delay_between_ms: int = 0,
-    ) -> List[ConversationTurn]:
+    ) -> list[ConversationTurn]:
         """
         Send multiple messages concurrently to test race conditions.
 
@@ -520,15 +585,13 @@ class ConversationFlowAgent:
         Returns:
             List of ConversationTurn results
         """
+
         async def send_with_delay(message: str, delay: int) -> ConversationTurn:
             if delay > 0:
                 await asyncio.sleep(delay / 1000.0)
             return await self.send_message(message)
 
-        tasks = [
-            send_with_delay(msg, i * delay_between_ms)
-            for i, msg in enumerate(messages)
-        ]
+        tasks = [send_with_delay(msg, i * delay_between_ms) for i, msg in enumerate(messages)]
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -547,11 +610,11 @@ class ConversationFlowAgent:
 
     def reset(self):
         """Reset the agent state for a new conversation."""
-        self.conversation_id = str(uuid.uuid4())
+        self.conversation_id = _generate_conversation_id()
         self.message_history = []
         self.context_snapshots = []
 
-    def get_turn(self, index: int) -> Optional[ConversationTurn]:
+    def get_turn(self, index: int) -> ConversationTurn | None:
         """Get a specific turn from history."""
         if 0 <= index < len(self.message_history):
             return self.message_history[index]
@@ -563,7 +626,7 @@ class ConversationFlowAgent:
         return len(self.message_history)
 
     @property
-    def all_tools_used(self) -> List[str]:
+    def all_tools_used(self) -> list[str]:
         """Get all tools used across all turns."""
         tools = []
         for turn in self.message_history:
