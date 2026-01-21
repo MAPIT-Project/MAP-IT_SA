@@ -280,9 +280,9 @@ TEST_API_URL=http://localhost:8000 pytest tests/test_conversation_scenarios.py -
 - [x] DOCUMENT: Create summary of average scores per scenario, identify lowest scoring areas.
 
 ### Task 023: Quality Degradation Detection
-- [ ] IMPLEMENT: Add quality degradation detection to `test_conversation_scenarios.py` that fails if quality drops more than 15 points during a conversation.
+- [x] IMPLEMENT: Add quality degradation detection to `test_conversation_scenarios.py` that fails if quality drops more than 15 points during a conversation.
 
-- [ ] VERIFY: Run long_conversation scenario and verify no degradation detected.
+- [x] VERIFY: Run long_conversation scenario and verify no degradation detected.
 
 ### Task 024: Regression Test Suite
 - [ ] CREATE: Create `tests/test_conversation_regression.py` with tests for each fixed issue:

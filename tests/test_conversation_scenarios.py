@@ -1487,6 +1487,271 @@ class TestQualityEvaluation:
             f"Average quality too low: {quality_result.average_score}"
         )
 
+    @pytest.mark.asyncio
+    async def test_quality_degradation_detection_task_023(
+        self,
+        conversation_agent: ConversationFlowAgent,
+        quality_evaluator: QualityEvaluatorAgent,
+    ):
+        """
+        Test quality degradation detection per PRD Task 023.
+
+        This test validates:
+        1. Quality degradation detection is properly implemented
+        2. The test fails if quality drops more than 15 points during conversation
+        3. Running long_conversation scenario shows no degradation
+
+        Uses QualityEvaluatorAgent.evaluate_conversation() to track quality
+        across all turns and detect any drops of 15+ points.
+        """
+        # Load and run the long_conversation scenario messages
+        # These are the 10 messages from long_conversation.yaml
+        messages = [
+            "I'm interested in climate research funding",
+            "What clusters cover this area?",
+            "What types of projects are funded?",
+            "Tell me about RIA projects specifically",
+            "What's the typical budget?",
+            "How many partners are usually needed?",
+            "What countries participate most?",
+            "Are there any open calls right now?",
+            "What's the deadline for the first one?",
+            "Can you remind me what we started talking about?",
+        ]
+
+        turns_data = []
+        turn_scores = []
+
+        for i, msg in enumerate(messages):
+            turn = await conversation_agent.send_message(msg)
+
+            # Allow some flexibility - don't fail on single turn errors
+            if turn.has_error:
+                logger.warning(f"Turn {i + 1} error: {turn.error}")
+
+            turn_data = {
+                "query": msg,
+                "response": turn.response_text or f"Error: {turn.error}",
+            }
+            turns_data.append(turn_data)
+
+            # Calculate quality score using improved rule-based method
+            # This is more consistent than pattern-matching which varies by topic
+            score = self._calculate_response_quality(turn.response_text or "")
+            turn_scores.append(score)
+
+            # Log individual turn quality for debugging
+            logger.info(f"Turn {i + 1} quality: {score}/100")
+
+            # Small delay between turns
+            await asyncio.sleep(0.3)
+
+        # Verify we completed all 10 turns
+        assert len(turns_data) >= 10, f"Expected 10 turns, got {len(turns_data)}"
+
+        # Evaluate full conversation quality using QualityEvaluatorAgent
+        quality_result = await quality_evaluator.evaluate_conversation(turns_data)
+
+        # TASK 023 CORE ASSERTION: Fail if quality drops more than 15 points
+        assert not quality_result.degradation_detected, (
+            f"QUALITY DEGRADATION DETECTED (Task 023 failure):\n"
+            f"  Turn {quality_result.degradation_turn} dropped "
+            f"{quality_result.degradation_amount:.1f} points\n"
+            f"  Score progression: {turn_scores}\n"
+            f"  Trend: {quality_result.trend}\n"
+            f"  Average score: {quality_result.average_score:.1f}/100"
+        )
+
+        # Additional assertions for quality baseline
+        assert quality_result.average_score >= 55, (
+            f"Average quality too low: {quality_result.average_score:.1f}/100. "
+            f"Expected >= 55 for long_conversation scenario."
+        )
+
+        # Check that individual turn scores don't have massive drops (15+ points)
+        # using our rule-based scoring
+        for i in range(1, len(turn_scores)):
+            drop = turn_scores[i - 1] - turn_scores[i]
+            if drop >= 15:
+                logger.warning(
+                    f"Quality drop of {drop} points detected between turn {i} and {i + 1}. "
+                    f"Previous response length: {len(turns_data[i - 1]['response'])} chars, "
+                    f"Current response length: {len(turns_data[i]['response'])} chars"
+                )
+                # This is a warning, not assertion - the QualityEvaluatorAgent
+                # result is the authoritative check
+
+        # Verify final turn correctly references initial topic
+        final_response = conversation_agent.message_history[-1].response_text.lower()
+        initial_topic_referenced = (
+            "climate" in final_response
+            or "research" in final_response
+            or "funding" in final_response
+        )
+        assert initial_topic_referenced, (
+            f"Final turn should reference initial topic (climate research funding). "
+            f"Got: {final_response[:200]}..."
+        )
+
+        # Log success summary
+        logger.info(
+            f"Task 023 quality degradation test PASSED:\n"
+            f"  Turns: {len(turn_scores)}\n"
+            f"  Average score: {quality_result.average_score:.1f}/100\n"
+            f"  Min score: {quality_result.min_score}/100\n"
+            f"  Max score: {quality_result.max_score}/100\n"
+            f"  Trend: {quality_result.trend}\n"
+            f"  Score progression: {turn_scores}"
+        )
+
+    def _calculate_response_quality(self, response: str) -> int:
+        """
+        Calculate response quality using consistent rule-based scoring.
+
+        This method provides stable quality scores based on response characteristics
+        rather than topic-specific pattern matching.
+
+        Args:
+            response: The response text to evaluate
+
+        Returns:
+            Quality score from 0-100
+        """
+        if not response or len(response) < 10:
+            return 20
+
+        score = 0
+
+        # Length component (max 35 points)
+        length = len(response)
+        if length >= 800:
+            score += 35
+        elif length >= 500:
+            score += 30
+        elif length >= 300:
+            score += 25
+        elif length >= 150:
+            score += 20
+        elif length >= 50:
+            score += 15
+        else:
+            score += 10
+
+        # Structure component (max 25 points)
+        # Check for structured content (lists, headers, etc.)
+        has_list = any(marker in response for marker in ["1.", "2.", "3.", "- ", "• ", "* "])
+        has_sections = response.count("\n\n") >= 1
+        has_headers = ":" in response and response.count(":") >= 2
+
+        if has_list:
+            score += 10
+        if has_sections:
+            score += 8
+        if has_headers:
+            score += 7
+
+        # Specificity component (max 25 points)
+        # Check for specific details (numbers, names, dates)
+        specificity_indicators = 0
+        if any(char.isdigit() for char in response):
+            specificity_indicators += 1
+        if "%" in response or "percent" in response.lower():
+            specificity_indicators += 1
+        if "EUR" in response or "€" in response or "million" in response.lower():
+            specificity_indicators += 1
+        if any(year in response for year in ["2024", "2025", "2026", "2027"]):
+            specificity_indicators += 1
+        if any(word in response.lower() for word in ["specifically", "example", "such as"]):
+            specificity_indicators += 1
+
+        score += min(25, specificity_indicators * 5)
+
+        # Completeness component (max 15 points)
+        # Check for complete sentences and proper ending
+        sentences = response.replace("!", ".").replace("?", ".").split(".")
+        complete_sentences = sum(1 for s in sentences if len(s.strip()) > 20)
+
+        if complete_sentences >= 5:
+            score += 15
+        elif complete_sentences >= 3:
+            score += 10
+        elif complete_sentences >= 1:
+            score += 5
+
+        return min(100, score)
+
+    @pytest.mark.asyncio
+    async def test_quality_degradation_with_scenario_runner(
+        self,
+        conversation_agent: ConversationFlowAgent,
+        quality_evaluator: QualityEvaluatorAgent,
+    ):
+        """
+        Test quality degradation using the scenario runner with long_conversation.yaml.
+
+        This test verifies that the long_conversation scenario from
+        tests/scenarios/context/long_conversation.yaml passes quality validation,
+        specifically checking the quality_non_degradation final validation.
+        """
+        # Find the long_conversation scenario
+        long_conv_scenario = None
+        for scenario in CONTEXT_SCENARIOS:
+            if "long" in scenario.name.lower():
+                long_conv_scenario = scenario
+                break
+
+        if not long_conv_scenario:
+            pytest.skip("long_conversation scenario not found in CONTEXT_SCENARIOS")
+
+        # Run the scenario
+        result = await conversation_agent.run_scenario(long_conv_scenario)
+
+        # Verify scenario completed without critical errors
+        completed_turns = len(result.turns)
+        expected_turns = len(long_conv_scenario.steps)
+        assert completed_turns >= expected_turns * 0.8, (
+            f"Should complete at least 80% of turns: {completed_turns}/{expected_turns}"
+        )
+
+        # Extract turns data for quality evaluation
+        turns_data = [
+            {
+                "query": turn.user_message,
+                "response": turn.response_text or "",
+            }
+            for turn in result.turns
+        ]
+
+        # Evaluate quality across the conversation
+        quality_result = await quality_evaluator.evaluate_conversation(turns_data)
+
+        # Check for quality degradation (15+ points drop)
+        assert not quality_result.degradation_detected, (
+            f"Quality degradation detected in long_conversation scenario:\n"
+            f"  Turn: {quality_result.degradation_turn}\n"
+            f"  Drop: {quality_result.degradation_amount:.1f} points\n"
+            f"  Trend: {quality_result.trend}"
+        )
+
+        # Check average quality is reasonable
+        assert quality_result.average_score >= 50, (
+            f"Average quality too low in long_conversation: {quality_result.average_score:.1f}/100"
+        )
+
+        # Check quality_non_degradation validation was included
+        has_quality_validation = any("quality" in v.name.lower() for v in result.validations)
+        if not has_quality_validation:
+            logger.warning("quality_non_degradation validation not found in scenario results")
+
+        logger.info(
+            f"Long conversation scenario quality test PASSED:\n"
+            f"  Scenario: {long_conv_scenario.name}\n"
+            f"  Turns completed: {completed_turns}/{expected_turns}\n"
+            f"  Average quality: {quality_result.average_score:.1f}/100\n"
+            f"  Degradation detected: {quality_result.degradation_detected}\n"
+            f"  Trend: {quality_result.trend}"
+        )
+
 
 # =============================================================================
 # INTEGRATION TEST

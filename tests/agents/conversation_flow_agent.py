@@ -562,8 +562,9 @@ class ConversationFlowAgent:
                 context = await self.get_context()
                 passed = "error" not in context
             elif validation.type == "quality_non_degradation":
-                # Check that quality doesn't drop significantly
-                passed = True  # Placeholder - QualityEvaluatorAgent handles this
+                # Check that quality doesn't drop significantly (15+ points)
+                # Use rule-based quality check across all turns
+                passed = self._check_quality_non_degradation(result.turns)
             else:
                 passed = True
 
@@ -643,3 +644,103 @@ class ConversationFlowAgent:
     def total_processing_time_ms(self) -> float:
         """Get total processing time across all turns."""
         return sum(turn.processing_time_ms for turn in self.message_history)
+
+    def _check_quality_non_degradation(
+        self,
+        turns: list[ConversationTurn],
+        threshold: int = 15,
+    ) -> bool:
+        """
+        Check that response quality doesn't degrade more than threshold points.
+
+        Uses a simple rule-based quality estimation to detect significant drops
+        in response quality between consecutive turns.
+
+        Args:
+            turns: List of conversation turns to check
+            threshold: Maximum allowed quality drop (default: 15 points)
+
+        Returns:
+            True if no quality degradation detected, False otherwise
+        """
+        if len(turns) < 2:
+            return True
+
+        scores = []
+        for turn in turns:
+            if turn.has_error or not turn.response_text:
+                # Give error turns a low score but don't fail entirely
+                scores.append(30)
+                continue
+
+            # Simple rule-based quality estimation
+            response = turn.response_text
+            score = 0
+
+            # Length component (max 30 points)
+            length = len(response)
+            if length >= 500:
+                score += 30
+            elif length >= 200:
+                score += 25
+            elif length >= 100:
+                score += 20
+            elif length >= 50:
+                score += 15
+            else:
+                score += 10
+
+            # Specificity indicators (max 25 points)
+            specificity_indicators = [
+                "specifically",
+                "for example",
+                "such as",
+                "including",
+                "million",
+                "percent",
+                "%",
+                "EUR",
+                "Horizon",
+            ]
+            specificity_count = sum(
+                1 for ind in specificity_indicators if ind.lower() in response.lower()
+            )
+            score += min(25, specificity_count * 5)
+
+            # Structural indicators (max 25 points)
+            if any(char in response for char in ["1.", "2.", "3.", "-", "•", "*"]):
+                score += 15  # Has list structure
+            if ":" in response:
+                score += 5  # Has headers/colons
+            if len(response.split("\n")) > 2:
+                score += 5  # Has multiple paragraphs
+
+            # Actionable language (max 20 points)
+            actionable_words = [
+                "can",
+                "should",
+                "apply",
+                "visit",
+                "check",
+                "contact",
+                "submit",
+                "deadline",
+            ]
+            actionable_count = sum(
+                1 for word in actionable_words if word.lower() in response.lower()
+            )
+            score += min(20, actionable_count * 4)
+
+            scores.append(min(100, score))
+
+        # Check for drops exceeding threshold
+        for i in range(1, len(scores)):
+            drop = scores[i - 1] - scores[i]
+            if drop >= threshold:
+                logger.warning(
+                    f"Quality degradation detected: turn {i} dropped {drop} points "
+                    f"(from {scores[i - 1]} to {scores[i]})"
+                )
+                return False
+
+        return True
