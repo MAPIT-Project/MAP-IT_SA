@@ -327,7 +327,7 @@ TEST_API_URL=http://localhost:8000 pytest tests/test_conversation_scenarios.py -
 ### ==========================================================
 
 ### Task 028: Update CLAUDE.md
-- [ ] UPDATE: Add section to `CLAUDE.md` documenting:
+- [x] UPDATE: Add section to `CLAUDE.md` documenting:
   1. Conversation stability architecture
   2. How to run scenario tests
   3. How to add new scenarios

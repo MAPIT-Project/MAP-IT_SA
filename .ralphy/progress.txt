@@ -4049,3 +4049,73 @@ python scripts/quality_gate.py \
 
 ### Next Task
 Task 028: Update CLAUDE.md (PHASE 9: Documentation & Cleanup)
+
+---
+
+## 2026-01-22: Task 028 - Update CLAUDE.md (PHASE 9: Documentation & Cleanup)
+
+### Task Completed
+Updated CLAUDE.md with comprehensive conversation stability documentation.
+
+### Files Modified
+1. **`CLAUDE.md`** - Added new section "Conversation Stability Architecture" with:
+   - Overview of the conversation stability system
+   - Core stability modules documentation (ConversationLockManager, AtomicMessageStorage)
+   - Test agents documentation (ConversationFlowAgent, ContextValidatorAgent, QualityEvaluatorAgent)
+   - Scenario testing commands and examples
+   - How to add new scenarios (YAML format specification)
+   - Available validation types reference
+   - Scenario categories overview
+   - Quality evaluation process (LLM-based and rule-based)
+   - Debugging failures guide
+   - CI/CD integration documentation
+   - Key files reference table
+
+2. **`docs/prd/MAPIT_CONVERSATION_STABILITY_PRD.md`** - Marked Task 028 as complete
+
+### Documentation Highlights
+
+**Core Modules Usage:**
+```python
+from app.core import get_conversation_lock
+
+async with get_conversation_lock(conversation_id):
+    # Process message safely - only one request at a time
+    pass
+```
+
+**Test Agent Usage:**
+```python
+from tests.agents import ConversationFlowAgent
+
+agent = ConversationFlowAgent(base_url="http://localhost:8000")
+turn = await agent.send_message("Find hydrogen funding calls")
+```
+
+**Scenario Testing:**
+```bash
+pytest tests/test_conversation_scenarios.py -k "basic" -v
+```
+
+**Quality Scoring Dimensions:**
+| Dimension | Points |
+|-----------|--------|
+| Query Fulfillment | 40 |
+| Specificity | 25 |
+| Factual Accuracy | 25 |
+| Actionability | 10 |
+
+### Test Results
+- `tests/test_conversation_lock.py`: 15 tests passed
+- `tests/test_conversation_regression.py`: 41 tests passed
+- Core imports verified: ConversationLockManager, AtomicMessageStorage, test agents
+
+### PRD Task Status
+- [x] UPDATE: Added section to CLAUDE.md documenting:
+  1. Conversation stability architecture
+  2. How to run scenario tests
+  3. How to add new scenarios
+  4. Quality evaluation process
+
+### Next Task
+Task 029: Architecture Documentation (create docs/CONVERSATION_STABILITY_ARCHITECTURE.md)

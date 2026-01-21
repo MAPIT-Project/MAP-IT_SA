@@ -3,7 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Hard Rules
-1. Always go for the best possible working solution that would be production ready, even if that means sacrificing performance. 
+1. Always go for the best possible working solution that would be production ready, even if that means sacrificing performance.
 2. If benefitial, always make use of subagents.
 
 ## Project Overview
@@ -901,6 +901,233 @@ When using the legacy endpoint (`/api/query/stream`), progress updates are sent 
 {"type": "token", "content": "..."}
 {"type": "complete", "metadata": {"confidence": "high", "iterations": 1}}
 ```
+
+## Conversation Stability Architecture
+
+### Overview
+The conversation stability system ensures reliable multi-turn conversations by preventing race conditions, maintaining context integrity, and providing comprehensive automated testing.
+
+### Core Stability Modules (`app/core/`)
+
+**ConversationLockManager** (`conversation_lock.py`)
+- Per-conversation async locks to prevent race conditions
+- Automatic stale lock cleanup (configurable max age)
+- Lock timeout support (default: 60 seconds)
+- Usage statistics and debugging info
+
+```python
+from app.core import get_conversation_lock
+
+async with get_conversation_lock(conversation_id):
+    # Process message safely - only one request at a time
+    pass
+```
+
+**AtomicMessageStorage** (`atomic_storage.py`)
+- Atomic message storage with proper error reporting (no silent failures)
+- DB (PostgreSQL) as source of truth, Memory (Redis) as cache
+- Transaction support with automatic rollback on failure
+- Duplicate detection within 5-second window
+
+```python
+from app.core import AtomicMessageStorage
+
+storage = AtomicMessageStorage(db_pool, memory_service)
+result = await storage.store_message_pair(
+    conversation_id=123,
+    user_id=1,
+    user_message="Hello",
+    assistant_message="Hi there!"
+)
+if not result.success:
+    logger.error(f"Storage failed: {result.error}")
+```
+
+### Test Agents (`tests/agents/`)
+
+| Agent | Purpose |
+|-------|---------|
+| `ConversationFlowAgent` | Simulates multi-turn conversations, collects SSE events, validates responses |
+| `ContextValidatorAgent` | Validates DB/Redis consistency, detects race conditions |
+| `QualityEvaluatorAgent` | Scores responses using LLM-as-judge with 40/25/25/10 rubric |
+
+**ConversationFlowAgent Usage:**
+```python
+from tests.agents import ConversationFlowAgent
+
+agent = ConversationFlowAgent(base_url="http://localhost:8000")
+turn = await agent.send_message("Find hydrogen funding calls")
+print(turn.response_text)
+print(turn.tools_used)
+```
+
+**QualityEvaluatorAgent Scoring Dimensions:**
+| Dimension | Points | What to Check |
+|-----------|--------|---------------|
+| Query Fulfillment | 40 | All query components addressed |
+| Specificity | 25 | Numbers, dates, names, call IDs |
+| Factual Accuracy | 25 | Correct EU funding information |
+| Actionability | 10 | Clear next steps, links, deadlines |
+
+### Running Scenario Tests
+
+```bash
+# All conversation scenarios
+pytest tests/test_conversation_scenarios.py -v
+
+# Basic flows only
+pytest tests/test_conversation_scenarios.py -k "basic" -v
+
+# Follow-up tests only
+pytest tests/test_conversation_scenarios.py -k "follow_up" -v
+
+# Concurrent tests only
+pytest tests/test_conversation_scenarios.py -k "concurrent" -v
+
+# Context preservation tests
+pytest tests/test_conversation_scenarios.py -k "context" -v
+
+# Error recovery tests
+pytest tests/test_conversation_scenarios.py -k "error" -v
+
+# With coverage
+pytest tests/test_conversation_scenarios.py --cov=app/services/conversation -v
+```
+
+### Adding New Scenarios
+
+Scenarios are defined as YAML files in `tests/scenarios/`. Create a new scenario:
+
+```yaml
+# tests/scenarios/basic_flows/my_scenario.yaml
+name: "My Scenario Name"
+description: "What this scenario tests"
+tags: ["basic", "calls"]
+stop_on_error: true
+
+steps:
+  - message: "User query here"
+    validations:
+      - type: "response_contains"
+        name: "check_name"
+        patterns: ["expected", "patterns"]
+      - type: "tools_used"
+        name: "check_tools"
+        expected: ["search_funding_calls"]
+      - type: "no_error"
+        name: "no_errors"
+    delay_ms: 0
+
+  - message: "Follow-up question"
+    validations:
+      - type: "follow_up_resolved"
+        name: "resolves_reference"
+    delay_ms: 500
+
+final_validations:
+  - type: "context_integrity"
+    name: "context_preserved"
+  - type: "quality_non_degradation"
+    name: "quality_stable"
+```
+
+**Available Validation Types:**
+| Type | Description |
+|------|-------------|
+| `response_contains` | All patterns must appear in response |
+| `response_contains_any` | At least one pattern must appear |
+| `tools_used` | Specified tools must be called |
+| `min_results` | Tool results must have minimum count |
+| `follow_up_resolved` | Message references previous results |
+| `context_preserved` | Context from previous turn exists |
+| `no_error` | No errors in response |
+| `context_integrity` | Final: all messages stored properly |
+| `quality_non_degradation` | Final: quality doesn't drop > 15 points |
+
+### Scenario Categories
+
+| Category | Location | Tests |
+|----------|----------|-------|
+| Basic Flows | `tests/scenarios/basic_flows/` | Funding calls, projects, budgets, timelines |
+| Follow-Up | `tests/scenarios/follow_up/` | Numbered references, "tell me more", comparisons |
+| Context | `tests/scenarios/context/` | Long conversations (10+ turns), topic switching, memory overflow |
+| Error Recovery | `tests/scenarios/error_recovery/` | Invalid references, ambiguous queries, tool timeouts |
+| Concurrent | `tests/scenarios/concurrent/` | Rapid messages, simultaneous requests |
+
+### Quality Evaluation Process
+
+**LLM-Based Evaluation:**
+```python
+from tests.agents import QualityEvaluatorAgent
+
+evaluator = QualityEvaluatorAgent(passing_threshold=75)
+score = await evaluator.evaluate_response(query, response)
+print(f"Total: {score.total_score}/100")
+print(f"Passed: {score.passed}")
+```
+
+**Rule-Based Quick Evaluation:**
+```python
+score = evaluator.quick_evaluate(
+    response=response_text,
+    expected_patterns=["funding", "deadline", "EUR"],
+    min_length=100
+)
+```
+
+**Conversation Quality Tracking:**
+```python
+result = await evaluator.evaluate_conversation([
+    {"query": "Find calls", "response": "..."},
+    {"query": "Tell me more", "response": "..."},
+])
+print(f"Average: {result.average_score}")
+print(f"Trend: {result.trend}")  # "improving", "stable", "degrading"
+print(f"Degradation: {result.degradation_detected}")
+```
+
+### Debugging Failures
+
+| Failure Type | Agent to Use | What to Check |
+|--------------|--------------|---------------|
+| Message not stored | `ContextValidatorAgent` | `validate_message_stored()` |
+| Context lost | `ContextValidatorAgent` | `validate_context_integrity()` |
+| Follow-up fails | `ContextValidatorAgent` | `validate_follow_up_context()` |
+| Race condition | `ContextValidatorAgent` | `detect_race_condition()` |
+| Quality drop | `QualityEvaluatorAgent` | `evaluate_conversation()` |
+| Tool not called | `ConversationFlowAgent` | Check `turn.tools_used` |
+
+### CI/CD Integration
+
+**GitHub Actions Workflow** (`.github/workflows/conversation-tests.yml`):
+- Service containers (postgres, redis, neo4j)
+- API server startup
+- Scenario test execution
+- Quality baseline comparison
+- Artifact upload for results
+
+**Pre-commit Hook**:
+- Runs quick smoke tests for changes to `conversation_manager.py` or `memory_service.py`
+- Configure in `.pre-commit-config.yaml`
+
+**Quality Gate**:
+- Fails PR if any scenario test fails
+- Fails PR if quality score below 75
+- Fails PR if race condition detected
+- Fails PR if context integrity check fails
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `app/core/conversation_lock.py` | Per-conversation async locks |
+| `app/core/atomic_storage.py` | Atomic message storage |
+| `tests/agents/conversation_flow_agent.py` | Multi-turn simulation |
+| `tests/agents/context_validator_agent.py` | State validation |
+| `tests/agents/quality_evaluator_agent.py` | Quality scoring |
+| `tests/test_conversation_scenarios.py` | Main scenario test runner |
+| `tests/test_conversation_regression.py` | Regression tests for fixes |
+| `tests/conftest.py` | Shared fixtures (43 fixtures) |
 
 ## Documentation
 - Comprehensive documentation in `docs/` directory including `docs_tracked/SYSTEM_ARCHITECTURE.md`
