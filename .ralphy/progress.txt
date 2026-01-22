@@ -7101,3 +7101,52 @@ Implemented the Fix Tracking System for tracking failures and fix attempts durin
 
 ### Next Task
 Task 004: Execute Phase 1 Scenarios (Multi-Programme Navigation)
+
+
+## 2026-01-22: Task 004 - Execute Phase 1 Scenarios (Multi-Programme Navigation)
+
+### Task Completed
+Executed all 4 Phase 1 scenarios against the live API and recorded results per PRD requirements.
+
+### Files Created/Modified
+- `tests/quality/test_phase1_scenarios.py` - New test file for Phase 1 scenario execution:
+  - Individual tests for each scenario (programme_discovery, programme_comparison, programme_recommendation, eligibility_routing)
+  - Full phase execution test with report generation
+  - Infrastructure tests (scenario existence, YAML validation, report generation)
+  - Results saved to `tests/quality/results/phase1/`
+
+- `tests/test_production_quality_validation.py` - Fixed bugs:
+  - Fixed GoalTrackingAgent interface (use evaluate_progress instead of add_turn)
+  - Fixed PersonalizationAgent interface (count non-None fields in profile)
+  - Fixed incorrect INCORRECT_DATA critical failure logic:
+    - Only mark as INCORRECT_DATA when there are actual incorrect facts
+    - Low factual scores without incorrect facts now marked as MISSING_DATA (HIGH severity)
+
+- `docs/prd/MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD.md` - Updated with execution results
+
+### Execution Results
+| Scenario | Runtime | Score | Failures | Status |
+|----------|---------|-------|----------|--------|
+| programme_discovery | 98.63s | 79.67/100 | 0 | NEEDS_IMPROVEMENT |
+| programme_comparison | 185.98s | 78.0/100 | 3 | NEEDS_FIX |
+| programme_recommendation | 80.35s | 77.0/100 | 1 | NEEDS_FIX |
+| eligibility_routing | 161.99s | 79.5/100 | 1 | NEEDS_IMPROVEMENT |
+
+**Phase 1 Summary:**
+- Total Runtime: 526.95s
+- Average Quality Score: 78.54/100
+- Average Factual Score: 91.43/100
+- Critical Failures: 5 (factual validation false positives)
+
+### Issues Identified
+1. Quality scores slightly below 80 threshold (by 0.33-3 points)
+2. CrossProgrammeAgent fact validation conflates funding rates (RIA=100%, IA=70%) with success rates (~12%)
+3. False positive INCORRECT_DATA failures due to regex pattern matching wrong numbers
+
+### Test Results
+- 16 infrastructure tests pass (all Phase 1 infrastructure + ProductionQualityRunner tests)
+- Live API tests execute successfully and save detailed results
+
+### Next Steps
+- FIX: Update CrossProgrammeAgent fact validation to distinguish funding rates from success rates
+- VERIFY: Re-run scenarios after fixes to achieve >= 80/100 scores

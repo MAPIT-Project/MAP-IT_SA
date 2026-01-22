@@ -232,27 +232,30 @@ After all fixes:
 **CRITICAL**: Every scenario MUST be executed. Mark each with actual runtime and score.
 
 ### Task 004: Execute Phase 1 Scenarios (Multi-Programme Navigation)
-- [ ] RUN: `programme_discovery.yaml`
-  - Runtime: ___ seconds
-  - Average Score: ___/100
-  - Failures: ___
-  - Status: PASS/FAIL
-- [ ] RUN: `programme_comparison.yaml`
-  - Runtime: ___ seconds
-  - Average Score: ___/100
-  - Failures: ___
-  - Status: PASS/FAIL
-- [ ] RUN: `programme_recommendation.yaml`
-  - Runtime: ___ seconds
-  - Average Score: ___/100
-  - Failures: ___
-  - Status: PASS/FAIL
-- [ ] RUN: `eligibility_routing.yaml`
-  - Runtime: ___ seconds
-  - Average Score: ___/100
-  - Failures: ___
-  - Status: PASS/FAIL
+- [x] RUN: `programme_discovery.yaml`
+  - Runtime: 98.63 seconds
+  - Average Score: 79.67/100
+  - Failures: 0
+  - Status: NEEDS_IMPROVEMENT (score < 80)
+- [x] RUN: `programme_comparison.yaml`
+  - Runtime: 185.98 seconds
+  - Average Score: 78.0/100
+  - Failures: 3 (factual validation false positives - success rates vs funding rates confusion)
+  - Status: NEEDS_FIX
+- [x] RUN: `programme_recommendation.yaml`
+  - Runtime: 80.35 seconds
+  - Average Score: 77.0/100
+  - Failures: 1
+  - Status: NEEDS_FIX
+- [x] RUN: `eligibility_routing.yaml`
+  - Runtime: 161.99 seconds
+  - Average Score: 79.5/100
+  - Failures: 1
+  - Status: NEEDS_IMPROVEMENT (score < 80)
 - [ ] FIX: Any failures in Phase 1 scenarios
+  - Issue identified: CrossProgrammeAgent fact validation conflates funding rates (RIA=100%, IA=70%) with success rates (~12%)
+  - Test infrastructure created: `tests/quality/test_phase1_scenarios.py`
+  - Results saved: `tests/quality/results/phase1/`
 - [ ] VERIFY: All 4 scenarios pass with >= 80/100
 
 ### Task 005: Execute Phase 2 Scenarios (Proposal Workflows)

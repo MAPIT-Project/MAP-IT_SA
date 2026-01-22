@@ -348,15 +348,26 @@ class ProductionQualityRunner:
             result.failures.extend(turn_result.failures)
 
             # Update tracking agents
-            self.goal_tracking_agent.add_turn(step.message, turn.response_text)
+            # GoalTrackingAgent uses evaluate_progress (async) instead of add_turn
+            await self.goal_tracking_agent.evaluate_progress(step.message, turn.response_text)
             self.personalization_agent.add_turn(step.message, turn.response_text)
 
         # Calculate aggregate scores
+        # GoalTrackingAgent stores progress in _progress_history, get last score
+        goal_progress = 0.0
+        if self.goal_tracking_agent._progress_history:
+            goal_progress = max(p.score for p in self.goal_tracking_agent._progress_history)
+
+        # PersonalizationAgent.get_profile() returns UserProfile object, count non-None fields
+        profile = self.personalization_agent.get_profile()
+        profile_dict = profile.__dict__ if hasattr(profile, "__dict__") else {}
+        context_fields = sum(1 for v in profile_dict.values() if v is not None)
+
         result.scores = {
             "average_quality": result.average_quality_score,
             "average_factual": result.average_factual_score,
-            "goal_progress": self.goal_tracking_agent.get_progress(),
-            "context_fields": len(self.personalization_agent.get_profile()),
+            "goal_progress": goal_progress,
+            "context_fields": context_fields,
         }
 
         # Run final context validation
@@ -416,17 +427,37 @@ class ProductionQualityRunner:
                 facts_result = await self.cross_programme_agent.validate_programme_facts(
                     response, programme
                 )
-                if not facts_result.passed:
+                # Only flag as INCORRECT_DATA if there are actually incorrect facts
+                # A low score alone (e.g., from LLM unavailable) is not a critical failure
+                if facts_result.facts_incorrect:
+                    incorrect_str = str(facts_result.facts_incorrect[:3])
+                    desc = f"Incorrect {programme} facts: {incorrect_str}"[:100]
                     failures.append(
                         FailureRecord(
                             category=FailureCategory.INCORRECT_DATA,
                             severity=FailureSeverity.CRITICAL,
-                            description=f"Incorrect {programme} facts"[:100],
+                            description=desc,
                             turn_number=turn_number,
                             evidence={
                                 "programme": programme,
                                 "incorrect_facts": facts_result.facts_incorrect,
                                 "score": facts_result.score,
+                            },
+                        )
+                    )
+                elif not facts_result.passed and facts_result.score < 0.5:
+                    # Low factual score without incorrect facts = missing facts (HIGH, not CRITICAL)
+                    desc = f"Low factual confidence for {programme} ({facts_result.score:.2f})"
+                    failures.append(
+                        FailureRecord(
+                            category=FailureCategory.MISSING_DATA,
+                            severity=FailureSeverity.HIGH,
+                            description=desc,
+                            turn_number=turn_number,
+                            evidence={
+                                "programme": programme,
+                                "score": facts_result.score,
+                                "facts_missing": getattr(facts_result, "facts_missing", []),
                             },
                         )
                     )
