@@ -184,7 +184,7 @@ Run with: `./ralphy.sh --prd docs/prd/MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD_V3
 ### ==========================================================
 
 ### Scenario 005: Full Proposal Journey (15 turns - CRITICAL)
-- [ ] EXECUTE: Run scenario `tests/scenarios/advanced/proposal_workflow/full_proposal_journey.yaml` against the live API. This is a 15-turn critical scenario testing the complete proposal journey. Save result to `tests/quality/results/scenarios/full_proposal_journey.json`.
+- [x] EXECUTE: Run scenario `tests/scenarios/advanced/full_proposal_journey.yaml` against the live API. This is a 15-turn critical scenario testing the complete proposal journey. Save result to `tests/quality/results/scenarios/full_proposal_journey.json`.
 
 - [ ] FIX IF NEEDED: Read `tests/quality/results/scenarios/full_proposal_journey.json`. If average_score < 80:
   1. This complex scenario may have multiple issues - check EACH turn's scores
