@@ -9107,3 +9107,32 @@ Executed Scenario 012: Organization Deep Dive against the live API.
 ### PRD Task Status
 - [x] EXECUTE task marked complete
 - [ ] FIX IF NEEDED task pending (score 75.8 < 80)
+
+## Scenario 012: Organization Deep Dive - FIX IF NEEDED (2026-01-22)
+
+**Status**: CLOSE_TO_THRESHOLD (75.4/100, below 80 threshold)
+
+**Initial Score**: 75.8/100
+
+**Root Causes Identified**:
+1. Initial organization queries ("Tell me about TUM's EU funding") triggered `find_experienced_partners` instead of `find_organization_projects`
+2. Follow-up queries about the same org were intercepted by partner comparison detection before org deep dive detection
+3. "Success rate as coordinator" query filtered to coordinator role only, returning no results when TUM has no coordinator projects in DB
+4. Context extraction didn't match "## Projects by <org>" format from new formatter
+5. V3ResponseFormatter had no organization-specific formatting
+
+**Fixes Applied**:
+1. Added `_detect_initial_organization_profile_query()` method to handle queries mentioning known organization names
+2. Reordered detection flow: org deep dive now checked BEFORE partner comparison
+3. Added `format_organization_projects()` method to V3ResponseFormatter
+4. Updated `_extract_org_from_context()` to match "## Projects by <org>" pattern
+5. Changed "success rate" queries to NOT filter by role (need all projects for statistics)
+6. Improved "No coordinator projects" messaging when org has participant-only projects
+
+**Files Modified**:
+- `app/services/agents/tool_aware_agent.py`: Added org detection, reordered detection flow, fixed role filtering
+- `app/services/response/v3_response_formatter.py`: Added org-specific formatting
+
+**Remaining Issue**: Base response quality scores ~75/100. All turns now use correct tools but response content quality is inherently limited by generic project listing format.
+
+**Attempt Count**: 1

@@ -3439,6 +3439,13 @@ digital_europe, life""",
         """
         query_lower = query.lower()
 
+        # FIRST: Check for SPECIFIC ORGANIZATION queries (must come before partner discovery!)
+        # These are queries about a NAMED organization's funding history/projects/track record
+        # e.g., "Tell me about TUM's EU funding history", "What has Fraunhofer done in Horizon Europe?"
+        org_profile_result = self._detect_initial_organization_profile_query(query)
+        if org_profile_result:
+            return org_profile_result
+
         # Partner/organization discovery patterns
         partner_patterns = [
             "find partner",
@@ -3492,7 +3499,16 @@ digital_europe, life""",
         if refinement_result:
             return refinement_result
 
+        # Check for organization DEEP-DIVE queries BEFORE partner comparison
+        # This ensures "## Projects by <org>" context triggers org tools, not partner comparison
+        # e.g., "What topics do they focus on?", "Show their projects", "Who are their partners?"
+        # e.g., "What's their success rate as coordinator?" (about a specific org in context)
+        org_deepdive_result = self._detect_organization_deepdive_query(query, context)
+        if org_deepdive_result:
+            return org_deepdive_result
+
         # Check for partner COMPARISON/ANALYSIS queries (e.g., "Compare the top 3", "Which has most funding?")
+        # Only reached if context doesn't have organization-specific indicators
         comparison_result = self._detect_partner_comparison_query(query, context)
         if comparison_result:
             return comparison_result
@@ -3523,6 +3539,167 @@ digital_europe, life""",
                 ],
                 "needs_more_info": True,
             }
+
+        return None
+
+    def _detect_initial_organization_profile_query(self, query: str) -> dict[str, Any] | None:
+        """Detect if query asks about a SPECIFIC named organization's funding/projects.
+
+        This handles INITIAL queries (no context needed) like:
+        - "Tell me about Technical University of Munich's EU funding history"
+        - "What has Fraunhofer done in Horizon Europe?"
+        - "Show TUM's projects"
+        - "CNRS funding track record"
+
+        These should use find_organization_projects, NOT find_experienced_partners.
+
+        Key distinction:
+        - "Find partners for AI research" -> find_experienced_partners (searching MANY orgs)
+        - "Tell me about TUM's funding" -> find_organization_projects (asking about ONE org)
+        """
+        query_lower = query.lower()
+
+        # Known organization names/aliases (common forms users might use)
+        known_org_patterns = {
+            # German Universities
+            "technical university of munich": "Technical University of Munich",
+            "tu munich": "TU Munich",
+            "tum's": "TUM",
+            "tum ": "TUM",
+            "technische universitaet muenchen": "Technische Universitaet Muenchen",
+            "technical university of berlin": "Technical University of Berlin",
+            "tu berlin": "TU Berlin",
+            "rwth aachen": "RWTH Aachen",
+            "tu dortmund": "TU Dortmund",
+            "tu dresden": "TU Dresden",
+            # German Research Orgs
+            "fraunhofer": "Fraunhofer",
+            "max planck": "Max Planck",
+            "helmholtz": "Helmholtz",
+            "leibniz": "Leibniz",
+            # Dutch Universities
+            "tu delft": "TU Delft",
+            "delft university": "TU Delft",
+            "tu eindhoven": "TU Eindhoven",
+            "eindhoven university": "TU Eindhoven",
+            # Austrian Universities
+            "tu vienna": "TU Vienna",
+            "tu wien": "TU Wien",
+            "tu graz": "TU Graz",
+            # French institutions
+            "cnrs": "CNRS",
+            "inria": "INRIA",
+            "cea ": "CEA",
+            "inserm": "INSERM",
+            # UK institutions
+            "imperial college": "Imperial College London",
+            "ucl ": "UCL",
+            "university college london": "UCL",
+            "oxford university": "Oxford University",
+            "university of oxford": "University of Oxford",
+            "cambridge university": "Cambridge University",
+            "university of cambridge": "University of Cambridge",
+            # Swiss institutions
+            "eth zurich": "ETH Zurich",
+            "epfl": "EPFL",
+            # Italian institutions
+            "politecnico di milano": "Politecnico di Milano",
+            "polimi": "Politecnico di Milano",
+            "sapienza": "Sapienza",
+            "universita di bologna": "Universita di Bologna",
+            # Spanish institutions
+            "csic": "CSIC",
+            # Belgian institutions
+            "ku leuven": "KU Leuven",
+            "imec": "IMEC",
+            "universiteit gent": "Universiteit Gent",
+            # Nordic institutions
+            "dtu": "DTU",
+            "danmarks tekniske": "DTU",
+            "chalmers": "Chalmers",
+            "kth": "KTH",
+            "sintef": "SINTEF",
+            "vtt": "VTT",
+            # Other major institutions
+            "cern": "CERN",
+            "esa ": "ESA",
+        }
+
+        # Patterns indicating asking ABOUT an organization (not searching for partners)
+        org_profile_patterns = [
+            "'s eu funding",
+            "'s funding history",
+            "'s eu projects",
+            "'s projects",
+            "'s track record",
+            "'s horizon",
+            "tell me about",
+            "what has",
+            "show me",
+            "funding history",
+            "project history",
+            "eu funding track",
+            "what projects has",
+            "how many projects has",
+            "projects by",
+            "projects from",
+        ]
+
+        # Check if query has an organization profile indicator
+        has_profile_pattern = any(pattern in query_lower for pattern in org_profile_patterns)
+
+        # Find if a known organization is mentioned
+        found_org = None
+        for org_pattern, org_name in known_org_patterns.items():
+            if org_pattern in query_lower:
+                found_org = org_name
+                break
+
+        # If we found a known org AND a profile-asking pattern, use find_organization_projects
+        if found_org and has_profile_pattern:
+            logger.info(f"🏢 Detected organization profile query for: {found_org}")
+            return {
+                "thought": f"User is asking specifically about {found_org}'s EU funding profile. "
+                f"Using find_organization_projects (not find_experienced_partners).",
+                "action": "call_tools",
+                "tool_calls": [
+                    {
+                        "tool": "find_organization_projects",
+                        "parameters": {"organization_name": found_org},
+                        "reasoning": f"Getting {found_org}'s project portfolio from database",
+                    }
+                ],
+                "needs_more_info": True,
+            }
+
+        # Even without profile pattern, if query ONLY mentions one known org,
+        # it's likely asking about that specific org
+        if found_org:
+            # Check if it's not a "find partners FOR" query
+            partner_search_indicators = [
+                "find partner",
+                "need partner",
+                "looking for partner",
+                "experienced in",
+                "organizations working on",
+                "who has experience",
+            ]
+            is_partner_search = any(ind in query_lower for ind in partner_search_indicators)
+
+            if not is_partner_search:
+                logger.info(f"🏢 Detected organization-focused query for: {found_org}")
+                return {
+                    "thought": f"User is asking about {found_org}. Using find_organization_projects.",
+                    "action": "call_tools",
+                    "tool_calls": [
+                        {
+                            "tool": "find_organization_projects",
+                            "parameters": {"organization_name": found_org},
+                            "reasoning": f"Getting {found_org}'s project portfolio from database",
+                        }
+                    ],
+                    "needs_more_info": True,
+                }
 
         return None
 
@@ -3787,6 +3964,209 @@ digital_europe, life""",
             "confidence": 0.85,
             "needs_more_info": False,
         }
+
+    def _detect_organization_deepdive_query(
+        self, query: str, context: str
+    ) -> dict[str, Any] | None:
+        """Detect if query is a follow-up about a specific organization.
+
+        This handles follow-up queries like:
+        - "What topics do they focus on?" (after asking about TUM's funding history)
+        - "Show their recent projects"
+        - "Who are their preferred partners?"
+        - "What's their success rate as coordinator?"
+
+        These should use find_organization_projects or get_collaboration_network.
+        """
+        if not context:
+            return None
+
+        query_lower = query.lower()
+        context_lower = context.lower()
+
+        # Check if context indicates a specific organization is being discussed
+        # Look for patterns like "## Projects for/by <org>" or organization names mentioned
+        org_context_indicators = [
+            "## projects for ",
+            "## projects by ",
+            "## collaboration network",
+            "find_organization_projects",
+            "organization's eu funding",
+            "'s funding history",
+            "technical university of munich",
+            "technische universit",
+            "technische universitaet muenchen",  # German spelling
+            "fraunhofer",
+            "university of ",
+            "cnrs",
+            "max planck",
+            "tu delft",
+            "tu munich",
+            "eth zurich",
+            "epfl",
+            " eu funding history",
+            "total projects found",  # Response pattern from find_organization_projects
+        ]
+
+        has_org_context = any(indicator in context_lower for indicator in org_context_indicators)
+
+        if not has_org_context:
+            return None
+
+        # Extract the organization name from context
+        org_name = self._extract_org_from_context(context)
+
+        if not org_name:
+            return None
+
+        # Queries about collaboration/partners - use get_collaboration_network
+        partner_query_patterns = [
+            "who are their partners",
+            "their preferred partners",
+            "who do they partner with",
+            "who do they work with",
+            "collaboration network",
+            "typically partner with",
+            "partner with",
+            "collaborators",
+        ]
+
+        if any(pattern in query_lower for pattern in partner_query_patterns):
+            return {
+                "thought": f"User is asking about {org_name}'s collaboration partners. Using get_collaboration_network.",
+                "action": "call_tools",
+                "tool_calls": [
+                    {
+                        "tool": "get_collaboration_network",
+                        "parameters": {"organization_name": org_name},
+                        "reasoning": f"Getting collaboration network for {org_name}",
+                    }
+                ],
+                "needs_more_info": True,
+            }
+
+        # Queries about projects/focus/topics - use find_organization_projects
+        project_query_patterns = [
+            "their projects",
+            "their recent projects",
+            "show projects",
+            "what topics",
+            "research focus",
+            "focus areas",
+            "topics do they",
+            "what do they work on",
+            "what are they working",
+            "success rate as coordinator",
+            "coordinated projects",
+            "as coordinator",
+            "projects they coordinated",
+            "coordinator success",
+        ]
+
+        if any(pattern in query_lower for pattern in project_query_patterns):
+            # Check if query specifically asks about coordinator role
+            # BUT: For success rate queries, don't filter by role - we need all projects
+            # to compute statistics (even if they ask about coordinator success rate)
+            role = None
+            is_success_rate_query = "success rate" in query_lower
+            if not is_success_rate_query and any(
+                kw in query_lower for kw in ["coordinator", "coordinated", "lead", "leading"]
+            ):
+                role = "coordinator"
+
+            thought = f"User is asking about {org_name}'s projects."
+            if is_success_rate_query:
+                thought += " Fetching all projects to analyze coordinator statistics."
+            thought += " Using find_organization_projects."
+
+            return {
+                "thought": thought,
+                "action": "call_tools",
+                "tool_calls": [
+                    {
+                        "tool": "find_organization_projects",
+                        "parameters": {
+                            "organization_name": org_name,
+                            **({"role": role} if role else {}),
+                        },
+                        "reasoning": f"Finding projects for {org_name}"
+                        + (f" (as {role})" if role else " (all roles for statistics)"),
+                    }
+                ],
+                "needs_more_info": True,
+            }
+
+        return None
+
+    def _extract_org_from_context(self, context: str) -> str | None:
+        """Extract the most recently discussed organization name from context.
+
+        Looks for patterns like:
+        - "## Projects for Technical University of Munich"
+        - "Technical University of Munich's EU funding history"
+        - Previous tool calls with organization_name parameter
+        """
+        import re
+
+        context_lines = context.split("\n")
+
+        # Pattern 1: Look for "Projects for <org>" or "Projects by <org>" headers
+        for line in context_lines:
+            match = re.search(r"## Projects (?:for|by) (.+)", line, re.IGNORECASE)
+            if match:
+                org_name = match.group(1).strip()
+                # Clean up any markdown or parenthetical info
+                org_name = re.sub(r"\s*\([^)]+\)\s*$", "", org_name)
+                if org_name and len(org_name) > 3:
+                    return org_name
+
+        # Pattern 2: Look for "Collaboration Network" for/of organization (colon format)
+        # e.g., "## Collaboration Network: TECHNISCHE UNIVERSITAET MUENCHEN"
+        for line in context_lines:
+            match = re.search(r"## Collaboration Network[:\s]+(.+)", line, re.IGNORECASE)
+            if match:
+                org_name = match.group(1).strip()
+                # Clean up any markdown or extra text
+                org_name = re.sub(r"\s*\([^)]+\)\s*$", "", org_name)
+                if org_name and len(org_name) > 3:
+                    return org_name
+
+        # Pattern 3: Look for "<org>'s EU funding history" or similar
+        funding_history_patterns = [
+            r"([A-Za-z\s\-']+(?:University|Institute|College|Centre|Center|GmbH|AG|Ltd).*?)'s (?:EU|funding|project)",
+            r"about ([A-Za-z\s\-']+(?:University|Institute|College|Centre|Center))",
+            r"Tell me about ([A-Za-z\s\-']+)'s",
+        ]
+
+        for pattern in funding_history_patterns:
+            match = re.search(pattern, context, re.IGNORECASE)
+            if match:
+                org_name = match.group(1).strip()
+                if len(org_name) > 3 and org_name.lower() not in ["the", "their", "this"]:
+                    return org_name
+
+        # Pattern 4: Look for major university/institution names in context
+        major_institutions = {
+            "technical university of munich": "Technical University of Munich",
+            "technische universitaet muenchen": "Technical University of Munich",
+            "tum": "Technical University of Munich",
+            "fraunhofer": "Fraunhofer",
+            "max planck": "Max Planck",
+            "cnrs": "CNRS",
+            "tu delft": "TU Delft",
+            "eth zurich": "ETH Zurich",
+            "epfl": "EPFL",
+            "imperial college": "Imperial College London",
+            "university of oxford": "University of Oxford",
+            "university of cambridge": "University of Cambridge",
+        }
+
+        context_lower = context.lower()
+        for search_term, display_name in major_institutions.items():
+            if search_term in context_lower:
+                return display_name
+
+        return None
 
     def _extract_organization_names_from_context(self, context: str) -> list[str]:
         """Extract organization names from partner search context."""

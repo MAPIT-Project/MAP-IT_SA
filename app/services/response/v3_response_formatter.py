@@ -541,9 +541,23 @@ class V3ResponseFormatter:
         seen_call_ids = set()
         seen_project_ids = set()
 
+        # Track organization-specific results for special formatting
+        org_projects_result = None
+
         for _tool_name, result in tool_results.items():
             if not isinstance(result, dict):
                 continue
+
+            # Check for organization-specific project results (from find_organization_projects)
+            # These have "organization", "projects", and "count" fields
+            if (
+                "organization" in result
+                and "projects" in result
+                and "count" in result
+                and "find_organization_projects" in _tool_name
+            ):
+                org_projects_result = result
+                continue  # Don't add these to generic projects
 
             # Collect funding calls from this tool result
             if "calls" in result and isinstance(result["calls"], list):
@@ -574,6 +588,13 @@ class V3ResponseFormatter:
                         # No ID, include but might be duplicate
                         all_projects.append(project)
 
+        # Format organization-specific results if available (takes priority)
+        if org_projects_result:
+            logger.info(
+                f"📋 Formatting organization projects for '{org_projects_result.get('organization')}'"
+            )
+            return self.format_organization_projects(org_projects_result, query)
+
         # Format the merged results (prefer calls over projects if both present)
         if all_calls:
             logger.info(
@@ -588,6 +609,101 @@ class V3ResponseFormatter:
             return self.format_projects(all_projects, query)
 
         return None
+
+    def format_organization_projects(self, result: dict[str, Any], query: str = "") -> str:
+        """Format organization-specific project results with richer context."""
+        org_name = result.get("organization", "Unknown Organization")
+        projects = result.get("projects", [])
+        count = result.get("count", len(projects))
+        role_filter = result.get("role_filter")
+
+        if not projects:
+            return f"""## Projects for {org_name}
+
+No projects found for this organization in the database.
+
+**Suggestions:**
+- Check the organization name spelling
+- Try searching with a shorter name (e.g., "TUM" instead of "Technical University of Munich")
+- The organization may not have participated in Horizon Europe yet"""
+
+        role_desc = f" (as {role_filter})" if role_filter else ""
+        lines = [f"## Projects by {org_name}{role_desc}", f"**Total Projects Found:** {count}\n"]
+
+        # Separate by role
+        coordinated = [p for p in projects if p.get("role") == "coordinator"]
+        participated = [p for p in projects if p.get("role") != "coordinator"]
+
+        if coordinated:
+            lines.append(f"### 🎯 Coordinated Projects ({len(coordinated)})\n")
+            for p in coordinated[:10]:
+                lines.append(self._format_org_project(p, is_coordinator=True))
+        elif count > 0:
+            # No coordinator projects but has participant projects - note this
+            lines.append("### 🎯 Coordinated Projects (0)\n")
+            lines.append(
+                "No projects coordinated by this organization found in the database.\n"
+                "The organization participates in projects but hasn't coordinated any "
+                "in the current dataset.\n"
+            )
+
+        if participated:
+            lines.append(f"\n### 🤝 As Participant ({len(participated)})\n")
+            for p in participated[:10]:
+                lines.append(self._format_org_project(p, is_coordinator=False))
+
+        # Add summary insights
+        total_budget = sum(p.get("budget", 0) or 0 for p in projects)
+        funding_schemes = set(p.get("funding_scheme") for p in projects if p.get("funding_scheme"))
+
+        lines.append(
+            f"""
+### 📊 Summary
+- **Total Projects:** {count}
+- **As Coordinator:** {len(coordinated)}
+- **Total Budget Involved:** €{total_budget / 1_000_000:.1f}M
+- **Funding Types:** {", ".join(funding_schemes) if funding_schemes else "N/A"}
+
+**Next Steps:**
+• Explore specific project details on CORDIS
+• Search for collaboration partners
+• Analyze the organization's research focus areas
+• Use `get_collaboration_network` to see their key partners"""
+        )
+
+        return "\n".join(lines)
+
+    def _format_org_project(self, project: dict, is_coordinator: bool = False) -> str:
+        """Format a single project for organization results."""
+        acronym = project.get("acronym", "N/A")
+        title = project.get("title", "N/A")
+        if title and len(title) > 60:
+            title = title[:60] + "..."
+        budget = project.get("budget", 0)
+        scheme = project.get("funding_scheme", "N/A")
+        status = project.get("status", "N/A")
+        url = project.get("cordis_url", "")
+        start = project.get("start_date", "")
+        if start:
+            start = str(start)[:10]
+
+        budget_str = f"€{budget / 1_000_000:.1f}M" if budget else "N/A"
+
+        if is_coordinator:
+            line = f"- **{acronym}**: {title}\n"
+            line += f"  - Budget: {budget_str} | Type: {scheme} | Status: {status}"
+            if start:
+                line += f" | Started: {start}"
+            line += "\n"
+            if url:
+                line += f"  - [View on CORDIS]({url})\n"
+        else:
+            line = f"- **{acronym}**: {title} ({scheme}, {budget_str})"
+            if url:
+                line += f" [→]({url})"
+            line += "\n"
+
+        return line
 
     def get_query_aware_guidance(self, query: str, response_type: str = "general") -> str:
         """
