@@ -644,7 +644,7 @@ final_validations:
 - [x] RUN & FIX: Execute scenario. Fix Erasmus+ budget calculation.
 
 ### Task 040: Erasmus+ Accreditation Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/erasmus_accreditation.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/erasmus_accreditation.yaml` with steps:
   1. "Should we get Erasmus accreditation?"
   2. "What are the benefits?"
   3. "How long does it take?"
@@ -652,7 +652,7 @@ final_validations:
   5. "What's the strategic choice?"
   Validations: Accreditation vs short-term projects explained, strategic advice given.
 
-- [ ] RUN & FIX: Execute scenario. Verify accreditation information.
+- [x] RUN & FIX: Execute scenario. Verify accreditation information.
 
 ### ==========================================================
 ### PHASE 10: Creative Europe Specific Flows

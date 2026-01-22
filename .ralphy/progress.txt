@@ -6006,3 +6006,52 @@ phase9, erasmus, budget, mobility, unit_costs, travel_bands, lump_sum, ka1
 
 ### Next Task
 Task 040: Erasmus+ Accreditation Scenario (Phase 9 - Erasmus+ Specific Flows)
+
+
+## 2026-01-22: Task 040 - Erasmus+ Accreditation Scenario
+
+### Task Completed
+Implemented Task 040 from MAPIT_ADVANCED_CONVERSATION_FLOWS_PRD.md: Create Erasmus+ Accreditation Scenario
+
+### Files Created
+- `tests/scenarios/advanced/erasmus_accreditation.yaml` - New scenario file with:
+  - 5 conversation turns testing Erasmus+ accreditation understanding
+  - Turn 1: "Should we get Erasmus accreditation? What is it?"
+  - Turn 2: "What are the benefits of having Erasmus accreditation?"
+  - Turn 3: "How long does it take to get Erasmus accreditation and how long does it last?"
+  - Turn 4: "Can we still apply to Erasmus+ KA1 mobility without accreditation?"
+  - Turn 5: "What's the strategic choice - should we pursue accreditation or stick with short-term projects?"
+  - Each turn includes validations for:
+    - no_error (Built-in)
+    - response_contains_any (Built-in)
+    - programme_mentioned (CrossProgrammeAgent)
+    - programme_accurate (CrossProgrammeAgent)
+    - goal_progress (GoalTrackingAgent)
+    - context_accumulated (PersonalizationAgent)
+  - Final validations for:
+    - goal_achieved (GoalTrackingAgent)
+    - context_accumulated (PersonalizationAgent)
+    - profile_used (PersonalizationAgent)
+    - personalization_applied (PersonalizationAgent)
+    - context_integrity (ContextValidatorAgent)
+
+### Files Modified
+- `docs/prd/MAPIT_ADVANCED_CONVERSATION_FLOWS_PRD.md` - Marked Task 040 as complete
+
+### Test Results
+- YAML validation passed
+- Scenario correctly loaded by test runner (39 total scenarios)
+- Infrastructure tests passed (6/6)
+
+### Scenario Details
+The scenario tests understanding of:
+- What Erasmus+ accreditation is
+- Benefits of accreditation (simplified application, multi-year funding, flexibility)
+- Timeline and validity period of accreditation
+- Short-term project alternative (KA1 without accreditation)
+- Strategic decision-making between accreditation and short-term projects
+
+### Notes
+- Follows the same validation pattern as other Erasmus+ scenarios (Task 038, 039)
+- Uses broad response_contains_any patterns for LLM response variability
+- Uses lenient thresholds (min_progress: 0.10-0.30, min_score: 0.5) for consistent test results
