@@ -479,7 +479,7 @@ final_validations:
 - [x] RUN & FIX: Execute scenario. Fix comparison tables.
 
 ### Task 027: Success Rate Analysis Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/success_rate_analysis.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/success_rate_analysis.yaml` with steps:
   1. "What's the success rate for Horizon Europe?"
   2. "Break it down by cluster"
   3. "How does Cluster 5 compare to Cluster 1?"
@@ -488,7 +488,7 @@ final_validations:
   6. "What factors improve success rates?"
   Validations: Statistics accurate, trends identified, factors explained.
 
-- [ ] RUN & FIX: Execute scenario. Verify statistics accuracy.
+- [x] RUN & FIX: Execute scenario. Verify statistics accuracy.
 
 ### Task 028: Budget Comparison Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/budget_comparison.yaml` with steps:

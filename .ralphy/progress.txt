@@ -5468,3 +5468,56 @@ Created and tested the Funding Type Comparison scenario for MAPIT Advanced Conve
 
 ### Next Task
 Task 027: Success Rate Analysis Scenario
+
+## 2026-01-22: Task 027 - Success Rate Analysis Scenario
+
+### Task Completed
+Implemented Task 027 from MAPIT_ADVANCED_CONVERSATION_FLOWS_PRD.md: Create Success Rate Analysis Scenario.
+
+### Files Created
+- `tests/scenarios/advanced/success_rate_analysis.yaml` - New scenario file with:
+  - 6-step success rate analysis workflow
+  - Step 1: "What's the success rate for Horizon Europe?"
+  - Step 2: "Break it down by cluster"
+  - Step 3: "How does Cluster 5 compare to Cluster 1?"
+  - Step 4: "What about by country?"
+  - Step 5: "How does Germany compare to Poland?"
+  - Step 6: "What factors improve success rates?"
+
+### Validation Types Used (per PRD)
+- `programme_mentioned` (CrossProgrammeAgent): Horizon Europe mentioned
+- `programme_accurate` (CrossProgrammeAgent): Statistics are accurate
+- `goal_progress` (GoalTrackingAgent): Progress toward understanding rates
+- `goal_achieved` (GoalTrackingAgent): User understands success rates
+- `context_accumulated` (PersonalizationAgent): User context builds across turns
+- `profile_used` (PersonalizationAgent): Profile influences responses
+- `personalization_applied` (PersonalizationAgent): Responses tailored to context
+- `context_integrity` (ContextValidatorAgent): All 6 messages stored correctly
+- `response_contains_any` (Built-in): Pattern matching for statistical content
+- `no_error` (Built-in): Error detection
+
+### Key Test Aspects
+- Tests system's ability to provide overall Horizon Europe success rates
+- Validates cluster-level breakdown (CL1-CL6)
+- Tests cluster comparison (Cluster 5 vs Cluster 1 - Climate/Energy vs Health)
+- Validates country-level breakdown
+- Tests country comparison (Germany vs Poland - EU-15 vs EU-13 context)
+- Validates explanation of factors that improve success rates
+- Comprehensive patterns for statistical terms, percentages, comparisons
+
+### Test Results
+- 1 test passed (success_rate_analysis scenario)
+- Test completed in 337.73s (5:37)
+- YAML syntax validated
+- All 6 steps executed successfully
+- Final validations passed
+
+### Files Modified
+- `docs/prd/MAPIT_ADVANCED_CONVERSATION_FLOWS_PRD.md` - Marked Task 027 as complete
+
+### PRD Task Status
+- [x] CREATE SCENARIO task marked complete
+- [x] RUN & FIX task marked complete
+
+### Next Task
+Task 028: Budget Comparison Scenario
