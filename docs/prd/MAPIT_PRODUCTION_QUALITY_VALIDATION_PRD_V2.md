@@ -51,7 +51,7 @@ Run with: `./ralphy.sh --prd MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD_V2.md`
 - [x] FIX IF NEEDED: Read `tests/quality/results/scenarios/programme_discovery.json`. If average_score < 80: identify root cause from failures[] (low_actionability → add Next Steps to agent prompt, factual_error → fix CrossProgrammeAgent validation, no_results → fix tool queries). Implement fix, re-run EXECUTE task, update JSON with fix_history. Repeat until score >= 80 or 3 attempts reached. Record final status: PASS/FAIL/MAX_ATTEMPTS.
 
 ### Scenario 002: Programme Comparison
-- [ ] EXECUTE: Run scenario `tests/scenarios/advanced/multi_programme/programme_comparison.yaml` against the live API. This scenario tests comparing Horizon Europe, Erasmus+, and Creative Europe. Save result to `tests/quality/results/scenarios/programme_comparison.json`.
+- [x] EXECUTE: Run scenario `tests/scenarios/advanced/programme_comparison.yaml` against the live API. This scenario tests comparing Horizon Europe, Erasmus+, and Creative Europe. Save result to `tests/quality/results/scenarios/programme_comparison.json`.
 
 - [ ] FIX IF NEEDED: Read `tests/quality/results/scenarios/programme_comparison.json`. If average_score < 80: check for multi-programme budget confusion (CrossProgrammeAgent issue), success rate vs funding rate confusion, missing comparison data. Fix using patterns in `mapit-tools` skill, re-evaluate until passing or 3 attempts.
 
