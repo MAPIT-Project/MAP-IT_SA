@@ -1,0 +1,187 @@
+{
+  "scenario_name": "User Context Learning",
+  "status": "FAIL",
+  "average_quality_score": 84.6,
+  "average_factual_score": 93.33333333333333,
+  "turns": [
+    {
+      "query": "I'm looking for EU funding opportunities. I'm from a small university in Portugal.",
+      "response": "As a small university in Portugal (an EU Member State), you are eligible for **full funding** across the entire suite of Horizon Europe and Erasmus+ programmes. Your primary opportunities fall under two main pillars: Mobility/Education (Erasmus+) and Research/Innovation (Horizon Europe).\n\nHere is a breakdown of the most relevant funding pathways for your institution:\n\n### 1. Horizon Europe (Research and Innovation) (\u20ac95.5 Billion)\n\nPortugal is considered a strong participant but also benefits fr...",
+      "quality_score": 83,
+      "factual_score": 66.66666666666666,
+      "failures": [
+        {
+          "category": "INCORRECT_DATA",
+          "severity": "CRITICAL",
+          "description": "Incorrect erasmus_plus facts: ['budget: stated \u20ac95.5B but should be ~\u20ac26.2 billion']",
+          "turn_number": 0,
+          "evidence": {
+            "programme": "erasmus_plus",
+            "incorrect_facts": [
+              "budget: stated \u20ac95.5B but should be ~\u20ac26.2 billion"
+            ],
+            "score": 0.6666666666666666
+          },
+          "timestamp": "2026-01-22T16:13:37.163809"
+        }
+      ],
+      "tools_used": [
+        "recommend_programmes"
+      ],
+      "processing_time_ms": 12452.070000000002,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
+      "passed": false
+    },
+    {
+      "query": "We work on marine biology",
+      "response": "I found **14 funding opportunities** for your query:\n\n**1. Understand and minimise the environmental impacts of offshore wind energy and HORIZON-CL6-2025-01-ZEROPOLLUTION-05:Towards a comprehensive European...**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2025-05-D3-08\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** The proposed conference in Nyborg, Denmark 23-24 September 2025 under the Danish Presidency will address the restoration of the Oce...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "search_funding_calls",
+        "search_funding_calls",
+        "search_funding_calls",
+        "search_funding_calls",
+        "search_funding_calls",
+        "search_funding_calls",
+        "search_funding_calls"
+      ],
+      "processing_time_ms": 34430.123999999996,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": true
+    },
+    {
+      "query": "We've never coordinated before",
+      "response": "I found **3 funding opportunities** for your query:\n\n**1. Understand and minimise the environmental impacts of offshore wind energy and HORIZON-CL6-2025-01-ZEROPOLLUTION-05:Towards a comprehensive European...**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2025-05-D3-08\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** The proposed conference in Nyborg, Denmark 23-24 September 2025 under the Danish Presidency will address the restoration of the Ocea...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "search_funding_calls",
+        "find_experienced_partners"
+      ],
+      "processing_time_ms": 17956.648,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": true
+    },
+    {
+      "query": "What calls should we apply to?",
+      "response": "I found **3 funding opportunities** for your query:\n\n**1. Understand and minimise the environmental impacts of offshore wind energy and HORIZON-CL6-2025-01-ZEROPOLLUTION-05:Towards a comprehensive European...**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2025-05-D3-08\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** The proposed conference in Nyborg, Denmark 23-24 September 2025 under the Danish Presidency will address the restoration of the Ocea...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "search_funding_calls"
+      ],
+      "processing_time_ms": 5100.2919999999995,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": true
+    },
+    {
+      "query": "What about as a partner?",
+      "response": "I found **10 funding opportunities** for your query:\n\n**1. Understand and minimise the environmental impacts of offshore wind energy and HORIZON-CL6-2025-01-ZEROPOLLUTION-05:Towards a comprehensive European...**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2025-05-D3-08\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** The proposed conference in Nyborg, Denmark 23-24 September 2025 under the Danish Presidency will address the restoration of the Oce...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "search_all_programmes",
+        "search_funding_calls",
+        "search_funding_calls",
+        "search_funding_calls",
+        "search_funding_calls"
+      ],
+      "processing_time_ms": 26597.753999999997,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 4,
+      "passed": true
+    }
+  ],
+  "scores": {
+    "average_quality": 84.6,
+    "average_factual": 93.33333333333333,
+    "goal_progress": 0.47714285714285715,
+    "context_fields": 7
+  },
+  "failures": [
+    {
+      "category": "INCORRECT_DATA",
+      "severity": "CRITICAL",
+      "description": "Incorrect erasmus_plus facts: ['budget: stated \u20ac95.5B but should be ~\u20ac26.2 billion']",
+      "turn_number": 0,
+      "evidence": {
+        "programme": "erasmus_plus",
+        "incorrect_facts": [
+          "budget: stated \u20ac95.5B but should be ~\u20ac26.2 billion"
+        ],
+        "score": 0.6666666666666666
+      },
+      "timestamp": "2026-01-22T16:13:37.163809"
+    }
+  ],
+  "metadata": {
+    "scenario_path": "/home/anmar/Documents/VSCODE_REPOS/MAPIT/NEWMAPIT/MAP-IT_SA/tests/scenarios/advanced/user_context_learning.yaml",
+    "tags": [
+      "phase4",
+      "personalization",
+      "context-learning",
+      "portugal",
+      "marine-biology",
+      "university",
+      "beginner"
+    ],
+    "description": "A 5-step context learning workflow where a user progressively reveals\ninformation about their organization. Tests the system's ability to\naccumulate user context (organization type, country, sector, experience level)\nand use that accumulated profile to provide personalized recommendations.\nThe scenario validates that the system remembers and applies user context\nwhen suggesting funding calls and participation strategies.\n",
+    "conversation_id": 1888663556
+  },
+  "execution_time_ms": 230033.173,
+  "timestamp": "2026-01-22T16:13:12.723169",
+  "passed": false,
+  "turn_count": 5,
+  "critical_failures": 1,
+  "high_failures": 0,
+  "medium_failures": 0
+}

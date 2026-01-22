@@ -1,0 +1,338 @@
+{
+  "scenario_name": "Progressive Profile Building",
+  "status": "FAIL",
+  "average_quality_score": 78.16666666666667,
+  "average_factual_score": 100.0,
+  "turns": [
+    {
+      "query": "I work for an SME",
+      "response": "Working for a Small and Medium-sized Enterprise (SME) puts your organization in a prime position for substantial funding under Horizon Europe, especially through actions designed to accelerate innovation and market uptake.\n\nHere are the three primary pathways available to SMEs, depending on your technology's maturity (TRL):\n\n### 1. The EIC Accelerator (Primary Pathway)\n\nThis is the most direct and highest-profile funding instrument for highly innovative SMEs with market-creating potential.\n\n| Fe...",
+      "quality_score": 77,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "recommend_programmes"
+      ],
+      "processing_time_ms": 7568.036,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 2
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
+      "passed": false
+    },
+    {
+      "query": "We're in the healthcare sector",
+      "response": "",
+      "quality_score": 45,
+      "factual_score": 100.0,
+      "failures": [
+        {
+          "category": "NO_RESULTS",
+          "severity": "CRITICAL",
+          "description": "Response too short (0 chars < 100)",
+          "turn_number": 1,
+          "evidence": {
+            "response_length": 0
+          },
+          "timestamp": "2026-01-22T16:20:09.234888"
+        }
+      ],
+      "tools_used": [],
+      "processing_time_ms": 2901.58,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 0,
+          "factual_accuracy": 15,
+          "actionability": 0
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": false
+    },
+    {
+      "query": "Specifically medical devices",
+      "response": "I found **21 funding opportunities** for your query:\n\n**1. Advancing lead markets and proof-of-concept for deep tech solutions contributing to EU Missions**\n\ud83d\udccb **Call ID:** HORIZON-MISS-2026-07-CROSS-03\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 31 March 2026\n\ud83c\udfdb\ufe0f **Programme:** MISS\n\n\ud83d\udcdd **Summary:** Expected Outcome: Expected outcomes : Stakeholders in Missions on European, national and regional level embrace their roles as actors in \u2018 lead markets for innovative products and services with a purpose \u2019 that...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "search_funding_calls",
+        "search_funding_calls",
+        "search_funding_calls",
+        "search_funding_calls",
+        "search_funding_calls",
+        "search_funding_calls"
+      ],
+      "processing_time_ms": 26923.311999999998,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": true
+    },
+    {
+      "query": "We're based in Germany",
+      "response": "I found **2 funding opportunities** for your query:\n\n**1. Advancing lead markets and proof-of-concept for deep tech solutions contributing to EU Missions**\n\ud83d\udccb **Call ID:** HORIZON-MISS-2026-07-CROSS-03\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 31 March 2026\n\ud83c\udfdb\ufe0f **Programme:** MISS\n\n\ud83d\udcdd **Summary:** Expected Outcome: Expected outcomes : Stakeholders in Missions on European, national and regional level embrace their roles as actors in \u2018 lead markets for innovative products and services with a purpose \u2019 that ...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "search_funding_calls"
+      ],
+      "processing_time_ms": 4245.898,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": true
+    },
+    {
+      "query": "We have 50 employees",
+      "response": "I found **11 funding opportunities** for your query:\n\n**1. Advancing lead markets and proof-of-concept for deep tech solutions contributing to EU Missions**\n\ud83d\udccb **Call ID:** HORIZON-MISS-2026-07-CROSS-03\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 31 March 2026\n\ud83c\udfdb\ufe0f **Programme:** MISS\n\n\ud83d\udcdd **Summary:** Expected Outcome: Expected outcomes : Stakeholders in Missions on European, national and regional level embrace their roles as actors in \u2018 lead markets for innovative products and services with a purpose \u2019 that...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "search_funding_calls",
+        "search_funding_calls",
+        "search_funding_calls",
+        "search_funding_calls",
+        "search_funding_calls",
+        "search_funding_calls"
+      ],
+      "processing_time_ms": 26064.251,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 4,
+      "passed": true
+    },
+    {
+      "query": "Annual revenue around 10M",
+      "response": "I found some information but couldn't extract specific details. Please try a more specific question.",
+      "quality_score": 75,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "get_programme_info"
+      ],
+      "processing_time_ms": 3700.455,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 0
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 5,
+      "passed": false
+    },
+    {
+      "query": "We want to expand into AI diagnostics",
+      "response": "I found **13 funding opportunities** for your query:\n\n**1. 225 220 219 The budgets set out in the calls / Actions are indicative**\n\ud83d\udccb **Call ID:** HORIZON-EIC-2026-ACCELERATORCHALLENGES-01224\n\ud83d\udfe1 **Status:** Upcoming\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83d\udcb0 **Budget:** EUR 219.0 million\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-EIC-2026-ACCELERATORCHALLENGES-01224\n\n---\n\n**2. 96 HORIZON-EIC-2026-AIC-01 6 HORIZO...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "search_funding_calls",
+        "search_funding_calls",
+        "search_funding_calls",
+        "search_funding_calls",
+        "search_funding_calls",
+        "search_funding_calls",
+        "search_funding_calls",
+        "search_funding_calls",
+        "search_funding_calls"
+      ],
+      "processing_time_ms": 21889.413999999997,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 6,
+      "passed": true
+    },
+    {
+      "query": "We have some research partnerships already",
+      "response": "I found **3 funding opportunities** for your query:\n\n**1. Advancing lead markets and proof-of-concept for deep tech solutions contributing to EU Missions**\n\ud83d\udccb **Call ID:** HORIZON-MISS-2026-07-CROSS-03\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 31 March 2026\n\ud83c\udfdb\ufe0f **Programme:** MISS\n\n\ud83d\udcdd **Summary:** Expected Outcome: Expected outcomes : Stakeholders in Missions on European, national and regional level embrace their roles as actors in \u2018 lead markets for innovative products and services with a purpose \u2019 that ...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "search_funding_calls",
+        "get_programme_statistics"
+      ],
+      "processing_time_ms": 11355.373,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 7,
+      "passed": true
+    },
+    {
+      "query": "But never done EU funding before",
+      "response": "It is completely normal to feel overwhelmed when approaching EU funding for the first time. The key is to start with the specific programme that matches your business profile. Given your background as an SME focused on high-risk, high-impact **AI diagnostics** with approximately **\u20ac10 million annual revenue**, the **EIC Accelerator** is your most important target.\n\nHere is a step-by-step guide for a first-time applicant, focusing on the EIC Accelerator and general Horizon Europe rules:\n\n### 1. T...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 11571.481,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 8,
+      "passed": true
+    },
+    {
+      "query": "What's our best option?",
+      "response": "I found **4 funding opportunities** for your query:\n\n**1. Accelerating Physical AI: Embodied Intelligence for the Next Frontier of AI-Powered Robotics**\n\ud83d\udccb **Call ID:** HORIZON-EIC-2026-AIC-01\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 26 February 2026\n\ud83c\udfdb\ufe0f **Programme:** EIC\n\ud83d\udcb0 **Budget:** EUR 219.0 million\n\n\ud83d\udcdd **Summary:** Expected Impact: This Challenge will support the ambitions of the AI Act, Apply AI Strategy. The AI powered robotics models developed under this Challenge are expected to comply with the...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "search_funding_calls",
+        "search_funding_calls"
+      ],
+      "processing_time_ms": 10862.807,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 9,
+      "passed": true
+    },
+    {
+      "query": "Tell me more about that option",
+      "response": "The **EIC Accelerator** is your best option because it is specifically designed for single, high-risk SMEs (like yours) with breakthrough innovations (AI diagnostics) ready for scaling and market entry (TRL 5-9). This is the fastest route to major EU funding without requiring a large, multi-country consortium.\n\nHere is a detailed breakdown of the programme and the application process:\n\n### 1. EIC Accelerator Programme Overview\n\nThe EIC Accelerator offers flexible financial support, often combini...",
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "get_programme_statistics"
+      ],
+      "processing_time_ms": 12471.693,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 10,
+      "passed": true
+    },
+    {
+      "query": "What should be our next steps?",
+      "response": "Your immediate next steps should focus on mandatory administrative prerequisites and rigorous preparation for the **Stage 1: Short Proposal** of the EIC Accelerator, as this is the primary gatekeeper for the entire process.",
+      "quality_score": 77,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 2582.718,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 2
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 11,
+      "passed": false
+    }
+  ],
+  "scores": {
+    "average_quality": 78.16666666666667,
+    "average_factual": 100.0,
+    "goal_progress": 0.63,
+    "context_fields": 6
+  },
+  "failures": [
+    {
+      "category": "NO_RESULTS",
+      "severity": "CRITICAL",
+      "description": "Response too short (0 chars < 100)",
+      "turn_number": 1,
+      "evidence": {
+        "response_length": 0
+      },
+      "timestamp": "2026-01-22T16:20:09.234888"
+    }
+  ],
+  "metadata": {
+    "scenario_path": "/home/anmar/Documents/VSCODE_REPOS/MAPIT/NEWMAPIT/MAP-IT_SA/tests/scenarios/advanced/progressive_profile.yaml",
+    "tags": [
+      "phase4",
+      "personalization",
+      "profile-building",
+      "sme",
+      "healthcare",
+      "medical-devices",
+      "germany",
+      "ai",
+      "long-conversation"
+    ],
+    "description": "A 12-step profile building workflow where a user progressively reveals\ndetailed information about their organization across multiple turns.\nTests the system's ability to accumulate comprehensive user profile data\n(organization type, sector, subsector, location, size, revenue, goals,\npartnerships, and experience level) and synthesize this information to\nprovide highly personalized funding recommendations. This is an extended\nversion of the user_context_learning scenario that tests deeper profile\naccumulation with 12+ turns.\n",
+    "conversation_id": 1679554539
+  },
+  "execution_time_ms": 398791.063,
+  "timestamp": "2026-01-22T16:19:34.582510",
+  "passed": false,
+  "turn_count": 12,
+  "critical_failures": 1,
+  "high_failures": 0,
+  "medium_failures": 0
+}

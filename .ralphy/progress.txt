@@ -7424,3 +7424,78 @@ Created test infrastructure for Phase 4 Personalization scenarios.
 - Fill in actual runtime, scores, and status values
 - Fix any failures that arise
 - Verify all 4 scenarios pass with >= 80/100
+
+## 2026-01-22: Task 007 - Execute Phase 4 Scenarios (Personalization) Live API Execution
+
+### Task Completed
+Executed all 4 Phase 4 Personalization scenarios against the live API.
+
+### Execution Results Summary
+| Scenario | Runtime | Score | Factual | Failures | Status |
+|----------|---------|-------|---------|----------|--------|
+| user_context_learning.yaml | 230.03s | 84.6/100 | 93.33% | 1 | NEEDS_FIX |
+| returning_user_context.yaml | 151.82s | 82.0/100 | 100.0% | 0 | NEEDS_IMPROVEMENT |
+| progressive_profile.yaml | 398.79s | 78.17/100 | 100.0% | 1 | NEEDS_FIX |
+| preference_filtering.yaml | 162.42s | 84.0/100 | 87.5% | 0 | PASS |
+
+**Phase 4 Summary:**
+- Total Runtime: 943.06 seconds
+- Average Quality Score: 82.19/100
+- Average Factual Score: 95.21/100
+- Critical Failures: 2
+- Pass Rate: 25% (1/4 scenarios passed)
+
+### Detailed Findings
+
+#### 1. User Context Learning (84.6/100) - NEEDS_FIX
+- **Critical Failure**: INCORRECT_DATA false positive
+- Turn 0 response mentioned "Horizon Europe (€95.5B)" but fact checker incorrectly flagged this as wrong Erasmus+ budget
+- The response correctly stated Horizon Europe budget, not Erasmus+
+- Root cause: CrossProgrammeAgent fact validation not distinguishing between programmes mentioned in same response
+
+#### 2. Returning User Context (82.0/100) - NEEDS_IMPROVEMENT
+- **No failures** but overall status FAIL due to turn 2 scoring 77/100 (below 80 threshold)
+- Turn 2 asked about "typical success rates for coordination projects" - response acknowledged data wasn't available
+- Context preservation worked correctly: turn 4 referenced "hydrogen" context and system recalled it
+
+#### 3. Progressive Profile Building (78.17/100) - NEEDS_FIX
+- **Critical Failure**: NO_RESULTS on turn 1
+- Turn 1 query: "We're in the healthcare sector" received empty response (0 characters)
+- System didn't know how to handle generic context-building messages
+- Other turns worked well with detailed funding call results
+
+#### 4. Preference-Based Filtering (84.0/100) - PASS
+- All turns passed with good quality scores
+- Preference accumulation worked correctly
+- No critical failures
+
+### Quality Dimension Analysis
+Consistent patterns across scenarios:
+- **Query Fulfillment**: 30/40 (75%) - Adequate but could be improved
+- **Specificity**: 25/25 (100%) - Excellent, responses include specific data
+- **Factual Accuracy**: 20/25 (80%) - Good accuracy with some false positives
+- **Actionability**: Variable (0-10/10) - Some turns lack clear next steps
+
+### Issues Identified
+1. **False Positive Factual Errors**: CrossProgrammeAgent fact checker confuses programmes in multi-programme responses
+2. **Empty Responses for Context Messages**: System struggles with conversational context-building queries like "We're in healthcare"
+3. **Variable Actionability**: Some responses lack clear next steps
+
+### Files Updated/Created
+- `tests/quality/results/phase4/user_context_learning_result.json`
+- `tests/quality/results/phase4/returning_user_context_result.json`
+- `tests/quality/results/phase4/progressive_profile_building_result.json`
+- `tests/quality/results/phase4/preference_based_filtering_result.json`
+- `tests/quality/results/phase4/phase4_report.json`
+- `docs/prd/MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD.md` (updated with execution results)
+
+### PRD Status
+- Task 007 RUN sub-tasks: All 4 marked as complete [x]
+- Task 007 FIX sub-task: Remains incomplete (issues identified)
+- Task 007 VERIFY sub-task: Remains incomplete (pending fix)
+
+### Next Steps
+The FIX sub-task requires addressing:
+1. False positive factual validation for multi-programme responses
+2. Handling conversational context-building queries that don't require tool calls
+3. Improving actionability scores consistently
