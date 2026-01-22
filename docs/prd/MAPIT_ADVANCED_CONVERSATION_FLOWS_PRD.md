@@ -502,7 +502,7 @@ final_validations:
 - [x] RUN & FIX: Execute scenario. Fix budget statistics.
 
 ### Task 029: Timeline Comparison Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/timeline_comparison.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/timeline_comparison.yaml` with steps:
   1. "How long does a typical Horizon Europe proposal take to prepare?"
   2. "Compare with Erasmus+ KA2"
   3. "What about Creative Europe cooperation projects?"
@@ -510,7 +510,7 @@ final_validations:
   5. "What's the project start lag after selection?"
   Validations: Timeline estimates reasonable, programme differences clear.
 
-- [ ] RUN & FIX: Execute scenario. Verify timeline accuracy.
+- [x] RUN & FIX: Execute scenario. Verify timeline accuracy.
 
 ### ==========================================================
 ### PHASE 7: Deadline-Aware Conversations

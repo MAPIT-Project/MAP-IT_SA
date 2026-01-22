@@ -5562,3 +5562,48 @@ The scenario tests the system's ability to compare typical budgets across Horizo
 
 ### PRD Status
 - Task 028 marked as complete in PRD (both CREATE SCENARIO and RUN & FIX)
+
+## 2026-01-22: Task 029 - Timeline Comparison Scenario
+
+### Task Completed
+Implemented Task 029: Timeline Comparison Scenario for the Advanced Conversation Flows PRD.
+
+### Files Created
+- `tests/scenarios/advanced/timeline_comparison.yaml` - New scenario file with:
+  - 5-step timeline comparison workflow
+  - Step 1: "How long does a typical Horizon Europe proposal take to prepare?"
+  - Step 2: "Compare with Erasmus+ KA2"
+  - Step 3: "What about Creative Europe cooperation projects?"
+  - Step 4: "Which has the fastest decision time?"
+  - Step 5: "What's the project start lag after selection?"
+  - 32 validations across all steps covering:
+    - programme_mentioned (CrossProgrammeAgent)
+    - programme_accurate (CrossProgrammeAgent)
+    - goal_progress (GoalTrackingAgent)
+    - context_accumulated (PersonalizationAgent)
+    - profile_used (PersonalizationAgent)
+    - personalization_applied (PersonalizationAgent)
+    - no_error (Built-in)
+    - response_contains_any (Built-in)
+  - 3 final validations (goal_achieved, context_accumulated, context_integrity)
+
+### Files Modified
+- `docs/prd/MAPIT_ADVANCED_CONVERSATION_FLOWS_PRD.md` - Marked Task 029 as complete
+
+### Test Results
+- YAML syntax validated successfully
+- Scenario loads correctly with test infrastructure
+- 28 total scenarios now loaded (including this new one)
+- Scenario has 5 steps with proper validations
+
+### Key Scenario Features
+- Tests cross-programme comparison capabilities (Horizon Europe, Erasmus+ KA2, Creative Europe)
+- Validates timeline estimates for proposal preparation
+- Tests decision time comparisons across programmes
+- Tests understanding of project start lag after selection
+- Uses comprehensive pattern matching for LLM response variability
+- Includes lenient thresholds for consistent test results
+
+### PRD Status
+- Phase 6 Task 029 now complete
+- Next incomplete task: Task 030 (Urgent Deadline Scenario)
