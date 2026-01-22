@@ -1,0 +1,323 @@
+# Out-of-Scope Query Handling Scenario (Task 047)
+# Tests how the system handles queries about non-EU funding programmes.
+# Phase 11: Error Handling & Edge Cases
+#
+# This scenario simulates a user asking about international funding programmes
+# that are NOT within the MAPIT system's scope (NSF, UK Research Council, etc.).
+# The system should:
+# 1. Gracefully explain its scope is EU funding programmes
+# 2. Provide what limited information it can about comparisons
+# 3. NOT produce errors or claim to have detailed information it doesn't have
+# 4. Redirect users to appropriate resources when possible
+# 5. Highlight similarities with EU programmes when relevant
+#
+# User Journey:
+# 1. User asks about US NSF grants -> System explains scope, may offer comparison
+# 2. User asks about UK Research Council -> System explains scope limitation
+# 3. User asks to compare with EU -> System provides high-level comparison where possible
+# 4. User asks what's similar to Horizon Europe -> System explains what it knows
+#
+# Required Validation Types (per PRD):
+# - no_error (Built-in): System should NOT produce errors for out-of-scope queries
+# - response_contains_any (Built-in): System should respond meaningfully
+# - goal_progress (GoalTrackingAgent): Track understanding progress
+# - context_accumulated (PersonalizationAgent): Build context across turns
+# - programme_mentioned (CrossProgrammeAgent): May mention EU programmes for comparison
+# - programme_accurate (CrossProgrammeAgent): EU programme facts should be correct
+# - context_integrity (ContextValidatorAgent): All messages stored correctly
+#
+# Note: Out-of-scope queries should be handled gracefully. The system should:
+# - Clearly state its specialization in EU funding programmes
+# - NOT make up detailed information about non-EU programmes
+# - Offer to help with EU funding comparisons where relevant
+# - Be helpful and redirect rather than refuse
+
+name: "Out-of-Scope Query Handling"
+description: |
+  A user asks about non-EU funding programmes (NSF, UK Research Council, etc.)
+  that are outside MAPIT's scope. The system should gracefully explain its
+  EU focus, provide limited comparative information where possible, and
+  redirect users to appropriate resources. Tests out-of-scope handling.
+tags:
+  - "phase11"
+  - "error_handling"
+  - "edge_case"
+  - "out_of_scope"
+  - "nsf"
+  - "uk_research"
+  - "international"
+  - "scope_limitation"
+  - "graceful_handling"
+  - "comparison"
+stop_on_error: false
+
+steps:
+  # Turn 1: Ask about US NSF grants (out of scope)
+  # Expected: System explains its EU focus, may offer limited info
+  - message: "Can you tell me about US NSF grants? I'm interested in their research funding programmes"
+    validations:
+      # Built-in: CRITICAL - No errors in response
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn1"
+
+      # Response should address the query meaningfully (explain scope, redirect, or compare)
+      - type: "response_contains_any"  # Built-in
+        name: "nsf_query_addressed"
+        patterns:
+          - "NSF"
+          - "National Science Foundation"
+          - "US"
+          - "United States"
+          - "American"
+          - "scope"
+          - "focus"
+          - "specialize"
+          - "specialise"
+          - "EU"
+          - "European"
+          - "Horizon"
+          - "unfortunately"
+          - "however"
+          - "instead"
+          - "alternative"
+          - "limitation"
+          - "outside"
+          - "beyond"
+          - "not cover"
+          - "don't cover"
+          - "do not cover"
+          - "can help"
+          - "can assist"
+          - "funding"
+          - "research"
+          - "grant"
+          - "programme"
+          - "program"
+          - "information"
+          - "compare"
+          - "comparison"
+          - "similar"
+          - "equivalent"
+          - "international"
+
+      # GoalTrackingAgent: Initial progress (understanding scope)
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "initial_progress"
+        min_progress: 0.10
+
+      # PersonalizationAgent: Context should start building
+      - type: "context_accumulated"  # PersonalizationAgent
+        name: "context_start"
+        expected_fields:
+          - "topic_interest"
+    delay_ms: 0
+
+  # Turn 2: Ask about UK Research Council (another out-of-scope programme)
+  # Expected: System continues to explain scope, may acknowledge post-Brexit UK status
+  - message: "What about UK Research Council funding, like UKRI or the old EPSRC?"
+    validations:
+      # Built-in: No errors
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn2"
+
+      # Response should address UK funding queries
+      - type: "response_contains_any"  # Built-in
+        name: "uk_query_addressed"
+        patterns:
+          - "UK"
+          - "United Kingdom"
+          - "British"
+          - "UKRI"
+          - "EPSRC"
+          - "Research Council"
+          - "scope"
+          - "focus"
+          - "specialize"
+          - "specialise"
+          - "EU"
+          - "European"
+          - "Horizon"
+          - "Brexit"
+          - "associated"
+          - "association"
+          - "third country"
+          - "participation"
+          - "unfortunately"
+          - "however"
+          - "limitation"
+          - "outside"
+          - "not cover"
+          - "funding"
+          - "research"
+          - "grant"
+          - "programme"
+          - "program"
+          - "information"
+          - "national"
+          - "domestic"
+
+      # GoalTrackingAgent: Progress increases
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "uk_progress"
+        min_progress: 0.15
+    delay_ms: 500
+
+  # Turn 3: Ask for comparison with EU programmes
+  # Expected: System provides what comparison info it can about EU programmes
+  - message: "Can you compare these international programmes with EU funding? How does Horizon Europe stack up?"
+    validations:
+      # Built-in: No errors
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn3"
+
+      # Response should address comparison request
+      - type: "response_contains_any"  # Built-in
+        name: "comparison_addressed"
+        patterns:
+          - "compare"
+          - "comparison"
+          - "Horizon Europe"
+          - "EU"
+          - "European"
+          - "funding"
+          - "budget"
+          - "similar"
+          - "different"
+          - "difference"
+          - "scale"
+          - "scope"
+          - "focus"
+          - "research"
+          - "innovation"
+          - "grant"
+          - "programme"
+          - "program"
+          - "international"
+          - "collaboration"
+          - "partner"
+          - "bilateral"
+          - "multilateral"
+          - "€95"
+          - "billion"
+          - "ERC"
+          - "MSCA"
+          - "EIC"
+          - "cluster"
+          - "pillar"
+          - "however"
+          - "while"
+          - "whereas"
+          - "limited"
+          - "information"
+
+      # GoalTrackingAgent: Progress on comparison understanding
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "comparison_progress"
+        min_progress: 0.25
+
+      # CrossProgrammeAgent: Horizon Europe should be mentioned for comparison
+      - type: "programme_mentioned"  # CrossProgrammeAgent
+        name: "horizon_mentioned"
+        programmes:
+          - "horizon_europe"
+
+      # CrossProgrammeAgent: EU programme facts should be accurate
+      - type: "programme_accurate"  # CrossProgrammeAgent
+        name: "horizon_accuracy"
+        programme: "horizon_europe"
+        min_score: 0.4
+    delay_ms: 500
+
+  # Turn 4: Ask what international programmes are similar to Horizon Europe
+  # Expected: System provides helpful info about international equivalents
+  - message: "What international research programmes are similar to Horizon Europe? Are there any global equivalents?"
+    validations:
+      # Built-in: No errors
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn4"
+
+      # Response should address international equivalents query
+      - type: "response_contains_any"  # Built-in
+        name: "equivalents_addressed"
+        patterns:
+          - "Horizon Europe"
+          - "international"
+          - "global"
+          - "equivalent"
+          - "similar"
+          - "comparable"
+          - "NSF"
+          - "NIH"
+          - "research"
+          - "funding"
+          - "programme"
+          - "program"
+          - "scale"
+          - "budget"
+          - "scope"
+          - "collaboration"
+          - "multilateral"
+          - "bilateral"
+          - "agreement"
+          - "partner"
+          - "country"
+          - "countries"
+          - "EU"
+          - "European"
+          - "unique"
+          - "largest"
+          - "world"
+          - "however"
+          - "limited"
+          - "information"
+          - "general"
+          - "knowledge"
+          - "specialize"
+          - "focus"
+          - "specific"
+          - "detail"
+
+      # GoalTrackingAgent: Final progress
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "final_progress"
+        min_progress: 0.30
+
+      # CrossProgrammeAgent: EU programme should be mentioned
+      - type: "programme_mentioned"  # CrossProgrammeAgent
+        name: "eu_programmes_mentioned"
+        programmes:
+          - "horizon_europe"
+
+      # CrossProgrammeAgent: Programme accuracy
+      - type: "programme_accurate"  # CrossProgrammeAgent
+        name: "programme_accuracy"
+        programme: "horizon_europe"
+        min_score: 0.4
+
+      # PersonalizationAgent: Response should use accumulated context
+      - type: "personalization_applied"  # PersonalizationAgent
+        name: "personalization_check"
+        min_score: 0.3
+    delay_ms: 500
+
+final_validations:
+  # GoalTrackingAgent: User should understand scope and have useful info
+  - type: "goal_achieved"  # GoalTrackingAgent
+    name: "scope_understanding_achieved"
+    min_progress: 0.30
+
+  # PersonalizationAgent: Context should be preserved
+  - type: "context_accumulated"  # PersonalizationAgent
+    name: "context_preserved"
+    expected_fields:
+      - "topic_interest"
+
+  # PersonalizationAgent: Profile should be used
+  - type: "profile_used"  # PersonalizationAgent
+    name: "profile_used"
+    expected_fields:
+      - "topic_interest"
+
+  # ContextValidatorAgent: All messages should be stored correctly
+  - type: "context_integrity"  # ContextValidatorAgent
+    name: "context_integrity_check"

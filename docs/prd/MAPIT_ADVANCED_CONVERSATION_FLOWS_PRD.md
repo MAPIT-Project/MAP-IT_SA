@@ -727,14 +727,14 @@ final_validations:
 - [x] RUN & FIX: Execute scenario. Fix ambiguity resolution.
 
 ### Task 047: Out-of-Scope Query Handling Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/out_of_scope.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/out_of_scope.yaml` with steps:
   1. "What about US NSF grants?"
   2. "Or UK Research Council funding?"
   3. "Can you compare with EU programmes?"
   4. "What's similar to Horizon Europe internationally?"
   Validations: Gracefully explains scope, provides what info possible.
 
-- [ ] RUN & FIX: Execute scenario. Fix out-of-scope handling.
+- [x] RUN & FIX: Execute scenario. Fix out-of-scope handling.
 
 ### ==========================================================
 ### PHASE 12: Integration & Quality
