@@ -1115,6 +1115,25 @@ Examples for Consortium Building:
 
 **NEVER use search_documents for consortium building / partner discovery queries!**
 
+**Organization & Network Exploration (CRITICAL - USE SPECIALIZED TOOLS!):**
+When user asks about SPECIFIC ORGANIZATIONS or their COLLABORATION NETWORKS:
+- "Show projects by [Organization]" / "Fraunhofer projects" / "projects coordinated by X" → **USE find_organization_projects** (NOT search_documents!)
+  * Parameters: organization_name (required!), role (optional: 'coordinator' or 'participant')
+  * Example: find_organization_projects(organization_name='Fraunhofer', role='coordinator')
+- "Who does [Organization] partner with?" / "collaboration network" / "partners of X" → **USE get_collaboration_network** (NOT search_documents!)
+  * Parameters: organization_name (required!)
+  * Example: get_collaboration_network(organization_name='Fraunhofer')
+- "Most connected organizations" / "who are the key players" (after partner search) → **USE get_collaboration_network** for top organizations from previous results
+- "Who do they typically partner with?" (follow-up about specific org) → **USE get_collaboration_network** with organization from context
+
+Examples for Network Exploration:
+- User: "Show projects coordinated by Fraunhofer" → find_organization_projects(organization_name='Fraunhofer', role='coordinator')
+- User: "Who do they typically partner with?" → get_collaboration_network(organization_name='Fraunhofer') (extract org from context)
+- User: "What projects has TU Delft participated in?" → find_organization_projects(organization_name='TU Delft')
+- User: "Show me CNRS's collaboration network" → get_collaboration_network(organization_name='CNRS')
+
+**NEVER use search_documents for organization-specific queries!**
+
 **Statistics & Success Rates:**
 - "Success rate" / "typical success rate" / "what's the success rate" → **USE get_programme_statistics** (NOT search_documents!)
   * Parameters: programme (e.g., 'Cluster 5', 'EIC', 'ERC')
@@ -4854,7 +4873,155 @@ Per Partner Distribution:
 
                     content_pieces.append("\n".join(similar_parts))
 
-            # Extract project results
+            # Extract collaboration network results (get_collaboration_network)
+            elif "partners" in result and isinstance(result.get("partners"), list):
+                org_name = result.get("organization", "Unknown Organization")
+                org_country = result.get("country", "")
+                partners = result.get("partners", [])
+                total_partners = result.get("total_partners", len(partners))
+
+                if not partners:
+                    network_text = f"""## Collaboration Network: {org_name}
+
+No collaboration partners found for this organization in the database.
+
+**Suggestions:**
+- Check the organization name spelling
+- Try searching with a shorter name (e.g., "Fraunhofer" instead of full name)
+- The organization may not have participated in Horizon Europe projects"""
+                else:
+                    network_text = f"""## Collaboration Network: {org_name}
+**Location:** {org_country}
+**Total Collaborating Organizations:** {total_partners}
+
+### Top Collaborating Partners
+
+| Partner | Country | Type | Joint Projects |
+|---------|---------|------|----------------|
+"""
+                    for p in partners[:15]:
+                        p_name = p.get("name", "Unknown")[:50]
+                        p_country = p.get("country", "N/A")
+                        p_type = p.get("type", "N/A")
+                        p_type_desc = {
+                            "HES": "University",
+                            "REC": "Research",
+                            "PRC": "Company",
+                            "PUB": "Public",
+                            "OTH": "Other",
+                        }.get(p_type, p_type or "N/A")
+                        collabs = p.get("collaborations", 0)
+                        network_text += f"| {p_name} | {p_country} | {p_type_desc} | {collabs} |\n"
+
+                    if total_partners > 15:
+                        network_text += f"\n*...and {total_partners - 15} more partners*\n"
+
+                    # Add insights
+                    countries = set(p.get("country") for p in partners if p.get("country"))
+                    types = [p.get("type") for p in partners if p.get("type")]
+                    type_counts = {}
+                    for t in types:
+                        type_counts[t] = type_counts.get(t, 0) + 1
+                    top_type = max(type_counts, key=type_counts.get) if type_counts else "N/A"
+                    top_type_desc = {
+                        "HES": "Universities",
+                        "REC": "Research Centers",
+                        "PRC": "Companies",
+                        "PUB": "Public Bodies",
+                        "OTH": "Other Organizations",
+                    }.get(top_type, top_type)
+
+                    network_text += f"""
+### Network Insights
+- **Geographic Reach:** {len(countries)} countries
+- **Most Common Partner Type:** {top_type_desc}
+- **Strongest Collaboration:** {partners[0].get('name', 'N/A')} ({partners[0].get('collaborations', 0)} joint projects)
+
+**Next Steps:**
+- Explore specific partners' project histories
+- Search CORDIS for joint project details
+- Contact organizations through EU Partner Search
+"""
+                content_pieces.append(network_text)
+
+            # Extract organization projects results (find_organization_projects)
+            elif "organization" in result and "projects" in result and "count" in result:
+                org_name = result.get("organization", "Unknown")
+                projects = result.get("projects", [])
+                count = result.get("count", len(projects))
+                role_filter = result.get("role_filter")
+
+                if not projects:
+                    org_text = f"""## Projects for {org_name}
+
+No projects found for this organization in the database.
+
+**Suggestions:**
+- Check the organization name spelling
+- Try searching with a shorter name
+- The organization may not have participated in Horizon Europe yet"""
+                else:
+                    role_desc = f" (as {role_filter})" if role_filter else ""
+                    org_text = f"""## Projects by {org_name}{role_desc}
+**Total Projects Found:** {count}
+
+"""
+                    coordinated = [p for p in projects if p.get("role") == "coordinator"]
+                    participated = [p for p in projects if p.get("role") != "coordinator"]
+
+                    if coordinated:
+                        org_text += f"### Coordinated Projects ({len(coordinated)})\n\n"
+                        for p in coordinated[:10]:
+                            acronym = p.get("acronym", "N/A")
+                            title = p.get("title", "N/A")[:60]
+                            budget = p.get("budget", 0)
+                            status = p.get("status", "N/A")
+                            scheme = p.get("funding_scheme", "N/A")
+                            start = p.get("start_date", "")[:10] if p.get("start_date") else "N/A"
+                            url = p.get("cordis_url", "")
+
+                            budget_str = f"€{budget / 1_000_000:.1f}M" if budget else "N/A"
+                            org_text += f"- **{acronym}**: {title}\n"
+                            org_text += (
+                                f"  - Budget: {budget_str} | Type: {scheme} | Status: {status}\n"
+                            )
+                            if url:
+                                org_text += f"  - [View on CORDIS]({url})\n"
+                            org_text += "\n"
+
+                    if participated:
+                        org_text += f"### As Participant ({len(participated)})\n\n"
+                        for p in participated[:10]:
+                            acronym = p.get("acronym", "N/A")
+                            title = p.get("title", "N/A")[:60]
+                            budget = p.get("budget", 0)
+                            scheme = p.get("funding_scheme", "N/A")
+                            url = p.get("cordis_url", "")
+
+                            budget_str = f"€{budget / 1_000_000:.1f}M" if budget else "N/A"
+                            org_text += f"- **{acronym}**: {title} ({scheme}, {budget_str})\n"
+
+                    # Add insights
+                    total_budget = sum(p.get("budget", 0) or 0 for p in projects)
+                    funding_schemes = set(
+                        p.get("funding_scheme") for p in projects if p.get("funding_scheme")
+                    )
+
+                    org_text += f"""
+### Summary
+- **Total Projects:** {count}
+- **As Coordinator:** {len(coordinated)}
+- **Total Budget Involved:** €{total_budget / 1_000_000:.1f}M
+- **Funding Types:** {', '.join(funding_schemes) if funding_schemes else 'N/A'}
+
+**Next Steps:**
+- Explore specific project details on CORDIS
+- Search for collaboration partners
+- Analyze the organization's research focus areas
+"""
+                content_pieces.append(org_text)
+
+            # Extract project results (generic fallback for other project queries)
             elif "projects" in result and isinstance(result["projects"], list):
                 for proj in result["projects"][:5]:
                     acronym = proj.get("acronym", "")
@@ -5275,6 +5442,9 @@ Found **{total_found} organizations** with relevant track records:
         direct_output_markers_priority = [
             "## Similar Funded Projects",  # Highest priority - what user wants
             "## Similar Projects Search",
+            "## Collaboration Network:",  # Network exploration results
+            "## Projects by ",  # Organization project results
+            "## Projects for ",  # Organization project results (no results case)
             "## Project Timeline Generated",
             "## Funding History Analysis:",
             "## Geographic Diversification Analysis:",  # Country group analysis
