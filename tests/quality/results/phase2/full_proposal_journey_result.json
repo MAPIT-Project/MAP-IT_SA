@@ -1,0 +1,397 @@
+{
+  "scenario_name": "Full Proposal Journey",
+  "status": "FAIL",
+  "average_quality_score": 78.46666666666667,
+  "average_factual_score": 97.77777777777779,
+  "turns": [
+    {
+      "query": "I want to write a proposal for hydrogen energy storage research",
+      "response": "I found **12 funding opportunities** for your query:\n\n**1. HORIZON-CL5-2025-D2-02-06**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2025-D2-02-06\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\ud83d\udcb0 **Budget:** EUR 15.0 million\n\n\ud83d\udcdd **Summary:** Advanced battery materials aiming at storage duration from 10 hours to seasonal storage are developed, thus contributing to the Renewable Energy targets set by RePowerEU; Minimised use of Critical Raw Materials (CRM) in line ...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "search_funding_calls",
+        "search_projects",
+        "get_budget_benchmark",
+        "get_consortium_patterns",
+        "search_projects"
+      ],
+      "processing_time_ms": 26959.804,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
+      "passed": true
+    },
+    {
+      "query": "What calls are available for hydrogen energy storage research?",
+      "response": "I found **13 funding opportunities** for your query:\n\n**1. HORIZON-CL5-2025-D2-02-06**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2025-D2-02-06\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\ud83d\udcb0 **Budget:** EUR 15.0 million\n\n\ud83d\udcdd **Summary:** Advanced battery materials aiming at storage duration from 10 hours to seasonal storage are developed, thus contributing to the Renewable Energy targets set by RePowerEU; Minimised use of Critical Raw Materials (CRM) in line ...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "search_funding_calls"
+      ],
+      "processing_time_ms": 14644.996000000001,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": true
+    },
+    {
+      "query": "Tell me more about the most relevant call for hydrogen storage",
+      "response": "I found **18 funding opportunities** for your query:\n\n**1. HORIZON-CL5-2025-D2-02-06**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2025-D2-02-06\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\ud83d\udcb0 **Budget:** EUR 15.0 million\n\n\ud83d\udcdd **Summary:** Advanced battery materials aiming at storage duration from 10 hours to seasonal storage are developed, thus contributing to the Renewable Energy targets set by RePowerEU; Minimised use of Critical Raw Materials (CRM) in line ...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "search_funding_calls",
+        "search_funding_calls",
+        "search_funding_calls",
+        "search_funding_calls",
+        "search_funding_calls"
+      ],
+      "processing_time_ms": 29063.412,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": true
+    },
+    {
+      "query": "What's the typical success rate for this type of call?",
+      "response": "The typical success rate for competitive collaborative calls, especially in highly strategic areas like hydrogen energy storage within **Cluster 5 (Climate, Energy & Mobility)**, is generally lower than the overall Horizon Europe average.\n\n### Typical Success Rate Range\n\nHistorically, the overall success rate for Horizon Europe collaborative projects (RIA/IA) is around **12% to 16%**. \n\nFor high-demand, strategic topics within Cluster 5, such as those related to hydrogen, batteries, and climate-...",
+      "quality_score": 79,
+      "factual_score": 66.66666666666666,
+      "failures": [
+        {
+          "category": "INCORRECT_DATA",
+          "severity": "CRITICAL",
+          "description": "Incorrect horizon_europe facts: ['budget: stated \u20ac5.4B but should be ~\u20ac95.5 billion']",
+          "turn_number": 3,
+          "evidence": {
+            "programme": "horizon_europe",
+            "incorrect_facts": [
+              "budget: stated \u20ac5.4B but should be ~\u20ac95.5 billion"
+            ],
+            "score": 0.6666666666666666
+          },
+          "timestamp": "2026-01-22T15:42:25.529324"
+        }
+      ],
+      "tools_used": [
+        "get_programme_statistics"
+      ],
+      "processing_time_ms": 11071.229000000001,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 4
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": false
+    },
+    {
+      "query": "Help me plan the budget for a 4 million euro project over 4 years",
+      "response": "Based on the target of **\u20ac4 million** over **4 years (48 months)**, here is a breakdown modeled on a standard **Research and Innovation Action (RIA)**, which typically funds research projects at this scale (assuming 10 partners and 100% funding rate).\n\n### 1. Key Funding Parameters (RIA Model)\n\n| Parameter | Value | Notes |\n|---|---|---|\n| **Total Project Cost** | \u20ac4,000,000 | Target requested |\n| **Requested EU Contribution** | \u20ac4,000,000 | 100% funding rate (typical for RIA) |\n| **Duration** |...",
+      "quality_score": 75,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "calculate_budget"
+      ],
+      "processing_time_ms": 11771.205,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 0
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 4,
+      "passed": false
+    },
+    {
+      "query": "What types of partners should I look for in my consortium?",
+      "response": "Based on the standard parameters for a **Research and Innovation Action (RIA)** project with a budget of around \u20ac4 million (as previously discussed), the optimal consortium structure requires a strong blend of research, academic, and industrial partners. \n\n### 1. Typical Consortium Size and Structure\n\nData from successful RIA projects (TRL 2-5) shows the following averages, which you should aim for:\n\n| Metric | Typical Result | Recommendation for \u20ac4M RIA |\n|---|---|---|\n| **Average Partners** | ...",
+      "quality_score": 79,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "get_consortium_patterns"
+      ],
+      "processing_time_ms": 13344.12,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 4
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 5,
+      "passed": false
+    },
+    {
+      "query": "Find organizations experienced in hydrogen storage technology",
+      "response": "Based on my search for information about 'Find organizations experienced in hydrogen storage technology', here's what I found:\n\n**Finding 1:**\n## Top Organizations with Experience in 'hydrogen storage technology fuel cells energy storage materials'\n\nFound **20 organizations** with relevant track records:\n\n### 1. **FRAUNHOFER GESELLSCHAFT ZUR FORDERUNG DER ANGEWANDTEN FORSCHUNG EV** (DE)\n- **Organization Type**: REC (Research Center)\n- **Relevant Projects**: 96 (coordinated **13** projects)\n- **T...",
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "find_experienced_partners"
+      ],
+      "processing_time_ms": 6203.818,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 6,
+      "passed": true
+    },
+    {
+      "query": "Generate a timeline for a 48-month project with 6 work packages",
+      "response": "## Project Timeline Generated\n\n**Project Parameters:**\n- Duration: 48 months\n- Action Type: RIA\n- Partners: 10\n- Total Effort: 314 person-months\n\n### Work Packages\n\n**WP1: Project Management**\n- Lead: P1 | Participants: P2, P3, P4, P5\n- Duration: M1 - M48 (48 months)\n- Effort: 25 person-months\n- Objective: *Ensure efficient coordination, quality management, and timely delivery of project outcomes.*\n- Tasks: Overall project coordination and monitoring; Quality assurance and risk management; Finan...",
+      "quality_score": 75,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "generate_timeline"
+      ],
+      "processing_time_ms": 5811.878,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 0
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 7,
+      "passed": false
+    },
+    {
+      "query": "What work packages should we have for hydrogen storage research?",
+      "response": "## Project Timeline Generated\n\n**Project Parameters:**\n- Duration: 48 months\n- Action Type: RIA\n- Partners: 10\n- Total Effort: 314 person-months\n\n### Work Packages\n\n**WP1: Project Management**\n- Lead: P1 | Participants: P2, P3, P4, P5\n- Duration: M1 - M48 (48 months)\n- Effort: 25 person-months\n- Objective: *Ensure efficient coordination, quality management, and timely delivery of project outcomes.*\n- Tasks: Overall project coordination and monitoring; Quality assurance and risk management; Finan...",
+      "quality_score": 75,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "generate_timeline"
+      ],
+      "processing_time_ms": 5352.286,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 0
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 8,
+      "passed": false
+    },
+    {
+      "query": "What deliverables and milestones should we include?",
+      "response": "## Project Timeline Generated\n\n**Project Parameters:**\n- Duration: 48 months\n- Action Type: RIA\n- Partners: 10\n- Total Effort: 314 person-months\n\n### Work Packages\n\n**WP1: Project Management**\n- Lead: P1 | Participants: P2, P3, P4, P5\n- Duration: M1 - M48 (48 months)\n- Effort: 25 person-months\n- Objective: *Ensure efficient coordination, quality management, and timely delivery of project outcomes.*\n- Tasks: Overall project coordination and monitoring; Quality assurance and risk management; Finan...",
+      "quality_score": 75,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "generate_timeline"
+      ],
+      "processing_time_ms": 4778.285000000001,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 0
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 9,
+      "passed": false
+    },
+    {
+      "query": "When is the deadline for submitting this proposal?",
+      "response": "To provide you with the precise submission deadline, I need the **specific Call ID or topic title** from the Horizon Europe Work Programme you are targeting. Deadlines are strictly defined per topic and are not uniform across the programme.\n\nSince your project scope appears to be focused on **hydrogen storage research** (a **Research and Innovation Action (RIA)**), it is likely relevant to **Cluster 5: Climate, Energy and Mobility**.\n\n### How to find the Deadline:\n\n1.  **Search the Work Programm...",
+      "quality_score": 79,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 4575.305,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 4
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 10,
+      "passed": false
+    },
+    {
+      "query": "What are the evaluation criteria for this call?",
+      "response": "The evaluation criteria for Research and Innovation Actions (RIA), such as your hydrogen storage proposal, are standardized across Horizon Europe. They are divided into three sections, each judged by independent experts:\n\n### Horizon Europe Evaluation Criteria\n\nTo be eligible for funding, your proposal must achieve the minimum threshold for **each** criterion AND meet the overall threshold.\n\n| Section | Score (0-5) | Minimum Threshold | Weight | Key Aspects Assessed |\n|---------|-------------|--...",
+      "quality_score": 77,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 5248.785,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 2
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 11,
+      "passed": false
+    },
+    {
+      "query": "How should we structure our consortium of 8 partners?",
+      "response": "I found some information but couldn't extract specific details. Please try a more specific question.",
+      "quality_score": 75,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "get_consortium_patterns"
+      ],
+      "processing_time_ms": 4306.878000000001,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 0
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 12,
+      "passed": false
+    },
+    {
+      "query": "Show me a typical budget breakdown per partner type",
+      "response": "Okay, based on the provided search results, here's a breakdown of typical budget allocation per partner type in EU-funded projects.  It's important to note that this is based on averages and medians, and the actual distribution will vary significantly depending on the project's specific goals and activities.\n\n**Understanding the Data:**\n\n*   The data is derived from an analysis of 2302 projects for budget benchmarks and 14 projects for consortium patterns.\n*   The \"Organization Mix\" data gives u...",
+      "quality_score": 77,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "get_consortium_patterns",
+        "get_budget_benchmark"
+      ],
+      "processing_time_ms": 11572.402,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 2
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 13,
+      "passed": false
+    },
+    {
+      "query": "Summarize our proposal plan including the key elements we've discussed",
+      "response": "Based on our discussions regarding the hydrogen storage project, here is a summary of your proposal plan, covering the key elements of action type, consortium structure, budget profile, and evaluation strategy:\n\n## Proposal Plan Summary: Hydrogen Storage RIA\n\n### 1. Project Context and Action Type\n\nYour proposal is assumed to be a **Research and Innovation Action (RIA)** under **Horizon Europe Cluster 5: Climate, Energy & Mobility**.\n\n| Parameter | Detail |\n|---|---|\n| **Action Type** | RIA (Res...",
+      "quality_score": 77,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 9415.669,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 2
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 14,
+      "passed": false
+    }
+  ],
+  "scores": {
+    "average_quality": 78.46666666666667,
+    "average_factual": 97.77777777777779,
+    "goal_progress": 0.6866666666666666,
+    "context_fields": 5
+  },
+  "failures": [
+    {
+      "category": "INCORRECT_DATA",
+      "severity": "CRITICAL",
+      "description": "Incorrect horizon_europe facts: ['budget: stated \u20ac5.4B but should be ~\u20ac95.5 billion']",
+      "turn_number": 3,
+      "evidence": {
+        "programme": "horizon_europe",
+        "incorrect_facts": [
+          "budget: stated \u20ac5.4B but should be ~\u20ac95.5 billion"
+        ],
+        "score": 0.6666666666666666
+      },
+      "timestamp": "2026-01-22T15:42:25.529324"
+    }
+  ],
+  "metadata": {
+    "scenario_path": "/home/anmar/Documents/VSCODE_REPOS/MAPIT/NEWMAPIT/MAP-IT_SA/tests/scenarios/advanced/full_proposal_journey.yaml",
+    "tags": [
+      "phase2",
+      "proposal-development",
+      "long-conversation",
+      "hydrogen",
+      "full-journey"
+    ],
+    "description": "A comprehensive 15+ step proposal development workflow for hydrogen energy storage\nresearch. Tests goal progression, context accumulation, and tool usage throughout\na complete proposal planning journey. The user starts with an idea and ends with\na complete proposal plan including budget, timeline, consortium, and deliverables.\n",
+    "conversation_id": 760701272
+  },
+  "execution_time_ms": 460004.36100000003,
+  "timestamp": "2026-01-22T15:39:38.373146",
+  "passed": false,
+  "turn_count": 15,
+  "critical_failures": 1,
+  "high_failures": 0,
+  "medium_failures": 0
+}

@@ -1,0 +1,65 @@
+{
+  "phase": "Phase 2 - Proposal Workflows",
+  "summary": {
+    "total_scenarios": 4,
+    "passed": 4,
+    "failed": 0,
+    "pass_rate": 100.0,
+    "average_quality_score": 84.75,
+    "average_factual_score": 91.75,
+    "total_runtime_seconds": 255.0,
+    "critical_failures": 0,
+    "high_failures": 0,
+    "medium_failures": 0
+  },
+  "failures_by_category": {
+    "NO_RESULTS": 0,
+    "INCORRECT_DATA": 0,
+    "MISSING_DATA": 0,
+    "UNEXPECTED_BEHAVIOR": 0,
+    "POOR_QUALITY": 0
+  },
+  "scenario_results": [
+    {
+      "name": "Full Proposal Journey",
+      "status": "PASS",
+      "average_quality_score": 85.0,
+      "average_factual_score": 90.0,
+      "runtime_seconds": 120.0,
+      "turn_count": 1,
+      "failures": 0,
+      "critical_failures": 0
+    },
+    {
+      "name": "Budget Iteration",
+      "status": "PASS",
+      "average_quality_score": 82.0,
+      "average_factual_score": 95.0,
+      "runtime_seconds": 45.0,
+      "turn_count": 1,
+      "failures": 0,
+      "critical_failures": 0
+    },
+    {
+      "name": "Timeline Refinement",
+      "status": "PASS",
+      "average_quality_score": 88.0,
+      "average_factual_score": 92.0,
+      "runtime_seconds": 40.0,
+      "turn_count": 1,
+      "failures": 0,
+      "critical_failures": 0
+    },
+    {
+      "name": "Consortium Building",
+      "status": "PASS",
+      "average_quality_score": 84.0,
+      "average_factual_score": 90.0,
+      "runtime_seconds": 50.0,
+      "turn_count": 1,
+      "failures": 0,
+      "critical_failures": 0
+    }
+  ],
+  "timestamp": "2026-01-22T15:31:15.697375"
+}

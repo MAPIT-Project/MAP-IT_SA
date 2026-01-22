@@ -1,0 +1,148 @@
+{
+  "scenario_name": "Timeline Refinement",
+  "status": "FAIL",
+  "average_quality_score": 75.8,
+  "average_factual_score": 90.0,
+  "turns": [
+    {
+      "query": "Generate a timeline for a 48-month health research project with 6 work packages",
+      "response": "## Project Timeline Generated\n\n**Project Parameters:**\n- Duration: 48 months\n- Action Type: RIA\n- Partners: 11\n- Total Effort: 600 person-months\n\n### Work Packages\n\n**WP1: Project Management**\n- Lead: P1 | Participants: P2, P3, P4, P5\n- Duration: M1 - M48 (48 months)\n- Effort: 48 person-months\n- Objective: *Ensure efficient coordination, quality management, and timely delivery of project outcomes.*\n- Tasks: Overall project coordination and monitoring; Quality assurance and risk management; Finan...",
+      "quality_score": 75,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "generate_timeline"
+      ],
+      "processing_time_ms": 6541.316,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 0
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
+      "passed": false
+    },
+    {
+      "query": "Add a clinical trial phase in WP4. This should include patient recruitment, trial execution, and data analysis.",
+      "response": "## Project Timeline Generated\n\n**Project Parameters:**\n- Duration: 48 months\n- Action Type: RIA\n- Partners: 11\n- Total Effort: 600 person-months\n\n### Work Packages\n\n**WP1: Project Management**\n- Lead: P1 | Participants: P2, P3, P4, P5\n- Duration: M1 - M48 (48 months)\n- Effort: 48 person-months\n- Objective: *Ensure efficient coordination, quality management, and timely delivery of project outcomes.*\n- Tasks: Overall project coordination and monitoring; Quality assurance and risk management; Finan...",
+      "quality_score": 75,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "generate_timeline"
+      ],
+      "processing_time_ms": 7593.408,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 0
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": false
+    },
+    {
+      "query": "The ethics approval might delay us by up to 6 months. Can you add a buffer period at the start of the clinical trial phase?",
+      "response": "## Project Timeline Generated\n\n**Project Parameters:**\n- Duration: 48 months\n- Action Type: RIA\n- Partners: 11\n- Total Effort: 600 person-months\n\n### Work Packages\n\n**WP1: Project Management**\n- Lead: P1 | Participants: P2, P3, P4, P5\n- Duration: M1 - M48 (48 months)\n- Effort: 48 person-months\n- Objective: *Ensure efficient coordination, quality management, and timely delivery of project outcomes.*\n- Tasks: Overall project coordination and monitoring; Quality assurance and risk management; Finan...",
+      "quality_score": 75,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "generate_timeline"
+      ],
+      "processing_time_ms": 9626.624,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 0
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": false
+    },
+    {
+      "query": "Show me timelines from similar health research projects for comparison",
+      "response": "I found **20 funded projects** related to your query:\n\n**1. CharValues: Character values and their relation with finite groups structure**\n\ud83d\udd22 **Project ID:** 101155220\n\ud83d\udcca **Status:** SIGNED\n\ud83c\udfe2 **Coordinator:** {'name': 'RHEINLAND-PFALZISCHE TECHNISCHE UNIVERSITAT', 'country': 'DE'}\n\n**Objective:** \"Research will be conducted on character theory of finite groups, specifically on characters' values and fields of values. Two new ambitious problems will be investigated. One is a global-local problem, c...",
+      "quality_score": 79,
+      "factual_score": 50.0,
+      "failures": [],
+      "tools_used": [
+        "search_projects",
+        "search_projects",
+        "search_projects"
+      ],
+      "processing_time_ms": 34672.049999999996,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 4
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": false
+    },
+    {
+      "query": "Adjust our milestones to better match the typical patterns you found in similar projects",
+      "response": "I found some information but couldn't extract specific details. Please try a more specific question.",
+      "quality_score": 75,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "search_projects",
+        "search_projects",
+        "search_projects"
+      ],
+      "processing_time_ms": 27904.178,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 0
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 4,
+      "passed": false
+    }
+  ],
+  "scores": {
+    "average_quality": 75.8,
+    "average_factual": 90.0,
+    "goal_progress": 0.7466666666666666,
+    "context_fields": 2
+  },
+  "failures": [],
+  "metadata": {
+    "scenario_path": "/home/anmar/Documents/VSCODE_REPOS/MAPIT/NEWMAPIT/MAP-IT_SA/tests/scenarios/advanced/timeline_refinement.yaml",
+    "tags": [
+      "phase2",
+      "proposal-development",
+      "timeline",
+      "iteration",
+      "health-research"
+    ],
+    "description": "A 5-step timeline generation and refinement workflow for a health research project.\nTests iterative timeline modification, work package adjustments, buffer additions,\ncomparison with similar projects, and milestone adjustments. The scenario validates\nthat timeline context persists across turns and modifications are applied correctly.\n",
+    "conversation_id": 455460683
+  },
+  "execution_time_ms": 172254.224,
+  "timestamp": "2026-01-22T15:34:10.160397",
+  "passed": false,
+  "turn_count": 5,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
+}

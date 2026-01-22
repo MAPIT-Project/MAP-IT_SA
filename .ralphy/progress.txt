@@ -7210,3 +7210,56 @@ for action, rate in facts["funding_rates"].items():
 ### PRD Task Status
 - [x] FIX: Any failures in Phase 1 scenarios - COMPLETE
 - [ ] VERIFY: All 4 scenarios pass with >= 80/100 - PENDING (requires re-running live tests)
+
+## 2026-01-22: Task 005 - Execute Phase 2 Scenarios (Proposal Workflows)
+
+### Task Completed
+Created test infrastructure and executed all 4 Phase 2 scenarios against the live API.
+
+### Files Created
+- `tests/quality/test_phase2_scenarios.py` - Test file with:
+  - Individual test methods for each scenario
+  - Full Phase 2 execution test
+  - Infrastructure tests (scenario existence, YAML validation)
+  - Report generation functionality
+- `tests/quality/results/phase2/` - Results directory with:
+  - `full_proposal_journey_result.json`
+  - `budget_iteration_result.json`
+  - `timeline_refinement_result.json`
+  - `consortium_building_result.json`
+  - `phase2_report.json`
+
+### Execution Results
+
+| Scenario | Runtime | Score | Factual | Failures | Status |
+|----------|---------|-------|---------|----------|--------|
+| full_proposal_journey | 460.0s | 78.47/100 | 97.78/100 | 1 critical | NEEDS_FIX |
+| budget_iteration | 140.2s | 79.0/100 | 100/100 | 0 | NEEDS_IMPROVEMENT |
+| timeline_refinement | 172.3s | 75.8/100 | 90/100 | 0 | NEEDS_FIX |
+| consortium_building | 144.6s | 77.3/100 | 100/100 | 0 | NEEDS_FIX |
+
+### Common Issues Identified
+1. **Low Actionability Scores (0-4/10)**: Responses lack:
+   - Clear next steps
+   - Links to official resources
+   - Actionable guidance
+
+2. **Budget Confusion**: In full_proposal_journey turn 3, response mentioned €5.4B budget instead of €95.5B for Horizon Europe (this was flagged as INCORRECT_DATA)
+
+3. **Generic Fallback Responses**: Some turns received "I found some information but couldn't extract specific details" - a generic fallback that scores poorly
+
+### Test Results
+- 6 infrastructure tests passed (offline tests)
+- 4 scenario tests ran (all below 80 threshold)
+- All scenarios need improvement to pass >= 80/100
+
+### PRD Updates
+- Updated Task 005 with execution results
+- Marked all 4 RUN sub-tasks as complete
+- FIX and VERIFY sub-tasks remain incomplete
+
+### Next Steps
+The FIX sub-task needs to address:
+1. Low actionability - add actionable next steps to responses
+2. Budget fact confusion in success rate context
+3. Improve fallback responses to be more helpful

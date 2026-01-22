@@ -1,0 +1,170 @@
+{
+  "scenario_name": "Consortium Building",
+  "status": "FAIL",
+  "average_quality_score": 77.33333333333333,
+  "average_factual_score": 100.0,
+  "turns": [
+    {
+      "query": "We need partners for an AI in agriculture project",
+      "response": "Based on the requirements for an AI in Agriculture project\u2014which typically requires strong foundational research (TRL 2-5) and industrial deployment capabilities (TRL 6-8)\u2014here is a list of highly experienced organizations (H2020 and Horizon Europe) categorized by their primary role:\n\n### 1. Research & Excellence Partners (HES/REC)\n\nThese organizations are ideal for leading the *Excellence* and *Impact* sections, conducting core AI research, and managing complex multidisciplinary WPs. They show ...",
+      "quality_score": 77,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "find_experienced_partners",
+        "find_experienced_partners"
+      ],
+      "processing_time_ms": 20336.466,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 2
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
+      "passed": false
+    },
+    {
+      "query": "Find organizations experienced in precision farming",
+      "response": "Based on my search for information about 'Find organizations experienced in precision farming', here's what I found:\n\n**Finding 1:**\n## Top Organizations with Experience in 'precision farming smart agriculture agritech AI sensors monitoring'\n\nFound **20 organizations** with relevant track records:\n\n### 1. **STICHTING WAGENINGEN RESEARCH** (NL)\n- **Organization Type**: REC (Research Center)\n- **Relevant Projects**: 83 (coordinated **12** projects)\n- **Total Funding**: \u20ac48,629,150\n- **Example Proj...",
+      "quality_score": 79,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "find_experienced_partners"
+      ],
+      "processing_time_ms": 6190.441,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 4
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": false
+    },
+    {
+      "query": "We need an SME partner from Southern Europe",
+      "response": "Based on my search for information about 'We need an SME partner from Southern Europe', here's what I found:\n\n**Finding 1:**\n## Top Organizations with Experience in 'precision farming smart agriculture agritech AI sensors monitoring'\n\nFound **25 organizations** with relevant track records:\n\n### 1. **ENGINEERING - INGEGNERIA INFORMATICA SPA** (IT)\n- **Organization Type**: PRC (Private Company)\n- **Relevant Projects**: 75 (coordinated **11** projects)\n- **Total Funding**: \u20ac30,104,550\n- **Example P...",
+      "quality_score": 79,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "find_experienced_partners"
+      ],
+      "processing_time_ms": 8342.417,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 4
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": false
+    },
+    {
+      "query": "Find a research organization from Germany",
+      "response": "Based on my search for information about 'Find a research organization from Germany', here's what I found:\n\n**Finding 1:**\n## Top Organizations with Experience in 'precision farming smart agriculture agritech AI sensors monitoring'\n\nFound **10 organizations** with relevant track records:\n\n### 1. **DEUTSCHES ZENTRUM FUR LUFT - UND RAUMFAHRT EV** (DE)\n- **Organization Type**: REC (Research Center)\n- **Relevant Projects**: 232 (coordinated **38** projects)\n- **Total Funding**: \u20ac199,591,074\n- **Exam...",
+      "quality_score": 79,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "find_experienced_partners"
+      ],
+      "processing_time_ms": 6196.917,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 4
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": false
+    },
+    {
+      "query": "What's a typical consortium size for this topic?",
+      "response": "I found some information but couldn't extract specific details. Please try a more specific question.",
+      "quality_score": 75,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "get_consortium_patterns",
+        "get_consortium_patterns"
+      ],
+      "processing_time_ms": 7779.102,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 0
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 4,
+      "passed": false
+    },
+    {
+      "query": "Show our proposed consortium",
+      "response": "I found some information but couldn't extract specific details. Please try a more specific question.",
+      "quality_score": 75,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "get_consortium_patterns",
+        "get_consortium_patterns"
+      ],
+      "processing_time_ms": 9089.201,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 0
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 5,
+      "passed": false
+    }
+  ],
+  "scores": {
+    "average_quality": 77.33333333333333,
+    "average_factual": 100.0,
+    "goal_progress": 0.6,
+    "context_fields": 6
+  },
+  "failures": [],
+  "metadata": {
+    "scenario_path": "/home/anmar/Documents/VSCODE_REPOS/MAPIT/NEWMAPIT/MAP-IT_SA/tests/scenarios/advanced/consortium_building.yaml",
+    "tags": [
+      "phase2",
+      "proposal-development",
+      "consortium",
+      "partners",
+      "agriculture",
+      "ai"
+    ],
+    "description": "A 6-step consortium building workflow for an AI in agriculture project.\nTests iterative partner discovery, geographic filtering, organization type filtering,\nconsortium size guidance, and final composition summary. The scenario validates\nthat partner context accumulates across turns and geographic balance is considered.\n",
+    "conversation_id": 218536000
+  },
+  "execution_time_ms": 144582.358,
+  "timestamp": "2026-01-22T15:37:08.016921",
+  "passed": false,
+  "turn_count": 6,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
+}

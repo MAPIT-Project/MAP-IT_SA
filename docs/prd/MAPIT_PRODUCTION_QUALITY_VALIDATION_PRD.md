@@ -266,27 +266,31 @@ After all fixes:
 - [ ] VERIFY: All 4 scenarios pass with >= 80/100
 
 ### Task 005: Execute Phase 2 Scenarios (Proposal Workflows)
-- [ ] RUN: `full_proposal_journey.yaml` (15 turns - CRITICAL)
-  - Runtime: ___ seconds
-  - Average Score: ___/100
-  - Failures: ___
-  - Status: PASS/FAIL
-- [ ] RUN: `budget_iteration.yaml`
-  - Runtime: ___ seconds
-  - Average Score: ___/100
-  - Failures: ___
-  - Status: PASS/FAIL
-- [ ] RUN: `timeline_refinement.yaml`
-  - Runtime: ___ seconds
-  - Average Score: ___/100
-  - Failures: ___
-  - Status: PASS/FAIL
-- [ ] RUN: `consortium_building.yaml`
-  - Runtime: ___ seconds
-  - Average Score: ___/100
-  - Failures: ___
-  - Status: PASS/FAIL
+- [x] RUN: `full_proposal_journey.yaml` (15 turns - CRITICAL)
+  - Runtime: 460.0 seconds
+  - Average Score: 78.47/100
+  - Failures: 1 (INCORRECT_DATA - budget confusion €5.4B vs €95.5B in success rate response)
+  - Status: NEEDS_FIX
+- [x] RUN: `budget_iteration.yaml`
+  - Runtime: 140.2 seconds
+  - Average Score: 79.0/100
+  - Failures: 0
+  - Status: NEEDS_IMPROVEMENT (score < 80)
+- [x] RUN: `timeline_refinement.yaml`
+  - Runtime: 172.3 seconds
+  - Average Score: 75.8/100
+  - Failures: 0
+  - Status: NEEDS_FIX
+- [x] RUN: `consortium_building.yaml`
+  - Runtime: 144.6 seconds
+  - Average Score: 77.3/100
+  - Failures: 0
+  - Status: NEEDS_FIX
 - [ ] FIX: Any failures in Phase 2 scenarios
+  - Common issue: Low actionability scores (0-4/10) across all scenarios
+  - Responses lack clear next steps, links, and actionable guidance
+  - Test infrastructure created: `tests/quality/test_phase2_scenarios.py`
+  - Results saved: `tests/quality/results/phase2/`
 - [ ] VERIFY: All 4 scenarios pass with >= 80/100
 
 ### Task 006: Execute Phase 3 Scenarios (Partner Discovery)

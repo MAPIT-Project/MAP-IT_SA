@@ -1,0 +1,144 @@
+{
+  "scenario_name": "Budget Iteration",
+  "status": "FAIL",
+  "average_quality_score": 79.0,
+  "average_factual_score": 100.0,
+  "turns": [
+    {
+      "query": "Calculate budget for a 3-year RIA project with 5 partners",
+      "response": "Unfortunately, the provided search results are insufficient to calculate a budget for a 3-year RIA project with 5 partners. The results show similar projects, but they all lack crucial information:\n\n*   **Budget:** The budget information is missing for all listed projects.\n*   **Type:** The type of project is listed as N/A.\n*   **Partners:** The number of partners is listed as 0 for all projects.\n\n**To calculate a realistic budget, you would need to consider the following factors:**\n\n1.  **Perso...",
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "calculate_budget"
+      ],
+      "processing_time_ms": 11644.741,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
+      "passed": true
+    },
+    {
+      "query": "What if we add 2 more partners to the consortium? Recalculate the budget for 7 partners.",
+      "response": "Unfortunately, the provided search results are insufficient to recalculate the budget for a consortium with 7 partners. The results only show similar projects, but they lack crucial information:\n\n*   **Original Budget:** We don't know the initial budget for the consortium with the original number of partners.\n*   **Budget Breakdown:** We don't know how the budget is allocated among the partners (e.g., equal split, based on tasks, etc.).\n*   **Project Type/Scope:** The similar projects listed hav...",
+      "quality_score": 79,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "calculate_budget"
+      ],
+      "processing_time_ms": 9196.054,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 4
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": false
+    },
+    {
+      "query": "Can we increase personnel costs in the budget? We need more senior researchers.",
+      "response": "Yes, you can absolutely increase personnel costs in your budget, particularly to accommodate more senior researchers. Horizon Europe Research and Innovation Actions (RIA) use the **Actual Cost** funding model, which gives you flexibility, provided the costs are verifiable and necessary for the project. \n\nHere is how increasing personnel costs works in an RIA and the key mechanism you must use:\n\n### 1. The Mechanism: Increase Person-Months (PMs) and/or Cost Rate\n\nPersonnel costs are driven by two...",
+      "quality_score": 79,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "calculate_budget"
+      ],
+      "processing_time_ms": 12774.905,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 4
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": false
+    },
+    {
+      "query": "Compare this budget with typical RIA projects in the energy research area",
+      "response": "Okay, to compare your budget with typical Research and Innovation Action (RIA) projects in the energy research area, let's analyze the provided benchmark data:\n\n**Budget Benchmark Analysis (Based on 2302 projects):**\n\n*   **EU Contribution:**\n    *   Median: \u20ac4.9 million\n    *   Average: \u20ac5.5 million\n    *   Range: \u20ac0.3 million - \u20ac87.2 million\n*   **Consortium Size:**\n    *   Average: 14.8 partners\n*   **Recommended Values:**\n    *   Budget: \u20ac2.9 million - \u20ac6.9 million\n    *   Partners: 11-16 pa...",
+      "quality_score": 79,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "get_budget_benchmark"
+      ],
+      "processing_time_ms": 7604.82,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 4
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": false
+    },
+    {
+      "query": "Adjust our budget to stay within the 90th percentile of typical RIA projects",
+      "response": "Okay, based on the provided budget benchmark analysis of 2302 RIA projects, here's how you can adjust your budget to stay within the 90th percentile:\n\n**Understanding the Data**\n\nThe provided data gives us a good overview of typical RIA project budgets. Key takeaways are:\n\n*   **Median EU Contribution:** \u20ac4.9M (The middle value when all projects are ranked by budget)\n*   **Average EU Contribution:** \u20ac5.5M (The sum of all budgets divided by the number of projects)\n*   **Range:** \u20ac0.3M - \u20ac87.2M (T...",
+      "quality_score": 77,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "get_budget_benchmark"
+      ],
+      "processing_time_ms": 12970.734,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 2
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 4,
+      "passed": false
+    }
+  ],
+  "scores": {
+    "average_quality": 79.0,
+    "average_factual": 100.0,
+    "goal_progress": 0.7466666666666666,
+    "context_fields": 3
+  },
+  "failures": [],
+  "metadata": {
+    "scenario_path": "/home/anmar/Documents/VSCODE_REPOS/MAPIT/NEWMAPIT/MAP-IT_SA/tests/scenarios/advanced/budget_iteration.yaml",
+    "tags": [
+      "phase2",
+      "proposal-development",
+      "budget",
+      "iteration",
+      "ria"
+    ],
+    "description": "A 5-step budget calculation and refinement workflow for a RIA project.\nTests iterative budget recalculation, partner count adjustments, cost\nmodifications, comparison with typical projects, and percentile-based\nadjustments. The scenario validates that budget context persists across\nturns and calculations are updated appropriately.\n",
+    "conversation_id": 914652484
+  },
+  "execution_time_ms": 140160.843,
+  "timestamp": "2026-01-22T15:31:38.097395",
+  "passed": false,
+  "turn_count": 5,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
+}
