@@ -317,7 +317,7 @@ final_validations:
 ### ==========================================================
 
 ### Task 014: Partner Search Refinement Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/partner_search_refinement.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/partner_search_refinement.yaml` with steps:
   1. "Find partners for quantum computing research"
   2. "Show only universities"
   3. "From EU15 countries only"

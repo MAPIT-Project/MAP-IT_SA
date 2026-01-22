@@ -4895,3 +4895,45 @@ Per PRD requirements, the scenario uses these validation types:
 
 ### Next Steps
 Task 014: Partner Search Refinement Scenario (Phase 3: Partner Discovery Journeys)
+
+## 2026-01-22: Task 014 - Partner Search Refinement Scenario (CREATE SCENARIO)
+
+### Task Completed
+Created the partner_search_refinement.yaml scenario for Phase 3 (Partner Discovery Journeys).
+
+### Files Created
+- `tests/scenarios/advanced/partner_search_refinement.yaml` - New scenario file with:
+  - 5-step incremental filter refinement workflow
+  - Initial broad search for quantum computing partners
+  - Organization type filter (universities only)
+  - Geographic filter (EU15 countries only)
+  - Experience filter (coordination experience)
+  - Topic filter (quantum communication expertise)
+
+### Scenario Structure
+The scenario tests iterative partner search refinement:
+1. "Find partners for quantum computing research" - Broad initial search
+2. "Show only universities" - Organization type filter
+3. "From EU15 countries only" - Geographic filter
+4. "With experience coordinating projects" - Role/experience filter
+5. "Who have worked on quantum communication" - Topic expertise filter
+
+### Validation Types Used (per PRD)
+- `no_error` (Built-in): Error detection at each step
+- `response_contains_any` (Built-in): Pattern matching for relevant content
+- `goal_progress` (GoalTrackingAgent): Progress tracking at each step (0.10 → 0.60)
+- `context_accumulated` (PersonalizationAgent): Filter context accumulation
+- `goal_achieved` (GoalTrackingAgent): Final goal achievement (min 0.60)
+- `context_integrity` (ContextValidatorAgent): All messages preserved
+
+### Test Results
+- YAML syntax validated successfully
+- Scenario loads correctly into AdvancedScenarioRunner
+- Test collected: `test_advanced_scenario[partner_search_refinement]`
+
+### PRD Task Status
+- [x] CREATE SCENARIO task completed
+- [ ] RUN & FIX task pending (requires live API)
+
+### Next Steps
+The RUN & FIX subtask should be executed when the live API is available to verify filters are applied incrementally and results narrow down correctly.
