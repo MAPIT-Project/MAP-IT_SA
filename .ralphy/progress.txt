@@ -8369,3 +8369,46 @@ Budget Iteration is a 5-turn scenario testing iterative budget calculation for R
   - Budget benchmark errors → Fix app/services/tools/budget_benchmark.py
   - Budget calculation errors → Fix app/services/tools/budget_calculator.py
   - Missing budget breakdown → Edit tool to include detailed breakdown
+
+## 2026-01-22: Scenario 006 - Budget Iteration FIX IF NEEDED (COMPLETE - MAX_ATTEMPTS)
+
+### Task: Scenario 006: Budget Iteration FIX IF NEEDED
+- **Status**: MAX_ATTEMPTS (3 fix attempts made)
+- **Initial Score**: 77.0/100
+- **Final Score**: 76.6/100
+- **Pass Threshold**: 80/100
+
+### Fix Attempts:
+1. **Attempt 1**: Added budget iteration patterns to Proposal Planning Follow-ups table and created Budget Iteration/Refinement Follow-ups section. Score: 76.2
+2. **Attempt 2**: Enhanced search_documents tool description with explicit DO NOT USE guidance for budget-related queries (recalculate, adjust, compare, percentile). Score: 76.6
+3. **Attempt 3**: Added HIGHEST PRIORITY: Budget Tool Selection section at very beginning of REASONING_PROMPT to make budget tool guidance the first thing the agent sees. Score: 76.6
+
+### Files Modified (app/ only):
+- `app/services/agents/tool_aware_agent.py`:
+  - Added budget iteration patterns to Proposal Planning Follow-ups table (lines 979-982)
+  - Added Budget Iteration/Refinement Follow-ups section with specific guidance
+  - Enhanced search_documents DO NOT USE list with budget-specific scenarios
+  - Added HIGHEST PRIORITY: Budget Tool Selection section at prompt start
+
+### Root Cause Analysis:
+- The LLM consistently chooses `search_documents` over specialized budget tools (calculate_budget, get_budget_benchmark) for ALL turns
+- Same pattern observed as Scenario 005 - agent defaults to search_documents despite extensive prompt engineering
+- All 5 turns used search_documents instead of budget tools
+- This appears to be a model behavior pattern that cannot be easily fixed via prompts alone
+
+### Query Patterns That Failed:
+1. "Calculate budget for a 3-year RIA project with 5 partners" → used search_documents (should: calculate_budget)
+2. "Recalculate the budget for 7 partners" → used search_documents (should: calculate_budget)
+3. "Increase personnel costs in the budget" → used search_documents (should: calculate_budget)
+4. "Compare this budget with typical RIA projects" → used search_documents (should: get_budget_benchmark)
+5. "Adjust to 90th percentile" → used search_documents (should: get_budget_benchmark)
+
+### Recommendations for Future Investigation:
+1. Programmatic tool routing for budget-related keywords
+2. Model fine-tuning for better tool selection
+3. Pre-processing to detect budget queries and force tool selection
+4. Consider alternative LLM models with better instruction following
+
+### Updated Files:
+- `tests/quality/results/scenarios/budget_iteration.json` - Updated with fix_history, MAX_ATTEMPTS status, and root cause analysis
+- `docs/prd/MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD_V3.md` - Marked FIX IF NEEDED task as complete

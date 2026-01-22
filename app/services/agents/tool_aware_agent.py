@@ -930,6 +930,15 @@ For RIA/IA/CSA collaborative calls:
     # System prompt for the reasoning LLM
     REASONING_PROMPT = """You are an intelligent research assistant for EU funding (Horizon Europe, EIC, ERC, etc.).
 
+## ⚠️ HIGHEST PRIORITY: Budget Tool Selection ⚠️
+
+When the user's query mentions ANY of these words, you MUST use the specified tool:
+- "calculate budget", "budget for", "recalculate", "add partners", "more partners" → calculate_budget
+- "typical budget", "compare budget", "budget benchmark", "percentile", "90th percentile", "RIA budget" → get_budget_benchmark
+- "increase costs", "personnel costs", "adjust budget", "budget adjustment" → calculate_budget
+
+**DO NOT use search_documents for budget-related queries!** search_documents is ONLY for eligibility rules and requirements.
+
 ## Built-in Knowledge (USE THIS FOR COMMON QUESTIONS)
 
 {built_in_knowledge}
@@ -972,6 +981,10 @@ When user is in a proposal development conversation and asks follow-up questions
 | "What deliverables/milestones?" | generate_timeline | ✗ |
 | "How should we structure our consortium?" | get_consortium_patterns | ✗ |
 | "Typical budget breakdown" | get_budget_benchmark | ✗ |
+| "Recalculate budget" / "what if we add more partners" | calculate_budget | ✗ |
+| "Compare this budget" / "typical RIA projects" | get_budget_benchmark | ✗ |
+| "Increase personnel costs" / "adjust the budget" | calculate_budget | ✗ |
+| "90th percentile" / "budget percentile" | get_budget_benchmark | ✗ |
 
 Example: After discussing hydrogen storage calls, if user asks "What's the typical success rate for this type of call?"
 → USE get_programme_statistics(programme='Cluster 5') NOT search_documents!
@@ -1023,6 +1036,19 @@ When helping users PLAN their proposal, you MUST use the specialized proposal pl
   * Parameters: action_type (RIA/IA/CSA/ERC), duration_months, num_partners, target_budget
   * Example: calculate_budget(action_type='RIA', duration_months=48, num_partners=8, target_budget=4000000)
 - "What's typical budget" / "budget benchmarks" / "similar project budgets" → **USE get_budget_benchmark**
+
+**Budget Iteration/Refinement Follow-ups (CRITICAL - USE BUDGET TOOLS!):**
+When user asks to MODIFY, RECALCULATE, or COMPARE a budget discussed earlier:
+- "Recalculate" / "what if we add X more partners" / "budget for Y partners" → **USE calculate_budget** with updated num_partners
+- "Increase personnel costs" / "add senior researchers" / "adjust costs" → **USE calculate_budget** with adjusted parameters
+- "Compare this budget" / "typical RIA projects in energy" → **USE get_budget_benchmark** with topic_keywords
+- "90th percentile" / "budget percentile" / "stay within percentile" → **USE get_budget_benchmark** to get percentile data
+- "Adjust to X percentile" → **USE get_budget_benchmark** first to get target values, then calculate_budget to reach them
+
+Examples:
+- User: "Recalculate for 7 partners" → calculate_budget(action_type='RIA', duration_months=36, num_partners=7)
+- User: "Compare with typical energy RIA" → get_budget_benchmark(action_type='RIA', topic_keywords='energy')
+- User: "Adjust to 90th percentile" → get_budget_benchmark(action_type='RIA') first, then use target_budget from 90th percentile
 
 **Timeline & Work Packages:**
 - "Generate a timeline" / "timeline for X months" / "project timeline" → **USE generate_timeline** (NOT search_documents!)
@@ -2195,6 +2221,12 @@ This uses AI to automatically expand keywords to related terms (e.g., "AI" → i
 
 **DO NOT USE THIS TOOL FOR:**
 - Budget planning/calculation → USE calculate_budget instead!
+- Budget recalculation/adjustment → USE calculate_budget instead!
+- Budget comparison/benchmarking → USE get_budget_benchmark instead!
+- "What if we add more partners" → USE calculate_budget instead!
+- "90th percentile" / budget percentiles → USE get_budget_benchmark instead!
+- "Compare this budget" / "typical RIA" → USE get_budget_benchmark instead!
+- "Increase personnel costs" / cost adjustments → USE calculate_budget instead!
 - Timeline generation → USE generate_timeline instead!
 - Finding partners/organizations → USE find_experienced_partners instead!
 - Success rates/statistics → USE get_programme_statistics instead!

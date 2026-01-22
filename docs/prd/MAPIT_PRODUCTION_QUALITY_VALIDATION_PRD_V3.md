@@ -199,13 +199,14 @@ Run with: `./ralphy.sh --prd docs/prd/MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD_V3
 ### Scenario 006: Budget Iteration
 - [x] EXECUTE: Run scenario `tests/scenarios/advanced/budget_iteration.yaml` against the live API. Tests iterative budget refinement. Save result to `tests/quality/results/scenarios/budget_iteration.json`.
 
-- [ ] FIX IF NEEDED: Read `tests/quality/results/scenarios/budget_iteration.json`. If average_score < 80:
+- [x] FIX IF NEEDED: Read `tests/quality/results/scenarios/budget_iteration.json`. If average_score < 80:
   1. ONLY modify files in `app/` directory
   2. Common fixes:
      - Budget benchmark errors → Fix `app/services/tools/budget_benchmark.py`
      - Budget calculation errors → Fix `app/services/tools/budget_calculator.py`
      - Missing budget breakdown → Edit tool to include detailed breakdown
   3. Re-run EXECUTE, repeat until score >= 80 or 3 attempts
+  4. Record final status: PASS/FAIL/MAX_ATTEMPTS
 
 ### Scenario 007: Timeline Refinement
 - [ ] EXECUTE: Run scenario `tests/scenarios/advanced/proposal_workflow/timeline_refinement.yaml` against the live API. Tests timeline generation and refinement. Save result to `tests/quality/results/scenarios/timeline_refinement.json`.
