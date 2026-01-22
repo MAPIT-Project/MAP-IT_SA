@@ -1,0 +1,127 @@
+{
+  "scenario_name": "User Context Learning",
+  "turns": [
+    {
+      "turn_number": 0,
+      "query": "I'm looking for EU funding opportunities. I'm from a small university in Portugal.",
+      "response_text": "I found some information but couldn't extract specific details. Please try a more specific question.",
+      "tools_used": [
+        "recommend_programmes"
+      ],
+      "quality_score": 75,
+      "factual_score": 100.0,
+      "failures": [
+        {
+          "category": "NO_RESULTS",
+          "severity": "HIGH",
+          "description": "Response contains error pattern: 'couldn't extract'"
+        }
+      ],
+      "context_evidence": [],
+      "passed": false
+    },
+    {
+      "turn_number": 1,
+      "query": "We work on marine biology",
+      "response_text": "Okay, based on the search results, here's some information relevant to your work in marine biology:\n\nThe search results mention a funding opportunity related to marine/aquatic natural products. This could be highly relevant to your work.\n\n**Funding Opportunity:**\n\n*   **Call:** HORIZON-CL6-2025-01-CIRCBIO-14: Bioprospecting and optimised production of marine/aquatic natural products in the omics & artificial intelligence era\n*   **Focus:** Bioprospecting and optimized production of marine/aquatic natural products, leveraging omics and artificial intelligence.\n*   **Program:** Horizon Europe (Cluster 6)\n*   **Expected EU Contribution:** Approximately EUR 6.00 million per project.\n\n**In summary, the search results highlight a potential funding opportunity within the Horizon Europe program focused on bioprospecting and optimizing the production of marine natural products using advanced technologies. If your marine biology work involves these areas, it would be worthwhile to investigate this call further.**\n",
+      "tools_used": [
+        "search_documents"
+      ],
+      "quality_score": 75,
+      "factual_score": 100.0,
+      "failures": [],
+      "context_evidence": [],
+      "passed": false
+    },
+    {
+      "turn_number": 2,
+      "query": "We've never coordinated before",
+      "response_text": "Based on my search for information about 'We've never coordinated before', here's what I found:\n\n**Finding 1:**\nthe HE grant. The PCP procurement contracts to be signed by the lead procurer are: a framework contract with each selected provider, covering the whole PCP and specific contracts with each selected provider, for each PCP phase. For PPIs, there must be one common challenge, but the procurement may be EITHER one single joint OR several coordinated procurements. For joint PPI procurements, there is one joint PPI call for tender launched by the lead procurer, one joint tender specification and one joint evaluation of offers. For coordinated PPI procurements, there are several separate PPI procurements carried out individually by the different procurers in the buyers group (separate tender PPI call for tenders with separate tender specifications, separate evaluation of offers, separate award decisions). However, all these separation PPI procurements are coordinated, as they were jointly prepared (through the open market consultation, if applicable joint/coordinated conformance testing, and the joint specification of the common challenge). It is also possible that one part of the PPI procurement is implemented jointly, and another part in a coordinated way. This happens typically when the lead procurer implements a joint PPI call for tender under his applicable national legislation that awards framework contract(s)/agreement(s), and then individual procurers from the buyers group award separately their own specific contracts under their own national legislation for the amount of in\n\n**Finding 2:**\ntions  to \ncoordinate their work. The granting authority is not party and has NO responsibility for them \n(nor for any adverse consequences). If the consortium in the linked actions is the same, the \ncollaboration agreement may be included as part of the consortium agreement. \n\nThe collaboration agreement should complement the Grant Agreement and must NOT contain \nany provision contrary to it (or\n\n**Finding 3:**\nement  is  the  beneficiary  in  charge  of  the  (administrative)  coordination  tasks \nset out in this Article. Other kinds of coordination activities, i.e. tasks not listed in this Article \n(e.g. of technical or scientific nature) can be carried out by any other participant. \n\nThese  participants  may  internally  (i.e.  within  the  consortium)  be  called,  for  example, \n\u2018technical\u2019  or",
+      "tools_used": [
+        "search_documents"
+      ],
+      "quality_score": 79,
+      "factual_score": 100.0,
+      "failures": [],
+      "context_evidence": [],
+      "passed": false
+    },
+    {
+      "turn_number": 3,
+      "query": "What calls should we apply to?",
+      "response_text": "Based on my search for information about 'What calls should we apply to?', here's what I found:\n\n**Finding 1:**\no this work \nprogramme  set  out  the  general  conditions  applying  to  the  calls  of  the  work  programme  such  as \neligibility rules; details on how to submit an application; and how the Commission services evaluate \napplications. \n\nThis  work  programme  also  includes  some  calls  for  2025  in  order  to  ensure  continuity  of  certain \nrecurrent  actions,  for  instance  calls  for\n\n**Finding 2:**\nonsult https://eic.ec.europa.eu/ for specific guidance. \n\nFor calls launched by EIT, please consult https://eit.europa.eu/ for specific guidance. \n\nFor calls launched by ERC, please consult https://erc.europa.eu/ for specific guidance. \n\n6 \n\n\fEU Grants: HE Programme Guide: V5.0 \u2013 15.05.2025 \n\nFor  calls  launched  under  the  MSCA  WP  part,  please  find  specific  guidance  under  the \nrelevant",
+      "tools_used": [
+        "search_documents"
+      ],
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [
+        {
+          "category": "CONTEXT_NOT_USED",
+          "severity": "MEDIUM",
+          "description": "Response may not be using accumulated context. Found only: []"
+        }
+      ],
+      "context_evidence": [],
+      "passed": false
+    },
+    {
+      "turn_number": 4,
+      "query": "What about as a partner?",
+      "response_text": "Based on my search for information about 'What about as a partner?', here's what I found:\n\n**Finding 1:**\nociated partners \ncan NOT be declared as eligible cost. In contrast to third parties giving in-kind contributions, \nthe  associated  partners  are  fully  named  in  the  Grant  Agreement  and  may  implement \nimportant action tasks by themselves. \n\nEntities  that  do  not  request  funding  or  are  not  eligible  for  funding  may  participate  in  EU \nactions as associated partners, for",
+      "tools_used": [
+        "search_documents"
+      ],
+      "quality_score": 77,
+      "factual_score": 100.0,
+      "failures": [
+        {
+          "category": "CONTEXT_NOT_USED",
+          "severity": "MEDIUM",
+          "description": "Response may not be using accumulated context. Found only: ['partner']"
+        }
+      ],
+      "context_evidence": [
+        "partner"
+      ],
+      "passed": false
+    }
+  ],
+  "average_score": 77.4,
+  "factual_score": 100.0,
+  "failures": [
+    {
+      "category": "NO_RESULTS",
+      "severity": "HIGH",
+      "description": "Response contains error pattern: 'couldn't extract'"
+    },
+    {
+      "category": "CONTEXT_NOT_USED",
+      "severity": "MEDIUM",
+      "description": "Response may not be using accumulated context. Found only: []"
+    },
+    {
+      "category": "CONTEXT_NOT_USED",
+      "severity": "MEDIUM",
+      "description": "Response may not be using accumulated context. Found only: ['partner']"
+    }
+  ],
+  "status": "CLOSE_TO_THRESHOLD",
+  "execution_time_ms": 10456.076,
+  "timestamp": "2026-01-23T00:17:46.526896",
+  "fix_history": [],
+  "metadata": {
+    "scenario_path": "/home/anmar/Documents/VSCODE_REPOS/MAPIT/NEWMAPIT/MAP-IT_SA/tests/scenarios/advanced/user_context_learning.yaml",
+    "tags": [
+      "phase4",
+      "personalization",
+      "context-learning",
+      "portugal",
+      "marine-biology",
+      "university",
+      "beginner"
+    ],
+    "description": "A 5-step context learning workflow where a user progressively reveals\ninformation about their organization. Tests the system's ability to\naccumulate user context (organization type, country, sector, experience level)\nand use that accumulated profile to provide personalized recommendations.\nThe scenario validates that the system remembers and applies user context\nwhen suggesting funding calls and participation strategies.\n",
+    "conversation_id": 300358155
+  }
+}

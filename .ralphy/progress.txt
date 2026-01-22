@@ -9136,3 +9136,54 @@ Executed Scenario 012: Organization Deep Dive against the live API.
 **Remaining Issue**: Base response quality scores ~75/100. All turns now use correct tools but response content quality is inherently limited by generic project listing format.
 
 **Attempt Count**: 1
+
+
+## 2026-01-23: Scenario 013 - User Context Learning (EXECUTE)
+
+### Task Completed
+Executed Scenario 013: User Context Learning against the live API.
+
+### Files Created/Modified
+- `tests/quality/test_scenario_013_user_context_learning.py` - New test file with:
+  - Scenario execution against live API
+  - Quality scoring for each turn
+  - Context evidence tracking for later turns
+  - Results saving to JSON
+  - CLI runner for manual execution
+
+- `tests/quality/results/scenarios/user_context_learning.json` - Scenario results with:
+  - 5 turns executed successfully
+  - Average score: 77.4/100
+  - Status: CLOSE_TO_THRESHOLD
+  - 3 failures detected (1 "couldn't extract", 2 "context not used")
+
+### Scenario Execution Results
+| Turn | Query | Tools Used | Score | Context Evidence |
+|------|-------|------------|-------|------------------|
+| 0 | I'm looking for EU funding opportunities... | recommend_programmes | 75 | N/A |
+| 1 | We work on marine biology | search_documents | 75 | N/A |
+| 2 | We've never coordinated before | search_documents | 79 | N/A |
+| 3 | What calls should we apply to? | search_documents | 81 | [] - no context used |
+| 4 | What about as a partner? | search_documents | 77 | ['partner'] - minimal context |
+
+### Issues Identified for FIX IF NEEDED Task
+1. **Turn 0**: `recommend_programmes` tool returns "couldn't extract specific details"
+2. **Context not accumulated**: User context (Portugal, university, marine biology, no coordination experience) is not being tracked/used
+3. **Turns 3-4**: Recommendations are generic, not personalized to the accumulated user profile
+4. **No memory of conversation context**: Each turn is treated as independent query
+
+### Root Causes to Investigate in FIX IF NEEDED:
+- `app/services/memory/memory_service.py` - Context not being stored properly
+- `app/services/agents/tool_aware_agent.py` - Not using conversation history for personalization
+- `recommend_programmes` tool may have issues with broad queries
+
+### Test Results
+- 1 test passed (scenario execution)
+- Linting passed
+
+### PRD Task Status
+- [x] EXECUTE task marked complete
+- [ ] FIX IF NEEDED task pending (score 77.4 < 80)
+
+### Next Task
+Scenario 013: User Context Learning FIX IF NEEDED (if score < 80)

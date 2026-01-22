@@ -277,7 +277,7 @@ Run with: `./ralphy.sh --prd docs/prd/MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD_V3
 ### ==========================================================
 
 ### Scenario 013: User Context Learning
-- [ ] EXECUTE: Run scenario `tests/scenarios/advanced/personalization/user_context_learning.yaml` against the live API. Tests learning user context over conversation. Save result to `tests/quality/results/scenarios/user_context_learning.json`.
+- [x] EXECUTE: Run scenario `tests/scenarios/advanced/user_context_learning.yaml` against the live API. Tests learning user context over conversation. Save result to `tests/quality/results/scenarios/user_context_learning.json`.
 
 - [ ] FIX IF NEEDED: Read `tests/quality/results/scenarios/user_context_learning.json`. If average_score < 80:
   1. ONLY modify files in `app/` directory
