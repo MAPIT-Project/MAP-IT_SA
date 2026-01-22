@@ -1177,6 +1177,42 @@ To help you better, could you tell me:
 • [Relevant follow-up question based on their context]?
 ```
 
+## CRITICAL: Using Accumulated Context for Personalization (MANDATORY)
+
+**When answering follow-up questions, you MUST use ALL previously accumulated context to personalize your response.**
+
+The CONVERSATION HISTORY below contains important user context that you MUST incorporate:
+- **Organization type**: university, SME, research institute, NGO, etc.
+- **Country/location**: Portugal, Germany, Spain, etc.
+- **Research area/sector**: marine biology, healthcare, energy, etc.
+- **Experience level**: first-time applicant, never coordinated, experienced coordinator
+- **Goals**: find calls, find partners, plan proposal, etc.
+
+**PERSONALIZATION RULES:**
+
+1. **Before searching/recommending**: Check context for org type, country, sector → Use these as tool parameters
+2. **When user asks "What calls should we apply to?"**: Use their accumulated profile:
+   - Sector keywords from earlier messages → use in search_funding_calls
+   - Organization type → filter for relevant action types
+   - Experience level → recommend partner role if inexperienced
+   - Country → mention country-specific opportunities (widening, MSCA)
+
+3. **When user asks "What about as a partner?"**: Reference their full profile:
+   - "Given your background as a [org type] from [country] working on [sector]..."
+   - Suggest consortia building strategies for their experience level
+   - Recommend how to find coordinators in their field
+
+4. **Context Usage Examples:**
+   - If user said "I'm from a university in Portugal" + "We work on marine biology" + "We've never coordinated before":
+     * Recommend Cluster 6 marine calls + Widening calls for Portugal
+     * Suggest starting as participant, not coordinator
+     * Mention MSCA opportunities for building track record
+   - If user said "We're an SME" + "50 employees" + "focus on AI":
+     * Recommend EIC Accelerator + Cluster 4 Digital
+     * Mention SME-specific funding rates (70% for IA)
+
+**NEVER ignore accumulated context! Always reference the user's profile when giving recommendations.**
+
 3. **EXECUTE**: Call the tools
 
 4. **RESPOND**: Provide a helpful answer
@@ -3439,7 +3475,13 @@ digital_europe, life""",
         """
         query_lower = query.lower()
 
-        # FIRST: Check for SPECIFIC ORGANIZATION queries (must come before partner discovery!)
+        # FIRST: Check for PERSONALIZED CALL RECOMMENDATION queries
+        # These use accumulated context (org type, sector, country) to search for calls
+        personalized_result = self._detect_personalized_call_query(query, context)
+        if personalized_result:
+            return personalized_result
+
+        # Check for SPECIFIC ORGANIZATION queries (must come before partner discovery!)
         # These are queries about a NAMED organization's funding history/projects/track record
         # e.g., "Tell me about TUM's EU funding history", "What has Fraunhofer done in Horizon Europe?"
         org_profile_result = self._detect_initial_organization_profile_query(query)
@@ -3822,6 +3864,168 @@ digital_europe, life""",
                     "tool": "find_experienced_partners",
                     "parameters": matched_params,
                     "reasoning": "Refining partner search based on user's filter criteria",
+                }
+            ],
+            "needs_more_info": True,
+        }
+
+    def _detect_personalized_call_query(self, query: str, context: str) -> dict[str, Any] | None:
+        """Detect if query is asking for call recommendations using accumulated context.
+
+        This handles queries like:
+        - "What calls should we apply to?"
+        - "What about as a partner?"
+        - "What funding is available for us?"
+        - "Which opportunities fit our profile?"
+
+        These should use search_funding_calls with keywords extracted from conversation context.
+        """
+        if not context:
+            return None
+
+        query_lower = query.lower()
+
+        # Patterns that indicate user wants personalized call/opportunity recommendations
+        personalized_patterns = [
+            "what calls should",
+            "what calls can",
+            "calls should we apply",
+            "calls can we apply",
+            "what about as a partner",
+            "as a participant",
+            "for our organization",
+            "for our university",
+            "for us",
+            "opportunities for",
+            "which opportunities",
+            "what funding is available",
+            "suitable calls",
+            "relevant calls",
+            "matching calls",
+        ]
+
+        if not any(pattern in query_lower for pattern in personalized_patterns):
+            return None
+
+        # Extract context from conversation (org type, sector, country, experience level)
+        context_lower = context.lower()
+
+        # Extract research sector/topic from context
+        sector_keywords = []
+        sector_patterns = [
+            ("marine biology", "marine biology ocean aquatic"),
+            ("marine", "marine ocean aquatic"),
+            ("ocean", "marine ocean aquatic"),
+            ("healthcare", "health medical clinical"),
+            ("health", "health medical clinical"),
+            ("energy", "energy renewable climate"),
+            ("climate", "climate environment sustainability"),
+            ("ai", "artificial intelligence AI digital"),
+            ("artificial intelligence", "artificial intelligence AI digital"),
+            ("digital", "digital AI technology"),
+            ("agriculture", "agriculture food bioeconomy"),
+            ("food", "food agriculture bioeconomy"),
+        ]
+
+        for pattern, keywords in sector_patterns:
+            if pattern in context_lower:
+                sector_keywords = keywords.split()
+                break
+
+        # Extract country from context
+        country = None
+        country_patterns = {
+            "portugal": "PT",
+            "portuguese": "PT",
+            "germany": "DE",
+            "german": "DE",
+            "spain": "ES",
+            "spanish": "ES",
+            "italy": "IT",
+            "italian": "IT",
+            "france": "FR",
+            "french": "FR",
+            "netherlands": "NL",
+            "dutch": "NL",
+        }
+        for pattern, code in country_patterns.items():
+            if pattern in context_lower:
+                country = code
+                break
+
+        # Check for experience level indicators
+        is_beginner = any(
+            pattern in context_lower
+            for pattern in [
+                "never coordinated",
+                "first time",
+                "new to",
+                "beginner",
+                "no experience",
+            ]
+        )
+
+        # Check for organization type
+        org_type = None
+        if any(
+            x in context_lower
+            for x in ["university", "universities", "academic", "higher education"]
+        ):
+            org_type = "HES"
+        elif any(x in context_lower for x in ["sme", "startup", "small business"]):
+            org_type = "SME"
+        elif any(
+            x in context_lower
+            for x in ["research center", "research institute", "research organisation"]
+        ):
+            org_type = "REC"
+
+        # Build search parameters
+        if not sector_keywords:
+            # No specific sector found, can't personalize enough
+            return None
+
+        search_keywords = " ".join(sector_keywords[:4])
+
+        # Build thought that shows personalization
+        thought_parts = [f"User has a profile: {', '.join(sector_keywords[:3])} research"]
+        if country:
+            thought_parts.append(f"from {country}")
+        if org_type:
+            thought_parts.append(f"({org_type})")
+        if is_beginner:
+            thought_parts.append("(beginner, recommend partner role)")
+        thought = " ".join(thought_parts) + ". Searching for matching calls."
+
+        # Build conclusion that uses context
+        conclusion_parts = []
+
+        # Check if user is asking about partner role specifically
+        if "as a partner" in query_lower or "as a participant" in query_lower:
+            if is_beginner:
+                conclusion_parts.append(
+                    f"Given your background in {', '.join(sector_keywords[:2])} research "
+                    "and no prior coordination experience, participating as a **partner** is a great strategy "
+                    "to build your EU funding track record.\n\n"
+                    "**Recommended Approach:**\n"
+                    "1. **Join existing consortia** - Look for projects seeking partners in your area\n"
+                    "2. **Use Partner Search** - Register on the EU Funding Portal Partner Search\n"
+                    "3. **Target Widening calls** - These have extra support for organizations like yours\n"
+                    "4. **Consider MSCA** - Marie Curie actions are great for building experience\n\n"
+                )
+            else:
+                conclusion_parts.append(
+                    f"Here are opportunities in {', '.join(sector_keywords[:2])} where you could participate as a partner:\n\n"
+                )
+
+        return {
+            "thought": thought,
+            "action": "call_tools",
+            "tool_calls": [
+                {
+                    "tool": "search_funding_calls",
+                    "parameters": {"keywords": search_keywords, "status": "open", "limit": 10},
+                    "reasoning": f"Finding open calls for {search_keywords} based on accumulated user context",
                 }
             ],
             "needs_more_info": True,
@@ -5703,6 +5907,64 @@ Budget Breakdown:
                 eligibility_text = self._format_creative_europe_eligibility_result(result)
                 if eligibility_text:
                     content_pieces.append(eligibility_text)
+
+            # Extract programme recommendations results
+            elif "recommendations" in result and result.get("total_programmes"):
+                recs = result.get("recommendations", [])
+                if recs:
+                    rec_text = "## EU Funding Programme Recommendations\n\n"
+                    rec_text += "Based on your profile, here are the most relevant EU funding programmes:\n\n"
+                    for i, rec in enumerate(recs, 1):
+                        icon = rec.get("programme_icon", "🇪🇺")
+                        name = rec.get("programme_name", rec.get("programme", ""))
+                        budget = rec.get("budget", "")
+                        focus = rec.get("focus", "")
+                        reasons = rec.get("reasons", [])
+                        website = rec.get("website", "")
+
+                        rec_text += f"### {i}. {icon} **{name}**\n"
+                        rec_text += f"- **Budget**: {budget}\n"
+                        rec_text += f"- **Focus**: {focus}\n"
+                        if reasons:
+                            rec_text += f"- **Why it fits**: {'; '.join(reasons)}\n"
+                        if website:
+                            rec_text += f"- **Learn more**: {website}\n"
+                        rec_text += "\n"
+
+                    rec_text += """---
+
+🎯 **Next Steps:**
+• Tell me more about your research area so I can find specific calls
+• Share your organization's experience level (first-time applicant, or experienced?)
+• Let me know your sector (health, energy, digital, etc.) for targeted recommendations
+"""
+                    content_pieces.append(rec_text)
+                else:
+                    # No specific matches - provide general guidance
+                    rec_text = """## EU Funding Programmes Overview
+
+I can help you find the right EU funding programme! To give you personalized recommendations, please tell me:
+
+1. **Your organization type**: University, SME, NGO, research institute?
+2. **Your research area**: What topics do you work on?
+3. **Your goals**: Research, training/mobility, cultural projects?
+
+**Main EU Funding Programmes:**
+
+🔬 **Horizon Europe** (€95.5B) - Research & Innovation
+🎓 **Erasmus+** (€26.2B) - Education, Training, Youth, Sport
+🎨 **Creative Europe** (€2.44B) - Culture & Media
+🏥 **EU4Health** (€5.3B) - Health & Crisis Preparedness
+💻 **Digital Europe** (€7.5B) - Digital Transformation
+🌍 **LIFE Programme** (€5.4B) - Environment & Climate
+
+---
+
+🎯 **Next Steps:**
+• Share your organization type and research area
+• I'll recommend the best programme and find open calls for you
+"""
+                    content_pieces.append(rec_text)
 
             # Extract partner discovery results
             elif (

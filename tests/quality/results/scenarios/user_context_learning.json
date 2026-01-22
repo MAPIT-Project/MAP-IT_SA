@@ -4,26 +4,20 @@
     {
       "turn_number": 0,
       "query": "I'm looking for EU funding opportunities. I'm from a small university in Portugal.",
-      "response_text": "I found some information but couldn't extract specific details. Please try a more specific question.",
+      "response_text": "Based on my search for information about 'I'm looking for EU funding opportunities. I'm from a small university in Portugal.', here's what I found:\n\n**Finding 1:**\n## EU Funding Programme Recommendations\n\nBased on your profile, here are the most relevant EU funding programmes:\n\n### 1. \ud83c\udf93 **Erasmus+**\n- **Budget**: \u20ac26.2B\n- **Focus**: Education, Training, Youth, Sport\n- **Why it fits**: Matches 3 programme keywords: training, mobility, student; Designed for educational institutions\n- **Learn more**: https://erasmus-plus.ec.europa.eu/\n\n### 2. \ud83d\udd2c **Horizon Europe**\n- **Budget**: \u20ac95.5B\n- **Focus**: Research & Innovation\n- **Why it fits**: Matches 1 programme keywords: research; Strong match for research organizations\n- **Learn more**: https://research-and-innovation.ec.europa.eu/funding/funding-opportunities/funding-programmes-and-open-calls/horizon-europe_en\n\n### 3. \ud83d\udcbb **Digital Europe**\n- **Budget**: \u20ac7.5B\n- **Focus**: Digital Transformation\n- **Why it fits**: Matches 1 programme keywords: AI\n- **Learn more**: https://digital-strategy.ec.europa.eu/en/activities/digital-programme\n\n---\n\n\ud83c\udfaf **Next Steps:**\n\u2022 Tell me more about your research area so I can find specific calls\n\u2022 Share your organization's experience level (first-time applicant, or experienced?)\n\u2022 Let me know your sector (health, energy, digital, etc.) for targeted recommendations\n",
       "tools_used": [
         "recommend_programmes"
       ],
-      "quality_score": 75,
+      "quality_score": 77,
       "factual_score": 100.0,
-      "failures": [
-        {
-          "category": "NO_RESULTS",
-          "severity": "HIGH",
-          "description": "Response contains error pattern: 'couldn't extract'"
-        }
-      ],
+      "failures": [],
       "context_evidence": [],
       "passed": false
     },
     {
       "turn_number": 1,
       "query": "We work on marine biology",
-      "response_text": "Okay, based on the search results, here's some information relevant to your work in marine biology:\n\nThe search results mention a funding opportunity related to marine/aquatic natural products. This could be highly relevant to your work.\n\n**Funding Opportunity:**\n\n*   **Call:** HORIZON-CL6-2025-01-CIRCBIO-14: Bioprospecting and optimised production of marine/aquatic natural products in the omics & artificial intelligence era\n*   **Focus:** Bioprospecting and optimized production of marine/aquatic natural products, leveraging omics and artificial intelligence.\n*   **Program:** Horizon Europe (Cluster 6)\n*   **Expected EU Contribution:** Approximately EUR 6.00 million per project.\n\n**In summary, the search results highlight a potential funding opportunity within the Horizon Europe program focused on bioprospecting and optimizing the production of marine natural products using advanced technologies. If your marine biology work involves these areas, it would be worthwhile to investigate this call further.**\n",
+      "response_text": "Okay, based on the search results, here's information relevant to your work in marine biology:\n\nThe search results highlight a funding opportunity that might be of interest to your marine biology work. It focuses on bioprospecting and production of marine/aquatic natural products.\n\n**Funding Opportunity:**\n\n*   **Call:** HORIZON-CL6-2025-01-CIRCBIO-14: Bioprospecting and optimised production of marine/aquatic natural products in the omics & artificial intelligence era\n*   **Programme:** Horizon Europe (Cluster 6: Food, Bioeconomy, Natural Resources, Agriculture and Environment)\n*   **Focus:** Bioprospecting and optimized production of marine/aquatic natural products using omics and artificial intelligence.\n*   **Estimated EU Contribution:** EUR 6.00 million per project.\n\n**In Summary:**\n\nThis Horizon Europe call specifically targets research related to marine and aquatic natural products, leveraging advanced technologies like omics and AI. If your marine biology research involves identifying, studying, or producing valuable compounds from marine organisms, this call could be a good fit.\n",
       "tools_used": [
         "search_documents"
       ],
@@ -49,30 +43,32 @@
     {
       "turn_number": 3,
       "query": "What calls should we apply to?",
-      "response_text": "Based on my search for information about 'What calls should we apply to?', here's what I found:\n\n**Finding 1:**\no this work \nprogramme  set  out  the  general  conditions  applying  to  the  calls  of  the  work  programme  such  as \neligibility rules; details on how to submit an application; and how the Commission services evaluate \napplications. \n\nThis  work  programme  also  includes  some  calls  for  2025  in  order  to  ensure  continuity  of  certain \nrecurrent  actions,  for  instance  calls  for\n\n**Finding 2:**\nonsult https://eic.ec.europa.eu/ for specific guidance. \n\nFor calls launched by EIT, please consult https://eit.europa.eu/ for specific guidance. \n\nFor calls launched by ERC, please consult https://erc.europa.eu/ for specific guidance. \n\n6 \n\n\fEU Grants: HE Programme Guide: V5.0 \u2013 15.05.2025 \n\nFor  calls  launched  under  the  MSCA  WP  part,  please  find  specific  guidance  under  the \nrelevant",
+      "response_text": "I found **2 funding opportunities** for your query:\n\n**1. Understand and minimise the environmental impacts of offshore wind energy and HORIZON-CL6-2025-01-ZEROPOLLUTION-05:Towards a comprehensive European...**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2025-05-D3-08\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** The proposed conference in Nyborg, Denmark 23-24 September 2025 under the Danish Presidency will address the restoration of the Ocean and Waters. This conference is expected to contribute to all of the following expected outcomes: challenges facing...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL5-2025-05-D3-08\n\n---\n\n**2. HORIZON-CL5-2025-03-D1-06**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2025-03-D1-06\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL5-2025-03-D1-06\n\n---\n\n---\n\n\ud83d\udca1 **How to Apply:**\n\u2022 **Register** on the EU Funding & Tenders Portal if you haven't already\n\u2022 **Check eligibility** criteria carefully for each call\n\u2022 **Prepare partnerships** - many calls require consortium applications\n\u2022 **Review evaluation criteria** and weightings in the call documentation\n\u2022 **Submit well before** the deadline - the portal can be busy near deadlines\n\n\ud83d\udcda **Useful Resources:**\n\u2022 [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)\n\u2022 [How to Participate Guide](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/how-to-participate/1)\n\u2022 [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search)\n\n\ud83c\udfaf **Next Steps:**\n\u2022 Click on the 'Apply' links above for full call details\n\u2022 Download the call documentation and work programme\n\u2022 Start building your consortium if partnerships are required",
       "tools_used": [
-        "search_documents"
+        "search_funding_calls"
       ],
-      "quality_score": 81,
+      "quality_score": 83,
       "factual_score": 100.0,
       "failures": [
         {
           "category": "CONTEXT_NOT_USED",
           "severity": "MEDIUM",
-          "description": "Response may not be using accumulated context. Found only: []"
+          "description": "Response may not be using accumulated context. Found only: ['partner']"
         }
       ],
-      "context_evidence": [],
+      "context_evidence": [
+        "partner"
+      ],
       "passed": false
     },
     {
       "turn_number": 4,
       "query": "What about as a partner?",
-      "response_text": "Based on my search for information about 'What about as a partner?', here's what I found:\n\n**Finding 1:**\nociated partners \ncan NOT be declared as eligible cost. In contrast to third parties giving in-kind contributions, \nthe  associated  partners  are  fully  named  in  the  Grant  Agreement  and  may  implement \nimportant action tasks by themselves. \n\nEntities  that  do  not  request  funding  or  are  not  eligible  for  funding  may  participate  in  EU \nactions as associated partners, for",
+      "response_text": "I found **2 funding opportunities** for your query:\n\n**1. Understand and minimise the environmental impacts of offshore wind energy and HORIZON-CL6-2025-01-ZEROPOLLUTION-05:Towards a comprehensive European...**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2025-05-D3-08\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** The proposed conference in Nyborg, Denmark 23-24 September 2025 under the Danish Presidency will address the restoration of the Ocean and Waters. This conference is expected to contribute to all of the following expected outcomes: challenges facing...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL5-2025-05-D3-08\n\n---\n\n**2. HORIZON-CL5-2025-03-D1-06**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2025-03-D1-06\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL5-2025-03-D1-06\n\n---\n\n---\n\n\ud83d\udca1 **How to Apply:**\n\u2022 **Register** on the EU Funding & Tenders Portal if you haven't already\n\u2022 **Check eligibility** criteria carefully for each call\n\u2022 **Prepare partnerships** - many calls require consortium applications\n\u2022 **Review evaluation criteria** and weightings in the call documentation\n\u2022 **Submit well before** the deadline - the portal can be busy near deadlines\n\n\ud83d\udcda **Useful Resources:**\n\u2022 [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)\n\u2022 [How to Participate Guide](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/how-to-participate/1)\n\u2022 [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search)\n\n\ud83c\udfaf **Next Steps:**\n\u2022 Click on the 'Apply' links above for full call details\n\u2022 Download the call documentation and work programme\n\u2022 Start building your consortium if partnerships are required",
       "tools_used": [
-        "search_documents"
+        "search_funding_calls"
       ],
-      "quality_score": 77,
+      "quality_score": 83,
       "factual_score": 100.0,
       "failures": [
         {
@@ -87,18 +83,13 @@
       "passed": false
     }
   ],
-  "average_score": 77.4,
+  "average_score": 79.4,
   "factual_score": 100.0,
   "failures": [
     {
-      "category": "NO_RESULTS",
-      "severity": "HIGH",
-      "description": "Response contains error pattern: 'couldn't extract'"
-    },
-    {
       "category": "CONTEXT_NOT_USED",
       "severity": "MEDIUM",
-      "description": "Response may not be using accumulated context. Found only: []"
+      "description": "Response may not be using accumulated context. Found only: ['partner']"
     },
     {
       "category": "CONTEXT_NOT_USED",
@@ -107,8 +98,8 @@
     }
   ],
   "status": "CLOSE_TO_THRESHOLD",
-  "execution_time_ms": 10456.076,
-  "timestamp": "2026-01-23T00:17:46.526896",
+  "execution_time_ms": 10446.729,
+  "timestamp": "2026-01-23T00:27:33.244364",
   "fix_history": [],
   "metadata": {
     "scenario_path": "/home/anmar/Documents/VSCODE_REPOS/MAPIT/NEWMAPIT/MAP-IT_SA/tests/scenarios/advanced/user_context_learning.yaml",
@@ -122,6 +113,6 @@
       "beginner"
     ],
     "description": "A 5-step context learning workflow where a user progressively reveals\ninformation about their organization. Tests the system's ability to\naccumulate user context (organization type, country, sector, experience level)\nand use that accumulated profile to provide personalized recommendations.\nThe scenario validates that the system remembers and applies user context\nwhen suggesting funding calls and participation strategies.\n",
-    "conversation_id": 300358155
+    "conversation_id": 1534102266
   }
 }

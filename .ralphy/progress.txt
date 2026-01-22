@@ -9187,3 +9187,42 @@ Executed Scenario 013: User Context Learning against the live API.
 
 ### Next Task
 Scenario 013: User Context Learning FIX IF NEEDED (if score < 80)
+
+## 2026-01-23 00:30 - Scenario 013: User Context Learning FIX IF NEEDED (PASS)
+
+### Task
+Scenario 013 failed with average score 77.4/100 (below 80 threshold). Users progressively reveal context (Portugal university, marine biology, never coordinated) but agent was not using accumulated context for personalized recommendations.
+
+### Root Causes Identified
+1. `recommend_programmes` tool returned empty when no keywords matched (vague queries like "looking for EU funding")
+2. No detection for personalized follow-up queries ("What calls should we apply to?") that should use accumulated context
+3. Agent was using `search_documents` instead of `search_funding_calls` for call recommendations
+
+### Fixes Applied (all in `app/` directory)
+
+**1. app/services/tools/multi_programme_search.py**
+- Added `inferred_org_type` detection from description (detects "university", "sme", "research center", etc.)
+- Added fallback overview when no specific keyword matches - returns top programmes for inferred org type
+- Fixed: Turn 0 now returns formatted programme recommendations instead of empty
+
+**2. app/services/agents/tool_aware_agent.py**
+- Added `_detect_personalized_call_query()` method to detect queries like "What calls should we apply to?" or "What about as a partner?"
+- Method extracts sector keywords, country, org type, experience level from conversation context
+- Routes to `search_funding_calls` with accumulated context as keywords
+- Added "Using Accumulated Context for Personalization" section to REASONING_PROMPT with explicit rules:
+  - Check context for org type, country, sector before searching
+  - Reference accumulated profile in recommendations
+  - Suggest partner role for beginners with no coordination experience
+
+### Results
+- Score improved: 77.4 → 80.2 (PASS)
+- Turn 0: Now uses `recommend_programmes` with formatted output (77 score)
+- Turn 3: Now uses `search_funding_calls` with marine biology keywords (83 score)
+- Turn 4: Now uses `search_funding_calls` with context (83 score)
+- 100% factual accuracy maintained
+
+### Files Modified
+- app/services/tools/multi_programme_search.py (inferred org type, overview fallback)
+- app/services/agents/tool_aware_agent.py (personalized call detection, context usage prompt)
+
+### Status: PASS (1 attempt)
