@@ -3263,6 +3263,17 @@ digital_europe, life""",
     ) -> dict[str, Any] | None:
         """Use LLM to reason about the next step."""
 
+        # PRE-ROUTING: For first step, detect queries that must use specific tools
+        # This bypasses LLM for obvious cases where it might incorrectly choose search_documents
+        # IMPORTANT: This check runs BEFORE cache to override bad cached plans
+        if not previous_steps:
+            pre_routed = self._detect_query_type_for_tool_selection(query, context)
+            if pre_routed:
+                logger.info(
+                    f"🎯 Pre-routed query to {pre_routed.get('tool_calls', [{}])[0].get('tool', 'unknown')}"
+                )
+                return pre_routed
+
         # Check cache for first step only (no previous steps or results)
         if not previous_steps and not tool_results and self.plan_cache:
             cached_plan = self.plan_cache.get_cached_plan(query, context)
@@ -3290,7 +3301,7 @@ digital_europe, life""",
         results_text = _context_manager.format_results_for_context(tool_results)
 
         # Add tool hints for specific query types (helps guide LLM to correct tools)
-        tool_hint = self._get_tool_hint(query)
+        tool_hint = self._get_tool_hint(query, context)
         enhanced_context = context or "No additional context"
         if tool_hint:
             enhanced_context = f"{enhanced_context}\n\n**TOOL HINT**: {tool_hint}"
@@ -3319,7 +3330,7 @@ digital_europe, life""",
                     )
                 except TimeoutError:
                     logger.warning(f"⏰ LLM call timed out after {llm_timeout}s, using fallback")
-                    return self._fallback_reasoning(query, previous_steps, tool_results)
+                    return self._fallback_reasoning(query, previous_steps, tool_results, context)
 
                 # Parse JSON from response
                 response_text = response.text
@@ -3347,7 +3358,7 @@ digital_europe, life""",
 
                 if not json_str:
                     logger.warning("Could not extract JSON from LLM response, using fallback")
-                    return self._fallback_reasoning(query, previous_steps, tool_results)
+                    return self._fallback_reasoning(query, previous_steps, tool_results, context)
 
                 try:
                     return json.loads(json_str)
@@ -3357,14 +3368,14 @@ digital_europe, life""",
                     if fixed_json:
                         return fixed_json
                     logger.warning(f"JSON decode failed: {je}, using fallback")
-                    return self._fallback_reasoning(query, previous_steps, tool_results)
+                    return self._fallback_reasoning(query, previous_steps, tool_results, context)
             else:
                 # Fallback reasoning
-                return self._fallback_reasoning(query, previous_steps, tool_results)
+                return self._fallback_reasoning(query, previous_steps, tool_results, context)
 
         except Exception as e:
             logger.error(f"Reasoning step failed: {e}")
-            return self._fallback_reasoning(query, previous_steps, tool_results)
+            return self._fallback_reasoning(query, previous_steps, tool_results, context)
 
     def _fix_malformed_json(self, json_str: str) -> dict[str, Any] | None:
         """Attempt to fix common JSON formatting issues from LLM responses."""
@@ -3400,7 +3411,9 @@ digital_europe, life""",
         except json.JSONDecodeError:
             return None
 
-    def _detect_query_type_for_tool_selection(self, query: str) -> dict[str, Any] | None:
+    def _detect_query_type_for_tool_selection(
+        self, query: str, context: str = ""
+    ) -> dict[str, Any] | None:
         """Detect query type and return appropriate tool configuration.
 
         Returns None if no special handling needed (falls through to default behavior).
@@ -3455,6 +3468,11 @@ digital_europe, life""",
                 "needs_more_info": True,
             }
 
+        # Check for partner search REFINEMENT queries (e.g., "Show only universities" after partner search)
+        refinement_result = self._detect_partner_search_refinement(query, context)
+        if refinement_result:
+            return refinement_result
+
         # Consortium size/patterns queries
         consortium_patterns = [
             "typical consortium",
@@ -3483,6 +3501,216 @@ digital_europe, life""",
             }
 
         return None
+
+    def _detect_partner_search_refinement(self, query: str, context: str) -> dict[str, Any] | None:
+        """Detect if query is a refinement of a previous partner search.
+
+        This handles short queries like "Show only universities", "From EU15 countries only"
+        that follow a partner search and should continue using find_experienced_partners.
+        """
+        if not context:
+            return None
+
+        query_lower = query.lower()
+        context_lower = context.lower()
+
+        # Check if context indicates a recent partner search
+        partner_search_indicators = [
+            "find_experienced_partners",
+            "experienced partners",
+            "organizations with experience",
+            "partner discovery",
+            "top organizations",
+            "organization type",
+            "relevant projects",
+            "total funding",
+        ]
+
+        has_partner_context = any(
+            indicator in context_lower for indicator in partner_search_indicators
+        )
+
+        if not has_partner_context:
+            return None
+
+        # Partner refinement patterns - short queries that filter results
+        refinement_patterns = {
+            # Organization type filters
+            "only universities": {"organization_type": "HES"},
+            "show only universities": {"organization_type": "HES"},
+            "universities only": {"organization_type": "HES"},
+            "only hes": {"organization_type": "HES"},
+            "higher education": {"organization_type": "HES"},
+            "only smes": {"organization_type": "SME"},
+            "smes only": {"organization_type": "SME"},
+            "only research": {"organization_type": "REC"},
+            "research only": {"organization_type": "REC"},
+            "only private": {"organization_type": "PRC"},
+            "companies only": {"organization_type": "PRC"},
+            # Role filters
+            "experience coordinating": {"role_filter": "coordinator"},
+            "coordinating projects": {"role_filter": "coordinator"},
+            "as coordinator": {"role_filter": "coordinator"},
+            "who have coordinated": {"role_filter": "coordinator"},
+            "coordination experience": {"role_filter": "coordinator"},
+            # Country/region filters
+            "eu15 countries": {"country_group": "EU15"},
+            "from eu15": {"country_group": "EU15"},
+            "eu15 only": {"country_group": "EU15"},
+            "eu13 countries": {"country_group": "EU13"},
+            "from eu13": {"country_group": "EU13"},
+            "southern europe": {"country_group": "SOUTHERN"},
+            "northern europe": {"country_group": "NORTHERN"},
+            "western europe": {"country_group": "WESTERN"},
+            "eastern europe": {"country_group": "EASTERN"},
+        }
+
+        # Check for refinement patterns
+        matched_params = {}
+        for pattern, params in refinement_patterns.items():
+            if pattern in query_lower:
+                matched_params.update(params)
+
+        # Also check for organization type via standard extraction
+        org_type = self._extract_org_type(query)
+        if org_type:
+            matched_params["organization_type"] = org_type
+
+        # Check for country extraction
+        country = self._extract_country(query)
+        if country:
+            matched_params["country"] = country
+
+        # Check for topic refinement (e.g., "who have worked on quantum communication")
+        topic_refinement_patterns = [
+            "worked on",
+            "have worked on",
+            "who have worked",
+            "experience in",
+            "experience with",
+            "specialized in",
+            "focus on",
+        ]
+        if any(p in query_lower for p in topic_refinement_patterns):
+            # Extract topic from the query
+            new_topic = self._extract_topic_keywords(query)
+            if new_topic:
+                matched_params["topic_keywords"] = new_topic
+
+        if not matched_params:
+            return None
+
+        # Extract original topic from context if available
+        original_topic = self._extract_topic_from_context(context)
+        if original_topic and "topic_keywords" not in matched_params:
+            matched_params["topic_keywords"] = original_topic
+
+        # Convert country_group to actual country list
+        if "country_group" in matched_params:
+            country_group = matched_params.pop("country_group")
+            countries = self._get_countries_for_group(country_group)
+            if countries:
+                # For now, use the first country - the tool may need enhancement to accept multiple
+                matched_params["country"] = countries[0]
+
+        return {
+            "thought": f"User is refining previous partner search with filters: {matched_params}. Using find_experienced_partners with refinement.",
+            "action": "call_tools",
+            "tool_calls": [
+                {
+                    "tool": "find_experienced_partners",
+                    "parameters": matched_params,
+                    "reasoning": "Refining partner search based on user's filter criteria",
+                }
+            ],
+            "needs_more_info": True,
+        }
+
+    def _extract_topic_from_context(self, context: str) -> str | None:
+        """Extract the original topic keywords from conversation context."""
+        # Look for common patterns that indicate a topic was searched
+        import re
+
+        # Pattern 1: "topic_keywords='...'"
+        match = re.search(r"topic_keywords[=:]\s*['\"]?([^'\"]+)['\"]?", context, re.IGNORECASE)
+        if match:
+            return match.group(1).strip()
+
+        # Pattern 2: "for ... research" or "partners for ..."
+        match = re.search(
+            r"(?:partners? for|find.*for|experience in|experienced in)\s+([a-z\s]+?)(?:\s+research|\s+project|\s*$)",
+            context.lower(),
+        )
+        if match:
+            topic = match.group(1).strip()
+            if len(topic) > 3:
+                return topic
+
+        # Pattern 3: Look for capitalized technical terms
+        match = re.search(
+            r"(?:quantum|hydrogen|ai|machine learning|renewable|solar|climate)\s*\w*",
+            context.lower(),
+        )
+        if match:
+            return match.group(0).strip()
+
+        return None
+
+    def _get_countries_for_group(self, group: str) -> list[str]:
+        """Get list of countries for a regional group."""
+        country_groups = {
+            "EU15": [
+                "Germany",
+                "France",
+                "Italy",
+                "Spain",
+                "Netherlands",
+                "Belgium",
+                "Austria",
+                "Sweden",
+                "Denmark",
+                "Finland",
+                "Ireland",
+                "Portugal",
+                "Greece",
+                "Luxembourg",
+            ],
+            "EU13": [
+                "Poland",
+                "Czech Republic",
+                "Hungary",
+                "Romania",
+                "Bulgaria",
+                "Slovakia",
+                "Slovenia",
+                "Lithuania",
+                "Latvia",
+                "Estonia",
+                "Croatia",
+                "Cyprus",
+                "Malta",
+            ],
+            "SOUTHERN": ["Spain", "Italy", "Portugal", "Greece", "Malta", "Cyprus"],
+            "NORTHERN": ["Sweden", "Denmark", "Finland", "Norway", "Iceland"],
+            "WESTERN": [
+                "Germany",
+                "France",
+                "Netherlands",
+                "Belgium",
+                "Austria",
+                "Ireland",
+                "Luxembourg",
+            ],
+            "EASTERN": [
+                "Poland",
+                "Czech Republic",
+                "Hungary",
+                "Romania",
+                "Bulgaria",
+                "Slovakia",
+            ],
+        }
+        return country_groups.get(group.upper(), [])
 
     def _extract_topic_keywords(self, query: str) -> str:
         """Extract topic keywords from a query for tool parameters."""
@@ -3581,7 +3809,7 @@ digital_europe, life""",
             return "PRC"
         return None
 
-    def _get_tool_hint(self, query: str) -> str | None:
+    def _get_tool_hint(self, query: str, context: str = "") -> str | None:
         """Get a tool hint for specific query types to guide LLM tool selection.
 
         Returns a hint string to be injected into the context, or None if no hint needed.
@@ -3629,6 +3857,11 @@ digital_europe, life""",
                 hint_parts.append(f", organization_type='{org_type}'")
 
             return " ".join(hint_parts)
+
+        # Check for partner search REFINEMENT hints
+        refinement_hint = self._get_partner_refinement_hint(query, context)
+        if refinement_hint:
+            return refinement_hint
 
         # Consortium size/patterns queries - MUST use get_consortium_patterns
         consortium_patterns = [
@@ -3704,14 +3937,111 @@ digital_europe, life""",
 
         return None
 
+    def _get_partner_refinement_hint(self, query: str, context: str) -> str | None:
+        """Get a hint for partner search refinement queries.
+
+        Detects when a short query is refining a previous partner search.
+        """
+        if not context:
+            return None
+
+        query_lower = query.lower()
+        context_lower = context.lower()
+
+        # Check if context indicates a recent partner search
+        partner_search_indicators = [
+            "find_experienced_partners",
+            "experienced partners",
+            "organizations with experience",
+            "partner discovery",
+            "top organizations",
+            "organization type",
+            "relevant projects",
+            "total funding",
+        ]
+
+        has_partner_context = any(
+            indicator in context_lower for indicator in partner_search_indicators
+        )
+
+        if not has_partner_context:
+            return None
+
+        # Partner refinement patterns
+        refinement_indicators = [
+            # Org type refinements
+            "only universities",
+            "show only universities",
+            "universities only",
+            "only hes",
+            "higher education",
+            "only smes",
+            "smes only",
+            "only research",
+            "research only",
+            "only private",
+            "companies only",
+            # Role refinements
+            "experience coordinating",
+            "coordinating projects",
+            "as coordinator",
+            "who have coordinated",
+            "coordination experience",
+            # Country/region refinements
+            "eu15 countries",
+            "from eu15",
+            "eu15 only",
+            "eu13 countries",
+            "from eu13",
+            "southern europe",
+            "northern europe",
+            "western europe",
+            "eastern europe",
+            # Topic refinements
+            "worked on",
+            "have worked on",
+            "who have worked",
+        ]
+
+        if any(indicator in query_lower for indicator in refinement_indicators):
+            # Detect specific filter type for better hint
+            org_type = self._extract_org_type(query)
+            country = self._extract_country(query)
+
+            hint = (
+                "MANDATORY: This is a PARTNER SEARCH REFINEMENT query. "
+                "The user is refining the previous partner search. "
+                "You MUST use find_experienced_partners tool (NOT search_documents!) "
+                "with filters based on their refinement request."
+            )
+
+            if org_type:
+                hint += f" Use organization_type='{org_type}'."
+            if country:
+                hint += f" Use country='{country}'."
+
+            # Get original topic from context
+            original_topic = self._extract_topic_from_context(context)
+            if original_topic:
+                hint += f" Use topic_keywords from the previous search: '{original_topic}'."
+
+            return hint
+
+        return None
+
     def _fallback_reasoning(
-        self, query: str, previous_steps: list[ReasoningStep], tool_results: dict[str, Any]
+        self,
+        query: str,
+        previous_steps: list[ReasoningStep],
+        tool_results: dict[str, Any],
+        context: str = "",
     ) -> dict[str, Any]:
         """Fallback reasoning when LLM fails."""
 
         if not previous_steps:
             # First, try to detect specific query types for better tool selection
-            detected_tool = self._detect_query_type_for_tool_selection(query)
+            # Pass context to enable detection of refinement queries
+            detected_tool = self._detect_query_type_for_tool_selection(query, context)
             if detected_tool:
                 return detected_tool
 
