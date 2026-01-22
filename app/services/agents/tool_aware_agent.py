@@ -3481,6 +3481,12 @@ digital_europe, life""",
         if personalized_result:
             return personalized_result
 
+        # Check for CONTEXT RECALL queries (e.g., "I mentioned earlier I work on hydrogen")
+        # These reference earlier conversation context to find calls
+        context_recall_result = self._detect_context_recall_query(query, context)
+        if context_recall_result:
+            return context_recall_result
+
         # Check for SPECIFIC ORGANIZATION queries (must come before partner discovery!)
         # These are queries about a NAMED organization's funding history/projects/track record
         # e.g., "Tell me about TUM's EU funding history", "What has Fraunhofer done in Horizon Europe?"
@@ -4026,6 +4032,149 @@ digital_europe, life""",
                     "tool": "search_funding_calls",
                     "parameters": {"keywords": search_keywords, "status": "open", "limit": 10},
                     "reasoning": f"Finding open calls for {search_keywords} based on accumulated user context",
+                }
+            ],
+            "needs_more_info": True,
+        }
+
+    def _detect_context_recall_query(self, query: str, context: str) -> dict[str, Any] | None:
+        """Detect if query references earlier conversation context to find calls.
+
+        This handles queries like:
+        - "I mentioned earlier I work on hydrogen - any new calls open right now?"
+        - "As I said before, I'm in healthcare - what calls are available?"
+        - "Remember I work on AI? Are there any open calls?"
+        - "Going back to my hydrogen research, any funding?"
+        - "Any new [topic] calls" (where topic was mentioned earlier)
+
+        These should recall context from earlier and use search_funding_calls.
+        """
+        if not context:
+            return None
+
+        query_lower = query.lower()
+        context_lower = context.lower()
+
+        # Patterns that indicate user is referencing earlier conversation
+        recall_patterns = [
+            "i mentioned earlier",
+            "as i said",
+            "as i mentioned",
+            "remember i",
+            "i said before",
+            "i told you",
+            "going back to",
+            "back to my",
+            "you know i work on",
+            "you know i'm working on",
+            "earlier i said",
+            "my earlier",
+            "i previously mentioned",
+        ]
+
+        # Check if query contains recall pattern
+        has_recall_pattern = any(pattern in query_lower for pattern in recall_patterns)
+
+        # Also check for "any [topic] calls" pattern where topic might be from context
+        any_calls_match = re.search(
+            r"any\s+(?:new\s+)?(\w+(?:\s+\w+)?)\s+calls?",
+            query_lower,
+        )
+
+        # Check for "[topic] calls open" pattern
+        calls_open_match = re.search(
+            r"(\w+(?:\s+\w+)?)\s+calls?\s+(?:open|available)",
+            query_lower,
+        )
+
+        if not has_recall_pattern and not any_calls_match and not calls_open_match:
+            return None
+
+        # Extract topic from query
+        topic_from_query = None
+
+        # First try to extract topic from query patterns
+        topic_patterns = [
+            r"work\s+on\s+(\w+(?:\s+\w+)?)",
+            r"working\s+on\s+(\w+(?:\s+\w+)?)",
+            r"research\s+(?:in|on)\s+(\w+(?:\s+\w+)?)",
+            r"any\s+(?:new\s+)?(\w+(?:\s+\w+)?)\s+calls?",
+            r"(\w+(?:\s+\w+)?)\s+calls?\s+(?:open|available)",
+        ]
+
+        for pattern in topic_patterns:
+            match = re.search(pattern, query_lower)
+            if match:
+                extracted = match.group(1).strip()
+                # Filter out generic words
+                if extracted not in ["new", "any", "open", "funding", "more", "the", "some"]:
+                    topic_from_query = extracted
+                    break
+
+        # If no topic in query, try to extract from context
+        topic_from_context = None
+        if not topic_from_query:
+            # Look for research topics in context
+            context_topic_patterns = [
+                r"hydrogen\s*(?:storage|technology|research)?",
+                r"marine\s+biology",
+                r"artificial\s+intelligence",
+                r"machine\s+learning",
+                r"renewable\s+energy",
+                r"solar\s+(?:energy|power)",
+                r"climate\s+(?:change|research)",
+                r"healthcare\s*(?:technology)?",
+                r"quantum\s+(?:computing|technology)",
+                r"battery\s+(?:technology|storage)",
+                r"energy\s+storage",
+                r"clean\s+energy",
+                r"digital\s+(?:health|transformation)",
+                r"sustainable\s+(?:transport|mobility)",
+            ]
+
+            for pattern in context_topic_patterns:
+                match = re.search(pattern, context_lower)
+                if match:
+                    topic_from_context = match.group(0).strip()
+                    break
+
+        # Combine: prefer query topic, fall back to context topic
+        search_topic = topic_from_query or topic_from_context
+
+        if not search_topic:
+            return None
+
+        # Extract additional context (country, org type)
+        country = None
+        country_patterns = {
+            "germany": "DE",
+            "german": "DE",
+            "portugal": "PT",
+            "portuguese": "PT",
+            "spain": "ES",
+            "italy": "IT",
+            "france": "FR",
+            "netherlands": "NL",
+        }
+        for pattern, code in country_patterns.items():
+            if pattern in context_lower:
+                country = code
+                break
+
+        # Build thought showing context recall
+        thought_parts = [f"User is referencing earlier context about '{search_topic}'"]
+        if country:
+            thought_parts.append(f"(from {country})")
+        thought = " ".join(thought_parts) + ". Searching for open calls."
+
+        return {
+            "thought": thought,
+            "action": "call_tools",
+            "tool_calls": [
+                {
+                    "tool": "search_funding_calls",
+                    "parameters": {"keywords": search_topic, "status": "open", "limit": 10},
+                    "reasoning": f"Recalling earlier context and finding open calls for {search_topic}",
                 }
             ],
             "needs_more_info": True,

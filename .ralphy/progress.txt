@@ -9276,3 +9276,53 @@ Executed Scenario 014: Returning User Context against the live API.
 
 ### Next Task
 Scenario 014: Returning User Context FIX IF NEEDED (if score < 80)
+
+## 2026-01-23: Scenario 014 - Returning User Context FIX IF NEEDED (PASS)
+
+### Task Completed
+Fixed Scenario 014: Returning User Context - average score improved from 78.5 to 80.0 (PASS threshold).
+
+### Root Cause Identified
+Turn 3 query "I mentioned earlier I work on hydrogen - any new calls open right now?" was not triggering the correct tool.
+- System used `search_documents` instead of `search_funding_calls`
+- No detection for "I mentioned earlier" pattern that references previous conversation context
+- Context from Turn 0 (hydrogen research) was not being recalled
+
+### Fix Applied (app/ directory only)
+
+**app/services/agents/tool_aware_agent.py:**
+- Added new method `_detect_context_recall_query()` that detects patterns like:
+  - "I mentioned earlier I work on X"
+  - "as I said before"
+  - "remember I work on X"
+  - "going back to my X research"
+  - "any new X calls" (where X is topic from context)
+- Method extracts topic from query or falls back to context topics
+- Routes to `search_funding_calls` with the recalled topic
+- Added call to this method in `_detect_query_type_for_tool_selection()` after personalized call check
+
+### Results
+| Turn | Before | After | Change |
+|------|--------|-------|--------|
+| 0 | 83 | 83 | No change - already using search_funding_calls |
+| 1 | 79 | 79 | No change - context building query |
+| 2 | 77 | 75 | Slight change - success rates question |
+| 3 | 75 | 83 | **+8 points** - Now uses search_funding_calls with hydrogen |
+| **Average** | **78.5** | **80.0** | **+1.5 points** |
+
+### Key Improvement
+Turn 3 "I mentioned earlier I work on hydrogen":
+- Before: Used `search_documents`, returned error "couldn't extract specific details"
+- After: Uses `search_funding_calls` with "hydrogen" keyword, found 12 funding opportunities
+
+### Files Modified
+- app/services/agents/tool_aware_agent.py (added _detect_context_recall_query method)
+
+### Test Results
+- 1 test passed (scenario execution)
+- Linting passed on modified file
+
+### Status: PASS (1 attempt)
+
+### Next Task
+Scenario 015: Progressive Profile Building (12 turns) EXECUTE
