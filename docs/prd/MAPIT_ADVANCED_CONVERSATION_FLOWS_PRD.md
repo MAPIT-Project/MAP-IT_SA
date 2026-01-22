@@ -717,14 +717,14 @@ final_validations:
 - [x] RUN & FIX: Execute scenario. Fix historical programme handling.
 
 ### Task 046: Ambiguous Programme Reference Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/ambiguous_programme.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/ambiguous_programme.yaml` with steps:
   1. "Tell me about the innovation fund"
   2. "I mean the EU one"
   3. "The one for climate"
   4. "With grants not loans"
   Validations: Disambiguation handled well, multiple possibilities explained.
 
-- [ ] RUN & FIX: Execute scenario. Fix ambiguity resolution.
+- [x] RUN & FIX: Execute scenario. Fix ambiguity resolution.
 
 ### Task 047: Out-of-Scope Query Handling Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/out_of_scope.yaml` with steps:

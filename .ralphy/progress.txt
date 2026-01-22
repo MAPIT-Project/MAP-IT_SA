@@ -6289,3 +6289,62 @@ Implemented Task 045: Create Outdated Information Scenario for Phase 11 (Error H
 
 ### PRD Updates
 - Marked Task 045 as complete (both CREATE SCENARIO and RUN & FIX steps)
+
+## 2026-01-22: Task 046 - Ambiguous Programme Reference Scenario
+
+### Task Completed
+Implemented Task 046 from MAPIT_ADVANCED_CONVERSATION_FLOWS_PRD.md: Created Ambiguous Programme Reference Scenario for Phase 11 (Error Handling & Edge Cases).
+
+### Files Created
+- `tests/scenarios/advanced/ambiguous_programme.yaml` - New scenario with:
+  - 4 conversation turns testing how the system handles ambiguous programme references
+  - Turn 1: "Tell me about the innovation fund" (ambiguous - multiple possible funds)
+  - Turn 2: "I mean the EU one" (still ambiguous - multiple EU funds)
+  - Turn 3: "The one for climate" (narrows to climate-focused options)
+  - Turn 4: "With grants not loans" (final clarification)
+
+### Scenario Design
+The scenario tests disambiguation capabilities by progressively clarifying an ambiguous query:
+1. Initial query is intentionally vague - "the innovation fund" could refer to:
+   - EU Innovation Fund (ETS-related, climate)
+   - EIC Accelerator (innovation focus)
+   - Horizon Europe general (research & innovation)
+   - InvestEU (innovation financing)
+2. Each follow-up narrows the possibilities
+3. Final clarification (grants not loans) should lead to clear options
+
+### Validations Used
+- `no_error` (Built-in): CRITICAL - System should NOT error on ambiguous queries
+- `response_contains_any` (Built-in): System responds meaningfully to each turn
+- `goal_progress` (GoalTrackingAgent): Track disambiguation progress
+- `context_accumulated` (PersonalizationAgent): Build context from clarifications
+- `personalization_applied` (PersonalizationAgent): Use clarifications in responses
+- `programme_mentioned` (CrossProgrammeAgent): Eventually identify Horizon Europe
+- `programme_accurate` (CrossProgrammeAgent): Programme facts correct
+- `profile_used` (PersonalizationAgent): Profile context used
+- `goal_achieved` (GoalTrackingAgent): User understands their options
+- `context_integrity` (ContextValidatorAgent): All messages stored correctly
+
+### Test Results
+- YAML validation passed
+- Scenario test passed in 144.61 seconds (2:24)
+- All 4 turns validated successfully
+- System handled disambiguation gracefully
+
+### Key Features Tested
+- Handling ambiguous user queries without errors
+- Progressive clarification through conversation
+- Context accumulation across clarifying turns
+- Appropriate programme identification when enough context provided
+- No system failures on vague/ambiguous input
+
+### Notes
+- Pre-existing linting errors in codebase (7073 errors in Python files) don't affect this scenario
+- YAML files are not linted by ruff
+- System handles ambiguity by providing relevant information and options
+
+### Tags
+phase11, error_handling, edge_case, ambiguous, disambiguation, innovation_fund, clarification, multiple_options, user_guidance, graceful_handling
+
+### Next Task
+Task 047: Out-of-Scope Query Handling Scenario (Phase 11 - Error Handling & Edge Cases)

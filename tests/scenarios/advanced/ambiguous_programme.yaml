@@ -1,0 +1,326 @@
+# Ambiguous Programme Reference Scenario (Task 046)
+# Tests how the system handles ambiguous or unclear programme references.
+# Phase 11: Error Handling & Edge Cases
+#
+# This scenario simulates a user asking about "the innovation fund" without
+# specifying which one. Multiple EU programmes and funds have "innovation"
+# in their names. The system should:
+# 1. Recognize the ambiguity
+# 2. Ask for clarification OR present multiple options
+# 3. Narrow down based on user's follow-up clarifications
+# 4. Eventually identify the correct programme
+#
+# User Journey:
+# 1. User asks about "the innovation fund" -> Ambiguous, multiple possibilities
+# 2. User clarifies "the EU one" -> Still ambiguous (multiple EU funds)
+# 3. User clarifies "for climate" -> Narrows to Innovation Fund (ETS/climate)
+# 4. User clarifies "with grants not loans" -> Final clarification
+#
+# Possible "Innovation Fund" candidates:
+# - EU Innovation Fund (ETS-related, climate, usually loans/equity but also grants)
+# - EIC Accelerator (innovation focus, grants + equity)
+# - Horizon Europe general (research & innovation)
+# - InvestEU (innovation financing)
+#
+# Required Validation Types (per PRD):
+# - no_error (Built-in): System should NOT produce errors for ambiguous queries
+# - response_contains_any (Built-in): System should respond meaningfully
+# - goal_progress (GoalTrackingAgent): Track understanding progress
+# - context_accumulated (PersonalizationAgent): Build context from clarifications
+# - personalization_applied (PersonalizationAgent): Use clarifications in responses
+# - programme_mentioned (CrossProgrammeAgent): Eventually mention correct programme
+# - programme_accurate (CrossProgrammeAgent): Programme facts should be correct
+# - context_integrity (ContextValidatorAgent): All messages stored correctly
+#
+# Note: This scenario tests disambiguation capabilities and handling of
+# user queries that lack specificity. The system should guide users to
+# the right programme through clarifying questions.
+
+name: "Ambiguous Programme Reference"
+description: |
+  A user asks about "the innovation fund" without specifying which one.
+  The system should handle this ambiguity by presenting options or asking
+  for clarification, then narrowing down based on user follow-ups.
+  Tests disambiguation and clarification handling.
+tags:
+  - "phase11"
+  - "error_handling"
+  - "edge_case"
+  - "ambiguous"
+  - "disambiguation"
+  - "innovation_fund"
+  - "clarification"
+  - "multiple_options"
+  - "user_guidance"
+  - "graceful_handling"
+stop_on_error: false
+
+steps:
+  # Turn 1: Ambiguous initial query - "the innovation fund"
+  # Expected: System presents options OR asks for clarification
+  - message: "Tell me about the innovation fund"
+    validations:
+      # Built-in: No errors in response
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn1"
+
+      # Response should address innovation funding in some way
+      - type: "response_contains_any"  # Built-in
+        name: "innovation_addressed"
+        patterns:
+          - "innovation"
+          - "Innovation"
+          - "fund"
+          - "Fund"
+          - "funding"
+          - "EIC"
+          - "Horizon"
+          - "EU"
+          - "InvestEU"
+          - "ETS"
+          - "climate"
+          - "research"
+          - "grant"
+          - "loan"
+          - "equity"
+          - "programme"
+          - "program"
+          - "accelerator"
+          - "scheme"
+          - "support"
+          - "finance"
+          - "investment"
+          - "European"
+          - "Commission"
+          - "several"
+          - "multiple"
+          - "which"
+          - "clarify"
+          - "specific"
+          - "refer"
+          - "mean"
+          - "different"
+          - "option"
+          - "type"
+
+      # GoalTrackingAgent: Initial progress
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "initial_progress"
+        min_progress: 0.10
+
+      # PersonalizationAgent: Context should start building
+      - type: "context_accumulated"  # PersonalizationAgent
+        name: "context_start"
+        expected_fields:
+          - "topic_interest"
+    delay_ms: 0
+
+  # Turn 2: First clarification - "the EU one"
+  # Expected: System acknowledges EU focus but notes multiple EU options exist
+  - message: "I mean the EU one"
+    validations:
+      # Built-in: No errors
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn2"
+
+      # Response should address EU-level innovation funding
+      - type: "response_contains_any"  # Built-in
+        name: "eu_innovation_addressed"
+        patterns:
+          - "EU"
+          - "European"
+          - "Union"
+          - "Commission"
+          - "innovation"
+          - "Innovation"
+          - "fund"
+          - "Fund"
+          - "EIC"
+          - "Horizon"
+          - "InvestEU"
+          - "ETS"
+          - "programme"
+          - "grant"
+          - "funding"
+          - "several"
+          - "multiple"
+          - "option"
+          - "which"
+          - "clarify"
+          - "specific"
+          - "climate"
+          - "research"
+          - "Accelerator"
+          - "Pathfinder"
+          - "support"
+          - "scheme"
+
+      # GoalTrackingAgent: Progress increases
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "eu_progress"
+        min_progress: 0.15
+
+      # PersonalizationAgent: Context should accumulate
+      - type: "context_accumulated"  # PersonalizationAgent
+        name: "eu_context"
+        expected_fields:
+          - "topic_interest"
+    delay_ms: 500
+
+  # Turn 3: Second clarification - "for climate"
+  # Expected: System identifies the EU Innovation Fund (ETS-related) or EIC climate
+  - message: "The one for climate"
+    validations:
+      # Built-in: No errors
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn3"
+
+      # Response should address climate-related innovation funding
+      - type: "response_contains_any"  # Built-in
+        name: "climate_innovation_addressed"
+        patterns:
+          - "climate"
+          - "Climate"
+          - "Innovation Fund"
+          - "innovation fund"
+          - "ETS"
+          - "emission"
+          - "Emission"
+          - "trading"
+          - "Trading"
+          - "carbon"
+          - "Carbon"
+          - "green"
+          - "Green"
+          - "clean"
+          - "Clean"
+          - "energy"
+          - "Energy"
+          - "decarbonisation"
+          - "decarbonization"
+          - "Horizon"
+          - "Cluster"
+          - "cluster"
+          - "CL5"
+          - "environment"
+          - "sustainable"
+          - "sustainability"
+          - "renewable"
+          - "transition"
+          - "net-zero"
+          - "net zero"
+          - "funding"
+          - "grant"
+          - "programme"
+          - "EIC"
+          - "Accelerator"
+          - "demonstration"
+          - "large-scale"
+          - "industrial"
+
+      # GoalTrackingAgent: Progress continues
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "climate_progress"
+        min_progress: 0.25
+
+      # PersonalizationAgent: Context should include climate focus
+      - type: "context_accumulated"  # PersonalizationAgent
+        name: "climate_context"
+        expected_fields:
+          - "topic_interest"
+    delay_ms: 500
+
+  # Turn 4: Final clarification - "with grants not loans"
+  # Expected: System clarifies grant options for climate innovation
+  - message: "With grants not loans"
+    validations:
+      # Built-in: No errors
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn4"
+
+      # Response should address grant-based funding for climate innovation
+      - type: "response_contains_any"  # Built-in
+        name: "grants_climate_addressed"
+        patterns:
+          - "grant"
+          - "Grant"
+          - "funding"
+          - "climate"
+          - "Climate"
+          - "Innovation Fund"
+          - "innovation fund"
+          - "Horizon"
+          - "EIC"
+          - "Accelerator"
+          - "Pathfinder"
+          - "RIA"
+          - "IA"
+          - "Cluster"
+          - "CL5"
+          - "call"
+          - "programme"
+          - "application"
+          - "eligible"
+          - "support"
+          - "non-repayable"
+          - "non-reimbursable"
+          - "contribution"
+          - "100%"
+          - "funding rate"
+          - "co-financing"
+          - "lump sum"
+          - "energy"
+          - "clean"
+          - "green"
+          - "demonstration"
+          - "project"
+          - "apply"
+          - "deadline"
+          - "opportunity"
+          - "option"
+          - "available"
+
+      # GoalTrackingAgent: Final progress
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "final_progress"
+        min_progress: 0.35
+
+      # CrossProgrammeAgent: Should mention Horizon Europe (main grant programme)
+      - type: "programme_mentioned"  # CrossProgrammeAgent
+        name: "horizon_mentioned"
+        programmes:
+          - "horizon_europe"
+
+      # CrossProgrammeAgent: Programme accuracy
+      - type: "programme_accurate"  # CrossProgrammeAgent
+        name: "programme_accuracy"
+        programme: "horizon_europe"
+        min_score: 0.4
+
+      # PersonalizationAgent: Response should be personalized to accumulated context
+      - type: "personalization_applied"  # PersonalizationAgent
+        name: "personalization_check"
+        min_score: 0.3
+    delay_ms: 500
+
+final_validations:
+  # GoalTrackingAgent: User should understand their options
+  - type: "goal_achieved"  # GoalTrackingAgent
+    name: "disambiguation_achieved"
+    min_progress: 0.35
+
+  # PersonalizationAgent: Context should be preserved across all clarifications
+  - type: "context_accumulated"  # PersonalizationAgent
+    name: "context_preserved"
+    expected_fields:
+      - "topic_interest"
+
+  # PersonalizationAgent: Profile should be used in responses
+  - type: "profile_used"  # PersonalizationAgent
+    name: "profile_used"
+    expected_fields:
+      - "topic_interest"
+
+  # ContextValidatorAgent: All messages should be stored correctly
+  - type: "context_integrity"  # ContextValidatorAgent
+    name: "context_integrity_check"
