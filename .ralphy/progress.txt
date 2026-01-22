@@ -6960,3 +6960,97 @@ python tests/test_production_quality_validation.py --all --base-url http://local
 
 ### Next Task
 Task 002: Create Failure Detection Module (PHASE 1 - Critical Infrastructure)
+
+## 2026-01-22: Task 002 - Create Failure Detection Module (MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD)
+
+### Task Completed
+Implemented Task 002: Create Failure Detection Module as specified in MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD.md.
+
+### Files Created
+- `tests/validators/__init__.py` - Module exports
+- `tests/validators/failure_detector.py` - Main failure detection module
+- `tests/validators/test_failure_detector.py` - Unit tests (53 tests)
+
+### Key Components Implemented
+
+1. **Dataclasses**:
+   - `FailureRecord`: Records failures with category, severity, description, turn_number, evidence
+   - `TurnResult`: Lightweight turn representation for detectors
+   - `FailureCategory` enum: NO_RESULTS, INCORRECT_DATA, MISSING_DATA, UNEXPECTED_BEHAVIOR, POOR_QUALITY
+   - `FailureSeverity` enum: CRITICAL, HIGH, MEDIUM
+
+2. **Base Classes**:
+   - `BaseDetector`: Abstract base class for all detectors with `_create_failure()` helper
+
+3. **Detector Classes (per PRD requirements)**:
+   - `NoResultsDetector`: Detects empty responses, no-results patterns, deflection patterns, empty tool results
+   - `IncorrectDataDetector`: Detects wrong budget amounts, funding rates, pillar/cluster counts, programme durations
+   - `MissingDataDetector`: Detects missing required fields in tool results, programme mentions without details
+   - `UnexpectedBehaviorDetector`: Detects errors, SSE stream errors, quality degradation, wrong tools, context loss
+   - `PoorQualityDetector`: Detects low quality scores, wall of text, vague responses, non-actionable responses
+
+4. **Main Entry Point**:
+   - `detect_all(turn_result, turn_number)`: Runs all 5 detectors and returns combined failures
+
+5. **Pattern Constants (per PRD Appendix)**:
+   - `NO_RESULTS_PATTERNS`: 10 patterns for detecting empty/useless responses
+   - `DEFLECTION_PATTERNS`: 6 patterns for detecting deflection responses
+   - `REQUIRED_FIELDS`: Field requirements for call_search, project_search, partner_search, etc.
+   - `KNOWN_FACTS`: Budget ranges and key facts for Horizon Europe, Erasmus+, Creative Europe
+   - `FUNDING_RATES`: Correct funding rates for RIA (100%), IA (70%), CSA (100%), etc.
+   - `TOOL_TO_FIELD_TYPE`: Maps tool names to required field types
+
+6. **Additional Features**:
+   - Custom patterns and thresholds via constructor parameters
+   - `validate_facts_dict()` method for fact validation
+   - `check_required_patterns()` method for pattern validation
+   - `check_consistency()` method for response consistency checks
+   - `evaluate_dimensions()` method for quality dimension evaluation
+
+### Test Results
+- 53 tests passed
+- All linting checks pass (ruff)
+
+### Test Coverage
+- TestDataclasses: 3 tests for dataclass creation and serialization
+- TestNoResultsDetector: 7 tests for no-results pattern detection
+- TestIncorrectDataDetector: 7 tests for factual accuracy detection
+- TestMissingDataDetector: 5 tests for missing data detection
+- TestUnexpectedBehaviorDetector: 6 tests for unexpected behavior detection
+- TestPoorQualityDetector: 8 tests for poor quality detection
+- TestDetectAll: 5 tests for combined detection
+- TestEdgeCases: 5 tests for edge cases
+- TestConstants: 2 tests for module constants
+
+### Usage Example
+```python
+from tests.validators.failure_detector import (
+    detect_all,
+    TurnResult,
+    NoResultsDetector,
+    IncorrectDataDetector,
+)
+
+# Create turn result
+turn = TurnResult(
+    query="Find hydrogen calls",
+    response="I couldn't find any results.",
+    tools_used=["search_funding_calls"],
+    tool_results=[{"tool": "search_funding_calls", "result": {"calls": []}}],
+)
+
+# Detect all failures
+failures = detect_all(turn, turn_number=0)
+for f in failures:
+    print(f"{f.category.value}: {f.description}")
+
+# Use individual detectors with custom thresholds
+detector = NoResultsDetector(min_response_length=150)
+failures = detector.detect(turn, turn_number=0)
+```
+
+### PRD Status
+- Task 002 marked as complete [x]
+
+### Next Task
+Task 003: Create Fix Tracking System (PHASE 1 - Critical Infrastructure)

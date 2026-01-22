@@ -202,15 +202,15 @@ After all fixes:
 - [x] VERIFY: Results saved to `tests/quality/results/scenarios/`
 
 ### Task 002: Create Failure Detection Module
-- [ ] CREATE: `tests/validators/failure_detector.py` with:
+- [x] CREATE: `tests/validators/failure_detector.py` with:
   - NoResultsDetector class (patterns, thresholds)
   - IncorrectDataDetector class (fact checking rules)
   - MissingDataDetector class (required field patterns)
   - UnexpectedBehaviorDetector class (consistency checks)
   - PoorQualityDetector class (quality thresholds)
   - `detect_all(turn_result)` → List[FailureRecord]
-- [ ] TEST: Unit tests for each detector with known good/bad examples
-- [ ] VERIFY: Detectors correctly categorize sample failures
+- [x] TEST: Unit tests for each detector with known good/bad examples
+- [x] VERIFY: Detectors correctly categorize sample failures
 
 ### Task 003: Create Fix Tracking System
 - [ ] CREATE: `tests/quality/fix_tracker.py` with:
