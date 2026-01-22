@@ -247,7 +247,7 @@ class TestScenario004EligibilityRoutingLive:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
-                    f"{api_base_url}/health", timeout=aiohttp.ClientTimeout(total=5)
+                    f"{api_base_url}/api/health", timeout=aiohttp.ClientTimeout(total=5)
                 ) as response:
                     assert response.status == 200
         except Exception as e:
@@ -268,7 +268,7 @@ class TestScenario004EligibilityRoutingLive:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
-                    f"{api_base_url}/health", timeout=aiohttp.ClientTimeout(total=5)
+                    f"{api_base_url}/api/health", timeout=aiohttp.ClientTimeout(total=5)
                 ) as response:
                     if response.status != 200:
                         pytest.skip(f"API not healthy: status {response.status}")
@@ -362,7 +362,7 @@ class TestScenario004EligibilityRoutingLive:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
-                    f"{api_base_url}/health", timeout=aiohttp.ClientTimeout(total=5)
+                    f"{api_base_url}/api/health", timeout=aiohttp.ClientTimeout(total=5)
                 ) as response:
                     if response.status != 200:
                         pytest.skip(f"API not healthy: status {response.status}")
@@ -390,7 +390,7 @@ class TestScenario004EligibilityRoutingLive:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
-                    f"{api_base_url}/health", timeout=aiohttp.ClientTimeout(total=5)
+                    f"{api_base_url}/api/health", timeout=aiohttp.ClientTimeout(total=5)
                 ) as response:
                     if response.status != 200:
                         pytest.skip(f"API not healthy: status {response.status}")
@@ -422,7 +422,7 @@ class TestScenario004EligibilityRoutingLive:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
-                    f"{api_base_url}/health", timeout=aiohttp.ClientTimeout(total=5)
+                    f"{api_base_url}/api/health", timeout=aiohttp.ClientTimeout(total=5)
                 ) as response:
                     if response.status != 200:
                         pytest.skip(f"API not healthy: status {response.status}")
@@ -511,7 +511,7 @@ class TestScenario004EligibilityRoutingLive:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
-                    f"{api_base_url}/health", timeout=aiohttp.ClientTimeout(total=5)
+                    f"{api_base_url}/api/health", timeout=aiohttp.ClientTimeout(total=5)
                 ) as response:
                     if response.status != 200:
                         pytest.skip(f"API not healthy: status {response.status}")

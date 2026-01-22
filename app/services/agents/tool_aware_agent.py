@@ -3796,6 +3796,18 @@ Budget Breakdown:
 """
                 content_pieces.append(geo_text)
 
+            # Extract Erasmus+ eligibility results
+            elif result.get("metadata", {}).get("tool") == "check_erasmus_eligibility":
+                eligibility_text = self._format_erasmus_eligibility_result(result)
+                if eligibility_text:
+                    content_pieces.append(eligibility_text)
+
+            # Extract Creative Europe eligibility results
+            elif result.get("metadata", {}).get("tool") == "check_creative_europe_eligibility":
+                eligibility_text = self._format_creative_europe_eligibility_result(result)
+                if eligibility_text:
+                    content_pieces.append(eligibility_text)
+
             # Extract partner discovery results
             elif (
                 result.get("tool_name") == "find_experienced_partners"
@@ -5389,6 +5401,250 @@ Found **{total_found} organizations** with relevant track records:
                 summaries.append(f"{tc.tool_name}: Failed - {tc.error}")
 
         return "\n".join(summaries)
+
+    def _format_erasmus_eligibility_result(self, result: dict) -> str:
+        """Format Erasmus+ eligibility check result into readable text."""
+        if not result.get("success"):
+            return ""
+
+        metadata = result.get("metadata", {})
+        query_type = metadata.get("query_type", "")
+
+        # Single action eligibility check
+        if query_type == "specific_action" and "result" in result:
+            check_result = result["result"]
+            action_type = check_result.get("action_type", "Unknown")
+            action_name = check_result.get("action_name", "Unknown Action")
+            eligible = check_result.get("eligible", False)
+            requirements_met = check_result.get("requirements_met", [])
+            requirements_missing = check_result.get("requirements_missing", [])
+            warnings = check_result.get("warnings", [])
+            recommendations = check_result.get("recommendations", [])
+
+            # Get country and org type from metadata
+            check_metadata = check_result.get("metadata", {})
+            country = check_metadata.get("country", "Unknown")
+            org_type = check_metadata.get("org_type", "Unknown")
+            is_programme_country = check_metadata.get("is_programme_country", False)
+
+            eligibility_text = f"""## Erasmus+ Eligibility Check: {action_name} ({action_type})
+
+**Organization**: {org_type} from {country}
+**Country Status**: {"Programme Country ✅" if is_programme_country else "Partner Country (Third Country)"}
+**Eligibility**: {"✅ ELIGIBLE" if eligible else "❌ NOT ELIGIBLE"}
+
+"""
+            if requirements_met:
+                eligibility_text += "**Requirements Met:**\n"
+                for req in requirements_met:
+                    eligibility_text += f"- ✅ {req}\n"
+                eligibility_text += "\n"
+
+            if requirements_missing:
+                eligibility_text += "**Requirements Not Met:**\n"
+                for req in requirements_missing:
+                    eligibility_text += f"- ❌ {req}\n"
+                eligibility_text += "\n"
+
+            if warnings:
+                eligibility_text += "**Warnings:**\n"
+                for warning in warnings:
+                    eligibility_text += f"- ⚠️ {warning}\n"
+                eligibility_text += "\n"
+
+            if recommendations:
+                eligibility_text += "**Recommendations & Requirements:**\n"
+                for rec in recommendations:
+                    eligibility_text += f"- {rec}\n"
+                eligibility_text += "\n"
+
+            eligibility_text += """
+---
+🎯 **Next Steps:**
+• Check the [Erasmus+ Programme Guide](https://erasmus-plus.ec.europa.eu/programme-guide/erasmusplus-programme-guide) for detailed eligibility criteria
+• Register on the [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/)
+• Contact your [National Agency](https://erasmus-plus.ec.europa.eu/contacts/national-agencies) for country-specific guidance
+"""
+            return eligibility_text
+
+        # All eligible actions check
+        elif query_type == "all_actions" and "eligible_actions" in result:
+            eligible_actions = result.get("eligible_actions", [])
+            total_eligible = result.get("total_eligible", len(eligible_actions))
+            country = metadata.get("country", "Unknown")
+            org_type = metadata.get("org_type", "Unknown")
+
+            if total_eligible == 0:
+                eligibility_text = f"""## Erasmus+ Eligibility Check for {org_type} from {country}
+
+**Eligibility**: ❌ No eligible actions found
+
+This may be because:
+- {country} is a Partner/Third Country with limited participation options
+- The organization type ({org_type}) has specific restrictions
+
+**Recommendations:**
+- Check if your country has bilateral agreements for specific actions
+- Consider participation as a partner rather than coordinator
+- Contact your National Agency for specific opportunities
+"""
+            else:
+                eligibility_text = f"""## Erasmus+ Eligibility Check for {org_type} from {country}
+
+**Total Eligible Actions**: {total_eligible}
+
+**Eligible Actions:**
+"""
+                for action in eligible_actions:
+                    action_type = action.get("action_type", "")
+                    action_name = action.get("action_name", "")
+                    warnings = action.get("warnings", [])
+                    notes = action.get("notes", [])
+
+                    eligibility_text += f"\n### {action_name} ({action_type})\n"
+                    if warnings:
+                        for w in warnings:
+                            eligibility_text += f"- ⚠️ {w}\n"
+                    if notes:
+                        for n in notes:
+                            eligibility_text += f"- {n}\n"
+
+                eligibility_text += """
+---
+🎯 **Next Steps:**
+• Review the [Erasmus+ Programme Guide](https://erasmus-plus.ec.europa.eu/programme-guide/erasmusplus-programme-guide) for detailed requirements
+• Check open calls on the [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/)
+• Contact your [National Agency](https://erasmus-plus.ec.europa.eu/contacts/national-agencies) for support
+"""
+
+            return eligibility_text
+
+        return ""
+
+    def _format_creative_europe_eligibility_result(self, result: dict) -> str:
+        """Format Creative Europe eligibility check result into readable text."""
+        if not result.get("success"):
+            return ""
+
+        metadata = result.get("metadata", {})
+        query_type = metadata.get("query_type", "")
+
+        # Single action eligibility check
+        if query_type == "specific_action" and "result" in result:
+            check_result = result["result"]
+            action_type = check_result.get("action_type", "Unknown")
+            action_name = check_result.get("action_name", "Unknown Action")
+            strand = check_result.get("strand", "Unknown")
+            eligible = check_result.get("eligible", False)
+            requirements_met = check_result.get("requirements_met", [])
+            requirements_missing = check_result.get("requirements_missing", [])
+            warnings = check_result.get("warnings", [])
+            recommendations = check_result.get("recommendations", [])
+
+            # Get country and org type from metadata
+            check_metadata = check_result.get("metadata", {})
+            country = check_metadata.get("country", "Unknown")
+            org_type = check_metadata.get("org_type", "Unknown")
+            is_eligible_country = check_metadata.get("is_eligible_country", True)
+
+            eligibility_text = f"""## Creative Europe Eligibility Check: {action_name} ({action_type})
+
+**Strand**: {strand}
+**Organization**: {org_type} from {country}
+**Country Status**: {"Eligible Country ✅" if is_eligible_country else "Third Country (restrictions may apply)"}
+**Eligibility**: {"✅ ELIGIBLE" if eligible else "❌ NOT ELIGIBLE"}
+
+"""
+            if requirements_met:
+                eligibility_text += "**Requirements Met:**\n"
+                for req in requirements_met:
+                    eligibility_text += f"- ✅ {req}\n"
+                eligibility_text += "\n"
+
+            if requirements_missing:
+                eligibility_text += "**Requirements Not Met:**\n"
+                for req in requirements_missing:
+                    eligibility_text += f"- ❌ {req}\n"
+                eligibility_text += "\n"
+
+            if warnings:
+                eligibility_text += "**Warnings:**\n"
+                for warning in warnings:
+                    eligibility_text += f"- ⚠️ {warning}\n"
+                eligibility_text += "\n"
+
+            if recommendations:
+                eligibility_text += "**Recommendations & Requirements:**\n"
+                for rec in recommendations:
+                    eligibility_text += f"- {rec}\n"
+                eligibility_text += "\n"
+
+            eligibility_text += """
+---
+🎯 **Next Steps:**
+• Check the [CulturEU Funding Guide](https://culture.ec.europa.eu/funding/cultureu-funding-guide) for programme details
+• Review calls on the [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/)
+• Contact the [Creative Europe Desks](https://culture.ec.europa.eu/creative-europe/creative-europe-desks) in your country
+"""
+            return eligibility_text
+
+        # All eligible actions (by strand)
+        elif query_type == "all_actions" and "eligible_actions" in result:
+            eligible_actions = result.get("eligible_actions", [])
+            total_eligible = result.get("total_eligible", len(eligible_actions))
+            country = metadata.get("country", "Unknown")
+            org_type = metadata.get("org_type", "Unknown")
+            strand = metadata.get("strand", "All Strands")
+
+            if total_eligible == 0:
+                eligibility_text = f"""## Creative Europe Eligibility Check for {org_type} from {country}
+
+**Strand**: {strand}
+**Eligibility**: ❌ No eligible actions found
+
+This may be because:
+- The organization type ({org_type}) is not eligible for {strand} actions
+- {country} may have restrictions for certain Creative Europe actions
+
+**Recommendations:**
+- Check if your organization qualifies under a different category
+- Review the CulturEU Funding Guide for alternative opportunities
+- Contact your Creative Europe Desk for guidance
+"""
+            else:
+                eligibility_text = f"""## Creative Europe Eligibility Check for {org_type} from {country}
+
+**Strand**: {strand}
+**Total Eligible Actions**: {total_eligible}
+
+**Eligible Actions:**
+"""
+                for action in eligible_actions:
+                    action_type = action.get("action_type", "")
+                    action_name = action.get("action_name", "")
+                    action_strand = action.get("strand", "")
+                    warnings = action.get("warnings", [])
+                    notes = action.get("notes", [])
+
+                    eligibility_text += f"\n### {action_name} ({action_type}) - {action_strand}\n"
+                    if warnings:
+                        for w in warnings:
+                            eligibility_text += f"- ⚠️ {w}\n"
+                    if notes:
+                        for n in notes:
+                            eligibility_text += f"- {n}\n"
+
+                eligibility_text += """
+---
+🎯 **Next Steps:**
+• Review the [CulturEU Funding Guide](https://culture.ec.europa.eu/funding/cultureu-funding-guide) for detailed requirements
+• Check open calls on the [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/)
+• Contact your [Creative Europe Desk](https://culture.ec.europa.eu/creative-europe/creative-europe-desks) for support
+"""
+
+            return eligibility_text
+
+        return ""
 
     def _format_tool_result_summary(self, tool_name: str, result: Any) -> str:
         """Format a single tool result into a readable summary."""

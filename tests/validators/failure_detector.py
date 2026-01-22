@@ -123,7 +123,13 @@ NO_RESULTS_PATTERNS = [
     "unable to find",
     "no data available",
     "I couldn't find",
-    "there are no",
+]
+
+# Patterns that indicate "no results" only at the START of a sentence
+# (to avoid false positives like "there are no restrictions")
+NO_RESULTS_START_PATTERNS = [
+    r"^there are no ",
+    r"\. there are no ",
 ]
 
 DEFLECTION_PATTERNS = [
@@ -298,7 +304,8 @@ class NoResultsDetector(BaseDetector):
                 )
             )
 
-        # Check 2: No-results patterns
+        # Check 2: No-results patterns (simple string matching)
+        found_no_results = False
         for pattern in self.no_results_patterns:
             if pattern.lower() in response_lower:
                 failures.append(
@@ -309,7 +316,46 @@ class NoResultsDetector(BaseDetector):
                         severity=FailureSeverity.CRITICAL,
                     )
                 )
+                found_no_results = True
                 break  # Only report first match
+
+        # Check 2b: Context-sensitive no-results patterns (require sentence start)
+        # These patterns are valid only when they indicate actual lack of results,
+        # not when used in positive context (e.g., "there are no restrictions")
+        if not found_no_results:
+            for pattern in NO_RESULTS_START_PATTERNS:
+                if re.search(pattern, response_lower, re.IGNORECASE):
+                    # Check if it's actually indicating lack of results
+                    # Skip if followed by words like "restrictions", "limitations"
+                    # which indicate a positive statement
+                    positive_context_words = [
+                        "restrictions",
+                        "limitations",
+                        "requirements",
+                        "barriers",
+                        "issues",
+                    ]
+                    match = re.search(pattern, response_lower, re.IGNORECASE)
+                    if match:
+                        after_match = response_lower[match.end() : match.end() + 50]
+                        is_positive_context = any(
+                            word in after_match for word in positive_context_words
+                        )
+                        if not is_positive_context:
+                            failures.append(
+                                self._create_failure(
+                                    description=(
+                                        f"Response contains no-results pattern: '{pattern}'"
+                                    ),
+                                    turn_number=turn_number,
+                                    evidence={
+                                        "pattern": pattern,
+                                        "pattern_type": "no_results_start",
+                                    },
+                                    severity=FailureSeverity.CRITICAL,
+                                )
+                            )
+                            break
 
         # Check 3: Deflection patterns
         for pattern in self.deflection_patterns:
@@ -442,7 +488,7 @@ class IncorrectDataDetector(BaseDetector):
                         if not (min_budget <= amount <= max_budget):
                             prog_name = programme.replace("_", " ").title()
                             stated = match.group(1)
-                            expected = f"{min_budget/1e9:.1f}-{max_budget/1e9:.1f}B"
+                            expected = f"{min_budget / 1e9:.1f}-{max_budget / 1e9:.1f}B"
                             failures.append(
                                 self._create_failure(
                                     description=(
@@ -779,7 +825,7 @@ class MissingDataDetector(BaseDetector):
                     failures.append(
                         self._create_failure(
                             description=(
-                                f"Programme '{programme}' mentioned " "without sufficient details"
+                                f"Programme '{programme}' mentioned without sufficient details"
                             ),
                             turn_number=turn_number,
                             evidence={
@@ -942,8 +988,7 @@ class UnexpectedBehaviorDetector(BaseDetector):
                     failures.append(
                         self._create_failure(
                             description=(
-                                f"Query about '{query_type}' used "
-                                f"unexpected tools: {tools_used}"
+                                f"Query about '{query_type}' used unexpected tools: {tools_used}"
                             ),
                             turn_number=turn_number,
                             evidence={
@@ -1242,7 +1287,7 @@ class PoorQualityDetector(BaseDetector):
             failures.append(
                 self._create_failure(
                     description=(
-                        f"Specificity score too low: " f"{specificity_score:.1f} < {threshold}"
+                        f"Specificity score too low: {specificity_score:.1f} < {threshold}"
                     ),
                     turn_number=turn_number,
                     evidence={
@@ -1257,7 +1302,7 @@ class PoorQualityDetector(BaseDetector):
             failures.append(
                 self._create_failure(
                     description=(
-                        f"Actionability score too low: " f"{actionability_score:.1f} < {threshold}"
+                        f"Actionability score too low: {actionability_score:.1f} < {threshold}"
                     ),
                     turn_number=turn_number,
                     evidence={

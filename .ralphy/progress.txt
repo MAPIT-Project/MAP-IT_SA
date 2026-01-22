@@ -8103,3 +8103,56 @@ Eligibility Routing tests Swiss organization eligibility across all three progra
 ### Next Steps
 - FIX IF NEEDED task: Read result JSON, if average_score < 80, check eligibility validation in CrossProgrammeAgent, country status in eu-funding-domain
 - Continue with Scenario 005: Full Proposal Journey EXECUTE
+
+## 2026-01-22: Scenario 004 - Eligibility Routing FIX IF NEEDED (COMPLETE)
+
+### Task Completed
+Implemented FIX IF NEEDED for Scenario 004: Eligibility Routing. Initial score was 77.0, improved to 80.0 (meets threshold).
+
+### PRD Task
+Scenario 004: Eligibility Routing
+- [x] FIX IF NEEDED: Read result JSON, if average_score < 80, identify and fix issues
+
+### Root Cause Analysis
+Initial score: 77.0 (below 80 threshold)
+Issues identified:
+1. **Erasmus+ and Creative Europe eligibility tool results not being synthesized** - When `check_erasmus_eligibility` or `check_creative_europe_eligibility` tools were called, their results weren't converted into readable text, causing "I found some information but couldn't extract specific details" responses
+2. **False positive in failure detector** - Pattern "there are no" was flagging responses like "there are no restrictions" which is actually a positive statement
+3. **Test file using wrong health endpoint** - Was checking `/health` instead of `/api/health`
+
+### Fixes Applied (1 attempt - successful)
+
+#### Files Modified:
+1. **`app/services/agents/tool_aware_agent.py`**:
+   - Added `_format_erasmus_eligibility_result()` helper method to format Erasmus+ eligibility check results into readable markdown
+   - Added `_format_creative_europe_eligibility_result()` helper method to format Creative Europe eligibility check results into readable markdown
+   - Added eligibility result handling in `_synthesize_from_results()` to detect and process eligibility tool outputs based on `metadata.tool` field
+
+2. **`tests/validators/failure_detector.py`**:
+   - Separated "there are no" from simple string patterns into context-sensitive regex patterns
+   - Added `NO_RESULTS_START_PATTERNS` for patterns that need sentence-start context
+   - Implemented context-aware detection that ignores patterns followed by positive words like "restrictions", "limitations", "requirements"
+
+3. **`tests/quality/test_scenario_004_eligibility_routing.py`**:
+   - Fixed health endpoint path from `/health` to `/api/health` (8 occurrences)
+
+### Score Improvement
+| Metric | Before | After |
+|--------|--------|-------|
+| Turn 0 (Swiss options) | 79 | 81 |
+| Turn 1 (HE eligibility) | 79 | 81 |
+| Turn 2 (Erasmus+) | 75 | 81 |
+| Turn 3 (Creative Europe) | 75 | 77 |
+| **Average** | **77.0** | **80.0** |
+
+### Test Results
+- 6 offline tests passed
+- 2 results tests passed
+- Live API tests: average_score = 80.0 (meets >= 80 threshold)
+- Linting: All checks passed (ruff check + ruff format)
+
+### PRD Task Status
+- [x] FIX IF NEEDED marked complete (score improved from 77.0 to 80.0, meets threshold)
+
+### Next Steps
+- Continue with Scenario 005: Full Proposal Journey EXECUTE
