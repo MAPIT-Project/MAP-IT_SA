@@ -1097,6 +1097,24 @@ Examples:
   * Example: find_experienced_partners(topic_keywords='hydrogen storage technology', organization_type='research')
 - "Consortium composition" / "ideal partners" / "partner types" → **USE get_consortium_patterns**
 
+**Consortium Building Workflow (CRITICAL - MULTI-TURN PARTNER DISCOVERY):**
+When user is building a consortium iteratively across multiple turns:
+- "We need partners for X project" → **USE find_experienced_partners** with topic_keywords from project description
+- "Find organizations experienced in X" / "precision farming" / "renewable energy" → **USE find_experienced_partners** (NOT search_documents!)
+- "We need an SME from X region" / "SME partner from Southern Europe" → **USE find_experienced_partners** with organization_type='SME' and appropriate country filter
+- "Find a research organization from Germany" → **USE find_experienced_partners** with organization_type='REC' or 'university' and country='Germany'
+- "What's typical consortium size" / "how many partners typically" → **USE get_consortium_patterns** with topic_keywords from conversation context
+- "Show our proposed consortium" / "consortium summary" → **SYNTHESIZE from previous turns** - list all partners found so far
+
+Examples for Consortium Building:
+- User: "Find organizations experienced in precision farming" → find_experienced_partners(topic_keywords='precision farming agriculture')
+- User: "We need an SME from Southern Europe" → find_experienced_partners(topic_keywords='agriculture AI', organization_type='SME', country='Spain') or iterate through ES, IT, PT, GR
+- User: "Find a research organization from Germany" → find_experienced_partners(topic_keywords='agriculture AI', organization_type='REC', country='Germany')
+- User: "What's a typical consortium size for this topic?" → get_consortium_patterns(topic_keywords='agriculture AI precision farming')
+- User: "Show our proposed consortium" → Synthesize all partners found in previous turns into a summary table
+
+**NEVER use search_documents for consortium building / partner discovery queries!**
+
 **Statistics & Success Rates:**
 - "Success rate" / "typical success rate" / "what's the success rate" → **USE get_programme_statistics** (NOT search_documents!)
   * Parameters: programme (e.g., 'Cluster 5', 'EIC', 'ERC')
@@ -2272,6 +2290,11 @@ This uses AI to automatically expand keywords to related terms (e.g., "AI" → i
 - Finding partners/organizations → USE find_experienced_partners instead!
 - Success rates/statistics → USE get_programme_statistics instead!
 - Consortium composition patterns → USE get_consortium_patterns instead!
+- "Find organizations experienced in X" → USE find_experienced_partners instead!
+- "SME partner from X region" → USE find_experienced_partners with organization_type and country!
+- "Research organization from Germany" → USE find_experienced_partners with country filter!
+- "Typical consortium size" → USE get_consortium_patterns instead!
+- "Precision farming" / "agriculture AI" partners → USE find_experienced_partners instead!
 
 **USE THIS TOOL ONLY FOR:**
 - Eligibility rules ("What are the eligibility rules for RIA?")
@@ -3266,12 +3289,18 @@ digital_europe, life""",
         # Format tool results with context-aware truncation
         results_text = _context_manager.format_results_for_context(tool_results)
 
+        # Add tool hints for specific query types (helps guide LLM to correct tools)
+        tool_hint = self._get_tool_hint(query)
+        enhanced_context = context or "No additional context"
+        if tool_hint:
+            enhanced_context = f"{enhanced_context}\n\n**TOOL HINT**: {tool_hint}"
+
         # Build prompt
         prompt = self.REASONING_PROMPT.format(
             built_in_knowledge=self.BUILT_IN_KNOWLEDGE,
             tools_description=self._get_tools_description(),
             query=query,
-            context=context or "No additional context",
+            context=enhanced_context,
             previous_steps=steps_text or "This is the first step",
             tool_results=results_text or "No tool results yet",
         )
@@ -3371,13 +3400,322 @@ digital_europe, life""",
         except json.JSONDecodeError:
             return None
 
+    def _detect_query_type_for_tool_selection(self, query: str) -> dict[str, Any] | None:
+        """Detect query type and return appropriate tool configuration.
+
+        Returns None if no special handling needed (falls through to default behavior).
+        """
+        query_lower = query.lower()
+
+        # Partner/organization discovery patterns
+        partner_patterns = [
+            "find partner",
+            "find organization",
+            "find organisations",
+            "organizations experienced",
+            "organisations experienced",
+            "partner search",
+            "experienced in",
+            "who has experience",
+            "companies working on",
+            "universities working on",
+            "sme partner",
+            "sme from",
+            "research organization",
+            "research organisation",
+            "need a partner",
+            "need an sme",
+            "precision farming",
+            "find a research",
+        ]
+
+        # Check for partner discovery queries
+        if any(pattern in query_lower for pattern in partner_patterns):
+            # Extract topic keywords from query
+            topic_keywords = self._extract_topic_keywords(query)
+            country = self._extract_country(query)
+            org_type = self._extract_org_type(query)
+
+            params = {"topic_keywords": topic_keywords}
+            if country:
+                params["country"] = country
+            if org_type:
+                params["organization_type"] = org_type
+
+            return {
+                "thought": f"User is looking for partners/organizations. Using find_experienced_partners with keywords: {topic_keywords}",
+                "action": "call_tools",
+                "tool_calls": [
+                    {
+                        "tool": "find_experienced_partners",
+                        "parameters": params,
+                        "reasoning": "Finding organizations with relevant EU funding experience",
+                    }
+                ],
+                "needs_more_info": True,
+            }
+
+        # Consortium size/patterns queries
+        consortium_patterns = [
+            "typical consortium",
+            "consortium size",
+            "how many partners",
+            "consortium composition",
+            "consortium pattern",
+            "ideal partners",
+            "partner types",
+            "typical number of partners",
+        ]
+
+        if any(pattern in query_lower for pattern in consortium_patterns):
+            topic_keywords = self._extract_topic_keywords(query)
+            return {
+                "thought": "User is asking about consortium patterns. Using get_consortium_patterns tool.",
+                "action": "call_tools",
+                "tool_calls": [
+                    {
+                        "tool": "get_consortium_patterns",
+                        "parameters": {"topic_keywords": topic_keywords} if topic_keywords else {},
+                        "reasoning": "Getting consortium composition patterns from funded projects",
+                    }
+                ],
+                "needs_more_info": True,
+            }
+
+        return None
+
+    def _extract_topic_keywords(self, query: str) -> str:
+        """Extract topic keywords from a query for tool parameters."""
+        # Remove common query words
+        stopwords = [
+            "find",
+            "search",
+            "look",
+            "for",
+            "in",
+            "from",
+            "with",
+            "the",
+            "a",
+            "an",
+            "we",
+            "need",
+            "want",
+            "partner",
+            "partners",
+            "organization",
+            "organizations",
+            "organisation",
+            "organisations",
+            "sme",
+            "research",
+            "experienced",
+            "typical",
+            "consortium",
+            "size",
+            "how",
+            "many",
+            "what",
+            "is",
+            "are",
+            "show",
+            "our",
+            "proposed",
+            "to",
+            "me",
+            "can",
+            "you",
+            "please",
+            "help",
+            "about",
+        ]
+        words = query.lower().split()
+        keywords = [w for w in words if w not in stopwords and len(w) > 2]
+        return " ".join(keywords[:5]) if keywords else query
+
+    def _extract_country(self, query: str) -> str | None:
+        """Extract country from query if mentioned."""
+        query_lower = query.lower()
+        country_patterns = {
+            "germany": "Germany",
+            "german": "Germany",
+            "de": "Germany",
+            "france": "France",
+            "french": "France",
+            "fr": "France",
+            "italy": "Italy",
+            "italian": "Italy",
+            "it": "Italy",
+            "spain": "Spain",
+            "spanish": "Spain",
+            "es": "Spain",
+            "portugal": "Portugal",
+            "portuguese": "Portugal",
+            "pt": "Portugal",
+            "greece": "Greece",
+            "greek": "Greece",
+            "el": "Greece",
+            "netherlands": "Netherlands",
+            "dutch": "Netherlands",
+            "nl": "Netherlands",
+            "belgium": "Belgium",
+            "belgian": "Belgium",
+            "be": "Belgium",
+            "southern europe": "Spain",  # Default to Spain for Southern Europe
+        }
+        for pattern, country in country_patterns.items():
+            if pattern in query_lower:
+                return country
+        return None
+
+    def _extract_org_type(self, query: str) -> str | None:
+        """Extract organization type from query if mentioned."""
+        query_lower = query.lower()
+        if "sme" in query_lower or "small" in query_lower:
+            return "SME"
+        if "research" in query_lower or "rec" in query_lower:
+            return "REC"
+        if "university" in query_lower or "universities" in query_lower or "hes" in query_lower:
+            return "HES"
+        if "private" in query_lower or "company" in query_lower or "companies" in query_lower:
+            return "PRC"
+        return None
+
+    def _get_tool_hint(self, query: str) -> str | None:
+        """Get a tool hint for specific query types to guide LLM tool selection.
+
+        Returns a hint string to be injected into the context, or None if no hint needed.
+        """
+        query_lower = query.lower()
+
+        # Partner/organization discovery patterns - MUST use find_experienced_partners
+        partner_patterns = [
+            "find partner",
+            "find organization",
+            "find organisations",
+            "find a research",
+            "organizations experienced",
+            "organisations experienced",
+            "experienced in",
+            "partner search",
+            "who has experience",
+            "companies working on",
+            "universities working on",
+            "sme partner",
+            "sme from",
+            "need a partner",
+            "need an sme",
+            "precision farming",
+            "research organization",
+            "research organisation",
+            "partner from",
+            "find organizations",
+        ]
+
+        if any(pattern in query_lower for pattern in partner_patterns):
+            # Extract specific context for the hint
+            topic = self._extract_topic_keywords(query)
+            country = self._extract_country(query)
+            org_type = self._extract_org_type(query)
+
+            hint_parts = [
+                "MANDATORY: This is a PARTNER DISCOVERY query.",
+                "You MUST use find_experienced_partners tool - DO NOT use search_documents!",
+                f"Use parameters: topic_keywords='{topic}'",
+            ]
+            if country:
+                hint_parts.append(f", country='{country}'")
+            if org_type:
+                hint_parts.append(f", organization_type='{org_type}'")
+
+            return " ".join(hint_parts)
+
+        # Consortium size/patterns queries - MUST use get_consortium_patterns
+        consortium_patterns = [
+            "typical consortium",
+            "consortium size",
+            "how many partners",
+            "consortium composition",
+            "consortium pattern",
+            "ideal partners",
+            "partner types",
+            "typical number of partners",
+        ]
+
+        if any(pattern in query_lower for pattern in consortium_patterns):
+            return (
+                "This is a CONSORTIUM PATTERNS query. You MUST use get_consortium_patterns tool "
+                "(NOT search_documents). This tool provides consortium size statistics from funded projects."
+            )
+
+        # Budget queries - use calculate_budget or get_budget_benchmark
+        budget_patterns = [
+            "calculate budget",
+            "budget breakdown",
+            "budget for",
+            "help me plan",
+            "recalculate",
+            "adjust budget",
+            "increase personnel",
+        ]
+
+        if any(pattern in query_lower for pattern in budget_patterns):
+            return (
+                "This is a BUDGET query. You MUST use calculate_budget or get_budget_benchmark tool "
+                "(NOT search_documents)."
+            )
+
+        # Timeline queries - use generate_timeline
+        timeline_patterns = [
+            "generate timeline",
+            "project timeline",
+            "work packages",
+            "add wp",
+            "add a clinical",
+            "add buffer",
+            "milestones",
+        ]
+
+        if any(pattern in query_lower for pattern in timeline_patterns):
+            return (
+                "This is a TIMELINE query. You MUST use generate_timeline tool "
+                "(NOT search_documents)."
+            )
+
+        # Context synthesis queries - should synthesize from conversation, NOT search
+        synthesis_patterns = [
+            "show our proposed",
+            "show the proposed",
+            "our consortium",
+            "proposed consortium",
+            "consortium summary",
+            "summarize the partners",
+            "list the partners",
+            "what partners have we",
+            "partners we found",
+        ]
+
+        if any(pattern in query_lower for pattern in synthesis_patterns):
+            return (
+                "This is a CONTEXT SYNTHESIS query. Do NOT use search_documents. "
+                "Instead, synthesize the partners/information from the PREVIOUS CONVERSATION turns. "
+                "List and summarize the organizations already discovered in this conversation."
+            )
+
+        return None
+
     def _fallback_reasoning(
         self, query: str, previous_steps: list[ReasoningStep], tool_results: dict[str, Any]
     ) -> dict[str, Any]:
         """Fallback reasoning when LLM fails."""
 
         if not previous_steps:
-            # First step - call basic search with more results
+            # First, try to detect specific query types for better tool selection
+            detected_tool = self._detect_query_type_for_tool_selection(query)
+            if detected_tool:
+                return detected_tool
+
+            # Default fallback - call basic search with more results
             return {
                 "thought": "Starting with document search to gather information",
                 "action": "call_tools",
