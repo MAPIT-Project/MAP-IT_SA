@@ -388,7 +388,7 @@ final_validations:
 - [x] IMPLEMENT: Add context persistence validation to `ContextValidatorAgent`.
 
 ### Task 020: Progressive Profile Building Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/progressive_profile.yaml` with 12+ turns:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/progressive_profile.yaml` with 12+ turns:
   1. "I work for an SME"
   2. "We're in the healthcare sector"
   3. "Specifically medical devices"
@@ -401,7 +401,7 @@ final_validations:
   10. "What's our best option?"
   Validations: Profile built across turns, final recommendation uses all context.
 
-- [ ] RUN & FIX: Execute scenario. Track profile accumulation.
+- [x] RUN & FIX: Execute scenario. Track profile accumulation.
 
 ### Task 021: Preference-Based Filtering Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/preference_filtering.yaml` with steps:

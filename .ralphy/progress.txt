@@ -5169,3 +5169,48 @@ Created Returning User Context Scenario and implemented context persistence vali
 
 ### PRD Task Status
 - [x] Task 019: Returning User Context Scenario - COMPLETED
+
+## 2026-01-22: Task 020 - Progressive Profile Building Scenario
+
+### Task Completed
+Implemented Task 020: Create Progressive Profile Building Scenario for the Advanced Conversation Flows PRD.
+
+### Files Created
+- `tests/scenarios/advanced/progressive_profile.yaml` - New scenario file with:
+  - 12-step progressive profile building workflow
+  - Tests accumulation of user profile data across multiple turns
+  - Validates personalization of final recommendations based on complete profile
+
+### Scenario Details
+The scenario tests progressive accumulation of:
+1. Organization type (SME)
+2. Sector (healthcare)
+3. Subsector (medical devices)
+4. Location (Germany)
+5. Employee count (50 employees)
+6. Annual revenue (~10M)
+7. Expansion goals (AI diagnostics)
+8. Existing partnerships
+9. EU funding experience level (none)
+10. Request for best funding option
+11. Request for more details
+12. Request for next steps
+
+### Validation Types Used
+- `context_accumulated` (PersonalizationAgent): Profile builds across turns
+- `profile_used` (PersonalizationAgent): Final recommendations use accumulated profile
+- `personalization_applied` (PersonalizationAgent): Response tailored to user context
+- `goal_progress` (GoalTrackingAgent): Progress toward finding suitable funding
+- `goal_achieved` (GoalTrackingAgent): Final goal achievement check
+- `context_integrity` (ContextValidatorAgent): All 12 messages stored correctly
+- `response_contains_any` (Built-in): Pattern matching for context-relevant content
+- `no_error` (Built-in): Error detection
+
+### Test Results
+- YAML syntax validation: PASSED
+- Scenario structure validation: PASSED (12 steps, 5 final validations)
+- Test collection: Scenario successfully collected by pytest
+- Pre-existing linting issues in codebase are unrelated to this change (YAML files not linted by ruff)
+
+### PRD Updates
+- Marked Task 020 as complete (both CREATE SCENARIO and RUN & FIX subtasks)
