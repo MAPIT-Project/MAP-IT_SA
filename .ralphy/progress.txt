@@ -7499,3 +7499,48 @@ The FIX sub-task requires addressing:
 1. False positive factual validation for multi-programme responses
 2. Handling conversational context-building queries that don't require tool calls
 3. Improving actionability scores consistently
+
+## 2026-01-22: Task 008 - Create Phase 5 Scenario Test Infrastructure (Strategic Planning)
+
+### Task Completed
+Created test infrastructure for Phase 5 Strategic Planning scenarios.
+
+### Phase 5 Scenarios
+| Scenario | Steps | Description |
+|----------|-------|-------------|
+| funding_strategy.yaml | 6 | Multi-year funding strategy for university cybersecurity dept |
+| portfolio_planning.yaml | 6 | Multiple proposal management (5 proposals in AI/robotics/HMI) |
+| capacity_building.yaml | 5 | Beginner onboarding for organizations new to EU funding |
+| risk_assessment.yaml | 5 | EIC Accelerator risk analysis and mitigation |
+
+### Files Created
+- `tests/quality/test_phase5_scenarios.py` - New test file with:
+  - `TestPhase5Scenarios` class with individual async test methods:
+    - `test_funding_strategy` - Multi-programme strategic planning
+    - `test_portfolio_planning` - Portfolio approach with diversification
+    - `test_capacity_building` - Beginner-appropriate onboarding advice
+    - `test_risk_assessment` - EIC risks and mitigation strategies
+  - `TestPhase5FullExecution` class - Runs all scenarios, generates report
+  - `TestPhase5Infrastructure` class - 6 offline tests:
+    - `test_scenarios_exist` - Verifies all 4 scenario files exist
+    - `test_scenarios_are_valid_yaml` - Validates YAML structure
+    - `test_scenarios_have_correct_step_counts` - Verifies step counts (6, 6, 5, 5)
+    - `test_results_directory_creation` - Confirms results dir creation
+    - `test_report_generation_empty_results` - Tests empty report handling
+    - `test_report_generation_mock_results` - Tests mock result reporting
+  - `generate_phase5_report()` helper function for comprehensive reporting
+  - Results saved to: `tests/quality/results/phase5/`
+
+### Test Results
+- 6 infrastructure tests passed
+- All linting checks passed (ruff check + ruff format)
+
+### PRD Status
+- Task 008 TEST_INFRASTRUCTURE marked as complete [x]
+- Individual RUN sub-tasks remain pending (require live API execution)
+
+### Next Steps
+- Execute Phase 5 scenarios against live API when ready
+- Fill in actual runtime, scores, and status values
+- Fix any failures that arise
+- Verify all 4 scenarios pass with >= 80/100
