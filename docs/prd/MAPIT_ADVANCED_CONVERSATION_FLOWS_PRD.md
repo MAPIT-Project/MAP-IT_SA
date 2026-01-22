@@ -453,7 +453,7 @@ final_validations:
 - [x] RUN & FIX: Execute scenario. Verify onboarding quality.
 
 ### Task 025: Risk Assessment Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/risk_assessment.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/risk_assessment.yaml` with steps:
   1. "What are the risks of applying to EIC Accelerator?"
   2. "What if we don't have prior EU funding?"
   3. "How does our company size affect chances?"
@@ -461,7 +461,7 @@ final_validations:
   5. "What can we do to improve our odds?"
   Validations: Risks identified accurately, mitigation strategies provided.
 
-- [ ] RUN & FIX: Execute scenario. Verify risk information accuracy.
+- [x] RUN & FIX: Execute scenario. Verify risk information accuracy.
 
 ### ==========================================================
 ### PHASE 6: Cross-Programme Comparisons

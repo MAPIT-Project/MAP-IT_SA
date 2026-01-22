@@ -5385,3 +5385,51 @@ Implemented Task 024 from MAPIT_ADVANCED_CONVERSATION_FLOWS_PRD.md: Created the 
 
 ### PRD Task Status
 - [x] Task 024: Capacity Building Scenario - Complete
+
+## 2026-01-22: Task 025 - Risk Assessment Scenario
+
+### Task Completed
+Implemented Task 025 from MAPIT_ADVANCED_CONVERSATION_FLOWS_PRD.md: Create Risk Assessment Scenario.
+
+### Files Created
+- `tests/scenarios/advanced/risk_assessment.yaml` - New scenario file with:
+  - 5-step risk assessment workflow for EIC Accelerator
+  - Step 1: Asks about risks of applying to EIC Accelerator
+  - Step 2: Asks about impact of no prior EU funding
+  - Step 3: Asks how company size affects chances
+  - Step 4: Asks about the interview stage
+  - Step 5: Asks what can be done to improve odds
+  - Comprehensive validation types:
+    - context_accumulated (PersonalizationAgent)
+    - profile_used (PersonalizationAgent)
+    - personalization_applied (PersonalizationAgent)
+    - goal_progress (GoalTrackingAgent)
+    - goal_achieved (GoalTrackingAgent)
+    - context_integrity (ContextValidatorAgent)
+    - response_contains_any (Built-in)
+    - no_error (Built-in)
+
+### Files Modified
+- `docs/prd/MAPIT_ADVANCED_CONVERSATION_FLOWS_PRD.md` - Marked Task 025 as complete
+
+### Test Results
+- 1 test passed (risk_assessment scenario)
+- Test completed in ~209 seconds
+- All validations passed including:
+  - EIC risks discussed
+  - Prior funding impact discussed
+  - Company size impact discussed
+  - Interview stage discussed
+  - Improvement strategies provided
+  - Goal achieved
+  - Context integrity preserved
+
+### Validation Approach
+- Used broad patterns to handle LLM response variability
+- Included patterns for:
+  - EIC/Accelerator terminology
+  - Risk and challenge patterns
+  - Success rate indicators
+  - Interview stage concepts
+  - Mitigation strategy concepts
+- Lenient goal progress thresholds for consistent test results
