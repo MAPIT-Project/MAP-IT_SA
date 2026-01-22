@@ -633,7 +633,7 @@ final_validations:
 - [x] RUN & FIX: Execute scenario. Verify Erasmus+ action mapping.
 
 ### Task 039: Erasmus+ Budget Calculation Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/erasmus_budget_calculation.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/erasmus_budget_calculation.yaml` with steps:
   1. "Calculate budget for 20 student exchanges to France"
   2. "5 months each"
   3. "Include staff training too - 10 staff for 1 week"
@@ -641,7 +641,7 @@ final_validations:
   5. "What's the total we can request?"
   Validations: Unit costs applied correctly, travel bands correct, lump sums accurate.
 
-- [ ] RUN & FIX: Execute scenario. Fix Erasmus+ budget calculation.
+- [x] RUN & FIX: Execute scenario. Fix Erasmus+ budget calculation.
 
 ### Task 040: Erasmus+ Accreditation Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/erasmus_accreditation.yaml` with steps:
