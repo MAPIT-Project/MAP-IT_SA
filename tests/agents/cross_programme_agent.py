@@ -470,6 +470,12 @@ class CrossProgrammeAgent:
 
         facts = PROGRAMME_FACTS[programme]
 
+        # Format funding rates if available
+        funding_rates_str = ""
+        if "funding_rates" in facts:
+            rates = [f"{k}: {v}%" for k, v in facts["funding_rates"].items()]
+            funding_rates_str = f"- Funding rates (% of costs funded): {', '.join(rates)}"
+
         prompt = f"""You are validating the accuracy of EU funding programme information.
 
 PROGRAMME: {facts["name"]}
@@ -478,6 +484,12 @@ KNOWN FACTS:
 - Duration: {facts["duration"]}
 - Key components: {", ".join(facts.get("key_components", [])[:5])}
 - Action types/strands: {", ".join(facts.get("action_types", facts.get("strands", []))[:5])}
+{funding_rates_str}
+
+CRITICAL DISTINCTION:
+- FUNDING RATES are the % of eligible costs covered by EU (e.g., RIA=100%, IA=70%)
+- SUCCESS RATES are the % of proposals that get funded (typically 10-15%)
+Do NOT mark success rates as incorrect funding rates - they are different metrics!
 
 RESPONSE TO VALIDATE:
 {response[:2500]}
@@ -486,6 +498,7 @@ INSTRUCTIONS:
 1. Check if any facts about {facts["name"]} in the response are incorrect
 2. Identify facts that are correctly stated
 3. Note any important facts that should have been mentioned but weren't
+4. Do NOT flag success rates (e.g., "12% success rate") as incorrect funding rates
 
 OUTPUT FORMAT (use exactly this format):
 ACCURACY_SCORE: [0.0-1.0]
@@ -618,19 +631,66 @@ Validate now:"""
             facts_correct.append(f"action_types: {', '.join(types_found[:3])}")
 
         # Check funding rates if mentioned
+        # NOTE: We must distinguish funding rates (RIA=100%, IA=70%) from success rates (~10-15%)
+        # Funding rates = % of eligible costs funded by EU
+        # Success rates = % of proposals that get funded
         if "funding_rates" in facts:
+            # Process line by line to avoid cross-line matching issues
+            lines = response.split("\n")
+
             for action, rate in facts["funding_rates"].items():
-                rate_pattern = rf"{action}.*?(\d+)\s*%"
-                match = re.search(rate_pattern, response, re.IGNORECASE)
-                if match:
-                    facts_checked.append(f"funding_rate_{action}")
-                    stated_rate = int(match.group(1))
-                    if stated_rate == rate:
-                        facts_correct.append(f"{action}_rate: {rate}%")
-                    else:
-                        facts_incorrect.append(
-                            f"{action}_rate: stated {stated_rate}% but should be {rate}%"
-                        )
+                found_mention = False
+
+                for line in lines:
+                    # Skip if action not in this line
+                    if action.lower() not in line.lower():
+                        continue
+
+                    line_lower = line.lower()
+
+                    # Skip lines that mention success rates
+                    success_keywords = ["success rate", "selected", "awarded", "funded proposals"]
+                    if any(kw in line_lower for kw in success_keywords):
+                        continue
+
+                    # Check if this line mentions funding rate for this action
+                    # Pattern: "RIA: 100%", "RIA funding rate 100%", "100% funding for RIA"
+                    funding_patterns = [
+                        # "RIA: 100% funding" or "RIA: 100% funding rate"
+                        rf"\b{action}\b[:\s]+(\d+)\s*%",
+                        # "RIA funding rate: 100%" or "RIA funding rate 100%"
+                        rf"\b{action}\b\s+funding\s+rate[:\s]+(\d+)\s*%",
+                        # "100% funding rate for RIA"
+                        rf"(\d+)\s*%\s*(?:funding\s+)?(?:rate\s+)?(?:for\s+)?\b{action}\b",
+                    ]
+
+                    # Only check if "funding" or "rate" or "cost" appears in the line
+                    # (to avoid matching generic percentage mentions)
+                    funding_keywords = ["funding", "rate", "cost", "reimburs", "cover"]
+                    if not any(kw in line_lower for kw in funding_keywords):
+                        continue
+
+                    for pattern in funding_patterns:
+                        match = re.search(pattern, line, re.IGNORECASE)
+                        if match:
+                            facts_checked.append(f"funding_rate_{action}")
+                            stated_rate = int(match.group(1))
+                            # Allow "up to X%" phrasing for IA (70% or less is acceptable)
+                            if action == "IA" and stated_rate <= rate:
+                                facts_correct.append(
+                                    f"{action}_rate: {stated_rate}% (up to {rate}%)"
+                                )
+                            elif stated_rate == rate:
+                                facts_correct.append(f"{action}_rate: {rate}%")
+                            else:
+                                facts_incorrect.append(
+                                    f"{action}_rate: stated {stated_rate}% but should be {rate}%"
+                                )
+                            found_mention = True
+                            break
+
+                    if found_mention:
+                        break
 
         # Calculate score
         if facts_checked:

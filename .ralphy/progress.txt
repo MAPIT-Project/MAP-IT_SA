@@ -7150,3 +7150,63 @@ Executed all 4 Phase 1 scenarios against the live API and recorded results per P
 ### Next Steps
 - FIX: Update CrossProgrammeAgent fact validation to distinguish funding rates from success rates
 - VERIFY: Re-run scenarios after fixes to achieve >= 80/100 scores
+
+
+## 2026-01-22: Task 004 - Fix Phase 1 Scenario Failures
+
+### Task Completed
+Fixed CrossProgrammeAgent to distinguish between funding rates and success rates.
+
+### Problem Identified
+The CrossProgrammeAgent's `_validate_facts_rules()` method was incorrectly flagging success rate mentions (e.g., "RIA success rate is 12%") as incorrect funding rates because it expected the funding rate of 100%.
+
+**Root Cause:**
+- Funding rates (RIA=100%, IA=70%): Percentage of eligible costs funded by EU
+- Success rates (~10-15%): Percentage of proposals that get funded
+- The regex patterns were too broad and matched any percentage after an action type
+
+### Files Modified
+1. **`tests/agents/cross_programme_agent.py`**:
+   - Updated `_validate_facts_rules()` to process responses line-by-line
+   - Added success rate keyword detection to skip non-funding-rate lines
+   - Made regex patterns more specific to funding rate mentions
+   - Added funding keyword requirement ("funding", "rate", "cost", "reimburs", "cover")
+   - Updated LLM prompt in `_validate_facts_llm()` to distinguish between rate types
+
+2. **`tests/agents/test_cross_programme_agent_fix.py`** (NEW):
+   - 13 unit tests for the funding rate vs success rate distinction
+   - Tests for various success rate phrasings
+   - Tests for correct funding rate validation
+   - Tests for mixed success and funding rate responses
+   - Tests for comparison responses from actual scenarios
+
+### Test Results
+```
+13 passed in 0.36s
+```
+
+### Key Changes in `_validate_facts_rules()`:
+```python
+# Process line by line to avoid cross-line matching issues
+lines = response.split("\n")
+
+for action, rate in facts["funding_rates"].items():
+    for line in lines:
+        # Skip if action not in this line
+        if action.lower() not in line.lower():
+            continue
+
+        # Skip lines that mention success rates
+        success_keywords = ["success rate", "selected", "awarded", "funded proposals"]
+        if any(kw in line_lower for kw in success_keywords):
+            continue
+
+        # Only check if funding-related keywords appear
+        funding_keywords = ["funding", "rate", "cost", "reimburs", "cover"]
+        if not any(kw in line_lower for kw in funding_keywords):
+            continue
+```
+
+### PRD Task Status
+- [x] FIX: Any failures in Phase 1 scenarios - COMPLETE
+- [ ] VERIFY: All 4 scenarios pass with >= 80/100 - PENDING (requires re-running live tests)

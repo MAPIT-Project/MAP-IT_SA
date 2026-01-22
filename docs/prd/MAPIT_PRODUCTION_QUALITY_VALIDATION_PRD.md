@@ -252,8 +252,15 @@ After all fixes:
   - Average Score: 79.5/100
   - Failures: 1
   - Status: NEEDS_IMPROVEMENT (score < 80)
-- [ ] FIX: Any failures in Phase 1 scenarios
+- [x] FIX: Any failures in Phase 1 scenarios
   - Issue identified: CrossProgrammeAgent fact validation conflates funding rates (RIA=100%, IA=70%) with success rates (~12%)
+  - Fix implemented: Updated `_validate_facts_rules()` in `tests/agents/cross_programme_agent.py` to:
+    - Process responses line-by-line to avoid cross-line pattern matching issues
+    - Skip lines containing success rate keywords ("success rate", "selected", "awarded", "funded proposals")
+    - Only validate lines that explicitly mention funding-related terms ("funding", "rate", "cost", "reimburs", "cover")
+    - Use more precise regex patterns for funding rate detection
+  - Updated LLM prompt in `_validate_facts_llm()` to clearly distinguish between funding rates and success rates
+  - Tests created: `tests/agents/test_cross_programme_agent_fix.py` (13 tests, all passing)
   - Test infrastructure created: `tests/quality/test_phase1_scenarios.py`
   - Results saved: `tests/quality/results/phase1/`
 - [ ] VERIFY: All 4 scenarios pass with >= 80/100
