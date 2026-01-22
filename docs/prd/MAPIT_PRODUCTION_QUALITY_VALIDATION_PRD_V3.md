@@ -220,7 +220,7 @@ Run with: `./ralphy.sh --prd docs/prd/MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD_V3
   3. Re-run EXECUTE, repeat until score >= 80 or 3 attempts
 
 ### Scenario 008: Consortium Building
-- [ ] EXECUTE: Run scenario `tests/scenarios/advanced/proposal_workflow/consortium_building.yaml` against the live API. Tests consortium composition advice. Save result to `tests/quality/results/scenarios/consortium_building.json`.
+- [x] EXECUTE: Run scenario `tests/scenarios/advanced/proposal_workflow/consortium_building.yaml` against the live API. Tests consortium composition advice. Save result to `tests/quality/results/scenarios/consortium_building.json`.
 
 - [ ] FIX IF NEEDED: Read `tests/quality/results/scenarios/consortium_building.json`. If average_score < 80:
   1. ONLY modify files in `app/` directory

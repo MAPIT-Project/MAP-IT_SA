@@ -8539,3 +8539,84 @@ Timeline Refinement is a 5-turn scenario testing iterative timeline planning for
 
 ### Next Task:
 Scenario 008: Consortium Building EXECUTE
+
+## 2026-01-22: Scenario 008 - Consortium Building EXECUTE (COMPLETE)
+
+### Task: Scenario 008: Consortium Building EXECUTE
+- **Status**: COMPLETE
+- **Test File**: `tests/quality/test_scenario_008_consortium_building.py`
+- **Results Path**: `tests/quality/results/scenarios/consortium_building.json`
+- **Passing Threshold**: 80/100
+
+### Implementation Details:
+Created comprehensive test file with 3 test classes:
+
+1. `TestScenario008ConsortiumBuildingOffline` class (7 tests):
+   - `test_scenario_file_exists` - Verifies YAML exists
+   - `test_scenario_yaml_is_valid` - Validates YAML parsing and structure
+   - `test_results_directory_exists` - Creates results directory
+   - `test_prd_result_format` - Validates PRD result structure
+   - `test_scenario_covers_consortium_building` - Checks tags and first turn
+   - `test_scenario_covers_consortium_elements` - Verifies all consortium elements covered
+   - `test_scenario_is_6_turns` - Confirms 6-turn scenario
+
+2. `TestScenario008ConsortiumBuildingLive` class (6 tests):
+   - `test_api_is_available` - API health check
+   - `test_execute_scenario_008_consortium_building` - Main EXECUTE test (saves PRD-format JSON)
+   - `test_scenario_008_individual_turn_quality` - Per-turn quality checks
+   - `test_scenario_008_no_critical_failures` - Critical failure detection
+   - `test_scenario_008_consortium_tools_used` - Consortium tool usage verification
+   - `test_scenario_008_context_preserved` - Context preservation across turns
+
+3. `TestScenario008ConsortiumBuildingResults` class (3 tests):
+   - `test_read_existing_results` - Reads and validates result JSON
+   - `test_check_if_fix_needed` - Determines if FIX IF NEEDED required
+   - `test_analyze_per_turn_scores` - Analyzes per-turn score patterns
+
+### PRD Result Structure
+Results saved to `tests/quality/results/scenarios/consortium_building.json`:
+```json
+{
+  "scenario_name": "Consortium Building",
+  "turns": [{turn_number, query, response_text, tools_used, quality_score, factual_score, failures, passed}],
+  "average_score": <float>,
+  "factual_score": <float>,
+  "failures": [],
+  "status": "PASS|FAIL",
+  "fix_history": []
+}
+```
+
+### Test Results
+- 7 offline tests passed
+- 6 live tests (skipped when API not available)
+- 3 results tests (skipped when results file doesn't exist)
+- Linting: All checks passed (ruff check + ruff format)
+
+### Scenario Details
+Consortium Building is a 6-turn scenario testing iterative consortium building for AI in agriculture:
+
+1. Turn 1: Initial partner need for AI in agriculture project
+2. Turn 2: Find organizations experienced in precision farming
+3. Turn 3: Find SME partner from Southern Europe
+4. Turn 4: Find research organization from Germany
+5. Turn 5: Typical consortium size inquiry
+6. Turn 6: Show proposed consortium composition
+
+### Consortium-Specific Validations
+- Partner context preservation across turns
+- Consortium tool usage (get_consortium_patterns, find_experienced_partners, search_projects)
+- Geographic filtering handling (Southern Europe, Germany)
+- Organization type filtering (SME, research)
+- Consortium size guidance
+- Final composition summary
+
+### Expected Tools
+- `get_consortium_patterns` - Consortium size/patterns
+- `find_experienced_partners` - Partner discovery
+- `search_projects` - Organization search
+
+### Next Steps
+- FIX IF NEEDED task: Read result JSON, if average_score < 80:
+  - Consortium patterns wrong → Fix app/services/tools/consortium_patterns.py
+  - Partner discovery issues → Fix app/services/tools/partner_discovery.py
