@@ -5006,3 +5006,34 @@ Implemented Task 015: Create Partner Comparison Scenario from MAPIT_ADVANCED_CON
 ### PRD Updated
 - Marked Task 015 CREATE SCENARIO as complete
 - Marked Task 015 RUN & FIX as complete
+
+
+## 2026-01-22: Task 016 - Network Exploration Scenario
+
+### Task Completed
+Implemented Task 016: Create Network Exploration Scenario for Phase 3 (Partner Discovery Journeys).
+
+### Files Created
+- `tests/scenarios/advanced/network_exploration.yaml` - New scenario file with:
+  - 5-step network exploration workflow for climate research collaboration
+  - Tests network traversal and relationship discovery
+  - User journey: collaboration network → connected organizations → Fraunhofer projects → partner patterns → hydrogen partners
+  - Validation types: goal_progress, goal_achieved, context_accumulated, context_integrity, response_contains_any, no_error
+  - Lenient thresholds (0.55 for final goal) for rule-based evaluation without LLM
+
+### Scenario Steps
+1. "Show me the collaboration network for climate research"
+2. "Who are the most connected organizations?"
+3. "Show projects coordinated by Fraunhofer"
+4. "Who do they typically partner with?"
+5. "Find their partners that work on hydrogen"
+
+### Test Results
+- Scenario test passes consistently
+- Network exploration workflow validates correctly
+- Context accumulation across turns verified
+- Pattern matching uses broad, resilient patterns for LLM response variability
+
+### PRD Task Status
+- [x] CREATE SCENARIO task complete
+- [x] RUN & FIX task complete

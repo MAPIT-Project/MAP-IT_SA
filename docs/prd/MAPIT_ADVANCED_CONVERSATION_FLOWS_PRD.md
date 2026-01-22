@@ -339,7 +339,7 @@ final_validations:
 - [x] RUN & FIX: Execute scenario. Fix partner comparison logic.
 
 ### Task 016: Network Exploration Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/network_exploration.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/network_exploration.yaml` with steps:
   1. "Show me the collaboration network for climate research"
   2. "Who are the most connected organizations?"
   3. "Show projects coordinated by Fraunhofer"
@@ -347,7 +347,7 @@ final_validations:
   5. "Find their partners that work on hydrogen"
   Validations: Network traversal works, relationship chains followed.
 
-- [ ] RUN & FIX: Execute scenario. Fix network exploration.
+- [x] RUN & FIX: Execute scenario. Fix network exploration.
 
 ### Task 017: Organization Deep-Dive Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/organization_deep_dive.yaml` with steps:
