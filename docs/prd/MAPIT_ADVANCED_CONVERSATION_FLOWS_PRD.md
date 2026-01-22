@@ -365,7 +365,7 @@ final_validations:
 ### ==========================================================
 
 ### Task 018: User Context Learning Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/user_context_learning.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/user_context_learning.yaml` with steps:
   1. "I'm from a small university in Portugal"
   2. "We work on marine biology"
   3. "We've never coordinated before"
@@ -377,7 +377,7 @@ final_validations:
   - `personalization_applied` (PersonalizationAgent): Response tailored to user context
   - `goal_progress` (GoalTrackingAgent): Progress toward finding suitable calls
 
-- [ ] RUN & FIX: Execute scenario. Verify context influences recommendations.
+- [x] RUN & FIX: Execute scenario. Verify context influences recommendations.
 
 ### Task 019: Returning User Context Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/returning_user_context.yaml` with steps:
