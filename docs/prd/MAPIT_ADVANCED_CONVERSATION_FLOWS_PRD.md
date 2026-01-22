@@ -580,7 +580,7 @@ final_validations:
 - [x] RUN & FIX: Execute scenario. Verify eligibility rule accuracy.
 
 ### Task 035: SME Eligibility Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/sme_eligibility.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/sme_eligibility.yaml` with steps:
   1. "We're an SME - what's available for us?"
   2. "We have 200 employees - are we still SME?"
   3. "Our parent company is large - does that affect us?"
@@ -588,7 +588,7 @@ final_validations:
   5. "Can we participate in RIA as non-SME?"
   Validations: SME definition correct, ownership rules explained.
 
-- [ ] RUN & FIX: Execute scenario. Verify SME eligibility rules.
+- [x] RUN & FIX: Execute scenario. Verify SME eligibility rules.
 
 ### Task 036: Consortium Eligibility Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/consortium_eligibility.yaml` with steps:

@@ -5812,3 +5812,54 @@ phase8, eligibility, multi-factor, turkey, associated-country, restrictions
 
 ### Next Task
 Task 035: SME Eligibility Scenario (Phase 8 - Complex Eligibility Scenarios)
+
+## 2026-01-22: Task 035 - SME Eligibility Scenario
+
+### Task Completed
+Implemented Task 035 from MAPIT_ADVANCED_CONVERSATION_FLOWS_PRD.md - Create SME Eligibility Scenario.
+
+### Files Created
+- `tests/scenarios/advanced/sme_eligibility.yaml` - New scenario file with:
+  - 5-step SME eligibility workflow
+  - Step 1: SME asks about available EU funding programmes
+  - Step 2: Employee count threshold question (200 employees vs 250 limit)
+  - Step 3: Large parent company ownership rules
+  - Step 4: EIC Accelerator specific requirements
+  - Step 5: Non-SME participation in RIA projects
+
+### Scenario Structure
+The scenario tests the system's ability to:
+1. Explain SME-specific funding opportunities (EIC, Eurostars, etc.)
+2. Clarify the EU SME employee threshold (<250 employees)
+3. Explain linked/partner enterprise ownership rules
+4. Differentiate EIC Accelerator SME requirements
+5. Confirm non-SMEs can still participate in RIA/IA projects
+
+### Validation Types Used
+- `no_error` (Built-in): Error detection on all 5 steps
+- `response_contains_any` (Built-in): Pattern matching for SME content
+- `programme_mentioned` (CrossProgrammeAgent): Horizon Europe/EIC mentioned
+- `programme_accurate` (CrossProgrammeAgent): EIC/RIA rules accurate
+- `eligibility_correct` (CrossProgrammeAgent): SME definition correct
+- `goal_progress` (GoalTrackingAgent): Progress toward understanding SME eligibility
+- `goal_achieved` (GoalTrackingAgent): User understands SME eligibility and alternatives
+- `context_accumulated` (PersonalizationAgent): SME context preserved across turns
+- `profile_used` (PersonalizationAgent): Profile used in responses
+- `personalization_applied` (PersonalizationAgent): Response personalized
+- `context_integrity` (ContextValidatorAgent): All messages stored correctly
+
+### Test Results
+- Scenario test passed (1 passed in ~218s)
+- YAML syntax validation passed
+- 43 total tests collected
+- Linting passed on test files
+
+### Tags
+phase8, eligibility, sme, definition, ownership, eic, ria
+
+### PRD Task Status
+- [x] CREATE SCENARIO: tests/scenarios/advanced/sme_eligibility.yaml
+- [x] RUN & FIX: Execute scenario (passed)
+
+### Next Task
+Task 036: Consortium Eligibility Scenario (Phase 8 - Complex Eligibility Scenarios)
