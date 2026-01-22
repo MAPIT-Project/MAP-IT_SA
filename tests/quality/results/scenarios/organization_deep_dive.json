@@ -1,0 +1,97 @@
+{
+  "scenario_name": "Organization Deep-Dive",
+  "turns": [
+    {
+      "turn_number": 0,
+      "query": "Tell me about Technical University of Munich's EU funding history",
+      "response_text": "## Projects for Technical University of Munich\n\nNo projects found for this organization in the database.\n\n**Suggestions:**\n- Check the organization name spelling\n- Try searching with a shorter name\n- The organization may not have participated in Horizon Europe yet",
+      "tools_used": [
+        "find_organization_projects"
+      ],
+      "quality_score": 77,
+      "factual_score": 100.0,
+      "failures": [],
+      "passed": false
+    },
+    {
+      "turn_number": 1,
+      "query": "What topics do they focus on?",
+      "response_text": "Based on my search for information about 'What topics do they focus on?', here's what I found:\n\n**Finding 1:**\nand  technical  support \nthroughout the policy cycle. The JRC focuses its research on Union policy priorities.\n\nAreas  of  intervention:  strengthening  the  knowledge  base  for  policy  making;  global  challenges  (health;  culture, \ncreativity and inclusive society; civil security for society; digital, industry and space; climate, energy and mobility; \nfood,  bioeconomy,  natural  resources,\n\n**Finding 2:**\nties and cities; industrial competitiveness in transport; clean, safe \nand accessible transport and mobility; smart mobility; energy storage.\n\n(f) Cluster  'Food,  Bioeconomy,  Natural  Resources,  Agriculture  and  Environment':  protecting  the  environment, \nrestoring,  sustainably  managing  and  using  natural  and  biological  resources  from  land,  inland  waters  and  sea  to \nstop",
+      "tools_used": [
+        "search_documents"
+      ],
+      "quality_score": 75,
+      "factual_score": 100.0,
+      "failures": [],
+      "passed": false
+    },
+    {
+      "turn_number": 2,
+      "query": "What's their success rate as coordinator?",
+      "response_text": "The provided search results do not contain any information about a person's or entity's success rate as a coordinator. The document discusses the EIC Work Programme 2026 and coordination requirements for a CSA Beneficiary within that program. It focuses on data gathering, collaboration with the Agency and contractors, and the implementation of a call for Ecosystem Partners and the EIC service catalogue.\n\nTherefore, I cannot answer your question about their success rate as a coordinator based on the information provided.\n",
+      "tools_used": [
+        "search_documents"
+      ],
+      "quality_score": 77,
+      "factual_score": 100.0,
+      "failures": [],
+      "passed": false
+    },
+    {
+      "turn_number": 3,
+      "query": "Show their recent projects",
+      "response_text": "Based on my search for information about 'Show their recent projects', here's what I found:\n\n**Finding 1:**\nciaries in a project have  developed  a prototype and have jointly filed for \nintellectual property protection, however they do not have the capacity to bring the results to the \nmarket. The beneficiaries concerned published their results on the Horizon Results Platform and a \ncompany signalled its interest to use  the technology in its production line. After negotiations, the \nbeneficiaries\n\n**Finding 2:**\ns, \nresearchers,  new \ninfrastructures, networks, etc. Most project results (inventions, scientific works, \netc)  are  \u2018Intellectual  Property\u2019,  which  may,  if  appropriate,  be  protected  by \nlarge-scale \nformal \ndemonstrator:  trial  with  3  airports  of  an  advanced  forecasting  system  for \nproactive airport passenger flow management. \n\n\u2018Intellectual  Property  Rights\u2019.  Example:",
+      "tools_used": [
+        "search_documents"
+      ],
+      "quality_score": 75,
+      "factual_score": 100.0,
+      "failures": [],
+      "passed": false
+    },
+    {
+      "turn_number": 4,
+      "query": "Who are their preferred partners?",
+      "response_text": "I found some information but couldn't extract specific details. Please try a more specific question.",
+      "tools_used": [
+        "search_documents"
+      ],
+      "quality_score": 75,
+      "factual_score": 100.0,
+      "failures": [
+        {
+          "category": "NO_RESULTS",
+          "severity": "HIGH",
+          "description": "Response contains error pattern: 'couldn't extract'"
+        }
+      ],
+      "passed": false
+    }
+  ],
+  "average_score": 75.8,
+  "factual_score": 100.0,
+  "failures": [
+    {
+      "category": "NO_RESULTS",
+      "severity": "HIGH",
+      "description": "Response contains error pattern: 'couldn't extract'"
+    }
+  ],
+  "status": "CLOSE_TO_THRESHOLD",
+  "execution_time_ms": 12967.961,
+  "timestamp": "2026-01-22T23:02:30.323639",
+  "fix_history": [],
+  "metadata": {
+    "scenario_path": "/home/anmar/Documents/VSCODE_REPOS/MAPIT/NEWMAPIT/MAP-IT_SA/tests/scenarios/advanced/organization_deep_dive.yaml",
+    "tags": [
+      "phase3",
+      "partner-discovery",
+      "organization",
+      "tum",
+      "profile",
+      "statistics"
+    ],
+    "description": "A 5-step organization exploration workflow for Technical University of Munich.\nTests ability to retrieve organization funding history, research focus areas,\nsuccess rates, recent projects, and partnership patterns.\nThe scenario validates that the system can provide comprehensive organization\nprofiles and maintain context across multiple queries about the same organization.\n",
+    "conversation_id": 1156653193
+  }
+}

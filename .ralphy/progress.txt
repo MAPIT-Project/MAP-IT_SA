@@ -9068,3 +9068,42 @@ Scenario 011: Network Exploration FIX IF NEEDED
 
 ### Next Task:
 Scenario 012: Organization Deep Dive EXECUTE
+
+
+## 2026-01-22: Scenario 012 - Organization Deep Dive (EXECUTE)
+
+### Task Completed
+Executed Scenario 012: Organization Deep Dive against the live API.
+
+### Files Created/Modified
+- `tests/quality/test_scenario_012_organization_deep_dive.py` - New test file with:
+  - Scenario execution against live API
+  - Quality scoring for each turn
+  - Results saving to JSON
+  - CLI runner for manual execution
+
+- `tests/quality/results/scenarios/organization_deep_dive.json` - Scenario results with:
+  - 5 turns executed successfully
+  - Average score: 75.8/100
+  - Status: CLOSE_TO_THRESHOLD
+  - 1 failure detected (Turn 4: "couldn't extract" pattern)
+
+### Scenario Execution Results
+- **Turn 0**: Score 77 - find_organization_projects returned "No projects found" for TUM
+- **Turn 1**: Score 75 - search_documents used instead of organization-specific tools
+- **Turn 2**: Score 77 - search_documents returned generic info, not TUM-specific
+- **Turn 3**: Score 75 - search_documents returned generic project info
+- **Turn 4**: Score 75 - "couldn't extract specific details" error pattern
+
+### Issues Identified for FIX IF NEEDED Task
+1. Organization name matching: "Technical University of Munich" not found in database
+2. Tool selection: Agent uses search_documents instead of find_organization_projects/get_collaboration_network for follow-up queries
+3. Context maintenance: Later turns lose context about TUM
+
+### Test Results
+- 2 tests passed (scenario execution + JSON validity check)
+- Linting passed
+
+### PRD Task Status
+- [x] EXECUTE task marked complete
+- [ ] FIX IF NEEDED task pending (score 75.8 < 80)

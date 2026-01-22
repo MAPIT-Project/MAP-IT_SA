@@ -264,7 +264,7 @@ Run with: `./ralphy.sh --prd docs/prd/MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD_V3
   4. **Attempt 1 Result**: Score improved from 76.6 to 77.0 (1 attempt). Added response synthesis handlers for get_collaboration_network and find_organization_projects. Turn 1 now displays detailed network tables. Remaining issues: Turns 2-3 still use search_documents instead of specialized tools (LLM tool selection issue). Status: CLOSE_TO_THRESHOLD
 
 ### Scenario 012: Organization Deep Dive
-- [ ] EXECUTE: Run scenario `tests/scenarios/advanced/partner_discovery/organization_deep_dive.yaml` against the live API. Tests deep dive into organization history. Save result to `tests/quality/results/scenarios/organization_deep_dive.json`.
+- [x] EXECUTE: Run scenario `tests/scenarios/advanced/partner_discovery/organization_deep_dive.yaml` against the live API. Tests deep dive into organization history. Save result to `tests/quality/results/scenarios/organization_deep_dive.json`.
 
 - [ ] FIX IF NEEDED: Read `tests/quality/results/scenarios/organization_deep_dive.json`. If average_score < 80:
   1. ONLY modify files in `app/` directory
