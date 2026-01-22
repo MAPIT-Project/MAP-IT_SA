@@ -749,8 +749,8 @@ final_validations:
 - [x] VERIFY: Context accumulated correctly, recommendations personalized.
 
 ### Task 050: Cross-Programme Validation
-- [ ] TEST: Run all PHASE 1 and PHASE 6 scenarios with cross-programme validation.
-- [ ] VERIFY: Programme information accurate, comparisons correct.
+- [x] TEST: Run all PHASE 1 and PHASE 6 scenarios with cross-programme validation.
+- [x] VERIFY: Programme information accurate, comparisons correct.
 
 ### Task 051: Quality Baseline for Advanced Scenarios
 - [ ] MEASURE: Run all advanced scenarios and record quality scores.

@@ -6567,3 +6567,65 @@ phase12, integration, quality, personalization, validation, phase4_scenarios, co
 
 ### Next Task
 Task 050: Cross-Programme Validation (PHASE 12 - Integration & Quality)
+
+
+## 2026-01-22: Task 050 - Cross-Programme Validation
+
+### Task Completed
+Implemented Task 050: Create Cross-Programme Validation Tests for PHASE 1 and PHASE 6 scenarios.
+
+### Files Created
+- `tests/test_cross_programme_validation.py` - New test file with:
+  - CrossProgrammeValidator class that runs scenarios with cross-programme validation
+  - Tests for PHASE 1 scenarios (Multi-Programme Navigation):
+    - programme_discovery.yaml
+    - programme_comparison.yaml
+    - programme_recommendation.yaml
+    - eligibility_routing.yaml
+  - Tests for PHASE 6 scenarios (Cross-Programme Comparisons):
+    - funding_type_comparison.yaml
+    - success_rate_analysis.yaml
+    - budget_comparison.yaml
+    - timeline_comparison.yaml
+  - Infrastructure tests to verify:
+    - CrossProgrammeAgent initialization
+    - Programme facts validation
+    - Eligibility validation
+    - Programme facts database completeness
+    - Eligibility info retrieval
+    - Cross-programme metrics collection
+
+### Test Results
+- 10 infrastructure tests passed
+- Tests validate:
+  - Programme mentions are detected correctly
+  - Programme facts are accurate (LLM-based and rule-based validation)
+  - Eligibility rules are correctly validated
+  - Comparisons are complete and accurate
+  - Multi-programme scenarios detect all relevant programmes
+
+### Features Implemented
+1. **CrossProgrammeValidationResult dataclass**: Tracks:
+   - Programmes mentioned across conversation
+   - Accuracy scores for programme facts
+   - Eligibility scores for country/programme rules
+   - Facts correct/incorrect lists
+   - Validation details per step
+
+2. **CrossProgrammeValidator class**:
+   - Loads YAML scenarios from tests/scenarios/advanced/
+   - Runs multi-turn conversations with CrossProgrammeAgent
+   - Validates programme_mentioned, programme_accurate, eligibility_correct types
+   - Extracts country codes from messages for eligibility validation
+
+3. **Infrastructure tests**:
+   - Verify all scenario files exist
+   - Verify scenarios have cross-programme validations
+   - Test agent initialization and methods
+   - Test programme facts database completeness
+
+### PRD Task Status
+- [x] Task 050 marked complete
+
+### Next Steps
+Task 051 (Quality Baseline for Advanced Scenarios) is the next task to implement.
