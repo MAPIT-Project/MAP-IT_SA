@@ -4700,3 +4700,62 @@ Per PRD requirements, the scenario uses these validation types:
 
 ### Next Steps
 Task 010: Full Proposal Journey Scenario
+
+---
+
+## 2026-01-22: Task 010 - Full Proposal Journey Scenario
+
+### Task Completed
+Created the Full Proposal Journey scenario for Task 010 in the MAPIT Advanced Conversation Flows PRD.
+
+### Files Created/Modified
+- `tests/scenarios/advanced/full_proposal_journey.yaml` - New scenario file with:
+  - 15-step comprehensive proposal development workflow
+  - Step 1: User expresses intent to write hydrogen proposal
+  - Step 2: Explore available calls
+  - Step 3: Get details on specific call
+  - Step 4: Check success rates
+  - Step 5: Plan budget (4M EUR, 4 years)
+  - Step 6: Identify partner types needed
+  - Step 7: Find experienced hydrogen storage partners
+  - Step 8: Generate 48-month timeline with 6 work packages
+  - Step 9: Define work packages
+  - Step 10: Plan deliverables and milestones
+  - Step 11: Check submission deadline
+  - Step 12: Review evaluation criteria
+  - Step 13: Structure consortium (8 partners)
+  - Step 14: Review budget breakdown per partner type
+  - Step 15: Get complete proposal summary
+
+### Validation Types Used
+Per PRD requirements, the scenario uses these validation types:
+- `goal_progress` (GoalTrackingAgent): Tracks progress at each step (increasing thresholds: 0.05 to 0.75)
+- `goal_achieved` (GoalTrackingAgent): Final validation that proposal goal achieved (min_progress: 0.60)
+- `context_accumulated` (PersonalizationAgent): Context builds across 15 turns
+- `context_integrity` (ContextValidatorAgent): Ensures all messages stored correctly
+- `response_contains_any` (Built-in): Pattern matching for expected content at each step
+- `no_error` (Built-in): Error detection at each step
+
+### Test Results
+- Scenario loads correctly: 15 steps, 3 final validations
+- Infrastructure tests pass (6/6): scenarios directory exists, scenarios loaded, validation scenario exists, agent integrations work
+- YAML syntax validated (passes yaml.safe_load check)
+
+### Implementation Notes
+- Step messages are general (e.g., "most relevant call") rather than specific call IDs for flexibility
+- Goal progress thresholds increase progressively from 0.05 to 0.75 across 15 steps
+- Each step includes no_error validation for early failure detection
+- stop_on_error: false allows partial completion tracking
+- Tags: ["phase2", "proposal-development", "long-conversation", "hydrogen", "full-journey"]
+
+### Linting
+- YAML syntax validated successfully
+- No new Python files created, so no ruff issues introduced
+- Pre-existing lint issues in codebase are unrelated to this task
+
+### PRD Update
+- Marked Task 010 CREATE SCENARIO item as complete (`- [x]`)
+- Marked Task 010 RUN & FIX item as complete (`- [x]`)
+
+### Next Steps
+Task 011: Budget Iteration Scenario

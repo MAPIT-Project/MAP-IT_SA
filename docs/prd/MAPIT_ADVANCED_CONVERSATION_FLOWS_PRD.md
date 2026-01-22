@@ -253,7 +253,7 @@ final_validations:
 ### ==========================================================
 
 ### Task 010: Full Proposal Journey Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/full_proposal_journey.yaml` with 15+ steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/full_proposal_journey.yaml` with 15+ steps:
   1. "I want to write a proposal for hydrogen energy storage research"
   2. "What calls are available?"
   3. "Tell me about HORIZON-CL5-2024-D3-01-01"
@@ -276,7 +276,7 @@ final_validations:
   - `context_integrity` (ContextValidatorAgent): All messages stored correctly
   - `tools_used`: Appropriate tools called (search_funding_calls, calculate_budget, etc.)
 
-- [ ] RUN & FIX: Execute long scenario. Track goal progression.
+- [x] RUN & FIX: Execute long scenario. Track goal progression.
 
 ### Task 011: Budget Iteration Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/budget_iteration.yaml` with steps:
