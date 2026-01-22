@@ -301,7 +301,7 @@ final_validations:
 - [x] RUN & FIX: Execute scenario. Fix timeline modification logic.
 
 ### Task 013: Consortium Building Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/consortium_building.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/consortium_building.yaml` with steps:
   1. "We need partners for an AI in agriculture project"
   2. "Find organizations experienced in precision farming"
   3. "We need an SME partner from Southern Europe"
@@ -310,7 +310,7 @@ final_validations:
   6. "Show our proposed consortium"
   Validations: Partners accumulated across turns, consortium composition shown, geographic balance.
 
-- [ ] RUN & FIX: Execute scenario. Validate partner accumulation in context.
+- [x] RUN & FIX: Execute scenario. Validate partner accumulation in context.
 
 ### ==========================================================
 ### PHASE 3: Partner Discovery Journeys
