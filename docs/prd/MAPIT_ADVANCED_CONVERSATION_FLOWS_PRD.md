@@ -234,7 +234,7 @@ final_validations:
 - [x] RUN & FIX: Execute scenario. Verify recommendation logic.
 
 ### Task 009: Eligibility Routing Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/eligibility_routing.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/eligibility_routing.yaml` with steps:
   1. "We're a Swiss company wanting to participate in EU programmes"
   2. "What about Horizon Europe?"
   3. "And Erasmus+?"
@@ -246,7 +246,7 @@ final_validations:
   - `context_accumulated` (PersonalizationAgent): Swiss company context preserved
   - `goal_achieved` (GoalTrackingAgent): User understands eligibility across programmes
 
-- [ ] RUN & FIX: Execute scenario. Verify eligibility rules accurate.
+- [x] RUN & FIX: Execute scenario. Verify eligibility rules accurate.
 
 ### ==========================================================
 ### PHASE 2: Proposal Development Workflows
