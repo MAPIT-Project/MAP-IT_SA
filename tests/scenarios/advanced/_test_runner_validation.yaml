@@ -1,0 +1,135 @@
+# Test Runner Validation Scenario
+# This scenario validates that ALL validation types work correctly with the
+# Advanced Scenario Test Runner. Used by Task 005 VERIFY step to confirm
+# the runner correctly dispatches to each agent.
+#
+# Validation Types Tested:
+# - response_contains (Built-in): Pattern matching in response
+# - response_contains_any (Built-in): At least one pattern matches
+# - tools_used (Built-in): Check specific tools were called
+# - no_error (Built-in): No errors in response
+# - goal_progress (GoalTrackingAgent): Track progress toward goal
+# - goal_achieved (GoalTrackingAgent): Goal completion check
+# - context_accumulated (PersonalizationAgent): Profile fields extracted
+# - personalization_applied (PersonalizationAgent): Response tailored
+# - profile_used (PersonalizationAgent): Profile fields used in response
+# - programme_mentioned (CrossProgrammeAgent): Programmes referenced
+# - programme_accurate (CrossProgrammeAgent): Facts are correct
+# - eligibility_correct (CrossProgrammeAgent): Eligibility rules accurate
+# - context_integrity (ContextValidatorAgent): Messages stored properly
+
+name: "Test Runner Validation"
+description: "Validates ALL validation types work with the Advanced Scenario Test Runner"
+tags: ["phase0", "infrastructure", "validation-test", "all-validation-types"]
+stop_on_error: false  # Continue to test all validation types even if some fail
+
+# User journey: A German SME looking for EU funding for health research
+# This allows testing all validation types in a realistic scenario
+
+steps:
+  # Turn 1: Initial query - tests basic validations and goal tracking
+  - message: "I'm looking for EU funding programmes for health AI research"
+    validations:
+      # Built-in validations
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn1"
+      - type: "response_contains_any"  # Built-in
+        name: "mentions_funding"
+        patterns: ["funding", "programme", "Horizon", "Erasmus"]
+      # Goal tracking (GoalTrackingAgent)
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "initial_goal_progress"
+        min_progress: 0.1
+    delay_ms: 0
+
+  # Turn 2: User reveals profile - tests personalization
+  - message: "We are a German SME with 30 employees in the healthcare sector"
+    validations:
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn2"
+      # Personalization (PersonalizationAgent)
+      - type: "context_accumulated"  # PersonalizationAgent
+        name: "profile_extracted"
+        min_fields: 2  # Should extract country and organization_type
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "progress_with_context"
+        min_progress: 0.15
+    delay_ms: 500
+
+  # Turn 3: Ask about specific programmes - tests cross-programme
+  - message: "Can you compare Horizon Europe and Erasmus+ for our needs?"
+    validations:
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn3"
+      # Cross-programme (CrossProgrammeAgent)
+      - type: "programme_mentioned"  # CrossProgrammeAgent
+        name: "programmes_discussed"
+        programmes: ["horizon_europe", "erasmus_plus"]
+      - type: "programme_accurate"  # CrossProgrammeAgent
+        name: "horizon_facts_correct"
+        programme: "horizon_europe"
+        min_score: 0.5
+      # Personalization (PersonalizationAgent)
+      - type: "personalization_applied"  # PersonalizationAgent
+        name: "recommendations_personalized"
+        min_score: 0.2
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "progress_after_comparison"
+        min_progress: 0.3
+    delay_ms: 500
+
+  # Turn 4: Ask about eligibility - tests eligibility validation
+  - message: "As a German SME, what are our eligibility options?"
+    validations:
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn4"
+      - type: "response_contains"  # Built-in
+        name: "mentions_eligibility"
+        patterns: ["eligible", "participation"]
+      # Cross-programme eligibility (CrossProgrammeAgent)
+      - type: "eligibility_correct"  # CrossProgrammeAgent
+        name: "german_eligibility"
+        country: "DE"
+        programme: "horizon_europe"
+        min_score: 0.5
+      # Profile usage (PersonalizationAgent)
+      - type: "profile_used"  # PersonalizationAgent
+        name: "profile_in_eligibility"
+        expected_fields: ["country", "organization_type"]
+        min_usage: 0.3
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "progress_after_eligibility"
+        min_progress: 0.4
+    delay_ms: 500
+
+  # Turn 5: Ask for recommendations - tests tools and final progress
+  - message: "What specific calls would you recommend for us?"
+    validations:
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn5"
+      - type: "response_contains_any"  # Built-in
+        name: "has_recommendations"
+        patterns: ["recommend", "suggest", "consider", "call", "opportunity"]
+      # Personalization (PersonalizationAgent)
+      - type: "personalization_applied"  # PersonalizationAgent
+        name: "final_personalization"
+        min_score: 0.3
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "final_progress"
+        min_progress: 0.5
+    delay_ms: 500
+
+final_validations:
+  # GoalTrackingAgent - check goal completion
+  - type: "goal_achieved"  # GoalTrackingAgent
+    name: "user_goal_achieved"
+    min_progress: 0.5  # Should have made significant progress
+
+  # PersonalizationAgent - check profile built
+  - type: "context_accumulated"  # PersonalizationAgent
+    name: "full_profile_built"
+    min_fields: 2  # country + org_type minimum
+
+  # ContextValidatorAgent - check integrity
+  - type: "context_integrity"  # ContextValidatorAgent
+    name: "context_preserved"

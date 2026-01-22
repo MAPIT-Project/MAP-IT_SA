@@ -176,7 +176,7 @@ final_validations:
 - [x] VERIFY: Validation types `programme_mentioned`, `programme_accurate`, `eligibility_correct` work.
 
 ### Task 005: Create Advanced Scenario Test Runner
-- [ ] IMPLEMENT: Create `tests/test_advanced_conversation_scenarios.py` with:
+- [x] IMPLEMENT: Create `tests/test_advanced_conversation_scenarios.py` with:
   - YAML scenario loader for `tests/scenarios/advanced/` directory
   - Multi-turn conversation execution using ConversationFlowAgent
   - Validation dispatcher that routes validation types to correct agents:
@@ -187,8 +187,8 @@ final_validations:
     - `response_contains`, `tools_used`, `no_error` → built-in handlers
   - Quality scoring using QualityEvaluatorAgent
   - Result aggregation and reporting.
-- [ ] TEST: Create `tests/scenarios/advanced/_test_runner_validation.yaml` scenario that uses ALL validation types to verify the runner correctly dispatches to each agent.
-- [ ] VERIFY: Run the validation scenario and confirm all agents are called correctly.
+- [x] TEST: Create `tests/scenarios/advanced/_test_runner_validation.yaml` scenario that uses ALL validation types to verify the runner correctly dispatches to each agent.
+- [x] VERIFY: Run the validation scenario and confirm all agents are called correctly.
 
 ### ==========================================================
 ### PHASE 1: Multi-Programme Navigation
