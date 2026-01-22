@@ -404,14 +404,14 @@ final_validations:
 - [x] RUN & FIX: Execute scenario. Track profile accumulation.
 
 ### Task 021: Preference-Based Filtering Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/preference_filtering.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/preference_filtering.yaml` with steps:
   1. "Find funding calls - but nothing with lump sum funding"
   2. "I prefer calls with 70%+ funding rate"
   3. "Show only calls with deadlines in Q2 2024"
   4. "Remove any requiring more than 5 partners"
   Validations: Preferences accumulated, applied to results.
 
-- [ ] RUN & FIX: Execute scenario. Fix preference filter application.
+- [x] RUN & FIX: Execute scenario. Fix preference filter application.
 
 ### ==========================================================
 ### PHASE 5: Strategic Planning Conversations

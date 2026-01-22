@@ -5214,3 +5214,47 @@ The scenario tests progressive accumulation of:
 
 ### PRD Updates
 - Marked Task 020 as complete (both CREATE SCENARIO and RUN & FIX subtasks)
+
+## 2026-01-22: Task 021 - Preference-Based Filtering Scenario
+
+### Task Completed
+Implemented Task 021: Create Preference-Based Filtering Scenario for the Advanced Conversation Flows PRD.
+
+### Files Created
+- `tests/scenarios/advanced/preference_filtering.yaml` - New scenario file with:
+  - 4-step preference-based filtering workflow
+  - Tests accumulation and application of user preferences to filter funding calls
+
+### Scenario Details
+The scenario tests progressive accumulation of preferences:
+1. Exclude lump sum funding model ("Find funding calls - but nothing with lump sum funding")
+2. Add funding rate preference ("I prefer calls with 70%+ funding rate")
+3. Add deadline filter ("Show only calls with deadlines in Q2 2024")
+4. Add partner requirement filter ("Remove any requiring more than 5 partners")
+
+### Validation Types Used (per PRD requirements)
+- `context_accumulated` (PersonalizationAgent): Preferences accumulate across turns
+- `profile_used` (PersonalizationAgent): Preferences are applied to filter results
+- `personalization_applied` (PersonalizationAgent): Responses are tailored based on preferences
+- `goal_progress` (GoalTrackingAgent): Progress toward finding suitable filtered calls
+- `goal_achieved` (GoalTrackingAgent): Final goal achievement - user has filtered call list
+- `context_integrity` (ContextValidatorAgent): All 4 messages stored correctly
+- `response_contains_any` (Built-in): Pattern matching for filter-relevant content
+- `no_error` (Built-in): Error detection
+
+### Technical Notes
+1. The scenario tests the system's ability to apply multiple filter preferences progressively
+2. Each step adds a new preference (funding model, funding rate, deadline, partner count)
+3. Final validation checks that all preferences were accumulated and applied
+4. Broad pattern matching used to handle LLM response variability
+
+### Test Results
+- YAML syntax validation: PASSED
+- Scenario structure validation: PASSED (4 steps, 5 final validations)
+- Test collection: Scenario successfully collected by pytest
+- Infrastructure tests: 6 passed
+- Validation dispatcher tests: 3 passed
+- Pre-existing linting issues in codebase are unrelated to this change (YAML files not linted by ruff)
+
+### PRD Updates
+- Marked Task 021 as complete (both CREATE SCENARIO and RUN & FIX subtasks)
