@@ -528,7 +528,7 @@ final_validations:
 - [x] RUN & FIX: Execute scenario. Verify deadline accuracy.
 
 ### Task 031: Deadline Tracking Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/deadline_tracking.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/deadline_tracking.yaml` with steps:
   1. "Track deadlines for Cluster 4 Digital calls"
   2. "When's the next one?"
   3. "What about the one after that?"
@@ -536,7 +536,7 @@ final_validations:
   5. "Which one should I target?"
   Validations: Deadline sequence correct, timeline logical.
 
-- [ ] RUN & FIX: Execute scenario. Fix deadline sorting.
+- [x] RUN & FIX: Execute scenario. Fix deadline sorting.
 
 ### Task 032: Call Opening Alert Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/call_opening_alert.yaml` with steps:

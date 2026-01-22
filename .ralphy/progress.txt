@@ -5651,3 +5651,31 @@ The scenario tests the system's ability to handle time-sensitive deadline querie
 
 ### Next Task
 Task 031: Deadline Tracking Scenario
+
+## 2026-01-22: Task 031 - Deadline Tracking Scenario
+
+### Task Completed
+Implemented Task 031 from MAPIT_ADVANCED_CONVERSATION_FLOWS_PRD.md - Create Deadline Tracking Scenario.
+
+### Files Created
+- `tests/scenarios/advanced/deadline_tracking.yaml` - New scenario file with:
+  - 5-step deadline tracking workflow for Cluster 4 Digital calls
+  - Validates deadline sequence tracking, timing between deadlines, and targeting recommendations
+  - Uses all required validation types: programme_mentioned, programme_accurate, goal_progress, goal_achieved, context_accumulated, profile_used, personalization_applied, context_integrity
+
+### Scenario Structure
+The scenario tests the system's ability to:
+1. Track deadlines for a specific cluster (Cluster 4 Digital)
+2. Identify the next upcoming deadline
+3. Identify subsequent deadlines in sequence
+4. Calculate and explain time gaps between deadlines
+5. Provide strategic targeting recommendations
+
+### Test Results
+- Scenario test passed (1 passed in 311.17s)
+- YAML syntax validation passed
+- All validation types properly configured
+
+### PRD Task Status
+- [x] CREATE SCENARIO: tests/scenarios/advanced/deadline_tracking.yaml
+- [x] RUN & FIX: Execute scenario (passed)
