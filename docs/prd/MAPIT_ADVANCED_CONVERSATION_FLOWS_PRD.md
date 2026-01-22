@@ -565,7 +565,7 @@ final_validations:
 ### ==========================================================
 
 ### Task 034: Multi-Factor Eligibility Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/multi_factor_eligibility.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/multi_factor_eligibility.yaml` with steps:
   1. "Can a Turkish university coordinate a Horizon Europe project?"
   2. "What about as partner?"
   3. "Does it matter if the project involves defense?"
@@ -577,7 +577,7 @@ final_validations:
   - `context_accumulated` (PersonalizationAgent): Country context preserved across turns
   - `goal_achieved` (GoalTrackingAgent): User understands their eligibility options
 
-- [ ] RUN & FIX: Execute scenario. Verify eligibility rule accuracy.
+- [x] RUN & FIX: Execute scenario. Verify eligibility rule accuracy.
 
 ### Task 035: SME Eligibility Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/sme_eligibility.yaml` with steps:

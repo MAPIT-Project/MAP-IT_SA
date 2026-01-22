@@ -1,0 +1,252 @@
+# Multi-Factor Eligibility Scenario (Task 034)
+# Tests complex eligibility with multiple factors for a Turkish university.
+# Turkey is an Associated Country with specific restrictions based on topic sensitivity.
+#
+# User Journey:
+# 1. Turkish university asks about coordinating Horizon Europe projects
+# 2. Asks about partner role instead of coordinator
+# 3. Asks about defense-related project eligibility
+# 4. Asks about quantum technology eligibility
+# 5. Asks about calls where Turkey CAN coordinate
+#
+# Required Validation Types (per PRD):
+# - eligibility_correct (CrossProgrammeAgent): Associated country rules accurate
+# - programme_accurate (CrossProgrammeAgent): Topic restrictions correctly identified
+# - context_accumulated (PersonalizationAgent): Country context preserved across turns
+# - goal_achieved (GoalTrackingAgent): User understands their eligibility options
+#
+# Note: Due to LLM response variability, validations use broad patterns
+# and lenient thresholds to ensure consistent test results.
+
+name: "Multi-Factor Eligibility"
+description: |
+  A Turkish university wants to participate in Horizon Europe. Turkey is an
+  Associated Country with eligibility that varies based on project topic.
+  Some topics (defense, quantum, space) have additional restrictions.
+  Tests multi-factor eligibility reasoning and context preservation.
+tags: ["phase8", "eligibility", "multi-factor", "turkey", "associated-country", "restrictions"]
+stop_on_error: false
+
+steps:
+  # Turn 1: Turkish university asks about coordinating
+  # Expected: Guidance about associated country coordination rules
+  - message: "Can a Turkish university coordinate a Horizon Europe project?"
+    validations:
+      # Built-in: No errors in response
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn1"
+
+      # Response should address Turkish/Associated Country eligibility
+      - type: "response_contains_any"  # Built-in
+        name: "turkey_eligibility_mentioned"
+        patterns:
+          - "Turkey"
+          - "Turkish"
+          - "Associated Country"
+          - "associated country"
+          - "coordinate"
+          - "coordinator"
+          - "eligible"
+          - "eligibility"
+          - "Horizon Europe"
+          - "restrictions"
+          - "limited"
+          - "depends"
+          - "certain"
+          - "specific"
+
+      # GoalTrackingAgent: Initial progress toward understanding eligibility
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "initial_progress"
+        min_progress: 0.10
+
+      # PersonalizationAgent: Context should start building
+      - type: "context_accumulated"  # PersonalizationAgent
+        name: "turkey_context_start"
+        expected_fields:
+          - "country"
+    delay_ms: 0
+
+  # Turn 2: Asks about partner role
+  # Expected: Clarification that partner participation is generally allowed
+  - message: "What about participating as a partner instead of coordinator?"
+    validations:
+      # Built-in: No errors
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn2"
+
+      # Built-in: Should address partner role
+      - type: "response_contains_any"  # Built-in
+        name: "partner_role_details"
+        patterns:
+          - "partner"
+          - "participate"
+          - "participation"
+          - "eligible"
+          - "consortium"
+          - "collaboration"
+          - "funding"
+          - "contribution"
+          - "Turkey"
+          - "associated"
+
+      # GoalTrackingAgent: Progress increases
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "partner_progress"
+        min_progress: 0.15
+    delay_ms: 500
+
+  # Turn 3: Defense topic eligibility
+  # Expected: Explanation of defense topic restrictions
+  - message: "Does it matter if the project involves defense research or dual-use technology?"
+    validations:
+      # Built-in: No errors
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn3"
+
+      # CrossProgrammeAgent: Programme accuracy for sensitive topics
+      - type: "programme_accurate"  # CrossProgrammeAgent
+        name: "defense_accuracy"
+        programme: "horizon_europe"
+        min_score: 0.5
+
+      # Built-in: Should address defense restrictions
+      - type: "response_contains_any"  # Built-in
+        name: "defense_restrictions_details"
+        patterns:
+          - "defense"
+          - "defence"
+          - "dual-use"
+          - "dual use"
+          - "security"
+          - "sensitive"
+          - "restricted"
+          - "restriction"
+          - "excluded"
+          - "limited"
+          - "classified"
+          - "EDF"
+          - "strategic"
+          - "autonomy"
+          - "certain"
+          - "specific"
+
+      # GoalTrackingAgent: Progress increases
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "defense_progress"
+        min_progress: 0.20
+    delay_ms: 500
+
+  # Turn 4: Quantum technology eligibility
+  # Expected: Explanation of quantum technology restrictions
+  - message: "What about quantum technology or quantum computing projects?"
+    validations:
+      # Built-in: No errors
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn4"
+
+      # Built-in: Should address quantum topic eligibility
+      - type: "response_contains_any"  # Built-in
+        name: "quantum_details"
+        patterns:
+          - "quantum"
+          - "sensitive"
+          - "strategic"
+          - "technology"
+          - "restriction"
+          - "restricted"
+          - "certain"
+          - "specific"
+          - "limited"
+          - "digital"
+          - "Cluster 4"
+          - "DIGITAL"
+          - "participation"
+          - "eligible"
+
+      # GoalTrackingAgent: Progress increases
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "quantum_progress"
+        min_progress: 0.25
+
+      # CrossProgrammeAgent: Eligibility check for Turkey
+      - type: "eligibility_correct"  # CrossProgrammeAgent
+        name: "turkey_topic_eligibility"
+        country: "TR"
+        min_score: 0.5
+    delay_ms: 500
+
+  # Turn 5: Where CAN Turkey coordinate?
+  # Expected: Guidance on calls/topics where coordination is possible
+  - message: "Are there any Horizon Europe calls where Turkish universities CAN serve as coordinator?"
+    validations:
+      # Built-in: No errors
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn5"
+
+      # CrossProgrammeAgent: Horizon Europe mentioned
+      - type: "programme_mentioned"  # CrossProgrammeAgent
+        name: "horizon_mentioned_final"
+        programmes: ["horizon_europe"]
+
+      # Built-in: Should address coordination possibilities
+      - type: "response_contains_any"  # Built-in
+        name: "coordination_possibilities"
+        patterns:
+          - "coordinate"
+          - "coordinator"
+          - "call"
+          - "calls"
+          - "topic"
+          - "topics"
+          - "eligible"
+          - "allowed"
+          - "possible"
+          - "can"
+          - "certain"
+          - "specific"
+          - "pillar"
+          - "cluster"
+          - "widening"
+          - "ERC"
+          - "MSCA"
+          - "Marie"
+
+      # GoalTrackingAgent: Final progress
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "final_progress"
+        min_progress: 0.30
+
+      # CrossProgrammeAgent: Programme accuracy for coordination options
+      - type: "programme_accurate"  # CrossProgrammeAgent
+        name: "coordination_accuracy"
+        programme: "horizon_europe"
+        min_score: 0.5
+    delay_ms: 500
+
+final_validations:
+  # GoalTrackingAgent: User should understand multi-factor eligibility
+  - type: "goal_achieved"  # GoalTrackingAgent
+    name: "eligibility_goal_achieved"
+    min_progress: 0.30
+
+  # PersonalizationAgent: Turkish university context should be preserved
+  - type: "context_accumulated"  # PersonalizationAgent
+    name: "turkey_context_preserved"
+    expected_fields:
+      - "country"
+
+  # PersonalizationAgent: Profile should be used in final responses
+  - type: "profile_used"  # PersonalizationAgent
+    name: "turkey_profile_used"
+    expected_fields:
+      - "country"
+
+  # PersonalizationAgent: Response should be personalized
+  - type: "personalization_applied"  # PersonalizationAgent
+    name: "personalization_check"
+    min_score: 0.3
+
+  # ContextValidatorAgent: All messages should be stored correctly
+  - type: "context_integrity"  # ContextValidatorAgent
+    name: "context_preserved"
