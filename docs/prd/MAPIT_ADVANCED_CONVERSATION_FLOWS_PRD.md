@@ -745,8 +745,8 @@ final_validations:
 - [x] VERIFY: Goal progress tracked correctly, completion detected.
 
 ### Task 049: Personalization Validation
-- [ ] TEST: Run all PHASE 4 scenarios with personalization validation.
-- [ ] VERIFY: Context accumulated correctly, recommendations personalized.
+- [x] TEST: Run all PHASE 4 scenarios with personalization validation.
+- [x] VERIFY: Context accumulated correctly, recommendations personalized.
 
 ### Task 050: Cross-Programme Validation
 - [ ] TEST: Run all PHASE 1 and PHASE 6 scenarios with cross-programme validation.

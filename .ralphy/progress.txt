@@ -6479,3 +6479,91 @@ phase12, integration, quality, goal_tracking, validation, phase2_scenarios, prop
 
 ### Next Task
 Task 049: Personalization Validation (PHASE 12 - Integration & Quality)
+
+## 2026-01-22: Task 049 - Personalization Validation
+
+### Task Completed
+Implemented Task 049: Personalization Validation from MAPIT_ADVANCED_CONVERSATION_FLOWS_PRD.md.
+
+### Files Created
+- `tests/test_personalization_validation.py` - Dedicated test file for validating personalization in PHASE 4 scenarios
+
+### Test File Features
+The new test file provides comprehensive validation of personalization for personalized recommendation scenarios (Tasks 018-021):
+
+1. **PersonalizationValidationResult dataclass**: Captures all personalization metrics including:
+   - Turns executed count
+   - Total fields accumulated
+   - Fields by turn tracking
+   - Profile completeness score
+   - Personalization scores per turn
+   - Average personalization score
+   - Profile usage scores per turn
+   - Average profile usage score
+   - Tools used during conversation
+   - Validation details for each step
+
+2. **PersonalizationValidator class**: Runs scenarios with personalization validation enabled:
+   - Loads PHASE 4 scenario YAML files
+   - Initializes ConversationFlowAgent and PersonalizationAgent
+   - Executes each step and tracks context accumulation
+   - Validates step-level context_accumulated, profile_used, and personalization_applied validations
+   - Validates final personalization validations
+   - Collects comprehensive metrics
+
+3. **TestPersonalizationValidation class**: Parameterized tests for all PHASE 4 scenarios:
+   - `test_phase4_scenario_personalization`: Validates personalization for each scenario
+   - `test_context_accumulates_over_time`: Verifies context grows across multi-turn conversations
+   - `test_personalization_score_quality`: Verifies personalization scores are reasonable
+   - `test_profile_usage_in_recommendations`: Verifies profile information is used
+
+4. **TestPersonalizationInfrastructure class**: Infrastructure validation tests:
+   - `test_phase4_scenarios_exist`: Verifies all PHASE 4 scenario files exist
+   - `test_phase4_scenarios_have_personalization_validations`: Verifies scenarios have personalization validations
+   - `test_personalization_agent_initialization`: Tests PersonalizationAgent initialization
+   - `test_personalization_validation`: Tests personalization validation method
+   - `test_profile_extraction_patterns`: Tests profile extraction from user messages
+   - `test_context_accumulation_metrics`: Tests metric collection
+
+### PHASE 4 Scenarios Validated
+1. **user_context_learning.yaml** (Task 018): 5-step context learning workflow
+2. **returning_user_context.yaml** (Task 019): 4-step returning user context scenario
+3. **progressive_profile.yaml** (Task 020): 12-step profile building workflow
+4. **preference_filtering.yaml** (Task 021): 4-step preference filtering workflow
+
+### Test Results
+- All 6 infrastructure tests passed
+- PersonalizationAgent correctly extracts profile fields from messages
+- Context accumulates across turns
+- Profile usage is tracked
+- Personalization scores are computed
+- Linting passes with ruff
+
+### Key Validations
+- Profile fields (organization_type, sector, country, experience_level) are extracted from messages
+- Context accumulates across turns (tracked by turn)
+- Profile completeness is computed
+- Personalization scores are tracked (0.0-1.0)
+- Profile usage in responses is validated
+
+### Usage
+```bash
+# Run all personalization validation tests
+pytest tests/test_personalization_validation.py -v
+
+# Run specific scenario test
+pytest tests/test_personalization_validation.py -k "user_context" -v
+
+# Run with live API
+TEST_API_URL=http://localhost:8000 pytest tests/test_personalization_validation.py -v
+```
+
+### PRD Update
+- Marked Task 049 TEST as complete [x]
+- Marked Task 049 VERIFY as complete [x]
+
+### Tags
+phase12, integration, quality, personalization, validation, phase4_scenarios, context_learning
+
+### Next Task
+Task 050: Cross-Programme Validation (PHASE 12 - Integration & Quality)
