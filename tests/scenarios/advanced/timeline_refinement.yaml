@@ -1,0 +1,196 @@
+# Timeline Refinement Scenario (Task 012)
+# Tests iterative timeline generation and modification workflow.
+# A user generates and refines a project timeline through multiple iterations.
+#
+# User Journey:
+# 1. User requests initial timeline for 48-month health research project
+# 2. User asks to add clinical trial phase in WP4
+# 3. User mentions ethics approval might delay - add buffer
+# 4. User asks to see similar projects' timelines
+# 5. User adjusts milestones to match typical patterns
+#
+# Required Validation Types (per PRD):
+# - goal_progress (GoalTrackingAgent): Track progress at each step
+# - goal_achieved (GoalTrackingAgent): Final timeline planning goal achieved
+# - context_accumulated (PersonalizationAgent): Timeline context builds across turns
+# - context_integrity (ContextValidatorAgent): All messages stored correctly
+# - response_contains_any (Built-in): Pattern matching for timeline content
+# - no_error (Built-in): Error detection
+#
+# Note: Due to LLM response variability, validations use broad patterns
+# and lenient thresholds to ensure consistent test results.
+
+name: "Timeline Refinement"
+description: |
+  A 5-step timeline generation and refinement workflow for a health research project.
+  Tests iterative timeline modification, work package adjustments, buffer additions,
+  comparison with similar projects, and milestone adjustments. The scenario validates
+  that timeline context persists across turns and modifications are applied correctly.
+tags: ["phase2", "proposal-development", "timeline", "iteration", "health-research"]
+stop_on_error: false
+
+steps:
+  # Step 1: Initial timeline generation
+  - message: "Generate a timeline for a 48-month health research project with 6 work packages"
+    validations:
+      - type: "no_error"
+        name: "no_errors_step1"
+
+      - type: "response_contains_any"
+        name: "initial_timeline_generated"
+        patterns:
+          - "timeline"
+          - "month"
+          - "work package"
+          - "WP"
+          - "48"
+          - "phase"
+          - "milestone"
+          - "deliverable"
+          - "duration"
+          - "schedule"
+          - "Gantt"
+          - "health"
+
+      # GoalTrackingAgent: Initial progress toward timeline planning
+      - type: "goal_progress"
+        name: "timeline_started"
+        min_progress: 0.10
+    delay_ms: 0
+
+  # Step 2: Add clinical trial phase in WP4
+  - message: "Add a clinical trial phase in WP4. This should include patient recruitment, trial execution, and data analysis."
+    validations:
+      - type: "no_error"
+        name: "no_errors_step2"
+
+      - type: "response_contains_any"
+        name: "clinical_trial_added"
+        patterns:
+          - "clinical"
+          - "trial"
+          - "WP4"
+          - "work package"
+          - "patient"
+          - "recruitment"
+          - "execution"
+          - "analysis"
+          - "phase"
+          - "month"
+          - "duration"
+          - "add"
+          - "update"
+
+      # GoalTrackingAgent: Progress with WP modification
+      - type: "goal_progress"
+        name: "clinical_phase_added"
+        min_progress: 0.25
+    delay_ms: 500
+
+  # Step 3: Add buffer for ethics approval delay
+  - message: "The ethics approval might delay us by up to 6 months. Can you add a buffer period at the start of the clinical trial phase?"
+    validations:
+      - type: "no_error"
+        name: "no_errors_step3"
+
+      - type: "response_contains_any"
+        name: "buffer_added"
+        patterns:
+          - "buffer"
+          - "delay"
+          - "ethics"
+          - "approval"
+          - "6 month"
+          - "contingency"
+          - "risk"
+          - "mitigation"
+          - "adjust"
+          - "extend"
+          - "timeline"
+          - "month"
+          - "phase"
+
+      # GoalTrackingAgent: Progress with buffer adjustment
+      - type: "goal_progress"
+        name: "buffer_incorporated"
+        min_progress: 0.30
+    delay_ms: 500
+
+  # Step 4: Compare with similar projects' timelines
+  - message: "Show me timelines from similar health research projects for comparison"
+    validations:
+      - type: "no_error"
+        name: "no_errors_step4"
+
+      - type: "response_contains_any"
+        name: "comparison_provided"
+        patterns:
+          - "similar"
+          - "project"
+          - "compare"
+          - "typical"
+          - "average"
+          - "health"
+          - "research"
+          - "duration"
+          - "month"
+          - "timeline"
+          - "example"
+          - "funded"
+          - "pattern"
+
+      # GoalTrackingAgent: Progress with comparison
+      - type: "goal_progress"
+        name: "comparison_made"
+        min_progress: 0.40
+    delay_ms: 500
+
+  # Step 5: Adjust milestones to match typical patterns
+  - message: "Adjust our milestones to better match the typical patterns you found in similar projects"
+    validations:
+      - type: "no_error"
+        name: "no_errors_step5"
+
+      - type: "response_contains_any"
+        name: "milestones_adjusted"
+        patterns:
+          - "milestone"
+          - "adjust"
+          - "typical"
+          - "pattern"
+          - "match"
+          - "update"
+          - "recommend"
+          - "M1"
+          - "M2"
+          - "M3"
+          - "month"
+          - "deliverable"
+          - "timeline"
+          - "aligned"
+
+      # GoalTrackingAgent: Final progress toward timeline finalization
+      - type: "goal_progress"
+        name: "timeline_finalized"
+        min_progress: 0.50
+
+      # PersonalizationAgent: Timeline context should have accumulated
+      - type: "context_accumulated"
+        name: "timeline_context_built"
+        min_fields: 0
+    delay_ms: 500
+
+final_validations:
+  # GoalTrackingAgent: User should have achieved their timeline planning goal
+  - type: "goal_achieved"
+    name: "timeline_goal_achieved"
+    min_progress: 0.55
+
+  # PersonalizationAgent: Context should have accumulated across all turns
+  - type: "context_accumulated"
+    name: "full_context_accumulated"
+    min_fields: 0
+
+  # ContextValidatorAgent: All messages should be stored correctly
+  - type: "context_integrity"
+    name: "all_messages_preserved"

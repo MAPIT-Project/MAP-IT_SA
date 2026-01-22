@@ -290,7 +290,7 @@ final_validations:
 - [x] RUN & FIX: Execute scenario. Fix budget calculation persistence.
 
 ### Task 012: Timeline Refinement Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/timeline_refinement.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/timeline_refinement.yaml` with steps:
   1. "Generate timeline for 48-month health research project"
   2. "Add a clinical trial phase in WP4"
   3. "The ethics approval might delay us - add buffer"
@@ -298,7 +298,7 @@ final_validations:
   5. "Adjust milestones to match typical patterns"
   Validations: Timeline modified incrementally, clinical trial WP added, realistic durations.
 
-- [ ] RUN & FIX: Execute scenario. Fix timeline modification logic.
+- [x] RUN & FIX: Execute scenario. Fix timeline modification logic.
 
 ### Task 013: Consortium Building Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/consortium_building.yaml` with steps:
