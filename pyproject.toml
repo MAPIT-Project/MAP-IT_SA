@@ -40,6 +40,11 @@ select = [
 ignore = [
 ]
 
+[tool.ruff.lint.per-file-ignores]
+# These files contain long URLs and markdown tables in LLM prompts that cannot be broken
+"app/services/agents/tool_aware_agent.py" = ["E501"]
+"app/services/response/v3_response_formatter.py" = ["E501"]
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"

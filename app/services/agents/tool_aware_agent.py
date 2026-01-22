@@ -12,14 +12,14 @@ Based on the ReAct (Reasoning + Acting) pattern.
 """
 
 import asyncio
-import json
-import logging
-import os
-import re
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
+import json
+import logging
+import os
+import re
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -29,9 +29,11 @@ logger = logging.getLogger(__name__)
 # CONTEXT WINDOW MANAGEMENT
 # =============================================================================
 
+
 @dataclass
 class ContextLimits:
     """Configuration for context window limits."""
+
     # Maximum tokens for various components (approximate, using char/4 ratio)
     max_context_chars: int = 100000  # ~25k tokens
     max_tool_result_chars: int = 5000  # Per tool result
@@ -43,13 +45,13 @@ class ContextLimits:
     reserved_for_response: int = 4000  # Reserve for output
 
     @classmethod
-    def from_env(cls) -> 'ContextLimits':
+    def from_env(cls) -> "ContextLimits":
         """Load limits from environment variables with defaults."""
         return cls(
-            max_context_chars=int(os.getenv('MAX_CONTEXT_CHARS', '100000')),
-            max_tool_result_chars=int(os.getenv('MAX_TOOL_RESULT_CHARS', '5000')),
-            max_observation_chars=int(os.getenv('MAX_OBSERVATION_CHARS', '1500')),
-            max_document_chars=int(os.getenv('MAX_DOCUMENT_CHARS', '600')),
+            max_context_chars=int(os.getenv("MAX_CONTEXT_CHARS", "100000")),
+            max_tool_result_chars=int(os.getenv("MAX_TOOL_RESULT_CHARS", "5000")),
+            max_observation_chars=int(os.getenv("MAX_OBSERVATION_CHARS", "1500")),
+            max_document_chars=int(os.getenv("MAX_DOCUMENT_CHARS", "600")),
         )
 
 
@@ -75,7 +77,7 @@ class ContextWindowManager:
             return ""
         if len(text) <= max_chars:
             return text
-        return text[:max_chars - len(suffix)] + suffix
+        return text[: max_chars - len(suffix)] + suffix
 
     def truncate_tool_result(self, result: Any) -> str:
         """Truncate a tool result to fit within limits."""
@@ -103,7 +105,9 @@ class ContextWindowManager:
 
     def add_to_context(self, content: str) -> str:
         """Add content to context, truncating if necessary."""
-        available = self.limits.max_context_chars - self._current_size - self.limits.reserved_for_response
+        available = (
+            self.limits.max_context_chars - self._current_size - self.limits.reserved_for_response
+        )
         if available <= 0:
             logger.warning("Context window exhausted, dropping content")
             return ""
@@ -116,19 +120,19 @@ class ContextWindowManager:
         return content
 
     def format_results_for_context(
-        self,
-        results: dict[str, Any],
-        priority_keys: list[str] | None = None
+        self, results: dict[str, Any], priority_keys: list[str] | None = None
     ) -> str:
         """Format tool results for inclusion in context, respecting limits."""
         if not results:
             return "No tool results yet"
 
         # Prioritize certain result types
-        priority_keys = priority_keys or ['calls', 'projects', 'documents']
+        priority_keys = priority_keys or ["calls", "projects", "documents"]
 
         formatted_parts = []
-        remaining_budget = self.limits.max_context_chars - self._current_size - self.limits.reserved_for_response
+        remaining_budget = (
+            self.limits.max_context_chars - self._current_size - self.limits.reserved_for_response
+        )
 
         for name, result in results.items():
             if remaining_budget <= 0:
@@ -153,26 +157,28 @@ _context_manager = ContextWindowManager()
 
 class ToolCategory(Enum):
     """Categories of tools available to the agent."""
-    STATISTICS = "statistics"      # Graph DB queries for numbers
-    DOCUMENTS = "documents"        # Vector search for text
-    CALLS = "calls"               # Funding call search
-    PROJECTS = "projects"         # CORDIS project search
-    COMPARISON = "comparison"     # Cross-reference tools
-    VALIDATION = "validation"     # Fact-checking tools
-    PROGRAMMES = "programmes"     # Multi-programme discovery and info
-    PROPOSAL = "proposal"         # Proposal writing and quality tools
+
+    STATISTICS = "statistics"  # Graph DB queries for numbers
+    DOCUMENTS = "documents"  # Vector search for text
+    CALLS = "calls"  # Funding call search
+    PROJECTS = "projects"  # CORDIS project search
+    COMPARISON = "comparison"  # Cross-reference tools
+    VALIDATION = "validation"  # Fact-checking tools
+    PROGRAMMES = "programmes"  # Multi-programme discovery and info
+    PROPOSAL = "proposal"  # Proposal writing and quality tools
 
 
 @dataclass
 class Tool:
     """Definition of a tool the agent can use."""
+
     name: str
     description: str
     category: ToolCategory
     parameters: dict[str, Any]
     examples: list[str] = field(default_factory=list)
     executor: Callable[..., Awaitable[Any]] | None = None
-    
+
     def to_prompt_format(self) -> str:
         """Format tool for LLM prompt."""
         params_str = ", ".join(f"{k}: {v}" for k, v in self.parameters.items())
@@ -182,6 +188,7 @@ class Tool:
 @dataclass
 class ToolCall:
     """A planned or executed tool call."""
+
     tool_name: str
     parameters: dict[str, Any]
     reasoning: str = ""
@@ -194,6 +201,7 @@ class ToolCall:
 @dataclass
 class ReasoningStep:
     """A single step in the agent's reasoning process."""
+
     step_number: int
     thought: str
     action: str  # "call_tool", "analyze", "conclude", "compare"
@@ -202,9 +210,10 @@ class ReasoningStep:
     next_action_needed: bool = True
 
 
-@dataclass 
+@dataclass
 class AgentPlan:
     """The agent's plan for answering a complex question."""
+
     query: str
     complexity: str  # "simple", "multi_source", "comparison", "analysis"
     required_sources: list[str]
@@ -217,7 +226,7 @@ class AgentPlan:
 class ToolAwareAgent:
     """
     ReAct-style agent that reasons about and uses multiple tools.
-    
+
     Key capabilities:
     - Analyzes query complexity to determine tool needs
     - Calls multiple tools in parallel when independent
@@ -225,7 +234,7 @@ class ToolAwareAgent:
     - Compares and contrasts results from different sources
     - Iteratively refines by calling more tools based on findings
     """
-    
+
     # Built-in knowledge for common questions where documents may be incomplete
     BUILT_IN_KNOWLEDGE = """
 ## Quick Reference: Horizon Europe Facts
@@ -986,6 +995,43 @@ When user asks to broaden scope after a funding/history analysis (e.g., "what ab
    - For finding partners → use find_experienced_partners (organizations with track records in specific topics)
    - For **general eligibility rules** (not country-specific) → use search_documents (use SPECIFIC queries like "consortium eligibility", NOT the full user message)
    - For comparing things → use compare_programmes
+   - For **context-building statements** (NO explicit question) → Handle PROACTIVELY with a helpful response!
+
+## CRITICAL: Handling Context-Building Messages (MANDATORY)
+
+When the user provides CONTEXT without asking a question (e.g., "We're in the healthcare sector", "I'm from Germany", "We're an SME", "We focus on AI research"), you MUST:
+
+1. **ACKNOWLEDGE** the context warmly and professionally
+2. **STORE** the information for future personalization
+3. **RESPOND PROACTIVELY** with relevant guidance based on their context
+4. **ASK** a clarifying follow-up question to understand what they need
+
+**NEVER return an empty response for context-building messages!**
+
+Examples of context-building messages:
+- "We're in the healthcare sector" → Acknowledge, mention relevant Cluster 1 calls, ask what specific area they're interested in
+- "I'm from a university in Germany" → Acknowledge Germany's excellent eligibility, mention strong coordination rates, ask about research focus
+- "We're an SME with 50 employees" → Acknowledge SME status, mention EIC Accelerator opportunities, ask about innovation area
+- "We work on renewable energy" → Acknowledge, mention Cluster 5 and Mission Climate, ask if they want calls or partner search
+- "Our budget is around €5 million" → Acknowledge, mention this fits RIA/IA ranges well, ask about topic area
+
+Response template for context-building:
+```
+Thank you for sharing that context - [acknowledge their specific situation].
+
+Based on this, here are some relevant opportunities:
+• [Relevant programme/cluster/funding type for their context]
+• [Key advantage or consideration for their situation]
+• [Potential pathway or opportunity]
+
+🎯 **Next Steps:**
+• [Specific actionable step 1]
+• [Specific actionable step 2]
+• [Specific actionable step 3]
+
+To help you better, could you tell me:
+• [Relevant follow-up question based on their context]?
+```
 
 3. **EXECUTE**: Call the tools
 
@@ -1027,11 +1073,33 @@ Respond ONLY with JSON (no other text):
 - For funding calls: include title, call ID, type, deadline, cluster, and scope
 - Be comprehensive but organized
 - **For partner discovery**: When user asks for "partners" or "participants" (PLURAL), list AT LEAST 5-10 organizations with full details (name, type, projects, funding, expertise). NEVER return just 1-2 partners.
-- **ALWAYS include actionable links** at the end of your response:
-  - For programme info queries: include the 'actionable_guidance' from the tool response
-  - For call searches: include links to the EU Portal and Work Programmes
-  - For project searches: include CORDIS links
-  - This helps users take immediate next steps (e.g., official programme page, portal link)
+
+## CRITICAL: Actionable Responses (MANDATORY)
+
+**EVERY response MUST end with a "🎯 Next Steps:" section containing 3-5 specific, actionable items.**
+
+This is NOT optional - responses without actionable next steps are INCOMPLETE.
+
+Format your conclusion with this structure:
+```
+[Main answer content]
+
+---
+
+🎯 **Next Steps:**
+• [Specific action 1 - e.g., "Register on the EU Funding Portal at ec.europa.eu/info/funding-tenders"]
+• [Specific action 2 - e.g., "Download the 2025 Work Programme for Cluster 5"]
+• [Specific action 3 - e.g., "Contact your National Contact Point for eligibility verification"]
+• [Specific action 4 - e.g., "Use Partner Search to find consortium members"]
+```
+
+**Next Steps should be query-type specific:**
+- **For funding calls**: Register on portal, download work programme, check deadlines, find partners
+- **For projects**: Study similar projects, contact coordinators, review CORDIS deliverables
+- **For partners**: Use Partner Search, contact organizations, check their expertise areas
+- **For budgets**: Review similar project budgets, use cost calculator, consult finance team
+- **For eligibility**: Verify PIC registration, check country status, contact NCP
+- **For general questions**: Visit official programme page, review documentation, attend info days
 
 ## CRITICAL: Action Type Comparisons (IA vs CSA vs RIA)
 
@@ -1734,6 +1802,7 @@ What is your next step? Remember: Output ONLY JSON."""
         """Initialize tool analytics for usage tracking."""
         try:
             from ..analytics.tool_analytics_service import get_analytics_service
+
             self.analytics = get_analytics_service()
             logger.info("✅ Tool analytics initialized")
         except Exception as e:
@@ -1764,6 +1833,7 @@ What is your next step? Remember: Output ONLY JSON."""
 
         try:
             from ..quality.response_quality_analyzer import ResponseQualityAnalyzer
+
             self.quality_analyzer = ResponseQualityAnalyzer()
             logger.info("✅ Response quality analyzer initialized")
         except Exception as e:
@@ -1771,10 +1841,7 @@ What is your next step? Remember: Output ONLY JSON."""
             self.quality_analyzer = None
 
     def _analyze_response_quality(
-        self,
-        query: str,
-        answer: str,
-        tool_results: dict[str, Any]
+        self, query: str, answer: str, tool_results: dict[str, Any]
     ) -> dict[str, Any] | None:
         """Analyze the quality of a generated response.
 
@@ -1792,13 +1859,11 @@ What is your next step? Remember: Output ONLY JSON."""
         try:
             # Analyze the response
             analysis = self.quality_analyzer.analyze(
-                query=query,
-                response=answer,
-                tool_results=tool_results
+                query=query, response=answer, tool_results=tool_results
             )
 
             # Log quality metrics for monitoring
-            if analysis.category.value in ('deflection', 'empty'):
+            if analysis.category.value in ("deflection", "empty"):
                 logger.warning(
                     f"⚠️ Response quality issue detected: "
                     f"category={analysis.category.value}, score={analysis.score}, "
@@ -1820,14 +1885,16 @@ What is your next step? Remember: Output ONLY JSON."""
     def _init_llm(self):
         """Initialize the LLM for reasoning."""
         import os
-        self.llm_provider = os.getenv('DEFAULT_AI_PROVIDER', 'gemini')
-        
-        if self.llm_provider == 'gemini':
+
+        self.llm_provider = os.getenv("DEFAULT_AI_PROVIDER", "gemini")
+
+        if self.llm_provider == "gemini":
             try:
                 import google.generativeai as genai
-                genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
+
+                genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
                 # Use GEMINI_MODEL from env - defaults to latest flash model
-                model_name = os.getenv('GEMINI_MODEL', 'gemini-flash-latest')
+                model_name = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
                 self.llm = genai.GenerativeModel(model_name)
                 logger.info(f"🧠 ToolAwareAgent using model: {model_name}")
             except Exception as e:
@@ -1836,83 +1903,92 @@ What is your next step? Remember: Output ONLY JSON."""
         else:
             self.llm = None
             logger.warning("LLM not configured for ToolAwareAgent")
-    
+
     def _init_tools(self):
         """Initialize all available tools."""
-        
+
         # Graph-based statistics tools
-        self.register_tool(Tool(
-            name="get_programme_statistics",
-            description="Get success rates, funding amounts, and participation statistics for a specific programme or cluster",
-            category=ToolCategory.STATISTICS,
-            parameters={
-                "programme": "Programme name (e.g., 'EIC', 'ERC', 'MSCA', 'Cluster 5')",
-                "metric": "Optional: specific metric like 'success_rate', 'avg_funding', 'participation'"
-            },
-            examples=[
-                "get_programme_statistics(programme='EIC Accelerator')",
-                "get_programme_statistics(programme='Cluster 5', metric='success_rate')"
-            ]
-        ))
-        
-        self.register_tool(Tool(
-            name="get_country_statistics",
-            description="""Get participation statistics and top organizations for ONE SPECIFIC country.
+        self.register_tool(
+            Tool(
+                name="get_programme_statistics",
+                description="Get success rates, funding amounts, and participation statistics for a specific programme or cluster",
+                category=ToolCategory.STATISTICS,
+                parameters={
+                    "programme": "Programme name (e.g., 'EIC', 'ERC', 'MSCA', 'Cluster 5')",
+                    "metric": "Optional: specific metric like 'success_rate', 'avg_funding', 'participation'",
+                },
+                examples=[
+                    "get_programme_statistics(programme='EIC Accelerator')",
+                    "get_programme_statistics(programme='Cluster 5', metric='success_rate')",
+                ],
+            )
+        )
+
+        self.register_tool(
+            Tool(
+                name="get_country_statistics",
+                description="""Get participation statistics and top organizations for ONE SPECIFIC country.
 
 **IMPORTANT**: This tool is for SINGLE COUNTRY lookups only. Use a real country name/code (Germany, FR, Netherlands, etc.).
 DO NOT use "EU" as a country - it's not valid. For analytical "why" questions about country differences, use BUILT-IN KNOWLEDGE instead.
 
 Returns: Eligibility status, top organizations in that country, and participation data.""",
-            category=ToolCategory.STATISTICS,
-            parameters={
-                "country": "Country name (e.g., 'Germany', 'France') or ISO code (e.g., 'DE', 'FR'). NOT 'EU'.",
-                "programme": "Optional: filter by programme"
-            },
-            examples=[
-                "get_country_statistics(country='Germany')",
-                "get_country_statistics(country='Netherlands', programme='EIC')"
-            ]
-        ))
+                category=ToolCategory.STATISTICS,
+                parameters={
+                    "country": "Country name (e.g., 'Germany', 'France') or ISO code (e.g., 'DE', 'FR'). NOT 'EU'.",
+                    "programme": "Optional: filter by programme",
+                },
+                examples=[
+                    "get_country_statistics(country='Germany')",
+                    "get_country_statistics(country='Netherlands', programme='EIC')",
+                ],
+            )
+        )
 
         # Budget benchmarking tool
-        self.register_tool(Tool(
-            name="get_budget_benchmark",
-            description="Get real budget statistics from funded Horizon Europe projects. Returns min/max/average/median EU contributions, budget per partner, consortium sizes, and data-driven recommendations.",
-            category=ToolCategory.STATISTICS,
-            parameters={
-                "cluster": "Optional: Cluster code (e.g., 'CL4', 'CL5', 'EIC')",
-                "action_type": "Optional: Action type (e.g., 'RIA', 'IA', 'CSA', 'ERC-STG')",
-                "topic_keywords": "Optional: Keywords to filter projects (e.g., 'AI', 'hydrogen')",
-                "year": "Optional: Filter by funding year"
-            },
-            examples=[
-                "get_budget_benchmark(cluster='CL4', action_type='RIA')",
-                "get_budget_benchmark(action_type='IA', topic_keywords='hydrogen')",
-                "get_budget_benchmark(cluster='CL5')"
-            ]
-        ))
+        self.register_tool(
+            Tool(
+                name="get_budget_benchmark",
+                description="Get real budget statistics from funded Horizon Europe projects. Returns min/max/average/median EU contributions, budget per partner, consortium sizes, and data-driven recommendations.",
+                category=ToolCategory.STATISTICS,
+                parameters={
+                    "cluster": "Optional: Cluster code (e.g., 'CL4', 'CL5', 'EIC')",
+                    "action_type": "Optional: Action type (e.g., 'RIA', 'IA', 'CSA', 'ERC-STG')",
+                    "topic_keywords": "Optional: Keywords to filter projects (e.g., 'AI', 'hydrogen')",
+                    "year": "Optional: Filter by funding year",
+                },
+                examples=[
+                    "get_budget_benchmark(cluster='CL4', action_type='RIA')",
+                    "get_budget_benchmark(action_type='IA', topic_keywords='hydrogen')",
+                    "get_budget_benchmark(cluster='CL5')",
+                ],
+            )
+        )
 
         # Consortium patterns tool
-        self.register_tool(Tool(
-            name="get_consortium_patterns",
-            description="Analyze consortium composition patterns from funded projects. Returns organization type distribution (HES, REC, PRC, SME), country participation rates, coordinator profiles, and composition recommendations.",
-            category=ToolCategory.STATISTICS,
-            parameters={
-                "cluster": "Optional: Cluster code (e.g., 'CL4', 'CL5', 'EIC')",
-                "action_type": "Optional: Action type (e.g., 'RIA', 'IA', 'CSA')",
-                "topic_keywords": "Optional: Keywords to filter projects"
-            },
-            examples=[
-                "get_consortium_patterns(cluster='CL4', action_type='RIA')",
-                "get_consortium_patterns(action_type='IA')",
-                "get_consortium_patterns(topic_keywords='hydrogen')"
-            ]
-        ))
+        self.register_tool(
+            Tool(
+                name="get_consortium_patterns",
+                description="Analyze consortium composition patterns from funded projects. Returns organization type distribution (HES, REC, PRC, SME), country participation rates, coordinator profiles, and composition recommendations.",
+                category=ToolCategory.STATISTICS,
+                parameters={
+                    "cluster": "Optional: Cluster code (e.g., 'CL4', 'CL5', 'EIC')",
+                    "action_type": "Optional: Action type (e.g., 'RIA', 'IA', 'CSA')",
+                    "topic_keywords": "Optional: Keywords to filter projects",
+                },
+                examples=[
+                    "get_consortium_patterns(cluster='CL4', action_type='RIA')",
+                    "get_consortium_patterns(action_type='IA')",
+                    "get_consortium_patterns(topic_keywords='hydrogen')",
+                ],
+            )
+        )
 
         # Geographic diversification tool
-        self.register_tool(Tool(
-            name="analyze_geographic_diversification",
-            description="""Analyze geographic diversification of country partners in consortia by custom country groups.
+        self.register_tool(
+            Tool(
+                name="analyze_geographic_diversification",
+                description="""Analyze geographic diversification of country partners in consortia by custom country groups.
 
 **USE THIS TOOL WHEN**: User asks about country group coverage, geographic diversity patterns, or share of projects with partners from specific European regions (Nordic, South Europe, Baltic, CEE, Western Balkans, EPC, Islands, Western Europe).
 
@@ -1931,71 +2007,77 @@ Default country groups:
 - Western Balkans: HR, RS, ME
 - EPC (Eastern Partnership): MD, BY, UA, GE, AM, AZ
 - Islands: IE, UK, MT, CY""",
-            category=ToolCategory.STATISTICS,
-            parameters={
-                "cluster": "Optional: Cluster code (e.g., 'CL2' for Cluster 2/SSH)",
-                "exclude_widening": "Optional: Exclude Widening calls (default: True)",
-                "min_partners": "Optional: Minimum partners for consortium inclusion (default: 3)",
-                "country_groups": "Optional: Custom country group definitions (dict of group_name -> [country_codes])"
-            },
-            examples=[
-                "analyze_geographic_diversification(cluster='CL2', exclude_widening=True)",
-                "analyze_geographic_diversification(cluster='CL5')",
-                "analyze_geographic_diversification()"
-            ]
-        ))
+                category=ToolCategory.STATISTICS,
+                parameters={
+                    "cluster": "Optional: Cluster code (e.g., 'CL2' for Cluster 2/SSH)",
+                    "exclude_widening": "Optional: Exclude Widening calls (default: True)",
+                    "min_partners": "Optional: Minimum partners for consortium inclusion (default: 3)",
+                    "country_groups": "Optional: Custom country group definitions (dict of group_name -> [country_codes])",
+                },
+                examples=[
+                    "analyze_geographic_diversification(cluster='CL2', exclude_widening=True)",
+                    "analyze_geographic_diversification(cluster='CL5')",
+                    "analyze_geographic_diversification()",
+                ],
+            )
+        )
 
         # Partner discovery tool
-        self.register_tool(Tool(
-            name="find_experienced_partners",
-            description="Find organizations with proven track records in Horizon Europe and/or Horizon 2020 projects. Returns organizations ranked by relevant projects, coordination experience, and funding received. Supports filtering by programme (HORIZON, H2020, or both).",
-            category=ToolCategory.PROJECTS,
-            parameters={
-                "topic_keywords": "Required: Keywords describing the research area (e.g., 'quantum computing')",
-                "country": "Optional: Country name or code (e.g., 'Germany', 'DE')",
-                "organization_type": "Optional: HES, REC, PRC, SME, university, research",
-                "cluster": "Optional: Cluster code (CL2, CL4, CL5, etc.)",
-                "min_projects": "Optional: Minimum projects to be considered experienced (default: 2)",
-                "role_filter": "Optional: 'coordinator' or 'participant'",
-                "programme": "Optional: 'HORIZON' (HE only), 'H2020' (H2020 only), or 'both' (default: both)"
-            },
-            examples=[
-                "find_experienced_partners(topic_keywords='quantum computing', country='Germany')",
-                "find_experienced_partners(topic_keywords='hydrogen', organization_type='SME')",
-                "find_experienced_partners(topic_keywords='AI healthcare', role_filter='coordinator')",
-                "find_experienced_partners(topic_keywords='democracy governance society', cluster='CL2', role_filter='coordinator', programme='both')"
-            ]
-        ))
+        self.register_tool(
+            Tool(
+                name="find_experienced_partners",
+                description="Find organizations with proven track records in Horizon Europe and/or Horizon 2020 projects. Returns organizations ranked by relevant projects, coordination experience, and funding received. Supports filtering by programme (HORIZON, H2020, or both).",
+                category=ToolCategory.PROJECTS,
+                parameters={
+                    "topic_keywords": "Required: Keywords describing the research area (e.g., 'quantum computing')",
+                    "country": "Optional: Country name or code (e.g., 'Germany', 'DE')",
+                    "organization_type": "Optional: HES, REC, PRC, SME, university, research",
+                    "cluster": "Optional: Cluster code (CL2, CL4, CL5, etc.)",
+                    "min_projects": "Optional: Minimum projects to be considered experienced (default: 2)",
+                    "role_filter": "Optional: 'coordinator' or 'participant'",
+                    "programme": "Optional: 'HORIZON' (HE only), 'H2020' (H2020 only), or 'both' (default: both)",
+                },
+                examples=[
+                    "find_experienced_partners(topic_keywords='quantum computing', country='Germany')",
+                    "find_experienced_partners(topic_keywords='hydrogen', organization_type='SME')",
+                    "find_experienced_partners(topic_keywords='AI healthcare', role_filter='coordinator')",
+                    "find_experienced_partners(topic_keywords='democracy governance society', cluster='CL2', role_filter='coordinator', programme='both')",
+                ],
+            )
+        )
 
         # Similar funded projects tool (semantic search) - FOR PROPOSAL SUPPORT ONLY
-        self.register_tool(Tool(
-            name="get_similar_funded_projects",
-            description="""Find projects similar to a SPECIFIC PROPOSAL IDEA for proposal writing support.
+        self.register_tool(
+            Tool(
+                name="get_similar_funded_projects",
+                description="""Find projects similar to a SPECIFIC PROPOSAL IDEA for proposal writing support.
 
 **USE THIS TOOL WHEN**: User is writing a proposal and wants to find similar funded projects to learn from.
 **DO NOT USE FOR**: General project searches like "find projects about X" - use search_projects instead.
 
 This tool uses AI embeddings to match a detailed proposal description to funded projects.""",
-            category=ToolCategory.PROJECTS,
-            parameters={
-                "description": "Required: Detailed project idea/proposal description to match (min 20 chars)",
-                "cluster": "Optional: Cluster code filter (CL4, CL5, EIC, etc.)",
-                "action_type": "Optional: Action type filter (RIA, IA, CSA)",
-                "min_budget": "Optional: Minimum EU contribution filter",
-                "max_budget": "Optional: Maximum EU contribution filter",
-                "year_from": "Optional: Filter for projects starting from year",
-                "limit": "Optional: Number of results (default 10)"
-            },
-            examples=[
-                "get_similar_funded_projects(description='Our proposal develops an AI-powered diagnostic system for early cancer detection using deep learning on medical imaging data, targeting integration with existing hospital workflows')",
-                "get_similar_funded_projects(description='Novel green hydrogen production using advanced electrolyzers with 30% efficiency improvement', cluster='CL5')"
-            ]
-        ))
+                category=ToolCategory.PROJECTS,
+                parameters={
+                    "description": "Required: Detailed project idea/proposal description to match (min 20 chars)",
+                    "cluster": "Optional: Cluster code filter (CL4, CL5, EIC, etc.)",
+                    "action_type": "Optional: Action type filter (RIA, IA, CSA)",
+                    "min_budget": "Optional: Minimum EU contribution filter",
+                    "max_budget": "Optional: Maximum EU contribution filter",
+                    "year_from": "Optional: Filter for projects starting from year",
+                    "limit": "Optional: Number of results (default 10)",
+                },
+                examples=[
+                    "get_similar_funded_projects(description='Our proposal develops an AI-powered diagnostic system for early cancer detection using deep learning on medical imaging data, targeting integration with existing hospital workflows')",
+                    "get_similar_funded_projects(description='Novel green hydrogen production using advanced electrolyzers with 30% efficiency improvement', cluster='CL5')",
+                ],
+            )
+        )
 
         # Call history analysis tool
-        self.register_tool(Tool(
-            name="analyze_call_history",
-            description="""Analyze historical funding patterns for Horizon Europe topics. Shows what got funded, when, funding trends over time, and recommendations.
+        self.register_tool(
+            Tool(
+                name="analyze_call_history",
+                description="""Analyze historical funding patterns for Horizon Europe topics. Shows what got funded, when, funding trends over time, and recommendations.
 
 IMPORTANT - Scope Control with 'expand_scope':
 - expand_scope=False (default): Searches for projects where the topic IS the main focus (e.g., "AI research projects")
@@ -2003,88 +2085,98 @@ IMPORTANT - Scope Control with 'expand_scope':
 
 When user asks about "projects using X" or "X as part of projects" or "applied X", set expand_scope=True.
 This uses AI to automatically expand keywords to related terms (e.g., "AI" → includes "machine learning", "neural networks", "deep learning", etc.)""",
-            category=ToolCategory.STATISTICS,
-            parameters={
-                "topic_pattern": "Optional: Topic code pattern (e.g., 'HORIZON-CL4-2023')",
-                "cluster": "Optional: Cluster code (CL4, CL5, EIC, etc.)",
-                "keywords": "Optional: Keywords to search in call titles/descriptions",
-                "year_from": "Optional: Starting year filter",
-                "year_to": "Optional: Ending year filter",
-                "action_types": "Optional: List of action types (RIA, IA, CSA)",
-                "include_projects": "Optional: Include funded project examples (default true)",
-                "expand_scope": "Optional: Set to true to include projects where the topic is USED/APPLIED, not just focused on it. Uses AI to expand keywords to related terms."
-            },
-            examples=[
-                "analyze_call_history(cluster='CL4', keywords='artificial intelligence')  # AI-focused projects only",
-                "analyze_call_history(keywords='artificial intelligence', expand_scope=True)  # Projects USING AI",
-                "analyze_call_history(keywords='hydrogen', year_from=2022)",
-                "analyze_call_history(cluster='CL5', action_types=['RIA', 'IA'])"
-            ]
-        ))
+                category=ToolCategory.STATISTICS,
+                parameters={
+                    "topic_pattern": "Optional: Topic code pattern (e.g., 'HORIZON-CL4-2023')",
+                    "cluster": "Optional: Cluster code (CL4, CL5, EIC, etc.)",
+                    "keywords": "Optional: Keywords to search in call titles/descriptions",
+                    "year_from": "Optional: Starting year filter",
+                    "year_to": "Optional: Ending year filter",
+                    "action_types": "Optional: List of action types (RIA, IA, CSA)",
+                    "include_projects": "Optional: Include funded project examples (default true)",
+                    "expand_scope": "Optional: Set to true to include projects where the topic is USED/APPLIED, not just focused on it. Uses AI to expand keywords to related terms.",
+                },
+                examples=[
+                    "analyze_call_history(cluster='CL4', keywords='artificial intelligence')  # AI-focused projects only",
+                    "analyze_call_history(keywords='artificial intelligence', expand_scope=True)  # Projects USING AI",
+                    "analyze_call_history(keywords='hydrogen', year_from=2022)",
+                    "analyze_call_history(cluster='CL5', action_types=['RIA', 'IA'])",
+                ],
+            )
+        )
 
-        self.register_tool(Tool(
-            name="compare_programmes",
-            description="Compare statistics between two programmes or clusters",
-            category=ToolCategory.COMPARISON,
-            parameters={
-                "programme_a": "First programme to compare",
-                "programme_b": "Second programme to compare",
-                "metrics": "List of metrics to compare"
-            },
-            examples=[
-                "compare_programmes(programme_a='EIC', programme_b='ERC', metrics=['success_rate', 'avg_funding'])"
-            ]
-        ))
-        
+        self.register_tool(
+            Tool(
+                name="compare_programmes",
+                description="Compare statistics between two programmes or clusters",
+                category=ToolCategory.COMPARISON,
+                parameters={
+                    "programme_a": "First programme to compare",
+                    "programme_b": "Second programme to compare",
+                    "metrics": "List of metrics to compare",
+                },
+                examples=[
+                    "compare_programmes(programme_a='EIC', programme_b='ERC', metrics=['success_rate', 'avg_funding'])"
+                ],
+            )
+        )
+
         # Document search tools
-        self.register_tool(Tool(
-            name="search_documents",
-            description="Search official EU documents for specific information (rules, eligibility, requirements)",
-            category=ToolCategory.DOCUMENTS,
-            parameters={
-                "query": "Search query",
-                "document_type": "Optional: 'regulation', 'work_programme', 'guidance', 'template'",
-                "max_results": "Optional: number of results (default 5)"
-            },
-            examples=[
-                "search_documents(query='consortium eligibility RIA')",
-                "search_documents(query='budget categories', document_type='guidance')"
-            ]
-        ))
-        
+        self.register_tool(
+            Tool(
+                name="search_documents",
+                description="Search official EU documents for specific information (rules, eligibility, requirements)",
+                category=ToolCategory.DOCUMENTS,
+                parameters={
+                    "query": "Search query",
+                    "document_type": "Optional: 'regulation', 'work_programme', 'guidance', 'template'",
+                    "max_results": "Optional: number of results (default 5)",
+                },
+                examples=[
+                    "search_documents(query='consortium eligibility RIA')",
+                    "search_documents(query='budget categories', document_type='guidance')",
+                ],
+            )
+        )
+
         # Funding call tools
-        self.register_tool(Tool(
-            name="search_funding_calls",
-            description="Search for open or upcoming funding calls",
-            category=ToolCategory.CALLS,
-            parameters={
-                "keywords": "Keywords to search for",
-                "status": "Optional: 'open', 'upcoming', 'closed'",
-                "year": "Optional: specific year"
-            },
-            examples=[
-                "search_funding_calls(keywords='hydrogen energy', status='open')",
-                "search_funding_calls(keywords='AI healthcare', year=2025)"
-            ]
-        ))
-        
-        self.register_tool(Tool(
-            name="get_call_details",
-            description="Get detailed information about a specific funding call by its ID. Use this when the user provides a call ID (e.g., HORIZON-*, CREA-*, EIC-*). This tool fetches from the EU Portal API if not found locally.",
-            category=ToolCategory.CALLS,
-            parameters={
-                "call_id": "The call identifier (e.g., 'HORIZON-CL5-2025-D3-01', 'CREA-MEDIA-2026-FILMSALES')"
-            },
-            examples=[
-                "get_call_details(call_id='HORIZON-CL5-2025-D3-01')",
-                "get_call_details(call_id='CREA-MEDIA-2026-FILMSALES')"
-            ]
-        ))
-        
+        self.register_tool(
+            Tool(
+                name="search_funding_calls",
+                description="Search for open or upcoming funding calls",
+                category=ToolCategory.CALLS,
+                parameters={
+                    "keywords": "Keywords to search for",
+                    "status": "Optional: 'open', 'upcoming', 'closed'",
+                    "year": "Optional: specific year",
+                },
+                examples=[
+                    "search_funding_calls(keywords='hydrogen energy', status='open')",
+                    "search_funding_calls(keywords='AI healthcare', year=2025)",
+                ],
+            )
+        )
+
+        self.register_tool(
+            Tool(
+                name="get_call_details",
+                description="Get detailed information about a specific funding call by its ID. Use this when the user provides a call ID (e.g., HORIZON-*, CREA-*, EIC-*). This tool fetches from the EU Portal API if not found locally.",
+                category=ToolCategory.CALLS,
+                parameters={
+                    "call_id": "The call identifier (e.g., 'HORIZON-CL5-2025-D3-01', 'CREA-MEDIA-2026-FILMSALES')"
+                },
+                examples=[
+                    "get_call_details(call_id='HORIZON-CL5-2025-D3-01')",
+                    "get_call_details(call_id='CREA-MEDIA-2026-FILMSALES')",
+                ],
+            )
+        )
+
         # Project search tools
-        self.register_tool(Tool(
-            name="search_projects",
-            description="""Search the CORDIS database for funded Horizon Europe projects by topic/keywords.
+        self.register_tool(
+            Tool(
+                name="search_projects",
+                description="""Search the CORDIS database for funded Horizon Europe projects by topic/keywords.
 
 **USE THIS TOOL FOR**: General project searches like "find projects about AI", "show me quantum computing projects", "projects on climate change"
 **Returns**: List of funded projects matching the keywords with titles, budgets, consortiums, and descriptions.
@@ -2096,139 +2188,146 @@ This uses AI to automatically expand keywords to related terms (e.g., "AI" → i
 - The search uses full-text matching on project titles, objectives, and topics
 
 This is the PRIMARY tool for finding projects by topic.""",
-            category=ToolCategory.PROJECTS,
-            parameters={
-                "keywords": "Required: Keywords/topic to search for (e.g., 'machine learning healthcare', 'quantum computing', 'green hydrogen')",
-                "programme": "Optional: Filter by programme (Horizon Europe, EIC, ERC, etc.)",
-                "country": "Optional: Filter by coordinator/participant country",
-                "limit": "Optional: Number of results (default 10)"
-            },
-            examples=[
-                "search_projects(keywords='machine learning healthcare diagnostics')",
-                "search_projects(keywords='artificial intelligence robotics')",
-                "search_projects(keywords='renewable energy', country='Germany')",
-                "search_projects(keywords='deep learning computer vision', limit=15)"
-            ]
-        ))
-        
-        self.register_tool(Tool(
-            name="get_project_details",
-            description="Get detailed information about a specific project",
-            category=ToolCategory.PROJECTS,
-            parameters={
-                "project_id": "The project identifier or acronym"
-            },
-            examples=[
-                "get_project_details(project_id='101000000')"
-            ]
-        ))
-        
-        # Relationship-based project discovery tools
-        self.register_tool(Tool(
-            name="find_similar_projects",
-            description="Find projects similar to a given project based on topic, consortium partners, or cluster",
-            category=ToolCategory.PROJECTS,
-            parameters={
-                "project_id": "The reference project ID",
-                "similarity_type": "Type: 'topic' (same topic), 'consortium' (shared partners), or 'cluster' (same cluster)"
-            },
-            examples=[
-                "find_similar_projects(project_id='101000000', similarity_type='topic')",
-                "find_similar_projects(project_id='101000000', similarity_type='consortium')"
-            ]
-        ))
+                category=ToolCategory.PROJECTS,
+                parameters={
+                    "keywords": "Required: Keywords/topic to search for (e.g., 'machine learning healthcare', 'quantum computing', 'green hydrogen')",
+                    "programme": "Optional: Filter by programme (Horizon Europe, EIC, ERC, etc.)",
+                    "country": "Optional: Filter by coordinator/participant country",
+                    "limit": "Optional: Number of results (default 10)",
+                },
+                examples=[
+                    "search_projects(keywords='machine learning healthcare diagnostics')",
+                    "search_projects(keywords='artificial intelligence robotics')",
+                    "search_projects(keywords='renewable energy', country='Germany')",
+                    "search_projects(keywords='deep learning computer vision', limit=15)",
+                ],
+            )
+        )
 
-        self.register_tool(Tool(
-            name="find_semantically_similar_projects",
-            description="Find projects semantically similar to a given project using AI embeddings (understands project objectives and descriptions)",
-            category=ToolCategory.PROJECTS,
-            parameters={
-                "project_id": "The reference project ID",
-                "limit": "Optional: maximum number of results (default 10)"
-            },
-            examples=[
-                "find_semantically_similar_projects(project_id='101000000')",
-                "find_semantically_similar_projects(project_id='101000000', limit=5)"
-            ]
-        ))
-        
-        self.register_tool(Tool(
-            name="find_organization_projects",
-            description="Find all projects an organization has participated in",
-            category=ToolCategory.PROJECTS,
-            parameters={
-                "organization_name": "Name (or partial name) of the organization",
-                "role": "Optional: 'coordinator' or 'participant'"
-            },
-            examples=[
-                "find_organization_projects(organization_name='Fraunhofer')",
-                "find_organization_projects(organization_name='TU Munich', role='coordinator')"
-            ]
-        ))
-        
-        self.register_tool(Tool(
-            name="get_collaboration_network",
-            description="Get the collaboration network showing which organizations frequently partner together",
-            category=ToolCategory.PROJECTS,
-            parameters={
-                "organization_name": "Name of the organization to find partners for"
-            },
-            examples=[
-                "get_collaboration_network(organization_name='CNRS')"
-            ]
-        ))
-        
-        self.register_tool(Tool(
-            name="search_by_cluster",
-            description="Find projects in a specific research cluster (e.g., Climate, Health, Digital)",
-            category=ToolCategory.PROJECTS,
-            parameters={
-                "cluster": "Cluster name or code (e.g., 'Climate', 'CL5', 'Health')"
-            },
-            examples=[
-                "search_by_cluster(cluster='Climate')",
-                "search_by_cluster(cluster='CL4')"
-            ]
-        ))
+        self.register_tool(
+            Tool(
+                name="get_project_details",
+                description="Get detailed information about a specific project",
+                category=ToolCategory.PROJECTS,
+                parameters={"project_id": "The project identifier or acronym"},
+                examples=["get_project_details(project_id='101000000')"],
+            )
+        )
+
+        # Relationship-based project discovery tools
+        self.register_tool(
+            Tool(
+                name="find_similar_projects",
+                description="Find projects similar to a given project based on topic, consortium partners, or cluster",
+                category=ToolCategory.PROJECTS,
+                parameters={
+                    "project_id": "The reference project ID",
+                    "similarity_type": "Type: 'topic' (same topic), 'consortium' (shared partners), or 'cluster' (same cluster)",
+                },
+                examples=[
+                    "find_similar_projects(project_id='101000000', similarity_type='topic')",
+                    "find_similar_projects(project_id='101000000', similarity_type='consortium')",
+                ],
+            )
+        )
+
+        self.register_tool(
+            Tool(
+                name="find_semantically_similar_projects",
+                description="Find projects semantically similar to a given project using AI embeddings (understands project objectives and descriptions)",
+                category=ToolCategory.PROJECTS,
+                parameters={
+                    "project_id": "The reference project ID",
+                    "limit": "Optional: maximum number of results (default 10)",
+                },
+                examples=[
+                    "find_semantically_similar_projects(project_id='101000000')",
+                    "find_semantically_similar_projects(project_id='101000000', limit=5)",
+                ],
+            )
+        )
+
+        self.register_tool(
+            Tool(
+                name="find_organization_projects",
+                description="Find all projects an organization has participated in",
+                category=ToolCategory.PROJECTS,
+                parameters={
+                    "organization_name": "Name (or partial name) of the organization",
+                    "role": "Optional: 'coordinator' or 'participant'",
+                },
+                examples=[
+                    "find_organization_projects(organization_name='Fraunhofer')",
+                    "find_organization_projects(organization_name='TU Munich', role='coordinator')",
+                ],
+            )
+        )
+
+        self.register_tool(
+            Tool(
+                name="get_collaboration_network",
+                description="Get the collaboration network showing which organizations frequently partner together",
+                category=ToolCategory.PROJECTS,
+                parameters={"organization_name": "Name of the organization to find partners for"},
+                examples=["get_collaboration_network(organization_name='CNRS')"],
+            )
+        )
+
+        self.register_tool(
+            Tool(
+                name="search_by_cluster",
+                description="Find projects in a specific research cluster (e.g., Climate, Health, Digital)",
+                category=ToolCategory.PROJECTS,
+                parameters={"cluster": "Cluster name or code (e.g., 'Climate', 'CL5', 'Health')"},
+                examples=[
+                    "search_by_cluster(cluster='Climate')",
+                    "search_by_cluster(cluster='CL4')",
+                ],
+            )
+        )
 
         # Budget calculator tool (proposal planning)
-        self.register_tool(Tool(
-            name="calculate_budget",
-            description="Calculate realistic budget breakdown for a Horizon Europe proposal. Returns cost categories (personnel, equipment, travel, etc.), per-partner distribution, and benchmarks.",
-            category=ToolCategory.STATISTICS,
-            parameters={
-                "action_type": "Required: Action type (RIA, IA, CSA, ERC-STG, ERC-COG, ERC-ADG)",
-                "duration_months": "Required: Project duration in months",
-                "num_partners": "Required: Number of consortium partners",
-                "total_person_months": "Optional: Total person-months (if known)",
-                "target_budget": "Optional: Target total budget in EUR",
-                "countries": "Optional: List of partner country codes (e.g., ['DE', 'FR', 'ES'])"
-            },
-            examples=[
-                "calculate_budget(action_type='RIA', duration_months=36, num_partners=8)",
-                "calculate_budget(action_type='IA', duration_months=48, num_partners=12, target_budget=10000000)",
-                "calculate_budget(action_type='RIA', duration_months=36, num_partners=6, countries=['DE', 'FR', 'ES', 'PL', 'IT', 'NL'])"
-            ]
-        ))
+        self.register_tool(
+            Tool(
+                name="calculate_budget",
+                description="Calculate realistic budget breakdown for a Horizon Europe proposal. Returns cost categories (personnel, equipment, travel, etc.), per-partner distribution, and benchmarks.",
+                category=ToolCategory.STATISTICS,
+                parameters={
+                    "action_type": "Required: Action type (RIA, IA, CSA, ERC-STG, ERC-COG, ERC-ADG)",
+                    "duration_months": "Required: Project duration in months",
+                    "num_partners": "Required: Number of consortium partners",
+                    "total_person_months": "Optional: Total person-months (if known)",
+                    "target_budget": "Optional: Target total budget in EUR",
+                    "countries": "Optional: List of partner country codes (e.g., ['DE', 'FR', 'ES'])",
+                },
+                examples=[
+                    "calculate_budget(action_type='RIA', duration_months=36, num_partners=8)",
+                    "calculate_budget(action_type='IA', duration_months=48, num_partners=12, target_budget=10000000)",
+                    "calculate_budget(action_type='RIA', duration_months=36, num_partners=6, countries=['DE', 'FR', 'ES', 'PL', 'IT', 'NL'])",
+                ],
+            )
+        )
 
         # Timeline generator tool (proposal planning)
-        self.register_tool(Tool(
-            name="generate_timeline",
-            description="Generate a project timeline with work packages, deliverables, and milestones for a Horizon Europe proposal. Based on best practices from funded projects.",
-            category=ToolCategory.STATISTICS,
-            parameters={
-                "action_type": "Required: Action type (RIA, IA, CSA, ERC)",
-                "duration_months": "Required: Project duration in months",
-                "num_partners": "Required: Number of partners",
-                "total_person_months": "Required: Total effort in person-months",
-                "project_title": "Optional: Project title for naming",
-                "start_date": "Optional: Start date (YYYY-MM-DD)"
-            },
-            examples=[
-                "generate_timeline(action_type='RIA', duration_months=36, num_partners=8, total_person_months=300)",
-                "generate_timeline(action_type='IA', duration_months=48, num_partners=12, total_person_months=500, project_title='GreenHydrogen')"
-            ]
-        ))
+        self.register_tool(
+            Tool(
+                name="generate_timeline",
+                description="Generate a project timeline with work packages, deliverables, and milestones for a Horizon Europe proposal. Based on best practices from funded projects.",
+                category=ToolCategory.STATISTICS,
+                parameters={
+                    "action_type": "Required: Action type (RIA, IA, CSA, ERC)",
+                    "duration_months": "Required: Project duration in months",
+                    "num_partners": "Required: Number of partners",
+                    "total_person_months": "Required: Total effort in person-months",
+                    "project_title": "Optional: Project title for naming",
+                    "start_date": "Optional: Start date (YYYY-MM-DD)",
+                },
+                examples=[
+                    "generate_timeline(action_type='RIA', duration_months=36, num_partners=8, total_person_months=300)",
+                    "generate_timeline(action_type='IA', duration_months=48, num_partners=12, total_person_months=500, project_title='GreenHydrogen')",
+                ],
+            )
+        )
 
         # =====================================================================
         # Multi-Programme Tools (NEW)
@@ -2236,52 +2335,57 @@ This is the PRIMARY tool for finding projects by topic.""",
         # Creative Europe, EU4Health, Digital Europe, LIFE
         # =====================================================================
 
-        self.register_tool(Tool(
-            name="search_all_programmes",
-            description="""Search for funding opportunities across ALL EU programmes in one query.
+        self.register_tool(
+            Tool(
+                name="search_all_programmes",
+                description="""Search for funding opportunities across ALL EU programmes in one query.
 Searches: Horizon Europe (€95.5B), Erasmus+ (€26.2B), Creative Europe (€2.44B),
 EU4Health (€5.3B), Digital Europe (€7.5B), LIFE (€5.4B).
 
 Use this when user asks about funding in a general area (education, health, culture, etc.)
 or wants to compare options across different EU programmes.""",
-            category=ToolCategory.PROGRAMMES,
-            parameters={
-                "keywords": "Required: Search keywords (e.g., 'renewable energy', 'youth mobility', 'digital health')",
-                "programmes": "Optional: List of programmes to search (e.g., ['horizon_europe', 'erasmus_plus']). If not specified, searches all.",
-                "status": "Optional: Filter by status ('open', 'upcoming')",
-                "year": "Optional: Filter by call year"
-            },
-            examples=[
-                "search_all_programmes(keywords='renewable energy')",
-                "search_all_programmes(keywords='digital skills', programmes=['erasmus_plus', 'digital_europe'])",
-                "search_all_programmes(keywords='cancer research', status='open')"
-            ]
-        ))
+                category=ToolCategory.PROGRAMMES,
+                parameters={
+                    "keywords": "Required: Search keywords (e.g., 'renewable energy', 'youth mobility', 'digital health')",
+                    "programmes": "Optional: List of programmes to search (e.g., ['horizon_europe', 'erasmus_plus']). If not specified, searches all.",
+                    "status": "Optional: Filter by status ('open', 'upcoming')",
+                    "year": "Optional: Filter by call year",
+                },
+                examples=[
+                    "search_all_programmes(keywords='renewable energy')",
+                    "search_all_programmes(keywords='digital skills', programmes=['erasmus_plus', 'digital_europe'])",
+                    "search_all_programmes(keywords='cancer research', status='open')",
+                ],
+            )
+        )
 
-        self.register_tool(Tool(
-            name="recommend_programmes",
-            description="""Recommend the best EU funding programmes for a given project or organization.
+        self.register_tool(
+            Tool(
+                name="recommend_programmes",
+                description="""Recommend the best EU funding programmes for a given project or organization.
 Returns ranked recommendations with reasoning based on project description,
 organization type, and sector.
 
 Use this when user asks "Which programme should I apply to?" or describes their
 project and wants to know where to find funding.""",
-            category=ToolCategory.PROGRAMMES,
-            parameters={
-                "description": "Required: Description of the project or activity",
-                "organization_type": "Optional: Type of organization (university, SME, NGO, hospital, school, etc.)",
-                "sector": "Optional: Primary sector (health, education, culture, research, environment, digital)"
-            },
-            examples=[
-                "recommend_programmes(description='Develop AI tools for early cancer detection', organization_type='university')",
-                "recommend_programmes(description='Student exchange programme between European universities', sector='education')",
-                "recommend_programmes(description='Documentary film about European cultural heritage')"
-            ]
-        ))
+                category=ToolCategory.PROGRAMMES,
+                parameters={
+                    "description": "Required: Description of the project or activity",
+                    "organization_type": "Optional: Type of organization (university, SME, NGO, hospital, school, etc.)",
+                    "sector": "Optional: Primary sector (health, education, culture, research, environment, digital)",
+                },
+                examples=[
+                    "recommend_programmes(description='Develop AI tools for early cancer detection', organization_type='university')",
+                    "recommend_programmes(description='Student exchange programme between European universities', sector='education')",
+                    "recommend_programmes(description='Documentary film about European cultural heritage')",
+                ],
+            )
+        )
 
-        self.register_tool(Tool(
-            name="get_programme_info",
-            description="""Get detailed information about a specific EU funding programme.
+        self.register_tool(
+            Tool(
+                name="get_programme_info",
+                description="""Get detailed information about a specific EU funding programme.
 Returns budget, focus areas, action types, eligibility, key actions (for Erasmus+),
 strands (for Creative Europe), and priority areas (for EU4Health).
 
@@ -2291,19 +2395,20 @@ at the end of your response to help users take next steps.
 
 Available programmes: horizon_europe, erasmus_plus, creative_europe, eu4health,
 digital_europe, life""",
-            category=ToolCategory.PROGRAMMES,
-            parameters={
-                "programme": "Optional: Specific programme ID (e.g., 'erasmus_plus', 'eu4health'). If not specified, returns info for all programmes."
-            },
-            examples=[
-                "get_programme_info(programme='erasmus_plus')",
-                "get_programme_info(programme='creative_europe')",
-                "get_programme_info()"
-            ]
-        ))
+                category=ToolCategory.PROGRAMMES,
+                parameters={
+                    "programme": "Optional: Specific programme ID (e.g., 'erasmus_plus', 'eu4health'). If not specified, returns info for all programmes."
+                },
+                examples=[
+                    "get_programme_info(programme='erasmus_plus')",
+                    "get_programme_info(programme='creative_europe')",
+                    "get_programme_info()",
+                ],
+            )
+        )
 
         # Proposal Quality Scoring Tools
-        self.tools['score_proposal_section'] = Tool(
+        self.tools["score_proposal_section"] = Tool(
             name="score_proposal_section",
             description="Evaluate a proposal section using EU Horizon Europe evaluation criteria. Returns score (0-5), quality level, strengths, weaknesses, and improvement suggestions. Use this when users want to assess proposal quality.",
             category=ToolCategory.PROPOSAL,
@@ -2311,16 +2416,16 @@ digital_europe, life""",
                 "content": "The proposal section text to evaluate (required, minimum 50 characters)",
                 "section_type": "Type of section: 'excellence', 'impact', or 'implementation' (required)",
                 "section_id": "Optional specific section: 'objectives', 'methodology', 'state_of_art', 'pathways', 'dissemination', 'work_plan', 'consortium'",
-                "action_type": "Optional action type: 'RIA', 'IA', or 'CSA' (default: 'RIA')"
+                "action_type": "Optional action type: 'RIA', 'IA', or 'CSA' (default: 'RIA')",
             },
             examples=[
                 "score_proposal_section(content='Our project aims to...', section_type='excellence')",
                 "score_proposal_section(content='The methodology involves...', section_type='excellence', section_id='methodology')",
-                "score_proposal_section(content='Expected impacts include...', section_type='impact', action_type='IA')"
-            ]
+                "score_proposal_section(content='Expected impacts include...', section_type='impact', action_type='IA')",
+            ],
         )
 
-        self.tools['score_full_proposal'] = Tool(
+        self.tools["score_full_proposal"] = Tool(
             name="score_full_proposal",
             description="Evaluate a complete proposal with all three main sections. Returns overall score (0-15), funding probability, and section-by-section breakdown. Use this for comprehensive proposal assessment.",
             category=ToolCategory.PROPOSAL,
@@ -2328,29 +2433,29 @@ digital_europe, life""",
                 "excellence_content": "Excellence section content (objectives, methodology, state-of-art)",
                 "impact_content": "Impact section content (pathways, dissemination, exploitation)",
                 "implementation_content": "Implementation section content (work plan, consortium, resources)",
-                "action_type": "Optional action type: 'RIA', 'IA', or 'CSA' (default: 'RIA')"
+                "action_type": "Optional action type: 'RIA', 'IA', or 'CSA' (default: 'RIA')",
             },
             examples=[
                 "score_full_proposal(excellence_content='...', impact_content='...', implementation_content='...')",
-                "score_full_proposal(excellence_content='...', impact_content='...', implementation_content='...', action_type='IA')"
-            ]
+                "score_full_proposal(excellence_content='...', impact_content='...', implementation_content='...', action_type='IA')",
+            ],
         )
 
-        self.tools['quick_quality_check'] = Tool(
+        self.tools["quick_quality_check"] = Tool(
             name="quick_quality_check",
             description="Quick quality check for draft proposal text without full AI evaluation. Returns quality indicators and improvement suggestions. Use this for rapid feedback on early drafts.",
             category=ToolCategory.PROPOSAL,
             parameters={
                 "text": "The draft text to check (required)",
-                "context": "Optional context hint: 'objectives', 'methodology', 'impact', etc."
+                "context": "Optional context hint: 'objectives', 'methodology', 'impact', etc.",
             },
             examples=[
                 "quick_quality_check(text='This project will develop innovative solutions...')",
-                "quick_quality_check(text='The work plan consists of 5 WPs...', context='implementation')"
-            ]
+                "quick_quality_check(text='The work plan consists of 5 WPs...', context='implementation')",
+            ],
         )
 
-        self.tools['validate_budget'] = Tool(
+        self.tools["validate_budget"] = Tool(
             name="validate_budget",
             description="Validate a proposal budget against EU Horizon Europe funding rules. Checks funding rates, cost categories, consortium requirements, and budget ranges. Returns compliance score and issues.",
             category=ToolCategory.PROPOSAL,
@@ -2361,17 +2466,17 @@ digital_europe, life""",
                 "duration_months": "Project duration in months (default: 36)",
                 "num_partners": "Number of consortium partners (default: 3)",
                 "cost_breakdown": "Optional dict with personnel, equipment, travel, subcontracting, other_direct, indirect costs",
-                "call_budget_cap": "Optional call-specific maximum budget"
+                "call_budget_cap": "Optional call-specific maximum budget",
             },
             examples=[
                 "validate_budget(total_cost=4000000, eu_contribution=4000000, action_type='RIA', num_partners=8)",
                 "validate_budget(total_cost=6000000, eu_contribution=4200000, action_type='IA', duration_months=42)",
-                "validate_budget(total_cost=2000000, eu_contribution=2000000, action_type='CSA', cost_breakdown={'personnel': 1300000, 'travel': 200000})"
-            ]
+                "validate_budget(total_cost=2000000, eu_contribution=2000000, action_type='CSA', cost_breakdown={'personnel': 1300000, 'travel': 200000})",
+            ],
         )
 
         # Erasmus+ specific tools
-        self.tools['check_erasmus_eligibility'] = Tool(
+        self.tools["check_erasmus_eligibility"] = Tool(
             name="check_erasmus_eligibility",
             description="Check if an organization is eligible for Erasmus+ actions. Considers organization type (HEI, school, NGO, etc.), country (Programme vs Partner), ECHE status, and Key Action requirements. Use for eligibility questions about Erasmus+.",
             category=ToolCategory.CALLS,
@@ -2380,16 +2485,16 @@ digital_europe, life""",
                 "country": "Country of the organization (required)",
                 "action_type": "Optional: Erasmus+ action to check (e.g., 'KA1-HED', 'KA2-COOP', 'KA2-SSP', 'JMO-MODULE', 'SPORT-COOP')",
                 "has_eche": "Optional: Whether the HEI has ECHE (default: false)",
-                "is_coordinator": "Optional: Whether checking as coordinator (default: true)"
+                "is_coordinator": "Optional: Whether checking as coordinator (default: true)",
             },
             examples=[
                 "check_erasmus_eligibility(org_type='HEI', country='Germany', action_type='KA1-HED', has_eche=True)",
                 "check_erasmus_eligibility(org_type='NGO', country='Spain', action_type='KA2-COOP')",
-                "check_erasmus_eligibility(org_type='SCHOOL', country='France')  # Returns all eligible actions"
-            ]
+                "check_erasmus_eligibility(org_type='SCHOOL', country='France')  # Returns all eligible actions",
+            ],
         )
 
-        self.tools['calculate_erasmus_budget'] = Tool(
+        self.tools["calculate_erasmus_budget"] = Tool(
             name="calculate_erasmus_budget",
             description="Calculate Erasmus+ lump sum grants using official unit costs. Handles mobility (KA1), partnership (KA2), Jean Monnet, and Sport budgets. Uses travel bands, daily rates, and organizational support rates from the Programme Guide.",
             category=ToolCategory.PROPOSAL,
@@ -2404,17 +2509,17 @@ digital_europe, life""",
                 "partnership_type": "'cooperation' (120-400k EUR) or 'small_scale' (30-60k EUR)",
                 "distance_band": "Travel distance: '100-499km', '500-1999km', '2000-2999km', etc.",
                 "green_travel": "Whether using sustainable travel (adds bonus)",
-                "target_budget": "Optional target budget for partnership"
+                "target_budget": "Optional target budget for partnership",
             },
             examples=[
                 "calculate_erasmus_budget(action_type='mobility', num_participants=20, duration_days=10, destination_country='France')",
                 "calculate_erasmus_budget(action_type='partnership', num_partners=5, duration_months=36, partnership_type='cooperation')",
                 "calculate_erasmus_budget(action_type='jean_monnet', action_type='JMO-MODULE')",
-                "calculate_erasmus_budget(action_type='sport', partnership_type='small_scale', num_partners=3)"
-            ]
+                "calculate_erasmus_budget(action_type='sport', partnership_type='small_scale', num_partners=3)",
+            ],
         )
 
-        self.tools['search_erasmus_templates'] = Tool(
+        self.tools["search_erasmus_templates"] = Tool(
             name="search_erasmus_templates",
             description="Search Erasmus+ Programme Guide for application guidance, eligibility rules, quality criteria, budget information, and sector-specific requirements. Use for any Erasmus+ application questions.",
             category=ToolCategory.DOCUMENTS,
@@ -2423,18 +2528,18 @@ digital_europe, life""",
                 "key_action": "Optional: Filter by KA1, KA2, KA3, JMO, SPORT",
                 "sector": "Optional: Filter by HED, VET, SCH, ADU, YOU, SPORT",
                 "document_type": "Optional: eligibility, budget, quality_criteria, etc.",
-                "top_k": "Number of results (default: 5)"
+                "top_k": "Number of results (default: 5)",
             },
             examples=[
                 "search_erasmus_templates(query='quality assessment criteria', key_action='KA2')",
                 "search_erasmus_templates(query='budget lump sum calculation', sector='HED')",
                 "search_erasmus_templates(query='ECHE requirements for higher education')",
-                "search_erasmus_templates(query='partnership eligibility', key_action='KA2', sector='VET')"
-            ]
+                "search_erasmus_templates(query='partnership eligibility', key_action='KA2', sector='VET')",
+            ],
         )
 
         # Creative Europe specific tools
-        self.tools['check_creative_europe_eligibility'] = Tool(
+        self.tools["check_creative_europe_eligibility"] = Tool(
             name="check_creative_europe_eligibility",
             description="Check if an organization is eligible for Creative Europe actions. Covers CULTURE strand (cooperation projects, networks, platforms), MEDIA strand (film development, distribution, festivals), and Cross-sectoral strand (innovation labs, news media). Use for eligibility questions about Creative Europe.",
             category=ToolCategory.CALLS,
@@ -2443,16 +2548,16 @@ digital_europe, life""",
                 "country": "Country of the organization (required)",
                 "action_type": "Optional: Specific action to check (e.g., 'COOP-SMALL', 'DEVSLATE', 'INNOVLAB')",
                 "strand": "Optional: Filter by CULTURE, MEDIA, or CROSS-SECTORAL",
-                "is_coordinator": "Optional: Whether checking as coordinator (default: true)"
+                "is_coordinator": "Optional: Whether checking as coordinator (default: true)",
             },
             examples=[
                 "check_creative_europe_eligibility(org_type='PRODUCTION', country='France', action_type='DEVSLATE')",
                 "check_creative_europe_eligibility(org_type='CULTURAL_ORG', country='Germany', strand='CULTURE')",
-                "check_creative_europe_eligibility(org_type='NEWS_MEDIA', country='Spain', action_type='JOURPART')"
-            ]
+                "check_creative_europe_eligibility(org_type='NEWS_MEDIA', country='Spain', action_type='JOURPART')",
+            ],
         )
 
-        self.tools['calculate_creative_europe_budget'] = Tool(
+        self.tools["calculate_creative_europe_budget"] = Tool(
             name="calculate_creative_europe_budget",
             description="Calculate Creative Europe grant amounts based on strand and action type. Covers CULTURE (cooperation projects 200k-2M), MEDIA (development 30-210k, distribution, festivals), and Cross-sectoral (innovation labs 2-4M, news partnerships). Uses official funding rates and budget caps.",
             category=ToolCategory.PROPOSAL,
@@ -2462,16 +2567,16 @@ digital_europe, life""",
                 "project_scale": "'small', 'medium', or 'large' (default: 'medium')",
                 "num_partners": "Number of consortium partners (default: 3)",
                 "duration_months": "Optional: Project duration in months",
-                "strand": "Optional: For 'OVERVIEW' action_type, filter by strand"
+                "strand": "Optional: For 'OVERVIEW' action_type, filter by strand",
             },
             examples=[
                 "calculate_creative_europe_budget(action_type='COOP-MEDIUM', num_partners=6, project_scale='large')",
                 "calculate_creative_europe_budget(action_type='DEVSLATE', requested_amount=180000)",
-                "calculate_creative_europe_budget(action_type='OVERVIEW', strand='MEDIA')  # Get all MEDIA action budgets"
-            ]
+                "calculate_creative_europe_budget(action_type='OVERVIEW', strand='MEDIA')  # Get all MEDIA action budgets",
+            ],
         )
 
-        self.tools['search_creative_europe_templates'] = Tool(
+        self.tools["search_creative_europe_templates"] = Tool(
             name="search_creative_europe_templates",
             description="Search Creative Europe documents (Work Programmes, CulturEU Funding Guide, strand overviews) for application guidance, eligibility criteria, and programme information. Use for Creative Europe application questions.",
             category=ToolCategory.DOCUMENTS,
@@ -2480,19 +2585,19 @@ digital_europe, life""",
                 "strand": "Optional: Filter by CULTURE, MEDIA, or CROSS-SECTORAL",
                 "action_type": "Optional: Filter by action type (e.g., 'DEVSLATE', 'COOP-SMALL')",
                 "topic": "Optional: Specific topic (eligibility, budget, evaluation)",
-                "top_k": "Number of results (default: 5)"
+                "top_k": "Number of results (default: 5)",
             },
             examples=[
                 "search_creative_europe_templates(query='MEDIA development eligibility requirements')",
                 "search_creative_europe_templates(query='cooperation project evaluation criteria', strand='CULTURE')",
-                "search_creative_europe_templates(query='film distribution support', action_type='FILMDIST')"
-            ]
+                "search_creative_europe_templates(query='film distribution support', action_type='FILMDIST')",
+            ],
         )
 
     def register_tool(self, tool: Tool):
         """Register a tool with the agent."""
         self.tools[tool.name] = tool
-    
+
     def _get_tools_description(self) -> str:
         """Generate tools description for the prompt."""
         by_category = {}
@@ -2501,18 +2606,15 @@ digital_europe, life""",
             if cat not in by_category:
                 by_category[cat] = []
             by_category[cat].append(tool.to_prompt_format())
-        
+
         sections = []
         for category, tools in by_category.items():
             sections.append(f"### {category.title()} Tools\n" + "\n".join(tools))
-        
+
         return "\n\n".join(sections)
-    
+
     async def process_query(
-        self,
-        query: str,
-        context: str = "",
-        conversation_history: list[dict] = None
+        self, query: str, context: str = "", conversation_history: list[dict] = None
     ) -> dict[str, Any]:
         """
         Process a complex query using multi-tool reasoning.
@@ -2534,55 +2636,58 @@ digital_europe, life""",
         plan = AgentPlan(
             query=query,
             complexity=self._assess_complexity(query),
-            required_sources=self._identify_required_sources(query)
+            required_sources=self._identify_required_sources(query),
         )
 
-        logger.info(f"🧠 Query complexity: {plan.complexity}, sources needed: {plan.required_sources}")
+        logger.info(
+            f"🧠 Query complexity: {plan.complexity}, sources needed: {plan.required_sources}"
+        )
 
         # Start speculative execution for likely-needed tools
         speculative_tasks = {}
         if self.speculative_executor:
             try:
                 speculative_tasks = await self.speculative_executor.start_speculative_execution(
-                    query=query,
-                    context=context
+                    query=query, context=context
                 )
                 if speculative_tasks:
-                    logger.info(f"🔮 Started speculative execution for {len(speculative_tasks)} tool(s)")
+                    logger.info(
+                        f"🔮 Started speculative execution for {len(speculative_tasks)} tool(s)"
+                    )
             except Exception as e:
                 logger.warning(f"Speculative execution failed to start: {e}")
-        
+
         # ReAct loop
         iteration = 0
         all_tool_results = {}
-        
+
         while iteration < self.max_iterations:
             iteration += 1
             logger.info(f"🔄 Reasoning iteration {iteration}/{self.max_iterations}")
-            
+
             # Get next action from LLM
             reasoning_result = await self._reason_next_step(
                 query=query,
                 context=context,
                 previous_steps=plan.reasoning_steps,
-                tool_results=all_tool_results
+                tool_results=all_tool_results,
             )
-            
+
             if not reasoning_result:
                 logger.warning("Reasoning step failed, using fallback")
                 break
-            
+
             # Create reasoning step
             step = ReasoningStep(
                 step_number=iteration,
-                thought=reasoning_result.get('thought', ''),
-                action=reasoning_result.get('action', 'conclude')
+                thought=reasoning_result.get("thought", ""),
+                action=reasoning_result.get("action", "conclude"),
             )
-            
+
             # Handle different actions
-            if step.action == 'call_tools':
+            if step.action == "call_tools":
                 # Execute tool calls
-                tool_calls = reasoning_result.get('tool_calls', [])
+                tool_calls = reasoning_result.get("tool_calls", [])
                 step.tool_calls = await self._execute_tool_calls(tool_calls)
 
                 # Collect results - use unique keys for each tool call
@@ -2592,26 +2697,26 @@ digital_europe, life""",
                         all_tool_results[f"{tc.tool_name}_{iteration}_{idx}"] = tc.result
 
                 step.observation = self._summarize_tool_results(step.tool_calls)
-                step.next_action_needed = reasoning_result.get('needs_more_info', True)
-                
-            elif step.action == 'analyze_results':
+                step.next_action_needed = reasoning_result.get("needs_more_info", True)
+
+            elif step.action == "analyze_results":
                 # Analyze without calling more tools
-                step.observation = reasoning_result.get('analysis', '')
-                step.next_action_needed = reasoning_result.get('needs_more_info', False)
-                
-            elif step.action == 'conclude':
+                step.observation = reasoning_result.get("analysis", "")
+                step.next_action_needed = reasoning_result.get("needs_more_info", False)
+
+            elif step.action == "conclude":
                 # Final answer
-                plan.final_answer = reasoning_result.get('conclusion', '')
-                plan.confidence = reasoning_result.get('confidence', 0.8)
+                plan.final_answer = reasoning_result.get("conclusion", "")
+                plan.confidence = reasoning_result.get("confidence", 0.8)
                 step.next_action_needed = False
-            
+
             plan.reasoning_steps.append(step)
-            
+
             # Check if we should stop
             if not step.next_action_needed:
                 logger.info(f"✅ Agent concluded after {iteration} iteration(s)")
                 break
-        
+
         # Build final response
         total_time = (datetime.now() - start_time).total_seconds() * 1000
 
@@ -2629,24 +2734,24 @@ digital_europe, life""",
             if first_step and first_step.tool_calls:
                 # Build a cacheable plan from the first step
                 first_plan = {
-                    'thought': first_step.thought,
-                    'action': 'call_tools',
-                    'tool_calls': [
+                    "thought": first_step.thought,
+                    "action": "call_tools",
+                    "tool_calls": [
                         {
-                            'tool': tc.tool_name,
-                            'parameters': tc.parameters,
-                            'reasoning': tc.reasoning
+                            "tool": tc.tool_name,
+                            "parameters": tc.parameters,
+                            "reasoning": tc.reasoning,
                         }
                         for tc in first_step.tool_calls
                     ],
-                    'needs_more_info': first_step.next_action_needed
+                    "needs_more_info": first_step.next_action_needed,
                 }
                 # Use confidence as quality score
                 self.plan_cache.cache_plan(
                     query=query,
                     plan=first_plan,
                     context=context,
-                    quality_score=plan.confidence or 0.8
+                    quality_score=plan.confidence or 0.8,
                 )
 
         # Compute the answer before quality analysis
@@ -2654,38 +2759,33 @@ digital_europe, life""",
 
         # Analyze response quality
         quality_analysis = self._analyze_response_quality(
-            query=query,
-            answer=answer,
-            tool_results=all_tool_results
+            query=query, answer=answer, tool_results=all_tool_results
         )
 
         return {
-            'answer': answer,
-            'success': plan.final_answer is not None,
-            'reasoning_steps': [
+            "answer": answer,
+            "success": plan.final_answer is not None,
+            "reasoning_steps": [
                 {
-                    'step': s.step_number,
-                    'thought': s.thought,
-                    'action': s.action,
-                    'tools_called': [tc.tool_name for tc in s.tool_calls],
-                    'observation': s.observation[:200] if s.observation else ''
+                    "step": s.step_number,
+                    "thought": s.thought,
+                    "action": s.action,
+                    "tools_called": [tc.tool_name for tc in s.tool_calls],
+                    "observation": s.observation[:200] if s.observation else "",
                 }
                 for s in plan.reasoning_steps
             ],
-            'sources_used': list(all_tool_results.keys()),
-            'tool_results': all_tool_results,  # Include full tool results for formatting
-            'complexity': plan.complexity,
-            'iterations': iteration,
-            'confidence': plan.confidence,
-            'total_time_ms': total_time,
-            'quality_analysis': quality_analysis  # Response quality metrics
+            "sources_used": list(all_tool_results.keys()),
+            "tool_results": all_tool_results,  # Include full tool results for formatting
+            "complexity": plan.complexity,
+            "iterations": iteration,
+            "confidence": plan.confidence,
+            "total_time_ms": total_time,
+            "quality_analysis": quality_analysis,  # Response quality metrics
         }
 
     async def process_query_streaming(
-        self,
-        query: str,
-        context: str = "",
-        conversation_history: list[dict] = None
+        self, query: str, context: str = "", conversation_history: list[dict] = None
     ) -> AsyncGenerator[dict[str, Any], None]:
         """
         Process a query and yield events in real-time as reasoning happens.
@@ -2713,20 +2813,23 @@ digital_europe, life""",
         plan = AgentPlan(
             query=query,
             complexity=self._assess_complexity(query),
-            required_sources=self._identify_required_sources(query)
+            required_sources=self._identify_required_sources(query),
         )
 
-        logger.info(f"🧠 [Streaming] Query complexity: {plan.complexity}, sources needed: {plan.required_sources}")
+        logger.info(
+            f"🧠 [Streaming] Query complexity: {plan.complexity}, sources needed: {plan.required_sources}"
+        )
 
         # Start speculative execution for likely-needed tools
         if self.speculative_executor:
             try:
                 speculative_tasks = await self.speculative_executor.start_speculative_execution(
-                    query=query,
-                    context=context
+                    query=query, context=context
                 )
                 if speculative_tasks:
-                    logger.info(f"🔮 Started speculative execution for {len(speculative_tasks)} tool(s)")
+                    logger.info(
+                        f"🔮 Started speculative execution for {len(speculative_tasks)} tool(s)"
+                    )
             except Exception as e:
                 logger.warning(f"Speculative execution failed to start: {e}")
 
@@ -2743,7 +2846,7 @@ digital_europe, life""",
                 query=query,
                 context=context,
                 previous_steps=plan.reasoning_steps,
-                tool_results=all_tool_results
+                tool_results=all_tool_results,
             )
 
             if not reasoning_result:
@@ -2753,32 +2856,32 @@ digital_europe, life""",
             # Create reasoning step
             step = ReasoningStep(
                 step_number=iteration,
-                thought=reasoning_result.get('thought', ''),
-                action=reasoning_result.get('action', 'conclude')
+                thought=reasoning_result.get("thought", ""),
+                action=reasoning_result.get("action", "conclude"),
             )
 
             # YIELD: Agent thinking event immediately
             yield {
-                'type': 'agent_thinking',
-                'iteration': iteration,
-                'thought': step.thought,
-                'action': step.action
+                "type": "agent_thinking",
+                "iteration": iteration,
+                "thought": step.thought,
+                "action": step.action,
             }
 
             # Handle different actions
-            if step.action == 'call_tools':
-                tool_calls = reasoning_result.get('tool_calls', [])
+            if step.action == "call_tools":
+                tool_calls = reasoning_result.get("tool_calls", [])
 
                 # YIELD: Tool call events before execution
                 for tc in tool_calls:
-                    tool_name = tc.get('tool', '')
-                    parameters = tc.get('parameters', {})
+                    tool_name = tc.get("tool", "")
+                    parameters = tc.get("parameters", {})
                     yield {
-                        'type': 'tool_call',
-                        'iteration': iteration,
-                        'tool_name': tool_name,
-                        'parameters': parameters,
-                        'reasoning': tc.get('reasoning', '')
+                        "type": "tool_call",
+                        "iteration": iteration,
+                        "tool_name": tool_name,
+                        "parameters": parameters,
+                        "reasoning": tc.get("reasoning", ""),
                     }
 
                 # Execute tool calls
@@ -2788,13 +2891,13 @@ digital_europe, life""",
                 for idx, tc in enumerate(step.tool_calls):
                     result_count = self._count_results(tc.result) if tc.success else 0
                     yield {
-                        'type': 'tool_result',
-                        'iteration': iteration,
-                        'tool_name': tc.tool_name,
-                        'success': tc.success,
-                        'result_count': result_count,
-                        'result_summary': str(tc.result)[:300] if tc.result else 'No results',
-                        'execution_time_ms': tc.execution_time_ms
+                        "type": "tool_result",
+                        "iteration": iteration,
+                        "tool_name": tc.tool_name,
+                        "success": tc.success,
+                        "result_count": result_count,
+                        "result_summary": str(tc.result)[:300] if tc.result else "No results",
+                        "execution_time_ms": tc.execution_time_ms,
                     }
 
                     if tc.success:
@@ -2802,15 +2905,15 @@ digital_europe, life""",
                         all_tool_results[f"{tc.tool_name}_{iteration}_{idx}"] = tc.result
 
                 step.observation = self._summarize_tool_results(step.tool_calls)
-                step.next_action_needed = reasoning_result.get('needs_more_info', True)
+                step.next_action_needed = reasoning_result.get("needs_more_info", True)
 
-            elif step.action == 'analyze_results':
-                step.observation = reasoning_result.get('analysis', '')
-                step.next_action_needed = reasoning_result.get('needs_more_info', False)
+            elif step.action == "analyze_results":
+                step.observation = reasoning_result.get("analysis", "")
+                step.next_action_needed = reasoning_result.get("needs_more_info", False)
 
-            elif step.action == 'conclude':
-                plan.final_answer = reasoning_result.get('conclusion', '')
-                plan.confidence = reasoning_result.get('confidence', 0.8)
+            elif step.action == "conclude":
+                plan.final_answer = reasoning_result.get("conclusion", "")
+                plan.confidence = reasoning_result.get("confidence", 0.8)
                 step.next_action_needed = False
 
             plan.reasoning_steps.append(step)
@@ -2836,23 +2939,23 @@ digital_europe, life""",
             first_step = plan.reasoning_steps[0] if plan.reasoning_steps else None
             if first_step and first_step.tool_calls:
                 first_plan = {
-                    'thought': first_step.thought,
-                    'action': 'call_tools',
-                    'tool_calls': [
+                    "thought": first_step.thought,
+                    "action": "call_tools",
+                    "tool_calls": [
                         {
-                            'tool': tc.tool_name,
-                            'parameters': tc.parameters,
-                            'reasoning': tc.reasoning
+                            "tool": tc.tool_name,
+                            "parameters": tc.parameters,
+                            "reasoning": tc.reasoning,
                         }
                         for tc in first_step.tool_calls
                     ],
-                    'needs_more_info': first_step.next_action_needed
+                    "needs_more_info": first_step.next_action_needed,
                 }
                 self.plan_cache.cache_plan(
                     query=query,
                     plan=first_plan,
                     context=context,
-                    quality_score=plan.confidence or 0.8
+                    quality_score=plan.confidence or 0.8,
                 )
 
         # Compute the answer before quality analysis
@@ -2860,79 +2963,85 @@ digital_europe, life""",
 
         # Analyze response quality
         quality_analysis = self._analyze_response_quality(
-            query=query,
-            answer=answer,
-            tool_results=all_tool_results
+            query=query, answer=answer, tool_results=all_tool_results
         )
 
         # YIELD: Final complete event with full result
         final_result = {
-            'answer': answer,
-            'success': plan.final_answer is not None,
-            'reasoning_steps': [
+            "answer": answer,
+            "success": plan.final_answer is not None,
+            "reasoning_steps": [
                 {
-                    'step': s.step_number,
-                    'thought': s.thought,
-                    'action': s.action,
-                    'tools_called': [tc.tool_name for tc in s.tool_calls],
-                    'observation': s.observation[:500] if s.observation else ''
+                    "step": s.step_number,
+                    "thought": s.thought,
+                    "action": s.action,
+                    "tools_called": [tc.tool_name for tc in s.tool_calls],
+                    "observation": s.observation[:500] if s.observation else "",
                 }
                 for s in plan.reasoning_steps
             ],
-            'sources_used': list(all_tool_results.keys()),
-            'tool_results': all_tool_results,
-            'complexity': plan.complexity,
-            'iterations': iteration,
-            'confidence': plan.confidence,
-            'total_time_ms': total_time,
-            'quality_analysis': quality_analysis  # Response quality metrics
+            "sources_used": list(all_tool_results.keys()),
+            "tool_results": all_tool_results,
+            "complexity": plan.complexity,
+            "iterations": iteration,
+            "confidence": plan.confidence,
+            "total_time_ms": total_time,
+            "quality_analysis": quality_analysis,  # Response quality metrics
         }
 
-        yield {
-            'type': 'agent_complete',
-            'result': final_result
-        }
+        yield {"type": "agent_complete", "result": final_result}
 
     def _assess_complexity(self, query: str) -> str:
         """Assess the complexity of a query."""
         query_lower = query.lower()
-        
+
         # Comparison queries
-        if any(word in query_lower for word in ['compare', 'versus', 'vs', 'difference between', 'better']):
-            return 'comparison'
-        
+        if any(
+            word in query_lower
+            for word in ["compare", "versus", "vs", "difference between", "better"]
+        ):
+            return "comparison"
+
         # Multi-source queries
-        if any(word in query_lower for word in ['and also', 'as well as', 'both', 'multiple']):
-            return 'multi_source'
-        
+        if any(word in query_lower for word in ["and also", "as well as", "both", "multiple"]):
+            return "multi_source"
+
         # Analysis queries
-        if any(word in query_lower for word in ['why', 'analyze', 'explain the reason', 'how does']):
-            return 'analysis'
-        
-        return 'simple'
-    
+        if any(
+            word in query_lower for word in ["why", "analyze", "explain the reason", "how does"]
+        ):
+            return "analysis"
+
+        return "simple"
+
     def _identify_required_sources(self, query: str) -> list[str]:
         """Identify which data sources are needed."""
         sources = []
         query_lower = query.lower()
-        
+
         # Statistics indicators
-        if any(word in query_lower for word in ['rate', 'percentage', 'how many', 'statistics', 'average', 'success']):
-            sources.append('statistics')
-        
+        if any(
+            word in query_lower
+            for word in ["rate", "percentage", "how many", "statistics", "average", "success"]
+        ):
+            sources.append("statistics")
+
         # Document indicators
-        if any(word in query_lower for word in ['eligible', 'requirement', 'rule', 'can i', 'allowed', 'must']):
-            sources.append('documents')
-        
+        if any(
+            word in query_lower
+            for word in ["eligible", "requirement", "rule", "can i", "allowed", "must"]
+        ):
+            sources.append("documents")
+
         # Call indicators
-        if any(word in query_lower for word in ['call', 'funding', 'deadline', 'apply', 'open']):
-            sources.append('calls')
-        
+        if any(word in query_lower for word in ["call", "funding", "deadline", "apply", "open"]):
+            sources.append("calls")
+
         # Project indicators
-        if any(word in query_lower for word in ['project', 'funded', 'example', 'similar']):
-            sources.append('projects')
-        
-        return sources if sources else ['documents']
+        if any(word in query_lower for word in ["project", "funded", "example", "similar"]):
+            sources.append("projects")
+
+        return sources if sources else ["documents"]
 
     def _count_results(self, result: Any) -> int | None:
         """Count the number of results from a tool response."""
@@ -2940,11 +3049,11 @@ digital_europe, life""",
             return 0
         if isinstance(result, dict):
             # Check for common result count keys
-            for key in ['count', 'total', 'total_results', 'projects_count', 'calls_found']:
+            for key in ["count", "total", "total_results", "projects_count", "calls_found"]:
                 if key in result:
                     return int(result[key])
             # Check for list-like keys
-            for key in ['results', 'projects', 'calls', 'documents', 'partners', 'organizations']:
+            for key in ["results", "projects", "calls", "documents", "partners", "organizations"]:
                 if key in result and isinstance(result[key], list):
                     return len(result[key])
         if isinstance(result, list):
@@ -2956,7 +3065,7 @@ digital_europe, life""",
         query: str,
         context: str,
         previous_steps: list[ReasoningStep],
-        tool_results: dict[str, Any]
+        tool_results: dict[str, Any],
     ) -> dict[str, Any] | None:
         """Use LLM to reason about the next step."""
 
@@ -2985,7 +3094,7 @@ digital_europe, life""",
 
         # Format tool results with context-aware truncation
         results_text = _context_manager.format_results_for_context(tool_results)
-        
+
         # Build prompt
         prompt = self.REASONING_PROMPT.format(
             built_in_knowledge=self.BUILT_IN_KNOWLEDGE,
@@ -2993,20 +3102,20 @@ digital_europe, life""",
             query=query,
             context=context or "No additional context",
             previous_steps=steps_text or "This is the first step",
-            tool_results=results_text or "No tool results yet"
+            tool_results=results_text or "No tool results yet",
         )
-        
+
         # LLM timeout in seconds (configurable via env, default 30s)
         import os
-        llm_timeout = int(os.getenv('LLM_TIMEOUT_SECONDS', '30'))
+
+        llm_timeout = int(os.getenv("LLM_TIMEOUT_SECONDS", "30"))
 
         try:
             if self.llm:
                 # Wrap LLM call with timeout protection
                 try:
                     response = await asyncio.wait_for(
-                        asyncio.to_thread(self.llm.generate_content, prompt),
-                        timeout=llm_timeout
+                        asyncio.to_thread(self.llm.generate_content, prompt), timeout=llm_timeout
                     )
                 except TimeoutError:
                     logger.warning(f"⏰ LLM call timed out after {llm_timeout}s, using fallback")
@@ -3019,21 +3128,21 @@ digital_europe, life""",
                 json_str = None
 
                 # Pattern 1: Fenced JSON block
-                json_match = re.search(r'```json\s*(.*?)\s*```', response_text, re.DOTALL)
+                json_match = re.search(r"```json\s*(.*?)\s*```", response_text, re.DOTALL)
                 if json_match:
                     json_str = json_match.group(1)
 
                 # Pattern 2: Any fenced code block (might not have 'json' marker)
                 if not json_str:
-                    json_match = re.search(r'```\s*(.*?)\s*```', response_text, re.DOTALL)
+                    json_match = re.search(r"```\s*(.*?)\s*```", response_text, re.DOTALL)
                     if json_match:
                         potential_json = json_match.group(1).strip()
-                        if potential_json.startswith('{'):
+                        if potential_json.startswith("{"):
                             json_str = potential_json
 
                 # Pattern 3: Raw JSON object
                 if not json_str:
-                    json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+                    json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
                     json_str = json_match.group(0) if json_match else None
 
                 if not json_str:
@@ -3071,7 +3180,7 @@ digital_europe, life""",
         fixed = json_str
 
         # Remove trailing commas before } or ]
-        fixed = re.sub(r',\s*([}\]])', r'\1', fixed)
+        fixed = re.sub(r",\s*([}\]])", r"\1", fixed)
 
         # Fix single quotes to double quotes (but not inside strings)
         # This is a simplified fix - may not work for all cases
@@ -3079,10 +3188,10 @@ digital_europe, life""",
             fixed = fixed.replace("'", '"')
 
         # Remove control characters
-        fixed = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', fixed)
+        fixed = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", fixed)
 
         # Try to extract just the JSON object if there's extra text
-        obj_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', fixed, re.DOTALL)
+        obj_match = re.search(r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}", fixed, re.DOTALL)
         if obj_match:
             fixed = obj_match.group(0)
 
@@ -3092,24 +3201,23 @@ digital_europe, life""",
             return None
 
     def _fallback_reasoning(
-        self,
-        query: str,
-        previous_steps: list[ReasoningStep],
-        tool_results: dict[str, Any]
+        self, query: str, previous_steps: list[ReasoningStep], tool_results: dict[str, Any]
     ) -> dict[str, Any]:
         """Fallback reasoning when LLM fails."""
 
         if not previous_steps:
             # First step - call basic search with more results
             return {
-                'thought': 'Starting with document search to gather information',
-                'action': 'call_tools',
-                'tool_calls': [{
-                    'tool': 'search_documents',
-                    'parameters': {'query': query, 'max_results': 15},  # Increased from 5
-                    'reasoning': 'Initial search for relevant information'
-                }],
-                'needs_more_info': True
+                "thought": "Starting with document search to gather information",
+                "action": "call_tools",
+                "tool_calls": [
+                    {
+                        "tool": "search_documents",
+                        "parameters": {"query": query, "max_results": 15},  # Increased from 5
+                        "reasoning": "Initial search for relevant information",
+                    }
+                ],
+                "needs_more_info": True,
             }
 
         if tool_results:
@@ -3118,24 +3226,25 @@ digital_europe, life""",
             synthesized_content = self._synthesize_from_results(query, tool_results)
 
             return {
-                'thought': 'Have gathered information, synthesizing answer',
-                'action': 'conclude',
-                'conclusion': synthesized_content,
-                'confidence': 0.7,
-                'needs_more_info': False
+                "thought": "Have gathered information, synthesizing answer",
+                "action": "conclude",
+                "conclusion": synthesized_content,
+                "confidence": 0.7,
+                "needs_more_info": False,
             }
 
         return {
-            'thought': 'Unable to gather more information',
-            'action': 'conclude',
-            'conclusion': 'I was unable to find specific information to answer this question. Please try rephrasing your question or asking about a more specific topic.',
-            'confidence': 0.3,
-            'needs_more_info': False
+            "thought": "Unable to gather more information",
+            "action": "conclude",
+            "conclusion": "I was unable to find specific information to answer this question. Please try rephrasing your question or asking about a more specific topic.",
+            "confidence": 0.3,
+            "needs_more_info": False,
         }
 
     def _synthesize_from_results(self, query: str, tool_results: dict[str, Any]) -> str:
         """Synthesize a coherent answer from tool results."""
         import json
+
         content_pieces = []
 
         for name, result in tool_results.items():
@@ -3143,51 +3252,53 @@ digital_europe, life""",
                 continue
 
             # Extract documents
-            if 'documents' in result and isinstance(result['documents'], list):
-                for doc in result['documents'][:10]:
-                    content = doc.get('content', '')
+            if "documents" in result and isinstance(result["documents"], list):
+                for doc in result["documents"][:10]:
+                    content = doc.get("content", "")
                     if content and len(content) > 100:
                         content_pieces.append(content.strip())
 
             # Extract calls info
-            elif 'calls' in result and isinstance(result['calls'], list):
-                if len(result['calls']) == 0:
+            elif "calls" in result and isinstance(result["calls"], list):
+                if len(result["calls"]) == 0:
                     # Explicitly note that no calls were found
-                    content_pieces.append("No open funding calls were found matching your search criteria. This could mean:\n- There are currently no open calls in this topic area\n- Relevant calls may have already closed\n- Upcoming calls may not yet be announced\n\nConsider checking the Horizon Europe Funding & Tenders Portal for the latest information.")
+                    content_pieces.append(
+                        "No open funding calls were found matching your search criteria. This could mean:\n- There are currently no open calls in this topic area\n- Relevant calls may have already closed\n- Upcoming calls may not yet be announced\n\nConsider checking the Horizon Europe Funding & Tenders Portal for the latest information."
+                    )
                 else:
-                    for call in result['calls'][:10]:
-                        title = call.get('title', '')
-                        call_id = call.get('topic_code', call.get('call_id', ''))
+                    for call in result["calls"][:10]:
+                        title = call.get("title", "")
+                        call_id = call.get("topic_code", call.get("call_id", ""))
                         if title or call_id:
                             content_pieces.append(f"Call {call_id}: {title}")
 
             # Extract budget calculation results
-            elif result.get('tool_name') == 'calculate_budget' and result.get('success'):
-                breakdown = result.get('breakdown', {})
-                budget = result.get('calculated_budget', {})
-                per_partner = result.get('per_partner', {})
+            elif result.get("tool_name") == "calculate_budget" and result.get("success"):
+                breakdown = result.get("breakdown", {})
+                budget = result.get("calculated_budget", {})
+                per_partner = result.get("per_partner", {})
 
                 budget_text = f"""Budget Calculation Results:
-- Total Budget: €{budget.get('total_cost', 0):,.0f}
-- EU Contribution: €{budget.get('eu_contribution', 0):,.0f} ({budget.get('funding_rate', '100%')})
+- Total Budget: €{budget.get("total_cost", 0):,.0f}
+- EU Contribution: €{budget.get("eu_contribution", 0):,.0f} ({budget.get("funding_rate", "100%")})
 
 Breakdown:
-- Personnel: €{breakdown.get('personnel', {}).get('amount', 0):,.0f} ({breakdown.get('personnel', {}).get('percentage', 0)}%)
-- Equipment: €{breakdown.get('equipment', {}).get('amount', 0):,.0f} ({breakdown.get('equipment', {}).get('percentage', 0)}%)
-- Travel: €{breakdown.get('travel', {}).get('amount', 0):,.0f} ({breakdown.get('travel', {}).get('percentage', 0)}%)
-- Subcontracting: €{breakdown.get('subcontracting', {}).get('amount', 0):,.0f} ({breakdown.get('subcontracting', {}).get('percentage', 0)}%)
-- Other Direct Costs: €{breakdown.get('other_direct', {}).get('amount', 0):,.0f} ({breakdown.get('other_direct', {}).get('percentage', 0)}%)
-- Indirect Costs (25% flat rate): €{breakdown.get('indirect', {}).get('amount', 0):,.0f} ({breakdown.get('indirect', {}).get('percentage', 0)}%)
+- Personnel: €{breakdown.get("personnel", {}).get("amount", 0):,.0f} ({breakdown.get("personnel", {}).get("percentage", 0)}%)
+- Equipment: €{breakdown.get("equipment", {}).get("amount", 0):,.0f} ({breakdown.get("equipment", {}).get("percentage", 0)}%)
+- Travel: €{breakdown.get("travel", {}).get("amount", 0):,.0f} ({breakdown.get("travel", {}).get("percentage", 0)}%)
+- Subcontracting: €{breakdown.get("subcontracting", {}).get("amount", 0):,.0f} ({breakdown.get("subcontracting", {}).get("percentage", 0)}%)
+- Other Direct Costs: €{breakdown.get("other_direct", {}).get("amount", 0):,.0f} ({breakdown.get("other_direct", {}).get("percentage", 0)}%)
+- Indirect Costs (25% flat rate): €{breakdown.get("indirect", {}).get("amount", 0):,.0f} ({breakdown.get("indirect", {}).get("percentage", 0)}%)
 
 Per Partner Distribution:
-- Average per partner: €{per_partner.get('average', 0):,.0f}
-- Coordinator (typical): €{per_partner.get('coordinator_typical', 0):,.0f}
-- Other partners (typical): €{per_partner.get('partner_typical', 0):,.0f}
+- Average per partner: €{per_partner.get("average", 0):,.0f}
+- Coordinator (typical): €{per_partner.get("coordinator_typical", 0):,.0f}
+- Other partners (typical): €{per_partner.get("partner_typical", 0):,.0f}
 """
                 content_pieces.append(budget_text)
 
             # Extract call details - ENHANCED with full description
-            elif result.get('call_id') and result.get('title'):
+            elif result.get("call_id") and result.get("title"):
                 call_parts = []
                 call_parts.append(f"## Call Details: {result.get('call_id')}\n")
                 call_parts.append(f"**Title:** {result.get('title')}")
@@ -3196,43 +3307,46 @@ Per Partner Distribution:
                 call_parts.append(f"**Deadline:** {result.get('deadline', 'N/A')}")
 
                 # Full description without truncation
-                description = result.get('description', '')
+                description = result.get("description", "")
                 if description:
                     # Clean HTML tags if present
                     import re
-                    clean_desc = re.sub(r'<[^>]+>', ' ', description)
-                    clean_desc = re.sub(r'\s+', ' ', clean_desc).strip()
+
+                    clean_desc = re.sub(r"<[^>]+>", " ", description)
+                    clean_desc = re.sub(r"\s+", " ", clean_desc).strip()
                     call_parts.append(f"\n**Description:**\n{clean_desc}")
 
                 # Add expected outcomes if available
-                expected_outcomes = result.get('expected_outcomes', [])
+                expected_outcomes = result.get("expected_outcomes", [])
                 if expected_outcomes:
                     call_parts.append("\n**Expected Outcomes:**")
                     for outcome in expected_outcomes[:10]:
                         call_parts.append(f"- {outcome}")
 
                 # Add scope if available
-                scope = result.get('scope', '')
+                scope = result.get("scope", "")
                 if scope and scope != description:
-                    clean_scope = re.sub(r'<[^>]+>', ' ', scope)
-                    clean_scope = re.sub(r'\s+', ' ', clean_scope).strip()
+                    clean_scope = re.sub(r"<[^>]+>", " ", scope)
+                    clean_scope = re.sub(r"\s+", " ", clean_scope).strip()
                     call_parts.append(f"\n**Scope:**\n{clean_scope}")
 
-                content_pieces.append('\n'.join(call_parts))
+                content_pieces.append("\n".join(call_parts))
 
             # Extract statistics/benchmark results
-            elif result.get('statistics') or result.get('benchmark'):
-                stats = result.get('statistics', result.get('benchmark', {}))
-                content_pieces.append(f"Statistics: {json.dumps(stats, indent=2, default=str)[:1000]}")
+            elif result.get("statistics") or result.get("benchmark"):
+                stats = result.get("statistics", result.get("benchmark", {}))
+                content_pieces.append(
+                    f"Statistics: {json.dumps(stats, indent=2, default=str)[:1000]}"
+                )
 
             # Extract timeline generation results - ENHANCED with full details
-            elif result.get('tool_name') == 'generate_timeline' and result.get('success'):
-                wps = result.get('work_packages', [])
-                deliverables = result.get('deliverables', [])
-                milestones = result.get('milestones', [])
-                params = result.get('parameters', {})
-                gantt = result.get('gantt_data', {})
-                recommendations = result.get('recommendations', [])
+            elif result.get("tool_name") == "generate_timeline" and result.get("success"):
+                wps = result.get("work_packages", [])
+                deliverables = result.get("deliverables", [])
+                milestones = result.get("milestones", [])
+                params = result.get("parameters", {})
+                gantt = result.get("gantt_data", {})
+                recommendations = result.get("recommendations", [])
 
                 timeline_parts = []
                 timeline_parts.append("## Project Timeline Generated\n")
@@ -3240,25 +3354,31 @@ Per Partner Distribution:
                 timeline_parts.append(f"- Duration: {params.get('duration_months', 36)} months")
                 timeline_parts.append(f"- Action Type: {params.get('action_type', 'RIA')}")
                 timeline_parts.append(f"- Partners: {params.get('num_partners', 8)}")
-                timeline_parts.append(f"- Total Effort: {params.get('total_person_months', 0)} person-months")
+                timeline_parts.append(
+                    f"- Total Effort: {params.get('total_person_months', 0)} person-months"
+                )
                 timeline_parts.append("")
 
                 # Work Packages with full details
                 timeline_parts.append("### Work Packages\n")
                 for wp in wps:
-                    wp_num = wp.get('number', 0)
-                    title = wp.get('title', '')
-                    lead = wp.get('lead', 'P1')
-                    participants = wp.get('participants', [])
-                    start = wp.get('start_month', 1)
-                    end = wp.get('end_month', 36)
-                    effort = wp.get('effort_pms', 0)
-                    objective = wp.get('objective', '')
-                    tasks = wp.get('tasks', [])
+                    wp_num = wp.get("number", 0)
+                    title = wp.get("title", "")
+                    lead = wp.get("lead", "P1")
+                    participants = wp.get("participants", [])
+                    start = wp.get("start_month", 1)
+                    end = wp.get("end_month", 36)
+                    effort = wp.get("effort_pms", 0)
+                    objective = wp.get("objective", "")
+                    tasks = wp.get("tasks", [])
 
                     timeline_parts.append(f"**WP{wp_num}: {title}**")
-                    timeline_parts.append(f"- Lead: {lead} | Participants: {', '.join(participants[:4]) if participants else 'All'}")
-                    timeline_parts.append(f"- Duration: M{start} - M{end} ({end - start + 1} months)")
+                    timeline_parts.append(
+                        f"- Lead: {lead} | Participants: {', '.join(participants[:4]) if participants else 'All'}"
+                    )
+                    timeline_parts.append(
+                        f"- Duration: M{start} - M{end} ({end - start + 1} months)"
+                    )
                     timeline_parts.append(f"- Effort: {effort} person-months")
                     if objective:
                         timeline_parts.append(f"- Objective: *{objective}*")
@@ -3270,28 +3390,32 @@ Per Partner Distribution:
                 if deliverables:
                     timeline_parts.append(f"### Deliverables ({len(deliverables)} total)\n")
                     for d in deliverables[:15]:
-                        d_id = d.get('id', d.get('seq_id', 'D?'))
-                        d_title = d.get('title', '')[:60]
-                        d_month = d.get('due_month', 0)
-                        d_type = d.get('type', 'R')
-                        d_level = d.get('dissemination_level', 'PU')
-                        timeline_parts.append(f"- **{d_id}**: {d_title} (M{d_month}, {d_type}, {d_level})")
+                        d_id = d.get("id", d.get("seq_id", "D?"))
+                        d_title = d.get("title", "")[:60]
+                        d_month = d.get("due_month", 0)
+                        d_type = d.get("type", "R")
+                        d_level = d.get("dissemination_level", "PU")
+                        timeline_parts.append(
+                            f"- **{d_id}**: {d_title} (M{d_month}, {d_type}, {d_level})"
+                        )
                     if len(deliverables) > 15:
-                        timeline_parts.append(f"- ... and {len(deliverables) - 15} more deliverables")
+                        timeline_parts.append(
+                            f"- ... and {len(deliverables) - 15} more deliverables"
+                        )
                     timeline_parts.append("")
 
                 # Milestones
                 if milestones:
                     timeline_parts.append(f"### Milestones ({len(milestones)} total)\n")
                     for m in milestones:
-                        m_id = m.get('id', 'MS?')
-                        m_title = m.get('title', '')
-                        m_month = m.get('due_month', 0)
+                        m_id = m.get("id", "MS?")
+                        m_title = m.get("title", "")
+                        m_month = m.get("due_month", 0)
                         timeline_parts.append(f"- **{m_id}**: {m_title} (M{m_month})")
                     timeline_parts.append("")
 
                 # ASCII Gantt Chart
-                ascii_chart = gantt.get('ascii_chart', '')
+                ascii_chart = gantt.get("ascii_chart", "")
                 if ascii_chart:
                     timeline_parts.append("### Gantt Chart\n")
                     timeline_parts.append("```")
@@ -3300,11 +3424,13 @@ Per Partner Distribution:
                     timeline_parts.append("")
 
                 # WP Dependencies
-                dependencies = gantt.get('dependencies', [])
+                dependencies = gantt.get("dependencies", [])
                 if dependencies:
                     timeline_parts.append("### WP Dependencies\n")
                     for dep in dependencies[:6]:
-                        timeline_parts.append(f"- {dep.get('from')} → {dep.get('to')}: {dep.get('description', '')}")
+                        timeline_parts.append(
+                            f"- {dep.get('from')} → {dep.get('to')}: {dep.get('description', '')}"
+                        )
                     timeline_parts.append("")
 
                 # Recommendations
@@ -3313,17 +3439,19 @@ Per Partner Distribution:
                     for rec in recommendations[:5]:
                         timeline_parts.append(f"- {rec}")
 
-                content_pieces.append('\n'.join(timeline_parts))
+                content_pieces.append("\n".join(timeline_parts))
 
             # Extract similar projects results - ENHANCED with full details
-            elif 'similar_projects' in result and isinstance(result.get('similar_projects'), list):
-                projects = result['similar_projects']
-                query_desc = result.get('query_description', '')
-                matches = result.get('matches_found', len(projects))
-                filters = result.get('filters_applied', {})
+            elif "similar_projects" in result and isinstance(result.get("similar_projects"), list):
+                projects = result["similar_projects"]
+                query_desc = result.get("query_description", "")
+                matches = result.get("matches_found", len(projects))
+                filters = result.get("filters_applied", {})
 
                 if not projects:
-                    content_pieces.append(f"## Similar Projects Search\n\nNo projects found matching: *{query_desc}*")
+                    content_pieces.append(
+                        f"## Similar Projects Search\n\nNo projects found matching: *{query_desc}*"
+                    )
                 else:
                     similar_parts = []
                     similar_parts.append("## Similar Funded Projects\n")
@@ -3335,24 +3463,26 @@ Per Partner Distribution:
                     similar_parts.append(f"**Found:** {matches} similar projects\n")
 
                     for i, p in enumerate(projects[:10], 1):
-                        acronym = p.get('acronym', 'N/A')
-                        title = p.get('title', 'N/A')
-                        score = p.get('similarity_score', 0)
-                        budget = p.get('eu_contribution', p.get('total_cost', 0))
-                        consortium = p.get('consortium', {})
-                        size = consortium.get('size', p.get('partner_count', 0))
-                        action_type = p.get('action_type', 'N/A')
-                        objective = p.get('objective', '')
-                        start_date = p.get('start_date', '')
-                        end_date = p.get('end_date', '')
-                        coordinator = consortium.get('coordinator', {}).get('name', '')
-                        cluster = p.get('cluster', '')
+                        acronym = p.get("acronym", "N/A")
+                        title = p.get("title", "N/A")
+                        score = p.get("similarity_score", 0)
+                        budget = p.get("eu_contribution", p.get("total_cost", 0))
+                        consortium = p.get("consortium", {})
+                        size = consortium.get("size", p.get("partner_count", 0))
+                        action_type = p.get("action_type", "N/A")
+                        objective = p.get("objective", "")
+                        start_date = p.get("start_date", "")
+                        end_date = p.get("end_date", "")
+                        coordinator = consortium.get("coordinator", {}).get("name", "")
+                        cluster = p.get("cluster", "")
 
-                        budget_str = f"€{budget/1_000_000:.1f}M" if budget > 0 else "N/A"
+                        budget_str = f"€{budget / 1_000_000:.1f}M" if budget > 0 else "N/A"
 
                         similar_parts.append(f"### {i}. {acronym} [{score:.0%} match]")
                         similar_parts.append(f"**{title}**")
-                        similar_parts.append(f"- Type: {action_type} | Budget: {budget_str} | Partners: {size}")
+                        similar_parts.append(
+                            f"- Type: {action_type} | Budget: {budget_str} | Partners: {size}"
+                        )
                         if cluster:
                             similar_parts.append(f"- Cluster: {cluster}")
                         if start_date and end_date:
@@ -3360,49 +3490,53 @@ Per Partner Distribution:
                         if coordinator:
                             similar_parts.append(f"- Coordinator: {coordinator}")
                         if objective:
-                            obj_preview = objective[:300] + "..." if len(objective) > 300 else objective
+                            obj_preview = (
+                                objective[:300] + "..." if len(objective) > 300 else objective
+                            )
                             similar_parts.append(f"- Objective: *{obj_preview}*")
                         similar_parts.append("")
 
                     # Add insights
-                    insights = result.get('insights', [])
+                    insights = result.get("insights", [])
                     if insights:
                         similar_parts.append("**Key Insights:**")
                         for insight in insights[:5]:
                             similar_parts.append(f"- {insight}")
 
-                    content_pieces.append('\n'.join(similar_parts))
+                    content_pieces.append("\n".join(similar_parts))
 
             # Extract project results
-            elif 'projects' in result and isinstance(result['projects'], list):
-                for proj in result['projects'][:5]:
-                    acronym = proj.get('acronym', '')
-                    title = proj.get('title', '')
+            elif "projects" in result and isinstance(result["projects"], list):
+                for proj in result["projects"][:5]:
+                    acronym = proj.get("acronym", "")
+                    title = proj.get("title", "")
                     if acronym or title:
                         content_pieces.append(f"Project {acronym}: {title}")
 
             # Extract country statistics results
-            elif 'country_code' in result and 'eligibility' in result:
-                country = result.get('country', result.get('country_code', 'Unknown'))
-                eligibility = result.get('eligibility', {})
-                top_orgs = result.get('top_organizations', [])
+            elif "country_code" in result and "eligibility" in result:
+                country = result.get("country", result.get("country_code", "Unknown"))
+                eligibility = result.get("eligibility", {})
+                top_orgs = result.get("top_organizations", [])
 
                 # Get participation history from eligibility
-                participation = eligibility.get('participation_history', {})
-                org_count = participation.get('organization_count', result.get('organization_count', 0))
-                proj_count = participation.get('project_count', 0)
-                total_funding = participation.get('total_funding_received', 0)
+                participation = eligibility.get("participation_history", {})
+                org_count = participation.get(
+                    "organization_count", result.get("organization_count", 0)
+                )
+                proj_count = participation.get("project_count", 0)
+                total_funding = participation.get("total_funding_received", 0)
 
                 # Build clear eligibility answer first
-                is_eligible = eligibility.get('is_eligible', False)
-                eligibility_status = eligibility.get('eligibility_status', 'Unknown')
+                is_eligible = eligibility.get("is_eligible", False)
+                eligibility_status = eligibility.get("eligibility_status", "Unknown")
 
                 country_text = f"""Country: {country}
-**Can participate in Horizon Europe: {'YES' if is_eligible else 'NO'}**
+**Can participate in Horizon Europe: {"YES" if is_eligible else "NO"}**
 - Status: {eligibility_status}"""
 
                 # Add notes if available
-                notes = eligibility.get('notes', [])
+                notes = eligibility.get("notes", [])
                 if notes:
                     country_text += f"\n- {notes[0]}"
 
@@ -3418,107 +3552,123 @@ Participation Statistics:
                 if top_orgs:
                     country_text += f"\n\nTop Organizations ({len(top_orgs)} shown):"
                     for org in top_orgs[:10]:
-                        org_name = org.get('name', org.get('organization_name', 'Unknown'))
-                        org_projects = org.get('project_count', org.get('projects', 0))
-                        org_funding = org.get('total_funding', org.get('funding', 0))
-                        country_text += f"\n- {org_name}: {org_projects} projects, €{org_funding:,.0f}"
+                        org_name = org.get("name", org.get("organization_name", "Unknown"))
+                        org_projects = org.get("project_count", org.get("projects", 0))
+                        org_funding = org.get("total_funding", org.get("funding", 0))
+                        country_text += (
+                            f"\n- {org_name}: {org_projects} projects, €{org_funding:,.0f}"
+                        )
 
                 content_pieces.append(country_text)
 
             # Extract programme/cluster statistics results
-            elif 'cluster_code' in result or ('programme' in result and 'statistics' in result):
-                programme = result.get('programme', result.get('cluster_code', 'Unknown'))
-                programme_type = result.get('programme_type', '')
-                stats = result.get('statistics', {})
-                budget = result.get('budget_details', {})
+            elif "cluster_code" in result or ("programme" in result and "statistics" in result):
+                programme = result.get("programme", result.get("cluster_code", "Unknown"))
+                programme_type = result.get("programme_type", "")
+                stats = result.get("statistics", {})
+                budget = result.get("budget_details", {})
 
                 programme_text = f"""Programme Statistics for {programme}:"""
                 if programme_type:
                     programme_text += f"\n({programme_type})"
 
                 # Handle EIC/ERC/MSCA format with success_rates dict
-                if 'success_rates' in stats:
-                    success_rates = stats['success_rates']
+                if "success_rates" in stats:
+                    success_rates = stats["success_rates"]
                     programme_text += f"\n\n{stats.get('description', '')}\n"
                     programme_text += "\nSuccess Rates:"
                     for key, value in success_rates.items():
-                        if key != 'note':
+                        if key != "note":
                             programme_text += f"\n- {key.replace('_', ' ').title()}: {value}"
-                    if success_rates.get('note'):
+                    if success_rates.get("note"):
                         programme_text += f"\n\nNote: {success_rates['note']}"
 
                     # Add funding info
-                    if 'funding' in stats:
+                    if "funding" in stats:
                         programme_text += "\n\nFunding Available:"
-                        for key, value in stats['funding'].items():
+                        for key, value in stats["funding"].items():
                             programme_text += f"\n- {key.replace('_', ' ').title()}: {value}"
 
                     # Add eligibility
-                    if stats.get('eligibility'):
+                    if stats.get("eligibility"):
                         programme_text += f"\n\nEligibility: {stats['eligibility']}"
 
-                    if stats.get('trl_range'):
+                    if stats.get("trl_range"):
                         programme_text += f"\nTRL Range: {stats['trl_range']}"
 
                     # Add evaluation criteria
-                    if stats.get('evaluation_criteria'):
+                    if stats.get("evaluation_criteria"):
                         programme_text += "\n\nEvaluation Criteria:"
-                        for criterion in stats['evaluation_criteria']:
+                        for criterion in stats["evaluation_criteria"]:
                             programme_text += f"\n- {criterion}"
                 else:
                     # Standard cluster statistics format
                     if stats:
-                        total_projects = stats.get('total_projects', stats.get('project_count', 'N/A'))
-                        total_funding = stats.get('total_funding', stats.get('total_budget', 0))
-                        avg_budget = stats.get('avg_project_budget', stats.get('average_funding', 0))
+                        total_projects = stats.get(
+                            "total_projects", stats.get("project_count", "N/A")
+                        )
+                        total_funding = stats.get("total_funding", stats.get("total_budget", 0))
+                        avg_budget = stats.get(
+                            "avg_project_budget", stats.get("average_funding", 0)
+                        )
 
-                        programme_text += f"""
-- Total Projects: {total_projects:,}""" if isinstance(total_projects, int) else f"""
+                        programme_text += (
+                            f"""
+- Total Projects: {total_projects:,}"""
+                            if isinstance(total_projects, int)
+                            else f"""
 - Total Projects: {total_projects}"""
+                        )
                         programme_text += f"""
 - Total Funding: €{total_funding:,.0f}
-- Success Rate: {stats.get('success_rate', 'N/A')}%
+- Success Rate: {stats.get("success_rate", "N/A")}%
 - Average Project Budget: €{avg_budget:,.0f}"""
 
                     if budget:
                         programme_text += f"""
 
 Budget Breakdown:
-- Min Budget: €{budget.get('min_budget', 0):,.0f}
-- Max Budget: €{budget.get('max_budget', 0):,.0f}
-- Median Budget: €{budget.get('median_budget', 0):,.0f}"""
+- Min Budget: €{budget.get("min_budget", 0):,.0f}
+- Max Budget: €{budget.get("max_budget", 0):,.0f}
+- Median Budget: €{budget.get("median_budget", 0):,.0f}"""
 
                 content_pieces.append(programme_text)
 
             # Extract call history analysis results
-            elif result.get('tool_name') == 'analyze_call_history' or ('timeline' in result and 'trends' in result):
-                query_params = result.get('query_params', {})
-                keywords = query_params.get('keywords', 'specified criteria')
-                cluster = query_params.get('cluster', '')
+            elif result.get("tool_name") == "analyze_call_history" or (
+                "timeline" in result and "trends" in result
+            ):
+                query_params = result.get("query_params", {})
+                keywords = query_params.get("keywords", "specified criteria")
+                cluster = query_params.get("cluster", "")
 
-                calls_analyzed = result.get('calls_analyzed', 0)
-                projects_funded = result.get('projects_funded', 0)
-                total_funding = result.get('total_funding_allocated', 0)
-                timeline = result.get('timeline', {})
-                trends = result.get('trends', {})
-                top_topics = result.get('top_funded_topics', [])
-                sample_projects = result.get('sample_funded_projects', [])
-                recommendations = result.get('recommendations', [])
+                calls_analyzed = result.get("calls_analyzed", 0)
+                projects_funded = result.get("projects_funded", 0)
+                total_funding = result.get("total_funding_allocated", 0)
+                timeline = result.get("timeline", {})
+                trends = result.get("trends", {})
+                top_topics = result.get("top_funded_topics", [])
+                sample_projects = result.get("sample_funded_projects", [])
+                recommendations = result.get("recommendations", [])
 
                 # Build header
-                search_desc = keywords if keywords else (f"Cluster {cluster}" if cluster else "Horizon Europe")
+                search_desc = (
+                    keywords
+                    if keywords
+                    else (f"Cluster {cluster}" if cluster else "Horizon Europe")
+                )
                 history_text = f"""## Funding History Analysis: {search_desc}
 
 **Overview:**
 - Calls Analyzed: {calls_analyzed}
 - Projects Funded: {projects_funded:,}
-- Total Funding: €{total_funding/1_000_000_000:.2f} billion
+- Total Funding: €{total_funding / 1_000_000_000:.2f} billion
 """
 
                 # Add trend info
-                funding_trend = trends.get('funding_trend', 'unknown')
-                yoy_growth = trends.get('year_over_year_funding_growth', 0)
-                if funding_trend and funding_trend != 'insufficient_data':
+                funding_trend = trends.get("funding_trend", "unknown")
+                yoy_growth = trends.get("year_over_year_funding_growth", 0)
+                if funding_trend and funding_trend != "insufficient_data":
                     history_text += f"- Funding Trend: {funding_trend.replace('_', ' ').title()} ({yoy_growth:+.1f}% YoY)\n"
 
                 # Add timeline
@@ -3527,20 +3677,20 @@ Budget Breakdown:
                     sorted_years = sorted(timeline.keys(), reverse=True)
                     for year in sorted_years[:5]:
                         data = timeline[year]
-                        year_projects = data.get('projects_funded', 0)
-                        year_funding = data.get('total_funding', 0)
-                        avg_budget = data.get('avg_project_budget', 0)
-                        history_text += f"- **{year}**: {year_projects:,} projects, €{year_funding/1_000_000:.0f}M total (avg €{avg_budget/1_000_000:.1f}M/project)\n"
+                        year_projects = data.get("projects_funded", 0)
+                        year_funding = data.get("total_funding", 0)
+                        avg_budget = data.get("avg_project_budget", 0)
+                        history_text += f"- **{year}**: {year_projects:,} projects, €{year_funding / 1_000_000:.0f}M total (avg €{avg_budget / 1_000_000:.1f}M/project)\n"
 
                 # Add top topics
                 if top_topics:
                     history_text += "\n**Top Funded Topics:**\n"
                     for topic in top_topics[:5]:
-                        topic_name = topic.get('topic', topic.get('name', 'N/A'))
-                        topic_projects = topic.get('projects', topic.get('count', 0))
-                        topic_funding = topic.get('total_funding', 0)
+                        topic_name = topic.get("topic", topic.get("name", "N/A"))
+                        topic_projects = topic.get("projects", topic.get("count", 0))
+                        topic_funding = topic.get("total_funding", 0)
                         if topic_funding > 0:
-                            history_text += f"- {topic_name}: {topic_projects} projects, €{topic_funding/1_000_000:.0f}M\n"
+                            history_text += f"- {topic_name}: {topic_projects} projects, €{topic_funding / 1_000_000:.0f}M\n"
                         else:
                             history_text += f"- {topic_name}: {topic_projects} projects\n"
 
@@ -3548,10 +3698,12 @@ Budget Breakdown:
                 if sample_projects:
                     history_text += "\n**Sample Funded Projects:**\n"
                     for proj in sample_projects[:5]:
-                        acronym = proj.get('acronym', 'N/A')
-                        title = proj.get('title', '')[:60]
-                        budget = proj.get('budget', proj.get('ec_contribution', 0))
-                        history_text += f"- **{acronym}**: {title}... (€{budget/1_000_000:.1f}M)\n"
+                        acronym = proj.get("acronym", "N/A")
+                        title = proj.get("title", "")[:60]
+                        budget = proj.get("budget", proj.get("ec_contribution", 0))
+                        history_text += (
+                            f"- **{acronym}**: {title}... (€{budget / 1_000_000:.1f}M)\n"
+                        )
 
                 # Add recommendations
                 if recommendations:
@@ -3562,24 +3714,27 @@ Budget Breakdown:
                 content_pieces.append(history_text)
 
             # Extract geographic diversification results
-            elif result.get('tool_name') == 'analyze_geographic_diversification' or 'group_representation' in result:
-                query_params = result.get('query_params', {})
-                cluster = query_params.get('cluster', 'All Horizon Europe')
-                total_projects = result.get('total_projects_analyzed', 0)
-                country_groups = result.get('country_groups', {})
-                group_stats = result.get('group_representation', [])
-                coverage_stats = result.get('coverage_statistics', {})
-                at_least_stats = result.get('at_least_coverage', {})
-                insights = result.get('insights', {})
-                recommendations = result.get('recommendations', {})
-                exclude_widening = query_params.get('exclude_widening', True)
+            elif (
+                result.get("tool_name") == "analyze_geographic_diversification"
+                or "group_representation" in result
+            ):
+                query_params = result.get("query_params", {})
+                cluster = query_params.get("cluster", "All Horizon Europe")
+                total_projects = result.get("total_projects_analyzed", 0)
+                country_groups = result.get("country_groups", {})
+                group_stats = result.get("group_representation", [])
+                coverage_stats = result.get("coverage_statistics", {})
+                at_least_stats = result.get("at_least_coverage", {})
+                insights = result.get("insights", {})
+                recommendations = result.get("recommendations", {})
+                exclude_widening = query_params.get("exclude_widening", True)
 
                 # Build comprehensive output
                 geo_text = f"""## Geographic Diversification Analysis: {cluster}
 
 **Analysis Parameters:**
 - Projects Analyzed: {total_projects:,}
-- Widening Calls: {'Excluded' if exclude_widening else 'Included'}
+- Widening Calls: {"Excluded" if exclude_widening else "Included"}
 - Country Groups Defined: {len(country_groups)}
 
 **Country Group Definitions:**
@@ -3587,13 +3742,15 @@ Budget Breakdown:
                 for group_name, countries in country_groups.items():
                     geo_text += f"- **{group_name}**: {', '.join(countries)}\n"
 
-                geo_text += "\n**Group Representation (% of projects with at least one partner):**\n"
+                geo_text += (
+                    "\n**Group Representation (% of projects with at least one partner):**\n"
+                )
                 geo_text += "| Country Group | Projects | Share (%) |\n"
                 geo_text += "|---------------|----------|----------|\n"
                 for stat in group_stats:
-                    group_name = stat.get('group', 'Unknown')
-                    projects = stat.get('projects_with_partner', 0)
-                    share = stat.get('share_percentage', 0)
+                    group_name = stat.get("group", "Unknown")
+                    projects = stat.get("projects_with_partner", 0)
+                    share = stat.get("share_percentage", 0)
                     geo_text += f"| {group_name} | {projects:,} | {share}% |\n"
 
                 geo_text += "\n**Coverage Distribution (number of groups per project):**\n"
@@ -3601,23 +3758,23 @@ Budget Breakdown:
                 geo_text += "|----------|----------|----------|\n"
                 for coverage_key, coverage_data in coverage_stats.items():
                     if isinstance(coverage_data, dict):
-                        count = coverage_data.get('count', 0)
-                        share = coverage_data.get('share_percentage', 0)
-                        label = coverage_key.replace('_', ' ').title()
+                        count = coverage_data.get("count", 0)
+                        share = coverage_data.get("share_percentage", 0)
+                        label = coverage_key.replace("_", " ").title()
                         geo_text += f"| {label} | {count:,} | {share}% |\n"
 
                 geo_text += "\n**Cumulative Coverage (projects with at least N groups):**\n"
                 for coverage_key, coverage_data in at_least_stats.items():
                     if isinstance(coverage_data, dict):
-                        share = coverage_data.get('share_percentage', 0)
-                        label = coverage_key.replace('_', ' ').replace('at least', 'At least')
+                        share = coverage_data.get("share_percentage", 0)
+                        label = coverage_key.replace("_", " ").replace("at least", "At least")
                         geo_text += f"- {label}: {share}%\n"
 
                 geo_text += "\n**Key Insights:**\n"
-                typical = insights.get('typical_coverage', 'N/A')
-                avg_presence = insights.get('avg_group_presence', 0)
-                well_rep = insights.get('well_represented_groups', [])
-                under_rep = insights.get('underrepresented_groups', [])
+                typical = insights.get("typical_coverage", "N/A")
+                avg_presence = insights.get("avg_group_presence", 0)
+                well_rep = insights.get("well_represented_groups", [])
+                under_rep = insights.get("underrepresented_groups", [])
 
                 geo_text += f"- Typical consortium covers: {typical}\n"
                 geo_text += f"- Average group presence: {avg_presence}%\n"
@@ -3627,9 +3784,9 @@ Budget Breakdown:
                     geo_text += f"- Underrepresented groups: {', '.join(under_rep)}\n"
 
                 geo_text += "\n**Recommendations:**\n"
-                if recommendations.get('consortium_building'):
+                if recommendations.get("consortium_building"):
                     geo_text += f"- {recommendations['consortium_building']}\n"
-                if recommendations.get('evaluation_note'):
+                if recommendations.get("evaluation_note"):
                     geo_text += f"- {recommendations['evaluation_note']}\n"
 
                 geo_text += """
@@ -3640,11 +3797,14 @@ Budget Breakdown:
                 content_pieces.append(geo_text)
 
             # Extract partner discovery results
-            elif result.get('tool_name') == 'find_experienced_partners' or 'experienced_partners' in result:
-                partners = result.get('experienced_partners', [])
-                total_found = result.get('total_found', 0)
-                query_params = result.get('query_params', {})
-                keywords = query_params.get('topic_keywords', 'specified criteria')
+            elif (
+                result.get("tool_name") == "find_experienced_partners"
+                or "experienced_partners" in result
+            ):
+                partners = result.get("experienced_partners", [])
+                total_found = result.get("total_found", 0)
+                query_params = result.get("query_params", {})
+                keywords = query_params.get("topic_keywords", "specified criteria")
 
                 if not partners and total_found == 0:
                     partner_text = f"""Partner Search Results for '{keywords}':
@@ -3664,23 +3824,28 @@ Found **{total_found} organizations** with relevant track records:
 """
                     for i, p in enumerate(partners[:10], 1):
                         # Prefer full name over short_name for better recognition
-                        full_name = p.get('name', 'Unknown')
-                        short_name = p.get('short_name', '')
+                        full_name = p.get("name", "Unknown")
+                        short_name = p.get("short_name", "")
                         # Use full name if available, otherwise use short_name
                         name = full_name if len(full_name) > 5 else (short_name or full_name)
-                        country = p.get('country', 'N/A')
-                        org_type = p.get('type', 'N/A')
+                        country = p.get("country", "N/A")
+                        org_type = p.get("type", "N/A")
                         org_type_desc = {
-                            'HES': 'Higher Education', 'REC': 'Research Center',
-                            'PRC': 'Private Company', 'PUB': 'Public Body', 'OTH': 'Other'
+                            "HES": "Higher Education",
+                            "REC": "Research Center",
+                            "PRC": "Private Company",
+                            "PUB": "Public Body",
+                            "OTH": "Other",
                         }.get(org_type, org_type)
-                        track = p.get('track_record', {})
-                        relevant = track.get('relevant_projects', 0)
-                        coord = track.get('as_coordinator', 0)
+                        track = p.get("track_record", {})
+                        relevant = track.get("relevant_projects", 0)
+                        coord = track.get("as_coordinator", 0)
                         # Use funding_in_relevant (actual field) with fallback to total_funding
-                        total_funding = track.get('funding_in_relevant', track.get('total_funding', 0))
+                        total_funding = track.get(
+                            "funding_in_relevant", track.get("total_funding", 0)
+                        )
                         # Get project examples (list of dicts with acronym, title, role)
-                        project_examples = p.get('relevant_projects', [])
+                        project_examples = p.get("relevant_projects", [])
 
                         partner_text += f"### {i}. **{name}** ({country})\n"
                         partner_text += f"- **Organization Type**: {org_type} ({org_type_desc})\n"
@@ -3695,8 +3860,8 @@ Found **{total_found} organizations** with relevant track records:
                             examples = []
                             for proj in project_examples[:3]:  # Max 3 examples
                                 if isinstance(proj, dict):
-                                    acronym = proj.get('acronym', '')
-                                    role = proj.get('role', 'participant')
+                                    acronym = proj.get("acronym", "")
+                                    role = proj.get("role", "participant")
                                     if acronym:
                                         examples.append(f"{acronym} ({role})")
                             if examples:
@@ -3705,14 +3870,14 @@ Found **{total_found} organizations** with relevant track records:
                         partner_text += "\n"
 
                     # Add insights if available
-                    insights = result.get('aggregated_insights', {})
-                    if insights.get('top_countries_in_topic'):
+                    insights = result.get("aggregated_insights", {})
+                    if insights.get("top_countries_in_topic"):
                         partner_text += f"\n**Top countries for this topic**: {', '.join(insights['top_countries_in_topic'][:5])}\n"
-                    if insights.get('top_org_types'):
+                    if insights.get("top_org_types"):
                         partner_text += f"**Common organization types**: {', '.join(insights['top_org_types'][:3])}\n"
 
                     # Add actionability section with country-specific resources
-                    country_filter = query_params.get('country', '')
+                    country_filter = query_params.get("country", "")
                     partner_text += """
 ---
 
@@ -3724,7 +3889,7 @@ Found **{total_found} organizations** with relevant track records:
 - **Verify Municipal Networks**: Check organizations' websites for urban/city partnerships, living labs, or pilot site descriptions
 """
                     # Add Spain-specific resource for municipal networks
-                    if country_filter and country_filter.upper() in ['ES', 'SPAIN']:
+                    if country_filter and country_filter.upper() in ["ES", "SPAIN"]:
                         partner_text += "- **FEMP (Spanish Federation of Municipalities)**: http://www.femp.es - Contact for municipal network verification\n"
                     content_pieces.append(partner_text)
 
@@ -3747,12 +3912,12 @@ Found **{total_found} organizations** with relevant track records:
         # Markers for detailed content types - prioritize similar projects over call details
         # (since user wants similar projects, not just call info)
         direct_output_markers_priority = [
-            '## Similar Funded Projects',  # Highest priority - what user wants
-            '## Similar Projects Search',
-            '## Project Timeline Generated',
-            '## Funding History Analysis:',
-            '## Geographic Diversification Analysis:',  # Country group analysis
-            '## Call Details:',  # Lower priority - context, not main answer
+            "## Similar Funded Projects",  # Highest priority - what user wants
+            "## Similar Projects Search",
+            "## Project Timeline Generated",
+            "## Funding History Analysis:",
+            "## Geographic Diversification Analysis:",  # Country group analysis
+            "## Call Details:",  # Lower priority - context, not main answer
         ]
 
         # Collect ALL content pieces with direct output markers
@@ -3772,11 +3937,17 @@ Found **{total_found} organizations** with relevant track records:
         # If we have direct outputs, combine them (prioritizing similar projects)
         if direct_outputs:
             # Sort by priority (lower index = higher priority)
-            direct_outputs.sort(key=lambda x: direct_output_markers_priority.index(x[0]) if x[0] in direct_output_markers_priority else 999)
+            direct_outputs.sort(
+                key=lambda x: (
+                    direct_output_markers_priority.index(x[0])
+                    if x[0] in direct_output_markers_priority
+                    else 999
+                )
+            )
 
             # Combine all direct outputs
             combined_parts = []
-            for marker, content in direct_outputs:
+            for _marker, content in direct_outputs:
                 combined_parts.append(content)
 
             return "\n\n---\n\n".join(combined_parts)
@@ -3787,14 +3958,30 @@ Found **{total_found} organizations** with relevant track records:
         body_parts = []
         for i, content in enumerate(unique_content[:5], 1):
             # Truncate long pieces (use higher limit for statistics and detailed results)
-            is_detailed = any(k in content.lower() for k in ['statistics', 'eligibility', 'organizations', 'funding', 'timeline', 'work package', 'deliverable', 'milestone', 'gantt', 'similar', 'call details', 'budget'])
+            is_detailed = any(
+                k in content.lower()
+                for k in [
+                    "statistics",
+                    "eligibility",
+                    "organizations",
+                    "funding",
+                    "timeline",
+                    "work package",
+                    "deliverable",
+                    "milestone",
+                    "gantt",
+                    "similar",
+                    "call details",
+                    "budget",
+                ]
+            )
             max_len = 8000 if is_detailed else 1500
             if len(content) > max_len:
                 content = content[:max_len] + "..."
             body_parts.append(f"**Finding {i}:**\n{content}")
 
         return intro + "\n\n".join(body_parts)
-    
+
     async def _execute_tool_calls(self, tool_calls: list[dict]) -> list[ToolCall]:
         """Execute multiple tool calls (in parallel when possible).
 
@@ -3807,15 +3994,11 @@ Found **{total_found} organizations** with relevant track records:
         used_speculative = set()
 
         for tc in tool_calls:
-            tool_name = tc.get('tool')
-            params = tc.get('parameters', {})
-            reasoning = tc.get('reasoning', '')
+            tool_name = tc.get("tool")
+            params = tc.get("parameters", {})
+            reasoning = tc.get("reasoning", "")
 
-            tool_call = ToolCall(
-                tool_name=tool_name,
-                parameters=params,
-                reasoning=reasoning
-            )
+            tool_call = ToolCall(tool_name=tool_name, parameters=params, reasoning=reasoning)
 
             # Check for speculative result first (with param validation)
             speculative_result = None
@@ -3823,13 +4006,13 @@ Found **{total_found} organizations** with relevant track records:
                 speculative_result = await self.speculative_executor.get_speculative_result(
                     tool_name,
                     timeout=0.2,  # 200ms timeout for speculative results
-                    requested_params=params  # Pass params for compatibility check
+                    requested_params=params,  # Pass params for compatibility check
                 )
 
-            if speculative_result and speculative_result.get('result') is not None:
+            if speculative_result and speculative_result.get("result") is not None:
                 # Use speculative result
                 tool_call.success = True
-                tool_call.result = speculative_result['result']
+                tool_call.result = speculative_result["result"]
                 tool_call.execution_time_ms = 0  # Already computed
                 results.append(tool_call)
                 used_speculative.add(tool_name)
@@ -3838,14 +4021,17 @@ Found **{total_found} organizations** with relevant track records:
                 # Track speculative hit in analytics
                 if self.analytics:
                     from ..analytics.tool_analytics_service import ToolUsageEvent
-                    await self.analytics.track_tool_usage(ToolUsageEvent(
-                        tool_name=tool_name,
-                        parameters=params,
-                        execution_time_ms=0,
-                        success=True,
-                        speculative=True,
-                        result_count=self._count_results(speculative_result['result'])
-                    ))
+
+                    await self.analytics.track_tool_usage(
+                        ToolUsageEvent(
+                            tool_name=tool_name,
+                            parameters=params,
+                            execution_time_ms=0,
+                            success=True,
+                            speculative=True,
+                            result_count=self._count_results(speculative_result["result"]),
+                        )
+                    )
             else:
                 # Need to execute normally
                 to_execute.append((tool_call, self._execute_single_tool(tool_name, params)))
@@ -3876,104 +4062,107 @@ Found **{total_found} organizations** with relevant track records:
                 # Track in analytics
                 if self.analytics:
                     from ..analytics.tool_analytics_service import ToolUsageEvent
-                    await self.analytics.track_tool_usage(ToolUsageEvent(
-                        tool_name=tool_call.tool_name,
-                        parameters=tool_call.parameters,
-                        execution_time_ms=int(execution_time),
-                        success=tool_call.success,
-                        error_message=tool_call.error if not tool_call.success else None,
-                        result_count=self._count_results(result) if tool_call.success else None,
-                        speculative=False
-                    ))
+
+                    await self.analytics.track_tool_usage(
+                        ToolUsageEvent(
+                            tool_name=tool_call.tool_name,
+                            parameters=tool_call.parameters,
+                            execution_time_ms=int(execution_time),
+                            success=tool_call.success,
+                            error_message=tool_call.error if not tool_call.success else None,
+                            result_count=self._count_results(result) if tool_call.success else None,
+                            speculative=False,
+                        )
+                    )
 
         return results
-    
+
     async def _execute_single_tool(self, tool_name: str, params: dict) -> Any:
         """Execute a single tool."""
-        
+
         tool = self.tools.get(tool_name)
         if not tool:
             raise ValueError(f"Unknown tool: {tool_name}")
-        
+
         # Route to actual tool implementations
         try:
-            if tool_name == 'get_programme_statistics':
+            if tool_name == "get_programme_statistics":
                 return await self._tool_get_programme_stats(params)
-            elif tool_name == 'get_country_statistics':
+            elif tool_name == "get_country_statistics":
                 return await self._tool_get_country_stats(params)
-            elif tool_name == 'compare_programmes':
+            elif tool_name == "compare_programmes":
                 return await self._tool_compare_programmes(params)
-            elif tool_name == 'search_documents':
+            elif tool_name == "search_documents":
                 return await self._tool_search_documents(params)
-            elif tool_name == 'search_funding_calls':
+            elif tool_name == "search_funding_calls":
                 return await self._tool_search_funding_calls(params)
-            elif tool_name == 'get_call_details':
+            elif tool_name == "get_call_details":
                 return await self._tool_get_call_details(params)
-            elif tool_name == 'search_projects':
+            elif tool_name == "search_projects":
                 return await self._tool_search_projects(params)
-            elif tool_name == 'find_similar_projects':
+            elif tool_name == "find_similar_projects":
                 return await self._tool_find_similar_projects(params)
-            elif tool_name == 'find_semantically_similar_projects':
+            elif tool_name == "find_semantically_similar_projects":
                 return await self._tool_find_semantically_similar_projects(params)
-            elif tool_name == 'find_organization_projects':
+            elif tool_name == "find_organization_projects":
                 return await self._tool_find_organization_projects(params)
-            elif tool_name == 'get_collaboration_network':
+            elif tool_name == "get_collaboration_network":
                 return await self._tool_get_collaboration_network(params)
-            elif tool_name == 'search_by_cluster':
+            elif tool_name == "search_by_cluster":
                 return await self._tool_search_by_cluster(params)
-            elif tool_name == 'get_budget_benchmark':
+            elif tool_name == "get_budget_benchmark":
                 return await self._tool_get_budget_benchmark(params)
-            elif tool_name == 'get_consortium_patterns':
+            elif tool_name == "get_consortium_patterns":
                 return await self._tool_get_consortium_patterns(params)
-            elif tool_name == 'analyze_geographic_diversification':
+            elif tool_name == "analyze_geographic_diversification":
                 return await self._tool_analyze_geographic_diversification(params)
-            elif tool_name == 'find_experienced_partners':
+            elif tool_name == "find_experienced_partners":
                 return await self._tool_find_experienced_partners(params)
-            elif tool_name == 'get_similar_funded_projects':
+            elif tool_name == "get_similar_funded_projects":
                 return await self._tool_get_similar_funded_projects(params)
-            elif tool_name == 'analyze_call_history':
+            elif tool_name == "analyze_call_history":
                 return await self._tool_analyze_call_history(params)
-            elif tool_name == 'calculate_budget':
+            elif tool_name == "calculate_budget":
                 return await self._tool_calculate_budget(params)
-            elif tool_name == 'generate_timeline':
+            elif tool_name == "generate_timeline":
                 return await self._tool_generate_timeline(params)
             # Multi-programme tools
-            elif tool_name == 'search_all_programmes':
+            elif tool_name == "search_all_programmes":
                 return await self._tool_search_all_programmes(params)
-            elif tool_name == 'recommend_programmes':
+            elif tool_name == "recommend_programmes":
                 return await self._tool_recommend_programmes(params)
-            elif tool_name == 'get_programme_info':
+            elif tool_name == "get_programme_info":
                 return await self._tool_get_programme_info(params)
             # Proposal quality scoring tools
-            elif tool_name == 'score_proposal_section':
+            elif tool_name == "score_proposal_section":
                 return await self._tool_score_proposal_section(params)
-            elif tool_name == 'score_full_proposal':
+            elif tool_name == "score_full_proposal":
                 return await self._tool_score_full_proposal(params)
-            elif tool_name == 'quick_quality_check':
+            elif tool_name == "quick_quality_check":
                 return await self._tool_quick_quality_check(params)
             # Budget validation tool
-            elif tool_name == 'validate_budget':
+            elif tool_name == "validate_budget":
                 return await self._tool_validate_budget(params)
             # Erasmus+ specific tools
-            elif tool_name == 'check_erasmus_eligibility':
+            elif tool_name == "check_erasmus_eligibility":
                 return await self._tool_check_erasmus_eligibility(params)
-            elif tool_name == 'calculate_erasmus_budget':
+            elif tool_name == "calculate_erasmus_budget":
                 return await self._tool_calculate_erasmus_budget(params)
-            elif tool_name == 'search_erasmus_templates':
+            elif tool_name == "search_erasmus_templates":
                 return await self._tool_search_erasmus_templates(params)
             # Creative Europe specific tools
-            elif tool_name == 'check_creative_europe_eligibility':
+            elif tool_name == "check_creative_europe_eligibility":
                 return await self._tool_check_creative_europe_eligibility(params)
-            elif tool_name == 'calculate_creative_europe_budget':
+            elif tool_name == "calculate_creative_europe_budget":
                 return await self._tool_calculate_creative_europe_budget(params)
-            elif tool_name == 'search_creative_europe_templates':
+            elif tool_name == "search_creative_europe_templates":
                 return await self._tool_search_creative_europe_templates(params)
             else:
                 return {"error": f"Tool {tool_name} not implemented"}
         except Exception as e:
             logger.error(f"Tool {tool_name} execution failed: {e}")
             return {"error": str(e)}
-    
+
     # ==================== Tool Implementations ====================
 
     def _extract_cluster_param(self, params: dict) -> str | None:
@@ -3982,10 +4171,10 @@ Found **{total_found} organizations** with relevant track records:
         LLM might use different names for the cluster parameter.
         """
         cluster = (
-            params.get('cluster') or
-            params.get('cluster_code') or
-            params.get('cluster_id') or
-            params.get('pillar')  # Sometimes LLM confuses pillar with cluster
+            params.get("cluster")
+            or params.get("cluster_code")
+            or params.get("cluster_id")
+            or params.get("pillar")  # Sometimes LLM confuses pillar with cluster
         )
         if cluster:
             logger.debug(f"_extract_cluster_param: extracted '{cluster}' from params")
@@ -3995,49 +4184,50 @@ Found **{total_found} organizations** with relevant track records:
         """Get programme/cluster statistics from graph DB."""
         try:
             from ..data_intelligence.graph_service import GraphSearchService
+
             graph = GraphSearchService()
 
-            programme = params.get('programme', '')
+            programme = params.get("programme", "")
             programme_lower = programme.lower()
 
             # Map programme names to cluster codes (Neo4j uses CLUSTER-X format)
             cluster_map = {
-                'cluster 5': 'CLUSTER-5',
-                'cluster-5': 'CLUSTER-5',
-                'cl5': 'CLUSTER-5',
-                'climate': 'CLUSTER-5',
-                'energy': 'CLUSTER-5',
-                'mobility': 'CLUSTER-5',
-                'cluster 4': 'CLUSTER-4',
-                'cluster-4': 'CLUSTER-4',
-                'cl4': 'CLUSTER-4',
-                'digital': 'CLUSTER-4',
-                'industry': 'CLUSTER-4',
-                'space': 'CLUSTER-4',
-                'cluster 6': 'CLUSTER-6',
-                'cluster-6': 'CLUSTER-6',
-                'cl6': 'CLUSTER-6',
-                'food': 'CLUSTER-6',
-                'bioeconomy': 'CLUSTER-6',
-                'agriculture': 'CLUSTER-6',
-                'cluster 1': 'CLUSTER-1',
-                'cluster-1': 'CLUSTER-1',
-                'cl1': 'CLUSTER-1',
-                'health': 'CLUSTER-1',
-                'cluster 2': 'CLUSTER-2',
-                'cluster-2': 'CLUSTER-2',
-                'cl2': 'CLUSTER-2',
-                'culture': 'CLUSTER-2',
-                'creativity': 'CLUSTER-2',
-                'cluster 3': 'CLUSTER-3',
-                'cluster-3': 'CLUSTER-3',
-                'cl3': 'CLUSTER-3',
-                'security': 'CLUSTER-3',
+                "cluster 5": "CLUSTER-5",
+                "cluster-5": "CLUSTER-5",
+                "cl5": "CLUSTER-5",
+                "climate": "CLUSTER-5",
+                "energy": "CLUSTER-5",
+                "mobility": "CLUSTER-5",
+                "cluster 4": "CLUSTER-4",
+                "cluster-4": "CLUSTER-4",
+                "cl4": "CLUSTER-4",
+                "digital": "CLUSTER-4",
+                "industry": "CLUSTER-4",
+                "space": "CLUSTER-4",
+                "cluster 6": "CLUSTER-6",
+                "cluster-6": "CLUSTER-6",
+                "cl6": "CLUSTER-6",
+                "food": "CLUSTER-6",
+                "bioeconomy": "CLUSTER-6",
+                "agriculture": "CLUSTER-6",
+                "cluster 1": "CLUSTER-1",
+                "cluster-1": "CLUSTER-1",
+                "cl1": "CLUSTER-1",
+                "health": "CLUSTER-1",
+                "cluster 2": "CLUSTER-2",
+                "cluster-2": "CLUSTER-2",
+                "cl2": "CLUSTER-2",
+                "culture": "CLUSTER-2",
+                "creativity": "CLUSTER-2",
+                "cluster 3": "CLUSTER-3",
+                "cluster-3": "CLUSTER-3",
+                "cl3": "CLUSTER-3",
+                "security": "CLUSTER-3",
             }
 
             # Handle EIC/ERC/MSCA separately - these are pillars, not clusters
             # Return known statistics from official EC sources
-            if 'eic' in programme_lower or 'accelerator' in programme_lower:
+            if "eic" in programme_lower or "accelerator" in programme_lower:
                 return {
                     "programme": "EIC Accelerator",
                     "programme_type": "Pillar 3 - Innovative Europe",
@@ -4048,12 +4238,12 @@ Found **{total_found} organizations** with relevant track records:
                             "short_proposal_to_full": "~25-30%",
                             "full_proposal_to_interview": "~20-25%",
                             "interview_to_funding": "~50-60%",
-                            "note": "Success rates vary by cut-off date and are highly competitive"
+                            "note": "Success rates vary by cut-off date and are highly competitive",
                         },
                         "funding": {
                             "grant_only": "Up to €2.5 million",
                             "blended_finance": "Up to €2.5M grant + up to €15M equity",
-                            "equity_only": "Up to €15 million"
+                            "equity_only": "Up to €15 million",
                         },
                         "eligibility": "Single SMEs (including startups) from EU/Associated Countries",
                         "trl_range": "TRL 5-9 (close to market)",
@@ -4061,13 +4251,13 @@ Found **{total_found} organizations** with relevant track records:
                             "Excellence (Breakthrough innovation, Technology readiness)",
                             "Impact (Market potential, Scalability, Team capability)",
                             "Implementation (Business plan, Milestones, Resources)",
-                            "Level of risk and need for EU support"
-                        ]
+                            "Level of risk and need for EU support",
+                        ],
                     },
-                    "source": "official_ec_data"
+                    "source": "official_ec_data",
                 }
 
-            if 'erc' in programme_lower:
+            if "erc" in programme_lower:
                 return {
                     "programme": "European Research Council (ERC)",
                     "programme_type": "Pillar 1 - Excellent Science",
@@ -4078,24 +4268,28 @@ Found **{total_found} organizations** with relevant track records:
                             "consolidator_grant": "~12-15%",
                             "advanced_grant": "~10-12%",
                             "synergy_grant": "~8-10%",
-                            "proof_of_concept": "~35-40%"
+                            "proof_of_concept": "~35-40%",
                         },
                         "funding": {
                             "starting_grant": "Up to €1.5M for 5 years",
                             "consolidator_grant": "Up to €2M for 5 years",
                             "advanced_grant": "Up to €2.5M for 5 years",
-                            "synergy_grant": "Up to €10M for 6 years (2-4 PIs)"
+                            "synergy_grant": "Up to €10M for 6 years (2-4 PIs)",
                         },
                         "eligibility": "Researchers at any career stage hosted by EU/AC institutions",
                         "evaluation_criteria": [
                             "Excellence of the PI (track record, scientific leadership)",
-                            "Excellence of the research project (groundbreaking nature, methodology)"
-                        ]
+                            "Excellence of the research project (groundbreaking nature, methodology)",
+                        ],
                     },
-                    "source": "official_ec_data"
+                    "source": "official_ec_data",
                 }
 
-            if 'msca' in programme_lower or 'marie' in programme_lower or 'curie' in programme_lower:
+            if (
+                "msca" in programme_lower
+                or "marie" in programme_lower
+                or "curie" in programme_lower
+            ):
                 return {
                     "programme": "Marie Skłodowska-Curie Actions (MSCA)",
                     "programme_type": "Pillar 1 - Excellent Science",
@@ -4106,20 +4300,20 @@ Found **{total_found} organizations** with relevant track records:
                             "doctoral_networks": "~8-12%",
                             "staff_exchanges": "~25-30%",
                             "cofund": "~20-25%",
-                            "citizens": "Varied (outreach programme)"
+                            "citizens": "Varied (outreach programme)",
                         },
                         "funding": {
                             "postdoctoral_fellowships": "Living allowance + mobility + research costs",
-                            "doctoral_networks": "Up to €360,000/researcher"
+                            "doctoral_networks": "Up to €360,000/researcher",
                         },
                         "eligibility": "Researchers at all career stages, with mobility requirements",
                         "evaluation_criteria": [
                             "Excellence (Quality of research/training)",
                             "Impact (Career development, Knowledge transfer)",
-                            "Implementation (Work plan, Management)"
-                        ]
+                            "Implementation (Work plan, Management)",
+                        ],
                     },
-                    "source": "official_ec_data"
+                    "source": "official_ec_data",
                 }
 
             # Try to find a matching cluster code for Pillar 2 clusters
@@ -4130,17 +4324,11 @@ Found **{total_found} organizations** with relevant track records:
                     break
 
             # Get cluster statistics from Neo4j
-            result = await asyncio.to_thread(
-                graph.get_cluster_statistics,
-                cluster_code
-            )
+            result = await asyncio.to_thread(graph.get_cluster_statistics, cluster_code)
 
             if result:
                 # Also get budget statistics for more detail
-                budget_stats = await asyncio.to_thread(
-                    graph.get_budget_statistics,
-                    cluster_code
-                )
+                budget_stats = await asyncio.to_thread(graph.get_budget_statistics, cluster_code)
 
                 # Combine results
                 return {
@@ -4148,42 +4336,65 @@ Found **{total_found} organizations** with relevant track records:
                     "cluster_code": cluster_code,
                     "statistics": result,
                     "budget_details": budget_stats,
-                    "source": "neo4j_graph"
+                    "source": "neo4j_graph",
                 }
 
-            return {"message": f"No statistics found for {programme}. Try specific cluster names (e.g., 'Cluster 5 - Climate', 'Health') or programmes (EIC, ERC, MSCA)."}
+            return {
+                "message": f"No statistics found for {programme}. Try specific cluster names (e.g., 'Cluster 5 - Climate', 'Health') or programmes (EIC, ERC, MSCA)."
+            }
         except Exception as e:
             logger.error(f"Programme stats error: {e}")
             return {"error": str(e)}
-    
+
     async def _tool_get_country_stats(self, params: dict) -> dict:
         """Get country statistics from graph DB."""
         try:
             from ..data_intelligence.graph_service import GraphSearchService
+
             graph = GraphSearchService()
 
-            country = params.get('country', '')
+            country = params.get("country", "")
 
             # Try to extract country code from input
             country_codes = {
-                'germany': 'DE', 'german': 'DE',
-                'france': 'FR', 'french': 'FR',
-                'italy': 'IT', 'italian': 'IT',
-                'spain': 'ES', 'spanish': 'ES',
-                'netherlands': 'NL', 'dutch': 'NL',
-                'belgium': 'BE', 'belgian': 'BE',
-                'austria': 'AT', 'austrian': 'AT',
-                'sweden': 'SE', 'swedish': 'SE',
-                'denmark': 'DK', 'danish': 'DK',
-                'finland': 'FI', 'finnish': 'FI',
-                'ireland': 'IE', 'irish': 'IE',
-                'portugal': 'PT', 'portuguese': 'PT',
-                'greece': 'GR', 'greek': 'GR',
-                'poland': 'PL', 'polish': 'PL',
-                'switzerland': 'CH', 'swiss': 'CH',
-                'norway': 'NO', 'norwegian': 'NO',
-                'uk': 'GB', 'united kingdom': 'GB', 'britain': 'GB', 'british': 'GB',
-                'israel': 'IL', 'israeli': 'IL',
+                "germany": "DE",
+                "german": "DE",
+                "france": "FR",
+                "french": "FR",
+                "italy": "IT",
+                "italian": "IT",
+                "spain": "ES",
+                "spanish": "ES",
+                "netherlands": "NL",
+                "dutch": "NL",
+                "belgium": "BE",
+                "belgian": "BE",
+                "austria": "AT",
+                "austrian": "AT",
+                "sweden": "SE",
+                "swedish": "SE",
+                "denmark": "DK",
+                "danish": "DK",
+                "finland": "FI",
+                "finnish": "FI",
+                "ireland": "IE",
+                "irish": "IE",
+                "portugal": "PT",
+                "portuguese": "PT",
+                "greece": "GR",
+                "greek": "GR",
+                "poland": "PL",
+                "polish": "PL",
+                "switzerland": "CH",
+                "swiss": "CH",
+                "norway": "NO",
+                "norwegian": "NO",
+                "uk": "GB",
+                "united kingdom": "GB",
+                "britain": "GB",
+                "british": "GB",
+                "israel": "IL",
+                "israeli": "IL",
             }
 
             country_code = None
@@ -4199,20 +4410,19 @@ Found **{total_found} organizations** with relevant track records:
                         break
 
             if not country_code:
-                return {"message": f"Could not identify country code for '{country}'. Try using ISO codes like DE, FR, IT."}
+                return {
+                    "message": f"Could not identify country code for '{country}'. Try using ISO codes like DE, FR, IT."
+                }
 
             # Get eligibility info
-            eligibility = await asyncio.to_thread(
-                graph.check_country_eligibility,
-                country_code
-            )
+            eligibility = await asyncio.to_thread(graph.check_country_eligibility, country_code)
 
             # Get top organizations in that country
             top_orgs = await asyncio.to_thread(
                 graph.get_top_organizations,
                 None,  # no cluster filter
                 country_code,
-                10  # limit
+                10,  # limit
             )
 
             return {
@@ -4221,35 +4431,63 @@ Found **{total_found} organizations** with relevant track records:
                 "eligibility": eligibility,
                 "top_organizations": top_orgs,
                 "organization_count": len(top_orgs),
-                "source": "neo4j_graph"
+                "source": "neo4j_graph",
             }
         except Exception as e:
             logger.error(f"Country stats error: {e}")
             return {"error": str(e)}
-    
+
     async def _tool_compare_programmes(self, params: dict) -> dict:
         """Compare two programmes/clusters."""
         try:
             from ..data_intelligence.graph_service import GraphSearchService
+
             graph = GraphSearchService()
 
-            prog_a = params.get('programme_a', '')
-            prog_b = params.get('programme_b', '')
+            prog_a = params.get("programme_a", "")
+            prog_b = params.get("programme_b", "")
 
             # Use the same cluster mapping as get_programme_stats (Neo4j uses CLUSTER-X format)
             cluster_map = {
-                'cluster 5': 'CLUSTER-5', 'cluster-5': 'CLUSTER-5', 'cl5': 'CLUSTER-5',
-                'climate': 'CLUSTER-5', 'energy': 'CLUSTER-5', 'mobility': 'CLUSTER-5',
-                'cluster 4': 'CLUSTER-4', 'cluster-4': 'CLUSTER-4', 'cl4': 'CLUSTER-4',
-                'digital': 'CLUSTER-4', 'industry': 'CLUSTER-4', 'space': 'CLUSTER-4',
-                'cluster 6': 'CLUSTER-6', 'cluster-6': 'CLUSTER-6', 'cl6': 'CLUSTER-6',
-                'food': 'CLUSTER-6', 'bioeconomy': 'CLUSTER-6', 'agriculture': 'CLUSTER-6',
-                'cluster 1': 'CLUSTER-1', 'cluster-1': 'CLUSTER-1', 'cl1': 'CLUSTER-1', 'health': 'CLUSTER-1',
-                'cluster 2': 'CLUSTER-2', 'cluster-2': 'CLUSTER-2', 'cl2': 'CLUSTER-2',
-                'culture': 'CLUSTER-2', 'creativity': 'CLUSTER-2',
-                'cluster 3': 'CLUSTER-3', 'cluster-3': 'CLUSTER-3', 'cl3': 'CLUSTER-3', 'security': 'CLUSTER-3',
-                'eic': 'EIC', 'eic accelerator': 'EIC', 'erc': 'ERC', 'msca': 'MSCA', 'marie curie': 'MSCA',
-                'ria': 'RIA', 'ia': 'IA', 'csa': 'CSA',
+                "cluster 5": "CLUSTER-5",
+                "cluster-5": "CLUSTER-5",
+                "cl5": "CLUSTER-5",
+                "climate": "CLUSTER-5",
+                "energy": "CLUSTER-5",
+                "mobility": "CLUSTER-5",
+                "cluster 4": "CLUSTER-4",
+                "cluster-4": "CLUSTER-4",
+                "cl4": "CLUSTER-4",
+                "digital": "CLUSTER-4",
+                "industry": "CLUSTER-4",
+                "space": "CLUSTER-4",
+                "cluster 6": "CLUSTER-6",
+                "cluster-6": "CLUSTER-6",
+                "cl6": "CLUSTER-6",
+                "food": "CLUSTER-6",
+                "bioeconomy": "CLUSTER-6",
+                "agriculture": "CLUSTER-6",
+                "cluster 1": "CLUSTER-1",
+                "cluster-1": "CLUSTER-1",
+                "cl1": "CLUSTER-1",
+                "health": "CLUSTER-1",
+                "cluster 2": "CLUSTER-2",
+                "cluster-2": "CLUSTER-2",
+                "cl2": "CLUSTER-2",
+                "culture": "CLUSTER-2",
+                "creativity": "CLUSTER-2",
+                "cluster 3": "CLUSTER-3",
+                "cluster-3": "CLUSTER-3",
+                "cl3": "CLUSTER-3",
+                "security": "CLUSTER-3",
+                "eic": "EIC",
+                "eic accelerator": "EIC",
+                "erc": "ERC",
+                "msca": "MSCA",
+                "marie curie": "MSCA",
+                "ria": "RIA",
+                "ia": "IA",
+                "csa": "CSA",
             }
 
             def get_cluster_code(prog: str) -> str | None:
@@ -4268,51 +4506,44 @@ Found **{total_found} organizations** with relevant track records:
 
             return {
                 "comparison": {
-                    prog_a: {
-                        "cluster_code": code_a,
-                        "statistics": stats_a[0] if stats_a else None
-                    },
-                    prog_b: {
-                        "cluster_code": code_b,
-                        "statistics": stats_b[0] if stats_b else None
-                    }
+                    prog_a: {"cluster_code": code_a, "statistics": stats_a[0] if stats_a else None},
+                    prog_b: {"cluster_code": code_b, "statistics": stats_b[0] if stats_b else None},
                 },
-                "source": "neo4j_graph"
+                "source": "neo4j_graph",
             }
         except Exception as e:
             logger.error(f"Compare programmes error: {e}")
             return {"error": str(e)}
-    
+
     async def _tool_search_documents(self, params: dict) -> dict:
         """Search documents using vector search."""
         try:
             from ..vector_search_service import VectorSearchService
+
             vector = VectorSearchService()
 
-            query = params.get('query', '')
-            max_results = params.get('max_results', 15)  # Increased default from 5
-            doc_type = params.get('document_type')
+            query = params.get("query", "")
+            max_results = params.get("max_results", 15)  # Increased default from 5
+            doc_type = params.get("document_type")
 
             # Build filters if document type specified
             filters = None
             if doc_type:
-                filters = {'document_type': doc_type}
+                filters = {"document_type": doc_type}
 
             # hybrid_search uses num_results, not limit
-            results = vector.hybrid_search(
-                query=query,
-                num_results=max_results,
-                filters=filters
-            )
+            results = vector.hybrid_search(query=query, num_results=max_results, filters=filters)
 
             return {
                 "documents": [
                     {
-                        "content": r.content[:1500] if hasattr(r, 'content') else str(r)[:1500],  # Increased from 300
-                        "source": r.document_title if hasattr(r, 'document_title') else 'Unknown',
-                        "title": r.document_title if hasattr(r, 'document_title') else '',
-                        "section": r.section if hasattr(r, 'section') else '',
-                        "score": r.score if hasattr(r, 'score') else 0
+                        "content": (
+                            r.content[:1500] if hasattr(r, "content") else str(r)[:1500]
+                        ),  # Increased from 300
+                        "source": r.document_title if hasattr(r, "document_title") else "Unknown",
+                        "title": r.document_title if hasattr(r, "document_title") else "",
+                        "section": r.section if hasattr(r, "section") else "",
+                        "score": r.score if hasattr(r, "score") else 0,
                     }
                     for r in results[:max_results]
                 ]
@@ -4324,79 +4555,85 @@ Found **{total_found} organizations** with relevant track records:
         """Search funding calls."""
         try:
             from ..local_call_search_service import LocalCallSearchService
+
             call_service = LocalCallSearchService()
 
-            keywords = params.get('keywords', '')
+            keywords = params.get("keywords", "")
             # Handle keywords being a list or string
             if isinstance(keywords, list):
-                keywords = ' '.join(keywords)
-            status = params.get('status', 'open')
-            year = params.get('year')
+                keywords = " ".join(keywords)
+            status = params.get("status", "open")
+            year = params.get("year")
 
             # LocalCallSearchService.search_calls uses 'num_results' not 'limit'
             results = call_service.search_calls(
                 query=keywords,
                 num_results=15,
-                include_closed=(status == 'closed'),
-                year_filter=str(year) if year else None
+                include_closed=(status == "closed"),
+                year_filter=str(year) if year else None,
             )
 
-            calls = results.get('calls', [])
+            calls = results.get("calls", [])
 
             # Pass through ALL available fields for rich formatting
             return {
                 "calls_found": len(calls),
                 "calls": [
                     {
-                        "call_id": c.get('topic_code', ''),  # topic_code is the actual call ID
-                        "title": c.get('title', ''),
-                        "deadline": c.get('deadline', ''),
-                        "type": c.get('action_type', ''),
-                        "cluster": c.get('cluster', ''),
-                        "budget": c.get('budget', ''),
-                        "scope": c.get('scope', '') or c.get('description', ''),
-                        "expected_outcome": c.get('expected_outcome', ''),
-                        "status": c.get('status', 'open'),
-                        "url": c.get('url', ''),
-                        "work_programme": c.get('work_programme', ''),
-                        "call_year": c.get('call_year', ''),
+                        "call_id": c.get("topic_code", ""),  # topic_code is the actual call ID
+                        "title": c.get("title", ""),
+                        "deadline": c.get("deadline", ""),
+                        "type": c.get("action_type", ""),
+                        "cluster": c.get("cluster", ""),
+                        "budget": c.get("budget", ""),
+                        "scope": c.get("scope", "") or c.get("description", ""),
+                        "expected_outcome": c.get("expected_outcome", ""),
+                        "status": c.get("status", "open"),
+                        "url": c.get("url", ""),
+                        "work_programme": c.get("work_programme", ""),
+                        "call_year": c.get("call_year", ""),
                     }
                     for c in calls[:15]
-                ]
+                ],
             }
         except Exception as e:
             logger.error(f"Funding calls search error: {e}")
             return {"error": str(e), "calls": []}
-    
+
     async def _tool_get_call_details(self, params: dict) -> dict:
         """Get details for a specific call."""
         try:
-            call_id = params.get('call_id', '')
+            call_id = params.get("call_id", "")
             if not call_id:
                 return {"error": "call_id is required"}
 
             logger.info(f"🔍 Getting call details for: {call_id}")
 
             from ..local_call_search_service import LocalCallSearchService
+
             call_service = LocalCallSearchService()
 
             # First try the dedicated get_call_details method (includes API enrichment)
             call_details = call_service.get_call_details(call_id)
 
             # Check if we got valid data (not just empty dict)
-            if call_details and (call_details.get('topic_code') or call_details.get('title')):
-                logger.info(f"✅ Got call details: {call_details.get('topic_code')} - {call_details.get('title', '')[:50]}")
+            if call_details and (call_details.get("topic_code") or call_details.get("title")):
+                logger.info(
+                    f"✅ Got call details: {call_details.get('topic_code')} - {call_details.get('title', '')[:50]}"
+                )
                 return {
-                    "call_id": call_details.get('topic_code'),
-                    "title": call_details.get('title'),
-                    "description": call_details.get('scope') or call_details.get('description', ''),
-                    "expected_outcome": call_details.get('expected_outcome', ''),
-                    "deadline": str(call_details.get('deadline')) if call_details.get('deadline') else None,
-                    "type": call_details.get('action_type'),
-                    "cluster": call_details.get('cluster'),
-                    "budget": call_details.get('budget'),
-                    "status": call_details.get('status'),
-                    "url": call_details.get('url') or call_details.get('portal_url'),
+                    "call_id": call_details.get("topic_code"),
+                    "title": call_details.get("title"),
+                    "description": call_details.get("scope") or call_details.get("description", ""),
+                    "expected_outcome": call_details.get("expected_outcome", ""),
+                    "deadline": (
+                        str(call_details.get("deadline")) if call_details.get("deadline") else None
+                    ),
+                    "type": call_details.get("action_type"),
+                    "cluster": call_details.get("cluster"),
+                    "budget": call_details.get("budget"),
+                    "status": call_details.get("status"),
+                    "url": call_details.get("url") or call_details.get("portal_url"),
                 }
 
             # Fallback: Search for the call using keywords
@@ -4405,54 +4642,61 @@ Found **{total_found} organizations** with relevant track records:
             results = call_service.search_calls(
                 query=call_id,
                 num_results=10,
-                include_closed=True  # Include closed calls when looking up specific call IDs
+                include_closed=True,  # Include closed calls when looking up specific call IDs
             )
 
-            calls = results.get('calls', [])
+            calls = results.get("calls", [])
             logger.info(f"Search returned {len(calls)} results")
 
             for call in calls:
                 # Check both topic_code and call_id fields
-                topic_code = call.get('topic_code', '') or ''
+                topic_code = call.get("topic_code", "") or ""
                 if call_id.upper() in topic_code.upper():
                     logger.info(f"✅ Found matching call: {topic_code}")
                     return {
                         "call_id": topic_code,
-                        "title": call.get('title'),
-                        "description": call.get('scope') or call.get('description', ''),
-                        "expected_outcome": call.get('expected_outcome', ''),
-                        "deadline": str(call.get('deadline')) if call.get('deadline') else None,
-                        "type": call.get('action_type'),
-                        "cluster": call.get('cluster'),
-                        "budget": call.get('budget'),
-                        "status": call.get('status'),
-                        "url": call.get('url') or call.get('portal_url'),
+                        "title": call.get("title"),
+                        "description": call.get("scope") or call.get("description", ""),
+                        "expected_outcome": call.get("expected_outcome", ""),
+                        "deadline": str(call.get("deadline")) if call.get("deadline") else None,
+                        "type": call.get("action_type"),
+                        "cluster": call.get("cluster"),
+                        "budget": call.get("budget"),
+                        "status": call.get("status"),
+                        "url": call.get("url") or call.get("portal_url"),
                     }
 
             # If still not found, try searching with just the base call identifier
             # e.g., HORIZON-CL5-2026-02-D4-01 -> search for "HORIZON-CL5-2026"
-            if '-' in call_id:
-                parts = call_id.split('-')
+            if "-" in call_id:
+                parts = call_id.split("-")
                 if len(parts) >= 4:
-                    base_call = '-'.join(parts[:4])  # e.g., HORIZON-CL5-2026-02
+                    base_call = "-".join(parts[:4])  # e.g., HORIZON-CL5-2026-02
                     logger.info(f"🔎 Trying base call search: {base_call}")
-                    results = call_service.search_calls(query=base_call, num_results=15, include_closed=True)
-                    calls = results.get('calls', [])
+                    results = call_service.search_calls(
+                        query=base_call, num_results=15, include_closed=True
+                    )
+                    calls = results.get("calls", [])
                     for call in calls:
-                        topic_code = call.get('topic_code', '') or ''
-                        if call_id.upper() in topic_code.upper() or topic_code.upper() in call_id.upper():
+                        topic_code = call.get("topic_code", "") or ""
+                        if (
+                            call_id.upper() in topic_code.upper()
+                            or topic_code.upper() in call_id.upper()
+                        ):
                             logger.info(f"✅ Found via base search: {topic_code}")
                             return {
                                 "call_id": topic_code,
-                                "title": call.get('title'),
-                                "description": call.get('scope') or call.get('description', ''),
-                                "expected_outcome": call.get('expected_outcome', ''),
-                                "deadline": str(call.get('deadline')) if call.get('deadline') else None,
-                                "type": call.get('action_type'),
-                                "cluster": call.get('cluster'),
-                                "budget": call.get('budget'),
-                                "status": call.get('status'),
-                                "url": call.get('url') or call.get('portal_url'),
+                                "title": call.get("title"),
+                                "description": call.get("scope") or call.get("description", ""),
+                                "expected_outcome": call.get("expected_outcome", ""),
+                                "deadline": (
+                                    str(call.get("deadline")) if call.get("deadline") else None
+                                ),
+                                "type": call.get("action_type"),
+                                "cluster": call.get("cluster"),
+                                "budget": call.get("budget"),
+                                "status": call.get("status"),
+                                "url": call.get("url") or call.get("portal_url"),
                             }
 
             logger.warning(f"❌ No details found for {call_id} in local searches")
@@ -4463,21 +4707,25 @@ Found **{total_found} organizations** with relevant track records:
                 from app.core.config import settings
 
                 from ..call_enrichment_service import CallEnrichmentService
+
                 enrichment = CallEnrichmentService(settings.database_url)
                 api_result = enrichment.get_call_details(call_id, force_refresh=True)
-                if api_result and (api_result.get('topic_code') or api_result.get('title')):
+                if api_result and (api_result.get("topic_code") or api_result.get("title")):
                     logger.info(f"✅ Found {call_id} via direct API fetch!")
                     return {
-                        "call_id": api_result.get('topic_code') or call_id,
-                        "title": api_result.get('title'),
-                        "description": api_result.get('scope') or api_result.get('description', ''),
-                        "expected_outcome": api_result.get('expected_outcome', ''),
-                        "deadline": str(api_result.get('deadline')) if api_result.get('deadline') else None,
-                        "type": api_result.get('action_type'),
-                        "cluster": api_result.get('cluster'),
-                        "budget": api_result.get('budget') or api_result.get('budget_total'),
-                        "status": api_result.get('status'),
-                        "url": api_result.get('portal_url') or f"https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/{call_id}",
+                        "call_id": api_result.get("topic_code") or call_id,
+                        "title": api_result.get("title"),
+                        "description": api_result.get("scope") or api_result.get("description", ""),
+                        "expected_outcome": api_result.get("expected_outcome", ""),
+                        "deadline": (
+                            str(api_result.get("deadline")) if api_result.get("deadline") else None
+                        ),
+                        "type": api_result.get("action_type"),
+                        "cluster": api_result.get("cluster"),
+                        "budget": api_result.get("budget") or api_result.get("budget_total"),
+                        "status": api_result.get("status"),
+                        "url": api_result.get("portal_url")
+                        or f"https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/{call_id}",
                     }
                 else:
                     logger.info(f"⚠️ Direct API fetch returned no valid data for {call_id}")
@@ -4486,15 +4734,17 @@ Found **{total_found} organizations** with relevant track records:
 
             # Try to find similar calls to suggest
             similar_calls = []
-            if '-' in call_id:
-                parts = call_id.split('-')
+            if "-" in call_id:
+                parts = call_id.split("-")
                 # Search for calls in the same cluster/year
                 if len(parts) >= 3:
-                    search_term = '-'.join(parts[:3])  # e.g., HORIZON-CL5-2026
-                    results = call_service.search_calls(query=search_term, num_results=5, include_closed=True)
-                    for call in results.get('calls', [])[:5]:
-                        topic_code = call.get('topic_code', '')
-                        title = call.get('title', '')
+                    search_term = "-".join(parts[:3])  # e.g., HORIZON-CL5-2026
+                    results = call_service.search_calls(
+                        query=search_term, num_results=5, include_closed=True
+                    )
+                    for call in results.get("calls", [])[:5]:
+                        topic_code = call.get("topic_code", "")
+                        title = call.get("title", "")
                         if topic_code and title:
                             similar_calls.append(f"- {topic_code}: {title[:60]}...")
 
@@ -4502,77 +4752,79 @@ Found **{total_found} organizations** with relevant track records:
                 suggestions = "\n".join(similar_calls)
                 return {
                     "message": f"Call ID '{call_id}' was not found. This may be an invalid or incomplete call ID.\n\n**Similar calls you might be looking for:**\n{suggestions}\n\nYou can also check the EU Portal directly.",
-                    "similar_calls": similar_calls
+                    "similar_calls": similar_calls,
                 }
             else:
-                return {"message": f"No details found for {call_id}. This call ID may be invalid or not yet in our database. Please verify the call ID format (e.g., HORIZON-CL5-2026-02-D3-01) and try again, or check the EU Funding & Tenders Portal directly."}
+                return {
+                    "message": f"No details found for {call_id}. This call ID may be invalid or not yet in our database. Please verify the call ID format (e.g., HORIZON-CL5-2026-02-D3-01) and try again, or check the EU Funding & Tenders Portal directly."
+                }
         except Exception as e:
             logger.error(f"Get call details error: {e}")
             import traceback
+
             traceback.print_exc()
             return {"error": str(e)}
-    
+
     async def _tool_search_projects(self, params: dict) -> dict:
         """Search CORDIS projects using LOCAL database."""
         try:
             from ..local_project_search_service import LocalProjectSearchService
-            
-            keywords = params.get('keywords', '')
-            country = params.get('country')
-            programme = params.get('programme')
-            
+
+            keywords = params.get("keywords", "")
+            country = params.get("country")
+            programme = params.get("programme")
+
             # Build the full query including country if provided
             # Let the LocalProjectSearchService handle country extraction from natural language
             query = keywords
             if country:
                 query = f"{keywords} {country}"
-            
+
             # Build explicit filters for programme only
             filters = {}
             if programme:
-                filters['programme'] = programme.upper()
-            
+                filters["programme"] = programme.upper()
+
             # Use local search service - it will parse country from query
             service = LocalProjectSearchService()
             results = await service.search_projects(
-                query=query,
-                filters=filters if filters else None,
-                limit=10
+                query=query, filters=filters if filters else None, limit=10
             )
-            
+
             return {
-                "projects": results.get('projects', []),
-                "total_found": results.get('total_found', 0),
-                "sources": results.get('sources_used', [])
+                "projects": results.get("projects", []),
+                "total_found": results.get("total_found", 0),
+                "sources": results.get("sources_used", []),
             }
         except Exception as e:
             logger.error(f"Project search error: {e}")
             return {"error": str(e), "projects": []}
-    
+
     async def _tool_find_similar_projects(self, params: dict) -> dict:
         """Find projects similar to a given project."""
         try:
             from ..data_intelligence.graph_service import GraphSearchService
+
             graph = GraphSearchService()
-            
-            project_id = params.get('project_id', '')
-            similarity_type = params.get('similarity_type', 'topic')
-            
+
+            project_id = params.get("project_id", "")
+            similarity_type = params.get("similarity_type", "topic")
+
             if not project_id:
                 return {"error": "project_id is required", "projects": []}
-            
+
             results = await asyncio.to_thread(
                 graph.find_similar_projects,
                 project_id=project_id,
                 similarity_type=similarity_type,
-                limit=10
+                limit=10,
             )
-            
+
             return {
                 "reference_project": project_id,
                 "similarity_type": similarity_type,
                 "similar_projects": results,
-                "count": len(results)
+                "count": len(results),
             }
         except Exception as e:
             logger.error(f"Similar projects search error: {e}")
@@ -4583,16 +4835,15 @@ Found **{total_found} organizations** with relevant track records:
         try:
             from ..local_project_search_service import LocalProjectSearchService
 
-            project_id = params.get('project_id', '')
-            limit = params.get('limit', 10)
+            project_id = params.get("project_id", "")
+            limit = params.get("limit", 10)
 
             if not project_id:
                 return {"error": "project_id is required", "projects": []}
 
             service = LocalProjectSearchService()
             result = await service.find_similar_projects_by_embedding(
-                project_id=project_id,
-                limit=limit
+                project_id=project_id, limit=limit
             )
 
             return result
@@ -4604,72 +4855,70 @@ Found **{total_found} organizations** with relevant track records:
         """Find projects by organization."""
         try:
             from ..data_intelligence.graph_service import GraphSearchService
+
             graph = GraphSearchService()
-            
-            org_name = params.get('organization_name', '')
-            role = params.get('role')
-            
+
+            org_name = params.get("organization_name", "")
+            role = params.get("role")
+
             if not org_name:
                 return {"error": "organization_name is required", "projects": []}
-            
+
             results = await asyncio.to_thread(
-                graph.find_projects_by_organization,
-                organization_name=org_name,
-                role=role,
-                limit=20
+                graph.find_projects_by_organization, organization_name=org_name, role=role, limit=20
             )
-            
+
             return {
                 "organization": org_name,
                 "role_filter": role,
                 "projects": results,
-                "count": len(results)
+                "count": len(results),
             }
         except Exception as e:
             logger.error(f"Organization projects search error: {e}")
             return {"error": str(e), "projects": []}
-    
+
     async def _tool_get_collaboration_network(self, params: dict) -> dict:
         """Get collaboration network for an organization."""
         try:
             from ..data_intelligence.graph_service import GraphSearchService
+
             graph = GraphSearchService()
-            
-            org_name = params.get('organization_name', '')
-            
+
+            org_name = params.get("organization_name", "")
+
             if not org_name:
                 return {"error": "organization_name is required", "partners": []}
-            
+
             result = await asyncio.to_thread(
                 graph.get_organization_collaboration_network,
                 organization_name=org_name,
                 depth=1,
-                limit=30
+                limit=30,
             )
-            
+
             return result
         except Exception as e:
             logger.error(f"Collaboration network error: {e}")
             return {"error": str(e), "partners": []}
-    
+
     async def _tool_search_by_cluster(self, params: dict) -> dict:
         """Search projects in a specific cluster."""
         try:
             from ..local_project_search_service import LocalProjectSearchService
+
             service = LocalProjectSearchService()
 
             # Extract cluster with fallback alternatives
-            cluster = self._extract_cluster_param(params) or ''
+            cluster = self._extract_cluster_param(params) or ""
 
             if not cluster:
                 return {"error": "cluster parameter is required", "projects": []}
-            
+
             result = await service.search_projects_by_relationship(
-                relationship_type="cluster",
-                entity_value=cluster,
-                limit=15
+                relationship_type="cluster", entity_value=cluster, limit=15
             )
-            
+
             return result
         except Exception as e:
             logger.error(f"Cluster search error: {e}")
@@ -4690,9 +4939,9 @@ Found **{total_found} organizations** with relevant track records:
             tool = BudgetBenchmarkTool()
             result = tool.get_benchmark(
                 cluster=cluster_param,
-                action_type=params.get('action_type'),
-                topic_keywords=params.get('topic_keywords'),
-                year=params.get('year')
+                action_type=params.get("action_type"),
+                topic_keywords=params.get("topic_keywords"),
+                year=params.get("year"),
             )
 
             return result
@@ -4712,9 +4961,9 @@ Found **{total_found} organizations** with relevant track records:
             tool = ConsortiumPatternsTool()
             result = tool.get_patterns(
                 cluster=cluster_param,
-                action_type=params.get('action_type'),
-                topic_keywords=params.get('topic_keywords'),
-                min_projects=params.get('min_projects', 10)
+                action_type=params.get("action_type"),
+                topic_keywords=params.get("topic_keywords"),
+                min_projects=params.get("min_projects", 10),
             )
 
             return result
@@ -4734,9 +4983,9 @@ Found **{total_found} organizations** with relevant track records:
             tool = GeographicDiversificationTool()
             result = tool.analyze_geographic_diversification(
                 cluster=cluster_param,
-                country_groups=params.get('country_groups'),
-                exclude_widening=params.get('exclude_widening', True),
-                min_partners=params.get('min_partners', 3)
+                country_groups=params.get("country_groups"),
+                exclude_widening=params.get("exclude_widening", True),
+                min_partners=params.get("min_partners", 3),
             )
 
             return result
@@ -4755,13 +5004,13 @@ Found **{total_found} organizations** with relevant track records:
 
             tool = PartnerDiscoveryTool()
             result = tool.find_partners(
-                topic_keywords=params.get('topic_keywords', params.get('keywords', '')),
-                country=params.get('country'),
-                organization_type=params.get('organization_type'),
+                topic_keywords=params.get("topic_keywords", params.get("keywords", "")),
+                country=params.get("country"),
+                organization_type=params.get("organization_type"),
                 cluster=cluster_param,
-                min_projects=params.get('min_projects', 2),
-                role_filter=params.get('role_filter'),
-                limit=params.get('limit', 20)
+                min_projects=params.get("min_projects", 2),
+                role_filter=params.get("role_filter"),
+                limit=params.get("limit", 20),
             )
 
             return result
@@ -4780,14 +5029,14 @@ Found **{total_found} organizations** with relevant track records:
 
             tool = SimilarProjectsTool()
             result = tool.find_similar(
-                description=params.get('description', ''),
+                description=params.get("description", ""),
                 cluster=cluster_param,
-                action_type=params.get('action_type'),
-                min_budget=params.get('min_budget'),
-                max_budget=params.get('max_budget'),
-                year_from=params.get('year_from'),
-                limit=params.get('limit', 10),
-                similarity_threshold=params.get('similarity_threshold', 0.3)
+                action_type=params.get("action_type"),
+                min_budget=params.get("min_budget"),
+                max_budget=params.get("max_budget"),
+                year_from=params.get("year_from"),
+                limit=params.get("limit", 10),
+                similarity_threshold=params.get("similarity_threshold", 0.3),
             )
 
             return result
@@ -4810,15 +5059,15 @@ Found **{total_found} organizations** with relevant track records:
 
             tool = CallHistoryTool()
             result = tool.analyze_history(
-                topic_pattern=params.get('topic_pattern'),
+                topic_pattern=params.get("topic_pattern"),
                 cluster=cluster_param,
-                keywords=params.get('keywords'),
-                year_from=params.get('year_from'),
-                year_to=params.get('year_to'),
-                action_types=params.get('action_types'),
-                include_projects=params.get('include_projects', True),
-                expand_scope=params.get('expand_scope', False),  # NEW: AI-powered keyword expansion
-                limit=params.get('limit', 50)
+                keywords=params.get("keywords"),
+                year_from=params.get("year_from"),
+                year_to=params.get("year_to"),
+                action_types=params.get("action_types"),
+                include_projects=params.get("include_projects", True),
+                expand_scope=params.get("expand_scope", False),  # NEW: AI-powered keyword expansion
+                limit=params.get("limit", 50),
             )
 
             return result
@@ -4834,13 +5083,13 @@ Found **{total_found} organizations** with relevant track records:
 
             tool = BudgetCalculatorTool()
             result = tool.calculate_budget(
-                action_type=params.get('action_type', 'RIA'),
-                duration_months=params.get('duration_months', 36),
-                num_partners=params.get('num_partners', 8),
-                total_person_months=params.get('total_person_months'),
-                target_budget=params.get('target_budget'),
-                countries=params.get('countries'),
-                include_breakdown=params.get('include_breakdown', True)
+                action_type=params.get("action_type", "RIA"),
+                duration_months=params.get("duration_months", 36),
+                num_partners=params.get("num_partners", 8),
+                total_person_months=params.get("total_person_months"),
+                target_budget=params.get("target_budget"),
+                countries=params.get("countries"),
+                include_breakdown=params.get("include_breakdown", True),
             )
 
             return result
@@ -4856,13 +5105,13 @@ Found **{total_found} organizations** with relevant track records:
 
             tool = TimelineGeneratorTool()
             result = tool.generate_timeline(
-                action_type=params.get('action_type', 'RIA'),
-                duration_months=params.get('duration_months', 36),
-                num_partners=params.get('num_partners', 8),
-                total_person_months=params.get('total_person_months', 300),
-                project_title=params.get('project_title', 'Project'),
-                custom_wps=params.get('custom_wps'),
-                start_date=params.get('start_date')
+                action_type=params.get("action_type", "RIA"),
+                duration_months=params.get("duration_months", 36),
+                num_partners=params.get("num_partners", 8),
+                total_person_months=params.get("total_person_months", 300),
+                project_title=params.get("project_title", "Project"),
+                custom_wps=params.get("custom_wps"),
+                start_date=params.get("start_date"),
             )
 
             return result
@@ -4877,13 +5126,13 @@ Found **{total_found} organizations** with relevant track records:
             from ..tools.multi_programme_search import search_all_programmes_execute
 
             result = search_all_programmes_execute(
-                keywords=params.get('keywords', ''),
-                programmes=params.get('programmes'),
-                status=params.get('status'),
-                year=params.get('year'),
-                action_type=params.get('action_type'),
-                limit=params.get('limit', 20),
-                include_closed=params.get('include_closed', False),
+                keywords=params.get("keywords", ""),
+                programmes=params.get("programmes"),
+                status=params.get("status"),
+                year=params.get("year"),
+                action_type=params.get("action_type"),
+                limit=params.get("limit", 20),
+                include_closed=params.get("include_closed", False),
             )
 
             return result
@@ -4898,9 +5147,9 @@ Found **{total_found} organizations** with relevant track records:
             from ..tools.multi_programme_search import get_programme_recommendations_execute
 
             result = get_programme_recommendations_execute(
-                description=params.get('description', ''),
-                organization_type=params.get('organization_type'),
-                sector=params.get('sector'),
+                description=params.get("description", ""),
+                organization_type=params.get("organization_type"),
+                sector=params.get("sector"),
             )
 
             return result
@@ -4915,7 +5164,7 @@ Found **{total_found} organizations** with relevant track records:
             from ..tools.multi_programme_search import get_programme_info_execute
 
             result = get_programme_info_execute(
-                programme=params.get('programme'),
+                programme=params.get("programme"),
             )
 
             return result
@@ -4930,11 +5179,11 @@ Found **{total_found} organizations** with relevant track records:
             from ..tools.proposal_quality_scorer import score_proposal_section_execute
 
             result = await score_proposal_section_execute(
-                content=params.get('content', ''),
-                section_type=params.get('section_type', 'excellence'),
-                section_id=params.get('section_id'),
-                action_type=params.get('action_type', 'RIA'),
-                call_id=params.get('call_id'),
+                content=params.get("content", ""),
+                section_type=params.get("section_type", "excellence"),
+                section_id=params.get("section_id"),
+                action_type=params.get("action_type", "RIA"),
+                call_id=params.get("call_id"),
             )
 
             return result
@@ -4949,11 +5198,11 @@ Found **{total_found} organizations** with relevant track records:
             from ..tools.proposal_quality_scorer import score_full_proposal_execute
 
             result = await score_full_proposal_execute(
-                excellence_content=params.get('excellence_content', ''),
-                impact_content=params.get('impact_content', ''),
-                implementation_content=params.get('implementation_content', ''),
-                action_type=params.get('action_type', 'RIA'),
-                call_id=params.get('call_id'),
+                excellence_content=params.get("excellence_content", ""),
+                impact_content=params.get("impact_content", ""),
+                implementation_content=params.get("implementation_content", ""),
+                action_type=params.get("action_type", "RIA"),
+                call_id=params.get("call_id"),
             )
 
             return result
@@ -4968,8 +5217,8 @@ Found **{total_found} organizations** with relevant track records:
             from ..tools.proposal_quality_scorer import quick_quality_check_execute
 
             result = await quick_quality_check_execute(
-                text=params.get('text', ''),
-                context=params.get('context', 'general'),
+                text=params.get("text", ""),
+                context=params.get("context", "general"),
             )
 
             return result
@@ -4984,14 +5233,14 @@ Found **{total_found} organizations** with relevant track records:
             from ..tools.budget_validator import validate_budget_execute
 
             result = validate_budget_execute(
-                total_cost=params.get('total_cost', 0),
-                eu_contribution=params.get('eu_contribution', 0),
-                action_type=params.get('action_type', 'RIA'),
-                duration_months=params.get('duration_months', 36),
-                num_partners=params.get('num_partners', 3),
-                cost_breakdown=params.get('cost_breakdown'),
-                consortium=params.get('consortium'),
-                call_budget_cap=params.get('call_budget_cap'),
+                total_cost=params.get("total_cost", 0),
+                eu_contribution=params.get("eu_contribution", 0),
+                action_type=params.get("action_type", "RIA"),
+                duration_months=params.get("duration_months", 36),
+                num_partners=params.get("num_partners", 3),
+                cost_breakdown=params.get("cost_breakdown"),
+                consortium=params.get("consortium"),
+                call_budget_cap=params.get("call_budget_cap"),
             )
 
             return result
@@ -5006,11 +5255,11 @@ Found **{total_found} organizations** with relevant track records:
             from ..tools.erasmus_eligibility import check_erasmus_eligibility_execute
 
             result = await check_erasmus_eligibility_execute(
-                org_type=params.get('org_type', 'HEI'),
-                country=params.get('country', 'Germany'),
-                action_type=params.get('action_type'),
-                has_eche=params.get('has_eche', False),
-                is_coordinator=params.get('is_coordinator', True),
+                org_type=params.get("org_type", "HEI"),
+                country=params.get("country", "Germany"),
+                action_type=params.get("action_type"),
+                has_eche=params.get("has_eche", False),
+                is_coordinator=params.get("is_coordinator", True),
             )
 
             return result
@@ -5025,17 +5274,17 @@ Found **{total_found} organizations** with relevant track records:
             from ..tools.erasmus_budget_calculator import calculate_erasmus_budget_execute
 
             result = await calculate_erasmus_budget_execute(
-                action_type=params.get('action_type', 'partnership'),
-                num_participants=params.get('num_participants', 10),
-                duration_days=params.get('duration_days', 14),
-                duration_months=params.get('duration_months', 24),
-                num_partners=params.get('num_partners', 3),
-                destination_country=params.get('destination_country', 'Germany'),
-                origin_country=params.get('origin_country', 'Spain'),
-                partnership_type=params.get('partnership_type', 'cooperation'),
-                distance_band=params.get('distance_band', '500-1999km'),
-                green_travel=params.get('green_travel', False),
-                target_budget=params.get('target_budget'),
+                action_type=params.get("action_type", "partnership"),
+                num_participants=params.get("num_participants", 10),
+                duration_days=params.get("duration_days", 14),
+                duration_months=params.get("duration_months", 24),
+                num_partners=params.get("num_partners", 3),
+                destination_country=params.get("destination_country", "Germany"),
+                origin_country=params.get("origin_country", "Spain"),
+                partnership_type=params.get("partnership_type", "cooperation"),
+                distance_band=params.get("distance_band", "500-1999km"),
+                green_travel=params.get("green_travel", False),
+                target_budget=params.get("target_budget"),
             )
 
             return result
@@ -5050,11 +5299,11 @@ Found **{total_found} organizations** with relevant track records:
             from ..tools.erasmus_template_search import search_erasmus_templates_execute
 
             result = await search_erasmus_templates_execute(
-                query=params.get('query', ''),
-                key_action=params.get('key_action'),
-                sector=params.get('sector'),
-                document_type=params.get('document_type'),
-                top_k=params.get('top_k', 5),
+                query=params.get("query", ""),
+                key_action=params.get("key_action"),
+                sector=params.get("sector"),
+                document_type=params.get("document_type"),
+                top_k=params.get("top_k", 5),
             )
 
             return result
@@ -5071,11 +5320,11 @@ Found **{total_found} organizations** with relevant track records:
             )
 
             result = await check_creative_europe_eligibility_execute(
-                org_type=params.get('org_type', 'CULTURAL_ORG'),
-                country=params.get('country', 'Germany'),
-                action_type=params.get('action_type'),
-                strand=params.get('strand'),
-                is_coordinator=params.get('is_coordinator', True),
+                org_type=params.get("org_type", "CULTURAL_ORG"),
+                country=params.get("country", "Germany"),
+                action_type=params.get("action_type"),
+                strand=params.get("strand"),
+                is_coordinator=params.get("is_coordinator", True),
             )
 
             return result
@@ -5092,12 +5341,12 @@ Found **{total_found} organizations** with relevant track records:
             )
 
             result = await calculate_creative_europe_budget_execute(
-                action_type=params.get('action_type', 'COOP-SMALL'),
-                requested_amount=params.get('requested_amount'),
-                project_scale=params.get('project_scale', 'medium'),
-                num_partners=params.get('num_partners', 3),
-                duration_months=params.get('duration_months'),
-                strand=params.get('strand'),
+                action_type=params.get("action_type", "COOP-SMALL"),
+                requested_amount=params.get("requested_amount"),
+                project_scale=params.get("project_scale", "medium"),
+                num_partners=params.get("num_partners", 3),
+                duration_months=params.get("duration_months"),
+                strand=params.get("strand"),
             )
 
             return result
@@ -5114,11 +5363,11 @@ Found **{total_found} organizations** with relevant track records:
             )
 
             result = await search_creative_europe_templates_execute(
-                query=params.get('query', ''),
-                strand=params.get('strand'),
-                action_type=params.get('action_type'),
-                topic=params.get('topic'),
-                top_k=params.get('top_k', 5),
+                query=params.get("query", ""),
+                strand=params.get("strand"),
+                action_type=params.get("action_type"),
+                topic=params.get("topic"),
+                top_k=params.get("top_k", 5),
             )
 
             return result
@@ -5147,16 +5396,16 @@ Found **{total_found} organizations** with relevant track records:
             return f"{tool_name}: {str(result)[:500]}"
 
         # Handle document search results
-        if 'documents' in result and isinstance(result['documents'], list):
-            docs = result['documents']
+        if "documents" in result and isinstance(result["documents"], list):
+            docs = result["documents"]
             if not docs:
                 return f"{tool_name}: No documents found"
 
             # Extract actual content from documents
             content_parts = []
             for doc in docs[:8]:  # Increased from 3 to 8
-                content = doc.get('content', '')
-                source = doc.get('source', doc.get('title', 'Unknown'))
+                content = doc.get("content", "")
+                source = doc.get("source", doc.get("title", "Unknown"))
                 if content:
                     # Clean up the content
                     content = content.strip()[:800]  # Increased from 400
@@ -5167,134 +5416,150 @@ Found **{total_found} organizations** with relevant track records:
             return f"{tool_name}: Found {len(docs)} documents (no content extracted)"
 
         # Handle funding call results
-        if 'calls' in result and isinstance(result['calls'], list):
-            calls = result['calls']
+        if "calls" in result and isinstance(result["calls"], list):
+            calls = result["calls"]
             if not calls:
                 return f"{tool_name}: No funding calls found"
             return f"Found {len(calls)} funding call(s)"
 
         # Handle project results
-        if 'projects' in result and isinstance(result['projects'], list):
-            projects = result['projects']
+        if "projects" in result and isinstance(result["projects"], list):
+            projects = result["projects"]
             if not projects:
                 return f"{tool_name}: No projects found"
             return f"Found {len(projects)} project(s)"
 
         # Handle call details
-        if 'call_id' in result or 'topic_code' in result:
-            call_id = result.get('call_id') or result.get('topic_code')
-            title = result.get('title', 'Unknown')
+        if "call_id" in result or "topic_code" in result:
+            call_id = result.get("call_id") or result.get("topic_code")
+            title = result.get("title", "Unknown")
             if call_id and title:
-                desc = result.get('description', '')[:200] if result.get('description') else ''
+                desc = result.get("description", "")[:200] if result.get("description") else ""
                 return f"Call {call_id}: {title}\n{desc}" if desc else f"Call {call_id}: {title}"
-            elif result.get('message'):
-                return result['message']
+            elif result.get("message"):
+                return result["message"]
 
         # Handle budget benchmark results
-        if 'statistics' in result and 'total_eu_contribution' in result.get('statistics', {}):
-            stats = result['statistics']
-            contrib = stats.get('total_eu_contribution', {})
-            consortium = stats.get('consortium_size', {})
-            recs = result.get('recommendations', {})
+        if "statistics" in result and "total_eu_contribution" in result.get("statistics", {}):
+            stats = result["statistics"]
+            contrib = stats.get("total_eu_contribution", {})
+            consortium = stats.get("consortium_size", {})
+            recs = result.get("recommendations", {})
 
-            parts = [f"Budget Benchmark Analysis ({stats.get('projects_analyzed', 'N/A')} projects):"]
+            parts = [
+                f"Budget Benchmark Analysis ({stats.get('projects_analyzed', 'N/A')} projects):"
+            ]
 
             if contrib:
-                avg = contrib.get('average', 0)
-                median = contrib.get('median', 0)
-                parts.append(f"- EU Contribution: €{median/1_000_000:.1f}M median, €{avg/1_000_000:.1f}M average")
-                parts.append(f"- Range: €{contrib.get('min', 0)/1_000_000:.1f}M - €{contrib.get('max', 0)/1_000_000:.1f}M")
+                avg = contrib.get("average", 0)
+                median = contrib.get("median", 0)
+                parts.append(
+                    f"- EU Contribution: €{median / 1_000_000:.1f}M median, €{avg / 1_000_000:.1f}M average"
+                )
+                parts.append(
+                    f"- Range: €{contrib.get('min', 0) / 1_000_000:.1f}M - €{contrib.get('max', 0) / 1_000_000:.1f}M"
+                )
 
             if consortium:
-                parts.append(f"- Consortium Size: {consortium.get('median', 0):.0f} partners (avg: {consortium.get('average', 0):.1f})")
+                parts.append(
+                    f"- Consortium Size: {consortium.get('median', 0):.0f} partners (avg: {consortium.get('average', 0):.1f})"
+                )
 
             if recs:
                 parts.append(f"- Recommended Budget: {recs.get('suggested_budget_range', 'N/A')}")
-                parts.append(f"- Recommended Partners: {recs.get('suggested_consortium_size', 'N/A')}")
+                parts.append(
+                    f"- Recommended Partners: {recs.get('suggested_consortium_size', 'N/A')}"
+                )
 
             return "\n".join(parts)
 
         # Handle consortium patterns results
-        if 'organization_type_distribution' in result and 'consortium_size' in result:
-            projects = result.get('projects_analyzed', 'N/A')
-            consortium = result.get('consortium_size', {})
-            org_dist = result.get('organization_type_distribution', {})
-            country_patterns = result.get('country_patterns', {})
-            recs = result.get('recommendations', {})
+        if "organization_type_distribution" in result and "consortium_size" in result:
+            projects = result.get("projects_analyzed", "N/A")
+            consortium = result.get("consortium_size", {})
+            org_dist = result.get("organization_type_distribution", {})
+            country_patterns = result.get("country_patterns", {})
+            recs = result.get("recommendations", {})
 
             parts = [f"Consortium Patterns Analysis ({projects} projects):"]
 
             # Consortium size
             if consortium:
-                parts.append(f"- Consortium Size: {consortium.get('median', 0):.0f} partners (avg: {consortium.get('average', 0):.1f})")
+                parts.append(
+                    f"- Consortium Size: {consortium.get('median', 0):.0f} partners (avg: {consortium.get('average', 0):.1f})"
+                )
                 parts.append(f"- Recommended: {consortium.get('recommended', 'N/A')}")
 
             # Org type distribution
             if org_dist:
                 type_parts = []
-                for org_type, data in sorted(org_dist.items(), key=lambda x: x[1].get('percentage', 0), reverse=True)[:4]:
-                    pct = data.get('percentage', 0)
+                for org_type, data in sorted(
+                    org_dist.items(), key=lambda x: x[1].get("percentage", 0), reverse=True
+                )[:4]:
+                    pct = data.get("percentage", 0)
                     type_parts.append(f"{org_type}: {pct:.0f}%")
                 parts.append(f"- Organization Mix: {', '.join(type_parts)}")
 
             # Top countries
-            top_countries = country_patterns.get('top_participating', [])[:5]
+            top_countries = country_patterns.get("top_participating", [])[:5]
             if top_countries:
-                countries = [c['country'] for c in top_countries]
+                countries = [c["country"] for c in top_countries]
                 parts.append(f"- Top Countries: {', '.join(countries)}")
 
             # Geographic diversity
-            geo = country_patterns.get('geographic_diversity', {})
+            geo = country_patterns.get("geographic_diversity", {})
             if geo:
                 parts.append(f"- Avg Countries per Project: {geo.get('avg_countries', 'N/A')}")
 
             # Recommendations
-            if recs.get('ideal_composition'):
+            if recs.get("ideal_composition"):
                 parts.append(f"- Ideal Mix: {'; '.join(recs['ideal_composition'][:3])}")
 
             return "\n".join(parts)
 
         # Handle partner discovery results
-        if 'experienced_partners' in result:
-            partners = result.get('experienced_partners', [])
-            total = result.get('total_found', 0)
-            query = result.get('query_params', {})
+        if "experienced_partners" in result:
+            partners = result.get("experienced_partners", [])
+            total = result.get("total_found", 0)
+            query = result.get("query_params", {})
 
             if not partners:
                 return f"Partner Discovery: No organizations found matching '{query.get('topic_keywords', '')}'"
 
             # Use abbreviated keywords for header (first 60 chars) to save space
-            keywords = query.get('topic_keywords', '')
-            keywords_abbrev = keywords[:60] + '...' if len(keywords) > 60 else keywords
+            keywords = query.get("topic_keywords", "")
+            keywords_abbrev = keywords[:60] + "..." if len(keywords) > 60 else keywords
             parts = [f"Found {total} experienced partners for '{keywords_abbrev}':"]
 
             # Include ALL partners (up to 15) with compact format for observation
             # This ensures the agent sees all partners to present multiple in response
             for i, p in enumerate(partners[:15], 1):
-                name = p.get('short_name') or p.get('name', 'Unknown')
-                country = p.get('country', '')
-                org_type = p.get('type', '')
-                track = p.get('track_record', {})
-                relevant = track.get('relevant_projects', 0)
-                coord = track.get('as_coordinator', 0)
-                funding = track.get('funding_in_relevant', track.get('total_funding', 0))
+                name = p.get("short_name") or p.get("name", "Unknown")
+                country = p.get("country", "")
+                org_type = p.get("type", "")
+                track = p.get("track_record", {})
+                relevant = track.get("relevant_projects", 0)
+                coord = track.get("as_coordinator", 0)
+                funding = track.get("funding_in_relevant", track.get("total_funding", 0))
 
                 # Compact format: "1. NAME (CC, TYPE): Xp, Yc, €ZM"
                 coord_str = f", {coord}c" if coord > 0 else ""
                 funding_mil = funding / 1_000_000 if funding > 0 else 0
                 funding_str = f", €{funding_mil:.1f}M" if funding > 0 else ""
-                parts.append(f"{i}. {name} ({country}, {org_type}): {relevant}p{coord_str}{funding_str}")
+                parts.append(
+                    f"{i}. {name} ({country}, {org_type}): {relevant}p{coord_str}{funding_str}"
+                )
 
             # Skip insights to save space - partners list is more important
 
             return "\n".join(parts)
 
         # Handle similar projects results - ENHANCED with full details
-        if 'similar_projects' in result and isinstance(result['similar_projects'], list):
-            projects = result['similar_projects']
-            query_desc = result.get('query_description', '')
-            matches = result.get('matches_found', len(projects))
-            filters = result.get('filters_applied', {})
+        if "similar_projects" in result and isinstance(result["similar_projects"], list):
+            projects = result["similar_projects"]
+            query_desc = result.get("query_description", "")
+            matches = result.get("matches_found", len(projects))
+            filters = result.get("filters_applied", {})
 
             if not projects:
                 return f"## Similar Projects Search\n\nNo projects found matching: *{query_desc}*"
@@ -5309,20 +5574,20 @@ Found **{total_found} organizations** with relevant track records:
             parts.append(f"**Found:** {matches} similar projects\n")
 
             for i, p in enumerate(projects[:10], 1):
-                acronym = p.get('acronym', 'N/A')
-                title = p.get('title', 'N/A')
-                score = p.get('similarity_score', 0)
-                budget = p.get('eu_contribution', p.get('total_cost', 0))
-                consortium = p.get('consortium', {})
-                size = consortium.get('size', p.get('partner_count', 0))
-                action_type = p.get('action_type', 'N/A')
-                objective = p.get('objective', '')
-                start_date = p.get('start_date', '')
-                end_date = p.get('end_date', '')
-                coordinator = consortium.get('coordinator', {}).get('name', '')
-                cluster = p.get('cluster', '')
+                acronym = p.get("acronym", "N/A")
+                title = p.get("title", "N/A")
+                score = p.get("similarity_score", 0)
+                budget = p.get("eu_contribution", p.get("total_cost", 0))
+                consortium = p.get("consortium", {})
+                size = consortium.get("size", p.get("partner_count", 0))
+                action_type = p.get("action_type", "N/A")
+                objective = p.get("objective", "")
+                start_date = p.get("start_date", "")
+                end_date = p.get("end_date", "")
+                coordinator = consortium.get("coordinator", {}).get("name", "")
+                cluster = p.get("cluster", "")
 
-                budget_str = f"€{budget/1_000_000:.1f}M" if budget > 0 else "N/A"
+                budget_str = f"€{budget / 1_000_000:.1f}M" if budget > 0 else "N/A"
 
                 parts.append(f"### {i}. {acronym} [{score:.0%} match]")
                 parts.append(f"**{title}**")
@@ -5340,7 +5605,7 @@ Found **{total_found} organizations** with relevant track records:
                 parts.append("")
 
             # Add insights
-            insights = result.get('insights', [])
+            insights = result.get("insights", [])
             if insights:
                 parts.append("**Key Insights:**")
                 for insight in insights[:5]:
@@ -5349,13 +5614,13 @@ Found **{total_found} organizations** with relevant track records:
             return "\n".join(parts)
 
         # Handle timeline generator results
-        if 'work_packages' in result and 'deliverables' in result and 'milestones' in result:
-            wps = result.get('work_packages', [])
-            deliverables = result.get('deliverables', [])
-            milestones = result.get('milestones', [])
-            params = result.get('parameters', {})
-            summary = result.get('summary', {})
-            gantt = result.get('gantt_data', {})
+        if "work_packages" in result and "deliverables" in result and "milestones" in result:
+            wps = result.get("work_packages", [])
+            deliverables = result.get("deliverables", [])
+            milestones = result.get("milestones", [])
+            params = result.get("parameters", {})
+            _summary = result.get("summary", {})  # noqa: F841 - may be used in future
+            gantt = result.get("gantt_data", {})
 
             parts = []
             parts.append("**Project Timeline Generated**")
@@ -5368,13 +5633,13 @@ Found **{total_found} organizations** with relevant track records:
             # Work Packages Summary
             parts.append("**Work Packages:**")
             for wp in wps:
-                wp_num = wp.get('number', 0)
-                title = wp.get('title', '')
-                lead = wp.get('lead', 'P1')
-                start = wp.get('start_month', 1)
-                end = wp.get('end_month', 36)
-                effort = wp.get('effort_pms', 0)
-                objective = wp.get('objective', '')
+                wp_num = wp.get("number", 0)
+                title = wp.get("title", "")
+                lead = wp.get("lead", "P1")
+                start = wp.get("start_month", 1)
+                end = wp.get("end_month", 36)
+                effort = wp.get("effort_pms", 0)
+                objective = wp.get("objective", "")
 
                 parts.append(f"\n**WP{wp_num}: {title}** (Lead: {lead})")
                 parts.append(f"  M{start}-M{end} | {effort} PMs")
@@ -5382,7 +5647,7 @@ Found **{total_found} organizations** with relevant track records:
                     parts.append(f"  *{objective[:100]}*")
 
                 # Show tasks
-                tasks = wp.get('tasks', [])
+                tasks = wp.get("tasks", [])
                 if tasks:
                     parts.append(f"  Tasks: {'; '.join(tasks[:3])}")
 
@@ -5390,11 +5655,11 @@ Found **{total_found} organizations** with relevant track records:
             parts.append("")
             parts.append(f"**Deliverables ({len(deliverables)} total):**")
             for d in deliverables[:10]:  # Show first 10
-                d_id = d.get('id', 'D?')
-                d_title = d.get('title', '')[:50]
-                d_month = d.get('due_month', 0)
-                d_type = d.get('type', 'R')
-                d_level = d.get('dissemination_level', 'PU')
+                d_id = d.get("id", "D?")
+                d_title = d.get("title", "")[:50]
+                d_month = d.get("due_month", 0)
+                d_type = d.get("type", "R")
+                d_level = d.get("dissemination_level", "PU")
                 parts.append(f"  {d_id}: {d_title} (M{d_month}, {d_type}, {d_level})")
 
             if len(deliverables) > 10:
@@ -5404,13 +5669,13 @@ Found **{total_found} organizations** with relevant track records:
             parts.append("")
             parts.append(f"**Milestones ({len(milestones)} total):**")
             for m in milestones:
-                m_id = m.get('id', 'MS?')
-                m_title = m.get('title', '')
-                m_month = m.get('due_month', 0)
+                m_id = m.get("id", "MS?")
+                m_title = m.get("title", "")
+                m_month = m.get("due_month", 0)
                 parts.append(f"  {m_id}: {m_title} (M{m_month})")
 
             # ASCII Gantt Chart
-            ascii_chart = gantt.get('ascii_chart', '')
+            ascii_chart = gantt.get("ascii_chart", "")
             if ascii_chart:
                 parts.append("")
                 parts.append("**Gantt Chart:**")
@@ -5419,15 +5684,17 @@ Found **{total_found} organizations** with relevant track records:
                 parts.append("```")
 
             # Dependencies
-            dependencies = gantt.get('dependencies', [])
+            dependencies = gantt.get("dependencies", [])
             if dependencies:
                 parts.append("")
                 parts.append("**WP Dependencies:**")
                 for dep in dependencies[:5]:
-                    parts.append(f"  {dep.get('from')} → {dep.get('to')}: {dep.get('description', '')}")
+                    parts.append(
+                        f"  {dep.get('from')} → {dep.get('to')}: {dep.get('description', '')}"
+                    )
 
             # Recommendations
-            recommendations = result.get('recommendations', [])
+            recommendations = result.get("recommendations", [])
             if recommendations:
                 parts.append("")
                 parts.append("**Recommendations:**")
@@ -5437,67 +5704,69 @@ Found **{total_found} organizations** with relevant track records:
             return "\n".join(parts)
 
         # Handle call history analysis results
-        if 'timeline' in result and 'trends' in result:
-            calls = result.get('calls_analyzed', 0)
-            projects = result.get('projects_funded', 0)
-            total_funding = result.get('total_funding_allocated', 0)
-            trends = result.get('trends', {})
+        if "timeline" in result and "trends" in result:
+            calls = result.get("calls_analyzed", 0)
+            projects = result.get("projects_funded", 0)
+            total_funding = result.get("total_funding_allocated", 0)
+            trends = result.get("trends", {})
 
             parts = [f"Call History Analysis: {calls} calls, {projects} projects funded"]
 
             if total_funding > 0:
-                parts.append(f"Total funding: €{total_funding/1_000_000_000:.1f}B")
+                parts.append(f"Total funding: €{total_funding / 1_000_000_000:.1f}B")
 
             # Trend info
-            trend = trends.get('funding_trend', 'unknown')
-            growth = trends.get('year_over_year_funding_growth', 0)
-            if trend != 'insufficient_data':
+            trend = trends.get("funding_trend", "unknown")
+            growth = trends.get("year_over_year_funding_growth", 0)
+            if trend != "insufficient_data":
                 parts.append(f"Trend: {trend.replace('_', ' ')} ({growth:+.1f}% YoY)")
 
             # Timeline summary
-            timeline = result.get('timeline', {})
+            timeline = result.get("timeline", {})
             if timeline:
                 years = sorted(timeline.keys(), reverse=True)[:3]
                 for year in years:
                     data = timeline[year]
-                    parts.append(f"  {year}: {data.get('projects_funded', 0)} projects, €{data.get('total_funding', 0)/1_000_000:.0f}M")
+                    parts.append(
+                        f"  {year}: {data.get('projects_funded', 0)} projects, €{data.get('total_funding', 0) / 1_000_000:.0f}M"
+                    )
 
             # Top topics
-            top_topics = result.get('top_funded_topics', [])[:3]
+            top_topics = result.get("top_funded_topics", [])[:3]
             if top_topics:
                 parts.append("\nTop topics:")
                 for t in top_topics:
                     parts.append(f"  - {t.get('topic', 'N/A')}: {t.get('projects', 0)} projects")
 
             # Recommendations
-            recommendations = result.get('recommendations', [])[:2]
+            recommendations = result.get("recommendations", [])[:2]
             if recommendations:
                 parts.append(f"\nRecommendations: {'; '.join(recommendations)}")
 
             return "\n".join(parts)
 
         # Handle country statistics results
-        if 'country_code' in result and 'eligibility' in result:
-            country = result.get('country', result.get('country_code', 'Unknown'))
-            eligibility = result.get('eligibility', {})
-            top_orgs = result.get('top_organizations', [])
+        if "country_code" in result and "eligibility" in result:
+            country = result.get("country", result.get("country_code", "Unknown"))
+            eligibility = result.get("eligibility", {})
+            top_orgs = result.get("top_organizations", [])
 
             # Get participation history from eligibility
-            participation = eligibility.get('participation_history', {})
-            org_count = participation.get('organization_count', result.get('organization_count', 0))
-            proj_count = participation.get('project_count', 0)
-            total_funding = participation.get('total_funding_received', 0)
+            participation = eligibility.get("participation_history", {})
+            org_count = participation.get("organization_count", result.get("organization_count", 0))
+            proj_count = participation.get("project_count", 0)
+            total_funding = participation.get("total_funding_received", 0)
 
             # Build clear eligibility answer first
-            is_eligible = eligibility.get('is_eligible', False)
-            eligibility_status = eligibility.get('eligibility_status', 'Unknown')
+            is_eligible = eligibility.get("is_eligible", False)
+            eligibility_status = eligibility.get("eligibility_status", "Unknown")
 
             parts = [f"Country: {country}"]
             parts.append(f"**Can participate in Horizon Europe: {'YES' if is_eligible else 'NO'}**")
             parts.append(f"- Status: {eligibility_status}")
 
             # Add notes if available
-            notes = eligibility.get('notes', [])
+            notes = eligibility.get("notes", [])
             if notes:
                 parts.append(f"- {notes[0]}")
 
@@ -5510,22 +5779,22 @@ Found **{total_found} organizations** with relevant track records:
             if top_orgs:
                 parts.append(f"\nTop {min(len(top_orgs), 10)} Organizations:")
                 for org in top_orgs[:10]:
-                    org_name = org.get('name', org.get('organization_name', 'Unknown'))
-                    org_projects = org.get('project_count', org.get('projects', 0))
-                    org_funding = org.get('total_funding', org.get('funding', 0))
+                    org_name = org.get("name", org.get("organization_name", "Unknown"))
+                    org_projects = org.get("project_count", org.get("projects", 0))
+                    org_funding = org.get("total_funding", org.get("funding", 0))
                     parts.append(f"- {org_name}: {org_projects} projects, €{org_funding:,.0f}")
 
             return "\n".join(parts)
 
         # Handle programme/cluster statistics results
-        if 'cluster_code' in result or ('programme' in result and 'statistics' in result):
-            programme = result.get('programme', result.get('cluster_code', 'Unknown'))
-            programme_type = result.get('programme_type', '')
-            stats = result.get('statistics', {})
+        if "cluster_code" in result or ("programme" in result and "statistics" in result):
+            programme = result.get("programme", result.get("cluster_code", "Unknown"))
+            programme_type = result.get("programme_type", "")
+            stats = result.get("statistics", {})
             # Ensure stats is a dict, not a list
             if isinstance(stats, list):
                 stats = stats[0] if stats else {}
-            budget = result.get('budget_details', {})
+            budget = result.get("budget_details", {})
             # Ensure budget is a dict, not a list
             if isinstance(budget, list):
                 budget = budget[0] if budget else {}
@@ -5535,38 +5804,42 @@ Found **{total_found} organizations** with relevant track records:
                 parts.append(f"({programme_type})")
 
             # Handle EIC/ERC/MSCA format with success_rates dict
-            if 'success_rates' in stats:
-                success_rates = stats['success_rates']
-                if stats.get('description'):
+            if "success_rates" in stats:
+                success_rates = stats["success_rates"]
+                if stats.get("description"):
                     parts.append(f"\n{stats['description']}")
                 parts.append("\nSuccess Rates:")
                 for key, value in success_rates.items():
-                    if key != 'note':
+                    if key != "note":
                         parts.append(f"- {key.replace('_', ' ').title()}: {value}")
-                if success_rates.get('note'):
+                if success_rates.get("note"):
                     parts.append(f"\nNote: {success_rates['note']}")
 
                 # Add funding info
-                if 'funding' in stats:
+                if "funding" in stats:
                     parts.append("\nFunding Available:")
-                    for key, value in stats['funding'].items():
+                    for key, value in stats["funding"].items():
                         parts.append(f"- {key.replace('_', ' ').title()}: {value}")
 
-                if stats.get('eligibility'):
+                if stats.get("eligibility"):
                     parts.append(f"\nEligibility: {stats['eligibility']}")
 
-                if stats.get('trl_range'):
+                if stats.get("trl_range"):
                     parts.append(f"TRL Range: {stats['trl_range']}")
 
             else:
                 # Standard cluster statistics format
                 if stats:
-                    total_projects = stats.get('total_projects', stats.get('project_count', 'N/A'))
-                    total_funding = stats.get('total_funding', stats.get('total_budget', 0))
-                    success_rate = stats.get('success_rate', 'N/A')
-                    avg_budget = stats.get('avg_project_budget', stats.get('average_funding', 0))
+                    total_projects = stats.get("total_projects", stats.get("project_count", "N/A"))
+                    total_funding = stats.get("total_funding", stats.get("total_budget", 0))
+                    success_rate = stats.get("success_rate", "N/A")
+                    avg_budget = stats.get("avg_project_budget", stats.get("average_funding", 0))
 
-                    parts.append(f"- Total Projects: {total_projects:,}" if isinstance(total_projects, int) else f"- Total Projects: {total_projects}")
+                    parts.append(
+                        f"- Total Projects: {total_projects:,}"
+                        if isinstance(total_projects, int)
+                        else f"- Total Projects: {total_projects}"
+                    )
                     parts.append(f"- Total Funding: €{total_funding:,.0f}")
                     parts.append(f"- Success Rate: {success_rate}%")
                     parts.append(f"- Average Project Budget: €{avg_budget:,.0f}")
@@ -5580,15 +5853,15 @@ Found **{total_found} organizations** with relevant track records:
             return "\n".join(parts)
 
         # Handle error messages
-        if 'error' in result:
+        if "error" in result:
             return f"{tool_name}: Error - {result['error']}"
 
-        if 'message' in result:
+        if "message" in result:
             return f"{tool_name}: {result['message']}"
 
         # Default: truncated string representation
         return f"{tool_name}: {str(result)[:500]}"
-    
+
     def _build_fallback_answer(self, plan: AgentPlan) -> str:
         """Build a fallback answer from collected information."""
 
@@ -5620,7 +5893,7 @@ Found **{total_found} organizations** with relevant track records:
                 # Check if this is formatted document content
                 if "Found " in obs and "relevant document" in obs:
                     # Extract the actual content from "From source: content" lines
-                    lines = obs.split('\n')
+                    lines = obs.split("\n")
                     for line in lines:
                         if line.startswith("From ") and ":" in line:
                             # Extract content after "From Source:"
@@ -5641,7 +5914,7 @@ Found **{total_found} organizations** with relevant track records:
                 # Format as a proper answer
                 intro = f"Based on the information I found about '{plan.query}':\n\n"
                 formatted_content = []
-                for i, content in enumerate(unique_content[:5], 1):
+                for _i, content in enumerate(unique_content[:5], 1):
                     if len(content) > 500:
                         content = content[:500] + "..."
                     formatted_content.append(f"{content}")
@@ -5658,10 +5931,10 @@ Found **{total_found} organizations** with relevant track records:
         # Check for truncated/malformed text patterns
         bad_patterns = [
             # Truncated words at start
-            text[:20].count('  ') > 2,  # Multiple spaces
-            text.startswith('rmance'),  # Cut-off word
-            text.startswith('tion'),
-            text.startswith('ing '),
+            text[:20].count("  ") > 2,  # Multiple spaces
+            text.startswith("rmance"),  # Cut-off word
+            text.startswith("tion"),
+            text.startswith("ing "),
             # Raw data patterns
             "{'documents'" in text,
             '{"documents"' in text,
@@ -5681,7 +5954,7 @@ Found **{total_found} organizations** with relevant track records:
             return False
 
         # Check that content has actual sentences (periods, capitals)
-        if '.' not in text and '?' not in text:
+        if "." not in text and "?" not in text:
             return False
 
         return True
@@ -5705,4 +5978,3 @@ Found **{total_found} organizations** with relevant track records:
                 unique.append(content)
 
         return unique
-

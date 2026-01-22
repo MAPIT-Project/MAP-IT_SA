@@ -236,3 +236,117 @@ class TestBudgetValidation:
 
         budget_errors = [f for f in result.facts_incorrect if "budget" in f.lower()]
         assert len(budget_errors) == 0
+
+
+class TestMultiProgrammeBudgetValidation:
+    """Tests for multi-programme budget validation (prevents false positives)."""
+
+    @pytest.fixture
+    def agent(self):
+        """Create a CrossProgrammeAgent instance."""
+        return CrossProgrammeAgent(use_llm=False)
+
+    @pytest.mark.asyncio
+    async def test_multi_programme_response_no_false_positive_for_erasmus(self, agent):
+        """Test that Horizon Europe's budget doesn't trigger false positive for Erasmus+.
+
+        This was the original bug: when validating Erasmus+ facts in a response that
+        mentions both programmes, the validator would find Horizon Europe's €95.5B
+        first and flag it as incorrect for Erasmus+.
+        """
+        response = """
+        For research funding, Horizon Europe (€95.5 billion) is the main programme.
+        For education and mobility, Erasmus+ (€26.2 billion) is the best choice.
+        """
+
+        # Validate Erasmus+ facts - should NOT flag Horizon Europe's budget
+        result = await agent.validate_programme_facts(response, "erasmus_plus")
+
+        budget_errors = [f for f in result.facts_incorrect if "budget" in f.lower()]
+        assert (
+            len(budget_errors) == 0
+        ), f"Horizon Europe's €95.5B incorrectly flagged as wrong Erasmus+ budget: {budget_errors}"
+
+    @pytest.mark.asyncio
+    async def test_multi_programme_response_no_false_positive_for_horizon(self, agent):
+        """Test that Erasmus+'s budget doesn't trigger false positive for Horizon Europe."""
+        response = """
+        Erasmus+ (€26.2 billion) focuses on mobility and education.
+        Horizon Europe (€95.5 billion) is for research and innovation.
+        """
+
+        # Validate Horizon Europe facts - should NOT flag Erasmus+'s budget
+        result = await agent.validate_programme_facts(response, "horizon_europe")
+
+        budget_errors = [f for f in result.facts_incorrect if "budget" in f.lower()]
+        assert (
+            len(budget_errors) == 0
+        ), f"Erasmus+'s €26.2B incorrectly flagged as wrong Horizon Europe budget: {budget_errors}"
+
+    @pytest.mark.asyncio
+    async def test_multi_programme_response_no_false_positive_for_creative_europe(self, agent):
+        """Test that other programmes' budgets don't trigger false positive for Creative Europe."""
+        response = """
+        The three main EU funding programmes are:
+        1. Horizon Europe with €95.5 billion for research
+        2. Erasmus+ with €26.2 billion for education
+        3. Creative Europe with €2.44 billion for culture and media
+        """
+
+        # Validate Creative Europe facts
+        result = await agent.validate_programme_facts(response, "creative_europe")
+
+        budget_errors = [f for f in result.facts_incorrect if "budget" in f.lower()]
+        assert (
+            len(budget_errors) == 0
+        ), f"Other programme budgets incorrectly flagged for Creative Europe: {budget_errors}"
+
+    @pytest.mark.asyncio
+    async def test_correct_budget_still_validated_in_multi_programme(self, agent):
+        """Test that the correct budget for each programme is still validated."""
+        response = """
+        Horizon Europe (€95.5 billion) and Erasmus+ (€26.2 billion) both support
+        European collaboration in different ways.
+        """
+
+        # Validate Horizon Europe - should find correct budget
+        he_result = await agent.validate_programme_facts(response, "horizon_europe")
+        he_budget_correct = [f for f in he_result.facts_correct if "budget" in f.lower()]
+        assert len(he_budget_correct) > 0, "Horizon Europe budget should be validated as correct"
+
+        # Validate Erasmus+ - should find correct budget
+        e_result = await agent.validate_programme_facts(response, "erasmus_plus")
+        e_budget_correct = [f for f in e_result.facts_correct if "budget" in f.lower()]
+        assert len(e_budget_correct) > 0, "Erasmus+ budget should be validated as correct"
+
+    @pytest.mark.asyncio
+    async def test_real_scenario_user_context_learning_fix(self, agent):
+        """Test the actual scenario that was failing in Phase 4.
+
+        In user_context_learning.yaml, the response mentioned "Horizon Europe (€95.5B)"
+        but the fact checker for Erasmus+ flagged this as incorrect.
+        """
+        # Simulated response similar to what caused the failure
+        response = """
+        Based on your context in marine biology research, here are the most relevant
+        funding programmes:
+
+        **Horizon Europe (€95.5 billion)** is the main EU research programme and
+        offers excellent opportunities for marine biology:
+        - Cluster 6 (Food, Bioeconomy, Natural Resources) covers marine ecosystems
+        - Mission "Restore our Ocean and Waters" is directly relevant
+
+        **Erasmus+ (€26.2 billion)** could support educational partnerships if you
+        want to develop training programmes in marine biology.
+
+        **Creative Europe (€2.44 billion)** is less relevant for research but could
+        support science communication or documentary projects about marine life.
+        """
+
+        # This was failing because Erasmus+ validation found €95.5B first
+        erasmus_result = await agent.validate_programme_facts(response, "erasmus_plus")
+
+        budget_errors = [f for f in erasmus_result.facts_incorrect if "budget" in f.lower()]
+        assert (
+            len(budget_errors) == 0
+        ), f"User context learning scenario incorrectly flagged: {budget_errors}"

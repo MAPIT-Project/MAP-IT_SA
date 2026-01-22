@@ -588,28 +588,82 @@ Validate now:"""
         facts_correct = []
         facts_incorrect = []
 
-        # Check budget mentions
+        # Check budget mentions - but only those ASSOCIATED with this programme
+        # This prevents false positives in multi-programme responses
         budget_patterns = [
             (r"€\s*(\d+(?:\.\d+)?)\s*billion", "budget"),
             (r"(\d+(?:\.\d+)?)\s*billion\s*(?:euro|EUR|€)", "budget"),
         ]
 
+        # Get all programme aliases for context checking
+        programme_aliases = [a.lower() for a in facts["aliases"]]
+        programme_name_lower = facts["name"].lower()
+
+        # Also get aliases for OTHER programmes to identify their budgets
+        other_programme_aliases = {}
+        for other_prog, other_facts in PROGRAMME_FACTS.items():
+            if other_prog != programme:
+                other_programme_aliases[other_prog] = [a.lower() for a in other_facts["aliases"]]
+
         for pattern, _fact_type in budget_patterns:
-            match = re.search(pattern, response, re.IGNORECASE)
-            if match:
-                facts_checked.append("budget")
-                try:
-                    amount = float(match.group(1))
-                    budget_min, budget_max = facts["budget_range"]
-                    if budget_min <= amount <= budget_max:
-                        facts_correct.append(f"budget: €{amount}B")
-                    else:
-                        facts_incorrect.append(
-                            f"budget: stated €{amount}B but should be ~{facts['budget']}"
-                        )
-                except ValueError:
-                    pass
-                break
+            # Find ALL budget mentions, not just the first one
+            for match in re.finditer(pattern, response, re.IGNORECASE):
+                budget_amount = float(match.group(1))
+                budget_pos = match.start()
+
+                # Get context around this budget mention (100 chars before and after)
+                start_pos = max(0, match.start() - 100)
+                end_pos = min(len(response), match.end() + 100)
+                context = response[start_pos:end_pos].lower()
+
+                # Find the CLOSEST programme mention to this budget
+                # This handles cases like "Horizon Europe (€95.5B) and Erasmus+ (€26.2B)"
+                def find_closest_mention(text_lower: str, pos: int, aliases: list[str]) -> int:
+                    """Find the position of the closest alias mention to the given position."""
+                    closest_dist = float("inf")
+                    for alias in aliases:
+                        idx = text_lower.find(alias)
+                        while idx != -1:
+                            dist = abs(idx - pos)
+                            if dist < closest_dist:
+                                closest_dist = dist
+                            idx = text_lower.find(alias, idx + 1)
+                    return closest_dist
+
+                response_lower_full = response.lower()
+
+                # Distance to this programme's mention
+                this_prog_dist = find_closest_mention(
+                    response_lower_full, budget_pos, programme_aliases + [programme_name_lower]
+                )
+
+                # Distance to other programmes' mentions
+                other_prog_dist = float("inf")
+                for other_aliases in other_programme_aliases.values():
+                    dist = find_closest_mention(response_lower_full, budget_pos, other_aliases)
+                    if dist < other_prog_dist:
+                        other_prog_dist = dist
+
+                # Check if this programme is mentioned in context at all
+                is_for_this_programme = any(alias in context for alias in programme_aliases)
+                is_for_this_programme = is_for_this_programme or programme_name_lower in context
+
+                # Only validate if:
+                # 1. This programme IS mentioned in context, AND
+                # 2. This programme is CLOSER to the budget than other programmes
+                if is_for_this_programme and this_prog_dist <= other_prog_dist:
+                    facts_checked.append("budget")
+                    try:
+                        budget_min, budget_max = facts["budget_range"]
+                        if budget_min <= budget_amount <= budget_max:
+                            facts_correct.append(f"budget: €{budget_amount}B")
+                        else:
+                            facts_incorrect.append(
+                                f"budget: stated €{budget_amount}B but should be ~{facts['budget']}"
+                            )
+                    except ValueError:
+                        pass
+                    break  # Only check one budget for this programme
 
         # Check programme name is correct
         if facts["name"].lower() in response_lower:

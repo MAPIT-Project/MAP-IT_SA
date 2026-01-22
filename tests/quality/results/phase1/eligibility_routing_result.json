@@ -1,0 +1,152 @@
+{
+  "scenario_name": "Eligibility Routing",
+  "status": "FAIL",
+  "average_quality_score": 79.5,
+  "average_factual_score": 95.83333333333334,
+  "turns": [
+    {
+      "query": "We're a Swiss company wanting to participate in EU funding programmes. What are our options?",
+      "response": "This is excellent news for your company. Based on the EU's agreement, Switzerland is now a **fully Associated Country** to the Horizon Europe programme (since 2024).\n\nThis means your company can participate in nearly all parts of Horizon Europe on **equal terms** with EU Member States, including receiving full funding for eligible costs.\n\nHere are your primary options, tailored specifically for a company:\n\n---\n\n## 1. Collaborative Research and Innovation (Pillar II)\n\nAs a company, your primary o...",
+      "quality_score": 77,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "get_country_statistics"
+      ],
+      "processing_time_ms": 10523.986,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 2
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
+      "passed": false
+    },
+    {
+      "query": "Tell me about Horizon Europe eligibility for Swiss organizations. Can we coordinate projects?",
+      "response": "As of early 2024, Switzerland has full Associated Country (AC) status with the Horizon Europe programme.\n\n### 1. Eligibility Status\n\nSwiss organizations, including companies (SMEs and Large Companies), universities, and research institutes, are considered **fully eligible participants** in Horizon Europe. This means you participate on equal terms with organizations from EU Member States.\n\n**Coordination Capability:**\n\n**\u2705 Yes, Swiss organizations can coordinate collaborative Horizon Europe proje...",
+      "quality_score": 79,
+      "factual_score": 83.33333333333334,
+      "failures": [
+        {
+          "category": "INCORRECT_DATA",
+          "severity": "CRITICAL",
+          "description": "Incorrect horizon_europe facts: ['IA_rate: stated 100% but should be 70%']",
+          "turn_number": 1,
+          "evidence": {
+            "programme": "horizon_europe",
+            "incorrect_facts": [
+              "IA_rate: stated 100% but should be 70%"
+            ],
+            "score": 0.8333333333333334
+          },
+          "timestamp": "2026-01-22T15:20:45.228803"
+        }
+      ],
+      "tools_used": [],
+      "processing_time_ms": 10374.416,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 4
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": false
+    },
+    {
+      "query": "Now tell me about Erasmus+ eligibility. Can Swiss organizations participate in the Erasmus+ programme?",
+      "response": "The eligibility status of Swiss organizations for Erasmus+ differs significantly from Horizon Europe, where Switzerland enjoys full Associated Country status.\n\n### 1. Overall Status: Not an Erasmus+ Programme Country\n\nSwitzerland is **NOT** a Programme Country (Member States plus Iceland, Liechtenstein, Norway, Turkey, North Macedonia, and Serbia) for the Erasmus+ programme (2021-2027). Instead, it participates through a national solution and as an eligible Partner Country in specific actions.\n\n...",
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "get_programme_info"
+      ],
+      "processing_time_ms": 10983.108,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": true
+    },
+    {
+      "query": "Finally, what about Creative Europe? Can Swiss organizations participate in Creative Europe?",
+      "response": "Based on the provided search results, the answer to your question about Swiss organizations participating in Creative Europe is **not definitively answered**.\n\nThe search results mention a list of countries eligible for specific groupings within the Creative Europe Programme (specifically the MEDIA strand). While the lists include countries like Iceland, Liechtenstein, and North Macedonia, **Switzerland is not explicitly mentioned in these excerpts.**\n\nTherefore, to determine if Swiss organizati...",
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "search_documents",
+        "check_creative_europe_eligibility",
+        "search_documents"
+      ],
+      "processing_time_ms": 20409.442,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": true
+    }
+  ],
+  "scores": {
+    "average_quality": 79.5,
+    "average_factual": 95.83333333333334,
+    "goal_progress": 0.39,
+    "context_fields": 4
+  },
+  "failures": [
+    {
+      "category": "INCORRECT_DATA",
+      "severity": "CRITICAL",
+      "description": "Incorrect horizon_europe facts: ['IA_rate: stated 100% but should be 70%']",
+      "turn_number": 1,
+      "evidence": {
+        "programme": "horizon_europe",
+        "incorrect_facts": [
+          "IA_rate: stated 100% but should be 70%"
+        ],
+        "score": 0.8333333333333334
+      },
+      "timestamp": "2026-01-22T15:20:45.228803"
+    }
+  ],
+  "metadata": {
+    "scenario_path": "/home/anmar/Documents/VSCODE_REPOS/MAPIT/NEWMAPIT/MAP-IT_SA/tests/scenarios/advanced/eligibility_routing.yaml",
+    "tags": [
+      "phase1",
+      "multi-programme",
+      "eligibility",
+      "switzerland",
+      "associated-country"
+    ],
+    "description": "A Swiss company wants to participate in EU funding programmes. Switzerland is an\nAssociated Country with specific eligibility rules that vary by programme.\nTests cross-programme eligibility routing and context preservation.\n",
+    "conversation_id": 415278084
+  },
+  "execution_time_ms": 161990.13400000002,
+  "timestamp": "2026-01-22T15:19:47.649815",
+  "passed": false,
+  "turn_count": 4,
+  "critical_failures": 1,
+  "high_failures": 0,
+  "medium_failures": 0
+}

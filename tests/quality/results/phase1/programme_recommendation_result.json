@@ -1,0 +1,131 @@
+{
+  "scenario_name": "Programme Recommendation",
+  "status": "FAIL",
+  "average_quality_score": 77.0,
+  "average_factual_score": 93.33333333333333,
+  "turns": [
+    {
+      "query": "I'm a small museum wanting to digitize our collection and share it across Europe. Which EU funding programme should I apply to?",
+      "response": "Based on your goal of digitizing your collection and sharing it across Europe, the best-fitting EU funding programmes are **Creative Europe** (for cooperation and dissemination) and **Horizon Europe** (for research and advanced digital technology development).\n\n## 1. Primary Recommendation: Creative Europe\n\nCreative Europe is specifically designed to support the cultural and creative sectors, making it the ideal starting point for a museum project focused on sharing and audience outreach.\n\n### A...",
+      "quality_score": 81,
+      "factual_score": 80.0,
+      "failures": [
+        {
+          "category": "INCORRECT_DATA",
+          "severity": "CRITICAL",
+          "description": "Incorrect horizon_europe facts: ['IA_rate: stated 100% but should be 70%']",
+          "turn_number": 0,
+          "evidence": {
+            "programme": "horizon_europe",
+            "incorrect_facts": [
+              "IA_rate: stated 100% but should be 70%"
+            ],
+            "score": 0.8
+          },
+          "timestamp": "2026-01-22T15:18:48.860831"
+        }
+      ],
+      "tools_used": [
+        "recommend_programmes"
+      ],
+      "processing_time_ms": 9639.193000000001,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
+      "passed": false
+    },
+    {
+      "query": "We also want to train our museum staff on digital skills. Is there EU funding for that too?",
+      "response": "I found some information but couldn't extract specific details. Please try a more specific question.",
+      "quality_score": 75,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "recommend_programmes"
+      ],
+      "processing_time_ms": 4179.515,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 0
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": false
+    },
+    {
+      "query": "What's the best strategy for our museum to combine both digitization and staff training funding?",
+      "response": "I found some information but couldn't extract specific details. Please try a more specific question.",
+      "quality_score": 75,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "get_programme_info"
+      ],
+      "processing_time_ms": 5809.373,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 0
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": false
+    }
+  ],
+  "scores": {
+    "average_quality": 77.0,
+    "average_factual": 93.33333333333333,
+    "goal_progress": 0.32999999999999996,
+    "context_fields": 4
+  },
+  "failures": [
+    {
+      "category": "INCORRECT_DATA",
+      "severity": "CRITICAL",
+      "description": "Incorrect horizon_europe facts: ['IA_rate: stated 100% but should be 70%']",
+      "turn_number": 0,
+      "evidence": {
+        "programme": "horizon_europe",
+        "incorrect_facts": [
+          "IA_rate: stated 100% but should be 70%"
+        ],
+        "score": 0.8
+      },
+      "timestamp": "2026-01-22T15:18:48.860831"
+    }
+  ],
+  "metadata": {
+    "scenario_path": "/home/anmar/Documents/VSCODE_REPOS/MAPIT/NEWMAPIT/MAP-IT_SA/tests/scenarios/advanced/programme_recommendation.yaml",
+    "tags": [
+      "phase1",
+      "multi-programme",
+      "recommendation",
+      "personalization",
+      "museum",
+      "cultural"
+    ],
+    "description": "A small museum wants to digitize their collection and share it across Europe.\nThey also want to train staff on digital skills. Tests personalized multi-programme\nrecommendations that consider the organization's profile (cultural institution, small,\ndigitization focus).\n",
+    "conversation_id": 1811356883
+  },
+  "execution_time_ms": 80351.274,
+  "timestamp": "2026-01-22T15:18:27.295331",
+  "passed": false,
+  "turn_count": 3,
+  "critical_failures": 1,
+  "high_failures": 0,
+  "medium_failures": 0
+}

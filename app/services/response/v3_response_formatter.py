@@ -5,10 +5,10 @@ Formats tool results into beautifully structured responses for the user.
 This is a post-processor that takes raw tool results and formats them consistently.
 """
 
+from datetime import datetime
 import logging
 import re
-from typing import Dict, Any, List, Optional
-from datetime import datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -18,30 +18,43 @@ class V3ResponseFormatter:
 
     # Type icons - only valid action types
     TYPE_ICONS = {
-        'RIA': '🔬',
-        'IA': '🚀',
-        'CSA': '🤝',
-        'COFUND': '💱',
-        'ERC': '🎓',
-        'MSCA': '👨‍🔬',
-        'LUMP-SUM': '📦',
-        'PCP': '🔧',
-        'PPI': '🛒',
-        'default': '📄'
+        "RIA": "🔬",
+        "IA": "🚀",
+        "CSA": "🤝",
+        "COFUND": "💱",
+        "ERC": "🎓",
+        "MSCA": "👨‍🔬",
+        "LUMP-SUM": "📦",
+        "PCP": "🔧",
+        "PPI": "🛒",
+        "default": "📄",
     }
 
     # Valid action types (to filter out numeric IDs)
-    VALID_ACTION_TYPES = {'RIA', 'IA', 'CSA', 'COFUND', 'ERC', 'MSCA', 'LUMP-SUM', 'PCP', 'PPI', 'ERC-STG', 'ERC-COG', 'ERC-ADG', 'ERC-POC', 'MSCA-PF', 'MSCA-DN', 'MSCA-SE', 'MSCA-COFUND'}
-
-    # Status icons
-    STATUS_ICONS = {
-        'open': '🟢',
-        'upcoming': '🟡',
-        'closed': '🔴',
-        'default': '📊'
+    VALID_ACTION_TYPES = {
+        "RIA",
+        "IA",
+        "CSA",
+        "COFUND",
+        "ERC",
+        "MSCA",
+        "LUMP-SUM",
+        "PCP",
+        "PPI",
+        "ERC-STG",
+        "ERC-COG",
+        "ERC-ADG",
+        "ERC-POC",
+        "MSCA-PF",
+        "MSCA-DN",
+        "MSCA-SE",
+        "MSCA-COFUND",
     }
 
-    def format_funding_calls(self, calls: List[Dict], query: str = "") -> str:
+    # Status icons
+    STATUS_ICONS = {"open": "🟢", "upcoming": "🟡", "closed": "🔴", "default": "📊"}
+
+    def format_funding_calls(self, calls: list[dict], query: str = "") -> str:
         """Format a list of funding calls into a rich response."""
         if not calls:
             return "No funding calls found matching your search criteria."
@@ -58,27 +71,36 @@ class V3ResponseFormatter:
 
         return "\n".join(lines)
 
-    def _format_single_call(self, index: int, call: Dict) -> str:
+    def _format_single_call(self, index: int, call: dict) -> str:
         """Format a single funding call."""
-        title = call.get('title', 'Untitled Call') or 'Untitled Call'
-        call_id = call.get('call_id') or call.get('topic_code') or call.get('topic_id') or call.get('identifier', '')
-        call_type = call.get('type') or call.get('action_type') or ''
-        status = (call.get('status') or 'open').lower()
-        deadline = call.get('deadline') or call.get('application_deadline') or ''
-        cluster = call.get('cluster') or call.get('programme') or call.get('work_programme') or ''
-        budget = call.get('budget') or call.get('estimated_budget') or ''
-        url = call.get('url') or call.get('portal_url') or ''
+        title = call.get("title", "Untitled Call") or "Untitled Call"
+        call_id = (
+            call.get("call_id")
+            or call.get("topic_code")
+            or call.get("topic_id")
+            or call.get("identifier", "")
+        )
+        call_type = call.get("type") or call.get("action_type") or ""
+        status = (call.get("status") or "open").lower()
+        deadline = call.get("deadline") or call.get("application_deadline") or ""
+        cluster = call.get("cluster") or call.get("programme") or call.get("work_programme") or ""
+        budget = call.get("budget") or call.get("estimated_budget") or ""
+        url = call.get("url") or call.get("portal_url") or ""
 
         # Get call summary - prioritize description/expected_outcome over scope (which is often verbose)
         summary = self._get_call_summary(call)
 
         # Validate and clean call_type - filter out numeric IDs and invalid types
-        call_type_upper = call_type.upper() if call_type else ''
+        call_type_upper = call_type.upper() if call_type else ""
         is_valid_type = call_type_upper in self.VALID_ACTION_TYPES
 
         # Get icons - only if valid type
-        type_icon = self.TYPE_ICONS.get(call_type_upper, self.TYPE_ICONS['default']) if is_valid_type else None
-        status_icon = self.STATUS_ICONS.get(status, self.STATUS_ICONS['default'])
+        type_icon = (
+            self.TYPE_ICONS.get(call_type_upper, self.TYPE_ICONS["default"])
+            if is_valid_type
+            else None
+        )
+        status_icon = self.STATUS_ICONS.get(status, self.STATUS_ICONS["default"])
 
         # Format deadline
         deadline_str = self._format_deadline(deadline)
@@ -102,7 +124,11 @@ class V3ResponseFormatter:
             lines.append(f"⏰ **Deadline:** {deadline_str}")
 
         if cluster:
-            lines.append(f"🏛️ **Programme:** Cluster {cluster}" if cluster.startswith('CL') else f"🏛️ **Programme:** {cluster}")
+            lines.append(
+                f"🏛️ **Programme:** Cluster {cluster}"
+                if cluster.startswith("CL")
+                else f"🏛️ **Programme:** {cluster}"
+            )
 
         if budget_str:
             lines.append(f"💰 **Budget:** {budget_str}")
@@ -113,7 +139,7 @@ class V3ResponseFormatter:
         # Add apply link - use provided URL or generate from call_id
         if url:
             lines.append(f"\n🔗 **Apply:** {url}")
-        elif call_id and call_id.startswith('HORIZON'):
+        elif call_id and call_id.startswith("HORIZON"):
             portal_url = f"https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/{call_id}"
             lines.append(f"\n🔗 **Apply:** {portal_url}")
 
@@ -121,7 +147,7 @@ class V3ResponseFormatter:
 
         return "\n".join(lines)
 
-    def _get_call_summary(self, call: Dict) -> str:
+    def _get_call_summary(self, call: dict) -> str:
         """
         Extract a clean, concise summary from call data.
 
@@ -131,28 +157,28 @@ class V3ResponseFormatter:
         3. scope (as fallback, cleaned up)
         """
         # Try description first (often already a good summary)
-        description = call.get('description', '')
+        description = call.get("description", "")
         if description:
             cleaned = self._clean_html_and_extract_summary(description)
             if cleaned and len(cleaned) >= 50:
                 return cleaned
 
         # Try expected_outcome (usually more structured)
-        expected_outcome = call.get('expected_outcome', '')
+        expected_outcome = call.get("expected_outcome", "")
         if expected_outcome:
             cleaned = self._clean_html_and_extract_summary(expected_outcome)
             if cleaned and len(cleaned) >= 50:
                 return cleaned
 
         # Fall back to scope
-        scope = call.get('scope', '')
+        scope = call.get("scope", "")
         if scope:
             cleaned = self._clean_html_and_extract_summary(scope)
             if cleaned:
                 return cleaned
 
         # Try objective as last resort
-        objective = call.get('objective', '')
+        objective = call.get("objective", "")
         if objective:
             cleaned = self._clean_html_and_extract_summary(objective)
             if cleaned:
@@ -170,35 +196,35 @@ class V3ResponseFormatter:
             return ""
 
         # Remove HTML tags
-        text = re.sub(r'<[^>]+>', ' ', text)
+        text = re.sub(r"<[^>]+>", " ", text)
 
         # Remove HTML entities
-        text = re.sub(r'&[a-zA-Z]+;', ' ', text)
-        text = re.sub(r'&#\d+;', ' ', text)
+        text = re.sub(r"&[a-zA-Z]+;", " ", text)
+        text = re.sub(r"&#\d+;", " ", text)
 
         # Remove common noise patterns at the start
         noise_prefixes = [
-            r'^Expected Outcome:?\s*',
-            r'^Scope:?\s*',
-            r'^Description:?\s*',
-            r'^Objective:?\s*',
-            r'^\s*Project results are expected to contribute to (all of )?the following (expected )?outcomes?:?\s*',
+            r"^Expected Outcome:?\s*",
+            r"^Scope:?\s*",
+            r"^Description:?\s*",
+            r"^Objective:?\s*",
+            r"^\s*Project results are expected to contribute to (all of )?the following (expected )?outcomes?:?\s*",
         ]
         for pattern in noise_prefixes:
-            text = re.sub(pattern, '', text, flags=re.IGNORECASE)
+            text = re.sub(pattern, "", text, flags=re.IGNORECASE)
 
         # Remove document noise
         noise_patterns = [
-            r'The Director-General responsible.*?$',
-            r'All deadlines are at.*?$',
-            r'Legal and financial.*?$',
-            r'\[?\d+\]',  # Reference numbers like [1]
+            r"The Director-General responsible.*?$",
+            r"All deadlines are at.*?$",
+            r"Legal and financial.*?$",
+            r"\[?\d+\]",  # Reference numbers like [1]
         ]
         for pattern in noise_patterns:
-            text = re.sub(pattern, '', text, flags=re.MULTILINE)
+            text = re.sub(pattern, "", text, flags=re.MULTILINE)
 
         # Normalize whitespace
-        text = re.sub(r'\s+', ' ', text).strip()
+        text = re.sub(r"\s+", " ", text).strip()
 
         # If text is too short after cleaning, return empty
         if len(text) < 30:
@@ -216,7 +242,7 @@ class V3ResponseFormatter:
         # Look for sentence end (.!?) followed by space or end
         sentence_end = -1
         for i in range(len(truncated) - 1, max(len(truncated) - 100, 0), -1):
-            if truncated[i] in '.!?' and (i == len(truncated) - 1 or truncated[i + 1] == ' '):
+            if truncated[i] in ".!?" and (i == len(truncated) - 1 or truncated[i + 1] == " "):
                 sentence_end = i + 1
                 break
 
@@ -224,7 +250,7 @@ class V3ResponseFormatter:
             return truncated[:sentence_end].strip()
         else:
             # No good sentence break, truncate at word boundary
-            last_space = truncated.rfind(' ')
+            last_space = truncated.rfind(" ")
             if last_space > 150:
                 return truncated[:last_space].strip() + "..."
             else:
@@ -275,7 +301,7 @@ class V3ResponseFormatter:
                 break
 
         # Remove repeated whitespace
-        scope = re.sub(r'\s+', ' ', scope).strip()
+        scope = re.sub(r"\s+", " ", scope).strip()
 
         # If scope is too short after cleaning, return empty
         if len(scope) < 30:
@@ -296,12 +322,12 @@ class V3ResponseFormatter:
             try:
                 for fmt in ["%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y-%m-%dT%H:%M:%S"]:
                     try:
-                        dt = datetime.strptime(deadline.split('T')[0], fmt.split('T')[0])
+                        dt = datetime.strptime(deadline.split("T")[0], fmt.split("T")[0])
                         return dt.strftime("%d %b %Y")
                     except ValueError:
                         continue
                 return deadline  # Return as-is if parsing fails
-            except:
+            except Exception:
                 return deadline
 
         return str(deadline)
@@ -311,18 +337,18 @@ class V3ResponseFormatter:
         if not budget:
             return ""
 
-        if isinstance(budget, (int, float)):
+        if isinstance(budget, int | float):
             if budget >= 1_000_000:
-                return f"EUR {budget/1_000_000:.2f} million"
+                return f"EUR {budget / 1_000_000:.2f} million"
             elif budget >= 1_000:
-                return f"EUR {budget/1_000:.0f}K"
+                return f"EUR {budget / 1_000:.0f}K"
             else:
                 return f"EUR {budget:,.0f}"
 
         if isinstance(budget, str):
             # Clean up existing string
             budget = budget.strip()
-            if budget.lower().startswith('eur'):
+            if budget.lower().startswith("eur"):
                 return budget
             if any(c.isdigit() for c in budget):
                 return f"EUR {budget}"
@@ -349,7 +375,7 @@ class V3ResponseFormatter:
 • Download the call documentation and work programme
 • Start building your consortium if partnerships are required"""
 
-    def format_projects(self, projects: List[Dict], query: str = "") -> str:
+    def format_projects(self, projects: list[dict], query: str = "") -> str:
         """Format a list of CORDIS projects."""
         if not projects:
             return "No projects found matching your search criteria."
@@ -360,26 +386,49 @@ class V3ResponseFormatter:
             lines.append(self._format_single_project(i, project))
             lines.append("")
 
+        # Add helpful footer with next steps
+        lines.append("---\n")
+        lines.append(self._get_project_guidance(query))
+
         return "\n".join(lines)
 
-    def _format_single_project(self, index: int, project: Dict) -> str:
+    def _get_project_guidance(self, query: str = "") -> str:
+        """Return helpful guidance footer for project searches."""
+        return """💡 **How to Use These Projects:**
+• **Learn from success:** Study project objectives and methodologies that match your ideas
+• **Find partners:** Explore consortium members who have relevant experience
+• **Understand budgets:** Use project budgets as benchmarks for your proposal
+• **Track outputs:** Check CORDIS for publications, deliverables, and results
+
+📚 **Useful Resources:**
+• [CORDIS Database](https://cordis.europa.eu/) - Full project database with publications and results
+• [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search) - Find potential consortium partners
+• [Success Stories](https://ec.europa.eu/research/horizon-europe/success-stories/) - Inspiring examples from funded projects
+
+🎯 **Next Steps:**
+• Click on the 'Details' links above to view full project information on CORDIS
+• Contact project coordinators if you're interested in collaboration
+• Use similar project budgets and consortium sizes as benchmarks for your proposal
+• Search for related publications to understand the state of the art"""
+
+    def _format_single_project(self, index: int, project: dict) -> str:
         """Format a single project with optional publications and deliverables."""
-        title = project.get('title', project.get('acronym', 'Untitled Project'))
-        acronym = project.get('acronym', '')
-        project_id = project.get('id', project.get('project_id', ''))
-        programme = project.get('programme', project.get('frameworkProgramme', ''))
-        status = project.get('status', '')
-        start_date = project.get('startDate', project.get('start_date', ''))
-        end_date = project.get('endDate', project.get('end_date', ''))
-        total_cost = project.get('totalCost', project.get('total_cost', ''))
-        eu_contribution = project.get('ecMaxContribution', project.get('eu_contribution', ''))
-        objective = project.get('objective', project.get('description', ''))
-        coordinator = project.get('coordinator', '')
+        title = project.get("title", project.get("acronym", "Untitled Project"))
+        acronym = project.get("acronym", "")
+        project_id = project.get("id", project.get("project_id", ""))
+        programme = project.get("programme", project.get("frameworkProgramme", ""))
+        status = project.get("status", "")
+        start_date = project.get("startDate", project.get("start_date", ""))
+        end_date = project.get("endDate", project.get("end_date", ""))
+        _total_cost = project.get("totalCost", project.get("total_cost", ""))  # noqa: F841
+        eu_contribution = project.get("ecMaxContribution", project.get("eu_contribution", ""))
+        objective = project.get("objective", project.get("description", ""))
+        coordinator = project.get("coordinator", "")
 
         # Optional enhanced data
-        publications = project.get('publications', [])
-        deliverables = project.get('deliverables', [])
-        impact_metrics = project.get('impact_metrics', {})
+        publications = project.get("publications", [])
+        deliverables = project.get("deliverables", [])
+        impact_metrics = project.get("impact_metrics", {})
 
         lines = []
 
@@ -396,7 +445,11 @@ class V3ResponseFormatter:
             lines.append(f"🏛️ **Programme:** {programme}")
 
         if status:
-            status_icon = '🟢' if status.lower() == 'ongoing' else '✅' if status.lower() == 'closed' else '📊'
+            status_icon = (
+                "🟢"
+                if status.lower() == "ongoing"
+                else "✅" if status.lower() == "closed" else "📊"
+            )
             lines.append(f"{status_icon} **Status:** {status}")
 
         if start_date or end_date:
@@ -417,14 +470,14 @@ class V3ResponseFormatter:
         if publications:
             lines.append("\n📚 **Key Publications:**")
             for pub in publications[:3]:
-                pub_title = pub.get('title', 'Untitled')
+                pub_title = pub.get("title", "Untitled")
                 if len(pub_title) > 80:
                     pub_title = pub_title[:77] + "..."
-                authors = pub.get('authors', '')
+                authors = pub.get("authors", "")
                 if len(authors) > 50:
                     authors = authors[:47] + "..."
-                journal = pub.get('journal', '')
-                doi = pub.get('doi', '')
+                journal = pub.get("journal", "")
+                doi = pub.get("doi", "")
 
                 pub_line = f"  • {pub_title}"
                 if authors:
@@ -439,11 +492,11 @@ class V3ResponseFormatter:
         if deliverables:
             lines.append("\n📦 **Key Deliverables:**")
             for deliv in deliverables[:3]:
-                deliv_title = deliv.get('title', 'Untitled')
+                deliv_title = deliv.get("title", "Untitled")
                 if len(deliv_title) > 60:
                     deliv_title = deliv_title[:57] + "..."
-                deliv_type = deliv.get('type', '')
-                url = deliv.get('url', '')
+                deliv_type = deliv.get("type", "")
+                url = deliv.get("url", "")
 
                 deliv_line = f"  • {deliv_title}"
                 if deliv_type:
@@ -455,13 +508,13 @@ class V3ResponseFormatter:
         # Impact metrics section (if available)
         if impact_metrics:
             impact_parts = []
-            if impact_metrics.get('publications_count'):
+            if impact_metrics.get("publications_count"):
                 impact_parts.append(f"{impact_metrics['publications_count']} publications")
-            if impact_metrics.get('deliverables_count'):
+            if impact_metrics.get("deliverables_count"):
                 impact_parts.append(f"{impact_metrics['deliverables_count']} deliverables")
-            if impact_metrics.get('patents_count'):
+            if impact_metrics.get("patents_count"):
                 impact_parts.append(f"{impact_metrics['patents_count']} patents")
-            if impact_metrics.get('datasets_count'):
+            if impact_metrics.get("datasets_count"):
                 impact_parts.append(f"{impact_metrics['datasets_count']} datasets")
 
             if impact_parts:
@@ -476,7 +529,7 @@ class V3ResponseFormatter:
 
         return "\n".join(lines)
 
-    def format_from_tool_results(self, tool_results: Dict[str, Any], query: str = "") -> Optional[str]:
+    def format_from_tool_results(self, tool_results: dict[str, Any], query: str = "") -> str | None:
         """
         Detect the type of results and format appropriately.
         Merges results from multiple tool calls and deduplicates.
@@ -488,15 +541,20 @@ class V3ResponseFormatter:
         seen_call_ids = set()
         seen_project_ids = set()
 
-        for tool_name, result in tool_results.items():
+        for _tool_name, result in tool_results.items():
             if not isinstance(result, dict):
                 continue
 
             # Collect funding calls from this tool result
-            if 'calls' in result and isinstance(result['calls'], list):
-                for call in result['calls']:
+            if "calls" in result and isinstance(result["calls"], list):
+                for call in result["calls"]:
                     # Deduplicate by call_id
-                    call_id = call.get('call_id') or call.get('topic_code') or call.get('topic_id') or call.get('identifier', '')
+                    call_id = (
+                        call.get("call_id")
+                        or call.get("topic_code")
+                        or call.get("topic_id")
+                        or call.get("identifier", "")
+                    )
                     if call_id and call_id not in seen_call_ids:
                         seen_call_ids.add(call_id)
                         all_calls.append(call)
@@ -505,10 +563,10 @@ class V3ResponseFormatter:
                         all_calls.append(call)
 
             # Collect projects from this tool result
-            if 'projects' in result and isinstance(result['projects'], list):
-                for project in result['projects']:
+            if "projects" in result and isinstance(result["projects"], list):
+                for project in result["projects"]:
                     # Deduplicate by project_id
-                    project_id = project.get('id') or project.get('project_id', '')
+                    project_id = project.get("id") or project.get("project_id", "")
                     if project_id and project_id not in seen_project_ids:
                         seen_project_ids.add(project_id)
                         all_projects.append(project)
@@ -518,14 +576,139 @@ class V3ResponseFormatter:
 
         # Format the merged results (prefer calls over projects if both present)
         if all_calls:
-            logger.info(f"📋 Formatting {len(all_calls)} merged funding calls (deduplicated from {len(seen_call_ids)} unique IDs)")
+            logger.info(
+                f"📋 Formatting {len(all_calls)} merged funding calls (deduplicated from {len(seen_call_ids)} unique IDs)"
+            )
             return self.format_funding_calls(all_calls, query)
 
         if all_projects:
-            logger.info(f"📋 Formatting {len(all_projects)} merged projects (deduplicated from {len(seen_project_ids)} unique IDs)")
+            logger.info(
+                f"📋 Formatting {len(all_projects)} merged projects (deduplicated from {len(seen_project_ids)} unique IDs)"
+            )
             return self.format_projects(all_projects, query)
 
         return None
+
+    def get_query_aware_guidance(self, query: str, response_type: str = "general") -> str:
+        """
+        Generate context-aware actionable guidance based on query type.
+
+        Args:
+            query: The user's query
+            response_type: Type of response (general, partner, budget, timeline, eligibility, comparison)
+
+        Returns:
+            Formatted guidance string with Next Steps section
+        """
+        query_lower = query.lower()
+
+        # Detect query type from keywords
+        if response_type == "general":
+            if any(
+                term in query_lower
+                for term in ["partner", "consortium", "collaborat", "organization"]
+            ):
+                response_type = "partner"
+            elif any(
+                term in query_lower for term in ["budget", "cost", "fund", "money", "euro", "€"]
+            ):
+                response_type = "budget"
+            elif any(
+                term in query_lower
+                for term in ["timeline", "duration", "schedule", "month", "year", "milestone"]
+            ):
+                response_type = "timeline"
+            elif any(
+                term in query_lower for term in ["eligib", "can we", "can i", "qualify", "require"]
+            ):
+                response_type = "eligibility"
+            elif any(
+                term in query_lower for term in ["compar", "versus", "vs", "differ", "between"]
+            ):
+                response_type = "comparison"
+
+        guidance_map = {
+            "partner": self._get_partner_guidance(),
+            "budget": self._get_budget_guidance(),
+            "timeline": self._get_timeline_guidance(),
+            "eligibility": self._get_eligibility_guidance(),
+            "comparison": self._get_comparison_guidance(),
+            "general": self._get_general_guidance(),
+        }
+
+        return guidance_map.get(response_type, self._get_general_guidance())
+
+    def _get_partner_guidance(self) -> str:
+        """Guidance for partner/consortium queries."""
+        return """
+---
+
+🎯 **Next Steps:**
+• Use the [Partner Search Tool](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search) on the EU Portal
+• Contact organizations directly through their project websites on CORDIS
+• Attend EU funding events and brokerage sessions to meet potential partners
+• Check LEAR (Legal Entity Appointed Representative) status for organizations you want to partner with
+• Draft a Letter of Intent (LoI) template to send to potential partners"""
+
+    def _get_budget_guidance(self) -> str:
+        """Guidance for budget queries."""
+        return """
+---
+
+🎯 **Next Steps:**
+• Review the call Work Programme for budget ceilings and funding rates
+• Use funded project budgets on CORDIS as benchmarks for your proposal
+• Prepare a draft budget breakdown using the EU template (Personnel, Equipment, Travel, Other)
+• Check the [Annotated Model Grant Agreement](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/aga_en.pdf) for eligible costs
+• Consult your organization's finance department about co-financing requirements"""
+
+    def _get_timeline_guidance(self) -> str:
+        """Guidance for timeline queries."""
+        return """
+---
+
+🎯 **Next Steps:**
+• Align your project duration with similar funded projects (typically 36-48 months for RIA)
+• Plan work packages with clear deliverables and milestones at Month 12, 24, 36
+• Allow buffer time (10-15%) for unexpected delays
+• Schedule consortium meetings and reporting periods according to EU guidelines
+• Use project management templates from previous successful proposals"""
+
+    def _get_eligibility_guidance(self) -> str:
+        """Guidance for eligibility queries."""
+        return """
+---
+
+🎯 **Next Steps:**
+• Verify your organization type in the EU Participant Register
+• Check the specific call conditions for any additional eligibility requirements
+• Ensure your organization has a valid PIC (Participant Identification Code)
+• Review consortium composition rules (minimum 3 partners from 3 countries for most calls)
+• Contact your National Contact Point (NCP) for eligibility clarification"""
+
+    def _get_comparison_guidance(self) -> str:
+        """Guidance for comparison queries."""
+        return """
+---
+
+🎯 **Next Steps:**
+• Review the official programme guides for detailed information on each option
+• Consider your organization's strengths and experience when choosing
+• Talk to your National Contact Point (NCP) for personalized advice
+• Look at success rates and funding amounts to make an informed decision
+• Read success stories from similar organizations that have received funding"""
+
+    def _get_general_guidance(self) -> str:
+        """General guidance for EU funding queries."""
+        return """
+---
+
+🎯 **Next Steps:**
+• Check the [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/) for the latest opportunities
+• Contact your National Contact Point (NCP) for personalized guidance
+• Register your organization in the Participant Register if not already done
+• Download relevant work programmes and call documents
+• Consider attending EU funding information days and webinars"""
 
 
 # Singleton instance

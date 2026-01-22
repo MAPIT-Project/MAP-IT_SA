@@ -286,9 +286,11 @@ After all fixes:
   - Average Score: 77.3/100
   - Failures: 0
   - Status: NEEDS_FIX
-- [ ] FIX: Any failures in Phase 2 scenarios
+- [x] FIX: Any failures in Phase 2 scenarios
   - Common issue: Low actionability scores (0-4/10) across all scenarios
-  - Responses lack clear next steps, links, and actionable guidance
+  - **FIX IMPLEMENTED**: Added mandatory "🎯 Next Steps:" section requirement to ToolAwareAgent
+  - **FIX IMPLEMENTED**: Added query-aware guidance methods to V3ResponseFormatter
+  - **FIX IMPLEMENTED**: Added project guidance footer with actionable resources
   - Test infrastructure created: `tests/quality/test_phase2_scenarios.py`
   - Results saved: `tests/quality/results/phase2/`
 - [ ] VERIFY: All 4 scenarios pass with >= 80/100
@@ -319,9 +321,10 @@ After all fixes:
   - Full Phase 3 execution test with report generation
   - Infrastructure tests (6 tests, all passing)
   - Results directory: `tests/quality/results/phase3/`
-- [ ] FIX: Any failures in Phase 3 scenarios
+- [x] FIX: Any failures in Phase 3 scenarios
   - Common issue: Low actionability scores (0/10) across all scenarios
-  - Same root cause as Phase 2 - responses lack clear next steps and actionable guidance
+  - **FIX IMPLEMENTED**: Same actionability fix as Phase 2 (shared root cause)
+  - **FIX IMPLEMENTED**: Added partner-specific guidance in `_get_partner_guidance()`
   - Factual accuracy is 100% (excellent)
   - No critical failures
   - Results saved: `tests/quality/results/phase3/`
@@ -357,10 +360,15 @@ After all fixes:
   - Full Phase 4 execution test with report generation
   - Infrastructure tests (6 tests, all passing)
   - Results directory: `tests/quality/results/phase4/`
-- [ ] FIX: Any failures in Phase 4 scenarios
+- [x] FIX: Any failures in Phase 4 scenarios
   - Issue 1: False positive factual error (Erasmus+ budget confused with Horizon Europe)
+    - **FIX IMPLEMENTED**: Updated CrossProgrammeAgent budget validation to use distance-based programme association
+    - **FIX IMPLEMENTED**: Added 5 new tests for multi-programme budget validation
   - Issue 2: Empty response for generic context messages ("We're in healthcare sector")
+    - **FIX IMPLEMENTED**: Added "Handling Context-Building Messages" section to ToolAwareAgent prompt
+    - **FIX IMPLEMENTED**: Made it MANDATORY to respond proactively with guidance and follow-up questions
   - Issue 3: Low actionability scores causing turn failures
+    - **FIX IMPLEMENTED**: Same actionability fix as Phase 2/3 (shared root cause)
   - Results saved: `tests/quality/results/phase4/`
 - [ ] VERIFY: All 4 scenarios pass with >= 80/100
 

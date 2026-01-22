@@ -1,0 +1,65 @@
+{
+  "phase": "Phase 5 - Strategic Planning",
+  "summary": {
+    "total_scenarios": 4,
+    "passed": 0,
+    "failed": 4,
+    "pass_rate": 0.0,
+    "average_quality_score": 80.03,
+    "average_factual_score": 96.25,
+    "total_runtime_seconds": 734.24,
+    "critical_failures": 1,
+    "high_failures": 0,
+    "medium_failures": 0
+  },
+  "failures_by_category": {
+    "NO_RESULTS": 0,
+    "INCORRECT_DATA": 1,
+    "MISSING_DATA": 0,
+    "UNEXPECTED_BEHAVIOR": 0,
+    "POOR_QUALITY": 0
+  },
+  "scenario_results": [
+    {
+      "name": "Funding Strategy",
+      "status": "FAIL",
+      "average_quality_score": 79.33,
+      "average_factual_score": 100.0,
+      "runtime_seconds": 214.77,
+      "turn_count": 6,
+      "failures": 0,
+      "critical_failures": 0
+    },
+    {
+      "name": "Portfolio Planning",
+      "status": "FAIL",
+      "average_quality_score": 82.0,
+      "average_factual_score": 100.0,
+      "runtime_seconds": 220.05,
+      "turn_count": 6,
+      "failures": 0,
+      "critical_failures": 0
+    },
+    {
+      "name": "Capacity Building",
+      "status": "FAIL",
+      "average_quality_score": 78.6,
+      "average_factual_score": 100.0,
+      "runtime_seconds": 142.31,
+      "turn_count": 5,
+      "failures": 0,
+      "critical_failures": 0
+    },
+    {
+      "name": "Risk Assessment",
+      "status": "FAIL",
+      "average_quality_score": 80.2,
+      "average_factual_score": 85.0,
+      "runtime_seconds": 157.11,
+      "turn_count": 5,
+      "failures": 1,
+      "critical_failures": 1
+    }
+  ],
+  "timestamp": "2026-01-22T16:48:08.920710"
+}

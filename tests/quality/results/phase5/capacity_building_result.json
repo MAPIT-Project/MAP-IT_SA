@@ -1,0 +1,140 @@
+{
+  "scenario_name": "Capacity Building",
+  "status": "FAIL",
+  "average_quality_score": 78.6,
+  "average_factual_score": 100.0,
+  "turns": [
+    {
+      "query": "We're new to EU funding - how do we get started?",
+      "response": "Starting with Horizon Europe can seem complex, but following a structured process makes it manageable. Horizon Europe offers nearly \u20ac95.5 billion (2021-2027) for research and innovation across all disciplines.\n\nHere is a step-by-step guide on how your organisation can get started with the EU funding process:\n\n### Phase 1: Preparation and Registration\n\n1.  **Register Your Organisation (PIC Number)**\n    *   The first step is for your organisation to register on the **EU Funding & Tenders Portal**...",
+      "quality_score": 79,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 9258.294,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 4
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
+      "passed": false
+    },
+    {
+      "query": "What programmes are best for beginners?",
+      "response": "I found some information but couldn't extract specific details. Please try a more specific question.",
+      "quality_score": 75,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "recommend_programmes"
+      ],
+      "processing_time_ms": 4496.570000000001,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 0
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": false
+    },
+    {
+      "query": "Should we start as partner or coordinator?",
+      "response": "For organizations new to EU funding, the general and highly recommended strategy is to **start as a Partner** before attempting to coordinate a large collaborative project.\n\n### Comparison of Roles for New Entrants\n\n| Feature | Partner Role (Recommended Start) | Coordinator Role (Advanced/High Risk) |\n|---|---|---|\n| **Administrative Burden** | Low to Moderate (Focused on own tasks) | Very High (Legal, financial, and administrative management for the entire consortium) |\n| **Financial Risk** | L...",
+      "quality_score": 77,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 8080.524,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 2
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": false
+    },
+    {
+      "query": "What's a good first project size?",
+      "response": "The ideal size for a first project depends on the type of action you join, but generally, you should aim for projects with a lower total EU contribution and a smaller consortium. This minimizes administrative complexity while you learn the required processes.\n\n### Recommendation: Start with Coordination and Support Actions (CSA)\n\n**Coordination and Support Actions (CSA)** are often the best starting point for new organisations. They focus on networking, standardisation, dissemination, and policy...",
+      "quality_score": 77,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "get_budget_benchmark",
+        "get_budget_benchmark"
+      ],
+      "processing_time_ms": 10271.344,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 2
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": false
+    },
+    {
+      "query": "How do we build track record?",
+      "response": "Building a strong track record is crucial, especially when moving toward coordinating larger projects. In Horizon Europe, your track record is assessed under the **Implementation** section (Section 3) of future proposals, focusing on your operational capacity and technical success in past grants.Here is a three-phase strategy for successfully building your track record:### Phase 1: Maximise Success as a Partner (The Foundation)The most important step for a beginner is ensuring flawless execution...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 11909.675,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 4,
+      "passed": true
+    }
+  ],
+  "scores": {
+    "average_quality": 78.6,
+    "average_factual": 100.0,
+    "goal_progress": 0.42000000000000004,
+    "context_fields": 3
+  },
+  "failures": [],
+  "metadata": {
+    "scenario_path": "/home/anmar/Documents/VSCODE_REPOS/MAPIT/NEWMAPIT/MAP-IT_SA/tests/scenarios/advanced/capacity_building.yaml",
+    "tags": [
+      "phase5",
+      "strategic-planning",
+      "capacity-building",
+      "beginner",
+      "onboarding",
+      "track-record"
+    ],
+    "description": "A 5-step onboarding workflow where an organization new to EU funding\nseeks help understanding how to get started. Tests the system's ability\nto provide beginner-appropriate advice, recommend suitable programmes,\nguide on partner vs coordinator roles, suggest appropriate project sizes,\nand outline a track record building strategy. The conversation builds\nuser context progressively (newcomer status) and validates that\nrecommendations are appropriately conservative for beginners.\n",
+    "conversation_id": 615990251
+  },
+  "execution_time_ms": 142307.50699999998,
+  "timestamp": "2026-01-22T16:43:09.514684",
+  "passed": false,
+  "turn_count": 5,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
+}

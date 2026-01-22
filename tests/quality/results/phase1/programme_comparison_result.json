@@ -1,0 +1,213 @@
+{
+  "scenario_name": "Programme Comparison",
+  "status": "FAIL",
+  "average_quality_score": 78.0,
+  "average_factual_score": 76.54761904761905,
+  "turns": [
+    {
+      "query": "Compare Horizon Europe and Erasmus+ for university research collaboration",
+      "response": "Horizon Europe and Erasmus+ are the two largest EU funding programmes, but they serve fundamentally different purposes for university collaboration. Horizon Europe (HE) is dedicated to **funding R&D**, while Erasmus+ (E+) focuses on **mobility, education, and capacity building**.\n\nFor a university seeking pure research collaboration, **Horizon Europe is the primary choice**. Erasmus+ is suited for collaborations focused on curriculum development, joint degrees, and student/staff exchange.\n\n---\n\n...",
+      "quality_score": 79,
+      "factual_score": 80.0,
+      "failures": [
+        {
+          "category": "INCORRECT_DATA",
+          "severity": "CRITICAL",
+          "description": "Incorrect horizon_europe facts: ['IA_rate: stated 100% but should be 70%']",
+          "turn_number": 0,
+          "evidence": {
+            "programme": "horizon_europe",
+            "incorrect_facts": [
+              "IA_rate: stated 100% but should be 70%"
+            ],
+            "score": 0.8
+          },
+          "timestamp": "2026-01-22T15:15:56.529851"
+        }
+      ],
+      "tools_used": [
+        "compare_programmes"
+      ],
+      "processing_time_ms": 11183.937,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 4
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
+      "passed": false
+    },
+    {
+      "query": "What about funding amounts?",
+      "response": "You are right to focus on funding amounts, as this is the biggest practical difference between the two programmes. Horizon Europe provides **large-scale research grants based on actual costs**, while Erasmus+ offers **smaller, fixed-sum grants based on unit costs** for educational activities. \n\nHere is a detailed breakdown of the typical funding amounts and mechanisms for collaborative actions relevant to universities:\n\n---\n\n## Specific Funding Amounts Comparison\n\n### 1. Horizon Europe (HE): Res...",
+      "quality_score": 79,
+      "factual_score": 83.33333333333334,
+      "failures": [
+        {
+          "category": "INCORRECT_DATA",
+          "severity": "CRITICAL",
+          "description": "Incorrect horizon_europe facts: ['IA_rate: stated 100% but should be 70%']",
+          "turn_number": 1,
+          "evidence": {
+            "programme": "horizon_europe",
+            "incorrect_facts": [
+              "IA_rate: stated 100% but should be 70%"
+            ],
+            "score": 0.8333333333333334
+          },
+          "timestamp": "2026-01-22T15:16:42.913574"
+        }
+      ],
+      "tools_used": [],
+      "processing_time_ms": 9875.195,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 4
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": false
+    },
+    {
+      "query": "Which has better success rates?",
+      "response": "The success rates for Horizon Europe and Erasmus+ differ significantly because they fund different types of activities (highly competitive research vs. capacity building and mobility). Generally, **Erasmus+ has much higher success rates** than Horizon Europe.\n\nHere is a comparison of typical success rate ranges for the main actions relevant to university collaboration:\n\n---\n\n## Success Rate Comparison: Horizon Europe vs. Erasmus+\n\n| Programme | Typical Overall Success Rate | Key Determinant | Co...",
+      "quality_score": 77,
+      "factual_score": 42.857142857142854,
+      "failures": [
+        {
+          "category": "INCORRECT_DATA",
+          "severity": "CRITICAL",
+          "description": "Incorrect horizon_europe facts: ['RIA_rate: stated 12% but should be 100%', 'IA_rate: stated 12% but",
+          "turn_number": 2,
+          "evidence": {
+            "programme": "horizon_europe",
+            "incorrect_facts": [
+              "RIA_rate: stated 12% but should be 100%",
+              "IA_rate: stated 12% but should be 70%",
+              "ERC_rate: stated 10% but should be 100%",
+              "MSCA_rate: stated 15% but should be 100%"
+            ],
+            "score": 0.42857142857142855
+          },
+          "timestamp": "2026-01-22T15:17:30.335735"
+        }
+      ],
+      "tools_used": [
+        "get_programme_statistics",
+        "get_programme_statistics"
+      ],
+      "processing_time_ms": 10627.978000000001,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 2
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": false
+    },
+    {
+      "query": "Which should I apply to first?",
+      "response": "The choice between starting with Horizon Europe (HE) or Erasmus+ (E+) depends entirely on the **institutional goal, organizational readiness, and risk tolerance** of your university or research group. There is no single 'best' starting point, but rather a strategic decision based on the programme's focus. \n\nHere is a recommendation on which programme to prioritize first:\n\n---\n\n## Strategic Recommendation Matrix\n\n| Goal / Priority | Focus Programme | Rationale |\n| :--- | :--- | :--- |\n| **Priorit...",
+      "quality_score": 77,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 8153.419,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 2
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": false
+    }
+  ],
+  "scores": {
+    "average_quality": 78.0,
+    "average_factual": 76.54761904761905,
+    "goal_progress": 0.6,
+    "context_fields": 3
+  },
+  "failures": [
+    {
+      "category": "INCORRECT_DATA",
+      "severity": "CRITICAL",
+      "description": "Incorrect horizon_europe facts: ['IA_rate: stated 100% but should be 70%']",
+      "turn_number": 0,
+      "evidence": {
+        "programme": "horizon_europe",
+        "incorrect_facts": [
+          "IA_rate: stated 100% but should be 70%"
+        ],
+        "score": 0.8
+      },
+      "timestamp": "2026-01-22T15:15:56.529851"
+    },
+    {
+      "category": "INCORRECT_DATA",
+      "severity": "CRITICAL",
+      "description": "Incorrect horizon_europe facts: ['IA_rate: stated 100% but should be 70%']",
+      "turn_number": 1,
+      "evidence": {
+        "programme": "horizon_europe",
+        "incorrect_facts": [
+          "IA_rate: stated 100% but should be 70%"
+        ],
+        "score": 0.8333333333333334
+      },
+      "timestamp": "2026-01-22T15:16:42.913574"
+    },
+    {
+      "category": "INCORRECT_DATA",
+      "severity": "CRITICAL",
+      "description": "Incorrect horizon_europe facts: ['RIA_rate: stated 12% but should be 100%', 'IA_rate: stated 12% but",
+      "turn_number": 2,
+      "evidence": {
+        "programme": "horizon_europe",
+        "incorrect_facts": [
+          "RIA_rate: stated 12% but should be 100%",
+          "IA_rate: stated 12% but should be 70%",
+          "ERC_rate: stated 10% but should be 100%",
+          "MSCA_rate: stated 15% but should be 100%"
+        ],
+        "score": 0.42857142857142855
+      },
+      "timestamp": "2026-01-22T15:17:30.335735"
+    }
+  ],
+  "metadata": {
+    "scenario_path": "/home/anmar/Documents/VSCODE_REPOS/MAPIT/NEWMAPIT/MAP-IT_SA/tests/scenarios/advanced/programme_comparison.yaml",
+    "tags": [
+      "phase1",
+      "multi-programme",
+      "comparison",
+      "cross-programme",
+      "strategic"
+    ],
+    "description": "User compares Horizon Europe and Erasmus+ for university research collaboration.\nTests cross-programme comparison with specific data points like funding amounts\nand success rates, culminating in a strategic recommendation.\n",
+    "conversation_id": 215001693
+  },
+  "execution_time_ms": 185982.877,
+  "timestamp": "2026-01-22T15:15:21.313634",
+  "passed": false,
+  "turn_count": 4,
+  "critical_failures": 3,
+  "high_failures": 0,
+  "medium_failures": 0
+}

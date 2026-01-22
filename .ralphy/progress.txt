@@ -7544,3 +7544,77 @@ Created test infrastructure for Phase 5 Strategic Planning scenarios.
 - Fill in actual runtime, scores, and status values
 - Fix any failures that arise
 - Verify all 4 scenarios pass with >= 80/100
+
+## 2026-01-22: FIX Sub-tasks for Phase 2-4 (Actionability, Multi-Programme, Context Building)
+
+### Task Completed
+Implemented fixes for three critical issues identified during Phase 2-4 scenario execution.
+
+### Issue 1: Low Actionability (0/10 scores)
+**Problem**: Responses lacked clear "Next Steps" sections, resulting in 0/10 actionability scores.
+
+**Root Cause**:
+- V3ResponseFormatter only added guidance to funding calls, not projects
+- Agent prompt didn't enforce actionable responses
+
+**Fix Implemented**:
+1. Added `_get_project_guidance()` method to V3ResponseFormatter
+2. Added guidance footer to `format_projects()` method
+3. Added `get_query_aware_guidance()` method for context-aware guidance
+4. Added type-specific guidance methods: `_get_partner_guidance()`, `_get_budget_guidance()`, `_get_timeline_guidance()`, `_get_eligibility_guidance()`, `_get_comparison_guidance()`, `_get_general_guidance()`
+5. Updated ToolAwareAgent prompt with MANDATORY "🎯 Next Steps:" section requirement
+6. Added specific guidance examples for different query types
+
+**Files Modified**:
+- `app/services/response/v3_response_formatter.py` - Added guidance methods and project footer
+- `app/services/agents/tool_aware_agent.py` - Added actionable response requirements to prompt
+
+### Issue 2: CrossProgrammeAgent False Positives for Multi-Programme Responses
+**Problem**: When validating Erasmus+ facts in a response that mentions both "Horizon Europe (€95.5B)" and "Erasmus+ (€26.2B)", the validator found €95.5B first and flagged it as incorrect for Erasmus+.
+
+**Root Cause**: Budget validation searched for ANY budget in the response without checking which programme it was associated with.
+
+**Fix Implemented**:
+1. Updated `_validate_facts_rules()` to find the CLOSEST programme mention to each budget
+2. Added distance-based algorithm to determine which programme a budget belongs to
+3. Only validates budgets when the target programme is the closest mention
+4. Handles edge cases where both programmes are mentioned near each other
+
+**Files Modified**:
+- `tests/agents/cross_programme_agent.py` - Updated budget validation logic
+
+**Tests Added**:
+- `TestMultiProgrammeBudgetValidation` class with 5 new tests:
+  - `test_multi_programme_response_no_false_positive_for_erasmus`
+  - `test_multi_programme_response_no_false_positive_for_horizon`
+  - `test_multi_programme_response_no_false_positive_for_creative_europe`
+  - `test_correct_budget_still_validated_in_multi_programme`
+  - `test_real_scenario_user_context_learning_fix`
+
+### Issue 3: Empty Responses for Context-Building Queries
+**Problem**: When users say "We're in the healthcare sector", the system returned empty responses because there was no explicit question.
+
+**Root Cause**: Agent didn't know how to handle context-building statements that don't require tool calls.
+
+**Fix Implemented**:
+1. Added "Handling Context-Building Messages" section to ToolAwareAgent prompt
+2. Defined examples of context-building messages
+3. Added response template for acknowledging context and asking follow-up questions
+4. Made it MANDATORY to respond proactively to context-building messages
+
+**Files Modified**:
+- `app/services/agents/tool_aware_agent.py` - Added context-building message handling
+
+### Test Results
+- All 18 CrossProgrammeAgent tests pass (including 5 new multi-programme tests)
+- Linting: Pre-existing line length warnings only (no new issues)
+
+### PRD Status Updates
+- Task 005 FIX sub-task: COMPLETE (actionability fix applies to Phase 2)
+- Task 006 FIX sub-task: COMPLETE (actionability fix applies to Phase 3)
+- Task 007 FIX sub-task: COMPLETE (multi-programme + context-building fixes apply to Phase 4)
+
+### Remaining Work
+- Re-run Phase 2-4 scenarios to verify fixes improved scores
+- Complete VERIFY sub-tasks for each phase
+- Continue with Phase 5+ scenario execution
