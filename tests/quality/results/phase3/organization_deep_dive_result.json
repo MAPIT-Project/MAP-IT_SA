@@ -1,0 +1,149 @@
+{
+  "scenario_name": "Organization Deep-Dive",
+  "status": "FAIL",
+  "average_quality_score": 76.2,
+  "average_factual_score": 100.0,
+  "turns": [
+    {
+      "query": "Tell me about Technical University of Munich's EU funding history",
+      "response": "I found some information but couldn't extract specific details. Please try a more specific question.",
+      "quality_score": 75,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "find_organization_projects",
+        "find_organization_projects"
+      ],
+      "processing_time_ms": 4404.715999999999,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 0
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
+      "passed": false
+    },
+    {
+      "query": "What topics do they focus on?",
+      "response": "I found some information but couldn't extract specific details. Please try a more specific question.",
+      "quality_score": 75,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "find_organization_projects"
+      ],
+      "processing_time_ms": 3013.0629999999996,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 0
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": false
+    },
+    {
+      "query": "What's their success rate as coordinator?",
+      "response": "Based on my search for information about 'What's their success rate as coordinator?', here's what I found:\n\n**Finding 1:**\n## Top Organizations with Experience in 'all research science technology engineering'\n\nFound **1 organizations** with relevant track records:\n\n### 1. **DEUTSCHES ZENTRUM FUR LUFT - UND RAUMFAHRT EV** (DE)\n- **Organization Type**: REC (Research Center)\n- **Relevant Projects**: 30\n- **Total Funding**: \u20ac0\n- **Example Projects**: FOCAL (participant), EEETHOS (participant), TWINS...",
+      "quality_score": 79,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "find_experienced_partners",
+        "find_organization_projects"
+      ],
+      "processing_time_ms": 11020.296999999999,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 4
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": false
+    },
+    {
+      "query": "Show their recent projects",
+      "response": "I found **20 funded projects** related to your query:\n\n**1. QOMBE: Quantum Optics in Many-Body photonic Environments**\n\ud83d\udd22 **Project ID:** 101198416\n\ud83d\udcca **Status:** SIGNED\n\ud83d\udcc5 **Duration:** 2026-09-01 \u2192 ?\n\n\ud83d\udd17 **Details:** https://cordis.europa.eu/project/id/101198416\n\n---\n\n**2. IRB-DRIVE: IRB Barcelona International PhD Programme:  Driving talent towards professional excellence and high impact biomedicine.**\n\ud83d\udd22 **Project ID:** 101217394\n\ud83d\udcca **Status:** SIGNED\n\ud83d\udcc5 **Duration:** 2026-09-01 \u2192 ?\n\n\ud83d\udd17 **Details:**...",
+      "quality_score": 77,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "find_organization_projects",
+        "find_organization_projects",
+        "find_organization_projects"
+      ],
+      "processing_time_ms": 14295.855,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 2
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": false
+    },
+    {
+      "query": "Who are their preferred partners?",
+      "response": "I found some information but couldn't extract specific details. Please try a more specific question.",
+      "quality_score": 75,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "get_collaboration_network"
+      ],
+      "processing_time_ms": 3858.4700000000003,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 0
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 4,
+      "passed": false
+    }
+  ],
+  "scores": {
+    "average_quality": 76.2,
+    "average_factual": 100.0,
+    "goal_progress": 0.3,
+    "context_fields": 3
+  },
+  "failures": [],
+  "metadata": {
+    "scenario_path": "/home/anmar/Documents/VSCODE_REPOS/MAPIT/NEWMAPIT/MAP-IT_SA/tests/scenarios/advanced/organization_deep_dive.yaml",
+    "tags": [
+      "phase3",
+      "partner-discovery",
+      "organization",
+      "tum",
+      "profile",
+      "statistics"
+    ],
+    "description": "A 5-step organization exploration workflow for Technical University of Munich.\nTests ability to retrieve organization funding history, research focus areas,\nsuccess rates, recent projects, and partnership patterns.\nThe scenario validates that the system can provide comprehensive organization\nprofiles and maintain context across multiple queries about the same organization.\n",
+    "conversation_id": 1194135251
+  },
+  "execution_time_ms": 98569.431,
+  "timestamp": "2026-01-22T16:04:29.254324",
+  "passed": false,
+  "turn_count": 5,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
+}
