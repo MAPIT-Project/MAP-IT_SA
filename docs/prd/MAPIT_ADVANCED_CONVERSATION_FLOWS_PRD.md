@@ -148,18 +148,18 @@ final_validations:
 - [x] VERIFY: Validation types `goal_progress` and `goal_achieved` work in a sample scenario.
 
 ### Task 003: Create Personalization Agent
-- [ ] IMPLEMENT: Create `tests/agents/personalization_agent.py` with:
+- [x] IMPLEMENT: Create `tests/agents/personalization_agent.py` with:
   - Context accumulation validation (profile fields extracted per turn)
   - Profile building detection (organization type, sector, country, experience level)
   - Personalized recommendation verification (response tailored to profile)
   - Preference application checking (filters applied correctly)
   - Integration with existing ContextValidatorAgent.
-- [ ] TEST: Create `tests/test_personalization_agent.py` with unit tests for:
+- [x] TEST: Create `tests/test_personalization_agent.py` with unit tests for:
   - `validate_personalization(response, profile)` → checks response uses profile
   - `validate_context_accumulation(turns)` → checks profile builds over time
   - `validate_profile_usage(response, expected_fields)` → checks fields used
   - Agent can be imported and instantiated by test runner.
-- [ ] VERIFY: Validation types `personalization_applied`, `context_accumulated`, `profile_used` work.
+- [x] VERIFY: Validation types `personalization_applied`, `context_accumulated`, `profile_used` work.
 
 ### Task 004: Create Cross-Programme Agent
 - [ ] IMPLEMENT: Create `tests/agents/cross_programme_agent.py` with:

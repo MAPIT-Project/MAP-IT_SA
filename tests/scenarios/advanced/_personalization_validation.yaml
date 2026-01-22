@@ -1,0 +1,70 @@
+# Personalization Validation Scenario
+# This scenario verifies that personalization_applied, context_accumulated, and profile_used
+# validation types work correctly.
+# Used by Task 003 VERIFY step to confirm PersonalizationAgent integration.
+
+name: "Personalization Validation"
+description: "Verifies personalization validation types work with PersonalizationAgent"
+tags: ["phase0", "infrastructure", "personalization", "validation-test"]
+stop_on_error: true
+
+# User progressively reveals profile information:
+# - Organization type: SME
+# - Country: Germany
+# - Sector: healthcare/digital
+# The system should accumulate this context and personalize responses
+
+steps:
+  # Turn 1: User reveals organization type
+  - message: "I'm from a small SME looking for EU funding"
+    validations:
+      - type: "no_error"
+        name: "no_errors_turn1"
+      - type: "context_accumulated"  # PersonalizationAgent
+        name: "first_context"
+        min_fields: 1  # Should extract organization_type
+    delay_ms: 0
+
+  # Turn 2: User reveals country
+  - message: "We're based in Germany"
+    validations:
+      - type: "no_error"
+        name: "no_errors_turn2"
+      - type: "context_accumulated"  # PersonalizationAgent
+        name: "country_added"
+        min_fields: 2  # Should have org_type + country now
+    delay_ms: 500
+
+  # Turn 3: User reveals sector
+  - message: "We work on healthcare AI and digital health solutions"
+    validations:
+      - type: "no_error"
+        name: "no_errors_turn3"
+      - type: "context_accumulated"  # PersonalizationAgent
+        name: "sector_added"
+        min_fields: 3  # Should have org_type + country + sector
+      - type: "personalization_applied"  # PersonalizationAgent
+        name: "response_personalized"
+        min_score: 0.3  # Response should start reflecting profile
+    delay_ms: 500
+
+  # Turn 4: Ask for recommendations (should use accumulated profile)
+  - message: "What funding programmes would you recommend for us?"
+    validations:
+      - type: "no_error"
+        name: "no_errors_turn4"
+      - type: "profile_used"  # PersonalizationAgent
+        name: "profile_in_recommendations"
+        expected_fields: ["organization_type", "country", "sector"]
+        min_usage: 0.3
+      - type: "personalization_applied"  # PersonalizationAgent
+        name: "personalized_recommendations"
+        min_score: 0.4
+    delay_ms: 500
+
+final_validations:
+  - type: "context_accumulated"  # PersonalizationAgent
+    name: "full_profile_built"
+    min_fields: 3
+  - type: "context_integrity"  # ContextValidatorAgent
+    name: "context_preserved"

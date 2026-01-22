@@ -4362,3 +4362,50 @@ Verified that `goal_progress` and `goal_achieved` validation types work correctl
 
 ### Next Task
 Task 003: Create Personalization Agent is the next incomplete task in Phase 0.
+
+
+## 2026-01-22: Task 003 - Create Personalization Agent
+
+### Task Completed
+Implemented PersonalizationAgent for validating context learning and personalization in conversations.
+
+### Files Created/Modified
+- `tests/agents/personalization_agent.py` - New agent with:
+  - Profile extraction from conversation turns (org type, sector, country, experience level, etc.)
+  - Context accumulation validation across turns
+  - Personalization validation using LLM or rule-based evaluation
+  - Profile usage validation to check expected fields are used in responses
+  - 8 profile field categories with pattern matching: organization_type, sector, country, experience_level, organization_size, budget_range, target_programme, role_preference
+  - Integration helpers for scenario testing: validate_personalization_applied(), validate_context_accumulated(), validate_profile_used()
+
+- `tests/test_personalization_agent.py` - 45 unit tests covering:
+  - Agent import/instantiation tests
+  - Profile extraction tests for all field types
+  - Context accumulation tests across multiple turns
+  - Personalization validation tests (matching and generic responses)
+  - Profile usage validation tests
+  - Validation helper tests for scenario testing
+  - Edge cases (empty query, long query, mixed case, None profile)
+
+- `tests/agents/__init__.py` - Updated to export PersonalizationAgent
+
+- `tests/scenarios/advanced/_personalization_validation.yaml` - Verification scenario for:
+  - context_accumulated validation type
+  - personalization_applied validation type
+  - profile_used validation type
+
+### Test Results
+- 45 tests passed
+- All linting checks passed (ruff check and format)
+
+### Implementation Details
+- UserProfile dataclass with get_filled_fields() and completeness_score()
+- TurnContext tracks extracted fields and preferences per turn
+- PersonalizationResult, AccumulationResult, ProfileUsageResult for detailed validation output
+- LLM evaluation via Gemini when available, rule-based fallback otherwise
+- Pattern-based extraction for EU funding domain (organization types, sectors, countries, etc.)
+
+### PRD Task Status
+- [x] IMPLEMENT: tests/agents/personalization_agent.py
+- [x] TEST: tests/test_personalization_agent.py with 45 unit tests
+- [x] VERIFY: Validation types work in sample scenario (_personalization_validation.yaml)
