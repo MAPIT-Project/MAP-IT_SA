@@ -288,7 +288,7 @@ Run with: `./ralphy.sh --prd docs/prd/MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD_V3
   4. **Attempt 1 Result**: Score improved from 77.4 to 80.2 (1 attempt). Fixed: (1) Improved `recommend_programmes` tool to infer organization type from description and provide overview when no keyword matches, (2) Added `_detect_personalized_call_query()` in ToolAwareAgent to route personalized call queries to `search_funding_calls` using accumulated context (sector, country, org type), (3) Added "Using Accumulated Context for Personalization" section to REASONING_PROMPT with explicit rules for referencing user profile. Turns 3-4 now use `search_funding_calls` with marine biology keywords. Status: PASS
 
 ### Scenario 014: Returning User Context
-- [ ] EXECUTE: Run scenario `tests/scenarios/advanced/personalization/returning_user_context.yaml` against the live API. Tests recalling context from earlier in conversation. Save result to `tests/quality/results/scenarios/returning_user_context.json`.
+- [x] EXECUTE: Run scenario `tests/scenarios/advanced/personalization/returning_user_context.yaml` against the live API. Tests recalling context from earlier in conversation. Save result to `tests/quality/results/scenarios/returning_user_context.json`.
 
 - [ ] FIX IF NEEDED: Read `tests/quality/results/scenarios/returning_user_context.json`. If average_score < 80:
   1. ONLY modify files in `app/` directory

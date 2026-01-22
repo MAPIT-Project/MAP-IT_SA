@@ -9226,3 +9226,53 @@ Scenario 013 failed with average score 77.4/100 (below 80 threshold). Users prog
 - app/services/agents/tool_aware_agent.py (personalized call detection, context usage prompt)
 
 ### Status: PASS (1 attempt)
+
+## 2026-01-23: Scenario 014 - Returning User Context (EXECUTE)
+
+### Task Completed
+Executed Scenario 014: Returning User Context against the live API.
+
+### Files Created/Modified
+- `tests/quality/test_scenario_014_returning_user_context.py` - New test file with:
+  - Scenario execution against live API
+  - Quality scoring for each turn
+  - Context recall validation for final turn (hydrogen context)
+  - Results saving to JSON
+  - CLI runner for manual execution
+
+- `tests/quality/results/scenarios/returning_user_context.json` - Scenario results with:
+  - 4 turns executed successfully
+  - Average score: 78.5/100
+  - Status: CLOSE_TO_THRESHOLD
+  - 2 failures detected (1 "couldn't extract", 1 "context not recalled")
+
+### Scenario Execution Results
+| Turn | Query | Tools Used | Score | Issues |
+|------|-------|------------|-------|--------|
+| 0 | I'm a researcher working on hydrogen storage... | search_funding_calls | 83 | PASS - Found 9 funding calls |
+| 1 | We're a research institute in Germany... | search_documents | 79 | Generic document snippets returned |
+| 2 | What are the typical success rates for coordination projects? | search_documents | 77 | "I'm sorry, but..." error response |
+| 3 | I mentioned earlier I work on hydrogen... | search_documents | 75 | CRITICAL: "couldn't extract", no context recall |
+
+### Issues Identified for FIX IF NEEDED Task
+1. **Turn 3 Critical Failure**: When user says "I mentioned earlier I work on hydrogen", system fails to:
+   - Recall the hydrogen context from Turn 0
+   - Use search_funding_calls like it did in Turn 0
+   - Instead uses search_documents and returns empty response
+2. **Context not persisted**: Hydrogen context from Turn 0 not available in Turn 3
+3. **Tool selection**: Follow-up queries use search_documents instead of appropriate tools
+
+### Root Causes to Investigate in FIX IF NEEDED:
+- `app/services/memory/memory_service.py` - Context recall mechanism
+- `app/services/agents/tool_aware_agent.py` - Detection of "I mentioned earlier" pattern should trigger context recall and appropriate tool
+
+### Test Results
+- 1 test passed (scenario execution)
+- Linting passed
+
+### PRD Task Status
+- [x] EXECUTE task marked complete
+- [ ] FIX IF NEEDED task pending (score 78.5 < 80)
+
+### Next Task
+Scenario 014: Returning User Context FIX IF NEEDED (if score < 80)
