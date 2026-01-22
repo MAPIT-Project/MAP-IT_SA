@@ -9,6 +9,7 @@ conversation testing:
 3. QualityEvaluatorAgent - Scores response quality
 4. GoalTrackingAgent - Tracks user goal progress across turns
 5. PersonalizationAgent - Validates context learning and personalization
+6. CrossProgrammeAgent - Validates multi-programme navigation and accuracy
 
 Usage:
     from tests.agents import (
@@ -17,6 +18,7 @@ Usage:
         QualityEvaluatorAgent,
         GoalTrackingAgent,
         PersonalizationAgent,
+        CrossProgrammeAgent,
     )
 
     async def test_conversation():
@@ -35,10 +37,16 @@ Usage:
         agent.add_turn("I'm from a German university", "For German universities...")
         result = await agent.validate_personalization(response)
         assert result.passed
+
+    async def test_cross_programme():
+        agent = CrossProgrammeAgent()
+        mentions = agent.check_programme_mentions(response)
+        assert "horizon_europe" in mentions.programmes_found
 """
 
 from tests.agents.context_validator_agent import ContextValidatorAgent
 from tests.agents.conversation_flow_agent import ConversationFlowAgent
+from tests.agents.cross_programme_agent import CrossProgrammeAgent
 from tests.agents.goal_tracking_agent import GoalTrackingAgent
 from tests.agents.personalization_agent import PersonalizationAgent
 from tests.agents.quality_evaluator_agent import QualityEvaluatorAgent
@@ -46,6 +54,7 @@ from tests.agents.quality_evaluator_agent import QualityEvaluatorAgent
 __all__ = [
     "ConversationFlowAgent",
     "ContextValidatorAgent",
+    "CrossProgrammeAgent",
     "GoalTrackingAgent",
     "PersonalizationAgent",
     "QualityEvaluatorAgent",

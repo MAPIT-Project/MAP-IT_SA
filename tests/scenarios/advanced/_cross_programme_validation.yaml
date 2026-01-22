@@ -1,0 +1,87 @@
+# Cross-Programme Validation Scenario
+# This scenario verifies that programme_mentioned, programme_accurate, and eligibility_correct
+# validation types work correctly.
+# Used by Task 004 VERIFY step to confirm CrossProgrammeAgent integration.
+
+name: "Cross-Programme Validation"
+description: "Verifies cross-programme validation types work with CrossProgrammeAgent"
+tags: ["phase0", "infrastructure", "cross-programme", "validation-test"]
+stop_on_error: true
+
+# User asks about multiple EU programmes and eligibility:
+# - Horizon Europe
+# - Erasmus+
+# - Creative Europe
+# - Swiss eligibility (special case)
+# The system should mention programmes accurately and validate eligibility rules
+
+steps:
+  # Turn 1: Ask about Horizon Europe
+  - message: "Tell me about Horizon Europe and its main components"
+    validations:
+      - type: "no_error"
+        name: "no_errors_turn1"
+      - type: "programme_mentioned"  # CrossProgrammeAgent
+        name: "horizon_mentioned"
+        programmes: ["horizon_europe"]
+      - type: "programme_accurate"  # CrossProgrammeAgent
+        name: "horizon_facts_accurate"
+        programme: "horizon_europe"
+        min_score: 0.5
+    delay_ms: 0
+
+  # Turn 2: Ask about Erasmus+
+  - message: "What about Erasmus+? What Key Actions does it have?"
+    validations:
+      - type: "no_error"
+        name: "no_errors_turn2"
+      - type: "programme_mentioned"  # CrossProgrammeAgent
+        name: "erasmus_mentioned"
+        programmes: ["erasmus_plus"]
+      - type: "programme_accurate"  # CrossProgrammeAgent
+        name: "erasmus_facts_accurate"
+        programme: "erasmus_plus"
+        min_score: 0.5
+    delay_ms: 500
+
+  # Turn 3: Ask about Creative Europe strands
+  - message: "And Creative Europe? What strands does it have?"
+    validations:
+      - type: "no_error"
+        name: "no_errors_turn3"
+      - type: "programme_mentioned"  # CrossProgrammeAgent
+        name: "creative_mentioned"
+        programmes: ["creative_europe"]
+      - type: "programme_accurate"  # CrossProgrammeAgent
+        name: "creative_facts_accurate"
+        programme: "creative_europe"
+        min_score: 0.5
+    delay_ms: 500
+
+  # Turn 4: Multi-programme comparison
+  - message: "Compare these three programmes for a university looking to do both research and training"
+    validations:
+      - type: "no_error"
+        name: "no_errors_turn4"
+      - type: "programme_mentioned"  # CrossProgrammeAgent
+        name: "multi_programme_comparison"
+        programmes: ["horizon_europe", "erasmus_plus"]  # At minimum these two
+    delay_ms: 500
+
+  # Turn 5: Swiss eligibility check (special case)
+  - message: "We're a Swiss organization. Can we participate in these programmes?"
+    validations:
+      - type: "no_error"
+        name: "no_errors_turn5"
+      - type: "eligibility_correct"  # CrossProgrammeAgent
+        name: "swiss_eligibility_check"
+        country: "CH"
+        min_score: 0.5
+    delay_ms: 500
+
+final_validations:
+  - type: "programme_mentioned"  # CrossProgrammeAgent - all three discussed
+    name: "all_programmes_discussed"
+    programmes: ["horizon_europe", "erasmus_plus"]
+  - type: "context_integrity"  # ContextValidatorAgent
+    name: "context_preserved"

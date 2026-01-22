@@ -4409,3 +4409,61 @@ Implemented PersonalizationAgent for validating context learning and personaliza
 - [x] IMPLEMENT: tests/agents/personalization_agent.py
 - [x] TEST: tests/test_personalization_agent.py with 45 unit tests
 - [x] VERIFY: Validation types work in sample scenario (_personalization_validation.yaml)
+
+
+## 2026-01-22: Task 004 - Create Cross-Programme Agent
+
+### Task Completed
+Implemented CrossProgrammeAgent for validating multi-programme navigation and accuracy in conversations.
+
+### Files Created/Modified
+- `tests/agents/cross_programme_agent.py` - New agent with:
+  - Multi-programme mention detection (Horizon Europe, Erasmus+, Creative Europe)
+  - Programme switching validation (context preserved across programme changes)
+  - Comparison accuracy checking (correct facts for each programme)
+  - Eligibility rule verification across programmes
+  - PROGRAMME_FACTS dictionary with key facts for validation (budget, duration, pillars, clusters, action types, funding rates)
+  - COUNTRY_ELIGIBILITY rules for EU member states, associated countries, and special cases (CH, UK)
+  - Integration helpers for scenario testing: validate_programme_mentioned(), validate_programme_accurate(), validate_eligibility_correct()
+
+- `tests/test_cross_programme_agent.py` - 49 unit tests covering:
+  - Agent import/instantiation tests
+  - Programme mention detection (single, multiple, aliases, case-insensitive)
+  - Programme facts validation (correct budget, incorrect budget, components, Erasmus+, Creative Europe)
+  - Eligibility validation (EU member state, Swiss, UK, associated country, third country)
+  - Programme switch validation
+  - Validation helper tests for scenario testing
+  - Data structure validation (PROGRAMME_FACTS, COUNTRY_ELIGIBILITY)
+  - Edge cases (empty response, long response, special characters)
+
+- `tests/agents/__init__.py` - Updated to export CrossProgrammeAgent
+
+- `tests/scenarios/advanced/_cross_programme_validation.yaml` - Verification scenario for:
+  - programme_mentioned validation type
+  - programme_accurate validation type
+  - eligibility_correct validation type
+
+### Test Results
+- 49 tests passed
+- All linting checks passed (ruff check and format)
+
+### Implementation Details
+- ProgrammeMention, ProgrammeMentionResult for tracking mentions
+- ProgrammeFactsResult, EligibilityResult, ProgrammeSwitchResult for detailed validation output
+- PROGRAMME_FACTS with key data for Horizon Europe, Erasmus+, Creative Europe:
+  - Budget amounts and ranges for validation
+  - Duration (2021-2027 for all programmes)
+  - Pillars/strands/key actions
+  - Action types and funding rates
+  - Key components
+- COUNTRY_ELIGIBILITY with rules for:
+  - 27 EU member states (full eligibility)
+  - 15 associated countries (full eligibility)
+  - Special cases: Switzerland (limited HE), UK (not in Erasmus+)
+  - Third country rules
+- LLM evaluation via Gemini when available, rule-based fallback otherwise
+
+### PRD Task Status
+- [x] IMPLEMENT: tests/agents/cross_programme_agent.py
+- [x] TEST: tests/test_cross_programme_agent.py with 49 unit tests
+- [x] VERIFY: Validation types work in sample scenario (_cross_programme_validation.yaml)

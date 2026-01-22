@@ -162,18 +162,18 @@ final_validations:
 - [x] VERIFY: Validation types `personalization_applied`, `context_accumulated`, `profile_used` work.
 
 ### Task 004: Create Cross-Programme Agent
-- [ ] IMPLEMENT: Create `tests/agents/cross_programme_agent.py` with:
+- [x] IMPLEMENT: Create `tests/agents/cross_programme_agent.py` with:
   - Multi-programme mention detection (Horizon Europe, Erasmus+, Creative Europe)
   - Programme switching validation (context preserved across programme changes)
   - Comparison accuracy checking (correct facts for each programme)
   - Eligibility rule verification across programmes
   - Integration with existing QualityEvaluatorAgent.
-- [ ] TEST: Create `tests/test_cross_programme_agent.py` with unit tests for:
+- [x] TEST: Create `tests/test_cross_programme_agent.py` with unit tests for:
   - `check_programme_mentions(response)` → returns list of programmes mentioned
   - `validate_programme_facts(response, programme)` → checks facts are correct
   - `validate_eligibility_rules(response, context)` → checks eligibility accuracy
   - Agent can be imported and instantiated by test runner.
-- [ ] VERIFY: Validation types `programme_mentioned`, `programme_accurate`, `eligibility_correct` work.
+- [x] VERIFY: Validation types `programme_mentioned`, `programme_accurate`, `eligibility_correct` work.
 
 ### Task 005: Create Advanced Scenario Test Runner
 - [ ] IMPLEMENT: Create `tests/test_advanced_conversation_scenarios.py` with:
