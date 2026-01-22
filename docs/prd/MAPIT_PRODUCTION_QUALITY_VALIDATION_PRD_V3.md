@@ -197,7 +197,7 @@ Run with: `./ralphy.sh --prd docs/prd/MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD_V3
   4. Re-run EXECUTE, repeat until score >= 80 or 3 attempts
 
 ### Scenario 006: Budget Iteration
-- [ ] EXECUTE: Run scenario `tests/scenarios/advanced/proposal_workflow/budget_iteration.yaml` against the live API. Tests iterative budget refinement. Save result to `tests/quality/results/scenarios/budget_iteration.json`.
+- [x] EXECUTE: Run scenario `tests/scenarios/advanced/budget_iteration.yaml` against the live API. Tests iterative budget refinement. Save result to `tests/quality/results/scenarios/budget_iteration.json`.
 
 - [ ] FIX IF NEEDED: Read `tests/quality/results/scenarios/budget_iteration.json`. If average_score < 80:
   1. ONLY modify files in `app/` directory
