@@ -6750,3 +6750,50 @@ phase12, integration, quality, baseline, measurement, advanced_scenarios
 
 ### Next Task
 Task 052: Regression Suite for Advanced Flows (PHASE 12 - Integration & Quality)
+
+## 2026-01-22: Task 052 - Regression Suite for Advanced Flows
+
+### Task Completed
+Implemented Task 052: Create regression test suite for advanced conversation flows.
+
+### Files Created
+- `tests/test_advanced_conversation_regression.py` - Comprehensive regression test suite with:
+  - 49 tests covering all 8 phases of advanced conversation flows
+  - Phase 1: Multi-Programme Navigation (4 scenario existence tests + 4 agent tests)
+  - Phase 2: Proposal Workflows (4 scenario tests + goal tracking tests)
+  - Phase 3: Partner Discovery (4 scenario existence tests)
+  - Phase 4: Personalization (4 scenario tests + context accumulation tests)
+  - Phase 5: Strategic Planning (4 scenario tests)
+  - Phase 6: Cross-Programme Comparisons (4 scenario tests + fact validation)
+  - Phase 7: Deadline Handling (4 scenario tests)
+  - Phase 8: Complex Eligibility (4 scenario tests + eligibility validation)
+  - Agent integration tests (5 tests verifying all agents are importable)
+  - Validation type tests (4 tests for key validation types)
+  - Scenario file integrity tests (3 tests)
+  - Phase tag verification tests (2 tests)
+  - Quality evaluator regression tests (3 tests)
+
+### Test Results
+- 49 tests passed
+- 0 tests failed
+- All linting checks passed (ruff)
+
+### Key Regression Tests
+The regression suite verifies:
+1. All scenario files exist and are properly formatted
+2. CrossProgrammeAgent detects all EU programmes (Horizon Europe, Erasmus+, Creative Europe)
+3. GoalTrackingAgent tracks progress across conversation turns
+4. PersonalizationAgent accumulates context correctly
+5. QualityEvaluatorAgent quick_evaluate returns valid QualityScore objects
+6. All phase tags are correctly assigned to scenarios
+7. Multi-programme responses are detected
+8. Eligibility rules are validated
+
+### Running the Regression Suite
+```bash
+pytest tests/test_advanced_conversation_regression.py -v
+```
+
+### PRD Status
+- Task 052 marked as complete
+- Remaining tasks: 053 (CI/CD Integration)

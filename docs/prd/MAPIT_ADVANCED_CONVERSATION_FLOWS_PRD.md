@@ -759,7 +759,7 @@ final_validations:
 - [x] DOCUMENT: Create summary of challenging scenarios, identify improvement areas.
 
 ### Task 052: Regression Suite for Advanced Flows
-- [ ] CREATE: Create `tests/test_advanced_conversation_regression.py` with tests for:
+- [x] CREATE: Create `tests/test_advanced_conversation_regression.py` with tests for:
   1. Multi-programme navigation (Tasks 006-009)
   2. Proposal workflows (Tasks 010-013)
   3. Partner discovery (Tasks 014-017)
@@ -769,7 +769,7 @@ final_validations:
   7. Deadline handling (Tasks 030-033)
   8. Complex eligibility (Tasks 034-037)
 
-- [ ] RUN: Execute full regression suite. All tests must pass.
+- [x] RUN: Execute full regression suite. All tests must pass.
 
 ### Task 053: CI/CD Integration
 - [ ] UPDATE: Extend `.github/workflows/conversation-tests.yml` with:
