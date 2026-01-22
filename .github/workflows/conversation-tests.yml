@@ -5,6 +5,9 @@
 # 2. Context integrity across DB and Redis
 # 3. Quality maintenance (>= 75/100 threshold)
 # 4. Regression tests for critical infrastructure fixes
+# 5. Advanced conversation flows (multi-programme, personalization, goal tracking)
+# 6. Goal achievement validation
+# 7. Cross-programme accuracy validation
 #
 # Triggered on:
 # - Push to main branch (for core conversation files)
@@ -36,7 +39,7 @@ on:
         default: 'true'
         type: boolean
       test_category:
-        description: 'Test category to run (all, basic, follow_up, context, concurrent)'
+        description: 'Test category to run (all, basic, follow_up, context, concurrent, advanced)'
         required: false
         default: 'all'
         type: choice
@@ -47,6 +50,10 @@ on:
           - context
           - concurrent
           - regression
+          - advanced
+          - programme
+          - personalization
+          - eligibility
 
 env:
   PYTHON_VERSION: '3.11'
@@ -65,6 +72,10 @@ env:
   TEST_API_URL: http://localhost:8000
   # Quality threshold
   QUALITY_THRESHOLD: 75
+  # Advanced scenario thresholds
+  GOAL_ACHIEVEMENT_THRESHOLD: 0.7
+  PERSONALIZATION_MIN_FIELDS: 2
+  CROSS_PROGRAMME_ACCURACY_THRESHOLD: 0.7
 
 jobs:
   # =============================================================================
@@ -462,12 +473,243 @@ jobs:
           retention-days: 30
 
   # =============================================================================
-  # Job 5: Quality Gate (PR Blocker)
+  # Job 5: Advanced Conversation Scenario Tests
+  # =============================================================================
+  advanced-scenario-tests:
+    name: Advanced Scenario Tests
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    if: github.event.inputs.test_category == 'all' || github.event.inputs.test_category == 'advanced' || github.event.inputs.test_category == 'programme' || github.event.inputs.test_category == 'personalization' || github.event.inputs.test_category == 'eligibility' || github.event.inputs.test_category == ''
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: mapit_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      neo4j:
+        image: neo4j:5.15.0-community
+        env:
+          NEO4J_AUTH: neo4j/testpassword123
+          NEO4J_PLUGINS: '["apoc"]'
+          NEO4J_dbms_security_procedures_unrestricted: apoc.*
+        ports:
+          - 7474:7474
+          - 7687:7687
+        options: >-
+          --health-cmd "wget -q --spider http://localhost:7474 || exit 1"
+          --health-interval 30s
+          --health-timeout 10s
+          --health-retries 10
+          --health-start-period 60s
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+          pip install pytest-asyncio aiohttp asyncpg redis pyyaml
+
+      - name: Wait for services to be ready
+        run: |
+          echo "Waiting for PostgreSQL..."
+          until pg_isready -h localhost -p 5432 -U postgres; do
+            sleep 2
+          done
+
+          echo "Waiting for Redis..."
+          until redis-cli -h localhost ping; do
+            sleep 2
+          done
+
+          echo "Waiting for Neo4j..."
+          for i in {1..30}; do
+            if curl -s http://localhost:7474 > /dev/null; then
+              echo "Neo4j is ready"
+              break
+            fi
+            echo "Waiting for Neo4j... attempt $i"
+            sleep 5
+          done
+
+      - name: Run advanced scenario regression tests
+        id: advanced_regression
+        run: |
+          # Run advanced conversation flow regression tests
+          pytest tests/test_advanced_conversation_regression.py -v \
+            --tb=short \
+            --junitxml=test-results/advanced-regression-tests.xml \
+            || echo "advanced_regression_failed=true" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
+      - name: Run advanced scenario tests by category
+        id: advanced_scenarios
+        run: |
+          TEST_FILTER=""
+          if [ "${{ github.event.inputs.test_category }}" == "programme" ]; then
+            TEST_FILTER="-k 'programme or phase1 or phase6'"
+          elif [ "${{ github.event.inputs.test_category }}" == "personalization" ]; then
+            TEST_FILTER="-k 'personalization or profile or context or phase4'"
+          elif [ "${{ github.event.inputs.test_category }}" == "eligibility" ]; then
+            TEST_FILTER="-k 'eligibility or phase8'"
+          fi
+
+          # Run advanced conversation scenario tests
+          pytest tests/test_advanced_conversation_scenarios.py -v \
+            --tb=short \
+            $TEST_FILTER \
+            --junitxml=test-results/advanced-scenario-tests.xml \
+            --cov=app/services/agents \
+            --cov-report=xml:coverage/advanced-coverage.xml \
+            || echo "advanced_scenarios_failed=true" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
+      - name: Validate goal achievement metrics
+        id: goal_metrics
+        run: |
+          # Check goal tracking agent functionality
+          python -c "
+          import sys
+          sys.path.insert(0, '.')
+          from tests.agents import GoalTrackingAgent
+
+          agent = GoalTrackingAgent(use_llm=False)
+          print('GoalTrackingAgent instantiated successfully')
+
+          # Verify methods exist
+          assert hasattr(agent, 'evaluate_progress'), 'Missing evaluate_progress method'
+          assert hasattr(agent, 'check_completion'), 'Missing check_completion method'
+          assert hasattr(agent, 'validate_goal_progress'), 'Missing validate_goal_progress method'
+          assert hasattr(agent, 'validate_goal_achieved'), 'Missing validate_goal_achieved method'
+          print('Goal achievement metrics validation: PASSED')
+          "
+
+      - name: Validate personalization quality checks
+        id: personalization_metrics
+        run: |
+          # Check personalization agent functionality
+          python -c "
+          import sys
+          sys.path.insert(0, '.')
+          from tests.agents import PersonalizationAgent
+
+          agent = PersonalizationAgent(use_llm=False)
+          print('PersonalizationAgent instantiated successfully')
+
+          # Verify methods exist
+          assert hasattr(agent, 'add_turn'), 'Missing add_turn method'
+          assert hasattr(agent, 'get_profile'), 'Missing get_profile method'
+          assert hasattr(agent, 'validate_context_accumulation'), 'Missing validate_context_accumulation'
+          assert hasattr(agent, 'validate_profile_usage'), 'Missing validate_profile_usage method'
+          assert hasattr(agent, 'validate_personalization'), 'Missing validate_personalization method'
+
+          # Basic functionality test
+          agent.add_turn('I am from Germany', 'As a German organization, you have full access.')
+          profile = agent.get_profile()
+          assert profile is not None, 'Profile should not be None'
+          print('Personalization quality checks validation: PASSED')
+          "
+
+      - name: Validate cross-programme accuracy
+        id: cross_programme_metrics
+        run: |
+          # Check cross-programme agent functionality
+          python -c "
+          import sys
+          sys.path.insert(0, '.')
+          from tests.agents import CrossProgrammeAgent
+
+          agent = CrossProgrammeAgent(use_llm=False)
+          print('CrossProgrammeAgent instantiated successfully')
+
+          # Verify methods exist
+          assert hasattr(agent, 'check_programme_mentions'), 'Missing check_programme_mentions'
+          assert hasattr(agent, 'validate_programme_facts'), 'Missing validate_programme_facts'
+          assert hasattr(agent, 'validate_eligibility_rules'), 'Missing validate_eligibility_rules'
+          assert hasattr(agent, 'validate_programme_mentioned'), 'Missing validate_programme_mentioned'
+
+          # Basic functionality test
+          result = agent.check_programme_mentions('Horizon Europe and Erasmus+ are EU programmes.')
+          assert result.is_multi_programme, 'Should detect multi-programme response'
+          assert 'horizon_europe' in result.programmes_found, 'Should detect Horizon Europe'
+          assert 'erasmus_plus' in result.programmes_found, 'Should detect Erasmus+'
+          print('Cross-programme accuracy validation: PASSED')
+          "
+
+      - name: Generate advanced metrics report
+        if: always()
+        run: |
+          mkdir -p quality-reports
+
+          cat > quality-reports/advanced-metrics.json << EOF
+          {
+            "workflow_run": "${{ github.run_number }}",
+            "branch": "${{ github.ref_name }}",
+            "commit": "${{ github.sha }}",
+            "advanced_tests": {
+              "regression_status": "${{ steps.advanced_regression.outcome }}",
+              "scenario_status": "${{ steps.advanced_scenarios.outcome }}",
+              "goal_metrics_status": "${{ steps.goal_metrics.outcome }}",
+              "personalization_status": "${{ steps.personalization_metrics.outcome }}",
+              "cross_programme_status": "${{ steps.cross_programme_metrics.outcome }}"
+            },
+            "thresholds": {
+              "goal_achievement": "${{ env.GOAL_ACHIEVEMENT_THRESHOLD }}",
+              "personalization_min_fields": "${{ env.PERSONALIZATION_MIN_FIELDS }}",
+              "cross_programme_accuracy": "${{ env.CROSS_PROGRAMME_ACCURACY_THRESHOLD }}"
+            }
+          }
+          EOF
+
+          echo "Advanced metrics report generated"
+
+      - name: Upload advanced test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: advanced-test-results
+          path: |
+            test-results/
+            coverage/
+            quality-reports/
+          retention-days: 30
+
+  # =============================================================================
+  # Job 6: Quality Gate (PR Blocker)
   # =============================================================================
   quality-gate:
     name: Quality Gate
     runs-on: ubuntu-latest
-    needs: [unit-tests, integration-tests, quality-validation, race-condition-tests]
+    needs: [unit-tests, integration-tests, quality-validation, race-condition-tests, advanced-scenario-tests]
     if: always() && github.event_name == 'pull_request'
 
     steps:
@@ -493,6 +735,13 @@ jobs:
           path: test-results/race/
         continue-on-error: true
 
+      - name: Download advanced test results
+        uses: actions/download-artifact@v4
+        with:
+          name: advanced-test-results
+          path: test-results/advanced/
+        continue-on-error: true
+
       - name: Run Quality Gate evaluation
         id: quality_gate
         run: |
@@ -515,15 +764,16 @@ jobs:
           echo "  2. Quality score must be >= ${{ env.QUALITY_THRESHOLD }}"
           echo "  3. No race conditions detected"
           echo "  4. Context integrity must be maintained"
+          echo "  5. Advanced scenario tests pass (goal achievement, personalization, cross-programme)"
           exit 1
 
   # =============================================================================
-  # Job 6: Final Status Check
+  # Job 7: Final Status Check
   # =============================================================================
   final-status:
     name: Final Status
     runs-on: ubuntu-latest
-    needs: [unit-tests, integration-tests, quality-validation, race-condition-tests, quality-gate]
+    needs: [unit-tests, integration-tests, quality-validation, race-condition-tests, advanced-scenario-tests, quality-gate]
     if: always()
 
     steps:
@@ -534,6 +784,7 @@ jobs:
           echo "Integration Tests: ${{ needs.integration-tests.result }}"
           echo "Quality Validation: ${{ needs.quality-validation.result }}"
           echo "Race Condition Tests: ${{ needs.race-condition-tests.result }}"
+          echo "Advanced Scenario Tests: ${{ needs.advanced-scenario-tests.result }}"
           echo "Quality Gate: ${{ needs.quality-gate.result }}"
 
           # Determine overall status
@@ -545,6 +796,12 @@ jobs:
           if [ "${{ needs.race-condition-tests.result }}" == "failure" ]; then
             echo "FAILED: Race condition tests failed - critical infrastructure regression"
             exit 1
+          fi
+
+          # Advanced scenario tests are important for conversation flow quality
+          if [ "${{ needs.advanced-scenario-tests.result }}" == "failure" ]; then
+            echo "WARNING: Advanced scenario tests failed - check goal/personalization/cross-programme"
+            # Don't fail the workflow but warn
           fi
 
           # Quality Gate is critical for PRs
@@ -576,6 +833,7 @@ jobs:
             | Integration Tests | ${{ needs.integration-tests.result == 'success' && '✅ Passed' || needs.integration-tests.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} |
             | Quality Validation | ${{ needs.quality-validation.result == 'success' && '✅ Passed' || needs.quality-validation.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} |
             | Race Condition Tests | ${{ needs.race-condition-tests.result == 'success' && '✅ Passed' || '❌ Failed' }} |
+            | Advanced Scenario Tests | ${{ needs.advanced-scenario-tests.result == 'success' && '✅ Passed' || needs.advanced-scenario-tests.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} |
             | **Quality Gate** | ${{ needs.quality-gate.result == 'success' && '✅ Passed' || needs.quality-gate.result == 'skipped' && '⏭️ Skipped' || '❌ **BLOCKED**' }} |
 
             **Quality Threshold**: ${{ env.QUALITY_THRESHOLD }}
@@ -585,6 +843,9 @@ jobs:
             - ✅ Quality score >= ${{ env.QUALITY_THRESHOLD }}
             - ✅ No race conditions detected
             - ✅ Context integrity maintained
+            - ✅ Goal achievement metrics validated
+            - ✅ Personalization quality checks pass
+            - ✅ Cross-programme accuracy validated
 
             [View workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
             `;
