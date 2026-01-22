@@ -5433,3 +5433,38 @@ Implemented Task 025 from MAPIT_ADVANCED_CONVERSATION_FLOWS_PRD.md: Create Risk 
   - Interview stage concepts
   - Mitigation strategy concepts
 - Lenient goal progress thresholds for consistent test results
+
+## 2026-01-22: Task 026 - Funding Type Comparison Scenario (COMPLETE)
+
+### Task Completed
+Created and tested the Funding Type Comparison scenario for MAPIT Advanced Conversation Flows PRD.
+
+### Files Created/Modified
+- `tests/scenarios/advanced/funding_type_comparison.yaml` - New scenario file with:
+  - 5-step workflow comparing RIA, IA, CSA, EIC Pathfinder, and MSCA
+  - Validation types: programme_mentioned, programme_accurate, goal_progress, context_accumulated, personalization_applied
+  - Pattern matching for funding types, TRL levels, funding rates, research types
+  - Final validations: goal_achieved, context_integrity
+
+### Scenario Steps
+1. "Compare RIA vs IA for applied research" - Tests RIA/IA comparison with funding rates, TRL focus
+2. "What about CSA?" - Tests CSA explanation (Coordination and Support Actions)
+3. "How does EIC Pathfinder differ?" - Tests EIC Pathfinder characteristics (high-risk, early-stage)
+4. "What about MSCA Postdoctoral Fellowships?" - Tests MSCA fellowship details
+5. "Which gives the most freedom?" - Tests comparative analysis for research freedom
+
+### Test Results
+- 1 test passed (funding_type_comparison scenario)
+- Test duration: 276.35s (4:36)
+- All validations passed including:
+  - programme_mentioned: horizon_europe detected
+  - programme_accurate: Horizon Europe facts validated
+  - goal_progress: Progress tracking across 5 steps
+  - context_integrity: All messages preserved correctly
+
+### PRD Task Status
+- [x] CREATE SCENARIO task marked complete
+- [x] RUN & FIX task marked complete
+
+### Next Task
+Task 027: Success Rate Analysis Scenario

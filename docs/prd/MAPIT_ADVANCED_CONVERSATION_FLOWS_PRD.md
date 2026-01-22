@@ -468,7 +468,7 @@ final_validations:
 ### ==========================================================
 
 ### Task 026: Funding Type Comparison Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/funding_type_comparison.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/funding_type_comparison.yaml` with steps:
   1. "Compare RIA vs IA for applied research"
   2. "What about CSA?"
   3. "How does EIC Pathfinder differ?"
@@ -476,7 +476,7 @@ final_validations:
   5. "Which gives the most freedom?"
   Validations: All funding types compared accurately, differences highlighted.
 
-- [ ] RUN & FIX: Execute scenario. Fix comparison tables.
+- [x] RUN & FIX: Execute scenario. Fix comparison tables.
 
 ### Task 027: Success Rate Analysis Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/success_rate_analysis.yaml` with steps:
