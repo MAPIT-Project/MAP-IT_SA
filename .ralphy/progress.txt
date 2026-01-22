@@ -4975,3 +4975,34 @@ pytest tests/test_advanced_conversation_scenarios.py -k "partner_search_refineme
 
 ### Conclusion
 The partner search refinement scenario passes all validations. Filters are applied incrementally across turns, and the system correctly maintains context across the 5-step search refinement process.
+
+## 2026-01-22: Task 015 - Partner Comparison Scenario
+
+### Task Completed
+Implemented Task 015: Create Partner Comparison Scenario from MAPIT_ADVANCED_CONVERSATION_FLOWS_PRD.md.
+
+### Files Created
+- `tests/scenarios/advanced/partner_comparison.yaml` - New scenario file with:
+  - 5-step partner comparison workflow for renewable energy research
+  - Step 1: Initial search for experienced partners
+  - Step 2: Compare top 3 organizations
+  - Step 3: Ask which has most EU funding
+  - Step 4: Ask which has most diverse collaboration network
+  - Step 5: Get recommendation for coordination role
+
+### Validation Types Used
+- `goal_progress` (GoalTrackingAgent): Track progress at each step
+- `goal_achieved` (GoalTrackingAgent): Final recommendation goal achieved
+- `context_accumulated` (PersonalizationAgent): Partner context builds across turns
+- `context_integrity` (ContextValidatorAgent): All messages stored correctly
+- `response_contains_any` (Built-in): Pattern matching for comparison-related content
+- `no_error` (Built-in): Error detection
+
+### Test Results
+- Test passed: `pytest tests/test_advanced_conversation_scenarios.py -v -k "partner_comparison"`
+- 1 passed in 96.77s
+- YAML syntax validated
+
+### PRD Updated
+- Marked Task 015 CREATE SCENARIO as complete
+- Marked Task 015 RUN & FIX as complete

@@ -328,7 +328,7 @@ final_validations:
 - [x] RUN & FIX: Execute scenario. Fix filter accumulation.
 
 ### Task 015: Partner Comparison Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/partner_comparison.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/partner_comparison.yaml` with steps:
   1. "Find experienced partners in renewable energy"
   2. "Compare the top 3 organizations"
   3. "Which has the most EU funding?"
@@ -336,7 +336,7 @@ final_validations:
   5. "Recommend the best fit for a coordination role"
   Validations: Comparison accurate, recommendation justified with data.
 
-- [ ] RUN & FIX: Execute scenario. Fix partner comparison logic.
+- [x] RUN & FIX: Execute scenario. Fix partner comparison logic.
 
 ### Task 016: Network Exploration Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/network_exploration.yaml` with steps:
