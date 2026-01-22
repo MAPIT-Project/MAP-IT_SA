@@ -4527,3 +4527,37 @@ Implemented CrossProgrammeAgent for validating multi-programme navigation and ac
 - [x] IMPLEMENT: tests/test_advanced_conversation_scenarios.py
 - [x] TEST: tests/scenarios/advanced/_test_runner_validation.yaml
 - [x] VERIFY: Run validation scenario and confirm all agents called correctly
+
+
+## 2026-01-22: Task 006 - Programme Discovery Scenario
+
+### Task Completed
+Created the Programme Discovery scenario for Task 006 in the MAPIT Advanced Conversation Flows PRD.
+
+### Files Created/Modified
+- `tests/scenarios/advanced/programme_discovery.yaml` - New scenario file with:
+  - 3-step user journey discovering multiple EU programmes
+  - Step 1: User asks about sustainable packaging research → Horizon Europe
+  - Step 2: User adds training component → Erasmus+ suggested
+  - Step 3: User reveals creative industry angle → Creative Europe suggested
+
+### Validation Types Used
+Per PRD requirements, the scenario uses these agent-based validations:
+- `programme_mentioned` (CrossProgrammeAgent): Verifies Horizon Europe, Erasmus+, Creative Europe mentioned
+- `programme_accurate` (CrossProgrammeAgent): Verifies programme facts are correct
+- `goal_progress` (GoalTrackingAgent): Tracks progress toward finding right programme
+- `goal_achieved` (GoalTrackingAgent): Final validation that user's goal was achieved
+- `context_integrity` (ContextValidatorAgent): Ensures all messages stored correctly
+- Built-in: `no_error`, `response_contains_any`
+
+### Test Results
+- YAML file loads correctly
+- Scenario integrated with Advanced Scenario Test Runner
+- All infrastructure tests pass (6/6)
+- All validation dispatcher tests pass (3/3)
+
+### PRD Update
+- Marked Task 006 items as complete (`- [x]`)
+
+### Next Steps
+Task 007: Programme Comparison Scenario

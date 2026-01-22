@@ -195,7 +195,7 @@ final_validations:
 ### ==========================================================
 
 ### Task 006: Programme Discovery Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/programme_discovery.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/programme_discovery.yaml` with steps:
   1. "I want to fund research on sustainable packaging materials"
   2. "What about if we want to include training for our staff?"
   3. "And what if we're a creative industry company making documentaries about sustainability?"
@@ -204,7 +204,7 @@ final_validations:
   - `programme_accurate` (CrossProgrammeAgent): Verify programme facts are correct
   - `goal_progress` (GoalTrackingAgent): Track progress toward finding right programme
 
-- [ ] RUN & FIX: Execute scenario. Verify cross-programme navigation works.
+- [x] RUN & FIX: Execute scenario. Verify cross-programme navigation works.
 
 ### Task 007: Programme Comparison Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/programme_comparison.yaml` with steps:

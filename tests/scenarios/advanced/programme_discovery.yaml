@@ -1,0 +1,122 @@
+# Programme Discovery Scenario (Task 006)
+# Tests multi-programme navigation where user explores different EU programmes
+# based on evolving research needs.
+#
+# User Journey:
+# 1. Initial query about sustainable packaging research → Horizon Europe suggested
+# 2. User adds training component → Erasmus+ suggested
+# 3. User reveals creative/documentary angle → Creative Europe suggested
+#
+# Required Validation Types (per PRD):
+# - programme_mentioned (CrossProgrammeAgent): Check Horizon Europe, Erasmus+, Creative Europe
+# - programme_accurate (CrossProgrammeAgent): Verify programme facts are correct
+# - goal_progress (GoalTrackingAgent): Track progress toward finding right programme
+
+name: "Programme Discovery"
+description: |
+  User discovers which EU programme fits their needs through iterative conversation.
+  Tests cross-programme navigation as user's requirements evolve from pure research
+  to training to creative documentation.
+tags: ["phase1", "multi-programme", "programme-discovery", "cross-programme"]
+stop_on_error: false
+
+steps:
+  # Turn 1: Initial research-focused query
+  # Expected: System suggests Horizon Europe (research funding)
+  - message: "I want to fund research on sustainable packaging materials"
+    validations:
+      # Built-in: No errors in response
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn1"
+
+      # CrossProgrammeAgent: Horizon Europe should be mentioned for research
+      - type: "programme_mentioned"  # CrossProgrammeAgent
+        name: "horizon_mentioned"
+        programmes: ["horizon_europe"]
+
+      # CrossProgrammeAgent: Facts about Horizon Europe should be accurate
+      - type: "programme_accurate"  # CrossProgrammeAgent
+        name: "horizon_facts_accurate"
+        programme: "horizon_europe"
+        min_score: 0.5
+
+      # GoalTrackingAgent: Initial progress toward finding programme
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "initial_progress"
+        min_progress: 0.15
+
+      # Built-in: Response should mention relevant topics
+      - type: "response_contains_any"  # Built-in
+        name: "mentions_research_funding"
+        patterns: ["Horizon Europe", "research", "funding", "Cluster", "innovation"]
+    delay_ms: 0
+
+  # Turn 2: User adds training/education component
+  # Expected: System adds Erasmus+ as option while maintaining Horizon Europe context
+  - message: "What about if we want to include training for our staff?"
+    validations:
+      # Built-in: No errors
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn2"
+
+      # CrossProgrammeAgent: Erasmus+ should now be mentioned for training
+      - type: "programme_mentioned"  # CrossProgrammeAgent
+        name: "erasmus_mentioned"
+        programmes: ["erasmus_plus"]
+
+      # CrossProgrammeAgent: Erasmus+ facts should be accurate
+      - type: "programme_accurate"  # CrossProgrammeAgent
+        name: "erasmus_facts_accurate"
+        programme: "erasmus_plus"
+        min_score: 0.5
+
+      # GoalTrackingAgent: Progress increases as more options explored
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "progress_with_training"
+        min_progress: 0.25
+
+      # Built-in: Should mention training/education related terms
+      - type: "response_contains_any"  # Built-in
+        name: "mentions_training"
+        patterns: ["Erasmus+", "training", "mobility", "staff", "KA1", "KA2", "education"]
+    delay_ms: 500
+
+  # Turn 3: User reveals creative industry angle
+  # Expected: System adds Creative Europe as third option
+  - message: "And what if we're a creative industry company making documentaries about sustainability?"
+    validations:
+      # Built-in: No errors
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn3"
+
+      # CrossProgrammeAgent: All three programmes should be referenced
+      - type: "programme_mentioned"  # CrossProgrammeAgent
+        name: "all_programmes_mentioned"
+        programmes: ["horizon_europe", "erasmus_plus", "creative_europe"]
+
+      # CrossProgrammeAgent: Creative Europe facts should be accurate
+      - type: "programme_accurate"  # CrossProgrammeAgent
+        name: "creative_facts_accurate"
+        programme: "creative_europe"
+        min_score: 0.5
+
+      # GoalTrackingAgent: Significant progress as all options explored
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "progress_with_creative"
+        min_progress: 0.4
+
+      # Built-in: Should mention creative/media related terms
+      - type: "response_contains_any"  # Built-in
+        name: "mentions_creative"
+        patterns: ["Creative Europe", "MEDIA", "documentary", "audiovisual", "film", "cultural"]
+    delay_ms: 500
+
+final_validations:
+  # GoalTrackingAgent: User should have found appropriate programme options
+  - type: "goal_achieved"  # GoalTrackingAgent
+    name: "programme_discovery_goal"
+    min_progress: 0.5
+
+  # ContextValidatorAgent: All messages should be stored correctly
+  - type: "context_integrity"  # ContextValidatorAgent
+    name: "context_preserved"
