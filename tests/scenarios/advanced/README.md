@@ -42,19 +42,33 @@ final_validations:
 
 ## Validation Types
 
-| Type | Description | Parameters |
-|------|-------------|------------|
-| `response_contains` | All patterns must appear in response | `patterns: [str]` |
-| `response_contains_any` | At least one pattern must appear | `patterns: [str]` |
-| `tools_used` | Specified tools must be called | `expected: [str]` |
-| `min_results` | Tool results must have minimum count | `count: int` |
-| `goal_progress` | User goal advancing toward completion | `min_progress: float (0-1)` |
-| `context_preserved` | Context from previous turn exists | - |
-| `personalization_applied` | Response tailored to user profile | `fields: [str]` |
-| `programme_mentioned` | Specific programme(s) mentioned | `programmes: [str]` |
-| `no_error` | No errors in response | - |
-| `context_integrity` | Final: all messages stored properly | - |
-| `goal_achieved` | Final: user goal completed | `min_progress: float` |
+| Type | Agent | Description | Parameters |
+|------|-------|-------------|------------|
+| `response_contains` | Built-in | All patterns must appear in response | `patterns: [str]` |
+| `response_contains_any` | Built-in | At least one pattern must appear | `patterns: [str]` |
+| `tools_used` | Built-in | Specified tools must be called | `expected: [str]` |
+| `min_results` | Built-in | Tool results must have minimum count | `count: int` |
+| `no_error` | Built-in | No errors in response | - |
+| `goal_progress` | GoalTrackingAgent | User goal advancing toward completion | `min_progress: float (0-1)` |
+| `goal_achieved` | GoalTrackingAgent | Final: user goal completed | `min_progress: float` |
+| `personalization_applied` | PersonalizationAgent | Response tailored to user profile | `fields: [str]` |
+| `context_accumulated` | PersonalizationAgent | Profile built over conversation | - |
+| `profile_used` | PersonalizationAgent | Specific profile fields used | `fields: [str]` |
+| `programme_mentioned` | CrossProgrammeAgent | Specific programme(s) mentioned | `programmes: [str]` |
+| `programme_accurate` | CrossProgrammeAgent | Programme facts are correct | `programme: str` |
+| `eligibility_correct` | CrossProgrammeAgent | Eligibility rules accurate | - |
+| `context_preserved` | ContextValidatorAgent | Context from previous turn exists | - |
+| `context_integrity` | ContextValidatorAgent | Final: all messages stored properly | - |
+
+## Agent Responsibilities
+
+| Agent | Validation Types | Purpose |
+|-------|------------------|---------|
+| `GoalTrackingAgent` | `goal_progress`, `goal_achieved` | Track user goal completion |
+| `PersonalizationAgent` | `personalization_applied`, `context_accumulated`, `profile_used` | Validate context learning |
+| `CrossProgrammeAgent` | `programme_mentioned`, `programme_accurate`, `eligibility_correct` | Multi-programme accuracy |
+| `ContextValidatorAgent` | `context_preserved`, `context_integrity` | DB/Redis consistency |
+| Built-in | `response_contains`, `tools_used`, `no_error`, etc. | Basic pattern matching |
 
 ## Scenario Categories
 

@@ -74,6 +74,26 @@ While the MAPIT application handles basic queries and maintains conversation sta
 | Completeness | 25 | All relevant options presented |
 | Actionability | 25 | Clear next steps with deadlines |
 
+### Validation Type → Agent Mapping
+This mapping ensures scenarios use the correct agent for each validation type:
+
+| Validation Type | Agent | Method |
+|-----------------|-------|--------|
+| `goal_progress` | `GoalTrackingAgent` | `evaluate_progress()` |
+| `goal_achieved` | `GoalTrackingAgent` | `check_completion()` |
+| `personalization_applied` | `PersonalizationAgent` | `validate_personalization()` |
+| `context_accumulated` | `PersonalizationAgent` | `validate_context_accumulation()` |
+| `profile_used` | `PersonalizationAgent` | `validate_profile_usage()` |
+| `programme_mentioned` | `CrossProgrammeAgent` | `check_programme_mentions()` |
+| `programme_accurate` | `CrossProgrammeAgent` | `validate_programme_facts()` |
+| `eligibility_correct` | `CrossProgrammeAgent` | `validate_eligibility_rules()` |
+| `response_contains` | Built-in | Pattern matching |
+| `tools_used` | Built-in | Tool call checking |
+| `no_error` | Built-in | Error detection |
+| `context_integrity` | `ContextValidatorAgent` | `validate_context_integrity()` |
+
+**IMPORTANT**: Each agent task (002-004) includes a verification step that the test runner can import and call the agent.
+
 ---
 
 ## Tasks
@@ -93,6 +113,11 @@ While the MAPIT application handles basic queries and maintains conversation sta
   - Completion detection (goal achieved / partially achieved / not achieved)
   - Success metrics collection (turns to completion, tools used, context preserved)
   - Integration with existing ConversationFlowAgent.
+- [ ] TEST: Create `tests/test_goal_tracking_agent.py` with unit tests for:
+  - `evaluate_progress(query, response)` → returns 0.0-1.0 progress score
+  - `check_completion(conversation)` → returns completion status
+  - Agent can be imported and instantiated by test runner.
+- [ ] VERIFY: Validation types `goal_progress` and `goal_achieved` work in a sample scenario.
 
 ### Task 003: Create Personalization Agent
 - [ ] IMPLEMENT: Create `tests/agents/personalization_agent.py` with:
@@ -101,6 +126,12 @@ While the MAPIT application handles basic queries and maintains conversation sta
   - Personalized recommendation verification (response tailored to profile)
   - Preference application checking (filters applied correctly)
   - Integration with existing ContextValidatorAgent.
+- [ ] TEST: Create `tests/test_personalization_agent.py` with unit tests for:
+  - `validate_personalization(response, profile)` → checks response uses profile
+  - `validate_context_accumulation(turns)` → checks profile builds over time
+  - `validate_profile_usage(response, expected_fields)` → checks fields used
+  - Agent can be imported and instantiated by test runner.
+- [ ] VERIFY: Validation types `personalization_applied`, `context_accumulated`, `profile_used` work.
 
 ### Task 004: Create Cross-Programme Agent
 - [ ] IMPLEMENT: Create `tests/agents/cross_programme_agent.py` with:
@@ -109,16 +140,27 @@ While the MAPIT application handles basic queries and maintains conversation sta
   - Comparison accuracy checking (correct facts for each programme)
   - Eligibility rule verification across programmes
   - Integration with existing QualityEvaluatorAgent.
+- [ ] TEST: Create `tests/test_cross_programme_agent.py` with unit tests for:
+  - `check_programme_mentions(response)` → returns list of programmes mentioned
+  - `validate_programme_facts(response, programme)` → checks facts are correct
+  - `validate_eligibility_rules(response, context)` → checks eligibility accuracy
+  - Agent can be imported and instantiated by test runner.
+- [ ] VERIFY: Validation types `programme_mentioned`, `programme_accurate`, `eligibility_correct` work.
 
 ### Task 005: Create Advanced Scenario Test Runner
 - [ ] IMPLEMENT: Create `tests/test_advanced_conversation_scenarios.py` with:
   - YAML scenario loader for `tests/scenarios/advanced/` directory
   - Multi-turn conversation execution using ConversationFlowAgent
-  - Validation execution (response_contains, tools_used, goal_progress, etc.)
-  - Integration with new agents (GoalTrackingAgent, PersonalizationAgent, CrossProgrammeAgent)
+  - Validation dispatcher that routes validation types to correct agents:
+    - `goal_progress`, `goal_achieved` → GoalTrackingAgent
+    - `personalization_applied`, `context_accumulated`, `profile_used` → PersonalizationAgent
+    - `programme_mentioned`, `programme_accurate`, `eligibility_correct` → CrossProgrammeAgent
+    - `context_integrity` → ContextValidatorAgent
+    - `response_contains`, `tools_used`, `no_error` → built-in handlers
   - Quality scoring using QualityEvaluatorAgent
   - Result aggregation and reporting.
-- [ ] TEST: Create a simple test scenario and verify the runner works.
+- [ ] TEST: Create `tests/scenarios/advanced/_test_runner_validation.yaml` scenario that uses ALL validation types to verify the runner correctly dispatches to each agent.
+- [ ] VERIFY: Run the validation scenario and confirm all agents are called correctly.
 
 ### ==========================================================
 ### PHASE 1: Multi-Programme Navigation
