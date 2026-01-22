@@ -4119,3 +4119,69 @@ pytest tests/test_conversation_scenarios.py -k "basic" -v
 
 ### Next Task
 Task 029: Architecture Documentation (create docs/CONVERSATION_STABILITY_ARCHITECTURE.md)
+
+
+---
+
+## 2026-01-22: Task 029 - Architecture Documentation (COMPLETE)
+
+### Task Completed
+Created comprehensive architecture documentation at `docs/CONVERSATION_STABILITY_ARCHITECTURE.md`.
+
+### Documentation Contents
+The documentation covers all four required areas:
+
+1. **Lock Manager Design**
+   - Purpose and design principles
+   - Class structure with `LockInfo` and `ConversationLockManager`
+   - Key methods (get_instance, acquire, is_locked, cleanup_stale_locks, get_stats)
+   - Usage patterns and integration examples
+   - Stale lock detection (300s default)
+
+2. **Atomic Storage Design**
+   - Purpose and design principles (DB as source of truth)
+   - Class structure with `StorageResult` and `AtomicMessageStorage`
+   - Key methods (store_user_message, store_assistant_message, store_message_pair)
+   - Storage flow diagram
+   - Error handling matrix
+   - Duplicate detection (5-second window)
+
+3. **Test Agent Architecture**
+   - Overview of three specialized agents
+   - `ConversationFlowAgent` - Multi-turn conversation simulation with SSE event processing
+   - `ContextValidatorAgent` - DB/Redis consistency validation
+   - `QualityEvaluatorAgent` - LLM-as-judge scoring (40/25/25/10 rubric)
+   - Key classes and methods for each agent
+
+4. **Scenario Format Specification**
+   - Directory structure (basic_flows, follow_up, context, error_recovery, concurrent)
+   - YAML schema with required fields (name, description, steps, validations)
+   - Validation types (response_contains, tools_used, context_integrity, etc.)
+   - Example scenarios with full YAML
+   - Commands for running scenarios
+
+### Additional Sections Added
+- **Integration Guide**: How to integrate lock manager and atomic storage into new code
+- **Debugging Guide**: Common issues (race conditions, context loss, split-brain) with solutions
+
+### Files Created
+- `docs/CONVERSATION_STABILITY_ARCHITECTURE.md` - Main architecture documentation (~750 lines)
+- `tests/test_conversation_stability_docs.py` - Documentation validation tests (36 tests)
+
+### Test Results
+- 36 tests pass validating:
+  - Documentation file exists and is readable
+  - All required sections present
+  - Key files referenced
+  - Usage examples included
+  - Validation types documented
+  - Directory structure documented
+  - Referenced files exist
+  - Scenario directories exist
+
+### Linting
+- `ruff check tests/test_conversation_stability_docs.py` - All checks passed
+- `ruff format tests/test_conversation_stability_docs.py` - Formatted
+
+### PRD Update
+- Task 029 marked as complete [x]
