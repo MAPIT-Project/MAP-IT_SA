@@ -7263,3 +7263,50 @@ The FIX sub-task needs to address:
 1. Low actionability - add actionable next steps to responses
 2. Budget fact confusion in success rate context
 3. Improve fallback responses to be more helpful
+
+## 2026-01-22: Task 006 - Create Phase 3 Scenario Test Infrastructure (Partner Discovery)
+
+### Task Completed
+Created test infrastructure for Phase 3 Partner Discovery scenarios.
+
+### Files Created
+- `tests/quality/test_phase3_scenarios.py` - Test file with:
+  - Individual test methods for each of the 4 Phase 3 scenarios:
+    - `test_partner_search_refinement` - Iterative filtering for quantum computing partners
+    - `test_partner_comparison` - Ranking and recommendation for renewable energy partners
+    - `test_network_exploration` - Relationship traversal for climate research network
+    - `test_organization_deep_dive` - TUM profile exploration
+  - Full Phase 3 execution test `test_run_all_phase3_scenarios`
+  - Infrastructure tests (6 tests):
+    - `test_scenarios_exist` - Verifies all 4 scenario files exist
+    - `test_scenarios_are_valid_yaml` - Validates YAML structure
+    - `test_all_scenarios_have_5_steps` - Confirms step count
+    - `test_results_directory_creation` - Confirms results dir creation
+    - `test_report_generation_empty_results` - Tests empty report handling
+    - `test_report_generation_mock_results` - Tests mock result reporting
+  - Report generation functionality (`generate_phase3_report`)
+  - Results saving to `tests/quality/results/phase3/`
+
+- `tests/quality/results/phase3/` - Results directory created
+
+### Phase 3 Scenarios (Partner Discovery)
+| Scenario | Steps | Focus |
+|----------|-------|-------|
+| partner_search_refinement.yaml | 5 | Iterative filtering (quantum computing → universities → EU15 → coordination experience → quantum communication) |
+| partner_comparison.yaml | 5 | Ranking and recommendation (renewable energy partners → compare top 3 → funding analysis → network diversity → coordination recommendation) |
+| network_exploration.yaml | 5 | Relationship traversal (climate network → most connected orgs → Fraunhofer projects → their partners → hydrogen collaborators) |
+| organization_deep_dive.yaml | 5 | Profile exploration (TUM funding history → topics → coordinator success rate → recent projects → preferred partners) |
+
+### Test Results
+- 6 infrastructure tests passed
+- All linting checks passed (ruff check + ruff format)
+
+### PRD Status
+- Task 006 TEST_INFRASTRUCTURE marked as complete [x]
+- Individual RUN sub-tasks remain pending (require live API execution)
+
+### Next Steps
+- Execute Phase 3 scenarios against live API when ready
+- Fill in actual runtime, scores, and status values
+- Fix any failures that arise
+- Verify all 4 scenarios pass with >= 80/100
