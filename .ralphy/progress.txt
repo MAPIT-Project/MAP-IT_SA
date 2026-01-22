@@ -7377,3 +7377,50 @@ The FIX sub-task requires addressing the actionability issue across the system:
 3. Include contact information or clear calls-to-action
 
 This fix would benefit both Phase 2 and Phase 3 scenarios since they share the same root cause.
+
+## 2026-01-22: Task 007 - Create Phase 4 Scenario Test Infrastructure (Personalization)
+
+### Task Completed
+Created test infrastructure for Phase 4 Personalization scenarios.
+
+### Files Created
+- `tests/quality/test_phase4_scenarios.py` - Main test file containing:
+  - Individual test methods for all 4 Phase 4 scenarios
+  - Full Phase 4 execution test with report generation
+  - Infrastructure tests (6 tests)
+  - Report generation functionality (`generate_phase4_report`)
+
+- `tests/quality/results/phase4/` - Results directory created
+
+### Phase 4 Scenarios (Personalization)
+| Scenario | Steps | Focus |
+|----------|-------|-------|
+| user_context_learning.yaml | 5 | Context accumulation (Portugal → marine biology → no coordination experience → call recommendations → partner advice) |
+| returning_user_context.yaml | 4 | Context persistence (hydrogen researcher → Germany context → success rates question → recall earlier hydrogen mention) |
+| progressive_profile.yaml | 12 | Deep profile building (SME → healthcare → medical devices → Germany → 50 employees → €10M revenue → AI diagnostics goal → partnerships → no EU experience → best option → details → next steps) |
+| preference_filtering.yaml | 4 | Preference-based filtering (exclude lump sum → 70%+ funding rate → Q2 2024 deadlines → max 5 partners) |
+
+### Test Infrastructure
+- **TestPhase4Scenarios class**: Individual async test methods for each scenario
+- **TestPhase4FullExecution class**: Runs all scenarios and generates comprehensive report
+- **TestPhase4Infrastructure class**: 6 offline tests that don't require live API:
+  - `test_scenarios_exist` - Verifies all 4 scenario files exist
+  - `test_scenarios_are_valid_yaml` - Validates YAML structure
+  - `test_scenarios_have_correct_step_counts` - Verifies step counts (5, 4, 12, 4)
+  - `test_results_directory_creation` - Confirms results dir creation
+  - `test_report_generation_empty_results` - Tests empty report handling
+  - `test_report_generation_mock_results` - Tests mock result reporting with correct turn counts
+
+### Test Results
+- 6 infrastructure tests passed
+- All linting checks passed (ruff check + ruff format)
+
+### PRD Status
+- Task 007 TEST_INFRASTRUCTURE marked as complete [x]
+- Individual RUN sub-tasks remain pending (require live API execution)
+
+### Next Steps
+- Execute Phase 4 scenarios against live API when ready
+- Fill in actual runtime, scores, and status values
+- Fix any failures that arise
+- Verify all 4 scenarios pass with >= 80/100
