@@ -325,7 +325,7 @@ final_validations:
   5. "Who have worked on quantum communication"
   Validations: Filters applied incrementally, results narrow down correctly.
 
-- [ ] RUN & FIX: Execute scenario. Fix filter accumulation.
+- [x] RUN & FIX: Execute scenario. Fix filter accumulation.
 
 ### Task 015: Partner Comparison Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/partner_comparison.yaml` with steps:
