@@ -1,0 +1,83 @@
+{
+  "scenario_name": "Partner Comparison",
+  "turns": [
+    {
+      "turn_number": 0,
+      "query": "Find experienced partners in renewable energy",
+      "response_text": "Based on my search for information about 'Find experienced partners in renewable energy', here's what I found:\n\n**Finding 1:**\n## Top Organizations with Experience in 'renewable energy hydrogen solar wind geothermal bioenergy clean energy sustainable power'\n\nFound **20 organizations** with relevant track records:\n\n### 1. **FRAUNHOFER GESELLSCHAFT ZUR FORDERUNG DER ANGEWANDTEN FORSCHUNG EV** (DE)\n- **Organization Type**: REC (Research Center)\n- **Relevant Projects**: 93 (coordinated **14** projects)\n- **Total Funding**: \u20ac75,951,578\n- **Example Projects**: APOLLO (coordinator), SUNREY (coordinator), WeGenerate (coordinator)\n\n### 2. **ETHNIKO KENTRO EREVNAS KAI TECHNOLOGIKIS ANAPTYXIS** (EL)\n- **Organization Type**: REC (Research Center)\n- **Relevant Projects**: 69 (coordinated **14** projects)\n- **Total Funding**: \u20ac37,744,778\n- **Example Projects**: ABATE (coordinator), FUELPHORIA (coordinator), SmartLivingEPC (coordinator)\n\n### 3. **COMMISSARIAT A L ENERGIE ATOMIQUE ET AUX ENERGIES ALTERNATIVES** (FR)\n- **Organization Type**: REC (Research Center)\n- **Relevant Projects**: 52 (coordinated **11** projects)\n- **Total Funding**: \u20ac39,179,186\n- **Example Projects**: CALECHE (coordinator), DC-POWER (coordinator), EVERPV (coordinator)\n\n### 4. **RINA CONSULTING SPA** (IT)\n- **Organization Type**: PRC (Private Company)\n- **Relevant Projects**: 49 (coordinated **12** projects)\n- **Total Funding**: \u20ac19,635,941\n- **Example Projects**: BAMBOO (coordinator), DATA CELLAR (coordinator), DAEDALOS (coordinator)\n\n### 5. **DANMARKS TEKNISKE UNIVERSITET** (DK)\n- **Organization Type**: HES (Higher Education)\n- **Relevant Projects**: 49 (coordinated **10** projects)\n- **Total Funding**: \u20ac37,927,703\n- **Example Projects**: FLOW (coordinator), UltraBat (coordinator), CO2NSTRUCT (coordinator)\n\n### 6. **TECHNISCHE UNIVERSITEIT DELFT** (NL)\n- **Organization Type**: HES (Higher Education)\n- **Relevant Projects**: 46 (coordinated **7** projects)\n- **Total Funding**: \u20ac33,466,833\n- **Example Projects**: CLARION (coordinator), EPIC Africa (coordinator), HOPE (coordinator)\n\n### 7. **DEUTSCHES ZENTRUM FUR LUFT - UND RAUMFAHRT EV** (DE)\n- **Organization Type**: REC (Research Center)\n- **Relevant Projects**: 44 (coordinated **8** projects)\n- **Total Funding**: \u20ac31,552,695\n- **Example Projects**: ABraytCSPfuture (coordinator), COLOSSUS (coordinator), FlyECO (coordinator)\n\n### 8. **FUNDACION TECNALIA RESEARCH & INNOVATION** (ES)\n- **Organization Type**: REC (Research Center)\n- **Relevant Projects**: 41 (coordinated **8** projects)\n- **Total Funding**: \u20ac26,836,167\n- **Example Projects**: TranSensus LCA (associatedPartner), APOLO (coordinator), RHINOCEROS (coordinator)\n\n### 9. **ETHNICON METSOVION POLYTECHNION** (EL)\n- **Organization Type**: HES (Higher Education)\n- **Relevant Projects**: 38 (coordinated **6** projects)\n- **Total Funding**: \u20ac18,029,834\n- **Example Projects**: CRONUS (coordinator), EnerTEF (coordinator), ESY (coordinator)\n\n### 10. **TEKNOLOGIAN TUTKIMUSKESKUS VTT OY** (FI)\n- **Organization Type**: REC (Research Center)\n- **Relevant Projects**: 36 (coordinated **14** projects)\n- **Total Funding**: \u20ac30,929,034\n- **Example Projects**: GLocalFlex (coordinator), ADMIRAL (coordinator), CANMILK (coordinator)\n\n\n**Top countries for this topic**: ES, DE, FR, IT, EL\n\n---\n\n### How to Verify & Contact Partners\n\n- **CORDIS Database**: Search for specific projects at https://cordis.europa.eu\n- **EU Funding Portal**: https://ec.europa.eu/info/funding-tenders/\n- **Partner Search**: Use the EU Partner Search tool to find and contact organizations\n- **Verify Municipal Networks**: Check organizations' websites for urban/city partnerships, living labs, or pilot site descriptions\n",
+      "tools_used": [
+        "find_experienced_partners"
+      ],
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
+      "passed": true
+    },
+    {
+      "turn_number": 1,
+      "query": "Compare the top 3 organizations",
+      "response_text": "I found some information but couldn't extract specific details. Please try a more specific question.",
+      "tools_used": [
+        "search_documents"
+      ],
+      "quality_score": 75,
+      "factual_score": 100.0,
+      "failures": [],
+      "passed": false
+    },
+    {
+      "turn_number": 2,
+      "query": "Which has the most EU funding?",
+      "response_text": "The provided search result is insufficient to answer the question \"Which has the most EU funding?\". The document discusses good practices for implementing Financial Support to Third Parties (FSTP) in EU grants and includes a declaration on confidentiality and conflict of interest for experts. It does not provide any information about specific projects or areas receiving the most EU funding.\n\nTo answer your question, I would need access to data on EU funding allocation across different sectors, programs, or projects. You can typically find this information on the European Commission's website or through dedicated EU funding databases.\n",
+      "tools_used": [
+        "search_documents"
+      ],
+      "quality_score": 77,
+      "factual_score": 100.0,
+      "failures": [],
+      "passed": false
+    },
+    {
+      "turn_number": 3,
+      "query": "Which has the most diverse collaboration network?",
+      "response_text": "I found some information but couldn't extract specific details. Please try a more specific question.",
+      "tools_used": [
+        "search_documents"
+      ],
+      "quality_score": 75,
+      "factual_score": 100.0,
+      "failures": [],
+      "passed": false
+    },
+    {
+      "turn_number": 4,
+      "query": "Recommend the best fit for a coordination role",
+      "response_text": "Based on my search for information about 'Recommend the best fit for a coordination role', here's what I found:\n\n**Finding 1:**\nto a set of conditions and legal rights and obligations that are relatively rigid. \nMake sure that you chose the  appropriate role  for everyone. Having the wrong role can cause a \nlot of problems later on. \n\nCoordinator vs other beneficiaries \n\nThe  coordinator  is  the  participant  that  will  be  the  central  contact  point  (for  the  granting \nauthority)  and  represent  the  consortium\n\n**Finding 2:**\n.  They  could  be  involved  as  partners  in  the  project,  or,  throughout  its \nduration,  as  members of  an  advisory  board or user  group  tasked  with co-creating  and \ntesting the results and providing feedback. In the case of policy recommendations, you \nmay  want  to  approach  policy-makers  from  a  local/regional/national  authorities,  or \nregulatory bodies in order to design",
+      "tools_used": [
+        "search_documents"
+      ],
+      "quality_score": 79,
+      "factual_score": 100.0,
+      "failures": [],
+      "passed": false
+    }
+  ],
+  "average_score": 77.4,
+  "factual_score": 100.0,
+  "failures": [],
+  "status": "FAIL",
+  "execution_time_ms": 71849.524,
+  "timestamp": "2026-01-22T22:17:59.592372",
+  "metadata": {
+    "scenario_path": "tests/scenarios/advanced/partner_comparison.yaml",
+    "tags": [
+      "phase3",
+      "partner-discovery",
+      "comparison",
+      "renewable-energy",
+      "recommendation"
+    ],
+    "description": "A 5-step partner comparison workflow for renewable energy research.\nTests partner discovery followed by detailed comparison of top candidates.\nThe scenario validates that the system can identify, compare, and recommend\npartners based on funding history and collaboration network diversity.\n",
+    "conversation_id": 1443540947
+  }
+}

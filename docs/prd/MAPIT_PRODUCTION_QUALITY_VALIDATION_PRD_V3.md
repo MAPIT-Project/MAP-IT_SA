@@ -246,7 +246,7 @@ Run with: `./ralphy.sh --prd docs/prd/MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD_V3
   4. **Attempt 1 Result**: Score improved from 77.0 to 79.4 (1 attempt). Tool selection now correct for all turns. Status: CLOSE_TO_THRESHOLD
 
 ### Scenario 010: Partner Comparison
-- [ ] EXECUTE: Run scenario `tests/scenarios/advanced/partner_discovery/partner_comparison.yaml` against the live API. Tests comparing potential partners. Save result to `tests/quality/results/scenarios/partner_comparison.json`.
+- [x] EXECUTE: Run scenario `tests/scenarios/advanced/partner_comparison.yaml` against the live API. Tests comparing potential partners. Save result to `tests/quality/results/scenarios/partner_comparison.json`.
 
 - [ ] FIX IF NEEDED: Read `tests/quality/results/scenarios/partner_comparison.json`. If average_score < 80:
   1. ONLY modify files in `app/` directory
