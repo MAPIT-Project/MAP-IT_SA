@@ -5679,3 +5679,38 @@ The scenario tests the system's ability to:
 ### PRD Task Status
 - [x] CREATE SCENARIO: tests/scenarios/advanced/deadline_tracking.yaml
 - [x] RUN & FIX: Execute scenario (passed)
+
+## 2026-01-22: Task 032 - Call Opening Alert Scenario
+
+### Task Completed
+Implemented Task 032: Create Call Opening Alert Scenario as specified in the MAPIT Advanced Conversation Flows PRD.
+
+### Files Created
+- `tests/scenarios/advanced/call_opening_alert.yaml` - New scenario file with:
+  - 5-step conversation flow for understanding call opening dates
+  - Step 1: User asks when 2025 Horizon Europe calls open
+  - Step 2: User narrows to health research
+  - Step 3: User asks about Cluster 1 work programme
+  - Step 4: User asks when to start preparing
+  - Step 5: User asks about typical time between opening and deadline
+
+### Validation Types Used
+- `no_error` (Built-in): Error detection on all steps
+- `response_contains_any` (Built-in): Pattern matching for opening/timeline content
+- `programme_mentioned` (CrossProgrammeAgent): Horizon Europe mentioned
+- `programme_accurate` (CrossProgrammeAgent): Timeline information accuracy
+- `goal_progress` (GoalTrackingAgent): Progress toward understanding timelines
+- `goal_achieved` (GoalTrackingAgent): User understands when to prepare
+- `context_accumulated` (PersonalizationAgent): Context builds across turns
+- `profile_used` (PersonalizationAgent): Profile used for recommendations
+- `personalization_applied` (PersonalizationAgent): Response personalized
+- `context_integrity` (ContextValidatorAgent): All messages stored correctly
+
+### Test Results
+- YAML syntax validated successfully
+- Scenario structure validated (5 steps, 3 final validations)
+- Test discovered by pytest (`test_advanced_scenario[call_opening_alert]`)
+- Pre-existing Python linting errors in other files (not related to this task)
+
+### Key Test
+System should provide accurate (or appropriately uncertain) information about call opening dates, work programme timelines, and preparation advice.

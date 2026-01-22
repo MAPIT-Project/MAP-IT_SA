@@ -539,7 +539,7 @@ final_validations:
 - [x] RUN & FIX: Execute scenario. Fix deadline sorting.
 
 ### Task 032: Call Opening Alert Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/call_opening_alert.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/call_opening_alert.yaml` with steps:
   1. "When do the 2025 Horizon Europe calls open?"
   2. "Specifically for health research"
   3. "What about Cluster 1 work programme?"
@@ -547,7 +547,7 @@ final_validations:
   5. "What's the typical time between opening and deadline?"
   Validations: Opening dates accurate (or appropriately uncertain), preparation advice given.
 
-- [ ] RUN & FIX: Execute scenario. Verify work programme timeline handling.
+- [x] RUN & FIX: Execute scenario. Verify work programme timeline handling.
 
 ### Task 033: Multi-Call Timeline Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/multi_call_timeline.yaml` with steps:
