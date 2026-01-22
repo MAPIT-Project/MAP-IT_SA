@@ -6878,3 +6878,85 @@ This completes the Advanced Conversation Flows PRD. All 53 tasks have been imple
 - Phase 10: Creative Europe Specific Flows (Tasks 041-043)
 - Phase 11: Error Handling & Edge Cases (Tasks 044-047)
 - Phase 12: Integration & Quality (Tasks 048-053)
+
+## 2026-01-22: Task 001 - Create Production Quality Test Runner (MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD)
+
+### Task Completed
+Implemented Task 001: Create Production Quality Test Runner as specified in MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD.md.
+
+### Files Created
+- `tests/test_production_quality_validation.py` - Comprehensive production quality validation module with:
+
+### Key Components Implemented
+
+1. **Dataclasses (per PRD requirements)**:
+   - `ScenarioExecutionResult`: scenario_name, turns, scores, failures, metadata, execution_time_ms
+   - `TurnResult`: query, response, quality_score, factual_score, failures, tools_used, tool_results
+   - `FailureRecord`: category, severity, description, turn_number, evidence, timestamp
+   - `FailureCategory` enum: NO_RESULTS, INCORRECT_DATA, MISSING_DATA, UNEXPECTED_BEHAVIOR, POOR_QUALITY
+   - `FailureSeverity` enum: CRITICAL, HIGH, MEDIUM
+
+2. **ProductionQualityRunner class**:
+   - `run_scenario(scenario_path)` → ScenarioExecutionResult
+   - `evaluate_turn(query, response, turn, turn_number)` → TurnResult
+   - `detect_failures(turn, turn_number)` → List[FailureRecord]
+   - `generate_report(results)` → JSON report
+   - `save_result(result, output_dir)` → Saves to tests/quality/results/scenarios/
+
+3. **Pattern Detection for All 5 Failure Categories**:
+   - NO_RESULTS: Short responses (<100 chars), no-results patterns, deflection patterns, empty tool results
+   - INCORRECT_DATA: Programme fact validation via CrossProgrammeAgent
+   - MISSING_DATA: Required field checking for tool results
+   - UNEXPECTED_BEHAVIOR: Error detection, SSE stream errors
+   - POOR_QUALITY: Unstructured wall of text detection
+
+4. **Integration with All 6 Test Agents**:
+   - ConversationFlowAgent: For scenario execution
+   - QualityEvaluatorAgent: For turn quality scoring
+   - CrossProgrammeAgent: For programme fact validation
+   - GoalTrackingAgent: For goal progress tracking
+   - PersonalizationAgent: For context accumulation tracking
+   - ContextValidatorAgent: For context integrity validation
+
+5. **Failure Detection Patterns (from PRD Appendix)**:
+   - NO_RESULTS_PATTERNS: 10 patterns for detecting empty/useless responses
+   - DEFLECTION_PATTERNS: 6 patterns for detecting deflection responses
+   - REQUIRED_FIELDS: Field requirements for call_search, project_search, partner_search, etc.
+   - KNOWN_FACTS: Budget ranges and key facts for Horizon Europe, Erasmus+, Creative Europe
+
+6. **CLI Entry Point**:
+   - `--scenario`: Run specific scenario
+   - `--all`: Run all scenarios in tests/scenarios/advanced/
+   - `--base-url`: Configure API URL
+   - `--output`: Configure output directory
+
+### Test Results
+- 13 tests passed
+- 2 tests skipped (require live API - TEST_API_URL not set)
+- All linting checks pass (ruff)
+
+### Test Coverage
+- TestDataclasses: 3 tests for dataclass creation and serialization
+- TestFailureDetection: 6 tests for all failure pattern detection
+- TestReportGeneration: 2 tests for report generation
+- TestResultsSaving: 2 tests for JSON file output
+- TestIntegration: 2 tests (skipped without API)
+
+### Usage
+```bash
+# Run all infrastructure tests
+pytest tests/test_production_quality_validation.py -v
+
+# Run with live API
+TEST_API_URL=http://localhost:8000 pytest tests/test_production_quality_validation.py -v
+
+# Run from CLI
+python tests/test_production_quality_validation.py --scenario tests/scenarios/advanced/programme_discovery.yaml
+python tests/test_production_quality_validation.py --all --base-url http://localhost:8000
+```
+
+### PRD Status
+- Task 001 marked as complete [x]
+
+### Next Task
+Task 002: Create Failure Detection Module (PHASE 1 - Critical Infrastructure)
