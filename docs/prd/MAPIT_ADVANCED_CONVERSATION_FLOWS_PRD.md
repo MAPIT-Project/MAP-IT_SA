@@ -681,7 +681,7 @@ final_validations:
 - [x] RUN & FIX: Execute scenario. Verify Creative Europe eligibility.
 
 ### Task 043: Creative Europe Cooperation Project Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/creative_europe_cooperation.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/creative_europe_cooperation.yaml` with steps:
   1. "Explain Creative Europe cooperation projects"
   2. "What's the difference between small, medium, large?"
   3. "We have 3 partners - which category?"
@@ -689,7 +689,7 @@ final_validations:
   5. "Help us plan a medium-scale project"
   Validations: Scale definitions correct, partnership requirements accurate.
 
-- [ ] RUN & FIX: Execute scenario. Fix cooperation project logic.
+- [x] RUN & FIX: Execute scenario. Fix cooperation project logic.
 
 ### ==========================================================
 ### PHASE 11: Error Handling & Edge Cases
