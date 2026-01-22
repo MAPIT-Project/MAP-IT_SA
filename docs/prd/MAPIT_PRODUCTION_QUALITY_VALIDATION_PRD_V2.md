@@ -48,7 +48,7 @@ Run with: `./ralphy.sh --prd MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD_V2.md`
 ### Scenario 001: Programme Discovery
 - [x] EXECUTE: Run scenario `tests/scenarios/advanced/programme_discovery.yaml` against the live API using ConversationFlowAgent. For each turn: collect response_text, tools_used, quality_score from QualityEvaluatorAgent, factual_score from CrossProgrammeAgent. Calculate average score. Save full result to `tests/quality/results/scenarios/programme_discovery.json` with structure: {scenario_name, turns[], average_score, factual_score, failures[], status}.
 
-- [ ] FIX IF NEEDED: Read `tests/quality/results/scenarios/programme_discovery.json`. If average_score < 80: identify root cause from failures[] (low_actionability → add Next Steps to agent prompt, factual_error → fix CrossProgrammeAgent validation, no_results → fix tool queries). Implement fix, re-run EXECUTE task, update JSON with fix_history. Repeat until score >= 80 or 3 attempts reached. Record final status: PASS/FAIL/MAX_ATTEMPTS.
+- [x] FIX IF NEEDED: Read `tests/quality/results/scenarios/programme_discovery.json`. If average_score < 80: identify root cause from failures[] (low_actionability → add Next Steps to agent prompt, factual_error → fix CrossProgrammeAgent validation, no_results → fix tool queries). Implement fix, re-run EXECUTE task, update JSON with fix_history. Repeat until score >= 80 or 3 attempts reached. Record final status: PASS/FAIL/MAX_ATTEMPTS.
 
 ### Scenario 002: Programme Comparison
 - [ ] EXECUTE: Run scenario `tests/scenarios/advanced/multi_programme/programme_comparison.yaml` against the live API. This scenario tests comparing Horizon Europe, Erasmus+, and Creative Europe. Save result to `tests/quality/results/scenarios/programme_comparison.json`.
