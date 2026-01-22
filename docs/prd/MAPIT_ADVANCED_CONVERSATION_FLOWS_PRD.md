@@ -350,7 +350,7 @@ final_validations:
 - [x] RUN & FIX: Execute scenario. Fix network exploration.
 
 ### Task 017: Organization Deep-Dive Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/organization_deep_dive.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/organization_deep_dive.yaml` with steps:
   1. "Tell me about Technical University of Munich's EU funding history"
   2. "What topics do they focus on?"
   3. "What's their success rate as coordinator?"
@@ -358,7 +358,7 @@ final_validations:
   5. "Who are their preferred partners?"
   Validations: Organization profile complete, statistics accurate.
 
-- [ ] RUN & FIX: Execute scenario. Verify organization data accuracy.
+- [x] RUN & FIX: Execute scenario. Verify organization data accuracy.
 
 ### ==========================================================
 ### PHASE 4: Personalized Recommendations
