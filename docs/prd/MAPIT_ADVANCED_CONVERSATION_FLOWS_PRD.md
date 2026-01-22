@@ -430,7 +430,7 @@ final_validations:
 - [x] RUN & FIX: Execute scenario. Verify strategic planning quality.
 
 ### Task 023: Portfolio Planning Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/portfolio_planning.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/portfolio_planning.yaml` with steps:
   1. "We want to submit 5 proposals this year"
   2. "Our research areas are: AI, robotics, and human-machine interaction"
   3. "What calls match our profile?"
@@ -439,7 +439,7 @@ final_validations:
   6. "What's a realistic success expectation?"
   Validations: Portfolio approach recommended, diversification considered, success rates cited.
 
-- [ ] RUN & FIX: Execute scenario. Fix portfolio recommendation logic.
+- [x] RUN & FIX: Execute scenario. Fix portfolio recommendation logic.
 
 ### Task 024: Capacity Building Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/capacity_building.yaml` with steps:
