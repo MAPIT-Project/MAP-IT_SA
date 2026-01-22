@@ -6253,3 +6253,39 @@ phase11, error_handling, edge_case, eligibility, conflicting, impossible, sme, u
 
 ### Next Task
 Task 045: Outdated Information Scenario (Phase 11 - Error Handling & Edge Cases)
+
+## 2026-01-22: Task 045 - Outdated Information Scenario
+
+### Task Completed
+Implemented Task 045: Create Outdated Information Scenario for Phase 11 (Error Handling & Edge Cases).
+
+### Files Created
+- `tests/scenarios/advanced/outdated_information.yaml` - New scenario with:
+  - 4 conversation turns testing historical programme queries
+  - Turn 1: Ask about H2020 calls (historical programme)
+  - Turn 2: Ask about FP7 (even older historical programme)
+  - Turn 3: Ask if they can still apply
+  - Turn 4: Ask what replaced them (Horizon Europe)
+
+### Validation Types Used
+- `no_error` (Built-in): System should NOT produce errors for historical queries
+- `response_contains_any` (Built-in): System should respond meaningfully
+- `goal_progress` (GoalTrackingAgent): Track understanding progress
+- `programme_mentioned` (CrossProgrammeAgent): Check Horizon Europe mentioned as current alternative
+- `programme_accurate` (CrossProgrammeAgent): Horizon Europe facts should be correct
+- `context_accumulated` (PersonalizationAgent): Build context across turns
+- `context_integrity` (ContextValidatorAgent): All messages stored correctly
+
+### Key Implementation Details
+- Historical programmes (H2020, FP7) are NOT tracked by CrossProgrammeAgent
+- Used `response_contains_any` for validating historical programme mentions
+- Only Horizon Europe (current programme) is validated with `programme_mentioned`
+- Scenario tests graceful handling of queries about outdated programmes
+
+### Test Results
+- 1 test passed
+- Test executed in ~100 seconds
+- Validates proper handling of historical EU funding programmes
+
+### PRD Updates
+- Marked Task 045 as complete (both CREATE SCENARIO and RUN & FIX steps)

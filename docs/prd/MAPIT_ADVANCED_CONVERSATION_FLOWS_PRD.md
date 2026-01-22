@@ -707,14 +707,14 @@ final_validations:
 - [x] RUN & FIX: Execute scenario. Fix conflict handling.
 
 ### Task 045: Outdated Information Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/outdated_information.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/outdated_information.yaml` with steps:
   1. "Tell me about H2020 calls" (historical)
   2. "What about FP7?" (very old)
   3. "Can I still apply?"
   4. "What replaced them?"
   Validations: Historical context provided, current alternatives suggested.
 
-- [ ] RUN & FIX: Execute scenario. Fix historical programme handling.
+- [x] RUN & FIX: Execute scenario. Fix historical programme handling.
 
 ### Task 046: Ambiguous Programme Reference Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/ambiguous_programme.yaml` with steps:

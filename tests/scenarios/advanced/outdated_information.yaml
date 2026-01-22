@@ -1,0 +1,272 @@
+# Outdated Information Scenario (Task 045)
+# Tests how the system handles queries about historical/outdated EU funding programmes.
+# Phase 11: Error Handling & Edge Cases
+#
+# This scenario simulates a user asking about historical EU funding programmes
+# that are no longer active. The system should:
+# 1. Recognize references to historical programmes (H2020, FP7)
+# 2. Provide appropriate historical context
+# 3. Explain that applications are no longer possible
+# 4. Guide users to current alternatives (Horizon Europe)
+# 5. Not produce errors or hallucinate that old programmes are still open
+#
+# User Journey:
+# 1. User asks about H2020 calls -> System explains it's the predecessor, ended 2020
+# 2. User asks about FP7 -> System explains it's even older, ended 2013
+# 3. User asks if they can still apply -> System clearly explains they cannot
+# 4. User asks what replaced them -> System explains Horizon Europe
+#
+# Required Validation Types (per PRD):
+# - no_error (Built-in): System should NOT produce errors for historical queries
+# - response_contains_any (Built-in): System should respond meaningfully
+# - goal_progress (GoalTrackingAgent): Track understanding progress
+# - programme_mentioned (CrossProgrammeAgent): Check current programmes discussed
+# - programme_accurate (CrossProgrammeAgent): Horizon Europe facts should be correct
+# - context_accumulated (PersonalizationAgent): Build context across turns
+# - context_integrity (ContextValidatorAgent): All messages stored correctly
+#
+# Note: Historical programmes (H2020, FP7) are NOT tracked by CrossProgrammeAgent,
+# so we use response_contains_any for validating their mentions. Horizon Europe
+# (the current programme) IS tracked.
+
+name: "Outdated Information Handling"
+description: |
+  A user asks about historical EU funding programmes (H2020, FP7) that are
+  no longer active. The system should provide historical context, explain
+  they cannot apply anymore, and guide them to current alternatives.
+  Tests handling of outdated programme references.
+tags:
+  - "phase11"
+  - "error_handling"
+  - "edge_case"
+  - "historical"
+  - "outdated"
+  - "h2020"
+  - "fp7"
+  - "horizon_europe"
+  - "programme_transition"
+  - "graceful_handling"
+stop_on_error: false
+
+steps:
+  # Turn 1: Ask about H2020 calls (historical programme)
+  # Expected: System explains H2020 is the predecessor to Horizon Europe, ended 2020
+  - message: "Tell me about H2020 calls - I heard they have good funding opportunities"
+    validations:
+      # Built-in: No errors in response
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn1"
+
+      # Response should address H2020 and/or explain current alternatives
+      # Note: H2020 is not a tracked programme, so we check for relevant keywords
+      - type: "response_contains_any"  # Built-in
+        name: "h2020_addressed"
+        patterns:
+          - "H2020"
+          - "Horizon 2020"
+          - "2020"
+          - "predecessor"
+          - "previous"
+          - "former"
+          - "ended"
+          - "concluded"
+          - "completed"
+          - "closed"
+          - "no longer"
+          - "replaced"
+          - "succeeded"
+          - "Horizon Europe"
+          - "FP8"
+          - "framework"
+          - "programme"
+          - "2014"
+          - "2021"
+          - "historical"
+          - "past"
+          - "was"
+          - "ran"
+          - "funding"
+          - "research"
+          - "innovation"
+          - "EU"
+          - "European"
+
+      # GoalTrackingAgent: Initial progress
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "initial_progress"
+        min_progress: 0.10
+
+      # PersonalizationAgent: Context should start building
+      - type: "context_accumulated"  # PersonalizationAgent
+        name: "context_start"
+        expected_fields:
+          - "topic_interest"
+    delay_ms: 0
+
+  # Turn 2: Ask about FP7 (even older historical programme)
+  # Expected: System explains FP7 is much older, ended 2013, preceded H2020
+  - message: "What about FP7? I've seen references to FP7 projects in some papers I read"
+    validations:
+      # Built-in: No errors
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn2"
+
+      # Response should address FP7 and/or explain the historical context
+      # Note: FP7 is not a tracked programme, so we check for relevant keywords
+      - type: "response_contains_any"  # Built-in
+        name: "fp7_addressed"
+        patterns:
+          - "FP7"
+          - "Framework Programme 7"
+          - "Seventh Framework"
+          - "7th Framework"
+          - "2007"
+          - "2013"
+          - "older"
+          - "earlier"
+          - "previous"
+          - "predecessor"
+          - "before"
+          - "ended"
+          - "concluded"
+          - "completed"
+          - "closed"
+          - "no longer"
+          - "replaced"
+          - "H2020"
+          - "Horizon 2020"
+          - "Horizon Europe"
+          - "historical"
+          - "past"
+          - "framework"
+          - "programme"
+          - "research"
+          - "EU"
+          - "European"
+
+      # GoalTrackingAgent: Progress increases
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "fp7_progress"
+        min_progress: 0.15
+    delay_ms: 500
+
+  # Turn 3: Ask if they can still apply
+  # Expected: System clearly explains that applications are NOT possible
+  - message: "Can I still apply to H2020 or FP7 calls? Are there any still open?"
+    validations:
+      # Built-in: No errors
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn3"
+
+      # Response should clearly state applications are NOT possible or guide to alternatives
+      - type: "response_contains_any"  # Built-in
+        name: "applications_closed_explained"
+        patterns:
+          - "no"
+          - "not"
+          - "cannot"
+          - "can't"
+          - "unable"
+          - "closed"
+          - "ended"
+          - "concluded"
+          - "no longer"
+          - "not possible"
+          - "not open"
+          - "not available"
+          - "not accepting"
+          - "finished"
+          - "completed"
+          - "expired"
+          - "past"
+          - "historical"
+          - "unfortunately"
+          - "however"
+          - "instead"
+          - "alternative"
+          - "Horizon Europe"
+          - "current"
+          - "active"
+          - "open"
+
+      # GoalTrackingAgent: Progress continues
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "application_status_progress"
+        min_progress: 0.25
+    delay_ms: 500
+
+  # Turn 4: Ask what replaced the old programmes
+  # Expected: System explains Horizon Europe is current, provides guidance
+  - message: "What programme replaced them? What should I apply to now instead?"
+    validations:
+      # Built-in: No errors
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn4"
+
+      # Response should explain Horizon Europe as the replacement
+      - type: "response_contains_any"  # Built-in
+        name: "horizon_europe_explained"
+        patterns:
+          - "Horizon Europe"
+          - "current"
+          - "active"
+          - "now"
+          - "2021"
+          - "2027"
+          - "replace"
+          - "succeed"
+          - "successor"
+          - "new"
+          - "latest"
+          - "ongoing"
+          - "open"
+          - "available"
+          - "apply"
+          - "application"
+          - "call"
+          - "funding"
+          - "programme"
+          - "€95"
+          - "billion"
+          - "budget"
+          - "pillar"
+          - "cluster"
+          - "EIC"
+          - "ERC"
+          - "MSCA"
+          - "research"
+          - "innovation"
+
+      # CrossProgrammeAgent: Horizon Europe should be mentioned as the current programme
+      # Note: Use programme key 'horizon_europe' not the display name
+      - type: "programme_mentioned"  # CrossProgrammeAgent
+        name: "horizon_europe_mentioned"
+        programmes:
+          - "horizon_europe"
+
+      # CrossProgrammeAgent: Programme accuracy for Horizon Europe facts
+      - type: "programme_accurate"  # CrossProgrammeAgent
+        name: "horizon_europe_accuracy"
+        programme: "horizon_europe"
+        min_score: 0.5
+
+      # GoalTrackingAgent: Final progress
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "final_progress"
+        min_progress: 0.35
+    delay_ms: 500
+
+final_validations:
+  # GoalTrackingAgent: User should understand programme evolution
+  - type: "goal_achieved"  # GoalTrackingAgent
+    name: "programme_evolution_understood"
+    min_progress: 0.35
+
+  # PersonalizationAgent: Context should be preserved
+  - type: "context_accumulated"  # PersonalizationAgent
+    name: "context_preserved"
+    min_fields: 0
+
+  # ContextValidatorAgent: All messages should be stored correctly
+  - type: "context_integrity"  # ContextValidatorAgent
+    name: "context_integrity_check"
