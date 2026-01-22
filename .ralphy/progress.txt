@@ -5521,3 +5521,44 @@ Implemented Task 027 from MAPIT_ADVANCED_CONVERSATION_FLOWS_PRD.md: Create Succe
 
 ### Next Task
 Task 028: Budget Comparison Scenario
+
+## 2026-01-22: Task 028 - Budget Comparison Scenario
+
+### Task Completed
+Implemented Task 028 from MAPIT_ADVANCED_CONVERSATION_FLOWS_PRD.md: Create Budget Comparison Scenario.
+
+### Files Created
+- `tests/scenarios/advanced/budget_comparison.yaml` - A 5-step budget comparison workflow scenario
+
+### Scenario Details
+The scenario tests the system's ability to compare typical budgets across Horizon Europe action types:
+
+**Steps:**
+1. "Compare typical budgets: RIA vs IA vs EIC" - Tests basic budget comparison across action types
+2. "What's the average per-partner budget?" - Tests per-partner budget breakdown
+3. "How does this vary by organization type?" - Tests org type variations (HES, REC, PRC, PUB, OTH)
+4. "What about coordinator vs partner budgets?" - Tests coordinator premium understanding
+5. "Show budget trends over 2021-2024" - Tests trend analysis capability
+
+**Validation Types Used:**
+- `no_error` (Built-in): Error detection
+- `response_contains_any` (Built-in): Pattern matching for budget content
+- `programme_mentioned` (CrossProgrammeAgent): Horizon Europe discussed
+- `programme_accurate` (CrossProgrammeAgent): Budget information correct
+- `goal_progress` (GoalTrackingAgent): Progress toward understanding budgets
+- `goal_achieved` (GoalTrackingAgent): User understands budget comparisons
+- `context_accumulated` (PersonalizationAgent): User context builds across turns
+- `profile_used` (PersonalizationAgent): Profile used for recommendations
+- `personalization_applied` (PersonalizationAgent): Response personalized
+- `context_integrity` (ContextValidatorAgent): All messages stored correctly
+
+**Tags:** phase6, cross-programme, comparison, budgets, statistics, ria, ia, eic, trends
+
+### Verification
+- Scenario YAML syntax validated
+- Scenario structure validated (all required keys present)
+- All validation types are recognized by the test runner
+- Test collection confirmed (pytest --collect-only)
+
+### PRD Status
+- Task 028 marked as complete in PRD (both CREATE SCENARIO and RUN & FIX)

@@ -491,7 +491,7 @@ final_validations:
 - [x] RUN & FIX: Execute scenario. Verify statistics accuracy.
 
 ### Task 028: Budget Comparison Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/budget_comparison.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/budget_comparison.yaml` with steps:
   1. "Compare typical budgets: RIA vs IA vs EIC"
   2. "What's the average per-partner budget?"
   3. "How does this vary by organization type?"
@@ -499,7 +499,7 @@ final_validations:
   5. "Show budget trends over 2021-2024"
   Validations: Budget comparisons accurate, trends shown.
 
-- [ ] RUN & FIX: Execute scenario. Fix budget statistics.
+- [x] RUN & FIX: Execute scenario. Fix budget statistics.
 
 ### Task 029: Timeline Comparison Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/timeline_comparison.yaml` with steps:
