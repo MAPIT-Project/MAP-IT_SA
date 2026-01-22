@@ -602,7 +602,7 @@ final_validations:
 - [x] RUN & FIX: Execute scenario. Fix consortium eligibility logic.
 
 ### Task 037: Cross-Programme Eligibility Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/cross_programme_eligibility.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/cross_programme_eligibility.yaml` with steps:
   1. "Can we have the same project in Horizon Europe and Erasmus+?"
   2. "What about different components of the same initiative?"
   3. "Are there rules against double funding?"
@@ -610,7 +610,7 @@ final_validations:
   5. "What's the best strategy?"
   Validations: Double funding rules explained, complementary funding strategies suggested.
 
-- [ ] RUN & FIX: Execute scenario. Verify cross-programme rules.
+- [x] RUN & FIX: Execute scenario. Verify cross-programme rules.
 
 ### ==========================================================
 ### PHASE 9: Erasmus+ Specific Flows

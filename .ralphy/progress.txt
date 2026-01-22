@@ -5905,3 +5905,29 @@ phase8, eligibility, consortium, third_country, uk, switzerland, minimum
 
 ### Next Task
 Task 037: Cross-Programme Eligibility Scenario (Phase 8 - Complex Eligibility Scenarios)
+
+## Task 037: Cross-Programme Eligibility Scenario - COMPLETED
+Date: 2026-01-22
+
+### What was done:
+1. Created `tests/scenarios/advanced/cross_programme_eligibility.yaml` with 5 conversation steps:
+   - Turn 1: Ask about same project in Horizon Europe and Erasmus+ (double funding rules)
+   - Turn 2: Ask about different components of same initiative (complementary funding)
+   - Turn 3: Ask about specific double funding rules (EU regulations)
+   - Turn 4: Ask about simultaneous applications (application rules)
+   - Turn 5: Ask about best strategy (strategic advice)
+
+2. Implemented required validation types per PRD:
+   - `eligibility_correct` (CrossProgrammeAgent): Double funding rules accuracy
+   - `programme_mentioned` (CrossProgrammeAgent): Both programmes discussed
+   - `programme_accurate` (CrossProgrammeAgent): Rules for each programme correct
+   - `context_accumulated` (PersonalizationAgent): User context preserved
+   - `goal_achieved` (GoalTrackingAgent): User understands cross-programme rules
+
+3. Fixed programme key issue: Changed "erasmus" to "erasmus_plus" to match the CrossProgrammeAgent's expected keys
+
+4. Test result: PASSED (221.21s)
+
+### Files created/modified:
+- Created: `tests/scenarios/advanced/cross_programme_eligibility.yaml`
+- Modified: `docs/prd/MAPIT_ADVANCED_CONVERSATION_FLOWS_PRD.md` (marked task complete)
