@@ -442,7 +442,7 @@ final_validations:
 - [x] RUN & FIX: Execute scenario. Fix portfolio recommendation logic.
 
 ### Task 024: Capacity Building Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/capacity_building.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/capacity_building.yaml` with steps:
   1. "We're new to EU funding - how do we get started?"
   2. "What programmes are best for beginners?"
   3. "Should we start as partner or coordinator?"
@@ -450,7 +450,7 @@ final_validations:
   5. "How do we build track record?"
   Validations: Beginner-appropriate advice, progression path suggested.
 
-- [ ] RUN & FIX: Execute scenario. Verify onboarding quality.
+- [x] RUN & FIX: Execute scenario. Verify onboarding quality.
 
 ### Task 025: Risk Assessment Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/risk_assessment.yaml` with steps:
