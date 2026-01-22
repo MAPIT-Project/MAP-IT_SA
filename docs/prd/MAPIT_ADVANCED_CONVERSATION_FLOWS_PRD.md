@@ -98,6 +98,34 @@ This mapping ensures scenarios use the correct agent for each validation type:
 
 ## Tasks
 
+### SCENARIO TASK PATTERN
+
+All scenario tasks (006-047) must:
+1. **Use the correct validation types** that leverage the agents, not just `response_contains`
+2. **Include agent-based validations** from this mapping:
+   - Multi-programme scenarios → `programme_mentioned`, `programme_accurate` (CrossProgrammeAgent)
+   - Eligibility scenarios → `eligibility_correct` (CrossProgrammeAgent)
+   - Long conversations → `goal_progress`, `goal_achieved` (GoalTrackingAgent)
+   - Context-building scenarios → `context_accumulated`, `profile_used`, `personalization_applied` (PersonalizationAgent)
+   - All scenarios → `context_integrity` in final_validations (ContextValidatorAgent)
+3. **Specify which agent** handles each validation in comments
+
+Example scenario structure:
+```yaml
+name: "Example Scenario"
+steps:
+  - message: "User query"
+    validations:
+      - type: "programme_mentioned"  # CrossProgrammeAgent
+        programmes: ["Horizon Europe"]
+      - type: "goal_progress"  # GoalTrackingAgent
+        min_progress: 0.2
+final_validations:
+  - type: "context_integrity"  # ContextValidatorAgent
+  - type: "goal_achieved"  # GoalTrackingAgent
+    min_progress: 0.8
+```
+
 ### ==========================================================
 ### PHASE 0: Test Infrastructure Setup
 ### ==========================================================
@@ -171,7 +199,10 @@ This mapping ensures scenarios use the correct agent for each validation type:
   1. "I want to fund research on sustainable packaging materials"
   2. "What about if we want to include training for our staff?"
   3. "And what if we're a creative industry company making documentaries about sustainability?"
-  Validations: All three programmes (Horizon Europe, Erasmus+, Creative Europe) mentioned when relevant.
+  Required validation types:
+  - `programme_mentioned` (CrossProgrammeAgent): Check Horizon Europe, Erasmus+, Creative Europe mentioned
+  - `programme_accurate` (CrossProgrammeAgent): Verify programme facts are correct
+  - `goal_progress` (GoalTrackingAgent): Track progress toward finding right programme
 
 - [ ] RUN & FIX: Execute scenario. Verify cross-programme navigation works.
 
@@ -181,7 +212,11 @@ This mapping ensures scenarios use the correct agent for each validation type:
   2. "What about funding amounts?"
   3. "Which has better success rates?"
   4. "Which should I apply to first?"
-  Validations: Accurate comparison, funding amounts correct, strategic recommendation provided.
+  Required validation types:
+  - `programme_mentioned` (CrossProgrammeAgent): Both programmes discussed
+  - `programme_accurate` (CrossProgrammeAgent): Funding amounts and success rates correct
+  - `response_contains`: Strategic recommendation present
+  - `goal_achieved` (GoalTrackingAgent): User can make informed decision
 
 - [ ] RUN & FIX: Execute scenario. Fix any comparison logic issues.
 
@@ -190,7 +225,11 @@ This mapping ensures scenarios use the correct agent for each validation type:
   1. "I'm a small museum wanting to digitize our collection and share it across Europe"
   2. "We also want to train our staff on digital skills"
   3. "What's the best strategy?"
-  Validations: Recommends Creative Europe Culture + Erasmus+ combination with reasoning.
+  Required validation types:
+  - `programme_mentioned` (CrossProgrammeAgent): Creative Europe and Erasmus+ mentioned
+  - `programme_accurate` (CrossProgrammeAgent): Correct strands/actions recommended
+  - `personalization_applied` (PersonalizationAgent): Recommendation fits museum profile
+  - `goal_achieved` (GoalTrackingAgent): Strategy provided with clear reasoning
 
 - [ ] RUN & FIX: Execute scenario. Verify recommendation logic.
 
@@ -200,7 +239,12 @@ This mapping ensures scenarios use the correct agent for each validation type:
   2. "What about Horizon Europe?"
   3. "And Erasmus+?"
   4. "Creative Europe?"
-  Validations: Correctly identifies eligibility differences across programmes for Associated Countries.
+  Required validation types:
+  - `eligibility_correct` (CrossProgrammeAgent): Switzerland eligibility accurate per programme
+  - `programme_mentioned` (CrossProgrammeAgent): All three programmes addressed
+  - `programme_accurate` (CrossProgrammeAgent): Associated Country rules correct
+  - `context_accumulated` (PersonalizationAgent): Swiss company context preserved
+  - `goal_achieved` (GoalTrackingAgent): User understands eligibility across programmes
 
 - [ ] RUN & FIX: Execute scenario. Verify eligibility rules accurate.
 
@@ -225,7 +269,12 @@ This mapping ensures scenarios use the correct agent for each validation type:
   13. "How should we structure the consortium?"
   14. "What's a typical budget breakdown?"
   15. "Summarize our proposal plan"
-  Validations: Full proposal plan generated, all context preserved, coherent summary.
+  Required validation types:
+  - `goal_progress` (GoalTrackingAgent): Track progress at each step (should increase)
+  - `goal_achieved` (GoalTrackingAgent): Final step achieves proposal plan goal
+  - `context_accumulated` (PersonalizationAgent): Context builds across 15 turns
+  - `context_integrity` (ContextValidatorAgent): All messages stored correctly
+  - `tools_used`: Appropriate tools called (search_funding_calls, calculate_budget, etc.)
 
 - [ ] RUN & FIX: Execute long scenario. Track goal progression.
 
@@ -322,7 +371,11 @@ This mapping ensures scenarios use the correct agent for each validation type:
   3. "We've never coordinated before"
   4. "What calls should we apply to?"
   5. "What about as a partner?"
-  Validations: Recommendations tailored to user profile (small, Portugal, marine, no coord experience).
+  Required validation types:
+  - `context_accumulated` (PersonalizationAgent): Profile builds (org type, country, sector, experience)
+  - `profile_used` (PersonalizationAgent): Final recommendations use accumulated profile
+  - `personalization_applied` (PersonalizationAgent): Response tailored to user context
+  - `goal_progress` (GoalTrackingAgent): Progress toward finding suitable calls
 
 - [ ] RUN & FIX: Execute scenario. Verify context influences recommendations.
 
@@ -518,7 +571,11 @@ This mapping ensures scenarios use the correct agent for each validation type:
   3. "Does it matter if the project involves defense?"
   4. "What about quantum technology?"
   5. "Are there any calls where Turkey can coordinate?"
-  Validations: Associated country rules correct, topic restrictions identified.
+  Required validation types:
+  - `eligibility_correct` (CrossProgrammeAgent): Associated country rules accurate
+  - `programme_accurate` (CrossProgrammeAgent): Topic restrictions correctly identified
+  - `context_accumulated` (PersonalizationAgent): Country context preserved across turns
+  - `goal_achieved` (GoalTrackingAgent): User understands their eligibility options
 
 - [ ] RUN & FIX: Execute scenario. Verify eligibility rule accuracy.
 
@@ -566,7 +623,12 @@ This mapping ensures scenarios use the correct agent for each validation type:
   3. "What about long-term partnerships?"
   4. "We also want to develop new curriculum"
   5. "Which combination works best?"
-  Validations: KA1 for mobility, KA2 for partnerships, combinations explained.
+  Required validation types:
+  - `programme_accurate` (CrossProgrammeAgent): KA1/KA2 correctly explained
+  - `eligibility_correct` (CrossProgrammeAgent): VET sector eligibility accurate
+  - `personalization_applied` (PersonalizationAgent): Recommendations fit VET school profile
+  - `context_accumulated` (PersonalizationAgent): VET school context builds across turns
+  - `goal_achieved` (GoalTrackingAgent): User understands best action combination
 
 - [ ] RUN & FIX: Execute scenario. Verify Erasmus+ action mapping.
 
