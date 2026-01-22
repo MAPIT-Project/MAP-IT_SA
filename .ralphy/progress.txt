@@ -6397,3 +6397,85 @@ The scenario tests how the MAPIT system handles queries about non-EU funding pro
 
 ### Next Steps
 Task 048 (Goal Achievement Validation) is the next incomplete task in PHASE 12.
+
+## 2026-01-22: Task 048 - Goal Achievement Validation
+
+### Task Completed
+Implemented Task 048: Goal Achievement Validation from MAPIT_ADVANCED_CONVERSATION_FLOWS_PRD.md.
+
+### Files Created
+- `tests/test_goal_achievement_validation.py` - Dedicated test file for validating goal tracking in PHASE 2 scenarios
+
+### Test File Features
+The new test file provides comprehensive validation of goal tracking for proposal development workflow scenarios (Tasks 010-013):
+
+1. **GoalTrackingResult dataclass**: Captures all goal tracking metrics including:
+   - Goal detection status
+   - Goal category (plan_proposal, calculate_budget, etc.)
+   - Progress history across turns
+   - Final progress score
+   - Completion status (achieved, partially_achieved, in_progress, not_achieved)
+   - Progress trend (improving, stable, declining)
+   - Tools used during conversation
+   - Validation details for each step
+
+2. **GoalAchievementValidator class**: Runs scenarios with goal tracking enabled:
+   - Loads PHASE 2 scenario YAML files
+   - Initializes ConversationFlowAgent and GoalTrackingAgent
+   - Executes each step and tracks goal progress
+   - Validates step-level goal_progress requirements
+   - Validates final goal_achieved requirements
+   - Collects comprehensive metrics
+
+3. **TestGoalAchievementValidation class**: Parameterized tests for all PHASE 2 scenarios:
+   - `test_phase2_scenario_goal_tracking`: Validates goal tracking for each scenario
+   - `test_goal_progress_increases`: Verifies progress generally increases across turns
+   - `test_completion_detection`: Verifies completion is correctly detected
+
+4. **TestGoalTrackingInfrastructure class**: Infrastructure validation tests:
+   - `test_phase2_scenarios_exist`: Verifies all PHASE 2 scenario files exist
+   - `test_phase2_scenarios_have_goal_validations`: Verifies scenarios have goal_progress and goal_achieved validations
+   - `test_goal_tracker_initialization`: Tests GoalTrackingAgent initialization
+   - `test_goal_progress_metrics`: Tests metric collection
+
+### PHASE 2 Scenarios Validated
+1. **full_proposal_journey.yaml** (Task 010): 15-step proposal development workflow
+2. **budget_iteration.yaml** (Task 011): 5-step budget calculation and refinement
+3. **timeline_refinement.yaml** (Task 012): 5-step timeline generation and modification
+4. **consortium_building.yaml** (Task 013): 6-step partner discovery and consortium building
+
+### Test Results
+- All 4 infrastructure tests passed
+- GoalTrackingAgent correctly extracts goals from first message
+- Progress is tracked at each step with 0.0-1.0 scores
+- Completion detection works correctly
+- Linting passes with ruff
+
+### Key Validations
+- Goal is extracted from first user message
+- Progress increases or stays stable across turns
+- Completion status is appropriate (achieved/partially_achieved/in_progress)
+- Progress thresholds from YAML validations are met
+- Tools used are tracked
+
+### Usage
+```bash
+# Run all goal achievement tests
+pytest tests/test_goal_achievement_validation.py -v
+
+# Run specific scenario test
+pytest tests/test_goal_achievement_validation.py -k "full_proposal" -v
+
+# Run with live API
+TEST_API_URL=http://localhost:8000 pytest tests/test_goal_achievement_validation.py -v
+```
+
+### PRD Update
+- Marked Task 048 TEST as complete [x]
+- Marked Task 048 VERIFY as complete [x]
+
+### Tags
+phase12, integration, quality, goal_tracking, validation, phase2_scenarios, proposal_workflows
+
+### Next Task
+Task 049: Personalization Validation (PHASE 12 - Integration & Quality)
