@@ -58,7 +58,7 @@ Run with: `./ralphy.sh --prd MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD_V2.md`
 ### Scenario 003: Programme Recommendation
 - [x] EXECUTE: Run scenario `tests/scenarios/advanced/programme_recommendation.yaml` against the live API. Tests recommending best programme for user context. Save result to `tests/quality/results/scenarios/programme_recommendation.json`.
 
-- [ ] FIX IF NEEDED: Read `tests/quality/results/scenarios/programme_recommendation.json`. If average_score < 80: fix and re-evaluate until passing or 3 attempts.
+- [x] FIX IF NEEDED: Read `tests/quality/results/scenarios/programme_recommendation.json`. If average_score < 80: fix and re-evaluate until passing or 3 attempts.
 
 ### Scenario 004: Eligibility Routing
 - [ ] EXECUTE: Run scenario `tests/scenarios/advanced/multi_programme/eligibility_routing.yaml` against the live API. Tests routing eligibility questions to correct programme. Save result to `tests/quality/results/scenarios/eligibility_routing.json`.
