@@ -235,7 +235,7 @@ Run with: `./ralphy.sh --prd docs/prd/MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD_V3
 ### ==========================================================
 
 ### Scenario 009: Partner Search Refinement
-- [ ] EXECUTE: Run scenario `tests/scenarios/advanced/partner_discovery/partner_search_refinement.yaml` against the live API. Tests iterative partner search. Save result to `tests/quality/results/scenarios/partner_search_refinement.json`.
+- [x] EXECUTE: Run scenario `tests/scenarios/advanced/partner_discovery/partner_search_refinement.yaml` against the live API. Tests iterative partner search. Save result to `tests/quality/results/scenarios/partner_search_refinement.json`.
 
 - [ ] FIX IF NEEDED: Read `tests/quality/results/scenarios/partner_search_refinement.json`. If average_score < 80:
   1. ONLY modify files in `app/` directory

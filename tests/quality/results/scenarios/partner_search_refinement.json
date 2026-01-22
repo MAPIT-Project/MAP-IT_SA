@@ -1,0 +1,84 @@
+{
+  "scenario_name": "Partner Search Refinement",
+  "turns": [
+    {
+      "turn_number": 0,
+      "query": "Find partners for quantum computing research",
+      "response_text": "Based on my search for information about 'Find partners for quantum computing research', here's what I found:\n\n**Finding 1:**\n## Top Organizations with Experience in 'quantum computing quantum technology quantum algorithms quantum physics'\n\nFound **15 organizations** with relevant track records:\n\n### 1. **FRAUNHOFER GESELLSCHAFT ZUR FORDERUNG DER ANGEWANDTEN FORSCHUNG EV** (DE)\n- **Organization Type**: REC (Research Center)\n- **Relevant Projects**: 257 (coordinated **31** projects)\n- **Total Funding**: \u20ac182,223,714\n- **Example Projects**: 6G-ICARUS (associatedPartner), 6G-TERARIS (associatedPartner), BALSAM (associatedPartner)\n\n### 2. **CENTRE NATIONAL DE LA RECHERCHE SCIENTIFIQUE CNRS** (FR)\n- **Organization Type**: REC (Research Center)\n- **Relevant Projects**: 401 (coordinated **150** projects)\n- **Total Funding**: \u20ac274,442,188\n- **Example Projects**: MuCol (associatedPartner), AURORA (associatedPartner), BIOTIN (associatedPartner)\n\n### 3. **KATHOLIEKE UNIVERSITEIT LEUVEN** (BE)\n- **Organization Type**: HES (Higher Education)\n- **Relevant Projects**: 172 (coordinated **67** projects)\n- **Total Funding**: \u20ac106,097,980\n- **Example Projects**: Changing World (associatedPartner), ECOSPHERE (associatedPartner), CoCoGel (associatedPartner)\n\n### 4. **POLITECNICO DI MILANO** (IT)\n- **Organization Type**: HES (Higher Education)\n- **Relevant Projects**: 152 (coordinated **51** projects)\n- **Total Funding**: \u20ac71,557,063\n- **Example Projects**: SPM4.0 (associatedPartner), Talent4Iberia (associatedPartner), TwinCare-AF (associatedPartner)\n\n### 5. **TEKNOLOGIAN TUTKIMUSKESKUS VTT OY** (FI)\n- **Organization Type**: REC (Research Center)\n- **Relevant Projects**: 106 (coordinated **23** projects)\n- **Total Funding**: \u20ac87,198,403\n- **Example Projects**: CoDeF (associatedPartner), EMByAM (associatedPartner), P4F (associatedPartner)\n\n### 6. **AGENCIA ESTATAL CONSEJO SUPERIOR DE INVESTIGACIONES CIENTIFICAS** (ES)\n- **Organization Type**: REC (Research Center)\n- **Relevant Projects**: 204 (coordinated **71** projects)\n- **Total Funding**: \u20ac89,481,488\n- **Example Projects**: AgrifoodTECH (associatedPartner), SiNanoCrop (associatedPartner), Talent4Iberia (associatedPartner)\n\n### 7. **CONSIGLIO NAZIONALE DELLE RICERCHE** (IT)\n- **Organization Type**: REC (Research Center)\n- **Relevant Projects**: 175 (coordinated **37** projects)\n- **Total Funding**: \u20ac73,773,718\n- **Example Projects**: ACINETWORK (associatedPartner), IQARO (associatedPartner), CanDoIt (associatedPartner)\n\n### 8. **TECHNISCHE UNIVERSITEIT DELFT** (NL)\n- **Organization Type**: HES (Higher Education)\n- **Relevant Projects**: 184 (coordinated **52** projects)\n- **Total Funding**: \u20ac121,790,151\n- **Example Projects**: AERIALIST (associatedPartner), POWER (associatedPartner), SIGSYNCELL (associatedPartner)\n\n### 9. **COMMISSARIAT A L ENERGIE ATOMIQUE ET AUX ENERGIES ALTERNATIVES** (FR)\n- **Organization Type**: REC (Research Center)\n- **Relevant Projects**: 165 (coordinated **41** projects)\n- **Total Funding**: \u20ac184,309,421\n- **Example Projects**: ASYMMETRY (associatedPartner), IDEAL PhD (associatedPartner), PhotoVISTA (associatedPartner)\n\n### 10. **DANMARKS TEKNISKE UNIVERSITET** (DK)\n- **Organization Type**: HES (Higher Education)\n- **Relevant Projects**: 159 (coordinated **62** projects)\n- **Total Funding**: \u20ac119,218,367\n- **Example Projects**: EASYLI (associatedPartner), MICROLIFEPAQS (associatedPartner), OPTICS (associatedPartner)\n\n\n**Top countries for this topic**: IT, FR, BE, NL, DE\n\n---\n\n### How to Verify & Contact Partners\n\n- **CORDIS Database**: Search for specific projects at https://cordis.europa.eu\n- **EU Funding Portal**: https://ec.europa.eu/info/funding-tenders/\n- **Partner Search**: Use the EU Partner Search tool to find and contact organizations\n- **Verify Municipal Networks**: Check organizations' websites for urban/city partnerships, living labs, or pilot site descriptions\n",
+      "tools_used": [
+        "find_experienced_partners"
+      ],
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
+      "passed": true
+    },
+    {
+      "turn_number": 1,
+      "query": "Show only universities",
+      "response_text": "The search result mentions \"HEI\" which stands for Higher Education Institution. Therefore, based on the provided document snippet, the answer is:\n\n**HEI stands for Higher Education Institution, which is a type of university.**\n",
+      "tools_used": [
+        "search_documents"
+      ],
+      "quality_score": 75,
+      "factual_score": 100.0,
+      "failures": [],
+      "passed": false
+    },
+    {
+      "turn_number": 2,
+      "query": "From EU15 countries only",
+      "response_text": "Based on my search for information about 'From EU15 countries only', here's what I found:\n\n**Finding 1:**\nparticipation  subject  to  specific \nconditions), in line with Article 22(5) of the Horizon Europe Regulation. In this case, the \neligible countries will be identified in the specific call conditions. \n\nEU  restrictive  measures  \u2014  Entities  subject  to  EU  restrictive  measures  under  Article \n29  of  the  Treaty  on  the  European  Union  (TEU)  and  Article  215  of  the  Treaty  on  the\n\n**Finding 2:**\nets, interests, autonomy or security reasons, the call conditions restrict \nthe  participation  to  beneficiaries  that  are  established  in  (and  controlled  from)  eligible \ncountries, for example EU Member States only, , only procurers established in (and controlled \nfrom)  EU  Member  States  are  allowed  to  carry  out  the  PCP/PPI  procurement.  Procurers \nestablished  in  (and",
+      "tools_used": [
+        "search_documents"
+      ],
+      "quality_score": 75,
+      "factual_score": 100.0,
+      "failures": [],
+      "passed": false
+    },
+    {
+      "turn_number": 3,
+      "query": "With experience coordinating projects",
+      "response_text": "Okay, based on the provided search result, here's an answer to your question about experience coordinating projects:\n\nThe search result from the \"Programme Guide 2026 En\" document highlights the importance of demonstrating experience in project coordination within project applications. Specifically, it mentions that applications should include:\n\n*   **Profiles (qualifications and experience) of the staff responsible for managing and implementing the project.** This directly relates to showcasing experience coordinating projects. You need to clearly outline the relevant experience of the individuals who will be leading and managing the project.\n*   **Description of the consortium composition (if applicable).** If your project involves a consortium, the experience and qualifications of each participating organization and their staff contribute to the overall strength of the application.\n\nThe document also notes that this information is relevant to the **Quality award criterion** of certain actions. This means that the evaluators will be specifically looking at the experience and qualifications of the project team when assessing the quality of the proposed project.\n\n**In summary, when applying for projects, especially those outlined in the Programme Guide 2026 En, you need to:**\n\n*   **Clearly and comprehensively document the experience of the project team in coordinating similar projects.** This should include specific examples of past projects, roles held, and successful outcomes.\n*   **Highlight the relevant qualifications of the project team members.**\n*   **If applicable, demonstrate the strength and experience of the consortium partners.**\n\nBy doing so, you increase the likelihood of a positive assessment under the Quality award criterion and improve your chances of securing funding or approval for your project.\n",
+      "tools_used": [
+        "search_documents"
+      ],
+      "quality_score": 79,
+      "factual_score": 100.0,
+      "failures": [],
+      "passed": false
+    },
+    {
+      "turn_number": 4,
+      "query": "Who have worked on quantum communication",
+      "response_text": "The provided search results are insufficient to answer the question \"Who have worked on quantum communication?\". The excerpt is from a Horizon Europe work program document and focuses on artificial intelligence and related topics, not quantum communication. It doesn't mention any researchers, projects, or organizations involved in quantum communication.\n\nTo answer your question, I would need search results that specifically mention individuals, research groups, or institutions involved in quantum communication research or development.\n",
+      "tools_used": [
+        "search_documents"
+      ],
+      "quality_score": 75,
+      "factual_score": 100.0,
+      "failures": [],
+      "passed": false
+    }
+  ],
+  "average_score": 77.0,
+  "factual_score": 100.0,
+  "failures": [],
+  "status": "FAIL",
+  "execution_time_ms": 103043.32599999999,
+  "timestamp": "2026-01-22T20:40:37.262514",
+  "metadata": {
+    "scenario_path": "tests/scenarios/advanced/partner_search_refinement.yaml",
+    "tags": [
+      "phase3",
+      "partner-discovery",
+      "filtering",
+      "quantum",
+      "universities",
+      "refinement"
+    ],
+    "description": "A 5-step partner search refinement workflow for quantum computing research.\nTests incremental filter application where each step narrows the search results.\nThe scenario validates that filters accumulate across turns and the system\nremembers previous filter criteria when adding new constraints.\n",
+    "conversation_id": 134478377
+  }
+}
