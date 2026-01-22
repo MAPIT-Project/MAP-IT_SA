@@ -211,7 +211,7 @@ Run with: `./ralphy.sh --prd docs/prd/MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD_V3
 ### Scenario 007: Timeline Refinement
 - [x] EXECUTE: Run scenario `tests/scenarios/advanced/proposal_workflow/timeline_refinement.yaml` against the live API. Tests timeline generation and refinement. Save result to `tests/quality/results/scenarios/timeline_refinement.json`.
 
-- [ ] FIX IF NEEDED: Read `tests/quality/results/scenarios/timeline_refinement.json`. If average_score < 80:
+- [x] FIX IF NEEDED: Read `tests/quality/results/scenarios/timeline_refinement.json`. If average_score < 80:
   1. ONLY modify files in `app/` directory
   2. Common fixes:
      - Timeline generation issues → Fix `app/services/tools/timeline_generator.py`

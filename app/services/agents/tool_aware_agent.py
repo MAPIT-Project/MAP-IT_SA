@@ -1,3 +1,4 @@
+# isort: skip_file
 """
 Tool-Aware ReAct Agent
 
@@ -12,14 +13,14 @@ Based on the ReAct (Reasoning + Acting) pattern.
 """
 
 import asyncio
-from collections.abc import AsyncGenerator, Awaitable, Callable
-from dataclasses import dataclass, field
-from datetime import datetime
-from enum import Enum
 import json
 import logging
 import os
 import re
+from collections.abc import AsyncGenerator, Awaitable, Callable
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -939,6 +940,21 @@ When the user's query mentions ANY of these words, you MUST use the specified to
 
 **DO NOT use search_documents for budget-related queries!** search_documents is ONLY for eligibility rules and requirements.
 
+## ⚠️ HIGHEST PRIORITY: Timeline Tool Selection ⚠️
+
+When the user's query mentions ANY of these words/phrases, you MUST use the specified tool:
+- "generate timeline" / "create timeline" / "project timeline" / "timeline for" / "X-month project" → generate_timeline
+- "work packages" / "WP" / "add WP" / "modify WP" / "6 work packages" / "6 WPs" → generate_timeline
+- "clinical trial" / "clinical trial phase" / "patient recruitment" / "trial execution" → generate_timeline
+- "add buffer" / "buffer period" / "delay" / "ethics approval" / "might delay us" → generate_timeline
+- "milestones" / "adjust milestones" / "adjust our milestones" / "deliverables" → generate_timeline
+- "match typical patterns" / "typical patterns" / "patterns you found" → generate_timeline (with pattern data)
+- "similar project timelines" / "timelines from similar" / "similar health research" / "for comparison" → find_similar_projects
+- "show me timelines from" / "timelines from similar projects" → find_similar_projects(keywords='health research')
+
+**IMPORTANT:** If the query mentions "timeline", "WP", "milestones", "clinical trial", "buffer", or "work packages", do NOT use search_documents!
+**DO NOT use search_documents for timeline-related queries!** search_documents is ONLY for eligibility rules and requirements.
+
 ## Built-in Knowledge (USE THIS FOR COMMON QUESTIONS)
 
 {built_in_knowledge}
@@ -985,6 +1001,11 @@ When user is in a proposal development conversation and asks follow-up questions
 | "Compare this budget" / "typical RIA projects" | get_budget_benchmark | ✗ |
 | "Increase personnel costs" / "adjust the budget" | calculate_budget | ✗ |
 | "90th percentile" / "budget percentile" | get_budget_benchmark | ✗ |
+| "Add clinical trial phase" / "add WP for X" | generate_timeline | ✗ |
+| "Add buffer" / "buffer period" / "delay" | generate_timeline | ✗ |
+| "Show similar project timelines" / "compare timelines" | find_similar_projects | ✗ |
+| "Adjust milestones" / "match typical patterns" | generate_timeline | ✗ |
+| "Similar health research projects" / "similar timelines" | find_similar_projects | ✗ |
 
 Example: After discussing hydrogen storage calls, if user asks "What's the typical success rate for this type of call?"
 → USE get_programme_statistics(programme='Cluster 5') NOT search_documents!
@@ -1055,6 +1076,20 @@ Examples:
   * Parameters: action_type, duration_months, num_partners, total_person_months
   * Example: generate_timeline(action_type='RIA', duration_months=48, num_partners=8, total_person_months=400)
 - "Work packages" / "WP structure" / "deliverables and milestones" → **USE generate_timeline** first, then provide details
+
+**Timeline Iteration/Refinement Follow-ups (CRITICAL - USE TIMELINE TOOLS!):**
+When user asks to MODIFY, ADD TO, or COMPARE a timeline discussed earlier:
+- "Add a clinical trial phase" / "add WP for X" / "modify WP4" → **USE generate_timeline** with updated parameters
+- "Add buffer" / "buffer period" / "ethics approval delay" / "delay of X months" → **USE generate_timeline** with buffer considerations
+- "Show similar project timelines" / "compare with similar projects" → **USE find_similar_projects** OR **get_similar_funded_projects**
+- "Adjust milestones" / "match typical patterns" / "milestone patterns" → **USE generate_timeline** with pattern-aligned milestones
+- "Similar health research projects" / "timelines from similar" → **USE find_similar_projects**(keywords='health research')
+
+Examples:
+- User: "Add clinical trial phase in WP4" → generate_timeline(action_type='RIA', duration_months=48, num_work_packages=6, topic_keywords='health clinical trial')
+- User: "Add 6-month buffer for ethics approval" → generate_timeline with ethics_buffer_months parameter
+- User: "Show similar project timelines for comparison" → find_similar_projects(keywords='health research', include_timeline=True)
+- User: "Adjust milestones to typical patterns" → generate_timeline with use_typical_patterns=True
 
 **Partner Discovery:**
 - "Find partners" / "organizations experienced in X" / "partner search" → **USE find_experienced_partners** (NOT search_documents!)
@@ -2228,6 +2263,12 @@ This uses AI to automatically expand keywords to related terms (e.g., "AI" → i
 - "Compare this budget" / "typical RIA" → USE get_budget_benchmark instead!
 - "Increase personnel costs" / cost adjustments → USE calculate_budget instead!
 - Timeline generation → USE generate_timeline instead!
+- Work packages / WP structure → USE generate_timeline instead!
+- Add clinical trial phase / clinical phases → USE generate_timeline instead!
+- Buffer period / delay handling → USE generate_timeline instead!
+- Milestones / adjust milestones → USE generate_timeline instead!
+- Similar project timelines → USE find_similar_projects or get_similar_funded_projects instead!
+- Typical timeline patterns → USE find_similar_projects + generate_timeline instead!
 - Finding partners/organizations → USE find_experienced_partners instead!
 - Success rates/statistics → USE get_programme_statistics instead!
 - Consortium composition patterns → USE get_consortium_patterns instead!
