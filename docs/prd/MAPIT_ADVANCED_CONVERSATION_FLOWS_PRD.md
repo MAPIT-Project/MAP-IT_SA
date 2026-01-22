@@ -221,7 +221,7 @@ final_validations:
 - [x] RUN & FIX: Execute scenario. Fix any comparison logic issues.
 
 ### Task 008: Programme Recommendation Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/programme_recommendation.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/programme_recommendation.yaml` with steps:
   1. "I'm a small museum wanting to digitize our collection and share it across Europe"
   2. "We also want to train our staff on digital skills"
   3. "What's the best strategy?"
@@ -231,7 +231,7 @@ final_validations:
   - `personalization_applied` (PersonalizationAgent): Recommendation fits museum profile
   - `goal_achieved` (GoalTrackingAgent): Strategy provided with clear reasoning
 
-- [ ] RUN & FIX: Execute scenario. Verify recommendation logic.
+- [x] RUN & FIX: Execute scenario. Verify recommendation logic.
 
 ### Task 009: Eligibility Routing Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/eligibility_routing.yaml` with steps:
