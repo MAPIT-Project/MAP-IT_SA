@@ -135,13 +135,13 @@ final_validations:
 - [x] VERIFY: Directory exists and is ready for scenario YAML files.
 
 ### Task 002: Create Goal Tracking Agent
-- [ ] IMPLEMENT: Create `tests/agents/goal_tracking_agent.py` with:
+- [x] IMPLEMENT: Create `tests/agents/goal_tracking_agent.py` with:
   - Goal extraction from first turn (parse user intent into measurable goal)
   - Progress tracking across turns (0-100% completion estimation)
   - Completion detection (goal achieved / partially achieved / not achieved)
   - Success metrics collection (turns to completion, tools used, context preserved)
   - Integration with existing ConversationFlowAgent.
-- [ ] TEST: Create `tests/test_goal_tracking_agent.py` with unit tests for:
+- [x] TEST: Create `tests/test_goal_tracking_agent.py` with unit tests for:
   - `evaluate_progress(query, response)` → returns 0.0-1.0 progress score
   - `check_completion(conversation)` → returns completion status
   - Agent can be imported and instantiated by test runner.

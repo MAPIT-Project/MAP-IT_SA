@@ -4277,3 +4277,54 @@ Created the `tests/scenarios/advanced/` directory structure for advanced convers
 - Task 001 marked complete [x] for both sub-tasks:
   - CREATE DIRECTORY: tests/scenarios/advanced/
   - VERIFY: Directory exists and ready for YAML files
+
+---
+
+## 2026-01-22: Task 002 - Create Goal Tracking Agent (COMPLETE)
+
+### Task Completed
+Implemented the Goal Tracking Agent for tracking user goal progress across conversation turns.
+
+### Files Created
+1. **`tests/agents/goal_tracking_agent.py`** - Goal Tracking Agent with:
+   - **Goal Extraction**: Extracts user goals from first message, categorizes into 9 goal types:
+     - find_funding, find_projects, understand_programme, check_eligibility
+     - find_partners, calculate_budget, plan_proposal, compare_options, get_statistics
+   - **Progress Tracking**: `evaluate_progress(query, response)` returns 0.0-1.0 score
+     - Rule-based evaluation with completion indicators
+     - LLM-based evaluation when available (Gemini)
+     - Tracks tools used and progress history
+   - **Completion Detection**: `check_completion(conversation)` returns CompletionStatus
+     - status: "achieved", "partially_achieved", "in_progress", "not_achieved"
+     - progress: 0.0 to 1.0
+     - Sub-goal tracking
+   - **Metrics Collection**: `get_metrics()` returns ConversationMetrics
+   - **Validation Helpers**: `validate_goal_progress()`, `validate_goal_achieved()`
+
+2. **`tests/test_goal_tracking_agent.py`** - 34 unit tests covering:
+   - Agent import and instantiation (3 tests)
+   - Goal extraction for all categories (10 tests)
+   - Progress evaluation (6 tests)
+   - Completion detection (5 tests)
+   - Validation helpers (3 tests)
+   - Metrics collection (2 tests)
+   - Agent reset (1 test)
+   - Edge cases (4 tests)
+
+3. **`tests/agents/__init__.py`** - Updated to export GoalTrackingAgent
+
+### Test Results
+- 34 tests passed
+- All linting checks passed (ruff check + ruff format)
+
+### Key Features
+- **Rule-based evaluation** works without LLM for offline testing
+- **Completion indicators** defined per goal category (e.g., "deadline", "budget" for find_funding)
+- **Keyword extraction** for domain-specific terms (horizon europe, erasmus, eic, etc.)
+- **Sub-goal tracking** for compound queries
+- **Progress trend analysis** (improving, stable, declining)
+
+### PRD Update
+- Task 002 IMPLEMENT marked complete [x]
+- Task 002 TEST marked complete [x]
+- Task 002 VERIFY remains pending (requires test runner from Task 005)
