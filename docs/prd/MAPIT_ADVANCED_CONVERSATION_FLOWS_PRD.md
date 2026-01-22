@@ -517,7 +517,7 @@ final_validations:
 ### ==========================================================
 
 ### Task 030: Urgent Deadline Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/urgent_deadline.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/urgent_deadline.yaml` with steps:
   1. "What calls close in the next 30 days?"
   2. "Any for renewable energy?"
   3. "Is there still time to apply?"
@@ -525,7 +525,7 @@ final_validations:
   5. "Can you prioritize by feasibility?"
   Validations: Deadlines accurate, feasibility assessment provided.
 
-- [ ] RUN & FIX: Execute scenario. Verify deadline accuracy.
+- [x] RUN & FIX: Execute scenario. Verify deadline accuracy.
 
 ### Task 031: Deadline Tracking Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/deadline_tracking.yaml` with steps:

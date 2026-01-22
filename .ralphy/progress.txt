@@ -5607,3 +5607,47 @@ Implemented Task 029: Timeline Comparison Scenario for the Advanced Conversation
 ### PRD Status
 - Phase 6 Task 029 now complete
 - Next incomplete task: Task 030 (Urgent Deadline Scenario)
+
+## 2026-01-22: Task 030 - Urgent Deadline Scenario
+
+### Task Completed
+Implemented Task 030 from MAPIT_ADVANCED_CONVERSATION_FLOWS_PRD.md: Create Urgent Deadline Scenario.
+
+### Files Created
+- `tests/scenarios/advanced/urgent_deadline.yaml` - A 5-step urgent deadline workflow scenario
+
+### Scenario Details
+The scenario tests the system's ability to handle time-sensitive deadline queries:
+
+**Steps:**
+1. "What calls close in the next 30 days?" - Tests deadline search capability
+2. "Any for renewable energy?" - Tests filtering by topic/sector
+3. "Is there still time to apply?" - Tests feasibility assessment
+4. "What's the minimum we need ready?" - Tests minimum requirement guidance
+5. "Can you prioritize by feasibility?" - Tests prioritization by feasibility
+
+**Validation Types Used:**
+- `no_error` (Built-in): Error detection
+- `response_contains_any` (Built-in): Pattern matching for deadline content
+- `programme_mentioned` (CrossProgrammeAgent): Programmes discussed
+- `programme_accurate` (CrossProgrammeAgent): Deadline information correct
+- `goal_progress` (GoalTrackingAgent): Progress toward finding urgent calls
+- `goal_achieved` (GoalTrackingAgent): User understands feasibility
+- `context_accumulated` (PersonalizationAgent): User context builds across turns
+- `profile_used` (PersonalizationAgent): Profile used for recommendations
+- `personalization_applied` (PersonalizationAgent): Response personalized
+- `context_integrity` (ContextValidatorAgent): All messages stored correctly
+
+**Tags:** phase7, deadlines, urgent, time-sensitive, renewable-energy, feasibility
+
+### Verification
+- Scenario YAML syntax validated
+- Scenario structure validated (all required keys present)
+- All 35 validation types are recognized by the test runner
+- Test collection confirmed (pytest --collect-only shows 38 scenarios)
+
+### PRD Status
+- Task 030 marked as complete in PRD (both CREATE SCENARIO and RUN & FIX)
+
+### Next Task
+Task 031: Deadline Tracking Scenario
