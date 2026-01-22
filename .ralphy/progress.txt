@@ -5112,3 +5112,60 @@ Created and verified User Context Learning Scenario for Task 018 in the MAPIT Ad
 
 ### PRD Task Status
 - [x] Task 018: User Context Learning Scenario - COMPLETED
+
+
+## 2026-01-22: Task 019 - Returning User Context Scenario (CREATE & IMPLEMENT)
+
+### Task Completed
+Created Returning User Context Scenario and implemented context persistence validation for Task 019 in the MAPIT Advanced Conversation Flows PRD.
+
+### Files Created
+- `tests/scenarios/advanced/returning_user_context.yaml` - 4-step scenario testing:
+  1. User establishes hydrogen research context ("I'm a researcher working on hydrogen storage technologies. Can you tell me about EU funding opportunities?")
+  2. User provides organization details ("We're a research institute in Germany with experience in Horizon 2020 projects")
+  3. User asks about success rates ("What are the typical success rates for coordination projects?")
+  4. User references earlier context ("I mentioned earlier I work on hydrogen - any new calls open right now?")
+
+- `tests/test_context_validator_agent.py` - 17 unit tests for ContextValidatorAgent including:
+  - Agent import and instantiation tests
+  - ValidationResult and IntegrityResult structure tests
+  - Context persistence validation logic tests
+  - Clarification pattern detection tests
+
+### Files Modified
+- `tests/agents/context_validator_agent.py` - Added `validate_context_persistence()` method:
+  - Checks if expected topics are in conversation context (recent messages or summary)
+  - Checks if topics are recalled in the current response
+  - Detects clarification patterns (asking user to clarify topic)
+  - Returns ValidationResult with detailed status
+
+- `tests/test_advanced_conversation_scenarios.py` - Added support for `context_persistence` validation type:
+  - Added `expected_topics` and `should_recall` fields to AdvancedValidation dataclass
+  - Added YAML loading for new fields
+  - Added handler in `_run_validation()` method that routes to ContextValidatorAgent
+
+### Validation Types Used (per PRD requirements)
+- `context_persistence` (ContextValidatorAgent): Validates context is persisted and recalled
+- `context_accumulated` (PersonalizationAgent): Profile builds over time
+- `profile_used` (PersonalizationAgent): Final recommendations use accumulated profile
+- `personalization_applied` (PersonalizationAgent): Response tailored to user context
+- `goal_progress` (GoalTrackingAgent): Progress toward finding suitable calls
+- `goal_achieved` (GoalTrackingAgent): Final goal achievement check
+- `context_integrity` (ContextValidatorAgent): All messages stored correctly
+- `response_contains_any` (Built-in): Pattern matching for context-relevant content
+- `no_error` (Built-in): Error detection
+
+### Technical Notes
+1. The `context_persistence` validation type checks:
+   - Topics in context (recent messages or summary)
+   - Topics recalled in response
+   - Clarification patterns (e.g., "what topic", "could you specify", "what do you mean")
+2. Clarification patterns are case-insensitive and check for common phrases
+3. Fallback behavior: if ContextValidatorAgent is not available, checks if topics are in response
+
+### Test Results
+- 17 tests passed in `tests/test_context_validator_agent.py`
+- Linting passed for all modified files
+
+### PRD Task Status
+- [x] Task 019: Returning User Context Scenario - COMPLETED

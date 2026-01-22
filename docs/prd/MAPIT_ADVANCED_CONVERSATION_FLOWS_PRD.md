@@ -380,12 +380,12 @@ final_validations:
 - [x] RUN & FIX: Execute scenario. Verify context influences recommendations.
 
 ### Task 019: Returning User Context Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/returning_user_context.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/returning_user_context.yaml` with steps:
   1. User says: "I mentioned earlier I work on hydrogen - any new calls?"
   (Simulate conversation history with hydrogen context)
   Validations: System recalls context, doesn't ask for topic again.
 
-- [ ] IMPLEMENT: Add context persistence validation to `ContextValidatorAgent`.
+- [x] IMPLEMENT: Add context persistence validation to `ContextValidatorAgent`.
 
 ### Task 020: Progressive Profile Building Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/progressive_profile.yaml` with 12+ turns:

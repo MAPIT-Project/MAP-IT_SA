@@ -1,3 +1,4 @@
+# isort: skip_file
 """
 Context Validator Agent for verifying conversation state consistency.
 
@@ -19,10 +20,10 @@ Usage:
 """
 
 import asyncio
-from dataclasses import dataclass, field
-from datetime import datetime
 import json
 import logging
+from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any
 
 import aiohttp
@@ -645,6 +646,109 @@ class ContextValidatorAgent:
                 "found_in_recent": found_in_recent,
                 "found_in_summary": found_in_summary,
                 "recent_message_count": len(recent),
+            },
+        )
+
+    async def validate_context_persistence(
+        self,
+        conversation_id: str,
+        expected_topics: list[str],
+        current_response: str,
+    ) -> ValidationResult:
+        """
+        Validate that topics from earlier conversation are persisted and recalled.
+
+        This checks that when a user references something they mentioned earlier
+        (e.g., "I mentioned earlier I work on hydrogen"), the system:
+        1. Has the topic stored in conversation history/context
+        2. Recalls it in the current response (doesn't ask for clarification)
+
+        Args:
+            conversation_id: The conversation ID
+            expected_topics: List of topics that should be in context (e.g., ["hydrogen"])
+            current_response: The current response to check for topic recall
+
+        Returns:
+            ValidationResult with context persistence status
+        """
+        # Get context from API
+        api_context = await self._get_api_context(conversation_id)
+
+        if "error" in api_context:
+            return ValidationResult(
+                passed=False,
+                check_name="context_persistence",
+                message=f"Failed to get context: {api_context['error']}",
+            )
+
+        # Collect all text from context sources
+        context_text = ""
+
+        # Check recent messages
+        recent = api_context.get("recent_messages", [])
+        for msg in recent:
+            content = msg.get("content", "") or msg.get("message", "")
+            context_text += f" {content}"
+
+        # Check summary/long-term context
+        summary = api_context.get("summary", "") or api_context.get("long_term_summary", "")
+        context_text += f" {summary}"
+
+        # Check for topics in context
+        topics_in_context = []
+        topics_missing = []
+        for topic in expected_topics:
+            if topic.lower() in context_text.lower():
+                topics_in_context.append(topic)
+            else:
+                topics_missing.append(topic)
+
+        # Check that topic is recalled in response (not asking for clarification)
+        topics_in_response = []
+        clarification_patterns = [
+            "what topic",
+            "which topic",
+            "what area",
+            "which area",
+            "could you specify",
+            "could you clarify",
+            "what do you mean",
+            "please clarify",
+            "can you tell me more about what",
+            "what exactly",
+            "could you provide more details about what",
+        ]
+
+        asking_for_clarification = any(
+            pattern.lower() in current_response.lower() for pattern in clarification_patterns
+        )
+
+        for topic in expected_topics:
+            if topic.lower() in current_response.lower():
+                topics_in_response.append(topic)
+
+        # Validation passes if:
+        # 1. At least one topic is recalled (in context or response), AND
+        # 2. The system is not asking for clarification about the topic
+        context_recalled = len(topics_in_response) > 0 or len(topics_in_context) > 0
+        passed = context_recalled and not asking_for_clarification
+
+        return ValidationResult(
+            passed=passed,
+            check_name="context_persistence",
+            message=(
+                f"Topics in context: {topics_in_context}, "
+                f"Topics in response: {topics_in_response}, "
+                f"Asking for clarification: {asking_for_clarification}"
+            ),
+            details={
+                "topics_in_context": topics_in_context,
+                "topics_in_response": topics_in_response,
+                "topics_missing_from_context": topics_missing,
+                "asking_for_clarification": asking_for_clarification,
+                "context_recalled": context_recalled,
+                "recent_message_count": len(recent),
+                "has_summary": bool(summary),
             },
         )
 

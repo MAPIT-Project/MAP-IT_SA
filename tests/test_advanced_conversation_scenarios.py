@@ -81,6 +81,9 @@ class AdvancedValidation:
     programmes: list[str] = field(default_factory=list)
     programme: str = ""
     country: str = ""
+    # Context persistence
+    expected_topics: list[str] = field(default_factory=list)
+    should_recall: bool = True
     # General
     description: str = ""
     count: int = 0
@@ -131,6 +134,8 @@ class AdvancedScenario:
                         programmes=v.get("programmes", []),
                         programme=v.get("programme", ""),
                         country=v.get("country", ""),
+                        expected_topics=v.get("expected_topics", []),
+                        should_recall=v.get("should_recall", True),
                         description=v.get("description", ""),
                         count=v.get("count", 0),
                         from_turn=v.get("from_turn", 0),
@@ -158,6 +163,8 @@ class AdvancedScenario:
                     programmes=v.get("programmes", []),
                     programme=v.get("programme", ""),
                     country=v.get("country", ""),
+                    expected_topics=v.get("expected_topics", []),
+                    should_recall=v.get("should_recall", True),
                     description=v.get("description", ""),
                 )
             )
@@ -548,6 +555,29 @@ class AdvancedScenarioRunner:
                 message = f"Context integrity: consistent={result.is_consistent}"
                 return passed, message
             return True, "Context validator not available"
+
+        if v_type == "context_persistence":
+            if self.context_validator and self.conversation_agent:
+                result = await self.context_validator.validate_context_persistence(
+                    self.conversation_agent.conversation_id,
+                    validation.expected_topics,
+                    turn.response_text,
+                )
+                passed = result.passed
+                message = result.message
+                return passed, message
+            # Without context validator, check response contains topics
+            if validation.expected_topics:
+                passed = any(
+                    topic.lower() in turn.response_text.lower()
+                    for topic in validation.expected_topics
+                )
+                message = (
+                    f"Topics {'found' if passed else 'not found'} in response: "
+                    f"{validation.expected_topics}"
+                )
+                return passed, message
+            return True, "Context validator not available, no topics specified"
 
         # Unknown validation type - pass by default
         logger.warning(f"Unknown validation type: {v_type}")
