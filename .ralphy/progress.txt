@@ -8250,3 +8250,40 @@ Full Proposal Journey is a 15-turn critical scenario testing complete proposal d
   - Low actionability → Edit app/services/agents/tool_aware_agent.py prompt
   - Tool failures → Fix specific tool in app/services/tools/
   - Poor synthesis → Improve context usage in tool_aware_agent.py
+
+## 2026-01-22 Session - Scenario 005 FIX IF NEEDED
+
+### Task: Scenario 005: Full Proposal Journey FIX IF NEEDED
+- **Status**: MAX_ATTEMPTS (3 fix attempts made)
+- **Initial Score**: 79.0/100
+- **Final Score**: 78.47/100
+- **Pass Threshold**: 80/100
+
+### Fix Attempts:
+1. **Attempt 1**: Added "CRITICAL: Proposal Planning Tools" section to system prompt with table showing correct tool for each query type. Score: 79.27
+2. **Attempt 2**: Updated tool descriptions for calculate_budget, generate_timeline, find_experienced_partners, get_programme_statistics to be more prominent. Added "DO NOT USE" guidance to search_documents. Score: 78.73
+3. **Attempt 3**: Added "CRITICAL: Proposal Planning Follow-ups" section with table showing correct tools for follow-up questions. Score: 78.47
+
+### Files Modified (app/ only):
+- `app/services/agents/tool_aware_agent.py`:
+  - Added CRITICAL: Proposal Planning Tools section (lines 999-1027)
+  - Updated search_documents tool description with DO NOT USE guidance
+  - Updated calculate_budget tool description with USE THIS WHEN guidance
+  - Updated generate_timeline tool description with USE THIS WHEN guidance
+  - Updated find_experienced_partners tool description with USE THIS WHEN guidance
+  - Updated get_programme_statistics tool description with USE THIS WHEN guidance
+  - Added CRITICAL: Proposal Planning Follow-ups section with tool mapping table
+
+### Root Cause Analysis:
+- The LLM consistently chooses `search_documents` over specialized tools (calculate_budget, generate_timeline, find_experienced_partners) despite extensive prompt engineering
+- The agent correctly uses specialized tools on Turn 0 (initial query) but defaults to search_documents for follow-up queries
+- This appears to be a model behavior pattern that cannot be easily fixed via prompts alone
+
+### Recommendations for Future Investigation:
+1. Tool routing logic in agent (may need programmatic enforcement)
+2. Context window impact on tool selection (long context may overwhelm tool guidance)
+3. Consider alternative LLM or fine-tuning for better tool following
+
+### Updated Files:
+- `tests/quality/results/scenarios/full_proposal_journey.json` - Updated with fix_history and MAX_ATTEMPTS status
+- `docs/prd/MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD_V3.md` - Marked FIX IF NEEDED task as complete

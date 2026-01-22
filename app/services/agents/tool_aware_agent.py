@@ -959,6 +959,23 @@ When user asks to broaden scope after a funding/history analysis (e.g., "what ab
 - The user wants the SAME type of analysis (funding evolution, trends) but for a BROADER set of projects
 - Example: "AI funding evolution" → user asks "what about projects using AI" → re-run analyze_call_history(keywords='AI', expand_scope=True)
 
+**CRITICAL: Proposal Planning Follow-ups - USE SPECIALIZED TOOLS NOT search_documents!**
+When user is in a proposal development conversation and asks follow-up questions, use SPECIALIZED TOOLS:
+
+| User Question | CORRECT Tool | NOT search_documents |
+|---------------|--------------|----------------------|
+| "What's the success rate?" | get_programme_statistics | ✗ |
+| "Help me plan the budget" / "budget for X million" | calculate_budget | ✗ |
+| "Generate a timeline" / "timeline for X months" | generate_timeline | ✗ |
+| "Find partners" / "organizations experienced in X" | find_experienced_partners | ✗ |
+| "What work packages should we have?" | generate_timeline | ✗ |
+| "What deliverables/milestones?" | generate_timeline | ✗ |
+| "How should we structure our consortium?" | get_consortium_patterns | ✗ |
+| "Typical budget breakdown" | get_budget_benchmark | ✗ |
+
+Example: After discussing hydrogen storage calls, if user asks "What's the typical success rate for this type of call?"
+→ USE get_programme_statistics(programme='Cluster 5') NOT search_documents!
+
 ## Your Task
 
 1. **UNDERSTAND**: What does the user actually want?
@@ -996,6 +1013,35 @@ When user asks to broaden scope after a funding/history analysis (e.g., "what ab
    - For **general eligibility rules** (not country-specific) → use search_documents (use SPECIFIC queries like "consortium eligibility", NOT the full user message)
    - For comparing things → use compare_programmes
    - For **context-building statements** (NO explicit question) → Handle PROACTIVELY with a helpful response!
+
+## CRITICAL: Proposal Planning Tools (MANDATORY - USE THESE INSTEAD OF search_documents!)
+
+When helping users PLAN their proposal, you MUST use the specialized proposal planning tools - NOT search_documents:
+
+**Budget Planning:**
+- "Help me plan a budget" / "calculate budget" / "budget breakdown" / "budget for X million" → **USE calculate_budget** (NOT search_documents!)
+  * Parameters: action_type (RIA/IA/CSA/ERC), duration_months, num_partners, target_budget
+  * Example: calculate_budget(action_type='RIA', duration_months=48, num_partners=8, target_budget=4000000)
+- "What's typical budget" / "budget benchmarks" / "similar project budgets" → **USE get_budget_benchmark**
+
+**Timeline & Work Packages:**
+- "Generate a timeline" / "timeline for X months" / "project timeline" → **USE generate_timeline** (NOT search_documents!)
+  * Parameters: action_type, duration_months, num_partners, total_person_months
+  * Example: generate_timeline(action_type='RIA', duration_months=48, num_partners=8, total_person_months=400)
+- "Work packages" / "WP structure" / "deliverables and milestones" → **USE generate_timeline** first, then provide details
+
+**Partner Discovery:**
+- "Find partners" / "organizations experienced in X" / "partner search" → **USE find_experienced_partners** (NOT search_documents!)
+  * Parameters: topic_keywords (required!), country, organization_type
+  * Example: find_experienced_partners(topic_keywords='hydrogen storage technology', organization_type='research')
+- "Consortium composition" / "ideal partners" / "partner types" → **USE get_consortium_patterns**
+
+**Statistics & Success Rates:**
+- "Success rate" / "typical success rate" / "what's the success rate" → **USE get_programme_statistics** (NOT search_documents!)
+  * Parameters: programme (e.g., 'Cluster 5', 'EIC', 'ERC')
+  * Example: get_programme_statistics(programme='Cluster 5', metric='success_rate')
+
+**REMEMBER: search_documents is for finding RULES and REQUIREMENTS in official documents, NOT for planning/calculations!**
 
 ## CRITICAL: Handling Context-Building Messages (MANDATORY)
 
@@ -1911,7 +1957,17 @@ What is your next step? Remember: Output ONLY JSON."""
         self.register_tool(
             Tool(
                 name="get_programme_statistics",
-                description="Get success rates, funding amounts, and participation statistics for a specific programme or cluster",
+                description="""**STATISTICS TOOL** - Get success rates, funding amounts, participation data.
+
+**USE THIS WHEN USER ASKS:**
+- "What's the success rate?" / "success rate for X"
+- "How competitive is this call/programme?"
+- "Average funding for X" / "typical budget"
+- "How many projects were funded?"
+
+Returns: Success rates, average funding, participation statistics from real data.
+
+**DO NOT use search_documents for statistics - use this tool instead!**""",
                 category=ToolCategory.STATISTICS,
                 parameters={
                     "programme": "Programme name (e.g., 'EIC', 'ERC', 'MSCA', 'Cluster 5')",
@@ -2026,7 +2082,17 @@ Default country groups:
         self.register_tool(
             Tool(
                 name="find_experienced_partners",
-                description="Find organizations with proven track records in Horizon Europe and/or Horizon 2020 projects. Returns organizations ranked by relevant projects, coordination experience, and funding received. Supports filtering by programme (HORIZON, H2020, or both).",
+                description="""**PARTNER DISCOVERY TOOL** - Find organizations with proven EU funding track records.
+
+**USE THIS WHEN USER ASKS:**
+- "Find partners" / "find organizations" / "partner search"
+- "Organizations experienced in X" / "who has experience in X"
+- "Find consortium partners" / "potential partners"
+- "Companies/universities working on X"
+
+Returns: Organizations with their project count, funding received, coordination experience.
+
+**DO NOT use search_documents for finding partners - use this tool instead!**""",
                 category=ToolCategory.PROJECTS,
                 parameters={
                     "topic_keywords": "Required: Keywords describing the research area (e.g., 'quantum computing')",
@@ -2125,7 +2191,20 @@ This uses AI to automatically expand keywords to related terms (e.g., "AI" → i
         self.register_tool(
             Tool(
                 name="search_documents",
-                description="Search official EU documents for specific information (rules, eligibility, requirements)",
+                description="""Search official EU documents for RULES, ELIGIBILITY, and REQUIREMENTS only.
+
+**DO NOT USE THIS TOOL FOR:**
+- Budget planning/calculation → USE calculate_budget instead!
+- Timeline generation → USE generate_timeline instead!
+- Finding partners/organizations → USE find_experienced_partners instead!
+- Success rates/statistics → USE get_programme_statistics instead!
+- Consortium composition patterns → USE get_consortium_patterns instead!
+
+**USE THIS TOOL ONLY FOR:**
+- Eligibility rules ("What are the eligibility rules for RIA?")
+- Submission requirements ("What documents do I need to submit?")
+- Evaluation criteria ("What are the evaluation criteria?")
+- Official EU regulations and guidance documents""",
                 category=ToolCategory.DOCUMENTS,
                 parameters={
                     "query": "Search query",
@@ -2290,7 +2369,16 @@ This is the PRIMARY tool for finding projects by topic.""",
         self.register_tool(
             Tool(
                 name="calculate_budget",
-                description="Calculate realistic budget breakdown for a Horizon Europe proposal. Returns cost categories (personnel, equipment, travel, etc.), per-partner distribution, and benchmarks.",
+                description="""**PROPOSAL PLANNING TOOL** - Calculate budget breakdown for a Horizon Europe proposal.
+
+**USE THIS WHEN USER ASKS:**
+- "Help me plan the budget" / "calculate budget" / "budget breakdown"
+- "Budget for X million project" / "X year project budget"
+- "How should I allocate my budget?"
+
+Returns: Personnel costs, equipment, travel, subcontracting, indirect costs, per-partner distribution.
+
+**DO NOT use search_documents for budget planning - use this tool instead!**""",
                 category=ToolCategory.STATISTICS,
                 parameters={
                     "action_type": "Required: Action type (RIA, IA, CSA, ERC-STG, ERC-COG, ERC-ADG)",
@@ -2312,7 +2400,17 @@ This is the PRIMARY tool for finding projects by topic.""",
         self.register_tool(
             Tool(
                 name="generate_timeline",
-                description="Generate a project timeline with work packages, deliverables, and milestones for a Horizon Europe proposal. Based on best practices from funded projects.",
+                description="""**PROPOSAL PLANNING TOOL** - Generate project timeline with work packages, deliverables, milestones.
+
+**USE THIS WHEN USER ASKS:**
+- "Generate a timeline" / "project timeline" / "timeline for X months"
+- "Work packages" / "WP structure" / "how many work packages"
+- "What deliverables should we have?" / "milestones"
+- "48-month project with 6 work packages"
+
+Returns: Work package structure, deliverables with due dates, milestones, Gantt chart structure.
+
+**DO NOT use search_documents for timeline planning - use this tool instead!**""",
                 category=ToolCategory.STATISTICS,
                 parameters={
                     "action_type": "Required: Action type (RIA, IA, CSA, ERC)",
