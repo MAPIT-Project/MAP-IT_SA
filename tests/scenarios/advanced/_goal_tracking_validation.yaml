@@ -1,0 +1,49 @@
+# Goal Tracking Validation Scenario
+# This scenario verifies that goal_progress and goal_achieved validation types work correctly.
+# Used by Task 002 VERIFY step to confirm GoalTrackingAgent integration.
+
+name: "Goal Tracking Validation"
+description: "Verifies goal_progress and goal_achieved validation types work with GoalTrackingAgent"
+tags: ["phase0", "infrastructure", "goal-tracking", "validation-test"]
+stop_on_error: true
+
+# User's goal: Find funding calls for hydrogen research
+# The conversation should show progress toward this goal over multiple turns
+
+steps:
+  # Turn 1: Initial goal statement
+  - message: "Find funding calls for hydrogen research"
+    validations:
+      - type: "no_error"
+        name: "no_errors_turn1"
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "initial_progress"
+        min_progress: 0.1  # Some progress expected after first response
+    delay_ms: 0
+
+  # Turn 2: Follow-up for more details
+  - message: "Tell me more about the deadlines and budgets"
+    validations:
+      - type: "no_error"
+        name: "no_errors_turn2"
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "progress_after_details"
+        min_progress: 0.3  # More progress with detailed information
+    delay_ms: 500
+
+  # Turn 3: Narrowing down options
+  - message: "Which call has the highest budget?"
+    validations:
+      - type: "no_error"
+        name: "no_errors_turn3"
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "progress_near_completion"
+        min_progress: 0.5  # Good progress toward goal
+    delay_ms: 500
+
+final_validations:
+  - type: "goal_achieved"  # GoalTrackingAgent
+    name: "goal_complete"
+    min_progress: 0.6  # Goal should be mostly achieved
+  - type: "context_integrity"  # ContextValidatorAgent
+    name: "context_preserved"

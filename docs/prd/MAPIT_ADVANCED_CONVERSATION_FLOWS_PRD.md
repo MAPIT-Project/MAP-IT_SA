@@ -145,7 +145,7 @@ final_validations:
   - `evaluate_progress(query, response)` → returns 0.0-1.0 progress score
   - `check_completion(conversation)` → returns completion status
   - Agent can be imported and instantiated by test runner.
-- [ ] VERIFY: Validation types `goal_progress` and `goal_achieved` work in a sample scenario.
+- [x] VERIFY: Validation types `goal_progress` and `goal_achieved` work in a sample scenario.
 
 ### Task 003: Create Personalization Agent
 - [ ] IMPLEMENT: Create `tests/agents/personalization_agent.py` with:
