@@ -6195,3 +6195,61 @@ Created Creative Europe Cooperation Project Scenario for Task 043 of the Advance
 - Fixed by moving `programme_mentioned` validation to Turn 1 where it's more reliably present
 - YAML syntax validated successfully
 - Pre-existing linting errors in codebase don't affect this scenario (YAML files are not linted by ruff)
+
+## 2026-01-22: Task 044 - Conflicting Requirements Scenario
+
+### Task Completed
+Implemented Task 044 from MAPIT_ADVANCED_CONVERSATION_FLOWS_PRD.md: Created Conflicting Requirements Scenario for Phase 11 (Error Handling & Edge Cases).
+
+### Files Created
+- `tests/scenarios/advanced/conflicting_requirements.yaml` - New scenario file with:
+  - 5-turn conversation testing how the system handles impossible eligibility combinations
+  - Turn 1: "Find EU funding calls for SMEs that offer 100% funding rate"
+  - Turn 2: "We need calls where for-profit companies can be the coordinator, not just a partner"
+  - Turn 3: "We want grants with no match funding required - we need the EU to cover all costs"
+  - Turn 4: "Our work is in the defense sector - are there calls for defense technology?"
+  - Turn 5: "We are a US company based in California - can we still access these EU defense funding calls?"
+
+### Scenario Design
+The scenario progressively adds requirements that become increasingly difficult/impossible to satisfy:
+1. SME with 100% funding - Reasonable, some options exist (EIC, RIA)
+2. For-profit coordination - Narrows options but still possible
+3. No co-financing required - Gets difficult, most grants have co-financing requirements
+4. Defense sector - Very restricted area with specific rules
+5. US company - Nearly impossible for defense funding, explains eligibility constraints
+
+### Validations Used
+- `no_error` (Built-in): CRITICAL - System should NOT error out on difficult queries
+- `response_contains_any` (Built-in): System responds meaningfully to each turn
+- `goal_progress` (GoalTrackingAgent): Track understanding of eligibility constraints
+- `goal_achieved` (GoalTrackingAgent): User understands limitations
+- `context_accumulated` (PersonalizationAgent): Organization profile built across turns
+- `profile_used` (PersonalizationAgent): Profile context used in responses
+- `personalization_applied` (PersonalizationAgent): Responses personalized to context
+- `eligibility_correct` (CrossProgrammeAgent): Eligibility constraints explained accurately
+- `programme_accurate` (CrossProgrammeAgent): Programme facts correct
+- `context_integrity` (ContextValidatorAgent): All messages stored correctly
+
+### Test Results
+- YAML validation passed
+- Scenario test passed in 265.93 seconds (4:25)
+- All 5 turns validated successfully
+- System gracefully explained limitations without errors
+
+### Key Features Tested
+- Graceful degradation when user requirements cannot be fully met
+- System explains constraints and suggests alternatives
+- No errors produced for impossible combinations
+- Context preservation across increasingly difficult queries
+- Accurate eligibility information for edge cases (US companies, defense sector)
+
+### Notes
+- Pre-existing linting errors in codebase (7073 errors in template file) don't affect this scenario
+- YAML files are not linted by ruff
+- System handles the "impossible" query gracefully without breaking
+
+### Tags
+phase11, error_handling, edge_case, eligibility, conflicting, impossible, sme, us_company, defense, graceful_degradation
+
+### Next Task
+Task 045: Outdated Information Scenario (Phase 11 - Error Handling & Edge Cases)

@@ -696,7 +696,7 @@ final_validations:
 ### ==========================================================
 
 ### Task 044: Conflicting Requirements Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/conflicting_requirements.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/conflicting_requirements.yaml` with steps:
   1. "Find calls for SMEs with 100% funding"
   2. "That allow for-profit companies to coordinate"
   3. "With no match funding required"
@@ -704,7 +704,7 @@ final_validations:
   5. "For a US company"
   Validations: System explains impossibilities gracefully, suggests alternatives.
 
-- [ ] RUN & FIX: Execute scenario. Fix conflict handling.
+- [x] RUN & FIX: Execute scenario. Fix conflict handling.
 
 ### Task 045: Outdated Information Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/outdated_information.yaml` with steps:

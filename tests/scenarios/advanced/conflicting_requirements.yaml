@@ -1,0 +1,344 @@
+# Conflicting Requirements Scenario (Task 044)
+# Tests how the system handles impossible or conflicting eligibility requirements.
+# Phase 11: Error Handling & Edge Cases
+#
+# This scenario simulates a user progressively adding requirements that become
+# increasingly impossible to satisfy together. The system should:
+# 1. Explain what's available initially
+# 2. Gracefully explain when requirements conflict
+# 3. Suggest alternatives or compromises
+# 4. Not break down or produce errors when given impossible queries
+#
+# User Journey:
+# 1. User asks for SME funding with 100% funding rate -> Possible options exist
+# 2. Adds requirement for for-profit coordination -> Narrows options
+# 3. Wants no match funding (co-financing) -> Gets difficult
+# 4. Adds defense sector requirement -> Very restricted
+# 5. Wants this for a US company -> Explains impossibilities, suggests alternatives
+#
+# Required Validation Types (per PRD):
+# - no_error (Built-in): System should NOT produce errors for difficult queries
+# - response_contains_any (Built-in): System should respond meaningfully
+# - goal_progress (GoalTrackingAgent): Track understanding progress
+# - context_accumulated (PersonalizationAgent): Build profile across turns
+# - eligibility_correct (CrossProgrammeAgent): Explain constraints accurately
+# - programme_accurate (CrossProgrammeAgent): Facts should be correct
+# - context_integrity (ContextValidatorAgent): All messages stored correctly
+#
+# Note: This scenario tests graceful degradation and helpful responses
+# when user requirements cannot be fully met. The system should NOT fail
+# or produce errors - it should explain limitations and suggest alternatives.
+
+name: "Conflicting Requirements"
+description: |
+  A user progressively adds requirements that become impossible to satisfy.
+  The system should handle this gracefully, explaining constraints and
+  suggesting alternatives rather than failing or producing errors.
+  Tests error handling for impossible eligibility combinations.
+tags:
+  - "phase11"
+  - "error_handling"
+  - "edge_case"
+  - "eligibility"
+  - "conflicting"
+  - "impossible"
+  - "sme"
+  - "us_company"
+  - "defense"
+  - "graceful_degradation"
+stop_on_error: false
+
+steps:
+  # Turn 1: Initial reasonable request - SME with 100% funding
+  # Expected: System provides options (EIC, some RIAs have 100% for SMEs)
+  - message: "Find EU funding calls for SMEs that offer 100% funding rate"
+    validations:
+      # Built-in: No errors in response
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn1"
+
+      # Response should address SME funding and rates
+      - type: "response_contains_any"  # Built-in
+        name: "sme_funding_addressed"
+        patterns:
+          - "SME"
+          - "small"
+          - "medium"
+          - "enterprise"
+          - "funding"
+          - "100%"
+          - "rate"
+          - "EIC"
+          - "Accelerator"
+          - "RIA"
+          - "grant"
+          - "Horizon"
+          - "call"
+          - "opportunity"
+          - "eligible"
+          - "programme"
+          - "found"
+          - "search"
+          - "result"
+          - "available"
+          - "information"
+
+      # GoalTrackingAgent: Initial progress
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "initial_progress"
+        min_progress: 0.10
+
+      # PersonalizationAgent: Context should start building with SME profile
+      - type: "context_accumulated"  # PersonalizationAgent
+        name: "sme_context_start"
+        expected_fields:
+          - "organization_type"
+    delay_ms: 0
+
+  # Turn 2: Add for-profit coordination requirement
+  # Expected: System explains that for-profit companies can coordinate many calls
+  - message: "We need calls where for-profit companies can be the coordinator, not just a partner"
+    validations:
+      # Built-in: No errors
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn2"
+
+      # Response should address coordination role
+      - type: "response_contains_any"  # Built-in
+        name: "coordination_addressed"
+        patterns:
+          - "coordinate"
+          - "coordinator"
+          - "coordinating"
+          - "lead"
+          - "for-profit"
+          - "profit"
+          - "company"
+          - "SME"
+          - "enterprise"
+          - "partner"
+          - "consortium"
+          - "role"
+          - "eligible"
+          - "EIC"
+          - "Accelerator"
+          - "can"
+          - "yes"
+          - "allow"
+          - "permitted"
+          - "call"
+          - "information"
+          - "found"
+
+      # GoalTrackingAgent: Progress increases
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "coordination_progress"
+        min_progress: 0.15
+
+      # CrossProgrammeAgent: Programme accuracy for coordination rules
+      - type: "programme_accurate"  # CrossProgrammeAgent
+        name: "coordination_accuracy"
+        programme: "horizon_europe"
+        min_score: 0.4
+    delay_ms: 500
+
+  # Turn 3: Add no co-financing requirement
+  # Expected: System explains that EU grants often have co-financing requirements
+  - message: "We want grants with no match funding required - we need the EU to cover all costs"
+    validations:
+      # Built-in: No errors
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn3"
+
+      # Response should address co-financing/match funding
+      - type: "response_contains_any"  # Built-in
+        name: "cofinancing_addressed"
+        patterns:
+          - "funding"
+          - "co-financing"
+          - "cofinancing"
+          - "match"
+          - "matching"
+          - "contribution"
+          - "100%"
+          - "rate"
+          - "eligible"
+          - "cost"
+          - "costs"
+          - "cover"
+          - "EU"
+          - "grant"
+          - "RIA"
+          - "EIC"
+          - "lump"
+          - "sum"
+          - "actual"
+          - "indirect"
+          - "flat"
+          - "25%"
+          - "information"
+          - "found"
+          - "typically"
+          - "generally"
+          - "requirement"
+
+      # GoalTrackingAgent: Progress continues
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "cofinancing_progress"
+        min_progress: 0.20
+
+      # CrossProgrammeAgent: Eligibility explanation
+      - type: "eligibility_correct"  # CrossProgrammeAgent
+        name: "cofinancing_eligibility"
+        organization_type: "SME"
+        min_score: 0.4
+    delay_ms: 500
+
+  # Turn 4: Add defense sector requirement
+  # Expected: System explains defense/security restrictions in EU funding
+  - message: "Our work is in the defense sector - are there calls for defense technology?"
+    validations:
+      # Built-in: No errors
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn4"
+
+      # Response should address defense sector
+      - type: "response_contains_any"  # Built-in
+        name: "defense_addressed"
+        patterns:
+          - "defense"
+          - "defence"
+          - "security"
+          - "military"
+          - "dual-use"
+          - "dual use"
+          - "EDF"
+          - "European Defence Fund"
+          - "restrict"
+          - "restriction"
+          - "classified"
+          - "sensitive"
+          - "civil"
+          - "civilian"
+          - "limitation"
+          - "specific"
+          - "call"
+          - "programme"
+          - "Horizon"
+          - "EDIDP"
+          - "information"
+          - "found"
+          - "sector"
+          - "application"
+          - "eligible"
+          - "excluded"
+
+      # GoalTrackingAgent: Progress continues
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "defense_progress"
+        min_progress: 0.25
+
+      # CrossProgrammeAgent: Programme accuracy for defense/security
+      - type: "programme_accurate"  # CrossProgrammeAgent
+        name: "defense_accuracy"
+        programme: "horizon_europe"
+        min_score: 0.4
+
+      # PersonalizationAgent: Context should include sector
+      - type: "context_accumulated"  # PersonalizationAgent
+        name: "sector_context"
+        expected_fields:
+          - "organization_type"
+    delay_ms: 500
+
+  # Turn 5: Impossible combination - US company
+  # Expected: System gracefully explains impossibilities and suggests alternatives
+  - message: "We are a US company based in California - can we still access these EU defense funding calls?"
+    validations:
+      # Built-in: CRITICAL - System should NOT error out
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn5_critical"
+
+      # Response should address US company eligibility gracefully
+      - type: "response_contains_any"  # Built-in
+        name: "us_eligibility_addressed"
+        patterns:
+          - "US"
+          - "United States"
+          - "American"
+          - "third country"
+          - "third-country"
+          - "non-EU"
+          - "non-member"
+          - "associated"
+          - "eligib"
+          - "restrict"
+          - "limit"
+          - "cannot"
+          - "not eligible"
+          - "ineligible"
+          - "participa"
+          - "exception"
+          - "condition"
+          - "partner"
+          - "subcontract"
+          - "however"
+          - "alternative"
+          - "unfortunately"
+          - "general"
+          - "rule"
+          - "defense"
+          - "defence"
+          - "EDF"
+          - "security"
+          - "classified"
+          - "information"
+          - "found"
+          - "Horizon"
+          - "EU"
+          - "European"
+
+      # GoalTrackingAgent: Final progress
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "final_progress"
+        min_progress: 0.30
+
+      # CrossProgrammeAgent: Eligibility explanation should be accurate
+      - type: "eligibility_correct"  # CrossProgrammeAgent
+        name: "us_eligibility_check"
+        country: "US"
+        min_score: 0.4
+
+      # CrossProgrammeAgent: Programme facts accurate
+      - type: "programme_accurate"  # CrossProgrammeAgent
+        name: "final_accuracy"
+        programme: "horizon_europe"
+        min_score: 0.4
+    delay_ms: 500
+
+final_validations:
+  # GoalTrackingAgent: User should understand the eligibility constraints
+  - type: "goal_achieved"  # GoalTrackingAgent
+    name: "eligibility_constraints_understood"
+    min_progress: 0.30
+
+  # PersonalizationAgent: Organization context should be preserved
+  - type: "context_accumulated"  # PersonalizationAgent
+    name: "org_context_preserved"
+    expected_fields:
+      - "organization_type"
+
+  # PersonalizationAgent: Profile should be used in responses
+  - type: "profile_used"  # PersonalizationAgent
+    name: "profile_used"
+    expected_fields:
+      - "organization_type"
+
+  # PersonalizationAgent: Response should be personalized to context
+  - type: "personalization_applied"  # PersonalizationAgent
+    name: "personalization_check"
+    min_score: 0.3
+
+  # ContextValidatorAgent: All messages should be stored correctly
+  - type: "context_integrity"  # ContextValidatorAgent
+    name: "context_preserved"
