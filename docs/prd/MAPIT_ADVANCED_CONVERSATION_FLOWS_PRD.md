@@ -418,7 +418,7 @@ final_validations:
 ### ==========================================================
 
 ### Task 022: Funding Strategy Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/funding_strategy.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/funding_strategy.yaml` with steps:
   1. "Help me plan our research funding strategy for the next 3 years"
   2. "We're a university department focusing on cybersecurity"
   3. "What Horizon Europe options do we have?"
@@ -427,7 +427,7 @@ final_validations:
   6. "What's a realistic timeline?"
   Validations: Multi-year strategy proposed, sequencing logical, programmes combined.
 
-- [ ] RUN & FIX: Execute scenario. Verify strategic planning quality.
+- [x] RUN & FIX: Execute scenario. Verify strategic planning quality.
 
 ### Task 023: Portfolio Planning Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/portfolio_planning.yaml` with steps:
