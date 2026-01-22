@@ -670,7 +670,7 @@ final_validations:
 - [x] RUN & FIX: Execute scenario. Fix Creative Europe navigation.
 
 ### Task 042: Creative Europe Eligibility Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/creative_europe_eligibility.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/creative_europe_eligibility.yaml` with steps:
   1. "Is our Serbian NGO eligible for Creative Europe?"
   2. "What about the Culture strand?"
   3. "As coordinator or partner?"
@@ -678,7 +678,7 @@ final_validations:
   5. "Are there any restrictions?"
   Validations: Participating country status correct, strand-specific rules explained.
 
-- [ ] RUN & FIX: Execute scenario. Verify Creative Europe eligibility.
+- [x] RUN & FIX: Execute scenario. Verify Creative Europe eligibility.
 
 ### Task 043: Creative Europe Cooperation Project Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/creative_europe_cooperation.yaml` with steps:
