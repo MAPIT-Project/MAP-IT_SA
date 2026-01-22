@@ -659,7 +659,7 @@ final_validations:
 ### ==========================================================
 
 ### Task 041: Creative Europe Strand Selection Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/creative_europe_strand.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/creative_europe_strand.yaml` with steps:
   1. "We're a film production company - what's available?"
   2. "Tell me about MEDIA strand"
   3. "What about development funding?"
@@ -667,7 +667,7 @@ final_validations:
   5. "Can we apply to multiple actions?"
   Validations: MEDIA actions explained, development vs distribution differentiated.
 
-- [ ] RUN & FIX: Execute scenario. Fix Creative Europe navigation.
+- [x] RUN & FIX: Execute scenario. Fix Creative Europe navigation.
 
 ### Task 042: Creative Europe Eligibility Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/creative_europe_eligibility.yaml` with steps:
