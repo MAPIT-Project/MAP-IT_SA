@@ -341,9 +341,9 @@ TEST_API_URL=http://localhost:8000 pytest tests/test_conversation_scenarios.py -
   4. Scenario format specification.
 
 ### Task 030: Cleanup Temporary Files
-- [ ] CLEANUP: Remove any temporary test files, ensure all new code is properly documented, run linter and formatter on all new files.
+- [x] CLEANUP: Remove any temporary test files, ensure all new code is properly documented, run linter and formatter on all new files.
 
-- [ ] VERIFY: Run `make lint` and `make format` with no errors.
+- [x] VERIFY: Run `make lint` and `make format` with no errors.
 
 ---
 

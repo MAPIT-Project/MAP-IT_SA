@@ -21,8 +21,8 @@ Usage:
         assert turn.response_text
 """
 
-from tests.agents.conversation_flow_agent import ConversationFlowAgent
 from tests.agents.context_validator_agent import ContextValidatorAgent
+from tests.agents.conversation_flow_agent import ConversationFlowAgent
 from tests.agents.quality_evaluator_agent import QualityEvaluatorAgent
 
 __all__ = [

@@ -19,12 +19,11 @@ Usage:
     assert score.total >= 85
 """
 
-import asyncio
+from dataclasses import dataclass, field
+from datetime import datetime
 import logging
 import re
-from datetime import datetime
-from typing import List, Dict, Any, Optional, Tuple
-from dataclasses import dataclass, field
+from typing import Any
 
 try:
     import google.generativeai as genai
@@ -37,6 +36,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class DimensionScore:
     """Score for a single evaluation dimension."""
+
     name: str
     score: int
     max_score: int
@@ -50,9 +50,10 @@ class DimensionScore:
 @dataclass
 class QualityScore:
     """Complete quality score for a response."""
+
     total_score: int
     max_score: int
-    dimension_scores: Dict[str, DimensionScore] = field(default_factory=dict)
+    dimension_scores: dict[str, DimensionScore] = field(default_factory=dict)
     passed: bool = False
     feedback: str = ""
     evaluation_time_ms: float = 0.0
@@ -61,14 +62,15 @@ class QualityScore:
     def percentage(self) -> float:
         return (self.total_score / self.max_score) * 100 if self.max_score > 0 else 0
 
-    def get_dimension(self, name: str) -> Optional[DimensionScore]:
+    def get_dimension(self, name: str) -> DimensionScore | None:
         return self.dimension_scores.get(name)
 
 
 @dataclass
 class ConversationQualityResult:
     """Quality evaluation result for a full conversation."""
-    turn_scores: List[QualityScore] = field(default_factory=list)
+
+    turn_scores: list[QualityScore] = field(default_factory=list)
     average_score: float = 0.0
     min_score: float = 100.0
     max_score: float = 0.0
@@ -101,8 +103,8 @@ class ConversationQualityResult:
 
         # Determine trend
         if len(scores) >= 3:
-            first_half = sum(scores[:len(scores)//2]) / (len(scores)//2)
-            second_half = sum(scores[len(scores)//2:]) / (len(scores) - len(scores)//2)
+            first_half = sum(scores[: len(scores) // 2]) / (len(scores) // 2)
+            second_half = sum(scores[len(scores) // 2 :]) / (len(scores) - len(scores) // 2)
 
             if second_half > first_half + 5:
                 self.trend = "improving"
@@ -136,7 +138,7 @@ class QualityEvaluatorAgent:
         self,
         model_name: str = "gemini-2.0-flash",
         passing_threshold: int = 85,
-        dimensions: Optional[List[Tuple[str, int, str]]] = None,
+        dimensions: list[tuple[str, int, str]] | None = None,
     ):
         """
         Initialize the quality evaluator.
@@ -167,13 +169,15 @@ class QualityEvaluatorAgent:
         self,
         query: str,
         response: str,
-        context: Optional[str] = None,
+        context: str | None = None,
     ) -> str:
         """Build the evaluation prompt for the LLM."""
-        dimension_descriptions = "\n".join([
-            f"- {name} ({max_points} points): {description}"
-            for name, max_points, description in self.dimensions
-        ])
+        dimension_descriptions = "\n".join(
+            [
+                f"- {name} ({max_points} points): {description}"
+                for name, max_points, description in self.dimensions
+            ]
+        )
 
         context_section = ""
         if context:
@@ -182,7 +186,7 @@ CONVERSATION CONTEXT:
 {context}
 """
 
-        return f"""You are an expert evaluator assessing the quality of AI responses about EU funding programmes.
+        return f"""You are an expert evaluator assessing AI responses about EU funding programmes.
 
 EVALUATION DIMENSIONS:
 {dimension_descriptions}
@@ -215,7 +219,7 @@ OVERALL_FEEDBACK: [1-2 sentence summary of strengths and weaknesses]
 
 Now evaluate the response:"""
 
-    def _parse_evaluation_response(self, eval_text: str) -> Tuple[Dict[str, DimensionScore], str]:
+    def _parse_evaluation_response(self, eval_text: str) -> tuple[dict[str, DimensionScore], str]:
         """Parse the LLM evaluation response."""
         dimension_scores = {}
         feedback = ""
@@ -253,7 +257,9 @@ Now evaluate the response:"""
                     score = int(max_score * 0.7)
 
             # Extract reasoning
-            reasoning_pattern = rf"{prompt_name}:.*?Reasoning:\s*(.+?)(?=\n\n|\n[A-Z_]+:|OVERALL_FEEDBACK:|$)"
+            reasoning_pattern = (
+                rf"{prompt_name}:.*?Reasoning:\s*(.+?)" r"(?=\n\n|\n[A-Z_]+:|OVERALL_FEEDBACK:|$)"
+            )
             reasoning_match = re.search(reasoning_pattern, eval_text, re.DOTALL)
             reasoning = reasoning_match.group(1).strip() if reasoning_match else ""
 
@@ -275,7 +281,7 @@ Now evaluate the response:"""
         self,
         query: str,
         response: str,
-        context: Optional[str] = None,
+        context: str | None = None,
     ) -> QualityScore:
         """
         Evaluate a single response.
@@ -343,7 +349,7 @@ Now evaluate the response:"""
 
     async def evaluate_conversation(
         self,
-        turns: List[Dict[str, str]],
+        turns: list[dict[str, str]],
     ) -> ConversationQualityResult:
         """
         Evaluate quality across a full conversation.
@@ -358,7 +364,7 @@ Now evaluate the response:"""
 
         context_parts = []
 
-        for i, turn in enumerate(turns):
+        for _i, turn in enumerate(turns):
             query = turn.get("query", turn.get("user_message", ""))
             response = turn.get("response", turn.get("response_text", ""))
 
@@ -378,7 +384,7 @@ Now evaluate the response:"""
         self,
         query: str,
         response: str,
-        rubric: Dict[str, List[str]],
+        rubric: dict[str, list[str]],
     ) -> QualityScore:
         """
         Evaluate response against a specific rubric.
@@ -404,10 +410,16 @@ Now evaluate the response:"""
             dim_config = next((d for d in self.dimensions if d[0] == dimension), None)
             if dim_config:
                 max_score = dim_config[1]
-                score = int((matched / len(requirements)) * max_score) if requirements else max_score
+                if requirements:
+                    score = int((matched / len(requirements)) * max_score)
+                else:
+                    score = max_score
             else:
                 max_score = 25
-                score = int((matched / len(requirements)) * max_score) if requirements else max_score
+                if requirements:
+                    score = int((matched / len(requirements)) * max_score)
+                else:
+                    score = max_score
 
             dimension_scores[dimension] = DimensionScore(
                 name=dimension,
@@ -428,7 +440,7 @@ Now evaluate the response:"""
     def quick_evaluate(
         self,
         response: str,
-        expected_patterns: List[str],
+        expected_patterns: list[str],
         min_length: int = 100,
     ) -> QualityScore:
         """
@@ -446,7 +458,10 @@ Now evaluate the response:"""
 
         # Query fulfillment: pattern matching
         pattern_matches = sum(1 for p in expected_patterns if p.lower() in response.lower())
-        pattern_score = int((pattern_matches / len(expected_patterns)) * 40) if expected_patterns else 30
+        if expected_patterns:
+            pattern_score = int((pattern_matches / len(expected_patterns)) * 40)
+        else:
+            pattern_score = 30
         scores["query_fulfillment"] = DimensionScore(
             name="query_fulfillment",
             score=pattern_score,
@@ -455,8 +470,12 @@ Now evaluate the response:"""
         )
 
         # Specificity: length and detail indicators
-        specificity_score = 25 if len(response) >= min_length else int((len(response) / min_length) * 25)
-        if any(word in response.lower() for word in ["specifically", "for example", "such as", "including"]):
+        if len(response) >= min_length:
+            specificity_score = 25
+        else:
+            specificity_score = int((len(response) / min_length) * 25)
+        detail_words = ["specifically", "for example", "such as", "including"]
+        if any(word in response.lower() for word in detail_words):
             specificity_score = min(25, specificity_score + 5)
         scores["specificity"] = DimensionScore(
             name="specificity",
@@ -500,7 +519,7 @@ Now evaluate the response:"""
         query: str,
         response_a: str,
         response_b: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Compare two responses and determine which is better.
 

@@ -76,9 +76,8 @@ class TestGitHubWorkflowConfiguration:
         assert any("conversation" in p for p in paths)
         assert any("memory" in p for p in paths)
         assert any("agents" in p for p in paths)
-        has_core_files = (
-            any("atomic_storage" in p for p in paths)
-            or any("conversation_lock" in p for p in paths)
+        has_core_files = any("atomic_storage" in p for p in paths) or any(
+            "conversation_lock" in p for p in paths
         )
         assert has_core_files
 
@@ -114,9 +113,7 @@ class TestGitHubWorkflowConfiguration:
         required_job_types = ["unit", "integration", "quality", "race"]
 
         for job_type in required_job_types:
-            matching_jobs = [
-                name for name in jobs.keys() if job_type in name.lower()
-            ]
+            matching_jobs = [name for name in jobs.keys() if job_type in name.lower()]
             assert len(matching_jobs) > 0, f"No job found for {job_type}"
 
     def test_integration_job_has_service_containers(self, workflow_config: dict):
@@ -138,9 +135,9 @@ class TestGitHubWorkflowConfiguration:
         # Verify service health checks
         for service_name in ["postgres", "redis", "neo4j"]:
             service = services[service_name]
-            assert "options" in service or "healthcheck" in str(service).lower(), (
-                f"Service {service_name} should have health check configured"
-            )
+            assert (
+                "options" in service or "healthcheck" in str(service).lower()
+            ), f"Service {service_name} should have health check configured"
 
     def test_postgres_service_configuration(self, workflow_config: dict):
         """Verify PostgreSQL service is properly configured."""
@@ -198,7 +195,8 @@ class TestGitHubWorkflowConfiguration:
 
         # Find step that starts API server
         api_start_steps = [
-            s for s in steps
+            s
+            for s in steps
             if "name" in s and ("api" in s["name"].lower() or "server" in s["name"].lower())
         ]
 
@@ -208,9 +206,9 @@ class TestGitHubWorkflowConfiguration:
         api_step = api_start_steps[0]
         if "run" in api_step:
             run_content = api_step["run"]
-            assert "uvicorn" in run_content or "main:app" in run_content, (
-                "API server should be started with uvicorn"
-            )
+            assert (
+                "uvicorn" in run_content or "main:app" in run_content
+            ), "API server should be started with uvicorn"
 
     def test_scenario_test_execution_step(self, workflow_config: dict):
         """Verify scenario tests are executed."""
@@ -218,10 +216,7 @@ class TestGitHubWorkflowConfiguration:
         steps = integration_job["steps"]
 
         # Find step that runs scenario tests
-        scenario_steps = [
-            s for s in steps
-            if "name" in s and "scenario" in s["name"].lower()
-        ]
+        scenario_steps = [s for s in steps if "name" in s and "scenario" in s["name"].lower()]
 
         assert len(scenario_steps) > 0, "Should have a step to run scenario tests"
 
@@ -248,10 +243,7 @@ class TestGitHubWorkflowConfiguration:
 
         # Should have quality check step
         steps = quality_job["steps"]
-        quality_steps = [
-            s for s in steps
-            if "name" in s and "quality" in s["name"].lower()
-        ]
+        quality_steps = [s for s in steps if "name" in s and "quality" in s["name"].lower()]
         assert len(quality_steps) > 0, "Should have quality check step"
 
     def test_artifact_upload_configured(self, workflow_config: dict):
@@ -260,10 +252,7 @@ class TestGitHubWorkflowConfiguration:
         steps = integration_job["steps"]
 
         # Find artifact upload steps
-        upload_steps = [
-            s for s in steps
-            if "uses" in s and "upload-artifact" in s["uses"]
-        ]
+        upload_steps = [s for s in steps if "uses" in s and "upload-artifact" in s["uses"]]
 
         assert len(upload_steps) > 0, "Should upload test results as artifacts"
 
@@ -286,14 +275,16 @@ class TestGitHubWorkflowConfiguration:
 
         # Find steps that run pytest for race condition tests
         test_steps = [
-            s for s in steps
-            if "run" in s and "pytest" in s.get("run", "")
+            s
+            for s in steps
+            if "run" in s
+            and "pytest" in s.get("run", "")
             and ("TestTask001" in s.get("run", "") or "race" in s.get("run", "").lower())
         ]
 
-        assert len(test_steps) > 0, (
-            "Should run pytest for race condition tests with TestTask001 or race in command"
-        )
+        assert (
+            len(test_steps) > 0
+        ), "Should run pytest for race condition tests with TestTask001 or race in command"
 
     def test_final_status_job(self, workflow_config: dict):
         """Verify final status job aggregates results."""
@@ -368,10 +359,11 @@ class TestWorkflowYAMLSyntax:
                 if "run" in step:
                     run_content = step["run"]
                     # Check for common shell script issues
-                    assert run_content.count("$(") == run_content.count(")") or \
-                           run_content.count("${") <= run_content.count("}"), (
-                        f"Possible unbalanced brackets in {job_name} step {i}"
-                    )
+                    assert run_content.count("$(") == run_content.count(")") or run_content.count(
+                        "${"
+                    ) <= run_content.count(
+                        "}"
+                    ), f"Possible unbalanced brackets in {job_name} step {i}"
 
 
 if __name__ == "__main__":

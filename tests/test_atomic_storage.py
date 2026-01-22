@@ -17,11 +17,7 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.core.atomic_storage import (
-    AtomicMessageStorage,
-    StorageResult,
-    get_atomic_storage,
-)
+from app.core.atomic_storage import AtomicMessageStorage, StorageResult, get_atomic_storage
 
 
 class MockDBPool:
@@ -90,14 +86,16 @@ class MockCursor:
             self._last_result = (msg_id,)
 
             # Store the message data
-            sender = params[1] if params else 'unknown'
-            text = params[2] if params else ''
-            pool.stored_messages.append({
-                'id': msg_id,
-                'conversation_id': params[0] if params else 0,
-                'sender': sender,
-                'text': text
-            })
+            sender = params[1] if params else "unknown"
+            text = params[2] if params else ""
+            pool.stored_messages.append(
+                {
+                    "id": msg_id,
+                    "conversation_id": params[0] if params else 0,
+                    "sender": sender,
+                    "text": text,
+                }
+            )
         elif "INSERT INTO conversation" in sql:
             self._last_result = None
         elif "SELECT id FROM message" in sql:
@@ -191,7 +189,7 @@ class TestStoreMessagePair:
             conversation_id=123,
             user_id=1,
             user_message="Hello, world!",
-            assistant_message="Hello! How can I help?"
+            assistant_message="Hello! How can I help?",
         )
 
         assert result.success
@@ -202,8 +200,8 @@ class TestStoreMessagePair:
 
         # Verify both messages were stored in DB
         assert len(db_pool.stored_messages) == 2
-        assert db_pool.stored_messages[0]['sender'] == 'user'
-        assert db_pool.stored_messages[1]['sender'] == 'assistant'
+        assert db_pool.stored_messages[0]["sender"] == "user"
+        assert db_pool.stored_messages[1]["sender"] == "assistant"
 
     @pytest.mark.asyncio
     async def test_message_pair_with_citations(self):
@@ -212,14 +210,14 @@ class TestStoreMessagePair:
         memory_service = MockMemoryService()
         storage = AtomicMessageStorage(db_pool, memory_service)
 
-        citations = [{'source': 'test', 'url': 'http://example.com'}]
+        citations = [{"source": "test", "url": "http://example.com"}]
 
         result = await storage.store_message_pair(
             conversation_id=124,
             user_id=1,
             user_message="What is X?",
             assistant_message="X is defined as...",
-            citations=citations
+            citations=citations,
         )
 
         assert result.success
@@ -241,7 +239,7 @@ class TestStoreMessagePair:
             conversation_id=125,
             user_id=1,
             user_message="Test message",
-            assistant_message="Test response"
+            assistant_message="Test response",
         )
 
         # DB should always succeed
@@ -271,7 +269,7 @@ class TestDBFailureSimulation:
             conversation_id=200,
             user_id=1,
             user_message="This should fail",
-            assistant_message="Never stored"
+            assistant_message="Never stored",
         )
 
         # Verify failure is reported
@@ -295,7 +293,7 @@ class TestDBFailureSimulation:
             conversation_id=201,
             user_id=1,
             user_message="First message",
-            assistant_message="Second message fails"
+            assistant_message="Second message fails",
         )
 
         # Verify failure
@@ -318,7 +316,7 @@ class TestDBFailureSimulation:
             conversation_id=202,
             user_id=1,
             user_message="Commit will fail",
-            assistant_message="Response"
+            assistant_message="Response",
         )
 
         assert not result.success
@@ -343,7 +341,7 @@ class TestDBFailureSimulation:
             conversation_id=203,
             user_id=1,
             user_message="Error should be reported",
-            assistant_message="Not stored"
+            assistant_message="Not stored",
         )
 
         # Error should be explicit, not None or empty
@@ -373,22 +371,15 @@ class TestClientErrorEvent:
         storage = AtomicMessageStorage(db_pool, memory_service)
 
         result = await storage.store_message_pair(
-            conversation_id=300,
-            user_id=1,
-            user_message="Test",
-            assistant_message="Response"
+            conversation_id=300, user_id=1, user_message="Test", assistant_message="Response"
         )
 
         # Should be able to construct client error event from result
-        error_event = {
-            'type': 'error',
-            'stage': 'storage_failed',
-            'error': result.error
-        }
+        error_event = {"type": "error", "stage": "storage_failed", "error": result.error}
 
-        assert error_event['type'] == 'error'
-        assert error_event['error'] is not None
-        assert 'storage_failed' in error_event['stage']
+        assert error_event["type"] == "error"
+        assert error_event["error"] is not None
+        assert "storage_failed" in error_event["stage"]
 
 
 class TestMemoryStorageWarnings:
@@ -405,7 +396,7 @@ class TestMemoryStorageWarnings:
             conversation_id=400,
             user_id=1,
             user_message="Memory will fail",
-            assistant_message="But DB succeeds"
+            assistant_message="But DB succeeds",
         )
 
         # Overall success because DB succeeded (source of truth)
@@ -430,10 +421,7 @@ class TestNoDatabasePool:
         storage = AtomicMessageStorage(None, memory_service)
 
         result = await storage.store_message_pair(
-            conversation_id=500,
-            user_id=1,
-            user_message="No DB",
-            assistant_message="Response"
+            conversation_id=500, user_id=1, user_message="No DB", assistant_message="Response"
         )
 
         assert not result.success
@@ -459,7 +447,7 @@ class TestConversationManagerIntegration:
             conversation_id=600,
             user_id=1,
             user_message=user_message,
-            assistant_message=assistant_message
+            assistant_message=assistant_message,
         )
 
         assert result.success
@@ -468,15 +456,15 @@ class TestConversationManagerIntegration:
 
         # Build response like conversation_manager would
         response = {
-            'response': assistant_message,
-            'metadata': {
-                'storage_success': result.success,
-                'user_message_id': result.user_message_id,
-                'assistant_message_id': result.assistant_message_id
-            }
+            "response": assistant_message,
+            "metadata": {
+                "storage_success": result.success,
+                "user_message_id": result.user_message_id,
+                "assistant_message_id": result.assistant_message_id,
+            },
         }
 
-        assert response['metadata']['storage_success']
+        assert response["metadata"]["storage_success"]
 
     @pytest.mark.asyncio
     async def test_sync_flow_with_atomic_storage_failure(self):
@@ -492,23 +480,21 @@ class TestConversationManagerIntegration:
             conversation_id=601,
             user_id=1,
             user_message=user_message,
-            assistant_message=assistant_message
+            assistant_message=assistant_message,
         )
 
         assert not result.success
 
         # Build error response like conversation_manager would
         response = {
-            'response': assistant_message,  # Still return the answer
-            'error': f"Message storage failed: {result.error}",
-            'storage_failed': True,
-            'metadata': {
-                'storage_error': result.error
-            }
+            "response": assistant_message,  # Still return the answer
+            "error": f"Message storage failed: {result.error}",
+            "storage_failed": True,
+            "metadata": {"storage_error": result.error},
         }
 
-        assert response['storage_failed']
-        assert response['error'] is not None
+        assert response["storage_failed"]
+        assert response["error"] is not None
 
     @pytest.mark.asyncio
     async def test_streaming_flow_error_event(self):
@@ -518,27 +504,26 @@ class TestConversationManagerIntegration:
         storage = AtomicMessageStorage(db_pool, memory_service)
 
         result = await storage.store_message_pair(
-            conversation_id=602,
-            user_id=1,
-            user_message="Test",
-            assistant_message="Response"
+            conversation_id=602, user_id=1, user_message="Test", assistant_message="Response"
         )
 
         # Simulate streaming error event yield
         events = []
         if not result.success:
-            events.append({
-                'type': 'error',
-                'error': f"Message storage failed: {result.error}",
-                'stage': 'storage_failed',
-                'response': "Response"  # Still include the answer
-            })
+            events.append(
+                {
+                    "type": "error",
+                    "error": f"Message storage failed: {result.error}",
+                    "stage": "storage_failed",
+                    "response": "Response",  # Still include the answer
+                }
+            )
 
         assert len(events) == 1
-        assert events[0]['type'] == 'error'
-        assert events[0]['stage'] == 'storage_failed'
+        assert events[0]["type"] == "error"
+        assert events[0]["stage"] == "storage_failed"
         # User still gets the response even though storage failed
-        assert events[0]['response'] == "Response"
+        assert events[0]["response"] == "Response"
 
 
 class TestStorageResultDataclass:
@@ -583,7 +568,7 @@ class TestVerifyStorage:
             conversation_id=700,
             user_id=1,
             user_message="Test verification",
-            assistant_message="Response for verification"
+            assistant_message="Response for verification",
         )
 
         assert result.success

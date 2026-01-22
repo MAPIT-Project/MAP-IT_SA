@@ -19,11 +19,12 @@ Usage:
 """
 
 import asyncio
+from dataclasses import dataclass, field
+from datetime import datetime
 import json
 import logging
-from datetime import datetime
-from typing import List, Dict, Any, Optional, Tuple
-from dataclasses import dataclass, field
+from typing import Any
+
 import aiohttp
 
 try:
@@ -45,27 +46,30 @@ logger = logging.getLogger(__name__)
 @dataclass
 class MessageRecord:
     """A message record from either DB or Redis."""
-    id: Optional[str] = None
+
+    id: str | None = None
     conversation_id: str = ""
     role: str = ""
     content: str = ""
-    timestamp: Optional[datetime] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    timestamp: datetime | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
     source: str = ""  # "db" or "redis"
 
 
 @dataclass
 class ValidationResult:
     """Result of a validation check."""
+
     passed: bool
     check_name: str
     message: str = ""
-    details: Dict[str, Any] = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
 class IntegrityResult:
     """Result of a full integrity check."""
+
     conversation_id: str
     is_consistent: bool = True
     message_count_match: bool = True
@@ -74,18 +78,22 @@ class IntegrityResult:
     db_message_count: int = 0
     redis_turn_count: int = 0
     api_message_count: int = 0
-    missing_in_db: List[str] = field(default_factory=list)
-    missing_in_redis: List[str] = field(default_factory=list)
-    out_of_order: List[Dict[str, Any]] = field(default_factory=list)
-    validation_results: List[ValidationResult] = field(default_factory=list)
+    missing_in_db: list[str] = field(default_factory=list)
+    missing_in_redis: list[str] = field(default_factory=list)
+    out_of_order: list[dict[str, Any]] = field(default_factory=list)
+    validation_results: list[ValidationResult] = field(default_factory=list)
 
-    def add_validation(self, check_name: str, passed: bool, message: str = "", details: Dict[str, Any] = None):
-        self.validation_results.append(ValidationResult(
-            passed=passed,
-            check_name=check_name,
-            message=message,
-            details=details or {},
-        ))
+    def add_validation(
+        self, check_name: str, passed: bool, message: str = "", details: dict[str, Any] = None
+    ):
+        self.validation_results.append(
+            ValidationResult(
+                passed=passed,
+                check_name=check_name,
+                message=message,
+                details=details or {},
+            )
+        )
         if not passed:
             self.is_consistent = False
 
@@ -93,13 +101,14 @@ class IntegrityResult:
 @dataclass
 class RaceConditionResult:
     """Result of race condition detection."""
+
     conversation_id: str
     detected: bool = False
-    expected_sequence: List[str] = field(default_factory=list)
-    actual_sequence: List[str] = field(default_factory=list)
-    missing: List[str] = field(default_factory=list)
-    duplicates: List[str] = field(default_factory=list)
-    out_of_order_pairs: List[Tuple[str, str]] = field(default_factory=list)
+    expected_sequence: list[str] = field(default_factory=list)
+    actual_sequence: list[str] = field(default_factory=list)
+    missing: list[str] = field(default_factory=list)
+    duplicates: list[str] = field(default_factory=list)
+    out_of_order_pairs: list[tuple[str, str]] = field(default_factory=list)
 
 
 class ContextValidatorAgent:
@@ -116,9 +125,9 @@ class ContextValidatorAgent:
 
     def __init__(
         self,
-        database_url: Optional[str] = None,
-        redis_url: Optional[str] = None,
-        api_base_url: Optional[str] = None,
+        database_url: str | None = None,
+        redis_url: str | None = None,
+        api_base_url: str | None = None,
     ):
         """
         Initialize the context validator.
@@ -131,8 +140,8 @@ class ContextValidatorAgent:
         self.database_url = database_url
         self.redis_url = redis_url
         self.api_base_url = api_base_url
-        self._db_pool: Optional[Any] = None
-        self._redis: Optional[Any] = None
+        self._db_pool: Any | None = None
+        self._redis: Any | None = None
 
     async def connect(self):
         """Establish connections to database and Redis."""
@@ -170,31 +179,36 @@ class ContextValidatorAgent:
     # Database Operations
     # =========================================================================
 
-    async def _get_db_messages(self, conversation_id: str) -> List[MessageRecord]:
+    async def _get_db_messages(self, conversation_id: str) -> list[MessageRecord]:
         """Get messages from PostgreSQL database."""
         if not self._db_pool:
             return []
 
         try:
             async with self._db_pool.acquire() as conn:
-                rows = await conn.fetch("""
+                rows = await conn.fetch(
+                    """
                     SELECT id, conversation_id, role, content, created_at, metadata
                     FROM conversation_messages
                     WHERE conversation_id = $1
                     ORDER BY created_at ASC, id ASC
-                """, conversation_id)
+                """,
+                    conversation_id,
+                )
 
                 messages = []
                 for row in rows:
-                    messages.append(MessageRecord(
-                        id=str(row["id"]),
-                        conversation_id=row["conversation_id"],
-                        role=row["role"],
-                        content=row["content"],
-                        timestamp=row["created_at"],
-                        metadata=json.loads(row["metadata"]) if row["metadata"] else {},
-                        source="db",
-                    ))
+                    messages.append(
+                        MessageRecord(
+                            id=str(row["id"]),
+                            conversation_id=row["conversation_id"],
+                            role=row["role"],
+                            content=row["content"],
+                            timestamp=row["created_at"],
+                            metadata=json.loads(row["metadata"]) if row["metadata"] else {},
+                            source="db",
+                        )
+                    )
                 return messages
 
         except Exception as e:
@@ -208,10 +222,13 @@ class ContextValidatorAgent:
 
         try:
             async with self._db_pool.acquire() as conn:
-                result = await conn.fetchval("""
+                result = await conn.fetchval(
+                    """
                     SELECT COUNT(*) FROM conversation_messages
                     WHERE conversation_id = $1
-                """, conversation_id)
+                """,
+                    conversation_id,
+                )
                 return result or 0
         except Exception as e:
             logger.error(f"Failed to get DB message count: {e}")
@@ -221,7 +238,7 @@ class ContextValidatorAgent:
     # Redis Operations
     # =========================================================================
 
-    async def _get_redis_messages(self, conversation_id: str) -> List[MessageRecord]:
+    async def _get_redis_messages(self, conversation_id: str) -> list[MessageRecord]:
         """Get messages from Redis short-term memory."""
         if not self._redis:
             return []
@@ -236,19 +253,23 @@ class ContextValidatorAgent:
                     turn_data = json.loads(item)
                     # STM stores turns with user and assistant messages
                     if "user" in turn_data:
-                        messages.append(MessageRecord(
-                            conversation_id=conversation_id,
-                            role="user",
-                            content=turn_data.get("user", ""),
-                            source="redis",
-                        ))
+                        messages.append(
+                            MessageRecord(
+                                conversation_id=conversation_id,
+                                role="user",
+                                content=turn_data.get("user", ""),
+                                source="redis",
+                            )
+                        )
                     if "assistant" in turn_data:
-                        messages.append(MessageRecord(
-                            conversation_id=conversation_id,
-                            role="assistant",
-                            content=turn_data.get("assistant", ""),
-                            source="redis",
-                        ))
+                        messages.append(
+                            MessageRecord(
+                                conversation_id=conversation_id,
+                                role="assistant",
+                                content=turn_data.get("assistant", ""),
+                                source="redis",
+                            )
+                        )
                 except json.JSONDecodeError:
                     continue
 
@@ -275,7 +296,7 @@ class ContextValidatorAgent:
     # API Operations
     # =========================================================================
 
-    async def _get_api_context(self, conversation_id: str) -> Dict[str, Any]:
+    async def _get_api_context(self, conversation_id: str) -> dict[str, Any]:
         """Get context from API endpoint."""
         if not self.api_base_url:
             return {}
@@ -372,12 +393,13 @@ class ContextValidatorAgent:
         # Check 1: Message count consistency
         # Note: Redis STM has a 12-turn limit, so we expect divergence for long conversations
         stm_limit = 12
-        expected_redis_count = min(redis_turn_count * 2, stm_limit * 2)  # turns -> messages
 
         if db_count >= 0 and redis_turn_count >= 0:
             # For short conversations, counts should match
             if db_count <= stm_limit * 2:
-                result.message_count_match = (db_count == redis_turn_count * 2) or (db_count == 0 and redis_turn_count == 0)
+                result.message_count_match = (db_count == redis_turn_count * 2) or (
+                    db_count == 0 and redis_turn_count == 0
+                )
             else:
                 # For long conversations, Redis should have STM limit
                 result.message_count_match = redis_turn_count <= stm_limit
@@ -394,10 +416,15 @@ class ContextValidatorAgent:
 
         if db_messages and redis_messages:
             result.order_preserved = self._check_order(db_messages, redis_messages)
+            order_msg = (
+                "Messages are in correct order"
+                if result.order_preserved
+                else "Order mismatch detected"
+            )
             result.add_validation(
                 "message_order",
                 result.order_preserved,
-                "Messages are in correct order" if result.order_preserved else "Order mismatch detected",
+                order_msg,
             )
 
         # Check 3: Content consistency (for overlapping messages)
@@ -423,8 +450,8 @@ class ContextValidatorAgent:
 
     def _check_order(
         self,
-        db_messages: List[MessageRecord],
-        redis_messages: List[MessageRecord],
+        db_messages: list[MessageRecord],
+        redis_messages: list[MessageRecord],
     ) -> bool:
         """Check if message order is preserved between sources."""
         if not db_messages or not redis_messages:
@@ -451,8 +478,8 @@ class ContextValidatorAgent:
 
     def _check_content_overlap(
         self,
-        db_messages: List[MessageRecord],
-        redis_messages: List[MessageRecord],
+        db_messages: list[MessageRecord],
+        redis_messages: list[MessageRecord],
     ) -> bool:
         """Check that overlapping messages have matching content."""
         # Get recent DB messages that should be in Redis
@@ -474,9 +501,9 @@ class ContextValidatorAgent:
 
     def _check_api_context(
         self,
-        api_context: Dict[str, Any],
-        db_messages: List[MessageRecord],
-        redis_messages: List[MessageRecord],
+        api_context: dict[str, Any],
+        db_messages: list[MessageRecord],
+        redis_messages: list[MessageRecord],
     ) -> bool:
         """Check that API context is consistent with stored data."""
         recent = api_context.get("recent_messages", [])
@@ -506,7 +533,7 @@ class ContextValidatorAgent:
     async def detect_race_condition(
         self,
         conversation_id: str,
-        expected_sequence: List[str],
+        expected_sequence: list[str],
     ) -> RaceConditionResult:
         """
         Detect if messages were processed out of order due to race conditions.
@@ -550,14 +577,14 @@ class ContextValidatorAgent:
 
         actual_positions = {}
         for i, content in enumerate(actual_contents):
-            for expected, pos in expected_positions.items():
+            for expected in expected_positions:
                 if expected in content:
                     actual_positions[expected] = i
                     break
 
         # Find out-of-order pairs
         for i, exp1 in enumerate(expected_sequence):
-            for exp2 in expected_sequence[i+1:]:
+            for exp2 in expected_sequence[i + 1 :]:
                 if exp1 in actual_positions and exp2 in actual_positions:
                     if actual_positions[exp1] > actual_positions[exp2]:
                         result.out_of_order_pairs.append((exp1, exp2))

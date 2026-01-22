@@ -113,12 +113,12 @@ class TestGlobalContextManager:
 
     def test_global_instance_has_reset_method(self):
         """Test that global instance has reset method."""
-        assert hasattr(_context_manager, 'reset')
+        assert hasattr(_context_manager, "reset")
         assert callable(_context_manager.reset)
 
     def test_global_instance_has_current_size_property(self):
         """Test that global instance has current_size property."""
-        assert hasattr(_context_manager, 'current_size')
+        assert hasattr(_context_manager, "current_size")
 
 
 class TestContextResetInProcessQuery:
@@ -128,14 +128,14 @@ class TestContextResetInProcessQuery:
     async def test_process_query_resets_context_at_start(self):
         """Test that process_query() resets context window at the start."""
         # Mock dependencies
-        with patch('app.services.agents.tool_aware_agent._context_manager') as mock_ctx:
+        with patch("app.services.agents.tool_aware_agent._context_manager") as mock_ctx:
             mock_ctx.reset = Mock()
             mock_ctx.current_size = 0
             mock_ctx.truncate_observation = Mock(return_value="obs")
             mock_ctx.format_results_for_context = Mock(return_value="results")
 
             # Create a minimal agent
-            with patch.object(ToolAwareAgent, '__init__', return_value=None):
+            with patch.object(ToolAwareAgent, "__init__", return_value=None):
                 agent = ToolAwareAgent.__new__(ToolAwareAgent)
                 agent.max_iterations = 1
                 agent.tools = {}
@@ -144,12 +144,14 @@ class TestContextResetInProcessQuery:
                 agent.llm = None
                 agent._assess_complexity = Mock(return_value="simple")
                 agent._identify_required_sources = Mock(return_value=[])
-                agent._reason_next_step = AsyncMock(return_value={
-                    'thought': 'test thought',
-                    'action': 'conclude',
-                    'conclusion': 'Test answer',
-                    'confidence': 0.9
-                })
+                agent._reason_next_step = AsyncMock(
+                    return_value={
+                        "thought": "test thought",
+                        "action": "conclude",
+                        "conclusion": "Test answer",
+                        "confidence": 0.9,
+                    }
+                )
                 agent._build_fallback_answer = Mock(return_value="Fallback")
                 agent._analyze_response_quality = Mock(return_value={})
 
@@ -162,13 +164,13 @@ class TestContextResetInProcessQuery:
     @pytest.mark.asyncio
     async def test_process_query_streaming_resets_context_at_start(self):
         """Test that process_query_streaming() resets context window at the start."""
-        with patch('app.services.agents.tool_aware_agent._context_manager') as mock_ctx:
+        with patch("app.services.agents.tool_aware_agent._context_manager") as mock_ctx:
             mock_ctx.reset = Mock()
             mock_ctx.current_size = 0
             mock_ctx.truncate_observation = Mock(return_value="obs")
             mock_ctx.format_results_for_context = Mock(return_value="results")
 
-            with patch.object(ToolAwareAgent, '__init__', return_value=None):
+            with patch.object(ToolAwareAgent, "__init__", return_value=None):
                 agent = ToolAwareAgent.__new__(ToolAwareAgent)
                 agent.max_iterations = 1
                 agent.tools = {}
@@ -177,12 +179,14 @@ class TestContextResetInProcessQuery:
                 agent.llm = None
                 agent._assess_complexity = Mock(return_value="simple")
                 agent._identify_required_sources = Mock(return_value=[])
-                agent._reason_next_step = AsyncMock(return_value={
-                    'thought': 'test thought',
-                    'action': 'conclude',
-                    'conclusion': 'Test answer',
-                    'confidence': 0.9
-                })
+                agent._reason_next_step = AsyncMock(
+                    return_value={
+                        "thought": "test thought",
+                        "action": "conclude",
+                        "conclusion": "Test answer",
+                        "confidence": 0.9,
+                    }
+                )
                 agent._build_fallback_answer = Mock(return_value="Fallback")
                 agent._analyze_response_quality = Mock(return_value={})
 
@@ -225,9 +229,7 @@ class TestContextAccumulationPrevention:
             manager.reset()
 
             # Verify reset worked
-            assert manager.current_size == 0, (
-                f"Query {query_num}: Context should be 0 after reset"
-            )
+            assert manager.current_size == 0, f"Query {query_num}: Context should be 0 after reset"
 
             # Simulate adding context during query processing
             # (tool results, observations, etc.)
@@ -249,9 +251,9 @@ class TestContextAccumulationPrevention:
 
         # Final verification: max observed should be much less than 10x a single query
         # (would be ~20000 if accumulating, should be ~2000)
-        assert max_observed_size < 5000, (
-            f"Max observed size {max_observed_size} suggests accumulation across queries"
-        )
+        assert (
+            max_observed_size < 5000
+        ), f"Max observed size {max_observed_size} suggests accumulation across queries"
 
     def test_context_bounded_across_many_iterations(self):
         """Test that context remains bounded even with many iterations."""
@@ -274,9 +276,9 @@ class TestContextAccumulationPrevention:
         avg_size = sum(sizes_after_each_query) / len(sizes_after_each_query)
         for i, size in enumerate(sizes_after_each_query):
             deviation = abs(size - avg_size) / avg_size
-            assert deviation < 0.15, (
-                f"Query {i}: Size {size} deviates {deviation*100:.1f}% from average {avg_size}"
-            )
+            assert (
+                deviation < 0.15
+            ), f"Query {i}: Size {size} deviates {deviation * 100:.1f}% from average {avg_size}"
 
 
 class TestContextResetWithRealAgent:
@@ -371,9 +373,7 @@ class TestContextLimitsConfiguration:
     def test_custom_limits(self):
         """Test custom limits are respected."""
         custom_limits = ContextLimits(
-            max_context_chars=5000,
-            reserved_for_response=500,
-            max_tool_result_chars=1000
+            max_context_chars=5000, reserved_for_response=500, max_tool_result_chars=1000
         )
         manager = ContextWindowManager(custom_limits)
 

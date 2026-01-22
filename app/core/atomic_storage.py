@@ -20,13 +20,12 @@ Usage:
         pass
 """
 
-import asyncio
+from dataclasses import dataclass, field
+from datetime import datetime
+import json
 import logging
 import random
-from datetime import datetime
-from typing import Optional, Dict, Any, List
-from dataclasses import dataclass, field
-import json
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -34,13 +33,14 @@ logger = logging.getLogger(__name__)
 @dataclass
 class StorageResult:
     """Result of a storage operation."""
+
     success: bool
-    user_message_id: Optional[int] = None
-    assistant_message_id: Optional[int] = None
+    user_message_id: int | None = None
+    assistant_message_id: int | None = None
     db_stored: bool = False
     memory_stored: bool = False
-    error: Optional[str] = None
-    warnings: List[str] = field(default_factory=list)
+    error: str | None = None
+    warnings: list[str] = field(default_factory=list)
 
     def add_warning(self, message: str):
         self.warnings.append(message)
@@ -82,7 +82,7 @@ class AtomicMessageStorage:
         conversation_id: int,
         user_id: int,
         message: str,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: dict[str, Any] | None = None,
     ) -> StorageResult:
         """
         Store a user message atomically.
@@ -103,9 +103,9 @@ class AtomicMessageStorage:
             message_id = await self._store_to_db(
                 conversation_id=conversation_id,
                 user_id=user_id,
-                sender='user',
+                sender="user",
                 message=message,
-                metadata=metadata
+                metadata=metadata,
             )
             result.user_message_id = message_id
             result.db_stored = True
@@ -117,10 +117,7 @@ class AtomicMessageStorage:
         # Step 2: Store in memory (cache)
         try:
             self._store_to_memory(
-                conversation_id=conversation_id,
-                message_id=message_id,
-                role='user',
-                content=message
+                conversation_id=conversation_id, message_id=message_id, role="user", content=message
             )
             result.memory_stored = True
         except Exception as e:
@@ -135,8 +132,8 @@ class AtomicMessageStorage:
         self,
         conversation_id: int,
         message: str,
-        citations: Optional[List[Dict[str, Any]]] = None,
-        metadata: Optional[Dict[str, Any]] = None
+        citations: list[dict[str, Any]] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> StorageResult:
         """
         Store an assistant message atomically.
@@ -157,10 +154,10 @@ class AtomicMessageStorage:
             message_id = await self._store_to_db(
                 conversation_id=conversation_id,
                 user_id=1,  # System user
-                sender='assistant',
+                sender="assistant",
                 message=message,
                 citations=citations,
-                metadata=metadata
+                metadata=metadata,
             )
             result.assistant_message_id = message_id
             result.db_stored = True
@@ -174,8 +171,8 @@ class AtomicMessageStorage:
             self._store_to_memory(
                 conversation_id=conversation_id,
                 message_id=message_id,
-                role='assistant',
-                content=message[:2000]  # Limit for memory
+                role="assistant",
+                content=message[:2000],  # Limit for memory
             )
             result.memory_stored = True
         except Exception as e:
@@ -191,7 +188,7 @@ class AtomicMessageStorage:
         user_id: int,
         user_message: str,
         assistant_message: str,
-        citations: Optional[List[Dict[str, Any]]] = None
+        citations: list[dict[str, Any]] | None = None,
     ) -> StorageResult:
         """
         Store both user and assistant messages atomically.
@@ -222,33 +219,45 @@ class AtomicMessageStorage:
             cursor = conn.cursor()
 
             # Ensure conversation exists
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO conversation (id, user_id, name, created_at)
                 VALUES (%s, %s, %s, NOW())
                 ON CONFLICT (id) DO NOTHING
-            """, (conversation_id, user_id, f'Chat {conversation_id}'))
+            """,
+                (conversation_id, user_id, f"Chat {conversation_id}"),
+            )
 
             # Store user message
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO message (conversation_id, sender, text, created_at)
                 VALUES (%s, %s, %s, NOW())
                 RETURNING id
-            """, (conversation_id, 'user', user_message))
+            """,
+                (conversation_id, "user", user_message),
+            )
             result.user_message_id = cursor.fetchone()[0]
 
             # Store assistant message
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO message (conversation_id, sender, text, created_at)
                 VALUES (%s, %s, %s, NOW())
                 RETURNING id
-            """, (conversation_id, 'assistant', assistant_message))
+            """,
+                (conversation_id, "assistant", assistant_message),
+            )
             result.assistant_message_id = cursor.fetchone()[0]
 
             # Store citations if provided
             if citations:
-                cursor.execute("""
+                cursor.execute(
+                    """
                     UPDATE message SET citations = %s WHERE id = %s
-                """, (json.dumps(citations), result.assistant_message_id))
+                """,
+                    (json.dumps(citations), result.assistant_message_id),
+                )
 
             # Commit transaction
             conn.commit()
@@ -274,14 +283,14 @@ class AtomicMessageStorage:
             self._store_to_memory(
                 conversation_id=conversation_id,
                 message_id=result.user_message_id,
-                role='user',
-                content=user_message
+                role="user",
+                content=user_message,
             )
             self._store_to_memory(
                 conversation_id=conversation_id,
                 message_id=result.assistant_message_id,
-                role='assistant',
-                content=assistant_message[:2000]
+                role="assistant",
+                content=assistant_message[:2000],
             )
             result.memory_stored = True
         except Exception as e:
@@ -296,8 +305,8 @@ class AtomicMessageStorage:
         user_id: int,
         sender: str,
         message: str,
-        citations: Optional[List[Dict[str, Any]]] = None,
-        metadata: Optional[Dict[str, Any]] = None
+        citations: list[dict[str, Any]] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> int:
         """Store message to database and return message ID."""
         if not self.db_pool:
@@ -314,14 +323,18 @@ class AtomicMessageStorage:
             cursor = conn.cursor()
 
             # Ensure conversation exists
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO conversation (id, user_id, name, created_at)
                 VALUES (%s, %s, %s, NOW())
                 ON CONFLICT (id) DO NOTHING
-            """, (conversation_id, user_id, f'Chat {conversation_id}'))
+            """,
+                (conversation_id, user_id, f"Chat {conversation_id}"),
+            )
 
             # Check for duplicate
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT id FROM message
                 WHERE conversation_id = %s
                   AND sender = %s
@@ -329,7 +342,9 @@ class AtomicMessageStorage:
                   AND created_at > NOW() - INTERVAL '5 seconds'
                 ORDER BY created_at DESC
                 LIMIT 1
-            """, (conversation_id, sender, message))
+            """,
+                (conversation_id, sender, message),
+            )
 
             existing = cursor.fetchone()
             if existing:
@@ -337,64 +352,58 @@ class AtomicMessageStorage:
                 return existing[0]
 
             # Insert message
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO message (conversation_id, sender, text, created_at)
                 VALUES (%s, %s, %s, NOW())
                 RETURNING id
-            """, (conversation_id, sender, message))
+            """,
+                (conversation_id, sender, message),
+            )
 
             message_id = cursor.fetchone()[0]
 
             # Add citations if provided
             if citations:
-                cursor.execute("""
+                cursor.execute(
+                    """
                     UPDATE message SET citations = %s WHERE id = %s
-                """, (json.dumps(citations), message_id))
+                """,
+                    (json.dumps(citations), message_id),
+                )
 
             conn.commit()
             return message_id
 
-        except Exception as e:
+        except Exception:
             conn.rollback()
             raise
 
         finally:
             self.db_pool.putconn(conn)
 
-    def _store_to_memory(
-        self,
-        conversation_id: int,
-        message_id: int,
-        role: str,
-        content: str
-    ):
+    def _store_to_memory(self, conversation_id: int, message_id: int, role: str, content: str):
         """Store message to memory service."""
         if not self.memory_service:
             raise RuntimeError("Memory service not available")
 
         # Check if memory service is in fallback mode
-        if hasattr(self.memory_service, 'redis_client'):
+        if hasattr(self.memory_service, "redis_client"):
             redis = self.memory_service.redis_client
-            if hasattr(redis, '__class__') and redis.__class__.__name__ == 'FallbackRedis':
+            if hasattr(redis, "__class__") and redis.__class__.__name__ == "FallbackRedis":
                 logger.warning(
-                    "Memory service is using FallbackRedis - "
-                    "conversation context may not persist!"
+                    "Memory service is using FallbackRedis - conversation context may not persist!"
                 )
 
         from ..memory.short_term_memory import ConversationTurn
+
         turn = ConversationTurn(
-            message_id=message_id,
-            role=role,
-            content=content,
-            timestamp=datetime.now()
+            message_id=message_id, role=role, content=content, timestamp=datetime.now()
         )
         self.memory_service.stm.add_turn(conversation_id, turn)
 
     async def verify_storage(
-        self,
-        conversation_id: int,
-        message_id: int,
-        expected_content: str
+        self, conversation_id: int, message_id: int, expected_content: str
     ) -> bool:
         """
         Verify that a message was stored correctly.
@@ -415,9 +424,12 @@ class AtomicMessageStorage:
         conn = self.db_pool.getconn()
         try:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT text FROM message WHERE id = %s AND conversation_id = %s
-            """, (message_id, conversation_id))
+            """,
+                (message_id, conversation_id),
+            )
 
             result = cursor.fetchone()
             if result:

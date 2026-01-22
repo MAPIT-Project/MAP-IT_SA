@@ -13,12 +13,12 @@ Usage:
 """
 
 import asyncio
+from contextlib import asynccontextmanager
+from dataclasses import dataclass
+from datetime import datetime
 import logging
 import time
-from typing import Dict, Optional
-from contextlib import asynccontextmanager
-from dataclasses import dataclass, field
-from datetime import datetime
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class LockInfo:
     """Information about an active lock."""
+
     conversation_id: int
     acquired_at: datetime
     holder_id: str
@@ -48,17 +49,17 @@ class ConversationLockManager:
     """
 
     # Singleton instance
-    _instance: Optional['ConversationLockManager'] = None
+    _instance: Optional["ConversationLockManager"] = None
     _lock = asyncio.Lock()
 
     def __init__(self):
         """Initialize the lock manager."""
-        self._locks: Dict[int, asyncio.Lock] = {}
-        self._lock_info: Dict[int, LockInfo] = {}
+        self._locks: dict[int, asyncio.Lock] = {}
+        self._lock_info: dict[int, LockInfo] = {}
         self._manager_lock = asyncio.Lock()
 
     @classmethod
-    async def get_instance(cls) -> 'ConversationLockManager':
+    async def get_instance(cls) -> "ConversationLockManager":
         """Get the singleton instance."""
         if cls._instance is None:
             async with cls._lock:
@@ -76,10 +77,7 @@ class ConversationLockManager:
 
     @asynccontextmanager
     async def acquire(
-        self,
-        conversation_id: int,
-        timeout: float = 60.0,
-        holder_id: str = "unknown"
+        self, conversation_id: int, timeout: float = 60.0, holder_id: str = "unknown"
     ):
         """
         Acquire a lock for a conversation with timeout.
@@ -100,10 +98,7 @@ class ConversationLockManager:
 
         try:
             # Try to acquire with timeout
-            acquired = await asyncio.wait_for(
-                lock.acquire(),
-                timeout=timeout
-            )
+            acquired = await asyncio.wait_for(lock.acquire(), timeout=timeout)
 
             if not acquired:
                 raise TimeoutError(f"Failed to acquire lock for conversation {conversation_id}")
@@ -122,20 +117,18 @@ class ConversationLockManager:
                     f"Lock for conversation {conversation_id} acquired after {wait_time:.2f}s wait"
                 )
             else:
-                logger.debug(
-                    f"Lock acquired for conversation {conversation_id} by {holder_id}"
-                )
+                logger.debug(f"Lock acquired for conversation {conversation_id} by {holder_id}")
 
             yield lock_info
 
-        except asyncio.TimeoutError:
+        except TimeoutError as err:
             logger.error(
                 f"Timeout waiting for lock on conversation {conversation_id} "
                 f"(waited {timeout}s, holder: {self._lock_info.get(conversation_id)})"
             )
             raise TimeoutError(
                 f"Could not acquire lock for conversation {conversation_id} within {timeout}s"
-            )
+            ) from err
 
         finally:
             # Always release the lock
@@ -152,7 +145,7 @@ class ConversationLockManager:
         lock = self._locks.get(conversation_id)
         return lock is not None and lock.locked()
 
-    async def get_lock_info(self, conversation_id: int) -> Optional[LockInfo]:
+    async def get_lock_info(self, conversation_id: int) -> LockInfo | None:
         """Get information about a lock."""
         return self._lock_info.get(conversation_id)
 
@@ -190,11 +183,11 @@ class ConversationLockManager:
             if conv_id in self._lock_info:
                 del self._lock_info[conv_id]
 
-    def get_stats(self) -> Dict:
+    def get_stats(self) -> dict:
         """Get statistics about lock usage."""
         return {
             "total_locks_created": len(self._locks),
-            "currently_locked": sum(1 for l in self._locks.values() if l.locked()),
+            "currently_locked": sum(1 for lk in self._locks.values() if lk.locked()),
             "active_lock_info": {
                 str(k): {
                     "holder": v.holder_id,

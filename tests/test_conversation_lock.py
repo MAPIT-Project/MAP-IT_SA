@@ -10,20 +10,16 @@ Tests:
 """
 
 import asyncio
+from datetime import datetime
 import os
 import sys
-from datetime import datetime
 from unittest.mock import MagicMock
 
 import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.core.conversation_lock import (
-    ConversationLockManager,
-    LockInfo,
-    get_conversation_lock,
-)
+from app.core.conversation_lock import ConversationLockManager, LockInfo, get_conversation_lock
 
 
 class TestConversationLockManagerBasics:
@@ -124,10 +120,7 @@ class TestConversationLockTimeout:
                     pass
 
         # Run concurrently
-        await asyncio.gather(
-            hold_lock(),
-            try_acquire_with_short_timeout()
-        )
+        await asyncio.gather(hold_lock(), try_acquire_with_short_timeout())
 
     @pytest.mark.asyncio
     async def test_lock_acquired_after_release(self):
@@ -165,12 +158,14 @@ class TestConcurrentMessages:
             # Simulate some processing time
             await asyncio.sleep(0.05)
             msg_id = len(manager.stored_messages) + 1
-            manager.stored_messages.append({
-                'id': msg_id,
-                'conversation_id': conv_id,
-                'message': message,
-                'timestamp': datetime.now().isoformat()
-            })
+            manager.stored_messages.append(
+                {
+                    "id": msg_id,
+                    "conversation_id": conv_id,
+                    "message": message,
+                    "timestamp": datetime.now().isoformat(),
+                }
+            )
             manager.message_order.append(message)
             return msg_id
 
@@ -197,9 +192,7 @@ class TestConcurrentMessages:
             """Simulate sending a message with locking."""
             holder = f"sender_{message}"
             async with manager.acquire(conversation_id, timeout=30.0, holder_id=holder):
-                result = await mock_conversation_manager.store_message(
-                    conversation_id, 1, message
-                )
+                result = await mock_conversation_manager.store_message(conversation_id, 1, message)
                 stored_results.append(result)
                 return result
 
@@ -208,15 +201,16 @@ class TestConcurrentMessages:
         await asyncio.gather(*tasks)
 
         # Verify all messages stored
-        assert len(mock_conversation_manager.stored_messages) == 5, \
-            f"Expected 5 messages, got {len(mock_conversation_manager.stored_messages)}"
+        assert (
+            len(mock_conversation_manager.stored_messages) == 5
+        ), f"Expected 5 messages, got {len(mock_conversation_manager.stored_messages)}"
 
         # Verify no duplicates (check unique IDs)
-        ids = [m['id'] for m in mock_conversation_manager.stored_messages]
+        ids = [m["id"] for m in mock_conversation_manager.stored_messages]
         assert len(ids) == len(set(ids)), "Duplicate message IDs found"
 
         # Verify message content uniqueness
-        contents = [m['message'] for m in mock_conversation_manager.stored_messages]
+        contents = [m["message"] for m in mock_conversation_manager.stored_messages]
         assert len(contents) == len(set(contents)), "Duplicate message content found"
 
         # Verify all original messages are present
@@ -237,11 +231,7 @@ class TestConcurrentMessages:
                 start = datetime.now()
                 await mock_conversation_manager.store_message(conversation_id, 1, message)
                 end = datetime.now()
-                processing_times.append({
-                    'message': message,
-                    'start': start,
-                    'end': end
-                })
+                processing_times.append({"message": message, "start": start, "end": end})
 
         # Send 3 messages concurrently
         messages = ["A", "B", "C"]
@@ -250,14 +240,15 @@ class TestConcurrentMessages:
 
         # Verify no overlapping processing times
         # Sort by start time
-        processing_times.sort(key=lambda x: x['start'])
+        processing_times.sort(key=lambda x: x["start"])
 
         for i in range(len(processing_times) - 1):
             current = processing_times[i]
             next_item = processing_times[i + 1]
             # Next message should start after current ends
-            assert next_item['start'] >= current['end'], \
-                f"Message {next_item['message']} started before {current['message']} finished"
+            assert (
+                next_item["start"] >= current["end"]
+            ), f"Message {next_item['message']} started before {current['message']} finished"
 
 
 class TestConversationIsolation:
@@ -341,11 +332,10 @@ class TestStaleLocksCleanup:
 
         # Manually add lock info with old timestamp
         from datetime import timedelta
+
         old_time = datetime.now() - timedelta(seconds=400)
         manager._lock_info[conversation_id] = LockInfo(
-            conversation_id=conversation_id,
-            acquired_at=old_time,
-            holder_id="stale_holder"
+            conversation_id=conversation_id, acquired_at=old_time, holder_id="stale_holder"
         )
 
         # Run cleanup with short max age
@@ -394,12 +384,14 @@ class TestConversationManagerIntegration:
 
                 # Simulate storing user message
                 msg_id = len(stored_messages) + 1
-                stored_messages.append({
-                    'id': msg_id,
-                    'type': 'user',
-                    'content': message,
-                    'conversation_id': conversation_id
-                })
+                stored_messages.append(
+                    {
+                        "id": msg_id,
+                        "type": "user",
+                        "content": message,
+                        "conversation_id": conversation_id,
+                    }
+                )
                 processing_order.append(f"user:{message}")
 
                 # Simulate agent processing
@@ -407,15 +399,17 @@ class TestConversationManagerIntegration:
 
                 # Simulate storing assistant response
                 response_id = len(stored_messages) + 1
-                stored_messages.append({
-                    'id': response_id,
-                    'type': 'assistant',
-                    'content': f"Response to: {message}",
-                    'conversation_id': conversation_id
-                })
+                stored_messages.append(
+                    {
+                        "id": response_id,
+                        "type": "assistant",
+                        "content": f"Response to: {message}",
+                        "conversation_id": conversation_id,
+                    }
+                )
                 processing_order.append(f"assistant:{message}")
 
-                return {'response': f"Response to: {message}"}
+                return {"response": f"Response to: {message}"}
 
         # Send 3 concurrent messages to same conversation
         conversation_id = 1000
@@ -437,8 +431,7 @@ class TestConversationManagerIntegration:
             # Extract the query number
             user_query = user_msg.split(":")[1]
             assistant_query = assistant_msg.split(":")[1]
-            assert user_query == assistant_query, \
-                f"Mismatched pair: {user_msg} -> {assistant_msg}"
+            assert user_query == assistant_query, f"Mismatched pair: {user_msg} -> {assistant_msg}"
 
     @pytest.mark.asyncio
     async def test_streaming_with_locking_simulation(self):
@@ -459,7 +452,7 @@ class TestConversationManagerIntegration:
                     # Check lock is still held
                     if not await manager.is_locked(conversation_id):
                         lock_held_during_all_yields = False
-                    yield {'type': 'token', 'content': f"chunk_{i}"}
+                    yield {"type": "token", "content": f"chunk_{i}"}
                     await asyncio.sleep(0.01)
 
         conversation_id = 1100

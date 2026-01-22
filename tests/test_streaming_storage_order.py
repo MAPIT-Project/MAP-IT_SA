@@ -12,10 +12,10 @@ streaming tokens. This test file documents and verifies this behavior.
 """
 
 import asyncio
-import os
-import sys
 from collections.abc import AsyncGenerator
 from datetime import datetime
+import os
+import sys
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -35,15 +35,11 @@ class EventTracker:
         self.first_token_timestamp: datetime | None = None
 
     def record_event(self, event_type: str, **kwargs):
-        self.events.append({
-            'type': event_type,
-            'timestamp': datetime.now(),
-            **kwargs
-        })
+        self.events.append({"type": event_type, "timestamp": datetime.now(), **kwargs})
 
-        if event_type == 'storage_complete':
+        if event_type == "storage_complete":
             self.storage_timestamp = datetime.now()
-        elif event_type == 'first_token' and self.first_token_timestamp is None:
+        elif event_type == "first_token" and self.first_token_timestamp is None:
             self.first_token_timestamp = datetime.now()
 
     def storage_before_tokens(self) -> bool:
@@ -103,13 +99,15 @@ class MockCursor:
             pool.storage_times[msg_id] = datetime.now()
 
             self._last_result = (msg_id,)
-            pool.stored_messages.append({
-                'id': msg_id,
-                'conversation_id': params[0] if params else 0,
-                'sender': params[1] if params else 'unknown',
-                'text': params[2] if params else '',
-                'stored_at': datetime.now()
-            })
+            pool.stored_messages.append(
+                {
+                    "id": msg_id,
+                    "conversation_id": params[0] if params else 0,
+                    "sender": params[1] if params else "unknown",
+                    "text": params[2] if params else "",
+                    "stored_at": datetime.now(),
+                }
+            )
         elif "SELECT id FROM message" in sql:
             self._last_result = None
         elif "UPDATE message" in sql:
@@ -152,21 +150,21 @@ class TestStorageBeforeStreaming:
             conversation_id=123,
             user_id=1,
             user_message="Test question",
-            assistant_message="Test response for streaming"
+            assistant_message="Test response for streaming",
         )
-        tracker.record_event('storage_complete', result=result.success)
+        tracker.record_event("storage_complete", result=result.success)
 
         # 2. Then, simulate token streaming
         answer = "Test response for streaming"
         for i in range(0, len(answer), 50):
             if i == 0:
-                tracker.record_event('first_token')
-            tracker.record_event('token', content=answer[i:i+50])
+                tracker.record_event("first_token")
+            tracker.record_event("token", content=answer[i : i + 50])
 
         # Verify storage happened before first token
-        assert tracker.storage_before_tokens(), (
-            "Storage must complete before first token is streamed"
-        )
+        assert (
+            tracker.storage_before_tokens()
+        ), "Storage must complete before first token is streamed"
 
         # Verify messages are in DB
         assert len(db_pool.stored_messages) == 2
@@ -191,7 +189,7 @@ class TestStorageBeforeStreaming:
             conversation_id=456,
             user_id=1,
             user_message="Show me 5 funding calls",
-            assistant_message="Here are 5 calls: 1. Call A, 2. Call B, 3. Call C..."
+            assistant_message="Here are 5 calls: 1. Call A, 2. Call B, 3. Call C...",
         )
 
         assert result1.success
@@ -199,26 +197,22 @@ class TestStorageBeforeStreaming:
 
         # Immediately after storage, messages should be in DB
         # This simulates a follow-up query accessing the stored message
-        stored_user_msg = next(
-            (m for m in db_pool.stored_messages if m['sender'] == 'user'),
-            None
-        )
+        stored_user_msg = next((m for m in db_pool.stored_messages if m["sender"] == "user"), None)
         stored_assistant_msg = next(
-            (m for m in db_pool.stored_messages if m['sender'] == 'assistant'),
-            None
+            (m for m in db_pool.stored_messages if m["sender"] == "assistant"), None
         )
 
         assert stored_user_msg is not None
         assert stored_assistant_msg is not None
-        assert "5 funding calls" in stored_user_msg['text']
-        assert "5 calls" in stored_assistant_msg['text']
+        assert "5 funding calls" in stored_user_msg["text"]
+        assert "5 calls" in stored_assistant_msg["text"]
 
         # Now store a follow-up
         result2 = await storage.store_message_pair(
             conversation_id=456,
             user_id=1,
             user_message="Tell me about the third one",
-            assistant_message="Call C is about..."
+            assistant_message="Call C is about...",
         )
 
         assert result2.success
@@ -248,12 +242,12 @@ class TestStreamingFlowOrder:
         async def simulate_streaming_flow() -> AsyncGenerator[dict, None]:
             """Simulate the streaming flow from conversation_manager."""
             # 1. Status event
-            events.append({'type': 'status', 'stage': 'processing'})
-            yield {'type': 'status', 'stage': 'processing'}
+            events.append({"type": "status", "stage": "processing"})
+            yield {"type": "status", "stage": "processing"}
 
             # 2. Agent processing (simulated)
-            events.append({'type': 'status', 'stage': 'agent_starting'})
-            yield {'type': 'status', 'stage': 'agent_starting'}
+            events.append({"type": "status", "stage": "agent_starting"})
+            yield {"type": "status", "stage": "agent_starting"}
 
             # 3. Agent completes with answer
             answer = "Here is my response about EU funding..."
@@ -265,40 +259,38 @@ class TestStreamingFlowOrder:
                 conversation_id=789,
                 user_id=1,
                 user_message="What is EU funding?",
-                assistant_message=answer
+                assistant_message=answer,
             )
-            events.append({
-                'type': 'storage_complete',
-                'success': storage_result.success,
-                'user_id': storage_result.user_message_id,
-                'assistant_id': storage_result.assistant_message_id
-            })
+            events.append(
+                {
+                    "type": "storage_complete",
+                    "success": storage_result.success,
+                    "user_id": storage_result.user_message_id,
+                    "assistant_id": storage_result.assistant_message_id,
+                }
+            )
 
             # 5. Stream status before tokens
-            events.append({'type': 'status', 'stage': 'streaming_response'})
-            yield {'type': 'status', 'stage': 'streaming_response'}
+            events.append({"type": "status", "stage": "streaming_response"})
+            yield {"type": "status", "stage": "streaming_response"}
 
             # 6. NOW stream tokens (after storage)
             for i in range(0, len(answer), 50):
-                chunk = answer[i:i+50]
-                events.append({'type': 'token', 'content': chunk})
-                yield {'type': 'token', 'content': chunk}
+                chunk = answer[i : i + 50]
+                events.append({"type": "token", "content": chunk})
+                yield {"type": "token", "content": chunk}
 
             # 7. Complete event
-            events.append({'type': 'complete'})
-            yield {'type': 'complete'}
+            events.append({"type": "complete"})
+            yield {"type": "complete"}
 
         # Run the simulated streaming flow
         async for _event in simulate_streaming_flow():
             pass
 
         # Verify order: storage_complete should come BEFORE any token events
-        storage_idx = next(
-            i for i, e in enumerate(events) if e['type'] == 'storage_complete'
-        )
-        first_token_idx = next(
-            i for i, e in enumerate(events) if e['type'] == 'token'
-        )
+        storage_idx = next(i for i, e in enumerate(events) if e["type"] == "storage_complete")
+        first_token_idx = next(i for i, e in enumerate(events) if e["type"] == "token")
 
         assert storage_idx < first_token_idx, (
             f"Storage (index {storage_idx}) must happen before "
@@ -307,9 +299,9 @@ class TestStreamingFlowOrder:
 
         # Verify storage was successful
         storage_event = events[storage_idx]
-        assert storage_event['success'], "Storage should succeed"
-        assert storage_event['user_id'] is not None
-        assert storage_event['assistant_id'] is not None
+        assert storage_event["success"], "Storage should succeed"
+        assert storage_event["user_id"] is not None
+        assert storage_event["assistant_id"] is not None
 
     @pytest.mark.asyncio
     async def test_concurrent_follow_up_can_access_stored_message(self):
@@ -332,7 +324,7 @@ class TestStreamingFlowOrder:
             conversation_id=999,
             user_id=1,
             user_message="List hydrogen projects",
-            assistant_message="1. Project A\n2. Project B\n3. Project C"
+            assistant_message="1. Project A\n2. Project B\n3. Project C",
         )
 
         assert result1.success
@@ -342,9 +334,7 @@ class TestStreamingFlowOrder:
         # but storage is complete, so follow-up should work
 
         # Verify messages are accessible
-        messages_in_conv = [
-            m for m in db_pool.stored_messages if m['conversation_id'] == 999
-        ]
+        messages_in_conv = [m for m in db_pool.stored_messages if m["conversation_id"] == 999]
         assert len(messages_in_conv) == 2
 
         # Store follow-up
@@ -352,15 +342,13 @@ class TestStreamingFlowOrder:
             conversation_id=999,
             user_id=1,
             user_message="Tell me about Project B",
-            assistant_message="Project B is a hydrogen research initiative..."
+            assistant_message="Project B is a hydrogen research initiative...",
         )
 
         assert result2.success
 
         # All messages should be stored
-        messages_in_conv = [
-            m for m in db_pool.stored_messages if m['conversation_id'] == 999
-        ]
+        messages_in_conv = [m for m in db_pool.stored_messages if m["conversation_id"] == 999]
         assert len(messages_in_conv) == 4
 
 
@@ -385,42 +373,37 @@ class TestStorageOrderWithErrors:
         answer = "Response that should still be streamed"
 
         result = await storage.store_message_pair(
-            conversation_id=111,
-            user_id=1,
-            user_message="Test",
-            assistant_message=answer
+            conversation_id=111, user_id=1, user_message="Test", assistant_message=answer
         )
 
-        events.append({
-            'type': 'storage_attempt',
-            'success': result.success,
-            'error': result.error
-        })
+        events.append({"type": "storage_attempt", "success": result.success, "error": result.error})
 
         # Even with storage failure, tokens should stream
         if not result.success:
-            events.append({
-                'type': 'error',
-                'error': f"Storage failed: {result.error}",
-                'response': answer  # Response included
-            })
+            events.append(
+                {
+                    "type": "error",
+                    "error": f"Storage failed: {result.error}",
+                    "response": answer,  # Response included
+                }
+            )
 
         for i in range(0, len(answer), 50):
-            events.append({'type': 'token', 'content': answer[i:i+50]})
+            events.append({"type": "token", "content": answer[i : i + 50]})
 
-        events.append({'type': 'complete'})
+        events.append({"type": "complete"})
 
         # Verify storage failed but response still streamed
-        storage_event = next(e for e in events if e['type'] == 'storage_attempt')
-        assert not storage_event['success']
+        storage_event = next(e for e in events if e["type"] == "storage_attempt")
+        assert not storage_event["success"]
 
         # Verify error event was added
-        error_events = [e for e in events if e['type'] == 'error']
+        error_events = [e for e in events if e["type"] == "error"]
         assert len(error_events) == 1
-        assert answer in error_events[0]['response']
+        assert answer in error_events[0]["response"]
 
         # Verify tokens were still streamed
-        token_events = [e for e in events if e['type'] == 'token']
+        token_events = [e for e in events if e["type"] == "token"]
         assert len(token_events) > 0
 
 
@@ -438,10 +421,7 @@ class TestStorageOrderVerification:
 
         # Store message and record time
         result = await storage.store_message_pair(
-            conversation_id=222,
-            user_id=1,
-            user_message="Test",
-            assistant_message="Response"
+            conversation_id=222, user_id=1, user_message="Test", assistant_message="Response"
         )
         storage_time = datetime.now()
 
@@ -451,9 +431,7 @@ class TestStorageOrderVerification:
         # Simulate token streaming start
         token_time = datetime.now()
 
-        assert storage_time < token_time, (
-            "Storage completion must happen before token streaming"
-        )
+        assert storage_time < token_time, "Storage completion must happen before token streaming"
         assert result.success
 
     @pytest.mark.asyncio
@@ -470,7 +448,7 @@ class TestStorageOrderVerification:
             conversation_id=333,
             user_id=1,
             user_message="Query",
-            assistant_message="Answer to query"
+            assistant_message="Answer to query",
         )
 
         # IDs should be available immediately
@@ -479,14 +457,14 @@ class TestStorageOrderVerification:
 
         # These IDs can be included in streaming metadata
         metadata = {
-            'user_message_id': result.user_message_id,
-            'assistant_message_id': result.assistant_message_id,
-            'storage_success': result.success
+            "user_message_id": result.user_message_id,
+            "assistant_message_id": result.assistant_message_id,
+            "storage_success": result.success,
         }
 
-        assert metadata['storage_success']
-        assert isinstance(metadata['user_message_id'], int)
-        assert isinstance(metadata['assistant_message_id'], int)
+        assert metadata["storage_success"]
+        assert isinstance(metadata["user_message_id"], int)
+        assert isinstance(metadata["assistant_message_id"], int)
 
 
 # Run tests if executed directly
