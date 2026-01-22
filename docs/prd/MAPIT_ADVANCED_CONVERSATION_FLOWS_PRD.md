@@ -591,7 +591,7 @@ final_validations:
 - [x] RUN & FIX: Execute scenario. Verify SME eligibility rules.
 
 ### Task 036: Consortium Eligibility Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/consortium_eligibility.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/consortium_eligibility.yaml` with steps:
   1. "We have partners from Germany, France, and UK"
   2. "Is this consortium eligible?"
   3. "What if we add a Swiss partner?"
@@ -599,7 +599,7 @@ final_validations:
   5. "What's the minimum we need?"
   Validations: Consortium rules correct, third country participation explained.
 
-- [ ] RUN & FIX: Execute scenario. Fix consortium eligibility logic.
+- [x] RUN & FIX: Execute scenario. Fix consortium eligibility logic.
 
 ### Task 037: Cross-Programme Eligibility Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/cross_programme_eligibility.yaml` with steps:

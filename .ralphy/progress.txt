@@ -5863,3 +5863,45 @@ phase8, eligibility, sme, definition, ownership, eic, ria
 
 ### Next Task
 Task 036: Consortium Eligibility Scenario (Phase 8 - Complex Eligibility Scenarios)
+
+## 2026-01-22: Task 036 - Consortium Eligibility Scenario (Phase 8)
+
+### Task Completed
+Implemented Task 036: Consortium Eligibility Scenario for testing consortium composition rules and third country participation in EU funding.
+
+### User Journey
+1. User describes consortium (Germany, France, UK) -> Check basic eligibility
+2. Asks if consortium is eligible -> Confirm EU/Associated Country rules
+3. Asks about adding Swiss partner -> Switzerland associated country status
+4. Asks about adding US partner -> Third country participation rules
+5. Asks about minimum requirements -> Explain minimum consortium rules
+
+### Files Created
+- `tests/scenarios/advanced/consortium_eligibility.yaml` - New scenario file with:
+  - 5 conversation steps testing consortium eligibility
+  - Validation types per PRD requirements:
+    - `goal_progress` (GoalTrackingAgent): Track progress across turns
+    - `eligibility_correct` (CrossProgrammeAgent): Consortium rules accurate
+    - `programme_accurate` (CrossProgrammeAgent): Third country rules correct
+    - `programme_mentioned` (CrossProgrammeAgent): Horizon Europe mentioned
+    - `context_accumulated` (PersonalizationAgent): Consortium context preserved
+    - `goal_achieved` (GoalTrackingAgent): User understands eligibility
+    - `profile_used` (PersonalizationAgent): Profile used in responses
+    - `personalization_applied` (PersonalizationAgent): Response personalized
+    - `context_integrity` (ContextValidatorAgent): All messages stored correctly
+
+### Test Results
+- Scenario test passed (1 passed in ~245s)
+- YAML syntax validation passed
+- 44 total tests collected
+- Pre-existing linting issues not caused by new YAML file
+
+### Tags
+phase8, eligibility, consortium, third_country, uk, switzerland, minimum
+
+### PRD Task Status
+- [x] CREATE SCENARIO: tests/scenarios/advanced/consortium_eligibility.yaml
+- [x] RUN & FIX: Execute scenario (passed)
+
+### Next Task
+Task 037: Cross-Programme Eligibility Scenario (Phase 8 - Complex Eligibility Scenarios)
