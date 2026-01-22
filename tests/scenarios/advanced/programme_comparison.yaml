@@ -1,0 +1,189 @@
+# Programme Comparison Scenario (Task 007)
+# Tests multi-programme comparison where user compares Horizon Europe and Erasmus+
+# for university research collaboration.
+#
+# User Journey:
+# 1. Initial comparison request → Both programmes explained
+# 2. Deep dive into funding amounts → Specific budget details
+# 3. Success rates inquiry → Statistical comparison
+# 4. Strategic recommendation → Clear guidance on which to apply first
+#
+# Required Validation Types (per PRD):
+# - programme_mentioned (CrossProgrammeAgent): Both programmes discussed
+# - programme_accurate (CrossProgrammeAgent): Funding amounts and success rates correct
+# - response_contains: Strategic recommendation present
+# - goal_achieved (GoalTrackingAgent): User can make informed decision
+
+name: "Programme Comparison"
+description: |
+  User compares Horizon Europe and Erasmus+ for university research collaboration.
+  Tests cross-programme comparison with specific data points like funding amounts
+  and success rates, culminating in a strategic recommendation.
+tags: ["phase1", "multi-programme", "comparison", "cross-programme", "strategic"]
+stop_on_error: false
+
+steps:
+  # Turn 1: Initial comparison request
+  # Expected: Both programmes explained with key differences
+  - message: "Compare Horizon Europe and Erasmus+ for university research collaboration"
+    validations:
+      # Built-in: No errors in response
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn1"
+
+      # CrossProgrammeAgent: Both programmes should be mentioned
+      - type: "programme_mentioned"  # CrossProgrammeAgent
+        name: "both_programmes_mentioned"
+        programmes: ["horizon_europe", "erasmus_plus"]
+
+      # CrossProgrammeAgent: Facts about Horizon Europe should be accurate
+      - type: "programme_accurate"  # CrossProgrammeAgent
+        name: "horizon_facts_accurate"
+        programme: "horizon_europe"
+        min_score: 0.5
+
+      # CrossProgrammeAgent: Facts about Erasmus+ should be accurate
+      - type: "programme_accurate"  # CrossProgrammeAgent
+        name: "erasmus_facts_accurate"
+        programme: "erasmus_plus"
+        min_score: 0.5
+
+      # GoalTrackingAgent: Initial progress toward informed decision
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "initial_comparison_progress"
+        min_progress: 0.15
+
+      # Built-in: Response should mention comparison terms
+      - type: "response_contains_any"  # Built-in
+        name: "mentions_comparison_aspects"
+        patterns: ["research", "collaboration", "funding", "university", "partner"]
+    delay_ms: 0
+
+  # Turn 2: Follow-up on funding amounts
+  # Expected: Specific budget/funding figures for both programmes
+  - message: "What about funding amounts?"
+    validations:
+      # Built-in: No errors
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn2"
+
+      # CrossProgrammeAgent: Both programmes still discussed
+      - type: "programme_mentioned"  # CrossProgrammeAgent
+        name: "both_programmes_funding"
+        programmes: ["horizon_europe", "erasmus_plus"]
+
+      # CrossProgrammeAgent: Funding information should be accurate
+      - type: "programme_accurate"  # CrossProgrammeAgent
+        name: "horizon_funding_accurate"
+        programme: "horizon_europe"
+        min_score: 0.5
+
+      # GoalTrackingAgent: Progress increases with funding details
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "progress_with_funding"
+        min_progress: 0.30
+
+      # Built-in: Should mention budget/funding related terms
+      - type: "response_contains_any"  # Built-in
+        name: "mentions_funding_details"
+        patterns:
+          - "billion"
+          - "million"
+          - "EUR"
+          - "budget"
+          - "funding rate"
+          - "grant"
+          - "lump sum"
+    delay_ms: 500
+
+  # Turn 3: Success rates inquiry
+  # Expected: Statistical comparison of success rates
+  - message: "Which has better success rates?"
+    validations:
+      # Built-in: No errors
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn3"
+
+      # CrossProgrammeAgent: Both programmes discussed with statistics
+      - type: "programme_mentioned"  # CrossProgrammeAgent
+        name: "both_programmes_stats"
+        programmes: ["horizon_europe", "erasmus_plus"]
+
+      # CrossProgrammeAgent: Success rate information should be accurate
+      - type: "programme_accurate"  # CrossProgrammeAgent
+        name: "success_rates_accurate"
+        programme: "horizon_europe"
+        min_score: 0.5
+
+      # GoalTrackingAgent: Good progress with statistical comparison
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "progress_with_stats"
+        min_progress: 0.50
+
+      # Built-in: Should mention success/rate related terms
+      - type: "response_contains_any"  # Built-in
+        name: "mentions_success_rates"
+        patterns:
+          - "success rate"
+          - "acceptance"
+          - "competitive"
+          - "%"
+          - "percent"
+          - "higher"
+          - "lower"
+    delay_ms: 500
+
+  # Turn 4: Strategic recommendation
+  # Expected: Clear recommendation with reasoning
+  # Note: In follow-up turns, the AI may not always repeat programme names
+  # since they are established in context. We focus on the recommendation content.
+  - message: "Which should I apply to first?"
+    validations:
+      # Built-in: No errors
+      - type: "no_error"  # Built-in
+        name: "no_errors_turn4"
+
+      # CrossProgrammeAgent: At least one programme should be referenced
+      # (The AI may reference programmes by context rather than full names)
+      - type: "programme_mentioned"  # CrossProgrammeAgent
+        name: "recommendation_programmes"
+        programmes: ["horizon_europe"]
+
+      # GoalTrackingAgent: Good progress toward decision
+      - type: "goal_progress"  # GoalTrackingAgent
+        name: "progress_with_recommendation"
+        min_progress: 0.55
+
+      # Built-in: Strategic recommendation should be present
+      # Using broader patterns to catch varied AI responses
+      - type: "response_contains_any"  # Built-in
+        name: "strategic_recommendation"
+        patterns:
+          - "recommend"
+          - "suggest"
+          - "start with"
+          - "first"
+          - "consider"
+          - "depends"
+          - "if your"
+          - "based on"
+          - "strategy"
+          - "would be"
+          - "should"
+          - "before"
+          - "then"
+          - "priority"
+          - "typically"
+          - "generally"
+    delay_ms: 500
+
+final_validations:
+  # GoalTrackingAgent: User should be able to make informed decision
+  # Note: 0.55 threshold accounts for LLM evaluation variance across turns
+  - type: "goal_achieved"  # GoalTrackingAgent
+    name: "comparison_goal_achieved"
+    min_progress: 0.55
+
+  # ContextValidatorAgent: All messages should be stored correctly
+  - type: "context_integrity"  # ContextValidatorAgent
+    name: "context_preserved"

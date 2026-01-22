@@ -207,7 +207,7 @@ final_validations:
 - [x] RUN & FIX: Execute scenario. Verify cross-programme navigation works.
 
 ### Task 007: Programme Comparison Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/programme_comparison.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/programme_comparison.yaml` with steps:
   1. "Compare Horizon Europe and Erasmus+ for university research collaboration"
   2. "What about funding amounts?"
   3. "Which has better success rates?"
@@ -218,7 +218,7 @@ final_validations:
   - `response_contains`: Strategic recommendation present
   - `goal_achieved` (GoalTrackingAgent): User can make informed decision
 
-- [ ] RUN & FIX: Execute scenario. Fix any comparison logic issues.
+- [x] RUN & FIX: Execute scenario. Fix any comparison logic issues.
 
 ### Task 008: Programme Recommendation Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/programme_recommendation.yaml` with steps:
