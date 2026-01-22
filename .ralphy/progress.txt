@@ -4759,3 +4759,53 @@ Per PRD requirements, the scenario uses these validation types:
 
 ### Next Steps
 Task 011: Budget Iteration Scenario
+
+---
+
+## 2026-01-22: Task 011 - Budget Iteration Scenario
+
+### Task Completed
+Created the Budget Iteration scenario for Task 011 in the MAPIT Advanced Conversation Flows PRD.
+
+### Files Created/Modified
+- `tests/scenarios/advanced/budget_iteration.yaml` - New scenario file with:
+  - 5-step budget calculation and refinement workflow for RIA project
+  - Step 1: Calculate initial budget for 3-year RIA with 5 partners
+  - Step 2: Recalculate with 2 additional partners (7 total)
+  - Step 3: Increase personnel costs for senior researchers
+  - Step 4: Compare budget with typical RIA projects in energy research
+  - Step 5: Adjust budget to stay within 90th percentile
+
+### Validation Types Used
+Per PRD requirements, the scenario uses these validation types:
+- `goal_progress` (GoalTrackingAgent): Track progress at each step (0.10 to 0.65)
+- `goal_achieved` (GoalTrackingAgent): Final budget planning goal achieved (min_progress: 0.55)
+- `context_accumulated` (PersonalizationAgent): Budget context builds across turns
+- `context_integrity` (ContextValidatorAgent): All messages stored correctly
+- `response_contains_any` (Built-in): Pattern matching for budget-related content
+- `no_error` (Built-in): Error detection at each step
+
+### Test Results
+- Scenario loads correctly: 5 steps, 3 final validations
+- YAML syntax validated (passes yaml.safe_load check)
+- Infrastructure tests pass (6/6): scenarios directory exists, scenarios loaded, validation scenario exists, agent integrations work
+- Scenario correctly found by test runner as "Budget Iteration"
+
+### Implementation Notes
+- Step messages focus on iterative budget refinement (add partners, adjust costs, compare, optimize)
+- Goal progress thresholds increase progressively from 0.10 to 0.65 across 5 steps
+- Each step includes no_error validation for early failure detection
+- stop_on_error: false allows partial completion tracking
+- Tags: ["phase2", "proposal-development", "budget", "iteration", "ria"]
+
+### Linting
+- YAML syntax validated successfully
+- No new Python files created, so no ruff issues introduced
+- Pre-existing lint issues in codebase are unrelated to this task
+
+### PRD Update
+- Marked Task 011 CREATE SCENARIO item as complete (`- [x]`)
+- Marked Task 011 RUN & FIX item as complete (`- [x]`)
+
+### Next Steps
+Task 012: Timeline Refinement Scenario

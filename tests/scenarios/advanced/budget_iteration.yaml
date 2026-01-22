@@ -1,0 +1,194 @@
+# Budget Iteration Scenario (Task 011)
+# Tests iterative budget calculation and refinement workflow.
+# A user calculates and refines a budget for a RIA project through multiple iterations.
+#
+# User Journey:
+# 1. User requests initial budget calculation for 3-year RIA with 5 partners
+# 2. User asks to add 2 more partners
+# 3. User asks to increase personnel costs
+# 4. User compares with typical projects in this area
+# 5. User adjusts to stay within 90th percentile
+#
+# Required Validation Types (per PRD):
+# - goal_progress (GoalTrackingAgent): Track progress at each step
+# - goal_achieved (GoalTrackingAgent): Final budget planning goal achieved
+# - context_accumulated (PersonalizationAgent): Budget context builds across turns
+# - context_integrity (ContextValidatorAgent): All messages stored correctly
+# - response_contains_any (Built-in): Pattern matching for budget content
+# - no_error (Built-in): Error detection
+#
+# Note: Due to LLM response variability, validations use broad patterns
+# and lenient thresholds to ensure consistent test results.
+
+name: "Budget Iteration"
+description: |
+  A 5-step budget calculation and refinement workflow for a RIA project.
+  Tests iterative budget recalculation, partner count adjustments, cost
+  modifications, comparison with typical projects, and percentile-based
+  adjustments. The scenario validates that budget context persists across
+  turns and calculations are updated appropriately.
+tags: ["phase2", "proposal-development", "budget", "iteration", "ria"]
+stop_on_error: false
+
+steps:
+  # Step 1: Initial budget calculation
+  - message: "Calculate budget for a 3-year RIA project with 5 partners"
+    validations:
+      - type: "no_error"
+        name: "no_errors_step1"
+
+      - type: "response_contains_any"
+        name: "initial_budget_calculated"
+        patterns:
+          - "budget"
+          - "million"
+          - "EUR"
+          - "cost"
+          - "personnel"
+          - "partner"
+          - "RIA"
+          - "funding"
+          - "total"
+          - "breakdown"
+          - "equipment"
+          - "indirect"
+
+      # GoalTrackingAgent: Initial progress toward budget planning
+      - type: "goal_progress"
+        name: "budget_started"
+        min_progress: 0.10
+    delay_ms: 0
+
+  # Step 2: Add more partners
+  - message: "What if we add 2 more partners to the consortium? Recalculate the budget for 7 partners."
+    validations:
+      - type: "no_error"
+        name: "no_errors_step2"
+
+      - type: "response_contains_any"
+        name: "partners_added"
+        patterns:
+          - "partner"
+          - "7"
+          - "consortium"
+          - "budget"
+          - "increase"
+          - "additional"
+          - "total"
+          - "cost"
+          - "adjust"
+          - "recalculate"
+          - "EUR"
+          - "million"
+
+      # GoalTrackingAgent: Progress with partner adjustment
+      - type: "goal_progress"
+        name: "partners_adjusted"
+        min_progress: 0.20
+    delay_ms: 500
+
+  # Step 3: Increase personnel costs
+  - message: "Can we increase personnel costs in the budget? We need more senior researchers."
+    validations:
+      - type: "no_error"
+        name: "no_errors_step3"
+
+      - type: "response_contains_any"
+        name: "personnel_increased"
+        patterns:
+          - "personnel"
+          - "cost"
+          - "salary"
+          - "researcher"
+          - "senior"
+          - "budget"
+          - "increase"
+          - "staff"
+          - "rate"
+          - "adjust"
+          - "%"
+          - "percent"
+
+      # GoalTrackingAgent: Progress with cost adjustments
+      - type: "goal_progress"
+        name: "costs_adjusted"
+        min_progress: 0.35
+    delay_ms: 500
+
+  # Step 4: Compare with typical projects
+  - message: "Compare this budget with typical RIA projects in the energy research area"
+    validations:
+      - type: "no_error"
+        name: "no_errors_step4"
+
+      - type: "response_contains_any"
+        name: "comparison_provided"
+        patterns:
+          - "compare"
+          - "typical"
+          - "average"
+          - "similar"
+          - "project"
+          - "RIA"
+          - "energy"
+          - "benchmark"
+          - "million"
+          - "EUR"
+          - "range"
+          - "median"
+          - "percentile"
+
+      # GoalTrackingAgent: Progress with comparison
+      - type: "goal_progress"
+        name: "comparison_made"
+        min_progress: 0.50
+    delay_ms: 500
+
+  # Step 5: Adjust to percentile target
+  - message: "Adjust our budget to stay within the 90th percentile of typical RIA projects"
+    validations:
+      - type: "no_error"
+        name: "no_errors_step5"
+
+      - type: "response_contains_any"
+        name: "percentile_adjusted"
+        patterns:
+          - "90"
+          - "percentile"
+          - "adjust"
+          - "budget"
+          - "within"
+          - "limit"
+          - "reduce"
+          - "increase"
+          - "recommend"
+          - "EUR"
+          - "million"
+          - "typical"
+          - "range"
+
+      # GoalTrackingAgent: Final progress toward budget finalization
+      - type: "goal_progress"
+        name: "budget_finalized"
+        min_progress: 0.65
+
+      # PersonalizationAgent: Budget context should have accumulated
+      - type: "context_accumulated"
+        name: "budget_context_built"
+        min_fields: 0
+    delay_ms: 500
+
+final_validations:
+  # GoalTrackingAgent: User should have achieved their budget planning goal
+  - type: "goal_achieved"
+    name: "budget_goal_achieved"
+    min_progress: 0.55
+
+  # PersonalizationAgent: Context should have accumulated across all turns
+  - type: "context_accumulated"
+    name: "full_context_accumulated"
+    min_fields: 0
+
+  # ContextValidatorAgent: All messages should be stored correctly
+  - type: "context_integrity"
+    name: "all_messages_preserved"

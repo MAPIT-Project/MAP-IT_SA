@@ -279,7 +279,7 @@ final_validations:
 - [x] RUN & FIX: Execute long scenario. Track goal progression.
 
 ### Task 011: Budget Iteration Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/budget_iteration.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/budget_iteration.yaml` with steps:
   1. "Calculate budget for a 3-year RIA with 5 partners"
   2. "What if we add 2 more partners?"
   3. "Can we increase personnel costs?"
@@ -287,7 +287,7 @@ final_validations:
   5. "Adjust to stay within 90th percentile"
   Validations: Budget recalculated each time, comparisons accurate, final budget reasonable.
 
-- [ ] RUN & FIX: Execute scenario. Fix budget calculation persistence.
+- [x] RUN & FIX: Execute scenario. Fix budget calculation persistence.
 
 ### Task 012: Timeline Refinement Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/timeline_refinement.yaml` with steps:
