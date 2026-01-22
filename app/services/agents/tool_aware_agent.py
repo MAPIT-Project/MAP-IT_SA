@@ -3473,6 +3473,11 @@ digital_europe, life""",
         if refinement_result:
             return refinement_result
 
+        # Check for partner COMPARISON/ANALYSIS queries (e.g., "Compare the top 3", "Which has most funding?")
+        comparison_result = self._detect_partner_comparison_query(query, context)
+        if comparison_result:
+            return comparison_result
+
         # Consortium size/patterns queries
         consortium_patterns = [
             "typical consortium",
@@ -3626,6 +3631,476 @@ digital_europe, life""",
             "needs_more_info": True,
         }
 
+    def _detect_partner_comparison_query(self, query: str, context: str) -> dict[str, Any] | None:
+        """Detect if query is a comparison/analysis of partners from a previous search.
+
+        This handles follow-up queries like:
+        - "Compare the top 3 organizations"
+        - "Which has the most EU funding?"
+        - "Which has the most diverse collaboration network?"
+        - "Recommend the best fit for a coordination role"
+
+        These should either use context directly or use get_collaboration_network for network questions.
+        """
+        if not context:
+            return None
+
+        query_lower = query.lower()
+        context_lower = context.lower()
+
+        # Check if context indicates partner search data is available
+        # These indicators cover both original partner search results AND
+        # our context synthesis responses (which also contain organization data)
+        partner_context_indicators = [
+            "find_experienced_partners",
+            "top organizations",
+            "organization type",
+            "relevant projects",
+            "total funding",
+            "coordinated",
+            "example projects",
+            # Indicators from our synthesis responses
+            "partner comparison",
+            "partner funding comparison",
+            "network diversity",
+            "coordination experience",
+            "projects coordinated",
+            "network score",
+            "highest funding",
+            "most coordination",
+            # Additional patterns from comparison table
+            "| organization |",
+            "| country |",
+            "total projects",
+            "most diverse collaboration",
+            "highest funded",
+            "eu funding",
+            "key insights",
+        ]
+
+        # Need at least 2 indicators to confirm partner data is in context
+        indicator_count = sum(1 for ind in partner_context_indicators if ind in context_lower)
+        if indicator_count < 2:
+            return None
+
+        # Extract organization names from context for use in conclusions
+        org_names = self._extract_organization_names_from_context(context)
+
+        # Check for collaboration network queries
+        # Use context data (coordination counts) as proxy for network diversity
+        # since calling get_collaboration_network for multiple orgs is expensive
+        network_patterns = [
+            "collaboration network",
+            "diverse network",
+            "most diverse",
+            "network diversity",
+            "collaboration history",
+            "who do they work with",
+            "their partners",
+        ]
+
+        if any(pattern in query_lower for pattern in network_patterns):
+            # For network diversity, use coordination count as proxy
+            # Organizations that coordinate more projects have more diverse networks
+            conclusion = self._build_network_diversity_conclusion(context, org_names)
+            return {
+                "thought": "User is asking about collaboration network diversity. Using coordination data from partner context as proxy for network diversity. Higher coordination = more collaboration experience.",
+                "action": "conclude",
+                "conclusion": conclusion,
+                "confidence": 0.80,
+                "needs_more_info": False,
+            }
+
+        # Comparison/analysis patterns that can be answered from context
+        # Note: More specific patterns (e.g., "coordination role") should come BEFORE
+        # generic patterns (e.g., "recommend") to ensure correct classification
+        context_synthesis_patterns = [
+            # Coordinator recommendations (most specific - check first)
+            ("coordination role", "coordinator recommendation"),
+            ("as coordinator", "coordinator recommendation"),
+            ("should coordinate", "coordinator recommendation"),
+            ("who should lead", "coordinator recommendation"),
+            ("best coordinator", "coordinator recommendation"),
+            ("recommend.*coordinator", "coordinator recommendation"),
+            # Funding comparisons
+            ("most eu funding", "funding comparison"),
+            ("most funding", "funding comparison"),
+            ("highest funding", "funding comparison"),
+            # Organization comparisons
+            ("compare", "comparison request"),
+            ("top 3", "comparing top organizations"),
+            ("top three", "comparing top organizations"),
+            ("top 5", "comparing top organizations"),
+            ("top five", "comparing top organizations"),
+            # Ranking by attribute
+            ("which has the most", "ranking by attribute"),
+            ("which one has", "ranking by attribute"),
+            ("most projects", "project count comparison"),
+            ("most experience", "experience comparison"),
+            # Generic recommendations (check after specific patterns)
+            ("recommend", "recommendation request"),
+            ("best fit", "recommendation request"),
+            # Ranking requests
+            ("rank these", "ranking request"),
+            ("sort by", "ranking request"),
+        ]
+
+        matched_pattern = None
+        pattern_type = None
+        for pattern, ptype in context_synthesis_patterns:
+            if pattern in query_lower:
+                matched_pattern = pattern
+                pattern_type = ptype
+                break
+
+        if not matched_pattern:
+            return None
+
+        # Build context-aware conclusion
+        conclusion = self._build_partner_comparison_conclusion(
+            query, context, org_names, pattern_type
+        )
+
+        return {
+            "thought": f"User is asking for {pattern_type}. Partner search data is already in context with organizations: {', '.join(org_names[:3]) if org_names else 'available'}. Synthesizing answer from context.",
+            "action": "conclude",
+            "conclusion": conclusion,
+            "confidence": 0.85,
+            "needs_more_info": False,
+        }
+
+    def _extract_organization_names_from_context(self, context: str) -> list[str]:
+        """Extract organization names from partner search context."""
+        import re
+
+        org_names = []
+
+        # Pattern 1: Look for bold organization names (markdown format)
+        # e.g., "**FRAUNHOFER GESELLSCHAFT ZUR FORDERUNG DER ANGEWANDTEN FORSCHUNG EV**"
+        bold_pattern = re.findall(r"\*\*([A-Z][A-Z0-9\s\-&']+?)\*\*", context)
+        for name in bold_pattern:
+            name = name.strip()
+            # Filter out section headers and keep actual organization names
+            if len(name) > 5 and not name.startswith(("Finding", "How to", "Top")):
+                org_names.append(name)
+
+        # Pattern 2: Look for numbered list entries with organization names
+        # e.g., "### 1. **ORG NAME** (DE)"
+        numbered_pattern = re.findall(r"###\s*\d+\.\s*\*\*([^*]+)\*\*", context)
+        for name in numbered_pattern:
+            name = name.strip()
+            if name not in org_names and len(name) > 5:
+                org_names.append(name)
+
+        # Deduplicate while preserving order
+        seen = set()
+        unique_orgs = []
+        for org in org_names:
+            if org not in seen:
+                seen.add(org)
+                unique_orgs.append(org)
+
+        return unique_orgs[:10]  # Return top 10 organizations
+
+    def _build_partner_comparison_conclusion(
+        self, query: str, context: str, org_names: list[str], pattern_type: str
+    ) -> str:
+        """Build a structured comparison/recommendation based on partner context."""
+        import re
+
+        # Extract funding data from context
+        # Format: **Total Funding**: €75,951,578 or Total Funding: €75,951,578
+        funding_data = {}
+        for org in org_names[:5]:
+            # Look for funding info near the org name
+            org_escaped = re.escape(org)
+            # Match patterns like: **Total Funding**: €75,951,578 or Total Funding: €75,951,578
+            funding_match = re.search(
+                rf"{org_escaped}.*?\*?\*?Total Funding\*?\*?[:\s]*€?([\d,]+)",
+                context,
+                re.IGNORECASE | re.DOTALL,
+            )
+            if funding_match:
+                funding_str = funding_match.group(1).replace(",", "")
+                try:
+                    funding_data[org] = int(funding_str)
+                except ValueError:
+                    pass
+
+        # Extract project counts
+        # Format: **Relevant Projects**: 93 or Relevant Projects: 93
+        project_data = {}
+        for org in org_names[:5]:
+            org_escaped = re.escape(org)
+            project_match = re.search(
+                rf"{org_escaped}.*?\*?\*?Relevant Projects\*?\*?[:\s]*(\d+)",
+                context,
+                re.IGNORECASE | re.DOTALL,
+            )
+            if project_match:
+                try:
+                    project_data[org] = int(project_match.group(1))
+                except ValueError:
+                    pass
+
+        # Extract coordination counts
+        # Format: (coordinated **14** projects) or coordinated 14 projects
+        coordination_data = {}
+        for org in org_names[:5]:
+            org_escaped = re.escape(org)
+            coord_match = re.search(
+                rf"{org_escaped}.*?coordinated\s*\**(\d+)\**",
+                context,
+                re.IGNORECASE | re.DOTALL,
+            )
+            if coord_match:
+                try:
+                    coordination_data[org] = int(coord_match.group(1))
+                except ValueError:
+                    pass
+
+        # Extract organization types
+        # Format: **Organization Type**: REC (Research Center) or Organization Type: REC
+        org_types = {}
+        for org in org_names[:5]:
+            org_escaped = re.escape(org)
+            type_match = re.search(
+                rf"{org_escaped}.*?\*?\*?Organization Type\*?\*?[:\s]*([A-Z]+)",
+                context,
+                re.IGNORECASE | re.DOTALL,
+            )
+            if type_match:
+                org_types[org] = type_match.group(1)
+
+        # Extract countries
+        # Format: **ORG NAME** (DE) or ORG NAME (DE)
+        countries = {}
+        for org in org_names[:5]:
+            org_escaped = re.escape(org)
+            # Match: **ORG NAME** (DE) or ORG NAME (DE)
+            country_match = re.search(rf"{org_escaped}\*?\*?\s*\(([A-Z]{{2}})\)", context)
+            if country_match:
+                countries[org] = country_match.group(1)
+
+        # Build response based on pattern type
+        top_3 = org_names[:3]
+
+        if pattern_type == "funding comparison" or "funding" in query.lower():
+            # Sort by funding and present
+            sorted_by_funding = sorted(
+                [(org, funding_data.get(org, 0)) for org in top_3],
+                key=lambda x: x[1],
+                reverse=True,
+            )
+            result = "## Partner Funding Comparison\n\n"
+            result += "Based on the partner search results, here's the funding comparison:\n\n"
+            for i, (org, funding) in enumerate(sorted_by_funding, 1):
+                country = countries.get(org, "")
+                org_type = org_types.get(org, "")
+                result += f"### {i}. {org}"
+                if country:
+                    result += f" ({country})"
+                result += "\n"
+                result += f"- **Total EU Funding**: €{funding:,}\n"
+                result += f"- **Organization Type**: {org_type}\n"
+                projects = project_data.get(org, "N/A")
+                result += f"- **Relevant Projects**: {projects}\n\n"
+
+            if sorted_by_funding:
+                winner = sorted_by_funding[0]
+                result += (
+                    f"\n**Highest Funded**: {winner[0]} with €{winner[1]:,} in total EU funding.\n"
+                )
+
+        elif pattern_type == "coordinator recommendation":
+            # Sort by coordination experience
+            sorted_by_coord = sorted(
+                [(org, coordination_data.get(org, 0)) for org in top_3],
+                key=lambda x: x[1],
+                reverse=True,
+            )
+            result = "## Coordinator Recommendation\n\n"
+            result += "Based on coordination experience from the partner search:\n\n"
+            for i, (org, coord_count) in enumerate(sorted_by_coord, 1):
+                country = countries.get(org, "")
+                org_type = org_types.get(org, "")
+                funding = funding_data.get(org, 0)
+                result += f"### {i}. {org}"
+                if country:
+                    result += f" ({country})"
+                result += "\n"
+                result += f"- **Projects Coordinated**: {coord_count}\n"
+                result += f"- **Organization Type**: {org_type}\n"
+                result += f"- **Total Funding**: €{funding:,}\n\n"
+
+            if sorted_by_coord and sorted_by_coord[0][1] > 0:
+                winner = sorted_by_coord[0]
+                result += f"\n**Recommended Coordinator**: {winner[0]} has the most coordination experience with {winner[1]} projects coordinated.\n"
+            result += "\n**Next Steps:**\n"
+            result += "- Contact the recommended organization via CORDIS or their website\n"
+            result += "- Verify their availability and interest in your project topic\n"
+            result += "- Discuss consortium composition and roles\n"
+
+        elif pattern_type == "comparison request" or pattern_type == "comparing top organizations":
+            result = "## Partner Comparison\n\n"
+            result += f"Comparing the top {len(top_3)} organizations from the partner search:\n\n"
+            result += "| Organization | Country | Type | Projects | Coordinated | Total Funding |\n"
+            result += "|-------------|---------|------|----------|-------------|---------------|\n"
+            for org in top_3:
+                country = countries.get(org, "-")
+                org_type = org_types.get(org, "-")
+                projects = project_data.get(org, "-")
+                coord = coordination_data.get(org, "-")
+                funding = funding_data.get(org, 0)
+                funding_str = f"€{funding:,}" if funding else "-"
+                # Truncate long org names for table
+                short_name = org[:40] + "..." if len(org) > 40 else org
+                result += f"| {short_name} | {country} | {org_type} | {projects} | {coord} | {funding_str} |\n"
+
+            result += "\n### Key Insights:\n"
+            # Funding leader
+            if funding_data:
+                funding_leader = max(funding_data.items(), key=lambda x: x[1])
+                result += f"- **Highest Funding**: {funding_leader[0]} (€{funding_leader[1]:,})\n"
+            # Coordination leader
+            if coordination_data:
+                coord_leader = max(coordination_data.items(), key=lambda x: x[1])
+                result += f"- **Most Coordination Experience**: {coord_leader[0]} ({coord_leader[1]} projects)\n"
+            # Project leader
+            if project_data:
+                project_leader = max(project_data.items(), key=lambda x: x[1])
+                result += f"- **Most Relevant Projects**: {project_leader[0]} ({project_leader[1]} projects)\n"
+
+        else:
+            # Generic comparison
+            result = "## Partner Analysis\n\n"
+            result += (
+                f"Based on the partner search, here are the top {len(top_3)} organizations:\n\n"
+            )
+            for i, org in enumerate(top_3, 1):
+                country = countries.get(org, "")
+                org_type = org_types.get(org, "")
+                projects = project_data.get(org, "N/A")
+                coord = coordination_data.get(org, "N/A")
+                funding = funding_data.get(org, 0)
+                result += f"### {i}. {org}"
+                if country:
+                    result += f" ({country})"
+                result += "\n"
+                result += f"- **Organization Type**: {org_type}\n"
+                result += f"- **Relevant Projects**: {projects}\n"
+                result += f"- **Coordinated Projects**: {coord}\n"
+                result += f"- **Total Funding**: €{funding:,}\n\n"
+
+        result += "\n**Next Steps:**\n"
+        result += "- Search CORDIS for detailed project information\n"
+        result += "- Use the EU Partner Search tool to contact organizations\n"
+        result += "- Verify current availability and interest\n"
+
+        return result
+
+    def _build_network_diversity_conclusion(self, context: str, org_names: list[str]) -> str:
+        """Build a network diversity analysis from partner context.
+
+        Uses coordination count as a proxy for network diversity:
+        Organizations that coordinate more projects have collaborated with more partners.
+        """
+        import re
+
+        # Extract coordination counts for top organizations
+        coordination_data = {}
+        project_data = {}
+        countries = {}
+        org_types = {}
+
+        for org in org_names[:5]:
+            org_escaped = re.escape(org)
+
+            # Coordination count
+            coord_match = re.search(
+                rf"{org_escaped}.*?coordinated\s*\**(\d+)\**",
+                context,
+                re.IGNORECASE | re.DOTALL,
+            )
+            if coord_match:
+                try:
+                    coordination_data[org] = int(coord_match.group(1))
+                except ValueError:
+                    pass
+
+            # Project count
+            project_match = re.search(
+                rf"{org_escaped}.*?\*?\*?Relevant Projects\*?\*?[:\s]*(\d+)",
+                context,
+                re.IGNORECASE | re.DOTALL,
+            )
+            if project_match:
+                try:
+                    project_data[org] = int(project_match.group(1))
+                except ValueError:
+                    pass
+
+            # Country
+            country_match = re.search(rf"{org_escaped}\*?\*?\s*\(([A-Z]{{2}})\)", context)
+            if country_match:
+                countries[org] = country_match.group(1)
+
+            # Org type
+            type_match = re.search(
+                rf"{org_escaped}.*?\*?\*?Organization Type\*?\*?[:\s]*([A-Z]+)",
+                context,
+                re.IGNORECASE | re.DOTALL,
+            )
+            if type_match:
+                org_types[org] = type_match.group(1)
+
+        # Sort by coordination count (more coordinated = more diverse network)
+        sorted_orgs = sorted(
+            [
+                (org, coordination_data.get(org, 0), project_data.get(org, 0))
+                for org in org_names[:5]
+            ],
+            key=lambda x: (x[1], x[2]),  # Sort by coord count, then project count
+            reverse=True,
+        )
+
+        result = "## Collaboration Network Diversity Analysis\n\n"
+        result += "Organizations that coordinate more projects have built more diverse collaboration networks, "
+        result += "as coordinators must assemble consortia from multiple countries and organization types.\n\n"
+
+        result += "### Network Diversity Ranking (by coordination experience)\n\n"
+        result += "| Organization | Country | Type | Projects Coordinated | Total Projects | Network Score |\n"
+        result += "|--------------|---------|------|---------------------|----------------|---------------|\n"
+
+        for org, coord_count, proj_count in sorted_orgs[:5]:
+            country = countries.get(org, "-")
+            org_type = org_types.get(org, "-")
+            # Network score: weighted combination of coordination and participation
+            network_score = coord_count * 3 + proj_count  # Coordination weighted 3x
+            short_name = org[:40] + "..." if len(org) > 40 else org
+            result += f"| {short_name} | {country} | {org_type} | {coord_count} | {proj_count} | {network_score} |\n"
+
+        if sorted_orgs:
+            winner = sorted_orgs[0]
+            result += "\n### Most Diverse Collaboration Network\n\n"
+            result += f"**{winner[0]}** has the most diverse collaboration network based on:\n"
+            result += f"- **{winner[1]} projects coordinated** - Each coordinated project requires building a consortium\n"
+            result += (
+                f"- **{winner[2]} total projects** - Broad participation across many consortia\n"
+            )
+            result += f"- **Country**: {countries.get(winner[0], 'N/A')}\n"
+            result += f"- **Organization Type**: {org_types.get(winner[0], 'N/A')}\n"
+
+        result += "\n**Note**: Actual network diversity can be verified via CORDIS by examining "
+        result += "consortium compositions of coordinated projects.\n"
+
+        result += "\n**Next Steps:**\n"
+        result += "- Search CORDIS for the organization's project list\n"
+        result += "- Review consortium compositions to understand collaboration patterns\n"
+        result += "- Contact organizations for specific collaboration opportunities\n"
+
+        return result
+
     def _extract_topic_from_context(self, context: str) -> str | None:
         """Extract the original topic keywords from conversation context."""
         # Look for common patterns that indicate a topic was searched
@@ -3762,51 +4237,86 @@ digital_europe, life""",
         return " ".join(keywords[:5]) if keywords else query
 
     def _extract_country(self, query: str) -> str | None:
-        """Extract country from query if mentioned."""
+        """Extract country from query if mentioned.
+
+        Uses word boundaries for short country codes to avoid false positives
+        like 'fit' matching 'it' (Italy) or 'before' matching 'be' (Belgium).
+        """
+        import re
+
         query_lower = query.lower()
-        country_patterns = {
+
+        # Two-letter codes require word boundaries to avoid false positives
+        short_codes = {
+            r"\bde\b": "Germany",
+            r"\bfr\b": "France",
+            r"\bit\b": "Italy",
+            r"\bes\b": "Spain",
+            r"\bpt\b": "Portugal",
+            r"\bel\b": "Greece",
+            r"\bnl\b": "Netherlands",
+            r"\bbe\b": "Belgium",
+        }
+
+        # Full country names and adjectives (safe for substring match)
+        full_names = {
             "germany": "Germany",
             "german": "Germany",
-            "de": "Germany",
             "france": "France",
             "french": "France",
-            "fr": "France",
             "italy": "Italy",
             "italian": "Italy",
-            "it": "Italy",
             "spain": "Spain",
             "spanish": "Spain",
-            "es": "Spain",
             "portugal": "Portugal",
             "portuguese": "Portugal",
-            "pt": "Portugal",
             "greece": "Greece",
             "greek": "Greece",
-            "el": "Greece",
             "netherlands": "Netherlands",
             "dutch": "Netherlands",
-            "nl": "Netherlands",
             "belgium": "Belgium",
             "belgian": "Belgium",
-            "be": "Belgium",
             "southern europe": "Spain",  # Default to Spain for Southern Europe
         }
-        for pattern, country in country_patterns.items():
+
+        # Check short codes with word boundaries first
+        for pattern, country in short_codes.items():
+            if re.search(pattern, query_lower):
+                return country
+
+        # Check full names (substring match is safe for these)
+        for pattern, country in full_names.items():
             if pattern in query_lower:
                 return country
+
         return None
 
     def _extract_org_type(self, query: str) -> str | None:
-        """Extract organization type from query if mentioned."""
+        """Extract organization type from query if mentioned.
+
+        Uses word boundaries to avoid false positives like 'recommend' matching 'rec'.
+        """
+        import re
+
         query_lower = query.lower()
-        if "sme" in query_lower or "small" in query_lower:
+
+        # SME patterns - "sme" as word or "small" in context of business
+        if re.search(r"\bsme\b|\bsmes\b|\bsmall\s+(company|business|enterprise)", query_lower):
             return "SME"
-        if "research" in query_lower or "rec" in query_lower:
+
+        # REC patterns - "research" as word or "rec" as standalone abbreviation
+        # Don't match "rec" inside other words like "recommend"
+        if re.search(r"\bresearch\b|\brec\b", query_lower):
             return "REC"
-        if "university" in query_lower or "universities" in query_lower or "hes" in query_lower:
+
+        # HES patterns - universities, higher education
+        if re.search(r"\buniversity\b|\buniversities\b|\bhes\b|\bhigher education\b", query_lower):
             return "HES"
-        if "private" in query_lower or "company" in query_lower or "companies" in query_lower:
+
+        # PRC patterns - private companies
+        if re.search(r"\bprivate\b|\bcompany\b|\bcompanies\b|\bprc\b", query_lower):
             return "PRC"
+
         return None
 
     def _get_tool_hint(self, query: str, context: str = "") -> str | None:
