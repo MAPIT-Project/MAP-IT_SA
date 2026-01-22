@@ -61,7 +61,7 @@ Run with: `./ralphy.sh --prd MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD_V2.md`
 - [x] FIX IF NEEDED: Read `tests/quality/results/scenarios/programme_recommendation.json`. If average_score < 80: fix and re-evaluate until passing or 3 attempts.
 
 ### Scenario 004: Eligibility Routing
-- [ ] EXECUTE: Run scenario `tests/scenarios/advanced/multi_programme/eligibility_routing.yaml` against the live API. Tests routing eligibility questions to correct programme. Save result to `tests/quality/results/scenarios/eligibility_routing.json`.
+- [x] EXECUTE: Run scenario `tests/scenarios/advanced/eligibility_routing.yaml` against the live API. Tests routing eligibility questions to correct programme. Save result to `tests/quality/results/scenarios/eligibility_routing.json`.
 
 - [ ] FIX IF NEEDED: Read `tests/quality/results/scenarios/eligibility_routing.json`. If average_score < 80: check eligibility validation in CrossProgrammeAgent, country status in eu-funding-domain. Fix and re-evaluate until passing or 3 attempts.
 
