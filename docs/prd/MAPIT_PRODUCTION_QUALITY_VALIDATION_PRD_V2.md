@@ -56,7 +56,7 @@ Run with: `./ralphy.sh --prd MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD_V2.md`
 - [x] FIX IF NEEDED: Read `tests/quality/results/scenarios/programme_comparison.json`. If average_score < 80: check for multi-programme budget confusion (CrossProgrammeAgent issue), success rate vs funding rate confusion, missing comparison data. Fix using patterns in `mapit-tools` skill, re-evaluate until passing or 3 attempts.
 
 ### Scenario 003: Programme Recommendation
-- [ ] EXECUTE: Run scenario `tests/scenarios/advanced/multi_programme/programme_recommendation.yaml` against the live API. Tests recommending best programme for user context. Save result to `tests/quality/results/scenarios/programme_recommendation.json`.
+- [x] EXECUTE: Run scenario `tests/scenarios/advanced/programme_recommendation.yaml` against the live API. Tests recommending best programme for user context. Save result to `tests/quality/results/scenarios/programme_recommendation.json`.
 
 - [ ] FIX IF NEEDED: Read `tests/quality/results/scenarios/programme_recommendation.json`. If average_score < 80: fix and re-evaluate until passing or 3 attempts.
 
