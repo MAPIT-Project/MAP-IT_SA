@@ -753,10 +753,10 @@ final_validations:
 - [x] VERIFY: Programme information accurate, comparisons correct.
 
 ### Task 051: Quality Baseline for Advanced Scenarios
-- [ ] MEASURE: Run all advanced scenarios and record quality scores.
+- [x] MEASURE: Run all advanced scenarios and record quality scores.
   Save to `tests/quality/results/advanced_flows_quality_baseline.json`.
 
-- [ ] DOCUMENT: Create summary of challenging scenarios, identify improvement areas.
+- [x] DOCUMENT: Create summary of challenging scenarios, identify improvement areas.
 
 ### Task 052: Regression Suite for Advanced Flows
 - [ ] CREATE: Create `tests/test_advanced_conversation_regression.py` with tests for:
