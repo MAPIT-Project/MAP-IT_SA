@@ -9326,3 +9326,76 @@ Turn 3 "I mentioned earlier I work on hydrogen":
 
 ### Next Task
 Scenario 015: Progressive Profile Building (12 turns) EXECUTE
+
+## 2026-01-23: Scenario 015 - Progressive Profile Building (EXECUTE)
+
+### Task Completed
+Executed Scenario 015: Progressive Profile Building against the live API.
+
+### Files Created/Modified
+- `tests/quality/test_scenario_015_progressive_profile.py` - New test file with:
+  - Scenario execution against live API (12 turns)
+  - Quality scoring for each turn
+  - Profile accumulation tracking (9 fields: org_type, sector, subsector, location, size, revenue, goal, partnerships, experience)
+  - Profile usage validation for recommendation turn (Turn 9)
+  - Context retention validation for follow-up turns (Turns 10-11)
+  - Results saving to JSON
+  - CLI runner for manual execution
+
+- `tests/quality/results/scenarios/progressive_profile.json` - Scenario results with:
+  - 12 turns executed successfully
+  - Average score: 77.5/100
+  - Status: CLOSE_TO_THRESHOLD
+  - Profile coverage: 100% (all 9 fields acknowledged)
+  - 2 failures detected (1 "profile not used", 1 "context lost")
+
+### Scenario Execution Results
+| Turn | Query | Tools Used | Score | Issues |
+|------|-------|------------|-------|--------|
+| 0 | I work for an SME | recommend_programmes | 77 | OK - SME recognized |
+| 1 | We're in the healthcare sector | search_documents | 77 | OK - Healthcare recognized |
+| 2 | Specifically medical devices | search_documents | 77 | OK - Medical devices recognized |
+| 3 | We're based in Germany | search_documents | 75 | OK - Germany/EU recognized |
+| 4 | We have 50 employees | search_documents | 77 | OK - Size recognized |
+| 5 | Annual revenue around 10M | search_documents | 77 | OK - Revenue recognized |
+| 6 | We want to expand into AI diagnostics | search_documents | 77 | OK - AI/innovation recognized |
+| 7 | We have some research partnerships already | search_documents | 77 | OK - Partnerships recognized |
+| 8 | But never done EU funding before | search_documents | 85 | PASS - Experience level recognized, good guidance |
+| 9 | What's our best option? | search_documents | 75 | **PROFILE_NOT_USED** - Generic recommendation |
+| 10 | Tell me more about that option | search_documents | 77 | **CONTEXT_LOST** - Generic response |
+| 11 | What should be our next steps? | search_documents | 79 | Generic response |
+
+### Issues Identified for FIX IF NEEDED Task
+1. **Turn 9 Critical Failure**: When user asks "What's our best option?", system:
+   - Does NOT use accumulated profile (SME, healthcare, medical devices, Germany, 50 employees, 10M revenue, AI diagnostics goal)
+   - Returns generic InnovFin Energy recommendation instead of tailored EIC Accelerator or Horizon Europe health recommendations
+   - Uses `search_documents` instead of `recommend_programmes` with accumulated context
+2. **Turn 10 Context Loss**: Follow-up "Tell me more" doesn't recall the recommendation context
+3. **Tool Selection**: Most turns use `search_documents` instead of more specific tools
+
+### Root Causes to Investigate in FIX IF NEEDED:
+- `app/services/agents/tool_aware_agent.py` - Detection for "best option" queries that should synthesize accumulated user profile
+- `app/services/memory/memory_service.py` - Context recall for follow-up queries
+
+### Profile Accumulation Success
+Despite low scores, the system DID acknowledge all profile fields:
+- org_type: true (SME)
+- sector: true (healthcare)
+- subsector: true (medical devices)
+- location: true (Germany)
+- size: true (50 employees)
+- revenue: true (10M)
+- goal: true (AI diagnostics)
+- partnerships: true (research partnerships)
+- experience: true (no EU funding experience)
+
+### Test Results
+- 1 test passed (scenario execution)
+- Linting passed after fixing 5 line length issues
+
+### PRD Task Status
+- [x] EXECUTE task marked complete
+- [ ] FIX IF NEEDED task pending (score 77.5 < 80)
+
+### Next Task
+Scenario 015: Progressive Profile Building FIX IF NEEDED (if score < 80)
