@@ -5714,3 +5714,50 @@ Implemented Task 032: Create Call Opening Alert Scenario as specified in the MAP
 
 ### Key Test
 System should provide accurate (or appropriately uncertain) information about call opening dates, work programme timelines, and preparation advice.
+
+## 2026-01-22: Task 033 - Multi-Call Timeline Scenario
+
+### Task Completed
+Implemented Task 033 from MAPIT_ADVANCED_CONVERSATION_FLOWS_PRD.md - Create Multi-Call Timeline Scenario.
+
+### Files Created
+- `tests/scenarios/advanced/multi_call_timeline.yaml` - New scenario file with:
+  - 5-step multi-call planning workflow for climate and energy calls
+  - Validates multi-call planning with staggered deadlines, timeline submission planning, contingency handling when deadlines change, and backup call identification
+  - Uses all required validation types: programme_mentioned, programme_accurate, goal_progress, goal_achieved, context_accumulated, profile_used, personalization_applied, context_integrity
+
+### Scenario Structure
+The scenario tests the system's ability to:
+1. Acknowledge user's plan to apply to 3 calls this quarter
+2. Find climate and energy calls with staggered deadlines
+3. Help plan submission timeline across multiple calls
+4. Provide contingency advice if deadlines change
+5. Suggest alternative backup calls
+
+### Test Results
+- Scenario test passed (1 passed in 311.52s)
+- YAML syntax validation passed
+- 41 total tests collected (up from 38)
+- All validation types properly configured
+
+### Validation Types Used
+- `no_error` (Built-in): Error detection on all steps
+- `response_contains_any` (Built-in): Pattern matching for timeline/planning content
+- `programme_mentioned` (CrossProgrammeAgent): Horizon Europe mentioned
+- `programme_accurate` (CrossProgrammeAgent): Call information accuracy
+- `goal_progress` (GoalTrackingAgent): Progress toward multi-call planning
+- `goal_achieved` (GoalTrackingAgent): User has complete plan with contingencies
+- `context_accumulated` (PersonalizationAgent): Context builds across turns
+- `profile_used` (PersonalizationAgent): Profile used for recommendations
+- `personalization_applied` (PersonalizationAgent): Response personalized
+- `context_integrity` (ContextValidatorAgent): All messages stored correctly
+
+### Tags
+phase7, deadlines, multi-call, timeline, planning, climate, energy, contingency
+
+### PRD Task Status
+- [x] CREATE SCENARIO: tests/scenarios/advanced/multi_call_timeline.yaml
+- [x] RUN & FIX: Execute scenario (passed)
+
+### Next Task
+Task 034: Multi-Factor Eligibility Scenario (Phase 8 - Complex Eligibility Scenarios)

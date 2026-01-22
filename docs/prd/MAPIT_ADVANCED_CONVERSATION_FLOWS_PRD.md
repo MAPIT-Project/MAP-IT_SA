@@ -550,7 +550,7 @@ final_validations:
 - [x] RUN & FIX: Execute scenario. Verify work programme timeline handling.
 
 ### Task 033: Multi-Call Timeline Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/multi_call_timeline.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/multi_call_timeline.yaml` with steps:
   1. "I want to apply to 3 calls this quarter"
   2. "Show me climate and energy calls with staggered deadlines"
   3. "Help me plan my submission timeline"
@@ -558,7 +558,7 @@ final_validations:
   5. "Show alternative calls as backup"
   Validations: Multi-call planning provided, contingency considered.
 
-- [ ] RUN & FIX: Execute scenario. Fix multi-deadline planning.
+- [x] RUN & FIX: Execute scenario. Fix multi-deadline planning.
 
 ### ==========================================================
 ### PHASE 8: Complex Eligibility Scenarios
