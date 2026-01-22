@@ -617,7 +617,7 @@ final_validations:
 ### ==========================================================
 
 ### Task 038: Erasmus+ Action Selection Scenario
-- [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/erasmus_action_selection.yaml` with steps:
+- [x] CREATE SCENARIO: Create `tests/scenarios/advanced/erasmus_action_selection.yaml` with steps:
   1. "What Erasmus+ actions are there?"
   2. "We're a VET school wanting international mobility"
   3. "What about long-term partnerships?"
@@ -630,7 +630,7 @@ final_validations:
   - `context_accumulated` (PersonalizationAgent): VET school context builds across turns
   - `goal_achieved` (GoalTrackingAgent): User understands best action combination
 
-- [ ] RUN & FIX: Execute scenario. Verify Erasmus+ action mapping.
+- [x] RUN & FIX: Execute scenario. Verify Erasmus+ action mapping.
 
 ### Task 039: Erasmus+ Budget Calculation Scenario
 - [ ] CREATE SCENARIO: Create `tests/scenarios/advanced/erasmus_budget_calculation.yaml` with steps:
