@@ -39,7 +39,7 @@ Run with: `./ralphy.sh --prd MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD_V2.md`
 ### Task 001: Setup Test Infrastructure
 - [x] CREATE test runner: Create `tests/quality/test_scenario_runner.py` if not exists with: ProductionQualityRunner class, ScenarioExecutionResult dataclass, TurnResult dataclass, pattern detection for failure categories. Verify by running `python -c "from tests.quality.test_scenario_runner import ProductionQualityRunner"`.
 
-- [ ] CREATE failure detector: Create `tests/validators/failure_detector.py` if not exists with: NoResultsDetector, IncorrectDataDetector, MissingDataDetector classes. Verify by running `pytest tests/validators/ -v -k detector`.
+- [x] CREATE failure detector: Create `tests/validators/failure_detector.py` if not exists with: NoResultsDetector, IncorrectDataDetector, MissingDataDetector classes. Verify by running `pytest tests/validators/ -v -k detector`.
 
 ### ==========================================================
 ### PHASE 2: Multi-Programme Navigation Scenarios

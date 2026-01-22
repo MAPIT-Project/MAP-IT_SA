@@ -7651,3 +7651,42 @@ This module provides the PRD-specified import path for production quality valida
 ## PRD Reference
 Task 001: Setup Test Infrastructure
 - [x] CREATE test runner: Create `tests/quality/test_scenario_runner.py`
+
+
+## 2026-01-22: Task 001 - CREATE failure detector (COMPLETE)
+
+### Task Completed
+Verified and marked complete: `tests/validators/failure_detector.py` with NoResultsDetector, IncorrectDataDetector, MissingDataDetector classes.
+
+### Verification
+- Command: `pytest tests/validators/ -v -k detector`
+- Result: 53 tests passed in 0.04s
+- Linting: All checks passed
+
+### Module Contents
+The `failure_detector.py` module includes:
+- `FailureCategory` enum: NO_RESULTS, INCORRECT_DATA, MISSING_DATA, UNEXPECTED_BEHAVIOR, POOR_QUALITY
+- `FailureSeverity` enum: CRITICAL, HIGH, MEDIUM
+- `FailureRecord` dataclass for recording detected failures
+- `TurnResult` dataclass for turn data used by detectors
+- `BaseDetector` abstract base class
+- `NoResultsDetector`: Detects empty, generic, or deflection responses
+- `IncorrectDataDetector`: Detects factually wrong information (budgets, funding rates, etc.)
+- `MissingDataDetector`: Detects responses that omit required information
+- `UnexpectedBehaviorDetector`: Detects erratic or inconsistent behavior
+- `PoorQualityDetector`: Detects technically correct but unhelpful responses
+- `detect_all()`: Main function that runs all detectors
+
+### Test Coverage (53 tests)
+- TestDataclasses: FailureRecord and TurnResult tests
+- TestNoResultsDetector: 8 tests for empty/deflection response detection
+- TestIncorrectDataDetector: 8 tests for factual accuracy validation
+- TestMissingDataDetector: 6 tests for required field validation
+- TestUnexpectedBehaviorDetector: 7 tests for error/context loss detection
+- TestPoorQualityDetector: 9 tests for quality dimension validation
+- TestDetectAll: 6 tests for integration testing
+- TestEdgeCases: 5 tests for edge cases
+- TestConstants: 2 tests for module constants
+
+### PRD Task Status
+- [x] CREATE failure detector marked complete
