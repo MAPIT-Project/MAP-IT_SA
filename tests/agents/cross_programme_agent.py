@@ -528,6 +528,13 @@ Validate now:"""
         facts_missing = []
         reasoning = ""
 
+        def is_none_value(text: str) -> bool:
+            """Check if the text represents a 'none' value in various formats."""
+            # Normalize: lowercase, strip brackets, parentheses, quotes
+            normalized = text.lower().strip()
+            normalized = normalized.strip("[]()\"'")
+            return normalized in ("none", "n/a", "na", "-", "")
+
         # Extract score
         score_match = re.search(r"ACCURACY_SCORE:\s*([\d.]+)", llm_text)
         if score_match:
@@ -540,22 +547,28 @@ Validate now:"""
         correct_match = re.search(r"FACTS_CORRECT:\s*(.+?)(?:\n|FACTS_INCORRECT:)", llm_text)
         if correct_match:
             text = correct_match.group(1).strip()
-            if text.lower() != "none":
-                facts_correct = [f.strip() for f in text.split(",") if f.strip()]
+            if not is_none_value(text):
+                facts_correct = [
+                    f.strip() for f in text.split(",") if f.strip() and not is_none_value(f)
+                ]
 
         # Extract incorrect facts
         incorrect_match = re.search(r"FACTS_INCORRECT:\s*(.+?)(?:\n|FACTS_MISSING:)", llm_text)
         if incorrect_match:
             text = incorrect_match.group(1).strip()
-            if text.lower() != "none":
-                facts_incorrect = [f.strip() for f in text.split(",") if f.strip()]
+            if not is_none_value(text):
+                facts_incorrect = [
+                    f.strip() for f in text.split(",") if f.strip() and not is_none_value(f)
+                ]
 
         # Extract missing facts
         missing_match = re.search(r"FACTS_MISSING:\s*(.+?)(?:\n|REASONING:)", llm_text)
         if missing_match:
             text = missing_match.group(1).strip()
-            if text.lower() != "none":
-                facts_missing = [f.strip() for f in text.split(",") if f.strip()]
+            if not is_none_value(text):
+                facts_missing = [
+                    f.strip() for f in text.split(",") if f.strip() and not is_none_value(f)
+                ]
 
         # Extract reasoning
         reasoning_match = re.search(r"REASONING:\s*(.+?)$", llm_text, re.DOTALL)

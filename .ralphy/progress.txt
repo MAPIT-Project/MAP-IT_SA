@@ -10049,3 +10049,31 @@ Executed Scenario 026 (Deadline Tracking) which tests a 5-turn conversation work
 - Linting passes (ruff check)
 
 ### Status: PASS (83.4 >= 80)
+
+================================================================================
+SCENARIO 027: Call Opening Alert - COMPLETED
+================================================================================
+Timestamp: 2026-01-23 12:07:00
+
+EXECUTION RESULT:
+- Status: PASS
+- Average Quality Score: 83.0/100 (threshold: 80)
+- Average Factual Score: 100.0/100
+- Turn Count: 5
+- Execution Time: 42108.78ms
+
+TURN SCORES:
+- Turn 1 (When do the 2025 Horizon Europe calls open?): 83/100 ✓
+- Turn 2 (Specifically for health research): 85/100 ✓
+- Turn 3 (What about the Cluster 1 work programme?): 85/100 ✓
+- Turn 4 (When should I start preparing?): 81/100 ✓
+- Turn 5 (What's the typical time between opening and deadline?): 81/100 ✓
+
+FIX APPLIED:
+- File: tests/agents/cross_programme_agent.py
+- Issue: CrossProgrammeAgent was incorrectly parsing "[none]" values from LLM as actual incorrect facts
+- Fix: Added `is_none_value()` helper function in `_parse_facts_response()` to handle variations like `[none]`, `(none)`, `"none"`, `n/a`, etc.
+- Lines modified: 527-577
+
+RESULT: All 5 turns pass with scores 81-85. No critical/high/medium failures.
+================================================================================

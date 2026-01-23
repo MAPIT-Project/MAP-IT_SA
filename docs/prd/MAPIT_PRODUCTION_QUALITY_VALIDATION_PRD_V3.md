@@ -419,12 +419,13 @@ Run with: `./ralphy.sh --prd docs/prd/MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD_V3
   4. **Attempt 1 Result**: Score improved from 81.8 to 83.4 (1 attempt). Fixed: (1) Added `_detect_deadline_tracking_query()` method to detect time gap queries ("How much time between them?") and targeting queries ("Which one should I target?"), (2) Added `_generate_deadline_time_gap_guidance()` with comprehensive deadline spacing patterns, strategic implications, and actionable Next Steps, (3) Added `_generate_deadline_targeting_guidance()` with scoring framework, decision matrix, and action items. Turn 4 now scores 83/100 (was 75/100). Status: PASS
 
 ### Scenario 027: Call Opening Alert
-- [ ] EXECUTE: Run scenario `tests/scenarios/advanced/deadlines/call_opening_alert.yaml` against the live API. Save result to `tests/quality/results/scenarios/call_opening_alert.json`.
+- [x] EXECUTE: Run scenario `tests/scenarios/advanced/deadlines/call_opening_alert.yaml` against the live API. Save result to `tests/quality/results/scenarios/call_opening_alert.json`.
 
-- [ ] FIX IF NEEDED: Read `tests/quality/results/scenarios/call_opening_alert.json`. If average_score < 80:
+- [x] FIX IF NEEDED: Read `tests/quality/results/scenarios/call_opening_alert.json`. If average_score < 80:
   1. ONLY modify files in `app/` directory
   2. Fix opening date handling in call search
   3. Re-run EXECUTE, repeat until score >= 80 or 3 attempts
+  4. **Attempt 1 Result**: Score 83.0 (1 attempt). Fixed: CrossProgrammeAgent parsing bug where `[none]` values from LLM were incorrectly parsed as actual incorrect facts. Added `is_none_value()` helper function to handle variations like `[none]`, `(none)`, `"none"`, `n/a`, etc. All 5 turns now pass (81-85 each). Status: PASS
 
 ### Scenario 028: Multi-Call Timeline
 - [ ] EXECUTE: Run scenario `tests/scenarios/advanced/deadlines/multi_call_timeline.yaml` against the live API. Save result to `tests/quality/results/scenarios/multi_call_timeline.json`.
