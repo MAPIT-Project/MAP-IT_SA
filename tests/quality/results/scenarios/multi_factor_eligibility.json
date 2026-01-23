@@ -1,0 +1,135 @@
+{
+  "scenario_name": "Multi-Factor Eligibility",
+  "status": "PASS",
+  "average_quality_score": 84.6,
+  "average_factual_score": 100.0,
+  "turns": [
+    {
+      "query": "Can a Turkish university coordinate a Horizon Europe project?",
+      "response": "**Turkey's Coordinator Eligibility in Horizon Europe**\n\nTurkey is an **Associated Country** to Horizon Europe under a partial association agreement. This affects coordinator eligibility in specific ways:\n\n### Coordinator Eligibility Summary\n\n| Call Type | Can Turkey Coordinate? | Notes |\n|-----------|------------------------|-------|\n| **Standard RIA/IA** | \u2705 Yes (most topics) | Full coordinator eligibility for non-sensitive topics |\n| **MSCA** | \u2705 Yes | Marie Sk\u0142odowska-Curie Actions - full eli...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 3673.9289999999996,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
+      "passed": true
+    },
+    {
+      "query": "What about participating as a partner instead of coordinator?",
+      "response": "Yes, a Turkey organization is **fully eligible to participate as a partner (beneficiary)** in Horizon Europe projects.\n\n### Partner Eligibility for Associated Countries\n\nSince Turkey is an **Associated Country** to Horizon Europe, its entities (universities, research institutes, companies) are treated almost identically to EU Member State entities when participating as partners.\n\n| Aspect | Partner Eligibility |\n|--------|---------------------|\n| **Funding** | \u2705 Full funding at same rates as EU ...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 1875.279,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": true
+    },
+    {
+      "query": "Does it matter if the project involves defense research or dual-use technology?",
+      "response": "**Defense and Dual-Use Topic Restrictions for Turkey**\n\nYes, **topic sensitivity matters significantly** for Turkey participation. Defense-related and dual-use technology topics in Horizon Europe often have specific restrictions for non-EU entities.\n\n### Understanding the Restrictions\n\n| Topic Type | Restriction Level | Turkey Participation |\n|------------|-------------------|------------------------------|\n| **European Defence Fund (EDF)** | Excluded | \u274c Not part of Horizon Europe |\n| **Securit...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 681.96,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": true
+    },
+    {
+      "query": "What about quantum technology or quantum computing projects?",
+      "response": "**Quantum Technology and Strategic Tech Restrictions for Turkey**\n\nQuantum technology and other strategic technologies have **specific eligibility considerations** in Horizon Europe due to EU strategic autonomy concerns.\n\n### Quantum Technology Restrictions Overview\n\n| Technology Area | Typical Restriction | Turkey Participation |\n|-----------------|---------------------|------------------------------|\n| **Quantum Computing** | Variable | \u26a0\ufe0f Some topics restricted |\n| **Quantum Communication** |...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 4909.294,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": true
+    },
+    {
+      "query": "Are there any Horizon Europe calls where Turkish universities CAN serve as coordinator?",
+      "response": "**Turkey's Coordinator Eligibility in Horizon Europe**\n\nTurkey is an **Associated Country** to Horizon Europe under a partial association agreement. This affects coordinator eligibility in specific ways:\n\n### Coordinator Eligibility Summary\n\n| Call Type | Can Turkey Coordinate? | Notes |\n|-----------|------------------------|-------|\n| **Standard RIA/IA** | \u2705 Yes (most topics) | Full coordinator eligibility for non-sensitive topics |\n| **MSCA** | \u2705 Yes | Marie Sk\u0142odowska-Curie Actions - full eli...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 629.422,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 4,
+      "passed": true
+    }
+  ],
+  "scores": {
+    "average_quality": 84.6,
+    "average_factual": 100.0,
+    "goal_progress": 0.39,
+    "context_fields": 5
+  },
+  "failures": [],
+  "metadata": {
+    "scenario_path": "/home/anmar/Documents/VSCODE_REPOS/MAPIT/NEWMAPIT/MAP-IT_SA/tests/scenarios/advanced/multi_factor_eligibility.yaml",
+    "tags": [
+      "phase8",
+      "eligibility",
+      "multi-factor",
+      "turkey",
+      "associated-country",
+      "restrictions"
+    ],
+    "description": "A Turkish university wants to participate in Horizon Europe. Turkey is an\nAssociated Country with eligibility that varies based on project topic.\nSome topics (defense, quantum, space) have additional restrictions.\nTests multi-factor eligibility reasoning and context preservation.\n",
+    "conversation_id": 1058767763
+  },
+  "execution_time_ms": 133712.77000000002,
+  "timestamp": "2026-01-23T12:28:17.111102",
+  "passed": true,
+  "turn_count": 5,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
+}

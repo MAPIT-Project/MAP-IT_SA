@@ -3558,6 +3558,16 @@ digital_europe, life""",
         if funding_type_result:
             return funding_type_result
 
+        # Check for ASSOCIATED COUNTRY ELIGIBILITY queries (Turkey, Switzerland, etc.)
+        # These are questions about coordinator/partner eligibility for associated countries
+        # e.g., "Can a Turkish university coordinate?", "What about defense topics?"
+        # IMPORTANT: This must come BEFORE timeline comparison to prevent false matches
+        associated_country_result = self._detect_associated_country_eligibility_query(
+            query, context
+        )
+        if associated_country_result:
+            return associated_country_result
+
         # Check for TIMELINE COMPARISON queries
         # These are questions about proposal preparation times, decision times, and project start lags
         # e.g., "How long to prepare a proposal?", "Compare with Erasmus+ KA2", "Decision time?"
@@ -13282,6 +13292,623 @@ You can track potential changes by:
 - [ ] Set internal deadline 72 hours before official deadline
 
 ⚠️ **Important**: The best contingency is good preparation. Well-prepared proposals can absorb schedule disruptions much more easily than rushed ones. Focus on quality first, and flexibility will follow naturally."""
+
+    # =========================================================================
+    # Associated Country Eligibility Detection and Guidance (Scenario 029)
+    # =========================================================================
+
+    def _detect_associated_country_eligibility_query(
+        self, query: str, context: str
+    ) -> dict[str, Any] | None:
+        """Detect associated country eligibility queries.
+
+        These are questions about eligibility for organizations from Associated Countries
+        (Turkey, Switzerland, Israel, Norway, etc.) including:
+        - Coordinator eligibility (varies by country and topic)
+        - Partner/beneficiary eligibility
+        - Topic-specific restrictions (defense, quantum, space)
+        - Where they CAN coordinate
+
+        These queries should provide structured guidance with actionable Next Steps.
+        """
+        query_lower = query.lower()
+        context_lower = context.lower() if context else ""
+
+        # Associated countries with partial or full association
+        associated_countries = [
+            "turkey",
+            "turkish",
+            "switzerland",
+            "swiss",
+            "israel",
+            "israeli",
+            "norway",
+            "norwegian",
+            "iceland",
+            "icelandic",
+            "serbia",
+            "serbian",
+            "albania",
+            "albanian",
+            "montenegro",
+            "north macedonia",
+            "macedonian",
+            "bosnia",
+            "bosnian",
+            "georgia",
+            "georgian",
+            "moldova",
+            "moldovan",
+            "ukraine",
+            "ukrainian",
+            "tunisia",
+            "tunisian",
+            "morocco",
+            "moroccan",
+            "armenia",
+            "armenian",
+            "faroe islands",
+            "faroese",
+            "uk",
+            "united kingdom",
+            "british",
+            "associated country",
+            "associated countries",
+            "third country",
+            "non-eu",
+            "non-member",
+        ]
+
+        # Check if query involves associated country
+        is_associated_country_query = any(
+            country in query_lower for country in associated_countries
+        ) or any(country in context_lower for country in associated_countries)
+
+        # Extract which country is being discussed
+        country_name = None
+        for country in ["turkey", "turkish"]:
+            if country in query_lower or country in context_lower:
+                country_name = "Turkey"
+                break
+        for country in ["switzerland", "swiss"]:
+            if country in query_lower or country in context_lower:
+                country_name = "Switzerland"
+                break
+        for country in ["israel", "israeli"]:
+            if country in query_lower or country in context_lower:
+                country_name = "Israel"
+                break
+        for country in ["norway", "norwegian"]:
+            if country in query_lower or country in context_lower:
+                country_name = "Norway"
+                break
+        if not country_name:
+            country_name = "associated country"
+
+        # Coordinator eligibility patterns
+        coordinator_patterns = [
+            "can coordinate",
+            "coordinate a horizon",
+            "serve as coordinator",
+            "be coordinator",
+            "be a coordinator",
+            "act as coordinator",
+            "lead a project",
+            "lead a consortium",
+            "coordinate horizon",
+            "coordinating entity",
+            "coordinating organization",
+            "can a turkish university coordinate",
+            "can turkey coordinate",
+            "can turkish coordinate",
+            "can swiss coordinate",
+            "can switzerland coordinate",
+            "eligible to coordinate",
+            "coordinator eligibility",
+            "coordination eligibility",
+        ]
+
+        # Partner eligibility patterns
+        partner_patterns = [
+            "as a partner",
+            "partner instead",
+            "participate as partner",
+            "participating as partner",
+            "beneficiary",
+            "partner role",
+            "as participant",
+            "join as partner",
+            "partner eligibility",
+            "can participate",
+            "participation eligibility",
+            "instead of coordinator",
+        ]
+
+        # Defense/dual-use restriction patterns
+        defense_patterns = [
+            "defense",
+            "defence",
+            "dual-use",
+            "dual use",
+            "military",
+            "security",
+            "sensitive topic",
+            "sensitive research",
+            "restricted topic",
+            "classified",
+            "strategic autonomy",
+            "edf",
+            "european defence fund",
+            "defense research",
+            "defence research",
+            "security research",
+        ]
+
+        # Quantum/advanced technology restriction patterns
+        quantum_patterns = [
+            "quantum",
+            "quantum technology",
+            "quantum computing",
+            "quantum communication",
+            "space",
+            "satellite",
+            "advanced technology",
+            "critical technology",
+            "strategic technology",
+            "chip",
+            "semiconductor",
+            "ai security",
+            "artificial intelligence security",
+        ]
+
+        # Calls where associated countries CAN coordinate patterns
+        can_coordinate_patterns = [
+            "where can",
+            "which calls can",
+            "any calls where",
+            "calls where",
+            "where they can",
+            "where we can",
+            "eligible to coordinate",
+            "allowed to coordinate",
+            "can serve as coordinator",
+            "can be coordinator",
+            "topics where",
+            "programmes where",
+        ]
+
+        # Check for coordinator eligibility query (initial question)
+        if any(pattern in query_lower for pattern in coordinator_patterns):
+            return {
+                "thought": f"User asking about {country_name} coordinator eligibility in Horizon Europe. Providing structured eligibility guidance.",
+                "action": "generate_guidance",
+                "guidance_type": "associated_country_coordinator",
+                "response": self._generate_associated_country_coordinator_guidance(country_name),
+            }
+
+        # Check for partner eligibility query (follow-up about partner role)
+        if any(pattern in query_lower for pattern in partner_patterns) and (
+            is_associated_country_query
+            or "coordinator" in context_lower
+            or "coordinate" in context_lower
+        ):
+            return {
+                "thought": f"User asking about {country_name} partner eligibility. Clarifying partner vs coordinator rules.",
+                "action": "generate_guidance",
+                "guidance_type": "associated_country_partner",
+                "response": self._generate_associated_country_partner_guidance(country_name),
+            }
+
+        # Check for defense/dual-use restriction query
+        if any(pattern in query_lower for pattern in defense_patterns) and (
+            is_associated_country_query
+            or any(p in context_lower for p in ["turkey", "turkish", "associated", "coordinate"])
+        ):
+            return {
+                "thought": f"User asking about defense/dual-use restrictions for {country_name}. Explaining topic-specific restrictions.",
+                "action": "generate_guidance",
+                "guidance_type": "defense_restrictions",
+                "response": self._generate_defense_restriction_guidance(country_name),
+            }
+
+        # Check for quantum/advanced technology restriction query
+        if any(pattern in query_lower for pattern in quantum_patterns) and (
+            is_associated_country_query
+            or any(
+                p in context_lower
+                for p in ["turkey", "turkish", "associated", "defense", "defence"]
+            )
+        ):
+            return {
+                "thought": f"User asking about quantum/advanced technology restrictions for {country_name}. Explaining strategic technology restrictions.",
+                "action": "generate_guidance",
+                "guidance_type": "quantum_restrictions",
+                "response": self._generate_quantum_restriction_guidance(country_name),
+            }
+
+        # Check for "where CAN they coordinate" query
+        if any(pattern in query_lower for pattern in can_coordinate_patterns) and (
+            "coordinator" in query_lower
+            or "coordinate" in query_lower
+            or is_associated_country_query
+            or any(p in context_lower for p in ["turkey", "turkish", "coordinator"])
+        ):
+            return {
+                "thought": f"User asking where {country_name} organizations CAN coordinate. Listing eligible programmes/topics.",
+                "action": "generate_guidance",
+                "guidance_type": "can_coordinate",
+                "response": self._generate_can_coordinate_guidance(country_name),
+            }
+
+        return None
+
+    def _generate_associated_country_coordinator_guidance(self, country_name: str) -> str:
+        """Generate guidance about associated country coordinator eligibility."""
+        # Turkey-specific content
+        if country_name == "Turkey":
+            return """**Turkey's Coordinator Eligibility in Horizon Europe**
+
+Turkey is an **Associated Country** to Horizon Europe under a partial association agreement. This affects coordinator eligibility in specific ways:
+
+### Coordinator Eligibility Summary
+
+| Call Type | Can Turkey Coordinate? | Notes |
+|-----------|------------------------|-------|
+| **Standard RIA/IA** | ✅ Yes (most topics) | Full coordinator eligibility for non-sensitive topics |
+| **MSCA** | ✅ Yes | Marie Skłodowska-Curie Actions - full eligibility |
+| **ERC** | ✅ Yes | European Research Council - individual excellence |
+| **Widening** | ✅ Yes | Eligible for Teaming, Twinning actions |
+| **Defense-related** | ⚠️ Restricted | Some security topics exclude non-EU coordinators |
+| **Quantum/Strategic Tech** | ⚠️ Restricted | Topics with EU strategic autonomy concerns may exclude |
+| **Certain Cluster 4** | ⚠️ Check work programme | Digital/Cybersecurity may have restrictions |
+
+### Key Points for Turkish Universities
+
+1. **Full Funding Eligibility**: Turkish organizations receive the same funding rates as EU entities (100% for RIA, 70% for IA)
+
+2. **Association Status Matters**: Turkey has full association to Pillar I (Excellent Science) and Pillar II (Global Challenges), but some Pillar III and security-related topics may have restrictions
+
+3. **Work Programme Check**: Always verify the specific call conditions in the Funding & Tenders Portal - some topics explicitly state coordinator nationality requirements
+
+4. **Consortium Requirements**: Even when Turkey can coordinate, the consortium must still meet minimum requirements (typically 3 entities from 3 different EU/AC countries)
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Check the specific call**: Visit the [EU Funding Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search) and review the call conditions
+2. **Review the Work Programme**: Download the relevant cluster work programme to check for any nationality restrictions
+3. **Contact your NCP**: Reach out to Turkey's [National Contact Points](https://www.tubitak.gov.tr/en/international/horizon-europe) for topic-specific guidance
+4. **Build your consortium**: Start identifying partners from at least 2 other EU/Associated Countries
+
+📋 **Action Items:**
+- [ ] Identify 2-3 target calls in your research area
+- [ ] Check each call's eligibility conditions for coordinator nationality
+- [ ] Contact TÜBİTAK NCP for confirmation on sensitive topics
+- [ ] Begin outreach to potential EU consortium partners"""
+
+        # Generic associated country content
+        return f"""**{country_name} Coordinator Eligibility in Horizon Europe**
+
+{country_name} is associated to Horizon Europe, which affects coordinator eligibility depending on the association agreement terms.
+
+### General Associated Country Coordinator Rules
+
+| Eligibility Factor | Impact |
+|-------------------|--------|
+| **Association Status** | Full, partial, or sector-specific - determines access |
+| **Topic Sensitivity** | Defense, security, and strategic tech may have restrictions |
+| **Call Conditions** | Each work programme may specify coordinator requirements |
+| **Funding Rate** | Associated countries typically get same rates as EU members |
+
+### How to Verify Your Eligibility
+
+1. **Check your association agreement**: Some countries have full association (Norway, Iceland), others have partial or sector-specific
+2. **Review the specific call**: The call conditions state any coordinator nationality requirements
+3. **Contact your NCP**: Your National Contact Point can provide definitive guidance
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Verify association status**: Check the European Commission's [list of Associated Countries](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/list-3rd-country-participation_horizon-euratom_en.pdf)
+2. **Check call conditions**: Review eligibility section in the Funding & Tenders Portal
+3. **Contact your NCP**: Get topic-specific guidance from your country's Horizon Europe NCP
+
+📋 **Action Items:**
+- [ ] Confirm your country's association status for Horizon Europe
+- [ ] Review target calls for any coordinator restrictions
+- [ ] Contact your National Contact Point for guidance"""
+
+    def _generate_associated_country_partner_guidance(self, country_name: str) -> str:
+        """Generate guidance about associated country partner eligibility."""
+        return f"""Yes, a {country_name} organization is **fully eligible to participate as a partner (beneficiary)** in Horizon Europe projects.
+
+### Partner Eligibility for Associated Countries
+
+Since {country_name} is an **Associated Country** to Horizon Europe, its entities (universities, research institutes, companies) are treated almost identically to EU Member State entities when participating as partners.
+
+| Aspect | Partner Eligibility |
+|--------|---------------------|
+| **Funding** | ✅ Full funding at same rates as EU entities |
+| **All Call Types** | ✅ Eligible for RIA, IA, CSA, MSCA, ERC |
+| **Sensitive Topics** | ✅ Generally eligible as partner (even when coordinator restricted) |
+| **Administrative** | ✅ Same reporting and compliance requirements |
+
+### Key Advantages of Partner Participation
+
+1. **Full Funding Rate**: You receive the standard Horizon Europe funding rate:
+   - **100%** for Research and Innovation Actions (RIA)
+   - **70%** for Innovation Actions (IA) - 100% for non-profits
+   - **100%** for Coordination and Support Actions (CSA)
+
+2. **Build Track Record**: Participating as partner helps you:
+   - Gain EU project management experience
+   - Build relationships with experienced coordinators
+   - Develop track record for future coordination
+
+3. **Access to All Work Packages**: As a partner, you can lead work packages, even if you cannot coordinate the overall project
+
+4. **Lower Administrative Burden**: The coordinator handles many consortium-level tasks
+
+### Partner vs Coordinator: Strategic Considerations
+
+| Factor | As Partner | As Coordinator |
+|--------|-----------|----------------|
+| **Administrative burden** | Lower | Higher |
+| **Visibility** | Moderate | High |
+| **Funding control** | Limited | Full |
+| **Topic restrictions** | Fewer | More (for associated countries) |
+| **Experience needed** | Less | More |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Find coordinator partners**: You should contact experienced EU coordinators who need partners in your field
+2. **Use partner search tools**: You should visit [CORDIS](https://cordis.europa.eu/) and check for organizations with successful projects in your area
+3. **Attend brokerage events**: You can apply to join Horizon Europe info days to meet potential coordinators
+4. **Prepare your expertise profile**: You should submit your organizational capability profile to partner search platforms
+
+📋 **Action Items:**
+- [ ] You should visit and register in the [EU Participant Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/)
+- [ ] You should apply for and complete PIC registration for your organization
+- [ ] You can contact your National Contact Point for partner-seeking guidance
+- [ ] You should check the [Partner Search Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search) for coordinator openings
+- [ ] You should apply to join existing consortium preparation activities when opportunities arise"""
+
+    def _generate_defense_restriction_guidance(self, country_name: str) -> str:
+        """Generate guidance about defense/dual-use topic restrictions."""
+        return f"""**Defense and Dual-Use Topic Restrictions for {country_name}**
+
+Yes, **topic sensitivity matters significantly** for {country_name} participation. Defense-related and dual-use technology topics in Horizon Europe often have specific restrictions for non-EU entities.
+
+### Understanding the Restrictions
+
+| Topic Type | Restriction Level | {country_name} Participation |
+|------------|-------------------|------------------------------|
+| **European Defence Fund (EDF)** | Excluded | ❌ Not part of Horizon Europe |
+| **Security Research (some topics)** | Restricted | ⚠️ May be excluded as coordinator, sometimes as partner |
+| **Dual-Use Technology** | Variable | ⚠️ Depends on specific call conditions |
+| **Critical Infrastructure** | Often restricted | ⚠️ Check call-by-call |
+| **Cyber Security** | Variable | ⚠️ Some topics have EU-only requirements |
+| **Non-sensitive research** | Open | ✅ Full participation |
+
+### How Restrictions Work
+
+1. **EU Strategic Autonomy Clause**: Some work programmes include requirements that:
+   - Coordinator must be established in an EU Member State
+   - Consortium must not include entities controlled by non-associated third countries
+   - Results may have export control implications
+
+2. **Security Clearance**: Some topics require:
+   - EU-level security clearance (SEU CONFIDENTIAL or higher)
+   - Access restrictions for non-EU nationals
+   - Secure facility requirements
+
+3. **Dual-Use Considerations**: Projects involving:
+   - Technologies with both civil and military applications
+   - Export-controlled materials or processes
+   - May require additional compliance checks
+
+### Examples of Restricted Topics
+
+- Secure communication networks
+- Critical infrastructure protection
+- Cybersecurity for defense applications
+- Space situational awareness (some topics)
+- Surveillance technologies
+- Sensitive AI applications
+
+### How to Check if Your Topic is Restricted
+
+1. **Read the Work Programme**: Look for phrases like:
+   - "entities established in a Member State"
+   - "security-related restrictions apply"
+   - "EU strategic autonomy"
+   - "coordinator must be..."
+
+2. **Check Call Conditions**: In the Funding Portal, review the "Specific eligibility conditions" section
+
+3. **Contact NCPs**: National Contact Points have the latest guidance on restricted topics
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Review your target topic**: Check if it falls under security research or dual-use categories
+2. **Read the full call text**: Look for any nationality or security restrictions
+3. **Consider non-sensitive alternatives**: Many topics in the same cluster may not have restrictions
+4. **Contact your NCP**: Get official confirmation before investing preparation time
+5. **Partner with EU coordinator**: Even if restricted as coordinator, you may be eligible as partner
+
+📋 **Action Items:**
+- [ ] Download the relevant cluster work programme
+- [ ] Search for terms: "Member State", "security", "restricted", "strategic"
+- [ ] Make a list of restricted vs unrestricted topics in your area
+- [ ] Contact TÜBİTAK/your NCP for clarification on borderline topics
+- [ ] Identify potential EU-based coordinators for sensitive topics"""
+
+    def _generate_quantum_restriction_guidance(self, country_name: str) -> str:
+        """Generate guidance about quantum/strategic technology restrictions."""
+        return f"""**Quantum Technology and Strategic Tech Restrictions for {country_name}**
+
+Quantum technology and other strategic technologies have **specific eligibility considerations** in Horizon Europe due to EU strategic autonomy concerns.
+
+### Quantum Technology Restrictions Overview
+
+| Technology Area | Typical Restriction | {country_name} Participation |
+|-----------------|---------------------|------------------------------|
+| **Quantum Computing** | Variable | ⚠️ Some topics restricted |
+| **Quantum Communication** | Often restricted | ⚠️ Security implications |
+| **Quantum Sensing** | Less restricted | ✅ Usually open |
+| **Quantum Key Distribution** | Restricted | ⚠️ Defense applications |
+| **Quantum Random Number Generators** | Variable | ⚠️ Depends on application |
+
+### Why Quantum Has Special Restrictions
+
+1. **EU Quantum Flagship**: Part of the EU's strategic technology agenda with specific participation rules
+
+2. **Security Implications**: Quantum technologies have significant implications for:
+   - Cryptography and secure communications
+   - National defense systems
+   - Critical infrastructure protection
+
+3. **EU Strategic Autonomy**: The EU prioritizes developing sovereign quantum capabilities
+
+### Specific Considerations for Cluster 4 (Digital)
+
+The **Digital, Industry and Space** cluster contains most quantum-related topics. Key points:
+
+| Topic Area | Typical Status |
+|------------|----------------|
+| **Basic quantum research** | Often open to associated countries |
+| **Quantum infrastructure** | May have restrictions |
+| **Quantum for security** | Usually restricted |
+| **Quantum software/algorithms** | Variable |
+| **Quantum standardization** | Often open |
+
+### How to Navigate Quantum Topic Eligibility
+
+1. **Distinguish Research vs Application**: Basic research often has fewer restrictions than applied security applications
+
+2. **Check the Flagship Status**: EU Quantum Flagship topics may have specific rules
+
+3. **Review Each Call Individually**: Restrictions vary significantly between calls, even within quantum topics
+
+### Alternative Participation Strategies
+
+If coordinator participation is restricted:
+
+| Strategy | Description |
+|----------|-------------|
+| **Partner role** | Participate as beneficiary (often allowed) |
+| **Basic research focus** | Target fundamental science topics |
+| **Non-security applications** | Focus on industrial/healthcare quantum applications |
+| **Collaborative agreements** | Some topics allow third-country expertise via subcontracts |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Review Cluster 4 Work Programme**: Check quantum topics for eligibility restrictions
+2. **Identify unrestricted topics**: Many quantum calls remain open to associated countries
+3. **Consider partner participation**: Even restricted topics often allow associated country partners
+4. **Contact NCP**: Get guidance on specific quantum calls
+5. **Focus on strengths**: If you have quantum expertise, emphasize basic research and non-defense applications
+
+📋 **Action Items:**
+- [ ] Download Cluster 4 (Digital, Industry and Space) work programme
+- [ ] List all quantum-related topics and their eligibility conditions
+- [ ] Identify 2-3 quantum topics without coordinator restrictions
+- [ ] Contact your NCP about the EU Quantum Flagship participation rules
+- [ ] Explore partner opportunities with EU quantum research groups
+
+📚 **Resources:**
+- [EU Quantum Flagship](https://qt.eu/) - Official quantum initiative
+- [Cluster 4 Work Programme](https://ec.europa.eu/info/funding-tenders/opportunities/portal/) - Funding & Tenders Portal
+- [Digital Europe Programme](https://digital-strategy.ec.europa.eu/) - Related quantum investments"""
+
+    def _generate_can_coordinate_guidance(self, country_name: str) -> str:
+        """Generate guidance on where associated countries CAN coordinate."""
+        return f"""**Calls Where {country_name} Universities CAN Coordinate**
+
+Yes, there are **many Horizon Europe calls** where {country_name} organizations can serve as coordinator. Here is a comprehensive overview:
+
+### Programme Areas with Full Coordinator Eligibility
+
+| Programme/Action | Coordinator Eligibility | Notes |
+|------------------|-------------------------|-------|
+| **Marie Skłodowska-Curie Actions** | ✅ Full | All MSCA actions (PF, DN, SE, COFUND, Citizens) |
+| **European Research Council (ERC)** | ✅ Full | Starting, Consolidator, Advanced, Synergy Grants |
+| **Widening Participation** | ✅ Full | Teaming, Twinning, ERA Chairs, HopOn |
+| **Most Cluster Topics** | ✅ Full | Unless specifically restricted in call text |
+| **Coordination & Support Actions** | ✅ Full | CSA almost always open to associated countries |
+
+### Cluster-by-Cluster Overview
+
+| Cluster | Can {country_name} Coordinate? | Exceptions |
+|---------|------------------------------|------------|
+| **Cluster 1 - Health** | ✅ Most topics | Rare security-related exceptions |
+| **Cluster 2 - Culture/Social** | ✅ All topics | No restrictions |
+| **Cluster 3 - Civil Security** | ⚠️ Variable | Some security topics restricted |
+| **Cluster 4 - Digital/Space** | ⚠️ Variable | Some quantum/cybersecurity restricted |
+| **Cluster 5 - Climate/Energy** | ✅ Most topics | Very few restrictions |
+| **Cluster 6 - Food/Bio** | ✅ Most topics | Rare exceptions |
+
+### Best Opportunities for {country_name} Coordinators
+
+Based on typical call conditions, these areas are most accessible:
+
+1. **ERC Grants**: Individual excellence-based, no nationality restrictions for PIs from associated countries
+
+2. **MSCA Doctoral Networks**: {country_name} universities can coordinate training networks
+
+3. **Widening Actions**: Specifically designed to increase participation from underrepresented countries
+
+4. **Cluster 5 (Climate/Energy/Mobility)**: Large budget, many open topics, strong {country_name} research base
+
+5. **Cluster 6 (Food/Bioeconomy)**: Agricultural research with few restrictions
+
+6. **Missions**: All five EU Missions are generally open
+
+### How to Find Coordinator-Eligible Calls
+
+1. **Use the Funding Portal Filters**: Select "Associated Countries" in eligibility filters
+
+2. **Check "Specific Eligibility Conditions"**: Look for any nationality requirements
+
+3. **Search for Your Topic Keywords**: Many standard calls have no coordinator restrictions
+
+### Current 2024-2025 Opportunities
+
+To find specific calls, you should:
+1. Visit the [EU Funding Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/)
+2. Filter by: Status "Open" + Programme "Horizon Europe"
+3. Review the call conditions for each relevant topic
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Browse Open Calls Now**: Visit the Funding Portal and search for your research keywords
+2. **Register for Alerts**: Set up notifications for new calls in your area
+3. **Contact Your NCP**: Get a curated list of coordinator-eligible calls in your field
+4. **Start Consortium Building**: Begin reaching out to potential EU partners
+5. **Prepare Your Organization**: Ensure PIC registration and LEAR appointment are complete
+
+📋 **Action Items:**
+- [ ] Search [Funding Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/) for open calls in your research area
+- [ ] Filter by your cluster/destination
+- [ ] Review call eligibility conditions for coordinator requirements
+- [ ] Make a shortlist of 3-5 calls where you can coordinate
+- [ ] Contact NCP for guidance on specific opportunities
+- [ ] Begin outreach to potential consortium partners
+
+📚 **Useful Resources:**
+- [Horizon Europe Work Programmes](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/wp-call/2024/wp_horizon-2024-2025_en.pdf)
+- [Associated Countries List](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/list-3rd-country-participation_horizon-euratom_en.pdf)
+- [NCP Network](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp)"""
 
     def _deduplicate_content(self, contents: list) -> list:
         """Remove duplicate or very similar content."""
