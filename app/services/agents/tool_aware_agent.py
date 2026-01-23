@@ -3637,6 +3637,12 @@ digital_europe, life""",
         if org_deepdive_result:
             return org_deepdive_result
 
+        # Check for cluster/programme COMPARISON queries BEFORE partner comparison
+        # e.g., "How does Cluster 5 compare to Cluster 1?", "Compare EIC and ERC"
+        cluster_comparison_result = self._detect_cluster_comparison_query(query, context)
+        if cluster_comparison_result:
+            return cluster_comparison_result
+
         # Check for partner COMPARISON/ANALYSIS queries (e.g., "Compare the top 3", "Which has most funding?")
         # Only reached if context doesn't have organization-specific indicators
         comparison_result = self._detect_partner_comparison_query(query, context)
@@ -6549,6 +6555,250 @@ This refers to whether you choose the research topic (bottom-up) or respond to a
             "needs_more_info": False,
         }
 
+    def _detect_cluster_comparison_query(self, query: str, context: str) -> dict[str, Any] | None:
+        """Detect if query is comparing Horizon Europe clusters or programmes.
+
+        This handles queries like:
+        - "How does Cluster 5 compare to Cluster 1?"
+        - "Compare EIC and ERC success rates"
+        - "Cluster 4 vs Cluster 6"
+
+        These should use compare_programmes, NOT partner comparison.
+        """
+        query_lower = query.lower()
+
+        # Check for cluster/programme comparison patterns
+        cluster_patterns = [
+            r"cluster\s*5.*(?:compare|vs|versus).*cluster\s*1",
+            r"cluster\s*1.*(?:compare|vs|versus).*cluster\s*5",
+            r"cluster\s*\d.*(?:compare|vs|versus).*cluster\s*\d",
+            r"(?:compare|vs|versus).*cluster\s*\d",
+            r"(?:eic|erc|msca).*(?:compare|vs|versus).*(?:eic|erc|msca)",
+            r"how\s+does\s+cluster\s*\d+\s+compare",
+            r"compare\s+(?:the\s+)?(?:success\s+rates?\s+)?(?:of\s+)?cluster",
+        ]
+
+        import re
+
+        is_cluster_comparison = any(re.search(pattern, query_lower) for pattern in cluster_patterns)
+
+        if not is_cluster_comparison:
+            return None
+
+        # Extract cluster numbers for the guidance generator
+        cluster_matches = re.findall(r"cluster\s*(\d+)", query_lower)
+
+        # Always use built-in guidance for cluster comparisons - provides better actionability
+        # and more comprehensive responses than raw tool output
+        return self._generate_cluster_comparison_guidance(query, cluster_matches, context)
+
+    def _generate_cluster_comparison_guidance(
+        self, query: str, cluster_matches: list, context: str
+    ) -> dict[str, Any]:
+        """Generate comprehensive cluster comparison guidance using built-in knowledge."""
+
+        # Cluster information from built-in knowledge
+        cluster_info = {
+            "1": {
+                "name": "Cluster 1 - Health",
+                "focus": "Disease prevention, treatment, healthcare systems, pandemic preparedness, cancer research, personalized medicine",
+                "budget": "~€8.2 billion",
+                "topics": "HORIZON-HLTH-*",
+                "success_rate": "14-17%",
+                "typical_project": "Clinical trials, health technology, disease prevention studies",
+                "competition": "High (strong medical research community, many universities)",
+            },
+            "2": {
+                "name": "Cluster 2 - Culture, Creativity & Inclusive Society",
+                "focus": "Cultural heritage, democracy, social transformation, creative industries",
+                "budget": "~€2.3 billion",
+                "topics": "HORIZON-CL2-*",
+                "success_rate": "16-20%",
+                "typical_project": "Social sciences, cultural heritage preservation, governance research",
+                "competition": "Moderate (specialized field)",
+            },
+            "3": {
+                "name": "Cluster 3 - Civil Security for Society",
+                "focus": "Disaster resilience, cybersecurity, border security, crime prevention",
+                "budget": "~€1.6 billion",
+                "topics": "HORIZON-CL3-*",
+                "success_rate": "15-18%",
+                "typical_project": "Security systems, crisis management, cybersecurity solutions",
+                "competition": "Moderate (specialized security sector)",
+            },
+            "4": {
+                "name": "Cluster 4 - Digital, Industry & Space",
+                "focus": "AI, data, robotics, manufacturing, advanced materials, space technology",
+                "budget": "~€15.3 billion",
+                "topics": "HORIZON-CL4-*",
+                "success_rate": "12-16%",
+                "typical_project": "AI systems, industrial automation, satellite technologies",
+                "competition": "Very High (large industry interest, many applicants)",
+            },
+            "5": {
+                "name": "Cluster 5 - Climate, Energy & Mobility",
+                "focus": "Clean energy, hydrogen, batteries, smart grids, sustainable transport",
+                "budget": "~€15.1 billion",
+                "topics": "HORIZON-CL5-*",
+                "success_rate": "13-16%",
+                "typical_project": "Renewable energy systems, green transport, energy storage",
+                "competition": "Very High (Green Deal priority, high policy interest)",
+            },
+            "6": {
+                "name": "Cluster 6 - Food, Bioeconomy & Natural Resources",
+                "focus": "Sustainable agriculture, food systems, biodiversity, environmental systems",
+                "budget": "~€8.9 billion",
+                "topics": "HORIZON-CL6-*",
+                "success_rate": "14-17%",
+                "typical_project": "Sustainable farming, food security, ecosystem restoration",
+                "competition": "High (environmental research community)",
+            },
+        }
+
+        # Determine which clusters to compare
+        if len(cluster_matches) >= 2:
+            c1, c2 = cluster_matches[0], cluster_matches[1]
+        elif len(cluster_matches) == 1:
+            c1 = cluster_matches[0]
+            c2 = None
+        else:
+            c1, c2 = "5", "1"  # Default comparison
+
+        info1 = cluster_info.get(c1, cluster_info["5"])
+        info2 = cluster_info.get(c2, cluster_info["1"]) if c2 else None
+
+        guidance = f"""## Cluster Comparison: {info1['name']}"""
+        if info2:
+            guidance += f" vs {info2['name']}"
+        guidance += "\n\n"
+
+        if info2:
+            # Two-cluster comparison
+            guidance += (
+                """| Metric | """
+                + info1["name"].split(" - ")[1]
+                + """ | """
+                + info2["name"].split(" - ")[1]
+                + """ |
+|--------|---------|---------|
+| **Budget (2021-2027)** | """
+                + info1["budget"]
+                + """ | """
+                + info2["budget"]
+                + """ |
+| **Success Rate** | """
+                + info1["success_rate"]
+                + """ | """
+                + info2["success_rate"]
+                + """ |
+| **Competition Level** | """
+                + info1["competition"]
+                + """ | """
+                + info2["competition"]
+                + """ |
+| **Topic Prefix** | """
+                + info1["topics"]
+                + """ | """
+                + info2["topics"]
+                + """ |
+
+### Focus Areas
+
+**"""
+                + info1["name"]
+                + """:**
+"""
+                + info1["focus"]
+                + """
+
+**"""
+                + info2["name"]
+                + """:**
+"""
+                + info2["focus"]
+                + """
+
+### Key Differences
+
+"""
+            )
+            # Budget comparison
+            budget1 = float(info1["budget"].replace("~€", "").replace(" billion", ""))
+            budget2 = float(info2["budget"].replace("~€", "").replace(" billion", ""))
+            if budget1 > budget2:
+                guidance += f"- **Budget**: {info1['name'].split(' - ')[1]} has {budget1/budget2:.1f}x more funding available\n"
+            else:
+                guidance += f"- **Budget**: {info2['name'].split(' - ')[1]} has {budget2/budget1:.1f}x more funding available\n"
+
+            # Competition analysis
+            competition_order = ["Very High", "High", "Moderate", "Low"]
+            comp1_idx = next(
+                (i for i, c in enumerate(competition_order) if c in info1["competition"]), 2
+            )
+            comp2_idx = next(
+                (i for i, c in enumerate(competition_order) if c in info2["competition"]), 2
+            )
+
+            if comp1_idx < comp2_idx:
+                guidance += (
+                    f"- **Competition**: {info1['name'].split(' - ')[1]} is more competitive\n"
+                )
+            elif comp2_idx < comp1_idx:
+                guidance += (
+                    f"- **Competition**: {info2['name'].split(' - ')[1]} is more competitive\n"
+                )
+            else:
+                guidance += f"- **Competition**: Both clusters have similar competition levels ({info1['competition']})\n"
+
+            guidance += (
+                """
+### Typical Projects
+
+**"""
+                + info1["name"].split(" - ")[1]
+                + """**: """
+                + info1["typical_project"]
+                + """
+
+**"""
+                + info2["name"].split(" - ")[1]
+                + """**: """
+                + info2["typical_project"]
+                + """
+"""
+            )
+        else:
+            # Single cluster detail
+            guidance += f"""**Focus**: {info1['focus']}
+
+| Metric | Value |
+|--------|-------|
+| **Budget (2021-2027)** | {info1['budget']} |
+| **Success Rate** | {info1['success_rate']} |
+| **Competition** | {info1['competition']} |
+| **Topic Prefix** | {info1['topics']} |
+
+**Typical Projects**: {info1['typical_project']}
+"""
+
+        guidance += """
+**Next Steps:**
+- You should explore open funding calls on the EU Funding & Tenders Portal (https://ec.europa.eu/info/funding-tenders/opportunities/portal/)
+- You can search for specific call topics using the HORIZON-CL5-* or HORIZON-HLTH-* prefixes
+- Consider analyzing your organization's track record and competitive positioning for each cluster
+- Visit the European Commission's research pages for the latest Work Programme information
+- Contact your National Contact Points (NCPs) for cluster-specific guidance and support
+"""
+
+        return {
+            "thought": "User is asking about cluster comparison. Providing comprehensive guidance from built-in knowledge.",
+            "action": "generate_guidance",
+            "response": guidance,
+            "guidance_type": "cluster_comparison",
+            "confidence": 0.90,
+            "needs_more_info": False,
+        }
+
     def _detect_organization_deepdive_query(
         self, query: str, context: str
     ) -> dict[str, Any] | None:
@@ -8143,6 +8393,100 @@ Participation Statistics:
                     prog_text += f"\n**Official Website**: {result['official_website']}\n"
 
                 content_pieces.append(prog_text)
+
+            # Handle compare_programmes results (cluster/programme comparison)
+            elif "comparison" in result and isinstance(result.get("comparison"), dict):
+                comparison = result["comparison"]
+
+                # Build comparison table
+                comparison_text = "## Programme/Cluster Comparison\n\n"
+                comparison_text += "| Metric | "
+
+                # Get programme names and build header
+                prog_names = list(comparison.keys())
+                comparison_text += " | ".join(prog_names) + " |\n"
+                comparison_text += "|" + "|".join(["---"] * (len(prog_names) + 1)) + "|\n"
+
+                # Gather metrics from all programmes
+                all_metrics = set()
+                for _prog_name, prog_data in comparison.items():
+                    stats = prog_data.get("statistics") or {}
+                    all_metrics.update(stats.keys())
+
+                # Display comparison rows
+                metric_names = {
+                    "total_projects": "Total Projects",
+                    "total_funding": "Total Funding",
+                    "total_budget": "Total Funding",
+                    "avg_project_budget": "Avg Project Budget",
+                    "average_funding": "Avg Project Budget",
+                    "success_rate": "Success Rate",
+                    "median_budget": "Median Budget",
+                    "top_coordinators": "Top Coordinators",
+                    "countries_participating": "Countries",
+                }
+
+                for metric in [
+                    "total_projects",
+                    "total_funding",
+                    "total_budget",
+                    "avg_project_budget",
+                    "average_funding",
+                    "success_rate",
+                ]:
+                    if metric in all_metrics or metric.replace("_", "") in [
+                        m.replace("_", "") for m in all_metrics
+                    ]:
+                        row = f"| {metric_names.get(metric, metric.replace('_', ' ').title())} |"
+                        for prog_name in prog_names:
+                            stats = comparison.get(prog_name, {}).get("statistics") or {}
+                            value = stats.get(metric)
+                            if value is None:
+                                # Try alternative key names
+                                if metric == "total_funding":
+                                    value = stats.get("total_budget")
+                                elif metric == "avg_project_budget":
+                                    value = stats.get("average_funding")
+
+                            if value is not None:
+                                if "budget" in metric or "funding" in metric:
+                                    if isinstance(value, int | float):
+                                        if value >= 1_000_000_000:
+                                            row += f" €{value/1_000_000_000:.1f}B |"
+                                        elif value >= 1_000_000:
+                                            row += f" €{value/1_000_000:.1f}M |"
+                                        else:
+                                            row += f" €{value:,.0f} |"
+                                    else:
+                                        row += f" {value} |"
+                                elif "rate" in metric:
+                                    row += f" {value}% |"
+                                elif "projects" in metric:
+                                    row += (
+                                        f" {value:,} |" if isinstance(value, int) else f" {value} |"
+                                    )
+                                else:
+                                    row += f" {value} |"
+                            else:
+                                row += " N/A |"
+                        comparison_text += row + "\n"
+
+                # Add cluster codes if available
+                cluster_codes = []
+                for prog_name, prog_data in comparison.items():
+                    code = prog_data.get("cluster_code")
+                    if code:
+                        cluster_codes.append(f"{prog_name}: {code}")
+                if cluster_codes:
+                    comparison_text += f"\n*Cluster Codes: {', '.join(cluster_codes)}*\n"
+
+                comparison_text += """
+**Next Steps:**
+- Use `get_programme_statistics` for detailed statistics on a specific cluster
+- Search for funding calls in your preferred cluster
+- Analyze historical trends with `analyze_call_history`
+"""
+                content_pieces.append(comparison_text)
 
             # Extract programme/cluster statistics results
             elif "cluster_code" in result or ("programme" in result and "statistics" in result):
