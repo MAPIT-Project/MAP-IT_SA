@@ -9446,3 +9446,46 @@ All 12 turns now show appropriate responses with profile awareness.
 ### Files Modified
 - app/services/agents/tool_aware_agent.py
 - app/services/tools/multi_programme_search.py
+
+## 2026-01-23: Scenario 016 Preference-Based Filtering EXECUTE
+
+### Task
+Scenario 016: Preference-Based Filtering - EXECUTE
+Score: 83.0 (PASS on first attempt)
+
+### Scenario Description
+A 4-step filtering workflow where users progressively refine funding call searches by specifying preferences:
+1. Exclude lump sum funding
+2. Prefer 70%+ funding rate
+3. Show only Q2 2024 deadlines
+4. Remove calls requiring more than 5 partners
+
+### Execution Results
+| Turn | Query | Tools Used | Score |
+|------|-------|------------|-------|
+| 0 | Find funding calls - but nothing with lump sum funding | search_funding_calls | 83 |
+| 1 | I prefer calls with 70%+ funding rate | search_funding_calls | 83 |
+| 2 | Show only calls with deadlines in Q2 2024 | search_funding_calls | 83 |
+| 3 | Remove any requiring more than 5 partners | search_funding_calls | 83 |
+
+### Quality Scores
+- Average Quality Score: 83.0
+- Average Factual Score: 87.5
+- Goal Progress: 52.9%
+- Context Fields: 1
+- Critical/High/Medium Failures: 0
+
+### Validation Summary
+All 4 turns passed with consistent quality:
+- Tool selection correct: search_funding_calls for all turns
+- Query fulfillment: 30/40
+- Specificity: 25/25
+- Factual accuracy: 20/25
+- Actionability: 8/10
+
+### Status
+- [x] EXECUTE task complete
+- [x] FIX IF NEEDED task complete (no fix needed - score >= 80)
+
+### Files Modified
+None (scenario passed on first attempt)
