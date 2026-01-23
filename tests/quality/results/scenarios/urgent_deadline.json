@@ -1,0 +1,139 @@
+{
+  "scenario_name": "Urgent Deadline",
+  "status": "PASS",
+  "average_quality_score": 85.0,
+  "average_factual_score": 90.0,
+  "turns": [
+    {
+      "query": "What calls close in the next 30 days?",
+      "response": "I found **15 funding opportunities** for your query:\n\n**1. Jean Monnet Actions in the field of Higher Education: Modules**\n\ud83d\udccb **Call ID:** ERASMUS-JMO-2026-HEI-TCH-RSCH-MODULE\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 03 February 2026\n\ud83c\udfdb\ufe0f **Programme:** SCH\n\n\ud83d\udcdd **Summary:** Scope: Modules are short teaching programmes or courses in the field of European Union studies at offered at a higher education institution. Each Module has a minimum duration of 40 teaching hours per academic year for a duration of th...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "search_funding_calls"
+      ],
+      "processing_time_ms": 7360.78,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
+      "passed": true
+    },
+    {
+      "query": "Any for renewable energy?",
+      "response": "I found **15 funding opportunities** for your query:\n\n**1. Development of innovative solutions strengthening the security of renewable energy value chains**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-14\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: The security of Europe`s clean energy system will, in the long-run, benefit from research and innovation addressing energy-security relevant criticalities of the underlying clean energy ...",
+      "quality_score": 85,
+      "factual_score": 50.0,
+      "failures": [],
+      "tools_used": [
+        "search_funding_calls"
+      ],
+      "processing_time_ms": 16211.64,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": true
+    },
+    {
+      "query": "Is there still time to apply?",
+      "response": "Yes, whether you have time to apply depends on several factors. Here's your honest assessment:\n\n### Time Feasibility Assessment\n\n| Factor | Question to Ask | Impact on Feasibility |\n|--------|----------------|----------------------|\n| **Consortium Status** | Do you have confirmed partners? | +++ if yes, --- if no |\n| **Previous Experience** | Have you submitted similar proposals before? | ++ if yes, - if no |\n| **Reusable Content** | Do you have draft materials to adapt? | ++ if yes, - if no |\n|...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 1018.3539999999999,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": true
+    },
+    {
+      "query": "What's the minimum we need ready?",
+      "response": "Given the imminent deadline, you should focus on the **absolute minimum elements** that, if missing, will lead to automatic ineligibility or immediate rejection. Here is your essential checklist:\n\n### 1. Administrative Section - CRITICAL for Eligibility\n\nThese are entered directly into the **Funding & Tenders Portal**. Without these, your submission is invalid:\n\n| Element | What You Must Have | Action Required |\n|---------|-------------------|-----------------|\n| **PIC Numbers** | All partners m...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 640.4530000000001,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": true
+    },
+    {
+      "query": "Can you prioritize by feasibility?",
+      "response": "To prioritize funding calls by feasibility when time is limited, you should assess each call against these criteria. Here is a systematic framework:\n\n### Feasibility Assessment Framework\n\n| Factor | High Feasibility (Score 3) | Medium (Score 2) | Low (Score 1) |\n|--------|--------------------------|------------------|---------------|\n| **Consortium Readiness** | Partners identified & committed | Some partners identified | Need to find partners |\n| **Topic Alignment** | Direct match to your work ...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 718.16,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 4,
+      "passed": true
+    }
+  ],
+  "scores": {
+    "average_quality": 85.0,
+    "average_factual": 90.0,
+    "goal_progress": 0.42000000000000004,
+    "context_fields": 2
+  },
+  "failures": [],
+  "metadata": {
+    "scenario_path": "tests/scenarios/advanced/urgent_deadline.yaml",
+    "tags": [
+      "phase7",
+      "deadlines",
+      "urgent",
+      "time-sensitive",
+      "renewable-energy",
+      "feasibility"
+    ],
+    "description": "A 5-step urgent deadline workflow where a user needs to find funding calls\nclosing soon, filter for renewable energy, assess if there's still time\nto apply, understand minimum requirements, and prioritize by feasibility.\nTests the system's deadline awareness and feasibility assessment capabilities.\n",
+    "conversation_id": 903806954
+  },
+  "execution_time_ms": 136341.072,
+  "timestamp": "2026-01-23T11:43:30.182830",
+  "passed": true,
+  "turn_count": 5,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
+}

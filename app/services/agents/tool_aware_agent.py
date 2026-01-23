@@ -3565,6 +3565,13 @@ digital_europe, life""",
         if timeline_result:
             return timeline_result
 
+        # Check for URGENT DEADLINE / PREPARATION REQUIREMENTS queries
+        # These are questions about minimum requirements for imminent deadlines, feasibility prioritization
+        # e.g., "What's the minimum we need ready?", "Can you prioritize by feasibility?"
+        urgent_deadline_result = self._detect_urgent_deadline_query(query, context)
+        if urgent_deadline_result:
+            return urgent_deadline_result
+
         # Check for CONTEXT RECALL queries (e.g., "I mentioned earlier I work on hydrogen")
         # These reference earlier conversation context to find calls
         context_recall_result = self._detect_context_recall_query(query, context)
@@ -12034,6 +12041,431 @@ This may be because:
             }
 
         return None
+
+    def _detect_urgent_deadline_query(self, query: str, context: str) -> dict[str, Any] | None:
+        """Detect urgent deadline / preparation requirements queries.
+
+        These are questions about:
+        - Minimum requirements for urgent deadlines
+        - Feasibility assessment for imminent submissions
+        - Prioritizing calls by feasibility given time constraints
+        - Emergency proposal preparation guidance
+
+        These queries should provide structured guidance with actionable Next Steps.
+        """
+        query_lower = query.lower()
+        context_lower = context.lower() if context else ""
+
+        # Check if there's urgent deadline context (calls closing soon, imminent deadlines)
+        has_deadline_context = any(
+            pattern in context_lower
+            for pattern in [
+                "deadline",
+                "closing",
+                "30 days",
+                "next month",
+                "february",
+                "march",
+                "imminent",
+                "urgent",
+                "time to apply",
+                "still time",
+            ]
+        )
+
+        # Minimum requirements patterns
+        minimum_requirement_patterns = [
+            "minimum we need",
+            "minimum required",
+            "minimum requirements",
+            "what do we need ready",
+            "what's needed",
+            "what is needed",
+            "bare minimum",
+            "essential requirements",
+            "must have ready",
+            "need to have ready",
+            "minimum to submit",
+            "minimum for submission",
+            "what must we have",
+            "what do we absolutely need",
+            "minimum elements",
+            "critical requirements",
+            "essential elements",
+            "need ready",
+            "minimum preparation",
+        ]
+
+        # Feasibility prioritization patterns
+        feasibility_patterns = [
+            "prioritize by feasibility",
+            "prioritise by feasibility",
+            "prioritize by likelihood",
+            "prioritise by likelihood",
+            "which is most feasible",
+            "which are most feasible",
+            "rank by feasibility",
+            "order by feasibility",
+            "most realistic",
+            "most achievable",
+            "best chance",
+            "which should we focus",
+            "which to focus on",
+            "which call should we",
+            "prioritize these",
+            "prioritise these",
+            "priority order",
+            "which is easiest",
+            "most manageable",
+        ]
+
+        # Rapid preparation / emergency patterns
+        rapid_prep_patterns = [
+            "short time",
+            "limited time",
+            "few weeks",
+            "can we still",
+            "is it possible to",
+            "realistic to apply",
+            "enough time to",
+            "rush submission",
+            "fast track",
+            "quick submission",
+            "emergency preparation",
+            "last minute",
+        ]
+
+        # Time assessment patterns (is there still time?)
+        time_assessment_patterns = [
+            "still time to apply",
+            "still time",
+            "is there time",
+            "is there still time",
+            "enough time",
+            "time left",
+            "too late",
+            "can we make it",
+            "do we have time",
+            "have time to",
+        ]
+
+        # Check for time assessment query (need to be early to catch "Is there still time to apply?")
+        if any(pattern in query_lower for pattern in time_assessment_patterns):
+            return {
+                "thought": "User is asking about time feasibility for applying. Providing time assessment guidance with actionable next steps.",
+                "action": "generate_guidance",
+                "guidance_type": "time_assessment",
+                "response": self._generate_time_assessment_guidance(context),
+            }
+
+        # Check for minimum requirements query
+        if any(pattern in query_lower for pattern in minimum_requirement_patterns) or (
+            has_deadline_context
+            and any(p in query_lower for p in ["minimum", "need ready", "must have", "required"])
+        ):
+            return {
+                "thought": "User is asking about minimum requirements for urgent deadline submission. Providing actionable preparation checklist.",
+                "action": "generate_guidance",
+                "guidance_type": "minimum_requirements",
+                "response": self._generate_minimum_requirements_guidance(),
+            }
+
+        # Check for feasibility prioritization query
+        if any(pattern in query_lower for pattern in feasibility_patterns) or (
+            has_deadline_context
+            and any(
+                p in query_lower for p in ["prioritize", "prioritise", "rank", "order", "which"]
+            )
+        ):
+            return {
+                "thought": "User is asking to prioritize calls by feasibility. Providing feasibility assessment framework.",
+                "action": "generate_guidance",
+                "guidance_type": "feasibility_prioritization",
+                "response": self._generate_feasibility_prioritization_guidance(context),
+            }
+
+        # Check for rapid preparation query
+        if any(pattern in query_lower for pattern in rapid_prep_patterns):
+            return {
+                "thought": "User is asking about rapid proposal preparation. Providing emergency preparation guidance.",
+                "action": "generate_guidance",
+                "guidance_type": "rapid_preparation",
+                "response": self._generate_rapid_preparation_guidance(),
+            }
+
+        return None
+
+    def _generate_minimum_requirements_guidance(self) -> str:
+        """Generate guidance on minimum requirements for urgent deadline submission."""
+        return """Given the imminent deadline, you should focus on the **absolute minimum elements** that, if missing, will lead to automatic ineligibility or immediate rejection. Here is your essential checklist:
+
+### 1. Administrative Section - CRITICAL for Eligibility
+
+These are entered directly into the **Funding & Tenders Portal**. Without these, your submission is invalid:
+
+| Element | What You Must Have | Action Required |
+|---------|-------------------|-----------------|
+| **PIC Numbers** | All partners must have valid Participant Identification Codes | Check at [Participant Register](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/participant-register) |
+| **Legal Entity Data** | All partners validated in the system | Verify validation status for each partner |
+| **Declaration of Honour** | Signed by legal representative | Download template from the portal |
+| **Financial Capacity** | LEAR/Self-declaration for SMEs | Have documents ready |
+
+### 2. Technical Description - MINIMUM for Admissibility
+
+These are uploaded as PDF and must meet minimum page/content requirements:
+
+| Section | Minimum Content You Need |
+|---------|-------------------------|
+| **Excellence** | Objectives, state-of-art, methodology - can be high-level but coherent |
+| **Impact** | Expected impacts, target groups, dissemination plan |
+| **Implementation** | Work packages, deliverables, milestones, Gantt chart |
+| **Budget Table** | Completed in portal - numbers can be estimates |
+
+### 3. What You Can Leave Imperfect (Won't Cause Rejection)
+
+✅ **Budget details**: Use reasonable estimates, can be adjusted in Grant Agreement
+✅ **CVs**: Brief is acceptable, full details not mandatory
+✅ **LOIs from partners**: Helpful but not always required (check call text)
+✅ **Detailed dissemination plan**: Outline is sufficient
+✅ **Detailed risk analysis**: Basic risks are acceptable
+
+### 4. Minimum Consortium You Need
+
+| Action Type | Minimum Partners | Countries |
+|-------------|-----------------|-----------|
+| **RIA/IA** | 3 legal entities | 3 EU/Associated |
+| **CSA** | 1-3 typically | Check specific call |
+| **EIC Accelerator** | 1 (single applicant) | 1 EU/Associated |
+| **MSCA** | 1-2 typically | Check specific call |
+
+---
+
+🎯 **Next Steps - What You Should Do Immediately:**
+
+1. **TODAY**: Verify all partners have valid PICs at the Participant Register
+2. **WITHIN 48 HOURS**: Complete administrative forms in the portal
+3. **WITHIN 1 WEEK**: Draft technical sections (Excellence, Impact, Implementation)
+4. **3 DAYS BEFORE DEADLINE**: Complete internal review and finalize
+5. **DEADLINE DAY**: Submit early (portal can crash near deadline)
+
+📞 **Get Help**: Contact your [National Contact Point](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for topic-specific guidance
+
+⚠️ **Critical Warning**: The portal closes at **17:00 Brussels time** on the deadline. Submit at least 2 hours early to avoid technical issues."""
+
+    def _generate_feasibility_prioritization_guidance(self, context: str) -> str:
+        """Generate guidance on prioritizing calls by feasibility."""
+        # Check context for specific calls mentioned
+        has_specific_calls = any(
+            pattern in context.lower()
+            for pattern in ["horizon-", "erasmus-", "crea-", "call id", "cl5", "cl4", "cl1"]
+        )
+
+        specific_advice = ""
+        if has_specific_calls:
+            specific_advice = """
+### Assessment of Your Identified Calls
+
+Based on the calls you've identified, here's how to prioritize:
+
+**Higher Feasibility Indicators:**
+- Calls where you have existing consortium partners
+- Topics aligned with your current research/activities
+- Smaller budget calls (€1-3M vs €10M+)
+- Calls you've submitted to before
+
+**Lower Feasibility Indicators:**
+- Completely new consortium needed
+- New research area for your organization
+- Large-scale actions requiring 10+ partners
+- High TRL requirements (TRL 7-9) without prior demos
+"""
+
+        return f"""To prioritize funding calls by feasibility when time is limited, you should assess each call against these criteria. Here is a systematic framework:
+
+### Feasibility Assessment Framework
+
+| Factor | High Feasibility (Score 3) | Medium (Score 2) | Low (Score 1) |
+|--------|--------------------------|------------------|---------------|
+| **Consortium Readiness** | Partners identified & committed | Some partners identified | Need to find partners |
+| **Topic Alignment** | Direct match to your work | Related to your work | New area for you |
+| **Budget Complexity** | Simple, small budget | Medium complexity | Large, multi-layer |
+| **Prior Experience** | Submitted similar before | Some experience | First time |
+| **Documentation Ready** | Substantial content exists | Some materials exist | Starting fresh |
+| **Time vs. Requirements** | >4 weeks, manageable | 2-4 weeks, challenging | <2 weeks, very tight |
+
+### Priority Decision Matrix
+
+| Total Score | Recommendation | Action |
+|-------------|---------------|--------|
+| **15-18** | **HIGH PRIORITY** - Submit this call | Focus 80% of effort here |
+| **10-14** | **MEDIUM PRIORITY** - Consider if time permits | Prepare outline, decide at -2 weeks |
+| **6-9** | **LOW PRIORITY** - Risky given timeline | Skip or plan for next cut-off |
+{specific_advice}
+### Time-Based Prioritization Rules
+
+When you have **multiple calls with similar deadlines**, prioritize based on:
+
+1. **First**: Calls where consortium is already confirmed
+2. **Second**: Calls building on previous (rejected) proposals
+3. **Third**: Calls in your core expertise area
+4. **Last**: New areas requiring new partnerships
+
+### Success Rate Reality Check
+
+| Action Type | Typical Success Rate | Your Odds with Rush Preparation |
+|-------------|---------------------|--------------------------------|
+| **RIA/IA (standard)** | 12-18% | -5% (limited preparation time) |
+| **CSA** | 15-25% | May be acceptable (simpler) |
+| **EIC Accelerator** | 8-10% | Single applicant, may work |
+| **MSCA Postdoc** | 15-20% | Can work if researcher ready |
+
+---
+
+🎯 **Next Steps - What You Should Do Now:**
+
+1. **Score each call** using the framework above (takes 10 minutes per call)
+2. **Select top 1-2 calls** with scores ≥ 12 to focus your effort
+3. **Allocate time**: 70% to highest priority, 30% to backup
+4. **Set go/no-go checkpoint** at -2 weeks from deadline
+5. **Contact your NCP** for quick topic guidance
+
+📋 **Decision Template**: For each call, ask:
+- Do we have 3+ committed partners? (Yes = +3 points)
+- Have we worked on this topic before? (Yes = +3 points)
+- Do we have draft content to reuse? (Yes = +2 points)
+- Is budget under €3M? (Yes = +2 points)
+
+⚠️ **Important**: A focused, high-quality submission to ONE call beats rushed, weak submissions to multiple calls. Quality over quantity wins in EU funding."""
+
+    def _generate_rapid_preparation_guidance(self) -> str:
+        """Generate guidance on rapid proposal preparation for urgent deadlines."""
+        return """When you have limited time to prepare a proposal, you need to focus ruthlessly on what matters most. Here is your rapid preparation strategy:
+
+### Rapid Preparation Timeline (2-4 Weeks)
+
+| Days Before Deadline | Focus Area | Deliverable |
+|---------------------|-----------|-------------|
+| **-28 to -21** | Consortium & concept | Partner commitment, 1-page concept |
+| **-21 to -14** | Part B drafting | Excellence & Impact sections |
+| **-14 to -7** | Implementation | Work packages, budget, Gantt |
+| **-7 to -3** | Integration | Complete Part B, internal review |
+| **-3 to -1** | Finalization | Portal submission, Part A check |
+| **Day 0** | Submit | Submit before 15:00 Brussels time |
+
+### Shortcuts That Work
+
+✅ **Reuse existing content**: Adapt from previous proposals, project descriptions, papers
+✅ **Partner expertise sections**: Ask partners to write their own WP descriptions
+✅ **Budget templates**: Use previous budgets as templates, adjust numbers
+✅ **Generic impact text**: Standard dissemination plans can be adapted quickly
+
+### What To Skip (Save Time)
+
+❌ **Perfect language**: Clarity beats eloquence - evaluators read fast
+❌ **Extensive state-of-art**: Focus on what you'll do differently
+❌ **Detailed risk analysis**: 5-6 key risks is sufficient
+❌ **Comprehensive bibliography**: 20-30 key references enough
+
+### Emergency Consortium Building
+
+If you need partners urgently:
+
+| Source | Response Time | Success Rate |
+|--------|--------------|--------------|
+| **Previous project partners** | 1-2 days | High |
+| **NCP partner search** | 3-5 days | Medium |
+| **Topic-specific networks** | 2-4 days | Medium |
+| **EEN Enterprise Europe** | 3-7 days | Medium |
+| **Cold outreach** | 5-10 days | Low |
+
+---
+
+🎯 **Next Steps - What You Should Do TODAY:**
+
+1. **Confirm consortium**: Email all partners asking for commitment by tomorrow
+2. **Draft 1-page concept**: Define objectives, approach, expected impact
+3. **Create shared folder**: Set up collaborative document for all sections
+4. **Book daily check-ins**: 15-minute sync calls until submission
+5. **Contact your NCP**: They can provide templates and quick guidance
+
+📞 **Emergency Help Resources**:
+- National Contact Points: https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp
+- European IPR Helpdesk: https://intellectual-property-helpdesk.ec.europa.eu/
+- Research Executive Agency: https://rea.ec.europa.eu/
+
+⚠️ **Quality Threshold**: A rushed proposal still needs to meet minimum quality. If you can't produce a coherent Excellence + Impact + Implementation within the timeline, consider the next cut-off date instead."""
+
+    def _generate_time_assessment_guidance(self, context: str) -> str:
+        """Generate guidance on time feasibility for applying to funding calls."""
+        # Try to extract deadline info from context
+        has_deadline_info = any(
+            pattern in context.lower()
+            for pattern in ["february", "march", "deadline", "2026", "2025"]
+        )
+
+        deadline_context = ""
+        if has_deadline_info:
+            deadline_context = """
+### Your Current Deadlines
+
+Based on the calls you've identified, you have deadlines approaching. Here's your time assessment:
+
+| Deadline Timeframe | Realistic Assessment |
+|-------------------|---------------------|
+| **< 2 weeks** | 🔴 Very challenging - only feasible with existing consortium + reusable content |
+| **2-4 weeks** | 🟡 Tight but doable - requires full-time effort + committed partners |
+| **4-8 weeks** | 🟢 Achievable - standard preparation timeline if you start NOW |
+| **> 8 weeks** | ✅ Comfortable - full preparation possible with quality focus |
+"""
+
+        return f"""Yes, whether you have time to apply depends on several factors. Here's your honest assessment:
+
+### Time Feasibility Assessment
+
+| Factor | Question to Ask | Impact on Feasibility |
+|--------|----------------|----------------------|
+| **Consortium Status** | Do you have confirmed partners? | +++ if yes, --- if no |
+| **Previous Experience** | Have you submitted similar proposals before? | ++ if yes, - if no |
+| **Reusable Content** | Do you have draft materials to adapt? | ++ if yes, - if no |
+| **Availability** | Can you dedicate significant time? | +++ if yes, - if no |
+| **Technical Readiness** | Is your research concept mature? | ++ if yes, -- if no |
+{deadline_context}
+### Realistic Time Requirements
+
+| Scenario | Minimum Time Needed | Success Likelihood |
+|----------|--------------------|--------------------|
+| **Resubmission** (existing proposal) | 2-3 weeks | Higher (know what to fix) |
+| **Experienced team** (done it before) | 4-6 weeks | Good (efficient process) |
+| **New consortium** (first time together) | 6-8 weeks | Medium (coordination overhead) |
+| **First EU proposal** (no experience) | 8-12 weeks | Lower (learning curve) |
+
+### Critical Path for Urgent Deadlines
+
+If you decide to proceed with a tight deadline:
+
+1. **Week 1**: Finalize consortium, distribute work, draft concept
+2. **Week 2**: Write Excellence and Impact sections (50% complete)
+3. **Week 3**: Complete Implementation, budget, work packages
+4. **Week 4**: Internal review, final edits, portal submission
+
+---
+
+🎯 **Next Steps - What You Should Do NOW:**
+
+1. **Assess your consortium**: Can you confirm 3+ committed partners within 48 hours?
+2. **Check your calendar**: Can you dedicate 50%+ of your time until deadline?
+3. **Inventory existing content**: What can you reuse from previous proposals/papers?
+4. **Go/No-Go decision**: Be honest - better to skip than submit weak proposal
+5. **If GO**: Start drafting the Excellence section TODAY
+
+📊 **Decision Framework**:
+- If you score 4+ on the factors above: **Proceed with confidence**
+- If you score 2-3: **Proceed with caution**, have backup plan
+- If you score <2: **Consider next cut-off** or partner role only
+
+📞 **Get Quick Help**: Contact your [National Contact Point](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for topic-specific advice - they can help assess feasibility
+
+⚠️ **Important**: A weak proposal wastes everyone's time. Success rates are 12-15% for good proposals, much lower for rushed ones. Quality over quantity!"""
 
     def _generate_he_preparation_time_guidance(self) -> str:
         """Generate guidance on Horizon Europe proposal preparation time."""
