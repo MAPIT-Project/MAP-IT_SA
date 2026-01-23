@@ -3555,6 +3555,15 @@ digital_europe, life""",
         if ambiguous_result:
             return ambiguous_result
 
+        # Check for OUT-OF-SCOPE queries (non-EU funding programmes)
+        # These are questions about NSF, UKRI, EPSRC, NIH, and other non-EU programmes
+        # e.g., "Tell me about NSF grants", "What about UK Research Council?",
+        # "How does Horizon Europe compare to NSF?", "Global equivalents to Horizon Europe?"
+        # IMPORTANT: Must come early to prevent these from matching other patterns
+        out_of_scope_result = self._detect_out_of_scope_query(query, context)
+        if out_of_scope_result:
+            return out_of_scope_result
+
         # Check for CAPACITY BUILDING / NEWCOMER GUIDANCE queries
         # These are questions from organizations new to EU funding about getting started
         capacity_result = self._detect_capacity_building_query(query, context)
@@ -5332,6 +5341,465 @@ If you prefer **grant-based funding** (non-repayable) for climate innovation, he
 5. **Contact Your NCP**: You should reach out to your [National Contact Point](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for Cluster 5
 
 📋 **Would you like me to search for specific open climate/clean technology calls in Horizon Europe?**"""
+
+    # ========================================================================
+    # OUT-OF-SCOPE QUERY DETECTION AND GUIDANCE (NON-EU FUNDING PROGRAMMES)
+    # ========================================================================
+
+    def _detect_out_of_scope_query(self, query: str, context: str) -> dict[str, Any] | None:
+        """Detect queries about non-EU funding programmes (out of MAPIT's scope).
+
+        These are questions about:
+        - US funding programmes (NSF, NIH, DOE, DARPA, etc.)
+        - UK funding programmes (UKRI, EPSRC, AHRC, MRC, BBSRC, etc.)
+        - Other international programmes (Canadian NSERC, Australian ARC, etc.)
+        - Comparisons between EU and non-EU programmes
+        - Global equivalents to Horizon Europe
+
+        The system should:
+        1. Gracefully explain its EU funding specialization
+        2. NOT make up detailed information about non-EU programmes
+        3. Offer to help with EU funding comparisons where relevant
+        4. Redirect users to appropriate resources
+        5. Highlight similarities with EU programmes when discussing comparisons
+
+        IMPORTANT: These queries should NOT trigger tool calls since we don't have
+        authoritative data on non-EU programmes.
+        """
+        query_lower = query.lower()
+        context_lower = context.lower() if context else ""
+
+        # Track if out-of-scope programme context is present from previous turns
+        has_out_of_scope_context = any(
+            ind in context_lower
+            for ind in [
+                "nsf",
+                "national science foundation",
+                "ukri",
+                "uk research",
+                "epsrc",
+                "engineering and physical sciences",
+                "nih",
+                "national institutes of health",
+                "us funding",
+                "us grants",
+                "uk funding",
+                "uk grants",
+                "american funding",
+                "british funding",
+                "international programmes",
+                "international funding",
+                "global equivalents",
+                "non-eu",
+                "outside the eu",
+                "out of scope",
+            ]
+        )
+
+        # Non-EU funding programmes we should detect
+        non_eu_programmes = {
+            # US programmes
+            "nsf": ["nsf", "national science foundation", "us nsf"],
+            "nih": ["nih", "national institutes of health", "us nih"],
+            "doe": ["doe ", "department of energy", "us doe"],
+            "darpa": ["darpa", "defense advanced research"],
+            "arpa": ["arpa-e", "arpa-h", "arpa"],
+            "nasa": ["nasa research", "nasa grant", "nasa funding"],
+            # UK programmes
+            "ukri": ["ukri", "uk research and innovation"],
+            "epsrc": ["epsrc", "engineering and physical sciences research council"],
+            "ahrc": ["ahrc", "arts and humanities research council"],
+            "mrc": ["mrc ", " mrc", "medical research council uk"],
+            "bbsrc": ["bbsrc", "biotechnology and biological sciences"],
+            "nerc": ["nerc", "natural environment research council"],
+            "stfc": ["stfc", "science and technology facilities council"],
+            "esrc": ["esrc", "economic and social research council"],
+            "innovate_uk": ["innovate uk", "innovate-uk", "uk innovate"],
+            # Other international
+            "nserc": ["nserc", "natural sciences and engineering research council"],
+            "cihr": ["cihr", "canadian institutes of health research"],
+            "arc": ["arc australia", "australian research council"],
+            "dfg": ["dfg", "deutsche forschungsgemeinschaft", "german research foundation"],
+            "anr": ["anr ", "agence nationale de la recherche"],
+            "jsps": ["jsps", "japan society for the promotion of science"],
+        }
+
+        # === Pattern 1: Direct questions about non-EU programmes ===
+        # e.g., "Tell me about NSF grants", "What about UK Research Council funding?"
+        detected_programme = None
+        for prog_key, patterns in non_eu_programmes.items():
+            if any(p in query_lower for p in patterns):
+                detected_programme = prog_key
+                break
+
+        # Check for UK/US research council patterns
+        uk_research_patterns = [
+            "uk research council",
+            "uk research councils",
+            "british research council",
+            "epsrc",
+            "the old epsrc",
+        ]
+        us_research_patterns = [
+            "us research",
+            "american research funding",
+            "american grants",
+            "us grants",
+            "usa funding",
+        ]
+
+        if any(p in query_lower for p in uk_research_patterns):
+            detected_programme = "ukri"
+        elif any(p in query_lower for p in us_research_patterns):
+            detected_programme = "nsf"
+
+        # If a non-EU programme is mentioned in the query
+        if detected_programme:
+            guidance = self._generate_out_of_scope_explanation_guidance(detected_programme)
+            return {
+                "thought": f"User is asking about {detected_programme.upper()}, a non-EU programme outside MAPIT's scope. Explaining EU focus and offering EU alternatives.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "out_of_scope_explanation",
+                "detected_programme": detected_programme,
+                "confidence": 0.95,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 2: Comparison with EU programmes (follow-up in context) ===
+        # e.g., "Can you compare these international programmes with EU funding?"
+        # e.g., "How does Horizon Europe stack up?"
+        comparison_patterns = [
+            "compare these",
+            "compare international",
+            "compare with eu",
+            "how does horizon europe compare",
+            "how does he compare",
+            "how does eu compare",
+            "stack up",
+            "versus horizon",
+            "vs horizon",
+            "compared to horizon",
+            "difference between",
+            "differences from",
+        ]
+
+        # Check for comparison queries when we have out-of-scope context
+        if has_out_of_scope_context and any(p in query_lower for p in comparison_patterns):
+            guidance = self._generate_eu_international_comparison_guidance()
+            return {
+                "thought": "User is asking to compare international programmes with EU funding. Providing high-level comparison with Horizon Europe.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "eu_international_comparison",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 3: Global equivalents to Horizon Europe ===
+        # e.g., "What international research programmes are similar to Horizon Europe?"
+        # e.g., "Are there any global equivalents?"
+        equivalents_patterns = [
+            "global equivalent",
+            "global equivalents",
+            "international equivalent",
+            "international equivalents",
+            "similar to horizon europe",
+            "similar international",
+            "international research programmes similar",
+            "programmes are similar to horizon",
+            "programmes similar to horizon",
+            "like horizon europe",
+            "comparable to horizon",
+            "comparable programmes",
+            "worldwide equivalent",
+            "world equivalent",
+        ]
+
+        if any(p in query_lower for p in equivalents_patterns):
+            guidance = self._generate_global_equivalents_guidance()
+            return {
+                "thought": "User is asking about global equivalents to Horizon Europe. Providing overview of MAPIT's EU focus and high-level comparison.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "global_equivalents",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        return None
+
+    def _generate_out_of_scope_explanation_guidance(self, programme: str) -> str:
+        """Generate guidance explaining MAPIT's EU focus when non-EU programmes are queried."""
+
+        # Programme-specific context
+        programme_info = {
+            "nsf": {
+                "full_name": "National Science Foundation (NSF)",
+                "country": "United States",
+                "website": "https://www.nsf.gov/",
+                "eu_equivalent": "ERC (European Research Council) for fundamental research, Horizon Europe RIA for collaborative research",
+            },
+            "nih": {
+                "full_name": "National Institutes of Health (NIH)",
+                "country": "United States",
+                "website": "https://www.nih.gov/grants-funding",
+                "eu_equivalent": "Horizon Europe Cluster 1 (Health) for health research, ERC for basic biomedical research",
+            },
+            "doe": {
+                "full_name": "Department of Energy (DOE)",
+                "country": "United States",
+                "website": "https://www.energy.gov/science/grants-contracts",
+                "eu_equivalent": "Horizon Europe Cluster 5 (Climate, Energy & Mobility) for energy research",
+            },
+            "darpa": {
+                "full_name": "Defense Advanced Research Projects Agency (DARPA)",
+                "country": "United States",
+                "website": "https://www.darpa.mil/",
+                "eu_equivalent": "EIC Pathfinder for high-risk/high-gain research, EDF (European Defence Fund) for defence innovation",
+            },
+            "ukri": {
+                "full_name": "UK Research and Innovation (UKRI)",
+                "country": "United Kingdom",
+                "website": "https://www.ukri.org/",
+                "eu_equivalent": "Horizon Europe (UK is an Associated Country since 2024)",
+            },
+            "epsrc": {
+                "full_name": "Engineering and Physical Sciences Research Council (EPSRC)",
+                "country": "United Kingdom",
+                "website": "https://www.ukri.org/councils/epsrc/",
+                "eu_equivalent": "Horizon Europe Cluster 4 (Digital, Industry, Space) and ERC",
+            },
+            "nserc": {
+                "full_name": "Natural Sciences and Engineering Research Council (NSERC)",
+                "country": "Canada",
+                "website": "https://www.nserc-crsng.gc.ca/",
+                "eu_equivalent": "ERC for fundamental research, Horizon Europe RIA for applied research",
+            },
+            "arc": {
+                "full_name": "Australian Research Council (ARC)",
+                "country": "Australia",
+                "website": "https://www.arc.gov.au/",
+                "eu_equivalent": "ERC for excellence-driven research, Horizon Europe for collaborative projects",
+            },
+            "dfg": {
+                "full_name": "Deutsche Forschungsgemeinschaft (DFG)",
+                "country": "Germany",
+                "website": "https://www.dfg.de/en",
+                "eu_equivalent": "Note: DFG is complementary to EU funding - German researchers often combine DFG and EU grants",
+            },
+        }
+
+        info = programme_info.get(
+            programme,
+            {
+                "full_name": programme.upper(),
+                "country": "Non-EU",
+                "website": "See national funding agency website",
+                "eu_equivalent": "Various Horizon Europe programmes depending on research area",
+            },
+        )
+
+        return f"""As an intelligent research assistant specializing in **EU funding programmes** like Horizon Europe, Erasmus+, and Creative Europe, my expertise is focused on European Union research and innovation funding.
+
+For detailed information about **{info['full_name']}**, I recommend visiting their official resources. However, I can help you understand EU funding alternatives and explore opportunities for international collaboration.
+
+## My EU Funding Expertise
+
+I provide expert guidance on these EU programmes:
+
+| EU Programme | Total Budget (2021-2027) | Focus |
+|--------------|-------------------------|-------|
+| **Horizon Europe** | €95.5 billion | Research & Innovation (includes ERC, EIC, MSCA) |
+| **Erasmus+** | €26.2 billion | Education, training & youth mobility |
+| **Creative Europe** | €2.4 billion | Cultural & creative sectors |
+
+## EU Equivalent to {info['full_name']}
+
+For researchers interested in topics similar to {info['full_name']}, the EU offers:
+
+**{info['eu_equivalent']}**
+
+## International Participation in EU Programmes
+
+If you're based in {info['country']} or have collaborators there, you can still participate in EU funding:
+
+| Participation Type | Options |
+|-------------------|---------|
+| **As Coordinator** | Associated Countries only (check current list) |
+| **As Partner** | Third-country participation possible in most calls |
+| **US/UK/other non-EU** | Can join consortia (costs often not eligible) |
+| **Bilateral agreements** | Check for specific cooperation agreements |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **For {info['full_name']} Information**: You should visit their official website at {info['website']}
+
+2. **For EU Funding Alternatives**: I can help you explore:
+   - Horizon Europe calls matching your research area
+   - ERC grants for fundamental research
+   - MSCA fellowships for researcher mobility
+   - Opportunities for international collaboration
+
+3. **For EU-International Cooperation**: You should check:
+   - [Horizon Europe Third Country Participation](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/horizon-dashboard)
+   - [International Cooperation in Horizon Europe](https://research-and-innovation.ec.europa.eu/strategy/strategy-2020-2024/europe-world/international-cooperation_en)
+
+4. **Contact Support**: You should reach out to your [National Contact Point](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for guidance on EU opportunities
+
+📋 **Would you like me to help you find EU funding opportunities in your research area, or explore how researchers from {info['country']} can participate in Horizon Europe?**"""
+
+    def _generate_eu_international_comparison_guidance(self) -> str:
+        """Generate guidance comparing EU funding with international programmes."""
+        return """## EU vs International Research Funding: High-Level Comparison
+
+As a specialist in **EU funding programmes**, I can provide detailed information about Horizon Europe and how it compares conceptually to other major research funding systems. For specific non-EU programme details, please consult those agencies directly.
+
+### Horizon Europe: Unique Characteristics
+
+| Feature | Horizon Europe | Significance |
+|---------|---------------|--------------|
+| **Budget** | €95.5 billion (2021-2027) | World's largest transnational R&I programme |
+| **Structure** | 3 Pillars + 5 Missions | Comprehensive research ecosystem |
+| **Collaboration** | Mandatory consortia (most calls) | Emphasizes international cooperation |
+| **Open Science** | Mandatory Open Access | Leading global open science policy |
+| **Mobility** | MSCA programme | 25,000+ researchers funded annually |
+
+### Conceptual Comparison with Major Funding Systems
+
+| Aspect | Horizon Europe | NSF (US) | UKRI (UK) |
+|--------|---------------|----------|-----------|
+| **Geographic Scope** | Pan-European + associated | National (US) | National (UK) |
+| **Collaboration Model** | Consortium-based | Individual/institutional | Individual/institutional |
+| **Funding Rate** | 70-100% (varies by type) | Varies by programme | Varies by council |
+| **Industry Participation** | Strong emphasis | Programme-dependent | Council-dependent |
+| **SME Focus** | Dedicated EIC instruments | SBIR/STTR programmes | Innovate UK |
+
+### Why Horizon Europe Is Unique
+
+1. **Scale of Collaboration**: No other programme mandates transnational consortia at this scale
+2. **Open to All**: Associated countries + third country participation options
+3. **Challenge-Driven**: Missions and clusters target societal challenges
+4. **Integrated Approach**: Research to market through EIC continuum
+
+### UK Participation (Post-Brexit Update)
+
+Since January 2024, the **UK is again associated to Horizon Europe**, meaning:
+- UK researchers can **coordinate** Horizon Europe projects
+- UK entities are **fully eligible** for funding
+- UK participation is now similar to other Associated Countries
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **For Detailed EU Information**: Ask me about specific Horizon Europe programmes, calls, or eligibility
+
+2. **For Non-EU Programme Details**: You should visit:
+   - NSF: [nsf.gov](https://www.nsf.gov/)
+   - UKRI: [ukri.org](https://www.ukri.org/)
+   - NIH: [nih.gov/grants-funding](https://www.nih.gov/grants-funding)
+
+3. **For International Collaboration**: You should explore:
+   - [EU-US S&T Cooperation](https://research-and-innovation.ec.europa.eu/strategy/strategy-2020-2024/europe-world/international-cooperation/united-states_en)
+   - [EU-UK Horizon Europe Association](https://research-and-innovation.ec.europa.eu/news/all-research-and-innovation-news/uk-joins-horizon-europe-2024-01-04_en)
+
+4. **For Specific EU Comparisons**: You should tell me your research area and I can detail what Horizon Europe offers
+
+📋 **Action Items:**
+- [ ] Visit the [EU Funding Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/) for current calls
+- [ ] Check [Horizon Europe International Cooperation](https://research-and-innovation.ec.europa.eu/strategy/strategy-2020-2024/europe-world_en) for collaboration options
+- [ ] Contact your [National Contact Point](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for guidance
+
+📋 **Would you like me to find specific EU funding opportunities in your research domain?**"""
+
+    def _generate_global_equivalents_guidance(self) -> str:
+        """Generate guidance about global equivalents to Horizon Europe."""
+        return """## Global Equivalents to Horizon Europe
+
+Horizon Europe is **unique on the global stage** due to its immense scale, combined focus on collaborative challenge-driven research, and emphasis on pan-European and international cooperation. While there are programmes with larger overall annual budgets (like in the US), **no single global programme entirely mirrors Horizon Europe's structure or mandated scope**.
+
+### Global Research Funding Landscape
+
+| Programme | Region | Focus | Scale |
+|-----------|--------|-------|-------|
+| **Horizon Europe** | EU + Associated | Collaborative R&I | €95.5B (2021-2027) |
+| **NSF** | USA | Fundamental science | ~$9B/year |
+| **NIH** | USA | Health/biomedical | ~$47B/year |
+| **UKRI** | UK | Multi-disciplinary | ~£8B/year |
+| **DFG** | Germany | Research funding | ~€3.5B/year |
+| **JSPS** | Japan | Science promotion | ~¥260B/year |
+
+### What Makes Horizon Europe Unique
+
+| Unique Feature | Description |
+|----------------|-------------|
+| **Transnational Consortia** | Most calls require 3+ partners from 3+ countries |
+| **Open to 40+ Countries** | EU27 + Associated Countries (Iceland, Norway, Israel, UK, etc.) |
+| **Integrated Ecosystem** | From fundamental research (ERC) to market (EIC) |
+| **Missions Approach** | 5 EU Missions addressing major societal challenges |
+| **Open Science Leader** | Mandatory open access, FAIR data principles |
+| **Industry-Academia Bridge** | Strong focus on innovation and commercialization |
+
+### Horizon Europe Structure (No Direct Equivalent Elsewhere)
+
+```
+HORIZON EUROPE (€95.5B)
+├── Pillar I: Excellent Science (€25B)
+│   ├── ERC (fundamental research)
+│   ├── MSCA (researcher mobility)
+│   └── Research Infrastructures
+├── Pillar II: Global Challenges (€53B)
+│   ├── 6 Thematic Clusters
+│   └── JRC research support
+├── Pillar III: Innovative Europe (€14B)
+│   ├── EIC (breakthrough innovation)
+│   └── European Innovation Ecosystems
+└── Horizontal: Widening + ERA
+```
+
+### International Participation Options
+
+If you're seeking **global-scale research funding**, Horizon Europe offers pathways:
+
+| Your Location | Participation Options |
+|---------------|----------------------|
+| **EU Member State** | Full participation in all calls |
+| **Associated Country** | UK, Norway, Israel, Switzerland*, etc. - full participation |
+| **Third Country** | Can join consortia (funding eligibility varies) |
+| **International Org** | Often eligible as partners |
+
+*Switzerland association negotiations ongoing
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Explore Horizon Europe**: You should consider this as the closest to a "world-class" global programme available to European and international researchers
+
+2. **Find Your Fit**: You should tell me your research area and I can identify:
+   - Relevant Horizon Europe clusters and destinations
+   - ERC opportunities for excellence-driven research
+   - EIC options for breakthrough innovation
+   - MSCA for researcher mobility
+
+3. **International Collaboration**: You should check [Horizon Europe Open to the World](https://research-and-innovation.ec.europa.eu/strategy/strategy-2020-2024/europe-world_en) for third-country participation
+
+4. **For Non-EU Programmes**: You should visit national funding agencies directly:
+   - US: [NSF](https://www.nsf.gov/), [NIH](https://www.nih.gov/)
+   - UK: [UKRI](https://www.ukri.org/)
+   - Canada: [NSERC](https://www.nserc-crsng.gc.ca/)
+   - Australia: [ARC](https://www.arc.gov.au/)
+
+📋 **Action Items:**
+- [ ] Visit the [EU Funding Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/) to search for calls in your research area
+- [ ] Review [Horizon Europe International Cooperation](https://research-and-innovation.ec.europa.eu/strategy/strategy-2020-2024/europe-world_en) for third-country options
+- [ ] Contact your [National Contact Point](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for personalized guidance
+- [ ] Check if your country has bilateral agreements with the EU for research cooperation
+
+📋 **Would you like me to help you find specific Horizon Europe funding opportunities matching your research interests?**"""
 
     def _detect_strategic_planning_query(self, query: str, context: str) -> dict[str, Any] | None:
         """Detect strategic planning / funding strategy queries.

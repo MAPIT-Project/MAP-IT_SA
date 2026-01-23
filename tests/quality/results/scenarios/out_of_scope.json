@@ -1,0 +1,119 @@
+{
+  "scenario_name": "Out-of-Scope Query Handling",
+  "status": "PASS",
+  "average_quality_score": 85.0,
+  "average_factual_score": 100.0,
+  "turns": [
+    {
+      "query": "Can you tell me about US NSF grants? I'm interested in their research funding programmes",
+      "response": "As an intelligent research assistant specializing in **EU funding programmes** like Horizon Europe, Erasmus+, and Creative Europe, my expertise is focused on European Union research and innovation funding.\n\nFor detailed information about **National Science Foundation (NSF)**, I recommend visiting their official resources. However, I can help you understand EU funding alternatives and explore opportunities for international collaboration.\n\n## My EU Funding Expertise\n\nI provide expert guidance on ...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 2328.8160000000003,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
+      "passed": true
+    },
+    {
+      "query": "What about UK Research Council funding, like UKRI or the old EPSRC?",
+      "response": "As an intelligent research assistant specializing in **EU funding programmes** like Horizon Europe, Erasmus+, and Creative Europe, my expertise is focused on European Union research and innovation funding.\n\nFor detailed information about **UK Research and Innovation (UKRI)**, I recommend visiting their official resources. However, I can help you understand EU funding alternatives and explore opportunities for international collaboration.\n\n## My EU Funding Expertise\n\nI provide expert guidance on ...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 951.966,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": true
+    },
+    {
+      "query": "Can you compare these international programmes with EU funding? How does Horizon Europe stack up?",
+      "response": "## EU vs International Research Funding: High-Level Comparison\n\nAs a specialist in **EU funding programmes**, I can provide detailed information about Horizon Europe and how it compares conceptually to other major research funding systems. For specific non-EU programme details, please consult those agencies directly.\n\n### Horizon Europe: Unique Characteristics\n\n| Feature | Horizon Europe | Significance |\n|---------|---------------|--------------|\n| **Budget** | \u20ac95.5 billion (2021-2027) | World'...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 1103.961,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": true
+    },
+    {
+      "query": "What international research programmes are similar to Horizon Europe? Are there any global equivalents?",
+      "response": "## Global Equivalents to Horizon Europe\n\nHorizon Europe is **unique on the global stage** due to its immense scale, combined focus on collaborative challenge-driven research, and emphasis on pan-European and international cooperation. While there are programmes with larger overall annual budgets (like in the US), **no single global programme entirely mirrors Horizon Europe's structure or mandated scope**.\n\n### Global Research Funding Landscape\n\n| Programme | Region | Focus | Scale |\n|-----------...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 4404.410000000001,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": true
+    }
+  ],
+  "scores": {
+    "average_quality": 85.0,
+    "average_factual": 100.0,
+    "goal_progress": 0.6514285714285715,
+    "context_fields": 3
+  },
+  "failures": [],
+  "metadata": {
+    "scenario_path": "tests/scenarios/advanced/out_of_scope.yaml",
+    "tags": [
+      "phase11",
+      "error_handling",
+      "edge_case",
+      "out_of_scope",
+      "nsf",
+      "uk_research",
+      "international",
+      "scope_limitation",
+      "graceful_handling",
+      "comparison"
+    ],
+    "description": "A user asks about non-EU funding programmes (NSF, UK Research Council, etc.)\nthat are outside MAPIT's scope. The system should gracefully explain its\nEU focus, provide limited comparative information where possible, and\nredirect users to appropriate resources. Tests out-of-scope handling.\n",
+    "conversation_id": 1855138419
+  },
+  "execution_time_ms": 153652.618,
+  "timestamp": "2026-01-23T15:45:38.032020",
+  "passed": true,
+  "turn_count": 4,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
+}
