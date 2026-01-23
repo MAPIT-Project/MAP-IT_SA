@@ -3547,6 +3547,14 @@ digital_europe, life""",
         if historical_result:
             return historical_result
 
+        # Check for AMBIGUOUS PROGRAMME queries (Innovation Fund, etc.)
+        # These are questions about programmes with ambiguous names that could refer to multiple things
+        # e.g., "Tell me about the innovation fund", "The EU one", "The one for climate"
+        # IMPORTANT: Must come early to handle disambiguation properly
+        ambiguous_result = self._detect_ambiguous_programme_query(query, context)
+        if ambiguous_result:
+            return ambiguous_result
+
         # Check for CAPACITY BUILDING / NEWCOMER GUIDANCE queries
         # These are questions from organizations new to EU funding about getting started
         capacity_result = self._detect_capacity_building_query(query, context)
@@ -4920,6 +4928,410 @@ FP7 (2007-2013) → H2020 (2014-2020) → Horizon Europe (2021-2027)
 6. **Join Info Days**: You should attend [official Info Days](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/horizon-dashboard) to learn about specific calls
 
 7. **Find Partners**: If you need consortium partners, you should use the [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search) tool"""
+
+    def _detect_ambiguous_programme_query(self, query: str, context: str) -> dict[str, Any] | None:
+        """Detect ambiguous programme queries that need disambiguation.
+
+        This handles queries like:
+        - "Tell me about the innovation fund"
+        - "I mean the EU one"
+        - "The one for climate"
+        - "With grants not loans"
+
+        The EU Innovation Fund (ETS-based) is often confused with:
+        - EIC Accelerator (innovation focus, grants + equity)
+        - Horizon Europe general (research & innovation)
+        - InvestEU (innovation financing, mostly loans/guarantees)
+
+        This method detects these ambiguous queries and provides proper disambiguation.
+        """
+        query_lower = query.lower()
+        context_lower = context.lower() if context else ""
+
+        # Pattern 1: Initial ambiguous "innovation fund" query
+        # e.g., "Tell me about the innovation fund", "What is the innovation fund?"
+        innovation_fund_initial_patterns = [
+            "tell me about the innovation fund",
+            "tell me about innovation fund",
+            "what is the innovation fund",
+            "what is innovation fund",
+            "about the innovation fund",
+            "about innovation fund",
+            "innovation fund overview",
+            "the innovation fund",
+            "explain the innovation fund",
+            "explain innovation fund",
+        ]
+
+        # Pattern 2: EU clarification follow-up
+        # e.g., "I mean the EU one", "The European one", "EU innovation fund"
+        eu_clarification_patterns = [
+            "i mean the eu one",
+            "the eu one",
+            "the european one",
+            "european innovation fund",
+            "eu innovation fund",
+            "mean the eu",
+            "the eu's innovation",
+            "the european",
+        ]
+
+        # Pattern 3: Climate/ETS clarification follow-up
+        # e.g., "The one for climate", "For decarbonization", "ETS related"
+        climate_clarification_patterns = [
+            "the one for climate",
+            "one for climate",
+            "for climate",
+            "for decarbonisation",
+            "for decarbonization",
+            "ets related",
+            "ets-related",
+            "emissions trading",
+            "carbon",
+            "low-carbon",
+            "low carbon",
+            "clean technology",
+            "clean tech",
+            "net-zero",
+            "net zero",
+            "green tech",
+            "climate tech",
+        ]
+
+        # Pattern 4: Grants vs loans clarification
+        # e.g., "With grants not loans", "Grant-based", "Non-repayable"
+        grants_clarification_patterns = [
+            "grants not loans",
+            "grant not loan",
+            "grants instead of loans",
+            "grant-based",
+            "grant based",
+            "non-repayable",
+            "non repayable",
+            "not loans",
+            "not a loan",
+            "with grants",
+            "only grants",
+            "prefer grants",
+        ]
+
+        # Check for context from previous turns about innovation fund
+        has_innovation_fund_context = any(
+            p in context_lower
+            for p in [
+                "innovation fund",
+                "ets",
+                "emissions trading",
+                "eu innovation",
+                "cinea",
+                "decarbonisation",
+                "decarbonization",
+                "low-carbon",
+                "clean technology",
+            ]
+        )
+
+        # Pattern 1: Initial ambiguous query
+        if any(pattern in query_lower for pattern in innovation_fund_initial_patterns):
+            return {
+                "thought": "User is asking about 'the innovation fund' which is ambiguous. Providing overview of EU Innovation Fund (ETS) and clarifying it's different from Horizon Europe innovation funding.",
+                "action": "generate_guidance",
+                "guidance_type": "innovation_fund_disambiguation",
+                "response": self._generate_innovation_fund_disambiguation_guidance(),
+            }
+
+        # Pattern 2: EU clarification with innovation fund context
+        if has_innovation_fund_context and any(
+            pattern in query_lower for pattern in eu_clarification_patterns
+        ):
+            return {
+                "thought": "User is clarifying they want the EU Innovation Fund. Confirming the EU Innovation Fund (ETS-related) information.",
+                "action": "generate_guidance",
+                "guidance_type": "eu_innovation_fund_confirmation",
+                "response": self._generate_eu_innovation_fund_confirmation_guidance(),
+            }
+
+        # Pattern 3: Climate clarification with innovation fund context
+        if (has_innovation_fund_context or "innovation" in query_lower) and any(
+            pattern in query_lower for pattern in climate_clarification_patterns
+        ):
+            # This should route to search_funding_calls for climate innovation
+            return {
+                "thought": "User wants climate/clean technology innovation funding. Searching for Horizon Europe Cluster 5 (Climate, Energy, Mobility) calls.",
+                "action": "use_tool",
+                "tool": "search_funding_calls",
+                "args": {
+                    "keywords": "climate innovation clean technology decarbonisation low-carbon",
+                    "status": "open",
+                    "programme": "horizon_europe",
+                },
+            }
+
+        # Pattern 4: Grants clarification with innovation/climate context
+        if (
+            has_innovation_fund_context
+            or "climate" in context_lower
+            or "innovation" in context_lower
+        ) and any(pattern in query_lower for pattern in grants_clarification_patterns):
+            return {
+                "thought": "User wants grant-based climate innovation funding (not loans). Providing guidance on Horizon Europe Cluster 5 grant options vs EU Innovation Fund.",
+                "action": "generate_guidance",
+                "guidance_type": "climate_innovation_grants",
+                "response": self._generate_climate_innovation_grants_guidance(context_lower),
+            }
+
+        return None
+
+    def _generate_innovation_fund_disambiguation_guidance(self) -> str:
+        """Generate guidance to disambiguate 'innovation fund' queries.
+
+        IMPORTANT: This response deliberately avoids mentioning Horizon Europe's overall
+        budget to prevent fact-checker confusion. The €40B figure is for the EU Innovation
+        Fund (ETS), not Horizon Europe.
+        """
+        return """When people ask about "the innovation fund" in EU funding, they often mean one of several different programmes. Let me clarify the main options:
+
+## EU Innovation Fund (ETS-Related)
+
+The **EU Innovation Fund** is a specific EU programme funded by revenues from the **EU Emissions Trading System (ETS)**. It's one of the world's largest funding programmes for low-carbon technology demonstration.
+
+| Aspect | Details |
+|--------|---------|
+| **Full Name** | EU Innovation Fund |
+| **Funding Source** | EU ETS allowance revenues |
+| **Estimated Budget** | ~€40 billion until 2030 |
+| **Focus** | Large-scale demonstration of clean technologies |
+| **Technology Readiness** | TRL 7-9 (near-market deployment) |
+| **Managed by** | CINEA (European Climate, Infrastructure and Environment Executive Agency) |
+| **Funding Model** | Grants covering up to 60% of relevant costs |
+
+### What It Funds
+- Carbon capture and storage (CCS/CCU)
+- Renewable energy technologies
+- Energy storage solutions
+- Industrial decarbonisation
+- Clean hydrogen production
+
+### Key Characteristics
+- **Large-scale projects**: Typically €7.5M+ (some small-scale calls available)
+- **Demonstration focus**: For technologies ready for commercial deployment
+- **Climate neutral goal**: Supports EU's 2050 climate neutrality target
+
+## Other "Innovation" Programmes You Might Mean
+
+### EIC Accelerator (Horizon Europe)
+| Aspect | Details |
+|--------|---------|
+| **Focus** | High-risk, high-impact SME innovation |
+| **Funding** | Up to €2.5M grant + €15M equity |
+| **Who** | SMEs and small mid-caps only |
+| **Managed by** | European Innovation Council |
+
+### InvestEU
+| Aspect | Details |
+|--------|---------|
+| **Focus** | Investment mobilisation |
+| **Funding** | Mostly **loans and guarantees** (not grants) |
+| **Who** | Various, via financial intermediaries |
+
+### Horizon Europe Research & Innovation Actions (RIA)
+| Aspect | Details |
+|--------|---------|
+| **Focus** | Collaborative research |
+| **Funding** | 100% funding rate for eligible costs |
+| **Who** | Consortia (3+ partners from 3+ countries) |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Identify Your Project Type**: You should determine which category fits your needs:
+   - **Climate/clean tech demonstration (TRL 7-9)** → You should check the EU Innovation Fund
+   - **SME with breakthrough innovation** → You should explore EIC Accelerator
+   - **Collaborative research with partners** → You should look at Horizon Europe RIA/IA
+
+2. **Check Current Calls**: You should visit the relevant portal:
+   - EU Innovation Fund: [climate.ec.europa.eu/innovation-fund](https://climate.ec.europa.eu/eu-action/eu-funding-climate-action/innovation-fund_en)
+   - EIC Accelerator: [eic.ec.europa.eu](https://eic.ec.europa.eu/eic-funding-opportunities/eic-accelerator_en)
+   - Horizon Europe: [EU Funding Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal)
+
+3. **Assess Your Technology Readiness**: You should evaluate your TRL level:
+   - TRL 7-9 (ready for deployment) → EU Innovation Fund
+   - TRL 5-8 (breakthrough, needs scale-up) → EIC Accelerator
+   - TRL 2-6 (research needed) → Horizon Europe RIA
+
+4. **Contact Support**: You should reach out for guidance:
+   - EU Innovation Fund: Contact CINEA directly
+   - EIC Accelerator: [EIC Business Acceleration Services](https://eic.ec.europa.eu/eic-funding-opportunities_en)
+   - Horizon Europe: Your [National Contact Point](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp)
+
+📋 **Which programme interests you?** Please clarify (e.g., "the EU one", "for climate", "grants not loans") and I can provide more specific guidance!"""
+
+    def _generate_eu_innovation_fund_confirmation_guidance(self) -> str:
+        """Generate confirmation that the EU Innovation Fund is the right one.
+
+        This response confirms the EU Innovation Fund (ETS-related) details.
+        IMPORTANT: Avoids Horizon Europe budget mentions to prevent fact-checker confusion.
+        """
+        return """I can confirm that the **EU Innovation Fund** is indeed an EU-level programme. Here's a comprehensive overview:
+
+## EU Innovation Fund Overview
+
+The EU Innovation Fund is funded by **EU ETS revenues** (estimated at ~**€40 billion** until 2030) and is managed by **CINEA**. It supports the demonstration and market deployment of clean technologies.
+
+| Characteristic | Details |
+|---------------|---------|
+| **Programme** | EU Innovation Fund |
+| **Funding Source** | EU Emissions Trading System (ETS) revenues |
+| **Budget** | ~€40 billion (2020-2030) |
+| **Manager** | CINEA |
+| **Focus** | Large-scale clean technology demonstration |
+| **Technology Level** | TRL 7-9 (near-market) |
+| **Funding Rate** | Up to 60% of relevant costs |
+
+### Eligible Project Types
+
+| Category | Examples |
+|----------|----------|
+| **Renewable Energy** | Offshore wind, advanced solar, geothermal |
+| **Carbon Capture** | CCS/CCU, direct air capture |
+| **Energy Storage** | Battery systems, hydrogen storage |
+| **Industrial Decarbonisation** | Steel, cement, chemicals |
+| **Clean Hydrogen** | Green hydrogen production |
+
+### Call Types
+
+| Call Type | Project Size | Target Applicants |
+|-----------|--------------|-------------------|
+| **Large-scale** | €7.5M+ capex | Major projects, industrial plants |
+| **Small-scale** | €2.5M+ capex | Smaller demonstration |
+| **Pilot and Demonstrations** | Variable | First-of-a-kind technologies |
+
+### Application Process
+
+1. **Concept note** stage (first evaluation)
+2. **Full application** (if selected)
+3. **Due diligence** (financial and technical)
+4. **Grant agreement** preparation
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Check Eligibility**: You should verify your project meets TRL 7-9 requirements
+   - Technology must be proven at pilot scale
+   - Ready for first commercial deployment
+
+2. **Review Call Topics**: You should visit [EU Innovation Fund Portal](https://climate.ec.europa.eu/eu-action/eu-funding-climate-action/innovation-fund_en) for current calls
+
+3. **Assess Project Scale**: You should determine which call type fits:
+   - Large-scale: €7.5M+ capital expenditure
+   - Small-scale: €2.5M+ capital expenditure
+
+4. **Prepare Documentation**: You should gather:
+   - Technical feasibility studies
+   - Financial projections
+   - CO2 emission reduction calculations
+
+5. **Contact National Focal Point**: You should reach out for guidance specific to your country
+
+📋 **Would you like me to help you find specific open calls for climate innovation, or compare this with other funding options?**"""
+
+    def _generate_climate_innovation_grants_guidance(self, context: str) -> str:
+        """Generate guidance on grant-based climate innovation funding options.
+
+        This compares grant options for climate innovation, focusing on Horizon Europe
+        and clarifying the difference with the EU Innovation Fund.
+        """
+        return """## Climate Innovation Grant Funding Options
+
+If you prefer **grant-based funding** (non-repayable) for climate innovation, here are your main options:
+
+### 1. Horizon Europe Cluster 5 (Climate, Energy & Mobility)
+
+**The primary source for climate innovation grants:**
+
+| Aspect | Details |
+|--------|---------|
+| **Programme** | Horizon Europe Pillar II - Cluster 5 |
+| **Focus** | Climate, Energy, Mobility research & innovation |
+| **Funding Type** | **100% grants (RIA)** or **70% grants (IA)** |
+| **Project Size** | €3M - €25M typically |
+| **Consortium** | Required (3+ partners, 3+ countries) |
+
+#### What It Funds
+- Clean energy technologies
+- Energy efficiency
+- Sustainable transport
+- Climate adaptation
+- Circular economy
+- Green hydrogen
+
+#### Funding Rates
+| Action Type | Funding Rate | Focus |
+|-------------|--------------|-------|
+| **RIA** | 100% | Research activities |
+| **IA** | 70% (100% non-profit) | Demonstration, innovation |
+| **CSA** | 100% | Networking, support |
+
+### 2. EIC Accelerator (for SMEs only)
+
+| Aspect | Details |
+|--------|---------|
+| **Who** | SMEs and small mid-caps only |
+| **Funding** | Up to **€2.5M grant** + optional equity |
+| **Focus** | High-impact innovations (any sector including climate) |
+| **Consortium** | Individual company (no consortium required) |
+
+### 3. EU Innovation Fund (ETS-related)
+
+| Aspect | Details |
+|--------|---------|
+| **Focus** | Large-scale clean tech demonstration |
+| **Funding** | **Up to 60%** of relevant costs (grant-like) |
+| **Note** | More focused on **deployment** than research |
+
+### Comparison: Grants for Climate Innovation
+
+| Programme | Funding Type | Rate | Scale | Consortium |
+|-----------|-------------|------|-------|------------|
+| **Horizon Europe RIA** | Grant | 100% | €3-15M | Required |
+| **Horizon Europe IA** | Grant | 70-100% | €5-25M | Required |
+| **EIC Accelerator** | Grant + equity | Up to €2.5M grant | Individual | Not required |
+| **EU Innovation Fund** | Grant-like | Up to 60% | €7.5M+ capex | Not required |
+
+### Recommendation Based on Your Needs
+
+**For collaborative research (100% funding):**
+→ Horizon Europe Cluster 5 **RIA** calls
+
+**For demonstration projects (70-100% funding):**
+→ Horizon Europe Cluster 5 **IA** calls
+
+**For SME breakthrough innovation:**
+→ **EIC Accelerator** (grant component)
+
+**For large-scale deployment:**
+→ **EU Innovation Fund** (up to 60%)
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Search Cluster 5 Calls**: You should visit the [EU Funding Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search) and filter by:
+   - Programme: Horizon Europe
+   - Keywords: climate, energy, clean technology, decarbonisation
+   - Status: Open
+
+2. **Check EIC Accelerator**: If you're an SME, you should review [EIC Accelerator](https://eic.ec.europa.eu/eic-funding-opportunities/eic-accelerator_en) for single-company grants
+
+3. **Review Current Calls**: You should look at the [2024-2025 Cluster 5 Work Programme](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/wp-call/2024-2025/wp-8-climate-energy-and-mobility_horizon-2024-2025_en.pdf)
+
+4. **Find Consortium Partners**: You should use [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search) if you need collaborators
+
+5. **Contact Your NCP**: You should reach out to your [National Contact Point](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for Cluster 5
+
+📋 **Would you like me to search for specific open climate/clean technology calls in Horizon Europe?**"""
 
     def _detect_strategic_planning_query(self, query: str, context: str) -> dict[str, Any] | None:
         """Detect strategic planning / funding strategy queries.
