@@ -3572,6 +3572,13 @@ digital_europe, life""",
         if urgent_deadline_result:
             return urgent_deadline_result
 
+        # Check for DEADLINE TRACKING queries (time gap between calls, which to target)
+        # These are follow-up questions after viewing deadline lists
+        # e.g., "How much time between them?", "Which one should I target?"
+        deadline_tracking_result = self._detect_deadline_tracking_query(query, context)
+        if deadline_tracking_result:
+            return deadline_tracking_result
+
         # Check for CONTEXT RECALL queries (e.g., "I mentioned earlier I work on hydrogen")
         # These reference earlier conversation context to find calls
         context_recall_result = self._detect_context_recall_query(query, context)
@@ -12759,6 +12766,259 @@ November 1    → **Project officially starts**
 • For Erasmus+, coordinate with National Agency on fixed start dates
 • Check your organization's legal/financial validation status now to avoid delays
 • Contact your [NCP or National Agency](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for programme-specific GAP guidance"""
+
+    # =========================================================================
+    # DEADLINE TRACKING DETECTION AND GUIDANCE
+    # =========================================================================
+
+    def _detect_deadline_tracking_query(self, query: str, context: str) -> dict[str, Any] | None:
+        """Detect queries about deadline tracking - time gaps between calls, targeting decisions.
+
+        This handles follow-up queries after users have viewed a list of deadlines:
+        - "How much time between them?" - Time gap between deadlines
+        - "Which one should I target?" - Targeting recommendation
+        - "What's the gap between deadlines?" - Time interval queries
+        - "Which deadline should I prioritize?" - Strategic deadline selection
+
+        These queries should provide structured guidance with actionable Next Steps.
+        """
+        query_lower = query.lower()
+        context_lower = context.lower() if context else ""
+
+        # Check if there's deadline/call listing context (multiple calls with dates)
+        has_deadline_listing_context = any(
+            pattern in context_lower
+            for pattern in [
+                "deadline",
+                "february",
+                "march",
+                "april",
+                "january",
+                "2026",
+                "2025",
+                "cluster",
+                "cl4",
+                "cl5",
+                "cl6",
+                "digital",
+                "funding opportunities",
+                "calls",
+                "open",
+                "upcoming",
+            ]
+        )
+
+        # Time gap between deadlines patterns
+        time_gap_patterns = [
+            "how much time between",
+            "time between them",
+            "time between the",
+            "gap between",
+            "interval between",
+            "days between",
+            "weeks between",
+            "months between",
+            "difference between",
+            "how far apart",
+            "how long between",
+            "spacing between",
+            "time apart",
+        ]
+
+        # Which to target patterns
+        targeting_patterns = [
+            "which one should i target",
+            "which should i target",
+            "which one to target",
+            "which to target",
+            "which should i focus",
+            "which one should i focus",
+            "which deadline should i",
+            "which call should i",
+            "which one to go for",
+            "which to prioritize",
+            "which to prioritise",
+            "what should i aim for",
+            "which one is best",
+            "which is better",
+            "should i go for",
+        ]
+
+        # Check for time gap query
+        if has_deadline_listing_context and any(p in query_lower for p in time_gap_patterns):
+            return {
+                "thought": "User is asking about time gaps between deadlines they've seen. Providing deadline timing analysis with strategic guidance.",
+                "action": "generate_guidance",
+                "guidance_type": "deadline_time_gap",
+                "response": self._generate_deadline_time_gap_guidance(context),
+            }
+
+        # Check for targeting query
+        if has_deadline_listing_context and any(p in query_lower for p in targeting_patterns):
+            return {
+                "thought": "User is asking which deadline to target from the list. Providing targeting recommendation framework.",
+                "action": "generate_guidance",
+                "guidance_type": "deadline_targeting",
+                "response": self._generate_deadline_targeting_guidance(context),
+            }
+
+        return None
+
+    def _generate_deadline_time_gap_guidance(self, context: str) -> str:
+        """Generate guidance about time gaps between deadlines."""
+        # Try to extract deadline info from context
+        deadline_examples = ""
+        if "february" in context.lower() or "march" in context.lower():
+            deadline_examples = """
+### Example Timeline from Your Search
+
+Based on the calls you've explored, here's how the timing typically works for Horizon Europe Cluster 4/Digital calls:
+
+| Deadline Window | Typical Call Types | Spacing |
+|-----------------|-------------------|---------|
+| **Mid-February** | First 2026 cut-offs | Baseline |
+| **Late February** | Second wave | 7-10 days later |
+| **March** | Extended/specialized topics | 2-4 weeks later |
+| **April-May** | Missions & partnerships | 6-10 weeks later |
+"""
+
+        return f"""Understanding the time gaps between deadlines helps you plan your proposal strategy and allocate resources effectively.
+
+### Typical Deadline Spacing Patterns
+
+| Programme | Typical Gap Between Related Calls | Strategic Implication |
+|-----------|----------------------------------|----------------------|
+| **Horizon Europe (same cluster)** | 1-4 weeks | Can reuse content, adjust focus |
+| **Horizon Europe (different clusters)** | Variable (1-8 weeks) | Need different consortia |
+| **Erasmus+ (same Key Action)** | Annual (February/October) | Plan long-term |
+| **Creative Europe** | Variable (call-specific) | Check each strand separately |
+{deadline_examples}
+### Strategic Implications of Deadline Gaps
+
+| Gap Duration | What It Means | Your Strategy |
+|--------------|---------------|---------------|
+| **< 7 days** | Same submission window | Choose ONE, submit best proposal |
+| **7-14 days** | Sequential opportunity | Submit first, use feedback for second if quick |
+| **2-4 weeks** | Related cut-offs | Can refine between submissions |
+| **> 4 weeks** | Separate preparation cycles | Can pursue both with distinct proposals |
+
+### When Deadlines Are Close Together
+
+If you have multiple deadlines within 1-2 weeks:
+
+1. **Assess consortium fit**: Which call best matches your existing partners?
+2. **Evaluate topic alignment**: Which call directly addresses your research?
+3. **Check budget ranges**: Which budget matches your consortium capacity?
+4. **Consider competition**: Broader topics may have more competitors
+
+### When Deadlines Are Spread Apart
+
+If you have 4+ weeks between opportunities:
+
+1. **Submit to first deadline**, then assess
+2. **Adapt proposal** for second deadline if rejected
+3. **Split consortium** if expertise allows parallel submissions
+4. **Use first feedback** to strengthen second submission
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Map your deadlines**: Create a timeline with all relevant calls and their exact dates
+2. **Assess overlap**: Identify which deadlines you can realistically pursue together
+3. **Allocate resources**: Budget your team's time based on the gaps
+4. **Set milestones**: Work backwards from each deadline to plan drafting phases
+5. **Check the [Funding Portal](https://ec.europa.eu/info/funding-tenders/)** for exact dates and any updates
+
+📊 **Decision Rule**: If two deadlines are within 10 days, focus 100% on the better-fit call. If they're 3+ weeks apart, you can pursue both with careful planning.
+
+⚠️ **Important**: Quality beats quantity. One excellent proposal is worth more than two rushed ones. If gaps are tight, prioritize depth over breadth."""
+
+    def _generate_deadline_targeting_guidance(self, context: str) -> str:
+        """Generate guidance on which deadline to target."""
+        # Extract any cluster/topic hints from context
+        cluster_context = ""
+        if (
+            "cluster 4" in context.lower()
+            or "cl4" in context.lower()
+            or "digital" in context.lower()
+        ):
+            cluster_context = """
+### Cluster 4 (Digital) Specific Considerations
+
+For Digital/Industry/Space calls, consider:
+- **TRL requirements**: Digital calls often expect higher TRL (5-7)
+- **SME involvement**: Many calls require SME participation
+- **Cross-cutting themes**: AI, cybersecurity, data topics overlap
+- **Dual-use restrictions**: Some topics have security considerations
+"""
+
+        return f"""Choosing the right deadline to target is a strategic decision. Here's a framework to help you decide:
+
+### Deadline Selection Framework
+
+| Factor | Weight | Score 1-5 | Your Assessment |
+|--------|--------|-----------|-----------------|
+| **Topic Alignment** | 30% | _____ | How well does the call match your core expertise? |
+| **Consortium Readiness** | 25% | _____ | Do you have confirmed, committed partners? |
+| **Time to Deadline** | 20% | _____ | Is there enough time for quality preparation? |
+| **Budget Match** | 15% | _____ | Does your consortium capacity fit the budget range? |
+| **Competition Level** | 10% | _____ | Is this a niche topic or highly competitive? |
+{cluster_context}
+### Decision Matrix
+
+| Total Score | Recommendation | Action |
+|-------------|---------------|--------|
+| **4.0 - 5.0** | Strong candidate | Prioritize this deadline |
+| **3.0 - 3.9** | Good potential | Pursue if resources allow |
+| **2.0 - 2.9** | Risky | Consider if no better options |
+| **< 2.0** | Not recommended | Skip or plan for next cycle |
+
+### Quick Decision Questions
+
+Answer these to identify your best target:
+
+1. **Which call do your partners prefer?** (Their commitment matters)
+2. **Which topic have you worked on before?** (Reuse saves time)
+3. **Which deadline gives you the most preparation time?** (Quality needs time)
+4. **Which budget best fits your consortium's real costs?** (Realistic budgets win)
+
+### If You're Torn Between Two Calls
+
+| Scenario | Recommendation |
+|----------|---------------|
+| **One earlier, one later** | Submit to earlier if ready; use feedback for later |
+| **Both similar deadlines** | Choose the one with stronger partner commitment |
+| **Different budget ranges** | Choose the one matching your consortium's natural size |
+| **Different TRL requirements** | Choose the one matching your current technology maturity |
+
+### Red Flags - When NOT to Target a Deadline
+
+❌ **Insufficient time**: Less than 4 weeks for a new consortium
+❌ **Missing key partner**: Don't have a critical expertise covered
+❌ **Topic mismatch**: Need to "stretch" your research to fit
+❌ **Budget mismatch**: Your real costs differ >30% from the range
+❌ **TRL gap**: Your technology isn't at the required level
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Score each call** using the framework above (takes 15 minutes)
+2. **Consult your consortium**: Which call do partners prefer?
+3. **Check topic descriptions**: Read the full call text for requirements
+4. **Make your decision**: Choose ONE primary target
+5. **Set your backup**: Identify a secondary option if first doesn't work out
+6. **Start TODAY**: Begin the proposal process immediately
+
+📋 **Action Items This Week**:
+- [ ] Score all candidate calls (1-2 hours)
+- [ ] Email consortium for topic preferences (send today)
+- [ ] Read full call documentation for top choice
+- [ ] Draft 1-page concept note for selected call
+- [ ] Contact [NCP](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for topic guidance
+
+⚠️ **Important**: Making a decision and committing fully is better than hedging. Once you choose, focus 100% on that call. You can always target different calls in future rounds."""
 
     def _deduplicate_content(self, contents: list) -> list:
         """Remove duplicate or very similar content."""
