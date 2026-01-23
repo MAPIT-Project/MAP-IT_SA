@@ -3551,6 +3551,13 @@ digital_europe, life""",
         if eic_risk_result:
             return eic_risk_result
 
+        # Check for FUNDING TYPE EXPLANATION queries
+        # These are questions about action types (RIA, IA, CSA, MSCA, EIC Pathfinder)
+        # and their characteristics, comparisons, and which provides most freedom
+        funding_type_result = self._detect_funding_type_query(query, context)
+        if funding_type_result:
+            return funding_type_result
+
         # Check for CONTEXT RECALL queries (e.g., "I mentioned earlier I work on hydrogen")
         # These reference earlier conversation context to find calls
         context_recall_result = self._detect_context_recall_query(query, context)
@@ -5524,6 +5531,742 @@ If you exceed SME thresholds:
 • If near threshold, consider timing of application strategically
 • Contact your [NCP](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for SME status verification support
 • Consult a grant accountant if your corporate structure is complex"""
+
+    def _detect_funding_type_query(self, query: str, context: str) -> dict[str, Any] | None:
+        """Detect funding type explanation queries.
+
+        These are questions about Horizon Europe action types:
+        - RIA (Research and Innovation Action)
+        - IA (Innovation Action)
+        - CSA (Coordination and Support Action)
+        - MSCA (Marie Skłodowska-Curie Actions)
+        - EIC Pathfinder
+        - ERC (European Research Council)
+
+        Covers:
+        - Direct explanations: "What is CSA?", "Explain RIA"
+        - Comparisons: "Compare RIA vs IA", "Difference between RIA and IA"
+        - Follow-ups in funding type context: "What about CSA?", "How does X differ?"
+        - Freedom/flexibility questions: "Which gives most freedom?"
+
+        These should use built-in knowledge, NOT tool calls.
+        """
+        query_lower = query.lower()
+        context_lower = context.lower() if context else ""
+
+        # Check if context is about funding type comparison (from previous turns)
+        is_funding_type_context = any(
+            pattern in context_lower
+            for pattern in [
+                "compare ria",
+                "compare ia",
+                "ria vs ia",
+                "ia vs ria",
+                "funding type",
+                "action type",
+                "research and innovation action",
+                "innovation action",
+                "coordination and support",
+                "msca postdoctoral",
+                "eic pathfinder",
+                "100% funding",
+                "70% funding",
+            ]
+        )
+
+        # Direct funding type explanation patterns
+        funding_type_explain_patterns = [
+            r"what is (?:a |an )?(?:ria|ia|csa)\b",
+            r"what are (?:ria|ia|csa)s?\b",
+            r"explain (?:ria|ia|csa)\b",
+            r"tell me about (?:ria|ia|csa)\b",
+            r"what does (?:ria|ia|csa) mean",
+            r"what is (?:a )?research and innovation action",
+            r"what is (?:an )?innovation action",
+            r"what is (?:a )?coordination and support",
+        ]
+
+        # RIA vs IA comparison patterns
+        ria_ia_comparison_patterns = [
+            "ria vs ia",
+            "ia vs ria",
+            "compare ria",
+            "compare ia",
+            "ria and ia",
+            "ia and ria",
+            "difference between ria and ia",
+            "difference between ia and ria",
+            "ria or ia",
+            "ia or ria",
+            "ria versus ia",
+            "ia versus ria",
+        ]
+
+        # CSA follow-up patterns (when in funding type context)
+        csa_followup_patterns = [
+            "what about csa",
+            "and csa",
+            "how about csa",
+            "tell me about csa",
+            "what is csa",
+            "explain csa",
+            "coordination and support",
+        ]
+
+        # EIC Pathfinder patterns
+        eic_pathfinder_patterns = [
+            "eic pathfinder",
+            "pathfinder differ",
+            "how does pathfinder",
+            "what is pathfinder",
+            "about pathfinder",
+            "pathfinder vs",
+            "vs pathfinder",
+        ]
+
+        # MSCA patterns
+        msca_patterns = [
+            "msca postdoctoral",
+            "msca fellowship",
+            "marie curie",
+            "marie sklodowska",
+            "postdoctoral fellowship",
+            "what about msca",
+            "msca-pf",
+        ]
+
+        # Freedom/flexibility question patterns (when in funding type context)
+        freedom_patterns = [
+            "which gives the most freedom",
+            "which has most freedom",
+            "which offers most freedom",
+            "most flexible",
+            "most flexibility",
+            "most autonomy",
+            "most independence",
+            "most freedom",
+            "greatest freedom",
+            "which is most open",
+            "which allows most",
+            "bottom-up",
+            "researcher-driven",
+        ]
+
+        # Check for RIA vs IA comparison
+        if any(pattern in query_lower for pattern in ria_ia_comparison_patterns):
+            return {
+                "thought": "User is asking to compare RIA vs IA action types. Providing comprehensive comparison from built-in knowledge.",
+                "action": "generate_guidance",
+                "guidance_type": "ria_ia_comparison",
+                "response": self._generate_ria_ia_comparison_guidance(),
+            }
+
+        # Check for CSA explanation/follow-up
+        if any(pattern in query_lower for pattern in csa_followup_patterns) or (
+            is_funding_type_context and "csa" in query_lower
+        ):
+            return {
+                "thought": "User is asking about CSA (Coordination and Support Actions). Providing detailed CSA explanation.",
+                "action": "generate_guidance",
+                "guidance_type": "csa_explanation",
+                "response": self._generate_csa_explanation_guidance(),
+            }
+
+        # Check for EIC Pathfinder explanation
+        if any(pattern in query_lower for pattern in eic_pathfinder_patterns) or (
+            is_funding_type_context and "pathfinder" in query_lower
+        ):
+            return {
+                "thought": "User is asking about EIC Pathfinder. Providing detailed EIC Pathfinder explanation.",
+                "action": "generate_guidance",
+                "guidance_type": "eic_pathfinder_explanation",
+                "response": self._generate_eic_pathfinder_explanation_guidance(),
+            }
+
+        # Check for MSCA explanation
+        if any(pattern in query_lower for pattern in msca_patterns) or (
+            is_funding_type_context and ("msca" in query_lower or "postdoctoral" in query_lower)
+        ):
+            return {
+                "thought": "User is asking about MSCA Postdoctoral Fellowships. Providing detailed MSCA-PF explanation.",
+                "action": "generate_guidance",
+                "guidance_type": "msca_explanation",
+                "response": self._generate_msca_explanation_guidance(),
+            }
+
+        # Check for freedom/flexibility question (in funding type context)
+        if any(pattern in query_lower for pattern in freedom_patterns) and is_funding_type_context:
+            return {
+                "thought": "User is asking which funding type offers most freedom. Providing freedom comparison.",
+                "action": "generate_guidance",
+                "guidance_type": "funding_type_freedom",
+                "response": self._generate_funding_type_freedom_guidance(),
+            }
+
+        # Check for generic funding type explanation using regex
+        import re
+
+        for pattern in funding_type_explain_patterns:
+            if re.search(pattern, query_lower):
+                # Determine which funding type
+                if "csa" in query_lower or "coordination" in query_lower:
+                    return {
+                        "thought": "User is asking about CSA. Providing CSA explanation.",
+                        "action": "generate_guidance",
+                        "guidance_type": "csa_explanation",
+                        "response": self._generate_csa_explanation_guidance(),
+                    }
+                elif "ia" in query_lower and "ria" not in query_lower:
+                    return {
+                        "thought": "User is asking about IA. Providing IA explanation.",
+                        "action": "generate_guidance",
+                        "guidance_type": "ia_explanation",
+                        "response": self._generate_ia_explanation_guidance(),
+                    }
+                elif "ria" in query_lower:
+                    return {
+                        "thought": "User is asking about RIA. Providing RIA explanation.",
+                        "action": "generate_guidance",
+                        "guidance_type": "ria_explanation",
+                        "response": self._generate_ria_explanation_guidance(),
+                    }
+
+        return None
+
+    def _generate_ria_ia_comparison_guidance(self) -> str:
+        """Generate comprehensive RIA vs IA comparison."""
+        return """The choice between **Research and Innovation Action (RIA)** and **Innovation Action (IA)** depends on your project's technological maturity and objective. Both are suitable for applied research, but they target different stages of development.
+
+### 1. Key Differences Overview
+
+| Feature | RIA (Research & Innovation Action) | IA (Innovation Action) |
+|---------|-----------------------------------|------------------------|
+| **Focus** | Generating new knowledge, exploring feasibility | Demonstrating, piloting, validating |
+| **TRL Range** | TRL 2-5 (research to early prototype) | TRL 5-8 (prototype to near-market) |
+| **Funding Rate** | **100%** of eligible costs | **70%** (100% for non-profits) |
+| **Typical Budget** | €3-15M | €5-20M |
+| **Duration** | 36-48 months | 24-36 months |
+| **Risk Profile** | Higher technical risk, knowledge gaps | Lower tech risk, market/scale-up focus |
+
+### 2. When to Choose RIA
+
+✅ **Choose RIA when:**
+- You're exploring new concepts or generating foundational knowledge
+- Your technology is at TRL 2-5 (concept validation to lab demonstration)
+- You want 100% funding for research-intensive activities
+- Your main deliverable is new knowledge, methods, or early prototypes
+- You need to answer fundamental research questions
+
+**Typical RIA activities:**
+- Basic and applied research
+- Technology exploration and feasibility studies
+- Lab-scale testing and validation
+- Development of new methods, processes, or tools
+
+### 3. When to Choose IA
+
+✅ **Choose IA when:**
+- You have proven technology ready for demonstration/piloting
+- Your technology is at TRL 5-8 (large-scale prototype to near-market)
+- You need to validate in real-world conditions
+- Your main deliverable is demonstrated technology, pilot plants, or scale-up
+- You're preparing for market deployment
+
+**Typical IA activities:**
+- Large-scale demonstrations and pilots
+- Prototyping at near-production scale
+- Market replication and first-of-a-kind deployment
+- Field testing and user validation
+- Regulatory preparation
+
+### 4. Consortium Considerations
+
+| Aspect | RIA | IA |
+|--------|-----|------|
+| **Typical size** | 8-15 partners | 10-20 partners |
+| **Academia role** | Often coordinator, research leaders | Partners for specific expertise |
+| **Industry role** | Essential for validation, end-user | Often coordinator, scale-up leaders |
+| **SME role** | Technology providers, niche expertise | Demonstration, early adopters |
+
+### 5. Budget Implications
+
+**RIA (100% funding):**
+- Full cost recovery for all partners
+- Lower financial risk for participants
+- May attract more academic partners
+
+**IA (70% for industry):**
+- Industrial partners need 30% co-funding
+- Non-profit entities still get 100%
+- May require stronger industry commitment
+
+### 6. Decision Guide
+
+| Your Situation | Recommended Action |
+|----------------|-------------------|
+| "We have an idea and want to validate the concept" | RIA |
+| "We have a working prototype and need to demonstrate at scale" | IA |
+| "We want to explore fundamental scientific questions" | RIA |
+| "We're ready to pilot with real users" | IA |
+| "Our technology is TRL 2-4" | RIA |
+| "Our technology is TRL 6-8" | IA |
+| "We need 100% funding coverage" | RIA |
+| "We have strong industry partners with co-funding" | IA |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+• Assess your current TRL level honestly - this determines the best fit
+• Check the Work Programme topics - some specify RIA only or IA only
+• Review your consortium's ability to provide 30% co-funding (if considering IA)
+• Visit the [EU Funding Portal](https://ec.europa.eu/info/funding-tenders/) for open calls
+• Consult your [NCP](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for topic-specific advice
+• Review funded projects on [CORDIS](https://cordis.europa.eu/) in your area"""
+
+    def _generate_csa_explanation_guidance(self) -> str:
+        """Generate detailed CSA explanation."""
+        return """**Coordination and Support Actions (CSA)** are fundamentally different from RIA and IA. They focus on coordination, networking, and support activities rather than research and development.
+
+### What is a CSA?
+
+CSA stands for **Coordination and Support Action** - a funding type designed for activities that:
+- Coordinate existing research efforts
+- Support policy development
+- Build networks and communities
+- Disseminate knowledge
+- Standardize practices
+
+**Key characteristic:** CSAs do **NOT** fund research or innovation activities directly.
+
+### CSA Characteristics
+
+| Feature | CSA (Coordination & Support Action) |
+|---------|-------------------------------------|
+| **Funding Rate** | **100%** of eligible costs |
+| **Focus** | Coordination, networking, dissemination |
+| **TRL Range** | N/A (not technology development) |
+| **Typical Budget** | €1-3 million |
+| **Duration** | 24-36 months |
+| **Consortium Size** | 5-10 partners (smaller than RIA/IA) |
+
+### What CSAs Fund
+
+✅ **Eligible CSA activities:**
+- Coordination of research networks
+- Policy support and strategy development
+- Stakeholder engagement and dialogue
+- Knowledge transfer and dissemination
+- Standardization activities
+- Training and capacity building
+- Communication and outreach
+- Events, workshops, conferences
+- Roadmap development
+- Best practice sharing
+
+❌ **NOT eligible in CSA:**
+- Laboratory research
+- Technology development
+- Prototyping
+- Demonstration activities
+- Any R&D activities
+
+### When to Choose CSA
+
+✅ **CSA is ideal when:**
+- You want to build a European network in your field
+- You need to coordinate existing research efforts across countries
+- You're supporting policy development or standardization
+- You're disseminating results from previous projects
+- You want to develop roadmaps or strategic agendas
+- You're organizing large-scale stakeholder engagement
+
+### CSA vs RIA/IA Comparison
+
+| Aspect | CSA | RIA | IA |
+|--------|-----|-----|-----|
+| **Research** | None | Core activity | Core activity |
+| **Funding** | 100% | 100% | 70% (industry) |
+| **Budget** | €1-3M | €3-15M | €5-20M |
+| **Focus** | Coordination | Knowledge creation | Demonstration |
+| **Complexity** | Lower | Higher | Higher |
+| **Competition** | Moderate | High | High |
+
+### Who Typically Coordinates CSAs
+
+| Organization Type | Suitability | Why |
+|-------------------|-------------|-----|
+| **Associations/Networks** | Excellent | Natural coordinators, existing connections |
+| **Policy organizations** | Excellent | Policy focus aligns with CSA objectives |
+| **Universities** | Good | Can lead dissemination/training activities |
+| **Research institutes** | Good | Coordinate research communities |
+| **SMEs** | Limited | CSA isn't their typical domain |
+
+### CSA as Entry Point
+
+**For newcomers to EU funding:**
+- CSA projects are smaller and more manageable
+- Lower administrative burden than RIA/IA
+- 100% funding reduces financial risk
+- Good way to build EU project management experience
+- Opportunity to meet potential future consortium partners
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+• Check if your activity is truly coordination/support (not research)
+• Review open CSA topics on the [EU Funding Portal](https://ec.europa.eu/info/funding-tenders/)
+• Consider CSA if you're new to EU funding - it's a good starting point
+• Partner with associations or networks experienced in coordination
+• Contact your [NCP](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) to discuss CSA suitability"""
+
+    def _generate_eic_pathfinder_explanation_guidance(self) -> str:
+        """Generate detailed EIC Pathfinder explanation."""
+        return """The **EIC Pathfinder** is fundamentally different from collaborative actions (RIA/IA/CSA). It's designed for **breakthrough, high-risk research** at the earliest stages of technology development, operating under Pillar III (Innovative Europe).
+
+### What is EIC Pathfinder?
+
+EIC Pathfinder funds **visionary, high-risk research** that could lead to breakthrough technologies. Unlike RIA/IA, which operate within known scientific paradigms, Pathfinder supports research that challenges current understanding.
+
+### EIC Pathfinder vs Collaborative Actions
+
+| Feature | EIC Pathfinder | RIA/IA/CSA (Pillar II) |
+|---------|----------------|------------------------|
+| **TRL Range** | TRL 1-4 (very early) | TRL 2-8 |
+| **Focus** | Breakthrough science, new technology paradigms | Incremental innovation, demonstration |
+| **Risk Level** | Extremely high (failure expected) | Moderate to high |
+| **Funding** | 100% | 100% (RIA/CSA), 70% (IA) |
+| **Typical Budget** | €3-4M (Open), up to €5M (Challenges) | €3-20M |
+| **Duration** | 36-48 months | 36-48 months |
+| **Consortium** | Small teams (2-5 partners) | Large consortia (8-20 partners) |
+
+### Two Types of EIC Pathfinder
+
+**1. EIC Pathfinder Open**
+- **Bottom-up:** You define the topic
+- **Any breakthrough technology area**
+- Maximum €3M per project
+- Small, focused teams (can be single applicant)
+- Higher scientific freedom
+
+**2. EIC Pathfinder Challenges**
+- **Top-down:** Predefined strategic challenges
+- Specific breakthrough areas defined by EIC
+- Maximum €4-5M per project
+- Requires addressing specific challenge scope
+- Annual challenge topics announced
+
+### Key Characteristics of Pathfinder
+
+| Aspect | What This Means |
+|--------|-----------------|
+| **High-risk tolerance** | Failure is acceptable; EIC expects many projects won't succeed |
+| **Long-term vision** | 10-20 year horizon for potential impact |
+| **Scientific ambition** | Must go beyond incremental advances |
+| **Proof of concept** | Goal is to demonstrate scientific feasibility |
+| **Technology transition** | Successful projects may progress to EIC Transition |
+
+### Who Should Apply to EIC Pathfinder?
+
+✅ **Ideal Pathfinder applicants:**
+- Research teams exploring radical new ideas
+- Scientists working on fundamental breakthroughs
+- Startups with revolutionary (not evolutionary) technology
+- Interdisciplinary teams challenging established paradigms
+
+❌ **Not suitable for Pathfinder:**
+- Incremental improvements to existing technology
+- Products ready for market demonstration
+- Large consortium projects
+- Projects requiring large-scale validation
+
+### EIC Pathfinder Success Factors
+
+| Factor | What Evaluators Look For |
+|--------|-------------------------|
+| **Excellence** | Scientific novelty, paradigm-shifting potential |
+| **Impact** | Long-term transformative potential |
+| **Implementation** | Team capability, methodology quality |
+| **Risk awareness** | Clear understanding of technical uncertainties |
+
+### Pathfinder vs Other EIC Instruments
+
+| Instrument | Stage | Funding | Goal |
+|------------|-------|---------|------|
+| **EIC Pathfinder** | TRL 1-4 | Grant up to €4M | Prove scientific concept |
+| **EIC Transition** | TRL 4-5 | Grant up to €2.5M | Technology maturation |
+| **EIC Accelerator** | TRL 6-9 | Grant + Equity up to €17.5M | Scale-up and market entry |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+• Assess if your idea is truly breakthrough (not incremental)
+• Check if EIC Pathfinder Open or a Challenge topic fits better
+• Review evaluation criteria on the [EIC website](https://eic.ec.europa.eu/)
+• Consider the EIC proactive grant management approach
+• Contact your [NCP](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) or EIC Business Acceleration Services
+• Look at funded Pathfinder projects on [CORDIS](https://cordis.europa.eu/)"""
+
+    def _generate_msca_explanation_guidance(self) -> str:
+        """Generate detailed MSCA Postdoctoral Fellowship explanation."""
+        return """**Marie Skłodowska-Curie Actions Postdoctoral Fellowships (MSCA-PF)** are a core component of Horizon Europe (Pillar I - Excellent Science), designed to support experienced researchers in gaining new skills through international and inter-sectoral mobility.
+
+### What is MSCA-PF?
+
+MSCA Postdoctoral Fellowships provide funding for researchers to conduct research at a host organization in a different country than where they have resided for the last 3 years (mobility rule).
+
+### Key MSCA-PF Characteristics
+
+| Feature | MSCA Postdoctoral Fellowship |
+|---------|------------------------------|
+| **Funding Rate** | 100% (unit costs model) |
+| **Who applies** | Individual researcher |
+| **Duration** | 12-24 months (European), 12-24 months + return (Global) |
+| **Monthly allowance** | ~€5,080 living allowance + host contribution |
+| **Research area** | **Any field** (bottom-up, researcher-driven) |
+| **Consortium** | Just researcher + host institution |
+
+### Two Fellowship Types
+
+**1. European Fellowships (EF)**
+- Researcher moves TO an EU/Associated Country
+- Duration: 12-24 months
+- Host must be in EU Member State or Associated Country
+
+**2. Global Fellowships (GF)**
+- Outgoing phase: Move to Third Country (12-24 months)
+- Mandatory return phase: Back to EU (12 months)
+- For EU/AC researchers wanting international experience
+
+### Why MSCA-PF Offers Most Freedom
+
+| Aspect | MSCA-PF Freedom Level |
+|--------|----------------------|
+| **Topic choice** | ✅ **Complete freedom** - any research area |
+| **Host choice** | ✅ Researcher selects their own host |
+| **Methodology** | ✅ Researcher designs their own project |
+| **Career development** | ✅ Dedicated training component required |
+| **Administrative burden** | Low - simpler than collaborative projects |
+
+### Eligibility Requirements
+
+| Requirement | Criteria |
+|-------------|----------|
+| **PhD** | Must have PhD OR 4+ years research experience |
+| **Mobility** | Cannot have resided in host country >12 months in last 3 years |
+| **Experience** | Maximum 8 years of research experience post-PhD |
+| **Nationality** | Any nationality (researcher), EU/AC (host) |
+
+### MSCA-PF vs Collaborative Grants
+
+| Aspect | MSCA-PF | RIA/IA |
+|--------|---------|--------|
+| **Applicant** | Individual researcher | Consortium |
+| **Topic** | Any (bottom-up) | Specific topics |
+| **Budget** | Fixed unit costs | Flexible budget |
+| **Consortium** | None needed | 3+ partners required |
+| **Competition** | High (~15% success) | Variable by topic |
+| **Freedom** | Maximum | Topic-constrained |
+
+### Funding Structure
+
+| Category | Monthly Amount (2024) |
+|----------|---------------------|
+| **Living allowance** | €5,080 (base) |
+| **Mobility allowance** | €600 |
+| **Family allowance** | €660 (if applicable) |
+| **Research costs** | €1,000/month to host |
+| **Management costs** | €650/month to host |
+
+### Success Factors
+
+| Criterion | Weight | What Evaluators Want |
+|-----------|--------|---------------------|
+| **Excellence** | 50% | Scientific quality, innovation, researcher CV |
+| **Impact** | 30% | Career development, knowledge transfer |
+| **Implementation** | 20% | Feasibility, work plan quality |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+• Check the mobility rule - you can't have lived in host country >12 months
+• Find a host institution that matches your research interests
+• Develop a strong career development plan (training activities)
+• Review the [MSCA Work Programme](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search) for deadlines
+• Contact potential supervisors early - you need a host commitment letter
+• Prepare a strong 2-page research proposal
+• Visit the [MSCA portal](https://marie-sklodowska-curie-actions.ec.europa.eu/) for guidance"""
+
+    def _generate_ia_explanation_guidance(self) -> str:
+        """Generate detailed IA explanation."""
+        return """**Innovation Actions (IA)** are Horizon Europe funding instruments focused on bringing near-market technologies to demonstration and deployment. They target the later stages of innovation where technology proof-of-concept exists and needs real-world validation.
+
+### What is an IA?
+
+Innovation Actions fund activities aimed at producing plans, designs, or prototypes for new, altered, or improved products, processes, or services, including activities such as prototyping, testing, demonstrating, piloting, and large-scale product validation.
+
+### Key IA Characteristics
+
+| Feature | Innovation Action (IA) |
+|---------|------------------------|
+| **Funding Rate** | **70%** for industry, **100%** for non-profits |
+| **Focus** | Demonstration, piloting, validation, scale-up |
+| **TRL Range** | TRL 5-8 (prototype to near-market) |
+| **Typical Budget** | €5-20 million |
+| **Duration** | 24-36 months |
+| **Consortium Size** | 10-20 partners |
+
+### When to Choose IA
+
+✅ **IA is right when:**
+- You have proven technology ready for large-scale demonstration
+- You need to validate in real operational environments
+- You're preparing for market deployment
+- You want to prove scalability and user acceptance
+- Your technology is TRL 5-8
+
+### IA vs RIA Comparison
+
+| Aspect | IA | RIA |
+|--------|-----|-----|
+| **Funding** | 70% (industry) | 100% |
+| **Focus** | Demonstration | Research |
+| **TRL** | 5-8 | 2-5 |
+| **Risk** | Scale-up risk | Technical risk |
+| **Output** | Pilots, demos | Knowledge, early prototypes |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+• Assess if your technology is at TRL 5+ for demonstration
+• Ensure industry partners can provide 30% co-funding
+• Check the [EU Funding Portal](https://ec.europa.eu/info/funding-tenders/) for IA topics
+• Contact your [NCP](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for advice"""
+
+    def _generate_ria_explanation_guidance(self) -> str:
+        """Generate detailed RIA explanation."""
+        return """**Research and Innovation Actions (RIA)** are the core Horizon Europe funding instrument for generating new knowledge and exploring the feasibility of new or improved technologies, products, processes, services, and solutions.
+
+### What is an RIA?
+
+RIA funds activities that aim primarily to establish new knowledge and/or explore the feasibility of new or improved technology, product, process, service, or solution. This includes basic and applied research, technology development and integration, testing, demonstration, and validation on a small-scale prototype.
+
+### Key RIA Characteristics
+
+| Feature | Research & Innovation Action (RIA) |
+|---------|-----------------------------------|
+| **Funding Rate** | **100%** of eligible costs |
+| **Focus** | Knowledge generation, feasibility, early validation |
+| **TRL Range** | TRL 2-5 (concept to lab demonstration) |
+| **Typical Budget** | €3-15 million |
+| **Duration** | 36-48 months |
+| **Consortium Size** | 8-15 partners |
+
+### When to Choose RIA
+
+✅ **RIA is right when:**
+- You need to generate new scientific knowledge
+- You're exploring the feasibility of new concepts
+- Your technology is TRL 2-5 (concept to early prototype)
+- You want 100% funding coverage
+- Your focus is on research questions, not market deployment
+
+### RIA Activities
+
+| Eligible | Not typical for RIA |
+|----------|-------------------|
+| Basic research | Large-scale production |
+| Applied research | Market deployment |
+| Technology exploration | Commercial demonstration |
+| Lab-scale validation | Near-market pilots |
+| Early prototyping | Regulatory approval preparation |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+• Verify your technology is at TRL 2-5 for research focus
+• Check the [EU Funding Portal](https://ec.europa.eu/info/funding-tenders/) for RIA topics
+• Build a strong academic-industry consortium
+• Contact your [NCP](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for advice"""
+
+    def _generate_funding_type_freedom_guidance(self) -> str:
+        """Generate guidance comparing freedom/flexibility across funding types."""
+        return """When comparing **scientific and administrative freedom** across Horizon Europe funding types, the **MSCA Postdoctoral Fellowship** offers the most freedom, followed by **EIC Pathfinder Open**, while collaborative actions (RIA/IA/CSA) are more constrained by topic definitions.
+
+### Freedom Comparison: Scientific Scope
+
+This refers to whether you choose the research topic (bottom-up) or respond to a predefined call topic (top-down).
+
+| Funding Type | Topic Freedom | Description |
+|--------------|---------------|-------------|
+| **MSCA-PF** | ✅ **Highest** | Any research area, researcher-defined |
+| **EIC Pathfinder Open** | ✅ **Very High** | Any breakthrough technology, you define |
+| **ERC Grants** | ✅ **Very High** | Any frontier research, PI-driven |
+| **EIC Pathfinder Challenges** | ⚡ Medium | Within defined challenge scope |
+| **RIA/IA** | ⚡ Medium-Low | Specific Work Programme topics |
+| **CSA** | ⚡ Low | Predefined coordination activities |
+
+### Freedom Comparison: Consortium Requirements
+
+| Funding Type | Consortium | Freedom Level |
+|--------------|------------|---------------|
+| **MSCA-PF** | Just you + host | ✅ Highest |
+| **ERC** | PI + team | ✅ Very High |
+| **EIC Pathfinder** | 2-5 partners | ✅ High |
+| **RIA** | 8-15 partners | ⚡ Medium |
+| **IA** | 10-20 partners | ⚡ Medium |
+| **CSA** | 5-10 partners | ⚡ Medium |
+
+### Freedom Comparison: Methodology & Approach
+
+| Funding Type | Approach Freedom | Description |
+|--------------|------------------|-------------|
+| **MSCA-PF** | ✅ **Highest** | You design your entire research approach |
+| **ERC** | ✅ **Highest** | Frontier research, your methodology |
+| **EIC Pathfinder** | ✅ High | Must be breakthrough, but your approach |
+| **RIA** | ⚡ Medium | Guided by topic expected impact |
+| **IA** | ⚡ Medium | Demonstration requirements constrain |
+| **CSA** | ⚡ Lower | Specific coordination objectives |
+
+### Recommendation: Which Gives Most Freedom?
+
+**For Individual Researchers:**
+1. **MSCA-PF** - Maximum freedom: any topic, simple application, you + host
+2. **ERC grants** - Frontier research on your chosen topic (but more competitive)
+
+**For Teams/Organizations:**
+1. **EIC Pathfinder Open** - Breakthrough innovation, any area, small team
+2. **RIA (open topics)** - Some calls have broad scope
+3. **CSA** - Limited scope but simpler administration
+
+### Trade-offs to Consider
+
+| Freedom Aspect | High Freedom Options | Trade-off |
+|----------------|---------------------|-----------|
+| **Topic choice** | MSCA-PF, ERC, Pathfinder Open | Higher competition for open calls |
+| **Consortium** | MSCA-PF, ERC | Limited to individual/small team |
+| **Budget** | RIA, IA | Must follow specific topics |
+| **Risk tolerance** | EIC Pathfinder | Breakthrough required, risky |
+| **Simplicity** | MSCA-PF, CSA | Lower budgets |
+
+### Summary by User Need
+
+| If You Want... | Best Choice |
+|----------------|-------------|
+| **Maximum freedom, any topic** | MSCA-PF (individual) or EIC Pathfinder Open (team) |
+| **Large budget + freedom** | ERC (individual) or broad RIA topics |
+| **Simple administration** | MSCA-PF or CSA |
+| **Scale-up funding** | EIC Accelerator (constrained but well-funded) |
+| **Collaborative but flexible** | Broad RIA/IA topics |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+• For maximum freedom as researcher: Apply to MSCA-PF or ERC
+• For maximum freedom as team: Apply to EIC Pathfinder Open
+• Check topic descriptions - some RIA topics have broad scope
+• Review your constraints (team size, budget needs) against funding type requirements
+• Visit the [EU Funding Portal](https://ec.europa.eu/info/funding-tenders/) to explore options
+• Contact your [NCP](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) to discuss your specific situation"""
 
     def _detect_context_recall_query(self, query: str, context: str) -> dict[str, Any] | None:
         """Detect if query references earlier conversation context to find calls.

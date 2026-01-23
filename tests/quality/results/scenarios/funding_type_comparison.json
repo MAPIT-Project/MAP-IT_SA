@@ -1,0 +1,138 @@
+{
+  "scenario_name": "Funding Type Comparison",
+  "status": "PASS",
+  "average_quality_score": 83.8,
+  "average_factual_score": 100.0,
+  "turns": [
+    {
+      "query": "Compare RIA vs IA for applied research",
+      "response": "The choice between **Research and Innovation Action (RIA)** and **Innovation Action (IA)** depends on your project's technological maturity and objective. Both are suitable for applied research, but they target different stages of development.\n\n### 1. Key Differences Overview\n\n| Feature | RIA (Research & Innovation Action) | IA (Innovation Action) |\n|---------|-----------------------------------|------------------------|\n| **Focus** | Generating new knowledge, exploring feasibility | Demonstrati...",
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 1382.689,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
+      "passed": true
+    },
+    {
+      "query": "What about CSA?",
+      "response": "**Coordination and Support Actions (CSA)** are fundamentally different from RIA and IA. They focus on coordination, networking, and support activities rather than research and development.\n\n### What is a CSA?\n\nCSA stands for **Coordination and Support Action** - a funding type designed for activities that:\n- Coordinate existing research efforts\n- Support policy development\n- Build networks and communities\n- Disseminate knowledge\n- Standardize practices\n\n**Key characteristic:** CSAs do **NOT** fu...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 743.535,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": true
+    },
+    {
+      "query": "How does EIC Pathfinder differ?",
+      "response": "The **EIC Pathfinder** is fundamentally different from collaborative actions (RIA/IA/CSA). It's designed for **breakthrough, high-risk research** at the earliest stages of technology development, operating under Pillar III (Innovative Europe).\n\n### What is EIC Pathfinder?\n\nEIC Pathfinder funds **visionary, high-risk research** that could lead to breakthrough technologies. Unlike RIA/IA, which operate within known scientific paradigms, Pathfinder supports research that challenges current understa...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 827.244,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": true
+    },
+    {
+      "query": "What about MSCA Postdoctoral Fellowships?",
+      "response": "**Marie Sk\u0142odowska-Curie Actions Postdoctoral Fellowships (MSCA-PF)** are a core component of Horizon Europe (Pillar I - Excellent Science), designed to support experienced researchers in gaining new skills through international and inter-sectoral mobility.\n\n### What is MSCA-PF?\n\nMSCA Postdoctoral Fellowships provide funding for researchers to conduct research at a host organization in a different country than where they have resided for the last 3 years (mobility rule).\n\n### Key MSCA-PF Charact...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 812.576,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": true
+    },
+    {
+      "query": "Which gives the most freedom?",
+      "response": "When comparing **scientific and administrative freedom** across Horizon Europe funding types, the **MSCA Postdoctoral Fellowship** offers the most freedom, followed by **EIC Pathfinder Open**, while collaborative actions (RIA/IA/CSA) are more constrained by topic definitions.\n\n### Freedom Comparison: Scientific Scope\n\nThis refers to whether you choose the research topic (bottom-up) or respond to a predefined call topic (top-down).\n\n| Funding Type | Topic Freedom | Description |\n|--------------|-...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 803.123,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 4,
+      "passed": true
+    }
+  ],
+  "scores": {
+    "average_quality": 83.8,
+    "average_factual": 100.0,
+    "goal_progress": 0.64,
+    "context_fields": 2
+  },
+  "failures": [],
+  "metadata": {
+    "scenario_path": "tests/scenarios/advanced/funding_type_comparison.yaml",
+    "tags": [
+      "phase6",
+      "cross-programme",
+      "comparison",
+      "funding-types",
+      "ria",
+      "ia",
+      "csa",
+      "eic",
+      "msca"
+    ],
+    "description": "A 5-step funding type comparison workflow where a user compares different\nHorizon Europe funding mechanisms (RIA, IA, CSA, EIC Pathfinder, MSCA).\nTests the system's ability to accurately explain the differences between\nfunding types, including funding rates, TRL levels, consortium requirements,\nand flexibility. The conversation builds user context progressively and\nvalidates that comparisons are accurate and informative.\n",
+    "conversation_id": 711669655
+  },
+  "execution_time_ms": 102120.74900000001,
+  "timestamp": "2026-01-23T10:23:17.008352",
+  "passed": true,
+  "turn_count": 5,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
+}

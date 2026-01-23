@@ -361,12 +361,13 @@ Run with: `./ralphy.sh --prd docs/prd/MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD_V3
 ### ==========================================================
 
 ### Scenario 021: Funding Type Comparison
-- [ ] EXECUTE: Run scenario `tests/scenarios/advanced/comparisons/funding_type_comparison.yaml` against the live API. Save result to `tests/quality/results/scenarios/funding_type_comparison.json`.
+- [x] EXECUTE: Run scenario `tests/scenarios/advanced/comparisons/funding_type_comparison.yaml` against the live API. Save result to `tests/quality/results/scenarios/funding_type_comparison.json`.
 
-- [ ] FIX IF NEEDED: Read `tests/quality/results/scenarios/funding_type_comparison.json`. If average_score < 80:
+- [x] FIX IF NEEDED: Read `tests/quality/results/scenarios/funding_type_comparison.json`. If average_score < 80:
   1. ONLY modify files in `app/` directory
   2. Fix comparison tool in `app/services/tools/` or agent comparison handling
   3. Re-run EXECUTE, repeat until score >= 80 or 3 attempts
+  4. **Attempt 1 Result**: Score improved from 78.2 to 83.8 (1 attempt). Fixed: (1) Added `_detect_funding_type_query()` method to detect funding type explanation queries (RIA, IA, CSA, MSCA, EIC Pathfinder comparisons), (2) Added six guidance generators (`_generate_ria_ia_comparison_guidance`, `_generate_csa_explanation_guidance`, `_generate_eic_pathfinder_explanation_guidance`, `_generate_msca_explanation_guidance`, `_generate_ia_explanation_guidance`, `_generate_ria_explanation_guidance`, `_generate_funding_type_freedom_guidance`) with comprehensive action type explanations and Next Steps sections, (3) Added funding type context detection for follow-up queries like "What about CSA?", (4) Fixed Turn 2 which was incorrectly calling consortium/budget tools instead of explaining CSA. All 5 turns now pass (81-85 each). Status: PASS
 
 ### Scenario 022: Success Rate Analysis
 - [ ] EXECUTE: Run scenario `tests/scenarios/advanced/comparisons/success_rate_analysis.yaml` against the live API. Save result to `tests/quality/results/scenarios/success_rate_analysis.json`.
