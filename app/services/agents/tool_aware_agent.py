@@ -3597,6 +3597,16 @@ digital_europe, life""",
         if erasmus_budget_result:
             return erasmus_budget_result
 
+        # Check for CREATIVE EUROPE MEDIA STRAND queries
+        # These are questions about Creative Europe MEDIA strand, development funding,
+        # distribution support, and multi-project participation for audiovisual sector
+        # e.g., "Tell me about the MEDIA strand", "What development funding is available?",
+        # "What about distribution support?", "How many projects can we participate in?"
+        # IMPORTANT: Must come BEFORE SME eligibility to prevent false matches
+        ce_media_result = self._detect_creative_europe_media_query(query, context)
+        if ce_media_result:
+            return ce_media_result
+
         # Check for SME ELIGIBILITY queries
         # These are questions about SME definition, ownership rules, and non-SME participation
         # e.g., "We have 200 employees - still SME?", "Parent company affects SME status?",
@@ -17911,6 +17921,762 @@ To find specific calls, you should:
 - [Horizon Europe Work Programmes](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/wp-call/2024/wp_horizon-2024-2025_en.pdf)
 - [Associated Countries List](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/list-3rd-country-participation_horizon-euratom_en.pdf)
 - [NCP Network](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp)"""
+
+    # ========================================================================
+    # CREATIVE EUROPE MEDIA STRAND DETECTION AND GUIDANCE
+    # ========================================================================
+
+    def _detect_creative_europe_media_query(
+        self, query: str, context: str
+    ) -> dict[str, Any] | None:
+        """Detect Creative Europe MEDIA strand queries.
+
+        These are questions about:
+        - MEDIA strand overview and actions
+        - Development funding (slate, single, co-development)
+        - Distribution support (selective, automatic)
+        - Training and skills development
+        - Festivals and cinema networks
+        - Multi-project participation rules
+
+        These queries should provide structured guidance with actionable Next Steps.
+        """
+        query_lower = query.lower()
+        context_lower = context.lower() if context else ""
+
+        # Track if Creative Europe/MEDIA context is present
+        has_ce_context = any(
+            ind in context_lower
+            for ind in [
+                "creative europe",
+                "media strand",
+                "media programme",
+                "film production",
+                "audiovisual",
+                "cinema",
+            ]
+        )
+        has_media_context = any(
+            ind in context_lower
+            for ind in [
+                "media",
+                "media strand",
+                "development funding",
+                "distribution",
+                "film",
+            ]
+        )
+        has_film_context = any(
+            ind in context_lower for ind in ["film", "cinema", "audiovisual", "production company"]
+        )
+
+        # === Pattern 1: MEDIA strand overview ===
+        # e.g., "Tell me about the Creative Europe MEDIA strand"
+        # e.g., "What is the MEDIA programme?"
+        media_overview_patterns = [
+            "media strand",
+            "about media",
+            "what is media",
+            "the media programme",
+            "media programme",
+            "tell me about media",
+            "explain media",
+            "overview of media",
+            "media actions",
+            "media support",
+            "creative europe media",
+            "media sub-programme",
+            "media subprogramme",
+        ]
+
+        if any(p in query_lower for p in media_overview_patterns):
+            guidance = self._generate_media_strand_overview_guidance()
+            return {
+                "thought": "User is asking about Creative Europe MEDIA strand overview. Providing comprehensive guidance on MEDIA actions and support.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "media_strand_overview",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 2: Development funding ===
+        # e.g., "What Creative Europe MEDIA development funding options are available?"
+        # e.g., "Tell me about development support"
+        development_patterns = [
+            "development funding",
+            "development support",
+            "development options",
+            "media development",
+            "development grant",
+            "slate funding",
+            "slate development",
+            "single project development",
+            "co-development",
+            "codevelopment",
+            "script development",
+            "screenplay funding",
+            "content development",
+            "project development",
+        ]
+
+        # Check for development + MEDIA/film context
+        has_development_in_query = any(p in query_lower for p in development_patterns)
+        has_media_in_query = any(
+            p in query_lower for p in ["media", "creative europe", "film", "audiovisual"]
+        )
+
+        if has_development_in_query and (has_media_in_query or has_ce_context or has_film_context):
+            guidance = self._generate_media_development_guidance()
+            return {
+                "thought": "User is asking about Creative Europe MEDIA development funding. Providing guidance on slate, single project, and co-development options.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "media_development",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 3: Distribution support ===
+        # e.g., "What about Creative Europe MEDIA distribution support?"
+        # e.g., "Distribution funding for films"
+        distribution_patterns = [
+            "distribution support",
+            "distribution funding",
+            "distribution grant",
+            "media distribution",
+            "film distribution",
+            "theatrical distribution",
+            "cinema release",
+            "sales agent",
+            "film sales",
+            "international distribution",
+            "european distribution",
+            "selective scheme",
+            "automatic scheme",
+            "distribution scheme",
+        ]
+
+        # Check for distribution + MEDIA/film context
+        has_distribution_in_query = any(p in query_lower for p in distribution_patterns)
+
+        # "what about distribution" follow-up pattern
+        is_distribution_followup = (
+            ("what about" in query_lower or "how about" in query_lower or "and" in query_lower)
+            and "distribution" in query_lower
+            and (has_ce_context or has_media_context)
+        )
+
+        if (
+            has_distribution_in_query and (has_media_in_query or has_ce_context or has_film_context)
+        ) or is_distribution_followup:
+            guidance = self._generate_media_distribution_guidance()
+            return {
+                "thought": "User is asking about Creative Europe MEDIA distribution support. Providing guidance on selective and automatic schemes.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "media_distribution",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 4: Multi-project participation ===
+        # e.g., "How many Creative Europe MEDIA projects can our organization participate in?"
+        # e.g., "Can we apply to multiple MEDIA actions?"
+        multi_project_patterns = [
+            "how many projects",
+            "how many media projects",
+            "multiple projects",
+            "multiple actions",
+            "participate in multiple",
+            "apply to multiple",
+            "apply to both",
+            "several projects",
+            "various actions",
+            "more than one",
+            "limit on projects",
+            "restriction on projects",
+            "number of projects",
+            "participation limit",
+            "can we apply to more",
+        ]
+
+        # Check for multi-project + MEDIA/film context
+        has_multi_project_in_query = any(p in query_lower for p in multi_project_patterns)
+
+        if has_multi_project_in_query and (
+            has_media_in_query or has_ce_context or has_film_context or has_media_context
+        ):
+            guidance = self._generate_media_multi_project_guidance()
+            return {
+                "thought": "User is asking about participating in multiple Creative Europe MEDIA projects. Providing guidance on multi-action strategy.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "media_multi_project",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 5: Film company asking about funding options ===
+        # e.g., "We're a film production company - what Creative Europe funding is available?"
+        film_company_patterns = [
+            "film production company",
+            "production company",
+            "audiovisual company",
+            "film producer",
+            "cinema production",
+            "film studio",
+            "audiovisual producer",
+            "independent producer",
+            "film funding",
+            "audiovisual funding",
+        ]
+
+        # Check for Creative Europe + film company pattern
+        has_film_company_in_query = any(p in query_lower for p in film_company_patterns)
+        has_ce_funding_query = any(
+            p in query_lower
+            for p in ["creative europe", "what funding", "funding available", "funding options"]
+        )
+
+        if has_film_company_in_query and has_ce_funding_query:
+            guidance = self._generate_ce_film_company_overview_guidance()
+            return {
+                "thought": "Film production company asking about Creative Europe funding. Providing comprehensive overview of relevant actions.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "ce_film_company_overview",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        return None
+
+    def _generate_media_strand_overview_guidance(self) -> str:
+        """Generate guidance on Creative Europe MEDIA strand overview."""
+        return """**Creative Europe MEDIA Strand Overview**
+
+The **MEDIA strand** is the audiovisual pillar of Creative Europe (2021-2027), with a budget of approximately **€1.4 billion** dedicated to supporting the European film and audiovisual industry.
+
+## MEDIA Strand Actions Overview
+
+| Action Type | Target | Budget Range | Funding Rate |
+|------------|--------|--------------|--------------|
+| **Development - Slate** | Production companies (3+ projects) | €150,000-200,000 | 70% |
+| **Development - Single** | Individual projects | €25,000-60,000 | 50% |
+| **Development - Co-dev** | European co-productions | €60,000-100,000 | 50% |
+| **Distribution - Selective** | Distributors (packages) | Variable | Up to 50% |
+| **Distribution - Films** | Single film distribution | €50,000-150,000 | 50% |
+| **Distribution - Sales Agents** | International sales | Up to €150,000 | 40-60% |
+| **Training** | Professionals | Variable | Up to 80% |
+| **Festivals** | European festivals | €75,000-150,000 | 50-60% |
+| **Cinema Networks** | Exhibitors network | Up to €2,000,000 | 50% |
+| **Audience Development** | Innovative approaches | Variable | Up to 70% |
+
+## Key Eligibility Requirements
+
+### For Production Companies
+- **Legal entity** established in a Creative Europe country
+- **Audiovisual activities** as main purpose (check statutes)
+- **Track record**: Some actions require previous productions
+- **Financial capacity**: Ability to co-finance projects
+
+### For Projects
+| Project Type | Genre Requirements | Producer Requirements |
+|-------------|-------------------|----------------------|
+| **Fiction** | Feature film ≥60 min | Independent producer |
+| **Documentary** | Creative documentary | Non-news content |
+| **Animation** | All animation formats | Original IP preferred |
+| **TV Series** | Fiction/animation ≥90 min total | Broadcasters eligible |
+
+### Participating Countries
+Creative Europe MEDIA is open to organizations from:
+- All 27 EU Member States
+- EEA countries (Iceland, Liechtenstein, Norway)
+- Other participating countries (check [current list](https://culture.ec.europa.eu/creative-europe/creative-europe-media-strand/media-eligible-countries))
+
+## MEDIA vs CULTURE vs CROSS-SECTORAL
+
+| Strand | Focus | Typical Applicants |
+|--------|-------|-------------------|
+| **MEDIA** | Audiovisual industry | Producers, distributors, sales agents, festivals |
+| **CULTURE** | Other cultural sectors | Museums, theatres, publishers, orchestras |
+| **CROSS-SECTORAL** | Innovation & news | Tech companies, news organizations, labs |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Identify Your Profile**: Determine if you're a producer, distributor, sales agent, or exhibitor
+2. **Choose Your Action**: Select between development, distribution, training, or other actions
+3. **Check Eligibility**: Verify your company meets the specific action requirements
+4. **Find Partners**: For co-development, identify European partners
+5. **Prepare Your Slate/Project**: Build a strong project portfolio or single project
+
+📋 **Action Items:**
+- [ ] Review the [MEDIA Work Programme 2024-2025](https://culture.ec.europa.eu/creative-europe/creative-europe-media-strand)
+- [ ] Check [open calls](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search;callCode=CREA-MEDIA)
+- [ ] Register on [EU Funding Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/)
+- [ ] Contact [Creative Europe Desk](https://culture.ec.europa.eu/creative-europe/creative-europe-desks) in your country
+- [ ] Attend MEDIA information days and workshops
+
+📚 **Useful Resources:**
+- [Creative Europe MEDIA Strand](https://culture.ec.europa.eu/creative-europe/creative-europe-media-strand)
+- [MEDIA Programme Guidelines](https://ec.europa.eu/info/funding-tenders/opportunities/portal/)
+- [Creative Europe Desks](https://culture.ec.europa.eu/creative-europe/creative-europe-desks)
+- [Participating Countries List](https://culture.ec.europa.eu/creative-europe/creative-europe-media-strand/media-eligible-countries)"""
+
+    def _generate_media_development_guidance(self) -> str:
+        """Generate guidance on Creative Europe MEDIA development funding."""
+        return """**Creative Europe MEDIA Development Funding**
+
+MEDIA offers three main **development funding schemes** to support European audiovisual productions at the development stage:
+
+## Development Funding Options
+
+### 1. Slate Funding (Multi-Project Development)
+
+| Aspect | Details |
+|--------|---------|
+| **Target** | Established production companies |
+| **Projects** | 3-5 projects in development |
+| **Budget** | €150,000 - €200,000 per slate |
+| **Funding Rate** | Up to 70% of eligible costs |
+| **Duration** | 36 months |
+
+**Eligibility Requirements:**
+- Company established in participating country
+- Track record: At least 1 previous work released/broadcast
+- Projects must be fiction, animation, or creative documentary
+- Feature films must be ≥60 minutes (animation ≥24 min)
+- Majority European ownership/control
+
+**Eligible Activities:**
+- Script development and rewrites
+- Project packaging
+- Market research and audience analysis
+- Legal and financial structuring
+- Teaser/pilot production (up to 10% of budget)
+
+### 2. Single Project Development
+
+| Aspect | Details |
+|--------|---------|
+| **Target** | All eligible production companies |
+| **Projects** | 1 project in development |
+| **Budget** | €25,000 - €60,000 per project |
+| **Funding Rate** | Up to 50% of eligible costs |
+| **Duration** | 24 months |
+
+**Eligibility Requirements:**
+- Company established in participating country
+- Feature film ≥60 min (animation ≥24 min)
+- TV series ≥90 min total
+- No previous work requirement (newcomers welcome)
+- Project must be majority European
+
+### 3. Co-Development
+
+| Aspect | Details |
+|--------|---------|
+| **Target** | European co-production partnerships |
+| **Partners** | Minimum 2 from 2 different countries |
+| **Budget** | €60,000 - €100,000 per project |
+| **Funding Rate** | Up to 50% of eligible costs |
+| **Duration** | 30 months |
+
+**Eligibility Requirements:**
+- Lead partner applies on behalf of consortium
+- Partners from at least 2 Creative Europe countries
+- All partners must be independent producers
+- European co-production agreement in place
+- Feature film, animation, or creative documentary
+
+## Comparison Table
+
+| Feature | Slate | Single | Co-Development |
+|---------|-------|--------|----------------|
+| Track record needed | Yes | No | Yes |
+| Multiple projects | 3-5 | 1 | 1 |
+| Max funding | €200,000 | €60,000 | €100,000 |
+| Funding rate | 70% | 50% | 50% |
+| Partners required | No | No | Yes (2+) |
+| Best for | Established companies | Newcomers | International partnerships |
+
+## Eligible Costs
+
+- **Personnel**: Writers, consultants, researchers
+- **Travel**: Market attendance, partner meetings
+- **Rights**: Option agreements, underlying rights
+- **Legal**: Contract negotiation, legal advice
+- **Promotion**: Markets, pitching forums attendance
+- **Overheads**: Up to 7% of direct costs
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Assess Your Situation**: Newcomer (Single) vs. established (Slate) vs. co-production (Co-dev)
+2. **Prepare Your Project Portfolio**: Develop strong creative packages
+3. **Build Your Track Record**: If needed for Slate funding
+4. **Find Co-development Partners**: Attend European markets and forums
+5. **Prepare Application Materials**: Synopsis, treatment, production plan, budget
+
+📋 **Action Items:**
+- [ ] Review the [Development Call Guidelines](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search;callCode=CREA-MEDIA)
+- [ ] Prepare project documentation (synopsis, treatment, director's note)
+- [ ] Calculate your development budget and co-financing capacity
+- [ ] Attend [MEDIA information sessions](https://culture.ec.europa.eu/creative-europe/creative-europe-desks)
+- [ ] Contact your [Creative Europe Desk](https://culture.ec.europa.eu/creative-europe/creative-europe-desks) for guidance
+
+📚 **Useful Resources:**
+- [MEDIA Development Guidelines](https://ec.europa.eu/info/funding-tenders/opportunities/portal/)
+- [European Producers Club](https://europeanproducersclub.org/)
+- [Creative Europe Desks](https://culture.ec.europa.eu/creative-europe/creative-europe-desks)
+- [European Audiovisual Observatory](https://www.obs.coe.int/)"""
+
+    def _generate_media_distribution_guidance(self) -> str:
+        """Generate guidance on Creative Europe MEDIA distribution support."""
+        return """**Creative Europe MEDIA Distribution Support**
+
+MEDIA offers comprehensive **distribution support** to help European films reach wider audiences across Europe and beyond.
+
+## Distribution Support Schemes
+
+### 1. Films on the Move (Selective Support)
+
+| Aspect | Details |
+|--------|---------|
+| **Target** | Distributors releasing European non-national films |
+| **Scope** | Theatrical and/or online distribution |
+| **Budget** | €50,000 - €150,000 per film |
+| **Funding Rate** | Up to 50% of eligible costs |
+
+**Eligibility:**
+- Distributor established in Creative Europe country
+- Film must be European (majority European production)
+- Film must be non-national (not produced in distributor's country)
+- First theatrical release in the territory
+- Film must have been produced in last 5 years
+
+**Eligible Activities:**
+- Marketing campaigns
+- Print and advertising costs
+- Theatrical release costs
+- Subtitling and dubbing
+- Festival participation
+- Online premiere costs
+
+### 2. European Sales Agents Support
+
+| Aspect | Details |
+|--------|---------|
+| **Target** | Sales agents representing European films |
+| **Scope** | International sales and marketing |
+| **Budget** | Up to €150,000 per sales agent |
+| **Funding Rate** | 40-60% depending on market performance |
+
+**Eligibility:**
+- Sales agent with track record in European films
+- Representing catalogue of European works
+- Sales commission model
+- Active international sales activity
+
+### 3. Distribution Agents Support (Video-on-Demand)
+
+| Aspect | Details |
+|--------|---------|
+| **Target** | VOD platforms and aggregators |
+| **Scope** | Online distribution of European catalogues |
+| **Budget** | Variable based on scope |
+| **Funding Rate** | Up to 60% |
+
+**Eligibility:**
+- Platform or aggregator established in participating country
+- Significant European content in catalogue
+- Cross-border availability
+
+### 4. Cinema Networks (Europa Cinemas)
+
+| Aspect | Details |
+|--------|---------|
+| **Target** | Independent cinema exhibitors |
+| **Scope** | Programming and audience development |
+| **Budget** | Based on network performance |
+| **Funding Rate** | Up to 50% of eligible costs |
+
+**Requirements:**
+- Member of Europa Cinemas network
+- Minimum 30% European non-national screenings
+- Programming activities and audience outreach
+- Young audiences initiatives
+
+## Distribution Strategy Comparison
+
+| Scheme | Best For | Key Benefit |
+|--------|----------|-------------|
+| **Films on the Move** | Distributors acquiring new films | Direct release support |
+| **Sales Agents** | International sales companies | Market expansion funding |
+| **VOD Support** | Digital platforms | Catalogue digitization |
+| **Cinema Networks** | Independent cinemas | Programming support |
+
+## European Film Market Landscape
+
+| Market | Timing | Focus |
+|--------|--------|-------|
+| **EFM Berlin** | February | Sales, premieres |
+| **Cannes Marché** | May | Prestige sales |
+| **Toronto** | September | North American sales |
+| **AFM Los Angeles** | November | US market |
+| **Ventana Sur** | December | Latin America |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Identify Your Distribution Model**: Theatrical, VOD, or hybrid
+2. **Build Your European Catalogue**: Focus on quality European content
+3. **Develop Market Presence**: Attend major European film markets
+4. **Partner with Exhibitors**: Connect with Europa Cinemas network
+5. **Plan Release Campaigns**: Prepare comprehensive marketing strategies
+
+📋 **Action Items:**
+- [ ] Review [Distribution Call Guidelines](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search;callCode=CREA-MEDIA)
+- [ ] Analyse your distribution capacity and track record
+- [ ] Identify European films for your catalogue
+- [ ] Contact your [Creative Europe Desk](https://culture.ec.europa.eu/creative-europe/creative-europe-desks)
+- [ ] Consider joining [Europa Cinemas](https://www.europa-cinemas.org/) network
+
+📚 **Useful Resources:**
+- [MEDIA Distribution Guidelines](https://ec.europa.eu/info/funding-tenders/opportunities/portal/)
+- [Europa Cinemas Network](https://www.europa-cinemas.org/)
+- [European Film Promotion](https://www.efp-online.com/)
+- [European Audiovisual Observatory](https://www.obs.coe.int/)"""
+
+    def _generate_media_multi_project_guidance(self) -> str:
+        """Generate guidance on participating in multiple Creative Europe MEDIA projects."""
+        return """**Participating in Multiple Creative Europe MEDIA Projects**
+
+Good news! There is **no general limit** on how many Creative Europe MEDIA projects your organization can participate in. However, there are important considerations and strategic approaches to maximize your success.
+
+## Multi-Project Participation Rules
+
+### General Principles
+
+| Rule | Details |
+|------|---------|
+| **No fixed limit** | Organizations can participate in multiple projects |
+| **Capacity assessment** | EC evaluates financial and operational capacity |
+| **Concurrent projects** | Can have several ongoing projects simultaneously |
+| **Different actions** | Can participate in different MEDIA actions |
+| **Same action** | Can apply to same action multiple times |
+
+### Action-Specific Considerations
+
+| Action | Multi-Participation Rules |
+|--------|---------------------------|
+| **Development - Slate** | 1 slate application per call, but can reapply |
+| **Development - Single** | Multiple single projects possible |
+| **Co-Development** | Can lead 1 + partner in others |
+| **Distribution** | Multiple films/catalogues supported |
+| **Training** | Multiple training activities |
+| **Festivals** | One application per festival per call |
+
+## Strategic Approaches for Multiple Projects
+
+### 1. Diversification Strategy
+
+**Combine different actions:**
+- Development (Slate or Single) for pipeline building
+- Co-Development for international partnerships
+- Distribution support for your productions reaching audiences
+
+### 2. Portfolio Approach
+
+**Manage multiple development projects:**
+- Slate funding: 3-5 projects under one grant
+- Mix of genres and formats
+- Staggered development timelines
+
+### 3. Value Chain Integration
+
+**Vertical integration example:**
+```
+Development (Slate/Single) → Production → Distribution (Films on the Move)
+                                       → Sales (Sales Agent Support)
+                                       → Exhibition (Cinema Networks)
+```
+
+## Capacity Requirements
+
+### Financial Capacity
+- Must demonstrate ability to co-finance all projects
+- Stable financial situation (no bankruptcy procedures)
+- Adequate turnover relative to requested funding
+
+### Operational Capacity
+- Sufficient staff and expertise
+- Track record in managing similar projects
+- Quality management systems
+
+### Assessment Criteria
+| Capacity Type | What EC Checks |
+|--------------|----------------|
+| Financial | Balance sheet, profit/loss, turnover ratios |
+| Operational | Team CVs, past project list, infrastructure |
+| Professional | Relevant experience, expertise, partnerships |
+
+## Practical Limits and Considerations
+
+### Realistic Capacity
+While no fixed limits exist, consider:
+- **Staff workload**: Each project requires dedicated attention
+- **Cash flow**: Co-financing requirements for all projects
+- **Quality**: Better to do fewer projects well than many poorly
+
+### EC Evaluation Focus
+The European Commission will assess:
+1. Can you realistically manage all proposed projects?
+2. Is your co-financing credible for all projects?
+3. Do you have the expertise for each project type?
+
+## Successful Multi-Project Examples
+
+| Company Profile | Typical Portfolio |
+|----------------|-------------------|
+| **Established Producer** | 1 Slate + 2-3 Co-developments |
+| **Sales Agent** | Sales Agent support + Multiple film distributions |
+| **Distribution Company** | 5-10 Films on the Move + VOD support |
+| **Festival** | Festival support + Training activities |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Assess Your Capacity**: Honestly evaluate staff, finances, and expertise
+2. **Prioritize Strategically**: Focus on actions that fit your business model
+3. **Build Gradually**: Don't overextend in first years
+4. **Track Your Commitments**: Maintain clear overview of all EU-funded projects
+5. **Coordinate Applications**: Time submissions for manageable workload
+
+📋 **Action Items:**
+- [ ] List all current and planned EU-funded projects
+- [ ] Calculate total co-financing required across all projects
+- [ ] Assess team capacity for additional project management
+- [ ] Review your track record for each action type
+- [ ] Contact [Creative Europe Desk](https://culture.ec.europa.eu/creative-europe/creative-europe-desks) for strategic advice
+
+📚 **Useful Resources:**
+- [MEDIA Programme Guidelines](https://ec.europa.eu/info/funding-tenders/opportunities/portal/)
+- [Financial Capacity Guide](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/rules-lev-lear-fca_en.pdf)
+- [Creative Europe Desks](https://culture.ec.europa.eu/creative-europe/creative-europe-desks)
+- [Europa Cinemas](https://www.europa-cinemas.org/)"""
+
+    def _generate_ce_film_company_overview_guidance(self) -> str:
+        """Generate overview guidance for film production companies asking about Creative Europe."""
+        return """**Creative Europe Funding for Film Production Companies**
+
+As a **film production company**, you have access to several Creative Europe funding streams tailored to support European audiovisual content throughout its lifecycle.
+
+## Relevant Funding Actions for Film Producers
+
+| Action | Purpose | Typical Funding | Best For |
+|--------|---------|-----------------|----------|
+| **Development - Slate** | Multiple projects | €150,000-200,000 | Established companies |
+| **Development - Single** | Individual project | €25,000-60,000 | All producers |
+| **Development - Co-dev** | Co-productions | €60,000-100,000 | International projects |
+| **Mini-Slate** | Small companies | €90,000-150,000 | Emerging producers |
+| **TV & Online Content** | Series development | Up to €500,000 | Series producers |
+
+## Your Path Through Creative Europe
+
+### Phase 1: Development
+Start with development funding to build your project:
+- **Newcomers**: Apply for Single Project funding (no track record required)
+- **Established**: Apply for Slate funding (3-5 projects, 70% funding rate)
+- **Co-productions**: Apply for Co-Development with European partners
+
+### Phase 2: Production Support
+Once developed, access production funding:
+- **Eurimages** (Council of Europe): Co-production fund
+- **National funds**: Most countries have production incentives
+- **Regional funds**: Many regions offer local production support
+
+### Phase 3: Distribution & Sales
+Help your film reach audiences:
+- **Films on the Move**: Support for distributors
+- **Sales Agent Support**: International sales funding
+- **Cinema Networks**: Europa Cinemas programming support
+
+## Eligibility Checklist for Production Companies
+
+✅ **Basic Requirements:**
+- [ ] Legal entity established in Creative Europe country
+- [ ] Audiovisual production as main business activity
+- [ ] Independent producer (not broadcaster-controlled)
+- [ ] Valid PIC (Participant Identification Code)
+
+✅ **For Slate Funding (additional):**
+- [ ] At least 1 previous work released/broadcast
+- [ ] 3-5 projects in development pipeline
+- [ ] Financial capacity for co-financing
+
+✅ **For Co-Development (additional):**
+- [ ] Partner(s) from other Creative Europe country/countries
+- [ ] Co-production agreement in place or planned
+- [ ] Complementary expertise and resources
+
+## Current Opportunities (2024-2025)
+
+| Call | Deadline | Focus |
+|------|----------|-------|
+| **Development - Slate** | Multiple deadlines annually | Feature, animation, documentary |
+| **Development - Single** | Multiple deadlines annually | All formats |
+| **Co-Development** | Multiple deadlines annually | European partnerships |
+| **TV & Online** | Annual | Series and online content |
+
+## Financial Framework
+
+### Typical Budget Structure (Development)
+| Cost Category | % of Budget |
+|--------------|-------------|
+| Writing/Development | 40-50% |
+| Personnel/Consultants | 20-30% |
+| Travel & Markets | 10-15% |
+| Legal & Rights | 10-15% |
+| Overhead | Up to 7% |
+
+### Co-Financing Requirements
+| Action | EU Funding Rate | Your Co-Financing |
+|--------|-----------------|-------------------|
+| Slate | Up to 70% | At least 30% |
+| Single | Up to 50% | At least 50% |
+| Co-Development | Up to 50% | At least 50% |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Register on EU Funding Portal**: Get your PIC number
+2. **Assess Your Track Record**: Determine which actions you're eligible for
+3. **Build Your Pipeline**: Develop 3-5 strong projects for Slate funding
+4. **Find Co-production Partners**: Connect with European producers
+5. **Attend Markets & Training**: Build your European network
+
+📋 **Action Items:**
+- [ ] Register on [EU Funding Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/)
+- [ ] Review [MEDIA Development Guidelines](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search;callCode=CREA-MEDIA)
+- [ ] Contact your [Creative Europe Desk](https://culture.ec.europa.eu/creative-europe/creative-europe-desks)
+- [ ] Prepare project documentation (synopsis, treatment, director's vision)
+- [ ] Attend [MEDIA information sessions](https://culture.ec.europa.eu/creative-europe)
+- [ ] Join the [European Producers Club](https://europeanproducersclub.org/)
+
+📚 **Useful Resources:**
+- [Creative Europe MEDIA Strand](https://culture.ec.europa.eu/creative-europe/creative-europe-media-strand)
+- [EU Funding Portal - MEDIA Calls](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search;callCode=CREA-MEDIA)
+- [Creative Europe Desks](https://culture.ec.europa.eu/creative-europe/creative-europe-desks)
+- [Eurimages Co-production Fund](https://www.coe.int/en/web/eurimages)
+- [European Film Promotion](https://www.efp-online.com/)"""
 
     def _deduplicate_content(self, contents: list) -> list:
         """Remove duplicate or very similar content."""

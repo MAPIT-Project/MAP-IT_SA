@@ -1,0 +1,136 @@
+{
+  "scenario_name": "Creative Europe Strand Selection",
+  "status": "PASS",
+  "average_quality_score": 83.0,
+  "average_factual_score": 100.0,
+  "turns": [
+    {
+      "query": "We're a film production company - what Creative Europe funding is available?",
+      "response": "**Creative Europe Funding for Film Production Companies**\n\nAs a **film production company**, you have access to several Creative Europe funding streams tailored to support European audiovisual content throughout its lifecycle.\n\n## Relevant Funding Actions for Film Producers\n\n| Action | Purpose | Typical Funding | Best For |\n|--------|---------|-----------------|----------|\n| **Development - Slate** | Multiple projects | \u20ac150,000-200,000 | Established companies |\n| **Development - Single** | Indi...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 2323.764,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
+      "passed": true
+    },
+    {
+      "query": "Tell me about the Creative Europe MEDIA strand",
+      "response": "**Creative Europe MEDIA Strand Overview**\n\nThe **MEDIA strand** is the audiovisual pillar of Creative Europe (2021-2027), with a budget of approximately **\u20ac1.4 billion** dedicated to supporting the European film and audiovisual industry.\n\n## MEDIA Strand Actions Overview\n\n| Action Type | Target | Budget Range | Funding Rate |\n|------------|--------|--------------|--------------|\n| **Development - Slate** | Production companies (3+ projects) | \u20ac150,000-200,000 | 70% |\n| **Development - Single** |...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 855.433,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": true
+    },
+    {
+      "query": "What Creative Europe MEDIA development funding options are available?",
+      "response": "**Creative Europe MEDIA Strand Overview**\n\nThe **MEDIA strand** is the audiovisual pillar of Creative Europe (2021-2027), with a budget of approximately **\u20ac1.4 billion** dedicated to supporting the European film and audiovisual industry.\n\n## MEDIA Strand Actions Overview\n\n| Action Type | Target | Budget Range | Funding Rate |\n|------------|--------|--------------|--------------|\n| **Development - Slate** | Production companies (3+ projects) | \u20ac150,000-200,000 | 70% |\n| **Development - Single** |...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 1390.4460000000001,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": true
+    },
+    {
+      "query": "What about Creative Europe MEDIA distribution support?",
+      "response": "**Creative Europe MEDIA Strand Overview**\n\nThe **MEDIA strand** is the audiovisual pillar of Creative Europe (2021-2027), with a budget of approximately **\u20ac1.4 billion** dedicated to supporting the European film and audiovisual industry.\n\n## MEDIA Strand Actions Overview\n\n| Action Type | Target | Budget Range | Funding Rate |\n|------------|--------|--------------|--------------|\n| **Development - Slate** | Production companies (3+ projects) | \u20ac150,000-200,000 | 70% |\n| **Development - Single** |...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 853.9330000000001,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": true
+    },
+    {
+      "query": "How many Creative Europe MEDIA projects can our organization participate in?",
+      "response": "**Creative Europe MEDIA Strand Overview**\n\nThe **MEDIA strand** is the audiovisual pillar of Creative Europe (2021-2027), with a budget of approximately **\u20ac1.4 billion** dedicated to supporting the European film and audiovisual industry.\n\n## MEDIA Strand Actions Overview\n\n| Action Type | Target | Budget Range | Funding Rate |\n|------------|--------|--------------|--------------|\n| **Development - Slate** | Production companies (3+ projects) | \u20ac150,000-200,000 | 70% |\n| **Development - Single** |...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 4698.254000000001,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 4,
+      "passed": true
+    }
+  ],
+  "scores": {
+    "average_quality": 83.0,
+    "average_factual": 100.0,
+    "goal_progress": 0.6214285714285714,
+    "context_fields": 4
+  },
+  "failures": [],
+  "metadata": {
+    "scenario_path": "tests/scenarios/advanced/creative_europe_strand.yaml",
+    "tags": [
+      "phase10",
+      "creative_europe",
+      "strand_selection",
+      "media",
+      "film",
+      "development",
+      "distribution"
+    ],
+    "description": "A film production company wants to understand Creative Europe programme options.\nThey are interested in the MEDIA strand, specifically development funding and\ndistribution support. The scenario tests programme navigation and strand-specific\nrecommendations for audiovisual sector organizations.\n",
+    "conversation_id": 476875963
+  },
+  "execution_time_ms": 131832.462,
+  "timestamp": "2026-01-23T14:20:36.475323",
+  "passed": true,
+  "turn_count": 5,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
+}
