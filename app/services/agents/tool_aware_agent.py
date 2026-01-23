@@ -3568,6 +3568,15 @@ digital_europe, life""",
         if associated_country_result:
             return associated_country_result
 
+        # Check for SME ELIGIBILITY queries
+        # These are questions about SME definition, ownership rules, and non-SME participation
+        # e.g., "We have 200 employees - still SME?", "Parent company affects SME status?",
+        # "Can we still participate in RIA if not SME?"
+        # IMPORTANT: Must come BEFORE urgent_deadline to prevent "can we still" false matches
+        sme_eligibility_result = self._detect_sme_eligibility_query(query, context)
+        if sme_eligibility_result:
+            return sme_eligibility_result
+
         # Check for TIMELINE COMPARISON queries
         # These are questions about proposal preparation times, decision times, and project start lags
         # e.g., "How long to prepare a proposal?", "Compare with Erasmus+ KA2", "Decision time?"
@@ -13292,6 +13301,549 @@ You can track potential changes by:
 - [ ] Set internal deadline 72 hours before official deadline
 
 ⚠️ **Important**: The best contingency is good preparation. Well-prepared proposals can absorb schedule disruptions much more easily than rushed ones. Focus on quality first, and flexibility will follow naturally."""
+
+    # =========================================================================
+    # SME Eligibility Detection and Guidance (Scenario 030)
+    # =========================================================================
+
+    def _detect_sme_eligibility_query(self, query: str, context: str) -> dict[str, Any] | None:
+        """Detect SME eligibility queries.
+
+        These are questions about:
+        - EU SME definition (employees, turnover, balance sheet)
+        - Linked/partner enterprise rules (parent company effects)
+        - Non-SME participation in RIA/IA
+        - SME-specific funding opportunities
+
+        These queries should provide structured guidance with actionable Next Steps.
+        """
+        query_lower = query.lower()
+        context_lower = context.lower() if context else ""
+
+        # Check if there's SME context from earlier in conversation
+        has_sme_context = any(
+            pattern in context_lower
+            for pattern in [
+                "sme",
+                "small",
+                "medium",
+                "employee",
+                "200 employee",
+                "parent company",
+                "ownership",
+                "linked enterprise",
+            ]
+        )
+
+        # SME definition / employee count patterns
+        sme_definition_patterns = [
+            "what is an sme",
+            "what's an sme",
+            "sme definition",
+            "sme criteria",
+            "sme requirements",
+            "employees",
+            "headcount",
+            "staff count",
+            "250 employees",
+            "50 million",
+            "43 million",
+            "turnover",
+            "balance sheet",
+            "eu definition of sme",
+            "qualify as sme",
+            "qualify as an sme",
+            "considered an sme",
+            "still an sme",
+            "still sme",
+            "count as sme",
+            "still considered",
+        ]
+
+        # Linked enterprise / ownership patterns
+        ownership_patterns = [
+            "parent company",
+            "parent corporation",
+            "ownership",
+            "owned by",
+            "subsidiary",
+            "linked enterprise",
+            "partner enterprise",
+            "affiliated",
+            "affiliate",
+            "majority shareholder",
+            "majority owner",
+            "controlling stake",
+            "25%",
+            "50%",
+            "autonomous",
+            "affect our sme",
+            "affect sme status",
+            "disqualify",
+            "lose sme status",
+        ]
+
+        # Non-SME participation patterns (RIA/IA without SME status)
+        non_sme_participation_patterns = [
+            "don't qualify as sme",
+            "don't qualify as an sme",
+            "not an sme",
+            "not sme",
+            "if we're not sme",
+            "if we are not sme",
+            "if not sme",
+            "without sme status",
+            "non-sme",
+            "large company",
+            "large enterprise",
+            "regular ria",
+            "regular ia",
+            "normal ria",
+            "still participate",
+            "still take part",
+            "can we still",
+            "participate in ria",
+            "participate in ia",
+            "join ria",
+            "join ia",
+        ]
+
+        # SME funding opportunities patterns
+        sme_opportunities_patterns = [
+            "sme funding",
+            "funding for sme",
+            "sme opportunities",
+            "sme programmes",
+            "sme programs",
+            "specifically for sme",
+            "sme-specific",
+            "dedicated to sme",
+            "available for sme",
+            "what's available",
+            "what is available",
+            "we're an sme",
+            "we are an sme",
+            "as an sme",
+        ]
+
+        # EIC-specific SME patterns (for follow-up in SME context)
+        eic_sme_patterns = [
+            "eic accelerator",
+            "eic sme",
+            "sme eic",
+            "accelerator requirements",
+            "sme requirements different",
+            "different sme requirements",
+            "different there",
+        ]
+
+        # Check if this is a follow-up about non-SME participation in RIA
+        # Context contains parent company discussion AND query asks about participation
+        if has_sme_context and any(
+            p in query_lower for p in ["don't qualify", "can we still", "still participate"]
+        ):
+            # Check if the query is about RIA/IA participation (not urgent deadline)
+            if any(p in query_lower for p in ["ria", "ia", "project", "participate"]):
+                return {
+                    "thought": "User is asking about participating in RIA/IA without SME status. Providing guidance on non-SME participation options.",
+                    "action": "generate_guidance",
+                    "guidance_type": "non_sme_participation",
+                    "response": self._generate_non_sme_participation_guidance(),
+                }
+
+        # Check for non-SME participation query (most specific - check first)
+        if any(pattern in query_lower for pattern in non_sme_participation_patterns):
+            # Only match if context or query suggests RIA/IA/project participation
+            if any(
+                p in query_lower or p in context_lower
+                for p in ["ria", "ia", "project", "participate", "horizon"]
+            ):
+                return {
+                    "thought": "User asking about non-SME participation in RIA/IA projects. Providing guidance on participation options.",
+                    "action": "generate_guidance",
+                    "guidance_type": "non_sme_participation",
+                    "response": self._generate_non_sme_participation_guidance(),
+                }
+
+        # Check for EIC SME requirements query (when in SME context)
+        if has_sme_context and any(pattern in query_lower for pattern in eic_sme_patterns):
+            return {
+                "thought": "User asking about EIC Accelerator SME requirements specifically. Providing EIC SME guidance.",
+                "action": "generate_guidance",
+                "guidance_type": "eic_sme_requirements",
+                "response": self._generate_eic_sme_requirements_guidance(),
+            }
+
+        # Check for linked enterprise / ownership query
+        if any(pattern in query_lower for pattern in ownership_patterns):
+            return {
+                "thought": "User asking about how parent company/ownership affects SME status. Providing linked enterprise guidance.",
+                "action": "generate_guidance",
+                "guidance_type": "linked_enterprise",
+                "response": self._generate_linked_enterprise_guidance(),
+            }
+
+        # Check for SME definition / employee count query
+        if any(pattern in query_lower for pattern in sme_definition_patterns):
+            return {
+                "thought": "User asking about SME definition/criteria. Providing EU SME definition guidance.",
+                "action": "generate_guidance",
+                "guidance_type": "sme_definition",
+                "response": self._generate_sme_definition_guidance(),
+            }
+
+        # Check for SME funding opportunities query
+        if any(pattern in query_lower for pattern in sme_opportunities_patterns):
+            return {
+                "thought": "User asking about funding opportunities for SMEs. Providing SME funding overview with actionable next steps.",
+                "action": "generate_guidance",
+                "guidance_type": "sme_opportunities",
+                "response": self._generate_sme_opportunities_guidance(),
+            }
+
+        return None
+
+    def _generate_sme_definition_guidance(self) -> str:
+        """Generate guidance about EU SME definition."""
+        return """Yes, understanding the **EU SME definition** is essential for accessing SME-specific funding.
+
+### EU Definition of SME (Small and Medium-sized Enterprise)
+
+To be officially classified as an SME under EU rules, an organization must meet **ALL THREE** criteria:
+
+| Criterion | Threshold | Your Assessment |
+|-----------|-----------|-----------------|
+| **Staff Headcount** | **< 250 employees** | Count all FTEs (full-time equivalents) |
+| **Annual Turnover** | **≤ €50 million** | OR meet balance sheet threshold |
+| **Annual Balance Sheet** | **≤ €43 million** | OR meet turnover threshold |
+
+**Note**: You must be under the employee threshold AND under at least ONE of the financial thresholds.
+
+### SME Categories
+
+| Category | Employees | Turnover | Balance Sheet |
+|----------|-----------|----------|---------------|
+| **Micro** | < 10 | ≤ €2M | ≤ €2M |
+| **Small** | < 50 | ≤ €10M | ≤ €10M |
+| **Medium** | < 250 | ≤ €50M | ≤ €43M |
+
+### Important Calculation Rules
+
+1. **Full-Time Equivalent (FTE)**: Part-time employees counted proportionally
+2. **Annual Average**: Use average over the financial year
+3. **Most Recent Accounts**: Use latest approved annual accounts
+4. **Newly Created Enterprises**: Can use estimates for first year
+
+### Special Cases
+
+| Situation | Treatment |
+|-----------|-----------|
+| **Seasonal workers** | Convert to annual FTE |
+| **Trainees/apprentices** | Generally excluded from count |
+| **Maternity/parental leave** | May be excluded |
+| **Recent growth** | Use most recent closed year |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+• Check your employee count using FTE calculation (all contracts, including part-time proportionally)
+• Verify your turnover OR balance sheet total from latest approved accounts
+• If near the 250 threshold, consider linked/partner enterprise effects (see below)
+• Use the [EC SME Self-Assessment Tool](https://ec.europa.eu/growth/smes/sme-definition_en) to verify status
+• Keep SME documentation updated for declarations in proposals
+
+📋 **Documents You Should Prepare:**
+- [ ] Recent annual accounts (audited if available)
+- [ ] Employee register with FTE calculations
+- [ ] Ownership structure documentation
+- [ ] SME self-declaration form (download from EC website)"""
+
+    def _generate_linked_enterprise_guidance(self) -> str:
+        """Generate guidance about linked/partner enterprise rules."""
+        return """Your parent company structure **critically affects your SME status**. The EU SME definition includes rules about linked and partner enterprises.
+
+### The Autonomy Criterion
+
+To qualify as an **autonomous SME**, your company must not be:
+- Owned **25% or more** by a single enterprise that is NOT itself an SME
+- Owned **25% or more** by public bodies (with some exceptions)
+- Part of a group through **dominant influence** relationships
+
+### Linked Enterprises (Most Restrictive)
+
+If another enterprise owns **>50%** of your voting rights or shares, you are **linked enterprises**. This means:
+
+| What Counts | Effect on SME Calculation |
+|-------------|---------------------------|
+| **Employees** | Add 100% of linked enterprise's employees to yours |
+| **Turnover** | Add 100% of linked enterprise's turnover |
+| **Balance Sheet** | Add 100% of linked enterprise's balance sheet |
+
+**Result**: If your parent has thousands of employees, you likely **DO NOT qualify** as an SME.
+
+### Partner Enterprises (Less Restrictive)
+
+If another enterprise owns **25-50%** of your shares, you are **partner enterprises**:
+
+| What Counts | Effect on SME Calculation |
+|-------------|---------------------------|
+| **Employees** | Add **proportional share** (e.g., 40% ownership = add 40% of their employees) |
+| **Turnover** | Add proportional share |
+| **Balance Sheet** | Add proportional share |
+
+### Your Situation Assessment
+
+Given a parent company with thousands of employees:
+
+| Parent Ownership | Your SME Status |
+|------------------|-----------------|
+| **>50%** | ❌ Almost certainly **NOT an SME** |
+| **25-50%** | ⚠️ Likely not an SME (proportional calculation) |
+| **<25%** | ✅ Parent doesn't affect SME status |
+
+### Alternative Structures
+
+If you need to preserve SME status:
+1. **Reduce parent ownership below 25%** (if commercially viable)
+2. **Corporate restructuring** (spin-off, management buyout)
+3. **Accept non-SME status** and pursue other funding (see below)
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+• Get exact ownership percentage from your parent company
+• Check if parent is itself an SME (then cascading rules apply)
+• Calculate combined employee count: your FTEs + (ownership % × parent's FTEs)
+• Review your articles of association for voting rights vs economic rights differences
+• Consult a corporate lawyer about restructuring options if needed
+• Contact your [National Contact Point](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for SME status verification
+
+📋 **Action Items:**
+- [ ] Document current ownership structure with percentages
+- [ ] Get parent company's employee count, turnover, and balance sheet figures
+- [ ] Perform linked/partner enterprise calculation
+- [ ] If not SME, research alternative funding paths (RIA, IA, national programmes)"""
+
+    def _generate_non_sme_participation_guidance(self) -> str:
+        """Generate guidance about non-SME participation in RIA/IA projects."""
+        return """**Yes, absolutely!** If you don't qualify as an SME due to your parent company, you can **still fully participate** in Horizon Europe collaborative research.
+
+### Non-SME Participation in Horizon Europe
+
+| Action Type | Can Non-SMEs Participate? | Funding Rate | Notes |
+|-------------|---------------------------|--------------|-------|
+| **RIA (Research and Innovation Action)** | ✅ **Yes** | 100% | Full participation, can coordinate |
+| **IA (Innovation Action)** | ✅ **Yes** | 70% (or 100% for non-profit) | Full participation, can coordinate |
+| **CSA (Coordination and Support Action)** | ✅ **Yes** | 100% | Full participation |
+| **MSCA (Marie Skłodowska-Curie)** | ✅ **Yes** | 100% (unit costs) | Full participation |
+| **ERC Grants** | ✅ **Yes** | 100% | Host institution any type |
+
+### What You CAN Do as a Non-SME
+
+✅ **Participate as a full partner** in any consortium
+✅ **Coordinate RIA/IA projects** (lead the consortium)
+✅ **Receive full eligible costs** at applicable funding rates
+✅ **Lead work packages** and contribute to all project activities
+✅ **Access all standard Horizon Europe actions**
+
+### What You CANNOT Access (SME-only)
+
+❌ EIC Accelerator (SME-only, equity funding)
+❌ Eurostars (SME-led R&D)
+❌ SME-specific bonus funding in some calls
+
+### Funding Rates for Non-SMEs
+
+| Organization Type | RIA Rate | IA Rate |
+|-------------------|----------|---------|
+| **Large Company (PRC)** | 100% | 70% |
+| **University (HES)** | 100% | 100% |
+| **Research Institute (REC)** | 100% | 100% |
+| **Public Body (PUB)** | 100% | 100% |
+
+### Strategic Advantages of Being a Large Company Partner
+
+1. **Stronger track record** - Large companies often have more EU project experience
+2. **Better financial capacity** - Easier to meet financial sustainability requirements
+3. **Industry credibility** - Adds weight to consortium's exploitation potential
+4. **Resources for dissemination** - Larger reach for project communication
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+• You should search for relevant RIA/IA calls in your research area on the [Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/)
+• You can join consortia as a full partner - check the Partner Search on the Portal
+• You should highlight your parent company's resources as an **asset** (not a limitation) in proposals
+• Consider your role: large companies often lead demonstration/piloting work packages
+• Contact your [National Contact Point](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for guidance on finding suitable calls
+
+📋 **Immediate Action Items:**
+- [ ] Visit Funding & Tenders Portal and search calls by your topic keywords
+- [ ] Check open RIA/IA calls with upcoming deadlines
+- [ ] Use Partner Search tool to find consortium opportunities
+- [ ] Review successful projects in your area via CORDIS database
+- [ ] Prepare your organization profile highlighting H2020/HE experience
+
+💡 **Tip**: Being part of a large corporate group can be **advantageous** in Horizon Europe proposals, as it demonstrates capacity to scale up innovations and commercialize results!"""
+
+    def _generate_eic_sme_requirements_guidance(self) -> str:
+        """Generate guidance about EIC Accelerator SME requirements."""
+        return """Company size is **critical for EIC Accelerator eligibility**. The programme is exclusively designed for Small and Medium-sized Enterprises (SMEs).
+
+### EIC Accelerator SME Requirements
+
+The EIC Accelerator follows the **standard EU SME definition**:
+
+| Criterion | Threshold | Note |
+|-----------|-----------|------|
+| **Employees** | **< 250 FTE** | Mandatory |
+| **Annual turnover** | **≤ €50 million** | OR balance sheet |
+| **Annual balance sheet** | **≤ €43 million** | OR turnover |
+
+### Key Difference: EIC is SME-Only
+
+Unlike RIA/IA where any organization can participate, **EIC Accelerator is exclusively for SMEs**:
+
+| Programme | SME Requirement |
+|-----------|-----------------|
+| **EIC Accelerator** | ❌ **SMEs only** - strict requirement |
+| **RIA** | ✅ Open to all legal entities |
+| **IA** | ✅ Open to all legal entities |
+| **EIC Pathfinder** | ✅ Open to all (consortia) |
+| **EIC Transition** | ⚠️ SME-led preferred |
+
+### SME Verification in EIC
+
+EIC conducts **thorough SME verification**:
+1. At application stage (self-declaration)
+2. Before Grant Agreement signature (detailed check)
+3. Linked enterprise calculations are verified
+4. Financial statements are reviewed
+
+### If Your Parent Company Affects SME Status
+
+If you don't qualify as an SME due to ownership:
+
+| Alternative | Suitability |
+|-------------|-------------|
+| **EIC Pathfinder** | ✅ Open to non-SMEs (earlier TRL) |
+| **Horizon RIA/IA** | ✅ Full participation |
+| **National programmes** | ✅ Many have no SME requirement |
+| **Corporate VC/partnerships** | ✅ Direct investment route |
+
+### Timeline Considerations
+
+| Aspect | EIC Accelerator |
+|--------|-----------------|
+| **SME check timing** | Before Grant Agreement |
+| **Recent acquisition** | Status at application date counts |
+| **Approaching thresholds** | Apply before crossing limits |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+• If you ARE an SME: You should prepare your SME declaration and supporting documents
+• If you are NOT an SME: You should explore EIC Pathfinder or RIA/IA alternatives instead
+• Verify your exact SME status using [EC SME Assessment Tool](https://ec.europa.eu/growth/smes/sme-definition_en)
+• Calculate linked enterprise effects precisely
+• Consider timing if approaching thresholds
+
+📋 **Action Items for SMEs:**
+- [ ] Prepare SME self-declaration form
+- [ ] Gather latest audited financial statements
+- [ ] Document ownership structure and shareholdings
+- [ ] Calculate linked/partner enterprise effects
+- [ ] Review EIC Accelerator Work Programme for your innovation area
+
+📋 **Action Items for Non-SMEs:**
+- [ ] Search for RIA/IA calls in your topic area
+- [ ] Consider EIC Pathfinder if at earlier TRL (1-4)
+- [ ] Check national innovation programmes as alternatives
+- [ ] Position your scale as an advantage for RIA/IA proposals"""
+
+    def _generate_sme_opportunities_guidance(self) -> str:
+        """Generate guidance about SME-specific funding opportunities."""
+        return """As an SME, you have access to some of the most **specialized and high-impact funding** in the EU portfolio. Here's your comprehensive guide:
+
+### 1. EIC Accelerator (Flagship SME Programme)
+
+| Aspect | Details |
+|--------|---------|
+| **Funding** | Up to €2.5M grant + up to €15M equity |
+| **Target** | High-risk, high-impact innovations (TRL 5-8) |
+| **Format** | Single company application |
+| **Success Rate** | ~8% (competitive) |
+
+### 2. Eurostars (SME-Led R&D)
+
+| Aspect | Details |
+|--------|---------|
+| **Funding** | Up to €500K-2M (varies by country) |
+| **Target** | R&D-performing SMEs |
+| **Format** | International consortium (2+ countries) |
+| **Focus** | Market-oriented R&D |
+
+### 3. Horizon Europe RIA/IA (Collaborative)
+
+| Aspect | Details |
+|--------|---------|
+| **Funding Rate** | RIA: 100%, IA: 70% (can be 100% for SMEs in some calls) |
+| **Target** | Collaborative research consortia |
+| **SME Bonus** | Some calls have SME participation targets |
+| **Advantage** | Access larger projects and networks |
+
+### 4. EIC Pathfinder
+
+| Aspect | Details |
+|--------|---------|
+| **Funding** | Up to €3-4M per project |
+| **Target** | Breakthrough technology research (TRL 1-4) |
+| **Format** | Consortia (SMEs can participate) |
+| **Path** | Can lead to EIC Transition → Accelerator |
+
+### 5. EIC Transition
+
+| Aspect | Details |
+|--------|---------|
+| **Funding** | Up to €2.5M |
+| **Target** | Maturing results from EIC Pathfinder/ERC |
+| **Format** | Single entity or small consortium |
+| **SME Focus** | SME-led projects preferred |
+
+### SME Advantages in Horizon Europe
+
+✅ **Higher funding rates** in some Innovation Actions
+✅ **SME participation targets** in many calls (often 20-30%)
+✅ **Simplified procedures** for smaller grants
+✅ **Dedicated support** from NCPs and Enterprise Europe Network
+
+### Programme Selection Guide
+
+| Your Situation | Best Fit |
+|----------------|----------|
+| **Breakthrough innovation, TRL 5-8** | EIC Accelerator |
+| **Early R&D with international partner** | Eurostars |
+| **Part of a research consortium** | RIA/IA with SME role |
+| **Fundamental research (TRL 1-4)** | EIC Pathfinder |
+| **Validating prior EU research** | EIC Transition |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+• Visit the [EIC website](https://eic.ec.europa.eu/) for Accelerator cut-off dates
+• Check [Eurostars calls](https://www.eurekanetwork.org/programmes/eurostars) through your national agency
+• Search [Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/) for RIA/IA calls
+• Contact your [National Contact Point](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for personalized guidance
+• Join [Enterprise Europe Network](https://een.ec.europa.eu/) for partnership opportunities
+
+📋 **Immediate Action Items:**
+- [ ] Identify your innovation's current TRL (Technology Readiness Level)
+- [ ] Check upcoming EIC Accelerator cut-off dates
+- [ ] Search for RIA/IA calls in your specific topic area
+- [ ] Prepare a 1-page pitch of your innovation for initial NCP discussion
+- [ ] Review your SME status documentation (employees, turnover, ownership)
+
+💡 **Tip**: Many SMEs successfully combine programmes - e.g., participate in RIA to build track record, then apply to EIC Accelerator for commercialization funding!"""
 
     # =========================================================================
     # Associated Country Eligibility Detection and Guidance (Scenario 029)

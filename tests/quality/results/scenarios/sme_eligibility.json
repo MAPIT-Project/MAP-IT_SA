@@ -1,0 +1,136 @@
+{
+  "scenario_name": "SME Eligibility",
+  "status": "PASS",
+  "average_quality_score": 83.4,
+  "average_factual_score": 100.0,
+  "turns": [
+    {
+      "query": "We're an SME - what EU funding programmes are available specifically for us?",
+      "response": "As an SME, you have access to some of the most **specialized and high-impact funding** in the EU portfolio. Here's your comprehensive guide:\n\n### 1. EIC Accelerator (Flagship SME Programme)\n\n| Aspect | Details |\n|--------|---------|\n| **Funding** | Up to \u20ac2.5M grant + up to \u20ac15M equity |\n| **Target** | High-risk, high-impact innovations (TRL 5-8) |\n| **Format** | Single company application |\n| **Success Rate** | ~8% (competitive) |\n\n### 2. Eurostars (SME-Led R&D)\n\n| Aspect | Details |\n|--------|...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 2001.638,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
+      "passed": true
+    },
+    {
+      "query": "We have 200 employees - are we still considered an SME under EU rules?",
+      "response": "Yes, understanding the **EU SME definition** is essential for accessing SME-specific funding.\n\n### EU Definition of SME (Small and Medium-sized Enterprise)\n\nTo be officially classified as an SME under EU rules, an organization must meet **ALL THREE** criteria:\n\n| Criterion | Threshold | Your Assessment |\n|-----------|-----------|-----------------|\n| **Staff Headcount** | **< 250 employees** | Count all FTEs (full-time equivalents) |\n| **Annual Turnover** | **\u2264 \u20ac50 million** | OR meet balance she...",
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 475.78,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": true
+    },
+    {
+      "query": "Our parent company is a large corporation with thousands of employees - does that affect our SME status?",
+      "response": "Your parent company structure **critically affects your SME status**. The EU SME definition includes rules about linked and partner enterprises.\n\n### The Autonomy Criterion\n\nTo qualify as an **autonomous SME**, your company must not be:\n- Owned **25% or more** by a single enterprise that is NOT itself an SME\n- Owned **25% or more** by public bodies (with some exceptions)\n- Part of a group through **dominant influence** relationships\n\n### Linked Enterprises (Most Restrictive)\n\nIf another enterpri...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 608.939,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": true
+    },
+    {
+      "query": "What about EIC Accelerator? Are the SME requirements different there?",
+      "response": "Company size is **critical for EIC Accelerator eligibility**. The programme is exclusively designed for Small and Medium-sized Enterprises (SMEs).\n\n### SME Definition for EIC Eligibility\n\nTo be eligible for EIC Accelerator, your company must meet the EU SME definition:\n\n| Criterion | Threshold | Your Status |\n|-----------|-----------|-------------|\n| **Employees** | < 250 FTE | Must be under |\n| **Annual turnover** | \u2264 \u20ac50 million | OR under this |\n| **Annual balance sheet** | \u2264 \u20ac43 million | OR...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 663.965,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": true
+    },
+    {
+      "query": "If we don't qualify as an SME due to our parent company, can we still participate in regular RIA projects?",
+      "response": "**Yes, absolutely!** If you don't qualify as an SME due to your parent company, you can **still fully participate** in Horizon Europe collaborative research.\n\n### Non-SME Participation in Horizon Europe\n\n| Action Type | Can Non-SMEs Participate? | Funding Rate | Notes |\n|-------------|---------------------------|--------------|-------|\n| **RIA (Research and Innovation Action)** | \u2705 **Yes** | 100% | Full participation, can coordinate |\n| **IA (Innovation Action)** | \u2705 **Yes** | 70% (or 100% for n...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 4149.885,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 4,
+      "passed": true
+    }
+  ],
+  "scores": {
+    "average_quality": 83.4,
+    "average_factual": 100.0,
+    "goal_progress": 0.98,
+    "context_fields": 4
+  },
+  "failures": [],
+  "metadata": {
+    "scenario_path": "tests/scenarios/advanced/sme_eligibility.yaml",
+    "tags": [
+      "phase8",
+      "eligibility",
+      "sme",
+      "definition",
+      "ownership",
+      "eic",
+      "ria"
+    ],
+    "description": "A company wants to understand SME eligibility for EU funding programmes.\nThe EU SME definition includes employee count, turnover, and ownership rules.\nCompanies linked to large enterprises may not qualify as SME.\nTests SME definition accuracy and ownership rule explanations.\n",
+    "conversation_id": 1573664570
+  },
+  "execution_time_ms": 20072.827,
+  "timestamp": "2026-01-23T12:45:03.543605",
+  "passed": true,
+  "turn_count": 5,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
+}
