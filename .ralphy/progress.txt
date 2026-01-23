@@ -9489,3 +9489,47 @@ All 4 turns passed with consistent quality:
 
 ### Files Modified
 None (scenario passed on first attempt)
+
+## 2026-01-23: Scenario 017 Funding Strategy EXECUTE
+
+### Task
+Scenario 017: Funding Strategy - EXECUTE
+Score: 78.7 (below 80 threshold)
+
+### Scenario Description
+A 6-step strategic planning workflow where a university cybersecurity department seeks help creating a 3-year EU funding strategy combining Horizon Europe and Erasmus+ options:
+1. User requests strategic planning help
+2. User reveals organization and research area (university cybersecurity)
+3. User asks about Horizon Europe options
+4. User asks about Erasmus+ for capacity building
+5. User asks about application sequencing
+6. User asks for a realistic timeline
+
+### Execution Results
+| Turn | Query | Tools Used | Score | Actionability |
+|------|-------|------------|-------|---------------|
+| 0 | Help me plan our research funding strategy for the next 3 years | None | 79 | 4/10 |
+| 1 | We're a university department focusing on cybersecurity | None | 75 | 0/10 |
+| 2 | What Horizon Europe options do we have? | search_funding_calls | 83 | 8/10 |
+| 3 | What about building capacity through Erasmus+? | get_programme_info | 79 | 4/10 |
+| 4 | How should we sequence our applications? | None | 81 | 6/10 |
+| 5 | What's a realistic timeline? | generate_timeline | 75 | 0/10 |
+
+### Quality Scores
+- Average Quality Score: 78.7
+- Average Factual Score: 100.0
+- Goal Progress: 73.9%
+- Context Fields: 3
+- Critical/High/Medium Failures: 0
+
+### Issues Identified
+1. **Low Actionability (Turns 1, 5)**: Responses lack "Next Steps" section
+2. **Turn 5 Issue**: Used `generate_timeline` (single project timeline) instead of providing multi-year strategic application timeline
+3. **Turn 3 Issue**: Generic Erasmus+ info without specific capacity building guidance for cybersecurity
+
+### Status
+- [x] EXECUTE task complete
+- [ ] FIX IF NEEDED task pending (score 78.7 < 80)
+
+### Files Modified
+- docs/prd/MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD_V3.md (marked EXECUTE task complete)

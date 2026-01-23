@@ -1,67 +1,60 @@
 {
   "scenario_name": "Funding Strategy",
   "status": "FAIL",
-  "average_quality_score": 79.33333333333333,
+  "average_quality_score": 78.66666666666667,
   "average_factual_score": 100.0,
   "turns": [
     {
       "query": "Help me plan our research funding strategy for the next 3 years",
-      "response": "A successful 3-year research funding strategy in Horizon Europe (HE) should be balanced, covering both collaborative and individual excellence schemes, and aligning research activities with the EU's strategic priorities (Clusters and Missions).\n\nHere is a recommended framework for your strategy:\n\n---\n\n## 1. Horizon Europe Strategic Framework (2025-2027)\n\nYour strategy should focus on the three pillars of Horizon Europe, balancing risk and scale:\n\n### A. Pillar I: Excellent Science (Continuous & ...",
-      "quality_score": 81,
+      "response": "Developing a 3-year research funding strategy requires aligning your goals (TRL level, research vs. innovation, mobility) with the structure of Horizon Europe. The strategy should address three key areas: Excellent Science, Collaborative Research, and Market Innovation.\n\nHere is a strategic overview of the primary funding pathways for the next three years (2025-2027):\n\n### 1. The Strategy: Aligning with Horizon Europe Pillars\n\nYour 3-year plan should strategically target the three pillars of Hor...",
+      "quality_score": 79,
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 14441.275,
+      "processing_time_ms": 11750.164,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
           "specificity": 25,
           "factual_accuracy": 20,
-          "actionability": 6
+          "actionability": 4
         },
         "feedback": "Quick rule-based evaluation"
       },
       "turn_number": 0,
-      "passed": true
+      "passed": false
     },
     {
       "query": "We're a university department focusing on cybersecurity",
-      "response": "I found **12 funding opportunities** for your query:\n\n**1. Innovative space-based applications enhancing capabilities for a resilient Europe**\n\ud83d\udccb **Call ID:** HORIZON-EUSPA-2026-SPACE-02-52\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 24 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Horizon Europe\n\ud83d\udcb0 **Budget:** EUR 5.0 million\n\n\ud83d\udcdd **Summary:** Expected Outcome: Projects\u2019 results are expected to contribute to some or all of the following outcomes: Foster the development and validation of integrated synergistic space techn...",
-      "quality_score": 83,
+      "response": "That is excellent context. As a **university department** focusing on **cybersecurity**, your primary funding targets will be strategic collaborative research in **Pillar II** (Clusters 3 & 4) and fundamental excellence in **Pillar I** (ERC & MSCA). Your status as a university (HES) makes you eligible for 100% funding on RIA and CSA projects and is ideal for coordinating consortiums. \n\n### Strategic Funding Map for Cybersecurity (2025-2027)\n\n#### 1. Collaborative Research (Pillar II)\n\nCybersecur...",
+      "quality_score": 75,
       "factual_score": 100.0,
       "failures": [],
-      "tools_used": [
-        "search_funding_calls",
-        "search_projects",
-        "search_funding_calls",
-        "search_funding_calls",
-        "search_projects",
-        "get_budget_benchmark",
-        "get_consortium_patterns"
-      ],
-      "processing_time_ms": 31550.788,
+      "tools_used": [],
+      "processing_time_ms": 8113.021,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
           "specificity": 25,
           "factual_accuracy": 20,
-          "actionability": 8
+          "actionability": 0
         },
         "feedback": "Quick rule-based evaluation"
       },
       "turn_number": 1,
-      "passed": true
+      "passed": false
     },
     {
       "query": "What Horizon Europe options do we have?",
-      "response": "I found **9 funding opportunities** for your query:\n\n**1. Generative AI for Cybersecurity applications Call: Increased Cybersecurity Specific conditions Expected EU It is estimated that an EU contribution of...**\n\ud83d\udccb **Call ID:** HORIZON-CL3-2025-02-ECCC-01\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL3\n\ud83d\udcb0 **Budget:** EUR 40.0 million\n\n\ud83d\udcdd **Summary:** a) and the highest ranked proposal addressing expected outcome b), provided that the applications...",
+      "response": "I found **17 funding opportunities** for your query:\n\n**1. Open topic for role of the human factor for resilience of European critical entities**\n\ud83d\udccb **Call ID:** HORIZON-CL3-2025-INFRA-01-02\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL3\n\ud83d\udcb0 **Budget:** EUR 7.0 million\n\n\ud83d\udcdd **Summary:** Projects results are expected to contribute to some or all of the following outcomes: Critical infrastructure is more resilient to natural hazards, intentional and ...",
       "quality_score": 83,
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [
+        "search_funding_calls",
         "search_funding_calls"
       ],
-      "processing_time_ms": 13906.731,
+      "processing_time_ms": 6809.719,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -76,34 +69,14 @@
     },
     {
       "query": "What about building capacity through Erasmus+?",
-      "response": "I found some information but couldn't extract specific details. Please try a more specific question.",
-      "quality_score": 75,
+      "response": "Based on my search for information about 'What about building capacity through Erasmus+?', here's what I found:\n\n**Finding 1:**\n## Erasmus+\n\n**Budget**: \u20ac26.2 billion (2021-2027)\n**Focus**: Education, Training, Youth, Sport\n\n\ud83c\udfaf **Getting Started with Erasmus+:**\n\u2022 Review the [Programme Guide](https://erasmus-plus.ec.europa.eu/programme-guide/introduction)\n\u2022 Check [How to Apply](https://erasmus-plus.ec.europa.eu/how-to-apply)\n\u2022 Find open calls on [EU Portal](https://ec.europa.eu/info/funding-tende...",
+      "quality_score": 79,
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [
         "get_programme_info"
       ],
-      "processing_time_ms": 2546.366,
-      "quality_details": {
-        "dimension_scores": {
-          "query_fulfillment": 30,
-          "specificity": 25,
-          "factual_accuracy": 20,
-          "actionability": 0
-        },
-        "feedback": "Quick rule-based evaluation"
-      },
-      "turn_number": 3,
-      "passed": false
-    },
-    {
-      "query": "How should we sequence our applications?",
-      "response": "Sequencing applications strategically maximizes your chances of success and allows you to build the necessary track record and European network before attempting the largest, most competitive Horizon Europe calls (RIAs and IAs).\n\nFor a university department focusing on cybersecurity, we recommend sequencing your applications across three distinct phases:\n\n---\n\n## Phase 1: Immediate Capacity & Talent Building (MSCA & ERC)\n\n**Goal:** Secure individual excellence grants and internal research capaci...",
-      "quality_score": 79,
-      "factual_score": 100.0,
-      "failures": [],
-      "tools_used": [],
-      "processing_time_ms": 11788.38,
+      "processing_time_ms": 3087.07,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -113,19 +86,39 @@
         },
         "feedback": "Quick rule-based evaluation"
       },
-      "turn_number": 4,
+      "turn_number": 3,
       "passed": false
     },
     {
+      "query": "How should we sequence our applications?",
+      "response": "Sequencing your applications strategically will maximize your department's success, balancing short-term talent acquisition with long-term, high-value collaborative research.\n\nWe recommend a three-phase approach, prioritizing talent and mobility first, followed by large collaborative projects, and finally, fundamental excellence grants.\n\n### Application Sequencing Strategy\n\n| Phase | Goal | Key Programmes | Typical Deadline | Effort/Complexity |\n|---|---|---|---|---|\n| **1: Talent & Mobility** |...",
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 9902.577000000001,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 4,
+      "passed": true
+    },
+    {
       "query": "What's a realistic timeline?",
-      "response": "## Project Timeline Generated\n\n**Project Parameters:**\n- Duration: 42 months\n- Action Type: RIA\n- Partners: 11\n- Total Effort: 480 person-months\n\n### Work Packages\n\n**WP1: Project Management**\n- Lead: P1 | Participants: P2, P3, P4, P5\n- Duration: M1 - M42 (42 months)\n- Effort: 38 person-months\n- Objective: *Ensure efficient coordination, quality management, and timely delivery of project outcomes.*\n- Tasks: Overall project coordination and monitoring; Quality assurance and risk management; Finan...",
+      "response": "## Project Timeline Generated\n\n**Project Parameters:**\n- Duration: 48 months\n- Action Type: RIA\n- Partners: 10\n- Total Effort: 450 person-months\n\n### Work Packages\n\n**WP1: Project Management**\n- Lead: P1 | Participants: P2, P3, P4, P5\n- Duration: M1 - M48 (48 months)\n- Effort: 36 person-months\n- Objective: *Ensure efficient coordination, quality management, and timely delivery of project outcomes.*\n- Tasks: Overall project coordination and monitoring; Quality assurance and risk management; Finan...",
       "quality_score": 75,
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [
         "generate_timeline"
       ],
-      "processing_time_ms": 5900.867,
+      "processing_time_ms": 5433.94,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -140,7 +133,7 @@
     }
   ],
   "scores": {
-    "average_quality": 79.33333333333333,
+    "average_quality": 78.66666666666667,
     "average_factual": 100.0,
     "goal_progress": 0.7385714285714287,
     "context_fields": 3
@@ -158,10 +151,10 @@
       "multi-programme"
     ],
     "description": "A 6-step strategic planning workflow where a university cybersecurity\ndepartment seeks help creating a 3-year EU funding strategy. Tests the\nsystem's ability to provide multi-programme strategic advice, suggest\nlogical application sequencing, and create realistic timelines. The\nconversation builds user context progressively and validates that the\nfinal strategy incorporates both Horizon Europe and Erasmus+ options\nin a coherent multi-year plan.\n",
-    "conversation_id": 1408374732
+    "conversation_id": 1783326325
   },
-  "execution_time_ms": 214771.586,
-  "timestamp": "2026-01-22T16:35:54.690452",
+  "execution_time_ms": 191551.782,
+  "timestamp": "2026-01-23T01:15:51.611497",
   "passed": false,
   "turn_count": 6,
   "critical_failures": 0,

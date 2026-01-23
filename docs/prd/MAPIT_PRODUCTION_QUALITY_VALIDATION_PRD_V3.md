@@ -321,7 +321,7 @@ Run with: `./ralphy.sh --prd docs/prd/MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD_V3
 ### ==========================================================
 
 ### Scenario 017: Funding Strategy
-- [ ] EXECUTE: Run scenario `tests/scenarios/advanced/strategic_planning/funding_strategy.yaml` against the live API. Tests multi-year funding strategy advice. Save result to `tests/quality/results/scenarios/funding_strategy.json`.
+- [x] EXECUTE: Run scenario `tests/scenarios/advanced/strategic_planning/funding_strategy.yaml` against the live API. Tests multi-year funding strategy advice. Save result to `tests/quality/results/scenarios/funding_strategy.json`.
 
 - [ ] FIX IF NEEDED: Read `tests/quality/results/scenarios/funding_strategy.json`. If average_score < 80:
   1. ONLY modify files in `app/` directory
