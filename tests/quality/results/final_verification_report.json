@@ -1,0 +1,698 @@
+{
+  "verification_run": {
+    "timestamp": "2026-01-23T17:48:21.688712",
+    "pass_threshold": 80,
+    "production_ready_threshold": 0.8
+  },
+  "summary": {
+    "total_scenarios": 42,
+    "passed": 23,
+    "failed": 19,
+    "errors": 0,
+    "pass_rate": "54.8%",
+    "avg_quality_score": 82.0,
+    "avg_factual_score": 97.9,
+    "production_ready": false
+  },
+  "phase_results": {
+    "Phase 2: Multi-Programme Navigation": {
+      "total": 4,
+      "passed": 3,
+      "failed": 1,
+      "error": 0,
+      "pass_rate": "75.0%",
+      "avg_quality_score": 82.91666666666667,
+      "avg_factual_score": 95.83333333333333
+    },
+    "Phase 3: Proposal Workflow": {
+      "total": 4,
+      "passed": 0,
+      "failed": 4,
+      "error": 0,
+      "pass_rate": "0.0%",
+      "avg_quality_score": 78.36666666666667,
+      "avg_factual_score": 100.0
+    },
+    "Phase 4: Partner Discovery": {
+      "total": 4,
+      "passed": 0,
+      "failed": 4,
+      "error": 0,
+      "pass_rate": "0.0%",
+      "avg_quality_score": 78.19999999999999,
+      "avg_factual_score": 97.5
+    },
+    "Phase 5: Personalization": {
+      "total": 4,
+      "passed": 1,
+      "failed": 3,
+      "error": 0,
+      "pass_rate": "25.0%",
+      "avg_quality_score": 81.95,
+      "avg_factual_score": 98.95833333333333
+    },
+    "Phase 6: Strategic Planning": {
+      "total": 4,
+      "passed": 1,
+      "failed": 3,
+      "error": 0,
+      "pass_rate": "25.0%",
+      "avg_quality_score": 82.06666666666666,
+      "avg_factual_score": 97.91666666666667
+    },
+    "Phase 7: Comparisons": {
+      "total": 4,
+      "passed": 2,
+      "failed": 2,
+      "error": 0,
+      "pass_rate": "50.0%",
+      "avg_quality_score": 81.65,
+      "avg_factual_score": 98.95833333333333
+    },
+    "Phase 8: Deadline Management": {
+      "total": 4,
+      "passed": 2,
+      "failed": 2,
+      "error": 0,
+      "pass_rate": "50.0%",
+      "avg_quality_score": 82.6,
+      "avg_factual_score": 90.83333333333333
+    },
+    "Phase 9: Complex Eligibility": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "error": 0,
+      "pass_rate": "100.0%",
+      "avg_quality_score": 83.9,
+      "avg_factual_score": 100.0
+    },
+    "Phase 10: Erasmus+ Specific": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "error": 0,
+      "pass_rate": "100.0%",
+      "avg_quality_score": 83.39999999999999,
+      "avg_factual_score": 100.0
+    },
+    "Phase 11: Creative Europe Specific": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "error": 0,
+      "pass_rate": "100.0%",
+      "avg_quality_score": 82.46666666666667,
+      "avg_factual_score": 100.0
+    },
+    "Phase 12: Error Handling": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "error": 0,
+      "pass_rate": "100.0%",
+      "avg_quality_score": 84.675,
+      "avg_factual_score": 97.5
+    }
+  },
+  "scenario_results": [
+    {
+      "scenario_num": "001",
+      "scenario_name": "programme_discovery",
+      "phase": "Phase 2: Multi-Programme Navigation",
+      "status": "PASS",
+      "quality_score": 83.66666666666667,
+      "factual_score": 83.33333333333333,
+      "turn_count": 3,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "002",
+      "scenario_name": "programme_comparison",
+      "phase": "Phase 2: Multi-Programme Navigation",
+      "status": "PASS",
+      "quality_score": 82.0,
+      "factual_score": 100.0,
+      "turn_count": 4,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "003",
+      "scenario_name": "programme_recommendation",
+      "phase": "Phase 2: Multi-Programme Navigation",
+      "status": "PASS",
+      "quality_score": 83.0,
+      "factual_score": 100.0,
+      "turn_count": 3,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "004",
+      "scenario_name": "eligibility_routing",
+      "phase": "Phase 2: Multi-Programme Navigation",
+      "status": "FAIL",
+      "quality_score": 83.0,
+      "factual_score": 100.0,
+      "turn_count": 4,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "005",
+      "scenario_name": "full_proposal_journey",
+      "phase": "Phase 3: Proposal Workflow",
+      "status": "FAIL",
+      "quality_score": 79.8,
+      "factual_score": 100.0,
+      "turn_count": 15,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "006",
+      "scenario_name": "budget_iteration",
+      "phase": "Phase 3: Proposal Workflow",
+      "status": "FAIL",
+      "quality_score": 78.2,
+      "factual_score": 100.0,
+      "turn_count": 5,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "007",
+      "scenario_name": "timeline_refinement",
+      "phase": "Phase 3: Proposal Workflow",
+      "status": "FAIL",
+      "quality_score": 77.8,
+      "factual_score": 100.0,
+      "turn_count": 5,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "008",
+      "scenario_name": "consortium_building",
+      "phase": "Phase 3: Proposal Workflow",
+      "status": "FAIL",
+      "quality_score": 77.66666666666667,
+      "factual_score": 100.0,
+      "turn_count": 6,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "009",
+      "scenario_name": "partner_search_refinement",
+      "phase": "Phase 4: Partner Discovery",
+      "status": "FAIL",
+      "quality_score": 78.6,
+      "factual_score": 100.0,
+      "turn_count": 5,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "010",
+      "scenario_name": "partner_comparison",
+      "phase": "Phase 4: Partner Discovery",
+      "status": "FAIL",
+      "quality_score": 80.6,
+      "factual_score": 90.0,
+      "turn_count": 5,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "011",
+      "scenario_name": "network_exploration",
+      "phase": "Phase 4: Partner Discovery",
+      "status": "FAIL",
+      "quality_score": 77.0,
+      "factual_score": 100.0,
+      "turn_count": 5,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "012",
+      "scenario_name": "organization_deep_dive",
+      "phase": "Phase 4: Partner Discovery",
+      "status": "FAIL",
+      "quality_score": 76.6,
+      "factual_score": 100.0,
+      "turn_count": 5,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "013",
+      "scenario_name": "user_context_learning",
+      "phase": "Phase 5: Personalization",
+      "status": "FAIL",
+      "quality_score": 81.8,
+      "factual_score": 100.0,
+      "turn_count": 5,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "014",
+      "scenario_name": "returning_user_context",
+      "phase": "Phase 5: Personalization",
+      "status": "FAIL",
+      "quality_score": 81.0,
+      "factual_score": 100.0,
+      "turn_count": 4,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "015",
+      "scenario_name": "progressive_profile",
+      "phase": "Phase 5: Personalization",
+      "status": "FAIL",
+      "quality_score": 81.5,
+      "factual_score": 95.83333333333333,
+      "turn_count": 12,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "016",
+      "scenario_name": "preference_filtering",
+      "phase": "Phase 5: Personalization",
+      "status": "PASS",
+      "quality_score": 83.5,
+      "factual_score": 100.0,
+      "turn_count": 4,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "017",
+      "scenario_name": "funding_strategy",
+      "phase": "Phase 6: Strategic Planning",
+      "status": "FAIL",
+      "quality_score": 81.0,
+      "factual_score": 91.66666666666667,
+      "turn_count": 6,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "018",
+      "scenario_name": "portfolio_planning",
+      "phase": "Phase 6: Strategic Planning",
+      "status": "FAIL",
+      "quality_score": 81.66666666666667,
+      "factual_score": 100.0,
+      "turn_count": 6,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "019",
+      "scenario_name": "capacity_building",
+      "phase": "Phase 6: Strategic Planning",
+      "status": "FAIL",
+      "quality_score": 82.2,
+      "factual_score": 100.0,
+      "turn_count": 5,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "020",
+      "scenario_name": "risk_assessment",
+      "phase": "Phase 6: Strategic Planning",
+      "status": "PASS",
+      "quality_score": 83.4,
+      "factual_score": 100.0,
+      "turn_count": 5,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "021",
+      "scenario_name": "funding_type_comparison",
+      "phase": "Phase 7: Comparisons",
+      "status": "PASS",
+      "quality_score": 83.8,
+      "factual_score": 100.0,
+      "turn_count": 5,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "022",
+      "scenario_name": "success_rate_analysis",
+      "phase": "Phase 7: Comparisons",
+      "status": "FAIL",
+      "quality_score": 80.0,
+      "factual_score": 95.83333333333333,
+      "turn_count": 6,
+      "critical_failures": 2,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "023",
+      "scenario_name": "budget_comparison",
+      "phase": "Phase 7: Comparisons",
+      "status": "FAIL",
+      "quality_score": 80.6,
+      "factual_score": 100.0,
+      "turn_count": 5,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "024",
+      "scenario_name": "timeline_comparison",
+      "phase": "Phase 7: Comparisons",
+      "status": "PASS",
+      "quality_score": 82.2,
+      "factual_score": 100.0,
+      "turn_count": 5,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "025",
+      "scenario_name": "urgent_deadline",
+      "phase": "Phase 8: Deadline Management",
+      "status": "FAIL",
+      "quality_score": 83.0,
+      "factual_score": 90.0,
+      "turn_count": 5,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "026",
+      "scenario_name": "deadline_tracking",
+      "phase": "Phase 8: Deadline Management",
+      "status": "PASS",
+      "quality_score": 82.6,
+      "factual_score": 100.0,
+      "turn_count": 5,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "027",
+      "scenario_name": "call_opening_alert",
+      "phase": "Phase 8: Deadline Management",
+      "status": "FAIL",
+      "quality_score": 81.0,
+      "factual_score": 73.33333333333333,
+      "turn_count": 5,
+      "critical_failures": 1,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "028",
+      "scenario_name": "multi_call_timeline",
+      "phase": "Phase 8: Deadline Management",
+      "status": "PASS",
+      "quality_score": 83.8,
+      "factual_score": 100.0,
+      "turn_count": 5,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "029",
+      "scenario_name": "multi_factor_eligibility",
+      "phase": "Phase 9: Complex Eligibility",
+      "status": "PASS",
+      "quality_score": 84.6,
+      "factual_score": 100.0,
+      "turn_count": 5,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "030",
+      "scenario_name": "sme_eligibility",
+      "phase": "Phase 9: Complex Eligibility",
+      "status": "PASS",
+      "quality_score": 83.4,
+      "factual_score": 100.0,
+      "turn_count": 5,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "031",
+      "scenario_name": "consortium_eligibility",
+      "phase": "Phase 9: Complex Eligibility",
+      "status": "PASS",
+      "quality_score": 83.8,
+      "factual_score": 100.0,
+      "turn_count": 5,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "032",
+      "scenario_name": "cross_programme_eligibility",
+      "phase": "Phase 9: Complex Eligibility",
+      "status": "PASS",
+      "quality_score": 83.8,
+      "factual_score": 100.0,
+      "turn_count": 5,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "033",
+      "scenario_name": "erasmus_action_selection",
+      "phase": "Phase 10: Erasmus+ Specific",
+      "status": "PASS",
+      "quality_score": 83.0,
+      "factual_score": 100.0,
+      "turn_count": 5,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "034",
+      "scenario_name": "erasmus_budget_calculation",
+      "phase": "Phase 10: Erasmus+ Specific",
+      "status": "PASS",
+      "quality_score": 83.4,
+      "factual_score": 100.0,
+      "turn_count": 5,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "035",
+      "scenario_name": "erasmus_accreditation",
+      "phase": "Phase 10: Erasmus+ Specific",
+      "status": "PASS",
+      "quality_score": 83.8,
+      "factual_score": 100.0,
+      "turn_count": 5,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "036",
+      "scenario_name": "creative_europe_strand",
+      "phase": "Phase 11: Creative Europe Specific",
+      "status": "PASS",
+      "quality_score": 83.0,
+      "factual_score": 100.0,
+      "turn_count": 5,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "037",
+      "scenario_name": "creative_europe_eligibility",
+      "phase": "Phase 11: Creative Europe Specific",
+      "status": "PASS",
+      "quality_score": 83.4,
+      "factual_score": 100.0,
+      "turn_count": 5,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "038",
+      "scenario_name": "creative_europe_cooperation",
+      "phase": "Phase 11: Creative Europe Specific",
+      "status": "PASS",
+      "quality_score": 81.0,
+      "factual_score": 100.0,
+      "turn_count": 5,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "039",
+      "scenario_name": "conflicting_requirements",
+      "phase": "Phase 12: Error Handling",
+      "status": "PASS",
+      "quality_score": 84.2,
+      "factual_score": 90.0,
+      "turn_count": 5,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "040",
+      "scenario_name": "outdated_information",
+      "phase": "Phase 12: Error Handling",
+      "status": "PASS",
+      "quality_score": 85.0,
+      "factual_score": 100.0,
+      "turn_count": 4,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "041",
+      "scenario_name": "ambiguous_programme",
+      "phase": "Phase 12: Error Handling",
+      "status": "PASS",
+      "quality_score": 84.5,
+      "factual_score": 100.0,
+      "turn_count": 4,
+      "critical_failures": 0,
+      "high_failures": 0
+    },
+    {
+      "scenario_num": "042",
+      "scenario_name": "out_of_scope",
+      "phase": "Phase 12: Error Handling",
+      "status": "PASS",
+      "quality_score": 85.0,
+      "factual_score": 100.0,
+      "turn_count": 4,
+      "critical_failures": 0,
+      "high_failures": 0
+    }
+  ],
+  "failing_scenarios": [
+    {
+      "scenario_num": "004",
+      "scenario_name": "eligibility_routing",
+      "quality_score": 83.0,
+      "status": "FAIL"
+    },
+    {
+      "scenario_num": "005",
+      "scenario_name": "full_proposal_journey",
+      "quality_score": 79.8,
+      "status": "FAIL"
+    },
+    {
+      "scenario_num": "006",
+      "scenario_name": "budget_iteration",
+      "quality_score": 78.2,
+      "status": "FAIL"
+    },
+    {
+      "scenario_num": "007",
+      "scenario_name": "timeline_refinement",
+      "quality_score": 77.8,
+      "status": "FAIL"
+    },
+    {
+      "scenario_num": "008",
+      "scenario_name": "consortium_building",
+      "quality_score": 77.66666666666667,
+      "status": "FAIL"
+    },
+    {
+      "scenario_num": "009",
+      "scenario_name": "partner_search_refinement",
+      "quality_score": 78.6,
+      "status": "FAIL"
+    },
+    {
+      "scenario_num": "010",
+      "scenario_name": "partner_comparison",
+      "quality_score": 80.6,
+      "status": "FAIL"
+    },
+    {
+      "scenario_num": "011",
+      "scenario_name": "network_exploration",
+      "quality_score": 77.0,
+      "status": "FAIL"
+    },
+    {
+      "scenario_num": "012",
+      "scenario_name": "organization_deep_dive",
+      "quality_score": 76.6,
+      "status": "FAIL"
+    },
+    {
+      "scenario_num": "013",
+      "scenario_name": "user_context_learning",
+      "quality_score": 81.8,
+      "status": "FAIL"
+    },
+    {
+      "scenario_num": "014",
+      "scenario_name": "returning_user_context",
+      "quality_score": 81.0,
+      "status": "FAIL"
+    },
+    {
+      "scenario_num": "015",
+      "scenario_name": "progressive_profile",
+      "quality_score": 81.5,
+      "status": "FAIL"
+    },
+    {
+      "scenario_num": "017",
+      "scenario_name": "funding_strategy",
+      "quality_score": 81.0,
+      "status": "FAIL"
+    },
+    {
+      "scenario_num": "018",
+      "scenario_name": "portfolio_planning",
+      "quality_score": 81.66666666666667,
+      "status": "FAIL"
+    },
+    {
+      "scenario_num": "019",
+      "scenario_name": "capacity_building",
+      "quality_score": 82.2,
+      "status": "FAIL"
+    },
+    {
+      "scenario_num": "022",
+      "scenario_name": "success_rate_analysis",
+      "quality_score": 80.0,
+      "status": "FAIL"
+    },
+    {
+      "scenario_num": "023",
+      "scenario_name": "budget_comparison",
+      "quality_score": 80.6,
+      "status": "FAIL"
+    },
+    {
+      "scenario_num": "025",
+      "scenario_name": "urgent_deadline",
+      "quality_score": 83.0,
+      "status": "FAIL"
+    },
+    {
+      "scenario_num": "027",
+      "scenario_name": "call_opening_alert",
+      "quality_score": 81.0,
+      "status": "FAIL"
+    }
+  ]
+}
