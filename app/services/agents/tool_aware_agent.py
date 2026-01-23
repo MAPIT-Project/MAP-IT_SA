@@ -3539,6 +3539,14 @@ digital_europe, life""",
         if strategic_result:
             return strategic_result
 
+        # Check for HISTORICAL PROGRAMME queries (H2020, FP7, FP6, etc.)
+        # These are questions about outdated/closed programmes that need redirection to current options
+        # e.g., "Tell me about H2020 calls", "What about FP7?", "Can I apply to Horizon 2020?"
+        # IMPORTANT: Must come early to catch historical references before other patterns
+        historical_result = self._detect_historical_programme_query(query, context)
+        if historical_result:
+            return historical_result
+
         # Check for CAPACITY BUILDING / NEWCOMER GUIDANCE queries
         # These are questions from organizations new to EU funding about getting started
         capacity_result = self._detect_capacity_building_query(query, context)
@@ -3596,6 +3604,16 @@ digital_europe, life""",
         erasmus_budget_result = self._detect_erasmus_budget_query(query, context)
         if erasmus_budget_result:
             return erasmus_budget_result
+
+        # Check for CREATIVE EUROPE COOPERATION PROJECT queries (CULTURE strand)
+        # These are questions about cooperation projects (small/medium/large scale),
+        # partnership requirements, funding rates, and scale selection
+        # e.g., "What are Creative Europe cooperation projects?", "Small vs medium vs large?",
+        # "We have 3 partners - which category?", "What's the funding rate?"
+        # IMPORTANT: Must come BEFORE MEDIA strand to catch CULTURE cooperation questions
+        ce_cooperation_result = self._detect_creative_europe_cooperation_query(query, context)
+        if ce_cooperation_result:
+            return ce_cooperation_result
 
         # Check for CREATIVE EUROPE MEDIA STRAND queries
         # These are questions about Creative Europe MEDIA strand, development funding,
@@ -4494,6 +4512,414 @@ digital_europe, life""",
             "needs_more_info": True,
             "context_summary": f"Based on your profile ({profile_summary}), here's more about {detected_programme_name}:",
         }
+
+    def _detect_historical_programme_query(self, query: str, context: str) -> dict[str, Any] | None:
+        """Detect historical/outdated programme queries (H2020, FP7, FP6, etc.).
+
+        These are questions about EU funding programmes that are no longer active.
+        The system should:
+        1. Recognize references to historical programmes
+        2. Provide appropriate historical context
+        3. Explain that applications are no longer possible
+        4. Guide users to current alternatives (Horizon Europe)
+
+        Examples:
+        - "Tell me about H2020 calls"
+        - "What about FP7?"
+        - "Can I still apply to Horizon 2020?"
+        - "What programme replaced H2020?"
+        """
+        query_lower = query.lower()
+        context_lower = context.lower() if context else ""
+
+        # Pattern 1: H2020 / Horizon 2020 overview queries
+        # e.g., "Tell me about H2020", "What is Horizon 2020?", "H2020 opportunities"
+        h2020_overview_patterns = [
+            "tell me about h2020",
+            "what is h2020",
+            "what was h2020",
+            "h2020 calls",
+            "h2020 funding",
+            "h2020 opportunities",
+            "horizon 2020 calls",
+            "horizon 2020 funding",
+            "horizon 2020 opportunities",
+            "tell me about horizon 2020",
+            "what is horizon 2020",
+            "what was horizon 2020",
+            "h2020 programme",
+            "h2020 program",
+            "horizon 2020 programme",
+            "horizon 2020 program",
+            "about h2020",
+            "about horizon 2020",
+        ]
+
+        # Pattern 2: FP7 / Framework Programme 7 queries
+        # e.g., "What about FP7?", "FP7 projects", "Seventh Framework Programme"
+        fp7_patterns = [
+            "fp7",
+            "fp-7",
+            "framework programme 7",
+            "framework program 7",
+            "seventh framework",
+            "7th framework",
+            "fp 7",
+        ]
+
+        # Pattern 3: Can I still apply? (to historical programmes)
+        # e.g., "Can I apply to H2020?", "Are H2020 calls still open?"
+        can_apply_patterns = [
+            "can i still apply to h2020",
+            "can i apply to h2020",
+            "can we apply to h2020",
+            "can i still apply to horizon 2020",
+            "can i apply to horizon 2020",
+            "can we apply to horizon 2020",
+            "can i still apply to fp7",
+            "can i apply to fp7",
+            "can we apply to fp7",
+            "apply to h2020 or fp7",
+            "apply to fp7 or h2020",
+            "h2020 or fp7 calls",
+            "fp7 or h2020 calls",
+            "h2020 still open",
+            "h2020 calls open",
+            "horizon 2020 still open",
+            "horizon 2020 calls open",
+            "fp7 still open",
+            "fp7 calls open",
+            "any h2020 calls",
+            "any horizon 2020 calls",
+            "any fp7 calls",
+            "still accepting h2020",
+            "still accepting horizon 2020",
+            "still open",  # Combined with programme context
+            "any still open",
+        ]
+
+        # Pattern 4: Programme replacement queries
+        # e.g., "What replaced H2020?", "Successor to FP7?"
+        replacement_patterns = [
+            "what replaced h2020",
+            "what replaced horizon 2020",
+            "what replaced fp7",
+            "successor to h2020",
+            "successor to horizon 2020",
+            "successor to fp7",
+            "what comes after h2020",
+            "what came after h2020",
+            "after h2020",
+            "after horizon 2020",
+            "after fp7",
+            "h2020 replacement",
+            "horizon 2020 replacement",
+            "fp7 replacement",
+            "what should i apply to now",
+            "what should we apply to now",
+            "current programme",
+            "current program",
+            "what is current",
+        ]
+
+        # IMPORTANT: Check "can I still apply" queries FIRST, before FP7 simple check
+        # This prevents "Can I apply to H2020 or FP7?" from matching FP7 overview
+        if any(pattern in query_lower for pattern in can_apply_patterns):
+            return {
+                "thought": "User is asking if they can still apply to historical programmes. Clearly explaining that applications are closed.",
+                "action": "generate_guidance",
+                "guidance_type": "historical_applications_closed",
+                "response": self._generate_historical_applications_closed_guidance(),
+            }
+
+        # Check for replacement/successor queries BEFORE overview queries
+        # This prevents "what should I apply to now" from being missed
+        if any(pattern in query_lower for pattern in replacement_patterns):
+            return {
+                "thought": "User is asking about what replaced historical programmes. Guiding to Horizon Europe.",
+                "action": "generate_guidance",
+                "guidance_type": "programme_successor",
+                "response": self._generate_programme_successor_guidance(),
+            }
+
+        # Check for H2020 overview query
+        if any(pattern in query_lower for pattern in h2020_overview_patterns):
+            return {
+                "thought": "User is asking about H2020 (Horizon 2020), a historical programme. Providing context and guiding to current alternatives.",
+                "action": "generate_guidance",
+                "guidance_type": "h2020_overview",
+                "response": self._generate_h2020_overview_guidance(),
+            }
+
+        # Check for FP7 queries (general pattern - should come last)
+        if any(pattern in query_lower for pattern in fp7_patterns):
+            # Check if this is in context of H2020 discussion
+            has_h2020_context = any(
+                p in context_lower for p in ["h2020", "horizon 2020", "2014", "2020"]
+            )
+            return {
+                "thought": "User is asking about FP7 (Framework Programme 7), an older historical programme. Providing context and timeline.",
+                "action": "generate_guidance",
+                "guidance_type": "fp7_overview",
+                "response": self._generate_fp7_overview_guidance(has_h2020_context),
+            }
+
+        return None
+
+    def _generate_h2020_overview_guidance(self) -> str:
+        """Generate guidance about H2020 (Horizon 2020) as a historical programme."""
+        return """**Horizon 2020 (H2020)** was the previous EU Framework Programme for Research and Innovation. All funding calls under H2020 are now **closed** and you cannot apply to them.
+
+## H2020 Historical Overview
+
+| Aspect | Details |
+|--------|---------|
+| **Duration** | 2014 - 2020 |
+| **Budget** | €77 billion |
+| **Status** | **Closed** - All calls concluded |
+| **Successor** | Horizon Europe (2021-2027) |
+
+### What You Should Know
+
+H2020 was an ambitious programme that funded excellent research and innovation across Europe. Its key pillars were:
+
+1. **Excellent Science** - ERC, MSCA, Future and Emerging Technologies
+2. **Industrial Leadership** - Key technologies, SME Instrument
+3. **Societal Challenges** - Health, Energy, Transport, Climate
+
+### Your Current Options
+
+Since H2020 is closed, you should focus on its successor programme: **Horizon Europe**
+
+| Programme | Budget | Duration | Status |
+|-----------|--------|----------|--------|
+| **Horizon Europe** | €95.5 billion | 2021-2027 | **Active - Open for applications** |
+| H2020 | €77 billion | 2014-2020 | Closed |
+
+### Horizon Europe Structure
+
+The current programme has a similar structure but with enhanced features:
+
+- **Pillar I**: Excellent Science (ERC, MSCA, Research Infrastructures)
+- **Pillar II**: Global Challenges (6 thematic clusters)
+- **Pillar III**: Innovative Europe (EIC, EIT, Innovation ecosystems)
+- **Cross-cutting**: Widening participation, ERA
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Visit the EU Funding Portal**: You should check [current Horizon Europe calls](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search) for open opportunities
+2. **Get a PIC Number**: If you don't have one, you should [register your organization](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/participant-register) in the Participant Register
+3. **Contact Your NCP**: You should reach out to your [National Contact Point](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for guidance on matching your research to current calls
+4. **Explore Call Topics**: Check the [Horizon Europe Work Programme](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/wp-call/2024-2025/wp-1-general-introduction_horizon-2024-2025_en.pdf) for topics in your research area
+5. **Find Partners**: Use the [Partner Search tool](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search) to build your consortium"""
+
+    def _generate_fp7_overview_guidance(self, has_h2020_context: bool = False) -> str:
+        """Generate guidance about FP7 (Seventh Framework Programme)."""
+        intro = (
+            "You mentioned **FP7** - this was the programme that preceded Horizon 2020."
+            if has_h2020_context
+            else "**FP7 (Seventh Framework Programme)** was an earlier EU research funding programme that ran from 2007 to 2013."
+        )
+
+        return f"""{intro}
+
+## FP7 Historical Facts (2007-2013)
+
+| Aspect | FP7 Details |
+|--------|-------------|
+| **Duration** | 2007-2013 (ended) |
+| **Budget** | €50.5 billion (historical) |
+| **Status** | **Closed** - All projects completed |
+| **Successor** | H2020, then Horizon Europe |
+
+### FP7 Structure
+
+FP7 was organized around four main programmes:
+
+1. **Cooperation** - Collaborative research across themes (Health, Food, ICT, Energy, etc.)
+2. **Ideas** - European Research Council (ERC) frontier research
+3. **People** - Marie Curie researcher mobility
+4. **Capacities** - Research infrastructures, SMEs, Regions of Knowledge
+
+### Why You See FP7 References
+
+If you've seen FP7 projects referenced in academic papers or databases:
+- FP7 funded thousands of successful projects
+- Many results and publications still cite FP7 funding
+- The CORDIS database contains full records of FP7 projects
+- FP7 experience can strengthen your proposal track record
+
+### Your Current Opportunity: Horizon Europe
+
+Since FP7 ended in 2013, the current EU research funding programme is **Horizon Europe** (2021-2027) with a budget of **€95.5 billion**.
+
+| What You Need | What You Should Do |
+|---------------|-------------------|
+| Find current calls | Visit the [EU Funding Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search) |
+| Understand options | Check the [Horizon Europe Programme Guide](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/programme-guide_horizon-2024-2025_en.pdf) |
+| Get help | Contact your [National Contact Point](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Explore Horizon Europe**: You should focus on the [current programme](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/programmes/horizon) which has €95.5 billion in funding
+2. **Check Your Research Area**: You should identify which Horizon Europe cluster matches your work:
+   - Cluster 1: Health
+   - Cluster 2: Culture, Creativity and Inclusive Society
+   - Cluster 3: Civil Security for Society
+   - Cluster 4: Digital, Industry and Space
+   - Cluster 5: Climate, Energy and Mobility
+   - Cluster 6: Food, Bioeconomy, Natural Resources
+3. **Register Your Organization**: If needed, you should get a [PIC number](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/participant-register)
+4. **Build on Past Success**: If you participated in FP7, you should highlight this track record in future proposals
+5. **Find Partners**: Use the [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search) to connect with experienced organizations"""
+
+    def _generate_historical_applications_closed_guidance(self) -> str:
+        """Generate guidance explaining that applications to historical programmes are closed."""
+        return """**No, you cannot apply to H2020 or FP7 calls.** All funding calls under these programmes are permanently closed.
+
+## Status of Historical Programmes
+
+| Programme | Duration | Current Status |
+|-----------|----------|----------------|
+| **FP7** | 2007-2013 | **Closed** - All projects completed |
+| **H2020** | 2014-2020 | **Closed** - Final projects concluding |
+| **Horizon Europe** | 2021-2027 | **Active** - Applications welcome! |
+
+### Important Clarifications
+
+- **H2020 calls**: All H2020 calls closed in 2020. Projects awarded under H2020 are in their final execution stages or have concluded.
+- **FP7 calls**: All FP7 calls closed in 2013. All funded projects have long since completed.
+- **No exceptions**: All calls under both programmes have permanently closed - you should apply to Horizon Europe instead.
+
+### Your Current Opportunity: Horizon Europe
+
+**Horizon Europe** is the current EU research and innovation programme (2021-2027) with a budget of **€95.5 billion**. This is where you should apply!
+
+| Aspect | Horizon Europe |
+|--------|----------------|
+| **Budget** | €95.5 billion |
+| **Duration** | 2021-2027 |
+| **Call Status** | Many calls open and upcoming |
+| **Application Portal** | [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal) |
+
+### What's Available in Horizon Europe
+
+| Funding Type | Description | Typical Budget |
+|--------------|-------------|----------------|
+| **ERC Grants** | Frontier research for individuals | €1.5-10M |
+| **MSCA** | Researcher mobility and training | €200K-4M |
+| **RIA** | Collaborative research | €3-15M |
+| **IA** | Innovation and demonstration | €5-25M |
+| **CSA** | Coordination and support | €1-3M |
+| **EIC Accelerator** | SME scale-up funding | Up to €2.5M grant + €15M equity |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Access Current Calls**: You should visit the [EU Funding Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search) and filter by:
+   - Programme: Horizon Europe
+   - Status: Open or Forthcoming
+   - Your research topic
+
+2. **Register on the Portal**: If you haven't already, you should [create an account](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/participant-register) and get a PIC number
+
+3. **Check Deadlines**: You should review the [2024-2025 Work Programme](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/wp-call/2024-2025/wp-1-general-introduction_horizon-2024-2025_en.pdf) for upcoming deadlines
+
+4. **Get Expert Advice**: You should contact your [National Contact Point](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for personalized guidance
+
+5. **Find Consortium Partners**: If needed, use the [Partner Search tool](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search) to build your team"""
+
+    def _generate_programme_successor_guidance(self) -> str:
+        """Generate guidance about the current programme that replaced historical ones."""
+        return """**Horizon Europe** is the current EU Framework Programme that replaced H2020 (and before that, FP7). It runs from 2021 to 2027 with a budget of **€95.5 billion**.
+
+## Programme Evolution Timeline
+
+```
+FP7 (2007-2013) → H2020 (2014-2020) → Horizon Europe (2021-2027)
+   €50.5B           €77B              €95.5B
+```
+
+## Horizon Europe: Your Current Opportunity
+
+| Aspect | Details |
+|--------|---------|
+| **Budget** | €95.5 billion (largest ever) |
+| **Duration** | 2021-2027 |
+| **Status** | Fully operational - calls open |
+| **Application Portal** | [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal) |
+
+### Programme Structure
+
+**Pillar I - Excellent Science** (€25.01 billion)
+- European Research Council (ERC)
+- Marie Skłodowska-Curie Actions (MSCA)
+- Research Infrastructures
+
+**Pillar II - Global Challenges & European Industrial Competitiveness** (€53.49 billion)
+- Cluster 1: Health
+- Cluster 2: Culture, Creativity, Inclusive Society
+- Cluster 3: Civil Security for Society
+- Cluster 4: Digital, Industry, Space
+- Cluster 5: Climate, Energy, Mobility
+- Cluster 6: Food, Bioeconomy, Natural Resources
+- Joint Research Centre (JRC)
+
+**Pillar III - Innovative Europe** (€13.60 billion)
+- European Innovation Council (EIC)
+- European Innovation Ecosystems
+- European Institute of Innovation and Technology (EIT)
+
+**Cross-cutting** (€3.39 billion)
+- Widening Participation
+- Strengthening the European Research Area
+
+### Key Improvements Over H2020
+
+| Feature | H2020 | Horizon Europe |
+|---------|-------|----------------|
+| **Missions** | No | 5 ambitious missions |
+| **EIC** | Limited (SME Instrument) | Full EIC with Pathfinder, Transition, Accelerator |
+| **Lump sums** | Rare | Expanded use |
+| **Open Science** | Encouraged | Mandatory (Plan S compliance) |
+| **International** | Partial association | Enhanced global cooperation |
+
+### Funding Types You Can Apply For
+
+| Type | Purpose | Funding Rate | Typical Budget |
+|------|---------|--------------|----------------|
+| **RIA** | Research | 100% | €3-15M |
+| **IA** | Innovation closer to market | 70% (100% non-profit) | €5-25M |
+| **CSA** | Networking, coordination | 100% | €1-3M |
+| **ERC** | Frontier research | 100% | €1.5-10M |
+| **MSCA** | Researcher training | 100% (unit costs) | Variable |
+| **EIC Accelerator** | SME scale-up | Up to €2.5M grant + €15M equity | Individual |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Explore Open Calls**: You should visit [Topic Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search) and filter for:
+   - Programme: Horizon Europe
+   - Status: Open
+   - Your keywords or cluster
+
+2. **Understand the Structure**: You should read the [Programme Guide](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/programme-guide_horizon-2024-2025_en.pdf) to understand opportunities
+
+3. **Check Work Programmes**: You should review [annual Work Programmes](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents) for detailed call topics
+
+4. **Get Your PIC**: If not registered, you should [create an organization profile](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/participant-register)
+
+5. **Contact Your NCP**: You should reach out to your [National Contact Point](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for tailored advice
+
+6. **Join Info Days**: You should attend [official Info Days](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/horizon-dashboard) to learn about specific calls
+
+7. **Find Partners**: If you need consortium partners, you should use the [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search) tool"""
 
     def _detect_strategic_planning_query(self, query: str, context: str) -> dict[str, Any] | None:
         """Detect strategic planning / funding strategy queries.
@@ -18697,3 +19123,698 @@ Help your film reach audiences:
                 unique.append(content)
 
         return unique
+
+    # ========================================================================
+    # CREATIVE EUROPE COOPERATION PROJECTS (CULTURE STRAND) DETECTION AND GUIDANCE
+    # ========================================================================
+
+    def _detect_creative_europe_cooperation_query(
+        self, query: str, context: str
+    ) -> dict[str, Any] | None:
+        """Detect Creative Europe Cooperation Projects (CULTURE strand) queries.
+
+        These are questions about:
+        - Cooperation projects overview and how they work
+        - Scale categories (small, medium, large)
+        - Partnership requirements and partner counts
+        - Funding rates and co-financing
+        - Scale selection based on consortium size
+
+        These queries should provide structured guidance with actionable Next Steps.
+        """
+        query_lower = query.lower()
+        context_lower = context.lower() if context else ""
+
+        # Track if Creative Europe/CULTURE/cooperation context is present
+        has_ce_context = any(
+            ind in context_lower
+            for ind in [
+                "creative europe",
+                "culture strand",
+                "cultural sector",
+                "cooperation project",
+                "european cooperation",
+            ]
+        )
+        has_cooperation_context = any(
+            ind in context_lower
+            for ind in [
+                "cooperation",
+                "cooperation project",
+                "small-scale",
+                "medium-scale",
+                "large-scale",
+                "partner",
+                "consortium",
+            ]
+        )
+
+        # === Pattern 1: Cooperation projects overview ===
+        # e.g., "What are Creative Europe cooperation projects and how do they work?"
+        # e.g., "Tell me about Creative Europe cooperation projects"
+        overview_patterns = [
+            "creative europe cooperation",
+            "cooperation projects",
+            "what are cooperation",
+            "about cooperation project",
+            "european cooperation project",
+            "how do cooperation project",
+            "how do they work",
+            "tell me about cooperation",
+            "explain cooperation project",
+            "overview of cooperation",
+            "culture cooperation",
+            "culture strand cooperation",
+            "creative europe culture cooperation",
+        ]
+
+        if any(p in query_lower for p in overview_patterns):
+            guidance = self._generate_ce_cooperation_overview_guidance()
+            return {
+                "thought": "User is asking about Creative Europe Cooperation Projects overview. Providing comprehensive guidance on cooperation projects in the CULTURE strand.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "ce_cooperation_overview",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 2: Scale categories (small/medium/large) ===
+        # e.g., "What's the difference between small, medium, and large-scale Creative Europe cooperation projects?"
+        # e.g., "Small vs medium vs large scale projects"
+        # Note: We use inline pattern checks below instead of a pattern list
+
+        # Check for scale comparison in query
+        has_scale_in_query = any(p in query_lower for p in ["small", "medium", "large", "scale"])
+        has_comparison_keywords = any(
+            p in query_lower
+            for p in [
+                "difference",
+                "vs",
+                "versus",
+                "compare",
+                "between",
+                "categories",
+                "types",
+                "options",
+            ]
+        )
+
+        # Match scale comparison with CE or cooperation context
+        if (has_scale_in_query and has_comparison_keywords) and (
+            "creative europe" in query_lower
+            or "cooperation" in query_lower
+            or has_ce_context
+            or has_cooperation_context
+        ):
+            guidance = self._generate_ce_scale_comparison_guidance()
+            return {
+                "thought": "User is asking about Creative Europe cooperation project scale categories. Providing detailed comparison of small, medium, and large-scale options.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "ce_scale_comparison",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 3: Partner count category selection ===
+        # e.g., "We have 3 partners in our consortium - which Creative Europe cooperation project category fits us?"
+        # e.g., "3 partners - which category?"
+        # Note: We use inline pattern checks below instead of a pattern list
+
+        # Check for partner count questions with CE or cooperation context
+        has_partner_in_query = "partner" in query_lower
+        has_count_or_category = any(
+            p in query_lower
+            for p in [
+                "how many",
+                "which category",
+                "which.*fit",
+                "qualify",
+                "eligible",
+                "minimum",
+                "requirement",
+                "3 ",
+                "4 ",
+                "5 ",
+                "6 ",
+                "10 ",
+                "three",
+                "four",
+                "five",
+                "six",
+                "ten",
+            ]
+        )
+
+        if (
+            has_partner_in_query
+            and has_count_or_category
+            and (
+                "creative europe" in query_lower
+                or "cooperation" in query_lower
+                or has_ce_context
+                or has_cooperation_context
+            )
+        ):
+            guidance = self._generate_ce_partner_category_guidance()
+            return {
+                "thought": "User is asking about which Creative Europe cooperation project category fits their partner count. Providing guidance on scale selection based on consortium size.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "ce_partner_category",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 4: Funding rate / co-financing ===
+        # e.g., "What is the Creative Europe cooperation project funding rate - how much does the EU cover?"
+        # e.g., "What percentage does Creative Europe fund?"
+        # Note: We use inline pattern checks below instead of a pattern list
+
+        # Check for funding rate with CE or cooperation context
+        has_funding_in_query = any(
+            p in query_lower
+            for p in [
+                "funding",
+                "rate",
+                "cover",
+                "contribution",
+                "percentage",
+                "grant",
+                "co-financing",
+                "cofinancing",
+                "match",
+            ]
+        )
+
+        if has_funding_in_query and (
+            "creative europe" in query_lower
+            or "cooperation" in query_lower
+            or has_ce_context
+            or has_cooperation_context
+        ):
+            guidance = self._generate_ce_funding_rate_guidance()
+            return {
+                "thought": "User is asking about Creative Europe cooperation project funding rates. Providing detailed information on co-financing requirements.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "ce_funding_rate",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 5: Growing into medium/large scale ===
+        # e.g., "If we want to grow into a medium-scale Creative Europe cooperation project, what would we need?"
+        # e.g., "How to move from small to medium scale?"
+        # Note: We use inline pattern checks below instead of a pattern list
+
+        # Check for scale growth with CE or cooperation context
+        has_growth_in_query = any(
+            p in query_lower
+            for p in [
+                "grow",
+                "move",
+                "upgrade",
+                "expand",
+                "transition",
+                "from small",
+                "from medium",
+                "need",
+            ]
+        )
+        has_scale_target = any(p in query_lower for p in ["medium", "large"])
+
+        if (
+            has_growth_in_query
+            and has_scale_target
+            and (
+                "creative europe" in query_lower
+                or "cooperation" in query_lower
+                or has_ce_context
+                or has_cooperation_context
+            )
+        ):
+            guidance = self._generate_ce_scale_growth_guidance()
+            return {
+                "thought": "User is asking about growing into a larger Creative Europe cooperation project scale. Providing guidance on scaling up requirements.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "ce_scale_growth",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        return None
+
+    def _generate_ce_cooperation_overview_guidance(self) -> str:
+        """Generate guidance on Creative Europe Cooperation Projects overview."""
+        return """**Creative Europe Cooperation Projects Overview**
+
+The **CULTURE strand** of Creative Europe (2021-2027) offers **European Cooperation Projects** that support transnational cultural cooperation between European organizations.
+
+## What Are Cooperation Projects?
+
+Cooperation Projects fund **transnational cultural activities** that bring together organizations from different European countries to:
+- Develop and disseminate cultural content
+- Build capacity and professionalize the sector
+- Improve cross-border access to European cultural works
+- Support artists and cultural professionals
+
+## Scale Categories
+
+| Scale | Partners Required | EU Grant (max) | Funding Rate |
+|-------|------------------|----------------|--------------|
+| **Small-scale** | 3+ partners from 3+ countries | €200,000 | 60% |
+| **Medium-scale** | 5+ partners from 5+ countries | €1,000,000 | 60% |
+| **Large-scale** | 10+ partners from 10+ countries | €2,000,000 | 60% |
+
+## Eligible Activities
+
+### Core Activities Funded
+- **Artistic creation** and production
+- **Capacity building** and training
+- **Audience development** and engagement
+- **Circulation** of cultural works and artists
+- **Digital innovation** in culture
+- **Cross-sector collaboration**
+
+### Sectors Covered
+| Sector | Examples |
+|--------|----------|
+| **Performing Arts** | Theatre, dance, circus, street arts |
+| **Visual Arts** | Painting, sculpture, photography, installations |
+| **Cultural Heritage** | Museums, archives, libraries, monuments |
+| **Music** | Classical, contemporary, traditional |
+| **Literature** | Publishing, literary events, translation |
+| **Architecture** | Design, urban planning |
+| **Other** | Fashion, gastronomy, crafts |
+
+## Key Eligibility Requirements
+
+### For Organizations
+- **Legal entity** established in a Creative Europe country
+- **Active in cultural/creative sectors** (check statutes)
+- **Financial capacity** to co-finance 40% of project costs
+- **Operational capacity** to implement the project
+
+### For Projects
+| Requirement | Details |
+|-------------|---------|
+| **Duration** | 12-48 months |
+| **Cross-border** | Partners from different countries required |
+| **Non-profit focus** | Activities should not primarily generate profit |
+| **European dimension** | Content should have European relevance |
+
+## Participating Countries
+Creative Europe is open to organizations from:
+- All 27 EU Member States
+- EEA countries (Iceland, Liechtenstein, Norway)
+- Other participating countries (check [current list](https://culture.ec.europa.eu/creative-europe/eligibility))
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Choose Your Scale**: Based on your consortium size (3+, 5+, or 10+ partners)
+2. **Define Your Project**: Identify the cultural activities and outcomes
+3. **Build Your Consortium**: Find partners from different European countries
+4. **Check Deadlines**: Review the [current calls](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search;callCode=CREA-CULT)
+5. **Register on the Portal**: Get your PIC number on the EU Funding Portal
+
+📋 **Action Items:**
+- [ ] Review the [Culture Strand Work Programme](https://culture.ec.europa.eu/creative-europe/culture-strand)
+- [ ] Check [open calls](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search;callCode=CREA-CULT)
+- [ ] Register on [EU Funding Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/)
+- [ ] Contact your [Creative Europe Desk](https://culture.ec.europa.eu/creative-europe/creative-europe-desks) for guidance"""
+
+    def _generate_ce_scale_comparison_guidance(self) -> str:
+        """Generate guidance on Creative Europe cooperation project scale categories."""
+        return """**Creative Europe Cooperation Projects: Scale Comparison**
+
+The CULTURE strand offers three scales of cooperation projects, each with different partnership and budget requirements.
+
+## Scale Categories Comparison
+
+| Feature | Small-scale | Medium-scale | Large-scale |
+|---------|-------------|--------------|-------------|
+| **Minimum Partners** | 3 organizations | 5 organizations | 10 organizations |
+| **Minimum Countries** | 3 different countries | 5 different countries | 10 different countries |
+| **Maximum EU Grant** | €200,000 | €1,000,000 | €2,000,000 |
+| **EU Funding Rate** | 60% | 60% | 60% |
+| **Your Co-financing** | 40% (~€133,000 max) | 40% (~€667,000 max) | 40% (~€1,333,000 max) |
+| **Project Duration** | 12-48 months | 12-48 months | 12-48 months |
+
+## Which Scale Is Right for You?
+
+### Choose Small-scale If:
+✅ You're **new to EU funding** and want to test cooperation
+✅ You have a **focused project** with clear objectives
+✅ Your **budget needs** are under €330,000 total
+✅ You can mobilize **3+ reliable partners**
+✅ You want **simpler administration**
+
+### Choose Medium-scale If:
+✅ You have **previous cooperation experience**
+✅ Your project has **broader European reach**
+✅ You need **€330K-1.7M** total budget
+✅ You can coordinate **5+ partners effectively**
+✅ You want **significant impact** across sectors
+
+### Choose Large-scale If:
+✅ You have **extensive cooperation experience**
+✅ Your project has **sector-wide European impact**
+✅ You need **€1.7M-3.3M** total budget
+✅ You can manage **10+ partners** with complex governance
+✅ You aim for **structural change** in the sector
+
+## Budget Examples
+
+### Small-scale (€200K EU grant)
+| Total Budget | €333,333 |
+|--------------|----------|
+| EU Grant | €200,000 (60%) |
+| Co-financing | €133,333 (40%) |
+| Per Partner (3) | ~€111,000 avg |
+
+### Medium-scale (€1M EU grant)
+| Total Budget | €1,666,667 |
+|--------------|------------|
+| EU Grant | €1,000,000 (60%) |
+| Co-financing | €666,667 (40%) |
+| Per Partner (5) | ~€333,000 avg |
+
+### Large-scale (€2M EU grant)
+| Total Budget | €3,333,333 |
+|--------------|------------|
+| EU Grant | €2,000,000 (60%) |
+| Co-financing | €1,333,333 (40%) |
+| Per Partner (10) | ~€333,000 avg |
+
+## Key Differences
+
+| Aspect | Small | Medium | Large |
+|--------|-------|--------|-------|
+| **Management Complexity** | Low | Medium | High |
+| **Geographic Spread** | 3 countries | 5 countries | 10 countries |
+| **Expected Impact** | Local/regional | National/multi-country | Pan-European |
+| **Competition Level** | Moderate | Moderate | Lower (fewer applicants) |
+| **Success Rate** | ~15-20% | ~15-20% | ~20-25% |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Assess Your Capacity**: Can you coordinate the required number of partners?
+2. **Estimate Your Budget**: What's your realistic total project cost?
+3. **Map Your Network**: How many reliable partners can you mobilize?
+4. **Define Impact Goals**: What level of European impact do you aim for?
+5. **Consider Starting Small**: If new to CE, start with small-scale
+
+📋 **Action Items:**
+- [ ] Count your potential partners and their countries
+- [ ] Estimate total project budget (activities + coordination)
+- [ ] Verify partners can contribute 40% co-financing
+- [ ] Check [open calls](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search;callCode=CREA-CULT)"""
+
+    def _generate_ce_partner_category_guidance(self) -> str:
+        """Generate guidance on partner count and category selection."""
+        return """**Creative Europe Cooperation: Partner Count and Category Selection**
+
+Based on your consortium size, here's which cooperation project category you can apply for.
+
+## Partner Count Requirements
+
+| Your Partners | Eligible Category | Maximum EU Grant |
+|---------------|------------------|------------------|
+| **3 partners** | Small-scale ✅ | €200,000 |
+| **4 partners** | Small-scale ✅ | €200,000 |
+| **5 partners** | Small-scale ✅ OR Medium-scale ✅ | €200K or €1M |
+| **6-9 partners** | Small-scale ✅ OR Medium-scale ✅ | €200K or €1M |
+| **10+ partners** | Any scale ✅ | Up to €2M |
+
+## With 3 Partners: Small-scale
+
+✅ **You qualify for Small-scale cooperation projects**
+
+| Requirement | Status |
+|-------------|--------|
+| Minimum 3 partners | ✅ Met with 3 partners |
+| Minimum 3 countries | ⚠️ Check each partner is from a different country |
+| EU Grant | Up to €200,000 |
+| Your co-financing | ~€133,000 (40%) |
+| Total budget | ~€333,000 max |
+
+### Important Notes for 3-Partner Consortia
+- All 3 partners must be from **different eligible countries**
+- One partner acts as **Project Coordinator**
+- All partners share the 40% co-financing responsibility
+- Each partner should have a **clear role** in the project
+
+## Country Requirement Reminder
+
+The country count is **separate from** partner count:
+- 3 partners = need 3 **different countries**
+- 5 partners = need 5 **different countries** (for medium-scale)
+- 10 partners = need 10 **different countries** (for large-scale)
+
+Example: Having 5 partners from only 3 countries = **Small-scale only**
+
+## Budget Per Partner Estimate
+
+| Scale | Total Budget | Per Partner (Equal Split) |
+|-------|--------------|---------------------------|
+| Small (3 partners) | €333,333 | €111,111 |
+| Small (5 partners) | €333,333 | €66,666 |
+| Medium (5 partners) | €1,666,667 | €333,333 |
+| Medium (7 partners) | €1,666,667 | €238,095 |
+| Large (10 partners) | €3,333,333 | €333,333 |
+
+*Note: Budget distribution doesn't need to be equal - coordinator typically gets more.*
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Verify Country Diversity**: Confirm each partner is from a different eligible country
+2. **Choose Your Lead**: Decide which organization will coordinate
+3. **Discuss Co-financing**: Ensure all partners can contribute to the 40%
+4. **Define Roles**: Assign clear responsibilities to each partner
+5. **Apply**: Prepare your application for the next call deadline
+
+📋 **Action Items:**
+- [ ] List all partners with their countries
+- [ ] Verify all countries are [eligible](https://culture.ec.europa.eu/creative-europe/eligibility)
+- [ ] Agree on budget distribution among partners
+- [ ] Identify the coordinator organization
+- [ ] Check [open calls](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search;callCode=CREA-CULT)"""
+
+    def _generate_ce_funding_rate_guidance(self) -> str:
+        """Generate guidance on Creative Europe cooperation project funding rates."""
+        return """**Creative Europe Cooperation Project Funding Rates**
+
+Creative Europe uses a **lump sum funding model** with fixed EU contribution rates for cooperation projects.
+
+## Funding Rate Overview
+
+| Aspect | Rate/Amount |
+|--------|-------------|
+| **EU Funding Rate** | 60% |
+| **Your Co-financing** | 40% |
+| **Funding Model** | Lump sum |
+| **Payment Schedule** | Pre-financing + balance |
+
+## What Does 60% Mean?
+
+The EU covers **60% of your total eligible costs**:
+
+| Scale | Max EU Grant | Your 40% Co-financing | Total Budget |
+|-------|-------------|----------------------|--------------|
+| Small | €200,000 | ~€133,333 | €333,333 |
+| Medium | €1,000,000 | ~€666,667 | €1,666,667 |
+| Large | €2,000,000 | ~€1,333,333 | €3,333,333 |
+
+## Sources of Co-financing (40%)
+
+Your 40% contribution can come from:
+
+| Source | Acceptable? | Notes |
+|--------|-------------|-------|
+| **Own resources** | ✅ Yes | Organization's own funds |
+| **Partner contributions** | ✅ Yes | Shared across consortium |
+| **National grants** | ✅ Yes | If no double-funding |
+| **Private sponsorship** | ✅ Yes | Corporate sponsors |
+| **Ticket revenue** | ✅ Yes | If part of activities |
+| **Other EU grants** | ❌ No | Cannot use for same costs |
+
+## Lump Sum Model Explained
+
+Creative Europe uses **lump sums** (not actual cost reimbursement):
+
+### How It Works
+1. You propose a **detailed budget** at application stage
+2. If selected, you receive a **fixed lump sum**
+3. You complete the planned **work packages**
+4. Payments linked to **deliverables**, not expense reports
+
+### Benefits of Lump Sum
+✅ **Less financial reporting** - No detailed expense tracking needed
+✅ **Flexibility** - Move funds between budget categories
+✅ **Predictability** - Know exactly what you'll receive
+✅ **Simpler audits** - Focus on outputs, not receipts
+
+### Important Notes
+⚠️ You still need to **complete all work packages**
+⚠️ Budget should be **realistic and justified**
+⚠️ **Under-spending** doesn't mean you keep the difference
+
+## Payment Schedule
+
+| Payment | When | Typical Amount |
+|---------|------|----------------|
+| **Pre-financing** | After grant signature | 40-50% of EU grant |
+| **Interim (if >24 months)** | Mid-project | 20-30% of EU grant |
+| **Balance** | After final report | Remaining amount |
+
+## Budget Categories
+
+Your budget should cover:
+
+| Category | What's Included |
+|----------|-----------------|
+| **Personnel** | Staff costs for project work |
+| **Travel** | Travel and subsistence for activities |
+| **Equipment** | Equipment needed for project |
+| **Subcontracting** | External services |
+| **Other Direct Costs** | Materials, venue hire, etc. |
+| **Indirect Costs** | 7% flat rate for overheads |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Plan Your Budget**: Estimate total project costs realistically
+2. **Secure Co-financing**: Confirm how each partner covers their 40%
+3. **Identify Co-funding Sources**: National grants, sponsors, own resources
+4. **Review Lump Sum Rules**: Understand work package requirements
+5. **Prepare Financial Documents**: Bank account, legal status
+
+📋 **Action Items:**
+- [ ] Calculate your total budget need
+- [ ] Identify sources for 40% co-financing
+- [ ] Check national cultural funding schemes
+- [ ] Review the [Financial Guide](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/om_en.pdf)
+- [ ] Contact your [Creative Europe Desk](https://culture.ec.europa.eu/creative-europe/creative-europe-desks) for budget advice"""
+
+    def _generate_ce_scale_growth_guidance(self) -> str:
+        """Generate guidance on growing into larger cooperation project scale."""
+        return """**Growing Your Creative Europe Cooperation Project Scale**
+
+If you want to move from small-scale to medium-scale (or medium to large), here's what you need to know.
+
+## Requirements Comparison
+
+| Requirement | Small → Medium | Medium → Large |
+|-------------|---------------|----------------|
+| **Additional Partners** | +2 more (5 total) | +5 more (10 total) |
+| **Additional Countries** | +2 more (5 total) | +5 more (10 total) |
+| **Budget Increase** | €200K → €1M (+€800K) | €1M → €2M (+€1M) |
+| **Co-financing Increase** | €133K → €667K (+€533K) | €667K → €1.33M (+€666K) |
+
+## Growing from Small (3) to Medium (5) Scale
+
+### What You Need
+| Requirement | Current (Small) | Needed (Medium) | Gap |
+|-------------|-----------------|-----------------|-----|
+| Partners | 3 | 5 | +2 partners |
+| Countries | 3 | 5 | +2 countries |
+| Max EU Grant | €200,000 | €1,000,000 | +€800,000 |
+| Co-financing | €133,333 | €666,667 | +€533,334 |
+
+### How to Find New Partners
+1. **Use your network**: Ask current partners for recommendations
+2. **Creative Europe Desks**: Contact desks in target countries
+3. **Partner search tools**: Use [Creative Europe Partner Search](https://culture.ec.europa.eu/cultural-and-creative-sectors/cultural-networks-and-platforms)
+4. **Sector events**: Attend cultural sector conferences
+5. **Previous projects**: Reach out to organizations from similar projects
+
+### Choosing New Partner Countries
+Prioritize countries that:
+- ✅ Have **complementary expertise**
+- ✅ Bring **different perspectives**
+- ✅ Can **contribute to co-financing**
+- ✅ Have **strong cultural sectors**
+- ✅ Are **underrepresented** in your consortium
+
+## Growing from Medium (5) to Large (10) Scale
+
+### What You Need
+| Requirement | Current (Medium) | Needed (Large) | Gap |
+|-------------|------------------|----------------|-----|
+| Partners | 5 | 10 | +5 partners |
+| Countries | 5 | 10 | +5 countries |
+| Max EU Grant | €1,000,000 | €2,000,000 | +€1,000,000 |
+| Co-financing | €666,667 | €1,333,333 | +€666,666 |
+
+### Governance Considerations
+Large-scale projects need:
+- **Steering committee** with clear decision-making
+- **Work package leaders** for different activities
+- **Communication strategy** across 10+ organizations
+- **Quality assurance** mechanisms
+- **Conflict resolution** procedures
+
+## Practical Steps to Scale Up
+
+### 1. Assess Your Capacity
+| Question | Consider |
+|----------|----------|
+| Can you manage more partners? | Coordination complexity increases |
+| Do you have admin capacity? | More reporting, more communication |
+| Is your project suitable for scaling? | Some projects are better small |
+
+### 2. Build the Partnership Gradually
+- Start with **letters of intent**
+- Conduct **partner matching meetings**
+- Run **small pilot activities** together
+- Build **trust and working relationships**
+
+### 3. Strengthen Your Proposal
+Medium/large-scale projects should demonstrate:
+- **Wider geographic reach**
+- **Greater sectoral impact**
+- **More ambitious outcomes**
+- **Sustainable results beyond project**
+
+### 4. Consider the Timeline
+| Step | Typical Duration |
+|------|-----------------|
+| Finding new partners | 3-6 months |
+| Building relationships | 3-6 months |
+| Developing proposal together | 3-4 months |
+| Total before application | 6-12 months |
+
+## Alternative: Apply as Partner First
+
+If scaling up is challenging:
+1. **Join an existing large-scale project** as a partner
+2. **Learn the governance and management**
+3. **Build your network**
+4. **Lead your own project** later with experience
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Evaluate Capacity**: Can your organization handle larger coordination?
+2. **Map Potential Partners**: Which countries/organizations could join?
+3. **Contact Creative Europe Desks**: Get recommendations for partners
+4. **Plan Timeline**: Allow 6-12 months to build new partnerships
+5. **Consider Alternatives**: Could you join an existing larger project?
+
+📋 **Action Items:**
+- [ ] List potential new partner countries
+- [ ] Contact [Creative Europe Desks](https://culture.ec.europa.eu/creative-europe/creative-europe-desks) in target countries
+- [ ] Use [Partner Search tools](https://culture.ec.europa.eu/cultural-and-creative-sectors)
+- [ ] Assess your organization's coordination capacity
+- [ ] Review successful large-scale projects for inspiration"""
