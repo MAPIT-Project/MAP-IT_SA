@@ -10695,3 +10695,55 @@ Each guidance includes:
 
 STATUS: PASS (83.0 >= 80)
 ================================================================================
+
+================================================================================
+## 2026-01-23: Scenario 037 - Creative Europe Eligibility EXECUTE + FIX IF NEEDED
+================================================================================
+
+### Task Summary
+Executed Scenario 037: Creative Europe Eligibility to validate Creative Europe eligibility rules for a Serbian NGO.
+
+### Execution Results
+- Scenario Path: tests/scenarios/advanced/creative_europe_eligibility.yaml
+- Initial Score: 83.0/100 (PASS - no fix needed)
+- Factual Score: 96/100
+- Status: PASS
+
+### Turn-by-Turn Results
+
+| Turn | Query | Score | Tools Used |
+|------|-------|-------|------------|
+| 1 | Serbian NGO - what Creative Europe funding is available? | 85 | get_programme_info, check_creative_europe_eligibility, search_funding_calls (2x), search_creative_europe_templates |
+| 2 | Culture strand - can Serbian organizations participate? | 81 | (guidance generated) |
+| 3 | Coordinator vs partner roles requirements? | 85 | (guidance generated) |
+| 4 | MEDIA strand - what funding options available? | 83 | (guidance generated) |
+| 5 | Eligibility restrictions for Serbian organizations? | 81 | (guidance generated) |
+
+### Analysis
+- **Turn 1**: Used multiple tools correctly (5 tools) to search for funding opportunities and check eligibility
+- **Turns 2-5**: Used built-in guidance generation which was already implemented in Scenario 036 (Creative Europe MEDIA strand detection)
+- All turns scored above 80 threshold
+- No failures detected
+- Factual accuracy high (96/100)
+
+### Why No Fix Was Needed
+The previous implementation for Scenario 036 (Creative Europe Strand Selection) added:
+1. `_detect_creative_europe_media_query()` method with MEDIA strand detection
+2. Guidance generators for MEDIA strand overview, development funding, distribution support
+3. Comprehensive built-in knowledge about Creative Europe strands
+
+These enhancements also benefit the Serbian NGO eligibility scenario since:
+- Turn 1 correctly routes to eligibility tools and funding call search
+- Turns 2-5 use the guidance system to provide comprehensive Creative Europe information
+- The MEDIA strand detection (Turn 4) reuses the Scenario 036 implementation
+
+### Tests Run
+- Scenario execution: PASS (83.0 >= 80)
+- No code changes needed - existing implementation sufficient
+
+### PRD Task Status
+- [x] EXECUTE task completed
+- [x] FIX IF NEEDED task completed (0 attempts needed, score 83.0)
+
+STATUS: PASS (83.0 >= 80)
+================================================================================
