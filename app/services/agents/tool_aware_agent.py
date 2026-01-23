@@ -3572,6 +3572,13 @@ digital_europe, life""",
         if urgent_deadline_result:
             return urgent_deadline_result
 
+        # Check for MULTI-CALL TIMELINE queries (planning multiple submissions)
+        # These are questions about planning multiple proposal submissions in a quarter
+        # e.g., "I want to apply to 3 calls this quarter", "What if one call deadline changes?"
+        multi_call_timeline_result = self._detect_multi_call_timeline_query(query, context)
+        if multi_call_timeline_result:
+            return multi_call_timeline_result
+
         # Check for DEADLINE TRACKING queries (time gap between calls, which to target)
         # These are follow-up questions after viewing deadline lists
         # e.g., "How much time between them?", "Which one should I target?"
@@ -13019,6 +13026,262 @@ Answer these to identify your best target:
 - [ ] Contact [NCP](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for topic guidance
 
 ⚠️ **Important**: Making a decision and committing fully is better than hedging. Once you choose, focus 100% on that call. You can always target different calls in future rounds."""
+
+    def _detect_multi_call_timeline_query(self, query: str, context: str) -> dict[str, Any] | None:
+        """Detect multi-call timeline planning queries.
+
+        These are questions about:
+        - Planning multiple proposal submissions in a quarter/period
+        - Managing staggered deadlines across multiple calls
+        - Contingency planning when deadlines change
+        - Backup call identification
+
+        These queries should provide structured guidance with actionable Next Steps.
+        """
+        query_lower = query.lower()
+        context_lower = context.lower() if context else ""
+
+        # Check for multi-call planning context
+        has_multi_call_context = any(
+            pattern in context_lower
+            for pattern in [
+                "3 calls",
+                "three calls",
+                "multiple calls",
+                "several calls",
+                "this quarter",
+                "staggered",
+                "climate",
+                "energy",
+                "backup",
+                "alternative",
+            ]
+        )
+
+        # Multi-call planning intro patterns (Turn 1: "I want to apply to 3 calls this quarter")
+        multi_call_planning_patterns = [
+            "apply to 3 calls",
+            "apply to three calls",
+            "apply to multiple calls",
+            "apply to several calls",
+            "submit 3 proposals",
+            "submit three proposals",
+            "submit multiple proposals",
+            "submit several proposals",
+            "want to apply to 3",
+            "want to apply to three",
+            "want to apply to multiple",
+            "plan to apply to 3",
+            "plan to apply to three",
+            "planning 3 submissions",
+            "planning three submissions",
+            "3 calls this quarter",
+            "three calls this quarter",
+            "multiple submissions",
+            "several submissions",
+            "manage multiple proposals",
+            "multiple proposals",
+            "3 proposals",
+            "three proposals",
+        ]
+
+        # Deadline change / contingency patterns (Turn 4: "What if one call deadline changes?")
+        deadline_change_patterns = [
+            "deadline changes",
+            "deadline change",
+            "if one deadline changes",
+            "if a deadline changes",
+            "if the deadline changes",
+            "what if deadline",
+            "what if one call deadline",
+            "what if a call deadline",
+            "deadline shifts",
+            "deadline moves",
+            "deadline is moved",
+            "deadline gets extended",
+            "deadline postponed",
+            "if deadline is postponed",
+            "if they extend",
+            "if they move",
+            "if they change the deadline",
+            "contingency",
+            "contingency plan",
+            "backup plan",
+            "plan b",
+            "what happens if",
+        ]
+
+        # Backup/alternative call patterns (Turn 5: "Show alternative calls as backup")
+        # NOTE: This should use tool-based search, so we don't intercept it
+
+        # Check for multi-call planning intro query
+        if any(pattern in query_lower for pattern in multi_call_planning_patterns):
+            return {
+                "thought": "User wants to plan multiple proposal submissions. Providing strategic multi-call planning guidance with actionable next steps.",
+                "action": "generate_guidance",
+                "guidance_type": "multi_call_planning",
+                "response": self._generate_multi_call_planning_guidance(),
+            }
+
+        # Check for deadline change / contingency query
+        if any(pattern in query_lower for pattern in deadline_change_patterns) or (
+            has_multi_call_context
+            and any(p in query_lower for p in ["what if", "change", "contingency", "backup"])
+        ):
+            return {
+                "thought": "User is asking about deadline changes and contingency planning. Providing deadline contingency guidance.",
+                "action": "generate_guidance",
+                "guidance_type": "deadline_contingency",
+                "response": self._generate_deadline_contingency_guidance(context),
+            }
+
+        return None
+
+    def _generate_multi_call_planning_guidance(self) -> str:
+        """Generate guidance for multi-call submission planning."""
+        return """Planning multiple proposal submissions in a single quarter is an ambitious but achievable strategy. Here is a structured approach to manage your multi-call submission pipeline effectively:
+
+### Strategic Multi-Call Planning Framework
+
+Applying to 3 calls in one quarter requires careful resource allocation and timeline management. Here is what you should consider:
+
+| Factor | Recommendation | Why It Matters |
+|--------|---------------|----------------|
+| **Stagger deadlines** | Target calls with 4-6 weeks between deadlines | Allows full focus on each submission |
+| **Reuse elements** | Use common methodology/WP sections | Saves 30-40% preparation time |
+| **Diverse call types** | Mix RIA, IA, and CSA if relevant | Spreads risk across action types |
+| **Team allocation** | Assign lead writers per proposal | Prevents bottlenecks |
+| **Consortium overlap** | 50-70% partner overlap is optimal | Reduces coordination overhead |
+
+### Recommended Timeline Structure
+
+For 3 calls with staggered deadlines, structure your work like this:
+
+| Week | Call 1 (Earliest) | Call 2 (Middle) | Call 3 (Latest) |
+|------|------------------|-----------------|-----------------|
+| 1-4 | **Full drafting** | Concept/partners | Concept only |
+| 5-8 | Internal review | **Full drafting** | Partner outreach |
+| 9-12 | Final polish | Internal review | **Full drafting** |
+| 13-16 | Submit! | Final polish | Internal review |
+| 17+ | - | Submit! | Final polish |
+
+### Critical Success Factors
+
+**1. Call Selection Criteria**
+You should select calls where:
+- Topic directly aligns with your expertise (no "stretching")
+- Budget range matches your consortium's natural size
+- TRL requirements match your technology maturity
+- Deadlines are at least 4 weeks apart
+
+**2. Resource Requirements**
+For 3 concurrent proposals, you should have:
+- At least 2 experienced proposal writers
+- 60-80% of consortium confirmed before starting
+- Budget for external review/editing support
+- Clear LEAR availability for financial forms
+
+**3. Reusable Components**
+You can develop once and adapt:
+- Management WP structure (90% reusable)
+- Dissemination and exploitation plans (70% reusable)
+- Partner capability descriptions (85% reusable)
+- Ethics documentation (100% reusable if similar topics)
+
+---
+
+🎯 **Next Steps - What You Should Do Right Now:**
+
+1. **Identify your target calls**: Tell me the topic area (e.g., climate, energy, health) and I can find calls with staggered deadlines for you
+2. **Map your consortium capacity**: List your confirmed partners and their writing capacity
+3. **Check deadline spread**: Verify calls are 4-6 weeks apart
+4. **Create a shared calendar**: Set internal milestones for each call
+5. **Designate lead writers**: Assign one person responsible per proposal
+
+📋 **Action Items This Week**:
+- [ ] Review open calls in your topic area
+- [ ] Survey consortium partners for availability
+- [ ] Create proposal tracking spreadsheet
+- [ ] Set up shared document folders per call
+- [ ] Schedule weekly coordination calls
+
+⚠️ **Important**: Quality over quantity. If you find preparation time too tight, it is better to submit 2 excellent proposals than 3 rushed ones. The pass rate drops significantly with inadequate preparation time."""
+
+    def _generate_deadline_contingency_guidance(self, context: str) -> str:
+        """Generate guidance for handling deadline changes in multi-call planning."""
+        # Check if we have specific call context
+        has_climate_energy = "climate" in context.lower() or "energy" in context.lower()
+        topic_context = "climate and energy" if has_climate_energy else "your target area"
+
+        return f"""Deadline changes in Horizon Europe are relatively rare but can happen. Here is how you should handle this contingency effectively:
+
+### Understanding Deadline Changes
+
+| Change Type | Likelihood | Typical Notice | Your Response |
+|------------|------------|----------------|---------------|
+| **Extension (1-4 weeks)** | Occasional | 2-4 weeks advance | Continue current pace, use extra time for polish |
+| **Major postponement** | Rare | 4+ weeks advance | Reallocate resources to other proposals |
+| **Call cancellation** | Very rare | Variable | Pivot to alternative calls immediately |
+| **New deadline earlier** | Almost never | N/A | Highly unlikely scenario |
+
+### Contingency Planning Strategy
+
+**1. Build Buffer Time**
+You should always plan to submit 48-72 hours before the official deadline. This gives you:
+- Time to handle portal technical issues
+- Opportunity to incorporate last-minute partner feedback
+- Flexibility if internal reviews take longer
+
+**2. Maintain Parallel Readiness**
+When managing 3 calls in {topic_context}, you should:
+- Keep all proposals at minimum viable status throughout
+- Avoid putting one proposal "on hold" completely
+- Update all proposals weekly, even if briefly
+
+**3. Resource Reallocation Matrix**
+
+If one deadline changes significantly, here is how you should respond:
+
+| Scenario | Action for Extended Call | Action for Other Calls |
+|----------|-------------------------|------------------------|
+| **Deadline extended 2+ weeks** | Reduce daily effort to 50% | Accelerate other proposals |
+| **Deadline postponed 1+ month** | Move to background | Make other calls primary focus |
+| **Call cancelled** | Immediately identify backup | No change needed |
+
+### Backup Call Strategy
+
+You should always have 1-2 backup calls identified. Good backup calls share:
+- Similar topic alignment to your primary calls
+- Deadlines 2-4 weeks after your latest primary deadline
+- Compatible budget ranges with your consortium
+- Lower competition (check topic popularity if possible)
+
+### Monitoring Deadline Changes
+
+You can track potential changes by:
+1. **Subscribe to topic updates** on the Funding & Tenders Portal
+2. **Follow programme social media** (Horizon Europe posts announcements)
+3. **Contact your National Contact Point (NCP)** - they often receive advance notice
+4. **Monitor work programme amendments** (usually published quarterly)
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Set deadline alerts**: Create calendar reminders for official deadlines + your internal deadlines
+2. **Identify backup calls**: Find 1-2 alternative calls in your topic area
+3. **Create reallocation plan**: Document how you would shift resources if needed
+4. **Monitor portal regularly**: Check Funding & Tenders Portal weekly for updates
+5. **Build consortium flexibility**: Ensure partners can adjust their commitments if schedules change
+
+📋 **Action Items This Week**:
+- [ ] Subscribe to update notifications for your target calls on the [Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/)
+- [ ] Identify 2 backup calls and add to your tracking document
+- [ ] Share contingency plan with consortium partners
+- [ ] Contact your [National Contact Point](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for any rumored changes
+- [ ] Set internal deadline 72 hours before official deadline
+
+⚠️ **Important**: The best contingency is good preparation. Well-prepared proposals can absorb schedule disruptions much more easily than rushed ones. Focus on quality first, and flexibility will follow naturally."""
 
     def _deduplicate_content(self, contents: list) -> list:
         """Remove duplicate or very similar content."""

@@ -1,0 +1,139 @@
+{
+  "scenario_name": "Multi-Call Timeline",
+  "status": "PASS",
+  "average_quality_score": 83.8,
+  "average_factual_score": 100.0,
+  "turns": [
+    {
+      "query": "I want to apply to 3 calls this quarter",
+      "response": "Planning multiple proposal submissions in a single quarter is an ambitious but achievable strategy. Here is a structured approach to manage your multi-call submission pipeline effectively:\n\n### Strategic Multi-Call Planning Framework\n\nApplying to 3 calls in one quarter requires careful resource allocation and timeline management. Here is what you should consider:\n\n| Factor | Recommendation | Why It Matters |\n|--------|---------------|----------------|\n| **Stagger deadlines** | Target calls with ...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 1743.078,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
+      "passed": true
+    },
+    {
+      "query": "Show me climate and energy calls with staggered deadlines",
+      "response": "I found **12 funding opportunities** for your query:\n\n**1. Understand and minimise the environmental impacts of offshore wind energy and HORIZON-CL6-2025-01-ZEROPOLLUTION-05:Towards a comprehensive European...**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2025-05-D3-08\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** The proposed conference in Nyborg, Denmark 23-24 September 2025 under the Danish Presidency will address the restoration of the Oce...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "search_funding_calls"
+      ],
+      "processing_time_ms": 6615.284,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": true
+    },
+    {
+      "query": "Help me plan my submission timeline",
+      "response": "To effectively manage submitting three proposals this quarter, you must prioritize and stagger your workflow. This approach focuses on ensuring that internal reviews and final polishes do not clash, maximizing quality for each submission. We will focus on the **Proposal Preparation Timeline** first, and then move to the **Project Execution Timeline** (Work Packages, Deliverables, Milestones) for each project. \n\n### Recommended Proposal Preparation Timeline (16 Weeks)\n\nAssuming the calls are stag...",
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 7120.297,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": true
+    },
+    {
+      "query": "What if one call deadline changes?",
+      "response": "Deadline changes in Horizon Europe are relatively rare but can happen. Here is how you should handle this contingency effectively:\n\n### Understanding Deadline Changes\n\n| Change Type | Likelihood | Typical Notice | Your Response |\n|------------|------------|----------------|---------------|\n| **Extension (1-4 weeks)** | Occasional | 2-4 weeks advance | Continue current pace, use extra time for polish |\n| **Major postponement** | Rare | 4+ weeks advance | Reallocate resources to other proposals |\n...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 1122.357,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": true
+    },
+    {
+      "query": "Show alternative calls as backup",
+      "response": "Deadline changes in Horizon Europe are relatively rare but can happen. Here is how you should handle this contingency effectively:\n\n### Understanding Deadline Changes\n\n| Change Type | Likelihood | Typical Notice | Your Response |\n|------------|------------|----------------|---------------|\n| **Extension (1-4 weeks)** | Occasional | 2-4 weeks advance | Continue current pace, use extra time for polish |\n| **Major postponement** | Rare | 4+ weeks advance | Reallocate resources to other proposals |\n...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 1119.022,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 4,
+      "passed": true
+    }
+  ],
+  "scores": {
+    "average_quality": 83.8,
+    "average_factual": 100.0,
+    "goal_progress": 0.42000000000000004,
+    "context_fields": 2
+  },
+  "failures": [],
+  "metadata": {
+    "scenario_path": "tests/scenarios/advanced/multi_call_timeline.yaml",
+    "tags": [
+      "phase7",
+      "deadlines",
+      "multi-call",
+      "timeline",
+      "planning",
+      "climate",
+      "energy",
+      "contingency"
+    ],
+    "description": "A 5-step multi-call planning workflow where a user wants to apply to 3 calls\nthis quarter in climate and energy topics, needs help planning staggered\nsubmissions, considering deadline changes, and identifying backup options.\nTests the system's ability to manage multi-call submission strategies.\n",
+    "conversation_id": 904044297
+  },
+  "execution_time_ms": 115788.61499999999,
+  "timestamp": "2026-01-23T12:14:48.027439",
+  "passed": true,
+  "turn_count": 5,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
+}
