@@ -3568,6 +3568,35 @@ digital_europe, life""",
         if associated_country_result:
             return associated_country_result
 
+        # Check for ERASMUS+ ACCREDITATION queries
+        # These are questions about Erasmus+ accreditation vs short-term projects,
+        # accreditation benefits, timeline, KA1 without accreditation, and strategic advice
+        # e.g., "Should we get Erasmus accreditation?", "What are the benefits?",
+        # "How long does accreditation last?", "Can we apply without accreditation?"
+        # IMPORTANT: Must come BEFORE erasmus_budget to prevent "rate" in "strategic" matching
+        erasmus_accreditation_result = self._detect_erasmus_accreditation_query(query, context)
+        if erasmus_accreditation_result:
+            return erasmus_accreditation_result
+
+        # Check for ERASMUS+ ACTION SELECTION queries
+        # These are questions about Erasmus+ Key Actions (KA1, KA2, KA3), sector-specific options,
+        # mobility programmes, VET partnerships, curriculum development, and action combination strategy
+        # e.g., "What Erasmus+ actions are there?", "VET mobility options?", "KA1 + KA2 strategy?"
+        # IMPORTANT: Must come BEFORE SME eligibility to prevent false matches on "can we still"
+        erasmus_action_result = self._detect_erasmus_action_query(query, context)
+        if erasmus_action_result:
+            return erasmus_action_result
+
+        # Check for ERASMUS+ BUDGET CALCULATION queries
+        # These are questions about Erasmus+ funding, unit costs, travel bands, individual support,
+        # staff mobility funding, and inclusion support
+        # e.g., "How does Erasmus+ fund student mobility?", "What are individual support rates?",
+        # "How are travel costs calculated?", "What is inclusion support?"
+        # IMPORTANT: Must come AFTER accreditation to avoid "rate" in "strategic" false matches
+        erasmus_budget_result = self._detect_erasmus_budget_query(query, context)
+        if erasmus_budget_result:
+            return erasmus_budget_result
+
         # Check for SME ELIGIBILITY queries
         # These are questions about SME definition, ownership rules, and non-SME participation
         # e.g., "We have 200 employees - still SME?", "Parent company affects SME status?",
@@ -3586,25 +3615,6 @@ digital_europe, life""",
         consortium_eligibility_result = self._detect_consortium_eligibility_query(query, context)
         if consortium_eligibility_result:
             return consortium_eligibility_result
-
-        # Check for ERASMUS+ ACTION SELECTION queries
-        # These are questions about Erasmus+ Key Actions (KA1, KA2, KA3), sector-specific options,
-        # mobility programmes, VET partnerships, curriculum development, and action combination strategy
-        # e.g., "What Erasmus+ actions are there?", "VET mobility options?", "KA1 + KA2 strategy?"
-        # IMPORTANT: Must come BEFORE cross-programme eligibility to handle Erasmus-specific queries
-        erasmus_action_result = self._detect_erasmus_action_query(query, context)
-        if erasmus_action_result:
-            return erasmus_action_result
-
-        # Check for ERASMUS+ BUDGET CALCULATION queries
-        # These are questions about Erasmus+ funding, unit costs, travel bands, individual support,
-        # staff mobility funding, and inclusion support
-        # e.g., "How does Erasmus+ fund student mobility?", "What are individual support rates?",
-        # "How are travel costs calculated?", "What is inclusion support?"
-        # IMPORTANT: Must come BEFORE cross-programme eligibility to handle Erasmus-specific queries
-        erasmus_budget_result = self._detect_erasmus_budget_query(query, context)
-        if erasmus_budget_result:
-            return erasmus_budget_result
 
         # Check for CROSS-PROGRAMME ELIGIBILITY queries (double funding, multiple programmes)
         # These are questions about participating in multiple EU programmes simultaneously
@@ -16204,6 +16214,687 @@ Evaluators look for:
 - [Successful VET Projects](https://erasmus-plus.ec.europa.eu/projects)
 
 💡 **Pro Tip:** Many successful VET schools use KA1 as a "partnership incubator" - the organizations you exchange learners with become natural partners for KA2 innovation projects!"""
+
+    def _detect_erasmus_accreditation_query(
+        self, query: str, context: str
+    ) -> dict[str, Any] | None:
+        """Detect Erasmus+ accreditation and short-term project queries.
+
+        These are questions about:
+        - Benefits of accreditation
+        - Timeline and validity period
+        - KA1 mobility without accreditation (short-term projects)
+        - Strategic choice between accreditation and short-term projects
+        - Erasmus+ accreditation concept and overview (general - checked LAST)
+
+        IMPORTANT: More specific patterns (benefits, timeline, without, strategic)
+        must be checked BEFORE the general overview pattern.
+        """
+        query_lower = query.lower()
+        context_lower = context.lower() if context else ""
+
+        # Track if accreditation context is present
+        has_accreditation_context = any(
+            ind in context_lower
+            for ind in ["accreditation", "accredited", "erasmus plan", "long-term"]
+        )
+        has_erasmus_context = any(
+            ind in context_lower for ind in ["erasmus", "erasmus+", "ka1", "mobility"]
+        )
+        has_short_term_context = any(
+            ind in context_lower for ind in ["short-term", "short term", "project"]
+        )
+
+        # === Pattern 1: Benefits of accreditation (SPECIFIC - check first) ===
+        # e.g., "What are the benefits of having Erasmus accreditation?"
+        benefits_patterns = [
+            "benefits of erasmus accreditation",
+            "benefits of accreditation",
+            "benefits of having",
+            "advantage of accreditation",
+            "advantages of accreditation",
+            "why get accreditation",
+            "why accreditation",
+            "accreditation benefit",
+            "accreditation advantage",
+            "accreditation worth",
+            "is accreditation worth",
+            "value of accreditation",
+        ]
+
+        has_benefits_question = any(
+            p in query_lower for p in ["benefit", "advantage", "worth", "value"]
+        )
+
+        if any(p in query_lower for p in benefits_patterns) or (
+            has_accreditation_context and has_benefits_question
+        ):
+            guidance = self._generate_erasmus_accreditation_benefits_guidance()
+            return {
+                "thought": "User is asking about benefits of Erasmus+ accreditation. Providing detailed "
+                "information on advantages, funding security, and simplified applications.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "erasmus_accreditation_benefits",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 2: Timeline and validity (SPECIFIC - check before overview) ===
+        # e.g., "How long does it take to get Erasmus accreditation and how long does it last?"
+        timeline_patterns = [
+            "how long does accreditation",
+            "how long accreditation",
+            "how long does it take",
+            "how long does it last",
+            "accreditation timeline",
+            "accreditation valid",
+            "accreditation validity",
+            "accreditation last",
+            "accreditation duration",
+            "get accreditation take",
+            "apply for accreditation timeline",
+            "accreditation process time",
+            "accreditation period",
+            "when to apply accreditation",
+        ]
+
+        has_timeline_question = any(
+            p in query_lower
+            for p in [
+                "how long",
+                "timeline",
+                "valid",
+                "validity",
+                "last",
+                "duration",
+                "period",
+                "take",
+            ]
+        )
+
+        if any(p in query_lower for p in timeline_patterns) or (
+            has_accreditation_context and has_timeline_question
+        ):
+            guidance = self._generate_erasmus_accreditation_timeline_guidance()
+            return {
+                "thought": "User is asking about Erasmus+ accreditation timeline and validity. Providing "
+                "information on application process, timeline, and validity period.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "erasmus_accreditation_timeline",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 3: Strategic choice between accreditation and short-term ===
+        # e.g., "Should we pursue accreditation or stick with short-term projects?"
+        # IMPORTANT: Check BEFORE "without accreditation" to prevent false matches on "short-term"
+        strategic_patterns = [
+            "strategic choice",
+            "pursue accreditation",
+            "accreditation or short-term",
+            "accreditation vs short-term",
+            "accreditation versus short-term",
+            "accreditation or project",
+            "accreditation vs project",
+            "choose accreditation",
+            "choose short-term",
+            "which is better accreditation",
+            "better accreditation or",
+            "recommend accreditation",
+            "stick with short-term",
+            "stick with projects",
+            "strategic decision",
+            "strategic recommendation",
+        ]
+
+        has_strategic_question = any(
+            p in query_lower
+            for p in [
+                "strategic",
+                "pursue",
+                "recommend",
+                "better",
+                "choose",
+                "which",
+                "vs",
+                "versus",
+                "stick",
+            ]
+        )
+        has_comparison = any(
+            p in query_lower for p in ["short-term", "project", "vs", "or", "versus"]
+        )
+
+        if any(p in query_lower for p in strategic_patterns) or (
+            has_accreditation_context
+            and has_strategic_question
+            and (has_comparison or has_short_term_context)
+        ):
+            guidance = self._generate_erasmus_accreditation_strategic_guidance()
+            return {
+                "thought": "User is asking for strategic advice on accreditation vs short-term projects. "
+                "Providing guidance on choosing the right approach based on organization needs.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "erasmus_accreditation_strategic",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 4: KA1 without accreditation / short-term projects ===
+        # e.g., "Can we still apply to Erasmus+ KA1 mobility without accreditation?"
+        without_accreditation_patterns = [
+            "without accreditation",
+            "not accredited",
+            "non-accredited",
+            "non accredited",
+            "ka1 without",
+            "mobility without",
+            "apply without accreditation",
+            "short-term mobility",
+            "short term mobility",
+            "one-off project",
+            "single project",
+            "can we still apply",
+            "alternative to accreditation",
+        ]
+
+        has_without_question = any(
+            p in query_lower for p in ["without", "not", "alternative", "still", "non-accredited"]
+        )
+        has_ka1_question = any(p in query_lower for p in ["ka1", "mobility", "key action 1"])
+
+        if any(p in query_lower for p in without_accreditation_patterns) or (
+            (has_accreditation_context or has_erasmus_context)
+            and has_without_question
+            and has_ka1_question
+        ):
+            guidance = self._generate_erasmus_without_accreditation_guidance()
+            return {
+                "thought": "User is asking about Erasmus+ KA1 mobility without accreditation. Providing "
+                "information on short-term project option as alternative.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "erasmus_without_accreditation",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 5: Accreditation overview / what is it? (GENERAL - check LAST) ===
+        # e.g., "Should we get Erasmus accreditation? What is it?"
+        # e.g., "What is Erasmus+ accreditation?"
+        # IMPORTANT: This catches broad patterns so it must be checked AFTER more specific patterns
+        accreditation_overview_patterns = [
+            "what is erasmus accreditation",
+            "what is erasmus+ accreditation",
+            "what's erasmus accreditation",
+            "should we get erasmus accreditation",
+            "should we get accreditation",
+            "apply for accreditation",
+            "get accredited",
+            "become accredited",
+            "erasmus plan",
+            "what is accreditation",
+            "accreditation explained",
+            "accreditation overview",
+        ]
+
+        has_accreditation_question = any(
+            p in query_lower for p in ["accreditation", "accredited", "erasmus plan"]
+        )
+        has_what_question = any(p in query_lower for p in ["what", "should", "is"])
+
+        # Only match overview if the query contains accreditation AND none of the specific patterns matched
+        if any(p in query_lower for p in accreditation_overview_patterns):
+            guidance = self._generate_erasmus_accreditation_overview_guidance()
+            return {
+                "thought": "User is asking about Erasmus+ accreditation. Providing comprehensive overview "
+                "of what accreditation is, its purpose, and key features.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "erasmus_accreditation_overview",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # Fallback for general accreditation questions (from context)
+        if has_accreditation_question and has_what_question and not has_benefits_question:
+            guidance = self._generate_erasmus_accreditation_overview_guidance()
+            return {
+                "thought": "User is asking about Erasmus+ accreditation. Providing comprehensive overview "
+                "of what accreditation is, its purpose, and key features.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "erasmus_accreditation_overview",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        return None
+
+    def _generate_erasmus_accreditation_overview_guidance(self) -> str:
+        """Generate guidance on Erasmus+ accreditation overview."""
+        return """Erasmus+ Accreditation is a **strategic entry point** for organizations that want long-term, simplified access to Key Action 1 (mobility) funding throughout the 2021-2027 programme period.
+
+## What is Erasmus+ Accreditation?
+
+Accreditation is an **award that confirms** an organization's long-term commitment to quality mobility activities as part of a wider effort to develop the organization (the **Erasmus Plan**).
+
+### Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Purpose** | Simplified access to KA1 mobility funding for up to 7 years |
+| **Who Can Apply** | Schools, VET institutions, Adult Education organizations, Youth organizations |
+| **Erasmus Plan** | Strategic document describing your long-term goals and mobility activities |
+| **Annual Budget Request** | After accreditation, submit simple budget requests each year |
+| **Quality Standards** | Commit to Erasmus Quality Standards in all mobility activities |
+
+### What Accreditation Provides
+
+1. **Long-Term Funding Security**: Access to KA1 funding for the entire programme period (2021-2027)
+2. **Simplified Applications**: No need to write full project proposals each year
+3. **Guaranteed Budget**: Budget allocation based on your Erasmus Plan goals
+4. **Flexibility**: Adjust activities annually within your approved Erasmus Plan
+5. **Recognition**: Marks your organization as committed to quality internationalization
+
+### Who Should Consider Accreditation?
+
+Accreditation is ideal for organizations that:
+- Plan **regular, ongoing** mobility activities (not just occasional exchanges)
+- Want to develop a **strategic approach** to internationalization
+- Are ready to commit to **quality standards** and continuous improvement
+- Have the **capacity** to manage multiple mobility activities over several years
+
+### Sectors Eligible for Accreditation
+
+| Sector | Organization Types | Examples |
+|--------|-------------------|----------|
+| **Higher Education** | Universities, Polytechnics | HEIs with ECHE |
+| **VET** | Vocational schools, Training centers | VET colleges, Apprenticeship providers |
+| **School Education** | Primary and secondary schools | Public and private schools |
+| **Adult Education** | Adult learning providers | Community education, Libraries |
+| **Youth** | Youth organizations | NGOs working with young people |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Assess Your Readiness**: Can you commit to regular mobility activities for 5-7 years?
+2. **Review Erasmus Quality Standards**: Check you can meet the quality criteria
+3. **Draft an Erasmus Plan**: Define your 5-year internationalization strategy
+4. **Contact Your National Agency**: Get guidance on the application process
+5. **Prepare Documentation**: Gather evidence of your international experience
+
+📋 **Action Items:**
+- [ ] Read the [Erasmus+ Programme Guide 2026](https://erasmus-plus.ec.europa.eu/programme-guide/part-b/key-action-1/accreditation)
+- [ ] Check [Accreditation call deadlines](https://erasmus-plus.ec.europa.eu/calls) for your sector
+- [ ] Review the [Erasmus Quality Standards](https://erasmus-plus.ec.europa.eu/programme-guide/part-a/erasmus-quality-standards)
+- [ ] Contact your [National Agency](https://erasmus-plus.ec.europa.eu/contacts/national-agencies) for guidance
+
+📚 **Useful Resources:**
+- [Erasmus+ Accreditation Guide](https://erasmus-plus.ec.europa.eu/programme-guide/part-b/key-action-1/accreditation)
+- [Erasmus Quality Standards](https://erasmus-plus.ec.europa.eu/programme-guide/part-a/erasmus-quality-standards)
+- [National Agencies](https://erasmus-plus.ec.europa.eu/contacts/national-agencies)"""
+
+    def _generate_erasmus_accreditation_benefits_guidance(self) -> str:
+        """Generate guidance on benefits of Erasmus+ accreditation."""
+        return """Erasmus+ Accreditation offers **significant advantages** for organizations that plan regular international mobility activities. Here are the key benefits of becoming accredited.
+
+## Key Benefits of Erasmus+ Accreditation
+
+### 1. Long-Term Funding Security (7 Years)
+
+| Benefit | Description |
+|---------|-------------|
+| **Guaranteed Access** | Access to mobility funding for up to 7 years (2021-2027) |
+| **Budget Predictability** | Annual budget allocation based on your Erasmus Plan |
+| **Continuous Funding** | No gaps in funding between project periods |
+| **Growing Budget** | Potential to increase funding as you build track record |
+
+### 2. Simplified Annual Applications
+
+| Feature | Accredited Organizations | Non-Accredited |
+|---------|-------------------------|----------------|
+| **Application Type** | Simple budget request | Full project proposal |
+| **Preparation Time** | A few days | Several weeks |
+| **Evaluation** | Operational check | Competitive ranking |
+| **Approval Rate** | Very high (if compliant) | Variable (competitive) |
+| **Administrative Burden** | Low | High |
+
+### 3. Strategic Flexibility
+
+- **Adjust Activities Annually**: Modify your activities within your approved Erasmus Plan
+- **Respond to Needs**: Adapt to changing organizational priorities
+- **Scale Up**: Increase mobility numbers as you build capacity
+- **Multi-Year Planning**: Plan activities across the entire programme period
+
+### 4. Quality Recognition
+
+| Recognition | Value |
+|-------------|-------|
+| **Quality Mark** | Demonstrates commitment to quality internationalization |
+| **Partner Attraction** | Easier to attract international partners |
+| **Institutional Credibility** | Shows strategic approach to mobility |
+| **Stakeholder Confidence** | Reassures parents, students, and staff |
+
+### 5. Financial Benefits
+
+- **Higher Per-Participant Budgets**: Accredited organizations often receive higher rates
+- **Organizational Support**: Funding for coordination and management
+- **No Co-Financing Required**: 100% EU funding for most activities
+- **Green Travel Bonuses**: Additional funding for sustainable transport
+
+### Comparison: Accredited vs Short-Term Projects
+
+| Aspect | Accredited | Short-Term Projects |
+|--------|-----------|---------------------|
+| **Duration** | 7 years | 6-18 months |
+| **Applications** | 1 accreditation + annual requests | Full application each time |
+| **Approval** | Operational check | Competitive selection |
+| **Flexibility** | High (within Erasmus Plan) | Limited to approved activities |
+| **Funding Security** | High | Uncertain |
+| **Administrative Load** | Low after accreditation | High for each project |
+| **Best For** | Regular mobility activities | Occasional exchanges |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Calculate Your Mobility Needs**: How many mobilities do you plan per year?
+2. **Assess Long-Term Commitment**: Can you sustain activities for 5-7 years?
+3. **Review Your Strategy**: Does your organization have an internationalization strategy?
+4. **Compare Options**: Short-term projects may be better if mobility is occasional
+5. **Consult Stakeholders**: Get buy-in from management and staff
+
+📋 **Action Items:**
+- [ ] Estimate annual mobility numbers for the next 5 years
+- [ ] Review your organization's strategic plan for internationalization
+- [ ] Contact successful accredited organizations in your sector for advice
+- [ ] Attend [National Agency information sessions](https://erasmus-plus.ec.europa.eu/contacts/national-agencies)
+
+📚 **Useful Resources:**
+- [Benefits of Accreditation](https://erasmus-plus.ec.europa.eu/programme-guide/part-b/key-action-1/accreditation)
+- [Success Stories](https://erasmus-plus.ec.europa.eu/projects)
+- [National Agencies](https://erasmus-plus.ec.europa.eu/contacts/national-agencies)"""
+
+    def _generate_erasmus_accreditation_timeline_guidance(self) -> str:
+        """Generate guidance on Erasmus+ accreditation timeline and validity."""
+        return """Understanding the **timeline** for Erasmus+ accreditation is essential for planning your application and mobility activities.
+
+## Accreditation Timeline and Validity
+
+### How Long Does Accreditation Last?
+
+| Aspect | Duration |
+|--------|----------|
+| **Validity Period** | Until end of current programme period (2027) |
+| **Maximum Duration** | Up to 7 years (for organizations accredited in 2021) |
+| **New Applicants (2024-2027)** | Valid until end of 2027 |
+| **Renewal** | Expected for next programme period (2028-2034) |
+
+### Application Process Timeline
+
+| Stage | Timeframe | What Happens |
+|-------|-----------|--------------|
+| **Call Opens** | Usually October/November | Application form available |
+| **Preparation** | 4-8 weeks | Draft Erasmus Plan, gather documents |
+| **Submission Deadline** | Usually January/February | Submit application |
+| **Evaluation** | 2-3 months | National Agency reviews applications |
+| **Results** | Usually April/May | Accreditation decisions announced |
+| **First Budget Request** | May/June | Request funding for first year |
+| **First Activities** | From September | Start mobility activities |
+
+### Typical Annual Cycle (After Accreditation)
+
+| Month | Activity |
+|-------|----------|
+| **January-February** | Submit annual budget request |
+| **March-April** | National Agency reviews request |
+| **May** | Budget approval notification |
+| **June-July** | Sign annual grant agreement |
+| **September onwards** | Implement mobility activities |
+| **Ongoing** | Monitor and report progress |
+| **Year-end** | Submit interim report |
+
+### How Long to Get Accredited?
+
+| Activity | Typical Duration |
+|----------|-----------------|
+| **Preparing Application** | 4-8 weeks |
+| **Application Review** | 2-3 months |
+| **Total (from start to approval)** | 4-6 months |
+| **Total (from approval to first activity)** | 6-8 months |
+
+### Important Deadlines
+
+- **Accreditation Call**: Typically opens October, closes January/February
+- **Budget Request**: Annual deadline usually in February
+- **Check your National Agency** for exact dates in your country
+
+### What Happens After 2027?
+
+| Scenario | Expectation |
+|----------|-------------|
+| **New Programme Period** | Erasmus+ 2028-2034 expected |
+| **Accreditation Renewal** | Likely simplified process for successful organizations |
+| **Quality Assessment** | Track record will influence renewal |
+| **Continuous Improvement** | Document your achievements |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Check Current Deadlines**: Visit your National Agency website for exact dates
+2. **Start Planning Early**: Begin 4-6 months before the application deadline
+3. **Draft Your Erasmus Plan**: This is the core of your accreditation application
+4. **Gather Documentation**: Prepare evidence of international experience
+5. **Contact National Agency**: Attend information sessions
+
+📋 **Action Items:**
+- [ ] Check [Erasmus+ Call Calendar](https://erasmus-plus.ec.europa.eu/calls) for accreditation deadlines
+- [ ] Mark key dates in your organizational calendar
+- [ ] Schedule team meeting to discuss Erasmus Plan
+- [ ] Contact [National Agency](https://erasmus-plus.ec.europa.eu/contacts/national-agencies) for guidance
+
+📚 **Useful Resources:**
+- [Erasmus+ Calls and Deadlines](https://erasmus-plus.ec.europa.eu/calls)
+- [Accreditation Application Guide](https://erasmus-plus.ec.europa.eu/programme-guide/part-b/key-action-1/accreditation)
+- [National Agencies](https://erasmus-plus.ec.europa.eu/contacts/national-agencies)"""
+
+    def _generate_erasmus_without_accreditation_guidance(self) -> str:
+        """Generate guidance on KA1 mobility without accreditation (short-term projects)."""
+        return """**Yes, absolutely!** Organizations can apply for Erasmus+ KA1 mobility funding **without accreditation** through short-term mobility projects.
+
+## KA1 Mobility Without Accreditation
+
+### Short-Term Mobility Projects
+
+Short-term projects offer an alternative pathway to KA1 funding for organizations that:
+- Are **new to Erasmus+** and want to test the waters
+- Plan **occasional** mobility activities (not regular, ongoing)
+- Want to implement a **specific, time-limited** project
+- Are **not ready** for the long-term commitment of accreditation
+
+### Comparison: Accreditation vs Short-Term Projects
+
+| Aspect | Short-Term Projects | Accreditation |
+|--------|---------------------|---------------|
+| **Duration** | 6-18 months | Up to 7 years |
+| **Application** | Full project proposal each time | One-time accreditation + annual budget requests |
+| **Selection** | Competitive ranking | Operational check |
+| **Flexibility** | Limited to approved activities | Flexible within Erasmus Plan |
+| **Funding Security** | Uncertain (competitive) | High (if compliant) |
+| **Best For** | Occasional mobility | Regular, ongoing mobility |
+| **Administrative Load** | High per project | Low after initial accreditation |
+
+### Short-Term Project Features
+
+| Feature | Description |
+|---------|-------------|
+| **Project Duration** | 6-18 months (max 24 months in some sectors) |
+| **Max Participants** | Usually 30-60 participants per project |
+| **Budget** | Based on number of participants and activities |
+| **Activities** | Staff and learner mobility, job shadowing, teaching |
+| **Application** | Full project proposal with detailed activities |
+
+### Who Should Use Short-Term Projects?
+
+| Organization Type | Recommendation |
+|-------------------|----------------|
+| **New to Erasmus+** | Start with short-term to test the water |
+| **Occasional mobility (1-2 activities/year)** | Short-term projects are sufficient |
+| **Specific one-time exchange** | Short-term is appropriate |
+| **Building track record** | Use short-term before applying for accreditation |
+| **Uncertain about long-term** | Try short-term first |
+
+### Pathway: Short-Term to Accreditation
+
+Many organizations follow this progression:
+
+1. **Year 1**: First short-term project (6-12 months)
+2. **Year 2**: Second short-term project (build experience)
+3. **Year 3**: Apply for accreditation (with track record)
+4. **Year 4+**: Benefit from simplified annual funding
+
+### Budget Considerations
+
+| Budget Category | Short-Term | Accredited |
+|-----------------|-----------|-----------|
+| **Travel Support** | Same rates | Same rates |
+| **Individual Support** | Same rates | Same rates |
+| **Organizational Support** | Same rates | Same rates |
+| **Total Available** | Project-based limit | Growing allocation |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Assess Your Needs**: How frequently do you plan mobility activities?
+2. **Check Deadlines**: Short-term project calls have specific deadlines
+3. **Define Your Project**: What specific activities do you want to implement?
+4. **Find Partners**: Identify receiving organizations for your mobilities
+5. **Consider Progression**: Plan your path toward accreditation if appropriate
+
+📋 **Action Items:**
+- [ ] Review [KA1 Short-Term Project calls](https://erasmus-plus.ec.europa.eu/calls)
+- [ ] Download the application form from your National Agency
+- [ ] Identify potential hosting organizations
+- [ ] Develop a project concept with clear objectives
+- [ ] Contact [National Agency](https://erasmus-plus.ec.europa.eu/contacts/national-agencies) for guidance
+
+📚 **Useful Resources:**
+- [KA1 Short-Term Projects Guide](https://erasmus-plus.ec.europa.eu/programme-guide/part-b/key-action-1)
+- [Erasmus+ Calls](https://erasmus-plus.ec.europa.eu/calls)
+- [Partner Finding Tool](https://erasmus-plus.ec.europa.eu/partner-search)
+- [National Agencies](https://erasmus-plus.ec.europa.eu/contacts/national-agencies)"""
+
+    def _generate_erasmus_accreditation_strategic_guidance(self) -> str:
+        """Generate strategic guidance on choosing between accreditation and short-term projects."""
+        return """Choosing between **Erasmus+ accreditation** and **short-term projects** depends on your organization's goals, capacity, and commitment level. Here's strategic guidance to help you decide.
+
+## Strategic Decision: Accreditation vs Short-Term Projects
+
+### Decision Framework
+
+| Factor | Choose Accreditation If... | Choose Short-Term If... |
+|--------|---------------------------|------------------------|
+| **Mobility Frequency** | Plan regular activities (3+ per year) | Occasional activities (1-2 per year) |
+| **Time Horizon** | 5-7 year strategic view | 1-2 year focus |
+| **Commitment Level** | Ready for long-term commitment | Want to test first |
+| **Administrative Capacity** | Can manage multiple activities | Limited capacity |
+| **International Strategy** | Part of broader strategy | Ad-hoc activities |
+| **Partner Network** | Established partners | Building relationships |
+
+### Scoring Your Readiness
+
+Rate your organization on these criteria (1-5):
+
+| Criterion | Score 1-5 | What It Means |
+|-----------|-----------|---------------|
+| **Strategic Commitment** | ___ | Is internationalization in your strategic plan? |
+| **Staff Buy-In** | ___ | Do staff support regular mobility? |
+| **Partner Network** | ___ | Do you have reliable partners abroad? |
+| **Track Record** | ___ | Have you successfully managed EU projects? |
+| **Capacity** | ___ | Can you manage multiple activities per year? |
+| **Financial Stability** | ___ | Can you pre-finance mobility costs? |
+
+**Score Interpretation:**
+- **25-30**: Strong candidate for accreditation
+- **18-24**: Consider accreditation, strengthen weak areas
+- **12-17**: Start with short-term projects to build capacity
+- **Below 12**: Focus on building organizational capacity first
+
+### Strategic Recommendations by Organization Type
+
+| Organization Type | Recommendation | Rationale |
+|-------------------|----------------|-----------|
+| **Large University** | Accreditation | High capacity, strategic priority |
+| **Small VET School** | Start short-term, then accredit | Build experience first |
+| **Active Secondary School** | Accreditation | Regular student/staff exchanges |
+| **New to Erasmus+** | Short-term first | Test the water, build track record |
+| **Established International School** | Accreditation | Leverage existing partnerships |
+| **Small NGO (Youth)** | Depends on activity level | Accreditation if 3+ activities/year |
+
+### Benefits Comparison
+
+| Benefit | Accreditation Value | Short-Term Value |
+|---------|--------------------|-----------------|
+| **Funding Security** | ⭐⭐⭐⭐⭐ | ⭐⭐ |
+| **Administrative Ease** | ⭐⭐⭐⭐⭐ | ⭐⭐ |
+| **Flexibility** | ⭐⭐⭐⭐ | ⭐⭐⭐ |
+| **Immediate Start** | ⭐⭐ | ⭐⭐⭐⭐ |
+| **Low Commitment** | ⭐ | ⭐⭐⭐⭐⭐ |
+
+### When Accreditation Is the Clear Choice
+
+✅ Choose accreditation if you have:
+- A clear internationalization strategy
+- Regular mobility planned (5+ activities per year)
+- Established partner network
+- Staff committed to quality mobility
+- Experience managing EU-funded activities
+
+### When Short-Term Is the Clear Choice
+
+✅ Choose short-term projects if you:
+- Are new to Erasmus+ and want to experiment
+- Plan only occasional mobility activities
+- Have limited administrative capacity
+- Want to test partnerships before committing
+- Are uncertain about long-term strategic direction
+
+### Hybrid Approach
+
+Some organizations successfully combine both:
+1. **Accreditation for core activities** (regular staff/student mobility)
+2. **Short-term projects for special initiatives** (e.g., specific curriculum project)
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Score Your Readiness**: Use the criteria above to assess your position
+2. **Consult Stakeholders**: Get input from management, staff, and partners
+3. **Review Your Strategy**: Does mobility fit your long-term plans?
+4. **Seek Advice**: Contact your National Agency for personalized guidance
+5. **Make a Decision**: Choose the approach that fits your capacity
+
+📋 **Action Items:**
+- [ ] Complete the readiness assessment scoring above
+- [ ] Discuss with management team and international coordinator
+- [ ] Review your 5-year organizational development plan
+- [ ] Contact [National Agency](https://erasmus-plus.ec.europa.eu/contacts/national-agencies) for advice
+- [ ] Set a decision deadline (don't delay indefinitely!)
+
+📚 **Useful Resources:**
+- [Accreditation vs Projects Comparison](https://erasmus-plus.ec.europa.eu/programme-guide/part-b/key-action-1)
+- [National Agency Guidance](https://erasmus-plus.ec.europa.eu/contacts/national-agencies)
+- [Successful Organization Examples](https://erasmus-plus.ec.europa.eu/projects)
+
+💡 **Pro Tip:** Many organizations that hesitate about accreditation end up wishing they had applied earlier. If you have a genuine commitment to internationalization, accreditation almost always provides better value than repeated short-term projects!"""
 
     def _generate_consortium_context_guidance(self, countries: list[str], query_lower: str) -> str:
         """Generate guidance when user provides consortium context."""

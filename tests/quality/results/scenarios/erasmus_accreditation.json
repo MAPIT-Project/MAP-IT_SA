@@ -1,0 +1,136 @@
+{
+  "scenario_name": "Erasmus+ Accreditation",
+  "status": "PASS",
+  "average_quality_score": 83.8,
+  "average_factual_score": 100.0,
+  "turns": [
+    {
+      "query": "Should we get Erasmus accreditation? What is it?",
+      "response": "Erasmus+ Accreditation is a **strategic entry point** for organizations that want long-term, simplified access to Key Action 1 (mobility) funding throughout the 2021-2027 programme period.\n\n## What is Erasmus+ Accreditation?\n\nAccreditation is an **award that confirms** an organization's long-term commitment to quality mobility activities as part of a wider effort to develop the organization (the **Erasmus Plan**).\n\n### Key Features\n\n| Feature | Description |\n|---------|-------------|\n| **Purpose...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 1386.058,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
+      "passed": true
+    },
+    {
+      "query": "What are the benefits of having Erasmus accreditation?",
+      "response": "Erasmus+ Accreditation offers **significant advantages** for organizations that plan regular international mobility activities. Here are the key benefits of becoming accredited.\n\n## Key Benefits of Erasmus+ Accreditation\n\n### 1. Long-Term Funding Security (7 Years)\n\n| Benefit | Description |\n|---------|-------------|\n| **Guaranteed Access** | Access to mobility funding for up to 7 years (2021-2027) |\n| **Budget Predictability** | Annual budget allocation based on your Erasmus Plan |\n| **Continuo...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 824.874,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": true
+    },
+    {
+      "query": "How long does it take to get Erasmus accreditation and how long does it last?",
+      "response": "Understanding the **timeline** for Erasmus+ accreditation is essential for planning your application and mobility activities.\n\n## Accreditation Timeline and Validity\n\n### How Long Does Accreditation Last?\n\n| Aspect | Duration |\n|--------|----------|\n| **Validity Period** | Until end of current programme period (2027) |\n| **Maximum Duration** | Up to 7 years (for organizations accredited in 2021) |\n| **New Applicants (2024-2027)** | Valid until end of 2027 |\n| **Renewal** | Expected for next prog...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 742.81,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": true
+    },
+    {
+      "query": "Can we still apply to Erasmus+ KA1 mobility without accreditation?",
+      "response": "**Yes, absolutely!** Organizations can apply for Erasmus+ KA1 mobility funding **without accreditation** through short-term mobility projects.\n\n## KA1 Mobility Without Accreditation\n\n### Short-Term Mobility Projects\n\nShort-term projects offer an alternative pathway to KA1 funding for organizations that:\n- Are **new to Erasmus+** and want to test the waters\n- Plan **occasional** mobility activities (not regular, ongoing)\n- Want to implement a **specific, time-limited** project\n- Are **not ready**...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 1217.0859999999998,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": true
+    },
+    {
+      "query": "What's the strategic choice - should we pursue accreditation or stick with short-term projects?",
+      "response": "Choosing between **Erasmus+ accreditation** and **short-term projects** depends on your organization's goals, capacity, and commitment level. Here's strategic guidance to help you decide.\n\n## Strategic Decision: Accreditation vs Short-Term Projects\n\n### Decision Framework\n\n| Factor | Choose Accreditation If... | Choose Short-Term If... |\n|--------|---------------------------|------------------------|\n| **Mobility Frequency** | Plan regular activities (3+ per year) | Occasional activities (1-2 pe...",
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 4555.479,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 4,
+      "passed": true
+    }
+  ],
+  "scores": {
+    "average_quality": 83.8,
+    "average_factual": 100.0,
+    "goal_progress": 0.6,
+    "context_fields": 3
+  },
+  "failures": [],
+  "metadata": {
+    "scenario_path": "tests/scenarios/advanced/erasmus_accreditation.yaml",
+    "tags": [
+      "phase9",
+      "erasmus",
+      "accreditation",
+      "ka1",
+      "mobility",
+      "strategic",
+      "long_term"
+    ],
+    "description": "An organization (school, VET institution, or adult education provider) wants to\nunderstand whether they should pursue Erasmus+ accreditation or apply for\nshort-term mobility projects. The scenario tests understanding of accreditation\nbenefits, timeline, alternatives, and strategic decision-making.\n",
+    "conversation_id": 1714676682
+  },
+  "execution_time_ms": 143170.37300000002,
+  "timestamp": "2026-01-23T14:11:25.926094",
+  "passed": true,
+  "turn_count": 5,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
+}
