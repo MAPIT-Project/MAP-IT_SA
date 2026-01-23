@@ -3542,6 +3542,11 @@ digital_europe, life""",
                 "needs_more_info": True,
             }
 
+        # Check for "tell me more about that" follow-up queries about programmes/recommendations
+        tell_more_result = self._detect_tell_me_more_query(query, context)
+        if tell_more_result:
+            return tell_more_result
+
         # Check for partner search REFINEMENT queries (e.g., "Show only universities" after partner search)
         refinement_result = self._detect_partner_search_refinement(query, context)
         if refinement_result:
@@ -3908,6 +3913,23 @@ digital_europe, life""",
             "suitable calls",
             "relevant calls",
             "matching calls",
+            # Profile-based recommendation queries
+            "best option",
+            "our best option",
+            "what's our best",
+            "what is our best",
+            "what should we",
+            "what do you recommend",
+            "what would you recommend",
+            "recommend for us",
+            "which programme",
+            "which program",
+            "best programme",
+            "best program",
+            "best fit",
+            "best match",
+            "right programme",
+            "right program",
         ]
 
         if not any(pattern in query_lower for pattern in personalized_patterns):
@@ -3919,16 +3941,26 @@ digital_europe, life""",
         # Extract research sector/topic from context
         sector_keywords = []
         sector_patterns = [
+            # Medical/Healthcare - more specific patterns first
+            ("ai diagnostics", "AI diagnostics artificial intelligence medical devices health"),
+            ("medical devices", "medical devices health clinical diagnostics"),
+            ("medical device", "medical devices health clinical diagnostics"),
+            ("diagnostics", "diagnostics medical devices health clinical"),
+            ("healthcare sector", "health medical clinical healthcare"),
+            ("healthcare", "health medical clinical"),
+            ("health", "health medical clinical"),
+            # Marine/Ocean
             ("marine biology", "marine biology ocean aquatic"),
             ("marine", "marine ocean aquatic"),
             ("ocean", "marine ocean aquatic"),
-            ("healthcare", "health medical clinical"),
-            ("health", "health medical clinical"),
+            # Energy/Climate
             ("energy", "energy renewable climate"),
             ("climate", "climate environment sustainability"),
+            # AI/Digital
             ("ai", "artificial intelligence AI digital"),
             ("artificial intelligence", "artificial intelligence AI digital"),
             ("digital", "digital AI technology"),
+            # Agriculture/Food
             ("agriculture", "agriculture food bioeconomy"),
             ("food", "food agriculture bioeconomy"),
         ]
@@ -3968,6 +4000,9 @@ digital_europe, life""",
                 "new to",
                 "beginner",
                 "no experience",
+                "never done eu funding",
+                "never applied",
+                "never submitted",
             ]
         )
 
@@ -4024,6 +4059,113 @@ digital_europe, life""",
                     f"Here are opportunities in {', '.join(sector_keywords[:2])} where you could participate as a partner:\n\n"
                 )
 
+        # Check if this is a "best option/programme recommendation" query vs "find calls" query
+        is_programme_recommendation = any(
+            pattern in query_lower
+            for pattern in [
+                "best option",
+                "best programme",
+                "best program",
+                "which programme",
+                "which program",
+                "recommend for us",
+                "what do you recommend",
+                "what would you recommend",
+                "right programme",
+                "right program",
+            ]
+        )
+
+        if is_programme_recommendation:
+            # Build a comprehensive description from accumulated profile for recommend_programmes
+            # Include all relevant context for better programme matching
+            profile_parts = []
+            if org_type:
+                org_type_names = {"SME": "SME", "HES": "university", "REC": "research center"}
+                profile_parts.append(org_type_names.get(org_type, org_type))
+
+            # Build comprehensive sector description with all relevant keywords
+            sector_desc_parts = []
+            if sector_keywords:
+                # Include all sector keywords for comprehensive matching
+                sector_desc_parts.extend(sector_keywords)
+
+            # Also check for specific domain keywords in context to enhance description
+            # These patterns should match various ways users describe their domains
+            domain_keywords = []
+            # Health/Healthcare patterns (for EU4Health matching)
+            if any(p in context_lower for p in ["healthcare", "health sector", "health "]):
+                domain_keywords.append("health")
+                domain_keywords.append("healthcare")
+            # Medical device patterns (important for EU4Health)
+            if any(
+                p in context_lower
+                for p in ["medical device", "medical devices", "medtech", "medicaldevice"]
+            ):
+                domain_keywords.append("medical device")
+            # AI/Digital patterns
+            if any(
+                p in context_lower
+                for p in ["ai ", " ai", "artificial intelligence", "machine learning"]
+            ):
+                domain_keywords.append("AI")
+            # Diagnostics patterns
+            if any(p in context_lower for p in ["diagnostics", "diagnostic", "diagnosis"]):
+                domain_keywords.append("diagnostics")
+
+            # Combine sector and domain keywords (deduplicated)
+            all_keywords = []
+            seen = set()
+            for kw in sector_desc_parts + domain_keywords:
+                kw_lower = kw.lower()
+                if kw_lower not in seen:
+                    seen.add(kw_lower)
+                    all_keywords.append(kw)
+
+            if all_keywords:
+                profile_parts.append(f"working in {', '.join(all_keywords[:8])}")
+
+            if country:
+                country_names = {
+                    "DE": "Germany",
+                    "PT": "Portugal",
+                    "ES": "Spain",
+                    "IT": "Italy",
+                    "FR": "France",
+                    "NL": "Netherlands",
+                }
+                profile_parts.append(f"based in {country_names.get(country, country)}")
+            if is_beginner:
+                profile_parts.append("new to EU funding")
+
+            description = ", ".join(profile_parts) if profile_parts else search_keywords
+
+            # Determine the primary sector for the sector parameter
+            primary_sector = None
+            if "health" in context_lower or "healthcare" in context_lower:
+                primary_sector = "health"
+            elif "medical" in context_lower:
+                primary_sector = "health"
+            elif sector_keywords:
+                primary_sector = sector_keywords[0]
+
+            return {
+                "thought": thought + " Using recommend_programmes for best option query.",
+                "action": "call_tools",
+                "tool_calls": [
+                    {
+                        "tool": "recommend_programmes",
+                        "parameters": {
+                            "description": description,
+                            "organization_type": org_type.lower() if org_type else None,
+                            "sector": primary_sector,
+                        },
+                        "reasoning": f"Recommending best programmes based on profile: {description}",
+                    }
+                ],
+                "needs_more_info": True,
+            }
+
         return {
             "thought": thought,
             "action": "call_tools",
@@ -4035,6 +4177,116 @@ digital_europe, life""",
                 }
             ],
             "needs_more_info": True,
+        }
+
+    def _detect_tell_me_more_query(self, query: str, context: str) -> dict[str, Any] | None:
+        """Detect follow-up queries like 'Tell me more about that option'.
+
+        This handles queries like:
+        - "Tell me more about that option"
+        - "Tell me more about that programme"
+        - "More details on that"
+        - "Elaborate on that recommendation"
+
+        These should use get_programme_info with the programme from context.
+        """
+        if not context:
+            return None
+
+        query_lower = query.lower()
+        context_lower = context.lower()
+
+        # Patterns that indicate user wants more info about something from context
+        tell_more_patterns = [
+            "tell me more",
+            "more about that",
+            "more details",
+            "elaborate on",
+            "explain more",
+            "can you explain",
+            "what else",
+            "more information",
+            "more info",
+        ]
+
+        if not any(pattern in query_lower for pattern in tell_more_patterns):
+            return None
+
+        # Look for programme names in context to understand what "that" refers to
+        programme_mentions = {
+            "horizon europe": ("horizon_europe", "Horizon Europe"),
+            "eu4health": ("eu4health", "EU4Health"),
+            "erasmus+": ("erasmus_plus", "Erasmus+"),
+            "erasmus plus": ("erasmus_plus", "Erasmus+"),
+            "creative europe": ("creative_europe", "Creative Europe"),
+            "digital europe": ("digital_europe", "Digital Europe"),
+            "life programme": ("life", "LIFE Programme"),
+        }
+
+        # Check which programme was mentioned in context (most recent first)
+        detected_programme = None
+        detected_programme_name = None
+
+        for pattern, (prog_id, prog_name) in programme_mentions.items():
+            if pattern in context_lower:
+                detected_programme = prog_id
+                detected_programme_name = prog_name
+                break
+
+        if not detected_programme:
+            # No specific programme found, can't provide more info
+            return None
+
+        # Build profile from context for personalized response
+        profile_parts = []
+
+        # Extract org type from context
+        if "sme" in context_lower:
+            profile_parts.append("SME")
+        elif "university" in context_lower or "academic" in context_lower:
+            profile_parts.append("university")
+
+        # Extract sector from context
+        sector_map = {
+            "healthcare": "healthcare",
+            "medical device": "medical devices",
+            "ai diagnostics": "AI diagnostics",
+            "health": "health",
+            "energy": "energy",
+            "digital": "digital",
+        }
+        for pattern, sector in sector_map.items():
+            if pattern in context_lower:
+                profile_parts.append(sector)
+                break
+
+        # Extract country from context
+        country_map = {
+            "germany": "Germany",
+            "german": "Germany",
+            "france": "France",
+            "spain": "Spain",
+            "italy": "Italy",
+        }
+        for pattern, country in country_map.items():
+            if pattern in context_lower:
+                profile_parts.append(f"based in {country}")
+                break
+
+        profile_summary = ", ".join(profile_parts) if profile_parts else "your profile"
+
+        return {
+            "thought": f"User wants more details about {detected_programme_name}. Using get_programme_info with context: {profile_summary}.",
+            "action": "call_tools",
+            "tool_calls": [
+                {
+                    "tool": "get_programme_info",
+                    "parameters": {"programme": detected_programme},
+                    "reasoning": f"Getting detailed info about {detected_programme_name} for {profile_summary}",
+                }
+            ],
+            "needs_more_info": True,
+            "context_summary": f"Based on your profile ({profile_summary}), here's more about {detected_programme_name}:",
         }
 
     def _detect_context_recall_query(self, query: str, context: str) -> dict[str, Any] | None:
@@ -5668,7 +5920,7 @@ No collaboration partners found for this organization in the database.
 ### Network Insights
 - **Geographic Reach:** {len(countries)} countries
 - **Most Common Partner Type:** {top_type_desc}
-- **Strongest Collaboration:** {partners[0].get('name', 'N/A')} ({partners[0].get('collaborations', 0)} joint projects)
+- **Strongest Collaboration:** {partners[0].get("name", "N/A")} ({partners[0].get("collaborations", 0)} joint projects)
 
 **Next Steps:**
 - Explore specific partners' project histories
@@ -5745,7 +5997,7 @@ No projects found for this organization in the database.
 - **Total Projects:** {count}
 - **As Coordinator:** {len(coordinated)}
 - **Total Budget Involved:** €{total_budget / 1_000_000:.1f}M
-- **Funding Types:** {', '.join(funding_schemes) if funding_schemes else 'N/A'}
+- **Funding Types:** {", ".join(funding_schemes) if funding_schemes else "N/A"}
 
 **Next Steps:**
 - Explore specific project details on CORDIS
@@ -5809,6 +6061,39 @@ Participation Statistics:
                         )
 
                 content_pieces.append(country_text)
+
+            # Handle get_programme_info results (actionable programme information)
+            elif "programme" in result and "actionable_guidance" in result:
+                prog_name = result.get("info", {}).get("name", result.get("programme", ""))
+                info = result.get("info", {})
+
+                prog_text = f"## {prog_name}\n\n"
+
+                # Add budget and focus
+                if info.get("budget"):
+                    prog_text += f"**Budget**: {info['budget']}\n"
+                if info.get("focus"):
+                    prog_text += f"**Focus**: {info['focus']}\n\n"
+
+                # Add actionable guidance
+                guidance = result.get("actionable_guidance", "")
+                if guidance:
+                    prog_text += f"{guidance}\n\n"
+
+                # Add official resources
+                resources = result.get("official_resources", {})
+                if resources:
+                    prog_text += "**Official Resources:**\n"
+                    for resource_name, url in resources.items():
+                        # Format resource name nicely
+                        nice_name = resource_name.replace("_", " ").title()
+                        prog_text += f"- [{nice_name}]({url})\n"
+
+                # Add official website
+                if result.get("official_website"):
+                    prog_text += f"\n**Official Website**: {result['official_website']}\n"
+
+                content_pieces.append(prog_text)
 
             # Extract programme/cluster statistics results
             elif "cluster_code" in result or ("programme" in result and "statistics" in result):
@@ -6080,13 +6365,31 @@ Budget Breakdown:
                             rec_text += f"- **Learn more**: {website}\n"
                         rec_text += "\n"
 
-                    rec_text += """---
+                    # Check if we have profile info from reasons to provide personalized next steps
+                    # Look for indicators of SME, health sector, or specific profile details
+                    has_specific_profile = False
+                    for r in recs:
+                        reasons_str = " ".join(r.get("reasons", []))
+                        if "SME" in reasons_str or "health" in reasons_str.lower():
+                            has_specific_profile = True
+                            break
 
-🎯 **Next Steps:**
-• Tell me more about your research area so I can find specific calls
-• Share your organization's experience level (first-time applicant, or experienced?)
-• Let me know your sector (health, energy, digital, etc.) for targeted recommendations
-"""
+                    rec_text += "---\n\n🎯 **Next Steps:**\n"
+                    if has_specific_profile:
+                        # User has provided profile info - give actionable next steps
+                        rec_text += (
+                            "• Ask me to **find specific open calls** matching your profile\n"
+                        )
+                        rec_text += "• Ask about **consortium building** and partner requirements\n"
+                        rec_text += "• Request **budget benchmarks** from similar funded projects\n"
+                        rec_text += "• Learn about the **application process** and deadlines\n"
+                    else:
+                        rec_text += (
+                            "• Tell me more about your research area so I can find specific calls\n"
+                        )
+                        rec_text += "• Share your organization's experience level (first-time applicant, or experienced?)\n"
+                        rec_text += "• Let me know your sector (health, energy, digital, etc.) for targeted recommendations\n"
+
                     content_pieces.append(rec_text)
                 else:
                     # No specific matches - provide general guidance

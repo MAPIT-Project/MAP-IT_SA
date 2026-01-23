@@ -299,12 +299,13 @@ Run with: `./ralphy.sh --prd docs/prd/MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD_V3
 ### Scenario 015: Progressive Profile Building (12 turns)
 - [x] EXECUTE: Run scenario `tests/scenarios/advanced/personalization/progressive_profile.yaml` against the live API. Tests building user profile over 12 turns. Save result to `tests/quality/results/scenarios/progressive_profile.json`.
 
-- [ ] FIX IF NEEDED: Read `tests/quality/results/scenarios/progressive_profile.json`. If average_score < 80:
+- [x] FIX IF NEEDED: Read `tests/quality/results/scenarios/progressive_profile.json`. If average_score < 80:
   1. ONLY modify files in `app/` directory
   2. Common fixes:
      - Empty responses on context-building queries → Edit `app/services/agents/tool_aware_agent.py` to acknowledge and store context
      - Profile not built progressively → Fix memory service context accumulation
   3. Re-run EXECUTE, repeat until score >= 80 or 3 attempts
+  4. **Attempt 1 Result**: Score improved from 77.5 to 81.0 (1 attempt). Fixed: (1) Added profile-based recommendation detection patterns ("best option", "recommend") to `_detect_personalized_call_query`, (2) Added domain keyword extraction for health/medical/AI/diagnostics context, (3) Added SME bonuses in `recommend_programmes` for Horizon Europe (EIC Accelerator), EU4Health, and Digital Europe, (4) Added `get_programme_info` result handling in `_synthesize_from_results`, (5) Added `_detect_tell_me_more_query` for follow-up queries, (6) Fixed Next Steps section to be personalized when profile info is detected. Status: PASS
 
 ### Scenario 016: Preference-Based Filtering
 - [ ] EXECUTE: Run scenario `tests/scenarios/advanced/personalization/preference_filtering.yaml` against the live API. Tests filtering results based on user preferences. Save result to `tests/quality/results/scenarios/preference_filtering.json`.

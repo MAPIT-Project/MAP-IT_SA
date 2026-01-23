@@ -631,11 +631,13 @@ class MultiProgrammeSearchTool:
             org_type_to_check = inferred_org_type or organization_type
             if org_type_to_check:
                 org_lower = org_type_to_check.lower()
-                if programme == "horizon_europe" and any(
-                    x in org_lower for x in ["university", "research", "institute"]
-                ):
-                    score += 15
-                    reasons.append("Strong match for research organizations")
+                if programme == "horizon_europe":
+                    if any(x in org_lower for x in ["university", "research", "institute"]):
+                        score += 15
+                        reasons.append("Strong match for research organizations")
+                    elif any(x in org_lower for x in ["sme", "startup", "company"]):
+                        score += 20
+                        reasons.append("EIC Accelerator targets SMEs with breakthrough innovation")
                 elif programme == "erasmus_plus" and any(
                     x in org_lower for x in ["school", "university", "education", "training"]
                 ):
@@ -646,11 +648,20 @@ class MultiProgrammeSearchTool:
                 ):
                     score += 15
                     reasons.append("Tailored for cultural/creative organizations")
-                elif programme == "eu4health" and any(
-                    x in org_lower for x in ["hospital", "health", "medical", "ngo", "health_org"]
-                ):
-                    score += 15
-                    reasons.append("Focus on health sector organizations")
+                elif programme == "eu4health":
+                    health_orgs = ["hospital", "health", "medical", "ngo", "health_org"]
+                    if any(x in org_lower for x in health_orgs):
+                        score += 15
+                        reasons.append("Focus on health sector organizations")
+                    # SMEs in health sector can also benefit from EU4Health
+                    if any(x in org_lower for x in ["sme", "startup", "company"]):
+                        if "health" in desc_lower or "medical" in desc_lower:
+                            score += 10
+                            reasons.append("SMEs with health focus eligible for EU4Health")
+                elif programme == "digital_europe":
+                    if any(x in org_lower for x in ["sme", "startup", "company"]):
+                        score += 10
+                        reasons.append("Supports SME digital transformation")
 
             if score > 0:
                 recommendations.append(
