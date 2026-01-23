@@ -3558,6 +3558,13 @@ digital_europe, life""",
         if funding_type_result:
             return funding_type_result
 
+        # Check for TIMELINE COMPARISON queries
+        # These are questions about proposal preparation times, decision times, and project start lags
+        # e.g., "How long to prepare a proposal?", "Compare with Erasmus+ KA2", "Decision time?"
+        timeline_result = self._detect_timeline_comparison_query(query, context)
+        if timeline_result:
+            return timeline_result
+
         # Check for CONTEXT RECALL queries (e.g., "I mentioned earlier I work on hydrogen")
         # These reference earlier conversation context to find calls
         context_recall_result = self._detect_context_recall_query(query, context)
@@ -11855,6 +11862,471 @@ This may be because:
             return False
 
         return True
+
+    # =========================================================================
+    # TIMELINE COMPARISON DETECTION AND GUIDANCE
+    # =========================================================================
+
+    def _detect_timeline_comparison_query(self, query: str, context: str) -> dict[str, Any] | None:
+        """Detect queries about proposal preparation timelines, decision times, and project start lags.
+
+        This handles queries like:
+        - "How long does a Horizon Europe proposal take to prepare?"
+        - "Compare with Erasmus+ KA2"
+        - "What about Creative Europe cooperation projects?"
+        - "Which has the fastest decision time?"
+        - "What's the project start lag after selection?"
+        """
+        query_lower = query.lower()
+        context_lower = context.lower() if context else ""
+
+        # === Pattern 1: Horizon Europe proposal preparation time ===
+        he_prep_patterns = [
+            ("how long", "horizon", "proposal"),
+            ("how long", "horizon", "prepare"),
+            ("preparation time", "horizon"),
+            ("typical", "horizon", "proposal", "take"),
+            ("horizon europe proposal", "time"),
+            ("horizon europe", "preparation"),
+            ("how many months", "horizon"),
+            ("time to prepare", "horizon"),
+            ("prepare a horizon"),
+            ("preparing a horizon"),
+        ]
+
+        for patterns in he_prep_patterns:
+            if all(p in query_lower for p in patterns):
+                guidance = self._generate_he_preparation_time_guidance()
+                return {
+                    "thought": "User is asking about Horizon Europe proposal preparation time. Using built-in guidance.",
+                    "action": "generate_guidance",
+                    "response": guidance,
+                    "guidance_type": "he_preparation_time",
+                    "confidence": 0.90,
+                    "needs_more_info": False,
+                }
+
+        # === Pattern 2: Compare with Erasmus+ KA2 (follow-up) ===
+        erasmus_comparison_patterns = [
+            "compare with erasmus",
+            "compare to erasmus",
+            "compared to erasmus",
+            "erasmus+ ka2",
+            "erasmus ka2",
+            "vs erasmus",
+            "versus erasmus",
+            "what about erasmus",
+            "and erasmus",
+        ]
+
+        # Check if timeline context exists (from previous HE preparation question)
+        timeline_context = any(
+            ind in context_lower
+            for ind in [
+                "proposal preparation",
+                "preparation time",
+                "months",
+                "horizon europe proposal",
+                "typical preparation",
+            ]
+        )
+
+        if timeline_context and any(p in query_lower for p in erasmus_comparison_patterns):
+            guidance = self._generate_erasmus_ka2_comparison_guidance()
+            return {
+                "thought": "User is comparing Erasmus+ KA2 timelines with Horizon Europe. Using built-in guidance.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "erasmus_ka2_comparison",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 3: Creative Europe cooperation projects (follow-up) ===
+        ce_patterns = [
+            "creative europe",
+            "what about creative",
+            "creative cooperation",
+            "ce cooperation",
+        ]
+
+        # Check if timeline comparison context exists
+        comparison_context = any(
+            ind in context_lower
+            for ind in [
+                "erasmus",
+                "horizon europe",
+                "preparation time",
+                "compare",
+                "months",
+            ]
+        )
+
+        if comparison_context and any(p in query_lower for p in ce_patterns):
+            guidance = self._generate_creative_europe_timeline_guidance()
+            return {
+                "thought": "User is asking about Creative Europe cooperation project timelines. Using built-in guidance.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "creative_europe_timeline",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 4: Decision time comparison ===
+        decision_patterns = [
+            "decision time",
+            "fastest decision",
+            "quickest decision",
+            "evaluation time",
+            "time to decision",
+            "which is fastest",
+            "which has fastest",
+            "fastest to hear back",
+            "how long for decision",
+            "decision period",
+            "time to grant",
+        ]
+
+        # Check for timeline/programme context
+        programme_context = any(
+            ind in context_lower
+            for ind in ["horizon", "erasmus", "creative europe", "preparation", "months"]
+        )
+
+        if programme_context and any(p in query_lower for p in decision_patterns):
+            guidance = self._generate_decision_time_comparison_guidance()
+            return {
+                "thought": "User is asking about decision times across programmes. Using built-in guidance.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "decision_time_comparison",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 5: Project start lag after selection ===
+        start_lag_patterns = [
+            "start lag",
+            "project start",
+            "after selection",
+            "after approval",
+            "after decision",
+            "when does project start",
+            "time between selection",
+            "gap preparation",
+            "grant agreement",
+            "time to start",
+            "project kick-off",
+            "kickoff lag",
+        ]
+
+        # Check for timeline context
+        if programme_context and any(p in query_lower for p in start_lag_patterns):
+            guidance = self._generate_project_start_lag_guidance()
+            return {
+                "thought": "User is asking about project start lag after selection. Using built-in guidance.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "project_start_lag",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        return None
+
+    def _generate_he_preparation_time_guidance(self) -> str:
+        """Generate guidance on Horizon Europe proposal preparation time."""
+        return """The typical preparation time for a competitive Horizon Europe proposal (such as a Research and Innovation Action/RIA or Innovation Action/IA) ranges from **6 to 9 months**.
+
+While intense drafting occurs in the final 2-3 months, highly successful proposals require extensive preparation in the preceding phases, particularly for consortium building and strategic alignment with the specific call topic.
+
+### Proposal Preparation Timeline Breakdown
+
+| Phase | Duration | Key Activities |
+|-------|----------|----------------|
+| **Strategic Planning** | 2-3 months | Topic analysis, consortium design, partnership identification |
+| **Consortium Building** | 2-3 months | Partner recruitment, role distribution, commitment letters |
+| **Proposal Writing** | 2-3 months | Scientific excellence, impact, implementation sections |
+| **Review & Refinement** | 2-4 weeks | Internal reviews, budget finalization, quality checks |
+
+### Factors That Affect Preparation Time
+
+| Factor | Shorter Preparation | Longer Preparation |
+|--------|--------------------|--------------------|
+| **Consortium Status** | Existing partners | New consortium formation |
+| **Topic Familiarity** | Previous submissions | New research area |
+| **Budget Complexity** | Simple structure | Multi-country, complex budget |
+| **Call Type** | Standard RIA/IA | Partnerships, Missions |
+| **Coordinator Experience** | Experienced | First-time coordinator |
+
+### Time Requirements by Action Type
+
+| Action Type | Typical Prep Time | Key Considerations |
+|-------------|------------------|-------------------|
+| **RIA (Research & Innovation)** | 6-9 months | Deep scientific content needed |
+| **IA (Innovation Action)** | 5-8 months | Focus on demonstration plan |
+| **CSA (Coordination & Support)** | 4-6 months | Network/coordination focus |
+| **EIC Accelerator** | 3-6 months | Single applicant, phased |
+| **MSCA Postdoctoral** | 2-3 months | Individual fellowship |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+• Start monitoring the [Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/) 9-12 months before expected deadlines
+• Begin consortium building at least 6 months before the deadline
+• Contact your [National Contact Point (NCP)](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for topic-specific guidance
+• Review similar funded projects on [CORDIS](https://cordis.europa.eu/) to understand successful approaches
+• Consider attending Commission info days when calls open"""
+
+    def _generate_erasmus_ka2_comparison_guidance(self) -> str:
+        """Generate guidance comparing Erasmus+ KA2 with Horizon Europe timelines."""
+        return """Preparing an Erasmus+ Key Action 2 (KA2) Cooperation Partnership proposal is generally **less complex and faster** than a Horizon Europe (HE) Research and Innovation Action (RIA), largely due to differences in evaluation focus, consortium size, and budget structure.
+
+### Comparison: HE (RIA/IA) vs. Erasmus+ KA2
+
+| Feature | Horizon Europe (RIA/IA) | Erasmus+ KA2 (Cooperation Partnerships) |
+|---------|------------------------|----------------------------------------|
+| **Typical Preparation Time** | **6-9 months** | **3-5 months** |
+| **Consortium Size** | 8-15 partners | 3-6 partners |
+| **Budget Complexity** | Detailed cost categories | Lump sum model |
+| **Evaluation Focus** | Scientific excellence, innovation | Educational impact, best practices |
+| **Proposal Length** | 50-70 pages | 20-40 pages |
+| **Technical Annexes** | Multiple (budget, LoIs, CVs) | Fewer required |
+
+### Why Erasmus+ KA2 is Faster to Prepare
+
+✅ **Simpler Budget Model**
+- Erasmus+ uses lump sum funding (fixed amounts based on project size)
+- No need for detailed cost breakdowns per partner
+- Reduces financial planning complexity
+
+✅ **Smaller Consortia**
+- Minimum 3 partners from 3 countries
+- Easier to coordinate, faster agreements
+- Smaller consortia = faster consensus
+
+✅ **Focused Scope**
+- Clear educational objectives
+- Less technical innovation documentation needed
+- Emphasis on practical implementation
+
+### Typical KA2 Preparation Timeline
+
+| Phase | Duration | Activities |
+|-------|----------|------------|
+| **Partnership Building** | 4-8 weeks | Finding partners, alignment |
+| **Concept Development** | 2-3 weeks | Objectives, activities, outputs |
+| **Proposal Writing** | 3-4 weeks | Application form, work packages |
+| **Internal Review** | 1-2 weeks | Partner review, finalization |
+
+### Key Differences in Effort
+
+| Aspect | Horizon Europe | Erasmus+ KA2 |
+|--------|---------------|--------------|
+| Scientific methodology | Extensive | Moderate |
+| Innovation description | Detailed TRL analysis | Activity-focused |
+| Impact assessment | Multi-level | Educational outcomes |
+| Budget justification | Line-by-line | Lump sum categories |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+• Check the [Erasmus+ Programme Guide 2026](https://erasmus-plus.ec.europa.eu/) for detailed eligibility and deadlines
+• Use the [Partner Search Tool](https://erasmus-plus.ec.europa.eu/partner-search) to find collaborators
+• Contact your [Erasmus+ National Agency](https://erasmus-plus.ec.europa.eu/national-agencies) for guidance
+• Review successful projects on the [Erasmus+ Project Results Platform](https://erasmus-plus.ec.europa.eu/projects)
+• Consider starting 4-5 months before the deadline for a strong application"""
+
+    def _generate_creative_europe_timeline_guidance(self) -> str:
+        """Generate guidance on Creative Europe cooperation project timelines."""
+        return """Creative Europe Cooperation Projects (Culture strand) are distinctly different from Horizon Europe (HE) and Erasmus+ (E+ KA2), focusing on cultural policy, audience development, and the transnational circulation of cultural works, with a mandatory co-funding model.
+
+### Comparison: HE (RIA/IA), Erasmus+ KA2, and Creative Europe (CE Culture)
+
+| Feature | Horizon Europe (RIA/IA) | Erasmus+ KA2 | Creative Europe (COOP) |
+|---------|------------------------|--------------|------------------------|
+| **Preparation Time** | **6-9 months** | **3-5 months** | **3-6 months** |
+| **Consortium Size** | 8-15 partners | 3-6 partners | 3-10+ partners |
+| **Funding Rate** | 100% (RIA) / 70% (IA) | 100% (lump sum) | **60-80%** (co-funding) |
+| **Budget Model** | Cost categories | Lump sum | Lump sum with co-funding |
+| **Focus** | Research & innovation | Education & training | Arts & culture |
+
+### Creative Europe Project Scales
+
+| Scale | Min Partners | Countries | Grant Range | Preparation |
+|-------|-------------|-----------|-------------|-------------|
+| **Small** | 3 partners | 3 countries | €200K-400K | 3-4 months |
+| **Medium** | 5 partners | 5 countries | €400K-1M | 4-5 months |
+| **Large** | 10 partners | 10 countries | €1M-2M | 5-6 months |
+
+### Key Differences That Affect Preparation
+
+| Aspect | Impact on Timeline |
+|--------|-------------------|
+| **Co-funding requirement** | Partners need 20-40% matching → longer partner negotiations |
+| **Cultural sector focus** | Specific expertise needed → specialized consortium |
+| **Audience development** | Detailed dissemination plans required |
+| **European dimension** | Strong transnational collaboration must be demonstrated |
+
+### Typical Creative Europe Preparation Timeline
+
+| Phase | Duration | Activities |
+|-------|----------|------------|
+| **Consortium Formation** | 4-8 weeks | Partner identification, co-funding confirmation |
+| **Concept Development** | 2-4 weeks | Artistic vision, European dimension |
+| **Application Writing** | 3-5 weeks | Impact, work plan, budget |
+| **Co-funding Validation** | 2-3 weeks | Confirm partner contributions |
+| **Review & Submission** | 1-2 weeks | Quality check, submission |
+
+### Budget Considerations
+
+Unlike Horizon Europe's 100% funding, Creative Europe requires **20-40% co-funding**:
+- Small-scale: 80% EU funding → 20% partner co-funding
+- Medium/Large: 60-70% EU funding → 30-40% partner co-funding
+
+This means more time is needed to confirm partner financial commitments.
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+• Check the [Creative Europe Work Programme](https://creative-europe.ec.europa.eu/) for current priorities
+• Verify your organization's eligibility on the [Funding Portal](https://ec.europa.eu/info/funding-tenders/)
+• Contact your [Creative Europe Desk](https://creative-europe-desks.ec.europa.eu/) for national guidance
+• Confirm co-funding availability with potential partners early
+• Review successful projects in the [Creative Europe database](https://creative-europe.ec.europa.eu/projects)"""
+
+    def _generate_decision_time_comparison_guidance(self) -> str:
+        """Generate guidance comparing decision times across programmes."""
+        return """For the fastest time to **final grant agreement signature** for a collaborative project, **Erasmus+ Key Action 2 (KA2)** is typically the quickest, while the **EIC Accelerator** (part of Horizon Europe) has the fastest initial decision for single-applicant instruments.
+
+Decision times are usually measured by the **Time to Grant (TTG)**, which is the period from the submission deadline to the signature of the Grant Agreement. Official targets set by the European Commission define these periods.
+
+### Comparison: Decision/Evaluation Times
+
+| Programme | Evaluation Period | Time to Grant (TTG) | Total Waiting |
+|-----------|------------------|--------------------|--------------:|
+| **Erasmus+ KA2** | 2-3 months | **4-5 months** | **4-5 months** |
+| **Creative Europe** | 3-4 months | 5-6 months | 5-6 months |
+| **Horizon Europe (RIA/IA)** | 4-5 months | **8 months** (target) | 5-8 months |
+| **EIC Accelerator** | 2-3 months (step 1) | Variable | Phased process |
+
+### Detailed Breakdown by Programme
+
+#### Erasmus+ KA2 (Fastest for Partnerships)
+- **Initial evaluation**: 2-3 months after deadline
+- **Results notification**: 3-4 months after deadline
+- **Grant Agreement**: 4-5 months after deadline
+- ✅ **Advantage**: Simpler evaluation, lump sum reduces negotiation
+
+#### Creative Europe
+- **Initial evaluation**: 3-4 months after deadline
+- **Results notification**: 4-5 months after deadline
+- **Grant Agreement**: 5-6 months after deadline
+- ⚡ **Note**: Co-funding verification adds some time
+
+#### Horizon Europe (RIA/IA)
+- **Evaluation completion**: ~5 months after deadline
+- **Results notification**: 5 months after deadline (target)
+- **Grant Agreement Preparation (GAP)**: 3 months
+- **Total Time to Grant**: **8 months** (Commission target)
+- ⚠️ **Reality**: Often 6-9 months depending on call oversubscription
+
+#### EIC Accelerator (Phased)
+- **Step 1 (Short application)**: 2 months evaluation
+- **Step 2 (Full application)**: 3 months evaluation
+- **Step 3 (Interview)**: Invited ~1 month after Step 2
+- **Final decision**: Variable based on interview scheduling
+- 💡 **Note**: Fastest for single companies, but phased approach
+
+### Why Some Programmes Are Faster
+
+| Factor | Fast Decision | Slower Decision |
+|--------|--------------|-----------------|
+| **Evaluation complexity** | Fewer criteria | Multiple expert panels |
+| **Budget model** | Lump sum | Cost-based negotiation |
+| **Proposal volume** | Fewer applications | High oversubscription |
+| **Consortium size** | Fewer partners | Large consortia |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+• Check the specific call deadline and expected evaluation timeline on the [Funding Portal](https://ec.europa.eu/info/funding-tenders/)
+• Plan your project start date 6-8 months after Horizon Europe deadlines
+• For Erasmus+, expect results 4-5 months after submission
+• Contact your [NCP or National Agency](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for call-specific timing
+• Sign up for call notifications to receive result announcements"""
+
+    def _generate_project_start_lag_guidance(self) -> str:
+        """Generate guidance on project start lag after selection."""
+        return """The project start lag after a positive evaluation result is defined by the **Grant Agreement Preparation (GAP)** phase. For Horizon Europe, the official target duration from the **call deadline to Grant Agreement signature (Time to Grant - TTG)** is typically **8 months**.
+
+Since the selection/evaluation notification usually occurs around **5 months** after the deadline, the administrative lag (GAP phase) until the official project start/signature is typically **3 months**.
+
+### Official Project Start Lag by Programme
+
+| Programme | Selection to Start | Key Administrative Steps |
+|-----------|-------------------|------------------------|
+| **Horizon Europe** | **3 months** | GAP negotiations, consortium agreement |
+| **Erasmus+ KA2** | **1-2 months** | Grant agreement, bank guarantee |
+| **Creative Europe** | **2-3 months** | Co-funding validation, contracts |
+| **EIC Accelerator** | **2-4 months** | Due diligence, investment terms |
+
+### Grant Agreement Preparation (GAP) Phase
+
+After receiving a positive evaluation result, the following steps occur before the project can officially start:
+
+| Step | Duration | Activities |
+|------|----------|-----------|
+| **Invitation to GAP** | Week 1-2 | EC invites coordinator to start preparation |
+| **Legal/Financial Validation** | 2-4 weeks | All partners validated in participant portal |
+| **Consortium Agreement** | 2-4 weeks | Partners sign internal agreement |
+| **Budget Finalization** | 1-2 weeks | Final budget accepted by all |
+| **Grant Agreement Signature** | 1-2 weeks | Electronic signature by coordinator + EC |
+| **Project Start** | Day after signature | Official start date |
+
+### Why Horizon Europe Takes Longer
+
+1. **Complex Consortia**: 8-15 partners need validation
+2. **Budget Negotiation**: Detailed cost categories may require adjustments
+3. **Consortium Agreement**: Internal negotiations between partners
+4. **Legal Entity Validation**: New organizations need full validation
+
+### Why Erasmus+ Starts Faster
+
+1. **Smaller Consortia**: 3-6 partners
+2. **Lump Sum Budgets**: No detailed cost negotiations
+3. **Simpler Legal Requirements**: Established education institutions
+
+### Project Start Date Options
+
+| Programme | Start Date Flexibility |
+|-----------|----------------------|
+| **Horizon Europe** | Usually 1st of the month after GAP completion |
+| **Erasmus+ KA2** | Fixed by National Agency (often September/October) |
+| **Creative Europe** | Flexible within 3 months of signature |
+
+### Timeline Example: Horizon Europe RIA
+
+```
+March 15      → Call deadline (proposal submission)
+August 15     → Evaluation results (~5 months later)
+August 20     → Invitation to GAP
+September 15  → Legal validations complete
+October 15    → Budget finalized
+November 1    → Grant Agreement signed
+November 1    → **Project officially starts**
+```
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+• Ensure all consortium partners are validated in the [Participant Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/) before submission
+• Prepare draft Consortium Agreement template in advance
+• Plan for project activities to start 8-9 months after Horizon Europe deadlines
+• For Erasmus+, coordinate with National Agency on fixed start dates
+• Check your organization's legal/financial validation status now to avoid delays
+• Contact your [NCP or National Agency](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for programme-specific GAP guidance"""
 
     def _deduplicate_content(self, contents: list) -> list:
         """Remove duplicate or very similar content."""

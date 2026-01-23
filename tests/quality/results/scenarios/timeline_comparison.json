@@ -1,0 +1,136 @@
+{
+  "scenario_name": "Timeline Comparison",
+  "status": "PASS",
+  "average_quality_score": 82.2,
+  "average_factual_score": 100.0,
+  "turns": [
+    {
+      "query": "How long does a typical Horizon Europe proposal take to prepare?",
+      "response": "The typical preparation time for a competitive Horizon Europe proposal (such as a Research and Innovation Action/RIA or Innovation Action/IA) ranges from **6 to 9 months**.\n\nWhile intense drafting occurs in the final 2-3 months, highly successful proposals require extensive preparation in the preceding phases, particularly for consortium building and strategic alignment with the specific call topic.\n\n### Proposal Preparation Timeline Breakdown\n\n| Phase | Duration | Key Activities |\n|-------|----...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 1204.5459999999998,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
+      "passed": true
+    },
+    {
+      "query": "Compare with Erasmus+ KA2",
+      "response": "Preparing an Erasmus+ Key Action 2 (KA2) Cooperation Partnership proposal is generally **less complex and faster** than a Horizon Europe (HE) Research and Innovation Action (RIA), largely due to differences in evaluation focus, consortium size, and budget structure.\n\n### Comparison: HE (RIA/IA) vs. Erasmus+ KA2\n\n| Feature | Horizon Europe (RIA/IA) | Erasmus+ KA2 (Cooperation Partnerships) |\n|---------|------------------------|----------------------------------------|\n| **Typical Preparation Time...",
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 579.407,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": true
+    },
+    {
+      "query": "What about Creative Europe cooperation projects?",
+      "response": "Creative Europe Cooperation Projects (Culture strand) are distinctly different from Horizon Europe (HE) and Erasmus+ (E+ KA2), focusing on cultural policy, audience development, and the transnational circulation of cultural works, with a mandatory co-funding model.\n\n### Comparison: HE (RIA/IA), Erasmus+ KA2, and Creative Europe (CE Culture)\n\n| Feature | Horizon Europe (RIA/IA) | Erasmus+ KA2 | Creative Europe (COOP) |\n|---------|------------------------|--------------|------------------------|\n|...",
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 4150.356000000001,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": true
+    },
+    {
+      "query": "Which has the fastest decision time?",
+      "response": "For the fastest time to **final grant agreement signature** for a collaborative project, **Erasmus+ Key Action 2 (KA2)** is typically the quickest, while the **EIC Accelerator** (part of Horizon Europe) has the fastest initial decision for single-applicant instruments.\n\nDecision times are usually measured by the **Time to Grant (TTG)**, which is the period from the submission deadline to the signature of the Grant Agreement. Official targets set by the European Commission define these periods.\n\n...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 651.088,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": true
+    },
+    {
+      "query": "What's the project start lag after selection?",
+      "response": "The project start lag after a positive evaluation result is defined by the **Grant Agreement Preparation (GAP)** phase. For Horizon Europe, the official target duration from the **call deadline to Grant Agreement signature (Time to Grant - TTG)** is typically **8 months**.\n\nSince the selection/evaluation notification usually occurs around **5 months** after the deadline, the administrative lag (GAP phase) until the official project start/signature is typically **3 months**.\n\n### Official Project...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 781.802,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 4,
+      "passed": true
+    }
+  ],
+  "scores": {
+    "average_quality": 82.2,
+    "average_factual": 100.0,
+    "goal_progress": 0.63,
+    "context_fields": 3
+  },
+  "failures": [],
+  "metadata": {
+    "scenario_path": "tests/scenarios/advanced/timeline_comparison.yaml",
+    "tags": [
+      "phase6",
+      "cross-programme",
+      "comparison",
+      "timelines",
+      "horizon",
+      "erasmus",
+      "creative-europe"
+    ],
+    "description": "A 5-step timeline comparison workflow where a user compares proposal\npreparation timelines, decision times, and project start lags across\nHorizon Europe, Erasmus+ KA2, and Creative Europe cooperation projects.\nTests the system's ability to provide reasonable timeline estimates and\nclear programme differences.\n",
+    "conversation_id": 392622589
+  },
+  "execution_time_ms": 212909.13,
+  "timestamp": "2026-01-23T11:23:01.560021",
+  "passed": true,
+  "turn_count": 5,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
+}
