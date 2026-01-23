@@ -323,10 +323,11 @@ Run with: `./ralphy.sh --prd docs/prd/MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD_V3
 ### Scenario 017: Funding Strategy
 - [x] EXECUTE: Run scenario `tests/scenarios/advanced/strategic_planning/funding_strategy.yaml` against the live API. Tests multi-year funding strategy advice. Save result to `tests/quality/results/scenarios/funding_strategy.json`.
 
-- [ ] FIX IF NEEDED: Read `tests/quality/results/scenarios/funding_strategy.json`. If average_score < 80:
+- [x] FIX IF NEEDED: Read `tests/quality/results/scenarios/funding_strategy.json`. If average_score < 80:
   1. ONLY modify files in `app/` directory
   2. Fix strategy generation in agent prompt or call history tool
   3. Re-run EXECUTE, repeat until score >= 80 or 3 attempts
+  4. **Attempt 1 Result**: Score improved from 78.7 to 80.0 (1 attempt). Fixed: (1) Added `_detect_strategic_planning_query()` method to detect strategic planning and context-building queries, (2) Added strategic planning guidance section to BUILT_IN_KNOWLEDGE with multi-year framework, (3) Added "Next Steps" section to timeline synthesis output, (4) Added strategic planning query types to actionable response guidelines. Turn 1 now uses `search_funding_calls` with cybersecurity keywords. Status: PASS
 
 ### Scenario 018: Portfolio Planning
 - [ ] EXECUTE: Run scenario `tests/scenarios/advanced/strategic_planning/portfolio_planning.yaml` against the live API. Tests managing multiple proposal submissions. Save result to `tests/quality/results/scenarios/portfolio_planning.json`.

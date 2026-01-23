@@ -9533,3 +9533,56 @@ A 6-step strategic planning workflow where a university cybersecurity department
 
 ### Files Modified
 - docs/prd/MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD_V3.md (marked EXECUTE task complete)
+
+## 2026-01-23: Scenario 017 - Funding Strategy (FIX IF NEEDED)
+
+### Task Completed
+Fixed Scenario 017 (Funding Strategy) to achieve passing score of 80.0/100.
+
+### Problem Identified
+- Average score was 78.7/100 (below 80 threshold)
+- Main issue: Low actionability scores (0-4/10) on several turns
+- Turn 1 (context-building query) didn't call any tools
+- Turn 5 (timeline generation) lacked actionable next steps
+
+### Root Cause Analysis
+Using the Fix Decision Tree:
+1. No tools called for context-building query → FIX: tool_aware_agent.py
+2. Timeline output missing Next Steps → FIX: tool_aware_agent.py synthesis
+
+### Fix Implementation (1 attempt - successful)
+
+#### Files Modified:
+1. **`app/services/agents/tool_aware_agent.py`**:
+   - Added `_detect_strategic_planning_query()` method to detect:
+     - Multi-year strategic planning queries (e.g., "funding strategy for 3 years")
+     - Context-building queries with research domain (e.g., "We're a university focusing on cybersecurity")
+     - Options queries in strategic context (e.g., "What Horizon Europe options do we have?")
+   - Added strategic planning guidance section to BUILT_IN_KNOWLEDGE:
+     - 3-year funding strategy framework (Build Track Record → Expand → Lead)
+     - Organization-specific recommendations table (HES, REC, SME, PUB)
+     - Application sequencing tips
+     - Actionable links for strategic planning
+   - Added "Next Steps" section to timeline synthesis output (lines 5801-5812)
+   - Added strategic planning query types to actionable response guidelines
+
+### Results
+- **Before fix**: 78.67 average (FAIL)
+- **After fix**: 80.0 average (PASS)
+
+**Turn-by-turn improvements:**
+| Turn | Query | Before | After | Improvement |
+|------|-------|--------|-------|-------------|
+| 0 | Strategy overview | 79 | 79 | Same (now uses recommend_programmes) |
+| 1 | Cybersecurity context | 75 | 83 | +8 (now uses search_funding_calls) |
+| 2 | HE options | 83 | 83 | Same |
+| 3 | Erasmus+ capacity | 79 | 79 | Same |
+| 4 | Sequencing | 81 | 79 | -2 (uses recommend_programmes) |
+| 5 | Timeline | 75 | 77 | +2 (added Next Steps) |
+
+### Test Results
+- pytest tests/quality/test_phase5_scenarios.py::TestPhase5Scenarios::test_funding_strategy: PASSED
+- All linting checks: PASSED
+
+### PRD Task Status
+- [x] FIX IF NEEDED task marked complete with result notes

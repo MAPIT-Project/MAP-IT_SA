@@ -926,6 +926,35 @@ For RIA/IA/CSA collaborative calls:
 **For Other Third Countries:**
 • Check your country's NCP or science agency for bilateral EU programmes
 • Many countries have funded joint calls with EU (e.g., NSF-EU, UKRI-EU)
+
+### Strategic Funding Planning (Multi-Year Strategy)
+
+When users ask about funding strategy, multi-year planning, or application sequencing, provide this guidance:
+
+**Strategic Planning Framework:**
+1. **Year 1: Build Track Record** - Start with smaller actions (MSCA, Widening, CSA as partner)
+2. **Year 2: Expand Portfolio** - Target main RIA/IA calls in your cluster, consider coordinating
+3. **Year 3: Lead & Scale** - Coordinate larger projects, leverage track record
+
+**Organization-Specific Recommendations:**
+| Org Type | Recommended Starting Points | Primary Pathways |
+|----------|----------------------------|------------------|
+| **University (HES)** | MSCA, Widening, RIA as partner | Cluster RIA → ERC → Large-scale |
+| **Research Institute (REC)** | RIA as partner, CSA coordination | RIA → IA demonstration → ERC |
+| **SME** | Eurostars, EIC Pathfinder, IA as partner | EIC Transition → EIC Accelerator |
+| **Public Body** | CSA, Missions, Widening | CSA → RIA co-coordinator |
+
+**Application Sequencing Tips:**
+• Check the annual work programme calendar (published in May/June for next year)
+• Plan for 6-9 months of proposal preparation time
+• Build consortium relationships before call opening
+• Consider multiple submissions per year across different clusters
+
+🎯 **Getting Started with Strategic Planning:**
+• Review the multi-annual [Work Programme structure](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents)
+• Identify your 2-3 target clusters based on research focus
+• Connect with your [National Contact Point](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for personalized advice
+• Use [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search) to find experienced consortium partners
 """
 
     # System prompt for the reasoning LLM
@@ -1280,6 +1309,9 @@ Format your conclusion with this structure:
 - **For budgets**: Review similar project budgets, use cost calculator, consult finance team
 - **For eligibility**: Verify PIC registration, check country status, contact NCP
 - **For general questions**: Visit official programme page, review documentation, attend info days
+- **For strategic planning/funding strategy**: Share organization details, identify target clusters, review multi-year work programmes
+- **For context-building (user shares org info)**: Acknowledge, suggest relevant clusters, offer to search for calls
+- **For application sequencing**: Review call calendars, prioritize by deadline, plan capacity building
 
 ## CRITICAL: Action Type Comparisons (IA vs CSA vs RIA)
 
@@ -3481,6 +3513,12 @@ digital_europe, life""",
         if personalized_result:
             return personalized_result
 
+        # Check for STRATEGIC PLANNING / FUNDING STRATEGY queries
+        # These are multi-year planning queries that benefit from programme recommendations
+        strategic_result = self._detect_strategic_planning_query(query, context)
+        if strategic_result:
+            return strategic_result
+
         # Check for CONTEXT RECALL queries (e.g., "I mentioned earlier I work on hydrogen")
         # These reference earlier conversation context to find calls
         context_recall_result = self._detect_context_recall_query(query, context)
@@ -4288,6 +4326,187 @@ digital_europe, life""",
             "needs_more_info": True,
             "context_summary": f"Based on your profile ({profile_summary}), here's more about {detected_programme_name}:",
         }
+
+    def _detect_strategic_planning_query(self, query: str, context: str) -> dict[str, Any] | None:
+        """Detect strategic planning / funding strategy queries.
+
+        This handles queries like:
+        - "Help me plan our research funding strategy for the next 3 years"
+        - "We're a university department focusing on cybersecurity" (context building)
+        - "What Horizon Europe options do we have?"
+        - "How should we sequence our applications?"
+
+        Strategic queries benefit from programme recommendations and context-aware responses.
+        """
+        query_lower = query.lower()
+        context_lower = context.lower() if context else ""
+
+        # Patterns for strategic planning queries
+        strategic_patterns = [
+            "funding strategy",
+            "funding plan",
+            "multi-year plan",
+            "3 year plan",
+            "3-year plan",
+            "next 3 years",
+            "next three years",
+            "strategic plan",
+            "plan our research",
+            "plan our funding",
+            "sequence our applications",
+            "sequencing applications",
+            "application strategy",
+            "what options do we have",
+            "options for us",
+        ]
+
+        # Context-building patterns (organization + research focus)
+        context_building_patterns = [
+            "we're a ",
+            "we are a ",
+            "our department",
+            "our organization",
+            "our organisation",
+            "our university",
+            "our institute",
+            "i work at",
+            "we work on",
+            "we focus on",
+            "focusing on",
+            "our research area",
+            "our team",
+        ]
+
+        # Domain/sector patterns
+        domain_patterns = {
+            "cybersecurity": ["cybersecurity", "cyber security", "cyber-security"],
+            "ai": ["artificial intelligence", "machine learning", " ai ", "ai/ml"],
+            "healthcare": ["healthcare", "health care", "medical", "health sector"],
+            "energy": ["clean energy", "renewable energy", "energy transition"],
+            "climate": ["climate", "sustainability", "environment"],
+            "digital": ["digital transformation", "digitalization", "digitization"],
+            "biotech": ["biotechnology", "biotech", "life sciences"],
+            "quantum": ["quantum computing", "quantum technology"],
+        }
+
+        is_strategic_query = any(pattern in query_lower for pattern in strategic_patterns)
+        is_context_building = any(pattern in query_lower for pattern in context_building_patterns)
+
+        # Detect research domain from query
+        detected_domain = None
+        for domain, patterns in domain_patterns.items():
+            if any(pattern in query_lower for pattern in patterns):
+                detected_domain = domain
+                break
+
+        # If context building with a research domain, provide strategic guidance + search calls
+        if is_context_building and detected_domain:
+            # Extract organization type description
+            org_type_desc = ""
+            if any(x in query_lower for x in ["university", "department", "academic"]):
+                org_type_desc = "university/academic institution"
+            elif any(x in query_lower for x in ["sme", "startup", "company"]):
+                org_type_desc = "SME/company"
+            elif any(x in query_lower for x in ["institute", "research center", "research centre"]):
+                org_type_desc = "research institute"
+
+            # Build strategic context response
+            strategic_intro = (
+                f"As a {org_type_desc or 'organization'} focusing on **{detected_domain}**, "
+            )
+
+            if detected_domain == "cybersecurity":
+                cluster_info = "you align well with **Cluster 3** (Civil Security for Society) and **Cluster 4** (Digital, Industry and Space)"
+                search_keywords = "cybersecurity digital security"
+            elif detected_domain == "ai":
+                cluster_info = "you align with **Cluster 4** (Digital, Industry and Space) and cross-cutting AI initiatives"
+                search_keywords = "artificial intelligence AI digital"
+            elif detected_domain == "healthcare":
+                cluster_info = (
+                    "you align with **Cluster 1** (Health) and digital health initiatives"
+                )
+                search_keywords = "health medical clinical"
+            elif detected_domain == "energy":
+                cluster_info = "you align with **Cluster 5** (Climate, Energy and Mobility)"
+                search_keywords = "energy renewable clean energy"
+            elif detected_domain == "climate":
+                cluster_info = "you align with **Cluster 5** (Climate, Energy and Mobility) and **Cluster 6** (Food, Bioeconomy)"
+                search_keywords = "climate sustainability environment"
+            else:
+                cluster_info = "you have multiple relevant Horizon Europe clusters to explore"
+                search_keywords = detected_domain
+
+            return {
+                "thought": f"User is providing context about their organization ({org_type_desc or 'organization'}) with focus on {detected_domain}. Searching for relevant calls to provide concrete options.",
+                "action": "call_tools",
+                "tool_calls": [
+                    {
+                        "tool": "search_funding_calls",
+                        "parameters": {"keywords": search_keywords, "status": "open"},
+                        "reasoning": f"Finding open calls relevant to {detected_domain} for strategic planning",
+                    }
+                ],
+                "needs_more_info": True,
+                "context_prefix": f"{strategic_intro}{cluster_info}.\n\nHere are currently open funding opportunities relevant to your focus:\n\n",
+                "context_suffix": "\n\n---\n\n🎯 **Next Steps:**\n• Review the calls above and identify 2-3 that match your capabilities\n• Check [EU Funding Portal](https://ec.europa.eu/info/funding-tenders/) for full call details\n• Consider your role preference: coordinator vs partner (universities often start as partners)\n• Share more details about your specific research focus for tailored recommendations",
+            }
+
+        # If asking about strategic planning (without domain context), recommend programmes
+        if is_strategic_query:
+            return {
+                "thought": "User is asking about strategic funding planning. Using recommend_programmes to provide an overview of options.",
+                "action": "call_tools",
+                "tool_calls": [
+                    {
+                        "tool": "recommend_programmes",
+                        "parameters": {},
+                        "reasoning": "Providing strategic overview of EU funding programmes for multi-year planning",
+                    }
+                ],
+                "needs_more_info": True,
+                "context_suffix": "\n\n---\n\n🎯 **Next Steps:**\n• Share your organization type (university, SME, research institute)\n• Tell me your research focus area for personalized recommendations\n• Indicate your experience level with EU funding (first-time vs experienced)\n• Let me know your preferred role: coordinator or participant",
+            }
+
+        # Check if context has strategic planning context and query asks about options
+        options_patterns = [
+            "what options",
+            "which options",
+            "horizon europe options",
+            "our options",
+            "available for us",
+        ]
+
+        if any(pattern in query_lower for pattern in options_patterns):
+            # Check context for research domain
+            for domain, patterns in domain_patterns.items():
+                if any(pattern in context_lower for pattern in patterns):
+                    detected_domain = domain
+                    break
+
+            if detected_domain:
+                if detected_domain == "cybersecurity":
+                    search_keywords = "cybersecurity digital security"
+                elif detected_domain == "ai":
+                    search_keywords = "artificial intelligence AI"
+                elif detected_domain == "healthcare":
+                    search_keywords = "health medical"
+                else:
+                    search_keywords = detected_domain
+
+                return {
+                    "thought": f"User is asking about Horizon Europe options. Context indicates {detected_domain} focus. Searching for relevant calls.",
+                    "action": "call_tools",
+                    "tool_calls": [
+                        {
+                            "tool": "search_funding_calls",
+                            "parameters": {"keywords": search_keywords, "status": "open"},
+                            "reasoning": f"Finding Horizon Europe options for {detected_domain}",
+                        }
+                    ],
+                    "needs_more_info": True,
+                }
+
+        return None
 
     def _detect_context_recall_query(self, query: str, context: str) -> dict[str, Any] | None:
         """Detect if query references earlier conversation context to find calls.
@@ -5791,6 +6010,22 @@ Per Partner Distribution:
                     timeline_parts.append("### Recommendations\n")
                     for rec in recommendations[:5]:
                         timeline_parts.append(f"- {rec}")
+
+                # Add Next Steps section for actionability
+                timeline_parts.append("")
+                timeline_parts.append("---")
+                timeline_parts.append("")
+                timeline_parts.append("🎯 **Next Steps:**")
+                timeline_parts.append(
+                    "• Review work package allocation with your consortium partners"
+                )
+                timeline_parts.append("• Adjust deliverable timing based on dependencies")
+                timeline_parts.append(
+                    "• Check [Horizon Europe proposal templates](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents) for formatting requirements"
+                )
+                timeline_parts.append(
+                    "• Use the EU Portal's [Grant Agreement Preparation](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/om_en.pdf) guide for milestone definitions"
+                )
 
                 content_pieces.append("\n".join(timeline_parts))
 
