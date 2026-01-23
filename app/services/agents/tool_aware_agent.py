@@ -3587,6 +3587,15 @@ digital_europe, life""",
         if consortium_eligibility_result:
             return consortium_eligibility_result
 
+        # Check for ERASMUS+ ACTION SELECTION queries
+        # These are questions about Erasmus+ Key Actions (KA1, KA2, KA3), sector-specific options,
+        # mobility programmes, VET partnerships, curriculum development, and action combination strategy
+        # e.g., "What Erasmus+ actions are there?", "VET mobility options?", "KA1 + KA2 strategy?"
+        # IMPORTANT: Must come BEFORE cross-programme eligibility to handle Erasmus-specific queries
+        erasmus_action_result = self._detect_erasmus_action_query(query, context)
+        if erasmus_action_result:
+            return erasmus_action_result
+
         # Check for CROSS-PROGRAMME ELIGIBILITY queries (double funding, multiple programmes)
         # These are questions about participating in multiple EU programmes simultaneously
         # e.g., "Can we have the same project funded by both Horizon Europe and Erasmus+?"
@@ -14836,6 +14845,675 @@ If multiple proposals succeed:
 - [Creative Europe Desks](https://ec.europa.eu/culture/creative-europe/creative-europe-desks)
 
 💡 **Pro Tip:** Consider starting with a smaller programme (Erasmus+ KA2 or Creative Europe small-scale) to build track record before tackling larger Horizon Europe projects. Success breeds success in EU funding!"""
+
+    def _detect_erasmus_action_query(self, query: str, context: str) -> dict[str, Any] | None:
+        """Detect Erasmus+ action selection and sector-specific queries.
+
+        These are questions about:
+        - Erasmus+ Key Actions overview (KA1, KA2, KA3, Jean Monnet, Sport)
+        - Sector-specific mobility options (VET, HED, SCH, ADU, YOU)
+        - VET partnerships and cooperation
+        - KA2 Cooperation Partnerships and curriculum development
+        - Strategy for combining KA1 mobility with KA2 partnerships
+
+        These queries should provide structured guidance with actionable Next Steps.
+        """
+        query_lower = query.lower()
+        context_lower = context.lower() if context else ""
+
+        # Track if VET/sector context is present
+        has_vet_context = any(
+            ind in context_lower for ind in ["vet", "vocational", "vet school", "vet institution"]
+        )
+        has_mobility_context = any(
+            ind in context_lower for ind in ["mobility", "ka1", "key action 1"]
+        )
+        has_partnership_context = any(
+            ind in context_lower for ind in ["partnership", "ka2", "key action 2", "cooperation"]
+        )
+
+        # === Pattern 1: Erasmus+ actions overview ===
+        # e.g., "What Erasmus+ actions are there?", "Explain Erasmus+ Key Actions"
+        actions_overview_patterns = [
+            "erasmus+ actions",
+            "erasmus actions",
+            "erasmus+ key action",
+            "erasmus key action",
+            "what are the erasmus",
+            "what erasmus actions",
+            "which erasmus actions",
+            "explain erasmus+",
+            "overview of erasmus+",
+            "erasmus+ programme structure",
+            "erasmus programme structure",
+            "types of erasmus+",
+            "types of erasmus",
+            "erasmus+ options",
+            "erasmus options",
+            "ka1, ka2, ka3",
+            "ka1 ka2 ka3",
+        ]
+
+        if any(p in query_lower for p in actions_overview_patterns):
+            guidance = self._generate_erasmus_actions_overview_guidance()
+            return {
+                "thought": "User is asking about Erasmus+ actions overview. Providing comprehensive guidance on Key Actions (KA1, KA2, KA3), Jean Monnet, and Sport.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "erasmus_actions_overview",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 2: VET mobility options ===
+        # e.g., "What Erasmus+ mobility options are available for VET schools?"
+        vet_mobility_patterns = [
+            "vet mobility",
+            "vet school mobility",
+            "vet institution mobility",
+            "vocational mobility",
+            "vocational education mobility",
+            "vocational training mobility",
+            "mobility for vet",
+            "mobility options for vet",
+            "vet students abroad",
+            "vet staff abroad",
+            "vet exchange",
+            "vet international",
+            "vet learner mobility",
+        ]
+
+        # Check for VET + mobility combination in query
+        has_vet_in_query = any(
+            p in query_lower
+            for p in ["vet", "vocational", "vocational education", "vocational training"]
+        )
+        has_mobility_in_query = any(
+            p in query_lower for p in ["mobility", "abroad", "exchange", "international"]
+        )
+
+        if any(p in query_lower for p in vet_mobility_patterns) or (
+            has_vet_in_query and has_mobility_in_query
+        ):
+            guidance = self._generate_vet_mobility_guidance()
+            return {
+                "thought": "User is asking about VET mobility options in Erasmus+. Providing guidance on KA1 mobility for VET sector.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "vet_mobility",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 3: VET partnerships / long-term cooperation ===
+        # e.g., "What are the options for long-term partnerships between VET institutions?"
+        vet_partnership_patterns = [
+            "vet partnership",
+            "vet institution partnership",
+            "vet school partnership",
+            "vocational partnership",
+            "partnership between vet",
+            "partnerships between vet",
+            "vet cooperation",
+            "vet collaboration",
+            "long-term partnership",
+            "long term partnership",
+        ]
+
+        # Check for VET + partnership combination
+        has_partnership_in_query = any(
+            p in query_lower for p in ["partnership", "cooperation", "collaboration", "long-term"]
+        )
+
+        if (
+            any(p in query_lower for p in vet_partnership_patterns)
+            or (has_vet_in_query and has_partnership_in_query)
+            or (has_vet_context and has_partnership_in_query)
+        ):
+            guidance = self._generate_vet_partnership_guidance()
+            return {
+                "thought": "User is asking about VET partnership options in Erasmus+. Providing guidance on KA2 Cooperation Partnerships for VET sector.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "vet_partnership",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 4: KA2 curriculum development ===
+        # e.g., "What curriculum-related activities are funded under Erasmus+ KA2?"
+        curriculum_patterns = [
+            "curriculum development",
+            "curriculum-related",
+            "curriculum activities",
+            "develop curriculum",
+            "developing curriculum",
+            "new curriculum",
+            "curriculum innovation",
+            "ka2 curriculum",
+            "cooperation partnership curriculum",
+            "training materials",
+            "educational resources",
+            "joint curriculum",
+            "curriculum design",
+            "course development",
+        ]
+
+        # Check for KA2/partnership context + curriculum
+        has_ka2_context = any(
+            p in query_lower or p in context_lower
+            for p in ["ka2", "key action 2", "cooperation partnership"]
+        )
+        has_curriculum_in_query = any(p in query_lower for p in curriculum_patterns)
+
+        if has_curriculum_in_query and (
+            has_ka2_context or has_vet_context or has_partnership_context
+        ):
+            guidance = self._generate_ka2_curriculum_guidance()
+            return {
+                "thought": "User is asking about curriculum development in Erasmus+ KA2. Providing guidance on Cooperation Partnerships and eligible activities.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "ka2_curriculum",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 5: KA1 + KA2 combination strategy ===
+        # e.g., "How should a VET school combine KA1 mobility with KA2 partnerships?"
+        combination_patterns = [
+            "combine ka1",
+            "combine ka2",
+            "ka1 and ka2",
+            "ka1 with ka2",
+            "ka2 with ka1",
+            "mobility and partnership",
+            "mobility with partnership",
+            "partnership and mobility",
+            "combine mobility",
+            "combine erasmus",
+            "maximum benefit",
+            "best combination",
+            "strategy for vet",
+            "vet school strategy",
+            "vet action combination",
+            "both ka1 and ka2",
+        ]
+
+        # Check for combination/strategy context
+        has_combination_intent = any(
+            p in query_lower
+            for p in ["combine", "combination", "both", "together", "strategy", "maximum benefit"]
+        )
+        has_ka1_ka2_context = (has_mobility_context or "ka1" in query_lower) and (
+            has_partnership_context or "ka2" in query_lower
+        )
+
+        if (
+            any(p in query_lower for p in combination_patterns)
+            or (has_vet_context and has_combination_intent and has_ka1_ka2_context)
+            or (has_vet_in_query and has_combination_intent)
+        ):
+            guidance = self._generate_erasmus_combination_strategy_guidance()
+            return {
+                "thought": "User is asking about combining Erasmus+ KA1 and KA2 for VET. Providing strategic guidance on action combination.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "erasmus_combination_strategy",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        return None
+
+    def _generate_erasmus_actions_overview_guidance(self) -> str:
+        """Generate guidance on Erasmus+ Key Actions overview."""
+        return """Erasmus+ (2021-2027) is the EU's flagship programme for education, training, youth, and sport, with a budget of **€26.2 billion**. It is structured around **three Key Actions** plus dedicated actions for Jean Monnet and Sport.
+
+## Erasmus+ Key Actions Overview
+
+| Key Action | Focus | Target Groups | Budget Share |
+|-----------|-------|---------------|--------------|
+| **KA1** | Learning Mobility | Students, staff, learners | ~63% |
+| **KA2** | Cooperation & Partnerships | Institutions, organizations | ~28% |
+| **KA3** | Policy Support | Policymakers, networks | ~4% |
+| **Jean Monnet** | EU Studies | Universities, teachers | ~2% |
+| **Sport** | Grassroots Sport | Clubs, federations | ~2% |
+
+### Key Action 1 (KA1) - Learning Mobility
+
+KA1 supports **individual mobility** for:
+- **Higher Education**: Student exchanges, staff mobility, joint degrees
+- **VET**: Learner and staff mobility, skills competitions
+- **Schools**: Pupil and teacher exchanges
+- **Adult Education**: Staff mobility, adult learner mobility
+- **Youth**: Youth exchanges, volunteering (European Solidarity Corps)
+
+**Funding Model**: Unit costs (travel + individual support per day)
+
+### Key Action 2 (KA2) - Cooperation & Partnerships
+
+KA2 supports **institutional cooperation** through:
+
+| Partnership Type | Partners | Duration | Budget |
+|-----------------|----------|----------|--------|
+| **Cooperation Partnerships** | 3+ from 3+ countries | 12-36 months | €120K-400K |
+| **Small-Scale Partnerships** | 2+ from 2+ countries | 6-24 months | €30K-60K |
+| **Centres of Vocational Excellence** | 4+ from 4+ countries | 4 years | Up to €4M |
+| **Teacher Academies** | 3+ from 3+ countries | 3 years | Up to €1.5M |
+| **Erasmus Mundus Joint Masters** | 3+ from 3+ countries | 6 years | Up to €5M |
+
+**Funding Model**: Lump sums based on project size and activity type
+
+### Key Action 3 (KA3) - Policy Support
+
+KA3 supports **policy development** through:
+- European policy experimentation
+- Civil society cooperation (framework partnerships)
+- Support to EU policy tools and networks
+
+### Jean Monnet Actions
+
+Promotes excellence in EU studies:
+- Modules, Chairs, Centres of Excellence
+- Policy debates, networks, projects
+- Support to academic associations
+
+### Sport Actions
+
+Promotes grassroots sport participation:
+- Cooperation partnerships for sport
+- Not-for-profit sport events
+- Evidence-based policy development
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Identify Your Sector**: Determine which sector applies (HED, VET, Schools, Adult Ed, Youth)
+2. **Choose Your Action Type**: Decide between mobility (KA1) or partnerships (KA2)
+3. **Check Accreditation**: Consider KA1 accreditation for simplified long-term access
+4. **Find Partners**: Use the [Partner Search Tool](https://erasmus-plus.ec.europa.eu/partner-search)
+5. **Contact Your National Agency**: Get sector-specific guidance
+
+📋 **Action Items:**
+- [ ] Review the [Erasmus+ Programme Guide 2026](https://erasmus-plus.ec.europa.eu/programme-guide/introduction)
+- [ ] Check [open calls](https://erasmus-plus.ec.europa.eu/programme-guide/part-b) for your sector
+- [ ] Register on [EU Funding Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/)
+- [ ] Contact your [National Agency](https://erasmus-plus.ec.europa.eu/contacts/national-agencies)
+- [ ] Consider [Accreditation](https://erasmus-plus.ec.europa.eu/programme-guide/part-b/key-action-1/accreditation) for regular mobility
+
+📚 **Useful Resources:**
+- [Erasmus+ Programme Guide](https://erasmus-plus.ec.europa.eu/programme-guide/erasmusplus-programme-guide)
+- [National Agencies](https://erasmus-plus.ec.europa.eu/contacts/national-agencies)
+- [Partner Search](https://erasmus-plus.ec.europa.eu/partner-search)
+- [Project Results Platform](https://erasmus-plus.ec.europa.eu/projects)"""
+
+    def _generate_vet_mobility_guidance(self) -> str:
+        """Generate guidance on VET mobility options in Erasmus+."""
+        return """Erasmus+ offers comprehensive **mobility opportunities for VET (Vocational Education and Training)** institutions, learners, and staff through **Key Action 1 (KA1)**.
+
+## VET Mobility Options in Erasmus+ KA1
+
+### Who Can Participate?
+
+| Participant Type | Eligibility | Duration | Activities |
+|-----------------|-------------|----------|------------|
+| **VET Learners** | Enrolled in VET programmes | 2 weeks - 12 months | Work placements, learning abroad |
+| **Recent Graduates** | Within 12 months of graduation | 2 weeks - 12 months | Work placements |
+| **VET Staff** | Teachers, trainers, managers | 2 days - 2 months | Job shadowing, courses, teaching |
+| **Apprentices** | In apprenticeship programmes | 2 weeks - 12 months | Work-based learning abroad |
+
+### Mobility Formats
+
+#### Short-Term Mobility (2 weeks - 3 months)
+- Work placements in companies abroad
+- Learning periods at VET schools/training centres
+- Skills competitions (EuroSkills, WorldSkills preparation)
+- Job shadowing for staff
+
+#### Long-Term Mobility (3-12 months) - ErasmusPro
+- Extended work placements with full ECVET recognition
+- Suitable for advanced learners and apprentices
+- Includes intensive language preparation
+- Higher unit costs to reflect extended duration
+
+### Funding (Unit Costs 2024-2025)
+
+| Cost Category | Amount |
+|--------------|--------|
+| **Travel** | €180-1,500 (by distance band) |
+| **Individual Support** | €30-140/day (by country) |
+| **Organizational Support** | €350/participant (first 100), €200 (after) |
+| **Inclusion Support** | Up to €100/day extra |
+| **Linguistic Support** | €150-300 per participant |
+
+### Access Routes for VET Schools
+
+| Route | Description | Benefits |
+|-------|-------------|----------|
+| **KA1 Accreditation** | Multi-year accreditation | Simplified annual funding, long-term planning |
+| **Short-Term Projects** | One-off mobility project | Flexible, good for first-timers |
+| **Consortium** | Join an existing accredited consortium | Lower admin burden, shared expertise |
+
+### Accreditation Pathway (Recommended)
+
+VET schools can apply for **Erasmus+ Accreditation** to access mobility funding each year:
+1. Apply once for 5-year accreditation
+2. Submit annual mobility budget requests
+3. Receive simplified funding with less reporting
+4. Build long-term internationalization strategy
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Assess Your Needs**: Identify how many learners/staff would benefit from mobility
+2. **Consider Accreditation**: Apply for KA1 accreditation for ongoing access
+3. **Find Hosting Partners**: Connect with VET schools/companies abroad
+4. **Plan ECVET Recognition**: Ensure learning outcomes can be recognized
+5. **Prepare Participants**: Organize language and cultural preparation
+
+📋 **Action Items:**
+- [ ] Check if accreditation call is open at your [National Agency](https://erasmus-plus.ec.europa.eu/contacts/national-agencies)
+- [ ] Use [Partner Search](https://erasmus-plus.ec.europa.eu/partner-search) to find hosting organizations
+- [ ] Review [ECVET guidelines](https://www.cedefop.europa.eu/en/projects/european-credit-system-vocational-education-and-training-ecvet) for recognition
+- [ ] Contact your National Agency for VET-specific guidance
+- [ ] Explore [successful VET projects](https://erasmus-plus.ec.europa.eu/projects) for inspiration
+
+📚 **Useful Resources:**
+- [Erasmus+ VET Guide](https://erasmus-plus.ec.europa.eu/programme-guide/part-b/key-action-1/learning-mobility-opportunities-vet)
+- [VET Mobility Charter (old)](https://erasmus-plus.ec.europa.eu/projects/prior-call-projects/vet-mobility-charter)
+- [National Agencies](https://erasmus-plus.ec.europa.eu/contacts/national-agencies)
+- [Online Linguistic Support (OLS)](https://erasmus-plus.ec.europa.eu/resources-and-tools/online-linguistic-support)"""
+
+    def _generate_vet_partnership_guidance(self) -> str:
+        """Generate guidance on VET partnership options in Erasmus+."""
+        return """Erasmus+ **Key Action 2 (KA2)** offers excellent partnership opportunities for VET (Vocational Education and Training) institutions to collaborate on innovation, curriculum development, and best practice exchange.
+
+## VET Partnership Options in Erasmus+ KA2
+
+### Partnership Types for VET
+
+| Partnership Type | Min Partners | Duration | Budget | Focus |
+|-----------------|-------------|----------|--------|-------|
+| **Cooperation Partnerships** | 3 orgs from 3 countries | 12-36 months | €120K-400K (lump sum) | Innovation, curriculum, quality |
+| **Small-Scale Partnerships** | 2 orgs from 2 countries | 6-24 months | €30K or €60K | Newcomers, grassroots |
+| **Centres of Vocational Excellence (CoVE)** | 4+ from 4+ countries | 4 years | Up to €4M | Excellence ecosystems |
+
+### Cooperation Partnerships for VET
+
+**Eligible Activities:**
+- Joint curriculum development
+- Innovative teaching methods
+- Work-based learning integration
+- Digital tools and resources
+- Quality assurance frameworks
+- Staff professional development
+- Green skills development
+- Entrepreneurship education
+
+**Funding Model (Lump Sums):**
+
+| Project Size | Lump Sum | Typical Scope |
+|-------------|----------|---------------|
+| Small | €120,000 | 3-4 partners, limited outputs |
+| Medium | €250,000 | 5-6 partners, moderate outputs |
+| Large | €400,000 | 7+ partners, comprehensive outputs |
+
+### Small-Scale Partnerships
+
+**Ideal for VET schools that:**
+- Are new to EU funding
+- Have limited administrative capacity
+- Want to test international cooperation
+- Focus on specific, targeted improvements
+
+**Features:**
+- Simplified application (shorter form)
+- Fixed €30K or €60K grant (no budget breakdown)
+- Flexible partnership structure
+- Lower reporting requirements
+
+### Centres of Vocational Excellence (CoVE)
+
+**For ambitious VET institutions to:**
+- Create regional skills ecosystems
+- Connect VET with labour market
+- Drive innovation in specific sectors
+- Establish international networks of excellence
+
+**Requirements:**
+- Strong regional anchoring
+- Industry partnerships
+- Multiple countries and sectors
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Identify Your Partnership Goal**: Curriculum? Quality? Innovation? Digitalization?
+2. **Find Partners**: Use Partner Search and your National Agency network
+3. **Choose Partnership Size**: Start small if new to EU funding
+4. **Plan Outputs**: Define what tangible results you'll produce
+5. **Contact Your National Agency**: Get feedback before submitting
+
+📋 **Action Items:**
+- [ ] Review the [KA2 section](https://erasmus-plus.ec.europa.eu/programme-guide/part-b/key-action-2) of the Programme Guide
+- [ ] Use [Partner Search](https://erasmus-plus.ec.europa.eu/partner-search) to find collaborators
+- [ ] Check [call deadlines](https://erasmus-plus.ec.europa.eu/programme-guide/part-b/key-action-2/cooperation-partnerships) for partnerships
+- [ ] Study [successful VET partnerships](https://erasmus-plus.ec.europa.eu/projects) for ideas
+- [ ] Contact your [National Agency](https://erasmus-plus.ec.europa.eu/contacts/national-agencies) for guidance
+
+📚 **Useful Resources:**
+- [Erasmus+ Programme Guide - KA2](https://erasmus-plus.ec.europa.eu/programme-guide/part-b/key-action-2)
+- [Cooperation Partnerships](https://erasmus-plus.ec.europa.eu/programme-guide/part-b/key-action-2/cooperation-partnerships)
+- [Small-Scale Partnerships](https://erasmus-plus.ec.europa.eu/programme-guide/part-b/key-action-2/small-scale-partnerships)
+- [National Agencies](https://erasmus-plus.ec.europa.eu/contacts/national-agencies)"""
+
+    def _generate_ka2_curriculum_guidance(self) -> str:
+        """Generate guidance on curriculum development in Erasmus+ KA2."""
+        return """Yes, **curriculum development is a core activity** funded under Erasmus+ KA2 Cooperation Partnerships. These partnerships are specifically designed to support innovation in education, including the creation of new curricula, training materials, and educational resources.
+
+## Curriculum Activities in KA2 Cooperation Partnerships
+
+### Eligible Curriculum-Related Activities
+
+| Activity Type | Examples | Output Types |
+|--------------|----------|--------------|
+| **Curriculum Design** | New courses, modules, qualifications | Curriculum frameworks, syllabi |
+| **Learning Materials** | Textbooks, e-learning, simulations | OER (Open Educational Resources) |
+| **Teaching Methods** | Innovative pedagogy, work-based learning | Methodological guides, toolkits |
+| **Assessment Tools** | Competence frameworks, digital badges | Rubrics, assessment instruments |
+| **Quality Standards** | Sectoral qualifications, benchmarks | Quality frameworks |
+
+### Types of Outputs You Can Create
+
+**Tangible Outputs (Required):**
+- Joint curricula for VET programmes
+- Training modules (including digital/blended)
+- Teacher training materials
+- Competence frameworks
+- Assessment and recognition tools
+- Policy recommendations
+- Implementation guidelines
+
+**Multiplier Events:**
+- Dissemination conferences
+- Training workshops
+- Piloting sessions with target groups
+
+### Budget for Curriculum Development
+
+| Cost Category | Funding |
+|--------------|---------|
+| **Project Management** | Included in lump sum |
+| **Material Development** | Included in lump sum |
+| **Piloting Activities** | Included in lump sum |
+| **Multiplier Events** | €100/local, €200/international participant |
+| **Exceptional Costs** | Up to 80% for subcontracting |
+
+### Quality Criteria for Curriculum Projects
+
+Evaluators look for:
+1. **Relevance** to VET sector needs
+2. **Innovation** compared to existing curricula
+3. **Transferability** to other contexts
+4. **Sustainability** after project ends
+5. **Impact** on target groups
+
+### Examples of Successful Curriculum Projects
+
+| Project Type | Partners | Activities | Budget |
+|-------------|----------|------------|--------|
+| Green Skills Curriculum | 5 VET schools + 2 companies | Joint modules, teacher training | €350K |
+| Digital Manufacturing | 4 VET + 3 industry | Simulation tools, competence framework | €400K |
+| Entrepreneurship Education | 6 schools from 4 countries | Startup curriculum, mentoring guide | €250K |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Define Curriculum Gap**: What specific skills/knowledge are missing?
+2. **Map Target Group**: Which learners will benefit?
+3. **Find Expert Partners**: Include industry, other VET schools, researchers
+4. **Plan Pilot Testing**: How will you validate the curriculum?
+5. **Ensure Sustainability**: How will the curriculum continue after the project?
+
+📋 **Action Items:**
+- [ ] Review [KA2 priorities](https://erasmus-plus.ec.europa.eu/programme-guide/part-b/key-action-2) relevant to VET
+- [ ] Check the [2026 Erasmus+ Work Programme](https://erasmus-plus.ec.europa.eu/) for thematic priorities
+- [ ] Find partners with complementary expertise via [Partner Search](https://erasmus-plus.ec.europa.eu/partner-search)
+- [ ] Study [successful projects](https://erasmus-plus.ec.europa.eu/projects) in your VET sector
+- [ ] Plan intellectual outputs and multiplier events
+
+📚 **Useful Resources:**
+- [KA2 Cooperation Partnerships](https://erasmus-plus.ec.europa.eu/programme-guide/part-b/key-action-2/cooperation-partnerships)
+- [Erasmus+ Project Results Platform](https://erasmus-plus.ec.europa.eu/projects)
+- [CEDEFOP VET Resources](https://www.cedefop.europa.eu/)
+- [National Agencies](https://erasmus-plus.ec.europa.eu/contacts/national-agencies)"""
+
+    def _generate_erasmus_combination_strategy_guidance(self) -> str:
+        """Generate guidance on combining KA1 and KA2 for VET schools."""
+        return """Combining **KA1 mobility with KA2 partnerships** is an excellent strategy for VET schools to maximize the benefits of Erasmus+. Here's how to strategically combine these actions for maximum impact.
+
+## Strategic Approach: KA1 + KA2 Combination for VET
+
+### Why Combine KA1 and KA2?
+
+| Benefit | KA1 Contribution | KA2 Contribution |
+|---------|-----------------|------------------|
+| **Internationalization** | Individual experiences | Institutional partnerships |
+| **Quality Improvement** | Learning from abroad | Joint innovation projects |
+| **Staff Development** | Job shadowing, courses | Collaborative development |
+| **Curriculum Enhancement** | Exposure to best practices | Joint curriculum creation |
+| **Sustainability** | Ongoing mobility flows | Tangible outputs, networks |
+
+### Recommended Strategy: Building Block Approach
+
+#### Phase 1: Start with KA1 Accreditation (Year 1-2)
+
+**Why start here:**
+- Lower complexity, faster approval
+- Build international contacts
+- Develop organizational capacity
+- Identify potential KA2 partners
+
+**Actions:**
+1. Apply for KA1 Accreditation
+2. Send staff for job shadowing
+3. Start learner mobility
+4. Document partnership contacts
+
+#### Phase 2: Add KA2 Small-Scale Partnership (Year 2-3)
+
+**Why add this:**
+- Formalize successful partnerships
+- Create joint outputs
+- Test collaboration capacity
+- Low risk (€30-60K)
+
+**Actions:**
+1. Partner with 1-2 trusted KA1 contacts
+2. Focus on one clear output
+3. Build project management skills
+4. Prepare for larger projects
+
+#### Phase 3: Launch KA2 Cooperation Partnership (Year 3-5)
+
+**Why scale up:**
+- Leverage established partnerships
+- Create substantial outputs
+- Greater impact and visibility
+- Access larger budgets (€120-400K)
+
+**Actions:**
+1. Expand consortium (3+ countries)
+2. Develop comprehensive curriculum/tools
+3. Include industry partners
+4. Plan sustainable dissemination
+
+### Synergies Between Actions
+
+| KA1 Activity | How It Feeds KA2 | KA2 Output | How It Supports KA1 |
+|-------------|------------------|------------|---------------------|
+| Staff job shadowing | Identifies best practices | Joint curriculum | Better preparation |
+| Learner mobility | Tests partnership quality | Assessment tools | Improved recognition |
+| Teaching assignments | Builds trust | Training materials | Enhanced pedagogy |
+| Courses abroad | Spots innovation | Methodological guides | Staff competence |
+
+### Budget Considerations
+
+| Year | KA1 Budget | KA2 Budget | Total | Focus |
+|------|-----------|-----------|-------|-------|
+| 1 | €30K | - | €30K | Build base, get accredited |
+| 2 | €50K | €30K (SSP) | €80K | Formalize partnerships |
+| 3 | €70K | €120K (CP) | €190K | Scale innovation |
+| 4 | €80K | €250K (CP) | €330K | Major curriculum project |
+| 5 | €90K | - | €90K | Sustain and mainstream |
+
+### Key Success Factors
+
+1. **Start Small, Think Big**: Don't rush - build capacity gradually
+2. **Choose Partners Carefully**: KA2 success depends on strong partnerships
+3. **Align Objectives**: Ensure KA1 and KA2 activities reinforce each other
+4. **Document Everything**: Use KA1 experiences in KA2 applications
+5. **Involve Staff**: Get buy-in from teachers for both mobility and projects
+
+### Common Mistakes to Avoid
+
+| Mistake | Why It's Problematic | Solution |
+|---------|---------------------|----------|
+| Starting with KA2 | No established partnerships | Begin with KA1 for contacts |
+| Too many partners | Coordination complexity | Start with 3-4, expand later |
+| Unrelated activities | No synergy | Ensure KA1 feeds KA2 objectives |
+| Ignoring accreditation | Administrative burden | Get accredited for KA1 first |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Assess Current Position**: Do you have KA1 accreditation? Existing partnerships?
+2. **Define 5-Year Vision**: What do you want to achieve through Erasmus+?
+3. **Apply for KA1 Accreditation**: If not already accredited, start here
+4. **Map Potential Partners**: Which contacts could become KA2 partners?
+5. **Plan First KA2 Step**: Small-scale partnership or full cooperation?
+
+📋 **Action Items:**
+- [ ] Check [accreditation status](https://erasmus-plus.ec.europa.eu/programme-guide/part-b/key-action-1/accreditation) with your National Agency
+- [ ] Review your KA1 mobility history for potential KA2 partners
+- [ ] Identify 2-3 strategic themes for combined action
+- [ ] Discuss with staff which colleagues should lead each action
+- [ ] Create a 3-5 year Erasmus+ development plan
+
+📚 **Useful Resources:**
+- [KA1 for VET](https://erasmus-plus.ec.europa.eu/programme-guide/part-b/key-action-1/learning-mobility-opportunities-vet)
+- [KA2 Cooperation Partnerships](https://erasmus-plus.ec.europa.eu/programme-guide/part-b/key-action-2/cooperation-partnerships)
+- [Erasmus+ Accreditation](https://erasmus-plus.ec.europa.eu/programme-guide/part-b/key-action-1/accreditation)
+- [National Agencies](https://erasmus-plus.ec.europa.eu/contacts/national-agencies)
+- [Successful VET Projects](https://erasmus-plus.ec.europa.eu/projects)
+
+💡 **Pro Tip:** Many successful VET schools use KA1 as a "partnership incubator" - the organizations you exchange learners with become natural partners for KA2 innovation projects!"""
 
     def _generate_consortium_context_guidance(self, countries: list[str], query_lower: str) -> str:
         """Generate guidance when user provides consortium context."""

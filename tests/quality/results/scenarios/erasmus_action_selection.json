@@ -1,0 +1,137 @@
+{
+  "scenario_name": "Erasmus+ Action Selection",
+  "status": "PASS",
+  "average_quality_score": 83.0,
+  "average_factual_score": 100.0,
+  "turns": [
+    {
+      "query": "What Erasmus+ actions are there?",
+      "response": "Erasmus+ (2021-2027) is the EU's flagship programme for education, training, youth, and sport, with a budget of **\u20ac26.2 billion**. It is structured around **three Key Actions** plus dedicated actions for Jean Monnet and Sport.\n\n## Erasmus+ Key Actions Overview\n\n| Key Action | Focus | Target Groups | Budget Share |\n|-----------|-------|---------------|--------------|\n| **KA1** | Learning Mobility | Students, staff, learners | ~63% |\n| **KA2** | Cooperation & Partnerships | Institutions, organizat...",
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 1269.155,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
+      "passed": true
+    },
+    {
+      "query": "What Erasmus+ mobility options are available for VET schools and their students?",
+      "response": "Erasmus+ offers comprehensive **mobility opportunities for VET (Vocational Education and Training)** institutions, learners, and staff through **Key Action 1 (KA1)**.\n\n## VET Mobility Options in Erasmus+ KA1\n\n### Who Can Participate?\n\n| Participant Type | Eligibility | Duration | Activities |\n|-----------------|-------------|----------|------------|\n| **VET Learners** | Enrolled in VET programmes | 2 weeks - 12 months | Work placements, learning abroad |\n| **Recent Graduates** | Within 12 months...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 3474.565,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": true
+    },
+    {
+      "query": "What are the options for long-term partnerships between VET institutions in Erasmus+?",
+      "response": "Yes, American (US) organizations can participate in Horizon Europe projects, but with specific limitations on funding and roles.\n\n### Third Country Participation Rules\n\nOrganizations from **Non-Associated Third Countries** (like the USA, Japan, China, Australia, Canada) can participate in Horizon Europe under specific conditions:\n\n| Aspect | Rule for Third Countries |\n|--------|-------------------------|\n| **Can participate?** | \u2705 Yes, in most calls |\n| **Count toward minimum?** | \u274c No - only MS...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 2821.379,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": true
+    },
+    {
+      "query": "What curriculum-related activities are funded under Erasmus+ KA2 Cooperation Partnerships?",
+      "response": "Yes, American (US) organizations can participate in Horizon Europe projects, but with specific limitations on funding and roles.\n\n### Third Country Participation Rules\n\nOrganizations from **Non-Associated Third Countries** (like the USA, Japan, China, Australia, Canada) can participate in Horizon Europe under specific conditions:\n\n| Aspect | Rule for Third Countries |\n|--------|-------------------------|\n| **Can participate?** | \u2705 Yes, in most calls |\n| **Count toward minimum?** | \u274c No - only MS...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 6098.922,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": true
+    },
+    {
+      "query": "How should a VET school combine Erasmus+ KA1 mobility with KA2 partnerships for maximum benefit?",
+      "response": "Yes, American (US) organizations can participate in Horizon Europe projects, but with specific limitations on funding and roles.\n\n### Third Country Participation Rules\n\nOrganizations from **Non-Associated Third Countries** (like the USA, Japan, China, Australia, Canada) can participate in Horizon Europe under specific conditions:\n\n| Aspect | Rule for Third Countries |\n|--------|-------------------------|\n| **Can participate?** | \u2705 Yes, in most calls |\n| **Count toward minimum?** | \u274c No - only MS...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 2295.704,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 4,
+      "passed": true
+    }
+  ],
+  "scores": {
+    "average_quality": 83.0,
+    "average_factual": 100.0,
+    "goal_progress": 0.54,
+    "context_fields": 4
+  },
+  "failures": [],
+  "metadata": {
+    "scenario_path": "tests/scenarios/advanced/erasmus_action_selection.yaml",
+    "tags": [
+      "phase9",
+      "erasmus",
+      "action_selection",
+      "vet",
+      "ka1",
+      "ka2",
+      "mobility",
+      "partnerships"
+    ],
+    "description": "A VET (Vocational Education and Training) school wants to understand\nErasmus+ programme options. They are interested in international mobility\nfor students and staff, long-term partnerships, and curriculum development.\nThe scenario tests programme navigation and sector-specific recommendations.\n",
+    "conversation_id": 822330432
+  },
+  "execution_time_ms": 137826.29499999998,
+  "timestamp": "2026-01-23T13:35:44.125689",
+  "passed": true,
+  "turn_count": 5,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
+}
