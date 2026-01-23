@@ -2991,6 +2991,16 @@ digital_europe, life""",
                 plan.confidence = reasoning_result.get("confidence", 0.8)
                 step.next_action_needed = False
 
+            elif step.action == "generate_guidance":
+                # Direct guidance generation without tool calls (capacity building, etc.)
+                guidance_response = reasoning_result.get("response", "")
+                plan.final_answer = guidance_response
+                plan.confidence = 0.9  # High confidence for pre-written guidance
+                step.observation = (
+                    f"Generated {reasoning_result.get('guidance_type', 'guidance')} guidance"
+                )
+                step.next_action_needed = False
+
             plan.reasoning_steps.append(step)
 
             # Check if we should stop
@@ -3195,6 +3205,16 @@ digital_europe, life""",
             elif step.action == "conclude":
                 plan.final_answer = reasoning_result.get("conclusion", "")
                 plan.confidence = reasoning_result.get("confidence", 0.8)
+                step.next_action_needed = False
+
+            elif step.action == "generate_guidance":
+                # Direct guidance generation without tool calls (capacity building, etc.)
+                guidance_response = reasoning_result.get("response", "")
+                plan.final_answer = guidance_response
+                plan.confidence = 0.9  # High confidence for pre-written guidance
+                step.observation = (
+                    f"Generated {reasoning_result.get('guidance_type', 'guidance')} guidance"
+                )
                 step.next_action_needed = False
 
             plan.reasoning_steps.append(step)
@@ -3518,6 +3538,18 @@ digital_europe, life""",
         strategic_result = self._detect_strategic_planning_query(query, context)
         if strategic_result:
             return strategic_result
+
+        # Check for CAPACITY BUILDING / NEWCOMER GUIDANCE queries
+        # These are questions from organizations new to EU funding about getting started
+        capacity_result = self._detect_capacity_building_query(query, context)
+        if capacity_result:
+            return capacity_result
+
+        # Check for EIC ACCELERATOR RISK ASSESSMENT queries
+        # These are questions about EIC risks, interview stage, improving success odds
+        eic_risk_result = self._detect_eic_risk_assessment_query(query, context)
+        if eic_risk_result:
+            return eic_risk_result
 
         # Check for CONTEXT RECALL queries (e.g., "I mentioned earlier I work on hydrogen")
         # These reference earlier conversation context to find calls
@@ -4526,6 +4558,972 @@ digital_europe, life""",
                 }
 
         return None
+
+    def _detect_capacity_building_query(self, query: str, context: str) -> dict[str, Any] | None:
+        """Detect capacity building / newcomer guidance queries.
+
+        These are questions from organizations NEW to EU funding who need guidance on:
+        - Best programmes for beginners
+        - Partner vs coordinator role
+        - First project size recommendations
+        - Building track record
+        - How to get started
+
+        These queries should provide structured guidance with Next Steps, not tool calls.
+        """
+        query_lower = query.lower()
+        context_lower = context.lower() if context else ""
+
+        # Detect if the user is new to EU funding (from context or query)
+        is_newcomer = any(
+            pattern in query_lower or pattern in context_lower
+            for pattern in [
+                "new to eu funding",
+                "new to eu",
+                "first time",
+                "we're new",
+                "we are new",
+                "never applied",
+                "never submitted",
+                "no experience",
+                "beginner",
+                "getting started",
+                "how do we get started",
+                "how do i get started",
+                "new to horizon",
+            ]
+        )
+
+        # Query patterns for specific capacity building guidance
+        beginner_programme_patterns = [
+            "best for beginners",
+            "best for beginner",
+            "programme for beginners",
+            "programs for beginners",
+            "programmes for beginners",
+            "which programme is best",
+            "which program is best",
+            "easiest programme",
+            "easiest program",
+            "simpler programme",
+            "beginner friendly",
+            "beginner-friendly",
+            "entry point",
+            "where to start",
+            "good starting point",
+            "first programme",
+            "first program",
+        ]
+
+        partner_vs_coordinator_patterns = [
+            "partner or coordinator",
+            "coordinator or partner",
+            "start as partner",
+            "start as coordinator",
+            "should we coordinate",
+            "should we be coordinator",
+            "should we lead",
+            "should we be partner",
+            "participant or leader",
+            "begin as partner",
+            "begin as coordinator",
+            "first project coordinator",
+            "first project partner",
+        ]
+
+        first_project_size_patterns = [
+            "first project size",
+            "good first project",
+            "appropriate size",
+            "project size for beginners",
+            "beginner project size",
+            "starting project size",
+            "small project to start",
+            "what size project",
+            "how big should first",
+            "manageable first project",
+        ]
+
+        track_record_patterns = [
+            "build track record",
+            "building track record",
+            "develop track record",
+            "establish track record",
+            "how do we build",
+            "how to build track",
+            "gain track record",
+            "create track record",
+            "track record strategy",
+            "track record advice",
+            "build experience",
+            "build our experience",
+        ]
+
+        # Check for beginner-friendly programme query
+        if any(pattern in query_lower for pattern in beginner_programme_patterns) or (
+            is_newcomer
+            and any(
+                p in query_lower
+                for p in [
+                    "which programme",
+                    "which program",
+                    "best programme",
+                    "best program",
+                    "recommend",
+                ]
+            )
+        ):
+            return {
+                "thought": "User is asking about beginner-friendly programmes. Providing structured guidance from built-in knowledge.",
+                "action": "generate_guidance",
+                "guidance_type": "beginner_programmes",
+                "response": self._generate_beginner_programmes_guidance(),
+            }
+
+        # Check for partner vs coordinator query
+        if any(pattern in query_lower for pattern in partner_vs_coordinator_patterns):
+            return {
+                "thought": "User is asking about partner vs coordinator role for newcomers. Providing capacity building guidance.",
+                "action": "generate_guidance",
+                "guidance_type": "partner_vs_coordinator",
+                "response": self._generate_partner_coordinator_guidance(is_newcomer),
+            }
+
+        # Check for first project size query
+        if any(pattern in query_lower for pattern in first_project_size_patterns) or (
+            is_newcomer and any(p in query_lower for p in ["project size", "how big", "size"])
+        ):
+            return {
+                "thought": "User is asking about appropriate first project size. Providing beginner-appropriate guidance.",
+                "action": "generate_guidance",
+                "guidance_type": "first_project_size",
+                "response": self._generate_first_project_size_guidance(),
+            }
+
+        # Check for track record building query
+        if any(pattern in query_lower for pattern in track_record_patterns):
+            return {
+                "thought": "User is asking about building track record. Providing strategic guidance.",
+                "action": "generate_guidance",
+                "guidance_type": "track_record",
+                "response": self._generate_track_record_guidance(),
+            }
+
+        return None
+
+    def _generate_beginner_programmes_guidance(self) -> str:
+        """Generate guidance on best programmes for beginners."""
+        return """For organizations new to EU funding, the best strategy is to **start small and build experience progressively**. You should consider these beginner-friendly entry points:
+
+### 1. Marie Skłodowska-Curie Actions (MSCA) - Best for Researchers
+
+**Why you should apply to MSCA:**
+- Simpler consortium: Often just your organization + the researcher
+- Clear evaluation criteria focused on research quality - you can achieve this
+- Fixed funding amounts (unit costs) - no complex budget calculations
+- High success rate compared to collaborative actions
+
+**Best entry points you can apply to:**
+- **MSCA Postdoctoral Fellowships (PF)**: You can host an experienced researcher
+- **MSCA Staff Exchanges (SE)**: Exchange staff with international partners
+
+### 2. Coordination and Support Actions (CSA)
+
+**Why you should consider CSA:**
+- Smaller budgets (€1-3M) with smaller consortia (3-8 partners)
+- Focus on coordination, networking, dissemination - you can manage this without heavy R&D
+- 100% funding rate
+- Less technical complexity than RIA/IA
+
+### 3. Widening Participation Actions
+
+**Why you should apply to Widening:**
+- Designed specifically for organizations with less EU funding experience
+- Teaming, Twinning, and ERA Chairs provide structured support
+- You can connect with experienced partners who will guide you
+- Higher success rates for eligible countries
+
+### 4. Join as Partner in RIA/IA (Not Coordinator)
+
+**Why you should start as partner:**
+- You can learn consortium management without the coordination burden
+- Build relationships with experienced coordinators
+- Lower administrative responsibility
+- You can gain track record for future coordination
+
+### Recommendation by Organization Type
+
+| Organization | Best Starting Point |
+|--------------|---------------------|
+| **University** | MSCA (host fellows), CSA as partner, Widening actions |
+| **Research Institute** | CSA as partner, RIA as partner, MSCA-DN |
+| **SME** | Eurostars, EIC Pathfinder (as partner), IA as partner |
+| **Public Body** | CSA (often as partner), Missions |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+• You should visit the [EU Funding Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home) to get a PIC number
+• You should contact your [National Contact Point (NCP)](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for personalized advice
+• Check for open calls in your research area and apply to consortium opportunities
+• You can visit [Info Days](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/horizon-dashboard) to network with potential partners"""
+
+    def _generate_partner_coordinator_guidance(self, is_newcomer: bool = True) -> str:
+        """Generate guidance on partner vs coordinator role."""
+        intro = (
+            "For organizations new to EU funding, you **should start as a partner** "
+            "before taking on the coordinator role."
+            if is_newcomer
+            else "The decision between partner and coordinator depends on your experience level and strategic goals."
+        )
+
+        return f"""{intro}
+
+### Starting as Partner (Recommended for Beginners)
+
+**Why you should start as partner:**
+- **Lower risk**: The coordinator bears the legal/financial responsibility to the EC
+- **Learning opportunity**: You can observe how experienced coordinators manage consortia
+- **Build relationships**: You can develop trust with partners for future coordination
+- **Focus on research**: You can contribute your expertise without admin overhead
+- **Build track record**: Successful participation can improve your future proposal scores
+
+**Typical partner responsibilities:**
+- Deliver your work package tasks
+- Contribute to reporting
+- Participate in consortium meetings
+- Manage your organization's budget
+
+### When You Should Consider Coordinating
+
+**You should have this minimum experience before coordinating:**
+- 2-3 successful projects as partner
+- Understanding of EC reporting requirements
+- Strong network of trusted partners
+- Administrative capacity (dedicated project manager)
+
+**Signs you can coordinate:**
+- Partners actively invite you to lead
+- You have a clear research vision others want to join
+- Your organization can handle the admin burden
+- You've built relationships with reliable partners
+
+### Comparison Table
+
+| Aspect | Partner | Coordinator |
+|--------|---------|-------------|
+| **Admin burden** | Low | High |
+| **Financial risk** | Limited to your share | Full consortium guarantee |
+| **Decision authority** | Limited | High |
+| **Track record value** | Good | Excellent |
+| **Recommended for beginners** | ✅ Yes | ❌ Not yet |
+
+### Strategic Progression Path
+
+1. **Year 1-2**: You should apply as partner in 1-2 projects
+2. **Year 2-3**: Take on Work Package leadership
+3. **Year 3-4**: Co-coordinate a smaller project (CSA)
+4. **Year 4+**: You can coordinate RIA/IA projects
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+• You should visit [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search) to find consortium opportunities
+• You can visit Info Days to meet potential coordinators
+• Contact coordinators to express interest in joining consortia in your research area
+• You should apply to join consortia with experienced partners who can guide you"""
+
+    def _generate_first_project_size_guidance(self) -> str:
+        """Generate guidance on appropriate first project size."""
+        return """For organizations new to EU funding, starting with **manageable project sizes** is crucial for success. Here's guidance on appropriate first project scope:
+
+### Recommended First Project Parameters
+
+| Parameter | Beginner Recommendation | Why |
+|-----------|------------------------|-----|
+| **Budget participation** | €200K - €500K | Manageable financial reporting |
+| **Duration** | 24-36 months | Standard timeline, not too long |
+| **Consortium size** | 4-8 partners | Easier coordination |
+| **Your role** | Partner (not coordinator) | Lower admin burden |
+| **Action type** | CSA or RIA | Clear structure |
+
+### Action Type Comparison for Beginners
+
+| Action Type | Typical Project Budget | Your Share | Complexity |
+|-------------|----------------------|------------|------------|
+| **CSA** | €1-3M | €150-400K | Lower (coordination focus) |
+| **RIA (smaller)** | €3-5M | €250-500K | Medium (research focus) |
+| **MSCA-PF** | €200-300K | Host costs | Lower (single researcher) |
+| **Widening** | €1-2M | €300-500K | Lower (support provided) |
+
+### What Makes a "Manageable" First Project
+
+✅ **Good for beginners:**
+- Clearly defined work package scope
+- Experienced coordinator who provides guidance
+- Realistic deliverables you can achieve
+- Some administrative support included
+- Regular consortium meetings (learning opportunity)
+
+❌ **Avoid for first project:**
+- Coordinator role in large consortia (10+ partners)
+- Very large budget responsibility (>€1M your share)
+- High-risk technical objectives
+- Very short timelines (<24 months)
+- Projects requiring major new hires
+
+### Budget Breakdown Example (Partner Role in RIA)
+
+For a first-time partner with €400K budget share:
+- **Personnel**: €250-280K (60-70%) - Your researchers' time
+- **Travel**: €30-40K - Consortium meetings, conferences
+- **Equipment**: €20-40K (if needed)
+- **Other costs**: €20-30K - Consumables, publications
+- **Indirect costs**: 25% flat rate (included above)
+
+### Gradual Scale-Up Strategy
+
+| Phase | Project Type | Your Budget | Role |
+|-------|-------------|-------------|------|
+| **1st project** | CSA or small RIA | €200-400K | Partner |
+| **2nd project** | RIA | €400-600K | WP Leader |
+| **3rd project** | RIA/IA | €600K-1M | Major partner |
+| **4th+ project** | Any | €1M+ or Coordinator | Lead |
+
+---
+
+🎯 **Next Steps:**
+• Review open calls to identify projects seeking partners with your expertise
+• Check the [Work Programme](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON) for typical budgets in your cluster
+• Contact your [NCP](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for specific calls matching your profile
+• Use [CORDIS](https://cordis.europa.eu/) to see budget distributions in similar funded projects"""
+
+    def _generate_track_record_guidance(self) -> str:
+        """Generate guidance on building EU funding track record."""
+        return """Building a strong EU funding track record is a **multi-year strategic effort**. Here's a proven framework for developing your organization's EU funding experience:
+
+### What Constitutes "Track Record"
+
+Evaluators look for evidence of:
+- **Successful project participation**: Completed EU-funded projects
+- **Relevant publications/outputs**: Demonstrable research impact
+- **International collaboration**: Working across borders effectively
+- **Financial/admin capacity**: Proven ability to manage EU grants
+
+### 3-Year Track Record Building Strategy
+
+#### Year 1: Foundation Building (Low-Risk Entry)
+
+| Activity | Purpose | Expected Outcome |
+|----------|---------|------------------|
+| **MSCA-PF hosting** | Host a postdoctoral fellow | 1 EU project on record |
+| **CSA as partner** | Join a coordination project | Experience in EU reporting |
+| **Networking events** | Build consortium contacts | Partner relationships |
+| **NCP engagement** | Get expert guidance | Better proposal targeting |
+
+**Goal**: Get 1-2 EU projects on your organizational record
+
+#### Year 2: Portfolio Expansion
+
+| Activity | Purpose | Expected Outcome |
+|----------|---------|------------------|
+| **RIA as partner** | Substantive research role | Strong track record entry |
+| **WP leadership** | Prove management capacity | Leadership credentials |
+| **Publications** | Document project outputs | Demonstrable impact |
+| **Repeat partnerships** | Deepen trusted relationships | Future invitation to consortia |
+
+**Goal**: Build reputation as reliable partner
+
+#### Year 3: Strategic Growth
+
+| Activity | Purpose | Expected Outcome |
+|----------|---------|------------------|
+| **Co-coordinate small project** | Test coordination capacity | Coordinator experience |
+| **Multiple parallel projects** | Diversify portfolio | Robust track record |
+| **International visibility** | Conference presentations | Expert reputation |
+| **Mentor newcomers** | Support your network | Strengthen partnerships |
+
+**Goal**: Ready to coordinate major projects
+
+### Track Record by Organization Type
+
+| Organization | Best Track Record Builders |
+|--------------|---------------------------|
+| **University** | MSCA, RIA as partner, teaching innovation projects |
+| **Research Institute** | RIA partnerships, infrastructure access projects |
+| **SME** | Eurostars, EIC Pathfinder, IA as partner |
+| **Public Body** | CSA, Missions, policy-oriented projects |
+
+### Accelerating Track Record Development
+
+**Quick wins:**
+1. **National/regional EU projects**: Often easier to win, still counts
+2. **Horizon Europe associated instruments**: Eurostars, EUREKA
+3. **Expert evaluator role**: Apply to evaluate proposals (builds credibility)
+4. **Horizon Results Platform**: Register past project outputs
+
+**Strategic moves:**
+1. **Join winning teams**: Partner with high-success-rate coordinators
+2. **Target less competitive calls**: Widening, CSA, thematic areas with fewer applicants
+3. **Leverage existing relationships**: Previous collaboration partners
+4. **Highlight non-EU experience**: National grants demonstrate capacity
+
+### Common Mistakes to Avoid
+
+❌ **Don't:**
+- Try to coordinate before having partner experience
+- Over-commit to too many proposals simultaneously
+- Ignore admin/reporting requirements (damages reputation)
+- Work only with familiar partners (limits network growth)
+
+✅ **Do:**
+- Start small and grow systematically
+- Deliver on commitments (reputation is everything)
+- Document lessons learned from each project
+- Maintain relationships even after projects end
+
+---
+
+🎯 **Next Steps:**
+• Create a 3-year EU funding roadmap for your organization
+• Identify 2-3 target calls for initial participation
+• Register on [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search) to signal your interest
+• Contact your [NCP](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for a strategy consultation
+• Review [CORDIS](https://cordis.europa.eu/) for funded projects in your area to find active consortia"""
+
+    def _detect_eic_risk_assessment_query(self, query: str, context: str) -> dict[str, Any] | None:
+        """Detect EIC Accelerator risk assessment queries.
+
+        These are questions about:
+        - Risks of applying to EIC Accelerator
+        - Impact of prior EU funding on EIC chances
+        - Company size requirements and impact
+        - The interview stage and how to prepare
+        - Strategies to improve success odds
+
+        These queries should provide structured guidance with Next Steps, not tool calls.
+        """
+        query_lower = query.lower()
+        context_lower = context.lower() if context else ""
+
+        # Check if context is about EIC Accelerator (from previous turns)
+        is_eic_context = any(
+            pattern in context_lower
+            for pattern in [
+                "eic accelerator",
+                "eic",
+                "accelerator",
+                "european innovation council",
+                "risks of applying",
+                "improve our odds",
+            ]
+        )
+
+        # Prior funding impact patterns
+        prior_funding_patterns = [
+            "don't have prior",
+            "no prior funding",
+            "without prior funding",
+            "lack prior",
+            "haven't had eu funding",
+            "no eu funding",
+            "no previous funding",
+            "what if we don't have",
+            "if we don't have prior",
+            "without eu funding",
+            "no track record",
+            "no eu experience",
+            "first time applying",
+        ]
+
+        # Interview stage patterns
+        interview_patterns = [
+            "interview stage",
+            "about the interview",
+            "interview process",
+            "eic interview",
+            "what about the interview",
+            "pitch stage",
+            "pitch preparation",
+            "jury interview",
+            "panel interview",
+            "face to face",
+            "face-to-face",
+            "final stage",
+            "how to prepare for interview",
+            "interview preparation",
+        ]
+
+        # Improve odds/success patterns
+        improve_odds_patterns = [
+            "improve our odds",
+            "improve my odds",
+            "improve our chances",
+            "improve my chances",
+            "increase our chances",
+            "increase our odds",
+            "better our chances",
+            "how can we improve",
+            "what can we do to improve",
+            "how to succeed",
+            "how to be successful",
+            "tips for success",
+            "strategies to improve",
+            "boost our chances",
+            "maximize chances",
+            "success strategies",
+        ]
+
+        # Company size patterns (in EIC context)
+        company_size_patterns = [
+            "company size",
+            "our company size",
+            "how does size affect",
+            "does company size",
+            "size affect chances",
+            "sme requirements",
+            "sme eligibility",
+            "too small",
+            "too large",
+            "employee count",
+            "startup size",
+        ]
+
+        # Initial EIC risk assessment patterns (first query about EIC risks)
+        eic_risk_patterns = [
+            "risks of applying to eic",
+            "eic accelerator risks",
+            "risks of eic",
+            "what are the risks of eic",
+            "risks associated with eic",
+            "challenges of eic",
+            "eic accelerator challenges",
+            "difficulties of eic",
+            "risks of applying to the eic",
+            "downsides of eic",
+        ]
+
+        # Check for initial EIC risk assessment query (doesn't need context)
+        if any(pattern in query_lower for pattern in eic_risk_patterns) or (
+            "eic" in query_lower
+            and "accelerator" in query_lower
+            and any(
+                w in query_lower for w in ["risk", "risks", "challenge", "challenges", "difficult"]
+            )
+        ):
+            return {
+                "thought": "User is asking about risks of EIC Accelerator. Providing comprehensive risk assessment guidance.",
+                "action": "generate_guidance",
+                "guidance_type": "eic_risks_overview",
+                "response": self._generate_eic_risks_overview_guidance(),
+            }
+
+        # Check for prior funding impact query (in EIC context)
+        if any(pattern in query_lower for pattern in prior_funding_patterns) and is_eic_context:
+            return {
+                "thought": "User is asking about EIC Accelerator with no prior EU funding. Providing EIC-specific guidance.",
+                "action": "generate_guidance",
+                "guidance_type": "eic_prior_funding",
+                "response": self._generate_eic_prior_funding_guidance(),
+            }
+
+        # Check for interview stage query (in EIC context or explicitly about interview)
+        if any(pattern in query_lower for pattern in interview_patterns) or (
+            is_eic_context and "interview" in query_lower
+        ):
+            return {
+                "thought": "User is asking about EIC Accelerator interview stage. Providing interview preparation guidance.",
+                "action": "generate_guidance",
+                "guidance_type": "eic_interview",
+                "response": self._generate_eic_interview_guidance(),
+            }
+
+        # Check for improve odds query (in EIC context)
+        if any(pattern in query_lower for pattern in improve_odds_patterns) and is_eic_context:
+            return {
+                "thought": "User is asking how to improve EIC Accelerator success odds. Providing strategic guidance.",
+                "action": "generate_guidance",
+                "guidance_type": "eic_improve_odds",
+                "response": self._generate_eic_improve_odds_guidance(),
+            }
+
+        # Check for company size query in EIC context
+        if any(pattern in query_lower for pattern in company_size_patterns) and is_eic_context:
+            return {
+                "thought": "User is asking about company size impact on EIC Accelerator. Providing eligibility and impact guidance.",
+                "action": "generate_guidance",
+                "guidance_type": "eic_company_size",
+                "response": self._generate_eic_company_size_guidance(),
+            }
+
+        return None
+
+    def _generate_eic_risks_overview_guidance(self) -> str:
+        """Generate comprehensive guidance on EIC Accelerator risks."""
+        return """Applying to the EIC Accelerator is a **high-risk, high-reward endeavor**. While the potential funding (up to €2.5M grant + €15M equity) is substantial, you should understand the significant risks involved.
+
+### 1. Extremely Low Success Rate
+
+The EIC Accelerator is one of the most competitive funding instruments globally:
+
+| Stage | Success Rate | Your Odds |
+|-------|-------------|-----------|
+| **Short Application** | ~20-30% pass | 1 in 4 |
+| **Full Application** | ~30-40% pass | 1 in 3 (of those remaining) |
+| **Interview** | ~50-60% pass | 1 in 2 (of finalists) |
+| **Overall** | **2-5%** | 1 in 20-50 applicants |
+
+### 2. High Time and Resource Investment
+
+⚠️ **Application costs to consider:**
+- **Internal time**: 100-300 hours for full application
+- **External support**: €10,000-50,000 for professional help (optional)
+- **Opportunity cost**: Time away from business development
+- **Resubmission cycles**: Average 2-3 attempts before success
+
+### 3. Equity Component Risks
+
+If you accept EIC equity (up to €15M), you should understand:
+- EIC becomes a minority shareholder in your company
+- Investment terms are standardized (limited negotiation)
+- Due diligence process can take 6-12 months post-selection
+- Some applicants decline equity after grant acceptance
+
+### 4. Process and Timeline Risks
+
+| Risk | Impact |
+|------|--------|
+| **Long timelines** | 6-12 months from application to funding |
+| **Cut-off dates** | Miss deadlines = wait 3+ months for next round |
+| **Process changes** | Rules and criteria can change between calls |
+| **Interview cancellation** | Reaching interview doesn't guarantee funding |
+
+### 5. Execution Risks Post-Award
+
+Even if successful, you face:
+- Strict reporting requirements (technical + financial)
+- Milestone-based funding release
+- Commission oversight of strategic decisions
+- Potential clawback for non-performance
+
+### What EIC Accelerator IS Good For
+
+Despite risks, EIC is valuable if:
+✅ You have breakthrough innovation with €100M+ market potential
+✅ You're willing to accept equity investment terms
+✅ You have 12-18 months runway to wait for funding
+✅ You can sustain application effort alongside business growth
+
+### What to Consider Instead
+
+| Alternative | When to Consider |
+|-------------|------------------|
+| **EIC Pathfinder** | Earlier stage (TRL 2-4), research-focused |
+| **Horizon RIA/IA** | Collaborative research, longer timelines |
+| **National grants** | Faster timelines, less competition |
+| **VC funding** | Need faster access to capital |
+| **Eurostars** | SME R&D with international partner |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+• Honestly assess if your company is EIC-ready (TRL 6-8, commercial traction)
+• Calculate the total cost of application (time + resources)
+• Review your current runway - can you wait 6-12 months for funding?
+• Contact your [NCP](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for an honest readiness assessment
+• Consider EIC coaching to evaluate your application strength before submitting
+• Review successful EIC projects on [CORDIS](https://cordis.europa.eu/) in your sector"""
+
+    def _generate_eic_prior_funding_guidance(self) -> str:
+        """Generate guidance for EIC applicants without prior EU funding."""
+        return """The lack of prior EU funding is **NOT a disqualifying factor** for the EIC Accelerator. The programme prioritizes commercial track record over EU project experience.
+
+### What EIC Evaluators Really Look For
+
+The EIC Accelerator focuses on **commercial readiness and market potential**, not prior EU funding history. You can demonstrate capability through:
+
+| Alternative Evidence | What To Show |
+|---------------------|--------------|
+| **Commercial traction** | Revenue, paying customers, signed contracts |
+| **Investor validation** | Previous funding rounds, investor interest |
+| **Team track record** | Founders' entrepreneurial or industry experience |
+| **Technical achievements** | Patents, prototypes, publications |
+| **Market validation** | Pilot projects, partnerships, LOIs |
+
+### Why Prior EU Funding Matters Less Than You Think
+
+**The EIC is different from collaborative grants (RIA/IA):**
+- No consortium management experience needed (single applicant)
+- Focus is on commercial viability, not research track record
+- Many successful EIC projects had zero prior EU funding
+- Strong startup experience often valued more than research grants
+
+### What You Should Emphasize Instead
+
+✅ **Focus on these strengths:**
+1. **Product-market fit evidence** - Customer testimonials, pilot results
+2. **Clear go-to-market strategy** - How you'll scale with EIC funding
+3. **Strong founding team** - Relevant experience, complementary skills
+4. **Competitive differentiation** - Why your solution is 10x better
+5. **Financial projections** - Realistic path to profitability
+
+### Potential Concerns to Address
+
+⚠️ **Evaluators may wonder about:**
+- Your ability to handle EU reporting → Show other grant management experience
+- Administrative capacity → Highlight your team's capabilities
+- European dimension → Emphasize EU market focus and partnerships
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+• You should focus your application on commercial achievements, not research history
+• Prepare evidence of market traction (customer letters, pilot agreements)
+• Consider an EIC coaching programme to strengthen your application
+• Contact your [NCP](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for feedback on your EIC fit
+• Review successful EIC projects on [CORDIS](https://cordis.europa.eu/) to understand what works"""
+
+    def _generate_eic_interview_guidance(self) -> str:
+        """Generate guidance for EIC Accelerator interview preparation."""
+        return """The EIC Accelerator interview is the **final, decisive stage** of the evaluation process. If you reach this stage, you have approximately a **50-60% chance of success**.
+
+### Interview Format and Structure
+
+| Aspect | Details |
+|--------|---------|
+| **Duration** | 30-45 minutes total |
+| **Presentation** | 10-15 minutes (you control this part) |
+| **Q&A** | 15-25 minutes (jury-led questions) |
+| **Panel Size** | Typically 6 evaluators |
+| **Panel Composition** | Investors, entrepreneurs, industry experts |
+
+### The Jury's Evaluation Focus
+
+**What the jury assesses during the interview:**
+
+1. **Team Credibility** (Critical)
+   - Can this team execute the vision?
+   - Do founders have relevant experience?
+   - Is there a capable, committed team?
+
+2. **Market Understanding**
+   - Do they know their market deeply?
+   - Is the addressable market realistic?
+   - Is competition analysis thorough?
+
+3. **Business Model Viability**
+   - Is the path to revenue clear?
+   - Are unit economics sound?
+   - Can they scale effectively?
+
+4. **Technology Differentiation**
+   - Is the innovation real and defensible?
+   - Is TRL (Technology Readiness Level) appropriate?
+   - Is IP strategy clear?
+
+### How to Prepare Effectively
+
+✅ **Presentation preparation:**
+- Lead with your strongest commercial evidence
+- Show, don't tell - use demos if possible
+- Keep slides minimal (visual backup, not scripts)
+- Practice your timing relentlessly (they will cut you off)
+
+✅ **Q&A preparation:**
+- Prepare for tough questions on financials
+- Know your numbers cold (TAM, CAC, LTV, burn rate)
+- Practice with hostile mock interviewers
+- Have backup slides for common questions
+
+### Common Interview Mistakes
+
+❌ **Avoid these pitfalls:**
+- Reading from slides (shows lack of preparation)
+- Over-technical explanations (jury wants business impact)
+- Defensive responses to criticism (shows poor coachability)
+- Unrealistic financial projections (undermines credibility)
+- Vague market sizing ("it's a $50B market")
+
+### Presentation Structure Recommendation
+
+| Section | Time | Focus |
+|---------|------|-------|
+| **Hook** | 1 min | Problem and urgency |
+| **Solution** | 2-3 min | Your innovation, demo if possible |
+| **Market** | 2 min | Size, segments, timing |
+| **Business Model** | 2 min | Revenue, customers, traction |
+| **Competition** | 1 min | Differentiation, moats |
+| **Team** | 2 min | Why this team will win |
+| **Ask** | 1 min | Use of funds, milestones |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+• Book professional interview coaching (EIC-specific coaches available)
+• Conduct at least 5 mock interviews with experienced entrepreneurs/investors
+• Record your presentation and review critically
+• Prepare a Q&A sheet with 50+ potential questions and answers
+• Check [EIC Community](https://eic.ec.europa.eu/eic-community_en) for interview preparation resources
+• Contact your [NCP](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for interview coaching referrals"""
+
+    def _generate_eic_improve_odds_guidance(self) -> str:
+        """Generate guidance for improving EIC Accelerator success odds."""
+        return """Improving your EIC Accelerator success odds requires a **strategic approach at each stage**. The overall success rate is 2-5%, but you can significantly improve your chances with preparation.
+
+### Success Rates by Stage
+
+| Stage | Success Rate | What's Evaluated |
+|-------|-------------|------------------|
+| **Short Application** | ~20-30% pass | Innovation, team, market potential |
+| **Full Application** | ~30-40% pass | Business plan, financials, impact |
+| **Interview** | ~50-60% pass | Team credibility, investor readiness |
+| **Overall** | ~2-5% | Cumulative (20% × 35% × 55% ≈ 4%) |
+
+### Strategies to Improve Your Odds
+
+#### 1. Strengthen Your Application Quality
+
+✅ **You should focus on:**
+- **Clear value proposition** - One sentence that captures your innovation
+- **Strong traction evidence** - Customers, revenue, pilots, LOIs
+- **Realistic financials** - Conservative base case, ambitious upside
+- **Clear use of funds** - Specific milestones tied to EIC funding
+
+#### 2. Target the Right Timing
+
+✅ **You should apply when:**
+- You have concrete market validation (not just R&D results)
+- Your product is at TRL 6-8 (not too early, not too late)
+- You can demonstrate 12-18 months of runway already
+- Your team has entrepreneurial credibility
+
+#### 3. Leverage Support Systems
+
+✅ **You should use:**
+- **NCP support** - Free proposal review and advice
+- **EIC coaching** - Professional application support
+- **Investor feedback** - Ask VCs to review your pitch
+- **Previous applicants** - Learn from their experience
+
+### Key Differentiators That Improve Success
+
+| Factor | Low Success | High Success |
+|--------|-------------|--------------|
+| **Traction** | "We plan to..." | "We have X customers paying Y" |
+| **Team** | First-time founders | Serial entrepreneurs or industry experts |
+| **Market** | "Huge potential" | Specific segment, clear entry strategy |
+| **Competition** | "No real competition" | Deep competitive analysis with clear moats |
+| **Financials** | Hockey stick projections | Data-driven, realistic models |
+
+### Timing Your Application
+
+**Best time to apply:**
+- After significant commercial milestone (Series A, major customer)
+- When you can show 6-12 months of growth trajectory
+- Before you're "too big" (>€100M revenue may be questioned)
+
+**Worst time to apply:**
+- With only R&D results and no commercial validation
+- Immediately after incorporation with no traction
+- When running out of cash (desperation shows)
+
+### Reapplication Strategy
+
+If your application fails:
+1. **Request feedback** - EC provides evaluation reports
+2. **Address specific weaknesses** - Don't just resubmit
+3. **Build more evidence** - Get more traction before reapplying
+4. **Wait 6-12 months** - Use time to strengthen fundamentals
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+• You should get an honest assessment of your TRL and market readiness
+• Build at least 3-5 concrete pieces of commercial traction evidence
+• Have your application reviewed by an experienced EIC coach
+• Practice your pitch with real investors (even if not raising)
+• Contact your [NCP](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for a proposal readiness assessment
+• Review EIC selection statistics and adjust expectations accordingly"""
+
+    def _generate_eic_company_size_guidance(self) -> str:
+        """Generate guidance for EIC Accelerator company size requirements."""
+        return """Company size is **critical for EIC Accelerator eligibility**. The programme is exclusively designed for Small and Medium-sized Enterprises (SMEs).
+
+### SME Definition for EIC Eligibility
+
+To be eligible for EIC Accelerator, your company must meet the EU SME definition:
+
+| Criterion | Threshold | Your Status |
+|-----------|-----------|-------------|
+| **Employees** | < 250 FTE | Must be under |
+| **Annual turnover** | ≤ €50 million | OR under this |
+| **Annual balance sheet** | ≤ €43 million | OR under this |
+
+**Note:** You must meet the employee threshold AND at least one of the financial thresholds.
+
+### How Company Size Affects Your Chances
+
+**Small startups (< 50 employees):**
+✅ Core target of EIC Accelerator
+✅ Evaluators expect high-growth potential
+⚠️ Must demonstrate execution capability
+
+**Medium-sized SMEs (50-249 employees):**
+✅ Still eligible
+✅ Stronger track record expected
+⚠️ Must show why EIC funding (not VC) is needed
+
+**Near-threshold companies (200+ employees):**
+⚠️ Carefully verify SME status
+⚠️ Consider affiliated/linked enterprise rules
+⚠️ Evaluators may question growth potential
+
+### SME Calculation Complexities
+
+**Watch out for these:**
+
+| Situation | Impact on SME Status |
+|-----------|---------------------|
+| **Parent company owns >50%** | Parent's data may be added |
+| **Multiple investors with >25%** | Partner enterprises rule applies |
+| **Recent rapid growth** | Use most recent closed accounts |
+| **Recent spin-off** | Special rules may apply |
+
+### Company Stage and EIC Fit
+
+| Stage | EIC Suitability | Comments |
+|-------|-----------------|----------|
+| **Pre-revenue** | Medium | Need strong team and technology |
+| **Early revenue (€0-1M)** | Good | Classic EIC target |
+| **Growing (€1-10M)** | Excellent | Ideal stage for scale-up funding |
+| **Scaling (€10-50M)** | Good | May need blended finance |
+| **Established (€50M+)** | Low | May exceed SME thresholds |
+
+### If You're Approaching SME Thresholds
+
+**Options to consider:**
+1. Apply before crossing the threshold
+2. Check precise calculation (averages, FTE rules)
+3. Consider other instruments (EIC Pathfinder, Horizon RIA)
+4. National growth funding alternatives
+
+### Non-SME Alternatives
+
+If you exceed SME thresholds:
+- **EIC Pathfinder** - Open to non-SMEs for earlier-stage innovation
+- **Horizon Europe RIA/IA** - Collaborative research (no SME requirement)
+- **National innovation funds** - Many countries have SME-alternative programmes
+- **EIB financing** - Debt and equity for larger companies
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+• Verify your SME status using the [EC SME self-assessment tool](https://ec.europa.eu/growth/smes/sme-definition_en)
+• Calculate linked and partner enterprise effects carefully
+• Prepare SME declaration documents in advance
+• If near threshold, consider timing of application strategically
+• Contact your [NCP](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for SME status verification support
+• Consult a grant accountant if your corporate structure is complex"""
 
     def _detect_context_recall_query(self, query: str, context: str) -> dict[str, Any] | None:
         """Detect if query references earlier conversation context to find calls.

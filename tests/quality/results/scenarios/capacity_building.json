@@ -1,0 +1,135 @@
+{
+  "scenario_name": "Capacity Building",
+  "status": "PASS",
+  "average_quality_score": 82.6,
+  "average_factual_score": 100.0,
+  "turns": [
+    {
+      "query": "We're new to EU funding - how do we get started?",
+      "response": "Welcome to Horizon Europe! Getting started can feel complex, but focusing on three initial phases\u2014Preparation, Partnering, and Proposal Writing\u2014will set you up for success. \n\n### Phase 1: Preparation & Finding Opportunities\n\nYour first step is identifying the right funding call that matches your research area (Cluster) and your intended Technology Readiness Level (TRL) for the project (Action Type).\n\n| Action Type | TRL Range | Funding Rate | Focus |\n|---|---|---|---|\n| **RIA** (Research & Innov...",
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 7282.374,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
+      "passed": true
+    },
+    {
+      "query": "What programmes are best for beginners?",
+      "response": "For organizations new to EU funding, the best strategy is to **start small and build experience progressively**. You should consider these beginner-friendly entry points:\n\n### 1. Marie Sk\u0142odowska-Curie Actions (MSCA) - Best for Researchers\n\n**Why you should apply to MSCA:**\n- Simpler consortium: Often just your organization + the researcher\n- Clear evaluation criteria focused on research quality - you can achieve this\n- Fixed funding amounts (unit costs) - no complex budget calculations\n- High s...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 562.6210000000001,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": true
+    },
+    {
+      "query": "Should we start as partner or coordinator?",
+      "response": "For organizations new to EU funding, you **should start as a partner** before taking on the coordinator role.\n\n### Starting as Partner (Recommended for Beginners)\n\n**Why you should start as partner:**\n- **Lower risk**: The coordinator bears the legal/financial responsibility to the EC\n- **Learning opportunity**: You can observe how experienced coordinators manage consortia\n- **Build relationships**: You can develop trust with partners for future coordination\n- **Focus on research**: You can cont...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 1622.466,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": true
+    },
+    {
+      "query": "What's a good first project size?",
+      "response": "For organizations new to EU funding, starting with **manageable project sizes** is crucial for success. Here's guidance on appropriate first project scope:\n\n### Recommended First Project Parameters\n\n| Parameter | Beginner Recommendation | Why |\n|-----------|------------------------|-----|\n| **Budget participation** | \u20ac200K - \u20ac500K | Manageable financial reporting |\n| **Duration** | 24-36 months | Standard timeline, not too long |\n| **Consortium size** | 4-8 partners | Easier coordination |\n| **Y...",
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 616.344,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": true
+    },
+    {
+      "query": "How do we build track record?",
+      "response": "Building a strong EU funding track record is a **multi-year strategic effort**. Here's a proven framework for developing your organization's EU funding experience:\n\n### What Constitutes \"Track Record\"\n\nEvaluators look for evidence of:\n- **Successful project participation**: Completed EU-funded projects\n- **Relevant publications/outputs**: Demonstrable research impact\n- **International collaboration**: Working across borders effectively\n- **Financial/admin capacity**: Proven ability to manage EU ...",
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 868.673,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 4,
+      "passed": true
+    }
+  ],
+  "scores": {
+    "average_quality": 82.6,
+    "average_factual": 100.0,
+    "goal_progress": 0.39,
+    "context_fields": 3
+  },
+  "failures": [],
+  "metadata": {
+    "scenario_path": "tests/scenarios/advanced/capacity_building.yaml",
+    "tags": [
+      "phase5",
+      "strategic-planning",
+      "capacity-building",
+      "beginner",
+      "onboarding",
+      "track-record"
+    ],
+    "description": "A 5-step onboarding workflow where an organization new to EU funding\nseeks help understanding how to get started. Tests the system's ability\nto provide beginner-appropriate advice, recommend suitable programmes,\nguide on partner vs coordinator roles, suggest appropriate project sizes,\nand outline a track record building strategy. The conversation builds\nuser context progressively (newcomer status) and validates that\nrecommendations are appropriately conservative for beginners.\n",
+    "conversation_id": 1039926572
+  },
+  "execution_time_ms": 121746.686,
+  "timestamp": "2026-01-23T02:04:36.315682",
+  "passed": true,
+  "turn_count": 5,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
+}
