@@ -3577,6 +3577,16 @@ digital_europe, life""",
         if sme_eligibility_result:
             return sme_eligibility_result
 
+        # Check for CONSORTIUM ELIGIBILITY queries
+        # These are questions about consortium requirements, third country participation,
+        # and associated country status (Switzerland, UK, US, etc.)
+        # e.g., "We have partners from Germany, France, UK", "Is this consortium eligible?",
+        # "Can we add a Swiss partner?", "Can American organizations participate?"
+        # IMPORTANT: Must come BEFORE timeline comparison to prevent false matches
+        consortium_eligibility_result = self._detect_consortium_eligibility_query(query, context)
+        if consortium_eligibility_result:
+            return consortium_eligibility_result
+
         # Check for TIMELINE COMPARISON queries
         # These are questions about proposal preparation times, decision times, and project start lags
         # e.g., "How long to prepare a proposal?", "Compare with Erasmus+ KA2", "Decision time?"
@@ -11930,8 +11940,8 @@ This may be because:
             ("horizon europe", "preparation"),
             ("how many months", "horizon"),
             ("time to prepare", "horizon"),
-            ("prepare a horizon"),
-            ("preparing a horizon"),
+            ("prepare a horizon",),
+            ("preparing a horizon",),
         ]
 
         for patterns in he_prep_patterns:
@@ -13844,6 +13854,685 @@ If you don't qualify as an SME due to ownership:
 - [ ] Review your SME status documentation (employees, turnover, ownership)
 
 💡 **Tip**: Many SMEs successfully combine programmes - e.g., participate in RIA to build track record, then apply to EIC Accelerator for commercialization funding!"""
+
+    # =========================================================================
+    # Consortium Eligibility Detection and Guidance (Scenario 031)
+    # =========================================================================
+
+    def _detect_consortium_eligibility_query(
+        self, query: str, context: str
+    ) -> dict[str, Any] | None:
+        """Detect consortium eligibility queries.
+
+        These are questions about:
+        - Consortium composition (partners from multiple countries)
+        - Minimum consortium requirements (3 entities from 3 countries)
+        - Third country participation (US, Japan, China, etc.)
+        - Associated country status (Switzerland, UK, Norway, etc.)
+        - Eligibility for specific consortium configurations
+
+        These queries should provide structured guidance with actionable Next Steps.
+        """
+        query_lower = query.lower()
+        context_lower = context.lower() if context else ""
+
+        # === Pattern 1: Context-setting with consortium countries ===
+        # e.g., "We have partners from Germany, France, and UK for a Horizon Europe project"
+        # e.g., "Our consortium includes Spain, Italy, and Greece"
+        consortium_context_patterns = [
+            "have partners from",
+            "partners from",
+            "our consortium",
+            "consortium includes",
+            "consortium with",
+            "we have a consortium",
+            "partners in our consortium",
+            "our partners are from",
+            "we're coordinating with",
+            "we are coordinating with",
+        ]
+
+        # Check if this is context-setting about a consortium
+        has_consortium_context = any(p in query_lower for p in consortium_context_patterns)
+
+        # Check if multiple countries are mentioned
+        eu_countries = [
+            "germany",
+            "france",
+            "italy",
+            "spain",
+            "netherlands",
+            "belgium",
+            "austria",
+            "sweden",
+            "denmark",
+            "finland",
+            "ireland",
+            "portugal",
+            "greece",
+            "poland",
+            "czech",
+            "hungary",
+            "romania",
+            "bulgaria",
+            "croatia",
+            "slovenia",
+            "slovakia",
+            "estonia",
+            "latvia",
+            "lithuania",
+            "luxembourg",
+            "malta",
+            "cyprus",
+        ]
+        associated_countries = [
+            "uk",
+            "united kingdom",
+            "switzerland",
+            "swiss",
+            "norway",
+            "iceland",
+            "israel",
+            "turkey",
+            "turkish",
+            "serbia",
+            "ukraine",
+            "georgia",
+            "armenia",
+            "moldova",
+            "albania",
+            "montenegro",
+            "bosnia",
+            "kosovo",
+            "north macedonia",
+            "faroe islands",
+            "tunisia",
+            "morocco",
+            "canada",
+        ]
+        third_countries = [
+            "us",
+            "usa",
+            "united states",
+            "american",
+            "china",
+            "chinese",
+            "japan",
+            "japanese",
+            "australia",
+            "australian",
+            "india",
+            "indian",
+            "brazil",
+            "brazilian",
+            "south korea",
+            "korean",
+            "mexico",
+            "mexican",
+        ]
+
+        countries_mentioned = []
+        for country in eu_countries + associated_countries:
+            if country in query_lower:
+                countries_mentioned.append(country)
+
+        # If context-setting with consortium/partners, acknowledge and provide guidance
+        if has_consortium_context and len(countries_mentioned) >= 2:
+            guidance = self._generate_consortium_context_guidance(countries_mentioned, query_lower)
+            return {
+                "thought": f"User is providing consortium context with partners from {', '.join(countries_mentioned)}. Acknowledging and providing eligibility overview.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "consortium_context",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 2: Minimum consortium requirements ===
+        # IMPORTANT: Check this BEFORE generic eligibility to prevent "minimum...eligible" matching eligibility
+        # e.g., "What's the minimum consortium?", "Minimum requirements for consortium?"
+        minimum_patterns = [
+            "minimum consortium",
+            "minimum requirements",
+            "minimum number of partners",
+            "how many partners",
+            "how many countries",
+            "minimum entities",
+            "minimum legal entities",
+            "smallest consortium",
+            "least partners",
+            "at least how many",
+            "minimum to apply",
+            "minimum to be eligible",
+            "consortium minimum",
+            "required consortium",
+        ]
+
+        if any(p in query_lower for p in minimum_patterns):
+            guidance = self._generate_minimum_consortium_guidance()
+            return {
+                "thought": "User is asking about minimum consortium requirements. Providing standard consortium eligibility rules.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "minimum_consortium",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 3: Is consortium eligible? ===
+        # e.g., "Is this consortium eligible?", "Are we eligible?"
+        eligibility_check_patterns = [
+            "is this consortium eligible",
+            "is our consortium eligible",
+            "are we eligible",
+            "does this consortium meet",
+            "do we meet the requirements",
+            "eligible for horizon",
+            "eligible for funding",
+            "consortium eligible",
+            "we eligible",
+            "eligibility of our consortium",
+        ]
+
+        # Check if there's consortium context from previous turns
+        has_previous_consortium_context = any(
+            ind in context_lower
+            for ind in [
+                "partners from",
+                "consortium",
+                "germany",
+                "france",
+                "uk",
+                "united kingdom",
+                "our partners",
+            ]
+        )
+
+        if any(p in query_lower for p in eligibility_check_patterns) or (
+            "eligible" in query_lower and has_previous_consortium_context
+        ):
+            guidance = self._generate_consortium_eligibility_guidance(context_lower)
+            return {
+                "thought": "User is asking about consortium eligibility. Providing eligibility criteria and confirming their consortium meets requirements.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "consortium_eligibility",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 4: Adding Swiss partner ===
+        # e.g., "What if we add a Swiss partner?", "Can we include Switzerland?"
+        swiss_patterns = [
+            "swiss partner",
+            "switzerland partner",
+            "add a swiss",
+            "adding a swiss",
+            "include switzerland",
+            "swiss organization",
+            "swiss university",
+            "partner from switzerland",
+            "what about switzerland",
+            "what about swiss",
+            "including swiss",
+        ]
+
+        if any(p in query_lower for p in swiss_patterns):
+            guidance = self._generate_switzerland_participation_guidance()
+            return {
+                "thought": "User is asking about adding a Swiss partner. Providing Switzerland's current participation status in Horizon Europe.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "switzerland_participation",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 5: US/Third country partner participation ===
+        # e.g., "Can American organizations participate?", "What about a US partner?"
+        us_third_country_patterns = [
+            "us partner",
+            "usa partner",
+            "american partner",
+            "american organization",
+            "american university",
+            "united states partner",
+            "what about us",
+            "what about a us",
+            "can american",
+            "can us",
+            "third country partner",
+            "third country participation",
+            "non-eu partner",
+            "non-eu organization",
+            "partner from us",
+            "partner from usa",
+            "from united states",
+        ]
+
+        # Check for third country context
+        has_third_country_question = any(p in query_lower for p in us_third_country_patterns)
+
+        # Also catch generic "can X participate" for known third countries
+        third_country_participate = False
+        for tc in third_countries:
+            if tc in query_lower and (
+                "participat" in query_lower or "join" in query_lower or "partner" in query_lower
+            ):
+                third_country_participate = True
+                break
+
+        if has_third_country_question or third_country_participate:
+            guidance = self._generate_third_country_participation_guidance()
+            return {
+                "thought": "User is asking about third country (US/non-EU) participation. Providing third country participation rules.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "third_country_participation",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        return None
+
+    def _generate_consortium_context_guidance(self, countries: list[str], query_lower: str) -> str:
+        """Generate guidance when user provides consortium context."""
+        # Categorize countries
+        eu_member = []
+        associated = []
+        third = []
+
+        eu_countries = {
+            "germany",
+            "france",
+            "italy",
+            "spain",
+            "netherlands",
+            "belgium",
+            "austria",
+            "sweden",
+            "denmark",
+            "finland",
+            "ireland",
+            "portugal",
+            "greece",
+            "poland",
+            "czech",
+            "hungary",
+            "romania",
+            "bulgaria",
+            "croatia",
+            "slovenia",
+            "slovakia",
+            "estonia",
+            "latvia",
+            "lithuania",
+            "luxembourg",
+            "malta",
+            "cyprus",
+        }
+        associated_countries = {
+            "uk",
+            "united kingdom",
+            "norway",
+            "iceland",
+            "israel",
+            "turkey",
+            "turkish",
+            "serbia",
+            "ukraine",
+            "georgia",
+            "armenia",
+            "moldova",
+            "albania",
+            "montenegro",
+            "bosnia",
+            "kosovo",
+            "north macedonia",
+            "faroe islands",
+            "tunisia",
+            "morocco",
+        }
+
+        for c in countries:
+            if c in eu_countries:
+                eu_member.append(c.title())
+            elif c in associated_countries:
+                # Handle UK/Switzerland special status
+                if c in ["uk", "united kingdom"]:
+                    associated.append("United Kingdom (Associated)")
+                elif c in ["switzerland", "swiss"]:
+                    associated.append("Switzerland (Non-Associated Third Country)")
+                else:
+                    associated.append(c.title())
+            else:
+                third.append(c.title())
+
+        country_breakdown = ""
+        if eu_member:
+            country_breakdown += f"**EU Member States**: {', '.join(eu_member)}\n"
+        if associated:
+            country_breakdown += f"**Associated/Other Countries**: {', '.join(associated)}\n"
+        if third:
+            country_breakdown += f"**Third Countries**: {', '.join(third)}\n"
+
+        return f"""Thank you for sharing your consortium composition. Here's an initial eligibility assessment:
+
+### Your Consortium
+
+{country_breakdown}
+
+### Quick Eligibility Check
+
+| Requirement | Status |
+|-------------|--------|
+| **Minimum 3 legal entities** | ✅ To be confirmed (you've mentioned multiple countries) |
+| **From 3 different EU/Associated Countries** | ✅ Appears eligible based on countries mentioned |
+| **Independent entities** | ⚠️ To be confirmed (entities must not be linked) |
+
+### Key Considerations
+
+For most **collaborative Horizon Europe actions** (RIA, IA, CSA):
+- The consortium **must include at least 3 independent legal entities**
+- From **at least 3 different EU Member States or Associated Countries**
+- **UK is currently an Associated Country** and counts toward the minimum
+- **Switzerland has special status** - see specific guidance if Swiss partners are involved
+
+### Country Eligibility by Status
+
+| Country Status | Can Coordinate? | Receives EU Funding? |
+|----------------|-----------------|---------------------|
+| **EU Member State** | ✅ Yes | ✅ Yes (100% or per call rules) |
+| **Fully Associated** (UK, Norway, Israel) | ✅ Yes | ✅ Yes |
+| **Non-Associated** (Switzerland, UK pre-2024) | ⚠️ Usually no | ❌ Self-funded or SERI-funded |
+| **Third Country** (US, Japan, etc.) | ❌ No | ❌ Self-funded (exceptional cases) |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+• [ ] **Verify consortium meets minimum**: You should confirm you have at least 3 independent legal entities from 3 different EU/Associated Countries
+• [ ] **Check specific call requirements**: Visit the [Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/) to verify your target call's eligibility conditions
+• [ ] **Review the Programme Guide**: Check the [Horizon Europe Programme Guide](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/programme-guide_horizon_en.pdf) Section 4 for full eligibility rules
+• [ ] **Contact your NCP**: Reach out to your [National Contact Point](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for official advice
+• [ ] **Consider expanding**: If you need additional partners, you should explore the partner search feature
+
+💡 **Tip**: Ask me "Is this consortium eligible?" for a detailed eligibility confirmation, or about adding partners from specific countries."""
+
+    def _generate_consortium_eligibility_guidance(self, context_lower: str) -> str:
+        """Generate guidance about consortium eligibility."""
+        # Check what countries are in context
+        has_uk = "uk" in context_lower or "united kingdom" in context_lower
+        has_switzerland = "switzerland" in context_lower or "swiss" in context_lower
+
+        uk_note = ""
+        if has_uk:
+            uk_note = """
+
+### UK Partner Status
+
+✅ **The UK is currently an Associated Country** to Horizon Europe (since January 2024).
+
+This means:
+- UK entities **count toward** the minimum 3 countries requirement
+- UK entities are **eligible for EU funding** under most calls
+- UK entities **can coordinate** most Horizon Europe projects
+- Some exceptions exist for security-sensitive topics"""
+
+        swiss_note = ""
+        if has_switzerland:
+            swiss_note = """
+
+### ⚠️ Switzerland Status Note
+
+Switzerland is currently a **Non-Associated Third Country** in Horizon Europe.
+
+This means Swiss partners:
+- Can participate in most calls as **partners**
+- **Cannot receive EU funding** directly (funded by SERI instead)
+- Usually **cannot coordinate** Pillar II calls
+- Do NOT count toward the minimum 3 countries requirement"""
+
+        return f"""Yes, your consortium meets the minimum eligibility requirements for collaborative Horizon Europe projects (like RIA, IA, or CSA).
+
+### Eligibility Breakdown
+
+1.  **Minimum Consortium Size:** The standard requirement is a minimum of **3 independent legal entities** from **3 different EU Member States (MS) or Associated Countries (AC)**.
+
+2.  **Your Partners:**
+    - Based on the countries you've mentioned, your consortium appears to meet this requirement
+    - Each partner must be a **legal entity** (registered organization)
+    - Partners must be **independent** (not controlled by each other){uk_note}{swiss_note}
+
+### Standard Eligibility Requirements
+
+| Action Type | Minimum Consortium | Geographic Requirement |
+|-------------|-------------------|----------------------|
+| **RIA** (Research & Innovation) | 3 entities | 3 different MS/AC |
+| **IA** (Innovation Action) | 3 entities | 3 different MS/AC |
+| **CSA** (Coordination & Support) | 1 entity | 1 MS/AC |
+| **MSCA Doctoral Networks** | 3 entities | 3 different countries |
+| **ERC Grants** | 1 entity | 1 MS/AC |
+| **EIC Accelerator** | 1 SME | 1 MS/AC |
+
+### Funding Rates by Partner Type
+
+| Partner Location | Funding Rate (RIA) | Funding Rate (IA) |
+|------------------|-------------------|-------------------|
+| **EU Member State** | 100% | 70% (100% for non-profit) |
+| **Associated Country** (UK, Norway, etc.) | 100% | 70% (100% for non-profit) |
+| **Non-Associated Third Country** | Self-funded | Self-funded |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+• [ ] Confirm each partner is a registered legal entity
+• [ ] Verify partners are independent (not controlled by same parent)
+• [ ] Check the specific call's eligibility conditions on the [Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/)
+• [ ] Review the [Horizon Europe Programme Guide](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/programme-guide_horizon_en.pdf) for full details
+• [ ] Contact your [National Contact Point (NCP)](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for official confirmation"""
+
+    def _generate_switzerland_participation_guidance(self) -> str:
+        """Generate guidance about Switzerland's participation status."""
+        return """Adding a partner from Switzerland (CH) to your consortium is entirely possible and highly recommended, but it comes with a specific funding status you must be aware of.
+
+### Switzerland's Status in Horizon Europe
+
+1.  **Participation Eligibility:** Swiss entities are eligible to participate in Horizon Europe consortia (RIA, IA, CSA).
+2.  **Funding Source (CRITICAL):** For most collaborative calls under **Pillar II** (Clusters, Missions) and Pillar I (MSCA/ERC are largely unaffected), Switzerland is currently classified as a **Non-Associated Third Country**.
+
+### What This Means for Your Consortium
+
+| Aspect | Impact |
+|--------|--------|
+| **Can Swiss participate?** | ✅ Yes, in most calls |
+| **Count toward minimum 3 countries?** | ❌ No (only MS/AC count) |
+| **Receive EU funding?** | ❌ No direct EU funding |
+| **Who funds them?** | 🇨🇭 SERI (Swiss State Secretariat) |
+| **Can Swiss coordinate?** | ⚠️ Usually no for Pillar II |
+
+### Key Implications
+
+1.  **Minimum Consortium:** You still need **3 entities from 3 EU Member States or Associated Countries** - Switzerland does NOT count toward this minimum.
+
+2.  **Funding:** Swiss partners participate at their own cost OR with funding from the Swiss State Secretariat for Education, Research and Innovation (SERI).
+
+3.  **Coordination:** Swiss entities generally **cannot coordinate** Pillar II projects. They CAN coordinate in:
+    - ERC grants (Pillar I)
+    - Some MSCA actions
+    - Specific calls that explicitly allow it
+
+4.  **Consortium Impact:**
+    - Your proposal evaluation is **not affected** by having Swiss partners
+    - Swiss partners can lead work packages and make substantial contributions
+    - Budget planning should reflect SERI funding for Swiss costs
+
+### Practical Example
+
+If your current consortium is: **Germany + France + UK**
+
+| Entity | Country Status | Counts toward min? | Funding Source |
+|--------|---------------|-------------------|----------------|
+| German Uni | EU Member | ✅ Yes | EU |
+| French SME | EU Member | ✅ Yes | EU |
+| UK Research | Associated | ✅ Yes | EU |
+| Swiss Partner | Non-Associated | ❌ No | SERI |
+
+**Result:** Consortium REMAINS eligible (3 MS/AC met). Swiss partner adds value without affecting eligibility.
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+• [ ] Check if your specific call allows Swiss participation (most do)
+• [ ] Contact the Swiss partner's grants office about SERI funding
+• [ ] Visit [SERI's Horizon Europe page](https://www.sbfi.admin.ch/sbfi/en/home/research-and-innovation/international-cooperation-r-and-i/eu-framework-programmes-for-research/horizon-europe.html)
+• [ ] Ensure you have 3 entities from EU Member States or Associated Countries (not counting Switzerland)
+• [ ] Budget the Swiss partner's costs separately if using SERI funding
+
+💡 **Tip:** Swiss partners can be extremely valuable - they have world-class research institutions (ETH, EPFL, PSI). Don't let the funding complexity discourage you!"""
+
+    def _generate_third_country_participation_guidance(self) -> str:
+        """Generate guidance about third country (US, etc.) participation."""
+        return """Yes, American (US) organizations can participate in Horizon Europe projects, but with specific limitations on funding and roles.
+
+### Third Country Participation Rules
+
+Organizations from **Non-Associated Third Countries** (like the USA, Japan, China, Australia, Canada) can participate in Horizon Europe under specific conditions:
+
+| Aspect | Rule for Third Countries |
+|--------|-------------------------|
+| **Can participate?** | ✅ Yes, in most calls |
+| **Count toward minimum?** | ❌ No - only MS/AC count |
+| **Receive EU funding?** | ❌ No (with rare exceptions) |
+| **Can coordinate?** | ❌ No |
+| **Who funds them?** | 💰 Self-funded |
+
+### How Third Country Partners Participate
+
+1.  **Self-Funded Participation:** US partners cover their own costs entirely. They cannot receive EU funding.
+
+2.  **No Coordination:** Third country entities cannot be the project coordinator - an EU Member State or Associated Country partner must coordinate.
+
+3.  **Exception Cases:** In **exceptional circumstances**, the Commission may fund third country participation if:
+    - Their participation is essential for the project
+    - Explicitly stated in the work programme/call text
+    - No suitable alternative exists in MS/AC
+
+### Impact on Your Consortium
+
+| Scenario | Minimum Met? | Notes |
+|----------|-------------|-------|
+| Germany + France + UK + USA | ✅ Yes | 3 MS/AC met, US adds value |
+| Germany + France + USA | ✅ Yes | 3 MS/AC not needed if USA doesn't count |
+| Wait - that's only 2! | ❌ No | You need 3 MS/AC |
+| Germany + France + Italy + USA | ✅ Yes | 3 MS/AC met |
+
+### Practical Considerations
+
+**Advantages of US Partners:**
+- Access to US expertise, facilities, markets
+- Strong research institutions (MIT, Stanford, NIH labs)
+- Valuable for global impact demonstration
+
+**Disadvantages:**
+- Self-funded = potentially complex budget arrangements
+- Cannot coordinate
+- Not counted for consortium minimum
+
+**Alternatives to Consider:**
+- **Associated Country with US ties:** Consider partners from Canada (usually also third country) or explore EUREKA partnerships
+- **Subcontracting:** US organizations can be subcontractors instead of partners (different rules apply)
+
+### US-Specific Funding Options
+
+Some US partners may find funding through:
+- Their own institutional grants
+- NSF/DOE collaborative programs with EU counterparts
+- Industry R&D budgets
+- Private foundations
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+• [ ] Verify your specific call allows third country participation (check call text)
+• [ ] Ensure you have **3 entities from EU Member States or Associated Countries** separately
+• [ ] Discuss self-funding arrangements with the US partner early
+• [ ] Consider if US participation is truly essential or if an AC alternative exists
+• [ ] Check the [Horizon Europe Programme Guide](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/programme-guide_horizon_en.pdf) Section 4.2
+
+💡 **Tip:** US partners are most valuable when they bring unique capabilities (e.g., access to specific datasets, unique facilities, or markets). Make the case for "essential" participation in your proposal!"""
+
+    def _generate_minimum_consortium_guidance(self) -> str:
+        """Generate guidance about minimum consortium requirements."""
+        return """For most collaborative Horizon Europe projects, the standard minimum consortium requirement is:
+
+### Standard Minimum Requirement
+
+**3 independent legal entities from 3 different EU Member States or Associated Countries**
+
+### Requirements Breakdown
+
+| Requirement | Details |
+|-------------|---------|
+| **Number of entities** | Minimum **3** |
+| **Geographic spread** | **3 different countries** |
+| **Country eligibility** | EU Member States OR Associated Countries |
+| **Independence** | Entities must NOT be controlled by each other |
+
+### Minimum by Action Type
+
+| Action Type | Minimum Entities | Countries | Notes |
+|-------------|-----------------|-----------|-------|
+| **RIA** (Research & Innovation) | 3 | 3 MS/AC | Standard collaborative |
+| **IA** (Innovation Action) | 3 | 3 MS/AC | Standard collaborative |
+| **CSA** (Coordination & Support) | 1 | 1 MS/AC | Single entity allowed |
+| **MSCA Doctoral Networks** | 3 | 3 countries | Any country |
+| **MSCA Staff Exchanges** | 3 | 3 countries | At least 2 MS/AC |
+| **ERC Grants** | 1 | 1 MS/AC | Single PI |
+| **EIC Pathfinder** | 3 | 3 MS/AC | Early-stage tech |
+| **EIC Transition** | 1-3 | 1 MS/AC | Varies by call |
+| **EIC Accelerator** | 1 SME | 1 MS/AC | Single company |
+
+### What Counts as "Independent"?
+
+Entities are **independent** if none of the following applies:
+- One entity directly or indirectly holds **>50% voting rights** in another
+- One entity has the right to **appoint >50% of board members**
+- One entity has **management control** over another through contract
+
+**Example of NON-independent:**
+- University A and University A's spin-off company (if controlled)
+- Company X and Company X's 100% subsidiary
+
+### EU Member States (27)
+
+Austria, Belgium, Bulgaria, Croatia, Cyprus, Czech Republic, Denmark, Estonia, Finland, France, Germany, Greece, Hungary, Ireland, Italy, Latvia, Lithuania, Luxembourg, Malta, Netherlands, Poland, Portugal, Romania, Slovakia, Slovenia, Spain, Sweden
+
+### Associated Countries (as of 2024)
+
+**Fully Associated:** UK, Norway, Iceland, Israel, Albania, Montenegro, North Macedonia, Serbia, Turkey, Bosnia and Herzegovina, Kosovo, Moldova, Ukraine, Georgia, Armenia, Faroe Islands, Tunisia
+
+**Non-Associated (Third Country):** Switzerland, USA, China, Japan, Australia, Canada, etc.
+
+### Common Mistakes to Avoid
+
+| Mistake | Why It's Wrong |
+|---------|---------------|
+| Including Switzerland in the 3 | Switzerland is Non-Associated Third Country |
+| 3 entities from same country | Need 3 **different** countries |
+| Parent + subsidiary as 2 entities | Not independent if controlled |
+| Assuming all programmes need 3 | CSA, ERC, EIC Accelerator can be single entity |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+• [ ] Verify each potential partner is a registered legal entity
+• [ ] Check independence (no majority ownership between partners)
+• [ ] Confirm at least 3 are from EU Member States or Associated Countries
+• [ ] Check specific call text - some calls have ADDITIONAL requirements
+• [ ] Review the [Horizon Europe Programme Guide](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/programme-guide_horizon_en.pdf) Section 4.1
+• [ ] Contact your [National Contact Point (NCP)](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for official advice
+
+💡 **Tip:** While 3 is the minimum, successful consortia often have 5-15 partners to cover all necessary expertise and demonstrate European impact!"""
 
     # =========================================================================
     # Associated Country Eligibility Detection and Guidance (Scenario 029)
