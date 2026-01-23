@@ -4374,12 +4374,28 @@ digital_europe, life""",
             "we focus on",
             "focusing on",
             "our research area",
+            "our research areas",  # Added: plural form
+            "our areas are",  # Added: "Our research areas are:"
             "our team",
         ]
 
         # Domain/sector patterns
         domain_patterns = {
             "cybersecurity": ["cybersecurity", "cyber security", "cyber-security"],
+            "ai_robotics": [
+                "artificial intelligence",
+                "machine learning",
+                " ai ",
+                "ai/ml",
+                "robotics",
+                "robot",
+                "human-machine",
+                "human machine",
+                "hmi",
+                "hci",
+                "automation",
+                "autonomous",
+            ],  # Combined AI + Robotics + HMI
             "ai": ["artificial intelligence", "machine learning", " ai ", "ai/ml"],
             "healthcare": ["healthcare", "health care", "medical", "health sector"],
             "energy": ["clean energy", "renewable energy", "energy transition"],
@@ -4418,6 +4434,9 @@ digital_europe, life""",
             if detected_domain == "cybersecurity":
                 cluster_info = "you align well with **Cluster 3** (Civil Security for Society) and **Cluster 4** (Digital, Industry and Space)"
                 search_keywords = "cybersecurity digital security"
+            elif detected_domain == "ai_robotics":
+                cluster_info = "you align with **Cluster 4** (Digital, Industry and Space) covering AI, Robotics, and Human-Machine Interaction. This is a highly strategic area in Horizon Europe"
+                search_keywords = "AI robotics human machine interaction autonomous"
             elif detected_domain == "ai":
                 cluster_info = "you align with **Cluster 4** (Digital, Industry and Space) and cross-cutting AI initiatives"
                 search_keywords = "artificial intelligence AI digital"
@@ -5815,7 +5834,6 @@ digital_europe, life""",
 
     def _synthesize_from_results(self, query: str, tool_results: dict[str, Any]) -> str:
         """Synthesize a coherent answer from tool results."""
-        import json
 
         content_pieces = []
 
@@ -5904,12 +5922,67 @@ Per Partner Distribution:
 
                 content_pieces.append("\n".join(call_parts))
 
-            # Extract statistics/benchmark results
+            # Extract statistics/benchmark results - improved formatting
+            # Extract statistics/benchmark results - improved formatting
             elif result.get("statistics") or result.get("benchmark"):
                 stats = result.get("statistics", result.get("benchmark", {}))
-                content_pieces.append(
-                    f"Statistics: {json.dumps(stats, indent=2, default=str)[:1000]}"
-                )
+                if isinstance(stats, dict):
+                    if "success_rates" in stats:
+                        # EIC/ERC/MSCA format
+                        programme = result.get("programme", "Programme")
+                        parts = [f"**{programme} Statistics:**"]
+                        if stats.get("description"):
+                            parts.append(f"\n{stats['description']}")
+                        parts.append("\n**Success Rates:**")
+                        for key, value in stats.get("success_rates", {}).items():
+                            if key != "note":
+                                parts.append(f"- {key.replace('_', ' ').title()}: {value}")
+                        if stats.get("funding"):
+                            parts.append("\n**Funding:**")
+                            for key, value in stats["funding"].items():
+                                parts.append(f"- {key.replace('_', ' ').title()}: {value}")
+                        # Add Next Steps for actionability
+                        parts.append("\n---\n\n🎯 **Next Steps:**")
+                        parts.append(
+                            "• Review successful proposals in [CORDIS](https://cordis.europa.eu/)"
+                        )
+                        parts.append(
+                            "• Check open calls on the [EU Funding Portal](https://ec.europa.eu/info/funding-tenders/)"
+                        )
+                        parts.append("• Consider working with experienced partners or consultants")
+                        content_pieces.append("\n".join(parts))
+                    else:
+                        # Cluster statistics format
+                        programme = result.get("programme", result.get("cluster_code", "Unknown"))
+                        parts = [f"**{programme} Statistics:**"]
+                        if "total_projects" in stats or "project_count" in stats:
+                            projects = stats.get(
+                                "total_projects", stats.get("project_count", "N/A")
+                            )
+                            parts.append(
+                                f"- Total Projects: {projects:,}"
+                                if isinstance(projects, int)
+                                else f"- Total Projects: {projects}"
+                            )
+                        if "success_rate" in stats:
+                            parts.append(f"- Success Rate: {stats['success_rate']}%")
+                        if "avg_project_budget" in stats or "average_funding" in stats:
+                            avg = stats.get("avg_project_budget", stats.get("average_funding", 0))
+                            parts.append(f"- Average Budget: €{avg:,.0f}")
+                        # Add Next Steps for actionability
+                        parts.append("\n---\n\n🎯 **Next Steps:**")
+                        parts.append(
+                            "• Review open calls in this cluster on the [EU Funding Portal](https://ec.europa.eu/info/funding-tenders/)"
+                        )
+                        parts.append(
+                            "• Study similar funded projects in [CORDIS](https://cordis.europa.eu/)"
+                        )
+                        content_pieces.append("\n".join(parts))
+                else:
+                    # Fallback for non-dict stats
+                    content_pieces.append(
+                        f"Statistics: {json.dumps(stats, indent=2, default=str)[:1000]}"
+                    )
 
             # Extract timeline generation results - ENHANCED with full details
             elif result.get("tool_name") == "generate_timeline" and result.get("success"):
@@ -6777,6 +6850,11 @@ Found **{total_found} organizations** with relevant track records:
             "## Project Timeline Generated",
             "## Funding History Analysis:",
             "## Geographic Diversification Analysis:",  # Country group analysis
+            "**Programme Statistics:**",  # Programme/cluster statistics
+            "Programme Statistics for",  # Alternative statistics format
+            "**EIC Accelerator Statistics:**",  # Specific programme stats
+            "**ERC Statistics:**",  # Specific programme stats
+            "**MSCA Statistics:**",  # Specific programme stats
             "## Call Details:",  # Lower priority - context, not main answer
         ]
 
@@ -7190,17 +7268,30 @@ Found **{total_found} organizations** with relevant track records:
                 # Also get budget statistics for more detail
                 budget_stats = await asyncio.to_thread(graph.get_budget_statistics, cluster_code)
 
-                # Combine results
+                # Combine results with clear context to avoid budget confusion
                 return {
                     "programme": programme,
                     "cluster_code": cluster_code,
                     "statistics": result,
                     "budget_details": budget_stats,
                     "source": "neo4j_graph",
+                    # IMPORTANT: Add programme budget context to avoid LLM confusion
+                    "programme_context": {
+                        "note": "IMPORTANT: The 'total_funding' in statistics is the cumulative amount awarded to PROJECTS in this cluster/area, NOT the overall Horizon Europe budget.",
+                        "horizon_europe_total_budget": "€95.5 billion (2021-2027)",
+                        "cluster_funding_note": f"This cluster ({cluster_code}) represents a portion of the overall programme budget.",
+                    },
                 }
 
             return {
-                "message": f"No statistics found for {programme}. Try specific cluster names (e.g., 'Cluster 5 - Climate', 'Health') or programmes (EIC, ERC, MSCA)."
+                "message": f"No statistics found for {programme}. Try specific cluster names (e.g., 'Cluster 5 - Climate', 'Health') or programmes (EIC, ERC, MSCA).",
+                # Include correct programme budgets to prevent hallucination
+                "programme_budget_reference": {
+                    "Horizon Europe": "€95.5 billion (2021-2027)",
+                    "Erasmus+": "€26.2 billion (2021-2027)",
+                    "Creative Europe": "€2.44 billion (2021-2027)",
+                    "note": "Use these figures when discussing overall programme budgets.",
+                },
             }
         except Exception as e:
             logger.error(f"Programme stats error: {e}")
@@ -8931,6 +9022,21 @@ This may be because:
                 if stats.get("trl_range"):
                     parts.append(f"TRL Range: {stats['trl_range']}")
 
+                # Add actionable Next Steps
+                parts.append("\n---\n\n🎯 **Next Steps:**")
+                parts.append(
+                    "• Carefully review your innovation for market readiness (EIC) or scientific excellence (ERC)"
+                )
+                parts.append(
+                    "• Study successful proposals in your domain via [CORDIS](https://cordis.europa.eu/)"
+                )
+                parts.append(
+                    "• Consider working with a consultant or experienced coordinator to improve odds"
+                )
+                parts.append(
+                    "• Check the [EU Funding Portal](https://ec.europa.eu/info/funding-tenders/) for current call details"
+                )
+
             else:
                 # Standard cluster statistics format
                 if stats:
@@ -8944,7 +9050,10 @@ This may be because:
                         if isinstance(total_projects, int)
                         else f"- Total Projects: {total_projects}"
                     )
-                    parts.append(f"- Total Funding: €{total_funding:,.0f}")
+                    # IMPORTANT: Clarify this is projects funded, not programme budget
+                    parts.append(
+                        f"- Total Funding Awarded to Projects: €{total_funding:,.0f} (Note: This is the sum of project awards in this area, NOT the overall Horizon Europe budget of €95.5 billion)"
+                    )
                     parts.append(f"- Success Rate: {success_rate}%")
                     parts.append(f"- Average Project Budget: €{avg_budget:,.0f}")
 
@@ -8953,6 +9062,17 @@ This may be because:
                     parts.append(f"- Min Budget: €{budget.get('min_budget', 0):,.0f}")
                     parts.append(f"- Max Budget: €{budget.get('max_budget', 0):,.0f}")
                     parts.append(f"- Median Budget: €{budget.get('median_budget', 0):,.0f}")
+
+                # Add actionable Next Steps for cluster statistics
+                parts.append("\n---\n\n🎯 **Next Steps:**")
+                parts.append(
+                    "• Review open calls in this cluster on the [EU Funding Portal](https://ec.europa.eu/info/funding-tenders/)"
+                )
+                parts.append(
+                    "• Study similar funded projects in [CORDIS](https://cordis.europa.eu/) to understand successful approaches"
+                )
+                parts.append("• Connect with experienced partners or consultants in this domain")
+                parts.append("• Consider starting as a partner before taking a coordinator role")
 
             return "\n".join(parts)
 

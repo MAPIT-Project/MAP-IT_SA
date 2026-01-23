@@ -330,12 +330,13 @@ Run with: `./ralphy.sh --prd docs/prd/MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD_V3
   4. **Attempt 1 Result**: Score improved from 78.7 to 80.0 (1 attempt). Fixed: (1) Added `_detect_strategic_planning_query()` method to detect strategic planning and context-building queries, (2) Added strategic planning guidance section to BUILT_IN_KNOWLEDGE with multi-year framework, (3) Added "Next Steps" section to timeline synthesis output, (4) Added strategic planning query types to actionable response guidelines. Turn 1 now uses `search_funding_calls` with cybersecurity keywords. Status: PASS
 
 ### Scenario 018: Portfolio Planning
-- [ ] EXECUTE: Run scenario `tests/scenarios/advanced/strategic_planning/portfolio_planning.yaml` against the live API. Tests managing multiple proposal submissions. Save result to `tests/quality/results/scenarios/portfolio_planning.json`.
+- [x] EXECUTE: Run scenario `tests/scenarios/advanced/strategic_planning/portfolio_planning.yaml` against the live API. Tests managing multiple proposal submissions. Save result to `tests/quality/results/scenarios/portfolio_planning.json`.
 
-- [ ] FIX IF NEEDED: Read `tests/quality/results/scenarios/portfolio_planning.json`. If average_score < 80:
+- [x] FIX IF NEEDED: Read `tests/quality/results/scenarios/portfolio_planning.json`. If average_score < 80:
   1. ONLY modify files in `app/` directory
   2. Fix portfolio planning logic in agent or tools
   3. Re-run EXECUTE, repeat until score >= 80 or 3 attempts
+  4. **Attempt 1 Result**: Score improved from 79.3 to 81.3 (1 attempt). Fixed: (1) Added "our research areas" pattern to context-building detection, (2) Added "ai_robotics" domain pattern for AI/robotics/HMI queries with Cluster 4 routing, (3) Improved statistics synthesis to format success rates properly instead of raw JSON, (4) Added Next Steps sections to statistics output for actionability, (5) Added programme budget context clarification to prevent LLM confusion between cluster funding and overall Horizon Europe budget. Status: PASS
 
 ### Scenario 019: Capacity Building
 - [ ] EXECUTE: Run scenario `tests/scenarios/advanced/strategic_planning/capacity_building.yaml` against the live API. Tests advice for organizations new to EU funding. Save result to `tests/quality/results/scenarios/capacity_building.json`.
