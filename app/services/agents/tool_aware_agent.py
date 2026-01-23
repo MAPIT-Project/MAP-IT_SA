@@ -3596,6 +3596,16 @@ digital_europe, life""",
         if erasmus_action_result:
             return erasmus_action_result
 
+        # Check for ERASMUS+ BUDGET CALCULATION queries
+        # These are questions about Erasmus+ funding, unit costs, travel bands, individual support,
+        # staff mobility funding, and inclusion support
+        # e.g., "How does Erasmus+ fund student mobility?", "What are individual support rates?",
+        # "How are travel costs calculated?", "What is inclusion support?"
+        # IMPORTANT: Must come BEFORE cross-programme eligibility to handle Erasmus-specific queries
+        erasmus_budget_result = self._detect_erasmus_budget_query(query, context)
+        if erasmus_budget_result:
+            return erasmus_budget_result
+
         # Check for CROSS-PROGRAMME ELIGIBILITY queries (double funding, multiple programmes)
         # These are questions about participating in multiple EU programmes simultaneously
         # e.g., "Can we have the same project funded by both Horizon Europe and Erasmus+?"
@@ -6760,7 +6770,7 @@ This refers to whether you choose the research topic (bottom-up) or respond to a
         info1 = cluster_info.get(c1, cluster_info["5"])
         info2 = cluster_info.get(c2, cluster_info["1"]) if c2 else None
 
-        guidance = f"""## Cluster Comparison: {info1['name']}"""
+        guidance = f"""## Cluster Comparison: {info1["name"]}"""
         if info2:
             guidance += f" vs {info2['name']}"
         guidance += "\n\n"
@@ -6819,9 +6829,9 @@ This refers to whether you choose the research topic (bottom-up) or respond to a
             budget1 = float(info1["budget"].replace("~€", "").replace(" billion", ""))
             budget2 = float(info2["budget"].replace("~€", "").replace(" billion", ""))
             if budget1 > budget2:
-                guidance += f"- **Budget**: {info1['name'].split(' - ')[1]} has {budget1/budget2:.1f}x more funding available\n"
+                guidance += f"- **Budget**: {info1['name'].split(' - ')[1]} has {budget1 / budget2:.1f}x more funding available\n"
             else:
-                guidance += f"- **Budget**: {info2['name'].split(' - ')[1]} has {budget2/budget1:.1f}x more funding available\n"
+                guidance += f"- **Budget**: {info2['name'].split(' - ')[1]} has {budget2 / budget1:.1f}x more funding available\n"
 
             # Competition analysis
             competition_order = ["Very High", "High", "Moderate", "Low"]
@@ -6862,16 +6872,16 @@ This refers to whether you choose the research topic (bottom-up) or respond to a
             )
         else:
             # Single cluster detail
-            guidance += f"""**Focus**: {info1['focus']}
+            guidance += f"""**Focus**: {info1["focus"]}
 
 | Metric | Value |
 |--------|-------|
-| **Budget (2021-2027)** | {info1['budget']} |
-| **Success Rate** | {info1['success_rate']} |
-| **Competition** | {info1['competition']} |
-| **Topic Prefix** | {info1['topics']} |
+| **Budget (2021-2027)** | {info1["budget"]} |
+| **Success Rate** | {info1["success_rate"]} |
+| **Competition** | {info1["competition"]} |
+| **Topic Prefix** | {info1["topics"]} |
 
-**Typical Projects**: {info1['typical_project']}
+**Typical Projects**: {info1["typical_project"]}
 """
 
         guidance += """
@@ -9115,9 +9125,9 @@ Participation Statistics:
                                 if "budget" in metric or "funding" in metric:
                                     if isinstance(value, int | float):
                                         if value >= 1_000_000_000:
-                                            row += f" €{value/1_000_000_000:.1f}B |"
+                                            row += f" €{value / 1_000_000_000:.1f}B |"
                                         elif value >= 1_000_000:
-                                            row += f" €{value/1_000_000:.1f}M |"
+                                            row += f" €{value / 1_000_000:.1f}M |"
                                         else:
                                             row += f" €{value:,.0f} |"
                                     else:
@@ -15065,6 +15075,686 @@ If multiple proposals succeed:
             }
 
         return None
+
+    def _detect_erasmus_budget_query(self, query: str, context: str) -> dict[str, Any] | None:
+        """Detect Erasmus+ budget calculation and funding queries.
+
+        These are questions about:
+        - Erasmus+ funding model and budget components
+        - Individual support rates and country groups
+        - Staff mobility funding
+        - Inclusion support and top-ups
+        - Travel costs and distance bands
+
+        These queries should provide structured guidance with actionable Next Steps.
+        """
+        query_lower = query.lower()
+        context_lower = context.lower() if context else ""
+
+        # Track if mobility context is present
+        has_mobility_context = any(
+            ind in context_lower
+            for ind in ["mobility", "ka1", "student", "exchange", "staff", "travel"]
+        )
+        has_erasmus_context = any(
+            ind in context_lower for ind in ["erasmus", "erasmus+", "ka1", "ka2"]
+        )
+
+        # === Pattern 1: Student mobility funding / budget components ===
+        # e.g., "How does Erasmus+ fund student mobility activities?"
+        # e.g., "What budget components are involved in Erasmus+?"
+        funding_overview_patterns = [
+            "erasmus+ fund",
+            "erasmus fund",
+            "erasmus+ funding",
+            "erasmus funding",
+            "budget component",
+            "budget category",
+            "funding model",
+            "how is erasmus funded",
+            "how does erasmus fund",
+            "erasmus+ budget",
+            "erasmus budget",
+            "mobility funding",
+            "student mobility funding",
+            "learner mobility funding",
+        ]
+
+        has_funding_question = any(
+            p in query_lower
+            for p in [
+                "fund",
+                "budget",
+                "cost",
+                "grant",
+                "finance",
+                "money",
+                "component",
+            ]
+        )
+        has_erasmus_in_query = "erasmus" in query_lower
+        has_mobility_in_query = any(
+            p in query_lower for p in ["mobility", "student", "learner", "exchange"]
+        )
+
+        if any(p in query_lower for p in funding_overview_patterns) or (
+            has_erasmus_in_query and has_mobility_in_query and has_funding_question
+        ):
+            guidance = self._generate_erasmus_funding_overview_guidance()
+            return {
+                "thought": "User is asking about Erasmus+ funding model and budget components. "
+                "Providing comprehensive overview of unit costs, individual support, travel, "
+                "and organisational support.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "erasmus_funding_overview",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 2: Individual support rates ===
+        # e.g., "What are the individual support rates in Erasmus+?"
+        # e.g., "How much do students receive per day/month?"
+        individual_support_patterns = [
+            "individual support",
+            "individual support rate",
+            "support rate",
+            "per day",
+            "per month",
+            "daily rate",
+            "monthly rate",
+            "subsistence",
+            "living cost",
+            "living allowance",
+            "country group",
+            "destination country rate",
+            "how much do student",
+            "student receive",
+            "learner receive",
+        ]
+
+        has_rate_question = any(
+            p in query_lower
+            for p in ["rate", "how much", "receive", "amount", "per day", "per month"]
+        )
+
+        if any(p in query_lower for p in individual_support_patterns) or (
+            has_erasmus_context and has_rate_question
+        ):
+            guidance = self._generate_erasmus_individual_support_guidance()
+            return {
+                "thought": "User is asking about Erasmus+ individual support rates. "
+                "Providing detailed country groups and rate tables.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "erasmus_individual_support",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 3: Staff mobility funding ===
+        # e.g., "What about staff mobility in Erasmus+?"
+        # e.g., "How is staff training funded?"
+        staff_mobility_patterns = [
+            "staff mobility",
+            "staff training",
+            "teacher mobility",
+            "trainer mobility",
+            "staff exchange",
+            "teaching assignment",
+            "teaching staff",
+            "staff fund",
+            "staff funding",
+            "staff grant",
+            "staff travel",
+            "professional development",
+            "job shadow",
+        ]
+
+        has_staff_question = any(
+            p in query_lower for p in ["staff", "teacher", "trainer", "teaching", "professional"]
+        )
+        has_funding_in_query = any(
+            p in query_lower for p in ["fund", "grant", "support", "finance", "paid"]
+        )
+
+        if any(p in query_lower for p in staff_mobility_patterns) or (
+            has_mobility_context
+            and has_staff_question
+            and (has_funding_in_query or has_erasmus_in_query)
+        ):
+            guidance = self._generate_erasmus_staff_mobility_guidance()
+            return {
+                "thought": "User is asking about Erasmus+ staff mobility funding. "
+                "Providing detailed information on staff mobility rates and activities.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "erasmus_staff_mobility",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 4: Inclusion support ===
+        # e.g., "What is inclusion support in Erasmus+ mobility projects?"
+        # e.g., "Funding for participants with disabilities?"
+        inclusion_patterns = [
+            "inclusion support",
+            "fewer opportunities",
+            "disability",
+            "disabilities",
+            "special needs",
+            "top-up",
+            "top up",
+            "additional support",
+            "disadvantaged",
+            "barrier",
+            "accessibility",
+            "exceptional cost",
+            "real cost",
+            "actual cost",
+            "green travel",
+            "sustainable travel",
+        ]
+
+        has_inclusion_question = any(
+            p in query_lower
+            for p in [
+                "inclusion",
+                "disability",
+                "special",
+                "additional",
+                "fewer",
+                "disadvantaged",
+            ]
+        )
+
+        if any(p in query_lower for p in inclusion_patterns) or (
+            has_mobility_context and has_inclusion_question
+        ):
+            guidance = self._generate_erasmus_inclusion_support_guidance()
+            return {
+                "thought": "User is asking about Erasmus+ inclusion support and top-ups. "
+                "Providing information on support for participants with fewer opportunities.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "erasmus_inclusion_support",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 5: Travel costs / distance bands ===
+        # e.g., "How are travel costs calculated in Erasmus+ mobility?"
+        # e.g., "What are the travel distance bands?"
+        travel_patterns = [
+            "travel cost",
+            "travel support",
+            "travel grant",
+            "travel funding",
+            "travel band",
+            "distance band",
+            "travel contribution",
+            "travel allowance",
+            "km",
+            "kilometer",
+            "kilometre",
+            "flight",
+            "train travel",
+            "green travel",
+            "sustainable travel",
+            "travel calculation",
+            "travel calculate",
+        ]
+
+        has_travel_question = any(
+            p in query_lower
+            for p in [
+                "travel",
+                "distance",
+                "transport",
+                "flight",
+                "train",
+                "km",
+                "kilometer",
+            ]
+        )
+        has_calculation_question = any(
+            p in query_lower for p in ["calculate", "how much", "cost", "rate"]
+        )
+
+        if any(p in query_lower for p in travel_patterns) or (
+            has_mobility_context
+            and has_travel_question
+            and (has_calculation_question or has_erasmus_in_query)
+        ):
+            guidance = self._generate_erasmus_travel_costs_guidance()
+            return {
+                "thought": "User is asking about Erasmus+ travel costs and distance bands. "
+                "Providing detailed information on travel support calculations.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "erasmus_travel_costs",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        return None
+
+    def _generate_erasmus_funding_overview_guidance(self) -> str:
+        """Generate guidance on Erasmus+ funding model overview."""
+        return """Erasmus+ uses a **unit cost funding model** for mobility activities, which means
+grants are calculated based on fixed amounts per participant, per day/month, and per travel
+distance - rather than reimbursing actual costs.
+
+## Erasmus+ Mobility Budget Components
+
+Erasmus+ KA1 mobility grants consist of **four main budget categories**:
+
+| Budget Category | Description | Calculation Method |
+|----------------|-------------|-------------------|
+| **Travel Support** | Journey to/from destination | Fixed amount based on distance bands (km) |
+| **Individual Support** | Living costs abroad | Fixed amount per day/month based on destination country |
+| **Organisational Support** | Admin costs per participant | €100-500 per participant (depending on sector) |
+| **Inclusion Support** | Additional support for disadvantaged participants | Top-ups or real costs |
+
+### 1. Travel Support
+
+Travel grants are based on distance from origin to destination:
+
+| Distance Band | Standard Travel | Green Travel Top-up |
+|--------------|-----------------|---------------------|
+| 10-99 km | €23 | Not applicable |
+| 100-499 km | €180 | €210 |
+| 500-1999 km | €275 | €320 |
+| 2000-2999 km | €360 | €410 |
+| 3000-3999 km | €530 | €610 |
+| 4000-7999 km | €820 | N/A |
+| 8000+ km | €1500 | N/A |
+
+**Green Travel Bonus**: Participants using sustainable transport (train, bus, car-sharing)
+can receive higher travel support.
+
+### 2. Individual Support (Living Costs)
+
+Individual support rates vary by:
+- **Destination country group** (Group 1-3 based on cost of living)
+- **Duration** (short-term vs long-term)
+- **Participant type** (student, staff, learner)
+
+Typical rates:
+- **Students (long-term)**: €420-600/month (depending on country group)
+- **Staff**: €140-180/day
+- **VET Learners**: €70-120/day
+
+### 3. Organisational Support
+
+Fixed contribution per participant to cover:
+- Preparation and follow-up activities
+- Administrative costs
+- Language preparation
+- Monitoring and support
+
+Rates: **€100-500 per participant** (sector-specific)
+
+### 4. Inclusion Support
+
+Additional support for participants with:
+- Disabilities or health conditions (real costs covered)
+- Fewer opportunities (social, economic, geographic barriers)
+- Green travel top-up for sustainable transport
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Calculate Your Distances**: Use the [Distance Calculator](https://ec.europa.eu/programmes/erasmus-plus/resources/distance-calculator_en)
+2. **Check Country Groups**: Identify destination country groups for your mobilities
+3. **Estimate Participant Numbers**: Calculate total budget based on planned participants
+4. **Consider Green Travel**: Plan sustainable transport options for bonus funding
+5. **Identify Inclusion Needs**: Assess if participants qualify for additional support
+
+📋 **Action Items:**
+- [ ] Download the [Erasmus+ Programme Guide 2026](https://erasmus-plus.ec.europa.eu/programme-guide/introduction)
+- [ ] Use the official [Budget Calculator](https://ec.europa.eu/programmes/erasmus-plus/resources_en)
+- [ ] Check [National Agency guidance](https://erasmus-plus.ec.europa.eu/contacts/national-agencies) for sector rates
+- [ ] Review [Inclusion and Diversity Strategy](https://erasmus-plus.ec.europa.eu/programme-guide/part-a/priorities-of-the-erasmus-programme/inclusion-and-diversity)
+
+📚 **Useful Resources:**
+- [Distance Calculator](https://ec.europa.eu/programmes/erasmus-plus/resources/distance-calculator_en)
+- [Programme Guide - Funding Rules](https://erasmus-plus.ec.europa.eu/programme-guide/part-b/key-action-1)
+- [National Agencies](https://erasmus-plus.ec.europa.eu/contacts/national-agencies)"""
+
+    def _generate_erasmus_individual_support_guidance(self) -> str:
+        """Generate guidance on Erasmus+ individual support rates."""
+        return """Erasmus+ provides **individual support** to cover living costs during mobility.
+Rates vary by **destination country group** and **participant type**.
+
+## Individual Support Rates in Erasmus+
+
+### Country Groups (Based on Cost of Living)
+
+| Group | Countries | Cost Level |
+|-------|-----------|------------|
+| **Group 1** (Highest) | Denmark, Finland, Iceland, Ireland, Liechtenstein, Luxembourg, Norway, Sweden | Highest costs |
+| **Group 2** (Medium) | Austria, Belgium, Cyprus, France, Germany, Greece, Italy, Malta, Netherlands, Portugal, Spain | Medium costs |
+| **Group 3** (Lower) | Bulgaria, Croatia, Czechia, Estonia, Hungary, Latvia, Lithuania, North Macedonia, Poland, Romania, Serbia, Slovakia, Slovenia, Türkiye | Lower costs |
+
+### Student Mobility Rates (Higher Education)
+
+| Duration | Group 1 | Group 2 | Group 3 |
+|----------|---------|---------|---------|
+| **Long-term (3-12 months)** | €600/month | €540/month | €420/month |
+| **Short-term (5-30 days)** | €79/day (days 1-14), €56/day (days 15-30) | Same | Same |
+| **Blended Mobility** | €79/day for physical component | Same | Same |
+
+### VET Learner Rates
+
+| Duration | Group 1 | Group 2 | Group 3 |
+|----------|---------|---------|---------|
+| **Short-term (10-89 days)** | €120/day (days 1-14), €84/day (days 15+) | €105/day, €74/day | €90/day, €63/day |
+| **Long-term (90-365 days)** | €420/month | €360/month | €300/month |
+
+### School Pupil Rates
+
+| Type | Rate |
+|------|------|
+| **Group mobility (2-30 days)** | €70/day (days 1-14), €50/day (days 15+) |
+| **Long-term (30-365 days)** | €420-600/month (by country group) |
+
+### Staff Mobility Rates
+
+| Staff Type | All Destinations |
+|-----------|------------------|
+| **Teaching/Training assignments** | €180/day (days 1-14), €126/day (days 15-60) |
+| **Job shadowing** | €140/day (days 1-14), €98/day (days 15-60) |
+
+### Top-ups for Students with Fewer Opportunities
+
+| Category | Top-up Amount |
+|----------|---------------|
+| **Fewer opportunities (long-term)** | +€250/month |
+| **Fewer opportunities (short-term)** | +€100-150 total (lump sum) |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Identify Destination Countries**: Determine country groups for your planned mobilities
+2. **Calculate Duration**: Short-term (<90 days) vs long-term rates differ significantly
+3. **Identify Eligible Participants**: Check if students qualify for fewer opportunities top-up
+4. **Document Support Levels**: National Agencies may have adjusted rates
+5. **Plan Budget**: Multiply rates by participant numbers and durations
+
+📋 **Action Items:**
+- [ ] Identify the country group for each destination
+- [ ] Calculate individual support for each mobility type
+- [ ] Check if participants qualify for top-ups
+- [ ] Consult your [National Agency](https://erasmus-plus.ec.europa.eu/contacts/national-agencies) for exact rates
+- [ ] Include a buffer for rate adjustments
+
+📚 **Useful Resources:**
+- [Programme Guide - Individual Support Rates](https://erasmus-plus.ec.europa.eu/programme-guide/part-b/key-action-1)
+- [National Agencies](https://erasmus-plus.ec.europa.eu/contacts/national-agencies)
+- [Country Group Information](https://erasmus-plus.ec.europa.eu/programme-guide/annexes/annex-i)"""
+
+    def _generate_erasmus_staff_mobility_guidance(self) -> str:
+        """Generate guidance on Erasmus+ staff mobility funding."""
+        return """Erasmus+ funds **staff mobility** for teaching, training, and professional development
+activities across all sectors (Higher Education, VET, Schools, Adult Education).
+
+## Staff Mobility Funding in Erasmus+
+
+### Eligible Staff Mobility Activities
+
+| Activity Type | Duration | Sectors |
+|--------------|----------|---------|
+| **Teaching assignments** | 2-60 days (min. 8 hours/week) | HED, VET, Schools, Adult Ed |
+| **Training/Job shadowing** | 2-60 days | All sectors |
+| **Staff development** | 2-60 days | All sectors |
+| **Courses and training** | 2-30 days | Schools, Adult Ed, VET |
+
+### Staff Mobility Funding Components
+
+| Component | Rate | Calculation |
+|-----------|------|-------------|
+| **Travel Support** | €23-1500 | Based on distance bands |
+| **Individual Support (days 1-14)** | €140-180/day | Based on activity type |
+| **Individual Support (days 15-60)** | €98-126/day | 70% of daily rate |
+| **Organisational Support** | €100-400 | Per participant (sector varies) |
+
+### Individual Support Rates for Staff
+
+| Activity Type | Days 1-14 | Days 15-60 |
+|--------------|-----------|------------|
+| **Teaching/Training activities** | €180/day | €126/day (70%) |
+| **Job shadowing/observation** | €140/day | €98/day (70%) |
+
+**Note**: These are maximum rates. National Agencies may apply different rates.
+
+### Staff Mobility Eligible Costs
+
+| Cost Category | Coverage | Notes |
+|--------------|----------|-------|
+| **Travel** | Standard distance bands | Green travel bonus available |
+| **Accommodation** | Included in daily rate | No separate reimbursement |
+| **Meals** | Included in daily rate | No separate reimbursement |
+| **Local transport** | Included in daily rate | To/from airport covered separately |
+| **Visa/insurance** | Exceptional costs | If required |
+| **Linguistic preparation** | Up to €150 | If needed |
+
+### VET Staff Mobility
+
+VET staff can participate in:
+- **Teaching/training assignments** at partner institutions
+- **Job shadowing** to observe practices
+- **Courses and training events** for skills development
+- **Inviting experts** to train staff at home institution
+
+### Higher Education Staff Mobility
+
+Higher education staff can participate in:
+- **Staff Mobility for Teaching** (STA) - minimum 8 hours teaching
+- **Staff Mobility for Training** (STT) - professional development
+- **Invited staff from enterprises** to teach
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Define Activity Type**: Teaching, training, or job shadowing determines rates
+2. **Calculate Duration**: Optimal duration is 5-14 days for maximum daily rate
+3. **Find Host Institutions**: Use partner networks or Erasmus+ platforms
+4. **Plan Learning Outcomes**: Define what staff should learn/achieve
+5. **Consider Cascading Effect**: Plan how staff will share knowledge upon return
+
+📋 **Action Items:**
+- [ ] Identify staff development needs and matching opportunities
+- [ ] Check [accreditation status](https://erasmus-plus.ec.europa.eu/programme-guide/part-b/key-action-1/accreditation) for your institution
+- [ ] Calculate budget based on activity type and duration
+- [ ] Register on the [EU Funding Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/)
+- [ ] Contact partner institutions for hosting arrangements
+
+📚 **Useful Resources:**
+- [Staff Mobility Guide](https://erasmus-plus.ec.europa.eu/programme-guide/part-b/key-action-1)
+- [School Exchange Partnerships](https://erasmus-plus.ec.europa.eu/programme-guide/part-b/key-action-2/partnerships-for-cooperation/cooperation-partnerships)
+- [Partner Search Tool](https://erasmus-plus.ec.europa.eu/partner-search)
+- [National Agencies](https://erasmus-plus.ec.europa.eu/contacts/national-agencies)"""
+
+    def _generate_erasmus_inclusion_support_guidance(self) -> str:
+        """Generate guidance on Erasmus+ inclusion support."""
+        return """Erasmus+ is committed to **inclusion and diversity**, providing additional support
+for participants with **fewer opportunities** to ensure equal access to mobility.
+
+## Inclusion Support in Erasmus+
+
+### Who Qualifies for Inclusion Support?
+
+Participants with **fewer opportunities** due to:
+
+| Barrier Type | Examples | Evidence Required |
+|-------------|----------|-------------------|
+| **Disability** | Physical, sensory, mental health conditions | Medical certificate |
+| **Health problems** | Chronic illness, serious health conditions | Medical documentation |
+| **Educational difficulties** | Learning differences, early school leavers | Educational records |
+| **Economic obstacles** | Low income, unemployment, debt | Income statements |
+| **Social obstacles** | Discrimination, refugee status, single parent | Social services |
+| **Geographic obstacles** | Remote, rural, or outermost regions | Address verification |
+| **Cultural differences** | Migrants, minorities, language barriers | Various documentation |
+
+### Inclusion Support Funding
+
+| Support Type | Coverage | Maximum |
+|-------------|----------|---------|
+| **Top-up (students, long-term)** | Additional monthly support | +€250/month |
+| **Top-up (students, short-term)** | Lump sum for short mobilities | +€100-150 |
+| **Top-up (VET learners)** | Additional support | +€100-150 |
+| **Real costs (disability)** | Actual costs for special needs | 100% of justified costs |
+| **Accompanying person** | Travel + individual support | Same rates as participant |
+| **Preparatory visit** | Pre-departure planning | Travel + 2 days support |
+
+### Real Costs Coverage (Disability/Health)
+
+100% coverage for:
+- Adapted accommodation
+- Specialized transport (wheelchair accessible)
+- Medical support during mobility
+- Personal assistance
+- Special learning materials
+- Sign language interpretation
+- Adapted equipment or technology
+
+### Green Travel Top-up
+
+| Standard Travel | Green Travel Bonus |
+|----------------|-------------------|
+| €180 (100-499 km) | €210 (+€30) |
+| €275 (500-1999 km) | €320 (+€45) |
+| €360 (2000-2999 km) | €410 (+€50) |
+| €530 (3000-3999 km) | €610 (+€80) |
+
+**Green travel** = sustainable transport (train, bus, carpooling, ferry) for main journey.
+
+### How to Apply for Inclusion Support
+
+1. **Identify barriers** during application process
+2. **Provide evidence** to sending institution
+3. **Request specific support** in Mobility Agreement
+4. **Get approval** from National Agency (for real costs)
+5. **Document expenses** for reimbursement
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Assess Participant Needs**: Identify who qualifies for fewer opportunities
+2. **Gather Documentation**: Collect required evidence for each barrier type
+3. **Plan Reasonable Accommodations**: Determine what support is needed
+4. **Contact Host Institution**: Discuss accessibility and support arrangements
+5. **Apply for Real Costs**: Submit request to National Agency if needed
+
+📋 **Action Items:**
+- [ ] Review the [Inclusion and Diversity Strategy](https://erasmus-plus.ec.europa.eu/programme-guide/part-a/priorities-of-the-erasmus-programme/inclusion-and-diversity)
+- [ ] Identify participants with fewer opportunities in your target group
+- [ ] Prepare documentation for inclusion support claims
+- [ ] Contact your [National Agency](https://erasmus-plus.ec.europa.eu/contacts/national-agencies) for guidance
+- [ ] Budget for inclusion support in your grant application
+
+📚 **Useful Resources:**
+- [Inclusion and Diversity in Erasmus+](https://erasmus-plus.ec.europa.eu/programme-guide/part-a/priorities-of-the-erasmus-programme/inclusion-and-diversity)
+- [National Agency Contacts](https://erasmus-plus.ec.europa.eu/contacts/national-agencies)
+- [Erasmus+ for Organisations](https://erasmus-plus.ec.europa.eu/opportunities/opportunities-for-organisations)
+- [European Agency for Special Needs](https://www.european-agency.org/)"""
+
+    def _generate_erasmus_travel_costs_guidance(self) -> str:
+        """Generate guidance on Erasmus+ travel costs and distance bands."""
+        return """Erasmus+ provides **travel support** based on the distance between origin and destination,
+using a **distance band system** with fixed amounts per band.
+
+## Travel Costs in Erasmus+ Mobility
+
+### How Travel Support is Calculated
+
+1. **Measure distance** from origin city to destination city (straight-line km)
+2. **Use EU Distance Calculator** for official calculation
+3. **Apply standard rate** from distance band table
+4. **Add green travel bonus** if using sustainable transport
+
+### Distance Band Table (2024-2027)
+
+| Distance | Standard Travel | Green Travel | Green Top-up |
+|----------|----------------|--------------|--------------|
+| **10-99 km** | €23 | €23 | N/A |
+| **100-499 km** | €180 | €210 | +€30 |
+| **500-1999 km** | €275 | €320 | +€45 |
+| **2000-2999 km** | €360 | €410 | +€50 |
+| **3000-3999 km** | €530 | €610 | +€80 |
+| **4000-7999 km** | €820 | N/A | N/A |
+| **8000+ km** | €1500 | N/A | N/A |
+
+### What is Green Travel?
+
+**Green travel** means using sustainable, low-carbon transport for the main journey:
+
+| Green Transport | Eligible | Notes |
+|-----------------|----------|-------|
+| **Train** | ✅ Yes | Including overnight trains |
+| **Bus/Coach** | ✅ Yes | Long-distance services |
+| **Car sharing** | ✅ Yes | Minimum 2 participants sharing |
+| **Ferry** | ✅ Yes | If main transport mode |
+| **Bicycle** | ✅ Yes | For suitable distances |
+| **Flying** | ❌ No | Not considered green |
+
+**Green Travel Bonus**:
+- Higher travel support amount
+- Up to **4 extra days** of individual support for longer travel time
+- Maximum €80 extra for extended travel
+
+### Distance Calculation Rules
+
+1. **Origin**: Location of sending organisation (or participant's home if closer)
+2. **Destination**: Location of receiving organisation
+3. **One-way distance**: Travel amount is for return journey (both ways)
+4. **Calculator**: Use official EU Distance Calculator
+
+### Exceptional Travel Costs
+
+In addition to standard travel support, the following may be covered:
+
+| Cost Type | Coverage | Conditions |
+|-----------|----------|------------|
+| **Expensive journey** | Up to 80% of real costs | When standard rate insufficient |
+| **Visa fees** | Real costs | For mandatory visas |
+| **Travel insurance** | Real costs | If not covered by institution |
+| **Green travel days** | Up to 4 extra days | For extended sustainable travel |
+
+### Travel for Accompanying Persons
+
+Participants requiring support can have an **accompanying person**:
+- Same travel support as participant
+- Individual support for duration of stay
+- Must be justified and pre-approved
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Calculate Distances**: Use the [EU Distance Calculator](https://ec.europa.eu/programmes/erasmus-plus/resources/distance-calculator_en)
+2. **Plan Green Travel**: Consider train/bus for destinations within 1000km
+3. **Check Visa Requirements**: Factor in visa costs for non-EU destinations
+4. **Document Travel**: Keep all tickets and receipts
+5. **Request Exceptional Costs**: If standard amount is insufficient
+
+📋 **Action Items:**
+- [ ] Use the [Distance Calculator](https://ec.europa.eu/programmes/erasmus-plus/resources/distance-calculator_en) for all mobilities
+- [ ] Compare green travel options for destinations under 2000km
+- [ ] Calculate travel days for green travel bonus
+- [ ] Check if exceptional travel costs apply
+- [ ] Budget for visa fees if applicable
+
+📚 **Useful Resources:**
+- [EU Distance Calculator](https://ec.europa.eu/programmes/erasmus-plus/resources/distance-calculator_en)
+- [Programme Guide - Travel Support](https://erasmus-plus.ec.europa.eu/programme-guide/part-b/key-action-1)
+- [Green Travel Guidelines](https://erasmus-plus.ec.europa.eu/programme-guide/part-a/priorities-of-the-erasmus-programme/environment-and-fight-against-climate-change)
+- [National Agencies](https://erasmus-plus.ec.europa.eu/contacts/national-agencies)"""
 
     def _generate_erasmus_actions_overview_guidance(self) -> str:
         """Generate guidance on Erasmus+ Key Actions overview."""

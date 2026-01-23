@@ -1,0 +1,137 @@
+{
+  "scenario_name": "Erasmus+ Budget Calculation",
+  "status": "PASS",
+  "average_quality_score": 83.4,
+  "average_factual_score": 100.0,
+  "turns": [
+    {
+      "query": "How does Erasmus+ fund student mobility activities? What budget components are involved?",
+      "response": "Erasmus+ uses a **unit cost funding model** for mobility activities, which means\ngrants are calculated based on fixed amounts per participant, per day/month, and per travel\ndistance - rather than reimbursing actual costs.\n\n## Erasmus+ Mobility Budget Components\n\nErasmus+ KA1 mobility grants consist of **four main budget categories**:\n\n| Budget Category | Description | Calculation Method |\n|----------------|-------------|-------------------|\n| **Travel Support** | Journey to/from destination | Fi...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 1480.991,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
+      "passed": true
+    },
+    {
+      "query": "What are the individual support rates in Erasmus+ for student exchanges?",
+      "response": "Erasmus+ provides **individual support** to cover living costs during mobility.\nRates vary by **destination country group** and **participant type**.\n\n## Individual Support Rates in Erasmus+\n\n### Country Groups (Based on Cost of Living)\n\n| Group | Countries | Cost Level |\n|-------|-----------|------------|\n| **Group 1** (Highest) | Denmark, Finland, Iceland, Ireland, Liechtenstein, Luxembourg, Norway, Sweden | Highest costs |\n| **Group 2** (Medium) | Austria, Belgium, Cyprus, France, Germany, Gr...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 684.79,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": true
+    },
+    {
+      "query": "What about staff mobility in Erasmus+? How is staff training funded?",
+      "response": "Erasmus+ uses a **unit cost funding model** for mobility activities, which means\ngrants are calculated based on fixed amounts per participant, per day/month, and per travel\ndistance - rather than reimbursing actual costs.\n\n## Erasmus+ Mobility Budget Components\n\nErasmus+ KA1 mobility grants consist of **four main budget categories**:\n\n| Budget Category | Description | Calculation Method |\n|----------------|-------------|-------------------|\n| **Travel Support** | Journey to/from destination | Fi...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 4687.523999999999,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": true
+    },
+    {
+      "query": "What is inclusion support in Erasmus+ mobility projects?",
+      "response": "Erasmus+ is committed to **inclusion and diversity**, providing additional support\nfor participants with **fewer opportunities** to ensure equal access to mobility.\n\n## Inclusion Support in Erasmus+\n\n### Who Qualifies for Inclusion Support?\n\nParticipants with **fewer opportunities** due to:\n\n| Barrier Type | Examples | Evidence Required |\n|-------------|----------|-------------------|\n| **Disability** | Physical, sensory, mental health conditions | Medical certificate |\n| **Health problems** | C...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 4470.889999999999,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": true
+    },
+    {
+      "query": "How are travel costs calculated in Erasmus+ mobility?",
+      "response": "Erasmus+ uses a **unit cost funding model** for mobility activities, which means\ngrants are calculated based on fixed amounts per participant, per day/month, and per travel\ndistance - rather than reimbursing actual costs.\n\n## Erasmus+ Mobility Budget Components\n\nErasmus+ KA1 mobility grants consist of **four main budget categories**:\n\n| Budget Category | Description | Calculation Method |\n|----------------|-------------|-------------------|\n| **Travel Support** | Journey to/from destination | Fi...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 971.09,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 4,
+      "passed": true
+    }
+  ],
+  "scores": {
+    "average_quality": 83.4,
+    "average_factual": 100.0,
+    "goal_progress": 0.54,
+    "context_fields": 3
+  },
+  "failures": [],
+  "metadata": {
+    "scenario_path": "tests/scenarios/advanced/erasmus_budget_calculation.yaml",
+    "tags": [
+      "phase9",
+      "erasmus",
+      "budget",
+      "mobility",
+      "unit_costs",
+      "travel_bands",
+      "lump_sum",
+      "ka1"
+    ],
+    "description": "A VET school or higher education institution wants to understand how to\ncalculate the budget for an Erasmus+ KA1 mobility project. The scenario\ntests understanding of Erasmus+ unit costs, travel distance bands,\nindividual support rates, and inclusion support.\n",
+    "conversation_id": 1225293746
+  },
+  "execution_time_ms": 134442.78900000002,
+  "timestamp": "2026-01-23T13:47:32.825393",
+  "passed": true,
+  "turn_count": 5,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
+}
