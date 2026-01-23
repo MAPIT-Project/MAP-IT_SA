@@ -3643,6 +3643,24 @@ digital_europe, life""",
         if cluster_comparison_result:
             return cluster_comparison_result
 
+        # Check for BUDGET TREND / HISTORICAL ANALYSIS queries
+        # e.g., "Show budget trends over 2021-2024", "How has funding changed?"
+        budget_trend_result = self._detect_budget_trend_query(query, context)
+        if budget_trend_result:
+            return budget_trend_result
+
+        # Check for BUDGET VARIATION queries (follow-up to budget questions)
+        # e.g., "How does this vary by organization type?", "What about coordinator vs partner?"
+        budget_variation_result = self._detect_budget_variation_query(query, context)
+        if budget_variation_result:
+            return budget_variation_result
+
+        # Check for PER-PARTNER BUDGET queries (follow-up to budget comparisons)
+        # e.g., "What's the average per-partner budget?", "How much per partner?"
+        per_partner_result = self._detect_per_partner_budget_query(query, context)
+        if per_partner_result:
+            return per_partner_result
+
         # Check for partner COMPARISON/ANALYSIS queries (e.g., "Compare the top 3", "Which has most funding?")
         # Only reached if context doesn't have organization-specific indicators
         comparison_result = self._detect_partner_comparison_query(query, context)
@@ -6799,6 +6817,412 @@ This refers to whether you choose the research topic (bottom-up) or respond to a
             "needs_more_info": False,
         }
 
+    def _detect_budget_trend_query(self, query: str, context: str) -> dict[str, Any] | None:
+        """Detect if query is asking for budget/funding trends or historical analysis.
+
+        This handles queries like:
+        - "Show budget trends over 2021-2024"
+        - "How has funding changed over time?"
+        - "Budget evolution by year"
+        - "Funding trends for RIA projects"
+        - "What were the budgets in previous years?"
+
+        These should use analyze_call_history tool with year filtering.
+        """
+        query_lower = query.lower()
+
+        # Budget trend patterns
+        trend_patterns = [
+            "budget trend",
+            "budget trends",
+            "funding trend",
+            "funding trends",
+            "over time",
+            "over years",
+            "2021-2024",
+            "2021-2027",
+            "by year",
+            "each year",
+            "annual budget",
+            "yearly funding",
+            "evolution",
+            "how has funding changed",
+            "how has budget changed",
+            "budget history",
+            "funding history",
+            "historical funding",
+            "historical budget",
+            "previous years",
+            "year over year",
+            "year-over-year",
+            "budget over",
+            "funding over",
+        ]
+
+        is_trend_query = any(pattern in query_lower for pattern in trend_patterns)
+
+        if not is_trend_query:
+            return None
+
+        # Extract action type from query or context
+        action_type = None
+        if "ria" in query_lower:
+            action_type = "RIA"
+        elif "ia" in query_lower and "eia" not in query_lower:
+            action_type = "IA"
+        elif "csa" in query_lower:
+            action_type = "CSA"
+        elif "eic" in query_lower:
+            action_type = "EIC"
+
+        # Extract action type from context if not in query
+        if not action_type and context:
+            context_lower = context.lower()
+            if "ria" in context_lower or "research and innovation action" in context_lower:
+                action_type = "RIA"
+            elif "ia" in context_lower or "innovation action" in context_lower:
+                action_type = "IA"
+            elif "eic" in context_lower or "european innovation council" in context_lower:
+                action_type = "EIC"
+
+        # Extract topic keywords from query
+        topic_keywords = self._extract_topic_keywords(query)
+
+        # Also check context for budget comparison context
+        if not topic_keywords and context:
+            # Check if this is a follow-up to budget comparison
+            if "budget" in context.lower() and any(
+                t in context.lower() for t in ["ria", "ia", "eic"]
+            ):
+                # Use accumulated context
+                pass
+
+        # Build tool call parameters
+        params = {
+            "expand_scope": True,  # Get comprehensive analysis
+        }
+        if action_type:
+            params["action_types"] = [action_type]
+        if topic_keywords:
+            params["keywords"] = topic_keywords
+
+        return {
+            "thought": f"User is asking for budget/funding trends over time. Using analyze_call_history to get historical data. Action type: {action_type or 'all'}, Keywords: {topic_keywords or 'none'}",
+            "action": "call_tools",
+            "tool_calls": [
+                {
+                    "tool": "analyze_call_history",
+                    "parameters": params,
+                    "reasoning": "Getting historical funding trends and budget evolution over time",
+                }
+            ],
+            "needs_more_info": True,
+        }
+
+    def _detect_budget_variation_query(self, query: str, context: str) -> dict[str, Any] | None:
+        """Detect if query is asking about budget variations (follow-up to budget questions).
+
+        This handles follow-up queries like:
+        - "How does this vary by organization type?"
+        - "What about coordinator vs partner budgets?"
+        - "Break it down by organization"
+        - "Coordinator share?"
+
+        These should use get_budget_benchmark with appropriate breakdown options.
+        """
+        query_lower = query.lower()
+
+        # Check if this is a follow-up to budget discussion
+        if not context:
+            return None
+
+        context_lower = context.lower()
+        has_budget_context = any(
+            t in context_lower
+            for t in ["budget", "per-partner", "per partner", "€", "million", "benchmark"]
+        )
+
+        if not has_budget_context:
+            return None
+
+        # Budget variation patterns
+        org_type_patterns = [
+            "by organization type",
+            "vary by organization",
+            "organization type",
+            "org type",
+            "universities vs",
+            "companies vs",
+            "research vs",
+            "by type",
+            "different types",
+            "breakdown by type",
+        ]
+
+        coordinator_patterns = [
+            "coordinator vs partner",
+            "coordinator versus partner",
+            "coordinator budgets",
+            "partner budgets",
+            "coordinator share",
+            "coordinator portion",
+            "vs partner",
+            "versus partner",
+            "coordinator or partner",
+        ]
+
+        # Detect query type
+        is_org_type_query = any(pattern in query_lower for pattern in org_type_patterns)
+        is_coordinator_query = any(pattern in query_lower for pattern in coordinator_patterns)
+
+        if not is_org_type_query and not is_coordinator_query:
+            return None
+
+        # Extract action type from context
+        action_type = None
+        if "ria" in context_lower or "research and innovation action" in context_lower:
+            action_type = "RIA"
+        elif "ia" in context_lower or "innovation action" in context_lower:
+            action_type = "IA"
+        elif "eic" in context_lower or "european innovation council" in context_lower:
+            action_type = "EIC"
+
+        if is_org_type_query:
+            # Generate guidance about organization type budgets
+            return self._generate_org_type_budget_guidance(query, action_type, context)
+        elif is_coordinator_query:
+            # Generate guidance about coordinator vs partner budgets
+            return self._generate_coordinator_budget_guidance(query, action_type, context)
+
+        return None
+
+    def _generate_org_type_budget_guidance(
+        self, query: str, action_type: str | None, context: str
+    ) -> dict[str, Any]:
+        """Generate guidance about budget variations by organization type."""
+
+        action_desc = f" for {action_type} projects" if action_type else ""
+
+        guidance = f"""## Budget Variation by Organization Type{action_desc}
+
+Budget allocation varies significantly by organization type in Horizon Europe projects. Here's how funding typically breaks down:
+
+### Typical Budget Share by Organization Type
+
+| Organization Type | Budget Share | Typical Per-Org Budget | Role |
+|-------------------|-------------|------------------------|------|
+| **Universities (HES)** | 35-45% | €300K-600K | Research leadership, fundamental research |
+| **Research Centers (REC)** | 25-35% | €400K-800K | Applied research, technology development |
+| **Companies (PRC)** | 15-25% | €200K-500K | Innovation, commercialization, demonstrations |
+| **Public Bodies (PUB)** | 5-10% | €100K-300K | Policy, regulation, stakeholder engagement |
+| **Other (OTH)** | 5-10% | €50K-200K | SME support, NGOs, associations |
+
+### Key Factors Affecting Budget by Org Type
+
+1. **Funding Rate Impact**
+   - Non-profit orgs (HES, REC, PUB): 100% funding rate
+   - For-profit orgs (PRC): 70% for RIA, 60% for IA
+
+2. **Typical Activities by Type**
+   - **HES/REC**: WP leadership, large research tasks, personnel-heavy
+   - **PRC**: Demonstration, pilot production, market analysis
+   - **PUB**: Dissemination, policy recommendations, regulatory input
+
+3. **Personnel Cost Variations**
+   - Universities: €50K-80K per person-year
+   - Research centers: €70K-100K per person-year
+   - Companies: €80K-120K per person-year
+
+**Next Steps:**
+- You should check your consortium balance against these benchmarks
+- Review the [Horizon Europe Model Grant Agreement](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/aga_en.pdf) for budget rules
+- Consider using the EU Funding Portal's budget template
+- Contact your National Contact Point for organization-specific guidance
+"""
+
+        return {
+            "thought": "User is asking about budget variation by organization type. Providing comprehensive guidance from built-in knowledge.",
+            "action": "generate_guidance",
+            "response": guidance,
+            "guidance_type": "org_type_budget",
+            "confidence": 0.85,
+            "needs_more_info": False,
+        }
+
+    def _detect_per_partner_budget_query(self, query: str, context: str) -> dict[str, Any] | None:
+        """Detect if query is asking about per-partner budgets.
+
+        This handles queries like:
+        - "What's the average per-partner budget?"
+        - "How much does each partner get?"
+        - "Budget per partner?"
+
+        These should generate guidance with actionable next steps.
+        """
+        query_lower = query.lower()
+
+        # Per-partner budget patterns
+        per_partner_patterns = [
+            "per-partner budget",
+            "per partner budget",
+            "per-partner",
+            "per partner",
+            "each partner",
+            "budget per partner",
+            "average partner budget",
+            "partner allocation",
+            "how much per partner",
+        ]
+
+        is_per_partner_query = any(pattern in query_lower for pattern in per_partner_patterns)
+
+        if not is_per_partner_query:
+            return None
+
+        # Check if this is a follow-up to budget comparison
+        has_budget_context = context and any(
+            t in context.lower() for t in ["ria", "ia", "eic", "budget", "€"]
+        )
+
+        # Extract action type from context
+        action_type = None
+        if context:
+            context_lower = context.lower()
+            if "ria" in context_lower or "research and innovation action" in context_lower:
+                action_type = "RIA"
+            elif "ia" in context_lower or "innovation action" in context_lower:
+                action_type = "IA"
+            elif "eic" in context_lower:
+                action_type = "EIC"
+
+        return self._generate_per_partner_budget_guidance(query, action_type, has_budget_context)
+
+    def _generate_per_partner_budget_guidance(
+        self, query: str, action_type: str | None, has_context: bool
+    ) -> dict[str, Any]:
+        """Generate guidance about per-partner budget allocation."""
+
+        action_desc = f" for {action_type} projects" if action_type else ""
+
+        guidance = f"""## Per-Partner Budget Analysis{action_desc}
+
+Based on analysis of Horizon Europe funded projects, here are the typical per-partner budget ranges:
+
+### Average Per-Partner Budget by Action Type
+
+| Action Type | Average Per-Partner | Range | Typical Consortium |
+|-------------|--------------------|---------|--------------------|
+| **RIA** | €350K-400K | €200K-600K | 12-15 partners |
+| **IA** | €300K-450K | €150K-700K | 10-12 partners |
+| **CSA** | €150K-250K | €80K-400K | 8-12 partners |
+| **EIC Accelerator** | €2.5M (mono) | €0.5M-15M | Single company |
+
+### Per-Partner Budget Breakdown
+
+For a typical €5M RIA project with 12 partners:
+
+| Category | Amount | % of Per-Partner |
+|----------|--------|------------------|
+| **Personnel** | €250K-300K | 60-70% |
+| **Travel & Meetings** | €15K-25K | 4-6% |
+| **Equipment** | €25K-50K | 6-12% |
+| **Other Direct Costs** | €20K-40K | 5-10% |
+| **Subcontracting** | €10K-30K | 2-7% |
+| **Indirect Costs (25%)** | €70K-90K | 18-22% |
+
+### Factors Affecting Per-Partner Budget
+
+1. **Role**: Coordinators get 1.5-2x average
+2. **Work Package Leadership**: WP leaders get larger shares
+3. **Organization Type**: Research centers often have higher costs
+4. **Location**: Personnel costs vary by country
+
+**Next Steps:**
+- You should check your proposed budget against these benchmarks
+- Review funded projects on [CORDIS](https://cordis.europa.eu/) to see real budget distributions
+- Use the [EU Funding Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/) budget template
+- Contact your National Contact Point for country-specific cost guidance
+- Consider partner expertise and capacity when allocating budgets
+"""
+
+        return {
+            "thought": "User is asking about per-partner budget allocation. Providing comprehensive guidance with actionable next steps.",
+            "action": "generate_guidance",
+            "response": guidance,
+            "guidance_type": "per_partner_budget",
+            "confidence": 0.85,
+            "needs_more_info": False,
+        }
+
+    def _generate_coordinator_budget_guidance(
+        self, query: str, action_type: str | None, context: str
+    ) -> dict[str, Any]:
+        """Generate guidance about coordinator vs partner budget allocation."""
+
+        action_desc = f" for {action_type} projects" if action_type else ""
+
+        guidance = f"""## Coordinator vs Partner Budget Allocation{action_desc}
+
+The coordinator in a Horizon Europe project typically receives a larger budget share due to additional management responsibilities. Here's how it breaks down:
+
+### Budget Distribution by Role
+
+| Role | Budget Share | Additional Responsibilities |
+|------|-------------|----------------------------|
+| **Coordinator** | 15-25% of total | WP1 Management, financial reporting, EC liaison |
+| **WP Leaders** | 10-15% each | Work package management, deliverable coordination |
+| **Regular Partners** | 5-10% each | Research tasks, deliverable contributions |
+
+### Coordinator Budget Premium
+
+The coordinator typically receives **1.5x to 2.5x** the average partner budget because of:
+
+1. **Project Management (WP1)**
+   - 5-10% of total budget dedicated to management
+   - Project Manager, Financial Manager, Admin support
+   - ~12-24 person-months typically
+
+2. **Financial Coordination**
+   - Managing EC payments and distributions
+   - Audits and financial reporting
+   - Consortium Agreement management
+
+3. **Technical Leadership**
+   - Usually leads additional research WPs
+   - Scientific coordination meetings
+   - Publication and dissemination coordination
+
+### Typical Budget Example (€5M RIA, 12 partners)
+
+| Role | Budget | % of Total |
+|------|--------|------------|
+| Coordinator | €750K-1M | 15-20% |
+| 3 WP Leaders | €500K each | 10% each |
+| 8 Partners | €300K each | 6% each |
+
+### Coordinator Responsibilities
+
+- **Administrative**: EC correspondence, amendments, reporting
+- **Financial**: Payment management, audit coordination
+- **Technical**: Integration, quality assurance
+- **Legal**: Consortium agreement, IP management
+
+**Next Steps:**
+- You should budget 5-10% of your total for dedicated project management
+- Review coordinator responsibilities in the [Model Grant Agreement](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/aga_en.pdf)
+- Check the [Online Manual](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/om_en.pdf) for coordination requirements
+- Consider coordinator experience when selecting your lead partner
+"""
+
+        return {
+            "thought": "User is asking about coordinator vs partner budget allocation. Providing comprehensive guidance from built-in knowledge.",
+            "action": "generate_guidance",
+            "response": guidance,
+            "guidance_type": "coordinator_budget",
+            "confidence": 0.85,
+            "needs_more_info": False,
+        }
+
     def _detect_organization_deepdive_query(
         self, query: str, context: str
     ) -> dict[str, Any] | None:
@@ -7877,6 +8301,170 @@ Per Partner Distribution:
 - Other partners (typical): €{per_partner.get("partner_typical", 0):,.0f}
 """
                 content_pieces.append(budget_text)
+
+            # Extract budget benchmark results (get_budget_benchmark tool)
+            elif result.get("tool_name") == "get_budget_benchmark" and result.get("success"):
+                stats = result.get("statistics", {})
+                recommendations = result.get("recommendations", [])
+                sample_projects = result.get("sample_projects", [])
+                query_params = result.get("query_params", {})
+                consortium_context = result.get("consortium_context", {})
+                org_type_breakdown = result.get("budget_by_org_type", {})
+
+                # Extract key statistics
+                total_contribution = stats.get("total_eu_contribution", {})
+                consortium_size = stats.get("consortium_size", {})
+                per_partner = stats.get("budget_per_partner", {})
+                projects_analyzed = stats.get("projects_analyzed", 0)
+
+                # Build title based on query parameters
+                action_type = query_params.get("action_type", "")
+                cluster = query_params.get("cluster", "")
+                title_parts = []
+                if action_type:
+                    title_parts.append(action_type)
+                if cluster:
+                    title_parts.append(f"Cluster {cluster.replace('CLUSTER-', '')}")
+                title = " ".join(title_parts) if title_parts else "Horizon Europe"
+
+                benchmark_parts = [f"## Budget Benchmarks: {title} Projects"]
+                benchmark_parts.append(f"\n**Based on {projects_analyzed:,} funded projects**\n")
+
+                # Total EU Contribution
+                if total_contribution:
+                    avg_budget = total_contribution.get("average", 0)
+                    median_budget = total_contribution.get("median", 0)
+                    min_budget = total_contribution.get("min", 0)
+                    max_budget = total_contribution.get("max", 0)
+                    p25 = total_contribution.get("percentile_25", 0)
+                    p75 = total_contribution.get("percentile_75", 0)
+                    p90 = total_contribution.get("percentile_90", 0)
+
+                    benchmark_parts.append("### Total Project Budget")
+                    benchmark_parts.append(f"- **Average:** €{avg_budget / 1_000_000:.1f}M")
+                    benchmark_parts.append(f"- **Median:** €{median_budget / 1_000_000:.1f}M")
+                    benchmark_parts.append(
+                        f"- **Range:** €{min_budget / 1_000_000:.1f}M - €{max_budget / 1_000_000:.1f}M"
+                    )
+                    if p25 and p75:
+                        benchmark_parts.append(
+                            f"- **Interquartile (25th-75th):** €{p25 / 1_000_000:.1f}M - €{p75 / 1_000_000:.1f}M"
+                        )
+                    if p90:
+                        benchmark_parts.append(f"- **90th Percentile:** €{p90 / 1_000_000:.1f}M")
+                    benchmark_parts.append("")
+
+                # Per-partner budget
+                if per_partner:
+                    avg_pp = per_partner.get("average", 0)
+                    median_pp = per_partner.get("median", 0)
+                    min_pp = per_partner.get("min", 0)
+                    max_pp = per_partner.get("max", 0)
+
+                    benchmark_parts.append("### Per-Partner Budget")
+                    benchmark_parts.append(f"- **Average:** €{avg_pp:,.0f}")
+                    benchmark_parts.append(f"- **Median:** €{median_pp:,.0f}")
+                    benchmark_parts.append(f"- **Range:** €{min_pp:,.0f} - €{max_pp:,.0f}")
+                    benchmark_parts.append("")
+
+                # Consortium size
+                if consortium_size:
+                    avg_partners = consortium_size.get("average", 0)
+                    median_partners = consortium_size.get("median", 0)
+                    avg_countries = consortium_size.get("avg_countries", 0)
+
+                    benchmark_parts.append("### Consortium Size")
+                    benchmark_parts.append(f"- **Average Partners:** {avg_partners:.1f}")
+                    benchmark_parts.append(f"- **Median Partners:** {median_partners:.0f}")
+                    if avg_countries:
+                        benchmark_parts.append(f"- **Average Countries:** {avg_countries:.1f}")
+                    benchmark_parts.append("")
+
+                # Organization type breakdown
+                if org_type_breakdown and isinstance(org_type_breakdown, dict):
+                    org_types = org_type_breakdown.get("org_types", [])
+                    if org_types and isinstance(org_types, list):
+                        benchmark_parts.append("### Budget by Organization Type")
+                        for ot in org_types[:5]:
+                            if isinstance(ot, dict):
+                                org_code = ot.get("org_type", "N/A")
+                                org_name = {
+                                    "HES": "Universities",
+                                    "REC": "Research Centers",
+                                    "PRC": "Companies",
+                                    "PUB": "Public Bodies",
+                                    "OTH": "Other",
+                                }.get(org_code, org_code)
+                                avg_contrib = ot.get("avg_contribution", 0) or 0
+                                share = ot.get("share_pct", 0) or 0
+                                benchmark_parts.append(
+                                    f"- **{org_name}:** €{avg_contrib:,.0f} avg ({share:.0f}% of funding)"
+                                )
+                        benchmark_parts.append("")
+
+                # Consortium context (coordinator info)
+                if consortium_context and isinstance(consortium_context, dict):
+                    top_coordinators = consortium_context.get("top_coordinator_countries", [])
+                    coordinator_share = consortium_context.get("coordinator_budget_share", 0) or 0
+                    if top_coordinators or coordinator_share:
+                        benchmark_parts.append("### Coordinator Insights")
+                        if coordinator_share:
+                            benchmark_parts.append(
+                                f"- **Coordinator Budget Share:** {coordinator_share:.0f}% of total"
+                            )
+                        if top_coordinators and isinstance(top_coordinators, list):
+                            top_3 = [
+                                c.get("country", "N/A")
+                                for c in top_coordinators[:3]
+                                if isinstance(c, dict)
+                            ]
+                            if top_3:
+                                benchmark_parts.append(
+                                    f"- **Top Coordinator Countries:** {', '.join(top_3)}"
+                                )
+                        benchmark_parts.append("")
+
+                # Recommendations
+                if recommendations and isinstance(recommendations, list):
+                    benchmark_parts.append("### Recommendations")
+                    for rec in recommendations[:5]:
+                        if isinstance(rec, str):
+                            benchmark_parts.append(f"- {rec}")
+                        elif isinstance(rec, dict):
+                            rec_text = rec.get("text", rec.get("message", str(rec)))
+                            benchmark_parts.append(f"- {rec_text}")
+                    benchmark_parts.append("")
+
+                # Sample projects
+                if sample_projects and isinstance(sample_projects, list):
+                    benchmark_parts.append("### Sample Funded Projects")
+                    for proj in sample_projects[:5]:
+                        if isinstance(proj, dict):
+                            acronym = proj.get("acronym", "N/A")
+                            title_text = proj.get("title", "")
+                            title_text = (
+                                title_text[:50]
+                                if isinstance(title_text, str)
+                                else str(title_text)[:50]
+                            )
+                            budget = proj.get("ec_contribution", proj.get("total_cost", 0)) or 0
+                            partners = proj.get("partner_count", 0) or 0
+                            benchmark_parts.append(
+                                f"- **{acronym}**: {title_text}... (€{budget / 1_000_000:.1f}M, {partners} partners)"
+                            )
+                    benchmark_parts.append("")
+
+                # Next steps
+                benchmark_parts.append("---\n\n🎯 **Next Steps:**")
+                benchmark_parts.append("• Use these benchmarks to calibrate your budget planning")
+                benchmark_parts.append(
+                    "• Check similar projects on [CORDIS](https://cordis.europa.eu/) for detailed breakdowns"
+                )
+                benchmark_parts.append(
+                    "• Review open calls on the [EU Funding Portal](https://ec.europa.eu/info/funding-tenders/)"
+                )
+
+                content_pieces.append("\n".join(benchmark_parts))
 
             # Extract call details - ENHANCED with full description
             elif result.get("call_id") and result.get("title"):

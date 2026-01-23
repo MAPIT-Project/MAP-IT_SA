@@ -379,12 +379,13 @@ Run with: `./ralphy.sh --prd docs/prd/MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD_V3
   4. **Attempt 1 Result**: Score improved from 79.7 to 81.7 (1 attempt). Fixed: (1) Added `_detect_cluster_comparison_query()` method to detect cluster-vs-cluster comparison queries (e.g., "How does Cluster 5 compare to Cluster 1?"), (2) Added `_generate_cluster_comparison_guidance()` with comprehensive built-in knowledge about all 6 Horizon Europe clusters (budget, success rate, competition level, typical projects), (3) Added comparison result handler in `_synthesize_from_results()` for formatting compare_programmes tool output, (4) Updated Next Steps sections with actionable language (should, can, visit, contact). Turn 2 cluster comparison now scores 83/100. Status: PASS
 
 ### Scenario 023: Budget Comparison
-- [ ] EXECUTE: Run scenario `tests/scenarios/advanced/comparisons/budget_comparison.yaml` against the live API. Save result to `tests/quality/results/scenarios/budget_comparison.json`.
+- [x] EXECUTE: Run scenario `tests/scenarios/advanced/comparisons/budget_comparison.yaml` against the live API. Save result to `tests/quality/results/scenarios/budget_comparison.json`.
 
-- [ ] FIX IF NEEDED: Read `tests/quality/results/scenarios/budget_comparison.json`. If average_score < 80:
+- [x] FIX IF NEEDED: Read `tests/quality/results/scenarios/budget_comparison.json`. If average_score < 80:
   1. ONLY modify files in `app/` directory
   2. Fix budget comparison in budget tools
   3. Re-run EXECUTE, repeat until score >= 80 or 3 attempts
+  4. **Attempt 1 Result**: Score improved from 78.6 to 80.2 (1 attempt). Fixed: (1) Added `_synthesize_from_results` handler for `get_budget_benchmark` tool results with proper type checking, (2) Added `_detect_budget_trend_query()` for routing budget trend queries to `analyze_call_history`, (3) Added `_detect_budget_variation_query()` for org type and coordinator budget follow-ups, (4) Added `_generate_org_type_budget_guidance()` for comprehensive org type budget guidance, (5) Added `_generate_coordinator_budget_guidance()` for coordinator vs partner guidance, (6) Added `_detect_per_partner_budget_query()` and `_generate_per_partner_budget_guidance()` with actionable Next Steps. All 5 turns now provide budget benchmarks with proper formatting and actionable guidance. Status: PASS
 
 ### Scenario 024: Timeline Comparison
 - [ ] EXECUTE: Run scenario `tests/scenarios/advanced/comparisons/timeline_comparison.yaml` against the live API. Save result to `tests/quality/results/scenarios/timeline_comparison.json`.
