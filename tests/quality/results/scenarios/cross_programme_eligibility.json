@@ -1,0 +1,135 @@
+{
+  "scenario_name": "Cross-Programme Eligibility",
+  "status": "PASS",
+  "average_quality_score": 82.6,
+  "average_factual_score": 100.0,
+  "turns": [
+    {
+      "query": "Can we have the same project funded by both Horizon Europe and Erasmus+?",
+      "response": "## Double Funding Rules: Same Project in Multiple EU Programmes\n\n**Short answer:** No, the same project activities and costs **cannot** be funded by both Horizon Europe and Erasmus+ (or any other EU programme). This is called the **non-cumulative funding principle**.\n\n### The Core Rule\n\nEU funding follows a strict principle: **the same costs can only be declared once** to EU funding sources. This means:\n\n| Scenario | Allowed? | Explanation |\n|----------|----------|-------------|\n| Same activitie...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 5092.001,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
+      "passed": true
+    },
+    {
+      "query": "What about different components of the same initiative? Can research be funded by Horizon Europe and training by Erasmus+?",
+      "response": "## Complementary Funding: Different Components, Different Programmes\n\n**Yes, you can!** Having different components of the same large-scale initiative funded by different EU programmes is a legitimate and common strategic approach - provided the principle of **non-cumulative funding** is strictly followed.\n\n### The Principle of Clear Delineation\n\nTo combine funding from Horizon Europe and Erasmus+ (or other programmes), you must ensure:\n\n| Requirement | Description | Example |\n|-------------|---...",
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 5269.995,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": true
+    },
+    {
+      "query": "Are there specific rules against double funding in EU programmes? What exactly is prohibited?",
+      "response": "## EU Double Funding Rules: What Is Explicitly Prohibited\n\nYes, there are specific and strict rules against double funding in EU programmes. These are governed by the **EU Financial Regulation** and reinforced in each programme's rules.\n\n### The Legal Framework\n\n**Article 191 of the EU Financial Regulation** states that:\n> \"Union grants shall not have the purpose or effect of producing a profit... The same costs shall not be financed twice by the Union budget.\"\n\n### What Is Specifically Prohibit...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 2104.6059999999998,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": true
+    },
+    {
+      "query": "Can we apply to both Horizon Europe and Erasmus+ at the same time for related but distinct projects?",
+      "response": "## Double Funding Rules: Same Project in Multiple EU Programmes\n\n**Short answer:** No, the same project activities and costs **cannot** be funded by both Horizon Europe and Erasmus+ (or any other EU programme). This is called the **non-cumulative funding principle**.\n\n### The Core Rule\n\nEU funding follows a strict principle: **the same costs can only be declared once** to EU funding sources. This means:\n\n| Scenario | Allowed? | Explanation |\n|----------|----------|-------------|\n| Same activitie...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 4749.659000000001,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": true
+    },
+    {
+      "query": "What's the best strategy for maximizing our chances across both programmes?",
+      "response": "## Strategic Approach to Multi-Programme EU Funding\n\nThis is an excellent strategy - maximizing your funding scope by targeting multiple EU programmes for different aspects of your work. Here's how to optimize your approach.\n\n### 1. Strategic Programme Selection\n\nChoose programmes based on **activity type**, not funding amount:\n\n| Your Activity Type | Best Programme | Typical Funding | Success Rate |\n|-------------------|----------------|-----------------|--------------|\n| **Basic Research** | H...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 1260.172,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 4,
+      "passed": true
+    }
+  ],
+  "scores": {
+    "average_quality": 82.6,
+    "average_factual": 100.0,
+    "goal_progress": 0.6,
+    "context_fields": 3
+  },
+  "failures": [],
+  "metadata": {
+    "scenario_path": "tests/scenarios/advanced/cross_programme_eligibility.yaml",
+    "tags": [
+      "phase8",
+      "eligibility",
+      "cross_programme",
+      "double_funding",
+      "horizon_europe",
+      "erasmus"
+    ],
+    "description": "A research organization wants to understand rules about participating in\nmultiple EU funding programmes. They want to know about double funding\nrules, complementary funding strategies, and simultaneous applications.\n",
+    "conversation_id": 1727422474
+  },
+  "execution_time_ms": 249079.61000000002,
+  "timestamp": "2026-01-23T13:14:23.799186",
+  "passed": true,
+  "turn_count": 5,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
+}

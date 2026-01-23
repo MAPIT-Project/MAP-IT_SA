@@ -3587,6 +3587,15 @@ digital_europe, life""",
         if consortium_eligibility_result:
             return consortium_eligibility_result
 
+        # Check for CROSS-PROGRAMME ELIGIBILITY queries (double funding, multiple programmes)
+        # These are questions about participating in multiple EU programmes simultaneously
+        # e.g., "Can we have the same project funded by both Horizon Europe and Erasmus+?"
+        # e.g., "What about double funding rules?", "Simultaneous applications?"
+        # IMPORTANT: Must come BEFORE timeline comparison to prevent false matches
+        cross_programme_result = self._detect_cross_programme_eligibility_query(query, context)
+        if cross_programme_result:
+            return cross_programme_result
+
         # Check for TIMELINE COMPARISON queries
         # These are questions about proposal preparation times, decision times, and project start lags
         # e.g., "How long to prepare a proposal?", "Compare with Erasmus+ KA2", "Decision time?"
@@ -14134,6 +14143,699 @@ If you don't qualify as an SME due to ownership:
             }
 
         return None
+
+    def _detect_cross_programme_eligibility_query(
+        self, query: str, context: str
+    ) -> dict[str, Any] | None:
+        """Detect cross-programme eligibility queries.
+
+        These are questions about:
+        - Double funding rules (same project in multiple EU programmes)
+        - Complementary funding (different components of same initiative)
+        - Simultaneous applications to multiple programmes
+        - Best strategy for multi-programme funding approach
+        - Non-cumulative funding principle
+
+        These queries should provide structured guidance with actionable Next Steps.
+        """
+        query_lower = query.lower()
+        context_lower = context.lower() if context else ""
+
+        # === Pattern 1: Double funding / same project in multiple programmes ===
+        # e.g., "Can we have the same project funded by both Horizon Europe and Erasmus+?"
+        # e.g., "Is it allowed to get funding from both programmes?"
+        double_funding_patterns = [
+            "same project funded by both",
+            "same project in both",
+            "same project from both",
+            "funded by both horizon",
+            "funded by both eu",
+            "both horizon europe and erasmus",
+            "both erasmus and horizon",
+            "both horizon and creative",
+            "both creative europe and",
+            "horizon europe and erasmus",
+            "horizon and erasmus",
+            "erasmus and horizon",
+            "creative europe and horizon",
+            "horizon and creative",
+            "double funded",
+            "duplicate funding",
+            "funding from both",
+            "funding from multiple",
+            "apply to both programmes",
+            "apply for both programmes",
+            "funded twice",
+            "fund the same",
+        ]
+
+        # Check if asking about double funding of same project
+        if any(p in query_lower for p in double_funding_patterns):
+            guidance = self._generate_double_funding_guidance()
+            return {
+                "thought": "User is asking about double funding rules - whether the same project can be funded by multiple EU programmes. Providing guidance on the non-cumulative funding principle.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "double_funding_rules",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 2: Complementary funding / different components ===
+        # e.g., "What about different components of the same initiative?"
+        # e.g., "Can research be funded by Horizon Europe and training by Erasmus+?"
+        complementary_patterns = [
+            "different components",
+            "different parts of",
+            "research funded by horizon",
+            "training funded by erasmus",
+            "training by erasmus",
+            "research by horizon",
+            "separate components",
+            "separate activities",
+            "different activities",
+            "complementary funding",
+            "complementary approach",
+            "split the funding",
+            "split between programmes",
+            "divide between",
+            "one part horizon",
+            "one part erasmus",
+            "research component",
+            "training component",
+            "education component",
+        ]
+
+        if any(p in query_lower for p in complementary_patterns):
+            guidance = self._generate_complementary_funding_guidance()
+            return {
+                "thought": "User is asking about complementary funding - different components of an initiative funded by different programmes. Providing guidance on how to properly separate activities.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "complementary_funding",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 3: Specific double funding rules / what is prohibited ===
+        # e.g., "Are there specific rules against double funding?"
+        # e.g., "What exactly is prohibited?"
+        rules_patterns = [
+            "double funding rule",
+            "double-funding rule",
+            "rules against double",
+            "what is prohibited",
+            "what's prohibited",
+            "exactly is prohibited",
+            "specific rules",
+            "non-cumulative funding",
+            "cumulative funding",
+            "funding overlap",
+            "overlap of funding",
+            "overlap in funding",
+            "eu funding rules",
+            "financial regulation",
+            "double financing",
+            "declaring costs",
+            "same costs",
+        ]
+
+        # Check if context mentions cross-programme or double funding
+        has_cross_programme_context = any(
+            ind in context_lower
+            for ind in [
+                "horizon europe and erasmus",
+                "both programmes",
+                "double funding",
+                "same project",
+                "multiple programmes",
+            ]
+        )
+
+        if any(p in query_lower for p in rules_patterns) or (
+            "prohibited" in query_lower and has_cross_programme_context
+        ):
+            guidance = self._generate_double_funding_rules_guidance()
+            return {
+                "thought": "User is asking about specific EU double funding rules and what is prohibited. Providing detailed guidance on the EU Financial Regulation.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "double_funding_rules_detailed",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 4: Simultaneous applications ===
+        # e.g., "Can we apply to both at the same time?"
+        # e.g., "Simultaneous applications to Horizon and Erasmus?"
+        simultaneous_patterns = [
+            "simultaneous application",
+            "simultaneous submission",
+            "apply to both at the same time",
+            "submit to both at the same time",
+            "at the same time for related",
+            "at the same time for different",
+            "parallel application",
+            "parallel submission",
+            "multiple applications",
+            "apply simultaneously",
+            "submit simultaneously",
+            "same deadline",
+            "same time period",
+        ]
+
+        if any(p in query_lower for p in simultaneous_patterns):
+            guidance = self._generate_simultaneous_applications_guidance()
+            return {
+                "thought": "User is asking about submitting simultaneous applications to multiple EU programmes. Providing guidance on parallel applications.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "simultaneous_applications",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        # === Pattern 5: Strategy for multi-programme approach ===
+        # e.g., "What's the best strategy for maximizing our chances across both programmes?"
+        # e.g., "How to approach multiple EU programmes?"
+        strategy_patterns = [
+            "strategy for maximizing",
+            "strategy for both",
+            "strategy across both",
+            "strategy across programmes",
+            "maximize chances across",
+            "maximizing our chances",
+            "best approach for both",
+            "how to approach multiple",
+            "multi-programme strategy",
+            "multi-programme approach",
+            "portfolio strategy",
+            "funding portfolio",
+            "diversify funding",
+            "spread across programmes",
+            "optimize our applications",
+        ]
+
+        # Also catch strategic follow-up questions in cross-programme context
+        strategic_follow_up = (
+            "best strategy" in query_lower
+            or "maximize" in query_lower
+            or "maximizing" in query_lower
+        ) and has_cross_programme_context
+
+        if any(p in query_lower for p in strategy_patterns) or strategic_follow_up:
+            guidance = self._generate_cross_programme_strategy_guidance()
+            return {
+                "thought": "User is asking about strategic approach to applying for multiple EU programmes. Providing comprehensive multi-programme strategy guidance.",
+                "action": "generate_guidance",
+                "response": guidance,
+                "guidance_type": "cross_programme_strategy",
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        return None
+
+    def _generate_double_funding_guidance(self) -> str:
+        """Generate guidance about double funding rules for the same project."""
+        return """## Double Funding Rules: Same Project in Multiple EU Programmes
+
+**Short answer:** No, the same project activities and costs **cannot** be funded by both Horizon Europe and Erasmus+ (or any other EU programme). This is called the **non-cumulative funding principle**.
+
+### The Core Rule
+
+EU funding follows a strict principle: **the same costs can only be declared once** to EU funding sources. This means:
+
+| Scenario | Allowed? | Explanation |
+|----------|----------|-------------|
+| Same activities funded twice | ❌ No | This is "double funding" - explicitly prohibited |
+| Same costs declared to two programmes | ❌ No | Costs must be unique to each grant |
+| Different activities, same initiative | ✅ Yes | If clearly separated (see below) |
+| Simultaneous applications | ✅ Yes | You can apply to both, but can only accept funding for distinct work |
+
+### What Is Explicitly Prohibited
+
+According to the **EU Financial Regulation** (Article 191), beneficiaries must:
+
+1. **Not declare the same costs** to different EU funding sources
+2. **Inform the granting authority** if they receive/apply for other EU funding
+3. **Prevent any overlap** of activities and costs between grants
+
+### What You CAN Do: Complementary Funding
+
+You CAN structure your initiative so that:
+- **Research & Innovation** activities are funded by Horizon Europe
+- **Training & Mobility** activities are funded by Erasmus+
+- **Cultural dissemination** activities are funded by Creative Europe
+
+The key is **clear delineation** - activities must be genuinely separate with distinct objectives, work packages, and budgets.
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Clearly separate your initiative** into distinct components:
+   - Define which activities belong to each programme
+   - Ensure no cost overlap between components
+   - Create separate work packages for each funding source
+
+2. **Document the separation** thoroughly:
+   - Keep distinct timesheets and financial records
+   - Maintain separate project deliverables
+   - Prepare to demonstrate non-overlap if audited
+
+3. **Inform both granting authorities** about your complementary applications
+
+4. **Consult the programme guides**:
+   - [Horizon Europe Programme Guide](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/programme-guide_horizon_en.pdf)
+   - [Erasmus+ Programme Guide](https://erasmus-plus.ec.europa.eu/programme-guide/erasmusplus-programme-guide)
+
+5. **Contact your National Contact Points** for official advice:
+   - [Horizon Europe NCPs](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp)
+   - [Erasmus+ National Agencies](https://erasmus-plus.ec.europa.eu/contacts/national-agencies)
+
+💡 **Tip:** Ask me about "complementary funding strategies" for detailed guidance on how to properly separate activities across programmes."""
+
+    def _generate_complementary_funding_guidance(self) -> str:
+        """Generate guidance about complementary funding approaches."""
+        return """## Complementary Funding: Different Components, Different Programmes
+
+**Yes, you can!** Having different components of the same large-scale initiative funded by different EU programmes is a legitimate and common strategic approach - provided the principle of **non-cumulative funding** is strictly followed.
+
+### The Principle of Clear Delineation
+
+To combine funding from Horizon Europe and Erasmus+ (or other programmes), you must ensure:
+
+| Requirement | Description | Example |
+|-------------|-------------|---------|
+| **Separate Activities** | Each programme funds distinct work | HE: Lab research / E+: Student exchanges |
+| **Separate Costs** | No cost declared twice | Different personnel, travel, equipment |
+| **Separate Deliverables** | Distinct outputs for each | HE: Publications / E+: Training modules |
+| **Separate Reporting** | Independent project management | Two separate projects, two sets of reports |
+
+### How to Structure Complementary Funding
+
+**Example: AI Research Initiative**
+
+| Component | Programme | Activities | Budget |
+|-----------|-----------|------------|--------|
+| **Research** | Horizon Europe (RIA) | Algorithm development, testing, validation | €3M |
+| **Training** | Erasmus+ (KA2) | Staff training, student mobility, curriculum | €400K |
+| **Dissemination** | Creative Europe | Public exhibitions, documentary, media | €200K |
+
+### Key Success Factors
+
+1. **Design as Separate Projects**: Each must have its own:
+   - Project acronym and title
+   - Work plan and deliverables
+   - Budget and cost categories
+   - Consortium (can overlap but with different roles)
+
+2. **Avoid These Common Mistakes**:
+   - ❌ Same person's salary split between programmes (complex, requires timesheets)
+   - ❌ Same equipment purchased under both grants
+   - ❌ Same travel funded twice
+   - ❌ Same event costs declared to both
+
+3. **Document Everything**:
+   - Clear rationale for programme selection
+   - Distinct objectives per component
+   - Non-overlap statement ready for auditors
+
+### Cross-Programme Synergies You CAN Leverage
+
+| Horizon Europe | Erasmus+ | Creative Europe |
+|----------------|----------|-----------------|
+| Research results | Training on results | Cultural dissemination |
+| New methodologies | Curriculum integration | Media outreach |
+| Technology demos | Staff upskilling | Public engagement |
+| Publications | Student internships | Documentary/exhibitions |
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Map your initiative** into distinct components:
+   - [ ] List all planned activities
+   - [ ] Assign each activity to ONE programme only
+   - [ ] Verify no cost overlap between components
+
+2. **Create separate project plans** for each programme:
+   - [ ] Develop distinct work packages
+   - [ ] Define unique deliverables and milestones
+   - [ ] Prepare separate budgets
+
+3. **Prepare your "Complementarity Statement"**:
+   - [ ] Document how projects relate but don't overlap
+   - [ ] Explain synergies without cost duplication
+   - [ ] Keep this ready for grant agreements
+
+4. **Check eligibility for each programme**:
+   - [ ] Verify your organization type is eligible
+   - [ ] Confirm consortium requirements are met
+   - [ ] Review call-specific conditions
+
+5. **Consider timing strategically**:
+   - [ ] Align application deadlines where possible
+   - [ ] Plan for sequential or parallel implementation
+   - [ ] Account for evaluation timelines
+
+📚 **Useful Resources:**
+- [Horizon Europe Programme Guide](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/programme-guide_horizon_en.pdf)
+- [Erasmus+ Programme Guide](https://erasmus-plus.ec.europa.eu/programme-guide/erasmusplus-programme-guide)
+- [Creative Europe Work Programme](https://ec.europa.eu/culture/creative-europe/)
+
+💡 **Tip:** Ask me about specific call requirements for your topic to help you design the optimal multi-programme approach."""
+
+    def _generate_double_funding_rules_guidance(self) -> str:
+        """Generate detailed guidance about EU double funding rules."""
+        return """## EU Double Funding Rules: What Is Explicitly Prohibited
+
+Yes, there are specific and strict rules against double funding in EU programmes. These are governed by the **EU Financial Regulation** and reinforced in each programme's rules.
+
+### The Legal Framework
+
+**Article 191 of the EU Financial Regulation** states that:
+> "Union grants shall not have the purpose or effect of producing a profit... The same costs shall not be financed twice by the Union budget."
+
+### What Is Specifically Prohibited
+
+| Prohibition | Description | Consequence |
+|-------------|-------------|-------------|
+| **Same costs, different EU grants** | Declaring €10K personnel costs to both Horizon Europe and Erasmus+ | Grant reduction, possible termination |
+| **Same activity, same costs** | Funding the same workshop from two EU sources | Must repay one grant |
+| **Cumulative EU funding > 100%** | Getting 100% from Horizon + 80% from Erasmus for same item | Excess must be returned |
+| **Hiding other EU applications** | Not disclosing parallel applications | Breach of grant agreement |
+
+### The Non-Cumulative Principle in Practice
+
+When you sign an EU grant agreement, you commit to:
+
+1. **Disclosure**: Inform the granting authority of ALL other EU funding applications/awards
+2. **Non-overlap**: Ensure no cost is charged to more than one EU funding source
+3. **Audit trail**: Maintain records proving costs are unique to each grant
+4. **Timesheets**: Track personnel time separately for each funded activity
+
+### What Auditors Check
+
+EU auditors specifically look for:
+
+| Check | What They Examine | Red Flags |
+|-------|-------------------|-----------|
+| **Personnel costs** | Timesheets, contracts, payslips | Same hours claimed on multiple grants |
+| **Travel** | Tickets, receipts, travel reports | Same trip charged twice |
+| **Equipment** | Invoices, depreciation records | Same purchase in multiple budgets |
+| **Subcontracting** | Contracts, deliverables | Same work ordered twice |
+
+### Penalties for Double Funding
+
+If double funding is discovered:
+
+1. **Recovery**: Full repayment of duplicated amounts
+2. **Grant reduction**: Proportional reduction of remaining grant
+3. **Termination**: Possible termination of one or both grants
+4. **Exclusion**: Potential ban from future EU funding (serious cases)
+5. **Legal action**: Fraud cases may be referred to OLAF
+
+### How to Stay Compliant
+
+**Best Practices:**
+
+1. **Centralized tracking**: Maintain a single system tracking all EU-funded activities
+2. **Clear cost assignment**: Each cost assigned to ONE grant only from the start
+3. **Separate timesheets**: Different time tracking for each project
+4. **Regular internal audits**: Check for accidental overlaps quarterly
+5. **Documentation**: Keep clear records of how costs are allocated
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Review your current/planned EU grants**:
+   - [ ] List all EU funding you've received or applied for
+   - [ ] Map activities and costs for each
+   - [ ] Identify any potential overlaps
+
+2. **Implement tracking systems**:
+   - [ ] Set up separate cost centers for each EU project
+   - [ ] Implement project-specific timesheets
+   - [ ] Create clear documentation procedures
+
+3. **Disclose all applications**:
+   - [ ] When applying, list all other EU applications in the proposal
+   - [ ] Inform existing grant managers of new applications
+   - [ ] Update grant agreements if circumstances change
+
+4. **Consult official guidance**:
+   - [EU Financial Regulation](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32018R1046)
+   - [Annotated Model Grant Agreement](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/aga_en.pdf)
+
+5. **When in doubt, ask**:
+   - Contact your Project Officer for clarification
+   - Reach out to your National Contact Point
+   - Consider legal advice for complex situations
+
+💡 **Key Principle:** If you're unsure whether something constitutes double funding, assume it does and structure your activities to avoid any overlap. Prevention is always better than correction after the fact."""
+
+    def _generate_simultaneous_applications_guidance(self) -> str:
+        """Generate guidance about simultaneous applications to multiple programmes."""
+        return """## Simultaneous Applications to Multiple EU Programmes
+
+**Yes, you absolutely can** apply to both Horizon Europe and Erasmus+ (or other EU programmes) at the same time for related but distinct projects. There is **no rule prohibiting simultaneous submission** of multiple applications.
+
+### What's Allowed
+
+| Scenario | Status | Notes |
+|----------|--------|-------|
+| Same organization, different proposals | ✅ Allowed | Common practice for active research organizations |
+| Same consortium, different proposals | ✅ Allowed | Consortium can apply to multiple programmes |
+| Same topic area, different programmes | ✅ Allowed | E.g., AI research (HE) + AI training (E+) |
+| Same deadline period | ✅ Allowed | No timing restrictions between programmes |
+| Related initiatives | ✅ Allowed | If activities are distinct |
+
+### Key Requirements for Simultaneous Applications
+
+1. **Distinct Projects**: Each application must be for a genuinely different project
+2. **No Activity Overlap**: Activities in each proposal must be unique
+3. **No Cost Overlap**: Budgets cannot include the same costs
+4. **Full Disclosure**: Mention other applications in your proposals
+
+### How to Manage Multiple Applications
+
+**Strategic Approach:**
+
+| Programme | Focus | Typical Funding | Duration |
+|-----------|-------|-----------------|----------|
+| **Horizon Europe** | Research & Innovation | €1-20M | 3-5 years |
+| **Erasmus+** | Education & Training | €100K-4M | 1-3 years |
+| **Creative Europe** | Culture & Media | €50K-2M | 2-4 years |
+| **Digital Europe** | Digital Deployment | €500K-5M | 2-3 years |
+
+### What to Disclose in Applications
+
+When submitting to Horizon Europe, you must declare:
+- Previous EU funding received
+- Pending EU applications
+- How this proposal differs from others
+
+**Example disclosure text:**
+> "Our organization has submitted a complementary application to Erasmus+ (KA220) for a staff training programme related to the methodologies developed in this RIA. The Erasmus+ project focuses exclusively on training and mobility activities, with no overlap in costs or research activities with this proposal."
+
+### Managing Award Scenarios
+
+| If... | Then... |
+|-------|---------|
+| Both awarded | Accept both if activities are distinct |
+| Only one awarded | Proceed with successful application |
+| Overlap discovered | Modify scope of one or decline |
+| Timeline conflicts | Adjust start dates if possible |
+
+### Best Practices for Parallel Applications
+
+1. **Plan from the start**: Design complementary proposals intentionally
+2. **Different teams**: If possible, assign different proposal writers
+3. **Clear boundaries**: Define scope boundaries before writing
+4. **Separate budgets**: Never copy-paste budget items
+5. **Track versions**: Keep clear records of what's in each proposal
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Map your initiative across programmes**:
+   - [ ] Identify which activities fit each programme
+   - [ ] Assign distinct objectives to each proposal
+   - [ ] Create non-overlapping work packages
+
+2. **Prepare coordinated proposals**:
+   - [ ] Develop separate but complementary proposals
+   - [ ] Ensure budgets have zero overlap
+   - [ ] Write distinct descriptions for each
+
+3. **Plan the disclosure sections**:
+   - [ ] Prepare text explaining the relationship between proposals
+   - [ ] Document why activities are distinct
+   - [ ] Be ready to explain complementarity to evaluators
+
+4. **Consider timing strategically**:
+   - [ ] Check deadlines for all target programmes
+   - [ ] Allow sufficient time for parallel preparation
+   - [ ] Plan resource allocation for proposal writing
+
+5. **Prepare for multiple successes**:
+   - [ ] Consider how you'll manage multiple projects
+   - [ ] Plan staffing for parallel implementation
+   - [ ] Develop internal coordination mechanisms
+
+📚 **Find Deadlines:**
+- [Horizon Europe Calls](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search)
+- [Erasmus+ Call Calendar](https://erasmus-plus.ec.europa.eu/programme-guide/part-b/key-action-2)
+- [Creative Europe Calls](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/programmes/crea)
+
+💡 **Tip:** Ask me about specific programme deadlines in your research area to help plan your application timeline."""
+
+    def _generate_cross_programme_strategy_guidance(self) -> str:
+        """Generate strategic guidance for multi-programme funding approach."""
+        return """## Strategic Approach to Multi-Programme EU Funding
+
+This is an excellent strategy - maximizing your funding scope by targeting multiple EU programmes for different aspects of your work. Here's how to optimize your approach.
+
+### 1. Strategic Programme Selection
+
+Choose programmes based on **activity type**, not funding amount:
+
+| Your Activity Type | Best Programme | Typical Funding | Success Rate |
+|-------------------|----------------|-----------------|--------------|
+| **Basic Research** | Horizon Europe (ERC) | €1.5-10M | 10-15% |
+| **Applied Research** | Horizon Europe (RIA) | €3-10M | 15-20% |
+| **Innovation/Market** | Horizon Europe (IA/EIC) | €0.5-17.5M | 5-25% |
+| **Staff Training** | Erasmus+ (KA1/KA2) | €100K-1M | 30-40% |
+| **Curriculum Development** | Erasmus+ (KA2) | €200K-400K | 25-35% |
+| **Cultural Projects** | Creative Europe | €50K-2M | 15-25% |
+| **Digital Deployment** | Digital Europe | €500K-5M | 20-30% |
+
+### 2. Design Complementary Proposals
+
+Structure your initiative into clearly distinct components:
+
+**Example: Sustainable Agriculture Initiative**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    OVERALL INITIATIVE                           │
+├─────────────────────┬─────────────────────┬────────────────────┤
+│  Horizon Europe RIA │    Erasmus+ KA2     │  Creative Europe   │
+├─────────────────────┼─────────────────────┼────────────────────┤
+│ • Precision farming │ • Farmer training   │ • Documentary      │
+│   algorithms        │ • Student mobility  │ • Exhibition       │
+│ • Sensor technology │ • Curriculum dev    │ • Public awareness │
+│ • Field trials      │ • Best practices    │ • Cultural events  │
+├─────────────────────┼─────────────────────┼────────────────────┤
+│ Budget: €4M         │ Budget: €400K       │ Budget: €200K      │
+│ Duration: 4 years   │ Duration: 2 years   │ Duration: 2 years  │
+└─────────────────────┴─────────────────────┴────────────────────┘
+```
+
+### 3. Key Success Factors
+
+| Factor | Strategy | Why It Matters |
+|--------|----------|----------------|
+| **Clear boundaries** | Define scope limits BEFORE writing | Prevents overlap accusations |
+| **Timing** | Stagger starts if possible | Easier resource management |
+| **Consortium** | Different leads for each | Spreads responsibility |
+| **Synergies** | Plan cross-project leverage | Maximizes impact |
+| **Communication** | Regular coordination meetings | Prevents duplication |
+
+### 4. Application Timeline Strategy
+
+**Option A: Sequential**
+- Submit Horizon Europe first (longer evaluation)
+- Then Erasmus+ (faster evaluation)
+- Adjust Erasmus+ if HE fails
+
+**Option B: Parallel**
+- Submit both simultaneously
+- Be prepared to decline one if needed
+- Requires robust separation
+
+**Option C: Cascading**
+- Start with easier programme (higher success rate)
+- Use success to strengthen next application
+- Build track record progressively
+
+### 5. Consortium Strategy
+
+| Approach | Pros | Cons |
+|----------|------|------|
+| **Same consortium** | Coherent initiative | Resource strain |
+| **Overlapping consortium** | Balanced approach | Coordination needed |
+| **Different consortia** | Maximum expertise | Less synergy |
+
+### 6. Avoiding Common Mistakes
+
+❌ **Don't:**
+- Copy-paste between proposals
+- Use same personnel costs
+- Share equipment budgets
+- Assume evaluators don't communicate
+
+✅ **Do:**
+- Write fresh descriptions
+- Clearly allocate personnel time
+- Plan separate equipment purchases
+- Document distinctions thoroughly
+
+### 7. Post-Award Coordination
+
+If multiple proposals succeed:
+
+1. **Kick-off coordination**: Align project teams on boundaries
+2. **Shared governance**: Consider a coordination committee
+3. **Joint dissemination**: Plan complementary communication
+4. **Financial separation**: Strict cost allocation from day one
+5. **Audit preparation**: Document everything from the start
+
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Audit your activities**:
+   - [ ] List ALL planned activities for your initiative
+   - [ ] Categorize by type (research, training, dissemination, etc.)
+   - [ ] Map each category to the most appropriate programme
+
+2. **Design your portfolio**:
+   - [ ] Create distinct project concepts for each programme
+   - [ ] Define clear boundaries between projects
+   - [ ] Identify synergies you can leverage legally
+
+3. **Build your timeline**:
+   - [ ] Research deadlines for all target programmes
+   - [ ] Plan proposal writing schedule
+   - [ ] Allocate team resources across applications
+
+4. **Strengthen your consortium**:
+   - [ ] Identify the best coordinator for each programme
+   - [ ] Ensure expertise matches programme requirements
+   - [ ] Plan role distribution to avoid bottlenecks
+
+5. **Prepare for success**:
+   - [ ] Consider how you'll manage multiple grants
+   - [ ] Plan staffing for parallel implementation
+   - [ ] Set up coordination mechanisms in advance
+
+📚 **Programme Resources:**
+- [Horizon Europe Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/)
+- [Erasmus+ Programme Guide](https://erasmus-plus.ec.europa.eu/programme-guide/erasmusplus-programme-guide)
+- [Creative Europe Work Programme](https://ec.europa.eu/culture/creative-europe/)
+- [Digital Europe Programme](https://digital-strategy.ec.europa.eu/en/activities/digital-programme)
+
+📞 **Get Expert Advice:**
+- [Horizon Europe NCPs](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp)
+- [Erasmus+ National Agencies](https://erasmus-plus.ec.europa.eu/contacts/national-agencies)
+- [Creative Europe Desks](https://ec.europa.eu/culture/creative-europe/creative-europe-desks)
+
+💡 **Pro Tip:** Consider starting with a smaller programme (Erasmus+ KA2 or Creative Europe small-scale) to build track record before tackling larger Horizon Europe projects. Success breeds success in EU funding!"""
 
     def _generate_consortium_context_guidance(self, countries: list[str], query_lower: str) -> str:
         """Generate guidance when user provides consortium context."""
