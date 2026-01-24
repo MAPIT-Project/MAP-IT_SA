@@ -11469,3 +11469,47 @@ Note: 1 test skipped because API server needs restart to pick up code changes.
 All unit tests pass, confirming the fix works correctly.
 
 STATUS: COMPLETE - Scenario 005 PASSING with score 80+/100 (semantic search working)
+
+================================================================================
+## Scenario 006: Organization Project Search - COMPLETED
+Date: 2026-01-24
+================================================================================
+
+### Task Summary
+Implemented and verified Scenario 006: Organization Project Search
+- Query: "What projects has Fraunhofer participated in?"
+- Expected: List of projects with Fraunhofer as partner/coordinator
+
+### Implementation Status
+- **Score: 100/100** - System already passing
+- The `find_organization_projects` tool is already correctly implemented
+- Uses Neo4j graph database for organization-project relationships
+- Supports partial name matching (e.g., "Fraunhofer" vs full name)
+- Shows coordinator vs participant role information
+- Includes project titles, budgets, CORDIS links, funding schemes
+- Provides summary statistics (total projects, total budget, funding types)
+
+### Tests Created
+- File: `tests/quality/test_scenario_006_organization_project_search.py`
+- 14 tests covering:
+  1. Returns organization projects
+  2. Uses find_organization_projects tool
+  3. Includes project titles
+  4. Includes CORDIS links
+  5. Includes budget information
+  6. Shows role information (coordinator/participant)
+  7. Returns multiple projects
+  8. Includes funding scheme
+  9. Quality score passes threshold (80)
+  10. No errors in response
+  11. Includes summary statistics
+  12. Partial name matching works
+  13. Abbreviation matching works (CNRS, TUM)
+  14. Max Planck projects found
+
+### Test Results
+All 14 tests passed in 156.86 seconds
+
+### Files Changed
+1. `tests/quality/test_scenario_006_organization_project_search.py` - NEW (14 tests)
+2. `docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md` - Updated to mark scenario complete

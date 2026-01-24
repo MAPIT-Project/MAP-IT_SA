@@ -102,12 +102,15 @@ Verify each major tool works correctly with realistic queries.
   - **Fix applied**: Added `_detect_semantic_project_query()` method to pre-route "similar to [concept]" queries to `get_similar_funded_projects` (AI embeddings) instead of `search_projects` (keyword search)
   - **Tests**: `tests/quality/test_scenario_005_semantic_project_search.py` (14 tests)
 
-- [ ] **Scenario 006: Organization Project Search** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 006: Organization Project Search** `EXECUTE + FIX IF NEEDED`
   - Query: "What projects has Fraunhofer participated in?"
   - Expected: List of projects with Fraunhofer as partner/coordinator
   - Verify: Organization name matching works, role info correct
   - Fix if: Misses projects, wrong organization matched
   - Pass threshold: 80
+  - **Status: PASS (score 100/100)**
+  - **Verified**: Returns 20 projects, shows coordinator vs participant roles, includes budgets, CORDIS links, funding schemes
+  - **Tests**: `tests/quality/test_scenario_006_organization_project_search.py` (14 tests)
 
 ### Statistics Tools
 
