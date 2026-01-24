@@ -11596,3 +11596,53 @@ Verified and tested Scenario 008: Country Statistics - comparing Germany vs Fran
 ### PRD Status
 - [x] Scenario 008 marked as PASS (score 100/100)
 - No fixes needed - feature works excellently out of the box
+
+
+## 2026-01-24: Scenario 009 - Find Partners by Expertise (PASS score 100/100)
+
+### Task Completed
+Implemented and verified Scenario 009: Find Partners by Expertise from the Application Quality Improvement PRD.
+
+### Query Tested
+"Find experienced partners for a hydrogen fuel cell project"
+
+### Results
+- **Score**: 100/100 (PASS)
+- **Quality Dimensions**:
+  - Query Fulfillment: 40/40 - Returns experienced organizations for the topic
+  - Specificity: 25/25 - Includes organization names, countries, project counts, funding amounts
+  - Factual Accuracy: 25/25 - Data from real CORDIS database
+  - Actionability: 10/10 - Includes links to CORDIS, Partner Search tool
+
+### Response Quality
+The response includes:
+- 10+ organizations with relevant track records
+- Organization types (REC for Research, HES for Higher Education, PRC for Private Company)
+- Country codes (DE, FR, FI, EL, NL, etc.)
+- Project counts (total and as coordinator)
+- Total funding amounts (in millions of EUR)
+- Example project acronyms with coordination roles
+- Top countries summary for the topic
+- Actionable next steps (CORDIS database, EU Portal, Partner Search tool)
+
+### Files Created
+- `tests/quality/test_scenario_009_find_partners_by_expertise.py` - 15 tests covering:
+  - Returns partner organizations
+  - Uses find_experienced_partners tool
+  - Includes project counts
+  - Includes funding amounts
+  - Includes country codes
+  - Includes organization types
+  - Includes example projects
+  - Partners are relevant to hydrogen/fuel cells
+  - Quality score meets threshold (80+)
+  - No error messages in response
+  - Includes actionable guidance
+  - Returns multiple partners (5+)
+  - Tests for other domains (AI/ML, health, climate)
+
+### Files Modified
+- `docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md` - Marked Scenario 009 as complete
+
+### PRD Status Update
+Scenario 009: Find Partners by Expertise is now complete with score 100/100.

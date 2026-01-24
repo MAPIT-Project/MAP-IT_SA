@@ -136,12 +136,15 @@ Verify each major tool works correctly with realistic queries.
 
 ### Partner Discovery Tools
 
-- [ ] **Scenario 009: Find Partners by Expertise** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 009: Find Partners by Expertise** `EXECUTE + FIX IF NEEDED`
   - Query: "Find experienced partners for a hydrogen fuel cell project"
   - Expected: Organizations with relevant project history
   - Verify: Partners have actual hydrogen/fuel cell experience
   - Fix if: Irrelevant partners, missing experience data
   - Pass threshold: 80
+  - **Status: PASS (score 100/100)**
+  - **Verified**: Returns 10+ organizations with relevant project counts, funding amounts, country codes, organization types (REC/HES/PRC), example project names, and actionable guidance (CORDIS links, Partner Search tool)
+  - **Tests**: `tests/quality/test_scenario_009_find_partners_by_expertise.py` (15 tests)
 
 - [ ] **Scenario 010: Collaboration Network** `EXECUTE + FIX IF NEEDED`
   - Query: "Show me the collaboration network for Max Planck Institute"
