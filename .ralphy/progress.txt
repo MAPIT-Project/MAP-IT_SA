@@ -11552,3 +11552,47 @@ Implemented and verified Scenario 007: Programme Statistics from MAPIT_APPLICATI
 - All 13 tests pass
 - Linting passes for new test file
 - PRD updated to mark scenario complete
+
+## 2026-01-24: Scenario 008 - Country Statistics (PASS)
+
+### Task Completed
+Verified and tested Scenario 008: Country Statistics - comparing Germany vs France in Horizon Europe.
+
+### Query Tested
+"How does Germany perform in Horizon Europe compared to France?"
+
+### Response Quality
+- **Overall Score**: 100/100
+- **Query Fulfillment**: 40/40 - Comprehensive side-by-side comparison with percentage differences
+- **Specificity**: 25/25 - EUR 8.04B vs EUR 5.57B funding, 6,678 vs 5,073 projects, 3,148 vs 2,609 orgs
+- **Factual Accuracy**: 25/25 - Accurate institutional data (CNRS, CEA, Fraunhofer, Max Planck)
+- **Actionability**: 10/10 - 4 clear next steps (cluster analysis, partner search, CORDIS, NCP contact)
+
+### Key Response Features
+1. **Comprehensive comparison table**: Total funding, projects, organizations with percentage differences
+2. **Institutional analysis**: Top performers (CNRS with 1,200 projects, Max Planck with EUR 567.9M)
+3. **Structural insight**: Germany's distributed model vs France's centralized CNRS-led approach
+4. **Actionable guidance**: Tool recommendations, CORDIS research, NCP contact suggestions
+
+### Files Created
+- `tests/quality/test_scenario_008_country_statistics.py` - 13 test cases covering:
+  - Comparison data presence for both countries
+  - Country statistics tool usage verification
+  - Project count data validation
+  - Funding amounts presence
+  - Comparative analysis language
+  - Organization data inclusion
+  - Quality score threshold (80+)
+  - Error-free response
+  - Specificity (not generic)
+  - Actionable guidance
+  - Other country comparisons (Italy/Spain, Netherlands, Belgium)
+
+### Test Results
+- 13 tests passed
+- All tests run against live API
+- ~82 seconds total test execution time
+
+### PRD Status
+- [x] Scenario 008 marked as PASS (score 100/100)
+- No fixes needed - feature works excellently out of the box

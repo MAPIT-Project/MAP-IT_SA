@@ -124,12 +124,15 @@ Verify each major tool works correctly with realistic queries.
   - **Verified**: Returns 2-5% overall success rate with stage breakdown, matches official EC data
   - **Tests**: `tests/quality/test_scenario_007_programme_statistics.py` (13 tests)
 
-- [ ] **Scenario 008: Country Statistics** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 008: Country Statistics** `EXECUTE + FIX IF NEEDED`
   - Query: "How does Germany perform in Horizon Europe compared to France?"
   - Expected: Comparative stats - projects, funding, success rates
   - Verify: Data is accurate and comparable
   - Fix if: Missing comparison, wrong country data
   - Pass threshold: 80
+  - **Status: PASS (score 100/100)**
+  - **Verified**: Returns comprehensive comparison with funding (EUR 8.04B vs 5.57B), projects (6,678 vs 5,073), organizations, top institutions (CNRS, Fraunhofer, Max Planck)
+  - **Tests**: `tests/quality/test_scenario_008_country_statistics.py` (13 tests)
 
 ### Partner Discovery Tools
 
