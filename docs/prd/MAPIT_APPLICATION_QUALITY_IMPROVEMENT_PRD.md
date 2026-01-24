@@ -222,11 +222,14 @@ Ensure all 6 EU programmes work correctly.
 
 ### Horizon Europe (Baseline)
 
-- [ ] **Scenario 016: Horizon Europe Full Flow** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 016: Horizon Europe Full Flow** `EXECUTE + FIX IF NEEDED`
   - Query: "I'm a university wanting to do AI research. What Horizon Europe options do I have?"
   - Expected: Eligibility confirmed, relevant calls listed, application guidance
   - Verify: Complete flow works end-to-end
   - Pass threshold: 80
+  - **Status: PASS (score 80+/100)**
+  - **Verified**: Returns 7+ AI-related calls with deadlines, budgets, EU Portal links, and application guidance (register, portal, consortium, next steps)
+  - **Tests**: `tests/quality/test_scenario_016_horizon_europe_full_flow.py` (14 tests)
 
 ### Erasmus+
 
