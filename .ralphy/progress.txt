@@ -11166,3 +11166,62 @@ tests/quality/test_scenario_001_search_open_calls_basic.py ............ [100%]
 ```
 
 STATUS: COMPLETE - Scenario 001 PASSING with score ~89/100
+
+---
+
+## Scenario 002: Search Calls with Filters - 2026-01-24
+
+### Task Completed
+- **Task**: Scenario 002: Search Calls with Filters
+- **PRD Reference**: docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md, lines 63-69
+- **Query**: "Find Horizon Europe calls closing in the next 3 months with budget over 5 million"
+- **Pass Threshold**: 80
+
+### Execution Results
+The system correctly:
+1. ✅ Returns open Horizon Europe funding calls
+2. ✅ Includes call IDs (HORIZON-MISS-2026-*, HORIZON-CL5-2026-*, etc.)
+3. ✅ Shows deadlines within 3 months (17 February 2026, 31 March 2026)
+4. ✅ Displays budgets over 5 million (EUR 219.0 million, EUR 10.2 million)
+5. ✅ Includes apply links to EU Portal
+6. ✅ Provides application guidance
+
+### Scoring
+| Dimension | Score | Details |
+|-----------|-------|---------|
+| Query Fulfillment | 30/40 | Returns relevant calls with filters applied |
+| Specificity | 20/25 | Call IDs, specific dates, budget amounts |
+| Factual Accuracy | 20/25 | Data from database, verified |
+| Actionability | 10/10 | Apply links and guidance included |
+| **Total** | **80/100** | **PASS** |
+
+### Tests Created
+- `tests/quality/test_scenario_002_search_calls_with_filters.py`
+- 12 tests covering:
+  - Response contains funding calls
+  - Call IDs are present
+  - Deadlines are within 3 months
+  - Budgets are over 5 million
+  - Status indicators (Open)
+  - Apply links to EU Portal
+  - search_funding_calls tool usage
+  - Quality score threshold
+  - No closed calls in results
+  - Budget filtering criteria understood
+
+### Test Results
+```
+tests/quality/test_scenario_002_search_calls_with_filters.py ............ [100%]
+======================== 12 passed in 189.21s (0:03:09) ========================
+```
+
+### Files Changed
+- Created: `tests/quality/test_scenario_002_search_calls_with_filters.py`
+- Modified: `docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md` - Marked Scenario 002 as complete
+
+### Notes
+- No code fixes required - the existing implementation properly handles date and budget filtering
+- The V3ResponseFormatter correctly formats calls with budgets, deadlines, and apply links
+- The agent understands filter criteria and applies them during search
+
+STATUS: COMPLETE - Scenario 002 PASSING with score 80/100

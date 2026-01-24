@@ -60,12 +60,15 @@ Verify each major tool works correctly with realistic queries.
   - **Fix applied**: V3ResponseFormatter now used in sync endpoint to properly format calls with deadlines, budgets, and EU Portal links
   - **Tests**: `tests/quality/test_scenario_001_search_open_calls_basic.py` (12 tests)
 
-- [ ] **Scenario 002: Search Calls with Filters** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 002: Search Calls with Filters** `EXECUTE + FIX IF NEEDED`
   - Query: "Find Horizon Europe calls closing in the next 3 months with budget over 5 million"
   - Expected: Filtered calls matching all criteria
   - Verify: Date filtering works, budget filtering accurate
   - Fix if: Incorrect filtering, wrong date math
   - Pass threshold: 80
+  - **Status: PASS (score 80/100)**
+  - **Verified**: Calls returned with deadlines within 3 months (Feb-Mar 2026), budgets over EUR 5 million
+  - **Tests**: `tests/quality/test_scenario_002_search_calls_with_filters.py` (12 tests)
 
 - [ ] **Scenario 003: Get Call Details** `EXECUTE + FIX IF NEEDED`
   - Query: "Tell me about call HORIZON-CL4-2024-HUMAN-01-01"
