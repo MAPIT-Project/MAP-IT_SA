@@ -2278,19 +2278,24 @@ Returns: Organizations with their project count, funding received, coordination 
             )
         )
 
-        # Similar funded projects tool (semantic search) - FOR PROPOSAL SUPPORT ONLY
+        # Similar funded projects tool (semantic search) - FOR SEMANTIC SIMILARITY
         self.register_tool(
             Tool(
                 name="get_similar_funded_projects",
-                description="""Find projects similar to a SPECIFIC PROPOSAL IDEA for proposal writing support.
+                description="""Find projects semantically similar to a concept, description, or proposal idea using AI embeddings.
 
-**USE THIS TOOL WHEN**: User is writing a proposal and wants to find similar funded projects to learn from.
-**DO NOT USE FOR**: General project searches like "find projects about X" - use search_projects instead.
+**USE THIS TOOL WHEN**:
+- User asks for projects "similar to" a concept/topic (e.g., "projects similar to developing sustainable aviation fuels")
+- User describes a project idea and wants semantically related projects
+- User wants to find projects that conceptually relate to their idea (finds biofuels, green aviation when searching for "sustainable aviation fuels")
+- User is writing a proposal and wants similar funded projects to learn from
 
-This tool uses AI embeddings to match a detailed proposal description to funded projects.""",
+**DO NOT USE FOR**: Simple keyword searches like "find projects about AI" or "show me quantum computing projects" - use search_projects instead.
+
+This tool uses AI embeddings to understand meaning, not just keywords. It finds conceptually related projects even if they don't contain exact keywords.""",
                 category=ToolCategory.PROJECTS,
                 parameters={
-                    "description": "Required: Detailed project idea/proposal description to match (min 20 chars)",
+                    "description": "Required: Concept, topic description, or proposal idea to find similar projects for (min 20 chars)",
                     "cluster": "Optional: Cluster code filter (CL4, CL5, EIC, etc.)",
                     "action_type": "Optional: Action type filter (RIA, IA, CSA)",
                     "min_budget": "Optional: Minimum EU contribution filter",
@@ -2299,8 +2304,9 @@ This tool uses AI embeddings to match a detailed proposal description to funded 
                     "limit": "Optional: Number of results (default 10)",
                 },
                 examples=[
-                    "get_similar_funded_projects(description='Our proposal develops an AI-powered diagnostic system for early cancer detection using deep learning on medical imaging data, targeting integration with existing hospital workflows')",
-                    "get_similar_funded_projects(description='Novel green hydrogen production using advanced electrolyzers with 30% efficiency improvement', cluster='CL5')",
+                    "get_similar_funded_projects(description='developing sustainable aviation fuels')",
+                    "get_similar_funded_projects(description='AI-powered diagnostic system for early cancer detection using deep learning on medical imaging data')",
+                    "get_similar_funded_projects(description='Novel green hydrogen production using advanced electrolyzers', cluster='CL5')",
                 ],
             )
         )
@@ -2440,7 +2446,8 @@ This uses AI to automatically expand keywords to related terms (e.g., "AI" → i
                 name="search_projects",
                 description="""Search the CORDIS database for funded Horizon Europe projects by topic/keywords.
 
-**USE THIS TOOL FOR**: General project searches like "find projects about AI", "show me quantum computing projects", "projects on climate change"
+**USE THIS TOOL FOR**: Simple keyword-based project searches like "find projects about AI", "show me quantum computing projects", "projects on climate change"
+**DO NOT USE FOR**: Queries asking for "similar to [concept]" or semantic similarity - use get_similar_funded_projects instead!
 **Returns**: List of funded projects matching the keywords with titles, budgets, consortiums, and descriptions.
 
 **SEARCH TIPS**:
@@ -2449,7 +2456,7 @@ This uses AI to automatically expand keywords to related terms (e.g., "AI" → i
 - Combine specific terms for better results: "AI healthcare diagnostics" rather than just "AI"
 - The search uses full-text matching on project titles, objectives, and topics
 
-This is the PRIMARY tool for finding projects by topic.""",
+This is the PRIMARY tool for finding projects by keyword matching.""",
                 category=ToolCategory.PROJECTS,
                 parameters={
                     "keywords": "Required: Keywords/topic to search for (e.g., 'machine learning healthcare', 'quantum computing', 'green hydrogen')",
@@ -3711,6 +3718,15 @@ digital_europe, life""",
         if org_profile_result:
             return org_profile_result
 
+        # Check for SEMANTIC SIMILARITY PROJECT queries (must come before general project search!)
+        # These are queries asking for projects "similar to" a concept, description, or idea
+        # e.g., "Find projects similar to developing sustainable aviation fuels"
+        # e.g., "Show me projects like AI for cancer detection"
+        # These should use semantic embeddings, NOT keyword search
+        semantic_project_result = self._detect_semantic_project_query(query, context)
+        if semantic_project_result:
+            return semantic_project_result
+
         # Partner/organization discovery patterns
         partner_patterns = [
             "find partner",
@@ -4015,6 +4031,94 @@ digital_europe, life""",
                             "tool": "find_organization_projects",
                             "parameters": {"organization_name": found_org},
                             "reasoning": f"Getting {found_org}'s project portfolio from database",
+                        }
+                    ],
+                    "needs_more_info": True,
+                }
+
+        return None
+
+    def _detect_semantic_project_query(self, query: str, context: str) -> dict[str, Any] | None:
+        """Detect if query asks for semantically similar projects.
+
+        This handles queries asking for projects "similar to" a concept/description:
+        - "Find projects similar to developing sustainable aviation fuels"
+        - "Show me projects like AI for cancer detection"
+        - "Projects related to green hydrogen production"
+        - "Find funded projects matching this idea: [description]"
+
+        These should use get_similar_funded_projects (semantic embeddings),
+        NOT search_projects (keyword matching).
+
+        Key distinction:
+        - "Find projects about AI" -> search_projects (keyword search)
+        - "Find projects similar to AI-powered cancer detection" -> get_similar_funded_projects (semantic)
+        """
+        query_lower = query.lower()
+
+        # Semantic similarity patterns - indicates user wants conceptually related projects
+        semantic_patterns = [
+            "similar to",
+            "projects like",
+            "projects matching",
+            "projects related to",
+            "semantically similar",
+            "conceptually related",
+            "find similar projects",
+            "find projects similar",
+            "show me similar",
+            "similar funded projects",
+            "projects with similar",
+        ]
+
+        # Check if query contains semantic similarity language
+        has_semantic_pattern = any(pattern in query_lower for pattern in semantic_patterns)
+
+        if has_semantic_pattern:
+            # Extract the description part (what comes after the semantic pattern)
+            description = query
+
+            # Try to extract the concept being searched for
+            for pattern in semantic_patterns:
+                if pattern in query_lower:
+                    # Find where the pattern ends and extract the rest as description
+                    idx = query_lower.find(pattern)
+                    if idx >= 0:
+                        description = query[idx + len(pattern) :].strip()
+                        # Clean up common prefixes
+                        if description.lower().startswith("to "):
+                            description = description[3:]
+                        if description.lower().startswith("developing "):
+                            description = description[11:]
+                        break
+
+            # If we couldn't extract a description, use the whole query
+            if not description or len(description) < 10:
+                # Fall back to extracting key content words
+                import re
+
+                # Remove common verbs and query words
+                clean_query = re.sub(
+                    r"\b(find|show|me|projects?|similar|to|like|matching|funded|related|semantically|conceptually)\b",
+                    "",
+                    query_lower,
+                    flags=re.IGNORECASE,
+                )
+                description = " ".join(clean_query.split())
+
+            # Ensure description is meaningful (at least 10 chars)
+            if len(description) >= 10:
+                logger.info(f"🧬 Detected semantic project search: '{description}'")
+                return {
+                    "thought": f"User is asking for projects semantically similar to '{description}'. "
+                    "Using get_similar_funded_projects (AI embeddings) for semantic matching, "
+                    "not search_projects (keyword matching).",
+                    "action": "call_tools",
+                    "tool_calls": [
+                        {
+                            "tool": "get_similar_funded_projects",
+                            "parameters": {"description": description, "limit": 10},
+                            "reasoning": "Finding projects using semantic similarity (AI embeddings) to match concepts, not just keywords",
                         }
                     ],
                     "needs_more_info": True,

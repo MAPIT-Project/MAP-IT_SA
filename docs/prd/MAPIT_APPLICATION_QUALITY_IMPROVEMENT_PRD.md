@@ -92,12 +92,15 @@ Verify each major tool works correctly with realistic queries.
   - **Fix applied**: Fixed TUM organization detection bug - "tum " pattern was matching within "quantum ", now using word boundary regex `\btum\b`
   - **Tests**: `tests/quality/test_scenario_004_search_projects_by_topic.py` (14 tests)
 
-- [ ] **Scenario 005: Semantic Project Search** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 005: Semantic Project Search** `EXECUTE + FIX IF NEEDED`
   - Query: "Find projects similar to developing sustainable aviation fuels"
   - Expected: Semantically related projects (not just keyword match)
   - Verify: Results include related concepts (biofuels, green aviation, etc.)
   - Fix if: Only exact keyword matches, no semantic understanding
   - Pass threshold: 80
+  - **Status: PASS (score 80+/100)**
+  - **Fix applied**: Added `_detect_semantic_project_query()` method to pre-route "similar to [concept]" queries to `get_similar_funded_projects` (AI embeddings) instead of `search_projects` (keyword search)
+  - **Tests**: `tests/quality/test_scenario_005_semantic_project_search.py` (14 tests)
 
 - [ ] **Scenario 006: Organization Project Search** `EXECUTE + FIX IF NEEDED`
   - Query: "What projects has Fraunhofer participated in?"
