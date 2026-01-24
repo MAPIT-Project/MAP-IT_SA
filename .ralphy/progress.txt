@@ -11961,3 +11961,74 @@ Implemented and verified Scenario 014: Consortium Patterns from MAPIT_APPLICATIO
 
 ### PRD Status Update
 Scenario 014: Consortium Patterns is now complete with score ~99/100.
+
+## 2026-01-24: Scenario 015 - Search Work Programmes (COMPLETE)
+
+### Task Completed
+Implemented Scenario 015: Search Work Programmes from the MAPIT Application Quality Improvement PRD.
+
+### Query
+"What does the Horizon Europe work programme say about digital twins?"
+
+### Expected
+- Relevant excerpts from official documents
+- Accurate quotes with sources cited
+- No wrong information or outdated documents
+
+### Implementation
+
+#### Files Modified:
+
+1. **`app/services/response/v3_response_formatter.py`**:
+   - Added `format_documents()` method for rich document formatting with citations
+   - Added `_format_single_document()` helper for individual document excerpts
+   - Added `_format_document_content()` for content cleaning and truncation
+   - Added `_get_document_guidance()` for actionable footer guidance
+   - Updated `format_from_tool_results()` to detect and format document search results
+   - Documents grouped by source with proper citations (section, page, type)
+
+2. **`app/services/agents/tool_aware_agent.py`**:
+   - Enhanced `_tool_search_documents()` to include full metadata:
+     - `chunk_id` - for traceability
+     - `document_id` - for document reference
+     - `section_title` - for citations
+     - `page_number` - for precise references
+     - `document_type` - for context (work_programme, programme_guide, etc.)
+     - `metadata` - for additional document info
+
+#### Files Created:
+- `tests/quality/test_scenario_015_search_work_programmes.py` - 13 tests covering:
+  - Tool usage verification (search_documents)
+  - Digital twin content presence
+  - Source citation verification
+  - Quoted/referenced content
+  - Horizon Europe programme references
+  - Cluster context inclusion
+  - No hallucinated sources
+  - Actionable guidance
+  - No error messages
+  - Response length appropriateness
+  - Quality score threshold (80 points)
+  - Full integration test
+  - Response structure
+
+### Test Results
+- 13/13 tests passing
+- All tests verify PRD requirements:
+  - Query Fulfillment (40 pts): Digital twin content, work programme context, cluster references
+  - Specificity (25 pts): Quoted content, source attribution, specific details
+  - Factual Accuracy (25 pts): Correct programme references, no hallucinations
+  - Actionability (10 pts): Next steps, portal links
+
+### Document Formatting Features
+The new `format_documents()` method provides:
+- Grouped excerpts by source document
+- Citation references (section, page, type)
+- Relevance indicators (highly relevant ⭐, relevant ✅)
+- Blockquote formatting for excerpts
+- Reference IDs for traceability
+- Actionable guidance footer with official EU resource links
+
+### PRD Status
+- **Scenario 015**: PASS (score 80+/100)
+- **Phase 1 Progress**: 15/15 scenarios complete (100%)

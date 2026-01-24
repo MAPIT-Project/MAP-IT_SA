@@ -5,9 +5,9 @@ Formats tool results into beautifully structured responses for the user.
 This is a post-processor that takes raw tool results and formats them consistently.
 """
 
+from datetime import datetime
 import logging
 import re
-from datetime import datetime
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -448,7 +448,9 @@ class V3ResponseFormatter:
             status_icon = (
                 "🟢"
                 if status.lower() == "ongoing"
-                else "✅" if status.lower() == "closed" else "📊"
+                else "✅"
+                if status.lower() == "closed"
+                else "📊"
             )
             lines.append(f"{status_icon} **Status:** {status}")
 
@@ -538,8 +540,10 @@ class V3ResponseFormatter:
         # Collect ALL calls and projects from ALL tool results
         all_calls = []
         all_projects = []
+        all_documents = []
         seen_call_ids = set()
         seen_project_ids = set()
+        seen_chunk_ids = set()
 
         # Track organization-specific results for special formatting
         org_projects_result = None
@@ -581,6 +585,23 @@ class V3ResponseFormatter:
             ):
                 org_projects_result = result
                 continue  # Don't add these to generic projects
+
+            # Check for document search results (from search_documents)
+            # These have "documents" field with content, source, section
+            if "documents" in result and isinstance(result["documents"], list):
+                docs = result["documents"]
+                if docs and all(
+                    isinstance(d, dict) and "content" in d and "source" in d for d in docs[:3]
+                ):
+                    # Collect documents with deduplication
+                    for doc in docs:
+                        chunk_id = doc.get("chunk_id", "")
+                        if chunk_id and chunk_id not in seen_chunk_ids:
+                            seen_chunk_ids.add(chunk_id)
+                            all_documents.append(doc)
+                        elif not chunk_id:
+                            all_documents.append(doc)
+                    continue
 
             # Collect funding calls from this tool result
             if "calls" in result and isinstance(result["calls"], list):
@@ -629,6 +650,11 @@ class V3ResponseFormatter:
                 f"📋 Formatting organization projects for '{org_projects_result.get('organization')}'"
             )
             return self.format_organization_projects(org_projects_result, query)
+
+        # Format document search results if available
+        if all_documents:
+            logger.info(f"📋 Formatting {len(all_documents)} document excerpts")
+            return self.format_documents(all_documents, query)
 
         # Format the merged results (prefer calls over projects if both present)
         if all_calls:
@@ -1052,6 +1078,141 @@ No collaboration partners found for this organization in the database.
         )
 
         return "\n".join(lines)
+
+    def format_documents(self, documents: list[dict], query: str = "") -> str:
+        """Format document search results with proper citations and source attribution."""
+        if not documents:
+            return "No documents found matching your search criteria."
+
+        lines = [f"I found **{len(documents)} relevant document excerpts** for your query:\n"]
+
+        # Group documents by source for better organization
+        docs_by_source: dict[str, list[dict]] = {}
+        for doc in documents:
+            source = doc.get("source", doc.get("title", "Unknown Source"))
+            if source not in docs_by_source:
+                docs_by_source[source] = []
+            docs_by_source[source].append(doc)
+
+        # Format documents grouped by source
+        doc_index = 1
+        for source, source_docs in docs_by_source.items():
+            # Add source header
+            lines.append(f"### 📄 {source}\n")
+
+            for doc in source_docs:
+                lines.append(self._format_single_document(doc_index, doc))
+                lines.append("")
+                doc_index += 1
+
+        # Add helpful footer with guidance
+        lines.append("---\n")
+        lines.append(self._get_document_guidance(query))
+
+        return "\n".join(lines)
+
+    def _format_single_document(self, index: int, doc: dict) -> str:
+        """Format a single document excerpt with citation information."""
+        content = doc.get("content", "")
+        # source is already used in the group header (format_documents groups by source)
+        section = doc.get("section", doc.get("section_title", ""))
+        page_number = doc.get("page_number")
+        document_type = doc.get("document_type", "")
+        score = doc.get("score", 0)
+        document_id = doc.get("document_id", "")
+        chunk_id = doc.get("chunk_id", "")
+
+        # Build citation reference
+        citation_parts = []
+        if section:
+            citation_parts.append(f"Section: {section}")
+        if page_number:
+            citation_parts.append(f"Page {page_number}")
+        if document_type:
+            type_display = document_type.replace("_", " ").title()
+            citation_parts.append(f"Type: {type_display}")
+
+        citation = " | ".join(citation_parts) if citation_parts else ""
+
+        # Clean and format the content
+        content_formatted = self._format_document_content(content)
+
+        # Build the formatted entry
+        lines = [f"**{index}. Excerpt**"]
+
+        if citation:
+            lines.append(f"📑 *{citation}*")
+
+        # Add relevance indicator for high-scoring results
+        if score >= 0.8:
+            lines.append("⭐ **Highly relevant**")
+        elif score >= 0.6:
+            lines.append("✅ **Relevant**")
+
+        # Add the quoted content
+        lines.append(f"\n> {content_formatted}")
+
+        # Add reference ID for traceability
+        if chunk_id or document_id:
+            ref_id = chunk_id[:8] if chunk_id else document_id[:8]
+            lines.append(f"\n*Ref: {ref_id}*")
+
+        return "\n".join(lines)
+
+    def _format_document_content(self, content: str) -> str:
+        """Format document content for display with proper quoting."""
+        if not content:
+            return "*No content available*"
+
+        # Clean the content
+        content = content.strip()
+
+        # Remove excessive whitespace
+        content = re.sub(r"\s+", " ", content)
+
+        # Truncate if too long, but try to end at a sentence
+        max_length = 800
+        if len(content) > max_length:
+            truncated = content[:max_length]
+            # Find last sentence boundary
+            last_period = max(
+                truncated.rfind(". "),
+                truncated.rfind(".\n"),
+                truncated.rfind("? "),
+                truncated.rfind("! "),
+            )
+            if last_period > max_length * 0.6:
+                content = truncated[: last_period + 1] + "..."
+            else:
+                # Find last word boundary
+                last_space = truncated.rfind(" ")
+                if last_space > max_length * 0.8:
+                    content = truncated[:last_space] + "..."
+                else:
+                    content = truncated + "..."
+
+        # Format for blockquote display (handle newlines)
+        content = content.replace("\n", "\n> ")
+
+        return content
+
+    def _get_document_guidance(self, query: str = "") -> str:
+        """Return helpful guidance footer for document searches."""
+        return """💡 **About These Sources:**
+• The excerpts above are from **official EU documents** including work programmes, regulations, and guidance materials
+• Each excerpt includes a citation reference to help you locate the full text
+• Always verify details against the latest official documents on the EU Portal
+
+📚 **Official Resources:**
+• [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/) - Latest documents and calls
+• [Horizon Europe Work Programmes](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents) - Annual work programmes
+• [Programme Guides](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/programme-guide_horizon_en.pdf) - Comprehensive programme guidance
+
+🎯 **Next Steps:**
+• Download the full work programme for your cluster of interest
+• Check the EU Portal for the latest version of these documents
+• Consult your National Contact Point (NCP) for interpretation guidance
+• Use document references when preparing your proposal"""
 
     def get_query_aware_guidance(self, query: str, response_type: str = "general") -> str:
         """

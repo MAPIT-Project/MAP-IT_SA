@@ -11680,7 +11680,7 @@ Found **{total_found} organizations** with relevant track records:
             return {"error": str(e)}
 
     async def _tool_search_documents(self, params: dict) -> dict:
-        """Search documents using vector search."""
+        """Search documents using vector search with rich metadata for citations."""
         try:
             from ..vector_search_service import VectorSearchService
 
@@ -11698,19 +11698,30 @@ Found **{total_found} organizations** with relevant track records:
             # hybrid_search uses num_results, not limit
             results = vector.hybrid_search(query=query, num_results=max_results, filters=filters)
 
+            # Build rich document response with full metadata for citations
+            documents = []
+            for r in results[:max_results]:
+                doc = {
+                    "content": (r.content[:1500] if hasattr(r, "content") else str(r)[:1500]),
+                    "source": r.document_title if hasattr(r, "document_title") else "Unknown",
+                    "title": r.document_title if hasattr(r, "document_title") else "",
+                    "section": r.section if hasattr(r, "section") else "",
+                    "score": r.score if hasattr(r, "score") else 0,
+                    # Additional metadata for citations
+                    "chunk_id": r.chunk_id if hasattr(r, "chunk_id") else "",
+                    "document_id": r.document_id if hasattr(r, "document_id") else "",
+                    "section_title": r.section_title if hasattr(r, "section_title") else "",
+                    "page_number": r.page_number if hasattr(r, "page_number") else None,
+                    "document_type": r.document_type if hasattr(r, "document_type") else "",
+                    "metadata": r.metadata if hasattr(r, "metadata") else {},
+                }
+                documents.append(doc)
+
             return {
-                "documents": [
-                    {
-                        "content": (
-                            r.content[:1500] if hasattr(r, "content") else str(r)[:1500]
-                        ),  # Increased from 300
-                        "source": r.document_title if hasattr(r, "document_title") else "Unknown",
-                        "title": r.document_title if hasattr(r, "document_title") else "",
-                        "section": r.section if hasattr(r, "section") else "",
-                        "score": r.score if hasattr(r, "score") else 0,
-                    }
-                    for r in results[:max_results]
-                ]
+                "documents": documents,
+                "query": query,
+                "total_found": len(documents),
+                "tool_name": "search_documents",
             }
         except Exception as e:
             return {"error": str(e)}

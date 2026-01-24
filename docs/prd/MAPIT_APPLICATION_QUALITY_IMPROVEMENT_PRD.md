@@ -204,12 +204,15 @@ Verify each major tool works correctly with realistic queries.
 
 ### Document Search
 
-- [ ] **Scenario 015: Search Work Programmes** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 015: Search Work Programmes** `EXECUTE + FIX IF NEEDED`
   - Query: "What does the Horizon Europe work programme say about digital twins?"
   - Expected: Relevant excerpts from official documents
   - Verify: Quotes are accurate, sources cited
   - Fix if: Wrong information, no source, outdated documents
   - Pass threshold: 80
+  - **Status: PASS (score 80+/100)**
+  - **Fix applied**: Added `format_documents()` method to V3ResponseFormatter for rich document formatting with citations, enhanced `_tool_search_documents` to include full metadata (chunk_id, document_id, section_title, page_number, document_type)
+  - **Tests**: `tests/quality/test_scenario_015_search_work_programmes.py` (13 tests)
 
 ---
 
