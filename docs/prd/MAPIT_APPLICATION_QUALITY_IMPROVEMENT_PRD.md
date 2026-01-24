@@ -114,12 +114,15 @@ Verify each major tool works correctly with realistic queries.
 
 ### Statistics Tools
 
-- [ ] **Scenario 007: Programme Statistics** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 007: Programme Statistics** `EXECUTE + FIX IF NEEDED`
   - Query: "What is the success rate for Horizon Europe EIC Accelerator?"
   - Expected: Accurate success rate with context (year, comparison)
   - Verify: Numbers match official EU statistics
   - Fix if: Wrong numbers, no source indication, outdated data
   - Pass threshold: 80
+  - **Status: PASS (score 93/100)**
+  - **Verified**: Returns 2-5% overall success rate with stage breakdown, matches official EC data
+  - **Tests**: `tests/quality/test_scenario_007_programme_statistics.py` (13 tests)
 
 - [ ] **Scenario 008: Country Statistics** `EXECUTE + FIX IF NEEDED`
   - Query: "How does Germany perform in Horizon Europe compared to France?"

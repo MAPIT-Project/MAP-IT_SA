@@ -11513,3 +11513,42 @@ All 14 tests passed in 156.86 seconds
 ### Files Changed
 1. `tests/quality/test_scenario_006_organization_project_search.py` - NEW (14 tests)
 2. `docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md` - Updated to mark scenario complete
+
+
+## 2026-01-24 17:09:37 - Scenario 007: Programme Statistics
+
+### Task
+Implemented and verified Scenario 007: Programme Statistics from MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md
+
+### Query Tested
+"What is the success rate for Horizon Europe EIC Accelerator?"
+
+### Results
+- **Status**: PASS (score 93/100)
+- **Tool Used**: get_programme_statistics
+- **Success Rate Returned**: 2-5% overall (matches official EC data)
+- **Stage Breakdown**: Provided (short→full: 25-30%, full→interview: 20-25%, interview→funding: 50-60%)
+- **Context**: Includes description about EIC supporting high-risk, high-impact SMEs and startups
+
+### Tests Created
+- File: tests/quality/test_scenario_007_programme_statistics.py
+- Test Count: 13 tests
+- Coverage:
+  1. test_returns_success_rate - Verifies success rate is returned
+  2. test_uses_get_programme_statistics_tool - Verifies correct tool is called
+  3. test_returns_accurate_success_rate - Verifies 2-5% range for EIC
+  4. test_mentions_eic_accelerator - Verifies EIC/Accelerator is mentioned
+  5. test_provides_context - Verifies context (stages, notes) provided
+  6. test_includes_funding_or_detailed_statistics - Verifies detailed info
+  7. test_quality_score_passes_threshold - Verifies score >= 80
+  8. test_no_error_in_response - Verifies no errors
+  9. test_response_is_specific_not_generic - Verifies specific response
+  10. test_mentions_stages_or_breakdown - Verifies stage breakdown
+  11. test_erc_statistics - Tests ERC programme statistics
+  12. test_msca_statistics - Tests MSCA programme statistics
+  13. test_cluster_statistics - Tests Cluster 5 statistics
+
+### Verification
+- All 13 tests pass
+- Linting passes for new test file
+- PRD updated to mark scenario complete
