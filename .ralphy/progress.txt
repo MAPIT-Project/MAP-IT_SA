@@ -11097,3 +11097,72 @@ Marked task as complete in PRD V3 with full results documentation.
 - Modified: `docs/prd/MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD_V3.md`
 - Generated: `tests/quality/results/final_verification_report.json`
 - Generated: `tests/quality/results/FINAL_VERIFICATION_SUMMARY.md`
+
+---
+
+## Scenario 001: Search Open Calls Basic - 2026-01-24
+
+### Task Completed
+- **Task**: Scenario 001: Search Open Calls Basic
+- **PRD Reference**: docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md, lines 53-58
+- **Query**: "Show me open funding calls for AI research"
+- **Pass Threshold**: 80
+
+### Problem Identified
+The V3 non-streaming endpoint (`_process_v3_sync`) was not using the V3ResponseFormatter to format call search results. Instead, it was returning the agent's fallback "Finding 1:", "Finding 2:" format which:
+- Did NOT include deadlines
+- Did NOT include budgets
+- Did NOT include EU Portal links
+- Score: ~42/100 (FAILING)
+
+### Fix Applied
+Modified `app/services/conversation/conversation_manager.py` to use V3ResponseFormatter in the sync endpoint, consistent with the streaming endpoint:
+
+```python
+# Before: Just used agent's raw answer
+answer = agent_result.get('answer', '')
+
+# After: Try formatter first for structured results
+tool_results = agent_result.get('tool_results', {})
+if tool_results:
+    formatter = get_formatter()
+    formatted_answer = formatter.format_from_tool_results(tool_results, user_message)
+    if formatted_answer:
+        answer = formatted_answer
+```
+
+### Results After Fix
+- Response now includes:
+  - Call IDs (HORIZON-EIC-2026-AIC-01, etc.)
+  - Deadlines (26 February 2026, 17 February 2026, etc.)
+  - Budgets (EUR 219.0 million, EUR 40.0 million, etc.)
+  - EU Portal links for each call
+  - Application guidance section
+- Score: ~89/100 (PASSING)
+
+### Tests Created
+- `tests/quality/test_scenario_001_search_open_calls_basic.py`
+- 12 tests covering:
+  - Response contains funding calls
+  - Call IDs are present
+  - Deadlines are present and in the future
+  - Apply links to EU Portal
+  - Status indicators (Open)
+  - Correct tool usage (search_funding_calls)
+  - AI-relevant results
+  - Application guidance
+  - V3ResponseFormatter integration
+  - No fallback "Finding X:" format
+
+### Files Changed
+- `app/services/conversation/conversation_manager.py` - Added V3ResponseFormatter usage in sync endpoint
+- `docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md` - Marked Scenario 001 as complete
+- `tests/quality/test_scenario_001_search_open_calls_basic.py` - New test file (12 tests)
+
+### Test Results
+```
+tests/quality/test_scenario_001_search_open_calls_basic.py ............ [100%]
+======================== 12 passed in 122.65s (0:02:02) ========================
+```
+
+STATUS: COMPLETE - Scenario 001 PASSING with score ~89/100
