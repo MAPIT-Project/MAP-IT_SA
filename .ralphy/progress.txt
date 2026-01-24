@@ -12084,3 +12084,75 @@ Tested against live API and verified:
 ### PRD Status Update
 Scenario 016: Horizon Europe Full Flow is now complete with score 80+/100.
 Phase 2 Progress: 1/12 scenarios complete.
+
+---
+
+## 2026-01-24: Scenario 017 - Erasmus+ Eligibility
+
+### Task Completed
+Implemented Scenario 017: Erasmus+ Eligibility from the MAPIT Application Quality Improvement PRD.
+
+### Query
+"Can a vocational school from Poland participate in Erasmus+ mobility?"
+
+### Expected
+- Eligibility confirmed (Yes)
+- KA1 details provided
+- Accreditation info
+- National Agency mentioned
+
+### Implementation Details
+
+**Problem Identified**: The system was returning hardcoded VET mobility guidance instead of calling the `check_erasmus_eligibility` tool when a specific country was mentioned in the query.
+
+**Root Causes Fixed**:
+1. **Hardcoded guidance bypass**: The `_detect_erasmus_action_query` method was returning canned responses for VET mobility queries instead of calling tools when country-specific eligibility was needed.
+
+2. **Substring false positive**: The word "us" in the third_countries list was matching inside "Erasmus+" causing incorrect routing.
+
+3. **Wrong tool call format**: The action type was "tool" instead of "call_tools" and parameters were under "args" instead of "parameters".
+
+**Fixes Applied** (in `app/services/agents/tool_aware_agent.py`):
+1. Added country detection logic to `_detect_erasmus_action_query` that detects when a specific country + eligibility question is asked (e.g., "Can a vocational school from Poland...")
+2. Added word boundary regex for short country codes (<=3 chars) to prevent false positives like "us" matching inside "Erasmus"
+3. Changed action type from "tool" to "call_tools" and parameters key from "args" to "parameters"
+4. Extracts organization type (VET_PROVIDER) and action type (KA1-VET) from query context
+
+### Files Created
+- `tests/quality/test_scenario_017_erasmus_eligibility.py` - 12 tests covering:
+  1. Confirms eligibility for Erasmus+ mobility
+  2. Mentions KA1 VET mobility specifically
+  3. Identifies Poland as a Programme Country
+  4. Uses Erasmus+ eligibility tool
+  5. Provides National Agency information
+  6. Provides actionable next steps
+  7. Does NOT return third country guidance (Poland is EU)
+  8. Response is country-specific, not generic VET guidance
+  9. Overall score meets 80 threshold
+  10. Returns valid JSON response
+  11. No hallucinated Horizon Europe calls
+  12. Addresses vocational education context
+
+### Files Modified
+- `app/services/agents/tool_aware_agent.py` - Added country-specific eligibility detection and tool routing
+- `docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md` - Marked Scenario 017 as complete
+
+### Test Results
+- 12 tests passed
+- Score: 100/100
+- Linting passed
+
+### Verification
+Response correctly includes:
+- ✅ Eligibility confirmation ("eligible", "can participate")
+- ✅ KA1-VET mobility details
+- ✅ Poland identified as Programme Country (EU member)
+- ✅ check_erasmus_eligibility tool called with correct parameters
+- ✅ National Agency mentioned
+- ✅ Actionable next steps (Programme Guide, portal)
+- ✅ No third country confusion
+- ✅ VET-specific organization type (VET_PROVIDER)
+
+### PRD Status Update
+Scenario 017: Erasmus+ Eligibility is now complete with score 100/100.
+Phase 2 Progress: 2/12 scenarios complete.

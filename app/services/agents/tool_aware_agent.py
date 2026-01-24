@@ -15608,9 +15608,20 @@ If you don't qualify as an SME due to ownership:
         has_third_country_question = any(p in query_lower for p in us_third_country_patterns)
 
         # Also catch generic "can X participate" for known third countries
+        # NOTE: Use word boundary regex to avoid false positives like "us" matching inside "Erasmus"
+        import re
+
         third_country_participate = False
         for tc in third_countries:
-            if tc in query_lower and (
+            # Use word boundary for short country codes like "us" to avoid matching "Erasmus"
+            if len(tc) <= 3:
+                # Use regex word boundary for short strings
+                if re.search(rf"\b{re.escape(tc)}\b", query_lower) and (
+                    "participat" in query_lower or "join" in query_lower or "partner" in query_lower
+                ):
+                    third_country_participate = True
+                    break
+            elif tc in query_lower and (
                 "participat" in query_lower or "join" in query_lower or "partner" in query_lower
             ):
                 third_country_participate = True
@@ -16333,9 +16344,169 @@ If multiple proposals succeed:
         - Strategy for combining KA1 mobility with KA2 partnerships
 
         These queries should provide structured guidance with actionable Next Steps.
+
+        IMPORTANT: When a query mentions a SPECIFIC COUNTRY (e.g., "Poland", "Germany"),
+        we should NOT use hardcoded guidance. Instead, return None to let the agent
+        use the check_erasmus_eligibility tool which can provide country-specific info.
         """
         query_lower = query.lower()
         context_lower = context.lower() if context else ""
+
+        # List of countries that should trigger tool usage instead of hardcoded guidance
+        # This enables country-specific eligibility checks with National Agency info
+        eu_countries = [
+            "austria",
+            "belgium",
+            "bulgaria",
+            "croatia",
+            "cyprus",
+            "czech republic",
+            "denmark",
+            "estonia",
+            "finland",
+            "france",
+            "germany",
+            "greece",
+            "hungary",
+            "ireland",
+            "italy",
+            "latvia",
+            "lithuania",
+            "luxembourg",
+            "malta",
+            "netherlands",
+            "poland",
+            "portugal",
+            "romania",
+            "slovakia",
+            "slovenia",
+            "spain",
+            "sweden",
+        ]
+        associated_countries = [
+            "iceland",
+            "liechtenstein",
+            "norway",
+            "north macedonia",
+            "serbia",
+            "turkey",
+        ]
+        partner_countries = [
+            "albania",
+            "bosnia and herzegovina",
+            "kosovo",
+            "montenegro",
+            "armenia",
+            "azerbaijan",
+            "belarus",
+            "georgia",
+            "moldova",
+            "ukraine",
+            "algeria",
+            "egypt",
+            "israel",
+            "jordan",
+            "lebanon",
+            "libya",
+            "morocco",
+            "palestine",
+            "syria",
+            "tunisia",
+        ]
+        all_countries = eu_countries + associated_countries + partner_countries
+
+        # Check if a specific country is mentioned
+        country_mentioned = None
+        for country in all_countries:
+            if country in query_lower:
+                country_mentioned = country
+                break
+
+        # Eligibility indicator patterns
+        eligibility_patterns = [
+            "can participate",
+            "participate in",
+            "eligible",
+            "eligibility",
+            "can apply",
+            "able to apply",
+            "can a ",
+            "can an ",
+            "can our",
+            "is eligible",
+            "are eligible",
+            "qualify for",
+            "qualifies for",
+        ]
+        has_eligibility_question = any(p in query_lower for p in eligibility_patterns)
+
+        # If a specific country is mentioned AND it's an eligibility question,
+        # call check_erasmus_eligibility tool with properly extracted parameters
+        if country_mentioned and has_eligibility_question:
+            # Detect organization type from query
+            org_type = "HEI"  # default
+            if any(
+                kw in query_lower
+                for kw in ["vocational", "vet school", "vet provider", "vet institution"]
+            ):
+                org_type = "VET_PROVIDER"
+            elif any(kw in query_lower for kw in ["school", "primary school", "secondary school"]):
+                org_type = "SCHOOL"
+            elif any(kw in query_lower for kw in ["university", "higher education", "college"]):
+                org_type = "HEI"
+            elif any(kw in query_lower for kw in ["adult education", "adult learning"]):
+                org_type = "ADULT_ED"
+            elif any(
+                kw in query_lower for kw in ["youth organization", "youth org", "youth group"]
+            ):
+                org_type = "YOUTH_ORG"
+            elif any(kw in query_lower for kw in ["ngo", "non-governmental", "non-profit"]):
+                org_type = "NGO"
+            elif any(kw in query_lower for kw in ["public body", "municipality", "government"]):
+                org_type = "PUBLIC_BODY"
+            elif any(kw in query_lower for kw in ["enterprise", "company", "business", "sme"]):
+                org_type = "ENTERPRISE"
+            elif any(kw in query_lower for kw in ["sport", "sports organization"]):
+                org_type = "SPORT_ORG"
+
+            # Detect action type from query
+            action_type = None
+            if "mobility" in query_lower:
+                # Map org type to appropriate mobility action
+                action_type_map = {
+                    "VET_PROVIDER": "KA1-VET",
+                    "SCHOOL": "KA1-SCH",
+                    "HEI": "KA1-HED",
+                    "ADULT_ED": "KA1-ADU",
+                    "YOUTH_ORG": "KA1-YOU",
+                }
+                action_type = action_type_map.get(org_type, "KA1-VET")
+            elif "partnership" in query_lower or "cooperation" in query_lower:
+                action_type = "KA2-COOP"
+
+            # Capitalize country name properly
+            country_name = country_mentioned.title()
+
+            # Return tool call configuration
+            return {
+                "thought": f"User is asking about Erasmus+ eligibility for a {org_type.replace('_', ' ')} from {country_name}. Calling check_erasmus_eligibility tool with specific parameters.",
+                "action": "call_tools",
+                "tool_calls": [
+                    {
+                        "tool": "check_erasmus_eligibility",
+                        "parameters": {
+                            "org_type": org_type,
+                            "country": country_name,
+                            "action_type": action_type,
+                            "has_eche": False,
+                            "is_coordinator": True,
+                        },
+                        "reasoning": f"Checking Erasmus+ KA1 VET mobility eligibility for vocational school from {country_name}",
+                    }
+                ],
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
 
         # Track if VET/sector context is present
         has_vet_context = any(

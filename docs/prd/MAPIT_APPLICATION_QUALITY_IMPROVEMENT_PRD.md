@@ -233,7 +233,7 @@ Ensure all 6 EU programmes work correctly.
 
 ### Erasmus+
 
-- [ ] **Scenario 017: Erasmus+ Eligibility** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 017: Erasmus+ Eligibility** `EXECUTE + FIX IF NEEDED`
   - Query: "Can a vocational school from Poland participate in Erasmus+ mobility?"
   - Expected: Yes, with KA1 details, accreditation info, National Agency
   - Verify: Erasmus-specific tools called, accurate eligibility
