@@ -3854,12 +3854,14 @@ digital_europe, life""",
         query_lower = query.lower()
 
         # Known organization names/aliases (common forms users might use)
+        # NOTE: Short patterns like "tum" need word boundary matching to avoid
+        # false positives (e.g., "quantum" contains "tum")
         known_org_patterns = {
             # German Universities
             "technical university of munich": "Technical University of Munich",
             "tu munich": "TU Munich",
             "tum's": "TUM",
-            "tum ": "TUM",
+            # "tum " removed - causes false positives with "quantum". Use regex matching below.
             "technische universitaet muenchen": "Technische Universitaet Muenchen",
             "technical university of berlin": "Technical University of Berlin",
             "tu berlin": "TU Berlin",
@@ -3883,11 +3885,11 @@ digital_europe, life""",
             # French institutions
             "cnrs": "CNRS",
             "inria": "INRIA",
-            "cea ": "CEA",
+            # "cea " removed - handled by regex with word boundary
             "inserm": "INSERM",
             # UK institutions
             "imperial college": "Imperial College London",
-            "ucl ": "UCL",
+            # "ucl " removed - handled by regex with word boundary
             "university college london": "UCL",
             "oxford university": "Oxford University",
             "university of oxford": "University of Oxford",
@@ -3916,7 +3918,7 @@ digital_europe, life""",
             "vtt": "VTT",
             # Other major institutions
             "cern": "CERN",
-            "esa ": "ESA",
+            # "esa " removed - handled by regex with word boundary
         }
 
         # Patterns indicating asking ABOUT an organization (not searching for partners)
@@ -3942,12 +3944,35 @@ digital_europe, life""",
         # Check if query has an organization profile indicator
         has_profile_pattern = any(pattern in query_lower for pattern in org_profile_patterns)
 
+        # Short org patterns that need word-boundary matching to avoid false positives
+        # e.g., "tum" should not match within "quantum"
+        import re
+
+        short_org_patterns_regex = {
+            r"\btum\b": "TUM",  # Technical University of Munich
+            r"\bcea\b": "CEA",  # Commissariat à l'énergie atomique
+            r"\bucl\b": "UCL",  # University College London
+            r"\besa\b": "ESA",  # European Space Agency
+            r"\bdtu\b": "DTU",  # Danmarks Tekniske Universitet
+            r"\bkth\b": "KTH",  # Kungliga Tekniska högskolan
+            r"\bvtt\b": "VTT",  # Technical Research Centre of Finland
+        }
+
         # Find if a known organization is mentioned
         found_org = None
-        for org_pattern, org_name in known_org_patterns.items():
-            if org_pattern in query_lower:
+
+        # First check regex patterns (short names that need word boundaries)
+        for pattern, org_name in short_org_patterns_regex.items():
+            if re.search(pattern, query_lower):
                 found_org = org_name
                 break
+
+        # Then check simple substring patterns (longer names safe from false positives)
+        if not found_org:
+            for org_pattern, org_name in known_org_patterns.items():
+                if org_pattern in query_lower:
+                    found_org = org_name
+                    break
 
         # If we found a known org AND a profile-asking pattern, use find_organization_projects
         if found_org and has_profile_pattern:

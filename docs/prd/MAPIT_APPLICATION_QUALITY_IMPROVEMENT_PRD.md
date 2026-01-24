@@ -82,12 +82,15 @@ Verify each major tool works correctly with realistic queries.
 
 ### Project Search Tools
 
-- [ ] **Scenario 004: Search Projects by Topic** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 004: Search Projects by Topic** `EXECUTE + FIX IF NEEDED`
   - Query: "Find funded projects on quantum computing"
   - Expected: Relevant CORDIS projects with titles, budgets, coordinators
   - Verify: Projects are relevant, data is complete
   - Fix if: Irrelevant results, missing data fields
   - Pass threshold: 80
+  - **Status: PASS (score 93-100/100)**
+  - **Fix applied**: Fixed TUM organization detection bug - "tum " pattern was matching within "quantum ", now using word boundary regex `\btum\b`
+  - **Tests**: `tests/quality/test_scenario_004_search_projects_by_topic.py` (14 tests)
 
 - [ ] **Scenario 005: Semantic Project Search** `EXECUTE + FIX IF NEEDED`
   - Query: "Find projects similar to developing sustainable aviation fuels"

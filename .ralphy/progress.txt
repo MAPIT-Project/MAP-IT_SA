@@ -11300,3 +11300,77 @@ tests/quality/test_scenario_003_get_call_details.py ............ [100%]
 - `tests/quality/test_scenario_003_get_call_details.py` - New test file (12 tests)
 
 STATUS: COMPLETE - Scenario 003 PASSING with score 85-100/100
+
+---
+
+## Scenario 004: Search Projects by Topic - 2026-01-24
+
+### Task Completed
+- **Task**: Scenario 004: Search Projects by Topic
+- **PRD Reference**: docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md, lines 85-90
+- **Query**: "Find funded projects on quantum computing"
+- **Pass Threshold**: 80
+
+### Root Cause Analysis
+The original query "Find funded projects on quantum computing" was being misinterpreted as an organization query for "TUM" (Technical University of Munich). The pattern `"tum ": "TUM"` was matching within "quantum " because of simple substring matching.
+
+### Fix Applied
+1. Removed the `"tum ": "TUM"` pattern from `known_org_patterns` dict (line 3862)
+2. Added word-boundary regex matching for short organization names in `_detect_initial_organization_profile_query()`:
+   - `r"\btum\b"` for TUM
+   - `r"\bcea\b"` for CEA
+   - `r"\bucl\b"` for UCL
+   - `r"\besa\b"` for ESA
+   - `r"\bdtu\b"` for DTU
+   - `r"\bkth\b"` for KTH
+   - `r"\bvtt\b"` for VTT
+3. Flushed Redis cache to clear stale query plans that had cached the TUM misdetection
+
+### Files Changed
+- `app/services/agents/tool_aware_agent.py` - Fixed TUM pattern matching to use word boundaries
+- `docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md` - Marked Scenario 004 as complete
+- `tests/quality/test_scenario_004_search_projects_by_topic.py` - New test file (14 tests)
+
+### Results After Fix
+- Query correctly uses `search_projects` tool (NOT `find_organization_projects`)
+- Response includes:
+  - 10 funded projects
+  - Project IDs (e.g., 101113946)
+  - Project titles and descriptions
+  - Coordinator information (name and country)
+  - CORDIS links
+  - Project status (SIGNED)
+  - Quality score: 93-100/100 (PASSING)
+
+### Scoring
+| Dimension | Score | Details |
+|-----------|-------|---------|
+| Query Fulfillment | 38/40 | Returns relevant projects on topic |
+| Specificity | 23/25 | Project IDs, titles, coordinators, budgets |
+| Factual Accuracy | 22/25 | Data from CORDIS database |
+| Actionability | 10/10 | CORDIS links, next steps guidance |
+| **Total** | **93-100/100** | **PASS** |
+
+### Tests Created
+- `tests/quality/test_scenario_004_search_projects_by_topic.py`
+- 14 tests covering:
+  - Returns funded projects
+  - Uses search_projects tool
+  - No TUM organization misdetection
+  - Includes project IDs
+  - Includes CORDIS links
+  - Includes coordinator info
+  - Includes project objectives
+  - Includes project status
+  - Quality score passes threshold (80)
+  - No error in response
+  - Returns multiple projects
+  - Regression tests for TUM detection bug
+
+### Test Results
+```
+tests/quality/test_scenario_004_search_projects_by_topic.py .............. [100%]
+======================== 14 passed in 77.52s (0:01:17) =========================
+```
+
+STATUS: COMPLETE - Scenario 004 PASSING with score 93-100/100
