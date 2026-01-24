@@ -11713,3 +11713,48 @@ The V3ResponseFormatter was missing a handler for collaboration network data. Wh
 
 ### PRD Status Update
 Scenario 010: Collaboration Network is now complete with score 100/100.
+
+## 2026-01-24: Scenario 011 - Budget Benchmark (PASS)
+
+### Task Completed
+Implemented and verified Scenario 011: Budget Benchmark from MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md
+
+### Query Tested
+"What budget should I plan for a climate research RIA project?"
+
+### Results
+- **Status: PASS (score 100/100)**
+- **Tool Used**: `get_budget_benchmark` with cluster=CL5, action_type=RIA
+- **Data Sources**: Hybrid Graph+SQL architecture (496 graph projects, 52 SQL projects)
+
+### Response Quality
+- **Budget Range**: €2.9M-€6.9M (recommended range)
+- **Statistics**:
+  - Median EU Contribution: €4.9M
+  - Average EU Contribution: €5.5M
+  - Overall Range: €0.3M-€87.2M (2302 projects analyzed)
+- **Consortium Size**: 11-16 partners (average: ~15)
+- **RIA Info**: Correctly notes 100% funding rate
+
+### Files Created
+- `tests/quality/test_scenario_011_budget_benchmark.py` - 13 tests covering:
+  - Tool invocation verification
+  - Budget range presence
+  - Reasonable budget values
+  - Real project data references
+  - Sample project/example mentions
+  - Consortium size guidance
+  - RIA-specific information
+  - Climate cluster context
+  - Quality score threshold (80)
+  - Response length appropriateness
+  - No hallucinated values
+  - Full integration test
+  - Multiple runs consistency
+
+### Test Results
+- All 13 tests passed
+- Linting passed
+
+### PRD Update
+- Marked Scenario 011 as complete with PASS status

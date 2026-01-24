@@ -158,12 +158,15 @@ Verify each major tool works correctly with realistic queries.
 
 ### Budget Tools
 
-- [ ] **Scenario 011: Budget Benchmark** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 011: Budget Benchmark** `EXECUTE + FIX IF NEEDED`
   - Query: "What budget should I plan for a climate research RIA project?"
   - Expected: Budget range with benchmarks from similar projects
   - Verify: Benchmarks from real projects, reasonable ranges
   - Fix if: Unrealistic numbers, no real project examples
   - Pass threshold: 80
+  - **Status: PASS (score 100/100)**
+  - **Verified**: Returns €2.9M-€6.9M range from 2302 analyzed projects, includes median (€4.9M), average (€5.5M), consortium size recommendations (11-16 partners), and RIA 100% funding rate info
+  - **Tests**: `tests/quality/test_scenario_011_budget_benchmark.py` (13 tests)
 
 - [ ] **Scenario 012: Calculate Budget** `EXECUTE + FIX IF NEEDED`
   - Query: "Calculate a budget for a 3-year project with 10 partners doing renewable energy research"
