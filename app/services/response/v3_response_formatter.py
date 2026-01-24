@@ -5,9 +5,9 @@ Formats tool results into beautifully structured responses for the user.
 This is a post-processor that takes raw tool results and formats them consistently.
 """
 
-from datetime import datetime
 import logging
 import re
+from datetime import datetime
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -448,7 +448,9 @@ class V3ResponseFormatter:
             status_icon = (
                 "🟢"
                 if status.lower() == "ongoing"
-                else "✅" if status.lower() == "closed" else "📊"
+                else "✅"
+                if status.lower() == "closed"
+                else "📊"
             )
             lines.append(f"{status_icon} **Status:** {status}")
 
@@ -543,10 +545,22 @@ class V3ResponseFormatter:
 
         # Track organization-specific results for special formatting
         org_projects_result = None
+        collaboration_network_result = None
 
         for _tool_name, result in tool_results.items():
             if not isinstance(result, dict):
                 continue
+
+            # Check for collaboration network results (from get_collaboration_network)
+            # These have "organization", "partners", and "total_partners" fields
+            if (
+                "organization" in result
+                and "partners" in result
+                and "total_partners" in result
+                and "get_collaboration_network" in _tool_name
+            ):
+                collaboration_network_result = result
+                continue  # Don't add these to generic results
 
             # Check for organization-specific project results (from find_organization_projects)
             # These have "organization", "projects", and "count" fields
@@ -587,6 +601,13 @@ class V3ResponseFormatter:
                     elif not project_id:
                         # No ID, include but might be duplicate
                         all_projects.append(project)
+
+        # Format collaboration network results if available (highest priority)
+        if collaboration_network_result:
+            logger.info(
+                f"📋 Formatting collaboration network for '{collaboration_network_result.get('organization')}'"
+            )
+            return self.format_collaboration_network(collaboration_network_result, query)
 
         # Format organization-specific results if available (takes priority)
         if org_projects_result:
@@ -704,6 +725,139 @@ No projects found for this organization in the database.
             line += "\n"
 
         return line
+
+    def format_collaboration_network(self, result: dict[str, Any], query: str = "") -> str:
+        """Format collaboration network results showing an organization's partners."""
+        org_name = result.get("organization", "Unknown Organization")
+        org_country = result.get("country", "")
+        partners = result.get("partners", [])
+        total_partners = result.get("total_partners", len(partners))
+
+        if not partners:
+            return f"""## Collaboration Network for {org_name}
+
+No collaboration partners found for this organization in the database.
+
+**Suggestions:**
+- Check the organization name spelling
+- Try searching with a shorter name (e.g., "Fraunhofer" instead of "Fraunhofer Society")
+- The organization may not have participated in collaborative EU projects yet
+- Try using `find_organization_projects` to see their project history first"""
+
+        # Build header
+        country_str = f" ({org_country})" if org_country else ""
+        lines = [
+            f"## Collaboration Network for {org_name}{country_str}",
+            f"**Total Partners Found:** {total_partners}\n",
+        ]
+
+        # Group partners by collaboration intensity
+        high_collab = [p for p in partners if p.get("collaborations", 0) >= 5]
+        medium_collab = [p for p in partners if 2 <= p.get("collaborations", 0) < 5]
+        low_collab = [p for p in partners if p.get("collaborations", 0) == 1]
+
+        # Top collaborators section
+        if high_collab:
+            lines.append("### 🌟 Key Partners (5+ shared projects)\n")
+            for partner in high_collab[:10]:
+                lines.append(self._format_partner(partner, highlight=True))
+            lines.append("")
+
+        if medium_collab:
+            lines.append("### 🤝 Regular Partners (2-4 shared projects)\n")
+            for partner in medium_collab[:10]:
+                lines.append(self._format_partner(partner, highlight=False))
+            lines.append("")
+
+        if low_collab and len(high_collab) + len(medium_collab) < 10:
+            lines.append("### 📋 Other Partners (1 shared project)\n")
+            for partner in low_collab[:5]:
+                lines.append(self._format_partner(partner, highlight=False))
+            lines.append("")
+
+        # Summary by organization type
+        org_types = {}
+        for p in partners:
+            org_type = p.get("type", "Unknown")
+            org_types[org_type] = org_types.get(org_type, 0) + 1
+
+        # Summary by country
+        countries = {}
+        for p in partners:
+            country = p.get("country", "Unknown")
+            countries[country] = countries.get(country, 0) + 1
+
+        # Sort by count
+        top_types = sorted(org_types.items(), key=lambda x: -x[1])[:5]
+        top_countries = sorted(countries.items(), key=lambda x: -x[1])[:8]
+
+        lines.append("### 📊 Network Summary\n")
+        lines.append(f"**Total Unique Partners:** {total_partners}")
+        lines.append(f"**Partner Countries:** {len(countries)}")
+        lines.append(
+            f"**Most Active Collaborations:** {high_collab[0]['name'] if high_collab else 'N/A'} "
+            f"({high_collab[0].get('collaborations', 0)} projects)"
+            if high_collab
+            else ""
+        )
+
+        # Organization types breakdown
+        if top_types:
+            type_breakdown = ", ".join([f"{self._get_org_type_name(t)}: {c}" for t, c in top_types])
+            lines.append(f"\n**Partner Types:** {type_breakdown}")
+
+        # Country breakdown
+        if top_countries:
+            country_breakdown = ", ".join([f"{c}: {n}" for c, n in top_countries])
+            lines.append(f"**Top Countries:** {country_breakdown}")
+
+        # Actionable guidance
+        lines.append(
+            f"""
+---
+
+🎯 **Next Steps:**
+• Contact key partners for future consortium building
+• Use [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search) to find complementary organizations
+• Analyze shared projects on [CORDIS](https://cordis.europa.eu/search?q={org_name.replace(" ", "%20")}) for collaboration patterns
+• Consider geographic diversity when building new consortia
+• Use `find_organization_projects` to see detailed project history"""
+        )
+
+        return "\n".join(lines)
+
+    def _format_partner(self, partner: dict, highlight: bool = False) -> str:
+        """Format a single partner in the collaboration network."""
+        name = partner.get("name", "Unknown")
+        country = partner.get("country", "")
+        org_type = partner.get("type", "")
+        is_sme = partner.get("is_sme", False)
+        collaborations = partner.get("collaborations", 0)
+
+        # Build partner line
+        country_str = f" ({country})" if country else ""
+        type_str = f" [{self._get_org_type_name(org_type)}]" if org_type else ""
+        sme_str = " 🏢 SME" if is_sme else ""
+
+        if highlight:
+            line = f"- **{name}**{country_str}{type_str}{sme_str}\n"
+            line += f"  - 📊 **{collaborations} shared projects**\n"
+        else:
+            line = f"- {name}{country_str}{type_str}{sme_str} — {collaborations} project(s)\n"
+
+        return line
+
+    def _get_org_type_name(self, org_type: str) -> str:
+        """Get human-readable name for organization type code."""
+        type_names = {
+            "HES": "University",
+            "REC": "Research",
+            "PRC": "Private",
+            "PUB": "Public",
+            "OTH": "Other",
+            "SME": "SME",
+        }
+        return type_names.get(org_type, org_type)
 
     def get_query_aware_guidance(self, query: str, response_type: str = "general") -> str:
         """

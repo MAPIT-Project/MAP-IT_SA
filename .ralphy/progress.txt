@@ -11646,3 +11646,70 @@ The response includes:
 
 ### PRD Status Update
 Scenario 009: Find Partners by Expertise is now complete with score 100/100.
+
+## 2026-01-24: Scenario 010 - Collaboration Network (PASS score 100/100)
+
+### Task Completed
+Implemented and verified Scenario 010: Collaboration Network from the Application Quality Improvement PRD.
+
+### Query Tested
+"Show me the collaboration network for Max Planck Institute"
+
+### Issue Identified
+The V3ResponseFormatter was missing a handler for collaboration network data. When both `find_organization_projects` and `get_collaboration_network` tools were called, the formatter was displaying organization projects format instead of the collaboration network format.
+
+### Fix Applied
+1. Added `format_collaboration_network()` method to V3ResponseFormatter
+   - Formats partner organizations with country codes and organization types
+   - Groups partners by collaboration intensity (5+ projects, 2-4 projects, 1 project)
+   - Includes network summary with total partners, countries, and partner type breakdown
+   - Adds actionable next steps (CORDIS, Partner Search)
+
+2. Updated `format_from_tool_results()` method to detect and prioritize collaboration network data
+   - Checks for `organization`, `partners`, and `total_partners` keys
+   - Collaboration network format takes priority over organization projects format
+
+### Response Quality
+- **Overall Score**: 100/100
+- **Query Fulfillment**: 40/40 - Shows collaboration network with partner organizations
+- **Specificity**: 25/25 - Includes organization names, countries, organization types, collaboration counts
+- **Factual Accuracy**: 25/25 - Data from real Neo4j graph database
+- **Actionability**: 10/10 - Clear next steps (CORDIS, Partner Search, consortium building)
+
+### Key Response Features
+1. **Collaboration Network header**: Shows target organization name and country
+2. **Partner groupings**: Partners grouped by collaboration intensity
+3. **Network summary**: Total unique partners, partner countries, top collaborations
+4. **Partner types breakdown**: Research, University, Private organization counts
+5. **Country breakdown**: Top countries among partners
+6. **Actionable guidance**: Links to CORDIS, Partner Search, consortium building tips
+
+### Files Created
+- `tests/quality/test_scenario_010_collaboration_network.py` - 15 test cases covering:
+  1. Returns collaboration network format
+  2. Uses get_collaboration_network tool
+  3. Includes partner organizations
+  4. Includes country codes
+  5. Includes collaboration counts
+  6. Includes organization types
+  7. Includes network summary
+  8. Quality score passes threshold (80+)
+  9. No error messages in response
+  10. Includes actionable guidance
+  11. Mentions target organization
+  12. Fraunhofer collaboration network test
+  13. CNRS collaboration network test
+  14. University collaboration network test
+  15. Returns multiple partners test
+
+### Files Modified
+- `app/services/response/v3_response_formatter.py` - Added format_collaboration_network() method and detection logic
+- `docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md` - Marked Scenario 010 as complete
+
+### Test Results
+- 15 tests passed
+- All tests run against live API
+- ~38 seconds total test execution time
+
+### PRD Status Update
+Scenario 010: Collaboration Network is now complete with score 100/100.

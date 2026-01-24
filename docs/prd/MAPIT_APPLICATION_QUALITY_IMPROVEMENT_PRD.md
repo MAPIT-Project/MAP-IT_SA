@@ -146,12 +146,15 @@ Verify each major tool works correctly with realistic queries.
   - **Verified**: Returns 10+ organizations with relevant project counts, funding amounts, country codes, organization types (REC/HES/PRC), example project names, and actionable guidance (CORDIS links, Partner Search tool)
   - **Tests**: `tests/quality/test_scenario_009_find_partners_by_expertise.py` (15 tests)
 
-- [ ] **Scenario 010: Collaboration Network** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 010: Collaboration Network** `EXECUTE + FIX IF NEEDED`
   - Query: "Show me the collaboration network for Max Planck Institute"
   - Expected: Top collaborating organizations, shared projects
   - Verify: Network data is accurate, relationships real
   - Fix if: Missing collaborations, wrong organizations
   - Pass threshold: 80
+  - **Status: PASS (score 100/100)**
+  - **Fix applied**: Added `format_collaboration_network()` method to V3ResponseFormatter and updated `format_from_tool_results()` to detect and prioritize collaboration network data over organization projects
+  - **Tests**: `tests/quality/test_scenario_010_collaboration_network.py` (15 tests)
 
 ### Budget Tools
 
