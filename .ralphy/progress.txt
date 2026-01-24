@@ -11905,3 +11905,59 @@ Fixed a Python import error in `app/services/proposal_writing/proposal_ai_servic
 
 ### PRD Status Update
 Scenario 013: Generate Timeline is now complete with score 93/100.
+
+## 2026-01-24: Scenario 014 - Consortium Patterns (PASS)
+
+### Task Completed
+Implemented and verified Scenario 014: Consortium Patterns from MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md
+
+### Query Tested
+"What consortium composition works best for health research projects?"
+
+### Response Quality
+- **Overall Score**: ~99/100
+- **Query Fulfillment**: 40/40 - All parts answered: consortium size (16.5 avg, 14-19 recommended), org type mix (Universities 30-40%, Research 25-35%, SMEs 15-20%, Hospitals 10-15%), country distribution (8.8 avg countries)
+- **Specificity**: 25/25 - Based on 412 Cluster 1 (Health) projects, specific coordinator names with coordination counts, percentages for each category
+- **Factual Accuracy**: 24/25 - Real organizations (INSERM, Karolinska, KU Leuven, Erasmus MC, Charite), reasonable consortium sizes and distributions
+- **Actionability**: 10/10 - Clear next steps with find_experienced_partners tool recommendation, ethics planning, registration links
+
+### Key Response Features
+1. **Consortium Size**: 16.5 partners average, 14-19 recommended range, 8.8 countries average
+2. **Organization Type Breakdown**:
+   - Universities/HEIs: 30-40%
+   - Research Institutes: 25-35%
+   - SMEs: 15-20%
+   - Public/Hospitals: 10-15%
+3. **Top Coordinators**: INSERM (21 coordinations), Karolinska, KU Leuven, Erasmus MC, Charite
+4. **Health-Specific Guidance**: Clinical partner recruitment, ethics approval planning, patient population coverage
+5. **Actionable Next Steps**: Verify call parameters, find clinical partners, register on EU Portal
+
+### Files Created
+- `tests/quality/test_scenario_014_consortium_patterns.py` - 15 tests covering:
+  1. Uses get_consortium_patterns tool
+  2. Includes consortium size
+  3. Includes numeric values
+  4. Includes org type breakdown
+  5. Includes country distribution
+  6. Based on real projects
+  7. Includes coordinator info
+  8. Health-specific guidance
+  9. Includes percentage breakdown
+  10. No error messages
+  11. Includes actionable guidance
+  12. Includes real organization names
+  13. Quality score threshold (80)
+  14. Full scenario integration
+  15. Response structure
+
+### Files Modified
+- `docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md` - Marked Scenario 014 as complete
+
+### Test Results
+- 15 tests passed
+- Tests run against live API
+- ~198 seconds total test execution time
+- Linting passed
+
+### PRD Status Update
+Scenario 014: Consortium Patterns is now complete with score ~99/100.

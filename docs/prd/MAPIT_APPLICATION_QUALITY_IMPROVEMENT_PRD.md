@@ -192,12 +192,15 @@ Verify each major tool works correctly with realistic queries.
 
 ### Consortium Tools
 
-- [ ] **Scenario 014: Consortium Patterns** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 014: Consortium Patterns** `EXECUTE + FIX IF NEEDED`
   - Query: "What consortium composition works best for health research projects?"
   - Expected: Typical size, org type mix, country distribution
   - Verify: Patterns based on real successful projects
   - Fix if: Generic advice not backed by data
   - Pass threshold: 80
+  - **Status: PASS (score ~99/100)**
+  - **Verified**: Returns comprehensive consortium patterns from 412 Cluster 1 (Health) projects, including consortium size (16.5 avg, 14-19 recommended), org type breakdown (Universities 30-40%, Research 25-35%, SMEs 15-20%, Hospitals 10-15%), country distribution (8.8 avg countries), top coordinators (INSERM, Karolinska, KU Leuven, Erasmus MC, Charite), and actionable next steps
+  - **Tests**: `tests/quality/test_scenario_014_consortium_patterns.py` (15 tests)
 
 ### Document Search
 
