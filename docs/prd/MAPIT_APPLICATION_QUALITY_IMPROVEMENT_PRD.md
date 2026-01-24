@@ -168,12 +168,15 @@ Verify each major tool works correctly with realistic queries.
   - **Verified**: Returns €2.9M-€6.9M range from 2302 analyzed projects, includes median (€4.9M), average (€5.5M), consortium size recommendations (11-16 partners), and RIA 100% funding rate info
   - **Tests**: `tests/quality/test_scenario_011_budget_benchmark.py` (13 tests)
 
-- [ ] **Scenario 012: Calculate Budget** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 012: Calculate Budget** `EXECUTE + FIX IF NEEDED`
   - Query: "Calculate a budget for a 3-year project with 10 partners doing renewable energy research"
   - Expected: Detailed budget breakdown by category
   - Verify: Calculations are logical, categories complete
   - Fix if: Math errors, missing categories, unrealistic totals
   - Pass threshold: 80
+  - **Status: PASS (score 100/100)**
+  - **Fix applied**: Added `format_budget_calculation()` method to V3ResponseFormatter to properly format calculate_budget tool results with structured tables, per-partner distribution, effort summary, benchmarks, and actionable guidance
+  - **Tests**: `tests/quality/test_scenario_012_calculate_budget.py` (14 tests)
 
 ### Timeline Tools
 

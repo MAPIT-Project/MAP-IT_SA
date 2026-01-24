@@ -11758,3 +11758,77 @@ Implemented and verified Scenario 011: Budget Benchmark from MAPIT_APPLICATION_Q
 
 ### PRD Update
 - Marked Scenario 011 as complete with PASS status
+
+## 2026-01-24: Scenario 012 - Calculate Budget (PASS)
+
+### Task Completed
+Implemented and verified Scenario 012: Calculate Budget from MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md
+
+### Query Tested
+"Calculate a budget for a 3-year project with 10 partners doing renewable energy research"
+
+### Problem Identified
+The `calculate_budget` tool was returning comprehensive budget data (total cost, breakdown, per-partner distribution, effort summary), but the V3ResponseFormatter was not detecting or formatting this data. The LLM was receiving the raw tool result and generating generic budget guidance instead of presenting the calculated breakdown.
+
+### Fix Applied
+1. Added detection for budget calculation results in `format_from_tool_results()` method
+   - Detects results with "calculated_budget", "breakdown", and tool_name="calculate_budget"
+   - Budget calculation results are given highest priority in formatting
+
+2. Added `format_budget_calculation()` method to V3ResponseFormatter
+   - Formats total budget in a clean table (Total Cost, EU Contribution, Funding Rate)
+   - Creates cost breakdown table with all categories (Personnel, Equipment, Travel, Subcontracting, Other Direct, Indirect)
+   - Shows percentages for each category
+   - Includes per-partner distribution (average, coordinator, other partners)
+   - Displays effort summary (total person-months, PM cost, PM per month)
+   - Adds benchmark comparison (typical range, median, your budget vs median)
+   - Includes cluster context if available
+   - Shows similar funded projects for reference
+   - Provides actionable recommendations
+   - Adds guidance footer with next steps and useful resources
+
+### Response Quality
+- **Overall Score**: 100/100
+- **Query Fulfillment**: 40/40 - Complete budget breakdown with all categories
+- **Specificity**: 25/25 - Specific amounts (€5.35M total, €2,940K personnel, etc.), percentages (55%, 10%, etc.)
+- **Factual Accuracy**: 25/25 - Correct RIA 100% funding rate, reasonable budget range
+- **Actionability**: 10/10 - Clear next steps, EU Portal links, budget guidance
+
+### Key Response Features
+1. **Budget Summary Table**: Total €5.35M, EU Contribution €5.35M, 100% funding rate
+2. **Cost Breakdown Table**: Personnel 55%, Equipment 10%, Travel 5%, Subcontracting 10%, Other Direct 5%, Indirect 15%
+3. **Per-Partner Distribution**: €535K average, €1,069K for coordinator, €475K for partners
+4. **Effort Summary**: 420 PM total, €7,000 PM cost, 11.7 PM/month
+5. **Benchmark Comparison**: €2.6M-€9.2M typical range, €4.9M median
+6. **Similar Projects**: Examples from funded projects
+7. **Recommendations**: Budget is within typical range for RIA
+
+### Files Created
+- `tests/quality/test_scenario_012_calculate_budget.py` - 14 test cases covering:
+  1. Uses calculate_budget tool
+  2. Includes total budget amount
+  3. Includes cost breakdown categories
+  4. Budget breakdown has percentages
+  5. Includes per-partner distribution
+  6. Includes effort/person-months
+  7. Budget values are reasonable (2-15M for 10 partners)
+  8. Includes funding rate (100%)
+  9. Includes EU contribution
+  10. Quality score above threshold (80)
+  11. No error messages
+  12. Includes recommendations
+  13. Full scenario integration test
+  14. Math consistency (percentages sum to ~100%)
+
+### Files Modified
+- `app/services/response/v3_response_formatter.py` - Added format_budget_calculation() method and detection logic
+- `docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md` - Marked Scenario 012 as complete
+
+### Test Results
+- 14 tests passed
+- All tests run against live API
+- ~130 seconds total test execution time
+- Linting passed
+
+### PRD Status Update
+Scenario 012: Calculate Budget is now complete with score 100/100.

@@ -448,9 +448,7 @@ class V3ResponseFormatter:
             status_icon = (
                 "🟢"
                 if status.lower() == "ongoing"
-                else "✅"
-                if status.lower() == "closed"
-                else "📊"
+                else "✅" if status.lower() == "closed" else "📊"
             )
             lines.append(f"{status_icon} **Status:** {status}")
 
@@ -546,10 +544,21 @@ class V3ResponseFormatter:
         # Track organization-specific results for special formatting
         org_projects_result = None
         collaboration_network_result = None
+        budget_calculation_result = None
 
         for _tool_name, result in tool_results.items():
             if not isinstance(result, dict):
                 continue
+
+            # Check for budget calculation results (from calculate_budget)
+            # These have "calculated_budget", "breakdown", and "tool_name": "calculate_budget"
+            if (
+                "calculated_budget" in result
+                and "breakdown" in result
+                and result.get("tool_name") == "calculate_budget"
+            ):
+                budget_calculation_result = result
+                continue  # Don't add these to generic results
 
             # Check for collaboration network results (from get_collaboration_network)
             # These have "organization", "partners", and "total_partners" fields
@@ -602,7 +611,12 @@ class V3ResponseFormatter:
                         # No ID, include but might be duplicate
                         all_projects.append(project)
 
-        # Format collaboration network results if available (highest priority)
+        # Format budget calculation results if available (highest priority)
+        if budget_calculation_result:
+            logger.info("📋 Formatting budget calculation results")
+            return self.format_budget_calculation(budget_calculation_result, query)
+
+        # Format collaboration network results if available
         if collaboration_network_result:
             logger.info(
                 f"📋 Formatting collaboration network for '{collaboration_network_result.get('organization')}'"
@@ -858,6 +872,186 @@ No collaboration partners found for this organization in the database.
             "SME": "SME",
         }
         return type_names.get(org_type, org_type)
+
+    def format_budget_calculation(self, result: dict[str, Any], query: str = "") -> str:
+        """Format budget calculation results into a structured response."""
+        if not result.get("success"):
+            return "Budget calculation failed. Please try again with different parameters."
+
+        input_params = result.get("input_parameters", {})
+        calculated_budget = result.get("calculated_budget", {})
+        breakdown = result.get("breakdown", {})
+        per_partner = result.get("per_partner", {})
+        effort_summary = result.get("effort_summary", {})
+        benchmarks = result.get("benchmarks", {})
+        recommendations = result.get("recommendations", [])
+        cluster_context = result.get("cluster_context", {})
+        similar_projects = result.get("similar_projects", [])
+
+        # Build header
+        action_type = input_params.get("action_type", "RIA")
+        duration = input_params.get("duration_months", 36)
+        num_partners = input_params.get("num_partners", 8)
+        cluster = input_params.get("cluster") or result.get("metadata", {}).get("cluster_used", "")
+
+        lines = [
+            "## Budget Calculation Results\n",
+            f"**Project Parameters:** {action_type} project, {duration} months, {num_partners} partners",
+        ]
+
+        if cluster:
+            lines.append(f"**Research Cluster:** {cluster}")
+        lines.append("")
+
+        # Main budget summary
+        total_cost = calculated_budget.get("total_cost", 0)
+        eu_contribution = calculated_budget.get("eu_contribution", 0)
+        funding_rate = calculated_budget.get("funding_rate", "100%")
+
+        lines.append("### 💰 Budget Summary\n")
+        lines.append("| **Category** | **Amount** |")
+        lines.append("|--------------|------------|")
+        lines.append(f"| Total Project Cost | **€{total_cost / 1_000_000:.2f}M** |")
+        lines.append(f"| EU Contribution | **€{eu_contribution / 1_000_000:.2f}M** |")
+        lines.append(f"| Funding Rate | {funding_rate} |")
+        lines.append("")
+
+        # Cost breakdown
+        if breakdown:
+            lines.append("### 📊 Cost Breakdown by Category\n")
+            lines.append("| **Category** | **Amount** | **%** | **Description** |")
+            lines.append("|--------------|------------|-------|-----------------|")
+
+            category_order = [
+                "personnel",
+                "equipment",
+                "travel",
+                "subcontracting",
+                "other_direct",
+                "indirect",
+            ]
+            category_names = {
+                "personnel": "👥 Personnel",
+                "equipment": "🖥️ Equipment",
+                "travel": "✈️ Travel",
+                "subcontracting": "📋 Subcontracting",
+                "other_direct": "📦 Other Direct",
+                "indirect": "🏢 Indirect Costs",
+            }
+
+            for cat in category_order:
+                if cat in breakdown:
+                    cat_data = breakdown[cat]
+                    amount = cat_data.get("amount", 0)
+                    pct = cat_data.get("percentage", 0)
+                    desc = cat_data.get("description", "")
+                    cat_name = category_names.get(cat, cat.title())
+                    lines.append(f"| {cat_name} | €{amount / 1_000:,.0f}K | {pct}% | {desc} |")
+
+            lines.append("")
+
+        # Per-partner distribution
+        if per_partner:
+            lines.append("### 🤝 Per-Partner Distribution\n")
+            avg_budget = per_partner.get("average", 0)
+            coord_budget = per_partner.get("coordinator_typical", 0)
+            partner_budget = per_partner.get("partner_typical", 0)
+            pms_per_partner = per_partner.get("pms_per_partner", 0)
+
+            lines.append(f"- **Average per partner:** €{avg_budget / 1_000:,.0f}K")
+            lines.append(
+                f"- **Coordinator (typical):** €{coord_budget / 1_000:,.0f}K (20% of total)"
+            )
+            lines.append(f"- **Other partners (typical):** €{partner_budget / 1_000:,.0f}K each")
+            lines.append(f"- **Person-months per partner:** ~{pms_per_partner:.0f} PM")
+            lines.append("")
+
+        # Effort summary
+        if effort_summary:
+            lines.append("### ⏱️ Effort Summary\n")
+            total_pms = effort_summary.get("total_person_months", 0)
+            pm_cost = effort_summary.get("avg_pm_cost_used", 0)
+            pm_per_month = effort_summary.get("pm_per_month", 0)
+
+            lines.append(f"- **Total Person-Months:** {total_pms} PM")
+            lines.append(f"- **Average PM Cost Used:** €{pm_cost:,.0f}")
+            lines.append(f"- **PM per Project Month:** {pm_per_month:.1f}")
+            lines.append("")
+
+        # Benchmarks
+        if benchmarks:
+            lines.append("### 📈 How This Compares\n")
+            typical_range = benchmarks.get("typical_range", "N/A")
+            median = benchmarks.get("median", "N/A")
+            comparison = benchmarks.get("your_budget_vs_median", "within range")
+            sample_size = benchmarks.get("sample_size", "N/A")
+
+            lines.append(f"- **Typical {action_type} Budget Range:** {typical_range}")
+            lines.append(f"- **Median Budget:** {median}")
+            lines.append(f"- **Your Budget:** {comparison.replace('_', ' ').title()}")
+            if sample_size and sample_size != "N/A":
+                lines.append(f"- **Based on:** {sample_size} funded projects")
+            lines.append("")
+
+        # Cluster context (if available)
+        if cluster_context:
+            lines.append("### 🔬 Cluster Context\n")
+            avg_partners = cluster_context.get("avg_partners")
+            avg_countries = cluster_context.get("avg_countries")
+            top_coordinators = cluster_context.get("top_coordinator_countries", [])
+
+            if avg_partners:
+                lines.append(f"- **Typical consortium size:** {avg_partners:.0f} partners")
+            if avg_countries:
+                lines.append(f"- **Typical country coverage:** {avg_countries:.0f} countries")
+            if top_coordinators:
+                lines.append(f"- **Top coordinator countries:** {', '.join(top_coordinators[:3])}")
+            lines.append("")
+
+        # Similar projects
+        if similar_projects:
+            lines.append("### 📋 Similar Funded Projects\n")
+            for proj in similar_projects[:5]:
+                acronym = proj.get("acronym", "N/A")
+                title = proj.get("title", "")
+                if title and len(title) > 50:
+                    title = title[:50] + "..."
+                budget = proj.get("budget", 0)
+                partners = proj.get("partners")
+
+                proj_line = f"- **{acronym}**: €{budget / 1_000_000:.1f}M"
+                if partners:
+                    proj_line += f" ({partners} partners)"
+                if title:
+                    proj_line += f"\n  *{title}*"
+                lines.append(proj_line)
+            lines.append("")
+
+        # Recommendations
+        if recommendations:
+            lines.append("### 💡 Recommendations\n")
+            for rec in recommendations:
+                lines.append(f"- {rec}")
+            lines.append("")
+
+        # Actionable guidance
+        lines.append(
+            """---
+
+🎯 **Next Steps:**
+• Review the Work Programme for budget ceilings specific to your call
+• Use the [Annotated Model Grant Agreement](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/aga_en.pdf) for eligible cost rules
+• Prepare partner budget sheets with the EU template format
+• Check co-financing requirements for any non-100% funding rates
+• Contact your finance department for institutional overhead rates
+
+📚 **Useful Resources:**
+• [Budget Guidance](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/how-to-participate/1)
+• [Cost Categories Explained](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/programme-guide_horizon_en.pdf)
+• [CORDIS](https://cordis.europa.eu/) - View budgets of similar funded projects"""
+        )
+
+        return "\n".join(lines)
 
     def get_query_aware_guidance(self, query: str, response_type: str = "general") -> str:
         """
