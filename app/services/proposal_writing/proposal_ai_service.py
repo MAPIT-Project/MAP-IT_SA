@@ -4,10 +4,11 @@ Proposal AI Service
 Unified AI service for proposal writing with multi-provider support and structured outputs.
 """
 
-import logging
 import json
+import logging
 import os
-from typing import Dict, Any, Optional, AsyncGenerator
+from collections.abc import AsyncGenerator, Callable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -23,11 +24,7 @@ class ProposalAIService:
     - Consistent temperature settings for different tasks
     """
 
-    def __init__(
-        self,
-        primary_provider: str = "gemini",
-        enable_fallback: bool = True
-    ):
+    def __init__(self, primary_provider: str = "gemini", enable_fallback: bool = True):
         self._primary_provider = primary_provider
         self._enable_fallback = enable_fallback
         self._multi_provider = None
@@ -42,12 +39,13 @@ class ProposalAIService:
 
         try:
             from .ai_providers.multi_provider_service import MultiProviderAIService
+
             self._multi_provider = MultiProviderAIService(
-                primary_provider=self._primary_provider,
-                enable_fallback=self._enable_fallback
+                primary_provider=self._primary_provider, enable_fallback=self._enable_fallback
             )
             self._initialized = True
-            logger.info(f"ProposalAIService initialized with provider: {self._multi_provider.get_primary_provider()}")
+            provider = self._multi_provider.get_primary_provider()
+            logger.info(f"ProposalAIService initialized with provider: {provider}")
         except Exception as e:
             logger.warning(f"Failed to initialize multi-provider service: {e}")
             # Fall back to direct Gemini usage
@@ -57,18 +55,19 @@ class ProposalAIService:
     def _init_fallback_gemini(self):
         """Initialize fallback direct Gemini connection."""
         import google.generativeai as genai
-        genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
-        self._fallback_model = genai.GenerativeModel('gemini-2.0-flash-lite')
+
+        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+        self._fallback_model = genai.GenerativeModel("gemini-2.0-flash-lite")
         self._multi_provider = None
         logger.info("Using fallback direct Gemini connection")
 
     async def generate_structured(
         self,
         prompt: str,
-        response_schema: Dict[str, Any],
+        response_schema: dict[str, Any],
         temperature: float = 0.3,
-        max_retries: int = 2
-    ) -> Dict[str, Any]:
+        max_retries: int = 2,
+    ) -> dict[str, Any]:
         """
         Generate a structured JSON response from the LLM.
 
@@ -88,19 +87,17 @@ class ProposalAIService:
                 prompt=prompt,
                 schema=response_schema,
                 temperature=temperature,
-                max_retries=max_retries
+                max_retries=max_retries,
             )
         else:
             # Fallback to direct Gemini
-            return await self._fallback_structured(prompt, response_schema, temperature, max_retries)
+            return await self._fallback_structured(
+                prompt, response_schema, temperature, max_retries
+            )
 
     async def _fallback_structured(
-        self,
-        prompt: str,
-        response_schema: Dict[str, Any],
-        temperature: float,
-        max_retries: int
-    ) -> Dict[str, Any]:
+        self, prompt: str, response_schema: dict[str, Any], temperature: float, max_retries: int
+    ) -> dict[str, Any]:
         """Fallback structured generation using direct Gemini."""
         current_prompt = prompt
         last_error = None
@@ -112,8 +109,8 @@ class ProposalAIService:
                     generation_config={
                         "response_mime_type": "application/json",
                         "response_schema": response_schema,
-                        "temperature": temperature
-                    }
+                        "temperature": temperature,
+                    },
                 )
 
                 result = json.loads(response.text)
@@ -124,7 +121,8 @@ class ProposalAIService:
                 last_error = e
                 logger.warning(f"JSON parse error (attempt {attempt + 1}): {e}")
                 if attempt < max_retries:
-                    current_prompt = prompt + "\n\nIMPORTANT: Return ONLY valid JSON, no markdown or explanation."
+                    json_note = "\n\nIMPORTANT: Return ONLY valid JSON."
+                    current_prompt = prompt + json_note
 
             except Exception as e:
                 last_error = e
@@ -135,10 +133,7 @@ class ProposalAIService:
         raise RuntimeError(f"Failed to generate structured response: {last_error}")
 
     async def generate_text(
-        self,
-        prompt: str,
-        temperature: float = 0.7,
-        max_tokens: int = 4000
+        self, prompt: str, temperature: float = 0.7, max_tokens: int = 4000
     ) -> str:
         """
         Generate free-form text response.
@@ -156,26 +151,19 @@ class ProposalAIService:
 
         if self._multi_provider:
             response = await self._multi_provider.generate_text(
-                prompt=prompt,
-                temperature=temperature,
-                max_tokens=max_tokens
+                prompt=prompt, temperature=temperature, max_tokens=max_tokens
             )
             return response.text
         else:
             # Fallback to direct Gemini
             response = self._fallback_model.generate_content(
                 prompt,
-                generation_config={
-                    "temperature": temperature,
-                    "max_output_tokens": max_tokens
-                }
+                generation_config={"temperature": temperature, "max_output_tokens": max_tokens},
             )
             return response.text
 
     async def generate_stream(
-        self,
-        prompt: str,
-        temperature: float = 0.7
+        self, prompt: str, temperature: float = 0.7
     ) -> AsyncGenerator[str, None]:
         """
         Stream text generation.
@@ -191,16 +179,13 @@ class ProposalAIService:
 
         if self._multi_provider:
             async for chunk in self._multi_provider.generate_stream(
-                prompt=prompt,
-                temperature=temperature
+                prompt=prompt, temperature=temperature
             ):
                 yield chunk
         else:
             # Fallback to direct Gemini
             response = self._fallback_model.generate_content(
-                prompt,
-                generation_config={"temperature": temperature},
-                stream=True
+                prompt, generation_config={"temperature": temperature}, stream=True
             )
             for chunk in response:
                 if chunk.text:
@@ -209,10 +194,10 @@ class ProposalAIService:
     async def generate_with_fallback(
         self,
         prompt: str,
-        response_schema: Optional[Dict[str, Any]] = None,
+        response_schema: dict[str, Any] | None = None,
         temperature: float = 0.3,
-        fallback_fn: Optional[callable] = None
-    ) -> Dict[str, Any]:
+        fallback_fn: Callable | None = None,
+    ) -> dict[str, Any]:
         """
         Generate with automatic fallback to a provided function on failure.
 
@@ -228,9 +213,7 @@ class ProposalAIService:
         try:
             if response_schema:
                 return await self.generate_structured(
-                    prompt=prompt,
-                    response_schema=response_schema,
-                    temperature=temperature
+                    prompt=prompt, response_schema=response_schema, temperature=temperature
                 )
             else:
                 text = await self.generate_text(prompt=prompt, temperature=temperature)
@@ -242,7 +225,7 @@ class ProposalAIService:
                 return fallback_fn()
             raise
 
-    def get_status(self) -> Dict[str, str]:
+    def get_status(self) -> dict[str, str]:
         """Get provider status."""
         self._ensure_initialized()
         if self._multi_provider:

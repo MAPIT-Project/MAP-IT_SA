@@ -11832,3 +11832,76 @@ The `calculate_budget` tool was returning comprehensive budget data (total cost,
 
 ### PRD Status Update
 Scenario 012: Calculate Budget is now complete with score 100/100.
+
+## 2026-01-24: Scenario 013 - Generate Timeline (PASS)
+
+### Task Completed
+Implemented and verified Scenario 013: Generate Timeline from MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md
+
+### Query Tested
+"Create a timeline for a 36-month innovation project on smart cities"
+
+### Pre-requisite Fix Applied
+Fixed a Python import error in `app/services/proposal_writing/proposal_ai_service.py`:
+- Changed `callable | None` to `Callable | None` (using proper type from collections.abc)
+- The lowercase `callable` is a built-in function, not a type, and cannot be used with `|` union syntax
+
+### Response Quality
+- **Overall Score**: 93/100
+- **Query Fulfillment**: 38/40 - All parts addressed: work packages (6), milestones (6), deliverables schedule (13). Duration is 36 months as requested.
+- **Specificity**: 22/25 - Concrete details: 750 PM total effort, specific durations (M1-M36), partner allocations (P1-P6), deliverable IDs
+- **Factual Accuracy**: 23/25 - Reasonable for IA projects: 15 partners, 750 PM, 6 WPs, deliverable types (R, DEM), confidentiality levels
+- **Actionability**: 10/10 - Clear next steps, links to EU Portal templates and Grant Agreement Preparation guide
+
+### Key Response Features
+1. **Work Packages (6)**:
+   - WP1: Project Management (M1-M36, 60 PM)
+   - WP2: Market Analysis & Requirements (M1-M9, 75 PM)
+   - WP3: Technology Development (M3-M27, 225 PM)
+   - WP4: Pilot Deployment (M12-M30, 187 PM)
+   - WP5: Business Model & Scale-up (M18-M33, 90 PM)
+   - WP6: Dissemination & Exploitation (M1-M36, 112 PM)
+
+2. **Milestones (6)**:
+   - MS1: Project Kickoff (M1)
+   - MS2: Requirements Frozen (M9)
+   - MS3: Pilot Operational (M21)
+   - MS4: Research Phase Completed (M27)
+   - MS5: Pilot Evaluation Completed (M30)
+   - MS6: Business Model Validated (M33)
+
+3. **Deliverables (13)**: Well-distributed across timeline with proper types (R, DEM) and confidentiality levels (PU, CO)
+
+4. **Gantt Chart**: ASCII visualization showing WP timeline, milestones (◆), and deliverables (▼)
+
+5. **Recommendations**: Duration guidance, deliverable density notes, partner allocation advice
+
+### Files Created
+- `tests/quality/test_scenario_013_generate_timeline.py` - 14 tests covering:
+  1. Uses generate_timeline tool
+  2. Includes work packages
+  3. Includes milestones
+  4. Includes deliverables
+  5. Timeline spans 36 months
+  6. Milestones well-distributed
+  7. Includes person-months/effort
+  8. Includes partners/leads
+  9. Includes Gantt/visual
+  10. No error messages
+  11. Includes recommendations
+  12. Quality score threshold (80)
+  13. Full scenario integration
+  14. Response consistency
+
+### Files Modified
+- `app/services/proposal_writing/proposal_ai_service.py` - Fixed import (Callable from collections.abc) and line length issues
+- `docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md` - Marked Scenario 013 as complete
+
+### Test Results
+- All 14 tests passed
+- Tests run against live API
+- ~100 seconds total test execution time
+- Linting passed
+
+### PRD Status Update
+Scenario 013: Generate Timeline is now complete with score 93/100.

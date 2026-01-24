@@ -180,12 +180,15 @@ Verify each major tool works correctly with realistic queries.
 
 ### Timeline Tools
 
-- [ ] **Scenario 013: Generate Timeline** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 013: Generate Timeline** `EXECUTE + FIX IF NEEDED`
   - Query: "Create a timeline for a 36-month innovation project on smart cities"
   - Expected: Work packages, milestones, deliverables schedule
   - Verify: Timeline is realistic, milestones well-distributed
   - Fix if: Unrealistic scheduling, missing key phases
   - Pass threshold: 80
+  - **Status: PASS (score 93/100)**
+  - **Verified**: Returns comprehensive timeline with 6 work packages, 6 milestones, 13 deliverables, Gantt chart visualization, person-months allocation, and partner assignments
+  - **Tests**: `tests/quality/test_scenario_013_generate_timeline.py` (14 tests)
 
 ### Consortium Tools
 
