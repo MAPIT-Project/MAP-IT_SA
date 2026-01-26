@@ -383,13 +383,16 @@ Test the system's ability to handle sophisticated user needs.
 
 ### Follow-Up Conversations
 
-- [ ] **Scenario 030: Context Preservation** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 030: Context Preservation** `EXECUTE + FIX IF NEEDED`
   - Turn 1: "Find hydrogen funding calls"
   - Turn 2: "Which one has the highest budget?"
   - Expected: References calls from Turn 1, identifies highest budget
   - Verify: Context preserved, correct call identified
   - Fix if: Loses context, does new search
   - Pass threshold: 80
+  - **Status: PASS (score 80+/100)**
+  - **Verified**: V3 architecture preserves context across turns. Turn 2 successfully references Turn 1's funding calls and identifies budget information. Conversation context API shows all messages. Agent uses ReAct pattern with conversation_context parameter to maintain state.
+  - **Tests**: `tests/quality/test_scenario_030_context_preservation.py` (12 tests)
 
 - [ ] **Scenario 031: Numbered Reference** `EXECUTE + FIX IF NEEDED`
   - Turn 1: "Show me 5 climate research projects"

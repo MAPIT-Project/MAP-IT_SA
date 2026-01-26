@@ -13059,3 +13059,54 @@ Query "Compare RIA and IA funding" matches pattern "compare ria" and "ria and ia
 
 ### Status
 PASS - No code fixes required. The built-in guidance already provides comprehensive RIA vs IA comparison with TRL-specific recommendations.
+
+## 2026-01-26: Scenario 030 - Context Preservation (PASS)
+
+### Task Completed
+Implemented and tested Scenario 030: Context Preservation for multi-turn conversations.
+
+### Scenario Details
+- **Turn 1**: "Find hydrogen funding calls"
+- **Turn 2**: "Which one has the highest budget?"
+- **Expected**: References calls from Turn 1, identifies highest budget
+- **Pass threshold**: 80
+
+### Implementation
+The V3 architecture already supports context preservation through:
+1. **ConversationLockManager**: Per-conversation async locks prevent race conditions
+2. **AtomicMessageStorage**: Atomic storage of user + assistant message pairs
+3. **MemoryService**: Short-term memory (Redis) + long-term memory (PostgreSQL)
+4. **ToolAwareAgent**: ReAct pattern with conversation_context parameter
+
+### Files Created
+- `tests/quality/test_scenario_030_context_preservation.py` - 12 comprehensive tests covering:
+  - Turn 1 returns funding calls
+  - Turn 1 includes budget information
+  - Turn 2 references Turn 1 context
+  - Turn 2 identifies specific call with highest budget
+  - Turn 2 includes budget amount
+  - Turn 2 does not unnecessarily repeat search
+  - Turn 2 does not lose context
+  - Context API shows both turns
+  - Turn 2 response quality
+  - Overall score meets threshold (80)
+  - Multi-turn conversation flow integration
+  - Preserves call details across turns
+
+### Test Results
+- 12 tests passed
+- All tests verify context preservation works correctly
+- V3 architecture maintains conversation state through:
+  - `_format_conversation_for_agent()`: Formats last 6 turns with 4000 char limit for most recent assistant response
+  - `conversation_context` parameter passed to ToolAwareAgent
+  - Agent can answer from context without repeating searches
+
+### Key Verification Points
+1. Turn 2 responses reference "highest", "largest", "budget" etc.
+2. Turn 2 does NOT ask for clarification about which calls
+3. Context API returns at least 4 messages (2 turns × 2 messages each)
+4. No context loss indicators detected
+
+### PRD Status Updated
+- Scenario 030 marked as PASS (score 80+/100)
+- Tests documented in PRD
