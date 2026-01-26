@@ -2918,6 +2918,25 @@ digital_europe, life""",
             ],
         )
 
+        # Digital Europe specific tools
+        self.tools["check_digital_europe_eligibility"] = Tool(
+            name="check_digital_europe_eligibility",
+            description="Check if an organization is eligible for Digital Europe Programme funding. Covers 6 Specific Objectives: HPC (High Performance Computing), AI (Artificial Intelligence), Cybersecurity, Skills (Advanced Digital Skills), Deployment (EDIHs), and Semiconductors (Chips Act). Considers organization type (SME, startup, research, EDIH, HPC center, public authority), country eligibility (EU + EEA + associated countries), and objective-specific requirements. Use for eligibility questions about Digital Europe.",
+            category=ToolCategory.CALLS,
+            parameters={
+                "org_type": "Organization type: SME, STARTUP, LARGE_ENTERPRISE, RESEARCH, UNIVERSITY, PUBLIC_AUTHORITY, EDIH, HPC_CENTER, NGO, COMPETENCE_CENTER, HEALTHCARE, EDUCATION_PROVIDER",
+                "country": "Country of the organization (e.g., 'Germany', 'France', 'Poland')",
+                "objective": "Optional: Specific objective (HPC, AI, CYBERSECURITY, SKILLS, DEPLOYMENT, SEMICONDUCTORS). If not provided, returns all eligible objectives.",
+                "action_type": "Optional: Action type filter (grant, procurement)",
+            },
+            examples=[
+                "check_digital_europe_eligibility(org_type='SME', country='Germany', objective='AI')",
+                "check_digital_europe_eligibility(org_type='STARTUP', country='France', objective='CYBERSECURITY')",
+                "check_digital_europe_eligibility(org_type='EDIH', country='Spain')  # Returns all eligible objectives",
+                "check_digital_europe_eligibility(org_type='RESEARCH', country='Switzerland', objective='HPC')",
+            ],
+        )
+
     def register_tool(self, tool: Tool):
         """Register a tool with the agent."""
         self.tools[tool.name] = tool
@@ -3736,6 +3755,17 @@ digital_europe, life""",
         eu4health_eligibility_result = self._detect_eu4health_eligibility_query(query, context)
         if eu4health_eligibility_result:
             return eu4health_eligibility_result
+
+        # Check for DIGITAL EUROPE ELIGIBILITY queries
+        # e.g., "Can a cybersecurity startup apply to Digital Europe?"
+        # "Is an SME eligible for Digital Europe AI funding?"
+        # "What Digital Europe opportunities are available for an EDIH?"
+        # IMPORTANT: Must catch Digital Europe eligibility before general digital queries
+        digital_europe_eligibility_result = self._detect_digital_europe_eligibility_query(
+            query, context
+        )
+        if digital_europe_eligibility_result:
+            return digital_europe_eligibility_result
 
         # Check for EU4HEALTH TOPICS/PRIORITIES queries
         # e.g., "What EU4Health priorities focus on cancer?"
@@ -11001,6 +11031,12 @@ Budget Breakdown:
                 if eligibility_text:
                     content_pieces.append(eligibility_text)
 
+            # Extract Digital Europe eligibility results
+            elif result.get("metadata", {}).get("tool") == "check_digital_europe_eligibility":
+                eligibility_text = self._format_digital_europe_eligibility_result(result)
+                if eligibility_text:
+                    content_pieces.append(eligibility_text)
+
             # Extract EU4Health template search results
             elif result.get("metadata", {}).get("tool") == "search_eu4health_templates":
                 template_text = self._format_eu4health_template_search_result(result)
@@ -11457,6 +11493,9 @@ Found **{total_found} organizations** with relevant track records:
                 return await self._tool_check_eu4health_eligibility(params)
             elif tool_name == "search_eu4health_templates":
                 return await self._tool_search_eu4health_templates(params)
+            # Digital Europe specific tools
+            elif tool_name == "check_digital_europe_eligibility":
+                return await self._tool_check_digital_europe_eligibility(params)
             else:
                 return {"error": f"Tool {tool_name} not implemented"}
         except Exception as e:
@@ -12777,6 +12816,26 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"EU4Health template search error: {e}")
             return {"error": str(e), "success": False}
 
+    async def _tool_check_digital_europe_eligibility(self, params: dict) -> dict:
+        """Check Digital Europe eligibility for an organization."""
+        try:
+            from ..tools.digital_europe_eligibility import (
+                check_digital_europe_eligibility_execute,
+            )
+
+            result = await check_digital_europe_eligibility_execute(
+                org_type=params.get("org_type", "SME"),
+                country=params.get("country", "Germany"),
+                objective=params.get("objective"),
+                action_type=params.get("action_type"),
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Digital Europe eligibility check error: {e}")
+            return {"error": str(e), "success": False}
+
     def _summarize_tool_results(self, tool_calls: list[ToolCall]) -> str:
         """Summarize results from tool calls in a human-readable format."""
         summaries = []
@@ -13304,6 +13363,163 @@ This may be because:
         )
 
         return "\n".join(parts)
+
+    def _format_digital_europe_eligibility_result(self, result: dict) -> str:
+        """Format Digital Europe eligibility check result into readable text."""
+        if not result.get("success"):
+            return ""
+
+        metadata = result.get("metadata", {})
+        query_type = metadata.get("query_type", "")
+
+        # Single objective eligibility check
+        if query_type == "specific_objective" and "result" in result:
+            check_result = result["result"]
+            objective = check_result.get("objective", "Unknown")
+            objective_name = check_result.get("objective_name", "Unknown Objective")
+            eligible = check_result.get("eligible", False)
+            requirements_met = check_result.get("requirements_met", [])
+            requirements_missing = check_result.get("requirements_missing", [])
+            warnings = check_result.get("warnings", [])
+            recommendations = check_result.get("recommendations", [])
+
+            # Get country and org type from metadata
+            check_metadata = check_result.get("metadata", {})
+            country = check_metadata.get("country", "Unknown")
+            org_type = check_metadata.get("org_type", "Unknown")
+            is_eu_member = check_metadata.get("is_eu_member", False)
+            is_eea = check_metadata.get("is_eea", False)
+            is_associated = check_metadata.get("is_associated", False)
+
+            if is_eu_member:
+                country_status = "EU Member State ✅"
+            elif is_eea:
+                country_status = "EEA Country ✅"
+            elif is_associated:
+                country_status = "Associated Country"
+            else:
+                country_status = "Participating Country"
+
+            eligibility_text = f"""## Digital Europe Eligibility Check: {objective_name} ({objective})
+
+**Organization**: {org_type.replace('_', ' ').title()} from {country}
+**Country Status**: {country_status}
+**Eligibility**: {"✅ ELIGIBLE" if eligible else "❌ NOT ELIGIBLE"}
+
+"""
+            if requirements_met:
+                eligibility_text += "**Requirements Met:**\n"
+                for req in requirements_met:
+                    eligibility_text += f"- ✅ {req}\n"
+                eligibility_text += "\n"
+
+            if requirements_missing:
+                eligibility_text += "**Requirements Not Met:**\n"
+                for req in requirements_missing:
+                    eligibility_text += f"- ❌ {req}\n"
+                eligibility_text += "\n"
+
+            if warnings:
+                eligibility_text += "**Warnings:**\n"
+                for warning in warnings:
+                    eligibility_text += f"- ⚠️ {warning}\n"
+                eligibility_text += "\n"
+
+            if recommendations:
+                eligibility_text += "**Key Information:**\n"
+                for rec in recommendations:
+                    eligibility_text += f"- {rec}\n"
+                eligibility_text += "\n"
+
+            eligibility_text += """
+---
+🎯 **Next Steps:**
+• Check the [Digital Europe Programme](https://digital-strategy.ec.europa.eu/en/activities/digital-programme) for programme details
+• Review calls on the [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/?programmePeriod=2021-2027&programCcm2Id=43152860)
+• Contact [HaDEA](https://hadea.ec.europa.eu/programmes/digital-europe-programme_en) (Health and Digital Executive Agency) for support
+"""
+            return eligibility_text
+
+        # All eligible objectives check
+        elif query_type == "all_objectives" and "eligible_objectives" in result:
+            eligible_objectives = result.get("eligible_objectives", [])
+            total_eligible = result.get("total_eligible", len(eligible_objectives))
+            country = metadata.get("country", "Unknown")
+            org_type = metadata.get("org_type", "Unknown")
+            objectives_info = result.get("objectives", {})
+
+            if total_eligible == 0:
+                eligibility_text = f"""## Digital Europe Eligibility Check for {org_type.replace('_', ' ').title()} from {country}
+
+**Eligibility**: ❌ No eligible objectives found
+
+This may be because:
+- {country} is not a participating country in Digital Europe
+- The organization type ({org_type.replace('_', ' ')}) has restrictions for Digital Europe objectives
+- Switzerland only participates in HPC and AI objectives
+
+**Recommendations:**
+- Check if your organization qualifies under a different category
+- Consider partnership with eligible entities from EU Member States
+- Contact HaDEA for guidance on specific opportunities
+"""
+            else:
+                eligibility_text = f"""## Digital Europe Eligibility Check for {org_type.replace('_', ' ').title()} from {country}
+
+**Total Eligible Objectives**: {total_eligible}
+
+**Available Funding Options:**
+"""
+                for obj in eligible_objectives:
+                    obj_code = obj.get("objective", "")
+                    obj_name = obj.get("objective_name", "")
+                    eligible = obj.get("eligible", False)
+                    warnings = obj.get("warnings", [])
+                    recommendations = obj.get("recommendations", [])
+
+                    # Get additional objective info
+                    obj_details = objectives_info.get(obj_code, {})
+                    budget = obj_details.get("budget", "")
+                    funding_rate = obj_details.get("funding_rate", "")
+                    description = obj_details.get("description", "")
+
+                    if eligible:
+                        eligibility_text += f"\n### {obj_name} ({obj_code}) ✅\n"
+                        if description:
+                            eligibility_text += f"{description}\n\n"
+                        if budget:
+                            eligibility_text += f"- **Budget**: {budget}\n"
+                        if funding_rate:
+                            eligibility_text += f"- **Funding Rate**: {funding_rate}\n"
+                        if warnings:
+                            for w in warnings:
+                                eligibility_text += f"- ⚠️ {w}\n"
+                        if recommendations:
+                            for r in recommendations:
+                                eligibility_text += f"- {r}\n"
+
+                # Add Digital Europe objectives overview
+                eligibility_text += "\n### Digital Europe Specific Objectives Overview\n"
+                eligibility_text += "The Digital Europe Programme covers 6 strategic objectives:\n"
+                eligibility_text += "- **HPC**: High Performance Computing (€2.227B)\n"
+                eligibility_text += "- **AI**: Artificial Intelligence (€2.062B)\n"
+                eligibility_text += "- **Cybersecurity**: Cybersecurity and Trust (€1.650B)\n"
+                eligibility_text += "- **Skills**: Advanced Digital Skills (€577M)\n"
+                eligibility_text += "- **Deployment**: EDIHs and Best Use (€1.072B)\n"
+                eligibility_text += "- **Semiconductors**: Chips Act initiatives\n"
+
+                eligibility_text += """
+---
+🎯 **Next Steps:**
+• Review the [Digital Europe Work Programmes](https://digital-strategy.ec.europa.eu/en/activities/digital-programme) for current priorities
+• Check open calls on the [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/?programmePeriod=2021-2027&programCcm2Id=43152860)
+• Contact [HaDEA](https://hadea.ec.europa.eu/programmes/digital-europe-programme_en) for guidance and support
+• For EDIHs, check the [EDIH Network](https://european-digital-innovation-hubs.ec.europa.eu/)
+"""
+
+            return eligibility_text
+
+        return ""
 
     def _format_tool_result_summary(self, tool_name: str, result: Any) -> str:
         """Format a single tool result into a readable summary."""
@@ -21426,6 +21642,280 @@ Help your film reach audiences:
                     }
                 ],
                 "confidence": 0.85,
+                "needs_more_info": False,
+            }
+
+        return None
+
+    # ========================================================================
+    # DIGITAL EUROPE ELIGIBILITY DETECTION
+    # ========================================================================
+
+    def _detect_digital_europe_eligibility_query(
+        self, query: str, context: str
+    ) -> dict[str, Any] | None:
+        """Detect Digital Europe eligibility queries.
+
+        These are questions about Digital Europe programme eligibility, covering:
+        - HPC (High Performance Computing)
+        - AI (Artificial Intelligence)
+        - Cybersecurity
+        - Skills (Advanced Digital Skills)
+        - Deployment (EDIHs)
+        - Semiconductors (Chips Act)
+
+        Examples:
+        - "Can a cybersecurity startup apply to Digital Europe?"
+        - "Is an SME eligible for Digital Europe AI funding?"
+        - "What Digital Europe opportunities are available for an EDIH?"
+        - "Can our research institution apply for Digital Europe HPC calls?"
+        - "Is Switzerland eligible for Digital Europe?"
+        """
+        query_lower = query.lower()
+        # Note: context not currently used but kept for future enhancement
+        _ = context  # Mark as intentionally unused
+
+        # Digital Europe indicators
+        digital_europe_indicators = [
+            "digital europe",
+            "digital-europe",
+            "digitaleurope",
+            "dep programme",  # Digital Europe Programme
+            "digital europe programme",
+        ]
+        has_digital_europe = any(ind in query_lower for ind in digital_europe_indicators)
+
+        # Skip if query explicitly mentions another programme
+        other_programmes = [
+            "erasmus",
+            "creative europe",
+            "horizon europe",
+            "horizon 2020",
+            "eu4health",
+            "life programme",
+        ]
+        if any(prog in query_lower for prog in other_programmes):
+            return None
+
+        # Eligibility indicators
+        eligibility_indicators = [
+            "eligible",
+            "eligibility",
+            "can we apply",
+            "can i apply",
+            "can a",
+            "can an",
+            "can our",
+            "can my",
+            "participate",
+            "apply to",
+            "apply for",
+            "funding options",
+            "funding opportunities",
+            "is a ",
+            "am i eligible",
+            "are we eligible",
+        ]
+        has_eligibility = any(ind in query_lower for ind in eligibility_indicators)
+
+        # Digital Europe specific topic indicators (can help detect even without explicit programme mention)
+        dep_topic_indicators = [
+            "edih",
+            "digital innovation hub",
+            "hpc ",
+            "high performance computing",
+            "supercomputing",
+            "eurohpc",
+            "ai factories",
+            "digital skills",
+            "advanced skills",
+            "cybersecurity",
+            "cyber security",
+            "chips act",
+            "semiconductors",
+            "eccc",  # European Cybersecurity Competence Centre
+        ]
+        has_dep_topic = any(ind in query_lower for ind in dep_topic_indicators)
+
+        # Also check for generic digital + eligibility context
+        generic_digital_context = (
+            ("digital" in query_lower or "digitalization" in query_lower)
+            and has_eligibility
+            and "europe" in query_lower
+        )
+
+        # Organization type detection
+        org_type_patterns = {
+            "SME": ["sme", "small enterprise", "small business", "medium enterprise"],
+            "STARTUP": ["startup", "start-up", "scaleup", "scale-up"],
+            "LARGE_ENTERPRISE": ["large enterprise", "large company", "corporation"],
+            "RESEARCH": [
+                "research institution",
+                "research center",
+                "research centre",
+                "research org",
+            ],
+            "UNIVERSITY": ["university", "higher education", "academia", "academic"],
+            "PUBLIC_AUTHORITY": [
+                "public authority",
+                "government",
+                "public body",
+                "public sector",
+                "municipality",
+            ],
+            "EDIH": ["edih", "digital innovation hub", "innovation hub"],
+            "HPC_CENTER": ["hpc center", "hpc centre", "supercomputing center"],
+            "NGO": ["ngo", "non-profit", "nonprofit", "non-governmental"],
+            "COMPETENCE_CENTER": ["competence center", "competence centre"],
+            "HEALTHCARE": ["hospital", "healthcare", "health provider"],
+            "EDUCATION_PROVIDER": ["training provider", "education provider", "training center"],
+        }
+        org_type = "SME"  # Default
+        for ot, patterns in org_type_patterns.items():
+            if any(p in query_lower for p in patterns):
+                org_type = ot
+                break
+
+        # Country detection
+        countries = [
+            "Germany",
+            "France",
+            "Italy",
+            "Spain",
+            "Netherlands",
+            "Belgium",
+            "Poland",
+            "Austria",
+            "Sweden",
+            "Denmark",
+            "Finland",
+            "Ireland",
+            "Portugal",
+            "Greece",
+            "Czech Republic",
+            "Romania",
+            "Hungary",
+            "Bulgaria",
+            "Slovakia",
+            "Slovenia",
+            "Croatia",
+            "Lithuania",
+            "Latvia",
+            "Estonia",
+            "Luxembourg",
+            "Malta",
+            "Cyprus",
+            "Norway",
+            "Iceland",
+            "Liechtenstein",
+            "Switzerland",
+            "Ukraine",
+            "Moldova",
+            "Montenegro",
+            "Serbia",
+            "Albania",
+            "North Macedonia",
+            "Kosovo",
+            "Türkiye",
+            "Turkey",
+            "Bosnia",
+        ]
+        country = None
+        for c in countries:
+            if c.lower() in query_lower:
+                country = c if c != "Turkey" else "Türkiye"
+                break
+
+        # Objective detection
+        objective_patterns = {
+            "HPC": ["hpc", "high performance computing", "supercomputing", "eurohpc"],
+            "AI": [
+                "artificial intelligence",
+                " ai ",
+                "ai funding",
+                "ai project",
+                "machine learning",
+                "ai factories",
+            ],
+            "CYBERSECURITY": ["cybersecurity", "cyber security", "cyber-security", "eccc", "soc "],
+            "SKILLS": ["digital skills", "advanced skills", "training", "skills programme"],
+            "DEPLOYMENT": ["deployment", "edih", "digital innovation hub", "best use"],
+            "SEMICONDUCTORS": ["semiconductor", "chips act", "chip design", "pilot line"],
+        }
+        objective = None
+        for obj, patterns in objective_patterns.items():
+            if any(p in query_lower for p in patterns):
+                objective = obj
+                break
+
+        # Route to check_digital_europe_eligibility tool if Digital Europe + eligibility
+        if has_digital_europe and has_eligibility:
+            params = {
+                "org_type": org_type,
+                "country": country or "Germany",  # Default if not specified
+            }
+            if objective:
+                params["objective"] = objective
+
+            return {
+                "thought": f"User is asking about Digital Europe eligibility for a {org_type.replace('_', ' ')} from {country or 'an EU country'}. Calling check_digital_europe_eligibility tool.",
+                "action": "call_tools",
+                "tool_calls": [
+                    {
+                        "tool": "check_digital_europe_eligibility",
+                        "parameters": params,
+                        "reasoning": f"Checking Digital Europe eligibility for {org_type} from {country or 'Germany'}",
+                    }
+                ],
+                "confidence": 0.95,
+                "needs_more_info": False,
+            }
+
+        # Pattern: Digital Europe topic indicators + eligibility (even without explicit Digital Europe mention)
+        if (
+            has_dep_topic
+            and has_eligibility
+            and not any(prog in query_lower for prog in other_programmes)
+        ):
+            params = {
+                "org_type": org_type,
+                "country": country or "Germany",
+            }
+            if objective:
+                params["objective"] = objective
+
+            return {
+                "thought": f"User is asking about eligibility for Digital Europe-related topics ({objective or 'digital'}). Routing to Digital Europe eligibility check.",
+                "action": "call_tools",
+                "tool_calls": [
+                    {
+                        "tool": "check_digital_europe_eligibility",
+                        "parameters": params,
+                        "reasoning": f"Checking Digital Europe eligibility for {org_type} interested in {objective or 'digital technologies'}",
+                    }
+                ],
+                "confidence": 0.85,
+                "needs_more_info": False,
+            }
+
+        # Pattern: Generic digital + Europe + eligibility context
+        if generic_digital_context and not any(prog in query_lower for prog in other_programmes):
+            params = {
+                "org_type": org_type,
+                "country": country or "Germany",
+            }
+
+            return {
+                "thought": "User is asking about digital-related EU funding eligibility. This appears to be a Digital Europe question. Calling check_digital_europe_eligibility tool.",
+                "action": "call_tools",
+                "tool_calls": [
+                    {
+                        "tool": "check_digital_europe_eligibility",
+                        "parameters": params,
+                        "reasoning": f"Checking Digital Europe funding options for {org_type} from {country or 'Germany'}",
+                    }
+                ],
+                "confidence": 0.80,
                 "needs_more_info": False,
             }
 

@@ -296,12 +296,15 @@ Ensure all 6 EU programmes work correctly.
 
 ### Digital Europe
 
-- [ ] **Scenario 023: Digital Europe Eligibility** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 023: Digital Europe Eligibility** `EXECUTE + FIX IF NEEDED`
   - Query: "Can a cybersecurity startup apply to Digital Europe?"
   - Expected: Yes, cybersecurity objective details, SME info
   - Verify: Digital Europe specifics, correct objectives
   - Fix if: Confuses with Horizon Europe digital topics
   - Pass threshold: 80
+  - **Status: PASS (score 100/100)**
+  - **Fix applied**: Added `check_digital_europe_eligibility` tool to ToolAwareAgent - registered tool definition, execution routing, wrapper method, result formatter, and `_detect_digital_europe_eligibility_query()` for pre-routing. Also fixed STARTUP eligibility in digital_europe_eligibility.py to treat startups as SMEs where applicable.
+  - **Tests**: `tests/quality/test_scenario_023_digital_europe_eligibility.py` (13 tests)
 
 - [ ] **Scenario 024: Digital Europe vs Horizon** `EXECUTE + FIX IF NEEDED`
   - Query: "Should I apply to Digital Europe or Horizon Europe for an AI project?"

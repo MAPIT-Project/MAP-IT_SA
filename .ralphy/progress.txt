@@ -12525,3 +12525,71 @@ Phase 2 Progress: 5/12 scenarios complete.
 
 ### Files Updated
 - `docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md` - Marked scenario 022 complete
+
+## 2026-01-26: Scenario 023 - Digital Europe Eligibility (COMPLETE)
+
+### Task Completed
+Implemented Scenario 023: Digital Europe Eligibility with full integration into ToolAwareAgent.
+
+### Query
+"Can a cybersecurity startup apply to Digital Europe?"
+
+### Expected Behavior
+- Yes, confirms eligibility for cybersecurity objective
+- Provides SME/startup-specific information
+- Shows Digital Europe-specific objectives and details
+- Includes actionable next steps with portal links
+
+### Files Modified
+
+1. **`app/services/agents/tool_aware_agent.py`**:
+   - Added `check_digital_europe_eligibility` tool registration in `_init_tools()` (after EU4Health tools)
+   - Added tool execution routing in `_execute_single_tool()` for `check_digital_europe_eligibility`
+   - Added `_tool_check_digital_europe_eligibility()` wrapper method
+   - Added `_format_digital_europe_eligibility_result()` formatter method for rich output
+   - Added formatter call in tool result extraction to handle Digital Europe eligibility results
+   - Added `_detect_digital_europe_eligibility_query()` method for pre-routing queries
+   - Added Digital Europe eligibility detection in `_classify_intent_agentic()` method
+
+2. **`app/services/tools/digital_europe_eligibility.py`**:
+   - Fixed STARTUP eligibility: Added logic to treat STARTUPs as SMEs for objectives where STARTUP is not explicitly listed but SME is (e.g., CYBERSECURITY)
+   - Fixed line length issues for ruff compliance
+
+### Files Created
+- **`tests/quality/test_scenario_023_digital_europe_eligibility.py`** (13 tests):
+  - `test_confirms_eligibility` - Verifies eligibility confirmation
+  - `test_mentions_cybersecurity_objective` - Checks cybersecurity objective is mentioned
+  - `test_identifies_eligible_objectives` - Verifies eligible objectives listed
+  - `test_mentions_funding_rate` - Checks 50% funding rate mentioned
+  - `test_mentions_startup_sme_context` - Verifies startup/SME context addressed
+  - `test_uses_digital_europe_eligibility_tool` - Confirms correct tool is called
+  - `test_provides_actionable_next_steps` - Checks for HaDEA, portal links
+  - `test_mentions_digital_europe_programme` - Verifies programme name mentioned
+  - `test_no_horizon_europe_confusion` - Ensures no wrong tool used
+  - `test_no_erasmus_confusion` - Ensures no Erasmus+ tool used
+  - `test_no_creative_europe_confusion` - Ensures no Creative Europe tool used
+  - `test_no_eu4health_confusion` - Ensures no EU4Health tool used
+  - `test_overall_score_meets_threshold` - Overall quality score >= 80
+
+### Test Results
+- 13/13 tests passed
+- Score: 100/100
+
+### Implementation Pattern
+Following the same pattern as EU4Health and Creative Europe eligibility:
+1. Tool registration with full parameters and examples
+2. Tool execution routing in `_execute_single_tool()`
+3. Wrapper method calling the execute function
+4. Result formatter for rich markdown output
+5. Intent detection method for pre-routing queries
+6. Integration in main classification method
+
+### Key Features Implemented
+- **6 Digital Europe Objectives covered**: HPC, AI, Cybersecurity, Skills, Deployment, Semiconductors
+- **Country eligibility**: EU + EEA + Associated countries (+ Switzerland for HPC/AI only)
+- **Organization types**: SME, STARTUP, RESEARCH, UNIVERSITY, PUBLIC_AUTHORITY, EDIH, HPC_CENTER, etc.
+- **Startup handling**: STARTUPs treated as SMEs for eligibility where applicable
+- **Rich formatting**: Budget info, funding rates, next steps with official links
+
+### PRD Status
+- [x] Scenario 023: Digital Europe Eligibility - PASS (100/100)
