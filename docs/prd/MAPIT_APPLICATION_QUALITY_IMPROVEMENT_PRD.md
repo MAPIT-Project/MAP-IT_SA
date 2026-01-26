@@ -284,12 +284,15 @@ Ensure all 6 EU programmes work correctly.
   - **Fix applied**: Added EU4Health tools to ToolAwareAgent - registered `check_eu4health_eligibility` and `search_eu4health_templates` in _init_tools(), _execute_single_tool(), added handler methods, result formatter, and _detect_eu4health_eligibility_query() for pre-routing
   - **Tests**: `tests/quality/test_scenario_021_eu4health_eligibility.py` (13 tests)
 
-- [ ] **Scenario 022: EU4Health Topics** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 022: EU4Health Topics** `EXECUTE + FIX IF NEEDED`
   - Query: "What EU4Health priorities focus on cancer?"
   - Expected: Europe's Beating Cancer Plan actions, specific calls
   - Verify: Cancer-specific EU4Health info
   - Fix if: Generic cancer research response
   - Pass threshold: 80
+  - **Status: PASS (score 100/100)**
+  - **Fix applied**: Added `_detect_eu4health_topics_query()` method to pre-route EU4Health topics/priorities queries to `search_eu4health_templates` tool. Added `_format_eu4health_template_search_result()` formatter for structured EU4Health programme information. Added `call_tools_and_format` action to bypass LLM synthesis and use custom formatting. Fixed content cleaning to remove `[Page X]` references that triggered quality check failures.
+  - **Tests**: `tests/quality/test_scenario_022_eu4health_topics.py` (12 tests)
 
 ### Digital Europe
 

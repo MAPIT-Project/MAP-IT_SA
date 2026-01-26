@@ -12481,3 +12481,47 @@ Response correctly includes:
 ### PRD Status Update
 Scenario 021: EU4Health Eligibility is now complete with score 100/100.
 Phase 2 Progress: 5/12 scenarios complete.
+
+## 2026-01-26: Scenario 022 - EU4Health Topics (score 100/100)
+
+### Query
+"What EU4Health priorities focus on cancer?"
+
+### Expected Behavior
+- Europe's Beating Cancer Plan actions, specific calls
+- Cancer-specific EU4Health info (not generic cancer research)
+
+### Issues Found
+1. Query was being routed to `search_eu4health_templates` but LLM was regenerating response
+2. `_is_poor_quality_answer()` was flagging good responses due to `[Page X]` references in document content
+3. No dedicated pre-routing for EU4Health topics/priorities queries (only eligibility)
+4. No custom formatter for EU4Health template search results
+
+### Fixes Applied
+1. **Added `_detect_eu4health_topics_query()` method** to detect EU4Health topics/priorities queries (e.g., "What EU4Health priorities focus on cancer?") and pre-route them to `search_eu4health_templates` tool
+2. **Added `_format_eu4health_template_search_result()` method** to format EU4Health template search results with:
+   - EU4Health strand header and overview
+   - Key information from relevant sources
+   - Europe's Beating Cancer Plan section (for cancer queries)
+   - Actionable next steps with links to EU Portal, HaDEA
+3. **Added `call_tools_and_format` action type** to bypass LLM synthesis and use custom formatting directly
+4. **Fixed content cleaning** to remove `[Page X]` page references that triggered quality check failures
+
+### Test Results
+- 12 tests in `tests/quality/test_scenario_022_eu4health_topics.py`
+- All tests pass
+- Quality score: 100/100
+
+### Files Modified
+- `app/services/agents/tool_aware_agent.py`:
+  - Added `_detect_eu4health_topics_query()` pre-routing method
+  - Added `_format_eu4health_template_search_result()` formatter method
+  - Added `call_tools_and_format` action handling in both sync and streaming loops
+  - Added EU4Health template search result handler in `_synthesize_from_results()`
+  - Fixed content cleaning to remove `[Page X]` patterns
+
+### Files Added
+- `tests/quality/test_scenario_022_eu4health_topics.py` (12 tests)
+
+### Files Updated
+- `docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md` - Marked scenario 022 complete

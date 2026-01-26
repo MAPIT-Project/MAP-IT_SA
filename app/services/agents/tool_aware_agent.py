@@ -3044,6 +3044,26 @@ digital_europe, life""",
                 )
                 step.next_action_needed = False
 
+            elif step.action == "call_tools_and_format":
+                # Execute tool calls and format results directly (bypass LLM for response)
+                # Used for pre-routed queries where we want structured formatting
+                tool_calls = reasoning_result.get("tool_calls", [])
+                step.tool_calls = await self._execute_tool_calls(tool_calls)
+
+                # Collect results
+                tool_results_for_format = {}
+                for idx, tc in enumerate(step.tool_calls):
+                    if tc.success:
+                        all_tool_results[f"{tc.tool_name}_{iteration}_{idx}"] = tc.result
+                        tool_results_for_format[tc.tool_name] = tc.result
+
+                # Format results using our formatter instead of LLM
+                formatted_response = self._synthesize_from_results(query, tool_results_for_format)
+                plan.final_answer = formatted_response
+                plan.confidence = 0.90
+                step.observation = f"Executed {len(step.tool_calls)} tool(s) and formatted results"
+                step.next_action_needed = False
+
             plan.reasoning_steps.append(step)
 
             # Check if we should stop
@@ -3258,6 +3278,40 @@ digital_europe, life""",
                 step.observation = (
                     f"Generated {reasoning_result.get('guidance_type', 'guidance')} guidance"
                 )
+                step.next_action_needed = False
+
+            elif step.action == "call_tools_and_format":
+                # Execute tool calls and format results directly (bypass LLM for response)
+                # Used for pre-routed queries where we want structured formatting
+                tool_calls = reasoning_result.get("tool_calls", [])
+                step.tool_calls = await self._execute_tool_calls(tool_calls)
+
+                # Yield tool call events for streaming
+                for tc in step.tool_calls:
+                    yield {
+                        "type": "tool_call",
+                        "tool_name": tc.tool_name,
+                        "parameters": tc.parameters,
+                    }
+                    yield {
+                        "type": "tool_result",
+                        "tool_name": tc.tool_name,
+                        "success": tc.success,
+                        "result_summary": str(tc.result)[:200] if tc.result else "",
+                    }
+
+                # Collect results
+                tool_results_for_format = {}
+                for idx, tc in enumerate(step.tool_calls):
+                    if tc.success:
+                        all_tool_results[f"{tc.tool_name}_{iteration}_{idx}"] = tc.result
+                        tool_results_for_format[tc.tool_name] = tc.result
+
+                # Format results using our formatter instead of LLM
+                formatted_response = self._synthesize_from_results(query, tool_results_for_format)
+                plan.final_answer = formatted_response
+                plan.confidence = 0.90
+                step.observation = f"Executed {len(step.tool_calls)} tool(s) and formatted results"
                 step.next_action_needed = False
 
             plan.reasoning_steps.append(step)
@@ -3682,6 +3736,15 @@ digital_europe, life""",
         eu4health_eligibility_result = self._detect_eu4health_eligibility_query(query, context)
         if eu4health_eligibility_result:
             return eu4health_eligibility_result
+
+        # Check for EU4HEALTH TOPICS/PRIORITIES queries
+        # e.g., "What EU4Health priorities focus on cancer?"
+        # "Tell me about EU4Health disease prevention activities"
+        # "What is Europe's Beating Cancer Plan under EU4Health?"
+        # IMPORTANT: Must come AFTER eligibility check to prioritize eligibility questions
+        eu4health_topics_result = self._detect_eu4health_topics_query(query, context)
+        if eu4health_topics_result:
+            return eu4health_topics_result
 
         # Check for CREATIVE EUROPE CALL SEARCH queries
         # These are explicit requests to find/search/list open or upcoming Creative Europe calls
@@ -9866,6 +9929,12 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
                     if content and len(content) > 100:
                         content_pieces.append(content.strip())
 
+            # Extract EU4Health template search results
+            elif result.get("metadata", {}).get("tool") == "search_eu4health_templates":
+                template_text = self._format_eu4health_template_search_result(result)
+                if template_text:
+                    content_pieces.append(template_text)
+
             # Extract calls info
             elif "calls" in result and isinstance(result["calls"], list):
                 if len(result["calls"]) == 0:
@@ -10931,6 +11000,12 @@ Budget Breakdown:
                 eligibility_text = self._format_eu4health_eligibility_result(result)
                 if eligibility_text:
                     content_pieces.append(eligibility_text)
+
+            # Extract EU4Health template search results
+            elif result.get("metadata", {}).get("tool") == "search_eu4health_templates":
+                template_text = self._format_eu4health_template_search_result(result)
+                if template_text:
+                    content_pieces.append(template_text)
 
             # Extract programme recommendations results
             elif "recommendations" in result and result.get("total_programmes"):
@@ -13101,6 +13176,134 @@ This may be because:
             return eligibility_text
 
         return ""
+
+    def _format_eu4health_template_search_result(self, result: dict) -> str:
+        """Format EU4Health template search results into readable text.
+
+        This method formats results from search_eu4health_templates tool,
+        presenting EU4Health programme information including priorities,
+        cancer plan details, and other thematic content.
+        """
+        if not result.get("success"):
+            return ""
+
+        results = result.get("results", [])
+        if not results:
+            return ""
+
+        query = result.get("query", "")
+        detected_strand = result.get("detected_strand", "")
+        total_found = result.get("total_found", len(results))
+
+        # Build the formatted output
+        parts = []
+
+        # Header based on detected strand
+        strand_headers = {
+            "PREVENTION": "## EU4Health Disease Prevention & Cancer Priorities",
+            "CRISIS": "## EU4Health Crisis Preparedness & Health Security",
+            "HEALTH_SYSTEMS": "## EU4Health Health Systems & Workforce",
+            "DIGITAL": "## EU4Health Digital Health & EHDS",
+        }
+        header = strand_headers.get(detected_strand, "## EU4Health Programme Information")
+        parts.append(header)
+        parts.append("")
+
+        # Add strand context if detected
+        strand_descriptions = {
+            "PREVENTION": (
+                "The EU4Health programme supports disease prevention through "
+                "**Europe's Beating Cancer Plan**, non-communicable disease (NCD) "
+                "prevention, vaccination programs, screening initiatives, and health "
+                "promotion activities."
+            ),
+            "CRISIS": (
+                "EU4Health supports **crisis preparedness** through HERA (Health "
+                "Emergency Preparedness and Response Authority), medical countermeasures "
+                "(MCM) stockpiling, and antimicrobial resistance (AMR) actions."
+            ),
+            "HEALTH_SYSTEMS": (
+                "EU4Health strengthens health systems through healthcare workforce "
+                "support, Health Technology Assessment (HTA), medicines supply, and "
+                "pharmaceutical strategy implementation."
+            ),
+            "DIGITAL": (
+                "EU4Health advances digital health through the **European Health "
+                "Data Space (EHDS)**, eHealth infrastructure, telemedicine support, "
+                "and AI applications in healthcare."
+            ),
+        }
+        if detected_strand and detected_strand in strand_descriptions:
+            parts.append(f"**Overview:** {strand_descriptions[detected_strand]}")
+            parts.append("")
+
+        # Add relevant content from search results
+        parts.append(f"### Key Information (from {total_found} relevant sources)")
+        parts.append("")
+
+        for i, item in enumerate(results[:5], 1):
+            content = item.get("content", "")
+            section = item.get("section", "general")
+            section_desc = item.get("section_description", "")
+
+            if content:
+                # Clean and format content
+                content = content.strip()
+                # Remove page references like [Page 23] that trigger quality checks
+                import re
+
+                content = re.sub(r"\[Page\s*\d+\]", "", content)
+                content = re.sub(r"\s{2,}", " ", content)  # Clean up extra whitespace
+                # Truncate if too long but keep meaningful content
+                if len(content) > 800:
+                    content = content[:800] + "..."
+
+                section_label = section_desc if section_desc else section.replace("_", " ").title()
+                parts.append(f"**{i}. {section_label}**")
+                parts.append(content)
+                parts.append("")
+
+        # Add Europe's Beating Cancer Plan context if cancer-related query
+        query_lower = query.lower()
+        if "cancer" in query_lower:
+            parts.append("### Europe's Beating Cancer Plan")
+            parts.append(
+                "The EU4Health programme is a key funding source for implementing "
+                "**Europe's Beating Cancer Plan**, with priorities including:"
+            )
+            parts.append("- Cancer screening and early detection programmes")
+            parts.append("- Cancer prevention through lifestyle interventions")
+            parts.append("- Quality of life for cancer survivors")
+            parts.append("- Addressing inequalities in cancer care")
+            parts.append("- Cancer research and data sharing")
+            parts.append("")
+
+        # Add actionable next steps
+        parts.append("---")
+        parts.append("")
+        parts.append("🎯 **Next Steps:**")
+        parts.append(
+            "• Review the [EU4Health Annual Work Programmes]"
+            "(https://health.ec.europa.eu/funding/eu4health-programme-2021-2027/"
+            "annual-work-programmes_en) for current priorities"
+        )
+        parts.append(
+            "• Check open calls on the [EU Funding & Tenders Portal]"
+            "(https://ec.europa.eu/info/funding-tenders/opportunities/portal/"
+            "?programmePeriod=2021-2027&programCcm2Id=43332851)"
+        )
+        if "cancer" in query_lower:
+            parts.append(
+                "• Learn about [Europe's Beating Cancer Plan]"
+                "(https://ec.europa.eu/health/document/download/"
+                "7b3bb1b5-7791-4965-9b47-5e270c9f1c69)"
+            )
+        parts.append(
+            "• Contact [HaDEA](https://hadea.ec.europa.eu/programmes/eu4health_en) "
+            "for guidance and support"
+        )
+
+        return "\n".join(parts)
 
     def _format_tool_result_summary(self, tool_name: str, result: Any) -> str:
         """Format a single tool result into a readable summary."""
@@ -21223,6 +21426,162 @@ Help your film reach audiences:
                     }
                 ],
                 "confidence": 0.85,
+                "needs_more_info": False,
+            }
+
+        return None
+
+    # ========================================================================
+    # EU4HEALTH TOPICS/PRIORITIES DETECTION
+    # ========================================================================
+
+    def _detect_eu4health_topics_query(self, query: str, context: str) -> dict[str, Any] | None:
+        """Detect EU4Health topic and priority queries.
+
+        These are questions about EU4Health programme priorities, thematic areas,
+        cancer plan, disease prevention, and other programme content (NOT eligibility).
+
+        Examples:
+        - "What EU4Health priorities focus on cancer?"
+        - "What are the EU4Health programme strands?"
+        - "Tell me about EU4Health disease prevention activities"
+        - "What EU4Health actions support mental health?"
+        - "What is Europe's Beating Cancer Plan under EU4Health?"
+        """
+        query_lower = query.lower()
+
+        # EU4Health indicators
+        eu4health_indicators = [
+            "eu4health",
+            "eu 4 health",
+            "eu-4-health",
+            "eu4h",
+            "eu 4health",
+        ]
+        has_eu4health = any(ind in query_lower for ind in eu4health_indicators)
+
+        # Skip if query explicitly mentions another programme
+        other_programmes = [
+            "erasmus",
+            "creative europe",
+            "horizon europe",
+            "horizon 2020",
+            "digital europe",
+            "life programme",
+        ]
+        if any(prog in query_lower for prog in other_programmes):
+            return None
+
+        # Skip if this is an eligibility question (handled by eligibility detector)
+        eligibility_indicators = [
+            "eligible",
+            "eligibility",
+            "can we apply",
+            "can a hospital",
+            "can we participate",
+            "can my organization",
+            "can our organization",
+        ]
+        if any(ind in query_lower for ind in eligibility_indicators):
+            return None
+
+        # Topic/priority indicators
+        topic_indicators = [
+            "priorities",
+            "priority",
+            "focus on",
+            "focuses on",
+            "topics",
+            "topic",
+            "strands",
+            "strand",
+            "thematic",
+            "areas",
+            "activities",
+            "actions support",
+            "what does",
+            "what are the",
+            "tell me about",
+            "explain",
+            "objectives",
+            "goals",
+        ]
+        has_topic_question = any(ind in query_lower for ind in topic_indicators)
+
+        # Health topic indicators (specific content areas)
+        health_topics = {
+            "cancer": "PREVENTION",
+            "beating cancer": "PREVENTION",
+            "cancer plan": "PREVENTION",
+            "prevention": "PREVENTION",
+            "ncd": "PREVENTION",
+            "screening": "PREVENTION",
+            "vaccination": "PREVENTION",
+            "health promotion": "PREVENTION",
+            "crisis": "CRISIS",
+            "emergency": "CRISIS",
+            "preparedness": "CRISIS",
+            "hera": "CRISIS",
+            "medical countermeasures": "CRISIS",
+            "amr": "CRISIS",
+            "antimicrobial": "CRISIS",
+            "health system": "HEALTH_SYSTEMS",
+            "workforce": "HEALTH_SYSTEMS",
+            "hta": "HEALTH_SYSTEMS",
+            "health technology": "HEALTH_SYSTEMS",
+            "medicines": "HEALTH_SYSTEMS",
+            "pharmaceutical": "HEALTH_SYSTEMS",
+            "digital health": "DIGITAL",
+            "ehds": "DIGITAL",
+            "ehealth": "DIGITAL",
+            "health data": "DIGITAL",
+            "telemedicine": "DIGITAL",
+            "mental health": "PREVENTION",
+        }
+
+        # Detect specific strand from health topic mentioned
+        strand = None
+        topic_keyword = None
+        for topic, strand_value in health_topics.items():
+            if topic in query_lower:
+                strand = strand_value
+                topic_keyword = topic
+                break
+
+        # Route to search_eu4health_templates if EU4Health + topic/priority question
+        if has_eu4health and (has_topic_question or topic_keyword):
+            # Build search query
+            search_query = query
+            if topic_keyword:
+                # Enhance query with the topic
+                search_query = f"{topic_keyword} {query}"
+
+            params = {
+                "query": search_query,
+                "top_k": 5,
+            }
+            if strand:
+                params["strand"] = strand
+
+            reasoning = (
+                f"Searching EU4Health documents for {topic_keyword or 'programme priorities'}"
+            )
+            if strand:
+                reasoning += f" in {strand} strand"
+
+            # Use call_tools_and_format to bypass LLM response generation
+            # and use our structured formatter instead
+            return {
+                "thought": f"User is asking about EU4Health programme priorities/topics ({topic_keyword or 'general'}). Calling search_eu4health_templates and formatting results directly.",
+                "action": "call_tools_and_format",
+                "tool_calls": [
+                    {
+                        "tool": "search_eu4health_templates",
+                        "parameters": params,
+                        "reasoning": reasoning,
+                    }
+                ],
+                "confidence": 0.95,
                 "needs_more_info": False,
             }
 
