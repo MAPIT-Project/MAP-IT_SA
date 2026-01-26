@@ -3767,6 +3767,17 @@ digital_europe, life""",
         if digital_europe_eligibility_result:
             return digital_europe_eligibility_result
 
+        # Check for DIGITAL EUROPE vs HORIZON EUROPE COMPARISON queries
+        # e.g., "Should I apply to Digital Europe or Horizon Europe for an AI project?"
+        # "Compare Digital Europe and Horizon Europe for deployment projects"
+        # "What's the difference between Digital Europe and Horizon Europe?"
+        # IMPORTANT: Must come AFTER eligibility check, BEFORE EU4Health
+        digital_europe_horizon_comparison_result = (
+            self._detect_digital_europe_vs_horizon_comparison_query(query, context)
+        )
+        if digital_europe_horizon_comparison_result:
+            return digital_europe_horizon_comparison_result
+
         # Check for EU4HEALTH TOPICS/PRIORITIES queries
         # e.g., "What EU4Health priorities focus on cancer?"
         # "Tell me about EU4Health disease prevention activities"
@@ -21920,6 +21931,225 @@ Help your film reach audiences:
             }
 
         return None
+
+    # ========================================================================
+    # DIGITAL EUROPE vs HORIZON EUROPE COMPARISON DETECTION
+    # ========================================================================
+
+    def _detect_digital_europe_vs_horizon_comparison_query(
+        self, query: str, context: str
+    ) -> dict[str, Any] | None:
+        """Detect Digital Europe vs Horizon Europe comparison queries.
+
+        These are questions comparing the two programmes, typically for deciding
+        which programme to apply to. Key differentiation:
+        - Digital Europe: Deployment focus (TRL 7-9), near-market solutions
+        - Horizon Europe: Research & innovation (TRL 2-6), novel approaches
+
+        Examples:
+        - "Should I apply to Digital Europe or Horizon Europe for an AI project?"
+        - "Compare Digital Europe and Horizon Europe for deployment projects"
+        - "What's the difference between Digital Europe and Horizon Europe?"
+        - "Digital Europe vs Horizon Europe - which is better for my AI startup?"
+        - "Which programme should I choose for deploying AI solutions?"
+        """
+        query_lower = query.lower()
+        # Note: context not currently used but kept for future enhancement
+        _ = context  # Mark as intentionally unused
+
+        # Must have both programmes mentioned or implied
+        has_digital_europe = any(
+            ind in query_lower
+            for ind in ["digital europe", "digital-europe", "digitaleurope", "dep programme"]
+        )
+        has_horizon_europe = any(
+            ind in query_lower
+            for ind in [
+                "horizon europe",
+                "horizon-europe",
+                "horizoneurope",
+                "horizon 2020",
+                "h2020",
+                "he programme",
+            ]
+        )
+
+        # Comparison indicators
+        comparison_indicators = [
+            "compare",
+            "comparison",
+            "vs",
+            "versus",
+            "difference",
+            "different",
+            "or ",  # "Digital Europe or Horizon Europe"
+            "which",
+            "should i",
+            "should we",
+            "better for",
+            "choose",
+            "between",
+        ]
+        has_comparison = any(ind in query_lower for ind in comparison_indicators)
+
+        # Topic indicators that could clarify the comparison context
+        topic_context = None
+        if " ai " in query_lower or "artificial intelligence" in query_lower:
+            topic_context = "AI"
+        elif "cybersecurity" in query_lower or "cyber security" in query_lower:
+            topic_context = "cybersecurity"
+        elif "hpc" in query_lower or "high performance" in query_lower:
+            topic_context = "HPC"
+        elif "deploy" in query_lower or "deployment" in query_lower:
+            topic_context = "deployment"
+        elif "research" in query_lower:
+            topic_context = "research"
+        elif "digital" in query_lower:
+            topic_context = "digital transformation"
+
+        # Pattern 1: Both programmes + comparison
+        if has_digital_europe and has_horizon_europe and has_comparison:
+            return self._generate_digital_europe_horizon_comparison_guidance(query, topic_context)
+
+        # Pattern 2: "Digital Europe or Horizon" style question
+        if has_digital_europe and has_horizon_europe:
+            return self._generate_digital_europe_horizon_comparison_guidance(query, topic_context)
+
+        # Pattern 3: Implicit comparison - "which programme for AI deployment"
+        # Only if explicitly mentions programme choice + deployment context
+        if (
+            has_comparison
+            and ("programme" in query_lower or "program" in query_lower)
+            and ("deploy" in query_lower or "market" in query_lower or "scale" in query_lower)
+            and (" ai " in query_lower or "digital" in query_lower or "cyber" in query_lower)
+        ):
+            # This could be a DE vs HE question - return comparison
+            return self._generate_digital_europe_horizon_comparison_guidance(query, topic_context)
+
+        return None
+
+    def _generate_digital_europe_horizon_comparison_guidance(
+        self, query: str, topic_context: str | None
+    ) -> dict[str, Any]:
+        """Generate comprehensive Digital Europe vs Horizon Europe comparison guidance."""
+
+        # Determine topic-specific guidance
+        topic_guidance = ""
+        if topic_context == "AI":
+            topic_guidance = """
+### For Your AI Project
+
+**Choose Digital Europe if:**
+- You have a working AI solution ready to deploy (TRL 7-9)
+- You want to deploy through AI Factories or Testing & Experimentation Facilities (TEFs)
+- Your focus is on scaling existing AI capabilities
+- You're an SME looking to accelerate AI adoption
+
+**Choose Horizon Europe if:**
+- You're developing novel AI approaches or algorithms (TRL 2-6)
+- Your project involves fundamental AI research
+- You need 100% funding for breakthrough R&D
+- You're exploring unproven AI concepts
+
+**Strategic Option:** Consider both programmes for a sequential approach - start with Horizon Europe research funding, then use Digital Europe to deploy and scale successful results.
+"""
+        elif topic_context == "cybersecurity":
+            topic_guidance = """
+### For Your Cybersecurity Project
+
+**Choose Digital Europe if:**
+- You're deploying security operations centers (SOCs)
+- You're rolling out mature cybersecurity solutions
+- You want to participate in ECCC (European Cybersecurity Competence Centre) activities
+- Focus is on strengthening EU's cyber resilience infrastructure
+
+**Choose Horizon Europe if:**
+- You're researching new security threats or countermeasures
+- You're developing novel cryptographic methods
+- Your work involves Cluster 3 (Civil Security for Society) research
+- You need 100% funding for security R&D
+"""
+        elif topic_context == "deployment":
+            topic_guidance = """
+### For Deployment Projects
+
+**Digital Europe is designed for deployment** - if your primary goal is deploying and scaling existing digital solutions, Digital Europe is the appropriate programme. Horizon Europe is research-focused.
+"""
+        elif topic_context == "research":
+            topic_guidance = """
+### For Research Projects
+
+**Horizon Europe is designed for research** - if your primary goal is R&D and exploring novel approaches, Horizon Europe is the appropriate programme. Digital Europe requires near-market readiness.
+"""
+
+        comparison_table = """## Digital Europe vs Horizon Europe: Comprehensive Comparison
+
+| Aspect | Digital Europe | Horizon Europe |
+|--------|----------------|----------------|
+| **Primary Focus** | Digital deployment & capacity building | Research & innovation |
+| **TRL Range** | TRL 7-9 (near-market, deployment) | TRL 2-6 (research to demonstration) |
+| **Budget (2021-2027)** | €7.5 billion | €95.5 billion |
+| **Funding Rate** | 50% (SMEs may get higher) | 100% (RIA), 70% (IA) |
+| **Project Type** | Deployment, scaling, digital infrastructure | R&D, pilots, prototypes |
+| **Typical Duration** | 24-36 months | 36-48 months |
+| **Consortium** | Often smaller, focused | Typically 8-15 partners |
+
+### Key Differences Explained
+
+**1. Technology Readiness Level (TRL)**
+- **Digital Europe**: Expects solutions at TRL 7-9 - ready for deployment
+- **Horizon Europe**: Supports TRL 2-6 - from basic research to demonstration
+
+**2. Funding Philosophy**
+- **Digital Europe**: Co-funding model (you invest, EU matches) - deployment risk shared
+- **Horizon Europe**: Research investment (100% for RIA) - innovation risk covered
+
+**3. Objectives**
+- **Digital Europe**: Build EU digital capacity (HPC, AI, Cybersecurity, Skills, Deployment)
+- **Horizon Europe**: Advance scientific knowledge and technological innovation
+
+### Digital Europe Objectives
+1. **HPC** - Supercomputing infrastructure (EuroHPC)
+2. **AI** - AI Factories, Testing & Experimentation Facilities
+3. **Cybersecurity** - Security infrastructure, ECCC support
+4. **Advanced Digital Skills** - Specialist training programmes
+5. **Deployment (EDIHs)** - Digital Innovation Hubs network
+6. **Semiconductors** - Chips Act implementation
+
+### Horizon Europe Structure
+1. **Pillar I**: Excellent Science (ERC, MSCA, Research Infrastructures)
+2. **Pillar II**: Global Challenges (6 Clusters including Digital, Health, Climate)
+3. **Pillar III**: Innovative Europe (EIC Accelerator, EIT)
+"""
+
+        next_steps = """
+### Actionable Next Steps
+
+1. **Assess your TRL**: If your solution is ready to deploy (TRL 7+), consider Digital Europe. If you need R&D (TRL 2-6), choose Horizon Europe.
+
+2. **Check open calls**:
+   - Digital Europe: [EC Digital Europe Calls](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/programmes/digital)
+   - Horizon Europe: [EC Horizon Europe Calls](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/programmes/horizon)
+
+3. **Contact support**:
+   - Digital Europe: HaDEA (European Health and Digital Executive Agency)
+   - Horizon Europe: REA, EISMEA, or National Contact Points (NCPs)
+
+4. **Consider sequential funding**: Use Horizon Europe for R&D, then Digital Europe for deployment of successful results.
+"""
+
+        full_guidance = comparison_table + topic_guidance + next_steps
+
+        return {
+            "thought": "User is comparing Digital Europe and Horizon Europe programmes. Providing comprehensive comparison with TRL differences and programme-specific guidance.",
+            "action": "generate_guidance",
+            "response": full_guidance,
+            "guidance_type": "programme_comparison",
+            "programmes_compared": ["Digital Europe", "Horizon Europe"],
+            "topic_context": topic_context,
+            "confidence": 0.95,
+            "needs_more_info": False,
+        }
 
     # ========================================================================
     # EU4HEALTH TOPICS/PRIORITIES DETECTION

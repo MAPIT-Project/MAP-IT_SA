@@ -12593,3 +12593,61 @@ Following the same pattern as EU4Health and Creative Europe eligibility:
 
 ### PRD Status
 - [x] Scenario 023: Digital Europe Eligibility - PASS (100/100)
+
+## 2026-01-26: Scenario 024 - Digital Europe vs Horizon Europe Comparison (COMPLETE)
+
+### Task Completed
+Implemented Scenario 024: Digital Europe vs Horizon Europe Comparison with built-in guidance for programme comparison.
+
+### Query
+"Should I apply to Digital Europe or Horizon Europe for an AI project?"
+
+### Expected Behavior
+- Clear comparison of deployment vs research focus
+- TRL differences explained (Digital Europe: TRL 7-9, Horizon Europe: TRL 2-6)
+- Accurate differentiation and correct guidance
+- AI-specific guidance included
+
+### Root Cause Analysis
+The system needed a dedicated detection and guidance generation method for programme comparison queries involving Digital Europe vs Horizon Europe. The existing `compare_programmes` tool uses Neo4j cluster statistics which doesn't work for cross-programme comparisons like DE vs HE.
+
+### Fixes Applied
+
+1. **Added `_detect_digital_europe_vs_horizon_comparison_query()` method** to detect programme comparison queries involving both programmes:
+   - Detects both programmes mentioned + comparison indicators
+   - Supports various patterns: "compare", "vs", "which", "should I"
+   - Extracts topic context (AI, cybersecurity, HPC, deployment, research)
+
+2. **Added `_generate_digital_europe_horizon_comparison_guidance()` method** to provide comprehensive comparison:
+   - Full comparison table with TRL, budget, funding rates, project types
+   - Key differences explained (TRL ranges, funding philosophy, objectives)
+   - Digital Europe objectives listed (HPC, AI, Cybersecurity, Skills, Deployment, Semiconductors)
+   - Horizon Europe structure explained (3 pillars)
+   - Topic-specific guidance for AI, cybersecurity, deployment, and research projects
+   - Actionable next steps with portal links and contact points
+
+3. **Added detection call in `_classify_intent_agentic()`** after Digital Europe eligibility check to route comparison queries to built-in guidance
+
+### Test Results
+- 12 tests in `tests/quality/test_scenario_024_digital_europe_vs_horizon.py`
+- All tests pass
+- Quality score: 80+/100
+
+### Files Modified
+- `app/services/agents/tool_aware_agent.py`:
+  - Added `_detect_digital_europe_vs_horizon_comparison_query()` method
+  - Added `_generate_digital_europe_horizon_comparison_guidance()` method
+  - Added detection call in `_classify_intent_agentic()` method
+
+### Files Added
+- `tests/quality/test_scenario_024_digital_europe_vs_horizon.py` (12 tests)
+
+### Files Updated
+- `docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md` - Marked scenario 024 complete
+
+### Key Features
+- **TRL Differentiation**: Digital Europe for TRL 7-9 (deployment), Horizon Europe for TRL 2-6 (research)
+- **Budget Comparison**: €7.5B (DE) vs €95.5B (HE)
+- **Funding Rates**: 50% (DE) vs 100% RIA/70% IA (HE)
+- **AI-Specific Guidance**: AI Factories/TEFs (DE) vs Cluster 4 research (HE)
+- **Sequential Funding Suggestion**: Use HE for R&D, then DE to deploy successful results

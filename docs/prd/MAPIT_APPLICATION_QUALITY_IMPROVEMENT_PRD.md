@@ -306,12 +306,15 @@ Ensure all 6 EU programmes work correctly.
   - **Fix applied**: Added `check_digital_europe_eligibility` tool to ToolAwareAgent - registered tool definition, execution routing, wrapper method, result formatter, and `_detect_digital_europe_eligibility_query()` for pre-routing. Also fixed STARTUP eligibility in digital_europe_eligibility.py to treat startups as SMEs where applicable.
   - **Tests**: `tests/quality/test_scenario_023_digital_europe_eligibility.py` (13 tests)
 
-- [ ] **Scenario 024: Digital Europe vs Horizon** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 024: Digital Europe vs Horizon** `EXECUTE + FIX IF NEEDED`
   - Query: "Should I apply to Digital Europe or Horizon Europe for an AI project?"
   - Expected: Clear comparison - deployment vs research, TRL differences
   - Verify: Accurate differentiation, correct guidance
   - Fix if: Generic response, wrong advice
   - Pass threshold: 80
+  - **Status: PASS (score 80+/100)**
+  - **Fix applied**: Added `_detect_digital_europe_vs_horizon_comparison_query()` method to pre-route programme comparison queries to built-in guidance. Added `_generate_digital_europe_horizon_comparison_guidance()` method providing comprehensive comparison with TRL differences (DE: TRL 7-9 deployment, HE: TRL 2-6 research), budget comparison (€7.5B vs €95.5B), funding rates (50% vs 100%/70%), and topic-specific guidance for AI projects.
+  - **Tests**: `tests/quality/test_scenario_024_digital_europe_vs_horizon.py` (12 tests)
 
 ### LIFE
 
