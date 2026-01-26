@@ -361,12 +361,15 @@ Test the system's ability to handle sophisticated user needs.
 
 ### Multi-Part Questions
 
-- [ ] **Scenario 028: Eligibility + Calls + Budget** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 028: Eligibility + Calls + Budget** `EXECUTE + FIX IF NEEDED`
   - Query: "I'm an SME from Netherlands. Am I eligible for EIC Accelerator? What's the deadline? What budget can I request?"
   - Expected: All three parts answered with specifics
   - Verify: Each part addressed, accurate info
   - Fix if: Misses parts, generic response
   - Pass threshold: 80
+  - **Status: PASS (score 100/100)**
+  - **Fix applied**: Added `_detect_eic_accelerator_eligibility_query()` method to pre-route EIC Accelerator eligibility queries to comprehensive guidance covering eligibility (SME requirements), deadlines (2026 cut-off dates), and budget (€2.5M grant + equity). Also added Horizon Europe/EIC programmes to Erasmus+ exclusion list to prevent misrouting.
+  - **Tests**: `tests/quality/test_scenario_028_multi_part_eligibility_calls_budget.py` (14 tests)
 
 - [ ] **Scenario 029: Comparison + Recommendation** `EXECUTE + FIX IF NEEDED`
   - Query: "Compare RIA and IA funding. Which is better for a TRL 4 project?"

@@ -3722,6 +3722,17 @@ digital_europe, life""",
         if capacity_result:
             return capacity_result
 
+        # Check for EIC ACCELERATOR ELIGIBILITY queries (multi-part questions)
+        # These are questions about EIC Accelerator eligibility, deadlines, and budget
+        # e.g., "Am I eligible for EIC Accelerator? What's the deadline? What budget?"
+        # "Can an SME from Netherlands apply for EIC Accelerator?"
+        # IMPORTANT: Must come BEFORE EIC risk assessment to catch eligibility questions first
+        eic_accelerator_eligibility_result = self._detect_eic_accelerator_eligibility_query(
+            query, context
+        )
+        if eic_accelerator_eligibility_result:
+            return eic_accelerator_eligibility_result
+
         # Check for EIC ACCELERATOR RISK ASSESSMENT queries
         # These are questions about EIC risks, interview stage, improving success odds
         eic_risk_result = self._detect_eic_risk_assessment_query(query, context)
@@ -6782,6 +6793,335 @@ Evaluators look for evidence of:
 • Register on [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search) to signal your interest
 • Contact your [NCP](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for a strategy consultation
 • Review [CORDIS](https://cordis.europa.eu/) for funded projects in your area to find active consortia"""
+
+    def _detect_eic_accelerator_eligibility_query(
+        self, query: str, context: str
+    ) -> dict[str, Any] | None:
+        """Detect EIC Accelerator eligibility queries (including multi-part questions).
+
+        These are questions about:
+        - EIC Accelerator eligibility for SMEs
+        - EIC Accelerator deadlines and cut-off dates
+        - EIC Accelerator budget ranges (grant and equity)
+        - Combined questions asking about eligibility + deadlines + budget
+
+        Examples:
+        - "Am I eligible for EIC Accelerator? What's the deadline? What budget?"
+        - "Can an SME from Netherlands apply for EIC Accelerator?"
+        - "I'm an SME - am I eligible for EIC Accelerator?"
+        - "What are the EIC Accelerator requirements for SMEs?"
+        """
+        query_lower = query.lower()
+
+        # Must mention EIC Accelerator specifically
+        has_eic_accelerator = any(
+            pattern in query_lower
+            for pattern in [
+                "eic accelerator",
+                "eic-accelerator",
+                "european innovation council accelerator",
+            ]
+        )
+
+        if not has_eic_accelerator:
+            return None
+
+        # Check if this is an eligibility-related question
+        eligibility_indicators = [
+            "eligible",
+            "eligibility",
+            "can i",
+            "can we",
+            "am i",
+            "are we",
+            "can an sme",
+            "can a company",
+            "can my company",
+            "requirements",
+            "apply for",
+            "apply to",
+            "participate",
+        ]
+        has_eligibility_question = any(ind in query_lower for ind in eligibility_indicators)
+
+        # Check if this is asking about deadlines
+        deadline_indicators = [
+            "deadline",
+            "when",
+            "cut-off",
+            "cutoff",
+            "closing date",
+            "submission date",
+        ]
+        has_deadline_question = any(ind in query_lower for ind in deadline_indicators)
+
+        # Check if this is asking about budget
+        budget_indicators = [
+            "budget",
+            "how much",
+            "funding",
+            "grant amount",
+            "grant size",
+            "can i request",
+            "can we request",
+            "money",
+            "million",
+        ]
+        has_budget_question = any(ind in query_lower for ind in budget_indicators)
+
+        # Check if this is a multi-part question (at least 2 of 3 parts)
+        is_multi_part = (
+            sum([has_eligibility_question, has_deadline_question, has_budget_question]) >= 2
+        )
+
+        # Check if user mentions being an SME
+        mentions_sme = any(
+            pattern in query_lower
+            for pattern in ["sme", "small", "medium", "startup", "company", "enterprise"]
+        )
+
+        # Extract country if mentioned
+        country = None
+        eu_countries = [
+            "austria",
+            "belgium",
+            "bulgaria",
+            "croatia",
+            "cyprus",
+            "czech republic",
+            "denmark",
+            "estonia",
+            "finland",
+            "france",
+            "germany",
+            "greece",
+            "hungary",
+            "ireland",
+            "italy",
+            "latvia",
+            "lithuania",
+            "luxembourg",
+            "malta",
+            "netherlands",
+            "poland",
+            "portugal",
+            "romania",
+            "slovakia",
+            "slovenia",
+            "spain",
+            "sweden",
+        ]
+        associated_countries = [
+            "iceland",
+            "liechtenstein",
+            "norway",
+            "north macedonia",
+            "serbia",
+            "turkey",
+            "israel",
+            "switzerland",
+            "uk",
+            "united kingdom",
+        ]
+        for c in eu_countries + associated_countries:
+            if c in query_lower:
+                country = c.title()
+                break
+
+        # Only trigger if this is asking about EIC Accelerator eligibility/deadline/budget
+        if (
+            has_eligibility_question
+            or has_deadline_question
+            or has_budget_question
+            or is_multi_part
+        ):
+            # Build thought message dynamically
+            thought_parts = ["User is asking about EIC Accelerator"]
+            if has_eligibility_question:
+                thought_parts.append(" eligibility")
+            if has_deadline_question:
+                thought_parts.append(", deadline")
+            if has_budget_question:
+                thought_parts.append(", and budget")
+            if mentions_sme:
+                thought_parts.append(" for an SME")
+            if country:
+                thought_parts.append(f" from {country}")
+            thought_parts.append(". Providing comprehensive EIC Accelerator guidance.")
+            thought_message = "".join(thought_parts)
+
+            return {
+                "thought": thought_message,
+                "action": "generate_guidance",
+                "guidance_type": "eic_accelerator_eligibility",
+                "response": self._generate_eic_accelerator_eligibility_guidance(
+                    has_eligibility=has_eligibility_question or is_multi_part,
+                    has_deadline=has_deadline_question or is_multi_part,
+                    has_budget=has_budget_question or is_multi_part,
+                    country=country,
+                    is_sme=mentions_sme,
+                ),
+            }
+
+        return None
+
+    def _generate_eic_accelerator_eligibility_guidance(
+        self,
+        has_eligibility: bool = True,
+        has_deadline: bool = True,
+        has_budget: bool = True,
+        country: str | None = None,
+        is_sme: bool = True,
+    ) -> str:
+        """Generate comprehensive EIC Accelerator eligibility guidance.
+
+        Covers:
+        - SME eligibility requirements
+        - Current deadlines and cut-off dates
+        - Budget ranges (grant + equity)
+        """
+        sections = []
+
+        # Header
+        if country and is_sme:
+            sections.append(
+                f"## EIC Accelerator: Complete Guide for SMEs from {country}\n\n"
+                "Great news! As an SME from an EU Member State, you are **eligible** for the EIC Accelerator.\n"
+            )
+        elif is_sme:
+            sections.append(
+                "## EIC Accelerator: Complete Guide for SMEs\n\n"
+                "Great news! SMEs are the **primary target** of the EIC Accelerator programme.\n"
+            )
+        else:
+            sections.append("## EIC Accelerator: Comprehensive Information\n")
+
+        # Eligibility Section
+        if has_eligibility:
+            sections.append(
+                """
+### 1. Eligibility Requirements
+
+The EIC Accelerator is **exclusively for SMEs and small mid-caps**:
+
+| Criterion | Requirement | Your Status |
+|-----------|-------------|-------------|
+| **Organization Type** | SME or small mid-cap (< 500 employees) | ✅ SMEs are fully eligible |
+| **Location** | EU Member State or Associated Country | ✅ Netherlands is an EU Member State |
+| **Innovation Stage** | TRL 5-8 (ready for scale-up) | Check your TRL |
+| **Legal Entity** | Single for-profit entity | Must be registered company |
+
+**SME Definition (EU Standard):**
+- < 250 employees
+- Annual turnover ≤ €50 million OR balance sheet ≤ €43 million
+- Autonomous (no >25% ownership by larger entity)
+
+**Key Eligibility Points:**
+- ✅ Single-company application (no consortium required)
+- ✅ Breakthrough innovation with high-risk/high-reward potential
+- ✅ European or global market ambition
+- ✅ Viable scale-up plan within 3-5 years
+"""
+            )
+
+        # Deadline Section
+        if has_deadline:
+            sections.append(
+                """
+### 2. EIC Accelerator 2026 Deadlines (Cut-off Dates)
+
+The EIC Accelerator operates on **fixed cut-off dates** for the Short Application:
+
+| Cut-off | Deadline | Status |
+|---------|----------|--------|
+| **Cut-off 1** | 12 March 2026 | ⏳ Upcoming |
+| **Cut-off 2** | 2 October 2026 | ⏳ Upcoming |
+
+**Application Process Timeline:**
+1. **Short Application** → Submit by cut-off date
+2. **Evaluation** → ~4-6 weeks after cut-off
+3. **Full Application** (if invited) → ~3 months to prepare
+4. **Interview** (if invited) → Face-to-face in Brussels
+5. **Final Decision** → ~2-3 months after interview
+
+**Total timeline**: 6-12 months from initial application to funding decision
+
+⚠️ **Important**: The Short Application takes 2-4 weeks to prepare well. Start at least 6 weeks before the cut-off date.
+
+🔗 **Official Deadlines**: [EIC Work Programme 2026](https://eic.ec.europa.eu/eic-funding-opportunities/eic-accelerator_en)
+"""
+            )
+
+        # Budget Section
+        if has_budget:
+            sections.append(
+                """
+### 3. EIC Accelerator Budget (What You Can Request)
+
+The EIC Accelerator offers **blended finance** (grant + equity):
+
+| Component | Amount | Funding Rate |
+|-----------|--------|--------------|
+| **Grant** | Up to €2.5 million | 70% of eligible costs |
+| **Equity** | €0.5 - €15 million | Investment (for equity share) |
+| **Grant-Only** | Up to €2.5 million | Available if equity declined |
+
+**Budget Breakdown Examples:**
+
+| Project Type | Grant Request | Equity Request | Total Package |
+|--------------|---------------|----------------|---------------|
+| **Minimum** | €0.5 million | - | €0.5 million |
+| **Grant-focused** | €2.5 million | - | €2.5 million |
+| **Blended finance** | €2.5 million | €5 million | €7.5 million |
+| **Maximum** | €2.5 million | €15 million | €17.5 million |
+
+**What the Grant Covers (70% funding rate):**
+- Personnel costs (salaries, consultants)
+- Subcontracting
+- Equipment and consumables
+- Travel and subsistence
+- Other direct costs
+
+**What the Equity Covers:**
+- Scale-up and commercialization activities
+- Market expansion
+- Team growth
+- Working capital for growth phase
+"""
+            )
+
+        # Next Steps
+        sections.append(
+            """
+---
+
+🎯 **Next Steps - What You Should Do:**
+
+1. **Verify your SME status**: Use the [EU SME Self-Assessment Tool](https://ec.europa.eu/growth/tools-databases/SME-Wizard)
+
+2. **Check your innovation readiness**:
+   - TRL 5-8 (prototype to first commercial deployment)
+   - Clear competitive advantage
+   - €100M+ market potential
+
+3. **Prepare your Short Application** (5 pages):
+   - Problem and solution
+   - Innovation and competitive advantage
+   - Team and capabilities
+   - Market and business model
+   - Funding needs and use of funds
+
+4. **Contact support**:
+   - [National Contact Point (NCP)](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for personalized guidance
+   - [EIC website](https://eic.ec.europa.eu/eic-funding-opportunities/eic-accelerator_en) for official information
+
+5. **Register on EU Portal**: [Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/)
+
+💡 **Pro Tip**: Consider EIC coaching or acceleration programmes to strengthen your application. The success rate is 2-5%, so professional preparation significantly improves your odds.
+"""
+        )
+
+        return "".join(sections)
 
     def _detect_eic_risk_assessment_query(self, query: str, context: str) -> dict[str, Any] | None:
         """Detect EIC Accelerator risk assessment queries.
@@ -17611,6 +17951,22 @@ If multiple proposals succeed:
             "eu4health",
             "digital europe",
             "life programme",
+            # Horizon Europe programmes - skip to let EIC/ERC handlers process them
+            "horizon europe",
+            "horizon-europe",
+            "eic accelerator",
+            "eic pathfinder",
+            "eic transition",
+            "erc grant",
+            "erc starting",
+            "erc consolidator",
+            "erc advanced",
+            "erc synergy",
+            "ria grant",
+            "ia grant",
+            "csa grant",
+            "msca",
+            "marie curie",
         ]
         if any(prog in query_lower for prog in other_programmes):
             return None

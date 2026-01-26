@@ -12947,3 +12947,67 @@ The response now includes:
 - test_includes_accreditation_info (NEW)
 - test_mentions_alternative_pathway (NEW)
 - test_accreditation_benefits_mentioned (NEW)
+
+================================================================================
+SCENARIO 028: Multi-Part Question - Eligibility + Calls + Budget
+================================================================================
+Date: 2026-01-26
+Status: PASS (score 100/100)
+
+## Problem
+The query "I'm an SME from Netherlands. Am I eligible for EIC Accelerator? What's the deadline? What budget can I request?" was being incorrectly routed to Erasmus+ eligibility tools instead of EIC Accelerator guidance.
+
+## Root Cause
+The `_detect_erasmus_action_query()` method was detecting:
+- "netherlands" (in EU country list)
+- "sme" (triggering ENTERPRISE org type)
+- "eligible" (triggering eligibility question check)
+
+And routing to check_erasmus_eligibility tool, ignoring that the query explicitly mentioned "EIC Accelerator".
+
+## Fix Applied
+1. Added Horizon Europe/EIC programmes to the `other_programmes` exclusion list in `_detect_erasmus_action_query()`:
+   - "horizon europe", "horizon-europe"
+   - "eic accelerator", "eic pathfinder", "eic transition"
+   - "erc grant", "erc starting", "erc consolidator", "erc advanced", "erc synergy"
+   - "ria grant", "ia grant", "csa grant"
+   - "msca", "marie curie"
+
+2. Added new `_detect_eic_accelerator_eligibility_query()` method to detect and handle EIC Accelerator eligibility queries:
+   - Detects queries mentioning "eic accelerator" + eligibility/deadline/budget
+   - Extracts country and SME context
+   - Returns comprehensive guidance via `_generate_eic_accelerator_eligibility_guidance()`
+
+3. Added `_generate_eic_accelerator_eligibility_guidance()` method providing:
+   - SME eligibility requirements (< 250 employees, turnover, EU Member State)
+   - 2026 deadline dates (March 12 and October 2 cut-off)
+   - Budget information (€2.5M grant at 70%, €0.5-15M equity)
+   - Next steps with useful links
+
+## Files Modified
+- app/services/agents/tool_aware_agent.py (added detection and guidance methods)
+
+## Tests Added
+- tests/quality/test_scenario_028_multi_part_eligibility_calls_budget.py (14 tests)
+  - test_primary_scenario_sme_netherlands_eic
+  - test_eic_eligibility_only
+  - test_eic_deadline_only
+  - test_eic_budget_only
+  - test_variant_german_sme
+  - test_variant_startup_eligibility
+  - test_variant_associated_country
+  - test_contains_sme_definition
+  - test_contains_specific_deadline
+  - test_contains_budget_amounts
+  - test_contains_next_steps
+  - test_contains_useful_links
+  - test_not_routed_to_erasmus
+  - test_handles_eic_with_horizon_mention
+
+## Quality Score Breakdown
+- Query Fulfillment (40/40): All three parts answered
+- Specificity (25/25): SME definition, deadline dates, budget amounts
+- Factual Accuracy (25/25): Correct EIC Accelerator information
+- Actionability (10/10): Next steps with EU Portal and NCP links
+
+Total: 100/100 (Pass threshold: 80)
