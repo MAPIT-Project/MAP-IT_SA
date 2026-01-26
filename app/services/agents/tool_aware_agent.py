@@ -11848,6 +11848,8 @@ Found **{total_found} organizations** with relevant track records:
                 return await self._tool_get_call_details(params)
             elif tool_name == "search_projects":
                 return await self._tool_search_projects(params)
+            elif tool_name == "get_project_details":
+                return await self._tool_get_project_details(params)
             elif tool_name == "find_similar_projects":
                 return await self._tool_find_similar_projects(params)
             elif tool_name == "find_semantically_similar_projects":
@@ -12584,6 +12586,93 @@ Found **{total_found} organizations** with relevant track records:
         except Exception as e:
             logger.error(f"Project search error: {e}")
             return {"error": str(e), "projects": []}
+
+    async def _tool_get_project_details(self, params: dict) -> dict:
+        """Get detailed information about a specific project by ID or acronym."""
+        try:
+            from ..data.cordis_repository import CordisProjectRepository
+
+            project_id = params.get("project_id", "")
+
+            if not project_id:
+                return {"error": "project_id is required", "project": None}
+
+            repo = CordisProjectRepository()
+
+            # Try to get project by ID first
+            project = repo.get_project_by_id(str(project_id))
+
+            if not project:
+                # Try search by acronym if ID lookup fails
+                from ..local_project_search_service import LocalProjectSearchService
+
+                service = LocalProjectSearchService()
+                search_results = await service.search_projects(query=project_id, limit=5)
+
+                # Find exact acronym match
+                for p in search_results.get("projects", []):
+                    if p.get("acronym", "").upper() == project_id.upper():
+                        # Return this project's details
+                        return {
+                            "project_id": p.get("project_id") or p.get("id"),
+                            "rcn": p.get("rcn"),
+                            "acronym": p.get("acronym"),
+                            "title": p.get("title"),
+                            "status": p.get("status"),
+                            "objective": p.get("objective"),
+                            "start_date": p.get("start_date"),
+                            "end_date": p.get("end_date"),
+                            "total_cost": p.get("total_cost"),
+                            "ec_contribution": p.get("ec_contribution"),
+                            "programme": p.get("programme"),
+                            "funding_scheme": p.get("funding_scheme"),
+                            "topics": p.get("topics"),
+                            "coordinator": {
+                                "name": p.get("coordinator_name")
+                                or p.get("coordinator", {}).get("name"),
+                                "country": p.get("coordinator_country")
+                                or p.get("coordinator", {}).get("country"),
+                            },
+                            "participant_count": p.get("participant_count"),
+                            "country_count": p.get("country_count"),
+                            "cordis_url": f"https://cordis.europa.eu/project/id/{p.get('project_id') or p.get('id')}",
+                        }
+
+                return {
+                    "error": f"Project not found: {project_id}",
+                    "project": None,
+                    "suggestion": "Try searching with search_projects tool using keywords from the project title",
+                }
+
+            # Convert DTO to dict with full details
+            return {
+                "project_id": project.id,
+                "rcn": project.rcn,
+                "acronym": project.acronym,
+                "title": project.title,
+                "status": project.status,
+                "objective": project.objective,
+                "start_date": project.start_date,
+                "end_date": project.end_date,
+                "total_cost": project.total_cost,
+                "ec_contribution": project.ec_contribution,
+                "programme": project.programme,
+                "funding_scheme": project.funding_scheme,
+                "topics": project.topics,
+                "coordinator": {
+                    "name": project.coordinator_name,
+                    "country": project.coordinator_country,
+                },
+                "participant_count": project.participant_count,
+                "country_count": project.country_count,
+                "cordis_url": f"https://cordis.europa.eu/project/id/{project.id}",
+            }
+        except Exception as e:
+            logger.error(f"Get project details error: {e}")
+            import traceback
+
+            traceback.print_exc()
+            return {"error": str(e), "project": None}
 
     async def _tool_find_similar_projects(self, params: dict) -> dict:
         """Find projects similar to a given project."""
