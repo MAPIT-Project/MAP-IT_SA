@@ -2937,6 +2937,42 @@ digital_europe, life""",
             ],
         )
 
+        # LIFE Programme specific tools
+        self.tools["check_life_eligibility"] = Tool(
+            name="check_life_eligibility",
+            description="Check if an organization is eligible for LIFE Programme funding. Covers 4 sub-programmes: NAT (Nature and Biodiversity), ENV (Circular Economy and Quality of Life), CCA (Climate Change Mitigation and Adaptation), and CET (Clean Energy Transition). Considers organization type (public authority, NGO, SME, research), country eligibility (EU + EEA + associated countries), and sub-programme specific requirements. Use for eligibility questions about LIFE Programme, biodiversity conservation, environmental protection, climate action, and clean energy projects.",
+            category=ToolCategory.CALLS,
+            parameters={
+                "org_type": "Organization type: PUBLIC_AUTHORITY, LOCAL_AUTHORITY, NGO, ENVIRONMENTAL_NGO, RESEARCH, UNIVERSITY, SME, LARGE_ENTERPRISE, INTERNATIONAL_ORG, ASSOCIATION, FOUNDATION, PARK_AUTHORITY",
+                "country": "Country of the organization (e.g., 'Germany', 'France', 'Poland')",
+                "subprogramme": "Optional: Specific sub-programme (NAT, ENV, CCA, CET). If not provided, returns all eligible sub-programmes.",
+                "project_type": "Optional: Project type filter (SAP, SIP, SNAP, TA, OG)",
+            },
+            examples=[
+                "check_life_eligibility(org_type='NGO', country='Germany', subprogramme='NAT')",
+                "check_life_eligibility(org_type='PUBLIC_AUTHORITY', country='France', subprogramme='CCA')",
+                "check_life_eligibility(org_type='ENVIRONMENTAL_NGO', country='Italy')  # Returns all eligible sub-programmes",
+                "check_life_eligibility(org_type='SME', country='Spain', subprogramme='CET', project_type='SAP')",
+            ],
+        )
+
+        self.tools["search_life_templates"] = Tool(
+            name="search_life_templates",
+            description="Search LIFE Programme documents (Multi-Annual Work Programme, regulations, guidance) for application guidance, eligibility criteria, and programme information. Use for LIFE application questions, sub-programme details, project types, and funding rules.",
+            category=ToolCategory.DOCUMENTS,
+            parameters={
+                "query": "What to search for (e.g., 'nature conservation eligibility', 'climate adaptation funding')",
+                "subprogramme": "Optional: Filter by NAT, ENV, CCA, or CET",
+                "section": "Optional: Specific section (nature, circular_economy, climate, energy, eligibility, budget, evaluation)",
+                "top_k": "Number of results (default: 5)",
+            },
+            examples=[
+                "search_life_templates(query='Natura 2000 conservation project requirements')",
+                "search_life_templates(query='climate adaptation funding criteria', subprogramme='CCA')",
+                "search_life_templates(query='clean energy transition co-financing rates', subprogramme='CET')",
+            ],
+        )
+
     def register_tool(self, tool: Tool):
         """Register a tool with the agent."""
         self.tools[tool.name] = tool
@@ -3766,6 +3802,15 @@ digital_europe, life""",
         )
         if digital_europe_eligibility_result:
             return digital_europe_eligibility_result
+
+        # Check for LIFE PROGRAMME ELIGIBILITY queries
+        # e.g., "What LIFE programme options exist for biodiversity conservation NGO?"
+        # "Can an environmental NGO apply for LIFE Nature funding?"
+        # "Is my organization eligible for LIFE climate action projects?"
+        # IMPORTANT: Must catch LIFE eligibility before general environment/climate queries
+        life_eligibility_result = self._detect_life_eligibility_query(query, context)
+        if life_eligibility_result:
+            return life_eligibility_result
 
         # Check for DIGITAL EUROPE vs HORIZON EUROPE COMPARISON queries
         # e.g., "Should I apply to Digital Europe or Horizon Europe for an AI project?"
@@ -11048,6 +11093,12 @@ Budget Breakdown:
                 if eligibility_text:
                     content_pieces.append(eligibility_text)
 
+            # Extract LIFE Programme eligibility results
+            elif result.get("metadata", {}).get("tool") == "check_life_eligibility":
+                eligibility_text = self._format_life_eligibility_result(result)
+                if eligibility_text:
+                    content_pieces.append(eligibility_text)
+
             # Extract EU4Health template search results
             elif result.get("metadata", {}).get("tool") == "search_eu4health_templates":
                 template_text = self._format_eu4health_template_search_result(result)
@@ -11507,6 +11558,11 @@ Found **{total_found} organizations** with relevant track records:
             # Digital Europe specific tools
             elif tool_name == "check_digital_europe_eligibility":
                 return await self._tool_check_digital_europe_eligibility(params)
+            # LIFE Programme specific tools
+            elif tool_name == "check_life_eligibility":
+                return await self._tool_check_life_eligibility(params)
+            elif tool_name == "search_life_templates":
+                return await self._tool_search_life_templates(params)
             else:
                 return {"error": f"Tool {tool_name} not implemented"}
         except Exception as e:
@@ -12847,6 +12903,42 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Digital Europe eligibility check error: {e}")
             return {"error": str(e), "success": False}
 
+    async def _tool_check_life_eligibility(self, params: dict) -> dict:
+        """Check LIFE Programme eligibility for an organization."""
+        try:
+            from ..tools.life_eligibility import check_life_eligibility_execute
+
+            result = await check_life_eligibility_execute(
+                org_type=params.get("org_type", "NGO"),
+                country=params.get("country", "Germany"),
+                subprogramme=params.get("subprogramme"),
+                project_type=params.get("project_type"),
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"LIFE eligibility check error: {e}")
+            return {"error": str(e), "success": False}
+
+    async def _tool_search_life_templates(self, params: dict) -> dict:
+        """Search LIFE Programme documents for application guidance."""
+        try:
+            from ..tools.life_template_search import search_life_templates_execute
+
+            result = await search_life_templates_execute(
+                query=params.get("query", ""),
+                subprogramme=params.get("subprogramme"),
+                section=params.get("section"),
+                top_k=params.get("top_k", 5),
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"LIFE template search error: {e}")
+            return {"error": str(e), "success": False}
+
     def _summarize_tool_results(self, tool_calls: list[ToolCall]) -> str:
         """Summarize results from tool calls in a human-readable format."""
         summaries = []
@@ -13526,6 +13618,179 @@ This may be because:
 • Check open calls on the [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/?programmePeriod=2021-2027&programCcm2Id=43152860)
 • Contact [HaDEA](https://hadea.ec.europa.eu/programmes/digital-europe-programme_en) for guidance and support
 • For EDIHs, check the [EDIH Network](https://european-digital-innovation-hubs.ec.europa.eu/)
+"""
+
+            return eligibility_text
+
+        return ""
+
+    def _format_life_eligibility_result(self, result: dict) -> str:
+        """Format LIFE Programme eligibility check result into readable text."""
+        if not result.get("success"):
+            return ""
+
+        metadata = result.get("metadata", {})
+        query_type = metadata.get("query_type", "")
+
+        # Single sub-programme eligibility check
+        if query_type == "specific_subprogramme" and "result" in result:
+            check_result = result["result"]
+            subprogramme = check_result.get("subprogramme", "Unknown")
+            subprogramme_name = check_result.get("subprogramme_name", "Unknown Sub-programme")
+            eligible = check_result.get("eligible", False)
+            requirements_met = check_result.get("requirements_met", [])
+            requirements_missing = check_result.get("requirements_missing", [])
+            warnings = check_result.get("warnings", [])
+            recommendations = check_result.get("recommendations", [])
+
+            # Get country and org type from metadata
+            check_metadata = check_result.get("metadata", {})
+            country = check_metadata.get("country", "Unknown")
+            org_type = check_metadata.get("org_type", "Unknown")
+            is_eu_member = check_metadata.get("is_eu_member", False)
+            is_eea = check_metadata.get("is_eea", False)
+            is_associated = check_metadata.get("is_associated", False)
+            funding_rate = check_metadata.get("funding_rate", "")
+
+            if is_eu_member:
+                country_status = "EU Member State ✅"
+            elif is_eea:
+                country_status = "EEA Country ✅"
+            elif is_associated:
+                country_status = "Associated Country"
+            else:
+                country_status = "Participating Country"
+
+            eligibility_text = f"""## LIFE Programme Eligibility Check: {subprogramme_name} ({subprogramme})
+
+**Organization**: {org_type.replace('_', ' ').title()} from {country}
+**Country Status**: {country_status}
+**Eligibility**: {"✅ ELIGIBLE" if eligible else "❌ NOT ELIGIBLE"}
+"""
+            if funding_rate:
+                eligibility_text += f"**EU Co-financing Rate**: {funding_rate}%\n"
+
+            eligibility_text += "\n"
+
+            if requirements_met:
+                eligibility_text += "**Requirements Met:**\n"
+                for req in requirements_met:
+                    eligibility_text += f"- ✅ {req}\n"
+                eligibility_text += "\n"
+
+            if requirements_missing:
+                eligibility_text += "**Requirements Not Met:**\n"
+                for req in requirements_missing:
+                    eligibility_text += f"- ❌ {req}\n"
+                eligibility_text += "\n"
+
+            if warnings:
+                eligibility_text += "**Warnings:**\n"
+                for warning in warnings:
+                    eligibility_text += f"- ⚠️ {warning}\n"
+                eligibility_text += "\n"
+
+            if recommendations:
+                eligibility_text += "**Key Information:**\n"
+                for rec in recommendations:
+                    eligibility_text += f"- {rec}\n"
+                eligibility_text += "\n"
+
+            eligibility_text += """
+---
+🎯 **Next Steps:**
+• Check the [LIFE Programme](https://cinea.ec.europa.eu/programmes/life_en) for programme details
+• Review calls on the [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/?programmePeriod=2021-2027&programCcm2Id=43252476)
+• Contact [CINEA](https://cinea.ec.europa.eu/programmes/life_en) (European Climate, Infrastructure and Environment Executive Agency) for support
+• Consult your [National Contact Point](https://cinea.ec.europa.eu/programmes/life/life-national-contact-points_en) for local guidance
+"""
+            return eligibility_text
+
+        # All eligible sub-programmes check
+        elif query_type == "all_subprogrammes" and "eligible_subprogrammes" in result:
+            eligible_subprogs = result.get("eligible_subprogrammes", [])
+            total_eligible = result.get("total_eligible", len(eligible_subprogs))
+            country = metadata.get("country", "Unknown")
+            org_type = metadata.get("org_type", "Unknown")
+
+            if total_eligible == 0:
+                eligibility_text = f"""## LIFE Programme Eligibility Check for {org_type.replace('_', ' ').title()} from {country}
+
+**Eligibility**: ❌ No eligible sub-programmes found
+
+This may be because:
+- {country} is not a LIFE participating country
+- The organization type ({org_type.replace('_', ' ')}) has restrictions for LIFE sub-programmes
+
+**Recommendations:**
+- Check if your organization qualifies under a different category
+- Consider partnership with eligible entities from EU Member States
+- Contact CINEA for guidance on specific opportunities
+"""
+            else:
+                eligibility_text = f"""## LIFE Programme Eligibility Check for {org_type.replace('_', ' ').title()} from {country}
+
+**Total Eligible Sub-programmes**: {total_eligible}
+
+**Available Funding Options:**
+"""
+                for subprog in eligible_subprogs:
+                    subprog_code = subprog.get("subprogramme", "")
+                    subprog_name = subprog.get("subprogramme_name", "")
+                    description = subprog.get("description", "")
+                    funding_rate = subprog.get("funding_rate", "")
+                    priorities = subprog.get("priorities", [])
+                    warnings = subprog.get("warnings", [])
+                    notes = subprog.get("notes", [])
+
+                    eligibility_text += f"\n### {subprog_name} ({subprog_code}) ✅\n"
+                    if description:
+                        eligibility_text += f"{description}\n\n"
+                    if funding_rate:
+                        eligibility_text += f"- **EU Co-financing Rate**: {funding_rate}%\n"
+                    if priorities:
+                        eligibility_text += f"- **Priority Areas**: {', '.join(priorities[:4])}\n"
+                    if warnings:
+                        for w in warnings:
+                            eligibility_text += f"- ⚠️ {w}\n"
+                    if notes:
+                        for n in notes:
+                            eligibility_text += f"- {n}\n"
+
+                # Add LIFE sub-programmes overview
+                eligibility_text += "\n### LIFE Programme Sub-programmes Overview\n"
+                eligibility_text += "The LIFE Programme supports environment and climate action through 4 sub-programmes:\n"
+                eligibility_text += "- **NAT**: Nature and Biodiversity (75% co-financing)\n"
+                eligibility_text += (
+                    "- **ENV**: Circular Economy and Quality of Life (60% co-financing)\n"
+                )
+                eligibility_text += (
+                    "- **CCA**: Climate Change Mitigation and Adaptation (60% co-financing)\n"
+                )
+                eligibility_text += "- **CET**: Clean Energy Transition (up to 95% co-financing)\n"
+
+                # Add project types overview
+                eligibility_text += "\n### LIFE Project Types\n"
+                eligibility_text += (
+                    "- **SAP**: Standard Action Projects (best practice, demonstration, pilot)\n"
+                )
+                eligibility_text += (
+                    "- **SIP**: Strategic Integrated Projects (large-scale implementation)\n"
+                )
+                eligibility_text += (
+                    "- **SNAP**: Strategic Nature Projects (nature/biodiversity implementation)\n"
+                )
+                eligibility_text += "- **TA**: Technical Assistance (preparation for SIP/SNAP)\n"
+                eligibility_text += "- **OG**: Operating Grants (NGO support)\n"
+
+                eligibility_text += """
+---
+🎯 **Next Steps:**
+• Review the [LIFE Multi-Annual Work Programme](https://cinea.ec.europa.eu/programmes/life/life-work-programmes_en) for current priorities
+• Check open calls on the [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/?programmePeriod=2021-2027&programCcm2Id=43252476)
+• Contact [CINEA](https://cinea.ec.europa.eu/programmes/life_en) for guidance and support
+• Consult your [National Contact Point](https://cinea.ec.europa.eu/programmes/life/life-national-contact-points_en) for local advice
+• For nature projects, check alignment with [Natura 2000](https://ec.europa.eu/environment/nature/natura2000/index_en.htm)
 """
 
             return eligibility_text
@@ -21929,6 +22194,359 @@ Help your film reach audiences:
                 "confidence": 0.80,
                 "needs_more_info": False,
             }
+
+        return None
+
+    # ========================================================================
+    # LIFE PROGRAMME ELIGIBILITY DETECTION
+    # ========================================================================
+
+    def _detect_life_eligibility_query(self, query: str, context: str) -> dict[str, Any] | None:
+        """Detect LIFE Programme eligibility queries.
+
+        These are questions about LIFE Programme eligibility, covering:
+        - NAT: Nature and Biodiversity
+        - ENV: Circular Economy and Quality of Life
+        - CCA: Climate Change Mitigation and Adaptation
+        - CET: Clean Energy Transition
+
+        Examples:
+        - "What LIFE programme options exist for biodiversity conservation NGO?"
+        - "Can an environmental NGO apply for LIFE Nature funding?"
+        - "Is my organization eligible for LIFE climate action projects?"
+        - "What LIFE sub-programmes are available for a local authority?"
+        - "Can a research institution apply for LIFE clean energy transition?"
+        """
+        query_lower = query.lower()
+        # Note: context not currently used but kept for future enhancement
+        _ = context  # Mark as intentionally unused
+
+        # LIFE Programme indicators
+        life_indicators = [
+            "life programme",
+            "life program",
+            "life-programme",
+            "life funding",
+            "life grant",
+            "life sub-programme",
+            "life subprogramme",
+        ]
+        has_life = any(ind in query_lower for ind in life_indicators)
+
+        # Skip if query explicitly mentions another programme
+        other_programmes = [
+            "erasmus",
+            "creative europe",
+            "horizon europe",
+            "horizon 2020",
+            "eu4health",
+            "digital europe",
+        ]
+        if any(prog in query_lower for prog in other_programmes):
+            return None
+
+        # Eligibility indicators
+        eligibility_indicators = [
+            "eligible",
+            "eligibility",
+            "can we apply",
+            "can i apply",
+            "can a",
+            "can an",
+            "can our",
+            "can my",
+            "participate",
+            "apply to",
+            "apply for",
+            "funding options",
+            "funding opportunities",
+            "options exist",
+            "options available",
+            "what options",
+            "is a ",
+            "am i eligible",
+            "are we eligible",
+        ]
+        has_eligibility = any(ind in query_lower for ind in eligibility_indicators)
+
+        # LIFE-specific topic indicators (can help detect even without explicit programme mention)
+        life_topic_indicators = [
+            "biodiversity",
+            "nature conservation",
+            "natura 2000",
+            "wildlife protection",
+            "habitat restoration",
+            "species protection",
+            "invasive species",
+            "circular economy",
+            "waste management",
+            "water management",
+            "air quality",
+            "soil protection",
+            "climate mitigation",
+            "climate adaptation",
+            "climate action",
+            "clean energy transition",
+            "energy transition",
+            "environmental protection",
+            "environmental project",
+            "nature project",
+        ]
+        has_life_topic = any(ind in query_lower for ind in life_topic_indicators)
+
+        # Organization type detection
+        org_type_patterns = {
+            "NGO": ["ngo", "non-governmental", "nonprofit", "non-profit"],
+            "ENVIRONMENTAL_NGO": [
+                "environmental ngo",
+                "environmental organization",
+                "environmental organisation",
+                "conservation ngo",
+                "nature ngo",
+                "wildlife ngo",
+            ],
+            "PUBLIC_AUTHORITY": [
+                "public authority",
+                "government",
+                "ministry",
+                "public body",
+            ],
+            "LOCAL_AUTHORITY": [
+                "local authority",
+                "municipality",
+                "city",
+                "region",
+                "regional authority",
+                "local government",
+            ],
+            "RESEARCH": [
+                "research institution",
+                "research center",
+                "research centre",
+                "research org",
+            ],
+            "UNIVERSITY": ["university", "higher education", "academia", "academic"],
+            "SME": ["sme", "small enterprise", "small business", "medium enterprise"],
+            "LARGE_ENTERPRISE": ["large enterprise", "large company", "corporation"],
+            "PARK_AUTHORITY": [
+                "nature park",
+                "national park",
+                "protected area",
+                "nature reserve",
+                "park authority",
+            ],
+            "ASSOCIATION": ["association", "network", "federation"],
+            "FOUNDATION": ["foundation"],
+            "INTERNATIONAL_ORG": [
+                "international organization",
+                "international organisation",
+            ],
+        }
+        org_type = "NGO"  # Default for LIFE (most common applicant type)
+        for ot, patterns in org_type_patterns.items():
+            if any(p in query_lower for p in patterns):
+                org_type = ot
+                break
+
+        # Country detection
+        countries = [
+            "Germany",
+            "France",
+            "Italy",
+            "Spain",
+            "Netherlands",
+            "Belgium",
+            "Poland",
+            "Austria",
+            "Sweden",
+            "Denmark",
+            "Finland",
+            "Ireland",
+            "Portugal",
+            "Greece",
+            "Czech Republic",
+            "Romania",
+            "Hungary",
+            "Bulgaria",
+            "Slovakia",
+            "Slovenia",
+            "Croatia",
+            "Lithuania",
+            "Latvia",
+            "Estonia",
+            "Luxembourg",
+            "Malta",
+            "Cyprus",
+            "Norway",
+            "Iceland",
+            "Liechtenstein",
+            "Ukraine",
+            "Moldova",
+            "Montenegro",
+            "Serbia",
+            "Albania",
+            "North Macedonia",
+            "Kosovo",
+            "Türkiye",
+            "Turkey",
+            "Bosnia",
+        ]
+        country = None
+        for c in countries:
+            if c.lower() in query_lower:
+                country = c if c != "Turkey" else "Türkiye"
+                break
+
+        # Sub-programme detection
+        subprog_patterns = {
+            "NAT": [
+                "nature",
+                "biodiversity",
+                "natura 2000",
+                "species",
+                "habitat",
+                "wildlife",
+                "conservation",
+            ],
+            "ENV": [
+                "circular economy",
+                "waste",
+                "water",
+                "air quality",
+                "soil",
+                "chemicals",
+                "resource efficiency",
+                "pollution",
+            ],
+            "CCA": [
+                "climate change",
+                "climate mitigation",
+                "climate adaptation",
+                "greenhouse gas",
+                "ghg",
+                "climate action",
+                "urban adaptation",
+            ],
+            "CET": [
+                "clean energy",
+                "energy transition",
+                "renewable energy",
+                "energy efficiency",
+                "building renovation",
+                "energy poverty",
+            ],
+        }
+        subprogramme = None
+        for sp, patterns in subprog_patterns.items():
+            if any(p in query_lower for p in patterns):
+                subprogramme = sp
+                break
+
+        # Project type detection
+        project_type_patterns = {
+            "SAP": [
+                "standard action",
+                "demonstration project",
+                "pilot project",
+                "best practice",
+            ],
+            "SIP": ["strategic integrated", "large-scale implementation", "sip "],
+            "SNAP": ["strategic nature", "snap "],
+            "TA": ["technical assistance"],
+            "OG": ["operating grant", "operating grants"],
+        }
+        project_type = None
+        for pt, patterns in project_type_patterns.items():
+            if any(p in query_lower for p in patterns):
+                project_type = pt
+                break
+
+        # Check if query is asking for broad options (not a specific sub-programme)
+        broad_options_indicators = [
+            "what options",
+            "options exist",
+            "options available",
+            "what are the options",
+            "which options",
+            "funding options",
+            "all options",
+            "what sub-programmes",
+            "what subprogrammes",
+            "which sub-programmes",
+            "all sub-programmes",
+        ]
+        wants_broad_options = any(ind in query_lower for ind in broad_options_indicators)
+
+        # Route to check_life_eligibility tool if LIFE + eligibility
+        if has_life and has_eligibility:
+            params = {
+                "org_type": org_type,
+                "country": country or "Germany",  # Default if not specified
+            }
+            # Only include subprogramme if NOT asking for broad options
+            if subprogramme and not wants_broad_options:
+                params["subprogramme"] = subprogramme
+            if project_type:
+                params["project_type"] = project_type
+
+            return {
+                "thought": f"User is asking about LIFE Programme eligibility for a {org_type.replace('_', ' ')} from {country or 'an EU country'}. Calling check_life_eligibility tool.",
+                "action": "call_tools",
+                "tool_calls": [
+                    {
+                        "tool": "check_life_eligibility",
+                        "parameters": params,
+                        "reasoning": f"Checking LIFE Programme eligibility for {org_type} from {country or 'Germany'}",
+                    }
+                ],
+                "confidence": 0.95,
+                "needs_more_info": False,
+            }
+
+        # Pattern: LIFE topic indicators + eligibility (even without explicit LIFE mention)
+        # But only if clearly environmental/climate focused
+        if (
+            has_life_topic
+            and has_eligibility
+            and not any(prog in query_lower for prog in other_programmes)
+        ):
+            # Check for environmental/climate context words to avoid false positives
+            env_context = any(
+                w in query_lower
+                for w in [
+                    "environment",
+                    "climate",
+                    "nature",
+                    "biodiversity",
+                    "conservation",
+                    "ecological",
+                    "green",
+                ]
+            )
+            if env_context:
+                params = {
+                    "org_type": org_type,
+                    "country": country or "Germany",
+                }
+                # Only include subprogramme if NOT asking for broad options
+                if subprogramme and not wants_broad_options:
+                    params["subprogramme"] = subprogramme
+                if project_type:
+                    params["project_type"] = project_type
+
+                return {
+                    "thought": f"User is asking about eligibility for LIFE-related topics ({subprogramme or 'environment/climate'}). Routing to LIFE Programme eligibility check.",
+                    "action": "call_tools",
+                    "tool_calls": [
+                        {
+                            "tool": "check_life_eligibility",
+                            "parameters": params,
+                            "reasoning": f"Checking LIFE Programme eligibility for {org_type} interested in {subprogramme or 'environmental/climate projects'}",
+                        }
+                    ],
+                    "confidence": 0.85,
+                    "needs_more_info": False,
+                }
 
         return None
 

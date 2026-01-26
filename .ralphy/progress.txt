@@ -12651,3 +12651,90 @@ The system needed a dedicated detection and guidance generation method for progr
 - **Funding Rates**: 50% (DE) vs 100% RIA/70% IA (HE)
 - **AI-Specific Guidance**: AI Factories/TEFs (DE) vs Cluster 4 research (HE)
 - **Sequential Funding Suggestion**: Use HE for R&D, then DE to deploy successful results
+
+## 2026-01-26: Scenario 025 - LIFE Programme Eligibility (COMPLETE)
+
+### Task Completed
+Implemented Scenario 025: LIFE Programme Eligibility with full tool integration.
+
+### Query
+"What LIFE programme options exist for biodiversity conservation NGO?"
+
+### Expected Behavior
+- LIFE Nature sub-programme details (NAT)
+- SAP/SIP/SNAP project type options
+- Co-financing rates (75% for NAT, 60% for ENV/CCA, 95% for CET)
+- LIFE-specific information
+
+### Root Cause Analysis
+The LIFE Programme tools (`check_life_eligibility`, `search_life_templates`) existed in `app/services/tools/` but were NOT integrated into the ToolAwareAgent. This meant queries about LIFE Programme eligibility were not being routed to the correct tools.
+
+### Fixes Applied
+
+1. **Tool Registration in `_init_tools()`**:
+   - Added `check_life_eligibility` tool with parameters for org_type, country, subprogramme, project_type
+   - Added `search_life_templates` tool for LIFE document search
+
+2. **Tool Routing in `_execute_single_tool()`**:
+   - Added routing for `check_life_eligibility` -> `_tool_check_life_eligibility()`
+   - Added routing for `search_life_templates` -> `_tool_search_life_templates()`
+
+3. **Wrapper Methods**:
+   - Added `_tool_check_life_eligibility()` - calls `check_life_eligibility_execute()` from tools
+   - Added `_tool_search_life_templates()` - calls `search_life_templates_execute()` from tools
+
+4. **Result Formatter**:
+   - Added `_format_life_eligibility_result()` with rich markdown formatting
+   - Handles both specific sub-programme checks and all-eligible checks
+   - Includes sub-programme overview (NAT, ENV, CCA, CET)
+   - Includes project types overview (SAP, SIP, SNAP, TA, OG)
+   - Provides actionable next steps with CINEA and National Contact Point links
+
+5. **Result Extraction**:
+   - Added extraction in `_extract_rich_content_from_results()` for LIFE eligibility results
+
+6. **Detection Method**:
+   - Added `_detect_life_eligibility_query()` for pre-routing LIFE eligibility queries
+   - Detects LIFE programme indicators
+   - Detects organization types (NGO, PUBLIC_AUTHORITY, RESEARCH, etc.)
+   - Detects sub-programmes (NAT, ENV, CCA, CET)
+   - Detects project types (SAP, SIP, SNAP, TA, OG)
+   - Added logic to show all sub-programmes when user asks for broad "options"
+
+7. **Intent Classification**:
+   - Added call to `_detect_life_eligibility_query()` in `_classify_intent_agentic()`
+   - Placed after Digital Europe eligibility detection
+
+### Test Results
+- 14 tests in `tests/quality/test_scenario_025_life_eligibility.py`
+- All tests pass
+- Quality score: 100/100
+
+### Files Modified
+- `app/services/agents/tool_aware_agent.py`:
+  - Added tool registrations in `_init_tools()`
+  - Added routing in `_execute_single_tool()`
+  - Added `_tool_check_life_eligibility()` wrapper method
+  - Added `_tool_search_life_templates()` wrapper method
+  - Added `_format_life_eligibility_result()` formatter method
+  - Added extraction in `_extract_rich_content_from_results()`
+  - Added `_detect_life_eligibility_query()` detection method
+  - Added detection call in `_classify_intent_agentic()`
+
+### Files Added
+- `tests/quality/test_scenario_025_life_eligibility.py` (14 tests)
+
+### Files Updated
+- `docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md` - Marked scenario 025 complete
+
+### Key Features Implemented
+- **4 LIFE Sub-programmes covered**: NAT (Nature/Biodiversity), ENV (Circular Economy), CCA (Climate), CET (Clean Energy)
+- **39 Participating countries**: 27 EU Member States + 3 EEA + 9 Associated
+- **12 Organization types**: PUBLIC_AUTHORITY, LOCAL_AUTHORITY, NGO, ENVIRONMENTAL_NGO, RESEARCH, UNIVERSITY, SME, LARGE_ENTERPRISE, INTERNATIONAL_ORG, ASSOCIATION, FOUNDATION, PARK_AUTHORITY
+- **5 Project types**: SAP (Standard Action), SIP (Strategic Integrated), SNAP (Strategic Nature), TA (Technical Assistance), OG (Operating Grants)
+- **Funding rates**: 75% (NAT), 60% (ENV/CCA), 95% (CET)
+- **Rich formatting**: Sub-programme details, co-financing rates, priority areas, project types, actionable next steps with CINEA links
+- **Broad options support**: When user asks for "options", shows all eligible sub-programmes instead of just detected one
+
+### PRD Status
+- [x] Scenario 025: LIFE Eligibility - PASS (100/100)

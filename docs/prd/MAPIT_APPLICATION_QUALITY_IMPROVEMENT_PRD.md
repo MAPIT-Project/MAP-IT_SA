@@ -318,12 +318,15 @@ Ensure all 6 EU programmes work correctly.
 
 ### LIFE
 
-- [ ] **Scenario 025: LIFE Eligibility** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 025: LIFE Eligibility** `EXECUTE + FIX IF NEEDED`
   - Query: "What LIFE programme options exist for biodiversity conservation NGO?"
   - Expected: LIFE Nature sub-programme, SAP/SIP options, co-financing
   - Verify: LIFE-specific info, correct sub-programme
   - Fix if: Generic environment response
   - Pass threshold: 80
+  - **Status: PASS (score 100/100)**
+  - **Fix applied**: Added LIFE Programme tools to ToolAwareAgent - registered `check_life_eligibility` and `search_life_templates` in _init_tools(), _execute_single_tool(), added wrapper methods, result formatter, and `_detect_life_eligibility_query()` for pre-routing. Added logic to show all sub-programmes when user asks for "options" (broad overview).
+  - **Tests**: `tests/quality/test_scenario_025_life_eligibility.py` (14 tests)
 
 - [ ] **Scenario 026: LIFE Budget** `EXECUTE + FIX IF NEEDED`
   - Query: "What budget range for a LIFE climate adaptation project?"
