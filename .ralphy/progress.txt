@@ -13011,3 +13011,51 @@ And routing to check_erasmus_eligibility tool, ignoring that the query explicitl
 - Actionability (10/10): Next steps with EU Portal and NCP links
 
 Total: 100/100 (Pass threshold: 80)
+
+## 2026-01-26: Scenario 029: Comparison + Recommendation (PASS - score 100/100)
+
+### Task Completed
+Implemented and tested Scenario 029: "Compare RIA and IA funding. Which is better for a TRL 4 project?"
+
+### Analysis
+The system already has comprehensive built-in RIA vs IA comparison guidance in `tool_aware_agent.py`:
+- `_generate_ria_ia_comparison_guidance()` method (lines 7861-7949) provides:
+  - Comparison table with TRL ranges (RIA: TRL 2-5, IA: TRL 5-8)
+  - Funding rates (100% for RIA, 70% for IA industry partners)
+  - Budget ranges (€3-15M for RIA, €5-20M for IA)
+  - Decision guide with TRL-specific recommendations
+  - Consortium considerations
+  - Actionable next steps with EU Portal, NCP, and CORDIS links
+
+### Pattern Detection
+Query "Compare RIA and IA funding" matches pattern "compare ria" and "ria and ia" which triggers the built-in comparison guidance.
+
+### Files Created
+- `tests/quality/test_scenario_029_comparison_recommendation.py` - 12 tests covering:
+  - test_mentions_both_action_types
+  - test_explains_trl_differences
+  - test_provides_funding_rate_comparison
+  - test_provides_trl4_specific_recommendation
+  - test_structured_comparison
+  - test_compares_focus_areas
+  - test_mentions_budget_ranges
+  - test_provides_actionable_next_steps
+  - test_decision_criteria_provided
+  - test_uses_built_in_guidance
+  - test_no_incorrect_programme_references
+  - test_overall_score_meets_threshold
+
+### Files Modified
+- `docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md` - Marked Scenario 029 as complete
+
+### Test Results
+- All 12 tests passed
+- Score breakdown:
+  - Query Fulfillment: 40/40 (both RIA and IA mentioned, TRL differences explained, recommendation provided)
+  - Specificity: 25/25 (100%/70% funding rates, TRL 2-5/5-8 ranges, budget figures)
+  - Factual Accuracy: 25/25 (correct research vs demonstration focus)
+  - Actionability: 10/10 (EU Portal, NCP, CORDIS links provided)
+  - **Total: 100/100** (Pass threshold: 80)
+
+### Status
+PASS - No code fixes required. The built-in guidance already provides comprehensive RIA vs IA comparison with TRL-specific recommendations.

@@ -371,12 +371,15 @@ Test the system's ability to handle sophisticated user needs.
   - **Fix applied**: Added `_detect_eic_accelerator_eligibility_query()` method to pre-route EIC Accelerator eligibility queries to comprehensive guidance covering eligibility (SME requirements), deadlines (2026 cut-off dates), and budget (€2.5M grant + equity). Also added Horizon Europe/EIC programmes to Erasmus+ exclusion list to prevent misrouting.
   - **Tests**: `tests/quality/test_scenario_028_multi_part_eligibility_calls_budget.py` (14 tests)
 
-- [ ] **Scenario 029: Comparison + Recommendation** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 029: Comparison + Recommendation** `EXECUTE + FIX IF NEEDED`
   - Query: "Compare RIA and IA funding. Which is better for a TRL 4 project?"
   - Expected: Comparison table, clear recommendation with reasoning
   - Verify: Accurate comparison, sound recommendation
   - Fix if: Wrong comparison, no clear advice
   - Pass threshold: 80
+  - **Status: PASS (score 100/100)**
+  - **Verified**: Built-in RIA vs IA comparison guidance already provides comprehensive comparison table with TRL ranges (RIA: TRL 2-5, IA: TRL 5-8), funding rates (100% vs 70%), budget ranges (€3-15M vs €5-20M), decision guide with TRL-specific recommendations, and actionable next steps (EU Portal, NCP, CORDIS links)
+  - **Tests**: `tests/quality/test_scenario_029_comparison_recommendation.py` (12 tests)
 
 ### Follow-Up Conversations
 
