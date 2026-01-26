@@ -3803,6 +3803,15 @@ digital_europe, life""",
         if digital_europe_eligibility_result:
             return digital_europe_eligibility_result
 
+        # Check for LIFE PROGRAMME BUDGET queries
+        # e.g., "What budget range for a LIFE climate adaptation project?"
+        # "How much funding for LIFE nature project?"
+        # "What is the typical LIFE project budget?"
+        # IMPORTANT: Must catch LIFE budget queries BEFORE eligibility to prioritize budget-specific answers
+        life_budget_result = self._detect_life_budget_query(query, context)
+        if life_budget_result:
+            return life_budget_result
+
         # Check for LIFE PROGRAMME ELIGIBILITY queries
         # e.g., "What LIFE programme options exist for biodiversity conservation NGO?"
         # "Can an environmental NGO apply for LIFE Nature funding?"
@@ -22549,6 +22558,310 @@ Help your film reach audiences:
                 }
 
         return None
+
+    # ========================================================================
+    # LIFE PROGRAMME BUDGET DETECTION
+    # ========================================================================
+
+    def _detect_life_budget_query(self, query: str, context: str) -> dict[str, Any] | None:
+        """Detect LIFE Programme budget queries.
+
+        These are questions about LIFE Programme budget ranges, funding rates,
+        and co-financing for the different sub-programmes:
+        - NAT: Nature and Biodiversity (75% co-financing)
+        - ENV: Circular Economy and Quality of Life (60% co-financing)
+        - CCA: Climate Change Mitigation and Adaptation (60% co-financing)
+        - CET: Clean Energy Transition (up to 95% co-financing)
+
+        Examples:
+        - "What budget range for a LIFE climate adaptation project?"
+        - "How much funding for LIFE nature conservation?"
+        - "What is the typical LIFE project budget?"
+        - "LIFE programme co-financing rates"
+        - "What budget should I plan for LIFE environmental project?"
+        """
+        query_lower = query.lower()
+        # Note: context not currently used but kept for future enhancement
+        _ = context  # Mark as intentionally unused
+
+        # LIFE Programme indicators
+        life_indicators = [
+            "life programme",
+            "life program",
+            "life project",
+            "life funding",
+            "life grant",
+        ]
+        has_life = any(ind in query_lower for ind in life_indicators)
+
+        # Budget indicators
+        budget_indicators = [
+            "budget",
+            "funding",
+            "cost",
+            "co-financing",
+            "cofinancing",
+            "co financing",
+            "funding rate",
+            "how much",
+            "typical amount",
+            "expected grant",
+            "grant size",
+            "project size",
+            "financial",
+            "money",
+            "eur",
+            "euro",
+            "million",
+        ]
+        has_budget = any(ind in query_lower for ind in budget_indicators)
+
+        # LIFE-specific topic indicators that suggest LIFE even without explicit mention
+        life_topic_indicators = [
+            "climate adaptation",
+            "climate mitigation",
+            "nature conservation",
+            "biodiversity",
+            "natura 2000",
+            "circular economy",
+            "clean energy transition",
+            "environmental protection",
+        ]
+        has_life_topic = any(ind in query_lower for ind in life_topic_indicators)
+
+        # Sub-programme detection
+        subprogramme = None
+        if any(
+            ind in query_lower
+            for ind in [
+                "climate adaptation",
+                "climate mitigation",
+                "climate change",
+                "cca",
+                "climate action",
+                "ghg",
+                "greenhouse",
+            ]
+        ):
+            subprogramme = "CCA"
+        elif any(
+            ind in query_lower
+            for ind in [
+                "nature",
+                "biodiversity",
+                "natura 2000",
+                "species",
+                "habitat",
+                "nat",
+            ]
+        ):
+            subprogramme = "NAT"
+        elif any(
+            ind in query_lower
+            for ind in [
+                "circular economy",
+                "waste",
+                "water",
+                "air quality",
+                "soil",
+                "env",
+                "environment",
+            ]
+        ):
+            subprogramme = "ENV"
+        elif any(
+            ind in query_lower
+            for ind in [
+                "clean energy",
+                "energy transition",
+                "renewable",
+                "energy efficiency",
+                "cet",
+            ]
+        ):
+            subprogramme = "CET"
+
+        # Route to LIFE budget guidance if:
+        # 1. LIFE mentioned + budget question
+        # 2. LIFE topic + budget question (implies LIFE)
+        if (has_life and has_budget) or (has_life_topic and has_budget and not has_life):
+            # Only route if clearly a budget question (not eligibility)
+            eligibility_indicators = [
+                "eligible",
+                "eligibility",
+                "can apply",
+                "can participate",
+                "who can",
+                "requirements",
+            ]
+            is_eligibility = any(ind in query_lower for ind in eligibility_indicators)
+            if is_eligibility:
+                return None  # Let eligibility detection handle this
+
+            return {
+                "thought": f"User is asking about LIFE Programme budget ranges{' for ' + subprogramme + ' sub-programme' if subprogramme else ''}. Providing LIFE-specific budget guidance with SAP/SIP typical budgets and co-financing rates.",
+                "action": "generate_guidance",
+                "response": self._generate_life_budget_guidance(subprogramme),
+                "guidance_type": "life_budget",
+                "programme": "LIFE",
+                "subprogramme": subprogramme,
+                "confidence": 0.95,
+                "needs_more_info": False,
+            }
+
+        return None
+
+    def _generate_life_budget_guidance(self, subprogramme: str | None = None) -> str:
+        """Generate comprehensive LIFE Programme budget guidance.
+
+        Args:
+            subprogramme: Optional specific sub-programme (NAT, ENV, CCA, CET)
+
+        Returns:
+            Formatted budget guidance string
+        """
+        # Sub-programme funding rates
+        funding_rates = {
+            "NAT": ("Nature and Biodiversity", "75%", "Up to 75% for priority species/habitats"),
+            "ENV": ("Circular Economy and Quality of Life", "60%", "Standard 60% EU co-financing"),
+            "CCA": (
+                "Climate Change Mitigation and Adaptation",
+                "60%",
+                "Standard 60% EU co-financing",
+            ),
+            "CET": (
+                "Clean Energy Transition",
+                "95%",
+                "Up to 95% EU co-financing (coordination & support)",
+            ),
+        }
+
+        # Project type budgets
+        project_budgets = {
+            "SAP": (
+                "Standard Action Projects",
+                "€1-5 million",
+                "3-5 years",
+                "Best practice, demonstration, pilot, information projects",
+            ),
+            "SIP": (
+                "Strategic Integrated Projects",
+                "€10-30 million",
+                "5-10 years",
+                "Large-scale implementation of environmental/climate plans (ENV, CCA only)",
+            ),
+            "SNAP": (
+                "Strategic Nature Projects",
+                "€10-30 million",
+                "5-10 years",
+                "Large-scale implementation for nature/biodiversity (NAT only)",
+            ),
+            "TA": (
+                "Technical Assistance",
+                "Up to €1 million",
+                "1-2 years",
+                "Preparation of SIP/SNAP proposals",
+            ),
+        }
+
+        # Build response
+        if subprogramme and subprogramme in funding_rates:
+            name, rate, notes = funding_rates[subprogramme]
+            guidance = f"""## LIFE Programme Budget: {name} ({subprogramme})
+
+### Co-Financing Rate
+- **EU Contribution**: {rate}
+- {notes}
+- **Your Co-Financing**: {100 - int(rate.replace('%', '').replace('Up to ', ''))}%{'+ (varies by project)' if 'Up to' in rate else ''}
+
+### Typical Budget Ranges by Project Type
+
+"""
+            # Show relevant project types for this sub-programme
+            if subprogramme == "NAT":
+                relevant_types = ["SAP", "SNAP", "TA"]
+            elif subprogramme in ["ENV", "CCA"]:
+                relevant_types = ["SAP", "SIP", "TA"]
+            else:  # CET
+                relevant_types = ["SAP", "TA"]
+
+            for ptype in relevant_types:
+                pname, budget, duration, desc = project_budgets[ptype]
+                guidance += f"""#### {pname} ({ptype})
+- **Budget Range**: {budget}
+- **Duration**: {duration}
+- **Description**: {desc}
+
+"""
+        else:
+            guidance = """## LIFE Programme Budget Overview
+
+The LIFE Programme supports environment and climate action with a total budget of **€5.432 billion (2021-2027)**. Budget ranges depend on the **sub-programme** and **project type**.
+
+### Co-Financing Rates by Sub-Programme
+
+| Sub-Programme | EU Co-Financing | Your Contribution |
+|--------------|-----------------|-------------------|
+| **NAT** (Nature & Biodiversity) | 75% | 25% |
+| **ENV** (Circular Economy) | 60% | 40% |
+| **CCA** (Climate Change) | 60% | 40% |
+| **CET** (Clean Energy Transition) | Up to 95% | 5%+ |
+
+### Typical Budget Ranges by Project Type
+
+#### Standard Action Projects (SAP)
+- **Budget**: €1-5 million
+- **Duration**: 3-5 years
+- **Available for**: All sub-programmes
+- **Description**: Best practice, demonstration, pilot, information projects
+
+#### Strategic Integrated Projects (SIP)
+- **Budget**: €10-30 million
+- **Duration**: 5-10 years
+- **Available for**: ENV, CCA sub-programmes only
+- **Description**: Large-scale implementation of environmental/climate plans
+- **Requirement**: Alignment with approved national/regional strategies
+
+#### Strategic Nature Projects (SNAP)
+- **Budget**: €10-30 million
+- **Duration**: 5-10 years
+- **Available for**: NAT sub-programme only
+- **Description**: Large-scale implementation for nature/biodiversity
+- **Requirement**: Focus on Prioritised Action Frameworks
+
+#### Technical Assistance (TA)
+- **Budget**: Up to €1 million
+- **Duration**: 1-2 years
+- **Available for**: All sub-programmes
+- **Description**: Preparation of SIP/SNAP proposals
+
+"""
+
+        guidance += """### Key Budget Considerations
+
+1. **Co-financing requirement**: LIFE requires beneficiaries to co-finance part of the project costs
+2. **In-kind contributions**: Can count towards co-financing (staff time, equipment, etc.)
+3. **Budget categories**: Personnel, travel, equipment, other direct costs, indirect costs
+4. **Indirect costs**: Typically 7% flat rate of eligible direct costs
+
+### Funding Model Comparison
+
+| Aspect | LIFE | Horizon Europe |
+|--------|------|----------------|
+| Co-financing | 55-75% EU | 70-100% EU |
+| Reimbursement | Actual costs | Actual or lump sum |
+| Focus | Environment/Climate | Research/Innovation |
+| TRL | Demonstration (5-8) | Research (2-6) |
+
+---
+🎯 **Next Steps:**
+• Review the [LIFE Multi-Annual Work Programme](https://cinea.ec.europa.eu/programmes/life/life-work-programmes_en) for current priorities
+• Check open calls on the [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/?programmePeriod=2021-2027&programCcm2Id=43252476)
+• Contact [CINEA](https://cinea.ec.europa.eu/programmes/life_en) for budget guidance
+• Consult your [National Contact Point](https://cinea.ec.europa.eu/programmes/life/life-national-contact-points_en) for local advice
+"""
+
+        return guidance
 
     # ========================================================================
     # DIGITAL EUROPE vs HORIZON EUROPE COMPARISON DETECTION

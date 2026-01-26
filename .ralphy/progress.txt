@@ -12738,3 +12738,79 @@ The LIFE Programme tools (`check_life_eligibility`, `search_life_templates`) exi
 
 ### PRD Status
 - [x] Scenario 025: LIFE Eligibility - PASS (100/100)
+
+
+## 2026-01-26: Scenario 026 - LIFE Budget (PASS)
+
+### Task Completed
+Implemented Scenario 026: LIFE Programme Budget with score 100/100.
+
+### Query
+"What budget range for a LIFE climate adaptation project?"
+
+### Expected Behavior
+- SAP/SIP typical budgets
+- Co-financing rates (55-75%)
+- LIFE-specific funding model (not Horizon Europe)
+
+### Fix Implementation
+
+1. **Detection Method (`_detect_life_budget_query`)**:
+   - Added to `app/services/agents/tool_aware_agent.py`
+   - Detects LIFE Programme indicators combined with budget questions
+   - Detects sub-programme from query context (NAT, ENV, CCA, CET)
+   - Pre-routes to built-in guidance for fast response (< 5ms)
+   - Excludes eligibility queries (handled by separate detector)
+
+2. **Guidance Generator (`_generate_life_budget_guidance`)**:
+   - Generates comprehensive LIFE budget information
+   - Sub-programme specific or general overview based on detected context
+   - Includes:
+     - Co-financing rates (75% NAT, 60% ENV/CCA, 95% CET)
+     - SAP budget range: €1-5 million (3-5 years)
+     - SIP budget range: €10-30 million (5-10 years)
+     - SNAP budget range: €10-30 million (5-10 years)
+     - TA budget range: Up to €1 million (1-2 years)
+     - Budget categories (personnel, travel, equipment, etc.)
+     - Funding model comparison with Horizon Europe
+     - Actionable next steps with CINEA and EU Portal links
+
+3. **Detection Call Placement**:
+   - Added before LIFE eligibility detection in `_classify_intent_agentic()`
+   - Budget queries are intercepted before eligibility check
+
+### Test Results
+- 13 tests in `tests/quality/test_scenario_026_life_budget.py`
+- All tests pass
+- Quality score: 100/100
+- Processing time: < 5ms (pre-routed guidance)
+
+### Files Modified
+- `app/services/agents/tool_aware_agent.py`:
+  - Added `_detect_life_budget_query()` method
+  - Added `_generate_life_budget_guidance()` method
+  - Added detection call in `_classify_intent_agentic()`
+
+### Files Added
+- `tests/quality/test_scenario_026_life_budget.py` (13 tests)
+
+### Files Updated
+- `docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md` - Marked scenario 026 complete
+
+### Key Features Implemented
+- **4 Project Types with Budget Ranges**:
+  - SAP (Standard Action Projects): €1-5 million
+  - SIP (Strategic Integrated Projects): €10-30 million
+  - SNAP (Strategic Nature Projects): €10-30 million
+  - TA (Technical Assistance): Up to €1 million
+- **Co-financing Rates by Sub-programme**:
+  - NAT (Nature & Biodiversity): 75%
+  - ENV (Circular Economy): 60%
+  - CCA (Climate Change): 60%
+  - CET (Clean Energy): Up to 95%
+- **Budget Categories**: Personnel, travel, equipment, direct/indirect costs
+- **Comparison with Horizon Europe**: Clarifies LIFE vs HE funding models
+- **Actionable Links**: CINEA, EU Portal, National Contact Points
+
+### PRD Status
+- [x] Scenario 026: LIFE Budget - PASS (100/100)

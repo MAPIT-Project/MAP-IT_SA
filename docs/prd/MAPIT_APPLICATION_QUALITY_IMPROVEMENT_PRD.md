@@ -328,12 +328,15 @@ Ensure all 6 EU programmes work correctly.
   - **Fix applied**: Added LIFE Programme tools to ToolAwareAgent - registered `check_life_eligibility` and `search_life_templates` in _init_tools(), _execute_single_tool(), added wrapper methods, result formatter, and `_detect_life_eligibility_query()` for pre-routing. Added logic to show all sub-programmes when user asks for "options" (broad overview).
   - **Tests**: `tests/quality/test_scenario_025_life_eligibility.py` (14 tests)
 
-- [ ] **Scenario 026: LIFE Budget** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 026: LIFE Budget** `EXECUTE + FIX IF NEEDED`
   - Query: "What budget range for a LIFE climate adaptation project?"
   - Expected: SAP/SIP typical budgets, co-financing rates (55-75%)
   - Verify: LIFE-specific funding model
   - Fix if: Uses Horizon Europe budget model
   - Pass threshold: 80
+  - **Status: PASS (score 100/100)**
+  - **Fix applied**: Added `_detect_life_budget_query()` method to pre-route LIFE budget queries to built-in guidance. Added `_generate_life_budget_guidance()` method providing comprehensive budget information with SAP/SIP typical budgets (€1-5M and €10-30M respectively), co-financing rates by sub-programme (60% for CCA climate adaptation), project durations, budget categories, and actionable next steps with CINEA and EU Portal links.
+  - **Tests**: `tests/quality/test_scenario_026_life_budget.py` (13 tests)
 
 ### Cross-Programme
 
