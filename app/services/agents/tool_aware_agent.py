@@ -10030,6 +10030,12 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
                 if template_text:
                     content_pieces.append(template_text)
 
+            # Extract multi-programme search results (search_all_programmes tool)
+            elif "results_by_programme" in result and "programmes_searched" in result:
+                multi_prog_text = self._format_multi_programme_search_result(result)
+                if multi_prog_text:
+                    content_pieces.append(multi_prog_text)
+
             # Extract calls info
             elif "calls" in result and isinstance(result["calls"], list):
                 if len(result["calls"]) == 0:
@@ -13473,6 +13479,144 @@ This may be because:
             "• Contact [HaDEA](https://hadea.ec.europa.eu/programmes/eu4health_en) "
             "for guidance and support"
         )
+
+        return "\n".join(parts)
+
+    def _format_multi_programme_search_result(self, result: dict) -> str:
+        """Format multi-programme search results into readable text.
+
+        This method formats results from the search_all_programmes tool,
+        presenting funding calls across multiple EU programmes (Horizon Europe,
+        Erasmus+, Creative Europe, EU4Health, Digital Europe, LIFE) in a
+        structured, actionable format.
+        """
+        if not result.get("success"):
+            return ""
+
+        total_results = result.get("total_results", 0)
+        results_by_programme = result.get("results_by_programme", {})
+        programmes_searched = result.get("programmes_searched", [])
+        programmes_with_results = result.get("programmes_with_results", [])
+        query = result.get("query", "")
+
+        parts = []
+
+        # Header
+        parts.append("## Cross-Programme Funding Search Results")
+        parts.append("")
+
+        # Summary
+        if total_results > 0:
+            num_programmes = len(programmes_with_results)
+            parts.append(
+                f"**Found {total_results} funding opportunit{'y' if total_results == 1 else 'ies'} "
+                f"across {num_programmes} programme{'s' if num_programmes != 1 else ''}** "
+                f"for your search: *{query}*"
+            )
+        else:
+            parts.append(f"**No open funding calls found** matching your search: *{query}*")
+            parts.append("")
+            parts.append("This could mean:")
+            parts.append("- There are currently no open calls in this specific topic area")
+            parts.append("- Relevant calls may have recently closed")
+            parts.append("- Upcoming calls may not yet be announced")
+            parts.append("")
+            parts.append("**💡 Suggestions:**")
+            parts.append("- Try broader keywords")
+            parts.append("- Check individual programme portals for announcements")
+            parts.append(
+                "- Sign up for call alerts at the "
+                "[EU Funding Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/)"
+            )
+            return "\n".join(parts)
+
+        parts.append("")
+
+        # Programme icons and info for display
+        programme_info = {
+            "horizon_europe": ("🔬", "Horizon Europe", "Research & Innovation"),
+            "erasmus_plus": ("🎓", "Erasmus+", "Education & Training"),
+            "creative_europe": ("🎨", "Creative Europe", "Culture & Media"),
+            "eu4health": ("🏥", "EU4Health", "Health & Crisis Preparedness"),
+            "digital_europe": ("💻", "Digital Europe", "Digital Transformation"),
+            "life": ("🌍", "LIFE Programme", "Environment & Climate"),
+        }
+
+        # Display results grouped by programme
+        for programme_key in programmes_with_results:
+            prog_results = results_by_programme.get(programme_key, [])
+            if not prog_results:
+                continue
+
+            icon, name, focus = programme_info.get(
+                programme_key, ("📋", programme_key.replace("_", " ").title(), "")
+            )
+
+            parts.append(f"### {icon} {name}")
+            if focus:
+                parts.append(f"*{focus}*")
+            parts.append("")
+
+            # List calls for this programme
+            for i, call in enumerate(prog_results[:5], 1):
+                topic_code = call.get("topic_code", "N/A")
+                title = call.get("title", "Untitled")
+                status = call.get("status", "unknown")
+                deadline = call.get("deadline")
+                budget_max = call.get("budget_max")
+                portal_url = call.get("portal_url", "")
+
+                # Format status with emoji
+                status_emoji = {"open": "🟢", "upcoming": "🔵", "closed": "🔴"}.get(status, "⚪")
+
+                # Build call line
+                parts.append(f"**{i}. {title}** ({topic_code})")
+
+                # Details line
+                details = [f"Status: {status_emoji} {status.title()}"]
+                if deadline:
+                    details.append(f"Deadline: {deadline}")
+                if budget_max:
+                    budget_str = (
+                        f"€{budget_max / 1_000_000:.1f}M"
+                        if budget_max >= 1_000_000
+                        else f"€{budget_max:,.0f}"
+                    )
+                    details.append(f"Budget: up to {budget_str}")
+
+                parts.append(f"   {' | '.join(details)}")
+
+                # Add portal link if available
+                if portal_url:
+                    parts.append(f"   🔗 [View on EU Portal]({portal_url})")
+
+                parts.append("")
+
+            # Show if there are more results
+            if len(prog_results) > 5:
+                parts.append(f"   *... and {len(prog_results) - 5} more {name} calls*")
+                parts.append("")
+
+        # Programme coverage note
+        parts.append("---")
+        parts.append(
+            "**Programmes searched:** "
+            + ", ".join(
+                programme_info.get(p, (None, p.replace("_", " ").title()))[1]
+                for p in programmes_searched
+            )
+        )
+        parts.append("")
+
+        # Next steps
+        parts.append("🎯 **Next Steps:**")
+        parts.append(
+            "• Review call details on the [EU Funding & Tenders Portal]"
+            "(https://ec.europa.eu/info/funding-tenders/opportunities/portal/)"
+        )
+        parts.append("• Check eligibility requirements for your organization type")
+        parts.append("• Find partners using the Partner Search tool")
+        parts.append("• Register your organization in the EU Participant Portal")
 
         return "\n".join(parts)
 

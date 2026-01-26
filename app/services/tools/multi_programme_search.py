@@ -513,32 +513,100 @@ class MultiProgrammeSearchTool:
             conditions.append("action_type ILIKE %s")
             params.append(f"%{action_type}%")
 
-        # Keyword search using full-text
+        # Keyword search using full-text with OR logic for multiple keywords
+        keyword_parts = []
         if keywords:
-            # Add full-text search condition
-            conditions.append(
-                """
-                (
-                    to_tsvector('english', COALESCE(title, '') || ' ' ||
-                        COALESCE(scope, '') || ' ' || COALESCE(expected_outcome, ''))
-                    @@ plainto_tsquery('english', %s)
-                    OR title ILIKE %s
-                    OR scope ILIKE %s
-                    OR topic_code ILIKE %s
-                )
-            """
-            )
-            keyword_pattern = f"%{keywords}%"
-            params.extend([keywords, keyword_pattern, keyword_pattern, keyword_pattern])
+            # Split keywords by comma first
+            keyword_parts = [kw.strip() for kw in keywords.split(",") if kw.strip()]
+
+            # If no commas, try to extract meaningful keyword groups
+            if len(keyword_parts) == 1:
+                # Define known multi-word phrases to extract
+                known_phrases = [
+                    "sustainable agriculture",
+                    "farm to fork",
+                    "food systems",
+                    "soil health",
+                    "climate adaptation",
+                    "clean energy",
+                    "climate change",
+                    "circular economy",
+                    "digital transformation",
+                    "artificial intelligence",
+                    "machine learning",
+                    "higher education",
+                    "vocational training",
+                    "creative industries",
+                    "cultural heritage",
+                    "public health",
+                ]
+
+                # Extract known phrases
+                remaining_keywords = keywords.lower()
+                extracted_parts = []
+
+                for phrase in sorted(known_phrases, key=len, reverse=True):
+                    if phrase in remaining_keywords:
+                        extracted_parts.append(phrase)
+                        remaining_keywords = remaining_keywords.replace(phrase, " ")
+
+                # Add remaining individual words
+                remaining_words = [
+                    w.strip()
+                    for w in remaining_keywords.split()
+                    if w.strip() and len(w.strip()) > 2
+                ]
+                extracted_parts.extend(remaining_words)
+
+                # Use extracted parts if we found multiple, otherwise keep original
+                if len(extracted_parts) > 1:
+                    keyword_parts = extracted_parts
+
+            if keyword_parts:
+                # Build OR-based search for each keyword group
+                keyword_conditions = []
+                keyword_params = []
+
+                for kw in keyword_parts:
+                    # For each keyword, use both full-text search and ILIKE
+                    keyword_conditions.append(
+                        """
+                        (
+                            to_tsvector('english', COALESCE(title, '') || ' ' ||
+                                COALESCE(scope, '') || ' ' || COALESCE(expected_outcome, ''))
+                            @@ plainto_tsquery('english', %s)
+                            OR title ILIKE %s
+                            OR scope ILIKE %s
+                            OR topic_code ILIKE %s
+                        )
+                        """
+                    )
+                    keyword_pattern = f"%{kw}%"
+                    keyword_params.extend([kw, keyword_pattern, keyword_pattern, keyword_pattern])
+
+                # Join all keyword conditions with OR
+                combined_keyword_condition = "(" + " OR ".join(keyword_conditions) + ")"
+                conditions.append(combined_keyword_condition)
+                params.extend(keyword_params)
 
         where_clause = " AND ".join(conditions)
+
+        # Build ts_rank with combined tsquery using OR logic
+        if keyword_parts:
+            # Create OR-based tsquery: (word1 & word2) | (word3) | ...
+            tsquery_parts = " | ".join(f"({kw.replace(' ', ' & ')})" for kw in keyword_parts)
+            relevance_query = "to_tsquery('english', %s)"
+            relevance_param = tsquery_parts
+        else:
+            relevance_query = "plainto_tsquery('english', %s)"
+            relevance_param = keywords or ""
 
         # Build query with relevance scoring
         query = f"""
             SELECT *,
                 ts_rank(
                     to_tsvector('english', COALESCE(title, '') || ' ' || COALESCE(scope, '')),
-                    plainto_tsquery('english', %s)
+                    {relevance_query}
                 ) as relevance_score
             FROM funding_calls
             WHERE {where_clause}
@@ -553,7 +621,7 @@ class MultiProgrammeSearchTool:
             LIMIT %s
         """
 
-        params.insert(0, keywords)  # For ts_rank
+        params.insert(0, relevance_param)  # For ts_rank
         params.append(limit)
 
         return query, params

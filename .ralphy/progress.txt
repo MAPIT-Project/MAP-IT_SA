@@ -12814,3 +12814,74 @@ Implemented Scenario 026: LIFE Programme Budget with score 100/100.
 
 ### PRD Status
 - [x] Scenario 026: LIFE Budget - PASS (100/100)
+
+
+## 2026-01-26: Scenario 027 - Multi-Programme Search (PASS)
+
+### Task Completed
+Implemented Scenario 027: Multi-Programme Search with score 100/100.
+
+### Query
+"Find all EU funding for sustainable agriculture across all programmes"
+
+### Expected Behavior
+- Results from LIFE, Horizon Europe, potentially Erasmus+ (education)
+- Multiple programmes searched
+- Relevant results returned
+
+### Problem Identified
+1. **Multi-keyword search returned 0 results**: The `search_all_programmes` tool was using `plainto_tsquery` which requires ALL words to match (AND logic)
+2. **LLM passed keywords in various formats**: Sometimes comma-separated, sometimes space-separated
+3. **No result formatting**: The `_synthesize_from_results()` method had no handler for multi-programme search results, leading to "I found some information but couldn't extract specific details" deflection
+
+### Fix Implementation
+
+1. **Multi-Keyword OR Logic (`multi_programme_search.py`)**:
+   - Modified `_build_programme_query()` method to handle both comma-separated and space-separated keywords
+   - Added known phrase extraction for multi-word terms (e.g., "sustainable agriculture", "farm to fork", "soil health")
+   - Built OR-based search conditions so ANY keyword match returns results
+   - Updated relevance scoring to use OR-based tsquery for proper ranking
+
+2. **Result Formatting (`tool_aware_agent.py`)**:
+   - Added detection for multi-programme search results in `_synthesize_from_results()`
+   - Created `_format_multi_programme_search_result()` method with:
+     - Cross-programme search header
+     - Result count and programme summary
+     - Programme-specific sections with icons (🔬 Horizon Europe, 🎓 Erasmus+, etc.)
+     - Call details: topic code, title, status (with emoji), deadline, budget
+     - EU Portal links for each call
+     - List of searched programmes
+     - Actionable next steps
+
+### Files Modified
+- `app/services/tools/multi_programme_search.py`:
+  - Modified `_build_programme_query()` to use OR logic for multiple keywords
+  - Added known phrase extraction for multi-word terms
+
+- `app/services/agents/tool_aware_agent.py`:
+  - Added multi-programme result detection in `_synthesize_from_results()`
+  - Added `_format_multi_programme_search_result()` formatter method
+
+### Files Added
+- `tests/quality/test_scenario_027_multi_programme_search.py` (13 tests)
+
+### Files Updated
+- `docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md` - Marked scenario 027 complete
+
+### Test Results
+- 13 tests in `tests/quality/test_scenario_027_multi_programme_search.py`
+- All tests pass
+- Quality score: 100/100
+- Returns 7 results from Horizon Europe for agriculture search
+
+### Key Features Implemented
+- **OR-based keyword search**: Comma-separated keywords now use OR logic (any match returns results)
+- **Known phrase extraction**: Recognizes multi-word phrases like "sustainable agriculture", "food systems", "soil health"
+- **Programme icons**: 🔬 Horizon Europe, 🎓 Erasmus+, 🎨 Creative Europe, 🏥 EU4Health, 💻 Digital Europe, 🌍 LIFE
+- **Call status emojis**: 🟢 Open, 🔵 Upcoming, 🔴 Closed
+- **Rich formatting**: Call details, deadlines, budgets, EU Portal links
+- **Programme coverage note**: Lists all 6 programmes that were searched
+- **Actionable guidance**: Registration, eligibility, partner search, EU Portal links
+
+### PRD Status
+- [x] Scenario 027: Multi-Programme Search - PASS (100/100)

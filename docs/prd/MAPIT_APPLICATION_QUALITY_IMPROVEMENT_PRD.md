@@ -340,12 +340,15 @@ Ensure all 6 EU programmes work correctly.
 
 ### Cross-Programme
 
-- [ ] **Scenario 027: Multi-Programme Search** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 027: Multi-Programme Search** `EXECUTE + FIX IF NEEDED`
   - Query: "Find all EU funding for sustainable agriculture across all programmes"
   - Expected: Results from LIFE, Horizon, potentially Erasmus+ (education)
   - Verify: Multiple programmes searched, relevant results
   - Fix if: Only searches one programme
   - Pass threshold: 80
+  - **Status: PASS (score 100/100)**
+  - **Fix applied**: Improved multi-keyword search handling in `search_all_programmes` tool to use OR logic for comma-separated and multi-word keywords. Added `_format_multi_programme_search_result()` method to properly format cross-programme search results with programme icons, call details, deadlines, EU Portal links, and actionable guidance.
+  - **Tests**: `tests/quality/test_scenario_027_multi_programme_search.py` (13 tests)
 
 ---
 
