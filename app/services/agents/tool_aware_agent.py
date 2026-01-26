@@ -3638,6 +3638,15 @@ digital_europe, life""",
         if ce_eligibility_result:
             return ce_eligibility_result
 
+        # Check for CREATIVE EUROPE CALL SEARCH queries
+        # These are explicit requests to find/search/list open or upcoming Creative Europe calls
+        # e.g., "Find open Creative Europe MEDIA calls for film distribution"
+        # e.g., "Show me upcoming Creative Europe calls", "What CREA calls are open?"
+        # IMPORTANT: Must come BEFORE cooperation/media guidance to prioritize actual search
+        ce_call_search_result = self._detect_creative_europe_call_search_query(query, context)
+        if ce_call_search_result:
+            return ce_call_search_result
+
         # Check for CREATIVE EUROPE COOPERATION PROJECT queries (CULTURE strand)
         # These are questions about cooperation projects (small/medium/large scale),
         # partnership requirements, funding rates, and scale selection
@@ -20716,6 +20725,243 @@ Help your film reach audiences:
             }
 
         return None
+
+    # ========================================================================
+    # CREATIVE EUROPE CALL SEARCH DETECTION
+    # ========================================================================
+
+    def _detect_creative_europe_call_search_query(
+        self, query: str, context: str
+    ) -> dict[str, Any] | None:
+        """Detect Creative Europe call search queries.
+
+        These are queries explicitly asking to FIND/SEARCH/LIST open or upcoming
+        Creative Europe calls. These should trigger a search_funding_calls tool
+        call rather than returning static guidance.
+
+        Examples:
+        - "Find open Creative Europe MEDIA calls for film distribution"
+        - "Show me upcoming Creative Europe calls"
+        - "Search for Creative Europe CULTURE calls"
+        - "List open CREA calls for audiovisual projects"
+        - "What Creative Europe calls are open now?"
+        """
+        query_lower = query.lower()
+
+        # Check for Creative Europe indicators
+        ce_indicators = [
+            "creative europe",
+            "creative-europe",
+            "creativeeurope",
+            "crea-media",
+            "crea-cult",
+            "crea-cross",
+            "crea calls",
+            "crea programme",
+        ]
+        has_creative_europe = any(ind in query_lower for ind in ce_indicators)
+
+        # Check for strand-specific indicators
+        media_indicators = [
+            "media strand",
+            "media calls",
+            "media programme",
+            "audiovisual",
+            "film distribution",
+            "film production",
+            "film development",
+            "film festival",
+            "cinema network",
+            "sales agent",
+            "distribution call",
+            "development call",
+        ]
+        has_media_indicator = any(ind in query_lower for ind in media_indicators)
+
+        culture_indicators = [
+            "culture strand",
+            "culture calls",
+            "culture programme",
+            "cooperation project",
+            "literary translation",
+            "european network",
+            "european platform",
+        ]
+        has_culture_indicator = any(ind in query_lower for ind in culture_indicators)
+
+        cross_sectoral_indicators = [
+            "cross-sectoral",
+            "cross sectoral",
+            "innovation lab",
+            "news media",
+            "media literacy",
+        ]
+        has_cross_sectoral_indicator = any(ind in query_lower for ind in cross_sectoral_indicators)
+
+        # Check for EXPLICIT call search patterns
+        # These patterns indicate the user wants to SEARCH for calls, not get general info
+        call_search_patterns = [
+            "find calls",
+            "find open calls",
+            "find upcoming calls",
+            "find all calls",
+            "find media calls",
+            "search for calls",
+            "search calls",
+            "show me calls",
+            "show me all calls",
+            "show me the calls",
+            "show open calls",
+            "show upcoming calls",
+            "show all calls",
+            "list calls",
+            "list open calls",
+            "list upcoming calls",
+            "list all calls",
+            "what calls are open",
+            "what calls are available",
+            "which calls are open",
+            "open calls for",
+            "upcoming calls for",
+            "available calls for",
+            "current calls for",
+            "calls closing",
+            "calls with deadline",
+            "calls for film",
+            "calls for audiovisual",
+            "calls for distribution",
+            "calls for development",
+            "distribution calls",
+            "development calls",
+            "festival calls",
+            "training calls",
+            "media calls",
+            "culture calls",
+        ]
+
+        # Check for call search intent
+        has_call_search_intent = False
+        for pattern in call_search_patterns:
+            if pattern in query_lower:
+                has_call_search_intent = True
+                break
+
+        # Additional check: "open" or "upcoming" combined with Creative Europe context
+        status_indicators = ["open", "upcoming", "available", "current", "active"]
+        has_status_indicator = any(ind in query_lower for ind in status_indicators)
+
+        # "what ... calls" pattern
+        if "what" in query_lower and "calls" in query_lower and has_creative_europe:
+            has_call_search_intent = True
+
+        # "calls for ..." pattern combined with Creative Europe
+        if "calls for" in query_lower and (has_creative_europe or has_media_indicator):
+            has_call_search_intent = True
+
+        # "show me ... calls" pattern (e.g., "Show me all Creative Europe MEDIA calls")
+        import re
+
+        if re.search(r"show\s+me\s+.*\s*calls", query_lower) and (
+            has_creative_europe or has_media_indicator
+        ):
+            has_call_search_intent = True
+
+        # "find ... calls" pattern (e.g., "Find all MEDIA calls")
+        if re.search(r"find\s+.*\s*calls", query_lower) and (
+            has_creative_europe or has_media_indicator
+        ):
+            has_call_search_intent = True
+
+        # "list ... calls" pattern
+        if re.search(r"list\s+.*\s*calls", query_lower) and (
+            has_creative_europe or has_media_indicator
+        ):
+            has_call_search_intent = True
+
+        # "search ... calls" pattern
+        if re.search(r"search\s+.*\s*calls", query_lower) and (
+            has_creative_europe or has_media_indicator
+        ):
+            has_call_search_intent = True
+
+        # Determine if this is a call search query
+        is_call_search = (
+            has_creative_europe
+            and (has_call_search_intent or (has_status_indicator and "call" in query_lower))
+        ) or (
+            has_call_search_intent
+            and (has_media_indicator or has_culture_indicator or has_cross_sectoral_indicator)
+        )
+
+        if not is_call_search:
+            return None
+
+        # Determine search keywords based on strand and topic
+        keywords = []
+        status = "open"  # Default to open calls
+
+        # Determine strand
+        strand = None
+        if has_media_indicator or "media" in query_lower:
+            strand = "MEDIA"
+            keywords.append("CREA-MEDIA")
+        elif has_culture_indicator or "culture" in query_lower:
+            strand = "CULTURE"
+            keywords.append("CREA-CULT")
+        elif has_cross_sectoral_indicator or "cross" in query_lower:
+            strand = "CROSS-SECTORAL"
+            keywords.append("CREA-CROSS")
+        else:
+            # Generic Creative Europe search
+            keywords.append("Creative Europe")
+
+        # Add topic-specific keywords
+        topic_keywords = []
+        if "distribution" in query_lower or "film distribution" in query_lower:
+            topic_keywords.extend(["distribution", "films on the move", "sales agent"])
+        if "development" in query_lower or "film development" in query_lower:
+            topic_keywords.extend(["development", "slate", "co-development"])
+        if "festival" in query_lower:
+            topic_keywords.append("festival")
+        if "training" in query_lower:
+            topic_keywords.append("training")
+        if "network" in query_lower or "cinema network" in query_lower:
+            topic_keywords.extend(["network", "cinema"])
+        if "cooperation" in query_lower:
+            topic_keywords.append("cooperation")
+        if "literary" in query_lower or "translation" in query_lower:
+            topic_keywords.extend(["literary", "translation"])
+
+        if topic_keywords:
+            keywords.extend(topic_keywords)
+
+        # Determine status
+        if "upcoming" in query_lower:
+            status = "upcoming"
+        elif "closed" in query_lower:
+            status = "closed"
+        else:
+            status = "open"
+
+        # Build search query string
+        search_query = " ".join(keywords[:5])  # Limit to 5 keywords
+
+        return {
+            "thought": f"User is searching for {status} Creative Europe {strand or ''} calls. Using search_funding_calls tool to find actual calls.",
+            "action": "call_tools",
+            "tool_calls": [
+                {
+                    "tool": "search_funding_calls",
+                    "parameters": {
+                        "keywords": search_query,
+                        "status": status,
+                    },
+                    "reasoning": f"Searching for {status} Creative Europe {strand or 'all strand'} calls matching: {search_query}",
+                }
+            ],
+            "confidence": 0.95,
+            "needs_more_info": False,
+        }
 
     # ========================================================================
     # CREATIVE EUROPE COOPERATION PROJECTS (CULTURE STRAND) DETECTION AND GUIDANCE

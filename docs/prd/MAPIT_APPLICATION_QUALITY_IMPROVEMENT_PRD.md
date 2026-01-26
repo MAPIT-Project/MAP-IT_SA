@@ -262,12 +262,15 @@ Ensure all 6 EU programmes work correctly.
   - **Fix applied**: Added `_detect_creative_europe_eligibility_query()` method to pre-route queries explicitly mentioning "Creative Europe" + eligibility to the `check_creative_europe_eligibility` tool. Also added guard in `_detect_erasmus_action_query()` to skip when other programmes are mentioned.
   - **Tests**: `tests/quality/test_scenario_019_creative_europe_eligibility.py` (13 tests)
 
-- [ ] **Scenario 020: Creative Europe Calls** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 020: Creative Europe Calls** `EXECUTE + FIX IF NEEDED`
   - Query: "Find open Creative Europe MEDIA calls for film distribution"
   - Expected: MEDIA strand distribution calls with deadlines
   - Verify: Calls are MEDIA strand, actually open
   - Fix if: Wrong strand, closed calls, missing calls
   - Pass threshold: 80
+  - **Status: PASS (score 80+/100)**
+  - **Fix applied**: Added `_detect_creative_europe_call_search_query()` method to pre-route queries explicitly searching for Creative Europe calls to the `search_funding_calls` tool instead of returning static MEDIA strand guidance
+  - **Tests**: `tests/quality/test_scenario_020_creative_europe_calls.py` (13 tests)
 
 ### EU4Health
 

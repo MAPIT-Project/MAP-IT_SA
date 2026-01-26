@@ -12310,3 +12310,88 @@ Response correctly includes:
 ### PRD Status Update
 Scenario 019: Creative Europe Eligibility is now complete with score 80+/100.
 Phase 2 Progress: 4/12 scenarios complete.
+
+---
+
+## 2026-01-26: Scenario 020 - Creative Europe Calls
+
+### Task Completed
+Implemented Scenario 020: Creative Europe Calls from the MAPIT Application Quality Improvement PRD.
+
+### Query
+"Find open Creative Europe MEDIA calls for film distribution"
+
+### Expected
+- MEDIA strand distribution calls with deadlines
+- Calls are MEDIA strand, actually open/upcoming
+- Not static guidance but actual search results
+
+### Implementation Details
+
+**Problem Identified**: The system was returning static MEDIA strand guidance instead of searching for actual calls because:
+1. The `_detect_creative_europe_media_query()` method was matching queries containing "distribution" patterns
+2. Queries like "Find open Creative Europe MEDIA calls" were being matched and returning pre-generated guidance
+3. There was no specific detection for call search queries that should trigger the `search_funding_calls` tool
+
+**Root Causes**:
+1. Missing call search detection method for Creative Europe
+2. The existing MEDIA strand detection was too broad and caught search queries
+
+**Fixes Applied** (in `app/services/agents/tool_aware_agent.py`):
+1. **Added `_detect_creative_europe_call_search_query()` method** (~lines 20733-20932):
+   - Detects queries explicitly asking to find/search/list Creative Europe calls
+   - Recognizes call search patterns like "find calls", "show me calls", "list calls"
+   - Handles flexible patterns like "show me all Creative Europe MEDIA calls"
+   - Detects strand indicators (MEDIA, CULTURE, CROSS-SECTORAL)
+   - Extracts topic-specific keywords (distribution, development, festival, etc.)
+   - Routes to `search_funding_calls` tool with appropriate keywords and status
+
+2. **Added call to new detection method** (~lines 3641-3648):
+   - Inserted BEFORE cooperation and media guidance detection methods
+   - Priority: Call search > Cooperation guidance > Media guidance
+   - Comment: "IMPORTANT: Must come BEFORE cooperation/media guidance to prioritize actual search"
+
+3. **Enhanced pattern matching**:
+   - Added regex patterns for flexible matching: "show me ... calls", "find ... calls", etc.
+   - Handles "show me all Creative Europe MEDIA calls" style queries
+   - Detects strand from query context (MEDIA, CULTURE, CROSS-SECTORAL)
+
+### Files Created
+- `tests/quality/test_scenario_020_creative_europe_calls.py` - 13 tests covering:
+  1. Uses search_funding_calls tool
+  2. Returns MEDIA strand calls (CREA-MEDIA)
+  3. Includes call deadlines
+  4. Includes call status (open/upcoming)
+  5. Includes distribution context
+  6. Includes EU Portal links
+  7. Includes call IDs (CREA-MEDIA-xxx)
+  8. Provides actionable next steps
+  9. Overall score meets 80 threshold
+  10. Returns valid JSON response
+  11. No static guidance returned (actual search performed)
+  12. Calls not closed (open or upcoming)
+  13. Mentions Creative Europe programme
+
+### Files Modified
+- `app/services/agents/tool_aware_agent.py` - Added Creative Europe call search detection method
+- `docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md` - Marked Scenario 020 as complete
+
+### Test Results
+- 13 tests passed
+- Score: 80+/100
+- Linting passed
+
+### Verification
+Response correctly includes:
+- ✅ Uses search_funding_calls tool
+- ✅ Returns CREA-MEDIA call (e.g., CREA-MEDIA-2026-FILMSALES)
+- ✅ Shows call deadline (e.g., 18 June 2026)
+- ✅ Shows call status (Upcoming)
+- ✅ Includes distribution context (European Film sales agent)
+- ✅ EU Portal apply link provided
+- ✅ Actionable next steps (register, check eligibility, etc.)
+- ✅ No static MEDIA strand guidance returned
+
+### PRD Status Update
+Scenario 020: Creative Europe Calls is now complete with score 80+/100.
+Phase 2 Progress: 5/12 scenarios complete.
