@@ -274,12 +274,15 @@ Ensure all 6 EU programmes work correctly.
 
 ### EU4Health
 
-- [ ] **Scenario 021: EU4Health Eligibility** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 021: EU4Health Eligibility** `EXECUTE + FIX IF NEEDED`
   - Query: "What EU4Health funding options are available for a hospital consortium?"
   - Expected: Joint actions, grants, eligibility for health entities
   - Verify: EU4Health-specific options, correct eligibility
   - Fix if: Generic health response, misses EU4Health specifics
   - Pass threshold: 80
+  - **Status: PASS (score 100/100)**
+  - **Fix applied**: Added EU4Health tools to ToolAwareAgent - registered `check_eu4health_eligibility` and `search_eu4health_templates` in _init_tools(), _execute_single_tool(), added handler methods, result formatter, and _detect_eu4health_eligibility_query() for pre-routing
+  - **Tests**: `tests/quality/test_scenario_021_eu4health_eligibility.py` (13 tests)
 
 - [ ] **Scenario 022: EU4Health Topics** `EXECUTE + FIX IF NEEDED`
   - Query: "What EU4Health priorities focus on cancer?"

@@ -2882,6 +2882,42 @@ digital_europe, life""",
             ],
         )
 
+        # EU4Health specific tools
+        self.tools["check_eu4health_eligibility"] = Tool(
+            name="check_eu4health_eligibility",
+            description="Check if an organization is eligible for EU4Health actions. Covers Action Grants (AG), Joint Actions (JA), Operating Grants (OG), and Procurement. Considers organization type (hospital, research, NGO, public authority), country eligibility, and action-specific requirements. Use for eligibility questions about EU4Health.",
+            category=ToolCategory.CALLS,
+            parameters={
+                "org_type": "Organization type: HEALTHCARE_PROVIDER, RESEARCH, UNIVERSITY, PUBLIC_AUTHORITY, NGO, PATIENT_ORG, PROFESSIONAL_ORG, ENTERPRISE, SME, INTERNATIONAL_ORG",
+                "country": "Country of the organization (e.g., 'Germany', 'France', 'Poland')",
+                "action_type": "Optional: Specific action type (AG, PJ, JA, DG, OG, FPA, PROC). If not provided, returns all eligible actions.",
+                "strand": "Optional: EU4Health strand (CRISIS, PREVENTION, HEALTH_SYSTEMS, DIGITAL)",
+            },
+            examples=[
+                "check_eu4health_eligibility(org_type='HEALTHCARE_PROVIDER', country='Germany', action_type='AG')",
+                "check_eu4health_eligibility(org_type='PUBLIC_AUTHORITY', country='France', action_type='JA')",
+                "check_eu4health_eligibility(org_type='NGO', country='Spain')  # Returns all eligible actions",
+            ],
+        )
+
+        self.tools["search_eu4health_templates"] = Tool(
+            name="search_eu4health_templates",
+            description="Search EU4Health documents (Annual Work Programmes, Regulation) for application guidance, eligibility criteria, and programme information. Use for EU4Health application questions.",
+            category=ToolCategory.DOCUMENTS,
+            parameters={
+                "query": "What to search for (e.g., 'joint action eligibility', 'cancer prevention funding')",
+                "strand": "Optional: Filter by CRISIS, PREVENTION, HEALTH_SYSTEMS, or DIGITAL",
+                "action_type": "Optional: Filter by action type (AG, JA, OG, etc.)",
+                "topic": "Optional: Specific topic (eligibility, budget, evaluation)",
+                "top_k": "Number of results (default: 5)",
+            },
+            examples=[
+                "search_eu4health_templates(query='joint action requirements for Member States')",
+                "search_eu4health_templates(query='cancer prevention funding opportunities', strand='PREVENTION')",
+                "search_eu4health_templates(query='digital health EHDS', strand='DIGITAL')",
+            ],
+        )
+
     def register_tool(self, tool: Tool):
         """Register a tool with the agent."""
         self.tools[tool.name] = tool
@@ -3637,6 +3673,15 @@ digital_europe, life""",
         ce_eligibility_result = self._detect_creative_europe_eligibility_query(query, context)
         if ce_eligibility_result:
             return ce_eligibility_result
+
+        # Check for EU4HEALTH ELIGIBILITY queries
+        # e.g., "What EU4Health funding options are available for a hospital consortium?"
+        # "Can a public health body participate in Joint Actions?"
+        # "Is a hospital eligible for EU4Health grants?"
+        # IMPORTANT: Must catch EU4Health eligibility before general health queries
+        eu4health_eligibility_result = self._detect_eu4health_eligibility_query(query, context)
+        if eu4health_eligibility_result:
+            return eu4health_eligibility_result
 
         # Check for CREATIVE EUROPE CALL SEARCH queries
         # These are explicit requests to find/search/list open or upcoming Creative Europe calls
@@ -10881,6 +10926,12 @@ Budget Breakdown:
                 if eligibility_text:
                     content_pieces.append(eligibility_text)
 
+            # Extract EU4Health eligibility results
+            elif result.get("metadata", {}).get("tool") == "check_eu4health_eligibility":
+                eligibility_text = self._format_eu4health_eligibility_result(result)
+                if eligibility_text:
+                    content_pieces.append(eligibility_text)
+
             # Extract programme recommendations results
             elif "recommendations" in result and result.get("total_programmes"):
                 recs = result.get("recommendations", [])
@@ -11326,6 +11377,11 @@ Found **{total_found} organizations** with relevant track records:
                 return await self._tool_calculate_creative_europe_budget(params)
             elif tool_name == "search_creative_europe_templates":
                 return await self._tool_search_creative_europe_templates(params)
+            # EU4Health specific tools
+            elif tool_name == "check_eu4health_eligibility":
+                return await self._tool_check_eu4health_eligibility(params)
+            elif tool_name == "search_eu4health_templates":
+                return await self._tool_search_eu4health_templates(params)
             else:
                 return {"error": f"Tool {tool_name} not implemented"}
         except Exception as e:
@@ -12607,6 +12663,45 @@ Found **{total_found} organizations** with relevant track records:
             logger.error(f"Creative Europe template search error: {e}")
             return {"error": str(e), "success": False}
 
+    async def _tool_check_eu4health_eligibility(self, params: dict) -> dict:
+        """Check EU4Health eligibility for an organization."""
+        try:
+            from ..tools.eu4health_eligibility import check_eu4health_eligibility_execute
+
+            result = await check_eu4health_eligibility_execute(
+                org_type=params.get("org_type", "HEALTHCARE_PROVIDER"),
+                country=params.get("country", "Germany"),
+                action_type=params.get("action_type"),
+                strand=params.get("strand"),
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"EU4Health eligibility check error: {e}")
+            return {"error": str(e), "success": False}
+
+    async def _tool_search_eu4health_templates(self, params: dict) -> dict:
+        """Search EU4Health documents for application guidance."""
+        try:
+            from ..tools.eu4health_template_search import (
+                search_eu4health_templates_execute,
+            )
+
+            result = await search_eu4health_templates_execute(
+                query=params.get("query", ""),
+                strand=params.get("strand"),
+                action_type=params.get("action_type"),
+                topic=params.get("topic"),
+                top_k=params.get("top_k", 5),
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"EU4Health template search error: {e}")
+            return {"error": str(e), "success": False}
+
     def _summarize_tool_results(self, tool_calls: list[ToolCall]) -> str:
         """Summarize results from tool calls in a human-readable format."""
         summaries = []
@@ -12859,6 +12954,148 @@ This may be because:
 • Review the [CulturEU Funding Guide](https://culture.ec.europa.eu/funding/cultureu-funding-guide) for detailed requirements
 • Check open calls on the [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/)
 • Contact your [Creative Europe Desk](https://culture.ec.europa.eu/creative-europe/creative-europe-desks) for support
+"""
+
+            return eligibility_text
+
+        return ""
+
+    def _format_eu4health_eligibility_result(self, result: dict) -> str:
+        """Format EU4Health eligibility check result into readable text."""
+        if not result.get("success"):
+            return ""
+
+        metadata = result.get("metadata", {})
+        query_type = metadata.get("query_type", "")
+
+        # Single action eligibility check
+        if query_type == "specific_action" and "result" in result:
+            check_result = result["result"]
+            action_type = check_result.get("action_type", "Unknown")
+            action_name = check_result.get("action_name", "Unknown Action")
+            eligible = check_result.get("eligible", False)
+            requirements_met = check_result.get("requirements_met", [])
+            requirements_missing = check_result.get("requirements_missing", [])
+            warnings = check_result.get("warnings", [])
+            recommendations = check_result.get("recommendations", [])
+
+            # Get country and org type from metadata
+            check_metadata = check_result.get("metadata", {})
+            country = check_metadata.get("country", "Unknown")
+            org_type = check_metadata.get("org_type", "Unknown")
+            is_eu_member = check_metadata.get("is_eu_member", False)
+            is_associated = check_metadata.get("is_associated", False)
+
+            country_status = (
+                "EU Member State ✅"
+                if is_eu_member
+                else ("Associated Country" if is_associated else "Participating Country")
+            )
+
+            eligibility_text = f"""## EU4Health Eligibility Check: {action_name} ({action_type})
+
+**Organization**: {org_type.replace('_', ' ').title()} from {country}
+**Country Status**: {country_status}
+**Eligibility**: {"✅ ELIGIBLE" if eligible else "❌ NOT ELIGIBLE"}
+
+"""
+            if requirements_met:
+                eligibility_text += "**Requirements Met:**\n"
+                for req in requirements_met:
+                    eligibility_text += f"- ✅ {req}\n"
+                eligibility_text += "\n"
+
+            if requirements_missing:
+                eligibility_text += "**Requirements Not Met:**\n"
+                for req in requirements_missing:
+                    eligibility_text += f"- ❌ {req}\n"
+                eligibility_text += "\n"
+
+            if warnings:
+                eligibility_text += "**Warnings:**\n"
+                for warning in warnings:
+                    eligibility_text += f"- ⚠️ {warning}\n"
+                eligibility_text += "\n"
+
+            if recommendations:
+                eligibility_text += "**Key Information:**\n"
+                for rec in recommendations:
+                    eligibility_text += f"- {rec}\n"
+                eligibility_text += "\n"
+
+            eligibility_text += """
+---
+🎯 **Next Steps:**
+• Check the [EU4Health Programme](https://health.ec.europa.eu/funding/eu4health-programme-2021-2027_en) for programme details
+• Review calls on the [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/)
+• Contact [HaDEA](https://hadea.ec.europa.eu/programmes/eu4health_en) (Health and Digital Executive Agency) for support
+"""
+            return eligibility_text
+
+        # All eligible actions check
+        elif query_type == "all_actions" and "eligible_actions" in result:
+            eligible_actions = result.get("eligible_actions", [])
+            total_eligible = result.get("total_eligible", len(eligible_actions))
+            country = metadata.get("country", "Unknown")
+            org_type = metadata.get("org_type", "Unknown")
+
+            if total_eligible == 0:
+                eligibility_text = f"""## EU4Health Eligibility Check for {org_type.replace('_', ' ').title()} from {country}
+
+**Eligibility**: ❌ No eligible actions found
+
+This may be because:
+- {country} is not a participating country in EU4Health
+- The organization type ({org_type.replace('_', ' ')}) has restrictions for EU4Health actions
+- Joint Actions (JA) are only for Member State public authorities
+
+**Recommendations:**
+- Check if your organization qualifies under a different category
+- Consider partnership with eligible entities
+- Contact HaDEA for guidance on specific opportunities
+"""
+            else:
+                eligibility_text = f"""## EU4Health Eligibility Check for {org_type.replace('_', ' ').title()} from {country}
+
+**Total Eligible Actions**: {total_eligible}
+
+**Available Funding Options:**
+"""
+                for action in eligible_actions:
+                    action_type = action.get("action_type", "")
+                    action_name = action.get("action_name", "")
+                    description = action.get("description", "")
+                    co_financing = action.get("co_financing", "")
+                    warnings = action.get("warnings", [])
+                    notes = action.get("notes", [])
+
+                    eligibility_text += f"\n### {action_name} ({action_type})\n"
+                    if description:
+                        eligibility_text += f"{description}\n\n"
+                    if co_financing:
+                        eligibility_text += f"- **EU Co-financing**: {co_financing}\n"
+                    if warnings:
+                        for w in warnings:
+                            eligibility_text += f"- ⚠️ {w}\n"
+                    if notes:
+                        for n in notes:
+                            eligibility_text += f"- {n}\n"
+
+                # Add strands information if available
+                strands = result.get("strands", {})
+                if strands:
+                    eligibility_text += "\n### EU4Health Thematic Strands\n"
+                    for strand_code, strand_info in strands.items():
+                        strand_name = strand_info.get("name", strand_code)
+                        strand_desc = strand_info.get("description", "")
+                        eligibility_text += f"- **{strand_name}**: {strand_desc}\n"
+
+                eligibility_text += """
+---
+🎯 **Next Steps:**
+• Review the [EU4Health Annual Work Programme](https://health.ec.europa.eu/funding/eu4health-programme-2021-2027/annual-work-programmes_en) for current priorities
+• Check open calls on the [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/)
+• Contact [HaDEA](https://hadea.ec.europa.eu/programmes/eu4health_en) for guidance and support
 """
 
             return eligibility_text
@@ -20721,6 +20958,271 @@ Help your film reach audiences:
                     }
                 ],
                 "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        return None
+
+    # ========================================================================
+    # EU4HEALTH ELIGIBILITY DETECTION
+    # ========================================================================
+
+    def _detect_eu4health_eligibility_query(
+        self, query: str, context: str
+    ) -> dict[str, Any] | None:
+        """Detect EU4Health eligibility queries.
+
+        These are questions about:
+        - EU4Health eligibility for organizations (hospitals, research, NGOs, etc.)
+        - Action types (Action Grants, Joint Actions, Operating Grants)
+        - Consortium/partnership requirements
+        - EU4Health funding options for health entities
+
+        Examples:
+        - "What EU4Health funding options are available for a hospital consortium?"
+        - "Can a public health authority participate in Joint Actions?"
+        - "Is a patient organization eligible for EU4Health operating grants?"
+        - "EU4Health eligibility for a healthcare provider from Germany"
+        """
+        query_lower = query.lower()
+        context_lower = context.lower() if context else ""
+
+        # EU4Health indicators
+        eu4health_indicators = [
+            "eu4health",
+            "eu 4 health",
+            "eu-4-health",
+            "eu4h",
+            "eu 4health",
+        ]
+        has_eu4health = any(ind in query_lower for ind in eu4health_indicators)
+
+        # Skip if query explicitly mentions another programme
+        other_programmes = [
+            "erasmus",
+            "creative europe",
+            "horizon europe",
+            "horizon 2020",
+            "digital europe",
+            "life programme",
+        ]
+        if any(prog in query_lower for prog in other_programmes):
+            return None
+
+        # Eligibility indicators
+        eligibility_indicators = [
+            "eligible",
+            "eligibility",
+            "can we",
+            "can a",
+            "can i",
+            "can our",
+            "can my",
+            "participate",
+            "apply",
+            "funding options",
+            "funding available",
+            "what options",
+            "what grants",
+            "what actions",
+        ]
+        has_eligibility = any(ind in query_lower for ind in eligibility_indicators)
+
+        # Health organization type indicators
+        health_org_indicators = {
+            "hospital": "HEALTHCARE_PROVIDER",
+            "healthcare provider": "HEALTHCARE_PROVIDER",
+            "health provider": "HEALTHCARE_PROVIDER",
+            "clinic": "HEALTHCARE_PROVIDER",
+            "medical center": "HEALTHCARE_PROVIDER",
+            "medical centre": "HEALTHCARE_PROVIDER",
+            "research": "RESEARCH",
+            "research institution": "RESEARCH",
+            "research organization": "RESEARCH",
+            "research centre": "RESEARCH",
+            "research center": "RESEARCH",
+            "university": "UNIVERSITY",
+            "higher education": "UNIVERSITY",
+            "academic": "UNIVERSITY",
+            "public authority": "PUBLIC_AUTHORITY",
+            "public health": "PUBLIC_AUTHORITY",
+            "government": "PUBLIC_AUTHORITY",
+            "ministry": "PUBLIC_AUTHORITY",
+            "ngo": "NGO",
+            "non-governmental": "NGO",
+            "health ngo": "NGO",
+            "patient organization": "PATIENT_ORG",
+            "patient organisation": "PATIENT_ORG",
+            "patient group": "PATIENT_ORG",
+            "patient association": "PATIENT_ORG",
+            "professional organization": "PROFESSIONAL_ORG",
+            "professional organisation": "PROFESSIONAL_ORG",
+            "professional association": "PROFESSIONAL_ORG",
+            "healthcare professional": "PROFESSIONAL_ORG",
+            "enterprise": "ENTERPRISE",
+            "company": "ENTERPRISE",
+            "private": "ENTERPRISE",
+            "sme": "SME",
+            "small business": "SME",
+            "startup": "SME",
+            "international organization": "INTERNATIONAL_ORG",
+            "international organisation": "INTERNATIONAL_ORG",
+            "who": "INTERNATIONAL_ORG",
+        }
+
+        # Detect organization type from query
+        org_type = "HEALTHCARE_PROVIDER"  # Default for health context
+        for pattern, org_value in health_org_indicators.items():
+            if pattern in query_lower:
+                org_type = org_value
+                break
+
+        # Detect country from query
+        country = None
+        countries = [
+            "Austria",
+            "Belgium",
+            "Bulgaria",
+            "Croatia",
+            "Cyprus",
+            "Czech Republic",
+            "Denmark",
+            "Estonia",
+            "Finland",
+            "France",
+            "Germany",
+            "Greece",
+            "Hungary",
+            "Ireland",
+            "Italy",
+            "Latvia",
+            "Lithuania",
+            "Luxembourg",
+            "Malta",
+            "Netherlands",
+            "Poland",
+            "Portugal",
+            "Romania",
+            "Slovakia",
+            "Slovenia",
+            "Spain",
+            "Sweden",
+            "Iceland",
+            "Norway",
+            "Ukraine",
+            "Moldova",
+            "Montenegro",
+            "Bosnia",
+            "Serbia",
+        ]
+        for c in countries:
+            if c.lower() in query_lower:
+                country = c
+                break
+
+        # Action type indicators
+        action_indicators = {
+            "joint action": "JA",
+            "joint actions": "JA",
+            "action grant": "AG",
+            "action grants": "AG",
+            "project grant": "PJ",
+            "operating grant": "OG",
+            "operating grants": "OG",
+            "procurement": "PROC",
+            "direct grant": "DG",
+        }
+        action_type = None
+        for pattern, action_value in action_indicators.items():
+            if pattern in query_lower:
+                action_type = action_value
+                break
+
+        # Strand indicators
+        strand_indicators = {
+            "crisis": "CRISIS",
+            "emergency": "CRISIS",
+            "preparedness": "CRISIS",
+            "hera": "CRISIS",
+            "cancer": "PREVENTION",
+            "prevention": "PREVENTION",
+            "ncd": "PREVENTION",
+            "screening": "PREVENTION",
+            "health system": "HEALTH_SYSTEMS",
+            "workforce": "HEALTH_SYSTEMS",
+            "hta": "HEALTH_SYSTEMS",
+            "medicines": "HEALTH_SYSTEMS",
+            "digital health": "DIGITAL",
+            "ehds": "DIGITAL",
+            "ehealth": "DIGITAL",
+        }
+        strand = None
+        for pattern, strand_value in strand_indicators.items():
+            if pattern in query_lower:
+                strand = strand_value
+                break
+
+        # Route to check_eu4health_eligibility tool if EU4Health + eligibility
+        if has_eu4health and has_eligibility:
+            params = {
+                "org_type": org_type,
+                "country": country or "Germany",  # Default if not specified
+            }
+            if action_type:
+                params["action_type"] = action_type
+            if strand:
+                params["strand"] = strand
+
+            return {
+                "thought": f"User is asking about EU4Health eligibility for a {org_type.replace('_', ' ')} from {country or 'an EU country'}. Calling check_eu4health_eligibility tool.",
+                "action": "call_tools",
+                "tool_calls": [
+                    {
+                        "tool": "check_eu4health_eligibility",
+                        "parameters": params,
+                        "reasoning": f"Checking EU4Health eligibility for {org_type} from {country or 'Germany'}",
+                    }
+                ],
+                "confidence": 0.95,
+                "needs_more_info": False,
+            }
+
+        # Pattern: Health consortium/hospital + eligibility + EU funding context (without explicit EU4Health)
+        # Only if clearly health-focused and asking about EU funding
+        health_context_indicators = [
+            "hospital consortium",
+            "health consortium",
+            "healthcare consortium",
+            "hospital network",
+            "health network",
+            "public health body",
+            "health entity",
+            "health entities",
+        ]
+        has_health_consortium = any(ind in query_lower for ind in health_context_indicators)
+
+        eu_funding_context = any(
+            ind in query_lower
+            for ind in ["eu funding", "european funding", "eu grants", "european grants"]
+        ) or any(ind in context_lower for ind in eu4health_indicators)
+
+        if has_health_consortium and has_eligibility and eu_funding_context:
+            params = {
+                "org_type": org_type,
+                "country": country or "Germany",
+            }
+
+            return {
+                "thought": "User is asking about EU funding eligibility for a health consortium. This appears to be an EU4Health question. Calling check_eu4health_eligibility tool.",
+                "action": "call_tools",
+                "tool_calls": [
+                    {
+                        "tool": "check_eu4health_eligibility",
+                        "parameters": params,
+                        "reasoning": f"Checking EU4Health funding options for healthcare consortium from {country or 'Germany'}",
+                    }
+                ],
+                "confidence": 0.85,
                 "needs_more_info": False,
             }
 

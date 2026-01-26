@@ -12395,3 +12395,89 @@ Response correctly includes:
 ### PRD Status Update
 Scenario 020: Creative Europe Calls is now complete with score 80+/100.
 Phase 2 Progress: 5/12 scenarios complete.
+
+---
+
+## 2026-01-26: Scenario 021 - EU4Health Eligibility
+
+### Task Completed
+Implemented Scenario 021: EU4Health Eligibility from the MAPIT Application Quality Improvement PRD.
+
+### Query
+"What EU4Health funding options are available for a hospital consortium?"
+
+### Expected
+- Joint actions, grants, eligibility for health entities
+- EU4Health-specific options, correct eligibility
+- Not generic health response
+
+### Implementation Details
+
+**Problem Identified**: EU4Health eligibility tools existed but were not connected to the ToolAwareAgent:
+1. `EU4HealthEligibilityTool` class exists in `app/services/tools/eu4health_eligibility.py`
+2. `EU4HealthTemplateSearchTool` exists in `app/services/tools/eu4health_template_search.py`
+3. Both tools are exported in `app/services/tools/__init__.py`
+4. **GAP**: Tools were NOT registered in `ToolAwareAgent._execute_single_tool()` or tool definitions
+
+**Fixes Applied** (in `app/services/agents/tool_aware_agent.py`):
+
+1. **Added EU4Health tool definitions in `_init_tools()`** (~lines 2885-2928):
+   - `check_eu4health_eligibility`: Check organization eligibility for EU4Health actions
+   - `search_eu4health_templates`: Search EU4Health documents for guidance
+   - Includes parameters, descriptions, and examples for LLM
+
+2. **Added tool routing in `_execute_single_tool()`** (~lines 11367-11370):
+   - Routes `check_eu4health_eligibility` to `_tool_check_eu4health_eligibility()`
+   - Routes `search_eu4health_templates` to `_tool_search_eu4health_templates()`
+
+3. **Added handler methods** (~lines 12656-12695):
+   - `_tool_check_eu4health_eligibility()`: Wrapper for eligibility checking
+   - `_tool_search_eu4health_templates()`: Wrapper for document search
+
+4. **Added result formatter `_format_eu4health_eligibility_result()`** (~lines 12963-13098):
+   - Formats eligibility results with clear structure
+   - Shows eligible actions, co-financing rates, requirements
+   - Lists EU4Health strands (CRISIS, PREVENTION, HEALTH_SYSTEMS, DIGITAL)
+   - Provides actionable next steps (HaDEA, EU Portal links)
+
+5. **Added result extraction in `_extract_key_facts()`** (~lines 10921-10926):
+   - Detects `check_eu4health_eligibility` tool results
+   - Applies specialized formatting
+
+6. **Added `_detect_eu4health_eligibility_query()` method** (~lines 20963-21199):
+   - Pre-routes EU4Health eligibility queries to the correct tool
+   - Detects EU4Health indicators (eu4health, eu4h, etc.)
+   - Detects health organization types (hospital, research, NGO, public authority)
+   - Extracts country, action type, and strand from query
+   - Skips when other programmes mentioned (Erasmus+, Creative Europe, etc.)
+
+### Test Results
+All 13 tests pass:
+- ✅ test_confirms_eligibility
+- ✅ test_mentions_action_grants
+- ✅ test_identifies_eligible_actions
+- ✅ test_mentions_co_financing
+- ✅ test_mentions_healthcare_provider
+- ✅ test_uses_eu4health_eligibility_tool
+- ✅ test_provides_actionable_next_steps
+- ✅ test_mentions_eu4health_programme
+- ✅ test_no_horizon_europe_confusion
+- ✅ test_no_erasmus_confusion
+- ✅ test_no_creative_europe_confusion
+- ✅ test_overall_score_meets_threshold
+- ✅ test_returns_valid_json_response
+
+### Verification
+Response correctly includes:
+- ✅ Eligibility confirmed for healthcare providers
+- ✅ Action Grant (AG) with 60-80% co-financing
+- ✅ Project Grant (PJ) with 60-80% co-financing
+- ✅ Procurement (PROC) with 100% (contract)
+- ✅ EU4Health strands listed (Crisis, Prevention, Health Systems, Digital)
+- ✅ HaDEA and EU Portal links provided
+- ✅ check_eu4health_eligibility tool called
+- ✅ No confusion with other programmes
+
+### PRD Status Update
+Scenario 021: EU4Health Eligibility is now complete with score 100/100.
+Phase 2 Progress: 5/12 scenarios complete.
