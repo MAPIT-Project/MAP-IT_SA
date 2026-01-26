@@ -12885,3 +12885,65 @@ Implemented Scenario 027: Multi-Programme Search with score 100/100.
 
 ### PRD Status
 - [x] Scenario 027: Multi-Programme Search - PASS (100/100)
+
+## 2026-01-26 Scenario 017: Erasmus+ Eligibility (score 100/100)
+
+### Query
+"Can a vocational school from Poland participate in Erasmus+ mobility?"
+
+### Expected
+- Yes, with KA1 details
+- Accreditation info
+- National Agency
+
+### Fix Applied
+Added comprehensive accreditation information to Erasmus+ eligibility tool:
+
+1. **erasmus_eligibility.py changes**:
+   - Added `accreditation_info` dictionary to KA1 actions (KA1-HED, KA1-VET, KA1-SCH, KA1-ADU)
+   - Each action now includes:
+     - `has_accreditation`: Boolean flag
+     - `accreditation_type`: e.g., "Erasmus+ VET Accreditation"
+     - `benefits`: List of accreditation benefits (simplified access, multi-annual funding up to 7 years, streamlined application, flexibility)
+     - `alternative`: Alternative pathway for non-accredited orgs (e.g., "Short-term mobility projects")
+     - `apply_url`: URL to learn more about accreditation
+   - Modified `check_eligibility()` to include `accreditation_info` in result metadata
+
+2. **tool_aware_agent.py changes**:
+   - Updated `_format_erasmus_eligibility_result()` to display accreditation information
+   - Added section for accreditation type, benefits, and alternative pathway
+   - Added URL for learning more about accreditation
+
+### Response Quality
+The response now includes:
+- ✅ KA1-VET eligibility confirmation
+- ✅ Poland identified as Programme Country
+- ✅ VET_PROVIDER organization type correctly identified
+- ✅ Erasmus+ VET Accreditation section with benefits
+- ✅ Alternative pathway (short-term mobility projects) mentioned
+- ✅ Accreditation apply URL provided
+- ✅ National Agency link in next steps
+- ✅ Programme Guide and EU Portal links
+
+### Files Modified
+- `app/services/tools/erasmus_eligibility.py` - Added accreditation_info to KA1 action rules
+- `app/services/agents/tool_aware_agent.py` - Updated formatter to display accreditation info
+- `tests/quality/test_scenario_017_erasmus_eligibility.py` - Added 3 new tests for accreditation
+
+### Tests
+15 tests passing in `tests/quality/test_scenario_017_erasmus_eligibility.py`:
+- test_confirms_eligibility
+- test_mentions_ka1_vet
+- test_identifies_poland_as_programme_country
+- test_uses_erasmus_eligibility_tool
+- test_provides_national_agency_info
+- test_provides_actionable_next_steps
+- test_does_not_return_third_country_guidance
+- test_not_generic_vet_guidance
+- test_overall_score_meets_threshold
+- test_returns_valid_json_response
+- test_no_hallucinated_calls
+- test_response_mentions_vocation_education_context
+- test_includes_accreditation_info (NEW)
+- test_mentions_alternative_pathway (NEW)
+- test_accreditation_benefits_mentioned (NEW)

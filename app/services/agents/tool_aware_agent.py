@@ -5952,7 +5952,7 @@ If you prefer **grant-based funding** (non-repayable) for climate innovation, he
 
         return f"""As an intelligent research assistant specializing in **EU funding programmes** like Horizon Europe, Erasmus+, and Creative Europe, my expertise is focused on European Union research and innovation funding.
 
-For detailed information about **{info['full_name']}**, I recommend visiting their official resources. However, I can help you understand EU funding alternatives and explore opportunities for international collaboration.
+For detailed information about **{info["full_name"]}**, I recommend visiting their official resources. However, I can help you understand EU funding alternatives and explore opportunities for international collaboration.
 
 ## My EU Funding Expertise
 
@@ -5964,15 +5964,15 @@ I provide expert guidance on these EU programmes:
 | **Erasmus+** | €26.2 billion | Education, training & youth mobility |
 | **Creative Europe** | €2.4 billion | Cultural & creative sectors |
 
-## EU Equivalent to {info['full_name']}
+## EU Equivalent to {info["full_name"]}
 
-For researchers interested in topics similar to {info['full_name']}, the EU offers:
+For researchers interested in topics similar to {info["full_name"]}, the EU offers:
 
-**{info['eu_equivalent']}**
+**{info["eu_equivalent"]}**
 
 ## International Participation in EU Programmes
 
-If you're based in {info['country']} or have collaborators there, you can still participate in EU funding:
+If you're based in {info["country"]} or have collaborators there, you can still participate in EU funding:
 
 | Participation Type | Options |
 |-------------------|---------|
@@ -5985,7 +5985,7 @@ If you're based in {info['country']} or have collaborators there, you can still 
 
 🎯 **Next Steps - What You Should Do:**
 
-1. **For {info['full_name']} Information**: You should visit their official website at {info['website']}
+1. **For {info["full_name"]} Information**: You should visit their official website at {info["website"]}
 
 2. **For EU Funding Alternatives**: I can help you explore:
    - Horizon Europe calls matching your research area
@@ -5999,7 +5999,7 @@ If you're based in {info['country']} or have collaborators there, you can still 
 
 4. **Contact Support**: You should reach out to your [National Contact Point](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for guidance on EU opportunities
 
-📋 **Would you like me to help you find EU funding opportunities in your research area, or explore how researchers from {info['country']} can participate in Horizon Europe?**"""
+📋 **Would you like me to help you find EU funding opportunities in your research area, or explore how researchers from {info["country"]} can participate in Horizon Europe?**"""
 
     def _generate_eu_international_comparison_guidance(self) -> str:
         """Generate guidance comparing EU funding with international programmes."""
@@ -12992,6 +12992,7 @@ Found **{total_found} organizations** with relevant track records:
             country = check_metadata.get("country", "Unknown")
             org_type = check_metadata.get("org_type", "Unknown")
             is_programme_country = check_metadata.get("is_programme_country", False)
+            accreditation_info = check_metadata.get("accreditation_info")
 
             eligibility_text = f"""## Erasmus+ Eligibility Check: {action_name} ({action_type})
 
@@ -13023,6 +13024,27 @@ Found **{total_found} organizations** with relevant track records:
                 for rec in recommendations:
                     eligibility_text += f"- {rec}\n"
                 eligibility_text += "\n"
+
+            # Add accreditation information if available
+            if accreditation_info and eligible:
+                accred_type = accreditation_info.get("accreditation_type", "")
+                benefits = accreditation_info.get("benefits", [])
+                alternative = accreditation_info.get("alternative")
+                apply_url = accreditation_info.get("apply_url", "")
+
+                eligibility_text += f"**📋 Accreditation: {accred_type}**\n\n"
+
+                if benefits:
+                    eligibility_text += "Benefits of accreditation:\n"
+                    for benefit in benefits:
+                        eligibility_text += f"- {benefit}\n"
+                    eligibility_text += "\n"
+
+                if alternative:
+                    eligibility_text += f"💡 **Alternative pathway**: {alternative}\n\n"
+
+                if apply_url:
+                    eligibility_text += f"📌 Learn more about accreditation: {apply_url}\n\n"
 
             eligibility_text += """
 ---
@@ -13246,7 +13268,7 @@ This may be because:
 
             eligibility_text = f"""## EU4Health Eligibility Check: {action_name} ({action_type})
 
-**Organization**: {org_type.replace('_', ' ').title()} from {country}
+**Organization**: {org_type.replace("_", " ").title()} from {country}
 **Country Status**: {country_status}
 **Eligibility**: {"✅ ELIGIBLE" if eligible else "❌ NOT ELIGIBLE"}
 
@@ -13292,13 +13314,13 @@ This may be because:
             org_type = metadata.get("org_type", "Unknown")
 
             if total_eligible == 0:
-                eligibility_text = f"""## EU4Health Eligibility Check for {org_type.replace('_', ' ').title()} from {country}
+                eligibility_text = f"""## EU4Health Eligibility Check for {org_type.replace("_", " ").title()} from {country}
 
 **Eligibility**: ❌ No eligible actions found
 
 This may be because:
 - {country} is not a participating country in EU4Health
-- The organization type ({org_type.replace('_', ' ')}) has restrictions for EU4Health actions
+- The organization type ({org_type.replace("_", " ")}) has restrictions for EU4Health actions
 - Joint Actions (JA) are only for Member State public authorities
 
 **Recommendations:**
@@ -13307,7 +13329,7 @@ This may be because:
 - Contact HaDEA for guidance on specific opportunities
 """
             else:
-                eligibility_text = f"""## EU4Health Eligibility Check for {org_type.replace('_', ' ').title()} from {country}
+                eligibility_text = f"""## EU4Health Eligibility Check for {org_type.replace("_", " ").title()} from {country}
 
 **Total Eligible Actions**: {total_eligible}
 
@@ -13658,7 +13680,7 @@ This may be because:
 
             eligibility_text = f"""## Digital Europe Eligibility Check: {objective_name} ({objective})
 
-**Organization**: {org_type.replace('_', ' ').title()} from {country}
+**Organization**: {org_type.replace("_", " ").title()} from {country}
 **Country Status**: {country_status}
 **Eligibility**: {"✅ ELIGIBLE" if eligible else "❌ NOT ELIGIBLE"}
 
@@ -13705,13 +13727,13 @@ This may be because:
             objectives_info = result.get("objectives", {})
 
             if total_eligible == 0:
-                eligibility_text = f"""## Digital Europe Eligibility Check for {org_type.replace('_', ' ').title()} from {country}
+                eligibility_text = f"""## Digital Europe Eligibility Check for {org_type.replace("_", " ").title()} from {country}
 
 **Eligibility**: ❌ No eligible objectives found
 
 This may be because:
 - {country} is not a participating country in Digital Europe
-- The organization type ({org_type.replace('_', ' ')}) has restrictions for Digital Europe objectives
+- The organization type ({org_type.replace("_", " ")}) has restrictions for Digital Europe objectives
 - Switzerland only participates in HPC and AI objectives
 
 **Recommendations:**
@@ -13720,7 +13742,7 @@ This may be because:
 - Contact HaDEA for guidance on specific opportunities
 """
             else:
-                eligibility_text = f"""## Digital Europe Eligibility Check for {org_type.replace('_', ' ').title()} from {country}
+                eligibility_text = f"""## Digital Europe Eligibility Check for {org_type.replace("_", " ").title()} from {country}
 
 **Total Eligible Objectives**: {total_eligible}
 
@@ -13816,7 +13838,7 @@ This may be because:
 
             eligibility_text = f"""## LIFE Programme Eligibility Check: {subprogramme_name} ({subprogramme})
 
-**Organization**: {org_type.replace('_', ' ').title()} from {country}
+**Organization**: {org_type.replace("_", " ").title()} from {country}
 **Country Status**: {country_status}
 **Eligibility**: {"✅ ELIGIBLE" if eligible else "❌ NOT ELIGIBLE"}
 """
@@ -13867,13 +13889,13 @@ This may be because:
             org_type = metadata.get("org_type", "Unknown")
 
             if total_eligible == 0:
-                eligibility_text = f"""## LIFE Programme Eligibility Check for {org_type.replace('_', ' ').title()} from {country}
+                eligibility_text = f"""## LIFE Programme Eligibility Check for {org_type.replace("_", " ").title()} from {country}
 
 **Eligibility**: ❌ No eligible sub-programmes found
 
 This may be because:
 - {country} is not a LIFE participating country
-- The organization type ({org_type.replace('_', ' ')}) has restrictions for LIFE sub-programmes
+- The organization type ({org_type.replace("_", " ")}) has restrictions for LIFE sub-programmes
 
 **Recommendations:**
 - Check if your organization qualifies under a different category
@@ -13881,7 +13903,7 @@ This may be because:
 - Contact CINEA for guidance on specific opportunities
 """
             else:
-                eligibility_text = f"""## LIFE Programme Eligibility Check for {org_type.replace('_', ' ').title()} from {country}
+                eligibility_text = f"""## LIFE Programme Eligibility Check for {org_type.replace("_", " ").title()} from {country}
 
 **Total Eligible Sub-programmes**: {total_eligible}
 
@@ -22916,7 +22938,7 @@ Help your film reach audiences:
 ### Co-Financing Rate
 - **EU Contribution**: {rate}
 - {notes}
-- **Your Co-Financing**: {100 - int(rate.replace('%', '').replace('Up to ', ''))}%{'+ (varies by project)' if 'Up to' in rate else ''}
+- **Your Co-Financing**: {100 - int(rate.replace("%", "").replace("Up to ", ""))}%{"+ (varies by project)" if "Up to" in rate else ""}
 
 ### Typical Budget Ranges by Project Type
 

@@ -239,6 +239,9 @@ Ensure all 6 EU programmes work correctly.
   - Verify: Erasmus-specific tools called, accurate eligibility
   - Fix if: Generic response, wrong eligibility, missing specifics
   - Pass threshold: 80
+  - **Status: PASS (score 100/100)**
+  - **Fix applied**: Added comprehensive accreditation information to Erasmus+ eligibility tool - KA1 actions (HED, VET, SCH, ADU) now include accreditation_info with accreditation type, benefits (simplified access, multi-annual funding, streamlined application), alternative pathway (short-term projects for non-accredited orgs), and apply URL. Updated `_format_erasmus_eligibility_result()` in ToolAwareAgent to display accreditation info.
+  - **Tests**: `tests/quality/test_scenario_017_erasmus_eligibility.py` (15 tests)
 
 - [x] **Scenario 018: Erasmus+ Budget** `EXECUTE + FIX IF NEEDED`
   - Query: "Calculate budget for sending 15 students from Spain to Germany for 4 months"

@@ -322,9 +322,9 @@ class TestScenario017ErasmusEligibility:
 
             # Erasmus+ queries should not return Horizon Europe call IDs
             # Erasmus+ queries should not return Horizon Europe call IDs
-            assert len(horizon_calls) == 0, (
-                f"Should not hallucinate Horizon Europe calls for Erasmus+: " f"{horizon_calls}"
-            )
+            assert (
+                len(horizon_calls) == 0
+            ), f"Should not hallucinate Horizon Europe calls for Erasmus+: {horizon_calls}"
 
     @pytest.mark.asyncio
     async def test_response_mentions_vocation_education_context(self, conversation_id):
@@ -352,3 +352,83 @@ class TestScenario017ErasmusEligibility:
 
             has_vet = any(ind in response_text for ind in vet_indicators)
             assert has_vet, "Response should address vocational education context"
+
+    @pytest.mark.asyncio
+    async def test_includes_accreditation_info(self, conversation_id):
+        """Test that response includes accreditation information for VET mobility."""
+        async with httpx.AsyncClient(timeout=180.0) as client:
+            await client.delete(f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/context")
+
+            response = await client.post(
+                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
+                json={"message": self.QUERY, "user_id": 1},
+            )
+
+            assert response.status_code == 200
+            result = response.json()
+            response_text = result.get("response", "").lower()
+
+            # Should include accreditation info
+            accreditation_indicators = [
+                "accreditation",
+                "accredited",
+                "multi-annual",
+                "simplified access",
+            ]
+
+            has_accreditation = any(ind in response_text for ind in accreditation_indicators)
+            assert has_accreditation, "Response should include accreditation information"
+
+    @pytest.mark.asyncio
+    async def test_mentions_alternative_pathway(self, conversation_id):
+        """Test that response mentions alternative pathway (short-term projects)."""
+        async with httpx.AsyncClient(timeout=180.0) as client:
+            await client.delete(f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/context")
+
+            response = await client.post(
+                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
+                json={"message": self.QUERY, "user_id": 1},
+            )
+
+            assert response.status_code == 200
+            result = response.json()
+            response_text = result.get("response", "").lower()
+
+            # Should mention alternative pathway for non-accredited orgs
+            alternative_indicators = [
+                "short-term",
+                "alternative",
+                "non-accredited",
+            ]
+
+            has_alternative = any(ind in response_text for ind in alternative_indicators)
+            assert (
+                has_alternative
+            ), "Response should mention alternative pathway (short-term projects)"
+
+    @pytest.mark.asyncio
+    async def test_accreditation_benefits_mentioned(self, conversation_id):
+        """Test that response mentions benefits of accreditation."""
+        async with httpx.AsyncClient(timeout=180.0) as client:
+            await client.delete(f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/context")
+
+            response = await client.post(
+                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
+                json={"message": self.QUERY, "user_id": 1},
+            )
+
+            assert response.status_code == 200
+            result = response.json()
+            response_text = result.get("response", "").lower()
+
+            # Should mention benefits of accreditation
+            benefits_indicators = [
+                "simplified",
+                "multi-annual",
+                "streamlined",
+                "flexibility",
+                "benefits",
+            ]
+
+            has_benefits = any(ind in response_text for ind in benefits_indicators)
+            assert has_benefits, "Response should mention benefits of accreditation"
