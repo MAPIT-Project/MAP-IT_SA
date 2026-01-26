@@ -12227,3 +12227,86 @@ Response correctly includes:
 ### PRD Status Update
 Scenario 018: Erasmus+ Budget is now complete with score 100/100.
 Phase 2 Progress: 3/12 scenarios complete.
+
+---
+
+## 2026-01-26: Scenario 019 - Creative Europe Eligibility
+
+### Task Completed
+Implemented Scenario 019: Creative Europe Eligibility from the MAPIT Application Quality Improvement PRD.
+
+### Query
+"Can a small theater company from Italy apply for Creative Europe funding?"
+
+### Expected
+- Yes for CULTURE strand
+- Cooperation project options
+- Partnership requirements
+
+### Implementation Details
+
+**Problem Identified**: The system was incorrectly routing queries about Creative Europe eligibility to Erasmus+ eligibility tool because:
+1. The `_detect_erasmus_action_query()` method was catching queries with EU country names + eligibility patterns
+2. It was being called BEFORE any Creative Europe detection methods
+3. "theater company" was being mapped to "ENTERPRISE" org type for Erasmus+
+
+**Root Causes**:
+1. Missing explicit Creative Europe eligibility detection method
+2. Erasmus action detection was too broad and didn't check for other programmes
+
+**Fixes Applied** (in `app/services/agents/tool_aware_agent.py`):
+1. **Added `_detect_creative_europe_eligibility_query()` method** (~lines 20365-20630):
+   - Detects queries explicitly mentioning "Creative Europe" with eligibility patterns
+   - Detects cultural organization types (theater, museum, gallery, etc.)
+   - Extracts country from query and maps to proper country name
+   - Extracts organization type and maps to Creative Europe org types
+   - Routes to `check_creative_europe_eligibility` tool with proper parameters
+
+2. **Added guard in `_detect_erasmus_action_query()`** (~line 16490-16494):
+   - Added check to skip if query mentions "creative europe", "eu4health", "digital europe", or "life programme"
+   - Prevents Erasmus detection from intercepting other programme queries
+
+3. **Added call to new detection method** (~lines 3632-3639):
+   - `ce_eligibility_result = self._detect_creative_europe_eligibility_query(query, context)`
+   - Inserted BEFORE cooperation and media detection methods
+
+### Files Created
+- `tests/quality/test_scenario_019_creative_europe_eligibility.py` - 13 tests covering:
+  1. Confirms eligibility ("yes", "can apply", "eligible")
+  2. Mentions CULTURE strand
+  3. Mentions cooperation projects (COOP-SMALL, small scale)
+  4. Identifies Italy as eligible country
+  5. Uses check_creative_europe_eligibility tool
+  6. Addresses theater company context
+  7. Provides actionable next steps (Creative Europe Desk, portal)
+  8. Overall score meets 80 threshold
+  9. Returns valid JSON response
+  10. No Horizon Europe confusion (correct tools used)
+  11. No Erasmus+ confusion (no erasmus tools used)
+  12. Mentions Creative Europe programme
+  13. Response is programme-specific (uses CE terminology)
+
+### Files Modified
+- `app/services/agents/tool_aware_agent.py` - Added Creative Europe eligibility detection method, added guard in Erasmus detection
+- `docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md` - Marked Scenario 019 as complete
+
+### Test Results
+- 13 tests passed
+- Score: 80+/100
+- Linting passed
+
+### Verification
+Response correctly includes:
+- ✅ Eligibility confirmation ("Yes", "can apply")
+- ✅ CULTURE strand identified
+- ✅ COOP-SMALL / European Cooperation Projects - Small Scale
+- ✅ Italy eligibility confirmed
+- ✅ check_creative_europe_eligibility tool called
+- ✅ Creative Europe Desk mentioned
+- ✅ Actionable next steps provided
+- ✅ No Erasmus+ tool confusion
+- ✅ Creative Europe-specific terminology
+
+### PRD Status Update
+Scenario 019: Creative Europe Eligibility is now complete with score 80+/100.
+Phase 2 Progress: 4/12 scenarios complete.

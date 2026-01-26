@@ -252,12 +252,15 @@ Ensure all 6 EU programmes work correctly.
 
 ### Creative Europe
 
-- [ ] **Scenario 019: Creative Europe Eligibility** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 019: Creative Europe Eligibility** `EXECUTE + FIX IF NEEDED`
   - Query: "Can a small theater company from Italy apply for Creative Europe funding?"
   - Expected: Yes for CULTURE strand, cooperation project options, requirements
   - Verify: CULTURE strand specifics, correct partnership requirements
   - Fix if: Generic response, wrong strand info
   - Pass threshold: 80
+  - **Status: PASS (score 80+/100)**
+  - **Fix applied**: Added `_detect_creative_europe_eligibility_query()` method to pre-route queries explicitly mentioning "Creative Europe" + eligibility to the `check_creative_europe_eligibility` tool. Also added guard in `_detect_erasmus_action_query()` to skip when other programmes are mentioned.
+  - **Tests**: `tests/quality/test_scenario_019_creative_europe_eligibility.py` (13 tests)
 
 - [ ] **Scenario 020: Creative Europe Calls** `EXECUTE + FIX IF NEEDED`
   - Query: "Find open Creative Europe MEDIA calls for film distribution"

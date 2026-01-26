@@ -3629,6 +3629,15 @@ digital_europe, life""",
         if erasmus_budget_result:
             return erasmus_budget_result
 
+        # Check for CREATIVE EUROPE ELIGIBILITY queries
+        # These are questions about Creative Europe eligibility for cultural organizations
+        # e.g., "Can a theater company apply for Creative Europe?", "Is a museum eligible?"
+        # "Can a small theater company from Italy apply for Creative Europe funding?"
+        # IMPORTANT: Must come BEFORE cooperation/media queries to catch general eligibility
+        ce_eligibility_result = self._detect_creative_europe_eligibility_query(query, context)
+        if ce_eligibility_result:
+            return ce_eligibility_result
+
         # Check for CREATIVE EUROPE COOPERATION PROJECT queries (CULTURE strand)
         # These are questions about cooperation projects (small/medium/large scale),
         # partnership requirements, funding rates, and scale selection
@@ -16478,6 +16487,18 @@ If multiple proposals succeed:
         ]
         has_eligibility_question = any(p in query_lower for p in eligibility_patterns)
 
+        # Skip if query explicitly mentions another programme (Creative Europe, EU4Health, etc.)
+        # to allow programme-specific detection methods to handle them
+        other_programmes = [
+            "creative europe",
+            "creative-europe",
+            "eu4health",
+            "digital europe",
+            "life programme",
+        ]
+        if any(prog in query_lower for prog in other_programmes):
+            return None
+
         # If a specific country is mentioned AND it's an eligibility question,
         # call check_erasmus_eligibility tool with properly extracted parameters
         if country_mentioned and has_eligibility_question:
@@ -20352,6 +20373,349 @@ Help your film reach audiences:
                 unique.append(content)
 
         return unique
+
+    # ========================================================================
+    # CREATIVE EUROPE ELIGIBILITY DETECTION
+    # ========================================================================
+
+    def _detect_creative_europe_eligibility_query(
+        self, query: str, context: str
+    ) -> dict[str, Any] | None:
+        """Detect Creative Europe eligibility queries.
+
+        These are questions about:
+        - Whether an organization can apply for Creative Europe
+        - Eligibility for cultural organizations (theaters, museums, arts organizations)
+        - Creative Europe funding options for cultural/creative sector entities
+        - Country eligibility for Creative Europe
+
+        Examples:
+        - "Can a small theater company from Italy apply for Creative Europe funding?"
+        - "Is a museum eligible for Creative Europe?"
+        - "Can we apply for Creative Europe as a cultural organization?"
+        """
+        query_lower = query.lower()
+        context_lower = context.lower() if context else ""
+
+        # Must explicitly mention Creative Europe
+        creative_europe_indicators = [
+            "creative europe",
+            "creative-europe",
+            "creativeeurope",
+        ]
+
+        has_creative_europe = any(ind in query_lower for ind in creative_europe_indicators)
+
+        # If Creative Europe not mentioned, check for cultural organization types
+        # that strongly suggest Creative Europe (not Horizon Europe or Erasmus+)
+        cultural_org_types = [
+            "theater company",
+            "theatre company",
+            "theater",
+            "theatre",
+            "opera",
+            "ballet",
+            "orchestra",
+            "symphony",
+            "museum",
+            "gallery",
+            "art gallery",
+            "cultural organization",
+            "cultural organisation",
+            "cultural center",
+            "cultural centre",
+            "arts organization",
+            "arts organisation",
+            "performing arts",
+            "dance company",
+            "circus",
+            "street arts",
+            "visual arts",
+            "literary organization",
+            "publisher",
+            "publishing house",
+            "film company",
+            "film production",
+            "audiovisual company",
+            "audiovisual production",
+            "media company",
+            "broadcaster",
+            "cinema",
+            "festival organizer",
+            "festival organiser",
+            "cultural heritage",
+            "heritage organization",
+            "heritage organisation",
+        ]
+
+        # Eligibility patterns
+        eligibility_patterns = [
+            "can apply",
+            "eligible",
+            "eligibility",
+            "can we apply",
+            "am i eligible",
+            "are we eligible",
+            "is eligible",
+            "qualify for",
+            "apply for funding",
+            "apply for creative",
+            "funding options",
+            "funding available",
+            "can participate",
+            "participate in creative",
+        ]
+
+        # Check if it's a cultural organization asking about eligibility
+        has_cultural_org = any(org in query_lower for org in cultural_org_types)
+        has_eligibility = any(p in query_lower for p in eligibility_patterns)
+
+        # Extract country if mentioned
+        eu_countries = [
+            "austria",
+            "belgian",
+            "belgium",
+            "bulgaria",
+            "croatian",
+            "croatia",
+            "cyprus",
+            "czech",
+            "denmark",
+            "danish",
+            "estonia",
+            "estonian",
+            "finland",
+            "finnish",
+            "france",
+            "french",
+            "germany",
+            "german",
+            "greece",
+            "greek",
+            "hungary",
+            "hungarian",
+            "ireland",
+            "irish",
+            "italy",
+            "italian",
+            "latvia",
+            "latvian",
+            "lithuania",
+            "lithuanian",
+            "luxembourg",
+            "malta",
+            "maltese",
+            "netherlands",
+            "dutch",
+            "poland",
+            "polish",
+            "portugal",
+            "portuguese",
+            "romania",
+            "romanian",
+            "slovakia",
+            "slovak",
+            "slovenia",
+            "slovenian",
+            "spain",
+            "spanish",
+            "sweden",
+            "swedish",
+        ]
+
+        country = None
+        for c in eu_countries:
+            if c in query_lower:
+                # Normalize to country name
+                country_map = {
+                    "belgian": "Belgium",
+                    "belgium": "Belgium",
+                    "danish": "Denmark",
+                    "denmark": "Denmark",
+                    "estonian": "Estonia",
+                    "estonia": "Estonia",
+                    "finnish": "Finland",
+                    "finland": "Finland",
+                    "french": "France",
+                    "france": "France",
+                    "german": "Germany",
+                    "germany": "Germany",
+                    "greek": "Greece",
+                    "greece": "Greece",
+                    "hungarian": "Hungary",
+                    "hungary": "Hungary",
+                    "irish": "Ireland",
+                    "ireland": "Ireland",
+                    "italian": "Italy",
+                    "italy": "Italy",
+                    "latvian": "Latvia",
+                    "latvia": "Latvia",
+                    "lithuanian": "Lithuania",
+                    "lithuania": "Lithuania",
+                    "maltese": "Malta",
+                    "malta": "Malta",
+                    "dutch": "Netherlands",
+                    "netherlands": "Netherlands",
+                    "polish": "Poland",
+                    "poland": "Poland",
+                    "portuguese": "Portugal",
+                    "portugal": "Portugal",
+                    "romanian": "Romania",
+                    "romania": "Romania",
+                    "slovak": "Slovakia",
+                    "slovakia": "Slovakia",
+                    "slovenian": "Slovenia",
+                    "slovenia": "Slovenia",
+                    "spanish": "Spain",
+                    "spain": "Spain",
+                    "swedish": "Sweden",
+                    "sweden": "Sweden",
+                    "austrian": "Austria",
+                    "austria": "Austria",
+                    "bulgarian": "Bulgaria",
+                    "bulgaria": "Bulgaria",
+                    "croatian": "Croatia",
+                    "croatia": "Croatia",
+                    "cyprus": "Cyprus",
+                    "czech": "Czech Republic",
+                    "luxembourg": "Luxembourg",
+                }
+                country = country_map.get(c, c.title())
+                break
+
+        # Detect organization type from query
+        org_type = "CULTURAL_ORG"  # Default
+        org_type_map = {
+            "theater": "CULTURAL_ORG",
+            "theatre": "CULTURAL_ORG",
+            "opera": "CULTURAL_ORG",
+            "ballet": "CULTURAL_ORG",
+            "orchestra": "CULTURAL_ORG",
+            "museum": "CULTURAL_ORG",
+            "gallery": "CULTURAL_ORG",
+            "cultural": "CULTURAL_ORG",
+            "performing arts": "CULTURAL_ORG",
+            "dance": "CULTURAL_ORG",
+            "circus": "CULTURAL_ORG",
+            "visual arts": "CULTURAL_ORG",
+            "publisher": "CULTURAL_ORG",
+            "literary": "CULTURAL_ORG",
+            "film": "PRODUCTION",
+            "production": "PRODUCTION",
+            "audiovisual": "AUDIOVISUAL",
+            "media company": "AUDIOVISUAL",
+            "broadcaster": "BROADCASTER",
+            "cinema": "CINEMA",
+            "festival": "FESTIVAL",
+            "heritage": "CULTURAL_ORG",
+            "ngo": "NGO",
+            "association": "NGO",
+        }
+
+        for key, value in org_type_map.items():
+            if key in query_lower:
+                org_type = value
+                break
+
+        # Route to check_creative_europe_eligibility tool
+        # Pattern 1: Creative Europe explicitly mentioned + eligibility question
+        if has_creative_europe and has_eligibility:
+            params = {
+                "org_type": org_type,
+                "country": country or "Italy",  # Default to Italy if not specified
+            }
+            # Add strand for CULTURE organizations
+            if org_type == "CULTURAL_ORG":
+                params["strand"] = "CULTURE"
+
+            return {
+                "thought": f"User is asking about Creative Europe eligibility for a {org_type} from {country or 'an EU country'}. Calling check_creative_europe_eligibility tool.",
+                "action": "call_tools",
+                "tool_calls": [
+                    {
+                        "tool": "check_creative_europe_eligibility",
+                        "parameters": params,
+                        "reasoning": f"Checking Creative Europe CULTURE strand eligibility for {org_type} from {country or 'Italy'}",
+                    }
+                ],
+                "confidence": 0.95,
+                "needs_more_info": False,
+            }
+
+        # Pattern 2: Cultural organization type + eligibility (without explicit Creative Europe mention)
+        # Only if query clearly seems about funding eligibility for cultural sector
+        if (
+            has_cultural_org
+            and has_eligibility
+            and "horizon" not in query_lower
+            and "erasmus" not in query_lower
+        ):
+            # Check if context has Creative Europe indication
+            ce_in_context = any(ind in context_lower for ind in creative_europe_indicators)
+
+            # Only route if Creative Europe is in context OR query seems cultural-sector focused
+            cultural_focus_indicators = [
+                "cultural",
+                "culture",
+                "arts",
+                "artistic",
+                "creative sector",
+                "cultural sector",
+                "creative industries",
+            ]
+            has_cultural_focus = (
+                any(ind in query_lower for ind in cultural_focus_indicators) or ce_in_context
+            )
+
+            if has_cultural_focus:
+                params = {
+                    "org_type": org_type,
+                    "country": country or "Italy",
+                    "strand": "CULTURE",
+                }
+                return {
+                    "thought": f"User is asking about eligibility for a cultural organization ({org_type}) from {country or 'an EU country'}. This appears to be a Creative Europe question. Calling check_creative_europe_eligibility tool.",
+                    "action": "call_tools",
+                    "tool_calls": [
+                        {
+                            "tool": "check_creative_europe_eligibility",
+                            "parameters": params,
+                            "reasoning": f"Checking Creative Europe CULTURE strand eligibility for cultural organization from {country or 'Italy'}",
+                        }
+                    ],
+                    "confidence": 0.90,
+                    "needs_more_info": False,
+                }
+
+        # Pattern 3: Creative Europe mentioned + funding/options question (not strict eligibility)
+        funding_patterns = [
+            "funding options",
+            "funding available",
+            "what funding",
+            "which funding",
+            "apply for funding",
+            "get funding",
+        ]
+        if has_creative_europe and any(p in query_lower for p in funding_patterns):
+            params = {
+                "org_type": org_type,
+                "country": country or "Italy",
+            }
+            return {
+                "thought": f"User is asking about Creative Europe funding options for a {org_type} from {country or 'an EU country'}. Calling check_creative_europe_eligibility tool to show available actions.",
+                "action": "call_tools",
+                "tool_calls": [
+                    {
+                        "tool": "check_creative_europe_eligibility",
+                        "parameters": params,
+                        "reasoning": f"Finding all Creative Europe funding options available to {org_type} from {country or 'Italy'}",
+                    }
+                ],
+                "confidence": 0.90,
+                "needs_more_info": False,
+            }
+
+        return None
 
     # ========================================================================
     # CREATIVE EUROPE COOPERATION PROJECTS (CULTURE STRAND) DETECTION AND GUIDANCE
