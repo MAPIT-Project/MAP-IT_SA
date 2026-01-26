@@ -240,12 +240,15 @@ Ensure all 6 EU programmes work correctly.
   - Fix if: Generic response, wrong eligibility, missing specifics
   - Pass threshold: 80
 
-- [ ] **Scenario 018: Erasmus+ Budget** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 018: Erasmus+ Budget** `EXECUTE + FIX IF NEEDED`
   - Query: "Calculate budget for sending 15 students from Spain to Germany for 4 months"
   - Expected: Unit costs, travel band, organizational support, total
   - Verify: Uses Erasmus+ lump sum model correctly
   - Fix if: Wrong unit costs, ignores travel bands
   - Pass threshold: 80
+  - **Status: PASS (score 100/100)**
+  - **Fix applied**: Added duration conversion in `_tool_calculate_erasmus_budget` wrapper to convert months to days for mobility actions when LLM passes `duration_months` instead of `duration_days`
+  - **Tests**: `tests/quality/test_scenario_018_erasmus_budget.py` (14 tests)
 
 ### Creative Europe
 

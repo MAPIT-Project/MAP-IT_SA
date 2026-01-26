@@ -12448,12 +12448,50 @@ Found **{total_found} organizations** with relevant track records:
         try:
             from ..tools.erasmus_budget_calculator import calculate_erasmus_budget_execute
 
+            # Handle alternative parameter names LLMs might use
+            num_participants = params.get("num_participants") or params.get("participants", 10)
+            num_partners = params.get("num_partners") or params.get("partners", 3)
+
+            # Get action type to determine if it's a mobility action
+            action_type = params.get("action_type", "partnership")
+            action_upper = action_type.upper()
+            mobility_keywords = [
+                "MOBILITY",
+                "KA1",
+                "STUDENT",
+                "STAFF",
+                "TRAINEE",
+                "YOUTH",
+                "VET_MOBILITY",
+                "HED_MOBILITY",
+                "KA1-HED",
+                "KA1-VET",
+            ]
+            is_mobility = any(kw in action_upper for kw in mobility_keywords)
+
+            # Handle duration conversion for mobility actions
+            # LLMs often pass duration_months even for mobility, so convert to days
+            duration_days = params.get("duration_days", 14)
+            duration_months = params.get("duration_months") or params.get("duration", 24)
+
+            # If it's a mobility action and duration_months was provided but not duration_days,
+            # convert months to days (30 days per month)
+            if is_mobility:
+                if "duration_days" not in params and (
+                    "duration_months" in params or "duration" in params
+                ):
+                    # Convert months to days for mobility
+                    duration_days = int(duration_months) * 30
+                elif "duration_days" not in params and "duration_months" not in params:
+                    # Neither provided, use default 14 days
+                    duration_days = 14
+
             result = await calculate_erasmus_budget_execute(
-                action_type=params.get("action_type", "partnership"),
-                num_participants=params.get("num_participants", 10),
-                duration_days=params.get("duration_days", 14),
-                duration_months=params.get("duration_months", 24),
-                num_partners=params.get("num_partners", 3),
+                action_type=action_type,
+                num_participants=int(num_participants),
+                duration_days=int(duration_days),
+                duration_months=int(duration_months) if duration_months else 24,
+                num_partners=int(num_partners),
                 destination_country=params.get("destination_country", "Germany"),
                 origin_country=params.get("origin_country", "Spain"),
                 partnership_type=params.get("partnership_type", "cooperation"),

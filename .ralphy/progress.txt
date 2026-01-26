@@ -12156,3 +12156,74 @@ Response correctly includes:
 ### PRD Status Update
 Scenario 017: Erasmus+ Eligibility is now complete with score 100/100.
 Phase 2 Progress: 2/12 scenarios complete.
+
+---
+
+## 2026-01-26: Scenario 018 - Erasmus+ Budget
+
+### Task Completed
+Implemented Scenario 018: Erasmus+ Budget from the MAPIT Application Quality Improvement PRD.
+
+### Query
+"Calculate budget for sending 15 students from Spain to Germany for 4 months"
+
+### Expected
+- Unit costs (travel, individual support)
+- Travel band
+- Organizational support
+- Total budget
+
+### Implementation Details
+
+**Problem Identified**: The system was using the default `duration_days=14` instead of converting "4 months" to days for mobility calculations.
+
+**Root Cause**:
+- The `calculate_erasmus_budget` tool has separate parameters: `duration_days` for mobility and `duration_months` for partnerships
+- LLMs often pass `duration_months` even for mobility queries (e.g., "4 months")
+- The wrapper wasn't converting months to days for mobility actions
+
+**Fix Applied** (in `app/services/agents/tool_aware_agent.py`):
+1. Added detection of mobility action types (KA1, MOBILITY, STUDENT, STAFF, etc.)
+2. Added duration conversion logic: when it's a mobility action and `duration_months` is provided but not `duration_days`, convert months to days (duration_days = duration_months * 30)
+3. Added alternative parameter name handling (e.g., `participants` → `num_participants`)
+
+### Files Created
+- `tests/quality/test_scenario_018_erasmus_budget.py` - 14 tests covering:
+  1. Returns total budget amount
+  2. Includes unit costs breakdown
+  3. Mentions travel band
+  4. Includes organizational support
+  5. Uses calculate_erasmus_budget tool
+  6. Mentions student mobility context
+  7. Includes Spain to Germany travel context
+  8. Includes participant count (15)
+  9. Includes duration (4 months / 120 days)
+  10. Provides actionable next steps
+  11. Overall score meets 80 threshold
+  12. Returns valid JSON response
+  13. No Horizon Europe confusion
+  14. Uses Erasmus+ lump sum model
+
+### Files Modified
+- `app/services/agents/tool_aware_agent.py` - Added duration conversion in `_tool_calculate_erasmus_budget` wrapper
+- `docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md` - Marked Scenario 018 as complete
+
+### Test Results
+- 14 tests passed
+- Score: 100/100
+- Linting passed
+
+### Verification
+Response correctly includes:
+- ✅ Total budget: €151,575
+- ✅ Duration: 120 days (~4 months)
+- ✅ Travel costs: €4,125 (distance band 500-1999km)
+- ✅ Individual support: €142,200 (daily allowance)
+- ✅ Organizational support: €5,250 (per-participant admin costs)
+- ✅ Unit cost funding model
+- ✅ Erasmus+ Programme Guide references
+- ✅ National Agency and next steps guidance
+
+### PRD Status Update
+Scenario 018: Erasmus+ Budget is now complete with score 100/100.
+Phase 2 Progress: 3/12 scenarios complete.
