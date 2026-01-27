@@ -14530,3 +14530,107 @@ Score: 80+/100 (meets PASS threshold)
 - Specificity (25 pts): References "Programme Guide 2026", includes evaluation details
 - Factual Accuracy (25 pts): Uses 2026 guide, not outdated versions
 - Actionability (10 pts): Provides Erasmus+ Portal links and next steps
+
+================================================================================
+SCENARIO 049: Neo4j Unavailable - Graceful Degradation
+================================================================================
+Date: 2026-01-27
+Status: PASS (score 75+/100)
+
+## Problem Identified
+When Neo4j graph database was unavailable or timed out, the `get_country_statistics`
+tool would either fail completely with an error or hang waiting for Neo4j. This
+meant users couldn't get any country statistics even though SQL data was available.
+
+## Fix Applied
+Implemented graceful degradation in `_tool_get_country_stats()` method in
+`tool_aware_agent.py` with the following changes:
+
+1. **Timeout Handling**:
+   - Added 10-second timeout for Neo4j queries using ThreadPoolExecutor
+   - When timeout occurs, system falls back to SQL instead of failing
+
+2. **SQL Fallback Method**:
+   - Added `_get_country_stats_sql()` method to retrieve country statistics from PostgreSQL
+   - Provides: top organizations, project counts, total funding, eligibility status
+   - Uses the organizations table to get country participation data
+
+3. **Degradation Metadata**:
+   - Response metadata indicates: sources_used, degraded flag, degradation_reason
+   - User-friendly limitation message explains that graph statistics are temporarily unavailable
+   - Clear indication of which source provided the data
+
+4. **Service Availability Updates**:
+   - Added `get_country_statistics` to DEGRADABLE_TOOLS in service_availability.py
+   - Updated TOOL_SERVICE_REQUIREMENTS to indicate PostgreSQL is sufficient (Neo4j optional)
+   - Added `get_programme_statistics` as also degradable
+
+## Key Implementation Details
+- Neo4j timeout: 10 seconds (fast fallback)
+- SQL provides: top 20 organizations with 3+ projects, funding totals, coordination counts
+- Eligibility derived from country lists (EU members, associated countries, third countries)
+- Both sources can fail independently - only errors if BOTH fail
+
+## After Fix
+The system now correctly:
+- Returns country statistics from SQL when Neo4j is unavailable
+- Indicates in metadata that data is from "sql_fallback" with degraded=True
+- Provides helpful limitation message about temporarily unavailable graph statistics
+- Never crashes due to Neo4j timeout or connection issues
+
+## Tests Created
+File: tests/quality/test_scenario_049_neo4j_unavailable.py (22 tests)
+
+### Unit Tests (10):
+1. test_service_availability_includes_country_stats_in_degradable
+2. test_service_availability_country_stats_requires_postgres
+3. test_programme_stats_also_degradable
+4. test_country_code_mapping_complete
+5. test_sql_fallback_method_exists
+6. test_eu_member_eligibility_detection
+7. test_associated_country_eligibility
+8. test_third_country_not_in_either_list
+9. test_two_letter_code_passthrough
+10. test_country_name_to_code_mapping
+
+### Async/Mock Tests (6):
+1. test_neo4j_timeout_triggers_sql_fallback
+2. test_neo4j_connection_error_triggers_sql_fallback
+3. test_neo4j_success_returns_graph_data
+4. test_both_sources_fail_returns_error
+5. test_timeout_degradation_reason
+6. test_limitation_message_in_fallback
+7. test_unknown_country_returns_helpful_message
+
+### Integration Tests (6):
+1. test_partner_stats_query_live
+2. test_country_stats_tool_has_sources_metadata
+3. test_graceful_response_even_without_graph_details
+4. test_full_scenario_049
+5. test_sql_fallback_returns_organizations
+6. test_sql_fallback_returns_funding_data
+
+## Test Results
+22 passed, 1 skipped (API validation), 1 warning
+
+## Files Modified
+1. app/core/service_availability.py
+   - Added get_country_statistics and get_programme_statistics to DEGRADABLE_TOOLS
+   - Updated TOOL_SERVICE_REQUIREMENTS to allow PostgreSQL fallback
+
+2. app/services/agents/tool_aware_agent.py
+   - Rewrote _tool_get_country_stats() with timeout and fallback logic (~150 lines)
+   - Added _get_country_stats_sql() fallback method (~80 lines)
+   - Added ThreadPoolExecutor timeout handling
+
+3. tests/quality/test_scenario_049_neo4j_unavailable.py (created)
+   - 22 comprehensive tests for Neo4j unavailable graceful degradation
+
+4. docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md (updated scenario status)
+
+## Quality Score
+Score: 75+/100 (meets PASS threshold)
+- Query Fulfillment (25 pts): Returns country statistics from SQL fallback
+- Graceful Handling (25 pts): Doesn't crash, provides partial results
+- User Communication (15 pts): Clear limitation message in metadata
+- Recovery (10 pts): Automatic fallback, no retry needed

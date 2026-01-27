@@ -601,13 +601,16 @@ Ensure graceful handling of failures and edge cases.
 
 ### Tool Failures
 
-- [ ] **Scenario 049: Neo4j Unavailable** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 049: Neo4j Unavailable** `EXECUTE + FIX IF NEEDED`
   - Simulate: Neo4j connection timeout
   - Query: "Find partner statistics for Germany"
   - Expected: Graceful degradation, partial results from other sources
   - Verify: Doesn't crash, explains limitation
   - Fix if: Hard failure, unhelpful error message
   - Pass threshold: 75
+  - **Status: PASS (score 75+/100)**
+  - **Fix applied**: Added `_get_country_stats_sql()` SQL fallback method to `_tool_get_country_stats()` with 10s timeout. When Neo4j times out or is unavailable, system gracefully falls back to PostgreSQL for country statistics (top organizations, project counts, funding data, eligibility status). Response metadata indicates degradation reason and limitation message.
+  - **Tests**: `tests/quality/test_scenario_049_neo4j_unavailable.py` (22 tests: 10 unit + 12 integration)
 
 - [ ] **Scenario 050: Vector Search Fails** `EXECUTE + FIX IF NEEDED`
   - Simulate: Supabase vector search timeout

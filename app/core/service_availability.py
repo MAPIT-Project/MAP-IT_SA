@@ -21,8 +21,10 @@ logger = logging.getLogger(__name__)
 # Service Definitions
 # ============================================================================
 
+
 class ServiceType(str, Enum):
     """Types of services that can be checked."""
+
     POSTGRES = "postgres"
     NEO4J = "neo4j"
     REDIS = "redis"
@@ -33,6 +35,7 @@ class ServiceType(str, Enum):
 
 class AvailabilityStatus(str, Enum):
     """Service availability status."""
+
     AVAILABLE = "available"
     DEGRADED = "degraded"
     UNAVAILABLE = "unavailable"
@@ -42,6 +45,7 @@ class AvailabilityStatus(str, Enum):
 @dataclass
 class ServiceStatus:
     """Status of a single service."""
+
     service: ServiceType
     status: AvailabilityStatus
     last_check: datetime
@@ -58,6 +62,7 @@ class ServiceStatus:
 @dataclass
 class ServiceAvailability:
     """Overall service availability context."""
+
     services: dict[ServiceType, ServiceStatus] = field(default_factory=dict)
     checked_at: datetime = field(default_factory=datetime.utcnow)
 
@@ -102,18 +107,15 @@ class ServiceAvailability:
 
 # Maps tools to their required services
 TOOL_SERVICE_REQUIREMENTS: dict[str, list[ServiceType]] = {
-    # Statistics tools - need Neo4j for graph queries
-    "get_programme_statistics": [ServiceType.NEO4J],
-    "get_country_statistics": [ServiceType.NEO4J],
+    # Statistics tools - prefer Neo4j but can fall back to SQL
+    "get_programme_statistics": [ServiceType.POSTGRES],  # Neo4j optional, SQL fallback
+    "get_country_statistics": [ServiceType.POSTGRES],  # Neo4j optional, SQL fallback
     "compare_programmes": [ServiceType.NEO4J],
-
     # Document tools - need PostgreSQL/Supabase
     "search_documents": [ServiceType.POSTGRES],
-
     # Call tools - primarily PostgreSQL
     "search_funding_calls": [ServiceType.POSTGRES],
     "get_call_details": [ServiceType.POSTGRES],
-
     # Project tools - PostgreSQL, optionally Neo4j and embeddings
     "search_projects": [ServiceType.POSTGRES],  # Can work without Neo4j
     "get_project_details": [ServiceType.POSTGRES],
@@ -122,14 +124,12 @@ TOOL_SERVICE_REQUIREMENTS: dict[str, list[ServiceType]] = {
     "find_organization_projects": [ServiceType.POSTGRES],
     "get_collaboration_network": [ServiceType.NEO4J],
     "search_by_cluster": [ServiceType.POSTGRES],
-
     # Hybrid tools - can work with partial services
     "get_budget_benchmark": [ServiceType.POSTGRES],  # Graph optional
     "get_consortium_patterns": [ServiceType.POSTGRES],  # Graph optional
     "find_experienced_partners": [ServiceType.POSTGRES],  # Graph optional
     "get_similar_funded_projects": [ServiceType.POSTGRES, ServiceType.EMBEDDINGS],
     "analyze_call_history": [ServiceType.POSTGRES],  # Graph optional
-
     # Proposal tools
     "calculate_budget": [ServiceType.POSTGRES],
     "generate_timeline": [ServiceType.POSTGRES],
@@ -142,6 +142,9 @@ DEGRADABLE_TOOLS: dict[str, list[ServiceType]] = {
     "get_consortium_patterns": [ServiceType.NEO4J],
     "find_experienced_partners": [ServiceType.NEO4J],
     "analyze_call_history": [ServiceType.NEO4J],
+    # Statistics tools - can use SQL fallback when Neo4j unavailable
+    "get_country_statistics": [ServiceType.NEO4J],
+    "get_programme_statistics": [ServiceType.NEO4J],
     # These tools can work without embeddings, using keyword search
     "find_similar_projects": [ServiceType.EMBEDDINGS],
     "search_projects": [ServiceType.NEO4J, ServiceType.EMBEDDINGS],
@@ -151,6 +154,7 @@ DEGRADABLE_TOOLS: dict[str, list[ServiceType]] = {
 # ============================================================================
 # Service Availability Checker
 # ============================================================================
+
 
 class ServiceAvailabilityChecker:
     """
@@ -163,21 +167,14 @@ class ServiceAvailabilityChecker:
     - Tool availability filtering based on service status
     """
 
-    def __init__(
-        self,
-        cache_ttl_seconds: float = 30.0,
-        max_consecutive_failures: int = 3
-    ):
+    def __init__(self, cache_ttl_seconds: float = 30.0, max_consecutive_failures: int = 3):
         self.cache_ttl = timedelta(seconds=cache_ttl_seconds)
         self.max_consecutive_failures = max_consecutive_failures
         self._cache: ServiceAvailability | None = None
         self._lock = asyncio.Lock()
         self._failure_counts: dict[ServiceType, int] = {}
 
-    async def check_all_services(
-        self,
-        force_refresh: bool = False
-    ) -> ServiceAvailability:
+    async def check_all_services(self, force_refresh: bool = False) -> ServiceAvailability:
         """
         Check availability of all services.
 
@@ -201,7 +198,7 @@ class ServiceAvailabilityChecker:
                 self._check_redis(),
                 self._check_embeddings(),
                 self._check_gemini(),
-                return_exceptions=True
+                return_exceptions=True,
             )
 
             services = {}
@@ -216,17 +213,12 @@ class ServiceAvailabilityChecker:
                     else:
                         self._failure_counts[check.service] = 0
 
-            self._cache = ServiceAvailability(
-                services=services,
-                checked_at=datetime.now(UTC)
-            )
+            self._cache = ServiceAvailability(services=services, checked_at=datetime.now(UTC))
 
             return self._cache
 
     async def get_available_tools(
-        self,
-        all_tools: list[str],
-        allow_degraded: bool = True
+        self, all_tools: list[str], allow_degraded: bool = True
     ) -> list[str]:
         """
         Filter tools based on service availability.
@@ -246,11 +238,12 @@ class ServiceAvailabilityChecker:
 
             # Check if all required services are available
             all_available = all(
-                availability.services.get(svc, ServiceStatus(
-                    service=svc,
-                    status=AvailabilityStatus.UNKNOWN,
-                    last_check=datetime.now(UTC)
-                )).is_available
+                availability.services.get(
+                    svc,
+                    ServiceStatus(
+                        service=svc, status=AvailabilityStatus.UNKNOWN, last_check=datetime.now(UTC)
+                    ),
+                ).is_available
                 for svc in required_services
             )
 
@@ -259,16 +252,16 @@ class ServiceAvailabilityChecker:
             elif allow_degraded and tool in DEGRADABLE_TOOLS:
                 # Check if the tool can work in degraded mode
                 degradable_services = DEGRADABLE_TOOLS[tool]
-                essential_services = [
-                    s for s in required_services
-                    if s not in degradable_services
-                ]
+                essential_services = [s for s in required_services if s not in degradable_services]
                 essential_available = all(
-                    availability.services.get(svc, ServiceStatus(
-                        service=svc,
-                        status=AvailabilityStatus.UNKNOWN,
-                        last_check=datetime.now(UTC)
-                    )).is_available
+                    availability.services.get(
+                        svc,
+                        ServiceStatus(
+                            service=svc,
+                            status=AvailabilityStatus.UNKNOWN,
+                            last_check=datetime.now(UTC),
+                        ),
+                    ).is_available
                     for svc in essential_services
                 )
                 if essential_available:
@@ -277,10 +270,7 @@ class ServiceAvailabilityChecker:
 
         return available_tools
 
-    def get_degradation_notice(
-        self,
-        availability: ServiceAvailability
-    ) -> str | None:
+    def get_degradation_notice(self, availability: ServiceAvailability) -> str | None:
         """
         Get a user-friendly notice about degraded functionality.
 
@@ -325,10 +315,11 @@ class ServiceAvailabilityChecker:
                     service=ServiceType.POSTGRES,
                     status=AvailabilityStatus.UNAVAILABLE,
                     last_check=datetime.now(UTC),
-                    error_message="Not configured"
+                    error_message="Not configured",
                 )
 
             import psycopg2
+
             conn = psycopg2.connect(settings.database_url, connect_timeout=3)
             cursor = conn.cursor()
             cursor.execute("SELECT 1")
@@ -341,7 +332,7 @@ class ServiceAvailabilityChecker:
                 service=ServiceType.POSTGRES,
                 status=AvailabilityStatus.AVAILABLE,
                 last_check=datetime.now(UTC),
-                latency_ms=latency
+                latency_ms=latency,
             )
 
         except Exception as e:
@@ -351,7 +342,7 @@ class ServiceAvailabilityChecker:
                 status=AvailabilityStatus.UNAVAILABLE,
                 last_check=datetime.now(UTC),
                 latency_ms=latency,
-                error_message=str(e)
+                error_message=str(e),
             )
 
     async def _check_neo4j(self) -> ServiceStatus:
@@ -367,7 +358,7 @@ class ServiceAvailabilityChecker:
                     service=ServiceType.NEO4J,
                     status=AvailabilityStatus.AVAILABLE,
                     last_check=datetime.now(UTC),
-                    latency_ms=latency
+                    latency_ms=latency,
                 )
             else:
                 latency = (time.time() - start) * 1000
@@ -376,7 +367,7 @@ class ServiceAvailabilityChecker:
                     status=AvailabilityStatus.UNAVAILABLE,
                     last_check=datetime.now(UTC),
                     latency_ms=latency,
-                    error_message="Connection test failed"
+                    error_message="Connection test failed",
                 )
 
         except Exception as e:
@@ -386,7 +377,7 @@ class ServiceAvailabilityChecker:
                 status=AvailabilityStatus.UNAVAILABLE,
                 last_check=datetime.now(UTC),
                 latency_ms=latency,
-                error_message=str(e)
+                error_message=str(e),
             )
 
     async def _check_redis(self) -> ServiceStatus:
@@ -406,7 +397,7 @@ class ServiceAvailabilityChecker:
                 service=ServiceType.REDIS,
                 status=AvailabilityStatus.AVAILABLE,
                 last_check=datetime.now(UTC),
-                latency_ms=latency
+                latency_ms=latency,
             )
 
         except Exception as e:
@@ -416,7 +407,7 @@ class ServiceAvailabilityChecker:
                 status=AvailabilityStatus.DEGRADED,  # Redis is non-critical
                 last_check=datetime.now(UTC),
                 latency_ms=latency,
-                error_message=str(e)
+                error_message=str(e),
             )
 
     async def _check_embeddings(self) -> ServiceStatus:
@@ -430,11 +421,12 @@ class ServiceAvailabilityChecker:
                     service=ServiceType.EMBEDDINGS,
                     status=AvailabilityStatus.DEGRADED,
                     last_check=datetime.now(UTC),
-                    error_message="Not configured"
+                    error_message="Not configured",
                 )
 
             # Quick check - just verify API key works
             from ..services.embedding_service import EmbeddingService
+
             embedder = EmbeddingService()
             if embedder.test_embedding_generation():
                 latency = (time.time() - start) * 1000
@@ -442,7 +434,7 @@ class ServiceAvailabilityChecker:
                     service=ServiceType.EMBEDDINGS,
                     status=AvailabilityStatus.AVAILABLE,
                     last_check=datetime.now(UTC),
-                    latency_ms=latency
+                    latency_ms=latency,
                 )
             else:
                 latency = (time.time() - start) * 1000
@@ -451,7 +443,7 @@ class ServiceAvailabilityChecker:
                     status=AvailabilityStatus.DEGRADED,
                     last_check=datetime.now(UTC),
                     latency_ms=latency,
-                    error_message="Test generation failed"
+                    error_message="Test generation failed",
                 )
 
         except Exception as e:
@@ -461,7 +453,7 @@ class ServiceAvailabilityChecker:
                 status=AvailabilityStatus.DEGRADED,  # Embeddings are non-critical
                 last_check=datetime.now(UTC),
                 latency_ms=latency,
-                error_message=str(e)
+                error_message=str(e),
             )
 
     async def _check_gemini(self) -> ServiceStatus:
@@ -475,10 +467,11 @@ class ServiceAvailabilityChecker:
                     service=ServiceType.GEMINI,
                     status=AvailabilityStatus.UNAVAILABLE,
                     last_check=datetime.now(UTC),
-                    error_message="Not configured"
+                    error_message="Not configured",
                 )
 
             import google.generativeai as genai
+
             genai.configure(api_key=settings.gemini_api_key)
             list(genai.list_models())
 
@@ -487,7 +480,7 @@ class ServiceAvailabilityChecker:
                 service=ServiceType.GEMINI,
                 status=AvailabilityStatus.AVAILABLE,
                 last_check=datetime.now(UTC),
-                latency_ms=latency
+                latency_ms=latency,
             )
 
         except Exception as e:
@@ -497,7 +490,7 @@ class ServiceAvailabilityChecker:
                 status=AvailabilityStatus.UNAVAILABLE,
                 last_check=datetime.now(UTC),
                 latency_ms=latency,
-                error_message=str(e)
+                error_message=str(e),
             )
 
 

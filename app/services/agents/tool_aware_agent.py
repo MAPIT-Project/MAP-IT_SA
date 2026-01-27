@@ -13117,95 +13117,358 @@ Found **{total_found} organizations** with relevant track records:
             return {"error": str(e)}
 
     async def _tool_get_country_stats(self, params: dict) -> dict:
-        """Get country statistics from graph DB."""
+        """
+        Get country statistics with graceful degradation.
+
+        Uses Neo4j graph database as primary source, falls back to SQL
+        when Neo4j is unavailable or times out.
+        """
+        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+
+        country = params.get("country", "")
+
+        # Country code mapping
+        country_codes = {
+            "germany": "DE",
+            "german": "DE",
+            "france": "FR",
+            "french": "FR",
+            "italy": "IT",
+            "italian": "IT",
+            "spain": "ES",
+            "spanish": "ES",
+            "netherlands": "NL",
+            "dutch": "NL",
+            "belgium": "BE",
+            "belgian": "BE",
+            "austria": "AT",
+            "austrian": "AT",
+            "sweden": "SE",
+            "swedish": "SE",
+            "denmark": "DK",
+            "danish": "DK",
+            "finland": "FI",
+            "finnish": "FI",
+            "ireland": "IE",
+            "irish": "IE",
+            "portugal": "PT",
+            "portuguese": "PT",
+            "greece": "GR",
+            "greek": "GR",
+            "poland": "PL",
+            "polish": "PL",
+            "switzerland": "CH",
+            "swiss": "CH",
+            "norway": "NO",
+            "norwegian": "NO",
+            "uk": "GB",
+            "united kingdom": "GB",
+            "britain": "GB",
+            "british": "GB",
+            "israel": "IL",
+            "israeli": "IL",
+            "czech": "CZ",
+            "czechia": "CZ",
+            "romania": "RO",
+            "romanian": "RO",
+            "hungary": "HU",
+            "hungarian": "HU",
+            "slovenia": "SI",
+            "slovenian": "SI",
+            "croatia": "HR",
+            "croatian": "HR",
+            "estonia": "EE",
+            "estonian": "EE",
+            "latvia": "LV",
+            "latvian": "LV",
+            "lithuania": "LT",
+            "lithuanian": "LT",
+            "cyprus": "CY",
+            "cypriot": "CY",
+            "malta": "MT",
+            "maltese": "MT",
+            "luxembourg": "LU",
+            "slovakia": "SK",
+            "slovak": "SK",
+            "bulgaria": "BG",
+            "bulgarian": "BG",
+            "turkey": "TR",
+            "turkish": "TR",
+        }
+
+        # Resolve country code
+        country_code = None
+        country_lower = country.lower()
+
+        if len(country) == 2:
+            country_code = country.upper()
+        else:
+            for name, code in country_codes.items():
+                if name in country_lower:
+                    country_code = code
+                    break
+
+        if not country_code:
+            return {
+                "success": False,
+                "message": f"Could not identify country code for '{country}'. Try using ISO codes like DE, FR, IT.",
+            }
+
+        # Track sources and degradation
+        sources_used = []
+        degradation_reason = None
+        neo4j_timeout = 10.0  # seconds
+
+        # ==================================================================
+        # ATTEMPT 1: Try Neo4j graph database (primary source)
+        # ==================================================================
+        graph_result = None
         try:
             from ..data_intelligence.graph_service import GraphSearchService
 
             graph = GraphSearchService()
 
-            country = params.get("country", "")
+            def get_neo4j_data():
+                """Fetch all Neo4j data in a single thread."""
+                eligibility = graph.check_country_eligibility(country_code)
+                top_orgs = graph.get_top_organizations(None, country_code, 10)
+                return {"eligibility": eligibility, "top_orgs": top_orgs}
 
-            # Try to extract country code from input
-            country_codes = {
-                "germany": "DE",
-                "german": "DE",
-                "france": "FR",
-                "french": "FR",
-                "italy": "IT",
-                "italian": "IT",
-                "spain": "ES",
-                "spanish": "ES",
-                "netherlands": "NL",
-                "dutch": "NL",
-                "belgium": "BE",
-                "belgian": "BE",
-                "austria": "AT",
-                "austrian": "AT",
-                "sweden": "SE",
-                "swedish": "SE",
-                "denmark": "DK",
-                "danish": "DK",
-                "finland": "FI",
-                "finnish": "FI",
-                "ireland": "IE",
-                "irish": "IE",
-                "portugal": "PT",
-                "portuguese": "PT",
-                "greece": "GR",
-                "greek": "GR",
-                "poland": "PL",
-                "polish": "PL",
-                "switzerland": "CH",
-                "swiss": "CH",
-                "norway": "NO",
-                "norwegian": "NO",
-                "uk": "GB",
-                "united kingdom": "GB",
-                "britain": "GB",
-                "british": "GB",
-                "israel": "IL",
-                "israeli": "IL",
-            }
+            # Execute with timeout
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(get_neo4j_data)
+                try:
+                    graph_result = future.result(timeout=neo4j_timeout)
+                    sources_used.append("neo4j")
+                    logger.info(f"✅ Neo4j country stats for {country_code}: success")
+                except FuturesTimeoutError:
+                    degradation_reason = "timeout"
+                    logger.warning(
+                        f"⚠️ Neo4j timeout for country stats ({neo4j_timeout}s) - falling back to SQL"
+                    )
+                except Exception as e:
+                    degradation_reason = "connection_error"
+                    logger.warning(f"⚠️ Neo4j error: {e} - falling back to SQL")
 
-            country_code = None
-            country_lower = country.lower()
+        except ImportError:
+            degradation_reason = "service_unavailable"
+            logger.warning("⚠️ Neo4j service not available - falling back to SQL")
+        except Exception as e:
+            degradation_reason = "initialization_error"
+            logger.warning(f"⚠️ Neo4j initialization error: {e} - falling back to SQL")
 
-            # First check if it's already a code (2 letters)
-            if len(country) == 2:
-                country_code = country.upper()
-            else:
-                for name, code in country_codes.items():
-                    if name in country_lower:
-                        country_code = code
-                        break
+        # ==================================================================
+        # ATTEMPT 2: Fall back to SQL if Neo4j failed
+        # ==================================================================
+        sql_result = None
+        if not graph_result:
+            sql_result = await self._get_country_stats_sql(country_code)
+            if sql_result:
+                sources_used.append("postgresql")
+                logger.info(f"✅ SQL fallback for country stats {country_code}: success")
 
-            if not country_code:
-                return {
-                    "message": f"Could not identify country code for '{country}'. Try using ISO codes like DE, FR, IT."
-                }
-
-            # Get eligibility info
-            eligibility = await asyncio.to_thread(graph.check_country_eligibility, country_code)
-
-            # Get top organizations in that country
-            top_orgs = await asyncio.to_thread(
-                graph.get_top_organizations,
-                None,  # no cluster filter
-                country_code,
-                10,  # limit
-            )
-
+        # ==================================================================
+        # Combine results
+        # ==================================================================
+        if graph_result:
+            # Full graph data available
             return {
+                "success": True,
                 "country": country,
                 "country_code": country_code,
-                "eligibility": eligibility,
-                "top_organizations": top_orgs,
-                "organization_count": len(top_orgs),
+                "eligibility": graph_result.get("eligibility"),
+                "top_organizations": graph_result.get("top_orgs", []),
+                "organization_count": len(graph_result.get("top_orgs", [])),
                 "source": "neo4j_graph",
+                "metadata": {
+                    "sources_used": sources_used,
+                    "search_type": "graph",
+                    "degraded": False,
+                },
             }
+        elif sql_result:
+            # SQL fallback data
+            return {
+                "success": True,
+                "country": country,
+                "country_code": country_code,
+                "eligibility": sql_result.get("eligibility"),
+                "top_organizations": sql_result.get("top_organizations", []),
+                "organization_count": sql_result.get("organization_count", 0),
+                "project_count": sql_result.get("project_count", 0),
+                "total_funding": sql_result.get("total_funding", 0),
+                "source": "sql_fallback",
+                "metadata": {
+                    "sources_used": sources_used,
+                    "search_type": "sql_fallback",
+                    "degraded": True,
+                    "degradation_reason": degradation_reason,
+                    "limitation": "Graph statistics temporarily unavailable. Showing project participation data from SQL.",
+                },
+            }
+        else:
+            # Both sources failed
+            return {
+                "success": False,
+                "country": country,
+                "country_code": country_code,
+                "error": "Unable to retrieve country statistics - both graph and SQL sources unavailable",
+                "metadata": {"sources_used": [], "degradation_reason": degradation_reason},
+            }
+
+    async def _get_country_stats_sql(self, country_code: str) -> dict | None:
+        """
+        SQL-based fallback for country statistics.
+
+        Provides partial country statistics when Neo4j is unavailable:
+        - Top organizations by project participation
+        - Total project count and funding
+        - Basic eligibility info
+        """
+        import os
+
+        import psycopg2
+        from psycopg2.extras import RealDictCursor
+
+        db_url = os.getenv("DATABASE_URL")
+        if not db_url:
+            logger.warning("DATABASE_URL not set - SQL fallback unavailable")
+            return None
+
+        try:
+            conn = psycopg2.connect(db_url)
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            # Get top organizations in this country
+            top_orgs_query = """
+                SELECT
+                    o.name,
+                    o."shortName" as short_name,
+                    o."activityType" as org_type,
+                    o.city,
+                    COUNT(DISTINCT o."projectID") as project_count,
+                    SUM(COALESCE(o."ecContribution", 0)) as total_funding,
+                    SUM(CASE WHEN o.role = 'coordinator' THEN 1 ELSE 0 END) as coordinations
+                FROM organizations o
+                WHERE o.country = %s
+                AND o."projectID" IS NOT NULL
+                GROUP BY o.name, o."shortName", o."activityType", o.city
+                HAVING COUNT(DISTINCT o."projectID") >= 3
+                ORDER BY project_count DESC, total_funding DESC
+                LIMIT 20
+            """
+            cursor.execute(top_orgs_query, [country_code])
+            top_orgs_rows = cursor.fetchall()
+
+            top_organizations = []
+            for row in top_orgs_rows:
+                top_organizations.append(
+                    {
+                        "name": row["name"],
+                        "short_name": row.get("short_name") or row["name"],
+                        "type": row.get("org_type", "Unknown"),
+                        "city": row.get("city", ""),
+                        "project_count": int(row.get("project_count", 0)),
+                        "coordinations": int(row.get("coordinations", 0)),
+                        "total_funding": float(row.get("total_funding", 0) or 0),
+                    }
+                )
+
+            # Get country aggregates
+            country_stats_query = """
+                SELECT
+                    COUNT(DISTINCT o."projectID") as project_count,
+                    SUM(COALESCE(o."ecContribution", 0)) as total_funding,
+                    COUNT(DISTINCT CASE WHEN o.role = 'coordinator' THEN o."projectID" END) as coordinations,
+                    COUNT(DISTINCT o.name) as org_count
+                FROM organizations o
+                WHERE o.country = %s
+            """
+            cursor.execute(country_stats_query, [country_code])
+            stats_row = cursor.fetchone()
+
+            cursor.close()
+            conn.close()
+
+            # Build eligibility info based on known country lists
+            eu_members = {
+                "AT",
+                "BE",
+                "BG",
+                "HR",
+                "CY",
+                "CZ",
+                "DK",
+                "EE",
+                "FI",
+                "FR",
+                "DE",
+                "GR",
+                "HU",
+                "IE",
+                "IT",
+                "LV",
+                "LT",
+                "LU",
+                "MT",
+                "NL",
+                "PL",
+                "PT",
+                "RO",
+                "SK",
+                "SI",
+                "ES",
+                "SE",
+            }
+            associated_countries = {
+                "NO",
+                "IS",
+                "IL",
+                "CH",
+                "TR",
+                "UA",
+                "MD",
+                "ME",
+                "RS",
+                "AL",
+                "MK",
+                "BA",
+                "GE",
+                "AM",
+                "TN",
+                "MA",
+                "FO",
+                "GB",
+            }
+
+            if country_code in eu_members:
+                eligibility_status = "EU Member State - Full eligibility"
+                is_eligible = True
+            elif country_code in associated_countries:
+                eligibility_status = "Associated Country - Eligible with conditions"
+                is_eligible = True
+            else:
+                eligibility_status = "Third Country - Limited eligibility"
+                is_eligible = False
+
+            return {
+                "top_organizations": top_organizations,
+                "organization_count": len(top_organizations),
+                "project_count": int(stats_row.get("project_count", 0)) if stats_row else 0,
+                "total_funding": float(stats_row.get("total_funding", 0) or 0) if stats_row else 0,
+                "coordinations": int(stats_row.get("coordinations", 0)) if stats_row else 0,
+                "total_organizations": int(stats_row.get("org_count", 0)) if stats_row else 0,
+                "eligibility": {
+                    "country_code": country_code,
+                    "is_eligible": is_eligible,
+                    "eligibility_status": eligibility_status,
+                    "source": "sql_fallback",
+                },
+            }
+
         except Exception as e:
-            logger.error(f"Country stats error: {e}")
-            return {"error": str(e)}
+            logger.error(f"SQL country stats fallback error: {e}")
+            return None
 
     async def _tool_compare_programmes(self, params: dict) -> dict:
         """Compare two programmes/clusters."""
