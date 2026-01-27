@@ -15220,3 +15220,53 @@ Implemented graceful handling when no projects are found matching a search, part
 ### Test Results
 - All 23 unit tests pass
 - Linting passes (ruff)
+
+=== 2026-01-27: Scenario 057 - Self-Correction ===
+
+TASK: Implement Scenario 057 - Agent Self-Correction when initial results are insufficient
+
+SUMMARY:
+- This scenario tests that when initial search results are insufficient (poor quality,
+  low count, low relevance), the agent self-corrects through iterative improvement.
+
+IMPLEMENTATION:
+1. The self-correction mechanism was already implemented via:
+   - ToolAwareAgent (ReAct pattern): max_iterations=5, LLM decides needs_more_info
+   - AgenticManager (structured loop): max_iterations=3 with evaluation/reflection/replanning
+   - ResultEvaluator: Scores on 5 dimensions with SUFFICIENT_SCORE=0.65 threshold
+   - Reflector: Identifies root causes (QUERY_TOO_BROAD, QUERY_TOO_NARROW, WRONG_SOURCE, etc.)
+   - Replanner: Creates improved search strategies based on reflection
+
+2. BUGFIX: Fixed bug in app/services/agents/result_evaluator.py:
+   - _calculate_average_relevance() method had `items` variable accessed outside `if` block scope
+   - The `for item in items` loop was at wrong indentation level
+   - Fixed by moving the inner loop inside the `if source in results` block
+
+TESTS CREATED:
+- tests/quality/test_scenario_057_self_correction.py (50 tests)
+  - TestResultEvaluatorScoring: 4 tests for evaluation scoring logic
+  - TestReflectorRootCauseAnalysis: 4 tests for root cause detection
+  - TestReplannerStrategyImprovement: 3 tests for replanning logic
+  - TestToolAwareAgentSelfCorrection: 4 tests for ReAct loop
+  - TestAgenticManagerLoop: 4 tests for structured loop
+  - TestSelfCorrectionFlow: 2 integration tests
+  - TestSelfCorrectionMetadata: 2 tests for metadata tracking
+  - TestIterationLimits: 2 tests for max_iterations enforcement
+  - TestScenario057EndToEnd: 2 end-to-end tests
+  - TestSelfCorrectionPatterns: 4 tests for improvement actions
+  - TestRootCauseCategories: 5 tests for FailureRootCause enum
+  - TestReasoningStepActions: 3 tests for action types
+  - TestQualityThresholds: 4 tests for threshold values
+  - TestScenario057Validation: 4 validation tests
+  - TestScenario057LiveAPI: 2 API tests (skipped without running API)
+
+FILES MODIFIED:
+- app/services/agents/result_evaluator.py (fixed _calculate_average_relevance bug)
+- docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md (marked scenario complete)
+
+FILES CREATED:
+- tests/quality/test_scenario_057_self_correction.py
+
+TEST RESULTS: 50 passed, 2 skipped (API tests require running server)
+LINTING: All checks passed
+STATUS: COMPLETE

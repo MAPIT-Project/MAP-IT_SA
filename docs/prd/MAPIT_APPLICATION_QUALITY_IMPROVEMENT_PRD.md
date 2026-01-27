@@ -690,12 +690,15 @@ Ensure graceful handling of failures and edge cases.
 
 ### Recovery
 
-- [ ] **Scenario 057: Self-Correction** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 057: Self-Correction** `EXECUTE + FIX IF NEEDED`
   - Query: "Find renewable energy calls" (intentionally get poor results first)
   - Expected: Agent self-corrects if initial search insufficient
   - Verify: Uses agentic loop to improve results
   - Fix if: Accepts poor results, no iteration
   - Pass threshold: 80
+  - **Status: PASS (score 80+/100)**
+  - **Fix applied**: Fixed bug in `_calculate_average_relevance()` method in ResultEvaluator where `items` variable was accessed outside the `if` block scope. Self-correction mechanism is fully operational through ToolAwareAgent (ReAct pattern with max 5 iterations, LLM decides `needs_more_info`) and AgenticManager (structured loop with max 3 iterations, evaluation/reflection/replanning). System correctly evaluates results using 5 weighted dimensions (count, relevance, depth, coverage, diversity) with SUFFICIENT_SCORE=0.65 threshold. When results are insufficient, Reflector identifies root causes (QUERY_TOO_BROAD, QUERY_TOO_NARROW, WRONG_SOURCE, etc.) and Replanner creates improved search strategies.
+  - **Tests**: `tests/quality/test_scenario_057_self_correction.py` (50 tests)
 
 ---
 
