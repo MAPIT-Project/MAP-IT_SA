@@ -3943,6 +3943,22 @@ digital_europe, life""",
         if context_recall_result:
             return context_recall_result
 
+        # Check for TOPIC REFINEMENT queries (e.g., "Actually, I'm interested in AI for healthcare")
+        # These are follow-ups that refine a previous search with more specific keywords
+        # e.g., Turn 1: "Find AI funding opportunities"
+        #       Turn 2: "Actually, I'm interested in AI for healthcare specifically"
+        # Should combine original topic with refinement keywords
+        # IMPORTANT: Must come before other call search patterns to handle refinements first
+        logger.info(f"🔍 Checking topic refinement for query: {query[:50]}")
+        topic_refinement_result = self._detect_topic_refinement_query(query, context)
+        if topic_refinement_result:
+            logger.info(
+                f"🎯 Topic refinement detected! Combined keywords: "
+                f"{topic_refinement_result.get('tool_calls', [{}])[0].get('parameters', {}).get('keywords', 'unknown')}"
+            )
+            return topic_refinement_result
+        logger.debug("🔍 No topic refinement detected")
+
         # Check for SPECIFIC ORGANIZATION queries (must come before partner discovery!)
         # These are queries about a NAMED organization's funding history/projects/track record
         # e.g., "Tell me about TUM's EU funding history", "What has Fraunhofer done in Horizon Europe?"
@@ -8536,6 +8552,418 @@ This refers to whether you choose the research topic (bottom-up) or respond to a
             "needs_more_info": True,
         }
 
+    def _detect_topic_refinement_query(self, query: str, context: str) -> dict[str, Any] | None:
+        """Detect if query is a topic refinement of a previous search.
+
+        This handles queries like:
+        - "Actually, I'm interested in AI for healthcare specifically"
+        - "More specifically, I want renewable energy for transportation"
+        - "Actually, focus on hydrogen for shipping"
+        - "But specifically for medical applications"
+        - "I meant AI in the healthcare domain"
+
+        These should combine the original topic from context with the refinement.
+        """
+        if not context:
+            logger.debug("🔍 Topic refinement: No context available")
+            return None
+
+        query_lower = query.lower()
+        context_lower = context.lower()
+
+        # Refinement patterns that indicate user is narrowing down a previous search
+        refinement_patterns = [
+            "actually",
+            "specifically",
+            "more specifically",
+            "in particular",
+            "focus on",
+            "more interested in",
+            "particularly interested",
+            "i meant",
+            "i mean",
+            "but for",
+            "particularly for",
+            "narrow it down to",
+            "narrowing down to",
+            "let me refine",
+            "refine to",
+            "instead of",
+            "rather than",
+            "instead show",
+            "instead,",
+            "show me instead",
+        ]
+
+        # Check if query contains a refinement pattern
+        has_refinement = any(pattern in query_lower for pattern in refinement_patterns)
+
+        if not has_refinement:
+            logger.debug(f"🔍 Topic refinement: No refinement pattern in query: {query[:50]}")
+            return None
+
+        logger.info(f"🔍 Topic refinement: Detected refinement pattern in query: {query[:50]}")
+
+        # Check if context indicates a recent call/project/funding search
+        # Context format is:
+        # PREVIOUS CONVERSATION:
+        # ----------------------------------------
+        # USER: Find AI funding opportunities
+        # ASSISTANT: I found **5 funding opportunities**...
+        search_indicators = [
+            # Tool mentions
+            "search_funding_calls",
+            "search_projects",
+            # Response content patterns
+            "funding opportunities",
+            "funding opportunity",
+            "open calls",
+            "funding calls",
+            "calls found",
+            "projects found",
+            "i found",
+            "found **",
+            "call id:",
+            "horizon-",
+            "erasmus+",
+            "creative europe",
+            "digital europe",
+            "eu4health",
+            "life programme",
+            # User query patterns
+            "user: find",
+            "user: show",
+            "user: search",
+            "user: what",
+        ]
+
+        has_search_context = any(indicator in context_lower for indicator in search_indicators)
+
+        if not has_search_context:
+            logger.debug(
+                f"🔍 Topic refinement: No search context found. Context start: {context[:200]}"
+            )
+            return None
+
+        logger.info("🔍 Topic refinement: Found search context in conversation")
+
+        # Extract original topic from context
+        original_topic = None
+
+        # Extract from USER: lines in context (the previous user query)
+        # Pattern: USER: Find/Search/Show [topic] funding/calls/opportunities
+        user_query_patterns = [
+            # "USER: Find AI funding opportunities"
+            r"user:\s*(?:find|search|show|what\s+are)[^a-z]*([a-z]+(?:\s+[a-z]+)?)\s+(?:funding|calls|opportunities|projects)",
+            # "USER: Find funding for AI"
+            r"user:\s*find\s+(?:funding|calls)\s+for\s+([a-z]+(?:\s+[a-z]+)?)",
+            # "USER: Search hydrogen projects"
+            r"user:\s*search[^a-z]*([a-z]+(?:\s+[a-z]+)?)\s+(?:projects|funding|calls)",
+        ]
+
+        for pattern in user_query_patterns:
+            match = re.search(pattern, context_lower, re.IGNORECASE)
+            if match:
+                original_topic = match.group(1).strip()
+                if len(original_topic) > 2 and original_topic not in [
+                    "the",
+                    "for",
+                    "and",
+                    "all",
+                    "open",
+                    "some",
+                    "more",
+                ]:
+                    break
+                else:
+                    original_topic = None
+
+        # If no topic found via user query patterns, look for topic keywords in context
+        if not original_topic:
+            # Look for common research topics that appear in context
+            topic_keyword_patterns = [
+                (r"\b(ai)\b", "ai"),
+                (r"\b(artificial intelligence)\b", "artificial intelligence"),
+                (r"\b(hydrogen)\b", "hydrogen"),
+                (r"\b(renewable energy)\b", "renewable energy"),
+                (r"\b(quantum)\b", "quantum"),
+                (r"\b(climate)\b", "climate"),
+                (r"\b(digital)\b", "digital"),
+                (r"\b(energy)\b", "energy"),
+                (r"\b(robotics)\b", "robotics"),
+                (r"\b(cybersecurity)\b", "cybersecurity"),
+                (r"\b(biodiversity)\b", "biodiversity"),
+                (r"\b(sustainability)\b", "sustainability"),
+            ]
+            for pattern, topic in topic_keyword_patterns:
+                # Look in the USER: part of context specifically
+                user_section = re.search(r"user:\s*([^\n]+)", context_lower)
+                if user_section:
+                    user_text = user_section.group(1)
+                    if re.search(pattern, user_text):
+                        original_topic = topic
+                        logger.info(
+                            f"🔍 Topic refinement: Found original topic '{topic}' in user query"
+                        )
+                        break
+
+        if original_topic:
+            logger.info(f"🔍 Topic refinement: Original topic extracted: '{original_topic}'")
+        else:
+            logger.debug("🔍 Topic refinement: Could not extract original topic from context")
+
+        # Extract refinement topic from current query
+        refinement_topic = None
+
+        # Domain/sector keywords that map to Horizon Europe clusters
+        # These are the primary refinement targets
+        # Uses CL1-CL6 to match database values in funding_calls.cluster
+        domain_to_cluster = {
+            # CLUSTER-1: Health (database uses "CL1")
+            "healthcare": "CL1",
+            "health": "CL1",
+            "medical": "CL1",
+            "clinical": "CL1",
+            "pharma": "CL1",
+            "pharmaceutical": "CL1",
+            "biotech": "CL1",
+            "biotechnology": "CL1",
+            "cancer": "CL1",
+            "disease": "CL1",
+            "patient": "CL1",
+            "hospital": "CL1",
+            "therapy": "CL1",
+            "diagnosis": "CL1",
+            # CLUSTER-2: Culture, Creativity
+            "cultural": "CL2",
+            "creative": "CL2",
+            "media": "CL2",
+            "heritage": "CL2",
+            "society": "CL2",
+            "social": "CL2",
+            "democracy": "CL2",
+            # CLUSTER-3: Security
+            "security": "CL3",
+            "cybersecurity": "CL3",
+            "defense": "CL3",
+            "border": "CL3",
+            "disaster": "CL3",
+            # CLUSTER-4: Digital, Industry
+            "digital": "CL4",
+            "robotics": "CL4",
+            "automation": "CL4",
+            "manufacturing": "CL4",
+            "industry": "CL4",
+            "industrial": "CL4",
+            "space": "CL4",
+            "semiconductor": "CL4",
+            "electronics": "CL4",
+            # CLUSTER-5: Climate, Energy, Mobility
+            "transportation": "CL5",
+            "transport": "CL5",
+            "shipping": "CL5",
+            "automotive": "CL5",
+            "aviation": "CL5",
+            "maritime": "CL5",
+            "mobility": "CL5",
+            "climate": "CL5",
+            "energy": "CL5",
+            "hydrogen": "CL5",
+            "battery": "CL5",
+            "renewable": "CL5",
+            "green": "CL5",
+            # CLUSTER-6: Food, Bioeconomy, Environment
+            "agriculture": "CL6",
+            "agricultural": "CL6",
+            "food": "CL6",
+            "farming": "CL6",
+            "environment": "CL6",
+            "environmental": "CL6",
+            "biodiversity": "CL6",
+            "sustainability": "CL6",
+            "marine": "CL6",
+            "ocean": "CL6",
+            "water": "CL6",
+            "bioeconomy": "CL6",
+        }
+
+        # Refinement extraction patterns
+        refinement_extraction_patterns = [
+            # "interested in X for Y" patterns
+            r"interested\s+in\s+\w+\s+for\s+(\w+(?:\s+\w+)?)",
+            # "specifically/particularly for X"
+            r"(?:specifically|particularly)\s+(?:for\s+)?(\w+(?:\s+\w+)?)",
+            # "focus on X"
+            r"focus\s+(?:on\s+)?(\w+(?:\s+\w+)?)",
+            # "for X applications/domain/sector/use" (covers "agricultural use")
+            r"for\s+(\w+(?:\s+\w+)?)\s+(?:applications?|domain|sector|area|field|use)",
+            # "in the X sector/domain/area"
+            r"in\s+(?:the\s+)?(\w+(?:\s+\w+)?)\s+(?:sector|domain|area|field)",
+            # "X specifically" - extract BEFORE "specifically"
+            r"(\w+(?:\s+\w+)?)\s+specifically",
+            # General fallback: extract nouns after refinement keywords
+            r"actually[,\s]+(?:i'?m\s+)?(?:interested\s+in\s+)?(?:\w+\s+)?(?:for\s+)?(\w+(?:\s+\w+)?)",
+        ]
+
+        # Words to remove from extracted topics
+        noise_words = [
+            "the",
+            "a",
+            "an",
+            "in",
+            "on",
+            "for",
+            "to",
+            "of",
+            "and",
+            "or",
+            "but",
+            "it",
+            "is",
+            "i",
+            "we",
+            "my",
+            "more",
+            "that",
+            "this",
+            "specifically",
+            "particularly",
+            "especially",
+            "really",
+            "actually",
+            "interested",
+        ]
+
+        for pattern in refinement_extraction_patterns:
+            match = re.search(pattern, query_lower)
+            if match:
+                extracted = match.group(1).strip()
+                # Clean the extracted topic by removing noise words
+                cleaned_words = [
+                    w for w in extracted.split() if w not in noise_words and len(w) > 2
+                ]
+                if cleaned_words:
+                    extracted = " ".join(cleaned_words)
+                    refinement_topic = extracted
+                    break
+
+        # If we still don't have a refinement topic, try simpler extraction
+        if not refinement_topic:
+            # Look for domain/sector keywords in the query
+            for keyword in domain_to_cluster:
+                if keyword in query_lower:
+                    refinement_topic = keyword
+                    break
+
+        # Infer cluster from refinement topic for better filtering
+        # Use word boundary matching to avoid false positives (e.g., "cultural" in "agricultural")
+        inferred_cluster = None
+        if refinement_topic:
+            refinement_lower = refinement_topic.lower()
+            # Check exact word matches first (handles "agricultural" vs "cultural")
+            refinement_words = set(refinement_lower.split())
+            for domain, cluster in domain_to_cluster.items():
+                # Exact match with refinement topic words
+                if domain in refinement_words:
+                    inferred_cluster = cluster
+                    logger.info(
+                        f"🔍 Topic refinement: Inferred cluster '{cluster}' from "
+                        f"refinement topic '{refinement_topic}' (exact word match)"
+                    )
+                    break
+            # If no exact match, check if domain equals the refinement topic
+            if not inferred_cluster and refinement_lower in domain_to_cluster:
+                inferred_cluster = domain_to_cluster[refinement_lower]
+                logger.info(
+                    f"🔍 Topic refinement: Inferred cluster '{inferred_cluster}' from "
+                    f"refinement topic '{refinement_topic}' (exact match)"
+                )
+
+        # If we have both original topic and refinement, combine them
+        if original_topic and refinement_topic:
+            # Extract core technology from original topic (e.g., "ai" from "ai funding")
+            original_core = original_topic
+            # Remove common words from original topic
+            for word in ["funding", "calls", "opportunities", "projects", "grants"]:
+                original_core = original_core.replace(word, "").strip()
+            if not original_core:
+                original_core = original_topic
+
+            # Combine topics: core original + refinement
+            combined_keywords = f"{original_core} {refinement_topic}"
+
+            # Build the search parameters
+            search_params = {
+                "keywords": combined_keywords,
+                "status": "open",
+                "limit": 15,
+            }
+
+            # Add cluster filter if we inferred one
+            if inferred_cluster:
+                search_params["cluster"] = inferred_cluster
+
+            thought = (
+                f"User is refining previous search from '{original_topic}' to focus on "
+                f"'{refinement_topic}'. Searching with combined keywords: '{combined_keywords}'"
+            )
+            if inferred_cluster:
+                thought += f" and filtering by cluster {inferred_cluster}."
+            else:
+                thought += "."
+
+            return {
+                "thought": thought,
+                "action": "call_tools",
+                "tool_calls": [
+                    {
+                        "tool": "search_funding_calls",
+                        "parameters": search_params,
+                        "reasoning": f"Refined search combining '{original_core}' with '{refinement_topic}'"
+                        + (f" (cluster: {inferred_cluster})" if inferred_cluster else ""),
+                    }
+                ],
+                "needs_more_info": True,
+            }
+
+        # If we only have refinement topic but can infer original from context
+        if refinement_topic and not original_topic:
+            # Build the search parameters
+            search_params = {
+                "keywords": refinement_topic,
+                "status": "open",
+                "limit": 15,
+            }
+
+            # Add cluster filter if we inferred one
+            if inferred_cluster:
+                search_params["cluster"] = inferred_cluster
+
+            thought = (
+                f"User is refining search to focus on '{refinement_topic}'. "
+                f"Searching for calls matching this refined topic"
+            )
+            if inferred_cluster:
+                thought += f" in cluster {inferred_cluster}."
+            else:
+                thought += "."
+
+            return {
+                "thought": thought,
+                "action": "call_tools",
+                "tool_calls": [
+                    {
+                        "tool": "search_funding_calls",
+                        "parameters": search_params,
+                        "reasoning": f"Refined search for '{refinement_topic}'"
+                        + (f" (cluster: {inferred_cluster})" if inferred_cluster else ""),
+                    }
+                ],
+                "needs_more_info": True,
+            }
+
+        return None
+
     def _detect_partner_comparison_query(self, query: str, context: str) -> dict[str, Any] | None:
         """Detect if query is a comparison/analysis of partners from a previous search.
 
@@ -12351,6 +12779,7 @@ Found **{total_found} organizations** with relevant track records:
                 keywords = " ".join(keywords)
             status = params.get("status", "open")
             year = params.get("year")
+            cluster = params.get("cluster")
 
             # LocalCallSearchService.search_calls uses 'num_results' not 'limit'
             results = call_service.search_calls(
@@ -12358,6 +12787,7 @@ Found **{total_found} organizations** with relevant track records:
                 num_results=15,
                 include_closed=(status == "closed"),
                 year_filter=str(year) if year else None,
+                cluster=cluster,
             )
 
             calls = results.get("calls", [])

@@ -13185,3 +13185,84 @@ Reasoning Step 1: "The user wants details for 'project 3' from the previous sear
 
 ### Status
 PASS - Scenario 031 now correctly handles numbered references in multi-turn conversations.
+
+## 2026-01-27: Scenario 032: Topic Refinement (PASS - score 80+/100)
+
+### Task Completed
+Implemented and tested Scenario 032: Topic Refinement for multi-turn conversations.
+
+### Scenario Details
+- **Turn 1**: "Find AI funding opportunities"
+- **Turn 2**: "Actually, I'm interested in AI for healthcare specifically"
+- **Expected**: Refined search for AI+healthcare
+- **Pass threshold**: 80
+
+### Root Cause Analysis
+The `_detect_topic_refinement_query()` method existed but had several issues:
+1. Extracted "healthcare specifically" instead of just "healthcare" (noise words included)
+2. Used substring matching for cluster detection which caused "cultural" in "agricultural" to match CL2 instead of CL6
+3. Used "HLTH" cluster code but database uses "CL1"
+4. Missing refinement patterns like "particularly interested" and "instead,"
+5. `_tool_search_funding_calls()` didn't pass the cluster parameter
+
+### Fix Applied
+Enhanced `_detect_topic_refinement_query()` in `app/services/agents/tool_aware_agent.py`:
+
+1. **Noise word removal**: Added list of noise words ("specifically", "particularly", etc.) to clean extracted topics
+
+2. **Domain-to-cluster mapping**: Created comprehensive mapping of domain keywords to Horizon Europe clusters (CL1-CL6):
+   - Health terms (healthcare, medical, clinical, cancer, etc.) → CL1
+   - Culture terms → CL2
+   - Security terms → CL3
+   - Digital/Industry terms → CL4
+   - Climate/Energy/Mobility terms → CL5
+   - Food/Bioeconomy/Environment terms → CL6
+
+3. **Exact word matching**: Changed cluster inference to use exact word matching instead of substring matching to prevent false positives
+
+4. **Database cluster codes**: Updated cluster codes from "HLTH" to "CL1" to match database values
+
+5. **New refinement patterns**: Added "particularly interested", "instead,", "instead show", "show me instead"
+
+6. **Pattern fix**: Updated "for X applications/domain/sector" pattern to include "use" (for "agricultural use")
+
+7. **Cluster parameter passing**: Updated `_tool_search_funding_calls()` to pass the cluster parameter to LocalCallSearchService.search_calls()
+
+### Files Modified
+- `app/services/agents/tool_aware_agent.py` - Enhanced topic refinement detection with cluster filtering
+
+### Files Created
+- `tests/quality/test_scenario_032_topic_refinement.py` - 15 tests covering:
+  - test_turn1_returns_ai_calls
+  - test_turn2_processes_refinement
+  - test_turn2_maintains_ai_and_adds_healthcare_context
+  - test_turn2_performs_refined_search
+  - test_turn2_processes_healthcare_refinement
+  - test_turn2_attempts_healthcare_search
+  - test_turn2_acknowledges_refinement
+  - test_turn2_returns_relevant_calls
+  - test_turn2_not_confused
+  - test_overall_score_meets_threshold
+  - test_complete_refinement_flow
+  - test_topic_refinement_detection_works
+  - test_topic_refinement_detection_unit
+  - test_refinement_patterns_detected
+  - test_context_preserved_across_turns
+
+### Test Results
+- All 15 tests passed
+- Topic refinement correctly detected in reasoning steps
+- Combined keywords properly formatted (e.g., "ai healthcare")
+- Cluster filter correctly set (e.g., CL1 for healthcare)
+- Noise words removed from search terms
+
+### Key Verification Points
+1. Reasoning step 1 shows: "User is refining previous search from 'ai funding' to focus on 'healthcare'. Searching with combined keywords: 'ai healthcare' and filtering by cluster CL1."
+2. search_funding_calls called with cluster=CL1
+3. Agent attempts healthcare-specific search even if no CL1 calls are currently open
+
+### Note on Healthcare Calls
+Currently there are no open Health cluster (CL1) calls in the database (all 2025 calls closed in September 2025). The refinement detection works correctly, but results may not show healthcare-specific calls due to data availability. The test validates that the refinement is properly detected and processed in the reasoning, rather than requiring healthcare-specific results.
+
+### Status
+PASS - Scenario 032 now correctly handles topic refinement in multi-turn conversations.

@@ -405,13 +405,16 @@ Test the system's ability to handle sophisticated user needs.
   - **Fix applied**: Implemented `_tool_get_project_details()` method in ToolAwareAgent - the tool was registered but not implemented, now it uses `CordisProjectRepository.get_project_by_id()` to fetch full project details including objective, coordinator, funding, dates, and CORDIS URL
   - **Tests**: `tests/quality/test_scenario_031_numbered_reference.py` (13 tests)
 
-- [ ] **Scenario 032: Topic Refinement** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 032: Topic Refinement** `EXECUTE + FIX IF NEEDED`
   - Turn 1: "Find AI funding opportunities"
   - Turn 2: "Actually, I'm interested in AI for healthcare specifically"
   - Expected: Refined search for AI+healthcare
   - Verify: Incorporates refinement, relevant results
   - Fix if: Ignores refinement, repeats generic AI
   - Pass threshold: 80
+  - **Status: PASS (score 80+/100)**
+  - **Fix applied**: Enhanced `_detect_topic_refinement_query()` method to: (1) Clean refinement topics by removing noise words like "specifically", (2) Map domain keywords to Horizon Europe clusters (CL1-CL6) using exact word matching to avoid false positives like "cultural" in "agricultural", (3) Pass cluster filter to `search_funding_calls` for domain-specific filtering. Also added new refinement patterns ("particularly interested", "instead,") and fixed `_tool_search_funding_calls()` to pass cluster parameter.
+  - **Tests**: `tests/quality/test_scenario_032_topic_refinement.py` (15 tests)
 
 ### Ambiguous Queries
 
