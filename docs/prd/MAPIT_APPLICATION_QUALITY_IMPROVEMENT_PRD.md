@@ -636,12 +636,15 @@ Ensure graceful handling of failures and edge cases.
 
 ### Input Handling
 
-- [ ] **Scenario 052: Very Long Query** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 052: Very Long Query** `EXECUTE + FIX IF NEEDED`
   - Query: [500+ character detailed query]
   - Expected: Handles gracefully, extracts key intent
   - Verify: Doesn't truncate badly, answers main question
   - Fix if: Fails, only answers first part
   - Pass threshold: 80
+  - **Status: PASS (score 80+/100)**
+  - **Fix applied**: Added `preprocess_long_query()` function that detects queries over 500 characters and extracts key intent while preserving important details (organization names, budget amounts, countries, programme names). Added `LongQueryResult` dataclass, `_extract_key_details()` for pattern-based detail extraction, `_extract_intent_with_llm()` for LLM-based extraction, and `_extract_intent_rule_based()` for fallback rule-based processing. Both `process_query()` and `process_query_streaming()` now preprocess long queries and include original query in context for full detail availability.
+  - **Tests**: `tests/quality/test_scenario_052_very_long_query.py` (31 unit tests + 2 integration tests)
 
 - [ ] **Scenario 053: Special Characters** `EXECUTE + FIX IF NEEDED`
   - Query: "Find projects on CO₂ capture & storage (CCS) - what's available?"

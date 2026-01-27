@@ -156,6 +156,313 @@ class ContextWindowManager:
 _context_manager = ContextWindowManager()
 
 
+# =============================================================================
+# LONG QUERY PREPROCESSING
+# =============================================================================
+
+
+@dataclass
+class LongQueryResult:
+    """Result of preprocessing a long query."""
+
+    original_query: str
+    processed_query: str
+    was_processed: bool
+    extracted_intent: str | None = None
+    key_details: list[str] = field(default_factory=list)
+    query_length: int = 0
+    processing_note: str | None = None
+
+
+# Threshold for considering a query "long" (500+ characters per PRD)
+LONG_QUERY_THRESHOLD = 500
+# Maximum processed query length target
+MAX_PROCESSED_QUERY_LENGTH = 400
+
+
+def preprocess_long_query(query: str, llm: Any = None) -> LongQueryResult:
+    """
+    Preprocess very long queries (500+ characters) to extract key intent.
+
+    For queries over 500 characters, this:
+    1. Extracts the core question/intent
+    2. Preserves key details (names, numbers, dates, organizations)
+    3. Creates a condensed but complete query for processing
+
+    Args:
+        query: The original user query
+        llm: Optional LLM instance for intelligent extraction
+
+    Returns:
+        LongQueryResult with processed query and metadata
+    """
+    query_length = len(query)
+
+    # If query is short enough, return as-is
+    if query_length <= LONG_QUERY_THRESHOLD:
+        return LongQueryResult(
+            original_query=query,
+            processed_query=query,
+            was_processed=False,
+            query_length=query_length,
+        )
+
+    logger.info(f"📝 Processing long query ({query_length} chars)")
+
+    # Extract key details using pattern matching (fallback method)
+    key_details = _extract_key_details(query)
+
+    # Try LLM-based extraction if available
+    if llm:
+        try:
+            result = _extract_intent_with_llm(query, llm)
+            if result:
+                return LongQueryResult(
+                    original_query=query,
+                    processed_query=result["processed_query"],
+                    was_processed=True,
+                    extracted_intent=result.get("intent"),
+                    key_details=key_details,
+                    query_length=query_length,
+                    processing_note="Extracted via LLM",
+                )
+        except Exception as e:
+            logger.warning(f"LLM extraction failed, using fallback: {e}")
+
+    # Fallback: Rule-based extraction
+    processed_query = _extract_intent_rule_based(query, key_details)
+
+    return LongQueryResult(
+        original_query=query,
+        processed_query=processed_query,
+        was_processed=True,
+        key_details=key_details,
+        query_length=query_length,
+        processing_note="Extracted via rule-based method",
+    )
+
+
+def _extract_key_details(query: str) -> list[str]:
+    """Extract key details from a query using pattern matching."""
+    details = []
+    query_lower = query.lower()
+
+    # Extract organization names (common patterns)
+    org_patterns = [
+        r"\b(?:university|university of|institute|institut|center|centre|foundation|"
+        r"consortium|company|corporation|gmbh|ltd|inc|srl|bv|ag)\b[^,.\n]{0,50}",
+        r"\b(?:fraunhofer|max planck|cnrs|inserm|csic|inria|vtt|sintef)\b",
+    ]
+    for pattern in org_patterns:
+        matches = re.findall(pattern, query, re.IGNORECASE)
+        details.extend(m.strip() for m in matches[:3])  # Limit to 3
+
+    # Extract numbers (budgets, years, counts)
+    number_patterns = [
+        r"€?\d+(?:\.\d+)?(?:\s*(?:million|billion|m|b|k))?\s*(?:euros?|EUR)?",
+        r"\b(?:19|20)\d{2}(?:-(?:19|20)?\d{2})?\b",  # Years
+        r"\b\d+\s*(?:partners?|countries|months?|years?)\b",
+    ]
+    for pattern in number_patterns:
+        matches = re.findall(pattern, query, re.IGNORECASE)
+        details.extend(matches[:3])
+
+    # Extract call IDs
+    call_id_pattern = r"\b(?:HORIZON|ERASMUS|CREA|LIFE|EU4HEALTH|DEP)-[\w-]+\b"
+    call_ids = re.findall(call_id_pattern, query, re.IGNORECASE)
+    details.extend(call_ids[:2])
+
+    # Extract country names
+    countries = [
+        "germany",
+        "france",
+        "italy",
+        "spain",
+        "netherlands",
+        "belgium",
+        "austria",
+        "poland",
+        "sweden",
+        "denmark",
+        "finland",
+        "ireland",
+        "portugal",
+        "greece",
+        "czech",
+        "hungary",
+        "romania",
+        "bulgaria",
+        "croatia",
+        "slovenia",
+        "slovakia",
+        "estonia",
+        "latvia",
+        "lithuania",
+        "cyprus",
+        "malta",
+        "luxembourg",
+        "switzerland",
+        "norway",
+        "iceland",
+        "uk",
+        "united kingdom",
+    ]
+    for country in countries:
+        if country in query_lower:
+            details.append(country.title())
+
+    # Extract programme names
+    programmes = [
+        "horizon europe",
+        "erasmus+",
+        "erasmus plus",
+        "creative europe",
+        "digital europe",
+        "eu4health",
+        "life programme",
+        "eic accelerator",
+        "erc",
+        "msca",
+    ]
+    for prog in programmes:
+        if prog in query_lower:
+            details.append(prog.title())
+
+    # Deduplicate while preserving order
+    seen = set()
+    unique_details = []
+    for d in details:
+        d_lower = d.lower().strip()
+        if d_lower and d_lower not in seen:
+            seen.add(d_lower)
+            unique_details.append(d.strip())
+
+    return unique_details[:10]  # Limit to 10 details
+
+
+def _extract_intent_with_llm(query: str, llm: Any) -> dict[str, str] | None:
+    """Use LLM to extract the core intent from a long query."""
+    prompt = f"""Extract the core question from this long EU funding query.
+
+Query ({len(query)} characters):
+{query}
+
+Return a JSON object with:
+- "intent": A one-sentence summary of what the user wants (max 50 words)
+- "processed_query": A condensed version of the query that preserves the main question and key details (max 400 characters)
+
+Keep ALL specific details like:
+- Organization names
+- Country names
+- Budget amounts
+- Programme names (Horizon Europe, Erasmus+, etc.)
+- Call IDs
+- Years/dates
+
+Return ONLY the JSON object, no other text.
+"""
+    try:
+        response = llm.generate_content(prompt)
+        response_text = response.text
+
+        # Extract JSON
+        json_match = re.search(r"\{[^{}]*\}", response_text, re.DOTALL)
+        if json_match:
+            result = json.loads(json_match.group(0))
+            if "processed_query" in result:
+                # Ensure processed query isn't too long
+                if len(result["processed_query"]) > MAX_PROCESSED_QUERY_LENGTH:
+                    result["processed_query"] = result["processed_query"][
+                        :MAX_PROCESSED_QUERY_LENGTH
+                    ]
+                return result
+    except Exception as e:
+        logger.warning(f"LLM intent extraction failed: {e}")
+
+    return None
+
+
+def _extract_intent_rule_based(query: str, key_details: list[str]) -> str:
+    """Extract intent using rule-based approach when LLM is unavailable."""
+    query_lower = query.lower()
+
+    # Identify the type of question
+    # Order matters: check more specific patterns before general ones
+    question_type = None
+    if any(q in query_lower for q in ["can i", "am i eligible", "is it possible", "eligible"]):
+        question_type = "eligibility"
+    # Check search BEFORE budget since "funding opportunities" is a search, not budget
+    elif any(q in query_lower for q in ["find", "search", "looking for", "show me"]):
+        question_type = "search"
+    elif any(q in query_lower for q in ["how much", "budget", "cost"]):
+        # Note: removed "funding" from budget triggers since it's too generic
+        question_type = "budget"
+    elif any(q in query_lower for q in ["deadline", "when", "close", "submit"]):
+        question_type = "deadline"
+    elif any(q in query_lower for q in ["compare", "difference", "vs", "versus"]):
+        question_type = "comparison"
+    elif any(q in query_lower for q in ["partner", "consortium", "collaborate"]):
+        question_type = "partners"
+    elif any(q in query_lower for q in ["apply", "how to", "application", "process"]):
+        question_type = "application"
+
+    # Extract the core topic
+    topic_keywords = []
+    topic_patterns = [
+        r"\b(?:research|project|study|initiative|proposal)\s+(?:on|about|in|for)\s+([^,.\n]{5,50})",
+        r"\b(?:funding|grants?|calls?)\s+(?:for|on|about|in)\s+([^,.\n]{5,50})",
+        r"\b(?:interested in|focus on|working on)\s+([^,.\n]{5,50})",
+    ]
+    for pattern in topic_patterns:
+        matches = re.findall(pattern, query, re.IGNORECASE)
+        topic_keywords.extend(m.strip() for m in matches[:2])
+
+    # Build condensed query
+    parts = []
+
+    # Start with question type if identified
+    if question_type == "eligibility":
+        parts.append("Am I/we eligible for EU funding")
+    elif question_type == "budget":
+        parts.append("What budget should I plan")
+    elif question_type == "deadline":
+        parts.append("What are the deadlines")
+    elif question_type == "search":
+        parts.append("Find funding opportunities")
+    elif question_type == "comparison":
+        parts.append("Compare funding options")
+    elif question_type == "partners":
+        parts.append("Find partners/consortium")
+    elif question_type == "application":
+        parts.append("How to apply")
+    else:
+        # Extract first question from query
+        first_question = re.search(r"[^.!?\n]*\?", query)
+        if first_question:
+            parts.append(first_question.group(0).strip()[:150])
+        else:
+            # Take first sentence
+            first_sentence = query.split(".")[0].strip()
+            parts.append(first_sentence[:150] if len(first_sentence) > 150 else first_sentence)
+
+    # Add topic keywords
+    if topic_keywords:
+        parts.append(f"for {topic_keywords[0]}")
+
+    # Add key details
+    if key_details:
+        detail_str = ", ".join(key_details[:5])
+        parts.append(f"({detail_str})")
+
+    processed = " ".join(parts)
+
+    # Ensure we don't exceed max length
+    if len(processed) > MAX_PROCESSED_QUERY_LENGTH:
+        processed = processed[: MAX_PROCESSED_QUERY_LENGTH - 3] + "..."
+
+    return processed
+
+
 class ToolCategory(Enum):
     """Categories of tools available to the agent."""
 
@@ -3011,6 +3318,22 @@ digital_europe, life""",
         # Reset context window manager to prevent memory leak across queries
         _context_manager.reset()
 
+        # Preprocess long queries (500+ characters) to extract key intent
+        long_query_result = preprocess_long_query(query, self.llm)
+        original_query = query
+        if long_query_result.was_processed:
+            logger.info(
+                f"📝 Long query ({long_query_result.query_length} chars) → "
+                f"Processed ({len(long_query_result.processed_query)} chars)"
+            )
+            # Use processed query for reasoning, but keep original for context
+            query = long_query_result.processed_query
+            # Add original query to context so agent knows full details
+            if context:
+                context = f"{context}\n\n**Original detailed query:** {original_query}"
+            else:
+                context = f"**Original detailed query:** {original_query}"
+
         # Initialize plan
         plan = AgentPlan(
             query=query,
@@ -3231,7 +3554,7 @@ digital_europe, life""",
             query=query, answer=answer, tool_results=all_tool_results
         )
 
-        return {
+        result = {
             "answer": answer,
             "success": plan.final_answer is not None,
             "reasoning_steps": [
@@ -3252,6 +3575,17 @@ digital_europe, life""",
             "total_time_ms": total_time,
             "quality_analysis": quality_analysis,  # Response quality metrics
         }
+
+        # Add long query metadata if query was preprocessed
+        if long_query_result.was_processed:
+            result["long_query_metadata"] = {
+                "original_length": long_query_result.query_length,
+                "processed_length": len(long_query_result.processed_query),
+                "key_details_extracted": long_query_result.key_details,
+                "processing_method": long_query_result.processing_note,
+            }
+
+        return result
 
     async def process_query_streaming(
         self, query: str, context: str = "", conversation_history: list[dict] = None
@@ -3277,6 +3611,22 @@ digital_europe, life""",
 
         # Reset context window manager to prevent memory leak across queries
         _context_manager.reset()
+
+        # Preprocess long queries (500+ characters) to extract key intent
+        long_query_result = preprocess_long_query(query, self.llm)
+        original_query = query
+        if long_query_result.was_processed:
+            logger.info(
+                f"📝 [Streaming] Long query ({long_query_result.query_length} chars) → "
+                f"Processed ({len(long_query_result.processed_query)} chars)"
+            )
+            # Use processed query for reasoning, but keep original for context
+            query = long_query_result.processed_query
+            # Add original query to context so agent knows full details
+            if context:
+                context = f"{context}\n\n**Original detailed query:** {original_query}"
+            else:
+                context = f"**Original detailed query:** {original_query}"
 
         # Initialize plan
         plan = AgentPlan(
@@ -3568,6 +3918,15 @@ digital_europe, life""",
             "total_time_ms": total_time,
             "quality_analysis": quality_analysis,  # Response quality metrics
         }
+
+        # Add long query metadata if query was preprocessed
+        if long_query_result.was_processed:
+            final_result["long_query_metadata"] = {
+                "original_length": long_query_result.query_length,
+                "processed_length": len(long_query_result.processed_query),
+                "key_details_extracted": long_query_result.key_details,
+                "processing_method": long_query_result.processing_note,
+            }
 
         yield {"type": "agent_complete", "result": final_result}
 
