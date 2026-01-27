@@ -13312,3 +13312,46 @@ All 14 tests passed in 78.69s
 
 ### Status
 PASS (score 75+/100)
+
+
+## 2026-01-27 01:27:15 - Scenario 034: Implicit Intent
+
+### Task
+Implement and verify Scenario 034: Implicit Intent from MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md
+
+### Query
+"I work at a university and we have an idea about clean energy"
+
+### Expected Behavior
+- Understands implicit intent to find funding
+- Offers relevant funding options
+- Correctly interprets as funding search (not literal response)
+
+### Implementation
+**No code changes required** - The existing `_detect_strategic_planning_query()` method in ToolAwareAgent already handles this case:
+- Detects context-building patterns: "I work at", "we have", "we're a", "our team", etc.
+- Detects research domains: "clean energy" → energy domain → Cluster 5
+- Searches for relevant funding calls and provides strategic guidance
+
+### Tests Created
+- `tests/quality/test_scenario_034_implicit_intent.py` (14 tests)
+  - test_primary_query_understands_funding_intent
+  - test_primary_query_provides_options
+  - test_primary_query_acknowledges_domain
+  - test_primary_query_not_literal
+  - test_primary_query_has_next_steps
+  - test_sme_healthcare_implicit_intent
+  - test_quantum_computing_implicit_intent
+  - test_biotech_startup_implicit_intent
+  - test_response_uses_search_tools
+  - test_response_not_empty
+  - test_mentions_horizon_europe
+  - test_mentions_cluster_5_for_energy
+  - test_sustainable_agriculture_implicit_intent
+  - test_robotics_manufacturing_implicit_intent
+
+### Test Results
+All 14 tests passed.
+
+### Status
+PASS (score 80+/100)

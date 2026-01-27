@@ -428,12 +428,15 @@ Test the system's ability to handle sophisticated user needs.
   - **Verified**: System correctly asks for clarification when given ambiguous queries like "What's the deadline?" without context. Provides helpful guidance with typical deadline patterns (MSCA, ERC, quarterly cycles), EU Portal links, and actionable next steps while asking user to specify call/topic/programme. Does not hallucinate specific deadlines.
   - **Tests**: `tests/quality/test_scenario_033_clarification_needed.py` (14 tests)
 
-- [ ] **Scenario 034: Implicit Intent** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 034: Implicit Intent** `EXECUTE + FIX IF NEEDED`
   - Query: "I work at a university and we have an idea about clean energy"
   - Expected: Understands intent to find funding, offers relevant options
   - Verify: Correctly interprets as funding search
   - Fix if: Literal response, misses intent
   - Pass threshold: 80
+  - **Status: PASS (score 80+/100)**
+  - **Verified**: Existing `_detect_strategic_planning_query()` method already handles implicit intent queries. It detects context-building patterns ("I work at", "we have") and research domains ("clean energy" → energy), then searches for relevant funding calls and provides Cluster 5 (Climate, Energy, Mobility) guidance with actionable next steps.
+  - **Tests**: `tests/quality/test_scenario_034_implicit_intent.py` (14 tests)
 
 ### Edge Cases
 
