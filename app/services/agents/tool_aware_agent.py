@@ -17464,13 +17464,15 @@ If you don't qualify as an SME due to ownership:
             "faroe islands",
             "tunisia",
             "morocco",
-            "canada",
+            # Note: Canada is NOT an associated country - it's a third country
         ]
         third_countries = [
             "us",
             "usa",
             "united states",
             "american",
+            "canada",  # Canada is a third country, not associated
+            "canadian",
             "china",
             "chinese",
             "japan",
@@ -17634,25 +17636,64 @@ If you don't qualify as an SME due to ownership:
         import re
 
         third_country_participate = False
+        detected_third_country = None  # Track which specific third country was mentioned
+
+        # Map third country terms to their display names
+        third_country_display_names = {
+            "us": "USA",
+            "usa": "USA",
+            "united states": "USA",
+            "american": "USA",
+            "china": "China",
+            "chinese": "China",
+            "japan": "Japan",
+            "japanese": "Japan",
+            "australia": "Australia",
+            "australian": "Australia",
+            "india": "India",
+            "indian": "India",
+            "brazil": "Brazil",
+            "brazilian": "Brazil",
+            "south korea": "South Korea",
+            "korean": "South Korea",
+            "mexico": "Mexico",
+            "mexican": "Mexico",
+            "canada": "Canada",
+            "canadian": "Canada",
+        }
+
         for tc in third_countries:
             # Use word boundary for short country codes like "us" to avoid matching "Erasmus"
             if len(tc) <= 3:
                 # Use regex word boundary for short strings
                 if re.search(rf"\b{re.escape(tc)}\b", query_lower) and (
-                    "participat" in query_lower or "join" in query_lower or "partner" in query_lower
+                    "participat" in query_lower
+                    or "join" in query_lower
+                    or "partner" in query_lower
+                    or "eligible" in query_lower
+                    or "eu funding" in query_lower
                 ):
                     third_country_participate = True
+                    detected_third_country = third_country_display_names.get(tc, tc.title())
                     break
             elif tc in query_lower and (
-                "participat" in query_lower or "join" in query_lower or "partner" in query_lower
+                "participat" in query_lower
+                or "join" in query_lower
+                or "partner" in query_lower
+                or "eligible" in query_lower
+                or "eu funding" in query_lower
             ):
                 third_country_participate = True
+                detected_third_country = third_country_display_names.get(tc, tc.title())
                 break
 
         if has_third_country_question or third_country_participate:
-            guidance = self._generate_third_country_participation_guidance()
+            guidance = self._generate_third_country_participation_guidance(
+                country=detected_third_country
+            )
+            country_desc = detected_third_country if detected_third_country else "non-EU"
             return {
-                "thought": "User is asking about third country (US/non-EU) participation. Providing third country participation rules.",
+                "thought": f"User is asking about {country_desc} (third country) participation in EU funding. Providing third country participation rules.",
                 "action": "generate_guidance",
                 "response": guidance,
                 "guidance_type": "third_country_participation",
@@ -20828,13 +20869,74 @@ If your current consortium is: **Germany + France + UK**
 
 💡 **Tip:** Swiss partners can be extremely valuable - they have world-class research institutions (ETH, EPFL, PSI). Don't let the funding complexity discourage you!"""
 
-    def _generate_third_country_participation_guidance(self) -> str:
-        """Generate guidance about third country (US, etc.) participation."""
-        return """Yes, American (US) organizations can participate in Horizon Europe projects, but with specific limitations on funding and roles.
+    def _generate_third_country_participation_guidance(self, country: str | None = None) -> str:
+        """Generate guidance about third country participation.
 
-### Third Country Participation Rules
+        Args:
+            country: The specific third country mentioned (e.g., "India", "USA", "China").
+                    If None, provides generic third country guidance.
+        """
+        # Determine the country-specific intro
+        if country:
+            country_intro = f"Yes, organizations from **{country}** can participate in Horizon Europe projects, but with specific limitations on funding and roles."
+            country_name = country
+        else:
+            country_intro = "Yes, organizations from **Non-Associated Third Countries** can participate in Horizon Europe projects, but with specific limitations on funding and roles."
+            country_name = "third country"
 
-Organizations from **Non-Associated Third Countries** (like the USA, Japan, China, Australia, Canada) can participate in Horizon Europe under specific conditions:
+        # Country-specific examples for "practical considerations"
+        country_examples = {
+            "USA": {
+                "institutions": "MIT, Stanford, NIH labs",
+                "funding_options": "NSF/DOE collaborative programs with EU counterparts",
+            },
+            "India": {
+                "institutions": "IITs, IISc, CSIR labs, TIFR",
+                "funding_options": "DST bilateral programs, Indo-EU S&T cooperation",
+            },
+            "China": {
+                "institutions": "Tsinghua, Peking University, CAS institutes",
+                "funding_options": "MOST bilateral agreements, NSFC international cooperation",
+            },
+            "Japan": {
+                "institutions": "University of Tokyo, Kyoto University, RIKEN",
+                "funding_options": "JSPS bilateral programs, Japan-EU S&T cooperation",
+            },
+            "Australia": {
+                "institutions": "CSIRO, Group of Eight universities",
+                "funding_options": "ARC international programs, Australia-EU cooperation",
+            },
+            "Brazil": {
+                "institutions": "USP, UNICAMP, Fiocruz, EMBRAPA",
+                "funding_options": "CNPq/CAPES bilateral programs, Brazil-EU cooperation",
+            },
+            "South Korea": {
+                "institutions": "KAIST, Seoul National University, KIST",
+                "funding_options": "NRF international programs, Korea-EU S&T cooperation",
+            },
+            "Canada": {
+                "institutions": "University of Toronto, McGill, NRC",
+                "funding_options": "NSERC/CIHR programs, Canada-EU cooperation (note: Canada is NOT an Associated Country)",
+            },
+            "Mexico": {
+                "institutions": "UNAM, IPN, CINVESTAV",
+                "funding_options": "CONACYT bilateral programs, Mexico-EU cooperation",
+            },
+        }
+
+        examples = country_examples.get(
+            country,
+            {
+                "institutions": "leading research institutions",
+                "funding_options": "bilateral S&T cooperation programs with the EU",
+            },
+        )
+
+        return f"""{country_intro}
+
+### {country_name} as a Non-Associated Third Country
+
+{country if country else "Non-Associated Third Countries"} {"is" if country else "are"} classified as **Non-Associated Third Countries** in Horizon Europe. This means organizations from {country if country else "these countries"} can participate but face specific restrictions:
 
 | Aspect | Rule for Third Countries |
 |--------|-------------------------|
@@ -20846,58 +20948,57 @@ Organizations from **Non-Associated Third Countries** (like the USA, Japan, Chin
 
 ### How Third Country Partners Participate
 
-1.  **Self-Funded Participation:** US partners cover their own costs entirely. They cannot receive EU funding.
+1. **Self-Funded Participation:** Partners from {country if country else "third countries"} must cover their own costs entirely. They typically cannot receive EU funding.
 
-2.  **No Coordination:** Third country entities cannot be the project coordinator - an EU Member State or Associated Country partner must coordinate.
+2. **No Coordination:** Third country entities cannot be the project coordinator - an EU Member State or Associated Country partner must coordinate.
 
-3.  **Exception Cases:** In **exceptional circumstances**, the Commission may fund third country participation if:
-    - Their participation is essential for the project
-    - Explicitly stated in the work programme/call text
-    - No suitable alternative exists in MS/AC
+3. **Don't Count Toward Minimum:** You still need **3 independent legal entities from 3 different EU Member States or Associated Countries**. {country if country else "Third country"} partners are "extra" - they don't count toward this requirement.
+
+4. **Exception Cases:** In **exceptional circumstances**, the Commission may fund third country participation if:
+   - Their participation is essential for the project
+   - Explicitly stated in the work programme/call text
+   - No suitable alternative exists in MS/AC
 
 ### Impact on Your Consortium
 
 | Scenario | Minimum Met? | Notes |
 |----------|-------------|-------|
-| Germany + France + UK + USA | ✅ Yes | 3 MS/AC met, US adds value |
-| Germany + France + USA | ✅ Yes | 3 MS/AC not needed if USA doesn't count |
-| Wait - that's only 2! | ❌ No | You need 3 MS/AC |
-| Germany + France + Italy + USA | ✅ Yes | 3 MS/AC met |
+| Germany + France + UK + {country if country else "Third Country"} | ✅ Yes | 3 MS/AC met, {country if country else "third country"} adds value |
+| Germany + France + {country if country else "Third Country"} | ❌ No | Only 2 MS/AC - need 3 |
+| Germany + France + Italy + {country if country else "Third Country"} | ✅ Yes | 3 MS/AC met |
+
+### Alternative Pathways for {country if country else "Third Country"} Researchers
+
+Researchers from {country if country else "third countries"} can also access EU funding through:
+
+- **MSCA (Marie Skłodowska-Curie Actions):** Individual fellowships open to researchers from any country
+- **ERC (European Research Council):** If the researcher is based at an EU/AC host institution
+- **Bilateral agreements:** {examples["funding_options"]}
+- **Subcontracting:** Organizations can be subcontractors instead of partners (different rules apply)
 
 ### Practical Considerations
 
-**Advantages of US Partners:**
-- Access to US expertise, facilities, markets
-- Strong research institutions (MIT, Stanford, NIH labs)
-- Valuable for global impact demonstration
+**Advantages of {country if country else "Third Country"} Partners:**
+- Access to unique expertise, facilities, and data
+- Strong research institutions (e.g., {examples["institutions"]})
+- Valuable for global impact and dissemination
 
 **Disadvantages:**
-- Self-funded = potentially complex budget arrangements
+- Self-funded = complex budget arrangements
 - Cannot coordinate
 - Not counted for consortium minimum
-
-**Alternatives to Consider:**
-- **Associated Country with US ties:** Consider partners from Canada (usually also third country) or explore EUREKA partnerships
-- **Subcontracting:** US organizations can be subcontractors instead of partners (different rules apply)
-
-### US-Specific Funding Options
-
-Some US partners may find funding through:
-- Their own institutional grants
-- NSF/DOE collaborative programs with EU counterparts
-- Industry R&D budgets
-- Private foundations
 
 ---
 
 🎯 **Next Steps - What You Should Do:**
 • [ ] Verify your specific call allows third country participation (check call text)
 • [ ] Ensure you have **3 entities from EU Member States or Associated Countries** separately
-• [ ] Discuss self-funding arrangements with the US partner early
-• [ ] Consider if US participation is truly essential or if an AC alternative exists
+• [ ] Discuss self-funding arrangements with the {country if country else "third country"} partner early
+• [ ] Consider if {country if country else "third country"} participation is truly essential or if an AC alternative exists
+• [ ] Contact your **National Contact Point (NCP)** for guidance on specific calls
 • [ ] Check the [Horizon Europe Programme Guide](https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/programme-guide_horizon_en.pdf) Section 4.2
 
-💡 **Tip:** US partners are most valuable when they bring unique capabilities (e.g., access to specific datasets, unique facilities, or markets). Make the case for "essential" participation in your proposal!"""
+💡 **Tip:** {country if country else "Third country"} partners are most valuable when they bring unique capabilities (e.g., access to specific datasets, unique facilities, or markets). Make the case for "essential" participation in your proposal!"""
 
     def _generate_minimum_consortium_guidance(self) -> str:
         """Generate guidance about minimum consortium requirements."""

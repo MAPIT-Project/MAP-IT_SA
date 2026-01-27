@@ -440,12 +440,15 @@ Test the system's ability to handle sophisticated user needs.
 
 ### Edge Cases
 
-- [ ] **Scenario 035: Non-EU Country** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 035: Non-EU Country** `EXECUTE + FIX IF NEEDED`
   - Query: "Can a company from India participate in EU funding?"
   - Expected: Explains third country rules, limited participation options
   - Verify: Accurate third country eligibility
   - Fix if: Says yes/no without nuance
   - Pass threshold: 80
+  - **Status: PASS (score 80+/100)**
+  - **Fix applied**: Enhanced `_generate_third_country_participation_guidance()` method to accept a `country` parameter for country-specific responses. Added detection of the specific third country mentioned in the query (India, China, Japan, Brazil, etc.) and generates tailored guidance with country-specific institutions and bilateral funding options. Also fixed Canada misclassification (was listed as associated country, now correctly listed as third country). Added broader detection patterns including "eligible" and "eu funding" keywords.
+  - **Tests**: `tests/quality/test_scenario_035_non_eu_country.py` (10 tests)
 
 - [ ] **Scenario 036: Outdated Programme** `EXECUTE + FIX IF NEEDED`
   - Query: "Can I still apply to Horizon 2020?"

@@ -1,0 +1,29 @@
+{
+  "scenario": "035_non_eu_country",
+  "timestamp": "2026-01-27T01:35:08.865484",
+  "query": "Can a company from India participate in EU funding?",
+  "response": "Yes, organizations from **India** can participate in Horizon Europe projects, but with specific limitations on funding and roles.\n\n### India as a Non-Associated Third Country\n\nIndia is classified as **Non-Associated Third Countries** in Horizon Europe. This means organizations from India can participate but face specific restrictions:\n\n| Aspect | Rule for Third Countries |\n|--------|-------------------------|\n| **Can participate?** | \u2705 Yes, in most calls |\n| **Count toward minimum?** | \u274c No - only MS/AC count |\n| **Receive EU funding?** | \u274c No (with rare exceptions) |\n| **Can coordinate?** | \u274c No |\n| **Who funds them?** | \ud83d\udcb0 Self-funded |\n\n### How Third Country Partners Participate\n\n1. **Self-Funded Participation:** Partners from India must cover their own costs entirely. They typically cannot receive EU funding.\n\n2. **No Coordination:** Third country entities cannot be the project coordinator - an EU Member State or Associated Country partner must coordinate.\n\n3. **Don't Count Toward Minimum:** You still need **3 independent legal entities from 3 different EU Member States or Associated Countries**. India partners are \"extra\" - they don't count toward this requirement.\n\n4. **Exception Cases:** In **exceptional circumstances**, the Commission may fund third country participation if:\n   - Their participation is essential for the project\n   - Explicitly stated in the work programme/call text\n   - No suitable alternative exists in MS/AC\n\n### Impact on Your Consortium\n\n| Scenario | Minimum Met? | Notes |\n|----------|-------------|-------|\n| Germany + France + UK + India | \u2705 Yes | 3 MS/AC met, India adds value |\n| Germany + France + India | \u274c No | Only 2 MS/AC - need 3 |\n| Germany + France + Italy + India | \u2705 Yes | 3 MS/AC met |\n\n### Alternative Pathways for India Researchers\n\nResearchers from India can also access EU funding through:\n\n- **MSCA (Marie Sk\u0142odowska-Curie Actions):** Individual fellowships open to researchers from any country\n- **ERC (European Research Counci",
+  "evaluation": {
+    "total_score": 89,
+    "max_score": 100,
+    "passed": true,
+    "threshold": 80,
+    "dimensions": {
+      "query_fulfillment": 39,
+      "specificity": 25,
+      "factual_accuracy": 15,
+      "actionability": 10
+    },
+    "feedback": {
+      "query_fulfillment": [],
+      "specificity": [],
+      "factual_accuracy": [
+        "May incorrectly imply India is an associated country"
+      ],
+      "actionability": []
+    },
+    "query": "Can a company from India participate in EU funding?",
+    "response_length": 3446
+  },
+  "status": "PASS"
+}

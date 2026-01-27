@@ -13355,3 +13355,47 @@ All 14 tests passed.
 
 ### Status
 PASS (score 80+/100)
+
+## 2026-01-27: Scenario 035 - Non-EU Country Eligibility (PASS)
+
+### Task Completed
+Implemented Scenario 035: Non-EU Country eligibility handling for queries like "Can a company from India participate in EU funding?"
+
+### Problem Identified
+The existing third country participation guidance was US-centric - it started with "Yes, American (US) organizations can participate..." even when the user asked about India. Also, Canada was incorrectly listed as an associated country.
+
+### Files Modified
+1. `app/services/agents/tool_aware_agent.py`:
+   - Enhanced `_detect_consortium_eligibility_query()` to detect which specific third country was mentioned in the query (India, China, Japan, Brazil, Australia, South Korea, Mexico, Canada)
+   - Added `third_country_display_names` mapping for clean country names
+   - Added broader detection patterns ("eligible", "eu funding") in addition to "participate", "join", "partner"
+   - Fixed Canada misclassification (moved from `associated_countries` list to `third_countries` list)
+   - Updated `_generate_third_country_participation_guidance()` to accept a `country` parameter for country-specific responses
+   - New guidance includes country-specific institutions (e.g., IITs, IISc, CSIR for India) and bilateral funding options (e.g., DST bilateral programs, Indo-EU S&T cooperation)
+
+2. `tests/quality/test_scenario_035_non_eu_country.py` (NEW):
+   - Created comprehensive test suite with 10 tests
+   - Quality evaluation with 4 dimensions: Query Fulfillment (40pts), Specificity (25pts), Factual Accuracy (25pts), Actionability (10pts)
+   - Offline tests with excellent/minimal/incorrect sample responses
+   - Variant tests for Japan and China queries
+   - Live API tests for India, Brazil queries and associated vs third country differentiation
+
+### Test Results
+- 10 tests passed
+- Live API score: 80+/100 (PASS)
+- Response now correctly starts with "Yes, organizations from **India** can participate..." instead of US-centric response
+- Includes country-specific guidance with Indian institutions (IITs, IISc, CSIR, TIFR) and bilateral programs (DST, Indo-EU S&T cooperation)
+
+### Key Improvements
+1. **Country-Specific Responses**: System now detects the specific third country mentioned and provides tailored guidance
+2. **Correct Country Classification**: Canada correctly identified as third country (not associated)
+3. **Comprehensive Third Country Information**: Self-funding rules, coordination restrictions, minimum consortium requirements, exceptions, alternative pathways (MSCA, ERC, bilateral), and actionable next steps
+4. **Broader Detection**: Added "eligible" and "eu funding" patterns to catch more third country queries
+
+### Quality Score Breakdown
+| Dimension | Points | What's Checked |
+|-----------|--------|----------------|
+| Query Fulfillment | 40 | Nuanced answer, third country identification, limitations explained |
+| Specificity | 25 | 3 entities requirement, exceptions, alternative pathways |
+| Factual Accuracy | 25 | Correct third country status, funding rules, coordination rules |
+| Actionability | 10 | Links, next steps, NCP contact |
