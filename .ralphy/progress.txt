@@ -14077,3 +14077,88 @@ eu_contribution = project.get("ecMaxContribution") or project.get("ec_contributi
 
 ### PRD Task Status
 - [x] Scenario 043: Project Data Completeness - PASS (score 100/100)
+
+
+## 2026-01-27: Scenario 044 - Project Links Working
+
+### Task Completed
+Implemented Scenario 044: Project Links Working - verifying that 5 project CORDIS links work correctly and load the correct project pages.
+
+### Problem Statement
+Project link verification requires:
+- CORDIS links follow consistent URL pattern: `https://cordis.europa.eu/project/id/{id}`
+- Links load correctly (HTTP 200 status)
+- Pages contain CORDIS content (not redirected to error/other pages)
+- Project IDs in URLs are numeric and valid
+
+### Implementation Details
+
+**Verification Approach:**
+1. Query API for projects (e.g., "Find 5 projects on renewable energy")
+2. Extract CORDIS URLs from response text using regex
+3. Verify each URL:
+   - Correct format: `https://cordis.europa.eu/project/id/\d+`
+   - HTTP 200 response
+   - Page contains "cordis" content (not error page)
+4. Calculate success rate (threshold: 90%)
+
+**Link Construction Consistency:**
+Verified links are constructed consistently across 6 locations in codebase:
+- `app/services/data/cordis_repository.py` (line 272)
+- `app/services/local_project_search_service.py` (lines 576, 1028, 1227)
+- `app/services/data_intelligence/graph_service.py` (lines 1575, 1641, 1727)
+- `app/services/response/v3_response_formatter.py` (line 530)
+- `app/services/agents/tool_aware_agent.py` (lines 13352, 13382)
+
+**Test File Created**: `tests/quality/test_scenario_044_project_links_working.py`
+
+**12 Unit Tests**:
+1. `test_cordis_url_format_validation` - URL format validation logic
+2. `test_extract_project_id_from_url` - Extract ID from CORDIS URL
+3. `test_extract_project_id_invalid_url` - Handle invalid URLs
+4. `test_construct_cordis_url` - Construct URL from project ID
+5. `test_construct_cordis_url_invalid_input` - Handle invalid input
+6. `test_extract_urls_from_response_text` - Extract URLs from response
+7. `test_extract_urls_no_urls` - Handle no URLs in response
+8. `test_validate_link_response_success` - Validate 200 OK response
+9. `test_validate_link_response_not_found` - Validate 404 response
+10. `test_validate_link_response_wrong_project` - Detect redirects to wrong project
+11. `test_calculate_link_success_rate` - Calculate success rate
+12. `test_link_verification_result_structure` - Verify result structure
+
+**5 API Integration Tests**:
+1. `test_api_returns_cordis_links` - API returns CORDIS links in responses
+2. `test_extracted_links_are_unique` - No duplicate links in response
+3. `test_project_ids_in_urls_match_response` - IDs match project context
+4. `test_verify_cordis_links_work` - MAIN TEST: Verify links actually work
+5. `test_no_error_in_response` - No error messages in response
+
+**6 Database Tests (require DATABASE_URL)**:
+1. `test_database_has_projects_with_ids` - DB has projects with valid IDs
+2. `test_project_ids_are_numeric` - IDs are numeric (required for URL)
+3. `test_sample_project_ids_construct_valid_urls` - Sample IDs make valid URLs
+4. `test_verify_random_database_project_links` - Random DB project links work
+5. `test_no_duplicate_project_ids` - No duplicate IDs in DB
+6. `test_project_ids_reasonable_range` - IDs in reasonable range
+
+### Quality Scoring Dimensions (90+ pass threshold)
+| Dimension | Points | Criteria |
+|-----------|--------|----------|
+| URL Format | 20 | Matches pattern `https://cordis.europa.eu/project/id/\d+` |
+| HTTP Status | 20 | Returns 200 OK |
+| CORDIS Content | 20 | Page contains "cordis" content |
+| ID Validity | 20 | Project ID is numeric |
+| No Redirects | 20 | Not redirected to different project |
+
+### Test Results
+- 17 unit/integration tests passed
+- 6 database tests (skipped without DATABASE_URL)
+- All linting checks passed
+- Pass threshold: 90/100, Actual: 100/100
+
+### Files Changed
+- Created: `tests/quality/test_scenario_044_project_links_working.py`
+- Updated: `docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md`
+
+### PRD Task Status
+- [x] Scenario 044: Project Links Working - PASS (score 100/100)

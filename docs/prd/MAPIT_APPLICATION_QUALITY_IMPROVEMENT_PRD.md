@@ -543,11 +543,14 @@ Ensure underlying data is accurate and up-to-date.
   - **Fix applied**: V3ResponseFormatter now correctly retrieves `ec_contribution` field from project data (was only checking `ecMaxContribution` and `eu_contribution`, missing the actual field name returned by LocalProjectSearchService)
   - **Tests**: `tests/quality/test_scenario_043_project_data_completeness.py` (21 unit tests + 7 integration tests)
 
-- [ ] **Scenario 044: Project Links Working** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 044: Project Links Working** `EXECUTE + FIX IF NEEDED`
   - Take 5 project results, verify CORDIS links work
   - Verify: Links load correct project page
   - Fix if: Broken links, wrong projects
   - Pass threshold: 90
+  - **Status: PASS (score 100/100)**
+  - **Verified**: All CORDIS links follow consistent pattern `https://cordis.europa.eu/project/id/{id}`. Links are constructed correctly in 6 locations across the codebase (cordis_repository.py, local_project_search_service.py, graph_service.py, v3_response_formatter.py, tool_aware_agent.py). Integration tests verify links load correct CORDIS pages with 200 status codes.
+  - **Tests**: `tests/quality/test_scenario_044_project_links_working.py` (17 unit/integration tests + 6 database tests)
 
 ### Programme Information
 
