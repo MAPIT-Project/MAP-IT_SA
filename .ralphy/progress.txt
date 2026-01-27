@@ -15408,3 +15408,76 @@ query = "Compare EIC and ERC, find open calls for both, and recommend which suit
 TEST RESULTS: 42 passed, 2 skipped (live API tests require server restart)
 LINTING: All checks passed
 STATUS: COMPLETE
+
+---
+
+## Scenario 060: Actionable Guidance (COMPLETED)
+
+**Date:** 2026-01-27
+**Status:** PASSED (95/100)
+**Query:** "How do I apply for Horizon Europe?"
+
+### Problem
+The system was returning vague, LLM-generated responses to application process queries instead of concrete, actionable step-by-step guidance. The pre-written guidance was being overwritten because `_is_poor_quality_answer()` was falsely flagging responses containing "Part B)" as poor quality.
+
+### Root Cause
+1. Pre-routing worked correctly: `_detect_application_process_query()` returned proper guidance
+2. Agent yielded correct `agent_complete` event with guidance as answer
+3. BUT: `conversation_manager._is_poor_quality_answer()` flagged the guidance as "poor quality" because it contained the pattern "Part B)" (which appeared in instructional text like "45 pages for Part B")
+4. This triggered `_synthesize_agent_response()` which called the LLM, overwriting the pre-written guidance
+
+### Solution
+1. **Modified `_is_poor_quality_answer()` in conversation_manager.py**:
+   - Removed "Part A)" and "Part B)" from the simple pattern matching list
+   - Added specific check for these patterns ONLY when they appear at the START of a line (indicating document section headers, not instructional text)
+
+2. **Implemented pre-routing for application process queries**:
+   - Added `_detect_application_process_query()` method in tool_aware_agent.py
+   - Detects queries like "How do I apply for [programme]?" using regex patterns
+   - Routes to programme-specific guidance generators
+
+3. **Added guidance generators**:
+   - `_generate_horizon_application_guidance()` - Detailed 7-step guide with links
+   - `_generate_erasmus_application_guidance()` - Erasmus+ specific guidance
+   - `_generate_creative_europe_application_guidance()` - Creative Europe guidance
+   - `_generate_general_eu_application_guidance()` - Generic EU funding guidance
+
+### Files Modified
+- `app/services/conversation/conversation_manager.py` - Fixed poor quality detection
+- `app/services/agents/tool_aware_agent.py` - Added detection and guidance methods
+- `docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md` - Marked complete
+
+### Files Created
+- `tests/quality/test_scenario_060_actionable_guidance.py` - 21 tests covering:
+  - ActionableGuidanceEvaluator: Quality scoring with rubric
+  - Detection pattern tests
+  - Response quality tests
+  - Live API integration test
+
+### Test Results
+```
+21 passed in 21.06s
+Score: 95/100 (threshold: 80)
+  - query_fulfillment: 40/40
+  - specificity: 25/25
+  - factual_accuracy: 20/25
+  - actionability: 10/10
+```
+
+### Key Guidance Features
+- Step-by-step numbered instructions
+- Direct links to EU Portal, EU Login, NCP Directory
+- Time estimates for each step (e.g., "5 minutes", "15-30 minutes")
+- Clear call-to-action at the end
+- NCP referral for personalized help
+
+### Verification
+The guidance response now includes:
+✅ EU Login registration link
+✅ PIC registration steps
+✅ Call finding instructions
+✅ Consortium building guidance
+✅ NCP referral with directory link
+✅ Submission timeline tips
+✅ Quick reference table with funding rates
+✅ Clear next step call-to-action

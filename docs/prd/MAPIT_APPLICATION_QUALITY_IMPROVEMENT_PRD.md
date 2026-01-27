@@ -730,12 +730,13 @@ Ensure the system is fast and pleasant to use.
 
 ### Response Quality
 
-- [ ] **Scenario 060: Actionable Guidance** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 060: Actionable Guidance** `EXECUTE + FIX IF NEEDED`
   - Query: "How do I apply for Horizon Europe?"
   - Expected: Step-by-step guidance, links, concrete actions
   - Verify: User could follow steps
   - Fix if: Vague, no clear actions
   - Pass threshold: 80
+  - **Status: PASSED (95/100)** - Implemented pre-routing for application process queries with step-by-step guidance
 
 - [ ] **Scenario 061: Source Attribution** `EXECUTE + FIX IF NEEDED`
   - Query: "What are the ERC grant amounts?"

@@ -5067,6 +5067,14 @@ digital_europe, life""",
         if capacity_result:
             return capacity_result
 
+        # Check for APPLICATION PROCESS queries
+        # These are questions about how to apply for EU funding programmes
+        # e.g., "How do I apply for Horizon Europe?", "What's the application process?"
+        # IMPORTANT: Must provide actionable step-by-step guidance with NCP referral
+        application_process_result = self._detect_application_process_query(query, context)
+        if application_process_result:
+            return application_process_result
+
         # Check for EIC ACCELERATOR ELIGIBILITY queries (multi-part questions)
         # These are questions about EIC Accelerator eligibility, deadlines, and budget
         # e.g., "Am I eligible for EIC Accelerator? What's the deadline? What budget?"
@@ -8587,6 +8595,399 @@ Most EU funding requires international partnerships (typically 3+ organizations 
 🎯 **Your Next Action:** Start by creating your [EU Login account](https://webgate.ec.europa.eu/cas/eim/external/register.cgi) - it only takes 5 minutes and everything else builds from there.
 
 Need help? Your [National Contact Point](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) is your best free resource for personalized guidance."""
+
+    def _detect_application_process_query(self, query: str, context: str) -> dict[str, Any] | None:
+        """Detect application process queries for EU funding programmes.
+
+        These are questions about HOW to apply for EU funding, requesting step-by-step
+        guidance with actionable steps and links.
+
+        Examples:
+        - "How do I apply for Horizon Europe?"
+        - "What are the steps to apply for EU funding?"
+        - "Can you explain the Horizon Europe application process?"
+        - "How can I apply to Erasmus+?"
+        - "What's the application process for Creative Europe?"
+
+        Note: These are DIFFERENT from first-time applicant queries ("where do I start")
+        because they are more action-oriented and may come from users who already
+        know they want to apply.
+        """
+        query_lower = query.lower()
+        logger.info(f"🔍 _detect_application_process_query called with: {query[:80]}")
+
+        # Application process patterns - more action-oriented than "where do I start"
+        application_patterns = [
+            r"how\s+(?:do\s+i|can\s+i|to)\s+apply",
+            r"what\s+(?:are|is)\s+the\s+(?:application\s+)?(?:steps|process)",
+            r"explain\s+(?:the\s+)?application\s+process",
+            r"application\s+process\s+for",
+            r"process\s+(?:of\s+)?apply",
+            r"steps\s+to\s+apply",
+            r"how\s+(?:do|can)\s+(?:we|i)\s+submit",
+        ]
+
+        # Programme mentions
+        programme_patterns = [
+            ("horizon europe", "horizon"),
+            ("erasmus", "erasmus"),
+            ("creative europe", "creative_europe"),
+            ("digital europe", "digital_europe"),
+            ("eu4health", "eu4health"),
+            ("life programme", "life"),
+            ("eu funding", "general"),
+            ("european funding", "general"),
+        ]
+
+        import re
+
+        # Check for application process pattern
+        has_application_pattern = any(re.search(pat, query_lower) for pat in application_patterns)
+
+        if not has_application_pattern:
+            return None
+
+        # Determine which programme is mentioned
+        detected_programme = None
+        for prog_pattern, prog_key in programme_patterns:
+            if prog_pattern in query_lower:
+                detected_programme = prog_key
+                break
+
+        # Default to general EU funding if no specific programme mentioned
+        if detected_programme is None:
+            # Check for generic application process query
+            if "eu" in query_lower or "european" in query_lower:
+                detected_programme = "general"
+            else:
+                # Not an EU funding application query
+                return None
+
+        # Generate appropriate guidance
+        if detected_programme == "horizon":
+            guidance = self._generate_horizon_application_guidance()
+        elif detected_programme == "erasmus":
+            guidance = self._generate_erasmus_application_guidance()
+        elif detected_programme == "creative_europe":
+            guidance = self._generate_creative_europe_application_guidance()
+        else:
+            # General EU funding guidance (covers all programmes)
+            guidance = self._generate_general_eu_application_guidance()
+
+        return {
+            "thought": f"User is asking about the application process for {detected_programme}. Providing step-by-step actionable guidance.",
+            "action": "generate_guidance",
+            "guidance_type": "application_process",
+            "programme": detected_programme,
+            "response": guidance,
+        }
+
+    def _generate_horizon_application_guidance(self) -> str:
+        """Generate step-by-step application guidance for Horizon Europe."""
+        return """Here's a **complete step-by-step guide** to applying for Horizon Europe funding:
+
+## Step 1: Create Your EU Login Account (5 minutes)
+
+Your personal access key to all EU funding services.
+
+**How to do it:**
+1. Go to [EU Login](https://webgate.ec.europa.eu/cas/eim/external/register.cgi)
+2. Enter your email address
+3. Create a password
+4. Verify your email
+
+---
+
+## Step 2: Register Your Organization & Get a PIC (15-30 minutes)
+
+The **PIC (Participant Identification Code)** is your organization's unique identifier. You only need to do this once.
+
+**How to register:**
+1. Log into the [Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)
+2. Go to "My Organisation" → "Register Organisation"
+3. Enter your organization's legal details (name, address, VAT)
+4. Upload supporting documents
+5. Receive your 9-digit PIC number
+
+**Tip:** Check if your organization already has a PIC before registering!
+
+---
+
+## Step 3: Find Suitable Calls
+
+1. Browse the [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search)
+2. Filter by "Horizon Europe" and your research area
+3. Review the [Work Programme](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON) for detailed topic descriptions
+4. Check deadlines and budget availability
+
+---
+
+## Step 4: Build Your Consortium
+
+Most Horizon Europe calls require international partnerships:
+
+- **Minimum:** 3 independent legal entities from 3 different EU/Associated Countries
+- **Typical:** 10-15 partners for RIA/IA projects
+
+**Where to find partners:**
+- [Partner Search Tool](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search)
+- [CORDIS](https://cordis.europa.eu/) - Find organizations active in your field
+- Network events and Info Days
+
+---
+
+## Step 5: Contact Your National Contact Point (NCP) - Highly Recommended!
+
+**NCPs are FREE expert advisors** who can:
+- Help you find the right call for your project
+- Review your proposal draft before submission
+- Explain eligibility and evaluation criteria
+- Connect you with potential partners
+
+**Find your NCP:** [NCP Network Directory](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp)
+
+---
+
+## Step 6: Prepare Your Proposal
+
+1. Download the proposal template from the call page
+2. Follow the structure: Excellence, Impact, Implementation
+3. Stay within page limits (typically 45 pages for Part B)
+4. Include a realistic budget and work plan
+5. Address all evaluation criteria
+
+---
+
+## Step 7: Submit Before the Deadline
+
+1. Submit via the [Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)
+2. **Deadline:** Usually 17:00 Brussels time
+3. **Tip:** Submit at least 24 hours early to avoid technical issues
+
+---
+
+## Quick Reference
+
+| Item | Detail |
+|------|--------|
+| **RIA Funding Rate** | 100% |
+| **IA Funding Rate** | 70% (100% for non-profits) |
+| **Typical Duration** | 36-48 months |
+| **Typical Budget** | €3-8 million |
+| **Evaluation Thresholds** | Excellence 4/5, Impact 4/5, Implementation 3/5 |
+
+---
+
+🎯 **Your Next Step:** Create your [EU Login account](https://webgate.ec.europa.eu/cas/eim/external/register.cgi) today - it takes just 5 minutes and is required for everything else.
+
+📞 **Need Help?** Contact your [National Contact Point (NCP)](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) - they provide FREE personalized guidance!"""
+
+    def _generate_erasmus_application_guidance(self) -> str:
+        """Generate step-by-step application guidance for Erasmus+."""
+        return """Here's a **complete step-by-step guide** to applying for Erasmus+ funding:
+
+## Step 1: Create Your EU Login Account (5 minutes)
+
+**How to do it:**
+1. Go to [EU Login](https://webgate.ec.europa.eu/cas/eim/external/register.cgi)
+2. Register with your email
+3. Verify your account
+
+---
+
+## Step 2: Register Your Organization & Get a PIC
+
+1. Log into the [Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)
+2. Go to "My Organisation" → "Register Organisation"
+3. Receive your 9-digit PIC number
+
+---
+
+## Step 3: Identify the Right Key Action
+
+Erasmus+ has multiple funding streams:
+
+| Key Action | What It Funds |
+|------------|---------------|
+| **KA1** | Learning Mobility (student/staff exchanges) |
+| **KA2** | Cooperation Partnerships |
+| **KA3** | Policy Support |
+| **Jean Monnet** | EU Studies |
+| **Sport** | Grassroots sport |
+
+---
+
+## Step 4: Check Deadlines
+
+Erasmus+ typically has **annual deadlines** - check the [Programme Guide](https://erasmus-plus.ec.europa.eu/programme-guide) for exact dates.
+
+---
+
+## Step 5: Contact Your National Agency (NCP)
+
+**For KA1 and KA2:** Your National Agency handles applications and provides guidance.
+
+Find your NA: [Erasmus+ National Agencies](https://erasmus-plus.ec.europa.eu/contacts/national-agencies)
+
+---
+
+## Step 6: Prepare and Submit Your Application
+
+1. Use the official application forms
+2. Follow the Programme Guide requirements
+3. Submit before the deadline
+
+---
+
+🎯 **Your Next Step:** Create your [EU Login account](https://webgate.ec.europa.eu/cas/eim/external/register.cgi) and identify which Key Action fits your project.
+
+📞 **Need Help?** Contact your [National Agency](https://erasmus-plus.ec.europa.eu/contacts/national-agencies) for FREE guidance!"""
+
+    def _generate_creative_europe_application_guidance(self) -> str:
+        """Generate step-by-step application guidance for Creative Europe."""
+        return """Here's a **complete step-by-step guide** to applying for Creative Europe funding:
+
+## Step 1: Create Your EU Login Account (5 minutes)
+
+1. Go to [EU Login](https://webgate.ec.europa.eu/cas/eim/external/register.cgi)
+2. Register and verify your account
+
+---
+
+## Step 2: Register Your Organization & Get a PIC
+
+1. Log into the [Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)
+2. Register your organization
+3. Receive your PIC number
+
+---
+
+## Step 3: Choose Your Strand
+
+Creative Europe has three strands:
+
+| Strand | Focus |
+|--------|-------|
+| **CULTURE** | Cultural cooperation, networks, platforms |
+| **MEDIA** | Audiovisual, film, games |
+| **CROSS-SECTORAL** | Creative innovation, news media |
+
+---
+
+## Step 4: Find Open Calls
+
+Browse calls at: [Creative Europe Funding](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search;callCode=null;freeTextSearchKeyword=;matchWholeText=true;typeCodes=0,1,2,8;statusCodes=31094501,31094502;programmePeriod=2021%20-%202027;programCcm2Id=43251814;programDivisionCode=null;focusAreaCode=null;destinationGroup=null;missionGroup=null;geographicalZonesCode=null;programmeDivisionProsp498=null;startDateLte=null;startDateGte=null;crossCuttingPriorityCode=null;cpvCode=null;performanceOfDelivery=null;sortQuery=sortStatus;orderBy=asc;onlyTenders=false;topicListKey=topicSearchTablePageState)
+
+---
+
+## Step 5: Contact Your Creative Europe Desk (NCP)
+
+**Creative Europe Desks provide FREE support:**
+- Help with applications
+- Partner search
+- Project development
+
+Find your desk: [Creative Europe Desks](https://culture.ec.europa.eu/creative-europe/creative-europe-desks)
+
+---
+
+## Step 6: Build Your Partnership
+
+Most CULTURE calls require partnerships from multiple countries.
+
+---
+
+## Step 7: Submit Your Application
+
+1. Complete the online application
+2. Submit before the deadline
+3. Await evaluation results
+
+---
+
+🎯 **Your Next Step:** Create your [EU Login account](https://webgate.ec.europa.eu/cas/eim/external/register.cgi) and browse open calls for your strand.
+
+📞 **Need Help?** Contact your [Creative Europe Desk](https://culture.ec.europa.eu/creative-europe/creative-europe-desks) for FREE personalized support!"""
+
+    def _generate_general_eu_application_guidance(self) -> str:
+        """Generate general step-by-step application guidance for EU funding."""
+        return """Here's a **complete step-by-step guide** to applying for EU funding:
+
+## Step 1: Create Your EU Login Account (5 minutes)
+
+Your personal access key to all EU funding services.
+
+**How to do it:**
+1. Go to [EU Login](https://webgate.ec.europa.eu/cas/eim/external/register.cgi)
+2. Enter your email address
+3. Create a password
+4. Verify your email
+
+---
+
+## Step 2: Register Your Organization & Get a PIC (15-30 minutes)
+
+The **PIC (Participant Identification Code)** is your organization's unique identifier across all EU programmes.
+
+**How to register:**
+1. Log into the [Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)
+2. Go to "My Organisation" → "Register Organisation"
+3. Enter your organization's legal details
+4. Receive your 9-digit PIC number
+
+---
+
+## Step 3: Choose the Right Programme
+
+| Programme | Best For |
+|-----------|----------|
+| **Horizon Europe** | Research & Innovation (collaborative projects) |
+| **Erasmus+** | Education, Training, Youth, Sport |
+| **Creative Europe** | Culture, Media, Arts |
+| **Digital Europe** | Digital technology deployment |
+| **LIFE** | Environment & Climate |
+| **EU4Health** | Health systems & initiatives |
+
+---
+
+## Step 4: Find Open Calls
+
+Browse all EU funding at: [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search)
+
+---
+
+## Step 5: Contact Your National Contact Point (NCP)
+
+**NCPs are FREE expert advisors** who can:
+- Help you find the right programme
+- Review your proposal
+- Connect you with partners
+- Explain eligibility rules
+
+**Find your NCP:** [NCP Network](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp)
+
+---
+
+## Step 6: Build Your Partnership (if required)
+
+Many EU programmes require international partnerships. Use:
+- [Partner Search Tool](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search)
+- [CORDIS](https://cordis.europa.eu/) for research projects
+- Your NCP's network
+
+---
+
+## Step 7: Prepare and Submit
+
+1. Download application templates
+2. Follow programme-specific guidelines
+3. Submit via the portal before the deadline
+
+---
+
+🎯 **Your Next Step:** Create your [EU Login account](https://webgate.ec.europa.eu/cas/eim/external/register.cgi) today - it takes just 5 minutes!
+
+📞 **Need Help?** Contact your [National Contact Point (NCP)](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for FREE personalized guidance!"""
 
     def _detect_eic_accelerator_eligibility_query(
         self, query: str, context: str

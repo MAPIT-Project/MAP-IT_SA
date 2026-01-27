@@ -3,13 +3,13 @@ Main conversation management system that orchestrates all components.
 """
 
 import asyncio
+from collections.abc import AsyncGenerator
+from datetime import datetime
 import json
 import logging
 import os
 import random
 import re
-from collections.abc import AsyncGenerator
-from datetime import datetime
 from typing import Any
 
 import psycopg2
@@ -1092,8 +1092,9 @@ class ConversationManager:
             # Document titles/headers appearing as content
             "Application Form",
             "Horizon Europe Programme Standard",
-            "Part A)",
-            "Part B)",
+            # Note: "Part A)" and "Part B)" removed as patterns - they cause false positives
+            # when mentioned in instructional text like "45 pages for Part B"
+            # Instead, check for these as line starters below
             # Lists of country names (document fragments)
             "Somalia, South Africa",
             "South Sudan, Sri Lanka",
@@ -1178,6 +1179,15 @@ class ConversationManager:
                 if avg_sentence_len < 30:  # Very short sentences
                     logger.info("⚠️ Poor quality answer detected: fragmented text without structure")
                     return True
+
+        # Check for document section headers appearing as line starters
+        # (e.g., "Part A)" or "Part B)" at the start of a line indicates raw document content)
+        lines = answer.strip().split("\n")
+        for line in lines[:5]:  # Check first 5 lines for section headers
+            line_stripped = line.strip()
+            if line_stripped.startswith("Part A)") or line_stripped.startswith("Part B)"):
+                logger.info("⚠️ Poor quality answer detected: document section header")
+                return True
 
         return False
 
@@ -1378,7 +1388,7 @@ Provide a clear, well-structured answer. If the results include calls or project
                                 retrieval_results.append(
                                     {
                                         "content": graph_result,
-                                        "citation": f"Graph Database - Result {i+1}",
+                                        "citation": f"Graph Database - Result {i + 1}",
                                         "chunk_id": f"graph_{i}",
                                         "metadata": {
                                             "source": "neo4j_graph",
@@ -1395,7 +1405,7 @@ Provide a clear, well-structured answer. If the results include calls or project
                                     {
                                         "content": content,
                                         "citation": vector_result.get(
-                                            "source", f"Vector Search - Result {i+1}"
+                                            "source", f"Vector Search - Result {i + 1}"
                                         ),
                                         "chunk_id": f"vector_{i}",
                                         "metadata": {
@@ -1556,22 +1566,22 @@ Provide a clear, well-structured answer. If the results include calls or project
                 # Build a structured summary from metadata
                 metadata_text = f"""**CALL METADATA (Official API Data for {call_id})**
 
-Title: {call_metadata.get('title', 'N/A')}
+Title: {call_metadata.get("title", "N/A")}
 
 ELIGIBILITY:
-- Eligible Countries: {call_metadata.get('eligible_countries', 'See call documentation')}
-- Restrictions: {call_metadata.get('eligibility_restrictions', 'None specified')}
+- Eligible Countries: {call_metadata.get("eligible_countries", "See call documentation")}
+- Restrictions: {call_metadata.get("eligibility_restrictions", "None specified")}
 
 BUDGET:
-- Minimum Contribution: €{call_metadata.get('min_contribution', 0):,}
-- Maximum Contribution: €{call_metadata.get('max_contribution', 0):,}
-- Expected Number of Grants: {call_metadata.get('expected_grants', 'Not specified')}
+- Minimum Contribution: €{call_metadata.get("min_contribution", 0):,}
+- Maximum Contribution: €{call_metadata.get("max_contribution", 0):,}
+- Expected Number of Grants: {call_metadata.get("expected_grants", "Not specified")}
 
 DEADLINE:
-- Submission Deadline: {call_metadata.get('deadline_date', 'See call documentation')}
+- Submission Deadline: {call_metadata.get("deadline_date", "See call documentation")}
 
 TYPE OF ACTION:
-- {', '.join(call_metadata.get('types_of_action', [])) if call_metadata.get('types_of_action') else 'Not specified'}
+- {", ".join(call_metadata.get("types_of_action", [])) if call_metadata.get("types_of_action") else "Not specified"}
 
 This metadata was extracted directly from the EU Portal API and represents the official call conditions."""
 
@@ -2255,7 +2265,7 @@ This metadata was extracted directly from the EU Portal API and represents the o
                                     yield {
                                         "type": "progress",
                                         "stage": "agentic_refined",
-                                        "message": f"Refined search {iterations-1} time(s) for better results",
+                                        "message": f"Refined search {iterations - 1} time(s) for better results",
                                     }
 
                             elif update_type == "error":
@@ -4069,8 +4079,8 @@ Be helpful and conversational."""
 
 I've generated a complete proposal structure based on the call requirements:
 
-**Proposal Type:** {template['proposal_type']}
-**Total Page Limit:** {template['metadata']['page_limit']} pages
+**Proposal Type:** {template["proposal_type"]}
+**Total Page Limit:** {template["metadata"]["page_limit"]} pages
 
 **Section Structure:**
 """
@@ -4172,17 +4182,17 @@ I've generated a complete proposal structure based on the call requirements:
                         # Format full response
                         response = f"""✍️ **Proposal Section - First Draft**
 
-{draft_result.get('draft_text', 'Draft generated successfully!')}
+{draft_result.get("draft_text", "Draft generated successfully!")}
 
 ---
 
 📊 **Draft Analysis:**
-- Word count: {draft_result.get('word_count', 0)} words
-- Estimated pages: {draft_result.get('estimated_pages', 0):.1f}
-- Quality score: {draft_result.get('quality_score', 0.7)*100:.0f}%
+- Word count: {draft_result.get("word_count", 0)} words
+- Estimated pages: {draft_result.get("estimated_pages", 0):.1f}
+- Quality score: {draft_result.get("quality_score", 0.7) * 100:.0f}%
 
 📋 **Evaluation Criteria Addressed:**
-{chr(10).join(['✅ ' + c for c in draft_result.get('evaluation_criteria_addressed', [])])}
+{chr(10).join(["✅ " + c for c in draft_result.get("evaluation_criteria_addressed", [])])}
 
 💡 **Next Steps:**
 1. Review and refine the draft
@@ -4359,8 +4369,8 @@ Which section would you like me to analyze? Please provide the section text or s
                     # Final response
                     response = f"""📄 **Part B Export Complete!**
 
-**Proposal:** {proposal_data['title']}
-**Type:** {proposal_data['action_type']}
+**Proposal:** {proposal_data["title"]}
+**Type:** {proposal_data["action_type"]}
 **Format:** Microsoft Word (.docx)
 
 📥 **Download:** {download_url}
@@ -4447,7 +4457,7 @@ Which section would you like me to analyze? Please provide the section text or s
                     # Final response
                     response = f"""💰 **Budget Export Complete!**
 
-**Proposal:** {proposal_data['title']}
+**Proposal:** {proposal_data["title"]}
 **Format:** Microsoft Excel (.xlsx)
 
 📥 **Download:** {download_url}
@@ -4550,18 +4560,18 @@ Which section would you like me to analyze? Please provide the section text or s
                     # Final response
                     response = f"""🎉 **Submission Package Ready!**
 
-**Proposal:** {proposal_data['title']}
-**Acronym:** {proposal_data['acronym']}
-**Type:** {proposal_data['action_type']}
+**Proposal:** {proposal_data["title"]}
+**Acronym:** {proposal_data["acronym"]}
+**Type:** {proposal_data["action_type"]}
 
 📥 **Download Complete Package (ZIP):** {download_url}
 
 **Package Contents:**
-• {proposal_data['acronym']}_PartB.docx (~38 KB)
+• {proposal_data["acronym"]}_PartB.docx (~38 KB)
   - All proposal sections
   - Official EU format
 
-• {proposal_data['acronym']}_Budget.xlsx (~5 KB)
+• {proposal_data["acronym"]}_Budget.xlsx (~5 KB)
   - Partner budgets
   - Funding calculations
 
