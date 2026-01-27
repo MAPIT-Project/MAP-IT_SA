@@ -678,12 +678,15 @@ Ensure graceful handling of failures and edge cases.
   - **Fix applied**: Added `format_no_matching_calls()` method to V3ResponseFormatter that provides comprehensive guidance when no calls are found: acknowledges no results, suggests checking spelling, recommends alternative search terms based on query keywords, lists EU programmes to explore, provides links to EU Portal and NCP resources, and includes actionable next steps. Added `_suggest_alternative_search_terms()` helper to generate context-aware suggestions.
   - **Tests**: `tests/quality/test_scenario_055_no_matching_calls.py` (15 unit tests + 4 integration tests)
 
-- [ ] **Scenario 056: No Matching Projects** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 056: No Matching Projects** `EXECUTE + FIX IF NEEDED`
   - Query: "Find projects by organization 'XYZ123NotReal Inc'"
   - Expected: Explains no results, suggests checking spelling
   - Verify: Helpful guidance
   - Fix if: Unhelpful empty response
   - Pass threshold: 80
+  - **Status: PASS (score 80+/100)**
+  - **Fix applied**: Added `format_no_matching_projects()` method to V3ResponseFormatter that provides comprehensive guidance when no projects are found: acknowledges no results, suggests spelling checks (especially for organization names), recommends alternative search approaches (shorter names, abbreviations, browse by category), provides links to CORDIS/Partner Search/Participant Register, and includes actionable next steps. Added `_suggest_alternative_organization_names()` and `_suggest_alternative_project_search_terms()` helper methods for context-aware suggestions.
+  - **Tests**: `tests/quality/test_scenario_056_no_matching_projects.py` (23 unit tests + 4 integration tests)
 
 ### Recovery
 

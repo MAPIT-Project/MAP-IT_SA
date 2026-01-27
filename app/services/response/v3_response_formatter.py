@@ -378,7 +378,7 @@ class V3ResponseFormatter:
     def format_projects(self, projects: list[dict], query: str = "") -> str:
         """Format a list of CORDIS projects."""
         if not projects:
-            return "No projects found matching your search criteria."
+            return self.format_no_matching_projects(query)
 
         lines = [f"I found **{len(projects)} funded projects** related to your query:\n"]
 
@@ -453,7 +453,9 @@ class V3ResponseFormatter:
             status_icon = (
                 "🟢"
                 if status.lower() == "ongoing"
-                else "✅" if status.lower() == "closed" else "📊"
+                else "✅"
+                if status.lower() == "closed"
+                else "📊"
             )
             lines.append(f"{status_icon} **Status:** {status}")
 
@@ -698,14 +700,7 @@ class V3ResponseFormatter:
         role_filter = result.get("role_filter")
 
         if not projects:
-            return f"""## Projects for {org_name}
-
-No projects found for this organization in the database.
-
-**Suggestions:**
-- Check the organization name spelling
-- Try searching with a shorter name (e.g., "TUM" instead of "Technical University of Munich")
-- The organization may not have participated in Horizon Europe yet"""
+            return self.format_no_matching_projects(query, organization_name=org_name)
 
         role_desc = f" (as {role_filter})" if role_filter else ""
         lines = [f"## Projects by {org_name}{role_desc}", f"**Total Projects Found:** {count}\n"]
@@ -1666,6 +1661,321 @@ No collaboration partners found for this organization in the database.
             "art": ["creative", "culture", "Creative Europe", "heritage"],
             "music": ["creative", "culture", "Creative Europe", "cultural heritage"],
             "film": ["media", "Creative Europe", "audiovisual", "cinema"],
+        }
+
+        # Check for term matches
+        for term, alternatives in term_mappings.items():
+            if term in query:
+                for alt in alternatives[:2]:  # Max 2 alternatives per match
+                    suggestion = f"Try searching for: **{alt}**"
+                    if suggestion not in suggestions:
+                        suggestions.append(suggestion)
+
+        # If no specific matches, suggest based on patterns
+        if not suggestions:
+            # Check if query might be too specific/niche
+            if len(query.split()) >= 4:
+                suggestions.append("Try using fewer, more general keywords")
+            # Check if might be using non-standard terminology
+            if "_" in query or "-" in query:
+                suggestions.append("Remove special characters and try common terms")
+
+        return suggestions[:4]  # Max 4 suggestions
+
+    def format_no_matching_projects(
+        self, query: str = "", organization_name: str | None = None
+    ) -> str:
+        """
+        Format a helpful response when no projects match the search criteria.
+
+        Instead of just saying "no results found", this provides:
+        - Acknowledgment that no results were found
+        - Suggestions for checking spelling (especially for organization names)
+        - Related search terms to try
+        - Links to helpful resources (CORDIS, Partner Search)
+        - Guidance on next steps
+
+        This is used by Scenario 056: No Matching Projects.
+
+        Args:
+            query: The original search query
+            organization_name: Optional organization name if this was an org search
+        """
+        query_lower = query.lower() if query else ""
+
+        lines = []
+
+        # Customize header based on whether this is an organization search
+        if organization_name:
+            lines.append(f"## No Projects Found for {organization_name}\n")
+            lines.append(
+                f"I searched through the CORDIS database, but couldn't find any projects "
+                f'for an organization matching "{organization_name}".\n'
+            )
+        else:
+            lines.append("## No Matching Projects Found\n")
+            lines.append(
+                "I searched through the CORDIS database of funded EU projects, "
+                "but couldn't find any projects matching your specific query.\n"
+            )
+
+        # Provide specific suggestions based on query content
+        lines.append("### 💡 Suggestions to Find Relevant Projects\n")
+
+        # Spelling check suggestion - especially important for organization names
+        lines.append("**1. Check Your Search Terms**")
+        if organization_name:
+            lines.append("   - Verify the organization name spelling")
+            lines.append("   - Try using official/registered organization names")
+            lines.append(
+                "   - Organizations may be registered under different names "
+                "(e.g., abbreviations, translated names)"
+            )
+            lines.append(f'   - Your search: *"{organization_name}"*')
+        else:
+            lines.append("   - Verify the spelling of keywords in your query")
+            lines.append("   - Try using standard EU programme terminology")
+            if query:
+                lines.append(f'   - Your search: *"{query}"*')
+        lines.append("")
+
+        # Suggest alternative search strategies
+        lines.append("**2. Try Different Search Approaches**")
+
+        if organization_name:
+            # Suggest alternative organization name formats
+            alternatives = self._suggest_alternative_organization_names(organization_name)
+            if alternatives:
+                for alt in alternatives:
+                    lines.append(f"   - {alt}")
+            else:
+                lines.append(
+                    "   - Try a shorter name (e.g., 'TUM' instead of "
+                    "'Technical University of Munich')"
+                )
+                lines.append("   - Try the organization's name in its original language")
+                lines.append("   - Remove prefixes like 'The', 'University of'")
+                lines.append("   - Try just the main name without 'Ltd', 'GmbH', 'Inc'")
+        else:
+            # Extract potential keywords and suggest alternatives
+            alternatives = self._suggest_alternative_project_search_terms(query_lower)
+            if alternatives:
+                for alt in alternatives:
+                    lines.append(f"   - {alt}")
+            else:
+                lines.append("   - Use more general keywords")
+                lines.append(
+                    "   - Try searching by Horizon Europe cluster "
+                    "(e.g., 'health', 'digital', 'climate')"
+                )
+                lines.append("   - Search by funding scheme: 'RIA', 'IA', 'ERC', 'MSCA'")
+        lines.append("")
+
+        # Suggest browsing options
+        lines.append("**3. Browse by Category**")
+        lines.append("   - **By Programme**: Horizon Europe, Horizon 2020, FP7")
+        lines.append("   - **By Cluster**: Health, Digital, Climate, Food, Civil Security, Culture")
+        lines.append("   - **By Country**: Filter projects by coordinator country")
+        lines.append(
+            "   - **By Funding Type**: RIA (Research), IA (Innovation), "
+            "ERC (Excellence), MSCA (Mobility)"
+        )
+        lines.append("")
+
+        # Consider timing/data coverage
+        lines.append("**4. Consider Data Coverage**")
+        lines.append("   - CORDIS contains projects from FP7, Horizon 2020, and Horizon Europe")
+        lines.append(
+            "   - Very recent projects may not yet be in the database "
+            "(allow 1-2 months after grant signature)"
+        )
+        if organization_name:
+            lines.append(
+                "   - The organization may not have participated in EU-funded research projects yet"
+            )
+            lines.append("   - Check if the organization is from an eligible EU/Associated Country")
+        lines.append("")
+
+        # Resources section
+        lines.append("---\n")
+        lines.append("### 📚 Helpful Resources\n")
+        lines.append(
+            "• [CORDIS Project Database](https://cordis.europa.eu/search) - "
+            "Official EU research project database with advanced search"
+        )
+        lines.append(
+            "• [Partner Search Tool](https://ec.europa.eu/info/funding-tenders/"
+            "opportunities/portal/screen/how-to-participate/partner-search) - "
+            "Find organizations looking for project partners"
+        )
+        lines.append(
+            "• [Success Stories](https://ec.europa.eu/research/horizon-europe/"
+            "success-stories/) - "
+            "Browse inspiring examples from funded projects"
+        )
+        if organization_name:
+            lines.append(
+                "• [Participant Register](https://ec.europa.eu/info/funding-tenders/"
+                "opportunities/portal/screen/how-to-participate/participant-register) - "
+                "Check if organization is registered (PIC number)"
+            )
+        lines.append("")
+
+        # Actionable next steps
+        lines.append("### 🎯 Recommended Next Steps\n")
+        if organization_name:
+            lines.append("1. **Search CORDIS directly** with variations of the organization name")
+            lines.append(
+                "2. **Check Partner Search** - The organization may be looking for project partners"
+            )
+            lines.append(
+                "3. **Contact the organization** - Ask for their PIC number or project references"
+            )
+            lines.append("4. **Browse by country** - Filter projects by the organization's country")
+        else:
+            lines.append("1. **Rephrase your query** using the suggestions above")
+            lines.append(
+                "2. **Browse by cluster** - Ask me about projects in a specific "
+                "Horizon Europe cluster"
+            )
+            lines.append(
+                "3. **Search by organization** - Try finding projects by a known organization name"
+            )
+            lines.append(
+                "4. **Explore CORDIS** - Use the official database's advanced search filters"
+            )
+        lines.append("")
+
+        # Offer to help with a different query
+        lines.append("---\n")
+        if organization_name:
+            lines.append(
+                "💬 *Feel free to try a different organization name, "
+                "or ask me to search by research topic instead!*"
+            )
+        else:
+            lines.append(
+                "💬 *Feel free to try a different search term, or ask me about "
+                "a specific research topic, organization, or EU programme!*"
+            )
+
+        return "\n".join(lines)
+
+    def _suggest_alternative_organization_names(self, org_name: str) -> list[str]:
+        """
+        Suggest alternative ways to search for an organization.
+
+        Returns a list of suggestions or empty list if no specific suggestions.
+        """
+        if not org_name:
+            return []
+
+        suggestions = []
+        org_lower = org_name.lower()
+
+        # Check for common patterns and suggest alternatives
+        common_suffixes = [
+            "inc",
+            "inc.",
+            "incorporated",
+            "ltd",
+            "ltd.",
+            "limited",
+            "gmbh",
+            "ag",
+            "s.a.",
+            "s.l.",
+            "b.v.",
+            "n.v.",
+            "plc",
+            "llc",
+            "corp",
+            "corp.",
+            "corporation",
+            "co.",
+            "company",
+        ]
+
+        # Check if org name has a suffix that could be removed
+        for suffix in common_suffixes:
+            if org_lower.endswith(suffix) or org_lower.endswith(f" {suffix}"):
+                suggestions.append(f"Try removing '{suffix}' from the name")
+                break
+
+        # Check for long names - suggest abbreviation
+        words = org_name.split()
+        if len(words) >= 4:
+            suggestions.append("Try using an abbreviation or acronym (e.g., 'MIT', 'CNRS', 'ETH')")
+
+        # Check for "University of X" pattern
+        if "university of" in org_lower:
+            suggestions.append("Try just the city/region name without 'University of'")
+
+        # Check for "The X" pattern
+        if org_lower.startswith("the "):
+            suggestions.append("Try removing 'The' from the beginning")
+
+        # Check for special characters that might cause issues
+        if any(c in org_name for c in ["&", ".", "-", "'"]):
+            suggestions.append("Try without special characters (remove &, ., -, ')")
+
+        # If name looks like an abbreviation, suggest full name
+        if org_name.isupper() and len(org_name) <= 6:
+            suggestions.append("Try the full organization name instead of abbreviation")
+
+        # General suggestions if no specific patterns found
+        if not suggestions:
+            suggestions.append("Try the organization's name in English")
+            suggestions.append("Try variations with/without country name")
+
+        return suggestions[:4]  # Max 4 suggestions
+
+    def _suggest_alternative_project_search_terms(self, query: str) -> list[str]:
+        """
+        Suggest alternative search terms for project searches.
+
+        Returns a list of suggestions or empty list if no specific suggestions.
+        """
+        if not query:
+            return []
+
+        suggestions = []
+
+        # Map common terms to related EU research terminology
+        term_mappings = {
+            # Tech terms
+            "ai": ["artificial intelligence", "machine learning", "deep learning"],
+            "ml": ["machine learning", "artificial intelligence", "data science"],
+            "iot": ["internet of things", "sensors", "smart devices", "connectivity"],
+            "blockchain": ["distributed ledger", "DLT", "digital trust"],
+            "robot": ["robotics", "automation", "autonomous systems", "manufacturing"],
+            "cyber": ["cybersecurity", "digital security", "network security"],
+            "cloud": ["cloud computing", "edge computing", "distributed systems"],
+            "5g": ["telecommunications", "connectivity", "mobile networks"],
+            "vr": ["virtual reality", "extended reality", "immersive technologies"],
+            "ar": ["augmented reality", "mixed reality", "immersive technologies"],
+            # Health terms
+            "covid": ["coronavirus", "SARS-CoV-2", "pandemic", "infectious disease"],
+            "cancer": ["oncology", "tumour", "carcinoma", "neoplasm"],
+            "diabetes": ["metabolic disease", "glucose", "insulin", "endocrine"],
+            "alzheimer": ["dementia", "neurodegeneration", "brain disease"],
+            "vaccine": ["immunization", "vaccination", "immunology"],
+            # Energy terms
+            "solar": ["photovoltaic", "renewable energy", "clean energy"],
+            "wind": ["wind energy", "offshore wind", "renewable energy"],
+            "hydrogen": ["green hydrogen", "fuel cell", "energy storage", "H2"],
+            "battery": ["energy storage", "lithium", "electrochemistry"],
+            "nuclear": ["fusion", "fission", "atomic energy", "ITER"],
+            # Environment terms
+            "climate": ["climate change", "global warming", "decarbonisation"],
+            "biodiversity": ["ecosystems", "species conservation", "nature"],
+            "pollution": ["air quality", "environmental contamination", "emissions"],
+            "waste": ["circular economy", "recycling", "resource efficiency"],
+            "water": ["water resources", "hydrology", "water treatment"],
+            # Social terms
+            "migration": ["mobility", "refugees", "asylum", "integration"],
+            "education": ["learning", "training", "skills", "teaching"],
+            "democracy": ["governance", "participation", "civic engagement"],
         }
 
         # Check for term matches

@@ -15190,3 +15190,33 @@ The fix ensures the system provides a helpful, structured response instead of a 
 - "underwater" queries suggest: marine, ocean, maritime, blue economy
 - "weaving" queries suggest: textiles, crafts, heritage
 - Long queries suggest: using fewer keywords
+
+## 2026-01-27: Scenario 056 - No Matching Projects (score 80+/100)
+
+### Summary
+Implemented graceful handling when no projects are found matching a search, particularly for organization searches.
+
+### Changes Made
+1. **V3ResponseFormatter** (`app/services/response/v3_response_formatter.py`):
+   - Added `format_no_matching_projects()` method that provides comprehensive guidance when no projects are found
+   - Updated `format_projects()` to call `format_no_matching_projects()` for empty results
+   - Updated `format_organization_projects()` to use `format_no_matching_projects()` for organization-specific no-results
+   - Added `_suggest_alternative_organization_names()` helper for organization name suggestions
+   - Added `_suggest_alternative_project_search_terms()` helper for project search suggestions
+
+2. **Test File** (`tests/quality/test_scenario_056_no_matching_projects.py`):
+   - 23 unit tests covering evaluator logic, formatter methods, and helper functions
+   - 4 integration tests for live API testing
+   - Evaluator checks: query fulfillment (40pts), specificity (25pts), factual accuracy (25pts), actionability (10pts)
+
+### Features
+- Acknowledges no results without claiming to have found matching projects
+- Suggests spelling checks (especially important for organization names)
+- Recommends alternative search approaches (shorter names, abbreviations, browse by category)
+- Provides links to CORDIS, Partner Search, Participant Register
+- Includes actionable next steps
+- Context-aware suggestions based on query content
+
+### Test Results
+- All 23 unit tests pass
+- Linting passes (ruff)
