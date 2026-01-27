@@ -554,11 +554,14 @@ Ensure underlying data is accurate and up-to-date.
 
 ### Programme Information
 
-- [ ] **Scenario 045: 2024/2025 Information** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 045: 2024/2025 Information** `EXECUTE + FIX IF NEEDED`
   - Query: "What are the Horizon Europe 2025 priorities?"
   - Verify: Mentions current Work Programme, not outdated years
   - Fix if: Uses 2023 or older info as current
   - Pass threshold: 80
+  - **Status: PASS (score 80+/100)**
+  - **Verified**: System correctly returns 2025 Work Programme information. Response explicitly mentions 2025, references Horizon Europe, includes specific cluster priorities (Health, Digital, Climate, Energy), and does not present 2023 or older as current. 2025 work programme documents are indexed and searchable.
+  - **Tests**: `tests/quality/test_scenario_045_2025_priorities.py` (18 tests: 6 unit + 12 integration)
 
 - [ ] **Scenario 046: Success Rate Accuracy** `EXECUTE + FIX IF NEEDED`
   - Query: "What's the ERC success rate?"
