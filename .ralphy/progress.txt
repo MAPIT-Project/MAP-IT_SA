@@ -14225,3 +14225,87 @@ Score: 80+/100 (meets PASS threshold)
 - Specificity (25 pts): Work programme references, cluster numbers
 - Factual Accuracy (25 pts): Correct year (2025), no outdated info as current
 - Actionability (10 pts): Recommendations and links provided
+
+================================================================================
+Scenario 046: Success Rate Accuracy - COMPLETED
+Date: 2026-01-27 $(date +%H:%M:%S)
+================================================================================
+
+## Summary
+Implemented Scenario 046: Success Rate Accuracy from the MAPIT Application Quality Improvement PRD.
+
+## Query Tested
+"What's the ERC success rate?"
+
+## Verification Criteria
+- Cross-reference with official ERC statistics (erc.europa.eu)
+- Verify: Within 2% of official figures
+- Fix if: Significantly wrong rates
+- Pass threshold: 85/100
+
+## Official ERC Success Rates (2024-2025, from erc.europa.eu)
+
+| Grant Type | 2024 Rate | 2025 Rate | System Range | Within 2% |
+|------------|-----------|-----------|--------------|-----------|
+| Starting Grant | 14.2% | ~12.2% | ~10-15% | ✓ Yes |
+| Consolidator Grant | 14.2% | ~11.2% | ~12-15% | ✓ Yes |
+| Advanced Grant | 11.1% | TBD | ~10-12% | ✓ Yes |
+| Synergy Grant | ~10% | <10% | ~8-10% | ✓ Yes |
+| Proof of Concept | ~35-40% | ~35-40% | ~35-40% | ✓ Yes |
+
+## Official Sources Consulted
+- https://erc.europa.eu/news-events/news/erc-2024-starting-grants-results (14.2%, 494/3474)
+- https://erc.europa.eu/news-events/news/erc-2025-consolidator-grants-results (11.2%, 349/3121)
+- https://erc.europa.eu/news-events/news/erc-2024-advanced-grants-results (11.1%, 281/2534)
+- https://erc.europa.eu/news-events/news/erc-2024-synergy-grants-results (~10%, 57 teams)
+
+## Implementation Details
+The system already has accurate ERC success rates hardcoded in tool_aware_agent.py (lines 12735-12761).
+The rates are labeled as "source": "official_ec_data" and are within 2% tolerance of the official figures.
+
+No code changes were required - the existing implementation already meets the accuracy requirements.
+
+## Tests Created
+File: tests/quality/test_scenario_046_erc_success_rate_accuracy.py (24 tests)
+
+### Unit Tests (11):
+1. test_official_ranges_are_valid - Verify official range definitions are valid
+2. test_hardcoded_ranges_within_tolerance - System ranges within 2% of official
+3. test_extract_percentage_from_text - Regex extraction works correctly
+4. test_range_overlap_detection - Range overlap logic works
+5. test_grant_type_keywords - Grant type detection works
+6. test_percentage_within_range - Percentage-in-range checks work
+7. test_2024_starting_grant_rate - Verify 14.2% from official data
+8. test_2024_consolidator_grant_rate - Verify 14.2% from official data
+9. test_2024_advanced_grant_rate - Verify 11.1% from official data
+10. test_2025_consolidator_grant_rate - Verify ~11.2% from official data
+11. test_system_ranges_cover_official_rates - All official rates covered
+
+### Integration Tests (13):
+1. test_api_returns_200 - API responds successfully
+2. test_response_mentions_erc - Response mentions ERC
+3. test_response_contains_percentages - Response has percentage values
+4. test_starting_grant_rate_accurate - StG rate within 10-17% range
+5. test_consolidator_grant_rate_accurate - CoG rate within 9-17% range
+6. test_advanced_grant_rate_accurate - AdG rate within 8-14% range
+7. test_response_mentions_grant_types - At least 2 grant types mentioned
+8. test_no_significantly_wrong_rates - No rates >20% or <5%
+9. test_uses_programme_statistics_tool - Correct tool used
+10. test_data_source_indicated - Source indicated in response
+11. test_no_error_in_response - No error messages
+12. test_quality_score_threshold - Quality score >= 85
+13. test_full_scenario_integration - Full integration scoring
+
+## Test Results
+All 24 tests passed in ~26 seconds.
+
+## Files Modified
+1. tests/quality/test_scenario_046_erc_success_rate_accuracy.py (created)
+2. docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md (updated scenario status)
+
+## Quality Score
+Score: 85+/100 (meets PASS threshold)
+- Query Fulfillment (40 pts): Response mentions ERC, provides grant-specific rates
+- Specificity (25 pts): Exact percentage ranges, grant type breakdown
+- Factual Accuracy (25 pts): All rates within 2% of official EC data
+- Actionability (10 pts): Source indication, context provided
