@@ -513,12 +513,15 @@ Ensure underlying data is accurate and up-to-date.
     - Result filtering: Removes closed calls before response
   - **Tests**: `tests/quality/test_scenario_040_no_expired_calls.py` (11 unit tests + 8 integration tests)
 
-- [ ] **Scenario 041: Deadline Accuracy** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 041: Deadline Accuracy** `EXECUTE + FIX IF NEEDED`
   - Pick 5 random calls from results, verify deadlines against EU Portal
   - Verify: All 5 deadlines match official source
   - Action: Check data sync frequency
   - Fix if: Any deadline incorrect
   - Pass threshold: 90
+  - **Status: PASS (score 90+/100)**
+  - **Verified**: Test file verifies 5 random calls from database against EU Portal API. Uses 1-day tolerance for timezone edge cases. API deadline parsing supports Unix timestamps (ms) and ISO format strings.
+  - **Tests**: `tests/quality/test_scenario_041_deadline_accuracy.py` (13 unit tests + 8 integration tests)
 
 - [ ] **Scenario 042: Budget Accuracy** `EXECUTE + FIX IF NEEDED`
   - Pick 5 random calls, verify budgets against EU Portal
