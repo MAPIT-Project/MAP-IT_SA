@@ -215,7 +215,7 @@ pytest --cov=app tests/
 - `.env.example` - Template for environment variables
 - **Required**: `OPENAI_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`
 - **Optional**: `GOOGLE_EMBEDDING_API_KEY`, `SUPABASE_*`, `NEO4J_*`
-- **AI Models**: `GEMINI_API_KEY`, `GEMINI_MODEL=gemini-flash-latest` (used by all agentic components)
+- **AI Models**: `GEMINI_API_KEY`, `GEMINI_MODEL=gemini-3-flash-preview` (used by all agentic components)
 - **Database**: `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_KEY`
 - **Neo4j**: `NEO4J_URI=bolt://neo4j:7687`, `NEO4J_USER=neo4j`, `NEO4J_PASSWORD`
 - **Redis**: `REDIS_URL=redis://redis:6379` (for caching)

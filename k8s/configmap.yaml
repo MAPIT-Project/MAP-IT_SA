@@ -12,7 +12,7 @@ data:
   APP_ENV: "production"
   LOG_LEVEL: "INFO"
   DEFAULT_AI_PROVIDER: "gemini"
-  GEMINI_MODEL: "gemini-flash-latest"
+  GEMINI_MODEL: "gemini-3-flash-preview"
 
   # Database pool settings
   DB_MIN_CONNECTIONS: "2"

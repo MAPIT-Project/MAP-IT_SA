@@ -3199,7 +3199,7 @@ What is your next step? Remember: Output ONLY JSON."""
 
                 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
                 # Use GEMINI_MODEL from env - defaults to latest flash model
-                model_name = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
+                model_name = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
                 self.llm = genai.GenerativeModel(model_name)
                 logger.info(f"🧠 ToolAwareAgent using model: {model_name}")
             except Exception as e:

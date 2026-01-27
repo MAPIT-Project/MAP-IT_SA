@@ -14,17 +14,17 @@ funded, when, and under which calls. Helps users understand funding landscape
 and identify trends.
 """
 
+from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 import json
 import logging
 import os
 import re
-from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
 from typing import Any
 
-import psycopg2
 from dotenv import load_dotenv
+import psycopg2
 from psycopg2.extras import RealDictCursor
 
 # Import Gemini for AI-powered keyword expansion
@@ -237,7 +237,7 @@ class CallHistoryTool:
                 api_key = os.getenv("GEMINI_API_KEY")
                 if api_key:
                     genai.configure(api_key=api_key)
-                    model_name = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
+                    model_name = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
                     self._gemini_model = genai.GenerativeModel(model_name)
                     logger.info(f"✅ Gemini available for keyword expansion (model: {model_name})")
             except Exception as e:

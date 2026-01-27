@@ -11,11 +11,11 @@ Strategy:
 This hybrid approach balances accuracy with cost.
 """
 
+from dataclasses import dataclass, field
 import json
 import logging
 import os
 import re
-from dataclasses import dataclass, field
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -92,7 +92,7 @@ class ResultEvaluator:
                 import google.generativeai as genai
 
                 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-                model_name = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
+                model_name = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
                 self.llm = genai.GenerativeModel(model_name)
                 logger.info(f"🧠 ResultEvaluator LLM enabled: {model_name}")
             except Exception as e:

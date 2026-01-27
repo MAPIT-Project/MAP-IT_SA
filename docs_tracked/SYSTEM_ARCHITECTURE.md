@@ -1317,7 +1317,7 @@ The `get_budget_benchmark` tool uses a **hybrid architecture** that combines Neo
 ```bash
 # AI Models
 GEMINI_API_KEY=your_key
-GEMINI_MODEL=gemini-flash-latest          # Used by all agentic components
+GEMINI_MODEL=gemini-3-flash-preview       # Used by all agentic components
 DEFAULT_AI_PROVIDER=gemini
 
 # Database
@@ -1757,4 +1757,3 @@ Full integration of Erasmus+ programme support:
 - `scripts/sync_erasmus_calls_from_api.py`
 - `scripts/ingest_erasmus_templates.py`
 - `scripts/ingest_erasmus_to_neo4j.py` - Populate Neo4j with Erasmus+ reference data
-

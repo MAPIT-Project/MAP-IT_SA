@@ -9,11 +9,11 @@ Single, intelligent AI system that classifies ALL user intents:
 5. Proposal Writing (help draft, improve, or export proposal sections)
 """
 
+from dataclasses import dataclass
 import json
 import logging
 import os
 import re
-from dataclasses import dataclass
 from typing import Any
 
 import google.generativeai as genai
@@ -68,7 +68,7 @@ class UnifiedIntentClassifier:
     def __init__(self):
         """Initialize the unified classifier"""
         genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-        model_name = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
+        model_name = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
         self.model = genai.GenerativeModel(model_name)
         logger.info(f"✅ Unified Intent Classifier initialized (model: {model_name})")
 

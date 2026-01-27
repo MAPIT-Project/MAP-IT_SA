@@ -17,17 +17,17 @@ Usage:
 """
 
 import asyncio
+from dataclasses import asdict, dataclass, field
+from datetime import datetime
 import json
 import logging
 import os
-import re
-from dataclasses import asdict, dataclass, field
-from datetime import datetime
 from pathlib import Path
+import re
 from typing import Any
 
-import google.generativeai as genai
 from dotenv import load_dotenv
+import google.generativeai as genai
 
 # Load environment variables from .env file
 load_dotenv()
@@ -109,7 +109,7 @@ class QueryPlanner:
     """
 
     # Default model configuration - uses env var
-    DEFAULT_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
+    DEFAULT_MODEL = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
     DEFAULT_TEMPERATURE = 0.1
     DEFAULT_MAX_TOKENS = 2000
 
