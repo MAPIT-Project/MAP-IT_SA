@@ -718,12 +718,15 @@ Ensure the system is fast and pleasant to use.
   - **Fix applied**: Extended funding type explanation patterns in `_detect_funding_type_query()` to match "What is RIA funding?" and "What does RIA stand for?" variations. Added `_detect_simple_programme_overview_query()` method to pre-route basic programme overview questions (e.g., "What is Horizon Europe?") to built-in knowledge instead of LLM reasoning. Added programme overview generators for all 6 EU programmes (Horizon Europe, Erasmus+, Creative Europe, LIFE, Digital Europe, EU4Health).
   - **Tests**: `tests/quality/test_scenario_058_simple_query_speed.py` (40 tests)
 
-- [ ] **Scenario 059: Complex Query Speed** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 059: Complex Query Speed** `EXECUTE + FIX IF NEEDED`
   - Query: "Compare EIC and ERC, find open calls for both, and recommend which suits a TRL 6 project"
   - Target: Complete < 15 seconds
   - Verify: Multiple tools called efficiently
   - Fix if: > 20 seconds consistently
   - Pass threshold: Response time target met
+  - **Status: PASS (Target < 15s with multiple tool calls)**
+  - **Fix applied**: Modified `_detect_cluster_comparison_query()` to detect multi-step queries (containing "find calls", "recommend", "TRL", etc.) and return `None` instead of built-in guidance, allowing the agent to use tools for comprehensive answers. Added `_generate_eic_erc_comparison_guidance()` method for simple EIC/ERC comparisons. Multi-step indicators include: `find.*calls?`, `recommend`, `trl\s*\d`, `which\s+(?:is\s+)?(?:better|best|suited)`, etc.
+  - **Tests**: `tests/quality/test_scenario_059_complex_query_speed.py` (44 tests)
 
 ### Response Quality
 

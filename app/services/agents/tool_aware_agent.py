@@ -11274,37 +11274,164 @@ This refers to whether you choose the research topic (bottom-up) or respond to a
 
         This handles queries like:
         - "How does Cluster 5 compare to Cluster 1?"
-        - "Compare EIC and ERC success rates"
         - "Cluster 4 vs Cluster 6"
+
+        For EIC/ERC comparison queries, this only handles SIMPLE comparisons.
+        Multi-step queries (with "find calls", "recommend", "TRL", etc.) should
+        use tools for comprehensive answers.
 
         These should use compare_programmes, NOT partner comparison.
         """
         query_lower = query.lower()
 
-        # Check for cluster/programme comparison patterns
+        import re
+
+        # Check if this is a multi-step query that needs tool execution
+        # These complex queries should NOT be short-circuited to built-in guidance
+        multi_step_indicators = [
+            r"find.*calls?",
+            r"search.*calls?",
+            r"open\s+calls?",
+            r"recommend",
+            r"which\s+(?:is\s+)?(?:better|best|suited)",
+            r"trl\s*\d",
+            r"suit[s]?\s+(?:a|my|our)",
+            r"should\s+(?:i|we)",
+            r"what.*budget",
+            r"deadline",
+        ]
+        is_multi_step = any(re.search(pattern, query_lower) for pattern in multi_step_indicators)
+
+        # Check if this is an EIC/ERC/MSCA programme comparison
+        programme_comparison_pattern = r"(?:eic|erc|msca).*(?:compare|vs|versus).*(?:eic|erc|msca)"
+        is_programme_comparison = re.search(programme_comparison_pattern, query_lower)
+
+        # Also check for "compare EIC and ERC" pattern
+        compare_programme_pattern = (
+            r"compare\s+(?:eic|erc|msca)\s+(?:and|with|to)\s+(?:eic|erc|msca)"
+        )
+        is_compare_programme = re.search(compare_programme_pattern, query_lower)
+
+        # For multi-step EIC/ERC queries, let the agent use tools
+        if (is_programme_comparison or is_compare_programme) and is_multi_step:
+            return None  # Let the agent handle with tools
+
+        # For simple EIC/ERC comparison, use built-in guidance
+        if is_programme_comparison or is_compare_programme:
+            return self._generate_eic_erc_comparison_guidance(query, context)
+
+        # Check for cluster comparison patterns (not EIC/ERC)
         cluster_patterns = [
             r"cluster\s*5.*(?:compare|vs|versus).*cluster\s*1",
             r"cluster\s*1.*(?:compare|vs|versus).*cluster\s*5",
             r"cluster\s*\d.*(?:compare|vs|versus).*cluster\s*\d",
             r"(?:compare|vs|versus).*cluster\s*\d",
-            r"(?:eic|erc|msca).*(?:compare|vs|versus).*(?:eic|erc|msca)",
             r"how\s+does\s+cluster\s*\d+\s+compare",
             r"compare\s+(?:the\s+)?(?:success\s+rates?\s+)?(?:of\s+)?cluster",
         ]
-
-        import re
 
         is_cluster_comparison = any(re.search(pattern, query_lower) for pattern in cluster_patterns)
 
         if not is_cluster_comparison:
             return None
 
+        # For multi-step cluster queries, let the agent use tools
+        if is_multi_step:
+            return None
+
         # Extract cluster numbers for the guidance generator
         cluster_matches = re.findall(r"cluster\s*(\d+)", query_lower)
 
-        # Always use built-in guidance for cluster comparisons - provides better actionability
+        # Use built-in guidance for simple cluster comparisons - provides better actionability
         # and more comprehensive responses than raw tool output
         return self._generate_cluster_comparison_guidance(query, cluster_matches, context)
+
+    def _generate_eic_erc_comparison_guidance(self, query: str, context: str) -> dict[str, Any]:
+        """Generate comprehensive EIC vs ERC comparison guidance using built-in knowledge."""
+
+        guidance = """## EIC vs ERC: Comprehensive Comparison
+
+The **European Innovation Council (EIC)** and **European Research Council (ERC)** serve fundamentally different purposes within Horizon Europe.
+
+### Quick Comparison
+
+| Aspect | ERC | EIC |
+|--------|-----|-----|
+| **Focus** | Frontier research (curiosity-driven) | Breakthrough innovation (market-oriented) |
+| **TRL Range** | TRL 1-3 (basic research) | TRL 3-8 (development to market) |
+| **Applicant** | Single PI + team | SMEs, startups, consortia |
+| **Budget** | €1.5-2.5M (grants) | €2.5-17.5M (grant + equity) |
+| **Funding Rate** | 100% | 70% (IA) or 100% (grant only) |
+| **Success Rate** | ~10-15% | ~3-8% (Accelerator) |
+
+### ERC (European Research Council)
+
+**Best for:** Academic researchers pursuing fundamental science
+
+| Grant Type | Budget | Duration | Career Stage |
+|------------|--------|----------|--------------|
+| **Starting Grant** | Up to €1.5M | 5 years | 2-7 years post-PhD |
+| **Consolidator Grant** | Up to €2M | 5 years | 7-12 years post-PhD |
+| **Advanced Grant** | Up to €2.5M | 5 years | Established leaders |
+| **Synergy Grant** | Up to €10M | 6 years | 2-4 PIs jointly |
+
+**Key characteristics:**
+- Single Principal Investigator (PI) model
+- Research must be "high-risk, high-gain" frontier science
+- No consortium requirement
+- 100% funding rate
+- Host institution must be in EU or Associated Country
+
+### EIC (European Innovation Council)
+
+**Best for:** Innovators, SMEs, and tech startups
+
+| Instrument | Budget | TRL | Funding Type |
+|------------|--------|-----|--------------|
+| **Pathfinder** | €3-4M | 1-4 | Grant (100%) |
+| **Transition** | Up to €2.5M | 4-6 | Grant (100%) |
+| **Accelerator** | Up to €2.5M grant + €15M equity | 6-9 | Blended |
+
+**Key characteristics:**
+- Focus on breakthrough innovations with market potential
+- EIC Accelerator targets SMEs specifically
+- Blended finance (grant + equity) for scale-up
+- Business plan and commercialization strategy required
+- Can include equity investment component
+
+### Decision Guide: Which is Right for You?
+
+**Choose ERC if:**
+✅ You're an academic researcher
+✅ Your work is curiosity-driven without immediate commercial goals
+✅ You want full scientific freedom
+✅ You're at a specific career stage (2-7 yrs post-PhD for Starting)
+✅ You don't need/want industrial partners
+
+**Choose EIC if:**
+✅ You have a concrete innovation with market potential
+✅ You're an SME or startup
+✅ Your technology is at TRL 4 or higher
+✅ You need funding to scale up and commercialize
+✅ You're willing to accept equity investment (Accelerator)
+
+---
+
+🎯 **Next Steps:**
+• For ERC: Check eligibility based on career stage and prepare your CV
+• For EIC: Assess your TRL level and commercial readiness
+• Both: Contact your [National Contact Point](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp)
+• Explore calls: [EU Funding Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/)
+"""
+
+        return {
+            "thought": "User is asking about EIC vs ERC comparison. Providing comprehensive guidance from built-in knowledge.",
+            "action": "generate_guidance",
+            "response": guidance,
+            "guidance_type": "eic_erc_comparison",
+            "confidence": 0.92,
+            "needs_more_info": False,
+        }
 
     def _generate_cluster_comparison_guidance(
         self, query: str, cluster_matches: list, context: str
