@@ -472,12 +472,15 @@ Test the system's ability to handle sophisticated user needs.
 
 ### Real-World Scenarios
 
-- [ ] **Scenario 038: First-Time Applicant** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 038: First-Time Applicant** `EXECUTE + FIX IF NEEDED`
   - Query: "I've never applied for EU funding before. Where do I start?"
   - Expected: Beginner-friendly guidance, registration steps, NCP referral
   - Verify: Actionable steps, not overwhelming
   - Fix if: Too technical, assumes knowledge
   - Pass threshold: 80
+  - **Status: PASS (score 80+/100)**
+  - **Fix applied**: Added `_detect_first_time_applicant_query` patterns in `_detect_capacity_building_query()` method to detect "where do I start" type queries from users who mention they've never applied. Added `_generate_first_time_applicant_guidance()` method providing step-by-step onboarding guidance with EU Login, PIC registration, NCP referral, and beginner-friendly language. Response includes checklist, links, common mistakes to avoid, and reassuring tone.
+  - **Tests**: `tests/quality/test_scenario_038_first_time_applicant.py` (17 tests)
 
 - [ ] **Scenario 039: Urgent Deadline Query** `EXECUTE + FIX IF NEEDED`
   - Query: "Are there any calls closing this week I could apply to?"

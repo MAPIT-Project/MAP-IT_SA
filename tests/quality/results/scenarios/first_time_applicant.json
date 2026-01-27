@@ -1,0 +1,27 @@
+{
+  "scenario": "038_first_time_applicant",
+  "timestamp": "2026-01-27T02:01:47.648383",
+  "query": "I've never applied for EU funding before. Where do I start?",
+  "response": "Welcome to EU funding! Here's a **simple step-by-step guide** to get you started. Don't worry - it's easier than it looks once you break it down.\n\n## Step 1: Create Your EU Login Account (5 minutes)\n\nYour first step is to create an EU Login account - this is your personal access to all EU services.\n\n**How to do it:**\n1. Go to [EU Login](https://webgate.ec.europa.eu/cas/eim/external/register.cgi)\n2. Enter your email address\n3. Create a password\n4. Verify your email\n\n**Note:** This is YOUR personal account - each person in your organization who will work on proposals needs their own EU Login.\n\n---\n\n## Step 2: Register Your Organization & Get a PIC Number (15-30 minutes)\n\nThe **PIC (Participant Identification Code)** is your organization's unique identifier for EU funding. You only need to do this once.\n\n**How to register:**\n1. Log into the [Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home) with your EU Login\n2. Go to \"My Organisation\" \u2192 \"Register Organisation\"\n3. Enter your organization's legal details (name, address, VAT number)\n4. Upload supporting documents (legal registration, financial statements)\n5. Submit and receive your 9-digit PIC number\n\n**Tip:** Check if your organization already has a PIC before registering - many universities and research institutes are already registered.\n\n---\n\n## Step 3: Contact Your National Contact Point (NCP) - Highly Recommended!\n\n**NCPs are FREE expert advisors** funded by your national government to help you succeed in EU funding. They can:\n\n- Help you find the right funding programme for your project idea\n- Review your proposal draft before submission\n- Explain eligibility rules and requirements\n- Connect you with potential partners\n\n**Find your NCP:** [NCP Network Directory](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp)\n\n**What to tell them:**\n- Your organization type (university, SME, research institute, etc.)\n- Your research area or proje",
+  "evaluation": {
+    "total_score": 100,
+    "max_score": 100,
+    "passed": true,
+    "threshold": 80,
+    "dimensions": {
+      "query_fulfillment": 40,
+      "specificity": 25,
+      "factual_accuracy": 25,
+      "actionability": 10
+    },
+    "feedback": {
+      "query_fulfillment": [],
+      "specificity": [],
+      "factual_accuracy": [],
+      "actionability": []
+    },
+    "query": "I've never applied for EU funding before. Where do I start?",
+    "response_length": 4345
+  },
+  "status": "PASS"
+}

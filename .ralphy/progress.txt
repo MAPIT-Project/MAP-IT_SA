@@ -13534,3 +13534,97 @@ The system needed to handle queries like "Funding for underwater archaeology usi
 
 ### PRD Task Status
 - [x] Scenario 037: Very Specific Niche - PASS (score 75+/100)
+
+
+## 2026-01-27: Scenario 038 - First-Time Applicant (IMPLEMENT + TEST)
+
+### Task Completed
+Implemented Scenario 038: First-Time Applicant query handling for users who have never applied for EU funding.
+
+### Problem Statement
+The system needed to handle queries like "I've never applied for EU funding before. Where do I start?" that require:
+- Beginner-friendly guidance (not overwhelming)
+- Registration steps (EU Login, PIC)
+- NCP (National Contact Point) referral
+- Clear, actionable steps
+- No assumption of prior knowledge
+
+### Files Modified
+1. **`app/services/agents/tool_aware_agent.py`**:
+   - Added `first_time_applicant_patterns` list in `_detect_capacity_building_query()` method (~18 patterns):
+     - "where do i start", "where should i start", "where do we start"
+     - "how do i start", "how should i start", "how do we start"
+     - "how do i begin", "what should i do first", "first steps"
+     - "getting started", "how to begin", "how to start"
+   - Added detection logic: `is_newcomer AND any(first_time_applicant_patterns)` → triggers dedicated guidance
+   - Added `_generate_first_time_applicant_guidance()` method (~120 lines) providing:
+     - Step 1: EU Login account creation (with link)
+     - Step 2: Organization registration & PIC (with instructions)
+     - Step 3: NCP contact (emphasized as FREE and highly recommended)
+     - Step 4: Explore funding opportunities (programme comparison table)
+     - Step 5: Find partners (Partner Search, CORDIS links)
+     - Common mistakes section (what NOT to do)
+     - Quick checklist for tracking progress
+     - Reassuring tone ("Don't worry - it's easier than it looks")
+
+2. **`tests/quality/test_scenario_038_first_time_applicant.py`** (new file):
+   - 17 tests covering:
+     - Excellent response scoring (80+)
+     - Too technical response scoring lower
+     - Minimal response scoring low
+     - Good response with NCP mention
+     - Dimension weights verification
+     - Variant queries ("How do I begin?", "What are the first steps?")
+     - NCP mention requirement
+     - Registration steps requirement
+     - Beginner-friendly language reward
+     - Live API tests for primary query
+     - Live API NCP mention verification
+     - Live API registration mention verification
+     - Live API step-by-step verification
+     - Live API jargon check
+     - Live API variant queries
+
+### Implementation Details
+
+**First-Time Applicant Detection:**
+```python
+# Detected as first-time applicant if:
+# 1. User mentions newcomer patterns ("never applied", "first time", etc.)
+# AND
+# 2. Query contains "where do I start" type patterns
+```
+
+**Guidance Structure:**
+1. Welcome message with reassurance
+2. Step 1: EU Login Account (5 minutes)
+3. Step 2: PIC Registration (15-30 minutes)
+4. Step 3: NCP Contact (HIGHLY RECOMMENDED!)
+5. Step 4: Explore Funding
+6. Step 5: Find Partners
+7. What NOT to Do (common mistakes)
+8. Quick Checklist
+
+**Key Design Decisions:**
+1. **Reassuring tone**: "Don't worry - it's easier than it looks"
+2. **Time estimates**: "5 minutes", "15-30 minutes" to set expectations
+3. **NCP emphasis**: Highlighted as FREE service and highly recommended
+4. **No jargon**: Avoids TRL, deliverables, work packages without explanation
+5. **Checklist format**: Easy to track progress
+6. **Links**: All steps include relevant EU portal links
+
+### Test Results
+- 17 tests passed
+- All linting checks passed
+- Pass threshold: 80/100
+
+### Quality Scoring Dimensions
+| Dimension | Points | Criteria |
+|-----------|--------|----------|
+| Query Fulfillment | 40 | Step-by-step guidance, registration explanation, programme overview |
+| Specificity | 25 | NCP mention, portal reference, specific resources |
+| Factual Accuracy | 25 | Not too technical, correct sequence, reassuring tone |
+| Actionability | 10 | Clear call-to-action, links, warnings |
+
+### PRD Task Status
+- [x] Scenario 038: First-Time Applicant - PASS (score 80+/100)

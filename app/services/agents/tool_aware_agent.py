@@ -6590,6 +6590,42 @@ If you're seeking **global-scale research funding**, Horizon Europe offers pathw
             "build our experience",
         ]
 
+        # First-time applicant "where do I start" / "how do I start" patterns
+        first_time_applicant_patterns = [
+            "where do i start",
+            "where should i start",
+            "where do we start",
+            "where should we start",
+            "how do i start",
+            "how should i start",
+            "how do we start",
+            "how should we start",
+            "how do i begin",
+            "how do we begin",
+            "where do i begin",
+            "where do we begin",
+            "what should i do first",
+            "what should we do first",
+            "first steps",
+            "getting started",
+            "how to begin",
+            "how to start",
+        ]
+
+        # Check for first-time applicant "where do I start" type queries
+        # These need step-by-step onboarding guidance, not programme recommendations
+        is_first_time_applicant = is_newcomer and any(
+            pattern in query_lower for pattern in first_time_applicant_patterns
+        )
+
+        if is_first_time_applicant:
+            return {
+                "thought": "User is a first-time applicant asking where to start. Providing step-by-step onboarding guidance.",
+                "action": "generate_guidance",
+                "guidance_type": "first_time_applicant",
+                "response": self._generate_first_time_applicant_guidance(),
+            }
+
         # Check for beginner-friendly programme query
         if any(pattern in query_lower for pattern in beginner_programme_patterns) or (
             is_newcomer
@@ -6921,6 +6957,120 @@ Evaluators look for evidence of:
 • Register on [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search) to signal your interest
 • Contact your [NCP](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for a strategy consultation
 • Review [CORDIS](https://cordis.europa.eu/) for funded projects in your area to find active consortia"""
+
+    def _generate_first_time_applicant_guidance(self) -> str:
+        """Generate step-by-step onboarding guidance for first-time EU funding applicants.
+
+        This guidance is specifically designed to be:
+        - Beginner-friendly and not overwhelming
+        - Focused on actionable registration steps
+        - Prominent NCP (National Contact Point) referral
+        - Clear, sequential steps
+        """
+        return """Welcome to EU funding! Here's a **simple step-by-step guide** to get you started. Don't worry - it's easier than it looks once you break it down.
+
+## Step 1: Create Your EU Login Account (5 minutes)
+
+Your first step is to create an EU Login account - this is your personal access to all EU services.
+
+**How to do it:**
+1. Go to [EU Login](https://webgate.ec.europa.eu/cas/eim/external/register.cgi)
+2. Enter your email address
+3. Create a password
+4. Verify your email
+
+**Note:** This is YOUR personal account - each person in your organization who will work on proposals needs their own EU Login.
+
+---
+
+## Step 2: Register Your Organization & Get a PIC Number (15-30 minutes)
+
+The **PIC (Participant Identification Code)** is your organization's unique identifier for EU funding. You only need to do this once.
+
+**How to register:**
+1. Log into the [Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home) with your EU Login
+2. Go to "My Organisation" → "Register Organisation"
+3. Enter your organization's legal details (name, address, VAT number)
+4. Upload supporting documents (legal registration, financial statements)
+5. Submit and receive your 9-digit PIC number
+
+**Tip:** Check if your organization already has a PIC before registering - many universities and research institutes are already registered.
+
+---
+
+## Step 3: Contact Your National Contact Point (NCP) - Highly Recommended!
+
+**NCPs are FREE expert advisors** funded by your national government to help you succeed in EU funding. They can:
+
+- Help you find the right funding programme for your project idea
+- Review your proposal draft before submission
+- Explain eligibility rules and requirements
+- Connect you with potential partners
+
+**Find your NCP:** [NCP Network Directory](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp)
+
+**What to tell them:**
+- Your organization type (university, SME, research institute, etc.)
+- Your research area or project idea
+- Whether you want to be a partner or coordinator
+- Your timeline for applying
+
+---
+
+## Step 4: Explore Funding Opportunities
+
+Now you're ready to browse available funding:
+
+**Where to look:**
+- [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search) - Official source for all calls
+- [CORDIS](https://cordis.europa.eu/) - See what projects have been funded (good for finding partners!)
+
+**Key programmes for newcomers:**
+| Programme | Good for | Typical First Step |
+|-----------|----------|-------------------|
+| **Horizon Europe** | Research & innovation | Join as partner in RIA or CSA |
+| **Erasmus+** | Education & training | KA2 partnerships |
+| **Creative Europe** | Arts, culture, media | Small cooperation projects |
+
+---
+
+## Step 5: Find Partners (for most programmes)
+
+Most EU funding requires international partnerships (typically 3+ organizations from different countries).
+
+**Where to find partners:**
+- [Partner Search Tool](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search) - Official partner matching
+- [CORDIS](https://cordis.europa.eu/) - Find active project coordinators in your field
+- Your NCP - They can connect you with networks
+
+**Tip for beginners:** It's easier to JOIN an existing consortium as a partner than to build your own. Look for "partner search" announcements or ask your NCP.
+
+---
+
+## What NOT to Do (Common First-Timer Mistakes)
+
+❌ Don't try to coordinate your first project - start as a partner
+❌ Don't apply alone if the call requires partners
+❌ Don't ignore the deadline buffer - submit at least 24 hours early
+❌ Don't skip the NCP consultation - they're free and helpful!
+
+---
+
+## Quick Checklist
+
+| Step | Done? |
+|------|-------|
+| Create EU Login account | ⬜ |
+| Register organization (get PIC) | ⬜ |
+| Contact your NCP | ⬜ |
+| Browse open calls | ⬜ |
+| Identify potential partners | ⬜ |
+
+---
+
+🎯 **Your Next Action:** Start by creating your [EU Login account](https://webgate.ec.europa.eu/cas/eim/external/register.cgi) - it only takes 5 minutes and everything else builds from there.
+
+Need help? Your [National Contact Point](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) is your best free resource for personalized guidance."""
 
     def _detect_eic_accelerator_eligibility_query(
         self, query: str, context: str
