@@ -157,6 +157,236 @@ _context_manager = ContextWindowManager()
 
 
 # =============================================================================
+# SPECIAL CHARACTER NORMALIZATION
+# =============================================================================
+
+# Unicode subscript/superscript character mappings
+SUBSCRIPT_MAP = {
+    "₀": "0",
+    "₁": "1",
+    "₂": "2",
+    "₃": "3",
+    "₄": "4",
+    "₅": "5",
+    "₆": "6",
+    "₇": "7",
+    "₈": "8",
+    "₉": "9",
+    "ₐ": "a",
+    "ₑ": "e",
+    "ₒ": "o",
+    "ₓ": "x",
+    "ᵢ": "i",
+    "ⱼ": "j",
+    "₊": "+",
+    "₋": "-",
+    "₌": "=",
+    "₍": "(",
+    "₎": ")",
+}
+
+SUPERSCRIPT_MAP = {
+    "⁰": "0",
+    "¹": "1",
+    "²": "2",
+    "³": "3",
+    "⁴": "4",
+    "⁵": "5",
+    "⁶": "6",
+    "⁷": "7",
+    "⁸": "8",
+    "⁹": "9",
+    "ⁿ": "n",
+    "⁺": "+",
+    "⁻": "-",
+    "⁼": "=",
+    "⁽": "(",
+    "⁾": ")",
+}
+
+# Smart quotes and other typography
+# Using Unicode escapes to avoid duplicate key warnings
+TYPOGRAPHY_MAP = {
+    "\u2019": "'",  # Right single quotation mark (')
+    "\u2018": "'",  # Left single quotation mark (')
+    "\u201c": '"',  # Left double quotation mark (")
+    "\u201d": '"',  # Right double quotation mark (")
+    "\u2013": "-",  # En dash (–)
+    "\u2014": "-",  # Em dash (—)
+    "\u2026": "...",  # Ellipsis (…)
+    "\u2022": "*",  # Bullet (•)
+    "\u00b7": ".",  # Middle dot (·)
+    "\u00d7": "x",  # Multiplication sign (×)
+    "\u00f7": "/",  # Division sign (÷)
+    "\u2264": "<=",  # Less than or equal (≤)
+    "\u2265": ">=",  # Greater than or equal (≥)
+    "\u2260": "!=",  # Not equal (≠)
+    "\u00b1": "+/-",  # Plus-minus (±)
+    "\u00b0": " degrees",  # Degree sign (°)
+    "\u20ac": "EUR",  # Euro sign (€)
+    "\u00a3": "GBP",  # Pound sign (£)
+    "\u2122": "",  # Trademark (™) - remove
+    "\u00ae": "",  # Registered (®) - remove
+    "\u00a9": "",  # Copyright (©) - remove
+}
+
+
+@dataclass
+class SpecialCharResult:
+    """Result of normalizing special characters in a query."""
+
+    original_query: str
+    normalized_query: str
+    was_normalized: bool
+    normalizations_applied: list[str] = field(default_factory=list)
+
+
+def normalize_special_characters(query: str) -> SpecialCharResult:
+    """
+    Normalize special characters in a query for consistent processing.
+
+    Handles:
+    - Subscripts (CO₂ → CO2, H₂O → H2O)
+    - Superscripts (10² → 10^2, m² → m2)
+    - Smart quotes ("quotes" → "quotes")
+    - Typography (en/em dashes → -, ellipsis → ...)
+    - Ampersands (& → and, but preserves in acronyms like R&D)
+    - Parentheses and brackets normalization
+    - Multiple spaces collapse
+
+    Args:
+        query: The original user query
+
+    Returns:
+        SpecialCharResult with normalized query and metadata
+    """
+    if not query:
+        return SpecialCharResult(
+            original_query=query,
+            normalized_query=query,
+            was_normalized=False,
+        )
+
+    normalized = query
+    changes = []
+
+    # 1. Handle subscripts (CO₂ → CO2)
+    for char, replacement in SUBSCRIPT_MAP.items():
+        if char in normalized:
+            count = normalized.count(char)
+            normalized = normalized.replace(char, replacement)
+            changes.append(f"subscript {char}→{replacement} ({count}x)")
+
+    # 2. Handle superscripts (10² → 10^2 for exponents, m² → m2 for units)
+    for char, replacement in SUPERSCRIPT_MAP.items():
+        if char in normalized:
+            count = normalized.count(char)
+            # For numeric superscripts following numbers, add ^ for clarity
+            # e.g., 10² → 10^2, but m² → m2
+            pattern = rf"(\d)({re.escape(char)})"
+            if re.search(pattern, normalized):
+                normalized = re.sub(pattern, rf"\1^{replacement}", normalized)
+            else:
+                normalized = normalized.replace(char, replacement)
+            changes.append(f"superscript {char}→{replacement} ({count}x)")
+
+    # 3. Handle smart quotes and typography
+    for char, replacement in TYPOGRAPHY_MAP.items():
+        if char in normalized:
+            count = normalized.count(char)
+            normalized = normalized.replace(char, replacement)
+            if replacement:  # Only log non-empty replacements
+                changes.append(f"typography {char}→{replacement} ({count}x)")
+            else:
+                changes.append(f"removed {char} ({count}x)")
+
+    # 4. Handle ampersands - smart replacement
+    # Preserve & in known acronyms (R&D, M&A, B&B, D&I, etc.)
+    preserved_ampersands = [
+        "R&D",
+        "M&A",
+        "B&B",
+        "D&I",
+        "A&E",
+        "P&L",
+        "S&P",
+        "Q&A",
+        "AT&T",
+    ]
+
+    # Temporarily replace preserved patterns
+    preserved_map = {}
+    for i, pattern in enumerate(preserved_ampersands):
+        placeholder = f"__AMP_PRESERVE_{i}__"
+        if pattern.lower() in normalized.lower():
+            # Case-insensitive replacement with preservation
+            idx = normalized.lower().find(pattern.lower())
+            original_text = normalized[idx : idx + len(pattern)]
+            preserved_map[placeholder] = original_text
+            normalized = normalized[:idx] + placeholder + normalized[idx + len(pattern) :]
+
+    # Replace standalone & with "and" (with spaces around it)
+    if " & " in normalized:
+        count = normalized.count(" & ")
+        normalized = normalized.replace(" & ", " and ")
+        changes.append(f"ampersand ' & '→' and ' ({count}x)")
+
+    # Replace & at start of word (but not in preserved patterns)
+    if "&" in normalized and "__AMP" not in normalized.split("&")[0][-10:]:
+        # Only replace remaining & that are not part of preserved patterns
+        remaining = normalized.count("&") - len(preserved_map)
+        if remaining > 0:
+            # Replace & that appears between words/phrases
+            normalized = re.sub(r"(?<!\w)&(?!\w)", " and ", normalized)
+            changes.append(f"ampersand remaining ({remaining}x)")
+
+    # Restore preserved patterns
+    for placeholder, original in preserved_map.items():
+        normalized = normalized.replace(placeholder, original)
+
+    # 5. Normalize various bracket types
+    bracket_pairs = [
+        ("【", "["),
+        ("】", "]"),
+        ("〔", "["),
+        ("〕", "]"),
+        ("「", '"'),
+        ("」", '"'),
+        ("『", '"'),
+        ("』", '"'),
+        ("《", "<"),
+        ("》", ">"),
+    ]
+    for old, new in bracket_pairs:
+        if old in normalized:
+            count = normalized.count(old)
+            normalized = normalized.replace(old, new)
+            changes.append(f"bracket {old}→{new} ({count}x)")
+
+    # 6. Normalize multiple spaces to single space
+    if "  " in normalized:
+        normalized = re.sub(r"\s+", " ", normalized)
+        changes.append("collapsed multiple spaces")
+
+    # 7. Strip leading/trailing whitespace
+    normalized = normalized.strip()
+
+    was_normalized = normalized != query
+
+    if was_normalized:
+        logger.info(f"🔤 Normalized query: {changes}")
+        logger.debug(f"  Original: {query}")
+        logger.debug(f"  Normalized: {normalized}")
+
+    return SpecialCharResult(
+        original_query=query,
+        normalized_query=normalized,
+        was_normalized=was_normalized,
+        normalizations_applied=changes,
+    )
+
+
+# =============================================================================
 # LONG QUERY PREPROCESSING
 # =============================================================================
 
@@ -3318,9 +3548,24 @@ digital_europe, life""",
         # Reset context window manager to prevent memory leak across queries
         _context_manager.reset()
 
+        # Normalize special characters (CO₂→CO2, &→and, smart quotes, etc.)
+        special_char_result = normalize_special_characters(query)
+        original_query_before_normalize = query
+        special_char_metadata = None
+        if special_char_result.was_normalized:
+            logger.info(
+                f"🔤 Normalized special characters in query: "
+                f"{', '.join(special_char_result.normalizations_applied)}"
+            )
+            query = special_char_result.normalized_query
+            special_char_metadata = {
+                "original_had_special_chars": True,
+                "normalizations_applied": special_char_result.normalizations_applied,
+            }
+
         # Preprocess long queries (500+ characters) to extract key intent
         long_query_result = preprocess_long_query(query, self.llm)
-        original_query = query
+        original_query = original_query_before_normalize  # Keep original for context
         if long_query_result.was_processed:
             logger.info(
                 f"📝 Long query ({long_query_result.query_length} chars) → "
@@ -3585,6 +3830,10 @@ digital_europe, life""",
                 "processing_method": long_query_result.processing_note,
             }
 
+        # Add special character metadata if query was normalized
+        if special_char_metadata:
+            result["special_char_metadata"] = special_char_metadata
+
         return result
 
     async def process_query_streaming(
@@ -3612,9 +3861,24 @@ digital_europe, life""",
         # Reset context window manager to prevent memory leak across queries
         _context_manager.reset()
 
+        # Normalize special characters (CO₂→CO2, &→and, smart quotes, etc.)
+        special_char_result = normalize_special_characters(query)
+        original_query_before_normalize = query
+        special_char_metadata = None
+        if special_char_result.was_normalized:
+            logger.info(
+                f"🔤 [Streaming] Normalized special characters in query: "
+                f"{', '.join(special_char_result.normalizations_applied)}"
+            )
+            query = special_char_result.normalized_query
+            special_char_metadata = {
+                "original_had_special_chars": True,
+                "normalizations_applied": special_char_result.normalizations_applied,
+            }
+
         # Preprocess long queries (500+ characters) to extract key intent
         long_query_result = preprocess_long_query(query, self.llm)
-        original_query = query
+        original_query = original_query_before_normalize  # Keep original for context
         if long_query_result.was_processed:
             logger.info(
                 f"📝 [Streaming] Long query ({long_query_result.query_length} chars) → "
@@ -3927,6 +4191,10 @@ digital_europe, life""",
                 "key_details_extracted": long_query_result.key_details,
                 "processing_method": long_query_result.processing_note,
             }
+
+        # Add special character metadata if query was normalized
+        if special_char_metadata:
+            final_result["special_char_metadata"] = special_char_metadata
 
         yield {"type": "agent_complete", "result": final_result}
 
@@ -18570,7 +18838,8 @@ You can track potential changes by:
             "join ia",
         ]
 
-        # SME funding opportunities patterns
+        # SME funding opportunities patterns - ONLY explicit SME mentions
+        # NOTE: "what's available" removed - too generic, matches project searches
         sme_opportunities_patterns = [
             "sme funding",
             "funding for sme",
@@ -18581,11 +18850,16 @@ You can track potential changes by:
             "sme-specific",
             "dedicated to sme",
             "available for sme",
-            "what's available",
-            "what is available",
             "we're an sme",
             "we are an sme",
             "as an sme",
+            "i'm an sme",
+            "i am an sme",
+        ]
+        # Generic availability patterns that need SME context
+        availability_with_sme_patterns = [
+            "what's available",
+            "what is available",
         ]
 
         # EIC-specific SME patterns (for follow-up in SME context)
@@ -18654,10 +18928,23 @@ You can track potential changes by:
                 "response": self._generate_sme_definition_guidance(),
             }
 
-        # Check for SME funding opportunities query
+        # Check for SME funding opportunities query - explicit SME mentions
         if any(pattern in query_lower for pattern in sme_opportunities_patterns):
             return {
                 "thought": "User asking about funding opportunities for SMEs. Providing SME funding overview with actionable next steps.",
+                "action": "generate_guidance",
+                "guidance_type": "sme_opportunities",
+                "response": self._generate_sme_opportunities_guidance(),
+            }
+
+        # Check for availability patterns ONLY when there's SME context
+        # This prevents "what's available for X" from triggering SME guidance
+        # when user is asking about project/call availability for a topic
+        if has_sme_context and any(
+            pattern in query_lower for pattern in availability_with_sme_patterns
+        ):
+            return {
+                "thought": "User asking what's available (in SME context). Providing SME funding overview with actionable next steps.",
                 "action": "generate_guidance",
                 "guidance_type": "sme_opportunities",
                 "response": self._generate_sme_opportunities_guidance(),

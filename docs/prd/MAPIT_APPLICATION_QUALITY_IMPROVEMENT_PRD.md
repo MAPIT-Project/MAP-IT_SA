@@ -646,12 +646,15 @@ Ensure graceful handling of failures and edge cases.
   - **Fix applied**: Added `preprocess_long_query()` function that detects queries over 500 characters and extracts key intent while preserving important details (organization names, budget amounts, countries, programme names). Added `LongQueryResult` dataclass, `_extract_key_details()` for pattern-based detail extraction, `_extract_intent_with_llm()` for LLM-based extraction, and `_extract_intent_rule_based()` for fallback rule-based processing. Both `process_query()` and `process_query_streaming()` now preprocess long queries and include original query in context for full detail availability.
   - **Tests**: `tests/quality/test_scenario_052_very_long_query.py` (31 unit tests + 2 integration tests)
 
-- [ ] **Scenario 053: Special Characters** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 053: Special Characters** `EXECUTE + FIX IF NEEDED`
   - Query: "Find projects on CO₂ capture & storage (CCS) - what's available?"
   - Expected: Handles special chars, answers correctly
   - Verify: Doesn't break on subscripts, ampersand
   - Fix if: Parse error, wrong search
   - Pass threshold: 80
+  - **Status: PASS (score 85/100)**
+  - **Fix applied**: Added `normalize_special_characters()` function that handles subscripts (CO₂→CO2, H₂O→H2O), superscripts (10²→10^2), smart quotes ("\u201C\u201D→""), en/em dashes, ampersands (& → and, preserving R&D/M&A/Q&A), euro signs (€→EUR), and other Unicode typography. Also fixed overly broad SME detection patterns - removed "what's available" from generic triggers, now requires explicit SME context. Character maps use Unicode escapes to avoid duplicate key issues.
+  - **Tests**: `tests/quality/test_scenario_053_special_characters.py` (41 tests)
 
 - [ ] **Scenario 054: Non-English Query** `EXECUTE + FIX IF NEEDED`
   - Query: "Trouvez des appels pour l'énergie renouvelable"
