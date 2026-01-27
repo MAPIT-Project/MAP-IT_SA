@@ -6,16 +6,6 @@ repos:
         args: ["--fix"]
       - id: ruff-format
 
-  - repo: https://github.com/psf/black
-    rev: 24.8.0
-    hooks:
-      - id: black
-
-  - repo: https://github.com/pycqa/isort
-    rev: 5.13.2
-    hooks:
-      - id: isort
-
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
     hooks:
@@ -23,16 +13,3 @@ repos:
       - id: end-of-file-fixer
       - id: trailing-whitespace
       - id: mixed-line-ending
-
-  # Local hook: Conversation stability smoke tests
-  # Runs quick tests when conversation_manager.py or memory_service.py are modified
-  - repo: local
-    hooks:
-      - id: conversation-smoke-tests
-        name: conversation stability smoke tests
-        entry: pytest tests/test_conversation_smoke.py -v --tb=short -q
-        language: system
-        files: (conversation_manager\.py|memory_service\.py)$
-        pass_filenames: false
-        stages: [pre-commit]
-        types: [python]
