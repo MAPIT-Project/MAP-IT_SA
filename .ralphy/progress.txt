@@ -15654,3 +15654,90 @@ The streaming endpoint correctly:
 ✅ Sends events in proper order
 ✅ Accumulates response text from token events
 ✅ Includes metadata in complete event (architecture: "simplified_v3")
+
+---
+
+## Scenario 063: Tool Progress Visible (COMPLETED)
+
+**Date:** 2026-01-27
+**Status:** PASSED (Progress visible)
+**Query:** Various queries requiring tool usage
+
+### Problem
+Need to verify that tool progress is visible during streaming:
+1. tool_call events are emitted BEFORE tool execution
+2. tool_result events are emitted AFTER tool execution
+3. Tool names and parameters are visible in tool_call events
+4. Tool results include success status, result count, and summary
+5. Multiple tools show multiple tool_call/tool_result pairs
+6. Events arrive in order: status → agent_thinking → tool_call → tool_result → tokens
+
+### Solution
+Created comprehensive test suite for Scenario 063: Tool Progress Visible that verifies all tool visibility requirements:
+
+1. **ToolCallEvent data class**: Represents a tool_call event with:
+   - timestamp, iteration, tool_name, parameters, reasoning
+
+2. **ToolResultEvent data class**: Represents a tool_result event with:
+   - timestamp, iteration, tool_name, success, result_count, result_summary, execution_time_ms
+
+3. **ToolProgressAnalysis data class**: Comprehensive analysis with properties:
+   - `tool_call_count`: Number of tool_call events
+   - `tool_result_count`: Number of tool_result events
+   - `unique_tools_called`: Set of unique tool names
+   - `has_tool_progress`: Check if both calls and results present
+   - `all_tools_have_results`: Check if calls match results
+   - `tool_calls_before_tokens`: Check event order
+   - `tool_execution_times`: List of execution times
+
+4. **ToolProgressVisibleEvaluator**: Evaluator with 100-point scoring rubric:
+   - Tool Call Visibility (30 points): tool_call events with required fields
+   - Tool Result Visibility (30 points): tool_result events with required fields
+   - Event Order (15 points): tool events before tokens
+   - Event Pairing (15 points): all calls have results
+   - Result Detail (10 points): includes execution time, result count, summary
+
+### Configuration
+- `MIN_TOOL_CALL_EVENTS = 1`: At least 1 tool_call event
+- `MIN_TOOL_RESULT_EVENTS = 1`: At least 1 tool_result event
+- `REQUIRED_TOOL_CALL_FIELDS = {"tool_name", "parameters"}`
+- `REQUIRED_TOOL_RESULT_FIELDS = {"tool_name", "success"}`
+
+### Tool Event Flow (from tool_aware_agent.py)
+1. Agent decides to call tools (from LLM reasoning)
+2. EMIT tool_call events BEFORE execution (lines 4540-4546)
+3. EXECUTE the tools (waits for completion)
+4. EMIT tool_result events AFTER execution (lines 4554-4562)
+
+### Files Modified
+- `docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md` - Marked scenario complete
+
+### Files Created
+- `tests/quality/test_scenario_063_tool_progress_visible.py` - 40 tests covering:
+  - ToolCallEvent data class tests
+  - ToolResultEvent data class tests
+  - ToolProgressAnalysis property tests
+  - ToolProgressVisibleEvaluator scoring tests
+  - Live API integration tests (tool_call events, tool_result events, event pairing)
+  - Multi-tool query tests
+  - Single-tool query tests
+  - Event sequence tests
+  - Validation tests
+
+### Test Results
+```
+40 passed in 77.54s
+Tool progress visible: PASS
+```
+
+### Key Tool Progress Features Verified
+✅ tool_call events emitted BEFORE tool execution
+✅ tool_call events include tool_name and parameters
+✅ tool_result events emitted AFTER tool execution
+✅ tool_result events include success status
+✅ tool_result events include result_count (when available)
+✅ tool_result events include result_summary (when available)
+✅ tool_result events include execution_time_ms (when available)
+✅ All tool calls have corresponding results
+✅ Events arrive in proper order (status → tool_call → tool_result → tokens)
+✅ User can see what's happening (not a black box)

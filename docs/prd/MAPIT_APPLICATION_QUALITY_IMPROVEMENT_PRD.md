@@ -760,12 +760,15 @@ Ensure the system is fast and pleasant to use.
   - **Verified**: SSE events received correctly in `data: {json}\n\n` format, tokens stream progressively (multiple events over time), status events shown before tokens, all required event types present (status, token, complete), events arrive in proper order
   - **Tests**: `tests/quality/test_scenario_062_streaming_works.py` (44 tests)
 
-- [ ] **Scenario 063: Tool Progress Visible** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 063: Tool Progress Visible** `EXECUTE + FIX IF NEEDED`
   - Query requiring multiple tools
   - Expected: Tool calls and results visible during streaming
   - Verify: User sees what's happening
   - Fix if: Black box until final answer
   - Pass threshold: Progress visible
+  - **Status: PASS (Progress visible)**
+  - **Verified**: Tool_call events emitted BEFORE tool execution with tool_name and parameters. Tool_result events emitted AFTER execution with success status, result_count, result_summary, and execution_time_ms. Events arrive in proper order: status → agent_thinking → tool_call → tool_result → tokens → complete
+  - **Tests**: `tests/quality/test_scenario_063_tool_progress_visible.py` (40 tests)
 
 ---
 
