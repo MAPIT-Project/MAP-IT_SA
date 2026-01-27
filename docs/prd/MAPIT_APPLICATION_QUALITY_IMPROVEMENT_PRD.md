@@ -656,12 +656,15 @@ Ensure graceful handling of failures and edge cases.
   - **Fix applied**: Added `normalize_special_characters()` function that handles subscripts (CO₂→CO2, H₂O→H2O), superscripts (10²→10^2), smart quotes ("\u201C\u201D→""), en/em dashes, ampersands (& → and, preserving R&D/M&A/Q&A), euro signs (€→EUR), and other Unicode typography. Also fixed overly broad SME detection patterns - removed "what's available" from generic triggers, now requires explicit SME context. Character maps use Unicode escapes to avoid duplicate key issues.
   - **Tests**: `tests/quality/test_scenario_053_special_characters.py` (41 tests)
 
-- [ ] **Scenario 054: Non-English Query** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 054: Non-English Query** `EXECUTE + FIX IF NEEDED`
   - Query: "Trouvez des appels pour l'énergie renouvelable"
   - Expected: Understands French, responds appropriately
   - Verify: Doesn't fail, provides relevant results
   - Fix if: Completely misunderstands
   - Pass threshold: 75
+  - **Status: PASS (score 75+/100)**
+  - **Fix applied**: Added `detect_query_language()` function with LANGUAGE_INDICATORS dictionary supporting 7 EU languages (French, German, Spanish, Italian, Portuguese, Dutch, Polish). Added `translate_query_to_english()` using LLM-based translation that preserves EU funding terminology. Added `preprocess_non_english_query()` main entry point. Both `process_query()` and `process_query_streaming()` now detect and translate non-English queries before processing.
+  - **Tests**: `tests/quality/test_scenario_054_non_english_query.py` (41 tests)
 
 ### Empty Results
 

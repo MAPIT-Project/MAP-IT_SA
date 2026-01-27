@@ -15060,3 +15060,68 @@ Implemented Scenario 053: Special Characters handling that correctly normalizes 
 - Normalized: "Find projects on CO2 capture and storage (CCS) - what's available?"
 - Changes: ['subscript ₂→2 (1x)', "ampersand ' & '→' and ' (1x)"]
 - Result: Returns 10 relevant carbon capture projects (not SME guidance)
+
+## 2026-01-27: Scenario 054 - Non-English Query Handling
+
+### Task
+Implement support for non-English queries (French, German, Spanish, Italian, Portuguese, Dutch, Polish) in the MAPIT EU funding assistant.
+
+### Implementation
+1. Added language detection functionality with `LANGUAGE_INDICATORS` dictionary containing:
+   - Common words for each language
+   - Language-specific patterns (contractions, suffixes, diacritics)
+   - Language names for user feedback
+
+2. Added `LanguageDetectionResult` dataclass to track:
+   - Detected language code (ISO 639-1)
+   - Language name
+   - Confidence score
+   - Detection method
+   - Matched indicators
+
+3. Added `TranslationResult` dataclass to track:
+   - Original and translated queries
+   - Source language information
+   - Translation method and confidence
+
+4. Added `detect_query_language()` function that:
+   - Analyzes query words against language indicators
+   - Checks language-specific patterns (French contractions, German umlauts, etc.)
+   - Calculates confidence scores based on match count
+   - Returns English as default for ambiguous queries
+
+5. Added `translate_query_to_english()` function that:
+   - Uses LLM (Gemini) for accurate translation
+   - Preserves EU funding terminology (programme names, call IDs, etc.)
+   - Handles missing LLM gracefully (passthrough mode)
+
+6. Added `preprocess_non_english_query()` as main entry point that:
+   - Detects query language
+   - Translates if non-English
+   - Returns query and metadata
+
+7. Updated `process_query()` to:
+   - Detect and translate non-English queries
+   - Include translation metadata in response
+
+8. Updated `process_query_streaming()` to:
+   - Detect and translate non-English queries
+   - Include translation metadata in final result
+
+### Files Modified
+- `app/services/agents/tool_aware_agent.py` - Added language detection and translation logic
+- `tests/quality/test_scenario_054_non_english_query.py` - 41 tests for non-English query handling
+- `docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md` - Marked scenario 054 complete
+
+### Tests
+- 41 tests covering:
+  - Language detection for 7 EU languages
+  - Translation functionality
+  - Integration with process_query
+  - Edge cases (mixed language, programme names, special characters)
+  - Confidence scoring
+  - Streaming query handling
+
+### Pass Threshold
+- Required: 75/100
+- Status: PASS

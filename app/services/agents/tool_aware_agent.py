@@ -387,6 +387,562 @@ def normalize_special_characters(query: str) -> SpecialCharResult:
 
 
 # =============================================================================
+# NON-ENGLISH QUERY HANDLING
+# =============================================================================
+
+# Common non-English words and patterns for language detection
+# These are high-frequency words that strongly indicate the language
+LANGUAGE_INDICATORS = {
+    "fr": {  # French
+        "words": [
+            "trouvez",
+            "trouver",
+            "chercher",
+            "cherchez",
+            "appels",
+            "appel",
+            "financement",
+            "pour",
+            "dans",
+            "les",
+            "des",
+            "une",
+            "est",
+            "sont",
+            "avec",
+            "sur",
+            "que",
+            "qui",
+            "nous",
+            "vous",
+            "comment",
+            "quels",
+            "quelles",
+            "quel",
+            "quelle",
+            "énergie",
+            "renouvelable",
+            "recherche",
+            "projets",
+            "européen",
+            "européenne",
+            "subvention",
+            "subventions",
+            "demande",
+            "demander",
+            "je",
+            "suis",
+            "mon",
+            "notre",
+            "peut",
+            "peuvent",
+            "avoir",
+            "être",
+            "faire",
+            "fais",
+            "veut",
+            "veux",
+            "voulons",
+        ],
+        "patterns": [
+            r"\b(l'|d'|qu'|n'|s'|c'|j'|m'|t')\w+",  # French contractions
+            r"\bà\s",  # French preposition
+            r"\bé\w+",  # Words starting with é
+        ],
+        "name": "French",
+    },
+    "de": {  # German
+        "words": [
+            "finden",
+            "suchen",
+            "förderung",
+            "finanzierung",
+            "forschung",
+            "projekte",
+            "energie",
+            "erneuerbare",
+            "anträge",
+            "antrag",
+            "können",
+            "möchten",
+            "haben",
+            "sind",
+            "wird",
+            "werden",
+            "für",
+            "mit",
+            "und",
+            "oder",
+            "nach",
+            "bei",
+            "wie",
+            "was",
+            "welche",
+            "welcher",
+            "gibt",
+            "kann",
+            "müssen",
+            "sollte",
+            "ich",
+            "wir",
+            "sie",
+            "mein",
+            "unser",
+        ],
+        "patterns": [
+            r"\b\w+ung\b",  # German -ung suffix
+            r"\b\w+keit\b",  # German -keit suffix
+            r"\b\w+schaft\b",  # German -schaft suffix
+            r"\bß\w*",  # Words with ß
+            r"\b(ä|ö|ü)\w+",  # Words with German umlauts
+        ],
+        "name": "German",
+    },
+    "es": {  # Spanish
+        "words": [
+            "buscar",
+            "encontrar",
+            "convocatorias",
+            "convocatoria",
+            "financiación",
+            "energía",
+            "renovable",
+            "investigación",
+            "proyectos",
+            "para",
+            "con",
+            "los",
+            "las",
+            "una",
+            "uno",
+            "que",
+            "como",
+            "cuáles",
+            "cuál",
+            "dónde",
+            "puede",
+            "pueden",
+            "tenemos",
+            "queremos",
+            "necesitamos",
+            "solicitar",
+            "solicitud",
+            "subvención",
+            "subvenciones",
+            "yo",
+            "nosotros",
+            "nuestra",
+            "nuestro",
+        ],
+        "patterns": [
+            r"\b\w+ción\b",  # Spanish -ción suffix
+            r"\b¿",  # Spanish inverted question mark
+            r"\b¡",  # Spanish inverted exclamation
+            r"\bñ\w*",  # Words with ñ
+        ],
+        "name": "Spanish",
+    },
+    "it": {  # Italian
+        "words": [
+            "trovare",
+            "cercare",
+            "bandi",
+            "bando",
+            "finanziamento",
+            "finanziamenti",
+            "energia",
+            "rinnovabile",
+            "ricerca",
+            "progetti",
+            "progetto",
+            "per",
+            "con",
+            "gli",
+            "una",
+            "sono",
+            "come",
+            "quali",
+            "quale",
+            "dove",
+            "possiamo",
+            "vogliamo",
+            "abbiamo",
+            "domanda",
+            "richiesta",
+            "sovvenzione",
+            "io",
+            "noi",
+            "nostro",
+            "nostra",
+        ],
+        "patterns": [
+            r"\b\w+zione\b",  # Italian -zione suffix
+            r"\b\w+ità\b",  # Italian -ità suffix
+        ],
+        "name": "Italian",
+    },
+    "pt": {  # Portuguese
+        "words": [
+            "encontrar",
+            "buscar",
+            "procurar",
+            "chamadas",
+            "chamada",
+            "financiamento",
+            "energia",
+            "renovável",
+            "pesquisa",
+            "projetos",
+            "projeto",
+            "para",
+            "com",
+            "uma",
+            "são",
+            "como",
+            "quais",
+            "qual",
+            "onde",
+            "podemos",
+            "queremos",
+            "temos",
+            "solicitação",
+            "subvenção",
+            "eu",
+            "nós",
+            "nosso",
+            "nossa",
+        ],
+        "patterns": [
+            r"\b\w+ção\b",  # Portuguese -ção suffix
+            r"\b\w+ões\b",  # Portuguese -ões suffix
+        ],
+        "name": "Portuguese",
+    },
+    "nl": {  # Dutch
+        "words": [
+            "vinden",
+            "zoeken",
+            "oproepen",
+            "financiering",
+            "energie",
+            "hernieuwbare",
+            "onderzoek",
+            "projecten",
+            "voor",
+            "met",
+            "een",
+            "zijn",
+            "hoe",
+            "welke",
+            "waar",
+            "kunnen",
+            "willen",
+            "hebben",
+            "aanvraag",
+            "subsidie",
+            "ik",
+            "wij",
+            "onze",
+        ],
+        "patterns": [
+            r"\b\w+heid\b",  # Dutch -heid suffix
+            r"\bij\b",  # Dutch "ij" digraph
+        ],
+        "name": "Dutch",
+    },
+    "pl": {  # Polish
+        "words": [
+            "znaleźć",
+            "szukać",
+            "nabory",
+            "nabór",
+            "finansowanie",
+            "energia",
+            "odnawialna",
+            "badania",
+            "projekty",
+            "dla",
+            "jak",
+            "które",
+            "gdzie",
+            "możemy",
+            "chcemy",
+            "mamy",
+            "wniosek",
+            "dotacja",
+            "ja",
+            "my",
+            "nasz",
+            "nasza",
+        ],
+        "patterns": [
+            r"\b\w+ość\b",  # Polish -ość suffix
+            r"[ąćęłńóśźż]",  # Polish diacritics
+        ],
+        "name": "Polish",
+    },
+}
+
+# Translation prompts for LLM-based translation
+TRANSLATION_PROMPT_TEMPLATE = """Translate the following {source_lang} query to English.
+This is an EU funding query, so preserve any:
+- Programme names (Horizon Europe, Erasmus+, Creative Europe, etc.)
+- Technical terms
+- Organization names
+- Call IDs (e.g., HORIZON-xxx)
+- Country names
+
+Translate naturally and preserve the query intent.
+
+Original query ({source_lang}):
+{query}
+
+English translation (provide ONLY the translation, no other text):"""
+
+
+@dataclass
+class LanguageDetectionResult:
+    """Result of detecting the language of a query."""
+
+    original_query: str
+    detected_language: str  # ISO 639-1 code or "en" for English
+    language_name: str  # Human-readable name
+    confidence: float  # 0.0 to 1.0
+    is_english: bool
+    detection_method: str  # "pattern", "word_frequency", "default"
+    matched_indicators: list[str] = field(default_factory=list)
+
+
+@dataclass
+class TranslationResult:
+    """Result of translating a non-English query."""
+
+    original_query: str
+    translated_query: str
+    source_language: str
+    source_language_name: str
+    was_translated: bool
+    translation_method: str  # "llm", "passthrough"
+    confidence: float
+
+
+def detect_query_language(query: str) -> LanguageDetectionResult:
+    """
+    Detect the language of a user query using pattern matching and word frequency.
+
+    This uses a lightweight rule-based approach that:
+    1. Checks for language-specific patterns (contractions, suffixes)
+    2. Counts matches against common words in each language
+    3. Returns the most likely language with confidence score
+
+    Args:
+        query: The user's query text
+
+    Returns:
+        LanguageDetectionResult with detected language and confidence
+    """
+    if not query or not query.strip():
+        return LanguageDetectionResult(
+            original_query=query,
+            detected_language="en",
+            language_name="English",
+            confidence=1.0,
+            is_english=True,
+            detection_method="default",
+        )
+
+    query_lower = query.lower()
+    query_words = set(re.findall(r"\b\w+\b", query_lower))
+
+    # Score each language
+    language_scores: dict[str, dict] = {}
+
+    for lang_code, indicators in LANGUAGE_INDICATORS.items():
+        score = 0.0
+        matched = []
+
+        # Check word matches (weighted by word frequency in query)
+        word_matches = query_words.intersection(set(indicators["words"]))
+        if word_matches:
+            # Weight by number of matches and their presence
+            word_score = len(word_matches) * 2.0
+            score += word_score
+            matched.extend(list(word_matches)[:5])  # Keep top 5 for debugging
+
+        # Check pattern matches
+        for pattern in indicators["patterns"]:
+            pattern_matches = re.findall(pattern, query_lower)
+            if pattern_matches:
+                score += len(pattern_matches) * 1.5
+                matched.append(f"pattern:{pattern[:20]}...")
+
+        language_scores[lang_code] = {
+            "score": score,
+            "matched": matched,
+            "name": indicators["name"],
+        }
+
+    # Find the highest scoring language
+    if language_scores:
+        best_lang = max(language_scores.keys(), key=lambda k: language_scores[k]["score"])
+        best_score = language_scores[best_lang]["score"]
+
+        # Confidence thresholds:
+        # - Score >= 4.0: High confidence (multiple word/pattern matches)
+        # - Score >= 2.0: Medium confidence
+        # - Score < 2.0: Low confidence, likely English
+
+        if best_score >= 2.0:
+            # Normalize confidence to 0-1 range (cap at 10 for normalization)
+            confidence = min(best_score / 10.0, 1.0)
+
+            logger.info(
+                f"🌍 Detected language: {language_scores[best_lang]['name']} "
+                f"(score={best_score:.1f}, matches={language_scores[best_lang]['matched'][:3]})"
+            )
+
+            return LanguageDetectionResult(
+                original_query=query,
+                detected_language=best_lang,
+                language_name=language_scores[best_lang]["name"],
+                confidence=confidence,
+                is_english=False,
+                detection_method="word_frequency",
+                matched_indicators=language_scores[best_lang]["matched"],
+            )
+
+    # Default to English
+    return LanguageDetectionResult(
+        original_query=query,
+        detected_language="en",
+        language_name="English",
+        confidence=0.8,  # Moderate confidence as default
+        is_english=True,
+        detection_method="default",
+    )
+
+
+def translate_query_to_english(
+    query: str, source_language: str, source_language_name: str, llm: Any = None
+) -> TranslationResult:
+    """
+    Translate a non-English query to English using LLM.
+
+    Args:
+        query: The original query in source language
+        source_language: ISO 639-1 code of source language
+        source_language_name: Human-readable language name
+        llm: LLM instance for translation (e.g., Gemini)
+
+    Returns:
+        TranslationResult with translated query
+    """
+    if not llm:
+        logger.warning("No LLM available for translation, passing through original query")
+        return TranslationResult(
+            original_query=query,
+            translated_query=query,
+            source_language=source_language,
+            source_language_name=source_language_name,
+            was_translated=False,
+            translation_method="passthrough",
+            confidence=0.0,
+        )
+
+    try:
+        prompt = TRANSLATION_PROMPT_TEMPLATE.format(source_lang=source_language_name, query=query)
+
+        response = llm.generate_content(prompt)
+        translated = response.text.strip()
+
+        # Clean up the translation (remove quotes if present)
+        if translated.startswith('"') and translated.endswith('"'):
+            translated = translated[1:-1]
+        if translated.startswith("'") and translated.endswith("'"):
+            translated = translated[1:-1]
+
+        # Validate translation isn't empty or same as original
+        if not translated or translated.lower() == query.lower():
+            logger.warning("Translation returned empty or identical result")
+            return TranslationResult(
+                original_query=query,
+                translated_query=query,
+                source_language=source_language,
+                source_language_name=source_language_name,
+                was_translated=False,
+                translation_method="passthrough",
+                confidence=0.0,
+            )
+
+        logger.info(f"🌐 Translated from {source_language_name}: '{query}' → '{translated}'")
+
+        return TranslationResult(
+            original_query=query,
+            translated_query=translated,
+            source_language=source_language,
+            source_language_name=source_language_name,
+            was_translated=True,
+            translation_method="llm",
+            confidence=0.85,  # LLM translations are generally reliable
+        )
+
+    except Exception as e:
+        logger.warning(f"Translation failed: {e}, passing through original query")
+        return TranslationResult(
+            original_query=query,
+            translated_query=query,
+            source_language=source_language,
+            source_language_name=source_language_name,
+            was_translated=False,
+            translation_method="passthrough",
+            confidence=0.0,
+        )
+
+
+def preprocess_non_english_query(query: str, llm: Any = None) -> tuple[str, dict | None]:
+    """
+    Detect and translate non-English queries to English.
+
+    This is the main entry point for non-English query handling:
+    1. Detects the query language
+    2. If non-English, translates to English using LLM
+    3. Returns the (possibly translated) query and metadata
+
+    Args:
+        query: The user's query
+        llm: Optional LLM instance for translation
+
+    Returns:
+        Tuple of (processed_query, metadata_dict_or_none)
+    """
+    # Detect language
+    detection = detect_query_language(query)
+
+    if detection.is_english:
+        # No translation needed
+        return query, None
+
+    # Translate to English
+    translation = translate_query_to_english(
+        query=query,
+        source_language=detection.detected_language,
+        source_language_name=detection.language_name,
+        llm=llm,
+    )
+
+    metadata = {
+        "original_language": detection.detected_language,
+        "original_language_name": detection.language_name,
+        "language_detection_confidence": detection.confidence,
+        "was_translated": translation.was_translated,
+        "translation_method": translation.translation_method,
+        "original_query": query,
+    }
+
+    return translation.translated_query, metadata
+
+
+# =============================================================================
 # LONG QUERY PREPROCESSING
 # =============================================================================
 
@@ -3563,6 +4119,15 @@ digital_europe, life""",
                 "normalizations_applied": special_char_result.normalizations_applied,
             }
 
+        # Handle non-English queries (detect and translate if needed)
+        translated_query, translation_metadata = preprocess_non_english_query(query, self.llm)
+        if translation_metadata and translation_metadata.get("was_translated"):
+            logger.info(
+                f"🌐 Translated query from {translation_metadata['original_language_name']}: "
+                f"'{query}' → '{translated_query}'"
+            )
+            query = translated_query
+
         # Preprocess long queries (500+ characters) to extract key intent
         long_query_result = preprocess_long_query(query, self.llm)
         original_query = original_query_before_normalize  # Keep original for context
@@ -3834,6 +4399,10 @@ digital_europe, life""",
         if special_char_metadata:
             result["special_char_metadata"] = special_char_metadata
 
+        # Add translation metadata if query was translated
+        if translation_metadata:
+            result["translation_metadata"] = translation_metadata
+
         return result
 
     async def process_query_streaming(
@@ -3875,6 +4444,15 @@ digital_europe, life""",
                 "original_had_special_chars": True,
                 "normalizations_applied": special_char_result.normalizations_applied,
             }
+
+        # Handle non-English queries (detect and translate if needed)
+        translated_query, translation_metadata = preprocess_non_english_query(query, self.llm)
+        if translation_metadata and translation_metadata.get("was_translated"):
+            logger.info(
+                f"🌐 [Streaming] Translated query from {translation_metadata['original_language_name']}: "
+                f"'{query}' → '{translated_query}'"
+            )
+            query = translated_query
 
         # Preprocess long queries (500+ characters) to extract key intent
         long_query_result = preprocess_long_query(query, self.llm)
@@ -4195,6 +4773,10 @@ digital_europe, life""",
         # Add special character metadata if query was normalized
         if special_char_metadata:
             final_result["special_char_metadata"] = special_char_metadata
+
+        # Add translation metadata if query was translated
+        if translation_metadata:
+            final_result["translation_metadata"] = translation_metadata
 
         yield {"type": "agent_complete", "result": final_result}
 
