@@ -421,7 +421,12 @@ class V3ResponseFormatter:
         start_date = project.get("startDate", project.get("start_date", ""))
         end_date = project.get("endDate", project.get("end_date", ""))
         _total_cost = project.get("totalCost", project.get("total_cost", ""))  # noqa: F841
-        eu_contribution = project.get("ecMaxContribution", project.get("eu_contribution", ""))
+        eu_contribution = (
+            project.get("ecMaxContribution")
+            or project.get("ec_contribution")
+            or project.get("eu_contribution")
+            or ""
+        )
         objective = project.get("objective", project.get("description", ""))
         coordinator = project.get("coordinator", "")
 
@@ -448,9 +453,7 @@ class V3ResponseFormatter:
             status_icon = (
                 "🟢"
                 if status.lower() == "ongoing"
-                else "✅"
-                if status.lower() == "closed"
-                else "📊"
+                else "✅" if status.lower() == "closed" else "📊"
             )
             lines.append(f"{status_icon} **Status:** {status}")
 
@@ -1095,9 +1098,7 @@ No collaboration partners found for this organization in the database.
 
         return "\n".join(lines)
 
-    def format_erasmus_budget_calculation(
-        self, result: dict[str, Any], query: str = ""
-    ) -> str:
+    def format_erasmus_budget_calculation(self, result: dict[str, Any], query: str = "") -> str:
         """Format Erasmus+ budget calculation results into a structured response."""
         if not result.get("success"):
             return "Erasmus+ budget calculation failed. Please try again with different parameters."
@@ -1108,7 +1109,6 @@ No collaboration partners found for this organization in the database.
         funding_model = result.get("funding_model", "lump_sum")
         budget_range = result.get("budget_range", {})
         budget_options = result.get("budget_options", [])
-        metadata = result.get("metadata", {})
 
         # Determine mobility type for header
         action_type = parameters.get("action_type", "")
@@ -1191,9 +1191,7 @@ No collaboration partners found for this organization in the database.
             min_budget = budget_range.get("min", 0)
             max_budget = budget_range.get("max", 0)
             lines.append("### 📈 Budget Range\n")
-            lines.append(
-                f"- **Minimum:** €{min_budget:,.0f}"
-            )
+            lines.append(f"- **Minimum:** €{min_budget:,.0f}")
             lines.append(f"- **Maximum:** €{max_budget:,.0f}")
             lines.append("")
 

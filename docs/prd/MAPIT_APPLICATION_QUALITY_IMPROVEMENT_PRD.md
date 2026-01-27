@@ -534,11 +534,14 @@ Ensure underlying data is accurate and up-to-date.
 
 ### Project Data Quality
 
-- [ ] **Scenario 043: Project Data Completeness** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 043: Project Data Completeness** `EXECUTE + FIX IF NEEDED`
   - Query: "Find 10 projects on machine learning"
   - Verify: All 10 have: title, budget, coordinator, status, dates
   - Fix if: Missing essential fields
   - Pass threshold: 85
+  - **Status: PASS (score 100/100)**
+  - **Fix applied**: V3ResponseFormatter now correctly retrieves `ec_contribution` field from project data (was only checking `ecMaxContribution` and `eu_contribution`, missing the actual field name returned by LocalProjectSearchService)
+  - **Tests**: `tests/quality/test_scenario_043_project_data_completeness.py` (21 unit tests + 7 integration tests)
 
 - [ ] **Scenario 044: Project Links Working** `EXECUTE + FIX IF NEEDED`
   - Take 5 project results, verify CORDIS links work

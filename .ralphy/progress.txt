@@ -13989,3 +13989,91 @@ Data quality requires that:
 
 ### PRD Task Status
 - [x] Scenario 042: Budget Accuracy - PASS (score 85+/100)
+
+
+## 2026-01-27: Scenario 043 - Project Data Completeness
+
+### Task Completed
+Implemented Scenario 043: Project Data Completeness - verifying that project search returns all essential fields (title, budget, coordinator, status, dates).
+
+### Problem Statement
+Data completeness requires that all projects returned have:
+- Title (not empty or placeholder)
+- Budget (ec_contribution or total_cost > 0)
+- Coordinator (valid organization name, not placeholder)
+- Status (SIGNED, CLOSED, TERMINATED)
+- Dates (both start_date and end_date present)
+
+### Bug Discovered and Fixed
+
+**Root Cause**: V3ResponseFormatter was not finding budget data for projects because of field name mismatch:
+- LocalProjectSearchService returns: `ec_contribution` (snake_case)
+- V3ResponseFormatter was looking for: `ecMaxContribution` or `eu_contribution` (camelCase)
+
+**Fix Applied**: Updated `_format_single_project()` in V3ResponseFormatter to also check for `ec_contribution`:
+```python
+# Before (broken):
+eu_contribution = project.get("ecMaxContribution", project.get("eu_contribution", ""))
+
+# After (fixed):
+eu_contribution = project.get("ecMaxContribution") or project.get("ec_contribution") or project.get("eu_contribution") or ""
+```
+
+### Implementation Details
+
+**Test File Created**: `tests/quality/test_scenario_043_project_data_completeness.py`
+
+**21 Unit Tests**:
+1. `test_validate_title_present` - Title validation logic
+2. `test_validate_budget_present` - Budget validation (ec_contribution/total_cost > 0)
+3. `test_validate_coordinator_present` - Coordinator validation (not placeholder)
+4. `test_validate_status_present` - Status validation (SIGNED/CLOSED/TERMINATED)
+5. `test_validate_dates_present` - Date validation (both start/end required)
+6. `test_completeness_score_all_complete` - 100% when all fields present
+7. `test_completeness_score_missing_one_field` - 80% when one field missing (4/5)
+8. `test_completeness_score_empty_project` - 0% for empty project
+9. `test_extract_project_count_from_response` - Parse "Found X projects"
+10. `test_detect_title_in_response` - Detect markdown titles
+11. `test_detect_budget_in_response` - Detect EUR/budget patterns
+12. `test_detect_coordinator_in_response` - Detect coordinator mentions
+13. `test_detect_status_in_response` - Detect SIGNED/CLOSED status
+14. `test_detect_dates_in_response` - Detect date patterns
+15. `test_api_returns_projects` - API returns machine learning projects
+16. `test_response_contains_titles` - Response has project titles
+17. `test_response_contains_budget_info` - Response has budget info
+18. `test_response_contains_coordinator_info` - Response has coordinator
+19. `test_response_contains_status_info` - Response has status
+20. `test_response_data_completeness_score` - MAIN TEST: 100% completeness
+21. `test_no_error_in_response` - No error messages in response
+
+**7 Integration Tests (require DATABASE_URL)**:
+1. `test_database_has_projects` - Verify DB has projects
+2. `test_projects_have_titles` - 99%+ title coverage
+3. `test_projects_have_budgets` - 85%+ budget coverage
+4. `test_projects_have_coordinators` - 85%+ coordinator coverage
+5. `test_projects_have_status` - 99%+ status coverage
+6. `test_projects_have_dates` - 99%+ date coverage
+7. `test_machine_learning_projects_completeness` - ML projects 85%+ complete
+
+### Quality Scoring Dimensions (85+ pass threshold)
+| Dimension | Points | Criteria |
+|-----------|--------|----------|
+| Title Present | 20 | Valid non-placeholder title |
+| Budget Present | 20 | ec_contribution or total_cost > 0 |
+| Coordinator Present | 20 | Valid organization name |
+| Status Present | 20 | SIGNED/CLOSED/TERMINATED |
+| Dates Present | 20 | Both start and end date |
+
+### Test Results
+- 21 unit tests passed
+- 7 integration tests (skipped without DATABASE_URL)
+- All linting checks passed
+- Pass threshold: 85/100, Actual: 100/100
+
+### Files Changed
+- Fixed: `app/services/response/v3_response_formatter.py` (line 424)
+- Created: `tests/quality/test_scenario_043_project_data_completeness.py`
+- Updated: `docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md`
+
+### PRD Task Status
+- [x] Scenario 043: Project Data Completeness - PASS (score 100/100)
