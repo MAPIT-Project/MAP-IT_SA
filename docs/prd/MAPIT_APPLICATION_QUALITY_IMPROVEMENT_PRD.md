@@ -584,11 +584,14 @@ Ensure underlying data is accurate and up-to-date.
   - **Fix applied**: Added `_detect_work_programme_content_query()` method to pre-route queries about work programme content (topics, priorities, structure) to `search_documents` tool instead of `search_funding_calls`. Added cluster extraction, year extraction, and search query building helpers.
   - **Tests**: `tests/quality/test_scenario_047_work_programme_version.py` (25 tests: 12 unit + 13 integration)
 
-- [ ] **Scenario 048: Erasmus+ Guide Version** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 048: Erasmus+ Guide Version** `EXECUTE + FIX IF NEEDED`
   - Query: "What are the Erasmus+ quality criteria?"
   - Verify: Uses 2025/2026 Programme Guide
   - Fix if: Uses older guide version
   - Pass threshold: 80
+  - **Status: PASS (score 80+/100)**
+  - **Fix applied**: Added `_detect_erasmus_programme_guide_query()` method to pre-route Erasmus+ Programme Guide content queries (quality criteria, evaluation criteria, award criteria) to `search_erasmus_templates` tool. Added `_build_erasmus_guide_search_query()` helper and `_format_erasmus_template_search_result()` formatter for structured response with Programme Guide 2026 citations.
+  - **Tests**: `tests/quality/test_scenario_048_erasmus_guide_version.py` (26 tests: 11 unit + 15 integration)
 
 ---
 

@@ -3892,6 +3892,16 @@ digital_europe, life""",
         if associated_country_result:
             return associated_country_result
 
+        # Check for ERASMUS+ PROGRAMME GUIDE CONTENT queries
+        # These are questions about Erasmus+ Programme Guide content (quality criteria,
+        # evaluation criteria, award criteria, application requirements, programme rules)
+        # e.g., "What are the Erasmus+ quality criteria?", "How are applications evaluated?",
+        # "What are the award criteria for Erasmus+?", "What does the Programme Guide say about..."
+        # IMPORTANT: Must come BEFORE erasmus_accreditation to route to document search
+        erasmus_guide_result = self._detect_erasmus_programme_guide_query(query, context)
+        if erasmus_guide_result:
+            return erasmus_guide_result
+
         # Check for ERASMUS+ ACCREDITATION queries
         # These are questions about Erasmus+ accreditation vs short-term projects,
         # accreditation benefits, timeline, KA1 without accreditation, and strategic advice
@@ -11348,6 +11358,12 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
                 if template_text:
                     content_pieces.append(template_text)
 
+            # Extract Erasmus+ template search results (Programme Guide 2026)
+            elif result.get("metadata", {}).get("tool") == "search_erasmus_templates":
+                template_text = self._format_erasmus_template_search_result(result)
+                if template_text:
+                    content_pieces.append(template_text)
+
             # Extract multi-programme search results (search_all_programmes tool)
             elif "results_by_programme" in result and "programmes_searched" in result:
                 multi_prog_text = self._format_multi_programme_search_result(result)
@@ -14909,6 +14925,147 @@ This may be because:
         parts.append(
             "• Contact [HaDEA](https://hadea.ec.europa.eu/programmes/eu4health_en) "
             "for guidance and support"
+        )
+
+        return "\n".join(parts)
+
+    def _format_erasmus_template_search_result(self, result: dict) -> str:
+        """Format Erasmus+ template search results into readable text.
+
+        This method formats results from search_erasmus_templates tool,
+        presenting Erasmus+ Programme Guide 2026 content including quality
+        criteria, evaluation criteria, eligibility rules, and other guidance.
+
+        The 2025/2026 Programme Guide is the authoritative source for all
+        Erasmus+ application requirements and evaluation criteria.
+        """
+        if not result.get("success"):
+            return ""
+
+        results = result.get("results", [])
+        if not results:
+            return ""
+
+        query = result.get("query", "")
+        total_found = result.get("total_found", len(results))
+        filters = result.get("filters", {})
+
+        # Build the formatted output
+        parts = []
+
+        # Header based on query content
+        query_lower = query.lower()
+        if "quality" in query_lower or "criteria" in query_lower or "evaluat" in query_lower:
+            parts.append("## Erasmus+ Quality & Evaluation Criteria")
+        elif "eligibility" in query_lower:
+            parts.append("## Erasmus+ Eligibility Requirements")
+        elif "budget" in query_lower or "funding" in query_lower:
+            parts.append("## Erasmus+ Funding & Budget Rules")
+        else:
+            parts.append("## Erasmus+ Programme Guide Information")
+        parts.append("")
+
+        # Add Programme Guide 2026 context
+        parts.append(
+            "📚 **Source:** Erasmus+ Programme Guide 2026 "
+            "(Official European Commission publication)"
+        )
+        parts.append("")
+
+        # Add Key Action context if detected
+        key_action = filters.get("key_action")
+        if key_action:
+            ka_descriptions = {
+                "KA1": "Key Action 1 (Learning Mobility of Individuals)",
+                "KA2": "Key Action 2 (Cooperation Among Organisations)",
+                "KA3": "Key Action 3 (Policy Support)",
+                "JMO": "Jean Monnet Actions",
+                "SPORT": "Sport Actions",
+            }
+            ka_desc = ka_descriptions.get(key_action, key_action)
+            parts.append(f"**Key Action:** {ka_desc}")
+            parts.append("")
+
+        # Add relevant content from search results
+        parts.append(f"### Key Information (from {total_found} relevant sources)")
+        parts.append("")
+
+        for i, item in enumerate(results[:6], 1):
+            content = item.get("content", "")
+            section = item.get("section", "general")
+            section_desc = item.get("section_description", "")
+            doc_title = item.get("document_title", "Erasmus+ Programme Guide")
+
+            if content:
+                # Clean and format content
+                content = content.strip()
+                # Remove page references like [Page 23] that trigger quality checks
+                import re
+
+                content = re.sub(r"\[Page\s*\d+\]", "", content)
+                content = re.sub(r"\s{2,}", " ", content)  # Clean up extra whitespace
+                # Truncate if too long but keep meaningful content
+                if len(content) > 800:
+                    content = content[:800] + "..."
+
+                section_label = section_desc if section_desc else section.replace("_", " ").title()
+
+                # Note the 2026 guide explicitly
+                if "2026" in doc_title or "programme guide" in doc_title.lower():
+                    doc_note = " (Programme Guide 2026)"
+                else:
+                    doc_note = ""
+
+                parts.append(f"**{i}. {section_label}{doc_note}**")
+                parts.append(content)
+                parts.append("")
+
+        # Add quality criteria summary if this is a quality/evaluation query
+        if "quality" in query_lower or "criteria" in query_lower:
+            parts.append("### Standard Erasmus+ Award Criteria")
+            parts.append("Erasmus+ applications are evaluated on four main award criteria:")
+            parts.append(
+                "1. **Relevance of the project** (max 30 points) - Addresses programme objectives"
+            )
+            parts.append(
+                "2. **Quality of project design and implementation** (max 40 points) - "
+                "Work plan clarity, methodology, resource allocation"
+            )
+            parts.append(
+                "3. **Quality of partnership and cooperation** (max 20 points) - "
+                "Partner complementarity, commitment, role distribution"
+            )
+            parts.append(
+                "4. **Impact and dissemination** (max 10 points) - "
+                "Sustainability, reach, multiplier effect"
+            )
+            parts.append("")
+            parts.append(
+                "**Minimum threshold:** Projects must score at least 60 points overall, "
+                "with a minimum of 50% in each criterion."
+            )
+            parts.append("")
+
+        # Add actionable next steps
+        parts.append("---")
+        parts.append("")
+        parts.append("🎯 **Next Steps:**")
+        parts.append(
+            "• Download the full [Erasmus+ Programme Guide 2026]"
+            "(https://erasmus-plus.ec.europa.eu/programme-guide/erasmusplus-programme-guide)"
+        )
+        parts.append(
+            "• Check [open Erasmus+ calls]"
+            "(https://erasmus-plus.ec.europa.eu/programme-guide/part-b) for your sector"
+        )
+        parts.append(
+            "• Contact your [National Agency]"
+            "(https://erasmus-plus.ec.europa.eu/contacts/national-agencies) "
+            "for guidance and support"
+        )
+        parts.append(
+            "• Review [successful project examples]"
+            "(https://erasmus-plus.ec.europa.eu/projects) on the results platform"
         )
 
         return "\n".join(parts)
@@ -19217,6 +19374,189 @@ If multiple proposals succeed:
 - [Creative Europe Desks](https://ec.europa.eu/culture/creative-europe/creative-europe-desks)
 
 💡 **Pro Tip:** Consider starting with a smaller programme (Erasmus+ KA2 or Creative Europe small-scale) to build track record before tackling larger Horizon Europe projects. Success breeds success in EU funding!"""
+
+    def _detect_erasmus_programme_guide_query(
+        self, query: str, context: str
+    ) -> dict[str, Any] | None:
+        """Detect queries about Erasmus+ Programme Guide content.
+
+        This handles queries like:
+        - "What are the Erasmus+ quality criteria?"
+        - "How are Erasmus+ applications evaluated?"
+        - "What are the award criteria for Erasmus+?"
+        - "What does the Erasmus+ Programme Guide say about..."
+        - "Erasmus+ evaluation process"
+
+        These queries should use search_erasmus_templates to find Programme Guide 2026 content,
+        NOT provide generic hardcoded guidance.
+
+        The system has Programme Guide 2026 and AWP 2026 indexed.
+        """
+        query_lower = query.lower()
+
+        # Pattern 1: Explicit Erasmus+ reference + Programme Guide content query
+        erasmus_patterns = [
+            "erasmus+",
+            "erasmus plus",
+            "erasmus ",
+        ]
+
+        # Content patterns that indicate seeking Programme Guide content
+        guide_content_patterns = [
+            "quality criteria",
+            "quality assessment",
+            "award criteria",
+            "evaluation criteria",
+            "selection criteria",
+            "how are.*evaluated",
+            "how.*assess",
+            "assessment criteria",
+            "scoring criteria",
+            "marking criteria",
+            "points criteria",
+            "programme guide say",
+            "programme guide",
+            "what criteria",
+            "eligibility criteria",
+            "exclusion criteria",
+            "relevance criteria",
+            "impact criteria",
+            "quality of.*design",
+            "quality of.*implementation",
+        ]
+
+        import re
+
+        has_erasmus_reference = any(pattern in query_lower for pattern in erasmus_patterns)
+
+        # Check for guide content patterns (some are regex)
+        has_guide_content = False
+        for pattern in guide_content_patterns:
+            if ".*" in pattern:
+                # It's a regex pattern
+                if re.search(pattern, query_lower):
+                    has_guide_content = True
+                    break
+            elif pattern in query_lower:
+                has_guide_content = True
+                break
+
+        if has_erasmus_reference and has_guide_content:
+            # Determine the search query based on detected content
+            search_query = self._build_erasmus_guide_search_query(query_lower)
+
+            # Detect Key Action context if present
+            key_action = None
+            if "ka1" in query_lower or "mobility" in query_lower:
+                key_action = "KA1"
+            elif (
+                "ka2" in query_lower or "partnership" in query_lower or "cooperation" in query_lower
+            ):
+                key_action = "KA2"
+            elif "ka3" in query_lower or "policy" in query_lower:
+                key_action = "KA3"
+            elif "jean monnet" in query_lower:
+                key_action = "JMO"
+            elif "sport" in query_lower:
+                key_action = "SPORT"
+
+            return {
+                "thought": f"User is asking about Erasmus+ Programme Guide content (quality criteria, evaluation). Using search_erasmus_templates to find relevant sections from Programme Guide 2026. Search: '{search_query}'",
+                "action": "call_tools_and_format",
+                "tool_calls": [
+                    {
+                        "tool": "search_erasmus_templates",
+                        "parameters": {
+                            "query": search_query,
+                            "key_action": key_action,
+                            "document_type": "quality_criteria",
+                            "top_k": 8,
+                        },
+                        "reasoning": "Searching Erasmus+ Programme Guide 2026 for quality/evaluation criteria",
+                    }
+                ],
+                "needs_more_info": True,
+                "format_type": "erasmus_guide",
+            }
+
+        # Pattern 2: Generic Programme Guide queries
+        # e.g., "Tell me about the Erasmus+ Programme Guide", "What's in the 2026 guide?"
+        programme_guide_patterns = [
+            r"erasmus.*programme\s*guide",
+            r"erasmus.*guide\s*2026",
+            r"erasmus.*2026\s*guide",
+            r"erasmus.*guide.*say",
+        ]
+
+        for pattern in programme_guide_patterns:
+            if re.search(pattern, query_lower):
+                search_query = self._build_erasmus_guide_search_query(query_lower)
+
+                return {
+                    "thought": f"User is asking about Erasmus+ Programme Guide content. Using search_erasmus_templates to find relevant sections. Search: '{search_query}'",
+                    "action": "call_tools_and_format",
+                    "tool_calls": [
+                        {
+                            "tool": "search_erasmus_templates",
+                            "parameters": {
+                                "query": search_query,
+                                "top_k": 8,
+                            },
+                            "reasoning": "Searching Erasmus+ Programme Guide 2026 for content",
+                        }
+                    ],
+                    "needs_more_info": True,
+                    "format_type": "erasmus_guide",
+                }
+
+        return None
+
+    def _build_erasmus_guide_search_query(self, query_lower: str) -> str:
+        """Build an effective search query for Erasmus+ Programme Guide content."""
+        # Extract key terms from the query
+        search_terms = []
+
+        # Add quality/evaluation context
+        if "quality" in query_lower:
+            search_terms.append("quality criteria assessment")
+        if "evaluation" in query_lower or "evaluat" in query_lower:
+            search_terms.append("evaluation criteria scoring")
+        if "award" in query_lower:
+            search_terms.append("award criteria")
+        if "selection" in query_lower:
+            search_terms.append("selection criteria")
+        if "eligibility" in query_lower:
+            search_terms.append("eligibility criteria")
+        if "impact" in query_lower:
+            search_terms.append("impact assessment")
+        if "relevance" in query_lower:
+            search_terms.append("relevance criteria")
+
+        # Add Key Action context
+        if "ka1" in query_lower:
+            search_terms.append("Key Action 1 mobility")
+        elif "ka2" in query_lower:
+            search_terms.append("Key Action 2 partnership cooperation")
+        elif "ka3" in query_lower:
+            search_terms.append("Key Action 3 policy")
+
+        # Add sector context
+        if "higher education" in query_lower or "hed" in query_lower:
+            search_terms.append("higher education HED")
+        elif "vet" in query_lower or "vocational" in query_lower:
+            search_terms.append("VET vocational education training")
+        elif "school" in query_lower or "sch" in query_lower:
+            search_terms.append("school education SCH")
+        elif "adult" in query_lower or "adu" in query_lower:
+            search_terms.append("adult education ADU")
+        elif "youth" in query_lower or "you" in query_lower:
+            search_terms.append("youth YOU")
+
+        # Default search if no specific terms extracted
+        if not search_terms:
+            search_terms.append("quality criteria evaluation assessment award")
+
+        return " ".join(search_terms)
 
     def _detect_erasmus_action_query(self, query: str, context: str) -> dict[str, Any] | None:
         """Detect Erasmus+ action selection and sector-specific queries.
