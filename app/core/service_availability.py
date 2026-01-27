@@ -8,11 +8,11 @@ Implements Priority 1.3 from IMPROVEMENT_ROADMAP.md
 """
 
 import asyncio
-import logging
-import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from enum import Enum
+import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +31,7 @@ class ServiceType(str, Enum):
     GEMINI = "gemini"
     EMBEDDINGS = "embeddings"
     SUPABASE = "supabase"
+    EU_PORTAL_API = "eu_portal_api"  # EU Funding & Tenders Portal API
 
 
 class AvailabilityStatus(str, Enum):
@@ -149,6 +150,8 @@ DEGRADABLE_TOOLS: dict[str, list[ServiceType]] = {
     "find_similar_projects": [ServiceType.EMBEDDINGS],
     "get_similar_funded_projects": [ServiceType.EMBEDDINGS],  # Keyword fallback
     "search_projects": [ServiceType.NEO4J, ServiceType.EMBEDDINGS],
+    # Call tools - can work without EU Portal API using cached/local data
+    "get_call_details": [ServiceType.EU_PORTAL_API],  # Uses cached/local data as fallback
 }
 
 

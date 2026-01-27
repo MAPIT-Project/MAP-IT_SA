@@ -14765,3 +14765,137 @@ Score: 75+/100 (meets PASS threshold)
 - Graceful Handling (25 pts): Doesn't crash, provides partial results
 - User Communication (20 pts): Clear message explaining fallback reason
 - Useful Results (10 pts): Keyword search still finds relevant projects
+
+================================================================================
+## Scenario 051: API Rate Limited - Graceful Degradation (COMPLETED)
+================================================================================
+
+**Date**: 2026-01-27
+**PRD Reference**: Phase 5, Scenario 051
+**Pass Threshold**: 75/100
+**Status**: PASS (score 75+/100)
+
+## Problem
+When EU Portal API returns HTTP 429 (Too Many Requests), the system would fail completely with no fallback. Users would get errors instead of useful data.
+
+## Solution Implemented
+
+1. **Rate Limit Detection**:
+   - Added `RateLimitError` exception class with `retry_after` field
+   - Added `APIUnavailableError` exception for 5xx errors
+   - Both `_fetch_direct_topic_details()` and `_fetch_via_search_api()` now detect 429 and 5xx responses
+
+2. **Exponential Backoff Retry**:
+   - Added `_fetch_from_api_with_retry()` method with configurable retry logic
+   - Configuration constants: MAX_RETRIES=3, BASE_DELAY=1.0s, MAX_DELAY=30.0s
+   - Exponential backoff with jitter to prevent thundering herd
+   - Respects Retry-After header when present
+
+3. **In-Memory Cache**:
+   - Class-level cache `_api_cache` for API responses with TTL (1 hour)
+   - Methods: `get_cached()`, `set_cached()`, `clear_cache()`
+   - Cache key is case-insensitive (topic codes normalized to uppercase)
+
+4. **Rate Limit State Tracking**:
+   - Class-level `_rate_limited_until` timestamp
+   - Methods: `is_rate_limited()`, `set_rate_limited(retry_after)`
+   - When rate limited, skips API calls and uses cached/local data immediately
+
+5. **Graceful Degradation**:
+   - When rate limited, returns cached or local data with flags:
+     - `_rate_limited`: True
+     - `_rate_limited_message`: "EU Portal API temporarily unavailable. Using cached data."
+   - User sees useful data with explanation, not error
+
+6. **Service Availability Updates**:
+   - Added `ServiceType.EU_PORTAL_API` to service_availability.py
+   - Added `get_call_details` to DEGRADABLE_TOOLS with EU_PORTAL_API dependency
+   - Indicates tool can work without API using cached/local data
+
+## Key Implementation Details
+- HTTP timeout: 30 seconds
+- Retry delay: Exponential with base 1.0s, max 30.0s
+- Retry-After respected: Uses max(calculated_delay, retry_after)
+- Jitter: delay * (0.5 + random.random()) to spread retries
+- Cache TTL: 3600 seconds (1 hour)
+
+## After Fix
+The system now correctly:
+- Detects 429 rate limit responses
+- Retries with exponential backoff
+- Caches successful responses for 1 hour
+- Falls back to cached/local data when rate limited
+- Informs user of limitation via metadata flags
+- Never crashes on rate limit
+
+## Tests Created
+File: tests/quality/test_scenario_051_api_rate_limited.py (31 tests)
+
+### Unit Tests:
+1. test_rate_limit_constants_exist
+2. test_rate_limit_constants_reasonable_values
+3. test_rate_limit_error_exists
+4. test_rate_limit_error_has_retry_after
+5. test_rate_limit_error_message
+6. test_api_unavailable_error_exists
+7. test_get_call_details_in_degradable_tools
+8. test_eu_portal_api_service_type_exists
+9. test_get_call_details_degradable_on_eu_portal_api
+10. test_cache_methods_exist
+11. test_cache_set_and_get
+12. test_cache_case_insensitive
+13. test_cache_clear
+14. test_is_rate_limited_method_exists
+15. test_rate_limit_state_tracking
+16. test_fetch_with_retry_method_exists
+17. test_rate_limit_error_raised_on_429
+18. test_rate_limit_error_includes_retry_after
+19. test_api_unavailable_error_on_500
+20. test_api_unavailable_error_on_503
+
+### Integration Tests:
+21. test_uses_local_data_when_rate_limited
+22. test_rate_limited_message_included
+23. test_uses_cached_api_data_when_rate_limited
+24. test_returns_none_when_no_data_available
+25. test_retries_on_rate_limit
+26. test_respects_retry_after_header
+27. test_successful_api_call_cached
+28. test_no_api_call_when_cached
+
+### Full Scenario Tests:
+29. test_scenario_051_graceful_degradation
+30. test_scenario_051_no_crash_on_complete_failure
+31. test_scenario_051_quality_score_check
+
+## Test Results
+31 passed, 0 failed, 1 warning (deprecation warning for Pydantic)
+
+## Files Modified
+1. app/services/call_enrichment_service.py
+   - Added rate limit constants (MAX_RETRIES, BASE_DELAY, MAX_DELAY, EXPONENTIAL_BASE, CACHE_TTL)
+   - Added RateLimitError and APIUnavailableError exceptions
+   - Added class-level cache _api_cache and _rate_limited_until
+   - Added cache methods: get_cached(), set_cached(), clear_cache()
+   - Added rate limit methods: is_rate_limited(), set_rate_limited()
+   - Added _fetch_from_api_with_retry() with exponential backoff
+   - Updated _fetch_direct_topic_details() to detect 429/5xx
+   - Updated _fetch_via_search_api() to detect 429/5xx
+   - Updated get_call_details() to check cache and rate limit state
+
+2. app/core/service_availability.py
+   - Added ServiceType.EU_PORTAL_API
+   - Added get_call_details to DEGRADABLE_TOOLS with EU_PORTAL_API
+
+3. tests/quality/test_scenario_051_api_rate_limited.py (created)
+   - 31 comprehensive tests for API rate limiting graceful degradation
+
+4. docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md (updated scenario status)
+
+## Quality Score
+Score: 75+/100 (meets PASS threshold)
+- API Detection (15 pts): Correctly detects 429 status code
+- Retry Logic (20 pts): Implements exponential backoff with jitter
+- Cache Usage (20 pts): Uses cached data when available
+- User Communication (20 pts): Clear message explaining limitation
+- Graceful Handling (25 pts): Doesn't crash, provides partial results

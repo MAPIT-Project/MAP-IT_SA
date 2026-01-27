@@ -623,13 +623,16 @@ Ensure graceful handling of failures and edge cases.
   - **Fix applied**: Added timeout handling to `SimilarProjectsTool` with graceful degradation to keyword search. Implemented `_generate_embedding_with_timeout()` (30s timeout) and `_get_vector_results_with_timeout()` (10s timeout) methods. When embedding generation or vector search times out, system falls back to keyword search and returns useful results with metadata indicating degradation reason.
   - **Tests**: `tests/quality/test_scenario_050_vector_search_fails.py` (27 tests: 15 unit + 12 integration/async)
 
-- [ ] **Scenario 051: API Rate Limited** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 051: API Rate Limited** `EXECUTE + FIX IF NEEDED`
   - Simulate: EU Portal API rate limit
   - Query: "Get details for call HORIZON-xxx"
   - Expected: Uses cached data or explains delay
   - Verify: Doesn't fail completely
   - Fix if: Crashes on rate limit
   - Pass threshold: 75
+  - **Status: PASS (score 75+/100)**
+  - **Fix applied**: Added rate limit detection (HTTP 429), exponential backoff retry with jitter, in-memory cache with TTL (1 hour), and graceful degradation to cached/local data. Added `RateLimitError` and `APIUnavailableError` exceptions. Added `get_call_details` to DEGRADABLE_TOOLS with EU_PORTAL_API service type. Response includes `_rate_limited` flag and `_rate_limited_message` explaining limitation.
+  - **Tests**: `tests/quality/test_scenario_051_api_rate_limited.py` (31 tests)
 
 ### Input Handling
 
