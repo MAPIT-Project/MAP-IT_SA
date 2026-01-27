@@ -29,21 +29,17 @@ CACHE_TTLS = {
     "programme_statistics": timedelta(hours=24),
     "country_statistics": timedelta(hours=24),
     "cluster_statistics": timedelta(hours=24),
-
     # Benchmarks - moderate change rate
     "budget_benchmark": timedelta(hours=12),
     "consortium_patterns": timedelta(hours=12),
     "call_history": timedelta(hours=12),
-
     # Search results - change more frequently
     "funding_calls": timedelta(hours=1),  # Deadlines change
     "projects": timedelta(hours=6),
     "similar_projects": timedelta(hours=6),
     "experienced_partners": timedelta(hours=6),
-
     # Documents - rarely change
     "documents": timedelta(hours=24),
-
     # Default
     "default": timedelta(hours=1),
 }
@@ -114,32 +110,28 @@ class ResultCache:
         Returns tuple of (data, compressed_flag)
         """
         json_str = json.dumps(result, default=str)
-        data = json_str.encode('utf-8')
+        data = json_str.encode("utf-8")
 
         if len(data) > self.compression_threshold:
             compressed = self._compress(data)
             # Only use compression if it actually reduces size
             if len(compressed) < len(data):
-                return b'1' + compressed  # Prefix with compression flag
+                return b"1" + compressed  # Prefix with compression flag
 
-        return b'0' + data  # Prefix with no-compression flag
+        return b"0" + data  # Prefix with no-compression flag
 
     def _deserialize(self, data: bytes) -> Any:
         """Deserialize result from bytes."""
         flag = data[0:1]
         payload = data[1:]
 
-        if flag == b'1':
+        if flag == b"1":
             # Decompress
             payload = self._decompress(payload)
 
-        return json.loads(payload.decode('utf-8'))
+        return json.loads(payload.decode("utf-8"))
 
-    async def get(
-        self,
-        query_type: str,
-        params: dict
-    ) -> Any | None:
+    async def get(self, query_type: str, params: dict) -> Any | None:
         """
         Get cached result.
 
@@ -173,11 +165,7 @@ class ResultCache:
             return None
 
     async def set(
-        self,
-        query_type: str,
-        params: dict,
-        result: Any,
-        ttl: timedelta | None = None
+        self, query_type: str, params: dict, result: Any, ttl: timedelta | None = None
     ) -> bool:
         """
         Cache a result.
@@ -210,11 +198,7 @@ class ResultCache:
             logger.warning(f"Cache set error for {query_type}: {e}")
             return False
 
-    async def invalidate(
-        self,
-        query_type: str,
-        params: dict
-    ) -> bool:
+    async def invalidate(self, query_type: str, params: dict) -> bool:
         """
         Invalidate a cached result.
 
@@ -312,7 +296,7 @@ class ResultCache:
                         mem = self.redis.memory_usage(key)
                         if mem:
                             memory_usage += mem
-                    except:
+                    except Exception:
                         pass
 
                 if memory_usage > 0:
@@ -337,9 +321,7 @@ class ResultCache:
 
 
 def cached_result(
-    query_type: str,
-    ttl: timedelta | None = None,
-    key_params: list[str] | None = None
+    query_type: str, ttl: timedelta | None = None, key_params: list[str] | None = None
 ):
     """
     Decorator to cache function results.
@@ -355,11 +337,12 @@ def cached_result(
         async def get_programme_statistics(programme: str) -> Dict:
             ...
     """
+
     def decorator(func: Callable):
         @wraps(func)
         async def wrapper(*args, **kwargs):
             # Get cache instance (should be passed in kwargs or available globally)
-            cache = kwargs.pop('_cache', None)
+            cache = kwargs.pop("_cache", None)
 
             if cache is None or not cache.enabled:
                 return await func(*args, **kwargs)
@@ -384,6 +367,7 @@ def cached_result(
             return result
 
         return wrapper
+
     return decorator
 
 
@@ -426,6 +410,7 @@ def invalidate_cache_on_update(query_types: list[str]):
         async def update_project(project_id: str, data: dict):
             ...
     """
+
     def decorator(func: Callable):
         @wraps(func)
         async def wrapper(*args, **kwargs):
@@ -437,5 +422,7 @@ def invalidate_cache_on_update(query_types: list[str]):
                 await cache.invalidate_type(query_type)
 
             return result
+
         return wrapper
+
     return decorator

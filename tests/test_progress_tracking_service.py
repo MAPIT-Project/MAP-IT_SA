@@ -64,7 +64,7 @@ class TestAchievement:
             rarity=AchievementRarity.COMMON,
             icon="T",
             points=10,
-            criteria={"min_words": 100}
+            criteria={"min_words": 100},
         )
 
         assert achievement.id == "test_achievement"
@@ -93,7 +93,7 @@ class TestProgressSnapshot:
             suggestions_accepted=15,
             rewrites_applied=3,
             time_spent_minutes=120,
-            last_activity=datetime.now()
+            last_activity=datetime.now(),
         )
 
         assert snapshot.proposal_id == "test-proposal"
@@ -109,10 +109,7 @@ class TestStreak:
     def test_create_streak(self):
         """Test creating a streak."""
         streak = Streak(
-            current_streak=5,
-            longest_streak=10,
-            last_activity_date=date.today(),
-            is_active=True
+            current_streak=5, longest_streak=10, last_activity_date=date.today(), is_active=True
         )
 
         assert streak.current_streak == 5
@@ -122,10 +119,7 @@ class TestStreak:
     def test_streak_with_none_date(self):
         """Test streak with None date."""
         streak = Streak(
-            current_streak=0,
-            longest_streak=0,
-            last_activity_date=None,
-            is_active=False
+            current_streak=0, longest_streak=0, last_activity_date=None, is_active=False
         )
 
         assert streak.last_activity_date is None
@@ -191,9 +185,7 @@ class TestProgressTrackingService:
 
         # Initial update
         await service.update_progress(
-            proposal_id=proposal_id,
-            sections_completed=2,
-            total_sections=4
+            proposal_id=proposal_id, sections_completed=2, total_sections=4
         )
 
         progress = await service.get_progress(proposal_id)
@@ -208,17 +200,11 @@ class TestProgressTrackingService:
 
         # Set initial values
         await service.update_progress(
-            proposal_id=proposal_id,
-            sections_completed=1,
-            total_sections=5,
-            average_score=3.0
+            proposal_id=proposal_id, sections_completed=1, total_sections=5, average_score=3.0
         )
 
         # Update only average_score
-        await service.update_progress(
-            proposal_id=proposal_id,
-            average_score=3.5
-        )
+        await service.update_progress(proposal_id=proposal_id, average_score=3.5)
 
         progress = await service.get_progress(proposal_id)
         assert progress.sections_completed == 1  # Unchanged
@@ -265,10 +251,7 @@ class TestProgressTrackingService:
         # Manually set up yesterday's activity
         yesterday = date.today() - timedelta(days=1)
         service._user_streaks_cache[user_id] = Streak(
-            current_streak=3,
-            longest_streak=3,
-            last_activity_date=yesterday,
-            is_active=True
+            current_streak=3, longest_streak=3, last_activity_date=yesterday, is_active=True
         )
 
         streak = await service.record_activity(user_id)
@@ -284,10 +267,7 @@ class TestProgressTrackingService:
         # Set up activity from 2 days ago
         two_days_ago = date.today() - timedelta(days=2)
         service._user_streaks_cache[user_id] = Streak(
-            current_streak=5,
-            longest_streak=5,
-            last_activity_date=two_days_ago,
-            is_active=True
+            current_streak=5, longest_streak=5, last_activity_date=two_days_ago, is_active=True
         )
 
         streak = await service.record_activity(user_id)
@@ -305,10 +285,7 @@ class TestProgressTrackingService:
         # Manually set a future date (edge case that shouldn't happen normally)
         future_date = date.today() + timedelta(days=1)
         service._user_streaks_cache[user_id] = Streak(
-            current_streak=10,
-            longest_streak=10,
-            last_activity_date=future_date,
-            is_active=True
+            current_streak=10, longest_streak=10, last_activity_date=future_date, is_active=True
         )
 
         streak = await service.record_activity(user_id)
@@ -324,10 +301,7 @@ class TestProgressTrackingService:
         """Test updating highest_score field."""
         proposal_id = "test-highest"
 
-        await service.update_progress(
-            proposal_id=proposal_id,
-            highest_score=4.5
-        )
+        await service.update_progress(proposal_id=proposal_id, highest_score=4.5)
 
         progress = await service.get_progress(proposal_id)
         assert progress.highest_score == 4.5
@@ -337,10 +311,7 @@ class TestProgressTrackingService:
         """Test updating lowest_score field."""
         proposal_id = "test-lowest"
 
-        await service.update_progress(
-            proposal_id=proposal_id,
-            lowest_score=2.8
-        )
+        await service.update_progress(proposal_id=proposal_id, lowest_score=2.8)
 
         progress = await service.get_progress(proposal_id)
         assert progress.lowest_score == 2.8
@@ -350,11 +321,7 @@ class TestProgressTrackingService:
         """Test updating gaps_resolved field."""
         proposal_id = "test-gaps"
 
-        await service.update_progress(
-            proposal_id=proposal_id,
-            gaps_resolved=5,
-            total_gaps=10
-        )
+        await service.update_progress(proposal_id=proposal_id, gaps_resolved=5, total_gaps=10)
 
         progress = await service.get_progress(proposal_id)
         assert progress.gaps_resolved == 5
@@ -365,10 +332,7 @@ class TestProgressTrackingService:
         """Test updating suggestions_accepted field."""
         proposal_id = "test-suggestions"
 
-        await service.update_progress(
-            proposal_id=proposal_id,
-            suggestions_accepted=15
-        )
+        await service.update_progress(proposal_id=proposal_id, suggestions_accepted=15)
 
         progress = await service.get_progress(proposal_id)
         assert progress.suggestions_accepted == 15
@@ -378,10 +342,7 @@ class TestProgressTrackingService:
         """Test updating rewrites_applied field."""
         proposal_id = "test-rewrites"
 
-        await service.update_progress(
-            proposal_id=proposal_id,
-            rewrites_applied=8
-        )
+        await service.update_progress(proposal_id=proposal_id, rewrites_applied=8)
 
         progress = await service.get_progress(proposal_id)
         assert progress.rewrites_applied == 8
@@ -391,10 +352,7 @@ class TestProgressTrackingService:
         """Test updating time_spent_minutes field."""
         proposal_id = "test-time"
 
-        await service.update_progress(
-            proposal_id=proposal_id,
-            time_spent_minutes=120
-        )
+        await service.update_progress(proposal_id=proposal_id, time_spent_minutes=120)
 
         progress = await service.get_progress(proposal_id)
         assert progress.time_spent_minutes == 120
@@ -415,7 +373,7 @@ class TestProgressTrackingService:
             total_gaps=12,
             suggestions_accepted=20,
             rewrites_applied=5,
-            time_spent_minutes=180
+            time_spent_minutes=180,
         )
 
         progress = await service.get_progress(proposal_id)
@@ -443,7 +401,7 @@ class TestProgressTrackingService:
             rarity=AchievementRarity.COMMON,
             icon="T",
             points=10,
-            criteria={"min_words": 100}
+            criteria={"min_words": 100},
         )
 
         progress = ProgressSnapshot(
@@ -459,39 +417,21 @@ class TestProgressTrackingService:
             suggestions_accepted=0,
             rewrites_applied=0,
             time_spent_minutes=0,
-            last_activity=None
+            last_activity=None,
         )
 
         streak = Streak(
-            current_streak=0,
-            longest_streak=0,
-            last_activity_date=None,
-            is_active=False
+            current_streak=0, longest_streak=0, last_activity_date=None, is_active=False
         )
 
         # Below threshold
-        assert not service._check_criteria(
-            achievement,
-            {"word_count": 50},
-            progress,
-            streak
-        )
+        assert not service._check_criteria(achievement, {"word_count": 50}, progress, streak)
 
         # At threshold
-        assert service._check_criteria(
-            achievement,
-            {"word_count": 100},
-            progress,
-            streak
-        )
+        assert service._check_criteria(achievement, {"word_count": 100}, progress, streak)
 
         # Above threshold
-        assert service._check_criteria(
-            achievement,
-            {"word_count": 200},
-            progress,
-            streak
-        )
+        assert service._check_criteria(achievement, {"word_count": 200}, progress, streak)
 
     def test_check_criteria_min_score(self, service):
         """Test checking min_score criteria."""
@@ -503,7 +443,7 @@ class TestProgressTrackingService:
             rarity=AchievementRarity.UNCOMMON,
             icon="S",
             points=20,
-            criteria={"min_score": 4.0}
+            criteria={"min_score": 4.0},
         )
 
         progress = ProgressSnapshot(
@@ -519,31 +459,18 @@ class TestProgressTrackingService:
             suggestions_accepted=0,
             rewrites_applied=0,
             time_spent_minutes=0,
-            last_activity=None
+            last_activity=None,
         )
 
         streak = Streak(
-            current_streak=0,
-            longest_streak=0,
-            last_activity_date=None,
-            is_active=False
+            current_streak=0, longest_streak=0, last_activity_date=None, is_active=False
         )
 
         # Below threshold
-        assert not service._check_criteria(
-            achievement,
-            {"score": 3.5},
-            progress,
-            streak
-        )
+        assert not service._check_criteria(achievement, {"score": 3.5}, progress, streak)
 
         # At threshold
-        assert service._check_criteria(
-            achievement,
-            {"score": 4.0},
-            progress,
-            streak
-        )
+        assert service._check_criteria(achievement, {"score": 4.0}, progress, streak)
 
     def test_check_criteria_streak_days(self, service):
         """Test checking streak_days criteria."""
@@ -555,7 +482,7 @@ class TestProgressTrackingService:
             rarity=AchievementRarity.UNCOMMON,
             icon="F",
             points=30,
-            criteria={"streak_days": 7}
+            criteria={"streak_days": 7},
         )
 
         progress = ProgressSnapshot(
@@ -571,21 +498,15 @@ class TestProgressTrackingService:
             suggestions_accepted=0,
             rewrites_applied=0,
             time_spent_minutes=0,
-            last_activity=None
+            last_activity=None,
         )
 
         low_streak = Streak(
-            current_streak=3,
-            longest_streak=3,
-            last_activity_date=date.today(),
-            is_active=True
+            current_streak=3, longest_streak=3, last_activity_date=date.today(), is_active=True
         )
 
         high_streak = Streak(
-            current_streak=7,
-            longest_streak=7,
-            last_activity_date=date.today(),
-            is_active=True
+            current_streak=7, longest_streak=7, last_activity_date=date.today(), is_active=True
         )
 
         assert not service._check_criteria(achievement, {}, progress, low_streak)
@@ -601,7 +522,7 @@ class TestProgressTrackingService:
             rarity=AchievementRarity.UNCOMMON,
             icon="C",
             points=40,
-            criteria={"completion_percentage": 50}
+            criteria={"completion_percentage": 50},
         )
 
         low_progress = ProgressSnapshot(
@@ -617,7 +538,7 @@ class TestProgressTrackingService:
             suggestions_accepted=0,
             rewrites_applied=0,
             time_spent_minutes=0,
-            last_activity=None
+            last_activity=None,
         )
 
         high_progress = ProgressSnapshot(
@@ -633,14 +554,11 @@ class TestProgressTrackingService:
             suggestions_accepted=0,
             rewrites_applied=0,
             time_spent_minutes=0,
-            last_activity=None
+            last_activity=None,
         )
 
         streak = Streak(
-            current_streak=0,
-            longest_streak=0,
-            last_activity_date=None,
-            is_active=False
+            current_streak=0, longest_streak=0, last_activity_date=None, is_active=False
         )
 
         assert not service._check_criteria(achievement, {}, low_progress, streak)
@@ -656,7 +574,7 @@ class TestProgressTrackingService:
             rarity=AchievementRarity.UNCOMMON,
             icon="I",
             points=30,
-            criteria={"improvement": 1.0}
+            criteria={"improvement": 1.0},
         )
 
         progress = ProgressSnapshot(
@@ -672,31 +590,20 @@ class TestProgressTrackingService:
             suggestions_accepted=0,
             rewrites_applied=0,
             time_spent_minutes=0,
-            last_activity=None
+            last_activity=None,
         )
 
         streak = Streak(
-            current_streak=0,
-            longest_streak=0,
-            last_activity_date=None,
-            is_active=False
+            current_streak=0, longest_streak=0, last_activity_date=None, is_active=False
         )
 
         # Below threshold
         assert not service._check_criteria(
-            achievement,
-            {"score_improvement": 0.5},
-            progress,
-            streak
+            achievement, {"score_improvement": 0.5}, progress, streak
         )
 
         # At threshold
-        assert service._check_criteria(
-            achievement,
-            {"score_improvement": 1.0},
-            progress,
-            streak
-        )
+        assert service._check_criteria(achievement, {"score_improvement": 1.0}, progress, streak)
 
     def test_check_criteria_all_sections_min_score(self, service):
         """Test checking all_sections_min_score criteria."""
@@ -708,14 +615,11 @@ class TestProgressTrackingService:
             rarity=AchievementRarity.EPIC,
             icon="A",
             points=100,
-            criteria={"all_sections_min_score": 3.0}
+            criteria={"all_sections_min_score": 3.0},
         )
 
         streak = Streak(
-            current_streak=0,
-            longest_streak=0,
-            last_activity_date=None,
-            is_active=False
+            current_streak=0, longest_streak=0, last_activity_date=None, is_active=False
         )
 
         # Progress with lowest score below threshold
@@ -732,7 +636,7 @@ class TestProgressTrackingService:
             suggestions_accepted=0,
             rewrites_applied=0,
             time_spent_minutes=0,
-            last_activity=None
+            last_activity=None,
         )
 
         # Progress with all sections above threshold
@@ -749,7 +653,7 @@ class TestProgressTrackingService:
             suggestions_accepted=0,
             rewrites_applied=0,
             time_spent_minutes=0,
-            last_activity=None
+            last_activity=None,
         )
 
         assert not service._check_criteria(achievement, {}, low_progress, streak)
@@ -765,14 +669,11 @@ class TestProgressTrackingService:
             rarity=AchievementRarity.EPIC,
             icon="A",
             points=100,
-            criteria={"all_sections_min_score": 3.0}
+            criteria={"all_sections_min_score": 3.0},
         )
 
         streak = Streak(
-            current_streak=0,
-            longest_streak=0,
-            last_activity_date=None,
-            is_active=False
+            current_streak=0, longest_streak=0, last_activity_date=None, is_active=False
         )
 
         # Progress with no lowest score (sections not evaluated)
@@ -789,7 +690,7 @@ class TestProgressTrackingService:
             suggestions_accepted=0,
             rewrites_applied=0,
             time_spent_minutes=0,
-            last_activity=None
+            last_activity=None,
         )
 
         # Should fail when lowest_score is None
@@ -805,14 +706,11 @@ class TestProgressTrackingService:
             rarity=AchievementRarity.UNCOMMON,
             icon="G",
             points=25,
-            criteria={"gaps_resolved": 10}
+            criteria={"gaps_resolved": 10},
         )
 
         streak = Streak(
-            current_streak=0,
-            longest_streak=0,
-            last_activity_date=None,
-            is_active=False
+            current_streak=0, longest_streak=0, last_activity_date=None, is_active=False
         )
 
         low_progress = ProgressSnapshot(
@@ -828,7 +726,7 @@ class TestProgressTrackingService:
             suggestions_accepted=0,
             rewrites_applied=0,
             time_spent_minutes=0,
-            last_activity=None
+            last_activity=None,
         )
 
         high_progress = ProgressSnapshot(
@@ -844,7 +742,7 @@ class TestProgressTrackingService:
             suggestions_accepted=0,
             rewrites_applied=0,
             time_spent_minutes=0,
-            last_activity=None
+            last_activity=None,
         )
 
         assert not service._check_criteria(achievement, {}, low_progress, streak)
@@ -860,14 +758,11 @@ class TestProgressTrackingService:
             rarity=AchievementRarity.UNCOMMON,
             icon="S",
             points=25,
-            criteria={"suggestions_accepted": 25}
+            criteria={"suggestions_accepted": 25},
         )
 
         streak = Streak(
-            current_streak=0,
-            longest_streak=0,
-            last_activity_date=None,
-            is_active=False
+            current_streak=0, longest_streak=0, last_activity_date=None, is_active=False
         )
 
         low_progress = ProgressSnapshot(
@@ -883,7 +778,7 @@ class TestProgressTrackingService:
             suggestions_accepted=10,
             rewrites_applied=0,
             time_spent_minutes=0,
-            last_activity=None
+            last_activity=None,
         )
 
         high_progress = ProgressSnapshot(
@@ -899,7 +794,7 @@ class TestProgressTrackingService:
             suggestions_accepted=30,
             rewrites_applied=0,
             time_spent_minutes=0,
-            last_activity=None
+            last_activity=None,
         )
 
         assert not service._check_criteria(achievement, {}, low_progress, streak)
@@ -915,14 +810,11 @@ class TestProgressTrackingService:
             rarity=AchievementRarity.RARE,
             icon="R",
             points=50,
-            criteria={"rewrites_applied": 10}
+            criteria={"rewrites_applied": 10},
         )
 
         streak = Streak(
-            current_streak=0,
-            longest_streak=0,
-            last_activity_date=None,
-            is_active=False
+            current_streak=0, longest_streak=0, last_activity_date=None, is_active=False
         )
 
         low_progress = ProgressSnapshot(
@@ -938,7 +830,7 @@ class TestProgressTrackingService:
             suggestions_accepted=0,
             rewrites_applied=5,
             time_spent_minutes=0,
-            last_activity=None
+            last_activity=None,
         )
 
         high_progress = ProgressSnapshot(
@@ -954,7 +846,7 @@ class TestProgressTrackingService:
             suggestions_accepted=0,
             rewrites_applied=15,
             time_spent_minutes=0,
-            last_activity=None
+            last_activity=None,
         )
 
         assert not service._check_criteria(achievement, {}, low_progress, streak)
@@ -970,7 +862,7 @@ class TestProgressTrackingService:
             rarity=AchievementRarity.RARE,
             icon="W",
             points=75,
-            criteria={"total_words": 10000}
+            criteria={"total_words": 10000},
         )
 
         progress = ProgressSnapshot(
@@ -986,31 +878,18 @@ class TestProgressTrackingService:
             suggestions_accepted=0,
             rewrites_applied=0,
             time_spent_minutes=0,
-            last_activity=None
+            last_activity=None,
         )
 
         streak = Streak(
-            current_streak=0,
-            longest_streak=0,
-            last_activity_date=None,
-            is_active=False
+            current_streak=0, longest_streak=0, last_activity_date=None, is_active=False
         )
 
         # Below threshold
-        assert not service._check_criteria(
-            achievement,
-            {"total_words": 5000},
-            progress,
-            streak
-        )
+        assert not service._check_criteria(achievement, {"total_words": 5000}, progress, streak)
 
         # At threshold
-        assert service._check_criteria(
-            achievement,
-            {"total_words": 10000},
-            progress,
-            streak
-        )
+        assert service._check_criteria(achievement, {"total_words": 10000}, progress, streak)
 
     # --- Award Achievement Tests ---
 
@@ -1022,9 +901,7 @@ class TestProgressTrackingService:
         context = {"test": "data"}
 
         user_achievement = await service._award_achievement(
-            user_id=user_id,
-            achievement=achievement,
-            context=context
+            user_id=user_id, achievement=achievement, context=context
         )
 
         assert user_achievement.achievement_id == achievement.id
@@ -1043,9 +920,7 @@ class TestProgressTrackingService:
 
         # Award one
         await service._award_achievement(
-            user_id=user_id,
-            achievement=service.ACHIEVEMENTS[0],
-            context={}
+            user_id=user_id, achievement=service.ACHIEVEMENTS[0], context={}
         )
 
         # Now should have one
@@ -1062,16 +937,12 @@ class TestProgressTrackingService:
 
         # Set up progress
         await service.update_progress(
-            proposal_id=proposal_id,
-            sections_completed=0,
-            total_sections=5
+            proposal_id=proposal_id, sections_completed=0, total_sections=5
         )
 
         # Check with 100 words - should earn first_draft
         new_achievements = await service.check_achievements(
-            user_id=user_id,
-            proposal_id=proposal_id,
-            context={"word_count": 100}
+            user_id=user_id, proposal_id=proposal_id, context={"word_count": 100}
         )
 
         achievement_ids = [a.achievement_id for a in new_achievements]
@@ -1084,26 +955,20 @@ class TestProgressTrackingService:
         proposal_id = "test-proposal"
 
         await service.update_progress(
-            proposal_id=proposal_id,
-            sections_completed=0,
-            total_sections=5
+            proposal_id=proposal_id, sections_completed=0, total_sections=5
         )
 
         context = {"word_count": 100}
 
         # First check - should get achievement
         first_check = await service.check_achievements(
-            user_id=user_id,
-            proposal_id=proposal_id,
-            context=context
+            user_id=user_id, proposal_id=proposal_id, context=context
         )
         first_count = len(first_check)
 
         # Second check - should not get same achievement again
         second_check = await service.check_achievements(
-            user_id=user_id,
-            proposal_id=proposal_id,
-            context=context
+            user_id=user_id, proposal_id=proposal_id, context=context
         )
 
         # Should get fewer (or zero) new achievements
@@ -1132,9 +997,7 @@ class TestProgressTrackingService:
 
         # Award one achievement
         await service._award_achievement(
-            user_id=user_id,
-            achievement=service.ACHIEVEMENTS[0],
-            context={}
+            user_id=user_id, achievement=service.ACHIEVEMENTS[0], context={}
         )
 
         achievements = await service.get_all_achievements(user_id)
@@ -1156,7 +1019,7 @@ class TestProgressTrackingService:
             achievement_id=achievement.id,
             achievement=achievement,
             earned_at=datetime.now(),
-            context={}
+            context={},
         )
 
         points = service.get_total_points([user_achievement])
@@ -1168,12 +1031,11 @@ class TestProgressTrackingService:
         expected_total = 0
 
         for ach in service.ACHIEVEMENTS[:3]:
-            user_achievements.append(UserAchievement(
-                achievement_id=ach.id,
-                achievement=ach,
-                earned_at=datetime.now(),
-                context={}
-            ))
+            user_achievements.append(
+                UserAchievement(
+                    achievement_id=ach.id, achievement=ach, earned_at=datetime.now(), context={}
+                )
+            )
             expected_total += ach.points
 
         points = service.get_total_points(user_achievements)

@@ -30,17 +30,14 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.services.embedding_service import EmbeddingService
 
 # Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
 def get_database_url() -> str:
     """Get database URL from environment."""
     load_dotenv()
-    db_url = os.getenv('DATABASE_URL')
+    db_url = os.getenv("DATABASE_URL")
     if not db_url:
         raise ValueError("DATABASE_URL environment variable not set")
     return db_url
@@ -56,58 +53,60 @@ def create_call_text(call: dict[str, Any]) -> str:
     parts = []
 
     # Title is most important
-    if call.get('title'):
+    if call.get("title"):
         parts.append(f"Title: {call['title']}")
 
     # Topic code provides context
-    if call.get('topic_code'):
+    if call.get("topic_code"):
         parts.append(f"Call ID: {call['topic_code']}")
 
     # Cluster/destination for domain context
-    if call.get('cluster'):
+    if call.get("cluster"):
         cluster_names = {
-            'CL1': 'Health',
-            'CL2': 'Culture, Creativity and Inclusive Society',
-            'CL3': 'Civil Security for Society',
-            'CL4': 'Digital, Industry and Space',
-            'CL5': 'Climate, Energy and Mobility',
-            'CL6': 'Food, Bioeconomy, Natural Resources, Agriculture and Environment'
+            "CL1": "Health",
+            "CL2": "Culture, Creativity and Inclusive Society",
+            "CL3": "Civil Security for Society",
+            "CL4": "Digital, Industry and Space",
+            "CL5": "Climate, Energy and Mobility",
+            "CL6": "Food, Bioeconomy, Natural Resources, Agriculture and Environment",
         }
-        cluster_name = cluster_names.get(call['cluster'], call['cluster'])
+        cluster_name = cluster_names.get(call["cluster"], call["cluster"])
         parts.append(f"Research Area: {cluster_name}")
 
-    if call.get('destination'):
+    if call.get("destination"):
         parts.append(f"Destination: {call['destination']}")
 
     # Action type
-    if call.get('action_type'):
+    if call.get("action_type"):
         action_descriptions = {
-            'RIA': 'Research and Innovation Action',
-            'IA': 'Innovation Action',
-            'CSA': 'Coordination and Support Action',
-            'COFUND': 'Co-funded Action'
+            "RIA": "Research and Innovation Action",
+            "IA": "Innovation Action",
+            "CSA": "Coordination and Support Action",
+            "COFUND": "Co-funded Action",
         }
-        action_desc = action_descriptions.get(call['action_type'], call['action_type'])
+        action_desc = action_descriptions.get(call["action_type"], call["action_type"])
         parts.append(f"Action Type: {action_desc}")
 
     # Scope is the main content - clean HTML tags
-    if call.get('scope'):
-        scope = call['scope']
+    if call.get("scope"):
+        scope = call["scope"]
         # Basic HTML tag removal
         import re
-        scope = re.sub(r'<[^>]+>', ' ', scope)
-        scope = re.sub(r'\s+', ' ', scope).strip()
+
+        scope = re.sub(r"<[^>]+>", " ", scope)
+        scope = re.sub(r"\s+", " ", scope).strip()
         # Limit scope length to avoid token limits
         if len(scope) > 3000:
             scope = scope[:3000] + "..."
         parts.append(f"Scope: {scope}")
 
     # Expected outcome adds context about goals
-    if call.get('expected_outcome'):
-        outcome = call['expected_outcome']
+    if call.get("expected_outcome"):
+        outcome = call["expected_outcome"]
         import re
-        outcome = re.sub(r'<[^>]+>', ' ', outcome)
-        outcome = re.sub(r'\s+', ' ', outcome).strip()
+
+        outcome = re.sub(r"<[^>]+>", " ", outcome)
+        outcome = re.sub(r"\s+", " ", outcome).strip()
         if len(outcome) > 1500:
             outcome = outcome[:1500] + "..."
         parts.append(f"Expected Outcomes: {outcome}")
@@ -115,11 +114,7 @@ def create_call_text(call: dict[str, Any]) -> str:
     return "\n\n".join(parts)
 
 
-def get_calls_to_embed(
-    conn,
-    force: bool = False,
-    limit: int | None = None
-) -> list[dict]:
+def get_calls_to_embed(conn, force: bool = False, limit: int | None = None) -> list[dict]:
     """Get list of calls that need embeddings."""
     cursor = conn.cursor(cursor_factory=RealDictCursor)
 
@@ -152,11 +147,7 @@ def get_calls_to_embed(
     return cursor.fetchall()
 
 
-def update_call_embedding(
-    conn,
-    call_id: str,
-    embedding: np.ndarray
-) -> bool:
+def update_call_embedding(conn, call_id: str, embedding: np.ndarray) -> bool:
     """Update a call's embedding in the database."""
     try:
         cursor = conn.cursor()
@@ -164,12 +155,15 @@ def update_call_embedding(
         # Convert numpy array to list for PostgreSQL
         embedding_list = embedding.tolist()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             UPDATE funding_calls
             SET embedding = %s::vector,
                 embedding_updated_at = NOW()
             WHERE id = %s
-        """, (embedding_list, call_id))
+        """,
+            (embedding_list, call_id),
+        )
 
         conn.commit()
         return True
@@ -182,7 +176,7 @@ def update_call_embedding(
 
 def update_embeddings_batch(
     conn,
-    updates: list[tuple]  # List of (call_id, embedding_list)
+    updates: list[tuple],  # List of (call_id, embedding_list)
 ) -> int:
     """Update multiple call embeddings in a single transaction."""
     try:
@@ -208,10 +202,10 @@ def update_embeddings_batch(
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Generate embeddings for funding calls')
-    parser.add_argument('--limit', type=int, help='Limit number of calls to process')
-    parser.add_argument('--force', action='store_true', help='Re-generate all embeddings')
-    parser.add_argument('--batch-size', type=int, default=20, help='Batch size for processing')
+    parser = argparse.ArgumentParser(description="Generate embeddings for funding calls")
+    parser.add_argument("--limit", type=int, help="Limit number of calls to process")
+    parser.add_argument("--force", action="store_true", help="Re-generate all embeddings")
+    parser.add_argument("--batch-size", type=int, default=20, help="Batch size for processing")
     args = parser.parse_args()
 
     logger.info("=" * 60)
@@ -232,10 +226,12 @@ def main():
 
     # Check if embedding column exists
     cursor = conn.cursor()
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT column_name FROM information_schema.columns
         WHERE table_name = 'funding_calls' AND column_name = 'embedding'
-    """)
+    """
+    )
     if not cursor.fetchone():
         logger.error("❌ Embedding column not found. Run migration first:")
         logger.error("   psql $DATABASE_URL < migration/010_call_embeddings.sql")
@@ -251,12 +247,7 @@ def main():
         return
 
     # Process calls
-    stats = {
-        'processed': 0,
-        'success': 0,
-        'failed': 0,
-        'skipped': 0
-    }
+    stats = {"processed": 0, "success": 0, "failed": 0, "skipped": 0}
 
     logger.info(f"\n🚀 Processing {len(calls)} calls...")
     logger.info(f"   Batch size: {args.batch_size}")
@@ -266,8 +257,8 @@ def main():
     batch_calls = []
 
     for i, call in enumerate(calls):
-        stats['processed'] += 1
-        topic_code = call.get('topic_code', 'UNKNOWN')
+        stats["processed"] += 1
+        topic_code = call.get("topic_code", "UNKNOWN")
 
         # Progress indicator
         if (i + 1) % 10 == 0 or i == 0:
@@ -278,7 +269,7 @@ def main():
 
         if len(text) < 50:
             logger.debug(f"  Skipping {topic_code} - insufficient text")
-            stats['skipped'] += 1
+            stats["skipped"] += 1
             continue
 
         batch_texts.append(text)
@@ -287,15 +278,17 @@ def main():
         # Process batch when full
         if len(batch_texts) >= args.batch_size:
             try:
-                embeddings = embedding_service.generate_embeddings_batch(batch_texts, use_cache=False)
+                embeddings = embedding_service.generate_embeddings_batch(
+                    batch_texts, use_cache=False
+                )
 
                 updates = []
-                for j, (c, emb) in enumerate(zip(batch_calls, embeddings, strict=False)):
+                for _j, (c, emb) in enumerate(zip(batch_calls, embeddings, strict=False)):
                     if embedding_service.validate_embedding(emb) and not np.all(emb == 0):
-                        updates.append((str(c['id']), emb.tolist()))
-                        stats['success'] += 1
+                        updates.append((str(c["id"]), emb.tolist()))
+                        stats["success"] += 1
                     else:
-                        stats['failed'] += 1
+                        stats["failed"] += 1
 
                 if updates:
                     update_embeddings_batch(conn, updates)
@@ -303,7 +296,7 @@ def main():
 
             except Exception as e:
                 logger.error(f"  ❌ Batch processing failed: {e}")
-                stats['failed'] += len(batch_texts)
+                stats["failed"] += len(batch_texts)
 
             batch_texts = []
             batch_calls = []
@@ -316,10 +309,10 @@ def main():
             updates = []
             for c, emb in zip(batch_calls, embeddings, strict=False):
                 if embedding_service.validate_embedding(emb) and not np.all(emb == 0):
-                    updates.append((str(c['id']), emb.tolist()))
-                    stats['success'] += 1
+                    updates.append((str(c["id"]), emb.tolist()))
+                    stats["success"] += 1
                 else:
-                    stats['failed'] += 1
+                    stats["failed"] += 1
 
             if updates:
                 update_embeddings_batch(conn, updates)
@@ -327,7 +320,7 @@ def main():
 
         except Exception as e:
             logger.error(f"  ❌ Final batch processing failed: {e}")
-            stats['failed'] += len(batch_texts)
+            stats["failed"] += len(batch_texts)
 
     # Close connection
     conn.close()
@@ -344,5 +337,5 @@ def main():
     logger.info("=" * 60)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

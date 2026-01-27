@@ -31,8 +31,10 @@ logger = logging.getLogger(__name__)
 # Event Types
 # ============================================================================
 
+
 class WebhookEventType(str, Enum):
     """Supported webhook event types."""
+
     # Proposal events
     PROPOSAL_SECTION_COMPLETED = "proposal.section.completed"
     PROPOSAL_SECTION_UPDATED = "proposal.section.updated"
@@ -61,9 +63,11 @@ class WebhookEventType(str, Enum):
 # Data Models
 # ============================================================================
 
+
 @dataclass
 class WebhookConfig:
     """Configuration for a webhook endpoint."""
+
     id: str
     url: str
     secret: str | None = None
@@ -88,6 +92,7 @@ class WebhookConfig:
 @dataclass
 class WebhookEvent:
     """A webhook event to be delivered."""
+
     id: str
     event_type: WebhookEventType
     payload: dict[str, Any]
@@ -103,13 +108,14 @@ class WebhookEvent:
             "payload": self.payload,
             "timestamp": self.timestamp.isoformat(),
             "source": self.source,
-            "version": self.version
+            "version": self.version,
         }
 
 
 @dataclass
 class WebhookDelivery:
     """Record of a webhook delivery attempt."""
+
     id: str
     webhook_id: str
     event_id: str
@@ -128,6 +134,7 @@ class WebhookDelivery:
 # Webhook Service
 # ============================================================================
 
+
 class WebhookService:
     """
     Service for sending webhook notifications.
@@ -140,11 +147,7 @@ class WebhookService:
     - Delivery tracking and logging
     """
 
-    def __init__(
-        self,
-        max_concurrent_deliveries: int = 10,
-        default_timeout: float = 30.0
-    ):
+    def __init__(self, max_concurrent_deliveries: int = 10, default_timeout: float = 30.0):
         self.max_concurrent_deliveries = max_concurrent_deliveries
         self.default_timeout = default_timeout
         self._semaphore = asyncio.Semaphore(max_concurrent_deliveries)
@@ -159,9 +162,7 @@ class WebhookService:
         """Get or create HTTP client."""
         if self._client is None or self._client.is_closed:
             self._client = httpx.AsyncClient(
-                timeout=self.default_timeout,
-                follow_redirects=True,
-                http2=True
+                timeout=self.default_timeout, follow_redirects=True, http2=True
             )
         return self._client
 
@@ -183,7 +184,7 @@ class WebhookService:
         headers: dict[str, str] | None = None,
         user_id: str | None = None,
         organization_id: str | None = None,
-        description: str | None = None
+        description: str | None = None,
     ) -> WebhookConfig:
         """
         Register a new webhook endpoint.
@@ -210,7 +211,7 @@ class WebhookService:
             headers=headers or {},
             user_id=user_id,
             organization_id=organization_id,
-            description=description
+            description=description,
         )
 
         # Validate URL
@@ -230,11 +231,7 @@ class WebhookService:
             return True
         return False
 
-    async def update_webhook(
-        self,
-        webhook_id: str,
-        **updates
-    ) -> WebhookConfig | None:
+    async def update_webhook(self, webhook_id: str, **updates) -> WebhookConfig | None:
         """Update webhook configuration."""
         if webhook_id not in self._webhooks:
             return None
@@ -251,9 +248,7 @@ class WebhookService:
         return self._webhooks.get(webhook_id)
 
     async def list_webhooks(
-        self,
-        user_id: str | None = None,
-        organization_id: str | None = None
+        self, user_id: str | None = None, organization_id: str | None = None
     ) -> list[WebhookConfig]:
         """List registered webhooks, optionally filtered."""
         webhooks = list(self._webhooks.values())
@@ -269,31 +264,18 @@ class WebhookService:
     # Event Sending
     # ========================================================================
 
-    def _generate_signature(
-        self,
-        payload: dict[str, Any],
-        secret: str
-    ) -> str:
+    def _generate_signature(self, payload: dict[str, Any], secret: str) -> str:
         """
         Generate HMAC-SHA256 signature for payload.
 
         The signature is computed over the JSON-encoded payload
         using the webhook secret as the key.
         """
-        message = json.dumps(payload, sort_keys=True, separators=(',', ':')).encode()
-        signature = hmac.new(
-            secret.encode(),
-            message,
-            hashlib.sha256
-        ).hexdigest()
+        message = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+        signature = hmac.new(secret.encode(), message, hashlib.sha256).hexdigest()
         return f"sha256={signature}"
 
-    def verify_signature(
-        self,
-        payload: dict[str, Any],
-        signature: str,
-        secret: str
-    ) -> bool:
+    def verify_signature(self, payload: dict[str, Any], signature: str, secret: str) -> bool:
         """
         Verify a webhook signature.
 
@@ -303,9 +285,7 @@ class WebhookService:
         return hmac.compare_digest(expected, signature)
 
     async def send_notification(
-        self,
-        webhook: WebhookConfig,
-        event: WebhookEvent
+        self, webhook: WebhookConfig, event: WebhookEvent
     ) -> WebhookDelivery:
         """
         Send a webhook notification.
@@ -321,10 +301,7 @@ class WebhookService:
         payload = event.to_dict()
 
         delivery = WebhookDelivery(
-            id=delivery_id,
-            webhook_id=webhook.id,
-            event_id=event.id,
-            url=webhook.url
+            id=delivery_id, webhook_id=webhook.id, event_id=event.id, url=webhook.url
         )
 
         # Build headers
@@ -333,7 +310,7 @@ class WebhookService:
             "X-Webhook-Event": event.event_type.value,
             "X-Webhook-Delivery": delivery_id,
             "X-Webhook-Timestamp": event.timestamp.isoformat(),
-            **webhook.headers
+            **webhook.headers,
         }
 
         # Add signature if secret configured
@@ -343,14 +320,14 @@ class WebhookService:
 
         # Attempt delivery with retries
         async with self._semaphore:
-            success = await self._attempt_delivery(
+            await self._attempt_delivery(
                 delivery=delivery,
                 url=webhook.url,
                 payload=payload,
                 headers=headers,
                 max_retries=webhook.retry_count,
                 retry_delay=webhook.retry_delay_seconds,
-                timeout=webhook.timeout_seconds
+                timeout=webhook.timeout_seconds,
             )
 
         # Store delivery record
@@ -368,7 +345,7 @@ class WebhookService:
         headers: dict[str, str],
         max_retries: int,
         retry_delay: float,
-        timeout: float
+        timeout: float,
     ) -> bool:
         """Attempt to deliver webhook with retries."""
         client = await self._get_client()
@@ -378,12 +355,7 @@ class WebhookService:
             delivery.status = "retrying" if attempt > 1 else "pending"
 
             try:
-                response = await client.post(
-                    url,
-                    json=payload,
-                    headers=headers,
-                    timeout=timeout
-                )
+                response = await client.post(url, json=payload, headers=headers, timeout=timeout)
 
                 delivery.status_code = response.status_code
                 delivery.response_body = response.text[:1000]  # Limit stored response
@@ -430,7 +402,7 @@ class WebhookService:
         event_type: WebhookEventType,
         payload: dict[str, Any],
         user_id: str | None = None,
-        organization_id: str | None = None
+        organization_id: str | None = None,
     ) -> list[WebhookDelivery]:
         """
         Emit an event to all matching webhooks.
@@ -444,18 +416,11 @@ class WebhookService:
         Returns:
             List of delivery records
         """
-        event = WebhookEvent(
-            id=str(uuid4()),
-            event_type=event_type,
-            payload=payload
-        )
+        event = WebhookEvent(id=str(uuid4()), event_type=event_type, payload=payload)
 
         # Find matching webhooks
         webhooks = await self.list_webhooks(user_id, organization_id)
-        matching = [
-            w for w in webhooks
-            if w.enabled and w.accepts_event(event_type)
-        ]
+        matching = [w for w in webhooks if w.enabled and w.accepts_event(event_type)]
 
         if not matching:
             logger.debug(f"No webhooks registered for event {event_type.value}")
@@ -492,7 +457,7 @@ class WebhookService:
         webhook_id: str | None = None,
         event_type: WebhookEventType | None = None,
         status: str | None = None,
-        limit: int = 100
+        limit: int = 100,
     ) -> list[WebhookDelivery]:
         """Get delivery records with optional filters."""
         deliveries = self._deliveries
@@ -519,7 +484,7 @@ class WebhookService:
             id=delivery.event_id,
             event_type=WebhookEventType(delivery.url.split("/")[-1]),  # fallback
             payload={},  # Would need to store original payload
-            timestamp=datetime.now(UTC)
+            timestamp=datetime.now(UTC),
         )
 
         return await self.send_notification(webhook, event)
@@ -528,15 +493,12 @@ class WebhookService:
     # Statistics
     # ========================================================================
 
-    async def get_statistics(
-        self,
-        webhook_id: str | None = None,
-        days: int = 7
-    ) -> dict[str, Any]:
+    async def get_statistics(self, webhook_id: str | None = None, days: int = 7) -> dict[str, Any]:
         """Get webhook delivery statistics."""
         cutoff = datetime.now(UTC) - timedelta(days=days)
         deliveries = [
-            d for d in self._deliveries
+            d
+            for d in self._deliveries
             if d.created_at > cutoff and (not webhook_id or d.webhook_id == webhook_id)
         ]
 
@@ -551,7 +513,7 @@ class WebhookService:
             "failed": failed,
             "success_rate": round(success / total * 100, 2) if total > 0 else 0,
             "webhooks_registered": len(self._webhooks),
-            "webhooks_enabled": len([w for w in self._webhooks.values() if w.enabled])
+            "webhooks_enabled": len([w for w in self._webhooks.values() if w.enabled]),
         }
 
 
@@ -572,9 +534,7 @@ def get_webhook_service() -> WebhookService:
 
 
 async def emit_webhook(
-    event_type: WebhookEventType,
-    payload: dict[str, Any],
-    **kwargs
+    event_type: WebhookEventType, payload: dict[str, Any], **kwargs
 ) -> list[WebhookDelivery]:
     """
     Convenience function to emit a webhook event.
@@ -597,11 +557,9 @@ async def emit_webhook(
 # Event-specific helpers
 # ============================================================================
 
+
 async def emit_proposal_section_completed(
-    session_id: str,
-    section_id: str,
-    section_title: str,
-    user_id: str | None = None
+    session_id: str, section_id: str, section_title: str, user_id: str | None = None
 ):
     """Emit event when a proposal section is completed."""
     return await emit_webhook(
@@ -610,9 +568,9 @@ async def emit_proposal_section_completed(
             "session_id": session_id,
             "section_id": section_id,
             "section_title": section_title,
-            "completed_at": datetime.now(UTC).isoformat()
+            "completed_at": datetime.now(UTC).isoformat(),
         },
-        user_id=user_id
+        user_id=user_id,
     )
 
 
@@ -622,7 +580,7 @@ async def emit_batch_completed(
     completed: int,
     failed: int,
     processing_time_ms: float,
-    user_id: str | None = None
+    user_id: str | None = None,
 ):
     """Emit event when a batch operation completes."""
     return await emit_webhook(
@@ -634,9 +592,9 @@ async def emit_batch_completed(
             "failed_operations": failed,
             "processing_time_ms": processing_time_ms,
             "status": "completed" if failed == 0 else "partial",
-            "completed_at": datetime.now(UTC).isoformat()
+            "completed_at": datetime.now(UTC).isoformat(),
         },
-        user_id=user_id
+        user_id=user_id,
     )
 
 
@@ -645,7 +603,7 @@ async def emit_call_deadline_approaching(
     call_title: str,
     deadline: datetime,
     days_remaining: int,
-    user_id: str | None = None
+    user_id: str | None = None,
 ):
     """Emit event when a call deadline is approaching."""
     return await emit_webhook(
@@ -655,9 +613,9 @@ async def emit_call_deadline_approaching(
             "call_title": call_title,
             "deadline": deadline.isoformat(),
             "days_remaining": days_remaining,
-            "alert_sent_at": datetime.now(UTC).isoformat()
+            "alert_sent_at": datetime.now(UTC).isoformat(),
         },
-        user_id=user_id
+        user_id=user_id,
     )
 
 
@@ -666,7 +624,7 @@ async def emit_saved_search_results(
     search_name: str,
     new_results_count: int,
     results: list[dict[str, Any]],
-    user_id: str | None = None
+    user_id: str | None = None,
 ):
     """Emit event when saved search has new results."""
     return await emit_webhook(
@@ -676,7 +634,7 @@ async def emit_saved_search_results(
             "search_name": search_name,
             "new_results_count": new_results_count,
             "results": results[:10],  # Limit to first 10
-            "found_at": datetime.now(UTC).isoformat()
+            "found_at": datetime.now(UTC).isoformat(),
         },
-        user_id=user_id
+        user_id=user_id,
     )

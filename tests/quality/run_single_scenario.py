@@ -45,7 +45,7 @@ async def run_scenario(
     with open(output_file, "w") as f:
         json.dump(result.to_dict(), f, indent=2)
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Scenario: {result.scenario_name}")
     print(f"Status: {result.status}")
     print(f"Average Quality Score: {result.average_quality_score:.1f}")
@@ -56,7 +56,7 @@ async def run_scenario(
     print(f"Critical Failures: {critical}")
     print(f"High Failures: {high}")
     print(f"Results saved to: {output_file}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     # Print per-turn details
     print("Turn Details:")

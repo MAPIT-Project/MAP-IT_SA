@@ -8,8 +8,8 @@ Checks organization eligibility for Digital Europe Programme actions based on:
 - Action type (grant, procurement, etc.)
 """
 
-from dataclasses import dataclass, field
 import logging
+from dataclasses import dataclass, field
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -354,7 +354,7 @@ class DigitalEuropeEligibilityTool:
             eligible_types = [self.ORG_TYPES.get(t, t) for t in rules["org_types"]]
             requirements_missing.append(
                 f"Organization type not eligible for {objective_name}. "
-                f'Eligible types: {", ".join(eligible_types)}'
+                f"Eligible types: {', '.join(eligible_types)}"
             )
 
         # Check 2: Country eligibility
@@ -383,7 +383,7 @@ class DigitalEuropeEligibilityTool:
                 else:
                     requirements_missing.append(
                         f"{country} does not participate in {objective_name}. "
-                        f'Switzerland only participates in: {", ".join(allowed_objectives)}'
+                        f"Switzerland only participates in: {', '.join(allowed_objectives)}"
                     )
             else:
                 requirements_missing.append(
@@ -404,7 +404,7 @@ class DigitalEuropeEligibilityTool:
                 )
 
         # Add funding information
-        recommendations.append(f'Standard funding rate: {objective_info["funding_rate"]}')
+        recommendations.append(f"Standard funding rate: {objective_info['funding_rate']}")
         if objective_info.get("funding_rate_notes"):
             recommendations.append(objective_info["funding_rate_notes"])
 
@@ -424,7 +424,7 @@ class DigitalEuropeEligibilityTool:
             warnings.append(msg)
 
         # Add budget information
-        recommendations.append(f'Objective budget: {objective_info["budget"]}')
+        recommendations.append(f"Objective budget: {objective_info['budget']}")
 
         # Determine overall eligibility
         eligible = len(requirements_missing) == 0

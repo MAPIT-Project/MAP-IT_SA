@@ -313,9 +313,9 @@ class TestScenario026LIFEBudget:
             quality = result.get("metadata", {}).get("quality_analysis", {})
             category = quality.get("category", "")
 
-            assert (
-                category != "deflection"
-            ), f"Quality category should not be 'deflection', got '{category}'"
+            assert category != "deflection", (
+                f"Quality category should not be 'deflection', got '{category}'"
+            )
 
     @pytest.mark.asyncio
     async def test_fast_response_time(self, conversation_id):
@@ -333,9 +333,9 @@ class TestScenario026LIFEBudget:
             processing_time = result.get("metadata", {}).get("processing_time_ms", 10000)
 
             # Pre-routed guidance should be fast (< 5 seconds)
-            assert (
-                processing_time < 5000
-            ), f"Response should be fast (< 5 seconds), took {processing_time}ms"
+            assert processing_time < 5000, (
+                f"Response should be fast (< 5 seconds), took {processing_time}ms"
+            )
 
     @pytest.mark.asyncio
     async def test_overall_score_meets_threshold(self, conversation_id):

@@ -113,9 +113,9 @@ class TestScenario005FullProposalJourneyOffline:
         assert "name" in data
         assert data["name"] == "Full Proposal Journey"
         assert "steps" in data
-        assert (
-            len(data["steps"]) == NUM_TURNS
-        ), f"Expected {NUM_TURNS} turns, got {len(data['steps'])}"
+        assert len(data["steps"]) == NUM_TURNS, (
+            f"Expected {NUM_TURNS} turns, got {len(data['steps'])}"
+        )
 
     def test_results_directory_exists(self):
         """Verify results directory can be created."""
@@ -228,9 +228,9 @@ class TestScenario005FullProposalJourneyOffline:
         with open(SCENARIO_PATH) as f:
             data = yaml.safe_load(f)
 
-        assert (
-            len(data["steps"]) == NUM_TURNS
-        ), f"PRD specifies 15-turn critical scenario, got {len(data['steps'])}"
+        assert len(data["steps"]) == NUM_TURNS, (
+            f"PRD specifies 15-turn critical scenario, got {len(data['steps'])}"
+        )
 
 
 class TestScenario005FullProposalJourneyLive:
@@ -310,9 +310,9 @@ class TestScenario005FullProposalJourneyLive:
 
         # Assertions based on PRD requirements
         assert result.scenario_name == "Full Proposal Journey"
-        assert (
-            len(result.turns) == NUM_TURNS
-        ), f"Expected {NUM_TURNS} turns, got {len(result.turns)}"
+        assert len(result.turns) == NUM_TURNS, (
+            f"Expected {NUM_TURNS} turns, got {len(result.turns)}"
+        )
 
         # Check that key proposal elements are mentioned across conversation
         all_responses = " ".join(t.response for t in result.turns)
@@ -536,9 +536,9 @@ class TestScenario005FullProposalJourneyResults:
         assert "status" in result
 
         # Validate this is a 15-turn scenario
-        assert (
-            len(result["turns"]) == NUM_TURNS
-        ), f"Expected {NUM_TURNS} turns, got {len(result['turns'])}"
+        assert len(result["turns"]) == NUM_TURNS, (
+            f"Expected {NUM_TURNS} turns, got {len(result['turns'])}"
+        )
 
         # Log current status
         logger.info(f"Current status: {result['status']}")

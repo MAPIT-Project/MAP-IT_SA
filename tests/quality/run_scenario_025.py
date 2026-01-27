@@ -38,7 +38,7 @@ async def main():
     print(f"Status: {result.status}")
     print(f"Average Quality Score: {result.average_quality_score:.1f}")
     print(f"Average Factual Score: {result.average_factual_score:.1f}")
-    print(f"Execution Time: {result.execution_time_ms/1000:.1f}s")
+    print(f"Execution Time: {result.execution_time_ms / 1000:.1f}s")
     print(f"Passed: {result.passed}")
 
     print("\n" + "-" * 60)

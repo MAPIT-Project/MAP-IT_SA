@@ -16,14 +16,14 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Skip all tests if DATABASE_URL is not set
 pytestmark = pytest.mark.skipif(
-    not os.getenv("DATABASE_URL"),
-    reason="DATABASE_URL not set - skipping real tool tests"
+    not os.getenv("DATABASE_URL"), reason="DATABASE_URL not set - skipping real tool tests"
 )
 
 
 # ============================================================================
 # TOOL 1: Budget Benchmark (get_budget_benchmark)
 # ============================================================================
+
 
 class TestBudgetBenchmarkReal:
     """Real tests for budget_benchmark tool."""
@@ -33,10 +33,7 @@ class TestBudgetBenchmarkReal:
         """Test budget benchmark for RIA action type."""
         from app.services.tools.budget_benchmark import get_budget_benchmark_execute
 
-        result = await get_budget_benchmark_execute(
-            {"action_type": "RIA"},
-            {}
-        )
+        result = await get_budget_benchmark_execute({"action_type": "RIA"}, {})
 
         assert result["success"] is True
         assert result["tool_name"] == "get_budget_benchmark"
@@ -54,10 +51,7 @@ class TestBudgetBenchmarkReal:
         """Test budget benchmark for Cluster 4 (Digital)."""
         from app.services.tools.budget_benchmark import get_budget_benchmark_execute
 
-        result = await get_budget_benchmark_execute(
-            {"cluster": "CL4", "action_type": "RIA"},
-            {}
-        )
+        result = await get_budget_benchmark_execute({"cluster": "CL4", "action_type": "RIA"}, {})
 
         assert result["success"] is True
         print(f"\nCluster 4 RIA Budget Stats: {result['statistics']}")
@@ -68,8 +62,7 @@ class TestBudgetBenchmarkReal:
         from app.services.tools.budget_benchmark import get_budget_benchmark_execute
 
         result = await get_budget_benchmark_execute(
-            {"topic_keywords": "artificial intelligence", "action_type": "RIA"},
-            {}
+            {"topic_keywords": "artificial intelligence", "action_type": "RIA"}, {}
         )
 
         assert result["success"] is True
@@ -80,6 +73,7 @@ class TestBudgetBenchmarkReal:
 # TOOL 2: Consortium Patterns (get_consortium_patterns)
 # ============================================================================
 
+
 class TestConsortiumPatternsReal:
     """Real tests for consortium_patterns tool."""
 
@@ -88,10 +82,7 @@ class TestConsortiumPatternsReal:
         """Test consortium patterns for RIA."""
         from app.services.tools.consortium_patterns import get_consortium_patterns_execute
 
-        result = await get_consortium_patterns_execute(
-            {"action_type": "RIA"},
-            {}
-        )
+        result = await get_consortium_patterns_execute({"action_type": "RIA"}, {})
 
         assert result["success"] is True
         assert result["tool_name"] == "get_consortium_patterns"
@@ -105,10 +96,7 @@ class TestConsortiumPatternsReal:
         """Test consortium patterns for Cluster 5."""
         from app.services.tools.consortium_patterns import get_consortium_patterns_execute
 
-        result = await get_consortium_patterns_execute(
-            {"cluster": "CL5"},
-            {}
-        )
+        result = await get_consortium_patterns_execute({"cluster": "CL5"}, {})
 
         assert result["success"] is True
         print(f"\nCluster 5 Consortium Patterns: {result}")
@@ -117,6 +105,7 @@ class TestConsortiumPatternsReal:
 # ============================================================================
 # TOOL 3: Partner Discovery (find_experienced_partners)
 # ============================================================================
+
 
 class TestPartnerDiscoveryReal:
     """Real tests for partner_discovery tool."""
@@ -127,8 +116,7 @@ class TestPartnerDiscoveryReal:
         from app.services.tools.partner_discovery import find_experienced_partners_execute
 
         result = await find_experienced_partners_execute(
-            {"topic_keywords": "artificial intelligence"},
-            {}
+            {"topic_keywords": "artificial intelligence"}, {}
         )
 
         assert result["success"] is True
@@ -136,7 +124,9 @@ class TestPartnerDiscoveryReal:
         # Tool returns experienced_partners key
         assert "experienced_partners" in result or "partners" in result
 
-        print(f"\nAI Partners Found: {result.get('total_found', len(result.get('experienced_partners', [])))}")
+        print(
+            f"\nAI Partners Found: {result.get('total_found', len(result.get('experienced_partners', [])))}"
+        )
 
     @pytest.mark.asyncio
     async def test_find_partners_by_country(self):
@@ -144,8 +134,7 @@ class TestPartnerDiscoveryReal:
         from app.services.tools.partner_discovery import find_experienced_partners_execute
 
         result = await find_experienced_partners_execute(
-            {"topic_keywords": "hydrogen", "country": "Germany"},
-            {}
+            {"topic_keywords": "hydrogen", "country": "Germany"}, {}
         )
 
         assert result["success"] is True
@@ -156,6 +145,7 @@ class TestPartnerDiscoveryReal:
 # TOOL 4: Similar Projects (get_similar_funded_projects)
 # ============================================================================
 
+
 class TestSimilarProjectsReal:
     """Real tests for similar_projects tool."""
 
@@ -165,8 +155,7 @@ class TestSimilarProjectsReal:
         from app.services.tools.similar_projects import get_similar_funded_projects_execute
 
         result = await get_similar_funded_projects_execute(
-            {"description": "Machine learning for medical image analysis and cancer detection"},
-            {}
+            {"description": "Machine learning for medical image analysis and cancer detection"}, {}
         )
 
         assert result["success"] is True
@@ -180,8 +169,7 @@ class TestSimilarProjectsReal:
         from app.services.tools.similar_projects import get_similar_funded_projects_execute
 
         result = await get_similar_funded_projects_execute(
-            {"description": "Green hydrogen production from renewable energy sources"},
-            {}
+            {"description": "Green hydrogen production from renewable energy sources"}, {}
         )
 
         assert result["success"] is True
@@ -192,6 +180,7 @@ class TestSimilarProjectsReal:
 # TOOL 5: Call History Analysis (analyze_call_history)
 # ============================================================================
 
+
 class TestCallHistoryReal:
     """Real tests for call_history tool."""
 
@@ -200,10 +189,7 @@ class TestCallHistoryReal:
         """Test call history for Cluster 4."""
         from app.services.tools.call_history import analyze_call_history_execute
 
-        result = await analyze_call_history_execute(
-            {"cluster": "CL4"},
-            {}
-        )
+        result = await analyze_call_history_execute({"cluster": "CL4"}, {})
 
         assert result["success"] is True
         assert result["tool_name"] == "analyze_call_history"
@@ -215,10 +201,7 @@ class TestCallHistoryReal:
         """Test call history with keywords."""
         from app.services.tools.call_history import analyze_call_history_execute
 
-        result = await analyze_call_history_execute(
-            {"keywords": "quantum"},
-            {}
-        )
+        result = await analyze_call_history_execute({"keywords": "quantum"}, {})
 
         assert result["success"] is True
         print(f"\nQuantum Call History: {result}")
@@ -227,6 +210,7 @@ class TestCallHistoryReal:
 # ============================================================================
 # TOOL 6: Local Call Search (search_funding_calls)
 # ============================================================================
+
 
 class TestLocalCallSearchReal:
     """Real tests for local call search."""
@@ -260,6 +244,7 @@ class TestLocalCallSearchReal:
 # TOOL 7: Local Project Search (search_projects)
 # ============================================================================
 
+
 class TestLocalProjectSearchReal:
     """Real tests for local project search."""
 
@@ -272,7 +257,9 @@ class TestLocalProjectSearchReal:
         result = await service.search_projects(query="artificial intelligence", limit=10)
 
         assert result is not None
-        print(f"\nAI Projects Found: {result.get('projects_found', 0) if isinstance(result, dict) else len(result)}")
+        print(
+            f"\nAI Projects Found: {result.get('projects_found', 0) if isinstance(result, dict) else len(result)}"
+        )
 
     @pytest.mark.asyncio
     async def test_search_projects_hydrogen(self):
@@ -289,6 +276,7 @@ class TestLocalProjectSearchReal:
 # ============================================================================
 # TOOL 8: Document Search (search_local_database)
 # ============================================================================
+
 
 class TestDocumentSearchReal:
     """Real tests for document search."""
@@ -327,6 +315,7 @@ class TestDocumentSearchReal:
 # MULTI-TOOL INTEGRATION SCENARIOS
 # ============================================================================
 
+
 class TestMultiToolIntegration:
     """Test multiple tools working together."""
 
@@ -343,25 +332,22 @@ class TestMultiToolIntegration:
         from app.services.tools.partner_discovery import find_experienced_partners_execute
 
         # Step 1: Budget
-        budget = await get_budget_benchmark_execute(
-            {"cluster": "CL4", "action_type": "RIA"},
-            {}
-        )
+        budget = await get_budget_benchmark_execute({"cluster": "CL4", "action_type": "RIA"}, {})
         assert budget["success"] is True
-        print(f"\n1. Budget Benchmark: Median = {budget['statistics'].get('total_eu_contribution', {}).get('median', 'N/A')}")
+        print(
+            f"\n1. Budget Benchmark: Median = {budget['statistics'].get('total_eu_contribution', {}).get('median', 'N/A')}"
+        )
 
         # Step 2: Consortium patterns
         patterns = await get_consortium_patterns_execute(
-            {"cluster": "CL4", "action_type": "RIA"},
-            {}
+            {"cluster": "CL4", "action_type": "RIA"}, {}
         )
         assert patterns["success"] is True
         print(f"2. Consortium Patterns: {patterns}")
 
         # Step 3: Find partners
         partners = await find_experienced_partners_execute(
-            {"topic_keywords": "artificial intelligence", "cluster": "CL4"},
-            {}
+            {"topic_keywords": "artificial intelligence", "cluster": "CL4"}, {}
         )
         assert partners["success"] is True
         print(f"3. Partners Found: {partners.get('partners_found', 0)}")
@@ -378,16 +364,14 @@ class TestMultiToolIntegration:
 
         # Step 1: Similar projects
         similar = await get_similar_funded_projects_execute(
-            {"description": "AI for sustainable agriculture and precision farming"},
-            {}
+            {"description": "AI for sustainable agriculture and precision farming"}, {}
         )
         assert similar["success"] is True
         print(f"\n1. Similar Projects: {similar}")
 
         # Step 2: Call history
         history = await analyze_call_history_execute(
-            {"cluster": "CL6", "keywords": "agriculture"},
-            {}
+            {"cluster": "CL6", "keywords": "agriculture"}, {}
         )
         assert history["success"] is True
         print(f"2. Call History: {history}")
@@ -396,6 +380,7 @@ class TestMultiToolIntegration:
 # ============================================================================
 # EDGE CASES WITH REAL DATA
 # ============================================================================
+
 
 class TestRealEdgeCases:
     """Edge case tests with real database."""
@@ -406,8 +391,7 @@ class TestRealEdgeCases:
         from app.services.tools.budget_benchmark import get_budget_benchmark_execute
 
         result = await get_budget_benchmark_execute(
-            {"topic_keywords": "xyznonexistenttopic123"},
-            {}
+            {"topic_keywords": "xyznonexistenttopic123"}, {}
         )
 
         # Should return fallback data, not fail
@@ -419,8 +403,7 @@ class TestRealEdgeCases:
         from app.services.tools.partner_discovery import find_experienced_partners_execute
 
         result = await find_experienced_partners_execute(
-            {"topic_keywords": "AI & machine learning"},
-            {}
+            {"topic_keywords": "AI & machine learning"}, {}
         )
 
         assert result["success"] is True
@@ -431,10 +414,7 @@ class TestRealEdgeCases:
         from app.services.tools.similar_projects import get_similar_funded_projects_execute
 
         long_description = "This project aims to develop " * 50  # Very long
-        result = await get_similar_funded_projects_execute(
-            {"description": long_description},
-            {}
-        )
+        result = await get_similar_funded_projects_execute({"description": long_description}, {})
 
         assert result["success"] is True
 

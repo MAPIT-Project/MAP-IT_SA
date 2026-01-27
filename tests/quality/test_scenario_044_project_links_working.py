@@ -23,8 +23,8 @@ from unittest.mock import MagicMock
 
 import httpx
 import psycopg2
-from psycopg2.extras import RealDictCursor
 import pytest
+from psycopg2.extras import RealDictCursor
 
 logger = logging.getLogger(__name__)
 
@@ -449,9 +449,9 @@ class TestScenario044ProjectLinksWorking:
                 assert project_id is not None, f"Could not extract ID from URL: {url}"
                 # The project ID should appear somewhere in the response
                 # (either in the URL or as "Project ID: XXXXX")
-                assert (
-                    project_id in response_text
-                ), f"Project ID {project_id} from URL not found in response"
+                assert project_id in response_text, (
+                    f"Project ID {project_id} from URL not found in response"
+                )
 
     @pytest.mark.asyncio
     async def test_verify_cordis_links_work(self, conversation_id, clear_redis_cache):

@@ -34,20 +34,19 @@ from dotenv import load_dotenv
 from psycopg2.extras import RealDictCursor
 
 # Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 # EU Portal API endpoint
-EU_PORTAL_TOPIC_DETAILS = "https://ec.europa.eu/info/funding-tenders/opportunities/data/topicDetails"
+EU_PORTAL_TOPIC_DETAILS = (
+    "https://ec.europa.eu/info/funding-tenders/opportunities/data/topicDetails"
+)
 
 
 def get_database_url() -> str:
     """Get database URL from environment."""
     load_dotenv()
-    db_url = os.getenv('DATABASE_URL')
+    db_url = os.getenv("DATABASE_URL")
     if not db_url:
         raise ValueError("DATABASE_URL environment variable not set")
     return db_url
@@ -64,7 +63,7 @@ def is_valid_topic_code(topic_code: str) -> tuple[bool, str]:
         return False, "Empty topic code"
 
     # Check for trailing dash (incomplete code)
-    if topic_code.endswith('-'):
+    if topic_code.endswith("-"):
         return False, "Incomplete code (trailing dash)"
 
     # Check for minimum length
@@ -72,13 +71,13 @@ def is_valid_topic_code(topic_code: str) -> tuple[bool, str]:
         return False, "Code too short"
 
     # Check for valid prefix
-    valid_prefixes = ['HORIZON-', 'ERC-', 'EIC-', 'MSCA-']
+    valid_prefixes = ["HORIZON-", "ERC-", "EIC-", "MSCA-"]
     has_valid_prefix = any(topic_code.upper().startswith(p) for p in valid_prefixes)
     if not has_valid_prefix:
         return False, "Invalid prefix"
 
     # Check for year (should have 4-digit year)
-    year_match = re.search(r'-(\d{4})-', topic_code)
+    year_match = re.search(r"-(\d{4})-", topic_code)
     if not year_match:
         return False, "No year found in code"
 
@@ -96,14 +95,14 @@ def is_garbled_title(title: str) -> bool:
 
     # Check for common garbled patterns
     garbled_patterns = [
-        r'^Overview of this call',
-        r'^Topics Type Budgets',
-        r'^Proposals are invited',
-        r'^\d+\s+Proposals',
-        r'^EUR\s+million',
-        r'^\s*\d+\.\d+\s*$',  # Just numbers
-        r'^The Director-General',
-        r'^Legal and financial',
+        r"^Overview of this call",
+        r"^Topics Type Budgets",
+        r"^Proposals are invited",
+        r"^\d+\s+Proposals",
+        r"^EUR\s+million",
+        r"^\s*\d+\.\d+\s*$",  # Just numbers
+        r"^The Director-General",
+        r"^Legal and financial",
     ]
 
     for pattern in garbled_patterns:
@@ -111,7 +110,7 @@ def is_garbled_title(title: str) -> bool:
             return True
 
     # Title is same as topic code
-    if title.upper().startswith('HORIZON-') and '-' in title and len(title) < 40:
+    if title.upper().startswith("HORIZON-") and "-" in title and len(title) < 40:
         return True
 
     return False
@@ -127,28 +126,28 @@ def needs_enrichment(call: dict[str, Any]) -> tuple[bool, list[str]]:
     reasons = []
 
     # Check topic code validity
-    is_valid, validity_reason = is_valid_topic_code(call.get('topic_code', ''))
+    is_valid, validity_reason = is_valid_topic_code(call.get("topic_code", ""))
     if not is_valid:
         reasons.append(f"Invalid topic code: {validity_reason}")
 
     # Check title
-    title = call.get('title', '')
+    title = call.get("title", "")
     if not title or len(title) < 10:
         reasons.append("Missing or short title")
     elif is_garbled_title(title):
         reasons.append("Garbled title")
 
     # Check deadline
-    if not call.get('deadline'):
+    if not call.get("deadline"):
         reasons.append("Missing deadline")
 
     # Check scope
-    scope = call.get('scope', '') or ''
+    scope = call.get("scope", "") or ""
     if len(scope) < 50:
         reasons.append("Missing or short scope")
 
     # Check status
-    if not call.get('status') or call.get('status') == 'unknown':
+    if not call.get("status") or call.get("status") == "unknown":
         reasons.append("Missing status")
 
     return len(reasons) > 0, reasons
@@ -170,21 +169,21 @@ def fetch_from_api(topic_code: str, client: httpx.Client) -> dict[str, Any] | No
             return None
 
         data = response.json()
-        topic_data = data.get('TopicDetails', {})
+        topic_data = data.get("TopicDetails", {})
 
         if not topic_data:
             return None
 
         # Extract deadline and status from 'actions' field
         deadline = None
-        status = 'unknown'
-        actions = topic_data.get('actions', [])
+        status = "unknown"
+        actions = topic_data.get("actions", [])
 
         if actions and isinstance(actions, list) and len(actions) > 0:
             action = actions[0]
 
             # Get deadline from deadlineDates (Unix timestamp in milliseconds)
-            deadline_dates = action.get('deadlineDates', [])
+            deadline_dates = action.get("deadlineDates", [])
             if deadline_dates and len(deadline_dates) > 0:
                 try:
                     timestamp_ms = int(deadline_dates[0])
@@ -193,55 +192,55 @@ def fetch_from_api(topic_code: str, client: httpx.Client) -> dict[str, Any] | No
                     pass
 
             # Get status from action.status
-            status_info = action.get('status', {})
+            status_info = action.get("status", {})
             if isinstance(status_info, dict):
-                status_abbr = status_info.get('abbreviation', '').lower()
-                if 'open' in status_abbr:
-                    status = 'open'
-                elif 'closed' in status_abbr:
-                    status = 'closed'
-                elif 'forthcoming' in status_abbr or 'upcoming' in status_abbr:
-                    status = 'upcoming'
+                status_abbr = status_info.get("abbreviation", "").lower()
+                if "open" in status_abbr:
+                    status = "open"
+                elif "closed" in status_abbr:
+                    status = "closed"
+                elif "forthcoming" in status_abbr or "upcoming" in status_abbr:
+                    status = "upcoming"
 
         # Fallback to statusOfTopic
-        if status == 'unknown':
-            status_data = topic_data.get('statusOfTopic', {})
+        if status == "unknown":
+            status_data = topic_data.get("statusOfTopic", {})
             if isinstance(status_data, dict):
-                status_abbr = status_data.get('abbreviation', '').lower()
-                if 'open' in status_abbr:
-                    status = 'open'
-                elif 'closed' in status_abbr:
-                    status = 'closed'
-                elif 'forthcoming' in status_abbr:
-                    status = 'upcoming'
+                status_abbr = status_data.get("abbreviation", "").lower()
+                if "open" in status_abbr:
+                    status = "open"
+                elif "closed" in status_abbr:
+                    status = "closed"
+                elif "forthcoming" in status_abbr:
+                    status = "upcoming"
 
         # Normalize status based on deadline
         if deadline and deadline < date.today():
-            status = 'closed'
+            status = "closed"
 
         # Extract budget
         budget = None
-        budget_data = topic_data.get('budgetOverviewModel', {})
+        budget_data = topic_data.get("budgetOverviewModel", {})
         if budget_data:
-            budget = budget_data.get('budgetTopicActionValue')
+            budget = budget_data.get("budgetTopicActionValue")
 
         # Extract action type
         action_type = None
-        action_type_data = topic_data.get('typeOfMGA', [])
+        action_type_data = topic_data.get("typeOfMGA", [])
         if action_type_data and isinstance(action_type_data, list) and len(action_type_data) > 0:
-            action_type = action_type_data[0].get('abbreviation', '')
+            action_type = action_type_data[0].get("abbreviation", "")
 
         return {
-            'topic_code': topic_data.get('identifier', topic_code).upper(),
-            'title': topic_data.get('title', ''),
-            'scope': topic_data.get('description', ''),
-            'expected_outcome': topic_data.get('expectedImpact', ''),
-            'deadline': deadline,
-            'status': status,
-            'action_type': action_type,
-            'budget_total': float(budget) if budget else None,
-            'call_identifier': topic_data.get('callIdentifier'),
-            'portal_url': f"https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/{topic_code.lower()}",
+            "topic_code": topic_data.get("identifier", topic_code).upper(),
+            "title": topic_data.get("title", ""),
+            "scope": topic_data.get("description", ""),
+            "expected_outcome": topic_data.get("expectedImpact", ""),
+            "deadline": deadline,
+            "status": status,
+            "action_type": action_type,
+            "budget_total": float(budget) if budget else None,
+            "call_identifier": topic_data.get("callIdentifier"),
+            "portal_url": f"https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/{topic_code.lower()}",
         }
 
     except httpx.TimeoutException:
@@ -263,11 +262,12 @@ def update_call(conn, topic_code: str, data: dict[str, Any], dry_run: bool = Fal
         enrichment_metadata = {
             "enriched_from_api": True,
             "enriched_at": datetime.now().isoformat(),
-            "batch_cleanup": True
+            "batch_cleanup": True,
         }
         metadata_json = json.dumps(enrichment_metadata)
 
-        cursor.execute("""
+        cursor.execute(
+            """
             UPDATE funding_calls SET
                 title = COALESCE(%s, title),
                 scope = COALESCE(%s, scope),
@@ -281,19 +281,21 @@ def update_call(conn, topic_code: str, data: dict[str, Any], dry_run: bool = Fal
                 metadata = COALESCE(metadata, '{}'::jsonb) || %s::jsonb,
                 updated_at = NOW()
             WHERE topic_code = %s
-        """, (
-            data.get('title'),
-            data.get('scope'),
-            data.get('expected_outcome'),
-            data.get('deadline'),
-            data.get('status'),
-            data.get('action_type'),
-            data.get('budget_total'),
-            data.get('call_identifier'),
-            data.get('portal_url'),
-            metadata_json,
-            topic_code
-        ))
+        """,
+            (
+                data.get("title"),
+                data.get("scope"),
+                data.get("expected_outcome"),
+                data.get("deadline"),
+                data.get("status"),
+                data.get("action_type"),
+                data.get("budget_total"),
+                data.get("call_identifier"),
+                data.get("portal_url"),
+                metadata_json,
+                topic_code,
+            ),
+        )
 
         conn.commit()
         return True
@@ -339,13 +341,17 @@ def get_all_calls(conn, force: bool = False, limit: int | None = None) -> list[d
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Batch enrich and cleanup funding calls')
-    parser.add_argument('--limit', type=int, help='Limit number of calls to process')
-    parser.add_argument('--dry-run', action='store_true', help='Don\'t update database')
-    parser.add_argument('--force', action='store_true', help='Re-fetch all calls')
-    parser.add_argument('--cleanup', action='store_true', help='Remove invalid calls not found in API')
-    parser.add_argument('--verbose', action='store_true', help='Show detailed progress')
-    parser.add_argument('--delay', type=float, default=0.3, help='Delay between API calls (seconds)')
+    parser = argparse.ArgumentParser(description="Batch enrich and cleanup funding calls")
+    parser.add_argument("--limit", type=int, help="Limit number of calls to process")
+    parser.add_argument("--dry-run", action="store_true", help="Don't update database")
+    parser.add_argument("--force", action="store_true", help="Re-fetch all calls")
+    parser.add_argument(
+        "--cleanup", action="store_true", help="Remove invalid calls not found in API"
+    )
+    parser.add_argument("--verbose", action="store_true", help="Show detailed progress")
+    parser.add_argument(
+        "--delay", type=float, default=0.3, help="Delay between API calls (seconds)"
+    )
     args = parser.parse_args()
 
     if args.verbose:
@@ -374,13 +380,13 @@ def main():
 
     # Statistics
     stats = {
-        'total': len(calls),
-        'valid_no_enrichment': 0,
-        'enriched': 0,
-        'not_found_in_api': 0,
-        'deleted': 0,
-        'invalid_code': 0,
-        'errors': 0,
+        "total": len(calls),
+        "valid_no_enrichment": 0,
+        "enriched": 0,
+        "not_found_in_api": 0,
+        "deleted": 0,
+        "invalid_code": 0,
+        "errors": 0,
     }
 
     # Categorize calls
@@ -392,14 +398,14 @@ def main():
     invalid_calls = []
 
     for call in calls:
-        topic_code = call['topic_code']
+        topic_code = call["topic_code"]
 
         # Check if topic code is valid
         is_valid, validity_reason = is_valid_topic_code(topic_code)
 
         if not is_valid:
             invalid_calls.append((call, validity_reason))
-            stats['invalid_code'] += 1
+            stats["invalid_code"] += 1
             continue
 
         # Check if needs enrichment
@@ -408,7 +414,7 @@ def main():
         if needs_enrich or args.force:
             calls_to_enrich.append((call, reasons))
         else:
-            stats['valid_no_enrichment'] += 1
+            stats["valid_no_enrichment"] += 1
 
     logger.info("\nAnalysis complete:")
     logger.info(f"  - Valid, complete: {stats['valid_no_enrichment']}")
@@ -428,7 +434,7 @@ def main():
         logger.info("=" * 70)
 
         for call, reason in invalid_calls:
-            topic_code = call['topic_code']
+            topic_code = call["topic_code"]
 
             # Try to find in API anyway (maybe we can fix the code)
             api_data = fetch_from_api(topic_code, client)
@@ -437,15 +443,15 @@ def main():
                 # API found it! Update with correct data
                 logger.info(f"  {topic_code}: Found in API despite invalid code - updating")
                 if update_call(conn, topic_code, api_data, args.dry_run):
-                    stats['enriched'] += 1
+                    stats["enriched"] += 1
             elif args.cleanup:
                 # Not in API and cleanup mode - delete
                 logger.info(f"  {topic_code}: Not in API, deleting ({reason})")
                 if delete_call(conn, topic_code, args.dry_run):
-                    stats['deleted'] += 1
+                    stats["deleted"] += 1
             else:
                 logger.debug(f"  {topic_code}: Invalid and not in API ({reason})")
-                stats['not_found_in_api'] += 1
+                stats["not_found_in_api"] += 1
 
             time.sleep(args.delay)
 
@@ -456,8 +462,8 @@ def main():
         logger.info("=" * 70)
         logger.info(f"Processing {len(calls_to_enrich)} calls...")
 
-        for i, (call, reasons) in enumerate(calls_to_enrich):
-            topic_code = call['topic_code']
+        for i, (call, _reasons) in enumerate(calls_to_enrich):
+            topic_code = call["topic_code"]
 
             if (i + 1) % 20 == 0 or i == 0:
                 logger.info(f"[{i + 1}/{len(calls_to_enrich)}] Processing {topic_code}...")
@@ -467,21 +473,25 @@ def main():
 
             if api_data:
                 # Check what we got
-                got_title = bool(api_data.get('title'))
-                got_deadline = bool(api_data.get('deadline'))
-                got_scope = bool(api_data.get('scope'))
+                got_title = bool(api_data.get("title"))
+                got_deadline = bool(api_data.get("deadline"))
+                bool(api_data.get("scope"))
 
                 if args.verbose:
-                    logger.debug(f"  Got: title={got_title}, deadline={got_deadline}, scope={len(api_data.get('scope', '') or '')}")
+                    logger.debug(
+                        f"  Got: title={got_title}, deadline={got_deadline}, scope={len(api_data.get('scope', '') or '')}"
+                    )
 
                 if update_call(conn, topic_code, api_data, args.dry_run):
-                    stats['enriched'] += 1
+                    stats["enriched"] += 1
                     if got_deadline:
-                        logger.info(f"  {topic_code}: Enriched (deadline={api_data.get('deadline')}, status={api_data.get('status')})")
+                        logger.info(
+                            f"  {topic_code}: Enriched (deadline={api_data.get('deadline')}, status={api_data.get('status')})"
+                        )
                 else:
-                    stats['errors'] += 1
+                    stats["errors"] += 1
             else:
-                stats['not_found_in_api'] += 1
+                stats["not_found_in_api"] += 1
                 if args.verbose:
                     logger.debug(f"  {topic_code}: Not found in API")
 
@@ -510,5 +520,5 @@ def main():
         logger.info("Run without --dry-run to apply changes")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

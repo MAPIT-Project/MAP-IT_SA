@@ -47,9 +47,7 @@ import httpx
 import pytest
 
 # Add project root to path
-sys.path.insert(
-    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 # API configuration
 API_BASE_URL = os.getenv("MAP_IT_API_URL", "http://localhost:8000")
@@ -283,9 +281,7 @@ class EvaluationResult:
 def check_api_available() -> bool:
     """Check if the API is available."""
     try:
-        response = httpx.get(
-            f"{API_BASE_URL}/api/v3/conversation/health", timeout=5.0
-        )
+        response = httpx.get(f"{API_BASE_URL}/api/v3/conversation/health", timeout=5.0)
         return response.status_code == 200
     except Exception:
         return False
@@ -298,9 +294,7 @@ live_api = pytest.mark.skipif(
 )
 
 
-def get_mapit_response(
-    query: str, conversation_id: int | None = None
-) -> dict[str, Any]:
+def get_mapit_response(query: str, conversation_id: int | None = None) -> dict[str, Any]:
     """
     Send a query to MAPIT and get the response.
 
@@ -353,33 +347,67 @@ def count_country_groups_mentioned(response: str) -> int:
     group_checks = {
         "Nordic": ["nordic", "no, dk, se, fi", "norway", "denmark", "sweden", "finland"],
         "South Europe": [
-            "south europe", "southern europe", "es, pt, it, gr",
-            "spain", "portugal", "italy", "greece"
+            "south europe",
+            "southern europe",
+            "es, pt, it, gr",
+            "spain",
+            "portugal",
+            "italy",
+            "greece",
         ],
         "Western Europe": [
-            "western europe", "fr, de", "benelux", "france", "germany",
-            "belgium", "netherlands", "luxembourg"
+            "western europe",
+            "fr, de",
+            "benelux",
+            "france",
+            "germany",
+            "belgium",
+            "netherlands",
+            "luxembourg",
         ],
         "Baltic": ["baltic", "ee, lv, lt", "estonia", "latvia", "lithuania"],
         "CEE": [
-            "cee", "central and eastern", "pl, sk, cz, hu, si",
-            "poland", "slovakia", "czechia", "czech republic", "hungary", "slovenia"
+            "cee",
+            "central and eastern",
+            "pl, sk, cz, hu, si",
+            "poland",
+            "slovakia",
+            "czechia",
+            "czech republic",
+            "hungary",
+            "slovenia",
         ],
         "Western Balkans": [
-            "western balkans", "balkans", "hr, rs, me",
-            "croatia", "serbia", "montenegro"
+            "western balkans",
+            "balkans",
+            "hr, rs, me",
+            "croatia",
+            "serbia",
+            "montenegro",
         ],
         "EPC": [
-            "epc", "eastern partnership", "md, by, ua, ge, am, az",
-            "moldova", "belarus", "ukraine", "georgia", "armenia", "azerbaijan"
+            "epc",
+            "eastern partnership",
+            "md, by, ua, ge, am, az",
+            "moldova",
+            "belarus",
+            "ukraine",
+            "georgia",
+            "armenia",
+            "azerbaijan",
         ],
         "Islands": [
-            "islands", "ie, uk, mt, cy",
-            "ireland", "united kingdom", "uk", "malta", "cyprus"
+            "islands",
+            "ie, uk, mt, cy",
+            "ireland",
+            "united kingdom",
+            "uk",
+            "malta",
+            "cyprus",
         ],
     }
 
-    for group_name, keywords in group_checks.items():
+    for _group_name, keywords in group_checks.items():
         for keyword in keywords:
             if keyword in response_lower:
                 groups_found += 1
@@ -506,9 +534,7 @@ def evaluate_query_fulfillment(response: str) -> tuple[int, str, list[str], list
         found_items.append(f"Only {groups_mentioned}/8 country groups mentioned")
         missing_items.append("Should define all 8 country groups as specified")
     else:
-        missing_items.append(
-            f"Only {groups_mentioned}/8 country groups - must define all groups"
-        )
+        missing_items.append(f"Only {groups_mentioned}/8 country groups - must define all groups")
 
     # Check for coverage analysis (12 points)
     coverage = check_coverage_analysis(response)
@@ -598,7 +624,7 @@ def evaluate_specificity(response: str) -> tuple[int, str]:
         if group_lower in response_lower:
             # Simple check: is there a number near this group mention?
             group_idx = response_lower.find(group_lower)
-            context = response_lower[max(0, group_idx - 50):group_idx + 100]
+            context = response_lower[max(0, group_idx - 50) : group_idx + 100]
             if re.search(r"\d+", context):
                 groups_with_stats += 1
 
@@ -655,7 +681,7 @@ def evaluate_factual_accuracy(
     if "germany" in response_lower:
         # Find context around Germany
         idx = response_lower.find("germany")
-        context = response_lower[max(0, idx - 100):idx + 100]
+        context = response_lower[max(0, idx - 100) : idx + 100]
         if "cee" in context or "central and eastern" in context:
             if "not" not in context and "western europe" not in context:
                 grouping_errors.append("Germany incorrectly grouped")
@@ -663,7 +689,7 @@ def evaluate_factual_accuracy(
     # UK should be Islands, not Western Europe
     if "uk" in response_lower or "united kingdom" in response_lower:
         idx = max(response_lower.find("uk"), response_lower.find("united kingdom"))
-        context = response_lower[max(0, idx - 100):idx + 100]
+        context = response_lower[max(0, idx - 100) : idx + 100]
         if "western europe" in context and "islands" not in context:
             # Only flag if UK is described as Western Europe
             if "not" not in context:
@@ -672,11 +698,13 @@ def evaluate_factual_accuracy(
     if len(grouping_errors) > 0:
         score -= 5
         for error in grouping_errors:
-            errors.append({
-                "claim": error,
-                "correct_value": "Follow country groupings as defined in query",
-                "source": "Query specification",
-            })
+            errors.append(
+                {
+                    "claim": error,
+                    "correct_value": "Follow country groupings as defined in query",
+                    "source": "Query specification",
+                }
+            )
 
     # Check for plausible statistics (10 points)
     percentages = re.findall(r"(\d+\.?\d*)\s*%", response)
@@ -697,18 +725,20 @@ def evaluate_factual_accuracy(
     elif "100%" in response:
         # 100% for other things might be suspicious
         context_idx = response.find("100%")
-        context = response[max(0, context_idx - 50):context_idx + 50].lower()
+        context = response[max(0, context_idx - 50) : context_idx + 50].lower()
         if "all 8 groups" in context:
             percentage_errors.append("100% coverage of all 8 groups is unrealistic")
 
     if percentage_errors:
         score -= 5
         for error in percentage_errors:
-            errors.append({
-                "claim": error,
-                "correct_value": "Percentages should be realistic",
-                "source": "Statistics validation",
-            })
+            errors.append(
+                {
+                    "claim": error,
+                    "correct_value": "Percentages should be realistic",
+                    "source": "Statistics validation",
+                }
+            )
 
     # Check for Cluster 2 context (5 points)
     if "cluster 2" in response_lower or "ssh" in response_lower:
@@ -719,11 +749,13 @@ def evaluate_factual_accuracy(
         for wrong_cluster in other_clusters:
             if wrong_cluster in response_lower and "cluster 2" not in response_lower:
                 score -= 3
-                errors.append({
-                    "claim": f"Focuses on {wrong_cluster} instead of Cluster 2",
-                    "correct_value": "Analysis should be for Cluster 2 (SSH)",
-                    "source": "Query specification",
-                })
+                errors.append(
+                    {
+                        "claim": f"Focuses on {wrong_cluster} instead of Cluster 2",
+                        "correct_value": "Analysis should be for Cluster 2 (SSH)",
+                        "source": "Query specification",
+                    }
+                )
                 break
 
     notes = f"Accuracy check: {score}/25 points"
@@ -764,9 +796,7 @@ def evaluate_actionability(response: str) -> tuple[int, str]:
         "dominant",
         "underrepresented",
     ]
-    interpretation_found = sum(
-        1 for kw in interpretation_keywords if kw in response_lower
-    )
+    interpretation_found = sum(1 for kw in interpretation_keywords if kw in response_lower)
     if interpretation_found >= 4:
         score += 4
     elif interpretation_found >= 2:
@@ -788,9 +818,7 @@ def evaluate_actionability(response: str) -> tuple[int, str]:
         "advice",
         "strategy",
     ]
-    recommendations_found = sum(
-        1 for kw in recommendation_keywords if kw in response_lower
-    )
+    recommendations_found = sum(1 for kw in recommendation_keywords if kw in response_lower)
     if recommendations_found >= 2:
         score += 3
     elif recommendations_found >= 1:
@@ -816,9 +844,7 @@ def evaluate_actionability(response: str) -> tuple[int, str]:
     )
 
 
-def evaluate_response(
-    response: str, response_metadata: dict[str, Any]
-) -> EvaluationResult:
+def evaluate_response(response: str, response_metadata: dict[str, Any]) -> EvaluationResult:
     """
     Perform full evaluation of the response.
 
@@ -843,9 +869,7 @@ def evaluate_response(
     actionability_score, actionability_notes = evaluate_actionability(response)
 
     # Calculate overall score
-    overall_score = (
-        fulfillment_score + specificity_score + accuracy_score + actionability_score
-    )
+    overall_score = fulfillment_score + specificity_score + accuracy_score + actionability_score
 
     # Determine result
     if overall_score >= PASS_THRESHOLD:
@@ -1027,9 +1051,7 @@ class TestPrompt028CountryDiversity:
         """Verify the response focuses on Cluster 2."""
         results_file = RESULTS_DIR / "prompt_028_country_diversity.json"
         if not results_file.exists():
-            pytest.skip(
-                "Run test_evaluate_country_diversity first to generate results"
-            )
+            pytest.skip("Run test_evaluate_country_diversity first to generate results")
 
         with open(results_file) as f:
             result = json.load(f)
@@ -1055,9 +1077,7 @@ class TestPrompt028OfflineEvaluation:
             SampleResponses.EXCELLENT_COUNTRY_DIVERSITY, {"source": "sample_excellent"}
         )
 
-        results_file = (
-            RESULTS_DIR / "prompt_028_country_diversity_sample_excellent.json"
-        )
+        results_file = RESULTS_DIR / "prompt_028_country_diversity_sample_excellent.json"
         save_result(evaluation, results_file)
 
         print("\nExcellent Response Evaluation:")
@@ -1065,8 +1085,7 @@ class TestPrompt028OfflineEvaluation:
         print(f"  Result: {evaluation.result}")
 
         assert evaluation.overall_score >= PASS_THRESHOLD, (
-            f"Excellent response scored {evaluation.overall_score}, "
-            f"expected >= {PASS_THRESHOLD}"
+            f"Excellent response scored {evaluation.overall_score}, expected >= {PASS_THRESHOLD}"
         )
         assert evaluation.result == "PASS"
 
@@ -1081,8 +1100,7 @@ class TestPrompt028OfflineEvaluation:
         print(f"  Result: {evaluation.result}")
 
         assert evaluation.overall_score < PASS_THRESHOLD, (
-            f"Partial response scored {evaluation.overall_score}, "
-            f"expected < {PASS_THRESHOLD}"
+            f"Partial response scored {evaluation.overall_score}, expected < {PASS_THRESHOLD}"
         )
 
     def test_poor_response_fails(self):
@@ -1096,8 +1114,7 @@ class TestPrompt028OfflineEvaluation:
         print(f"  Result: {evaluation.result}")
 
         assert evaluation.overall_score < NEEDS_REVIEW_THRESHOLD, (
-            f"Poor response scored {evaluation.overall_score}, "
-            f"expected < {NEEDS_REVIEW_THRESHOLD}"
+            f"Poor response scored {evaluation.overall_score}, expected < {NEEDS_REVIEW_THRESHOLD}"
         )
         assert evaluation.result == "FAIL"
 
@@ -1113,8 +1130,7 @@ class TestPrompt028OfflineEvaluation:
 
         # Should fail because it doesn't provide group-specific analysis
         assert evaluation.overall_score < PASS_THRESHOLD, (
-            f"No-group response scored {evaluation.overall_score}, "
-            f"expected < {PASS_THRESHOLD}"
+            f"No-group response scored {evaluation.overall_score}, expected < {PASS_THRESHOLD}"
         )
 
     def test_save_evaluation_result_json(self):

@@ -133,10 +133,7 @@ class ProposalSessionManager:
         # Cache the session
         self._cache_session(session)
 
-        logger.info(
-            f"✅ Created proposal session: {session.session_id} "
-            f"for proposal {proposal_id}"
-        )
+        logger.info(f"✅ Created proposal session: {session.session_id} for proposal {proposal_id}")
         return session
 
     async def get_session(self, session_id: str) -> ProposalSessionState | None:
@@ -339,9 +336,7 @@ class ProposalSessionManager:
             logger.info(f"🔓 Unlocked section {section_id}")
         return success
 
-    async def set_active_section(
-        self, session_id: str, section_id: str | None
-    ) -> bool:
+    async def set_active_section(self, session_id: str, section_id: str | None) -> bool:
         """
         Set the currently active section (user focus).
 
@@ -566,9 +561,7 @@ class ProposalSessionManager:
         finally:
             self.db_pool.putconn(conn)
 
-    async def _load_session_from_db(
-        self, session_id: str
-    ) -> ProposalSessionState | None:
+    async def _load_session_from_db(self, session_id: str) -> ProposalSessionState | None:
         """Load session from database."""
         conn = self.db_pool.getconn()
         try:
@@ -609,9 +602,7 @@ class ProposalSessionManager:
                         content=section_data.get("content", ""),
                         word_count=section_data.get("word_count", 0),
                         quality_score=section_data.get("quality_score"),
-                        status=SectionStatus(
-                            section_data.get("status", SectionStatus.EMPTY.value)
-                        ),
+                        status=SectionStatus(section_data.get("status", SectionStatus.EMPTY.value)),
                         lock_status=SectionLockStatus(
                             section_data.get("lock_status", SectionLockStatus.UNLOCKED.value)
                         ),
@@ -669,9 +660,7 @@ class ProposalSessionManager:
                         section.content = row["section_content"] or ""
                         section.word_count = row["word_count"] or 0
                         section.quality_score = (
-                            float(row["quality_score"]) * 5
-                            if row["quality_score"]
-                            else None
+                            float(row["quality_score"]) * 5 if row["quality_score"] else None
                         )  # Convert 0-1 to 0-5
                         section.version = row["version"] or 1
 
@@ -693,9 +682,7 @@ class ProposalSessionManager:
         finally:
             self.db_pool.putconn(conn)
 
-    async def _persist_section(
-        self, session: ProposalSessionState, section_id: str
-    ) -> None:
+    async def _persist_section(self, session: ProposalSessionState, section_id: str) -> None:
         """Persist a single section to the proposal_sections table."""
         section = session.document.get_section(section_id)
         if not section:

@@ -1,34 +1,19 @@
 {
   "scenario_name": "Programme Recommendation",
-  "status": "FAIL",
-  "average_quality_score": 77.0,
-  "average_factual_score": 93.33333333333333,
+  "status": "PASS",
+  "average_quality_score": 83.0,
+  "average_factual_score": 100.0,
   "turns": [
     {
       "query": "I'm a small museum wanting to digitize our collection and share it across Europe. Which EU funding programme should I apply to?",
-      "response": "Based on your goal of digitizing your collection and sharing it across Europe, the best-fitting EU funding programmes are **Creative Europe** (for cooperation and dissemination) and **Horizon Europe** (for research and advanced digital technology development).\n\n## 1. Primary Recommendation: Creative Europe\n\nCreative Europe is specifically designed to support the cultural and creative sectors, making it the ideal starting point for a museum project focused on sharing and audience outreach.\n\n### A...",
+      "response": "Based on my search for information about 'I'm a small museum wanting to digitize our collection and share it across Europe. Which EU funding programme should I apply to?', here's what I found:\n\n**Finding 1:**\n## EU Funding Programme Recommendations\n\nBased on your profile, here are the most relevant EU funding programmes:\n\n### 1. \ud83c\udfa8 **Creative Europe**\n- **Budget**: \u20ac2.44B\n- **Focus**: Culture & Media\n- **Why it fits**: Tailored for cultural/creative organizations\n- **Learn more**: https://creativ...",
       "quality_score": 81,
-      "factual_score": 80.0,
-      "failures": [
-        {
-          "category": "INCORRECT_DATA",
-          "severity": "CRITICAL",
-          "description": "Incorrect horizon_europe facts: ['IA_rate: stated 100% but should be 70%']",
-          "turn_number": 0,
-          "evidence": {
-            "programme": "horizon_europe",
-            "incorrect_facts": [
-              "IA_rate: stated 100% but should be 70%"
-            ],
-            "score": 0.8
-          },
-          "timestamp": "2026-01-22T15:18:48.860831"
-        }
-      ],
+      "factual_score": 100.0,
+      "failures": [],
       "tools_used": [
         "recommend_programmes"
       ],
-      "processing_time_ms": 9639.193000000001,
+      "processing_time_ms": 7128.402,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -39,75 +24,56 @@
         "feedback": "Quick rule-based evaluation"
       },
       "turn_number": 0,
-      "passed": false
+      "passed": true
     },
     {
       "query": "We also want to train our museum staff on digital skills. Is there EU funding for that too?",
-      "response": "I found some information but couldn't extract specific details. Please try a more specific question.",
-      "quality_score": 75,
+      "response": "**Creative Europe Cooperation Project Funding Rates**\n\nCreative Europe uses a **lump sum funding model** with fixed EU contribution rates for cooperation projects.\n\n## Funding Rate Overview\n\n| Aspect | Rate/Amount |\n|--------|-------------|\n| **EU Funding Rate** | 60% |\n| **Your Co-financing** | 40% |\n| **Funding Model** | Lump sum |\n| **Payment Schedule** | Pre-financing + balance |\n\n## What Does 60% Mean?\n\nThe EU covers **60% of your total eligible costs**:\n\n| Scale | Max EU Grant | Your 40% C...",
+      "quality_score": 83,
       "factual_score": 100.0,
       "failures": [],
-      "tools_used": [
-        "recommend_programmes"
-      ],
-      "processing_time_ms": 4179.515,
+      "tools_used": [],
+      "processing_time_ms": 1924.401,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
           "specificity": 25,
           "factual_accuracy": 20,
-          "actionability": 0
+          "actionability": 8
         },
         "feedback": "Quick rule-based evaluation"
       },
       "turn_number": 1,
-      "passed": false
+      "passed": true
     },
     {
       "query": "What's the best strategy for our museum to combine both digitization and staff training funding?",
-      "response": "I found some information but couldn't extract specific details. Please try a more specific question.",
-      "quality_score": 75,
+      "response": "Erasmus+ funds **staff mobility** for teaching, training, and professional development\nactivities across all sectors (Higher Education, VET, Schools, Adult Education).\n\n## Staff Mobility Funding in Erasmus+\n\n### Eligible Staff Mobility Activities\n\n| Activity Type | Duration | Sectors |\n|--------------|----------|---------|\n| **Teaching assignments** | 2-60 days (min. 8 hours/week) | HED, VET, Schools, Adult Ed |\n| **Training/Job shadowing** | 2-60 days | All sectors |\n| **Staff development** | 2...",
+      "quality_score": 85,
       "factual_score": 100.0,
       "failures": [],
-      "tools_used": [
-        "get_programme_info"
-      ],
-      "processing_time_ms": 5809.373,
+      "tools_used": [],
+      "processing_time_ms": 1548.242,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
           "specificity": 25,
           "factual_accuracy": 20,
-          "actionability": 0
+          "actionability": 10
         },
         "feedback": "Quick rule-based evaluation"
       },
       "turn_number": 2,
-      "passed": false
+      "passed": true
     }
   ],
   "scores": {
-    "average_quality": 77.0,
-    "average_factual": 93.33333333333333,
-    "goal_progress": 0.32999999999999996,
+    "average_quality": 83.0,
+    "average_factual": 100.0,
+    "goal_progress": 0.36,
     "context_fields": 4
   },
-  "failures": [
-    {
-      "category": "INCORRECT_DATA",
-      "severity": "CRITICAL",
-      "description": "Incorrect horizon_europe facts: ['IA_rate: stated 100% but should be 70%']",
-      "turn_number": 0,
-      "evidence": {
-        "programme": "horizon_europe",
-        "incorrect_facts": [
-          "IA_rate: stated 100% but should be 70%"
-        ],
-        "score": 0.8
-      },
-      "timestamp": "2026-01-22T15:18:48.860831"
-    }
-  ],
+  "failures": [],
   "metadata": {
     "scenario_path": "/home/anmar/Documents/VSCODE_REPOS/MAPIT/NEWMAPIT/MAP-IT_SA/tests/scenarios/advanced/programme_recommendation.yaml",
     "tags": [
@@ -119,13 +85,13 @@
       "cultural"
     ],
     "description": "A small museum wants to digitize their collection and share it across Europe.\nThey also want to train staff on digital skills. Tests personalized multi-programme\nrecommendations that consider the organization's profile (cultural institution, small,\ndigitization focus).\n",
-    "conversation_id": 1811356883
+    "conversation_id": 460648560
   },
-  "execution_time_ms": 80351.274,
-  "timestamp": "2026-01-22T15:18:27.295331",
-  "passed": false,
+  "execution_time_ms": 83846.304,
+  "timestamp": "2026-01-27T18:30:35.821420",
+  "passed": true,
   "turn_count": 3,
-  "critical_failures": 1,
+  "critical_failures": 0,
   "high_failures": 0,
   "medium_failures": 0
 }

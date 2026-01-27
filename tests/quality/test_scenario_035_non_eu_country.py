@@ -11,10 +11,10 @@ in EU funding programmes, explaining:
 Pass threshold: 80/100
 """
 
-from datetime import datetime
 import json
-from pathlib import Path
 import re
+from datetime import datetime
+from pathlib import Path
 
 import httpx
 import pytest
@@ -395,9 +395,9 @@ country participation if explicitly stated in the work programme/call text.
 - Review the Horizon Europe Programme Guide Section 4.2"""
 
         result = evaluator.evaluate(query, excellent_response)
-        assert (
-            result["total_score"] >= 80
-        ), f"Excellent response scored {result['total_score']}, expected 80+"
+        assert result["total_score"] >= 80, (
+            f"Excellent response scored {result['total_score']}, expected 80+"
+        )
         assert result["passed"], "Excellent response should pass"
 
     def test_minimal_response_scores_low(self, evaluator):
@@ -407,9 +407,9 @@ country participation if explicitly stated in the work programme/call text.
         They would need to join a consortium with European partners."""
 
         result = evaluator.evaluate(query, minimal_response)
-        assert (
-            result["total_score"] < 60
-        ), f"Minimal response scored {result['total_score']}, expected <60"
+        assert result["total_score"] < 60, (
+            f"Minimal response scored {result['total_score']}, expected <60"
+        )
         assert not result["passed"], "Minimal response should not pass"
 
     def test_incorrect_response_scores_low(self, evaluator):
@@ -421,9 +421,9 @@ projects and receive grants just like EU organizations."""
 
         result = evaluator.evaluate(query, incorrect_response)
         # Should fail accuracy checks
-        assert (
-            result["dimensions"]["factual_accuracy"] < 15
-        ), "Incorrect response should have low accuracy"
+        assert result["dimensions"]["factual_accuracy"] < 15, (
+            "Incorrect response should have low accuracy"
+        )
 
     def test_nuanced_response_with_limitations(self, evaluator):
         """Test that a nuanced response explaining limitations scores well."""
@@ -443,9 +443,9 @@ Alternative pathways for Indian researchers include MSCA fellowships and ERC gra
 Next steps: Check the specific call text and contact your NCP for guidance."""
 
         result = evaluator.evaluate(query, nuanced_response)
-        assert (
-            result["total_score"] >= 70
-        ), f"Nuanced response scored {result['total_score']}, expected 70+"
+        assert result["total_score"] >= 70, (
+            f"Nuanced response scored {result['total_score']}, expected 70+"
+        )
 
     def test_dimension_weights(self, evaluator):
         """Test that dimension weights are correct."""
@@ -515,7 +515,7 @@ Check the specific call text and Programme Guide Section 4.2."""
         result = evaluator.evaluate(query, response)
         save_result(result, query, response)
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"Query: {query}")
         print(f"Response length: {len(response)}")
         print(f"Tools used: {tools}")
@@ -525,7 +525,7 @@ Check the specific call text and Programme Guide Section 4.2."""
             print(f"  {dim}: {score}/{max_score}")
         print(f"\nTotal: {result['total_score']}/100")
         print(f"Status: {'PASS' if result['passed'] else 'FAIL'}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         if result["feedback"]:
             print("\nFeedback:")
@@ -533,9 +533,9 @@ Check the specific call text and Programme Guide Section 4.2."""
                 if fb:
                     print(f"  {dim}: {'; '.join(fb)}")
 
-        assert (
-            result["total_score"] >= PASS_THRESHOLD
-        ), f"Score {result['total_score']} below threshold {PASS_THRESHOLD}"
+        assert result["total_score"] >= PASS_THRESHOLD, (
+            f"Score {result['total_score']} below threshold {PASS_THRESHOLD}"
+        )
 
     @pytest.mark.asyncio
     async def test_live_api_brazil_query(self, evaluator):
@@ -552,9 +552,9 @@ Check the specific call text and Programme Guide Section 4.2."""
         print(f"\nBrazil query score: {result['total_score']}/100")
 
         # Brazil should also trigger third country guidance
-        assert (
-            "third country" in response.lower() or "self-fund" in response.lower()
-        ), "Response should mention third country status or self-funding"
+        assert "third country" in response.lower() or "self-fund" in response.lower(), (
+            "Response should mention third country status or self-funding"
+        )
 
     @pytest.mark.asyncio
     async def test_live_api_differentiates_associated_vs_third(self, evaluator):
@@ -584,9 +584,9 @@ Check the specific call text and Programme Guide Section 4.2."""
         )
         assoc_mentions_funding = "funding" in assoc_response.lower()
 
-        assert (
-            third_has_self_fund or assoc_mentions_funding
-        ), "System should differentiate third vs associated country treatment"
+        assert third_has_self_fund or assoc_mentions_funding, (
+            "System should differentiate third vs associated country treatment"
+        )
 
 
 # ==============================================================================

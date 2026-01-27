@@ -26,10 +26,7 @@ class GeminiProvider(BaseAIProvider):
         self.model = genai.GenerativeModel(config.model)
 
     async def generate_text(
-        self,
-        prompt: str,
-        temperature: float = 0.7,
-        max_tokens: int = 4000
+        self, prompt: str, temperature: float = 0.7, max_tokens: int = 4000
     ) -> ProviderResponse:
         """Generate text using Gemini."""
 
@@ -38,10 +35,7 @@ class GeminiProvider(BaseAIProvider):
         try:
             response = self.model.generate_content(
                 prompt,
-                generation_config={
-                    "temperature": temperature,
-                    "max_output_tokens": max_tokens
-                }
+                generation_config={"temperature": temperature, "max_output_tokens": max_tokens},
             )
 
             self.mark_success()
@@ -51,7 +45,7 @@ class GeminiProvider(BaseAIProvider):
                 provider="gemini",
                 model=self.config.model,
                 usage={"total_tokens": len(prompt.split()) + len(response.text.split())},
-                latency_ms=(time.time() - start_time) * 1000
+                latency_ms=(time.time() - start_time) * 1000,
             )
 
         except Exception as e:
@@ -60,10 +54,7 @@ class GeminiProvider(BaseAIProvider):
             raise
 
     async def generate_structured(
-        self,
-        prompt: str,
-        schema: dict[str, Any],
-        temperature: float = 0.3
+        self, prompt: str, schema: dict[str, Any], temperature: float = 0.3
     ) -> dict[str, Any]:
         """Generate structured JSON using Gemini's JSON mode."""
 
@@ -73,8 +64,8 @@ class GeminiProvider(BaseAIProvider):
                 generation_config={
                     "response_mime_type": "application/json",
                     "response_schema": schema,
-                    "temperature": temperature
-                }
+                    "temperature": temperature,
+                },
             )
 
             self.mark_success()
@@ -86,8 +77,8 @@ class GeminiProvider(BaseAIProvider):
             try:
                 text = response.text
                 # Find JSON in response
-                start = text.find('{')
-                end = text.rfind('}') + 1
+                start = text.find("{")
+                end = text.rfind("}") + 1
                 if start >= 0 and end > start:
                     return json.loads(text[start:end])
             except Exception:
@@ -101,17 +92,13 @@ class GeminiProvider(BaseAIProvider):
             raise
 
     async def generate_stream(
-        self,
-        prompt: str,
-        temperature: float = 0.7
+        self, prompt: str, temperature: float = 0.7
     ) -> AsyncGenerator[str, None]:
         """Stream text generation."""
 
         try:
             response = self.model.generate_content(
-                prompt,
-                generation_config={"temperature": temperature},
-                stream=True
+                prompt, generation_config={"temperature": temperature}, stream=True
             )
 
             for chunk in response:

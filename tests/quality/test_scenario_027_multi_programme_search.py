@@ -244,9 +244,9 @@ class TestScenario027MultiProgrammeSearch:
 
             # Check for tool call in events
             has_tool_call = any("search_all_programmes" in event for event in collected_events)
-            assert (
-                has_tool_call
-            ), "search_all_programmes tool should be called for cross-programme search"
+            assert has_tool_call, (
+                "search_all_programmes tool should be called for cross-programme search"
+            )
 
     @pytest.mark.asyncio
     async def test_quality_score_meets_threshold(self, conversation_id):
@@ -280,9 +280,9 @@ class TestScenario027MultiProgrammeSearch:
                     continue
 
             assert quality_score is not None, "Quality score should be available"
-            assert (
-                quality_score >= self.PASS_THRESHOLD
-            ), f"Quality score {quality_score} below threshold {self.PASS_THRESHOLD}"
+            assert quality_score >= self.PASS_THRESHOLD, (
+                f"Quality score {quality_score} below threshold {self.PASS_THRESHOLD}"
+            )
 
     @pytest.mark.asyncio
     async def test_no_deflection_phrases(self, conversation_id):
@@ -308,9 +308,9 @@ class TestScenario027MultiProgrammeSearch:
             ]
 
             for phrase in deflection_phrases:
-                assert (
-                    phrase not in response_text
-                ), f"Response should not contain deflection phrase: '{phrase}'"
+                assert phrase not in response_text, (
+                    f"Response should not contain deflection phrase: '{phrase}'"
+                )
 
     @pytest.mark.asyncio
     async def test_mentions_programme_list(self, conversation_id):

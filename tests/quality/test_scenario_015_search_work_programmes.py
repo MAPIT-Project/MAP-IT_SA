@@ -53,9 +53,9 @@ class TestScenario015SearchWorkProgrammes:
 
             has_doc_search = any("search_documents" in t for t in tools_used)
 
-            assert (
-                has_doc_search or tool_in_reasoning
-            ), f"Expected search_documents tool to be used. Tools: {tools_used}"
+            assert has_doc_search or tool_in_reasoning, (
+                f"Expected search_documents tool to be used. Tools: {tools_used}"
+            )
 
     @pytest.mark.asyncio
     async def test_includes_digital_twin_content(self, conversation_id):
@@ -119,9 +119,9 @@ class TestScenario015SearchWorkProgrammes:
                 if re.search(pattern, response_text, re.IGNORECASE)
             )
 
-            assert (
-                sources_found >= 2
-            ), f"Response should include source citations. Found: {sources_found}"
+            assert sources_found >= 2, (
+                f"Response should include source citations. Found: {sources_found}"
+            )
 
     @pytest.mark.asyncio
     async def test_contains_quoted_content(self, conversation_id):
@@ -156,9 +156,9 @@ class TestScenario015SearchWorkProgrammes:
             # Also check for substantial content (not just generic response)
             has_substantial_content = len(response_text) > 500
 
-            assert (
-                has_quotes or has_substantial_content
-            ), "Response should contain quoted content or substantial detail from documents"
+            assert has_quotes or has_substantial_content, (
+                "Response should contain quoted content or substantial detail from documents"
+            )
 
     @pytest.mark.asyncio
     async def test_references_horizon_europe(self, conversation_id):
@@ -222,9 +222,9 @@ class TestScenario015SearchWorkProgrammes:
             # Or should have substantial technical content
             has_technical_content = len(response_text) > 800
 
-            assert (
-                has_cluster_context or has_technical_content
-            ), "Response should include cluster context or substantial technical detail"
+            assert has_cluster_context or has_technical_content, (
+                "Response should include cluster context or substantial technical detail"
+            )
 
     @pytest.mark.asyncio
     async def test_no_hallucinated_sources(self, conversation_id):
@@ -282,9 +282,9 @@ class TestScenario015SearchWorkProgrammes:
 
             action_found = sum(1 for a in action_indicators if a in response_text)
 
-            assert (
-                action_found >= 1
-            ), f"Response should include actionable guidance. Action items found: {action_found}"
+            assert action_found >= 1, (
+                f"Response should include actionable guidance. Action items found: {action_found}"
+            )
 
     @pytest.mark.asyncio
     async def test_no_error_messages(self, conversation_id):
@@ -332,9 +332,9 @@ class TestScenario015SearchWorkProgrammes:
             response_text = result.get("response", "")
 
             # Should be substantial but not overwhelming
-            assert (
-                len(response_text) >= 400
-            ), f"Response too short for document query: {len(response_text)} chars"
+            assert len(response_text) >= 400, (
+                f"Response too short for document query: {len(response_text)} chars"
+            )
             assert len(response_text) <= 15000, f"Response too long: {len(response_text)} chars"
 
     @pytest.mark.asyncio
@@ -423,9 +423,9 @@ class TestScenario015SearchWorkProgrammes:
             elif "official" in text_lower:
                 score += 2
 
-            assert (
-                score >= self.PASS_THRESHOLD
-            ), f"Quality score {score} is below threshold {self.PASS_THRESHOLD}"
+            assert score >= self.PASS_THRESHOLD, (
+                f"Quality score {score} is below threshold {self.PASS_THRESHOLD}"
+            )
 
     @pytest.mark.asyncio
     async def test_full_scenario_integration(self, conversation_id):
@@ -445,14 +445,14 @@ class TestScenario015SearchWorkProgrammes:
             text_lower = response_text.lower()
 
             # Basic assertions
-            assert (
-                len(response_text) > 400
-            ), f"Response too short for document search: {len(response_text)} chars"
+            assert len(response_text) > 400, (
+                f"Response too short for document search: {len(response_text)} chars"
+            )
 
             # Should have digital twin content
-            assert (
-                "digital twin" in text_lower or "digital-twin" in text_lower
-            ), "Missing digital twin content"
+            assert "digital twin" in text_lower or "digital-twin" in text_lower, (
+                "Missing digital twin content"
+            )
 
             # Should have Horizon Europe reference
             assert "horizon" in text_lower, "Missing Horizon Europe reference"
@@ -472,9 +472,9 @@ class TestScenario015SearchWorkProgrammes:
             has_doc_tool = any("search_documents" in str(t) for t in tools_used)
             has_doc_in_reasoning = any("search_documents" in str(s) for s in reasoning_steps)
 
-            assert (
-                has_doc_tool or has_doc_in_reasoning or len(response_text) > 800
-            ), f"Document search should be used or substantial content. Tools: {tools_used}"
+            assert has_doc_tool or has_doc_in_reasoning or len(response_text) > 800, (
+                f"Document search should be used or substantial content. Tools: {tools_used}"
+            )
 
     @pytest.mark.asyncio
     async def test_response_structure(self, conversation_id):
@@ -510,6 +510,6 @@ class TestScenario015SearchWorkProgrammes:
             has_good_structure = structure_found >= 2
             has_substantial_prose = len(response_text) > 1000
 
-            assert (
-                has_good_structure or has_substantial_prose
-            ), f"Response should be well-structured. Structure elements: {structure_found}"
+            assert has_good_structure or has_substantial_prose, (
+                f"Response should be well-structured. Structure elements: {structure_found}"
+            )

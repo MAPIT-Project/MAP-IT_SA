@@ -24,11 +24,7 @@ class QualityImprover:
         self.ai_service = ProposalAIService()
 
     async def analyze_quality(
-        self,
-        section_text: str,
-        section_type: str,
-        call_id: str = None,
-        use_ai: bool = True
+        self, section_text: str, section_type: str, call_id: str = None, use_ai: bool = True
     ) -> dict[str, Any]:
         """
         Comprehensive quality analysis with AI or rule-based fallback.
@@ -54,28 +50,18 @@ class QualityImprover:
         # Rule-based analysis (always available as fallback)
         return self._rule_based_analysis(section_text, section_type)
 
-    async def _ai_quality_analysis(
-        self,
-        section_text: str,
-        section_type: str
-    ) -> dict[str, Any]:
+    async def _ai_quality_analysis(self, section_text: str, section_type: str) -> dict[str, Any]:
         """AI-powered quality analysis using structured outputs."""
 
         prompt = self._build_quality_prompt(section_text, section_type)
 
         result = await self.ai_service.generate_structured(
-            prompt=prompt,
-            response_schema=QUALITY_ANALYSIS_SCHEMA,
-            temperature=0.3
+            prompt=prompt, response_schema=QUALITY_ANALYSIS_SCHEMA, temperature=0.3
         )
 
         return result
 
-    def _build_quality_prompt(
-        self,
-        section_text: str,
-        section_type: str
-    ) -> str:
+    def _build_quality_prompt(self, section_text: str, section_type: str) -> str:
         """Build prompt for quality analysis."""
 
         return f"""Analyze the quality of this Horizon Europe proposal section.
@@ -115,11 +101,7 @@ Analyze the following aspects:
 
 Be specific and constructive in your analysis."""
 
-    def _rule_based_analysis(
-        self,
-        section_text: str,
-        section_type: str
-    ) -> dict[str, Any]:
+    def _rule_based_analysis(self, section_text: str, section_type: str) -> dict[str, Any]:
         """Fallback rule-based analysis."""
 
         readability = self._analyze_readability(section_text)
@@ -129,10 +111,10 @@ Be specific and constructive in your analysis."""
 
         # Calculate overall score
         overall_score = (
-            readability['score'] * 0.3 +
-            terminology['score'] * 0.2 +
-            structure['score'] * 0.3 +
-            impact['score'] * 0.2
+            readability["score"] * 0.3
+            + terminology["score"] * 0.2
+            + structure["score"] * 0.3
+            + impact["score"] * 0.2
         )
 
         # Generate suggestions
@@ -146,13 +128,13 @@ Be specific and constructive in your analysis."""
             "terminology": terminology,
             "structure": structure,
             "impact_language": impact,
-            "improvement_suggestions": suggestions
+            "improvement_suggestions": suggestions,
         }
 
     def _analyze_readability(self, text: str) -> dict[str, Any]:
         """Analyze text readability."""
 
-        sentences = re.split(r'[.!?]+', text)
+        sentences = re.split(r"[.!?]+", text)
         sentences = [s.strip() for s in sentences if s.strip()]
 
         words = text.split()
@@ -174,15 +156,13 @@ Be specific and constructive in your analysis."""
                 "Consider breaking into shorter sentences."
             )
         elif avg_sentence_length < 10:
-            issues.append(
-                "Sentences are very short. Consider combining some for better flow."
-            )
+            issues.append("Sentences are very short. Consider combining some for better flow.")
         else:
             strengths.append("Good sentence length")
 
         if complex_word_ratio > 0.3:
             issues.append(
-                f"{complex_word_ratio*100:.0f}% complex words. "
+                f"{complex_word_ratio * 100:.0f}% complex words. "
                 "Consider using simpler alternatives."
             )
 
@@ -194,21 +174,21 @@ Be specific and constructive in your analysis."""
             "score": score,
             "avg_sentence_length": avg_sentence_length,
             "issues": issues,
-            "strengths": strengths
+            "strengths": strengths,
         }
 
     def _check_terminology(self, text: str) -> dict[str, Any]:
         """Check for proper EU/Horizon Europe terminology."""
 
         recommended_terms = {
-            'TRL': 'Technology Readiness Level',
-            'KPI': 'Key Performance Indicator',
-            'deliverable': 'Project deliverable',
-            'milestone': 'Project milestone',
-            'dissemination': 'Results dissemination',
-            'exploitation': 'Results exploitation',
-            'EU added value': 'European added value',
-            'state of the art': 'Current state of the art'
+            "TRL": "Technology Readiness Level",
+            "KPI": "Key Performance Indicator",
+            "deliverable": "Project deliverable",
+            "milestone": "Project milestone",
+            "dissemination": "Results dissemination",
+            "exploitation": "Results exploitation",
+            "EU added value": "European added value",
+            "state of the art": "Current state of the art",
         }
 
         text_lower = text.lower()
@@ -228,16 +208,16 @@ Be specific and constructive in your analysis."""
             "score": score,
             "found_terms": found_terms,
             "missing_terms": missing_terms[:5],
-            "suggestions": [f"Consider adding: {term}" for term in missing_terms[:3]]
+            "suggestions": [f"Consider adding: {term}" for term in missing_terms[:3]],
         }
 
     def _analyze_structure(self, text: str, section_type: str) -> dict[str, Any]:
         """Analyze section structure."""
 
-        has_headings = bool(re.search(r'^#+\s+\w+|^\w+\s*:|\d+\.\d+', text, re.MULTILINE))
-        has_lists = bool(re.search(r'^\s*[-*•]\s+|\d+\.\s+', text, re.MULTILINE))
+        has_headings = bool(re.search(r"^#+\s+\w+|^\w+\s*:|\d+\.\d+", text, re.MULTILINE))
+        has_lists = bool(re.search(r"^\s*[-*•]\s+|\d+\.\s+", text, re.MULTILINE))
 
-        paragraphs = [p.strip() for p in text.split('\n\n') if p.strip()]
+        paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
         paragraph_count = len(paragraphs)
 
         issues = []
@@ -248,7 +228,7 @@ Be specific and constructive in your analysis."""
         else:
             strengths.append("Good use of headings")
 
-        if not has_lists and section_type in ['objectives', 'work_plan', 'implementation']:
+        if not has_lists and section_type in ["objectives", "work_plan", "implementation"]:
             issues.append("Consider using bullet points for lists")
 
         if paragraph_count < 3:
@@ -267,20 +247,32 @@ Be specific and constructive in your analysis."""
             "has_headings": has_headings,
             "has_lists": has_lists,
             "paragraph_count": paragraph_count,
-            "issues": issues
+            "issues": issues,
         }
 
     def _analyze_impact_language(self, text: str) -> dict[str, Any]:
         """Analyze use of impactful language."""
 
         strong_verbs = [
-            'develop', 'create', 'innovate', 'transform', 'advance',
-            'pioneer', 'establish', 'demonstrate', 'achieve', 'deliver'
+            "develop",
+            "create",
+            "innovate",
+            "transform",
+            "advance",
+            "pioneer",
+            "establish",
+            "demonstrate",
+            "achieve",
+            "deliver",
         ]
 
         weak_phrases = [
-            'will try to', 'might', 'possibly', 'could potentially',
-            'may be able to', 'hope to'
+            "will try to",
+            "might",
+            "possibly",
+            "could potentially",
+            "may be able to",
+            "hope to",
         ]
 
         text_lower = text.lower()
@@ -303,59 +295,67 @@ Be specific and constructive in your analysis."""
             "score": score,
             "strong_verbs_found": strong_found,
             "weak_phrases_found": weak_found,
-            "issues": issues
+            "issues": issues,
         }
 
     def _generate_rule_based_suggestions(
-        self,
-        readability: dict,
-        terminology: dict,
-        structure: dict,
-        impact: dict
+        self, readability: dict, terminology: dict, structure: dict, impact: dict
     ) -> list[dict[str, Any]]:
         """Generate improvement suggestions from rule-based analysis."""
 
         suggestions = []
 
-        if readability['score'] < 0.7:
-            suggestions.append({
-                "type": "readability",
-                "priority": "high",
-                "issue": "Text readability can be improved",
-                "suggestion": "Break long sentences into shorter ones (15-20 words ideal).",
-                "example_before": "",
-                "example_after": ""
-            })
+        if readability["score"] < 0.7:
+            suggestions.append(
+                {
+                    "type": "readability",
+                    "priority": "high",
+                    "issue": "Text readability can be improved",
+                    "suggestion": "Break long sentences into shorter ones (15-20 words ideal).",
+                    "example_before": "",
+                    "example_after": "",
+                }
+            )
 
-        if terminology['score'] < 0.5:
-            missing = terminology['missing_terms'][:2]
-            suggestions.append({
-                "type": "terminology",
-                "priority": "medium",
-                "issue": f"Missing EU terms: {', '.join(missing)}",
-                "suggestion": f"Add these terms: {', '.join(missing)}",
-                "example_before": "",
-                "example_after": ""
-            })
+        if terminology["score"] < 0.5:
+            missing = terminology["missing_terms"][:2]
+            suggestions.append(
+                {
+                    "type": "terminology",
+                    "priority": "medium",
+                    "issue": f"Missing EU terms: {', '.join(missing)}",
+                    "suggestion": f"Add these terms: {', '.join(missing)}",
+                    "example_before": "",
+                    "example_after": "",
+                }
+            )
 
-        if impact['weak_phrases_found']:
-            suggestions.append({
-                "type": "impact",
-                "priority": "high",
-                "issue": "Weak language detected",
-                "suggestion": "Replace uncertain phrases with confident statements",
-                "example_before": "will try to develop",
-                "example_after": "will develop"
-            })
+        if impact["weak_phrases_found"]:
+            suggestions.append(
+                {
+                    "type": "impact",
+                    "priority": "high",
+                    "issue": "Weak language detected",
+                    "suggestion": "Replace uncertain phrases with confident statements",
+                    "example_before": "will try to develop",
+                    "example_after": "will develop",
+                }
+            )
 
-        if structure['issues']:
-            suggestions.append({
-                "type": "structure",
-                "priority": "medium",
-                "issue": structure['issues'][0] if structure['issues'] else "Structure could be improved",
-                "suggestion": "Add clear headings and organize content logically",
-                "example_before": "",
-                "example_after": ""
-            })
+        if structure["issues"]:
+            suggestions.append(
+                {
+                    "type": "structure",
+                    "priority": "medium",
+                    "issue": (
+                        structure["issues"][0]
+                        if structure["issues"]
+                        else "Structure could be improved"
+                    ),
+                    "suggestion": "Add clear headings and organize content logically",
+                    "example_before": "",
+                    "example_after": "",
+                }
+            )
 
         return suggestions

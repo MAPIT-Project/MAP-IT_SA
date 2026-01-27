@@ -31,10 +31,7 @@ from dotenv import load_dotenv
 from psycopg2.extras import RealDictCursor
 
 # Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 # EU Portal API endpoints
@@ -45,7 +42,7 @@ EU_TOPIC_DETAILS = "https://ec.europa.eu/info/funding-tenders/opportunities/data
 def get_database_url() -> str:
     """Get database URL from environment."""
     load_dotenv()
-    db_url = os.getenv('DATABASE_URL')
+    db_url = os.getenv("DATABASE_URL")
     if not db_url:
         raise ValueError("DATABASE_URL environment variable not set")
     return db_url
@@ -70,12 +67,14 @@ class EUPortalSyncer:
     def get_existing_topics_from_db(self, conn) -> list[dict]:
         """Get all existing topic codes from database."""
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT topic_code, title, status, deadline
             FROM funding_calls
             WHERE topic_code IS NOT NULL
             ORDER BY call_year DESC NULLS LAST, topic_code
-        """)
+        """
+        )
         results = cursor.fetchall()
         return [{"identifier": r["topic_code"], "title": r["title"] or ""} for r in results]
 
@@ -129,8 +128,13 @@ class EUPortalSyncer:
                     new_patterns.append(topic_id)
 
             # EIC
-            for eic_type in ["ACCELERATOR-01", "PATHFINDEROPEN-01", "PATHFINDERCHALLENGES-01",
-                           "TRANSITION-01", "AIC-01"]:
+            for eic_type in [
+                "ACCELERATOR-01",
+                "PATHFINDEROPEN-01",
+                "PATHFINDERCHALLENGES-01",
+                "TRANSITION-01",
+                "AIC-01",
+            ]:
                 topic_id = f"HORIZON-EIC-{year}-{eic_type}"
                 if topic_id not in seen:
                     new_patterns.append(topic_id)
@@ -172,7 +176,9 @@ class EUPortalSyncer:
                         if topic_id not in seen:
                             new_patterns.append(topic_id)
                         # Also check two-stage variants
-                        topic_id_ts = f"HORIZON-HLTH-{year}-{hlth_num}-{sub}-{topic_num:02d}-TWO-STAGE"
+                        topic_id_ts = (
+                            f"HORIZON-HLTH-{year}-{hlth_num}-{sub}-{topic_num:02d}-TWO-STAGE"
+                        )
                         if topic_id_ts not in seen:
                             new_patterns.append(topic_id_ts)
 
@@ -202,12 +208,16 @@ class EUPortalSyncer:
 
             # CL topics with different sub-structures (e.g., CIRCBIO, ZEROPOLLUTION, FARM2FORK, etc.)
             cl6_subs = ["CIRCBIO", "ZEROPOLLUTION", "FARM2FORK", "BIODIV", "GOVERNANCE"]
-            cl5_subs = ["D1", "D2", "D3", "D4", "D5", "D6"]  # Already covered but ensure
             cl4_subs = ["DATA", "DIGITAL", "HUMAN", "CIVIL", "SPACE"]
             cl3_subs = ["BM", "CS", "FCT", "SSRI", "INFRA"]
             cl2_subs = ["DEMOCRACY", "HERITAGE", "TRANSFORMATIONS"]
 
-            for cluster, subs in [("CL2", cl2_subs), ("CL3", cl3_subs), ("CL4", cl4_subs), ("CL6", cl6_subs)]:
+            for cluster, subs in [
+                ("CL2", cl2_subs),
+                ("CL3", cl3_subs),
+                ("CL4", cl4_subs),
+                ("CL6", cl6_subs),
+            ]:
                 for call_num in ["01", "02"]:
                     for sub in subs:
                         for topic_num in range(1, 20):
@@ -258,7 +268,7 @@ class EUPortalSyncer:
 
             # Extract deadline and status
             deadline = None
-            status = 'unknown'
+            status = "unknown"
             actions = topic_data.get("actions", [])
 
             if actions and isinstance(actions, list) and len(actions) > 0:
@@ -343,6 +353,7 @@ class EUPortalSyncer:
             # Extract year from identifier
             call_year = None
             import re
+
             year_match = re.search(r"-(\d{4})-", identifier)
             if year_match:
                 call_year = int(year_match.group(1))
@@ -374,12 +385,10 @@ class EUPortalSyncer:
         try:
             cursor = conn.cursor()
 
-            metadata = {
-                "synced_from_api": True,
-                "synced_at": datetime.now().isoformat()
-            }
+            metadata = {"synced_from_api": True, "synced_at": datetime.now().isoformat()}
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO funding_calls (
                     programme, topic_code, title, scope, expected_outcome,
                     deadline, status, action_type, budget_total,
@@ -403,21 +412,23 @@ class EUPortalSyncer:
                     portal_url = COALESCE(EXCLUDED.portal_url, funding_calls.portal_url),
                     metadata = COALESCE(funding_calls.metadata, '{}'::jsonb) || EXCLUDED.metadata,
                     updated_at = NOW()
-            """, (
-                data.get("topic_code"),
-                data.get("title"),
-                data.get("scope"),
-                data.get("expected_outcome"),
-                data.get("deadline"),
-                data.get("status"),
-                data.get("action_type"),
-                data.get("budget_total"),
-                data.get("call_identifier"),
-                data.get("cluster"),
-                data.get("call_year"),
-                data.get("portal_url"),
-                json.dumps(metadata)
-            ))
+            """,
+                (
+                    data.get("topic_code"),
+                    data.get("title"),
+                    data.get("scope"),
+                    data.get("expected_outcome"),
+                    data.get("deadline"),
+                    data.get("status"),
+                    data.get("action_type"),
+                    data.get("budget_total"),
+                    data.get("call_identifier"),
+                    data.get("cluster"),
+                    data.get("call_year"),
+                    data.get("portal_url"),
+                    json.dumps(metadata),
+                ),
+            )
 
             conn.commit()
             return True
@@ -430,12 +441,18 @@ class EUPortalSyncer:
 
 def main():
     parser = argparse.ArgumentParser(description="Sync ALL Horizon Europe calls from EU Portal API")
-    parser.add_argument("--status", choices=["open", "closed", "upcoming", "all"], default="all",
-                       help="Filter by status (default: all)")
+    parser.add_argument(
+        "--status",
+        choices=["open", "closed", "upcoming", "all"],
+        default="all",
+        help="Filter by status (default: all)",
+    )
     parser.add_argument("--limit", type=int, help="Limit number of calls to sync")
     parser.add_argument("--dry-run", action="store_true", help="Don't update database")
     parser.add_argument("--force", action="store_true", help="Re-sync all calls")
-    parser.add_argument("--delay", type=float, default=0.2, help="Delay between API calls (seconds)")
+    parser.add_argument(
+        "--delay", type=float, default=0.2, help="Delay between API calls (seconds)"
+    )
     args = parser.parse_args()
 
     logger.info("=" * 70)
@@ -478,7 +495,7 @@ def main():
 
         # Apply limit
         if args.limit:
-            topics = topics[:args.limit]
+            topics = topics[: args.limit]
             logger.info(f"Limited to {len(topics)} topics")
 
         # Step 2: Fetch details for each topic
@@ -503,7 +520,9 @@ def main():
                     if syncer.upsert_call(conn, details):
                         stats["synced"] += 1
                         if details.get("deadline"):
-                            logger.debug(f"  ✅ {topic_id}: {details.get('status')}, deadline={details.get('deadline')}")
+                            logger.debug(
+                                f"  ✅ {topic_id}: {details.get('status')}, deadline={details.get('deadline')}"
+                            )
                     else:
                         stats["errors"] += 1
                 else:
@@ -530,12 +549,14 @@ def main():
             cursor.execute("SELECT COUNT(*) FROM funding_calls")
             total = cursor.fetchone()[0]
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT status, COUNT(*)
                 FROM funding_calls
                 GROUP BY status
                 ORDER BY COUNT(*) DESC
-            """)
+            """
+            )
             by_status = cursor.fetchall()
 
             logger.info(f"\n📊 Database now has {total} total calls:")

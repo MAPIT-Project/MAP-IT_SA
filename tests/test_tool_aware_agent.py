@@ -26,6 +26,7 @@ try:
 except ImportError:
     genai = None
 
+
 # Create a mock for generativeai module
 def create_mock_genai():
     """Create a mock for google.generativeai that simulates the real module."""
@@ -42,7 +43,7 @@ def create_mock_genai():
 def mock_genai_fixture():
     """Auto-use fixture to mock google.generativeai for all tests."""
     mock_genai = create_mock_genai()
-    with patch.dict('sys.modules', {'google.generativeai': mock_genai}):
+    with patch.dict("sys.modules", {"google.generativeai": mock_genai}):
         yield mock_genai
 
 
@@ -84,7 +85,7 @@ class TestToolDefinitions:
         agent = ToolAwareAgent()
 
         # Agent should have tools
-        assert hasattr(agent, 'tool_definitions') or hasattr(agent, 'tools')
+        assert hasattr(agent, "tool_definitions") or hasattr(agent, "tools")
 
     def test_search_funding_calls_tool(self):
         """Test search_funding_calls tool is defined."""
@@ -93,14 +94,14 @@ class TestToolDefinitions:
         agent = ToolAwareAgent()
 
         # Should have funding calls search
-        tool_names = [t.get('name', '') for t in getattr(agent, 'tool_definitions', [])]
-        assert 'search_funding_calls' in tool_names or len(tool_names) == 0 or True
+        tool_names = [t.get("name", "") for t in getattr(agent, "tool_definitions", [])]
+        assert "search_funding_calls" in tool_names or len(tool_names) == 0 or True
 
     def test_search_projects_tool(self):
         """Test search_projects tool is defined."""
         from app.services.agents.tool_aware_agent import ToolAwareAgent
 
-        agent = ToolAwareAgent()
+        ToolAwareAgent()
 
         # Should have project search
         # Depending on implementation, verify tools exist
@@ -125,7 +126,7 @@ class TestQueryProcessing:
         """
 
         # Mock the llm attribute (not model)
-        if hasattr(agent, 'llm') and agent.llm:
+        if hasattr(agent, "llm") and agent.llm:
             agent.llm.generate_content = MagicMock(return_value=mock_response)
         else:
             # Create a mock llm if it doesn't exist
@@ -136,33 +137,33 @@ class TestQueryProcessing:
 
     def test_process_query_returns_dict(self, mock_agent):
         """Test process_query returns a dictionary."""
-        result = asyncio.run(mock_agent.process_query(
-            query="Find hydrogen funding calls",
-            context="",
-            conversation_history=[]
-        ))
+        result = asyncio.run(
+            mock_agent.process_query(
+                query="Find hydrogen funding calls", context="", conversation_history=[]
+            )
+        )
 
         assert isinstance(result, dict)
 
     def test_process_query_has_answer(self, mock_agent):
         """Test result has answer field."""
-        result = asyncio.run(mock_agent.process_query(
-            query="Find hydrogen funding calls",
-            context="",
-            conversation_history=[]
-        ))
+        result = asyncio.run(
+            mock_agent.process_query(
+                query="Find hydrogen funding calls", context="", conversation_history=[]
+            )
+        )
 
-        assert 'answer' in result or 'response' in result
+        assert "answer" in result or "response" in result
 
     def test_process_query_has_confidence(self, mock_agent):
         """Test result has confidence field."""
-        result = asyncio.run(mock_agent.process_query(
-            query="Find hydrogen calls",
-            context="",
-            conversation_history=[]
-        ))
+        result = asyncio.run(
+            mock_agent.process_query(
+                query="Find hydrogen calls", context="", conversation_history=[]
+            )
+        )
 
-        assert 'confidence' in result
+        assert "confidence" in result
 
 
 class TestReActLoop:
@@ -176,19 +177,15 @@ class TestReActLoop:
         mock_response = MagicMock()
         mock_response.text = "Final Answer: Here are the results."
 
-        if hasattr(agent, 'llm') and agent.llm:
+        if hasattr(agent, "llm") and agent.llm:
             agent.llm.generate_content = MagicMock(return_value=mock_response)
         else:
             agent.llm = MagicMock()
             agent.llm.generate_content.return_value = mock_response
 
-        result = asyncio.run(agent.process_query(
-            query="Test",
-            context="",
-            conversation_history=[]
-        ))
+        result = asyncio.run(agent.process_query(query="Test", context="", conversation_history=[]))
 
-        assert 'iterations' in result
+        assert "iterations" in result
 
     def test_max_iterations_respected(self):
         """Test max iterations limit is respected."""
@@ -204,19 +201,15 @@ class TestReActLoop:
         Action Input: {}
         """
 
-        if hasattr(agent, 'llm') and agent.llm:
+        if hasattr(agent, "llm") and agent.llm:
             agent.llm.generate_content = MagicMock(return_value=mock_response)
         else:
             agent.llm = MagicMock()
             agent.llm.generate_content.return_value = mock_response
 
-        result = asyncio.run(agent.process_query(
-            query="Test",
-            context="",
-            conversation_history=[]
-        ))
+        result = asyncio.run(agent.process_query(query="Test", context="", conversation_history=[]))
 
-        assert result['iterations'] <= 2
+        assert result["iterations"] <= 2
 
 
 class TestContextHandling:
@@ -230,7 +223,7 @@ class TestContextHandling:
         mock_response = MagicMock()
         mock_response.text = "Final Answer: Based on context, here's the answer."
 
-        if hasattr(agent, 'llm') and agent.llm:
+        if hasattr(agent, "llm") and agent.llm:
             agent.llm.generate_content = MagicMock(return_value=mock_response)
         else:
             agent.llm = MagicMock()
@@ -238,14 +231,14 @@ class TestContextHandling:
 
         context = "User previously asked about hydrogen projects."
 
-        result = asyncio.run(agent.process_query(
-            query="What about the budget?",
-            context=context,
-            conversation_history=[]
-        ))
+        asyncio.run(
+            agent.process_query(
+                query="What about the budget?", context=context, conversation_history=[]
+            )
+        )
 
         # Check that generate_content was called
-        if hasattr(agent, 'llm') and agent.llm:
+        if hasattr(agent, "llm") and agent.llm:
             assert agent.llm.generate_content.called
 
     def test_conversation_history_used(self):
@@ -256,7 +249,7 @@ class TestContextHandling:
         mock_response = MagicMock()
         mock_response.text = "Final Answer: Following up on your question."
 
-        if hasattr(agent, 'llm') and agent.llm:
+        if hasattr(agent, "llm") and agent.llm:
             agent.llm.generate_content = MagicMock(return_value=mock_response)
         else:
             agent.llm = MagicMock()
@@ -264,14 +257,14 @@ class TestContextHandling:
 
         history = [
             {"sender": "user", "text": "What is ERC?"},
-            {"sender": "assistant", "text": "ERC is the European Research Council."}
+            {"sender": "assistant", "text": "ERC is the European Research Council."},
         ]
 
-        result = asyncio.run(agent.process_query(
-            query="What about the budget?",
-            context="",
-            conversation_history=history
-        ))
+        result = asyncio.run(
+            agent.process_query(
+                query="What about the budget?", context="", conversation_history=history
+            )
+        )
 
         assert result is not None
 
@@ -289,19 +282,17 @@ class TestToolExecution:
         mock_response = MagicMock()
         mock_response.text = "Final Answer: Found 5 calls."
 
-        if hasattr(agent, 'llm') and agent.llm:
+        if hasattr(agent, "llm") and agent.llm:
             agent.llm.generate_content = MagicMock(return_value=mock_response)
         else:
             agent.llm = MagicMock()
             agent.llm.generate_content.return_value = mock_response
 
-        result = asyncio.run(agent.process_query(
-            query="Find funding calls",
-            context="",
-            conversation_history=[]
-        ))
+        result = asyncio.run(
+            agent.process_query(query="Find funding calls", context="", conversation_history=[])
+        )
 
-        assert 'tool_results' in result or 'sources_used' in result
+        assert "tool_results" in result or "sources_used" in result
 
     def test_sources_used_tracked(self):
         """Test sources used are tracked."""
@@ -311,19 +302,15 @@ class TestToolExecution:
         mock_response = MagicMock()
         mock_response.text = "Final Answer: Results."
 
-        if hasattr(agent, 'llm') and agent.llm:
+        if hasattr(agent, "llm") and agent.llm:
             agent.llm.generate_content = MagicMock(return_value=mock_response)
         else:
             agent.llm = MagicMock()
             agent.llm.generate_content.return_value = mock_response
 
-        result = asyncio.run(agent.process_query(
-            query="Test",
-            context="",
-            conversation_history=[]
-        ))
+        result = asyncio.run(agent.process_query(query="Test", context="", conversation_history=[]))
 
-        assert 'sources_used' in result
+        assert "sources_used" in result
 
 
 class TestReasoningSteps:
@@ -337,19 +324,17 @@ class TestReasoningSteps:
         mock_response = MagicMock()
         mock_response.text = "Final Answer: Done."
 
-        if hasattr(agent, 'llm') and agent.llm:
+        if hasattr(agent, "llm") and agent.llm:
             agent.llm.generate_content = MagicMock(return_value=mock_response)
         else:
             agent.llm = MagicMock()
             agent.llm.generate_content.return_value = mock_response
 
-        result = asyncio.run(agent.process_query(
-            query="Test query",
-            context="",
-            conversation_history=[]
-        ))
+        result = asyncio.run(
+            agent.process_query(query="Test query", context="", conversation_history=[])
+        )
 
-        assert 'reasoning_steps' in result
+        assert "reasoning_steps" in result
 
     def test_reasoning_steps_include_thought(self):
         """Test reasoning steps include thought."""
@@ -364,21 +349,19 @@ class TestReasoningSteps:
         Final Answer: Here's my analysis.
         """
 
-        if hasattr(agent, 'llm') and agent.llm:
+        if hasattr(agent, "llm") and agent.llm:
             agent.llm.generate_content = MagicMock(return_value=mock_response)
         else:
             agent.llm = MagicMock()
             agent.llm.generate_content.return_value = mock_response
 
-        result = asyncio.run(agent.process_query(
-            query="Analyze this",
-            context="",
-            conversation_history=[]
-        ))
+        result = asyncio.run(
+            agent.process_query(query="Analyze this", context="", conversation_history=[])
+        )
 
-        if result.get('reasoning_steps'):
+        if result.get("reasoning_steps"):
             # Check first step has thought
-            assert 'thought' in result['reasoning_steps'][0] or True
+            assert "thought" in result["reasoning_steps"][0] or True
 
 
 class TestErrorHandling:
@@ -390,17 +373,13 @@ class TestErrorHandling:
 
         agent = ToolAwareAgent()
 
-        if hasattr(agent, 'llm') and agent.llm:
+        if hasattr(agent, "llm") and agent.llm:
             agent.llm.generate_content = MagicMock(side_effect=Exception("API Error"))
         else:
             agent.llm = MagicMock()
             agent.llm.generate_content.side_effect = Exception("API Error")
 
-        result = asyncio.run(agent.process_query(
-            query="Test",
-            context="",
-            conversation_history=[]
-        ))
+        result = asyncio.run(agent.process_query(query="Test", context="", conversation_history=[]))
 
         # Should return error response, not crash
         assert result is not None
@@ -417,18 +396,14 @@ class TestErrorHandling:
         Action Input: {}
         """
 
-        if hasattr(agent, 'llm') and agent.llm:
+        if hasattr(agent, "llm") and agent.llm:
             agent.llm.generate_content = MagicMock(return_value=mock_response)
         else:
             agent.llm = MagicMock()
             agent.llm.generate_content.return_value = mock_response
 
         # Should handle gracefully
-        result = asyncio.run(agent.process_query(
-            query="Test",
-            context="",
-            conversation_history=[]
-        ))
+        result = asyncio.run(agent.process_query(query="Test", context="", conversation_history=[]))
 
         assert result is not None
 
@@ -444,19 +419,15 @@ class TestResponseSynthesis:
         mock_response = MagicMock()
         mock_response.text = "Final Answer: Here is the comprehensive answer."
 
-        if hasattr(agent, 'llm') and agent.llm:
+        if hasattr(agent, "llm") and agent.llm:
             agent.llm.generate_content = MagicMock(return_value=mock_response)
         else:
             agent.llm = MagicMock()
             agent.llm.generate_content.return_value = mock_response
 
-        result = asyncio.run(agent.process_query(
-            query="Test",
-            context="",
-            conversation_history=[]
-        ))
+        result = asyncio.run(agent.process_query(query="Test", context="", conversation_history=[]))
 
-        assert result.get('answer') or result.get('response')
+        assert result.get("answer") or result.get("response")
 
     def test_answer_not_empty(self):
         """Test answer is not empty."""
@@ -466,19 +437,15 @@ class TestResponseSynthesis:
         mock_response = MagicMock()
         mock_response.text = "Final Answer: This is the answer."
 
-        if hasattr(agent, 'llm') and agent.llm:
+        if hasattr(agent, "llm") and agent.llm:
             agent.llm.generate_content = MagicMock(return_value=mock_response)
         else:
             agent.llm = MagicMock()
             agent.llm.generate_content.return_value = mock_response
 
-        result = asyncio.run(agent.process_query(
-            query="Test",
-            context="",
-            conversation_history=[]
-        ))
+        result = asyncio.run(agent.process_query(query="Test", context="", conversation_history=[]))
 
-        answer = result.get('answer', '') or result.get('response', '')
+        answer = result.get("answer", "") or result.get("response", "")
         assert len(answer) > 0 or True  # Allow for error cases
 
 
@@ -499,20 +466,16 @@ class TestQueryPlanCacheIntegration:
         mock_response = MagicMock()
         mock_response.text = "Final Answer: Done."
 
-        if hasattr(agent, 'llm') and agent.llm:
+        if hasattr(agent, "llm") and agent.llm:
             agent.llm.generate_content = MagicMock(return_value=mock_response)
         else:
             agent.llm = MagicMock()
             agent.llm.generate_content.return_value = mock_response
 
-        asyncio.run(agent.process_query(
-            query="Test",
-            context="",
-            conversation_history=[]
-        ))
+        asyncio.run(agent.process_query(query="Test", context="", conversation_history=[]))
 
         # Cache should have been checked
-        if hasattr(agent, 'query_cache') and agent.query_cache:
+        if hasattr(agent, "query_cache") and agent.query_cache:
             assert mock_cache.get_cached_plan.called or True
 
 
@@ -526,7 +489,7 @@ class TestToolCount:
         agent = ToolAwareAgent()
 
         # Should have tools defined
-        tools_attr = getattr(agent, 'tool_definitions', None) or getattr(agent, 'tools', None)
+        tools_attr = getattr(agent, "tool_definitions", None) or getattr(agent, "tools", None)
         assert tools_attr is not None or True
 
 
@@ -539,7 +502,7 @@ class TestSpeculativeExecutorIntegration:
 
         agent = ToolAwareAgent()
 
-        assert hasattr(agent, 'speculative_executor') or True
+        assert hasattr(agent, "speculative_executor") or True
 
 
 class TestEdgeCases:
@@ -553,17 +516,13 @@ class TestEdgeCases:
         mock_response = MagicMock()
         mock_response.text = "Final Answer: Please provide a question."
 
-        if hasattr(agent, 'llm') and agent.llm:
+        if hasattr(agent, "llm") and agent.llm:
             agent.llm.generate_content = MagicMock(return_value=mock_response)
         else:
             agent.llm = MagicMock()
             agent.llm.generate_content.return_value = mock_response
 
-        result = asyncio.run(agent.process_query(
-            query="",
-            context="",
-            conversation_history=[]
-        ))
+        result = asyncio.run(agent.process_query(query="", context="", conversation_history=[]))
 
         assert result is not None
 
@@ -575,7 +534,7 @@ class TestEdgeCases:
         mock_response = MagicMock()
         mock_response.text = "Final Answer: Processed."
 
-        if hasattr(agent, 'llm') and agent.llm:
+        if hasattr(agent, "llm") and agent.llm:
             agent.llm.generate_content = MagicMock(return_value=mock_response)
         else:
             agent.llm = MagicMock()
@@ -583,11 +542,9 @@ class TestEdgeCases:
 
         long_query = "Find hydrogen " * 100
 
-        result = asyncio.run(agent.process_query(
-            query=long_query,
-            context="",
-            conversation_history=[]
-        ))
+        result = asyncio.run(
+            agent.process_query(query=long_query, context="", conversation_history=[])
+        )
 
         assert result is not None
 
@@ -601,8 +558,8 @@ class TestQualityAnalysisIntegration:
 
         agent = ToolAwareAgent()
 
-        assert hasattr(agent, 'quality_analyzer')
-        assert hasattr(agent, 'enable_quality_analysis')
+        assert hasattr(agent, "quality_analyzer")
+        assert hasattr(agent, "enable_quality_analysis")
         assert agent.enable_quality_analysis is True
 
     def test_agent_quality_analyzer_can_be_disabled(self):
@@ -620,7 +577,7 @@ class TestQualityAnalysisIntegration:
 
         agent = ToolAwareAgent()
 
-        assert hasattr(agent, '_analyze_response_quality')
+        assert hasattr(agent, "_analyze_response_quality")
         assert callable(agent._analyze_response_quality)
 
     def test_analyze_response_quality_returns_dict(self):
@@ -632,15 +589,15 @@ class TestQualityAnalysisIntegration:
         result = agent._analyze_response_quality(
             query="What is Horizon Europe?",
             answer="Horizon Europe is the EU's research and innovation funding programme.",
-            tool_results={}
+            tool_results={},
         )
 
         # Should return a dict if analyzer is available, None otherwise
         if agent.quality_analyzer:
             assert isinstance(result, dict)
-            assert 'score' in result
-            assert 'category' in result
-            assert 'confidence' in result
+            assert "score" in result
+            assert "category" in result
+            assert "confidence" in result
         else:
             # If analyzer not available, should return None
             assert result is None
@@ -655,13 +612,13 @@ class TestQualityAnalysisIntegration:
         result = agent._analyze_response_quality(
             query="Tell me about HORIZON-CL5-2026-D3-01",
             answer="I could not find any information about this call.",
-            tool_results={}
+            tool_results={},
         )
 
         if agent.quality_analyzer:
             assert isinstance(result, dict)
-            assert result['category'] == 'deflection'
-            assert len(result['deflection_phrases_found']) > 0
+            assert result["category"] == "deflection"
+            assert len(result["deflection_phrases_found"]) > 0
 
     def test_process_query_includes_quality_analysis(self):
         """Test that process_query includes quality_analysis in result."""
@@ -676,27 +633,27 @@ class TestQualityAnalysisIntegration:
             "confidence": 0.9
         }"""
 
-        if hasattr(agent, 'llm') and agent.llm:
+        if hasattr(agent, "llm") and agent.llm:
             agent.llm.generate_content = MagicMock(return_value=mock_response)
         else:
             agent.llm = MagicMock()
             agent.llm.generate_content.return_value = mock_response
 
-        result = asyncio.run(agent.process_query(
-            query="What is Horizon Europe?",
-            context="",
-            conversation_history=[]
-        ))
+        result = asyncio.run(
+            agent.process_query(
+                query="What is Horizon Europe?", context="", conversation_history=[]
+            )
+        )
 
         assert result is not None
-        assert 'quality_analysis' in result
+        assert "quality_analysis" in result
 
         # If analyzer is available, should have quality metrics
         if agent.quality_analyzer:
-            qa = result['quality_analysis']
+            qa = result["quality_analysis"]
             assert qa is not None
-            assert 'score' in qa
-            assert 'category' in qa
+            assert "score" in qa
+            assert "category" in qa
 
     def test_quality_analysis_handles_tool_results(self):
         """Test quality analysis with tool results."""
@@ -708,20 +665,20 @@ class TestQualityAnalysisIntegration:
             "search_funding_calls_1_0": {
                 "success": True,
                 "calls_found": 5,
-                "results": [{"call_id": "HORIZON-CL5-2026-D3-01"}]
+                "results": [{"call_id": "HORIZON-CL5-2026-D3-01"}],
             }
         }
 
         result = agent._analyze_response_quality(
             query="Find hydrogen funding calls",
             answer="I found 5 hydrogen funding opportunities including HORIZON-CL5-2026-D3-01. The deadline is January 2026.",
-            tool_results=tool_results
+            tool_results=tool_results,
         )
 
         if agent.quality_analyzer:
             assert isinstance(result, dict)
             # Good response with tool results should have high score
-            assert result['score'] >= 50
+            assert result["score"] >= 50
 
 
 if __name__ == "__main__":

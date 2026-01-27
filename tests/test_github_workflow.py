@@ -135,9 +135,9 @@ class TestGitHubWorkflowConfiguration:
         # Verify service health checks
         for service_name in ["postgres", "redis", "neo4j"]:
             service = services[service_name]
-            assert (
-                "options" in service or "healthcheck" in str(service).lower()
-            ), f"Service {service_name} should have health check configured"
+            assert "options" in service or "healthcheck" in str(service).lower(), (
+                f"Service {service_name} should have health check configured"
+            )
 
     def test_postgres_service_configuration(self, workflow_config: dict):
         """Verify PostgreSQL service is properly configured."""
@@ -206,9 +206,9 @@ class TestGitHubWorkflowConfiguration:
         api_step = api_start_steps[0]
         if "run" in api_step:
             run_content = api_step["run"]
-            assert (
-                "uvicorn" in run_content or "main:app" in run_content
-            ), "API server should be started with uvicorn"
+            assert "uvicorn" in run_content or "main:app" in run_content, (
+                "API server should be started with uvicorn"
+            )
 
     def test_scenario_test_execution_step(self, workflow_config: dict):
         """Verify scenario tests are executed."""
@@ -282,9 +282,9 @@ class TestGitHubWorkflowConfiguration:
             and ("TestTask001" in s.get("run", "") or "race" in s.get("run", "").lower())
         ]
 
-        assert (
-            len(test_steps) > 0
-        ), "Should run pytest for race condition tests with TestTask001 or race in command"
+        assert len(test_steps) > 0, (
+            "Should run pytest for race condition tests with TestTask001 or race in command"
+        )
 
     def test_final_status_job(self, workflow_config: dict):
         """Verify final status job aggregates results."""
@@ -361,9 +361,9 @@ class TestWorkflowYAMLSyntax:
                     # Check for common shell script issues
                     assert run_content.count("$(") == run_content.count(")") or run_content.count(
                         "${"
-                    ) <= run_content.count(
-                        "}"
-                    ), f"Possible unbalanced brackets in {job_name} step {i}"
+                    ) <= run_content.count("}"), (
+                        f"Possible unbalanced brackets in {job_name} step {i}"
+                    )
 
 
 if __name__ == "__main__":

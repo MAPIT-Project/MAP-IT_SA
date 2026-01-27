@@ -388,9 +388,9 @@ Now you're ready to browse available funding like Horizon Europe, Erasmus+, or C
 **Your Next Action:** Start by creating your EU Login account - it only takes 5 minutes."""
 
         result = evaluator.evaluate(query, excellent_response)
-        assert (
-            result["total_score"] >= 80
-        ), f"Excellent response scored {result['total_score']}, expected 80+"
+        assert result["total_score"] >= 80, (
+            f"Excellent response scored {result['total_score']}, expected 80+"
+        )
         assert result["passed"], "Excellent response should pass"
 
     def test_too_technical_response_scores_lower(self, evaluator):
@@ -404,9 +404,9 @@ Submit your proposal through the portal before the deadline."""
 
         result = evaluator.evaluate(query, technical_response)
         # Should fail accuracy because it's too technical
-        assert (
-            result["dimensions"]["factual_accuracy"] < 20
-        ), "Technical response should score lower on accuracy for beginners"
+        assert result["dimensions"]["factual_accuracy"] < 20, (
+            "Technical response should score lower on accuracy for beginners"
+        )
 
     def test_minimal_response_scores_low(self, evaluator):
         """Test that a minimal response without guidance scores low."""
@@ -573,9 +573,9 @@ Don't worry - the process is simpler than it looks once you get started!"""
                 if fb:
                     print(f"  {dim}: {'; '.join(fb)}")
 
-        assert (
-            result["total_score"] >= PASS_THRESHOLD
-        ), f"Score {result['total_score']} below threshold {PASS_THRESHOLD}"
+        assert result["total_score"] >= PASS_THRESHOLD, (
+            f"Score {result['total_score']} below threshold {PASS_THRESHOLD}"
+        )
 
     @pytest.mark.asyncio
     async def test_live_api_mentions_ncp(self, evaluator):
@@ -590,9 +590,9 @@ Don't worry - the process is simpler than it looks once you get started!"""
         response_lower = response.lower()
 
         # Should mention NCP
-        assert (
-            "ncp" in response_lower or "national contact point" in response_lower
-        ), "Response should mention National Contact Points"
+        assert "ncp" in response_lower or "national contact point" in response_lower, (
+            "Response should mention National Contact Points"
+        )
 
     @pytest.mark.asyncio
     async def test_live_api_mentions_registration(self, evaluator):
@@ -654,9 +654,9 @@ Don't worry - the process is simpler than it looks once you get started!"""
         jargon_terms = ["trl", "work package", "deliverable", "annex", "consortium agreement"]
         jargon_count = sum(1 for term in jargon_terms if term in response_lower)
 
-        assert (
-            jargon_count <= 2
-        ), f"Response uses too much unexplained jargon ({jargon_count} terms)"
+        assert jargon_count <= 2, (
+            f"Response uses too much unexplained jargon ({jargon_count} terms)"
+        )
 
     @pytest.mark.asyncio
     async def test_live_api_variant_getting_started(self, evaluator):

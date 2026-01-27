@@ -413,14 +413,14 @@ class TestPhase1FullExecution:
         )
 
         # Verify average quality score
-        assert (
-            report["summary"]["average_quality_score"] >= 80
-        ), f"Phase 1 average quality score {report['summary']['average_quality_score']} < 80"
+        assert report["summary"]["average_quality_score"] >= 80, (
+            f"Phase 1 average quality score {report['summary']['average_quality_score']} < 80"
+        )
 
         # Verify no critical failures
-        assert (
-            report["summary"]["critical_failures"] == 0
-        ), f"Phase 1 has {report['summary']['critical_failures']} critical failures"
+        assert report["summary"]["critical_failures"] == 0, (
+            f"Phase 1 has {report['summary']['critical_failures']} critical failures"
+        )
 
 
 # =============================================================================

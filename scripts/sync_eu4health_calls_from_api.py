@@ -36,10 +36,7 @@ from dotenv import load_dotenv
 from psycopg2.extras import RealDictCursor
 
 # Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 # EU Portal API endpoints
@@ -50,7 +47,7 @@ EU_TOPIC_DETAILS = "https://ec.europa.eu/info/funding-tenders/opportunities/data
 def get_database_url() -> str:
     """Get database URL from environment."""
     load_dotenv()
-    db_url = os.getenv('DATABASE_URL')
+    db_url = os.getenv("DATABASE_URL")
     if not db_url:
         raise ValueError("DATABASE_URL environment variable not set")
     return db_url
@@ -68,28 +65,28 @@ class EU4HealthPortalSyncer:
 
         # EU4Health action type mappings
         self.action_types = {
-            'AG': 'Action Grant',
-            'PJ': 'Project Grant',
-            'JA': 'Joint Action',
-            'DG': 'Direct Grant',
-            'OG': 'Operating Grant',
-            'FA': 'Financial Assistance',
-            'CSA': 'Coordination and Support Action',
-            'PROC': 'Procurement',
-            'FPA': 'Framework Partnership Agreement',
-            'SGA': 'Specific Grant Agreement',
+            "AG": "Action Grant",
+            "PJ": "Project Grant",
+            "JA": "Joint Action",
+            "DG": "Direct Grant",
+            "OG": "Operating Grant",
+            "FA": "Financial Assistance",
+            "CSA": "Coordination and Support Action",
+            "PROC": "Procurement",
+            "FPA": "Framework Partnership Agreement",
+            "SGA": "Specific Grant Agreement",
         }
 
         # EU4Health strands/thematic areas
         self.strands = {
-            'CRISIS': 'Crisis Preparedness',
-            'PREV': 'Disease Prevention',
-            'HEALTH': 'Health Systems',
-            'DIGITAL': 'Digital Health',
-            'CANCER': 'Europe\'s Beating Cancer Plan',
-            'MEDS': 'Medicines and Medical Devices',
-            'AMR': 'Antimicrobial Resistance',
-            'MH': 'Mental Health',
+            "CRISIS": "Crisis Preparedness",
+            "PREV": "Disease Prevention",
+            "HEALTH": "Health Systems",
+            "DIGITAL": "Digital Health",
+            "CANCER": "Europe's Beating Cancer Plan",
+            "MEDS": "Medicines and Medical Devices",
+            "AMR": "Antimicrobial Resistance",
+            "MH": "Mental Health",
         }
 
     def close(self):
@@ -99,13 +96,15 @@ class EU4HealthPortalSyncer:
     def get_existing_topics_from_db(self, conn) -> list[dict]:
         """Get all existing EU4Health topic codes from database."""
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT topic_code, title, status, deadline
             FROM funding_calls
             WHERE programme = 'eu4health'
               AND topic_code IS NOT NULL
             ORDER BY call_year DESC NULLS LAST, topic_code
-        """)
+        """
+        )
         results = cursor.fetchall()
         return [{"identifier": r["topic_code"], "title": r["title"] or ""} for r in results]
 
@@ -125,17 +124,17 @@ class EU4HealthPortalSyncer:
         for year in years:
             # Standard project grant patterns: EU4H-{YEAR}-PJ-{BATCH}-{NUMBER}
             # Batch: 01 = Crisis Prep, 02 = Health Systems, 03 = Disease Prevention, etc.
-            for batch in ['01', '02', '03', '04', '05']:
+            for batch in ["01", "02", "03", "04", "05"]:
                 for num in range(1, 20):
                     patterns.append(f"EU4H-{year}-PJ-{batch}-{num}")
                     # Also with letter suffixes (e.g., EU4H-2024-PJ-03-2-a)
-                    for letter in ['a', 'b', 'c', 'd']:
+                    for letter in ["a", "b", "c", "d"]:
                         patterns.append(f"EU4H-{year}-PJ-{batch}-{num}-{letter}")
 
             # HERA patterns: EU4H-{YEAR}-HERA-PJ-{NUMBER}
             for num in range(1, 10):
                 patterns.append(f"EU4H-{year}-HERA-PJ-{num}")
-                for letter in ['a', 'b', 'c', 'd']:
+                for letter in ["a", "b", "c", "d"]:
                     patterns.append(f"EU4H-{year}-HERA-PJ-{num}-{letter}")
 
             # SANTE patterns: EU4H-{YEAR}-SANTE-PJ-{NUMBER}
@@ -147,7 +146,7 @@ class EU4HealthPortalSyncer:
             for num in range(1, 20):
                 patterns.append(f"EU4H-{year}-JA-{num:02d}")
                 patterns.append(f"EU4H-{year}-JA-{num}")
-                for batch in ['01', '02', '03']:
+                for batch in ["01", "02", "03"]:
                     patterns.append(f"EU4H-{year}-JA-{batch}-{num}")
 
             # Direct Grant patterns
@@ -176,8 +175,12 @@ class EU4HealthPortalSyncer:
         """
         discovered = set()
         search_terms = [
-            'EU4H', 'EU4HEALTH', '4HEALTH',
-            'eu4h-2024', 'eu4h-2025', 'eu4h-2026',
+            "EU4H",
+            "EU4HEALTH",
+            "4HEALTH",
+            "eu4h-2024",
+            "eu4h-2025",
+            "eu4h-2026",
         ]
 
         logger.info("Discovering EU4Health topics via Search API...")
@@ -188,37 +191,34 @@ class EU4HealthPortalSyncer:
             for page in range(1, 15):  # Up to 14 pages per term
                 try:
                     payload = {
-                        'apiKey': self.api_key,
-                        'text': term,
-                        'pageSize': 100,
-                        'pageNumber': page,
+                        "apiKey": self.api_key,
+                        "text": term,
+                        "pageSize": 100,
+                        "pageNumber": page,
                     }
 
                     response = self.client.post(
                         self.search_api,
                         data=payload,
-                        headers={'Content-Type': 'application/x-www-form-urlencoded'}
+                        headers={"Content-Type": "application/x-www-form-urlencoded"},
                     )
 
                     if response.status_code != 200:
                         break
 
                     data = response.json()
-                    results = data.get('results', [])
+                    results = data.get("results", [])
 
                     if not results:
                         break
 
                     for result in results:
-                        source = str(result.get('source', ''))
+                        source = str(result.get("source", ""))
                         # Extract EU4Health topic codes
-                        matches = re.findall(
-                            r'EU4H-\d{4}-[A-Z0-9-]+',
-                            source.upper()
-                        )
+                        matches = re.findall(r"EU4H-\d{4}-[A-Z0-9-]+", source.upper())
                         for m in matches:
                             # Clean up any trailing timestamps
-                            clean = re.sub(r'\d{13,}.*', '', m).rstrip('-')
+                            clean = re.sub(r"\d{13,}.*", "", m).rstrip("-")
                             if clean and len(clean) > 8:  # Valid topic codes
                                 discovered.add(clean)
 
@@ -232,10 +232,7 @@ class EU4HealthPortalSyncer:
         return discovered
 
     def search_all_topics(
-        self,
-        status: str = "all",
-        conn=None,
-        years: list[int] | None = None
+        self, status: str = "all", conn=None, years: list[int] | None = None
     ) -> list[dict]:
         """
         Get all EU4Health topics to sync using hybrid approach.
@@ -312,7 +309,7 @@ class EU4HealthPortalSyncer:
 
             # Extract deadline and status
             deadline = None
-            status = 'unknown'
+            status = "unknown"
             actions = topic_data.get("actions", [])
 
             if actions and isinstance(actions, list) and len(actions) > 0:
@@ -369,7 +366,7 @@ class EU4HealthPortalSyncer:
 
             # Extract year from topic code
             call_year = None
-            year_match = re.search(r'-(\d{4})-', identifier)
+            year_match = re.search(r"-(\d{4})-", identifier)
             if year_match:
                 call_year = int(year_match.group(1))
 
@@ -391,8 +388,8 @@ class EU4HealthPortalSyncer:
                     "strand": strand,
                     "implementing_agency": "HaDEA",
                     "synced_from_api": True,
-                    "synced_at": datetime.now().isoformat()
-                }
+                    "synced_at": datetime.now().isoformat(),
+                },
             }
 
         except httpx.TimeoutException:
@@ -412,20 +409,20 @@ class EU4HealthPortalSyncer:
                 return action_code
 
         # Common patterns
-        if '-AG' in topic_upper or 'AG-' in topic_upper:
-            return 'AG'
-        elif '-PJ' in topic_upper or 'PJ-' in topic_upper:
-            return 'PJ'
-        elif '-JA' in topic_upper or 'JA-' in topic_upper:
-            return 'JA'
-        elif '-DG' in topic_upper or 'DG-' in topic_upper:
-            return 'DG'
-        elif '-OG' in topic_upper or 'OG-' in topic_upper:
-            return 'OG'
-        elif '-CSA' in topic_upper or 'CSA-' in topic_upper:
-            return 'CSA'
-        elif '-PROC' in topic_upper or 'PROC-' in topic_upper:
-            return 'PROC'
+        if "-AG" in topic_upper or "AG-" in topic_upper:
+            return "AG"
+        elif "-PJ" in topic_upper or "PJ-" in topic_upper:
+            return "PJ"
+        elif "-JA" in topic_upper or "JA-" in topic_upper:
+            return "JA"
+        elif "-DG" in topic_upper or "DG-" in topic_upper:
+            return "DG"
+        elif "-OG" in topic_upper or "OG-" in topic_upper:
+            return "OG"
+        elif "-CSA" in topic_upper or "CSA-" in topic_upper:
+            return "CSA"
+        elif "-PROC" in topic_upper or "PROC-" in topic_upper:
+            return "PROC"
 
         return None
 
@@ -434,22 +431,22 @@ class EU4HealthPortalSyncer:
         combined = (topic_code + " " + title).upper()
 
         # Match by keywords
-        if any(kw in combined for kw in ['CRISIS', 'PREPAREDNESS', 'EMERGENCY', 'RESILIENCE']):
-            return 'CRISIS'
-        elif any(kw in combined for kw in ['CANCER', 'BEATING', 'ONCOLOGY']):
-            return 'CANCER'
-        elif any(kw in combined for kw in ['AMR', 'ANTIMICROBIAL', 'ANTIBIOTIC']):
-            return 'AMR'
-        elif any(kw in combined for kw in ['MENTAL', 'PSYCHOLOGICAL']):
-            return 'MH'
-        elif any(kw in combined for kw in ['PREVENTION', 'SCREENING', 'VACCINATION', 'NCD']):
-            return 'PREV'
-        elif any(kw in combined for kw in ['DIGITAL', 'EHDS', 'EHEALTH', 'DATA']):
-            return 'DIGITAL'
-        elif any(kw in combined for kw in ['MEDICINE', 'PHARMACEUTICAL', 'SHORTAGE']):
-            return 'MEDS'
-        elif any(kw in combined for kw in ['HEALTH SYSTEM', 'WORKFORCE', 'HTA']):
-            return 'HEALTH'
+        if any(kw in combined for kw in ["CRISIS", "PREPAREDNESS", "EMERGENCY", "RESILIENCE"]):
+            return "CRISIS"
+        elif any(kw in combined for kw in ["CANCER", "BEATING", "ONCOLOGY"]):
+            return "CANCER"
+        elif any(kw in combined for kw in ["AMR", "ANTIMICROBIAL", "ANTIBIOTIC"]):
+            return "AMR"
+        elif any(kw in combined for kw in ["MENTAL", "PSYCHOLOGICAL"]):
+            return "MH"
+        elif any(kw in combined for kw in ["PREVENTION", "SCREENING", "VACCINATION", "NCD"]):
+            return "PREV"
+        elif any(kw in combined for kw in ["DIGITAL", "EHDS", "EHEALTH", "DATA"]):
+            return "DIGITAL"
+        elif any(kw in combined for kw in ["MEDICINE", "PHARMACEUTICAL", "SHORTAGE"]):
+            return "MEDS"
+        elif any(kw in combined for kw in ["HEALTH SYSTEM", "WORKFORCE", "HTA"]):
+            return "HEALTH"
 
         return None
 
@@ -462,7 +459,8 @@ class EU4HealthPortalSyncer:
             metadata["synced_from_api"] = True
             metadata["synced_at"] = datetime.now().isoformat()
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO funding_calls (
                     programme, topic_code, title, scope, expected_outcome,
                     deadline, status, action_type, budget_total,
@@ -487,22 +485,24 @@ class EU4HealthPortalSyncer:
                     portal_url = COALESCE(EXCLUDED.portal_url, funding_calls.portal_url),
                     metadata = COALESCE(funding_calls.metadata, '{}'::jsonb) || EXCLUDED.metadata,
                     updated_at = NOW()
-            """, (
-                data.get("programme", "eu4health"),
-                data.get("topic_code"),
-                data.get("title"),
-                data.get("scope"),
-                data.get("expected_outcome"),
-                data.get("deadline"),
-                data.get("status"),
-                data.get("action_type"),
-                data.get("budget_total"),
-                data.get("call_identifier"),
-                data.get("cluster"),
-                data.get("call_year"),
-                data.get("portal_url"),
-                json.dumps(metadata)
-            ))
+            """,
+                (
+                    data.get("programme", "eu4health"),
+                    data.get("topic_code"),
+                    data.get("title"),
+                    data.get("scope"),
+                    data.get("expected_outcome"),
+                    data.get("deadline"),
+                    data.get("status"),
+                    data.get("action_type"),
+                    data.get("budget_total"),
+                    data.get("call_identifier"),
+                    data.get("cluster"),
+                    data.get("call_year"),
+                    data.get("portal_url"),
+                    json.dumps(metadata),
+                ),
+            )
 
             conn.commit()
             return True
@@ -514,41 +514,20 @@ class EU4HealthPortalSyncer:
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Sync EU4Health calls from EU Portal API"
-    )
+    parser = argparse.ArgumentParser(description="Sync EU4Health calls from EU Portal API")
     parser.add_argument(
         "--status",
         choices=["open", "closed", "upcoming", "all"],
         default="all",
-        help="Filter by status (default: all)"
+        help="Filter by status (default: all)",
     )
+    parser.add_argument("--limit", type=int, help="Limit number of calls to sync")
+    parser.add_argument("--dry-run", action="store_true", help="Don't update database")
+    parser.add_argument("--force", action="store_true", help="Re-sync all calls")
     parser.add_argument(
-        "--limit",
-        type=int,
-        help="Limit number of calls to sync"
+        "--delay", type=float, default=0.3, help="Delay between API calls (seconds)"
     )
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Don't update database"
-    )
-    parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Re-sync all calls"
-    )
-    parser.add_argument(
-        "--delay",
-        type=float,
-        default=0.3,
-        help="Delay between API calls (seconds)"
-    )
-    parser.add_argument(
-        "--year",
-        type=int,
-        help="Specific year to sync"
-    )
+    parser.add_argument("--year", type=int, help="Specific year to sync")
     args = parser.parse_args()
 
     logger.info("=" * 70)
@@ -585,11 +564,7 @@ def main():
         logger.info("STEP 1: GETTING TOPICS TO SYNC")
         logger.info("=" * 70)
 
-        topics = syncer.search_all_topics(
-            status=args.status,
-            conn=conn,
-            years=years
-        )
+        topics = syncer.search_all_topics(status=args.status, conn=conn, years=years)
         stats["topics_found"] = len(topics)
 
         if not topics:
@@ -598,7 +573,7 @@ def main():
 
         # Apply limit
         if args.limit:
-            topics = topics[:args.limit]
+            topics = topics[: args.limit]
             logger.info(f"Limited to {len(topics)} topics")
 
         # Step 2: Fetch details for each topic
@@ -652,32 +627,38 @@ def main():
             cursor = conn.cursor()
 
             # Total EU4Health calls
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT COUNT(*)
                 FROM funding_calls
                 WHERE programme = 'eu4health'
-            """)
+            """
+            )
             total = cursor.fetchone()[0]
 
             # By status
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT status, COUNT(*)
                 FROM funding_calls
                 WHERE programme = 'eu4health'
                 GROUP BY status
                 ORDER BY COUNT(*) DESC
-            """)
+            """
+            )
             by_status = cursor.fetchall()
 
             # By strand
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT cluster, COUNT(*)
                 FROM funding_calls
                 WHERE programme = 'eu4health'
                 GROUP BY cluster
                 ORDER BY COUNT(*) DESC
                 LIMIT 10
-            """)
+            """
+            )
             by_strand = cursor.fetchall()
 
             logger.info(f"\nDatabase now has {total} EU4Health calls:")

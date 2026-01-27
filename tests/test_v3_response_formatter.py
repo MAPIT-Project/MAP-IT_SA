@@ -28,33 +28,33 @@ class TestV3ResponseFormatterTypeIcons:
     def test_ria_icon(self):
         """Test RIA has research icon."""
         formatter = V3ResponseFormatter()
-        assert 'RIA' in formatter.TYPE_ICONS
-        assert formatter.TYPE_ICONS['RIA'] == '🔬'
+        assert "RIA" in formatter.TYPE_ICONS
+        assert formatter.TYPE_ICONS["RIA"] == "🔬"
 
     def test_ia_icon(self):
         """Test IA has rocket icon."""
         formatter = V3ResponseFormatter()
-        assert formatter.TYPE_ICONS['IA'] == '🚀'
+        assert formatter.TYPE_ICONS["IA"] == "🚀"
 
     def test_csa_icon(self):
         """Test CSA has handshake icon."""
         formatter = V3ResponseFormatter()
-        assert formatter.TYPE_ICONS['CSA'] == '🤝'
+        assert formatter.TYPE_ICONS["CSA"] == "🤝"
 
     def test_erc_icon(self):
         """Test ERC has graduation cap icon."""
         formatter = V3ResponseFormatter()
-        assert formatter.TYPE_ICONS['ERC'] == '🎓'
+        assert formatter.TYPE_ICONS["ERC"] == "🎓"
 
     def test_msca_icon(self):
         """Test MSCA has scientist icon."""
         formatter = V3ResponseFormatter()
-        assert formatter.TYPE_ICONS['MSCA'] == '👨‍🔬'
+        assert formatter.TYPE_ICONS["MSCA"] == "👨‍🔬"
 
     def test_default_icon(self):
         """Test default icon exists."""
         formatter = V3ResponseFormatter()
-        assert 'default' in formatter.TYPE_ICONS
+        assert "default" in formatter.TYPE_ICONS
 
 
 class TestV3ResponseFormatterStatusIcons:
@@ -63,17 +63,17 @@ class TestV3ResponseFormatterStatusIcons:
     def test_open_status_icon(self):
         """Test open status has green circle."""
         formatter = V3ResponseFormatter()
-        assert formatter.STATUS_ICONS['open'] == '🟢'
+        assert formatter.STATUS_ICONS["open"] == "🟢"
 
     def test_upcoming_status_icon(self):
         """Test upcoming status has yellow circle."""
         formatter = V3ResponseFormatter()
-        assert formatter.STATUS_ICONS['upcoming'] == '🟡'
+        assert formatter.STATUS_ICONS["upcoming"] == "🟡"
 
     def test_closed_status_icon(self):
         """Test closed status has red circle."""
         formatter = V3ResponseFormatter()
-        assert formatter.STATUS_ICONS['closed'] == '🔴'
+        assert formatter.STATUS_ICONS["closed"] == "🔴"
 
 
 class TestV3ResponseFormatterValidActionTypes:
@@ -82,7 +82,7 @@ class TestV3ResponseFormatterValidActionTypes:
     def test_standard_action_types_valid(self):
         """Test standard action types are valid."""
         formatter = V3ResponseFormatter()
-        standard_types = ['RIA', 'IA', 'CSA', 'COFUND']
+        standard_types = ["RIA", "IA", "CSA", "COFUND"]
 
         for action_type in standard_types:
             assert action_type in formatter.VALID_ACTION_TYPES
@@ -90,7 +90,7 @@ class TestV3ResponseFormatterValidActionTypes:
     def test_erc_variants_valid(self):
         """Test ERC variants are valid."""
         formatter = V3ResponseFormatter()
-        erc_types = ['ERC', 'ERC-STG', 'ERC-COG', 'ERC-ADG', 'ERC-POC']
+        erc_types = ["ERC", "ERC-STG", "ERC-COG", "ERC-ADG", "ERC-POC"]
 
         for erc_type in erc_types:
             assert erc_type in formatter.VALID_ACTION_TYPES
@@ -98,7 +98,7 @@ class TestV3ResponseFormatterValidActionTypes:
     def test_msca_variants_valid(self):
         """Test MSCA variants are valid."""
         formatter = V3ResponseFormatter()
-        msca_types = ['MSCA', 'MSCA-PF', 'MSCA-DN', 'MSCA-SE', 'MSCA-COFUND']
+        msca_types = ["MSCA", "MSCA-PF", "MSCA-DN", "MSCA-SE", "MSCA-COFUND"]
 
         for msca_type in msca_types:
             assert msca_type in formatter.VALID_ACTION_TYPES
@@ -108,8 +108,8 @@ class TestV3ResponseFormatterValidActionTypes:
         formatter = V3ResponseFormatter()
 
         # Numeric IDs should not be valid
-        assert '12345678' not in formatter.VALID_ACTION_TYPES
-        assert '101079329' not in formatter.VALID_ACTION_TYPES
+        assert "12345678" not in formatter.VALID_ACTION_TYPES
+        assert "101079329" not in formatter.VALID_ACTION_TYPES
 
 
 class TestFundingCallsFormatting:
@@ -126,66 +126,70 @@ class TestFundingCallsFormatting:
         """Test formatting single call."""
         formatter = V3ResponseFormatter()
 
-        calls = [{
-            'title': 'Hydrogen Storage Solutions',
-            'call_id': 'HORIZON-CL5-2024-D3-01',
-            'type': 'RIA',
-            'status': 'open',
-            'deadline': '2024-04-15',
-            'budget': '10000000',
-            'scope': 'This call addresses hydrogen storage technologies.'
-        }]
+        calls = [
+            {
+                "title": "Hydrogen Storage Solutions",
+                "call_id": "HORIZON-CL5-2024-D3-01",
+                "type": "RIA",
+                "status": "open",
+                "deadline": "2024-04-15",
+                "budget": "10000000",
+                "scope": "This call addresses hydrogen storage technologies.",
+            }
+        ]
 
         result = formatter.format_funding_calls(calls)
 
-        assert 'Hydrogen Storage Solutions' in result
-        assert 'HORIZON-CL5-2024-D3-01' in result
-        assert 'RIA' in result
-        assert 'Open' in result
-        assert '🟢' in result  # Open status icon
+        assert "Hydrogen Storage Solutions" in result
+        assert "HORIZON-CL5-2024-D3-01" in result
+        assert "RIA" in result
+        assert "Open" in result
+        assert "🟢" in result  # Open status icon
 
     def test_format_multiple_calls(self):
         """Test formatting multiple calls."""
         formatter = V3ResponseFormatter()
 
         calls = [
-            {'title': 'Call 1', 'call_id': 'ID1', 'status': 'open'},
-            {'title': 'Call 2', 'call_id': 'ID2', 'status': 'upcoming'},
-            {'title': 'Call 3', 'call_id': 'ID3', 'status': 'closed'},
+            {"title": "Call 1", "call_id": "ID1", "status": "open"},
+            {"title": "Call 2", "call_id": "ID2", "status": "upcoming"},
+            {"title": "Call 3", "call_id": "ID3", "status": "closed"},
         ]
 
         result = formatter.format_funding_calls(calls)
 
-        assert '**3 funding opportunities**' in result
-        assert 'Call 1' in result
-        assert 'Call 2' in result
-        assert 'Call 3' in result
+        assert "**3 funding opportunities**" in result
+        assert "Call 1" in result
+        assert "Call 2" in result
+        assert "Call 3" in result
 
     def test_call_header_with_count(self):
         """Test call header includes count."""
         formatter = V3ResponseFormatter()
 
-        calls = [{'title': f'Call {i}'} for i in range(5)]
+        calls = [{"title": f"Call {i}"} for i in range(5)]
 
         result = formatter.format_funding_calls(calls)
 
-        assert '**5 funding opportunities**' in result
+        assert "**5 funding opportunities**" in result
 
     def test_numeric_type_id_filtered(self):
         """Test numeric type IDs are filtered out."""
         formatter = V3ResponseFormatter()
 
-        calls = [{
-            'title': 'Test Call',
-            'call_id': 'ID1',
-            'type': '101079329',  # Numeric ID, not a valid type
-            'status': 'open'
-        }]
+        calls = [
+            {
+                "title": "Test Call",
+                "call_id": "ID1",
+                "type": "101079329",  # Numeric ID, not a valid type
+                "status": "open",
+            }
+        ]
 
         result = formatter.format_funding_calls(calls)
 
         # Should NOT display the numeric ID as a type
-        assert '101079329' not in result or 'Type' not in result.split('101079329')[0][-20:]
+        assert "101079329" not in result or "Type" not in result.split("101079329")[0][-20:]
 
 
 class TestDeadlineFormatting:
@@ -194,7 +198,7 @@ class TestDeadlineFormatting:
     def test_format_date_string(self):
         """Test formatting date string deadline."""
         formatter = V3ResponseFormatter()
-        result = formatter._format_deadline('2024-04-15')
+        result = formatter._format_deadline("2024-04-15")
 
         assert result is not None
         assert len(result) > 0
@@ -214,7 +218,7 @@ class TestDeadlineFormatting:
         formatter = V3ResponseFormatter()
 
         # The formatter returns a helpful message for missing deadlines
-        result = formatter._format_deadline('')
+        result = formatter._format_deadline("")
         assert result is not None and len(result) > 0  # Returns helpful message
 
         result = formatter._format_deadline(None)
@@ -229,19 +233,19 @@ class TestBudgetFormatting:
         formatter = V3ResponseFormatter()
         result = formatter._format_budget(10000000)
 
-        assert '€' in result or 'EUR' in result or '10' in result
+        assert "€" in result or "EUR" in result or "10" in result
 
     def test_format_string_budget(self):
         """Test formatting string budget."""
         formatter = V3ResponseFormatter()
-        result = formatter._format_budget('5000000')
+        result = formatter._format_budget("5000000")
 
         assert len(result) > 0
 
     def test_format_budget_with_currency(self):
         """Test formatting budget already with currency."""
         formatter = V3ResponseFormatter()
-        result = formatter._format_budget('€10M')
+        result = formatter._format_budget("€10M")
 
         assert len(result) > 0
 
@@ -249,8 +253,8 @@ class TestBudgetFormatting:
         """Test formatting empty budget."""
         formatter = V3ResponseFormatter()
 
-        result = formatter._format_budget('')
-        assert result == '' or result is None
+        result = formatter._format_budget("")
+        assert result == "" or result is None
 
 
 class TestScopeTextCleaning:
@@ -290,16 +294,16 @@ class TestScopeTextCleaning:
     def test_clean_empty_scope(self):
         """Test cleaning empty scope."""
         formatter = V3ResponseFormatter()
-        result = formatter._clean_scope_text('')
+        result = formatter._clean_scope_text("")
 
-        assert result == ''
+        assert result == ""
 
     def test_clean_none_scope(self):
         """Test cleaning None scope."""
         formatter = V3ResponseFormatter()
         result = formatter._clean_scope_text(None)
 
-        assert result == ''
+        assert result == ""
 
 
 class TestProjectFormatting:
@@ -316,58 +320,64 @@ class TestProjectFormatting:
         """Test formatting single project."""
         formatter = V3ResponseFormatter()
 
-        projects = [{
-            'title': 'Hydrogen Innovation Project',
-            'acronym': 'H2INNOV',
-            'id': '123456',
-            'action_type': 'RIA',
-            'total_cost': 5000000,
-            'ec_contribution': 5000000,
-            'status': 'ACTIVE',
-            'start_date': '2023-01-01',
-            'objective': 'Developing next-generation hydrogen technologies.'
-        }]
+        projects = [
+            {
+                "title": "Hydrogen Innovation Project",
+                "acronym": "H2INNOV",
+                "id": "123456",
+                "action_type": "RIA",
+                "total_cost": 5000000,
+                "ec_contribution": 5000000,
+                "status": "ACTIVE",
+                "start_date": "2023-01-01",
+                "objective": "Developing next-generation hydrogen technologies.",
+            }
+        ]
 
         result = formatter.format_projects(projects)
 
-        assert 'H2INNOV' in result or 'Hydrogen Innovation Project' in result
-        assert '123456' in result or 'RIA' in result
+        assert "H2INNOV" in result or "Hydrogen Innovation Project" in result
+        assert "123456" in result or "RIA" in result
 
     def test_format_project_with_publications(self):
         """Test formatting project with publications."""
         formatter = V3ResponseFormatter()
 
-        projects = [{
-            'title': 'Research Project',
-            'acronym': 'RESEARCH',
-            'publications': [
-                {'title': 'Paper 1', 'doi': '10.1234/test'},
-                {'title': 'Paper 2', 'journal': 'Nature'}
-            ]
-        }]
+        projects = [
+            {
+                "title": "Research Project",
+                "acronym": "RESEARCH",
+                "publications": [
+                    {"title": "Paper 1", "doi": "10.1234/test"},
+                    {"title": "Paper 2", "journal": "Nature"},
+                ],
+            }
+        ]
 
         result = formatter.format_projects(projects)
 
         # Should include publications section
-        assert 'publication' in result.lower() or 'Paper' in result
+        assert "publication" in result.lower() or "Paper" in result
 
     def test_format_project_with_deliverables(self):
         """Test formatting project with deliverables."""
         formatter = V3ResponseFormatter()
 
-        projects = [{
-            'title': 'Research Project',
-            'acronym': 'RESEARCH',
-            'deliverables': [
-                {'title': 'D1.1 Requirements Report', 'type': 'Report'},
-                {'title': 'D2.1 Prototype', 'type': 'Demonstrator'}
-            ]
-        }]
+        projects = [
+            {
+                "title": "Research Project",
+                "acronym": "RESEARCH",
+                "deliverables": [
+                    {"title": "D1.1 Requirements Report", "type": "Report"},
+                    {"title": "D2.1 Prototype", "type": "Demonstrator"},
+                ],
+            }
+        ]
 
         result = formatter.format_projects(projects)
 
         # Should include deliverables section
-        assert 'deliverable' in result.lower() or 'D1.1' in result or 'Report' in result
+        assert "deliverable" in result.lower() or "D1.1" in result or "Report" in result
 
 
 class TestToolResultsFormatting:
@@ -378,29 +388,25 @@ class TestToolResultsFormatting:
         formatter = V3ResponseFormatter()
 
         tool_results = {
-            'search_funding_calls': {
-                'success': True,
-                'calls': [
-                    {'title': 'Test Call', 'call_id': 'ID1', 'status': 'open'}
-                ]
+            "search_funding_calls": {
+                "success": True,
+                "calls": [{"title": "Test Call", "call_id": "ID1", "status": "open"}],
             }
         }
 
         result = formatter.format_from_tool_results(tool_results, "Find hydrogen calls")
 
         assert result is not None
-        assert 'Test Call' in result
+        assert "Test Call" in result
 
     def test_format_project_search_tool_result(self):
         """Test formatting project search tool result."""
         formatter = V3ResponseFormatter()
 
         tool_results = {
-            'search_projects': {
-                'success': True,
-                'projects': [
-                    {'title': 'Test Project', 'acronym': 'TEST'}
-                ]
+            "search_projects": {
+                "success": True,
+                "projects": [{"title": "Test Project", "acronym": "TEST"}],
             }
         }
 
@@ -416,7 +422,7 @@ class TestToolResultsFormatting:
 
         result = formatter.format_from_tool_results(tool_results, "Query")
 
-        assert result is None or result == ''
+        assert result is None or result == ""
 
 
 class TestSingletonPattern:
@@ -444,11 +450,11 @@ class TestApplicationGuidance:
         """Test application guidance is included in calls output."""
         formatter = V3ResponseFormatter()
 
-        calls = [{'title': 'Test', 'status': 'open'}]
+        calls = [{"title": "Test", "status": "open"}]
         result = formatter.format_funding_calls(calls)
 
         # Should have guidance section
-        assert '---' in result  # Footer separator
+        assert "---" in result  # Footer separator
 
 
 class TestPortalURLGeneration:
@@ -458,30 +464,28 @@ class TestPortalURLGeneration:
         """Test HORIZON call ID generates portal URL."""
         formatter = V3ResponseFormatter()
 
-        calls = [{
-            'title': 'Test Call',
-            'call_id': 'HORIZON-CL5-2024-D3-01',
-            'status': 'open'
-        }]
+        calls = [{"title": "Test Call", "call_id": "HORIZON-CL5-2024-D3-01", "status": "open"}]
 
         result = formatter.format_funding_calls(calls)
 
-        assert 'ec.europa.eu' in result or 'Apply' in result
+        assert "ec.europa.eu" in result or "Apply" in result
 
     def test_custom_url_preferred(self):
         """Test custom URL is used when provided."""
         formatter = V3ResponseFormatter()
 
-        calls = [{
-            'title': 'Test Call',
-            'call_id': 'HORIZON-CL5-2024-D3-01',
-            'url': 'https://custom-portal.eu/apply',
-            'status': 'open'
-        }]
+        calls = [
+            {
+                "title": "Test Call",
+                "call_id": "HORIZON-CL5-2024-D3-01",
+                "url": "https://custom-portal.eu/apply",
+                "status": "open",
+            }
+        ]
 
         result = formatter.format_funding_calls(calls)
 
-        assert 'custom-portal.eu' in result
+        assert "custom-portal.eu" in result
 
 
 class TestEdgeCases:
@@ -491,11 +495,11 @@ class TestEdgeCases:
         """Test handling calls with missing fields."""
         formatter = V3ResponseFormatter()
 
-        calls = [{'title': None}]  # Missing most fields
+        calls = [{"title": None}]  # Missing most fields
 
         # Should not crash
         result = formatter.format_funding_calls(calls)
-        assert 'Untitled' in result
+        assert "Untitled" in result
 
     def test_very_long_scope(self):
         """Test truncation of very long scope."""
@@ -503,29 +507,22 @@ class TestEdgeCases:
 
         long_scope = "A" * 1000
 
-        calls = [{
-            'title': 'Test',
-            'scope': long_scope,
-            'status': 'open'
-        }]
+        calls = [{"title": "Test", "scope": long_scope, "status": "open"}]
 
         result = formatter.format_funding_calls(calls)
 
         # Should be truncated with ...
-        assert '...' in result
+        assert "..." in result
 
     def test_special_characters_in_title(self):
         """Test handling special characters in title."""
         formatter = V3ResponseFormatter()
 
-        calls = [{
-            'title': 'Test <Call> with "special" & characters',
-            'status': 'open'
-        }]
+        calls = [{"title": 'Test <Call> with "special" & characters', "status": "open"}]
 
         # Should not crash
         result = formatter.format_funding_calls(calls)
-        assert 'Test' in result
+        assert "Test" in result
 
 
 class TestImpactMetricsFormatting:
@@ -535,34 +532,33 @@ class TestImpactMetricsFormatting:
         """Test publication count handling in project formatting."""
         formatter = V3ResponseFormatter()
 
-        projects = [{
-            'title': 'Research Project',
-            'publication_count': 15
-        }]
+        projects = [{"title": "Research Project", "publication_count": 15}]
 
         result = formatter.format_projects(projects)
 
         # Verify project is formatted (publication count may or may not be shown
         # depending on the formatter's current implementation)
         assert result is not None
-        assert 'Research Project' in result or 'found' in result.lower()
+        assert "Research Project" in result or "found" in result.lower()
 
     def test_deliverable_summary(self):
         """Test deliverable summary is displayed."""
         formatter = V3ResponseFormatter()
 
-        projects = [{
-            'title': 'Research Project',
-            'deliverable_count': 20,
-            'deliverables': [
-                {'title': 'D1.1 Report', 'type': 'Report'},
-            ]
-        }]
+        projects = [
+            {
+                "title": "Research Project",
+                "deliverable_count": 20,
+                "deliverables": [
+                    {"title": "D1.1 Report", "type": "Report"},
+                ],
+            }
+        ]
 
         result = formatter.format_projects(projects)
 
         # Should show deliverable info
-        assert '20' in result or 'deliverable' in result.lower() or 'D1.1' in result
+        assert "20" in result or "deliverable" in result.lower() or "D1.1" in result
 
 
 if __name__ == "__main__":

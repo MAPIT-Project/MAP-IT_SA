@@ -47,9 +47,7 @@ def test_question(conversation_id: int, question: str) -> dict:
 
     try:
         response = requests.post(
-            url,
-            json={"message": question, "include_context": True},
-            timeout=120
+            url, json={"message": question, "include_context": True}, timeout=120
         )
 
         if response.status_code == 200:
@@ -57,12 +55,12 @@ def test_question(conversation_id: int, question: str) -> dict:
             return {
                 "success": True,
                 "response": data.get("response", ""),
-                "metadata": data.get("metadata", {})
+                "metadata": data.get("metadata", {}),
             }
         else:
             return {
                 "success": False,
-                "error": f"HTTP {response.status_code}: {response.text[:200]}"
+                "error": f"HTTP {response.status_code}: {response.text[:200]}",
             }
     except requests.exceptions.Timeout:
         return {"success": False, "error": "Request timed out"}
@@ -95,19 +93,17 @@ def evaluate_response(question: str, response: str) -> dict:
         issues.append("Response too short")
 
     # Check for proper formatting (should have structure)
-    has_structure = any([
-        "**" in response,  # Bold text
-        "•" in response or "- " in response,  # Bullet points
-        "\n\n" in response,  # Paragraphs
-    ])
+    has_structure = any(
+        [
+            "**" in response,  # Bold text
+            "•" in response or "- " in response,  # Bullet points
+            "\n\n" in response,  # Paragraphs
+        ]
+    )
     if not has_structure and len(response) > 200:
         issues.append("Missing formatting structure")
 
-    return {
-        "has_issues": len(issues) > 0,
-        "issues": issues,
-        "response_length": len(response)
-    }
+    return {"has_issues": len(issues) > 0, "issues": issues, "response_length": len(response)}
 
 
 def main():
@@ -132,11 +128,9 @@ def main():
             if not result["success"]:
                 print(f"  ❌ FAILED: {result.get('error', 'Unknown error')}")
                 results["failed"] += 1
-                results["issues"].append({
-                    "category": category,
-                    "question": question,
-                    "error": result.get("error")
-                })
+                results["issues"].append(
+                    {"category": category, "question": question, "error": result.get("error")}
+                )
                 continue
 
             response = result["response"]
@@ -147,12 +141,16 @@ def main():
             if evaluation["has_issues"]:
                 print(f"  ⚠️ ISSUES: {', '.join(evaluation['issues'])}")
                 results["failed"] += 1
-                results["issues"].append({
-                    "category": category,
-                    "question": question,
-                    "issues": evaluation["issues"],
-                    "response_preview": response[:200] + "..." if len(response) > 200 else response
-                })
+                results["issues"].append(
+                    {
+                        "category": category,
+                        "question": question,
+                        "issues": evaluation["issues"],
+                        "response_preview": (
+                            response[:200] + "..." if len(response) > 200 else response
+                        ),
+                    }
+                )
             else:
                 print(f"  ✅ PASSED (length: {evaluation['response_length']} chars)")
                 results["passed"] += 1

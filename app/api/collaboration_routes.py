@@ -36,11 +36,13 @@ router = APIRouter(prefix="/api/collaboration", tags=["collaboration"])
 
 class JoinSessionRequest(BaseModel):
     """Request to join a collaboration session."""
+
     username: str = Field(..., min_length=1, max_length=100)
 
 
 class JoinSessionResponse(BaseModel):
     """Response after joining a session."""
+
     connection_id: str
     your_color: str
     collaborators: list[dict[str, Any]]
@@ -49,6 +51,7 @@ class JoinSessionResponse(BaseModel):
 
 class CursorUpdateRequest(BaseModel):
     """Request to update cursor position."""
+
     section_id: str
     position: int = Field(..., ge=0)
     selection_start: int | None = None
@@ -57,11 +60,13 @@ class CursorUpdateRequest(BaseModel):
 
 class LockSectionRequest(BaseModel):
     """Request to lock a section."""
+
     username: str
 
 
 class LockResponse(BaseModel):
     """Response for lock operations."""
+
     success: bool
     lock: dict[str, Any] | None = None
     message: str | None = None
@@ -69,6 +74,7 @@ class LockResponse(BaseModel):
 
 class EditOperationRequest(BaseModel):
     """Request to apply an edit operation."""
+
     operation_type: str = Field(..., pattern="^(insert|delete|replace|retain)$")
     position: int = Field(..., ge=0)
     content: str | None = None
@@ -78,6 +84,7 @@ class EditOperationRequest(BaseModel):
 
 class EditOperationResponse(BaseModel):
     """Response after applying an edit."""
+
     success: bool
     version: int
     error: str | None = None
@@ -85,6 +92,7 @@ class EditOperationResponse(BaseModel):
 
 class CollaboratorResponse(BaseModel):
     """Collaborator information."""
+
     user_id: str
     username: str
     color: str
@@ -228,10 +236,12 @@ async def websocket_endpoint(
     try:
         # Send initial state after connection
         result = await service.join_session(session_id, user_id, username)
-        await websocket.send_json({
-            "event_type": "connected",
-            "payload": result,
-        })
+        await websocket.send_json(
+            {
+                "event_type": "connected",
+                "payload": result,
+            }
+        )
 
         while True:
             try:
@@ -266,13 +276,15 @@ async def websocket_endpoint(
                     user_id,
                     username,
                 )
-                await websocket.send_json({
-                    "event_type": "lock_result",
-                    "payload": {
-                        "success": lock is not None,
-                        "lock": lock.to_dict() if lock else None,
-                    },
-                })
+                await websocket.send_json(
+                    {
+                        "event_type": "lock_result",
+                        "payload": {
+                            "success": lock is not None,
+                            "lock": lock.to_dict() if lock else None,
+                        },
+                    }
+                )
 
             elif event_type == "unlock":
                 # Unlock a section
@@ -281,10 +293,12 @@ async def websocket_endpoint(
                     payload["section_id"],
                     user_id,
                 )
-                await websocket.send_json({
-                    "event_type": "unlock_result",
-                    "payload": {"success": success},
-                })
+                await websocket.send_json(
+                    {
+                        "event_type": "unlock_result",
+                        "payload": {"success": success},
+                    }
+                )
 
             elif event_type == "operation":
                 # Apply edit operation
@@ -304,10 +318,12 @@ async def websocket_endpoint(
                     user_id,
                     operation,
                 )
-                await websocket.send_json({
-                    "event_type": "operation_result",
-                    "payload": result,
-                })
+                await websocket.send_json(
+                    {
+                        "event_type": "operation_result",
+                        "payload": result,
+                    }
+                )
 
             elif event_type == "heartbeat" or event_type == "pong":
                 await service.update_heartbeat(session_id, user_id)

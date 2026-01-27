@@ -111,9 +111,9 @@ class TestScenario006OrganizationProjectSearch:
             response_text = result.get("response", "")
 
             # Should link to CORDIS
-            assert (
-                "cordis.europa.eu" in response_text.lower()
-            ), "Response should include CORDIS links"
+            assert "cordis.europa.eu" in response_text.lower(), (
+                "Response should include CORDIS links"
+            )
 
     @pytest.mark.asyncio
     async def test_includes_budget_information(self, conversation_id):
@@ -188,9 +188,9 @@ class TestScenario006OrganizationProjectSearch:
             # Alternative: count CORDIS links in response
             response_text = result.get("response", "")
             cordis_links = re.findall(r"cordis\.europa\.eu/project/id/\d+", response_text)
-            assert (
-                len(cordis_links) >= 3
-            ), f"Should find at least 3 projects, found {len(cordis_links)}"
+            assert len(cordis_links) >= 3, (
+                f"Should find at least 3 projects, found {len(cordis_links)}"
+            )
 
     @pytest.mark.asyncio
     async def test_includes_funding_scheme(self, conversation_id):
@@ -241,9 +241,9 @@ class TestScenario006OrganizationProjectSearch:
 
             # Quality score should meet threshold
             score = quality_analysis.get("score", 0)
-            assert (
-                score >= self.PASS_THRESHOLD
-            ), f"Quality score {score} should be >= {self.PASS_THRESHOLD}"
+            assert score >= self.PASS_THRESHOLD, (
+                f"Quality score {score} should be >= {self.PASS_THRESHOLD}"
+            )
 
     @pytest.mark.asyncio
     async def test_no_error_in_response(self, conversation_id):
@@ -322,9 +322,9 @@ class TestOrganizationNameMatching:
 
             # Should find projects
             assert "project" in response_text.lower(), "Should find projects for partial name"
-            assert (
-                "no projects found" not in response_text.lower()
-            ), "Should not fail to find projects"
+            assert "no projects found" not in response_text.lower(), (
+                "Should not fail to find projects"
+            )
 
     @pytest.mark.asyncio
     async def test_abbreviation_matching(self, conversation_id):

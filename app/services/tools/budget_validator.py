@@ -21,14 +21,16 @@ logger = logging.getLogger(__name__)
 
 class ValidationLevel(Enum):
     """Severity level of validation issues."""
-    CRITICAL = "critical"    # Will disqualify proposal
-    HIGH = "high"            # Likely evaluator concern
-    MEDIUM = "medium"        # Suboptimal, may affect score
-    LOW = "low"              # Suggestion for improvement
+
+    CRITICAL = "critical"  # Will disqualify proposal
+    HIGH = "high"  # Likely evaluator concern
+    MEDIUM = "medium"  # Suboptimal, may affect score
+    LOW = "low"  # Suggestion for improvement
 
 
 class IssueCategory(Enum):
     """Category of validation issues."""
+
     FUNDING_RATE = "funding_rate"
     COST_CATEGORY = "cost_category"
     CONSORTIUM = "consortium"
@@ -42,6 +44,7 @@ class IssueCategory(Enum):
 @dataclass
 class ValidationIssue:
     """A single validation issue."""
+
     level: ValidationLevel
     category: IssueCategory
     message: str
@@ -53,6 +56,7 @@ class ValidationIssue:
 @dataclass
 class ValidationResult:
     """Complete validation result."""
+
     valid: bool
     compliance_score: float  # 0-100
     issues: list[ValidationIssue] = field(default_factory=list)
@@ -83,14 +87,14 @@ class BudgetValidatorTool:
 
     # Funding rates by action type and entity type
     FUNDING_RATES = {
-        'RIA': {'default': 1.00, 'for_profit': 1.00},
-        'IA': {'default': 1.00, 'for_profit': 0.70},
-        'CSA': {'default': 1.00, 'for_profit': 1.00},
-        'ERC-STG': {'default': 1.00, 'for_profit': 1.00},
-        'ERC-COG': {'default': 1.00, 'for_profit': 1.00},
-        'ERC-ADG': {'default': 1.00, 'for_profit': 1.00},
-        'EIC': {'default': 0.70, 'for_profit': 0.70},
-        'MSCA': {'default': 1.00, 'for_profit': 1.00},
+        "RIA": {"default": 1.00, "for_profit": 1.00},
+        "IA": {"default": 1.00, "for_profit": 0.70},
+        "CSA": {"default": 1.00, "for_profit": 1.00},
+        "ERC-STG": {"default": 1.00, "for_profit": 1.00},
+        "ERC-COG": {"default": 1.00, "for_profit": 1.00},
+        "ERC-ADG": {"default": 1.00, "for_profit": 1.00},
+        "EIC": {"default": 0.70, "for_profit": 0.70},
+        "MSCA": {"default": 1.00, "for_profit": 1.00},
     }
 
     # Indirect cost rate (flat rate on direct costs minus subcontracting)
@@ -98,71 +102,71 @@ class BudgetValidatorTool:
 
     # Cost category constraints (as % of total direct costs)
     COST_CATEGORY_LIMITS = {
-        'RIA': {
-            'personnel': {'min': 0.40, 'max': 0.70, 'typical': 0.55},
-            'equipment': {'min': 0.0, 'max': 0.20, 'typical': 0.10},
-            'travel': {'min': 0.02, 'max': 0.10, 'typical': 0.05},
-            'subcontracting': {'min': 0.0, 'max': 0.20, 'typical': 0.10},
-            'other_direct': {'min': 0.0, 'max': 0.15, 'typical': 0.05},
+        "RIA": {
+            "personnel": {"min": 0.40, "max": 0.70, "typical": 0.55},
+            "equipment": {"min": 0.0, "max": 0.20, "typical": 0.10},
+            "travel": {"min": 0.02, "max": 0.10, "typical": 0.05},
+            "subcontracting": {"min": 0.0, "max": 0.20, "typical": 0.10},
+            "other_direct": {"min": 0.0, "max": 0.15, "typical": 0.05},
         },
-        'IA': {
-            'personnel': {'min': 0.35, 'max': 0.60, 'typical': 0.45},
-            'equipment': {'min': 0.0, 'max': 0.25, 'typical': 0.15},
-            'travel': {'min': 0.02, 'max': 0.10, 'typical': 0.05},
-            'subcontracting': {'min': 0.0, 'max': 0.25, 'typical': 0.15},
-            'other_direct': {'min': 0.0, 'max': 0.15, 'typical': 0.05},
+        "IA": {
+            "personnel": {"min": 0.35, "max": 0.60, "typical": 0.45},
+            "equipment": {"min": 0.0, "max": 0.25, "typical": 0.15},
+            "travel": {"min": 0.02, "max": 0.10, "typical": 0.05},
+            "subcontracting": {"min": 0.0, "max": 0.25, "typical": 0.15},
+            "other_direct": {"min": 0.0, "max": 0.15, "typical": 0.05},
         },
-        'CSA': {
-            'personnel': {'min': 0.50, 'max': 0.80, 'typical': 0.65},
-            'equipment': {'min': 0.0, 'max': 0.10, 'typical': 0.02},
-            'travel': {'min': 0.05, 'max': 0.15, 'typical': 0.08},
-            'subcontracting': {'min': 0.0, 'max': 0.15, 'typical': 0.08},
-            'other_direct': {'min': 0.0, 'max': 0.15, 'typical': 0.05},
+        "CSA": {
+            "personnel": {"min": 0.50, "max": 0.80, "typical": 0.65},
+            "equipment": {"min": 0.0, "max": 0.10, "typical": 0.02},
+            "travel": {"min": 0.05, "max": 0.15, "typical": 0.08},
+            "subcontracting": {"min": 0.0, "max": 0.15, "typical": 0.08},
+            "other_direct": {"min": 0.0, "max": 0.15, "typical": 0.05},
         },
     }
 
     # Consortium requirements by action type
     CONSORTIUM_REQUIREMENTS = {
-        'RIA': {'min_partners': 3, 'min_countries': 2, 'max_coordinator_share': 0.40},
-        'IA': {'min_partners': 3, 'min_countries': 2, 'max_coordinator_share': 0.40},
-        'CSA': {'min_partners': 1, 'min_countries': 1, 'max_coordinator_share': 1.00},
-        'ERC-STG': {'min_partners': 1, 'min_countries': 1, 'max_coordinator_share': 1.00},
-        'ERC-COG': {'min_partners': 1, 'min_countries': 1, 'max_coordinator_share': 1.00},
-        'ERC-ADG': {'min_partners': 1, 'min_countries': 1, 'max_coordinator_share': 1.00},
-        'MSCA': {'min_partners': 1, 'min_countries': 1, 'max_coordinator_share': 1.00},
+        "RIA": {"min_partners": 3, "min_countries": 2, "max_coordinator_share": 0.40},
+        "IA": {"min_partners": 3, "min_countries": 2, "max_coordinator_share": 0.40},
+        "CSA": {"min_partners": 1, "min_countries": 1, "max_coordinator_share": 1.00},
+        "ERC-STG": {"min_partners": 1, "min_countries": 1, "max_coordinator_share": 1.00},
+        "ERC-COG": {"min_partners": 1, "min_countries": 1, "max_coordinator_share": 1.00},
+        "ERC-ADG": {"min_partners": 1, "min_countries": 1, "max_coordinator_share": 1.00},
+        "MSCA": {"min_partners": 1, "min_countries": 1, "max_coordinator_share": 1.00},
     }
 
     # Budget ranges by action type (in EUR)
     BUDGET_RANGES = {
-        'RIA': {'min': 1_000_000, 'max': 15_000_000, 'typical': 4_000_000},
-        'IA': {'min': 2_000_000, 'max': 25_000_000, 'typical': 8_000_000},
-        'CSA': {'min': 500_000, 'max': 5_000_000, 'typical': 2_000_000},
-        'ERC-STG': {'min': 1_000_000, 'max': 1_500_000, 'typical': 1_500_000},
-        'ERC-COG': {'min': 1_500_000, 'max': 2_000_000, 'typical': 2_000_000},
-        'ERC-ADG': {'min': 2_000_000, 'max': 2_500_000, 'typical': 2_500_000},
-        'EIC': {'min': 500_000, 'max': 2_500_000, 'typical': 1_500_000},
-        'MSCA': {'min': 100_000, 'max': 500_000, 'typical': 200_000},
+        "RIA": {"min": 1_000_000, "max": 15_000_000, "typical": 4_000_000},
+        "IA": {"min": 2_000_000, "max": 25_000_000, "typical": 8_000_000},
+        "CSA": {"min": 500_000, "max": 5_000_000, "typical": 2_000_000},
+        "ERC-STG": {"min": 1_000_000, "max": 1_500_000, "typical": 1_500_000},
+        "ERC-COG": {"min": 1_500_000, "max": 2_000_000, "typical": 2_000_000},
+        "ERC-ADG": {"min": 2_000_000, "max": 2_500_000, "typical": 2_500_000},
+        "EIC": {"min": 500_000, "max": 2_500_000, "typical": 1_500_000},
+        "MSCA": {"min": 100_000, "max": 500_000, "typical": 200_000},
     }
 
     # Duration ranges by action type (in months)
     DURATION_RANGES = {
-        'RIA': {'min': 24, 'max': 60, 'typical': 36},
-        'IA': {'min': 24, 'max': 60, 'typical': 42},
-        'CSA': {'min': 12, 'max': 48, 'typical': 24},
-        'ERC-STG': {'min': 48, 'max': 60, 'typical': 60},
-        'ERC-COG': {'min': 48, 'max': 60, 'typical': 60},
-        'ERC-ADG': {'min': 48, 'max': 60, 'typical': 60},
-        'MSCA': {'min': 12, 'max': 36, 'typical': 24},
+        "RIA": {"min": 24, "max": 60, "typical": 36},
+        "IA": {"min": 24, "max": 60, "typical": 42},
+        "CSA": {"min": 12, "max": 48, "typical": 24},
+        "ERC-STG": {"min": 48, "max": 60, "typical": 60},
+        "ERC-COG": {"min": 48, "max": 60, "typical": 60},
+        "ERC-ADG": {"min": 48, "max": 60, "typical": 60},
+        "MSCA": {"min": 12, "max": 36, "typical": 24},
     }
 
     # Entity types
     ENTITY_TYPES = {
-        'HES': 'Higher Education Institution',
-        'REC': 'Research Organization',
-        'PRC': 'Private Company',
-        'PUB': 'Public Body',
-        'OTH': 'Other',
-        'SME': 'Small/Medium Enterprise',
+        "HES": "Higher Education Institution",
+        "REC": "Research Organization",
+        "PRC": "Private Company",
+        "PUB": "Public Body",
+        "OTH": "Other",
+        "SME": "Small/Medium Enterprise",
     }
 
     def validate_budget(
@@ -198,27 +202,17 @@ class BudgetValidatorTool:
         # Normalize action type
         action_type = action_type.upper()
         if action_type not in self.FUNDING_RATES:
-            action_type = 'RIA'  # Default fallback
+            action_type = "RIA"  # Default fallback
 
         # Run all validations
-        self._validate_funding_rate(
-            total_cost, eu_contribution, action_type, issues, passed_checks
-        )
-        self._validate_indirect_costs(
-            total_cost, cost_breakdown, issues, passed_checks
-        )
-        self._validate_cost_categories(
-            action_type, cost_breakdown, issues, passed_checks
-        )
+        self._validate_funding_rate(total_cost, eu_contribution, action_type, issues, passed_checks)
+        self._validate_indirect_costs(total_cost, cost_breakdown, issues, passed_checks)
+        self._validate_cost_categories(action_type, cost_breakdown, issues, passed_checks)
         self._validate_budget_range(
             eu_contribution, action_type, call_budget_cap, issues, passed_checks
         )
-        self._validate_duration(
-            duration_months, action_type, issues, passed_checks
-        )
-        self._validate_consortium(
-            num_partners, consortium, action_type, issues, passed_checks
-        )
+        self._validate_duration(duration_months, action_type, issues, passed_checks)
+        self._validate_consortium(num_partners, consortium, action_type, issues, passed_checks)
         self._validate_budget_per_partner(
             eu_contribution, num_partners, duration_months, issues, passed_checks
         )
@@ -252,42 +246,58 @@ class BudgetValidatorTool:
     ):
         """Validate funding rate is correct for action type."""
         if total_cost <= 0:
-            issues.append(ValidationIssue(
-                level=ValidationLevel.CRITICAL,
-                category=IssueCategory.FUNDING_RATE,
-                message="Total cost must be greater than zero",
-                recommendation="Provide valid total cost figure",
-                affected_value=total_cost,
-            ))
+            issues.append(
+                ValidationIssue(
+                    level=ValidationLevel.CRITICAL,
+                    category=IssueCategory.FUNDING_RATE,
+                    message="Total cost must be greater than zero",
+                    recommendation="Provide valid total cost figure",
+                    affected_value=total_cost,
+                )
+            )
             return
 
         actual_rate = eu_contribution / total_cost
-        expected_rate = self.FUNDING_RATES.get(action_type, {}).get('default', 1.0)
-        for_profit_rate = self.FUNDING_RATES.get(action_type, {}).get('for_profit', expected_rate)
+        expected_rate = self.FUNDING_RATES.get(action_type, {}).get("default", 1.0)
+        for_profit_rate = self.FUNDING_RATES.get(action_type, {}).get("for_profit", expected_rate)
 
         # Allow small tolerance for rounding
         tolerance = 0.02
 
         if actual_rate > expected_rate + tolerance:
-            issues.append(ValidationIssue(
-                level=ValidationLevel.CRITICAL,
-                category=IssueCategory.FUNDING_RATE,
-                message=f"Funding rate ({actual_rate:.1%}) exceeds maximum for {action_type} ({expected_rate:.0%})",
-                recommendation=f"Reduce EU contribution to max {expected_rate:.0%} of total cost",
-                affected_value=f"{actual_rate:.1%}",
-                expected_range=f"0-{expected_rate:.0%}",
-            ))
-        elif action_type == 'IA' and actual_rate > for_profit_rate + tolerance:
+            issues.append(
+                ValidationIssue(
+                    level=ValidationLevel.CRITICAL,
+                    category=IssueCategory.FUNDING_RATE,
+                    message=(
+                        f"Funding rate ({actual_rate:.1%}) exceeds maximum "
+                        f"for {action_type} ({expected_rate:.0%})"
+                    ),
+                    recommendation=(
+                        f"Reduce EU contribution to max {expected_rate:.0%} of total cost"
+                    ),
+                    affected_value=f"{actual_rate:.1%}",
+                    expected_range=f"0-{expected_rate:.0%}",
+                )
+            )
+        elif action_type == "IA" and actual_rate > for_profit_rate + tolerance:
             # IA may have mixed rates depending on consortium
-            issues.append(ValidationIssue(
-                level=ValidationLevel.MEDIUM,
-                category=IssueCategory.FUNDING_RATE,
-                message=f"High funding rate ({actual_rate:.1%}) for IA action. For-profit entities should receive only 70%",
-                recommendation="Verify that only non-profit entities claim 100% funding rate",
-                affected_value=f"{actual_rate:.1%}",
-            ))
+            issues.append(
+                ValidationIssue(
+                    level=ValidationLevel.MEDIUM,
+                    category=IssueCategory.FUNDING_RATE,
+                    message=(
+                        f"High funding rate ({actual_rate:.1%}) for IA action. "
+                        "For-profit entities should receive only 70%"
+                    ),
+                    recommendation="Verify that only non-profit entities claim 100% funding rate",
+                    affected_value=f"{actual_rate:.1%}",
+                )
+            )
         else:
-            passed.append(f"Funding rate ({actual_rate:.1%}) within acceptable range for {action_type}")
+            passed.append(
+                f"Funding rate ({actual_rate:.1%}) within acceptable range for {action_type}"
+            )
 
     def _validate_indirect_costs(
         self,
@@ -298,21 +308,23 @@ class BudgetValidatorTool:
     ):
         """Validate indirect costs are calculated correctly (25% flat rate)."""
         if not cost_breakdown:
-            issues.append(ValidationIssue(
-                level=ValidationLevel.LOW,
-                category=IssueCategory.INDIRECT_COSTS,
-                message="No cost breakdown provided - cannot verify indirect cost calculation",
-                recommendation="Provide detailed cost breakdown for full validation",
-            ))
+            issues.append(
+                ValidationIssue(
+                    level=ValidationLevel.LOW,
+                    category=IssueCategory.INDIRECT_COSTS,
+                    message="No cost breakdown provided - cannot verify indirect cost calculation",
+                    recommendation="Provide detailed cost breakdown for full validation",
+                )
+            )
             return
 
-        indirect = cost_breakdown.get('indirect', cost_breakdown.get('indirect_costs', 0))
+        indirect = cost_breakdown.get("indirect", cost_breakdown.get("indirect_costs", 0))
         direct_total = sum(
-            cost_breakdown.get(cat, 0) for cat in
-            ['personnel', 'equipment', 'travel', 'other_direct']
+            cost_breakdown.get(cat, 0)
+            for cat in ["personnel", "equipment", "travel", "other_direct"]
         )
         # Subcontracting is excluded from indirect cost base
-        subcontracting = cost_breakdown.get('subcontracting', 0)
+        cost_breakdown.get("subcontracting", 0)
 
         if direct_total <= 0:
             return
@@ -321,14 +333,21 @@ class BudgetValidatorTool:
         tolerance = expected_indirect * 0.05  # 5% tolerance
 
         if abs(indirect - expected_indirect) > tolerance:
-            issues.append(ValidationIssue(
-                level=ValidationLevel.HIGH,
-                category=IssueCategory.INDIRECT_COSTS,
-                message=f"Indirect costs (€{indirect:,.0f}) differ from 25% flat rate (€{expected_indirect:,.0f})",
-                recommendation="Recalculate indirect costs as 25% of direct costs (excl. subcontracting)",
-                affected_value=f"€{indirect:,.0f}",
-                expected_range=f"€{expected_indirect:,.0f}",
-            ))
+            issues.append(
+                ValidationIssue(
+                    level=ValidationLevel.HIGH,
+                    category=IssueCategory.INDIRECT_COSTS,
+                    message=(
+                        f"Indirect costs (€{indirect:,.0f}) differ from "
+                        f"25% flat rate (€{expected_indirect:,.0f})"
+                    ),
+                    recommendation=(
+                        "Recalculate indirect costs as 25% of direct costs (excl. subcontracting)"
+                    ),
+                    affected_value=f"€{indirect:,.0f}",
+                    expected_range=f"€{expected_indirect:,.0f}",
+                )
+            )
         else:
             passed.append(f"Indirect costs correctly calculated at 25% (€{indirect:,.0f})")
 
@@ -343,12 +362,12 @@ class BudgetValidatorTool:
         if not cost_breakdown:
             return
 
-        limits = self.COST_CATEGORY_LIMITS.get(action_type, self.COST_CATEGORY_LIMITS['RIA'])
+        limits = self.COST_CATEGORY_LIMITS.get(action_type, self.COST_CATEGORY_LIMITS["RIA"])
 
         # Calculate total direct costs (excluding indirect)
         total_direct = sum(
-            cost_breakdown.get(cat, 0) for cat in
-            ['personnel', 'equipment', 'travel', 'subcontracting', 'other_direct']
+            cost_breakdown.get(cat, 0)
+            for cat in ["personnel", "equipment", "travel", "subcontracting", "other_direct"]
         )
 
         if total_direct <= 0:
@@ -358,26 +377,45 @@ class BudgetValidatorTool:
             amount = cost_breakdown.get(category, 0)
             ratio = amount / total_direct if total_direct > 0 else 0
 
-            if ratio > limit_config['max']:
-                level = ValidationLevel.HIGH if ratio > limit_config['max'] * 1.5 else ValidationLevel.MEDIUM
-                issues.append(ValidationIssue(
-                    level=level,
-                    category=IssueCategory.COST_CATEGORY,
-                    message=f"{category.replace('_', ' ').title()} costs ({ratio:.1%}) exceed typical maximum ({limit_config['max']:.0%}) for {action_type}",
-                    recommendation=f"Consider reducing {category} costs or provide strong justification",
-                    affected_value=f"{ratio:.1%}",
-                    expected_range=f"{limit_config['min']:.0%}-{limit_config['max']:.0%}",
-                ))
-            elif ratio < limit_config['min'] and amount > 0:
-                issues.append(ValidationIssue(
-                    level=ValidationLevel.LOW,
-                    category=IssueCategory.COST_CATEGORY,
-                    message=f"{category.replace('_', ' ').title()} costs ({ratio:.1%}) below typical range for {action_type}",
-                    recommendation="This may be acceptable depending on project needs",
-                    affected_value=f"{ratio:.1%}",
-                ))
+            if ratio > limit_config["max"]:
+                level = (
+                    ValidationLevel.HIGH
+                    if ratio > limit_config["max"] * 1.5
+                    else ValidationLevel.MEDIUM
+                )
+                issues.append(
+                    ValidationIssue(
+                        level=level,
+                        category=IssueCategory.COST_CATEGORY,
+                        message=(
+                            f"{category.replace('_', ' ').title()} costs ({ratio:.1%}) "
+                            f"exceed typical maximum ({limit_config['max']:.0%}) "
+                            f"for {action_type}"
+                        ),
+                        recommendation=(
+                            f"Consider reducing {category} costs or provide strong justification"
+                        ),
+                        affected_value=f"{ratio:.1%}",
+                        expected_range=f"{limit_config['min']:.0%}-{limit_config['max']:.0%}",
+                    )
+                )
+            elif ratio < limit_config["min"] and amount > 0:
+                issues.append(
+                    ValidationIssue(
+                        level=ValidationLevel.LOW,
+                        category=IssueCategory.COST_CATEGORY,
+                        message=(
+                            f"{category.replace('_', ' ').title()} costs ({ratio:.1%}) "
+                            f"below typical range for {action_type}"
+                        ),
+                        recommendation="This may be acceptable depending on project needs",
+                        affected_value=f"{ratio:.1%}",
+                    )
+                )
             elif ratio > 0:
-                passed.append(f"{category.replace('_', ' ').title()} costs ({ratio:.1%}) within range")
+                passed.append(
+                    f"{category.replace('_', ' ').title()} costs ({ratio:.1%}) within range"
+                )
 
     def _validate_budget_range(
         self,
@@ -388,40 +426,59 @@ class BudgetValidatorTool:
         passed: list[str],
     ):
         """Validate budget is within reasonable range for action type."""
-        ranges = self.BUDGET_RANGES.get(action_type, self.BUDGET_RANGES['RIA'])
+        ranges = self.BUDGET_RANGES.get(action_type, self.BUDGET_RANGES["RIA"])
 
         # Check call-specific cap first
         if call_budget_cap and eu_contribution > call_budget_cap:
-            issues.append(ValidationIssue(
-                level=ValidationLevel.CRITICAL,
-                category=IssueCategory.BUDGET_RANGE,
-                message=f"EU contribution (€{eu_contribution:,.0f}) exceeds call budget cap (€{call_budget_cap:,.0f})",
-                recommendation=f"Reduce budget to maximum €{call_budget_cap:,.0f}",
-                affected_value=f"€{eu_contribution:,.0f}",
-                expected_range=f"Max €{call_budget_cap:,.0f}",
-            ))
+            issues.append(
+                ValidationIssue(
+                    level=ValidationLevel.CRITICAL,
+                    category=IssueCategory.BUDGET_RANGE,
+                    message=(
+                        f"EU contribution (€{eu_contribution:,.0f}) exceeds "
+                        f"call budget cap (€{call_budget_cap:,.0f})"
+                    ),
+                    recommendation=f"Reduce budget to maximum €{call_budget_cap:,.0f}",
+                    affected_value=f"€{eu_contribution:,.0f}",
+                    expected_range=f"Max €{call_budget_cap:,.0f}",
+                )
+            )
             return
 
-        if eu_contribution < ranges['min']:
-            issues.append(ValidationIssue(
-                level=ValidationLevel.MEDIUM,
-                category=IssueCategory.BUDGET_RANGE,
-                message=f"Budget (€{eu_contribution:,.0f}) below typical minimum for {action_type} (€{ranges['min']:,.0f})",
-                recommendation="Ensure budget adequately covers planned activities",
-                affected_value=f"€{eu_contribution:,.0f}",
-                expected_range=f"€{ranges['min']:,.0f}-€{ranges['max']:,.0f}",
-            ))
-        elif eu_contribution > ranges['max']:
-            issues.append(ValidationIssue(
-                level=ValidationLevel.HIGH,
-                category=IssueCategory.BUDGET_RANGE,
-                message=f"Budget (€{eu_contribution:,.0f}) exceeds typical maximum for {action_type} (€{ranges['max']:,.0f})",
-                recommendation="Verify budget justification is strong or consider splitting into phases",
-                affected_value=f"€{eu_contribution:,.0f}",
-                expected_range=f"€{ranges['min']:,.0f}-€{ranges['max']:,.0f}",
-            ))
+        if eu_contribution < ranges["min"]:
+            issues.append(
+                ValidationIssue(
+                    level=ValidationLevel.MEDIUM,
+                    category=IssueCategory.BUDGET_RANGE,
+                    message=(
+                        f"Budget (€{eu_contribution:,.0f}) below typical minimum "
+                        f"for {action_type} (€{ranges['min']:,.0f})"
+                    ),
+                    recommendation="Ensure budget adequately covers planned activities",
+                    affected_value=f"€{eu_contribution:,.0f}",
+                    expected_range=f"€{ranges['min']:,.0f}-€{ranges['max']:,.0f}",
+                )
+            )
+        elif eu_contribution > ranges["max"]:
+            issues.append(
+                ValidationIssue(
+                    level=ValidationLevel.HIGH,
+                    category=IssueCategory.BUDGET_RANGE,
+                    message=(
+                        f"Budget (€{eu_contribution:,.0f}) exceeds typical maximum "
+                        f"for {action_type} (€{ranges['max']:,.0f})"
+                    ),
+                    recommendation=(
+                        "Verify budget justification is strong or consider splitting into phases"
+                    ),
+                    affected_value=f"€{eu_contribution:,.0f}",
+                    expected_range=f"€{ranges['min']:,.0f}-€{ranges['max']:,.0f}",
+                )
+            )
         else:
-            passed.append(f"Budget (€{eu_contribution:,.0f}) within typical range for {action_type}")
+            passed.append(
+                f"Budget (€{eu_contribution:,.0f}) within typical range for {action_type}"
+            )
 
     def _validate_duration(
         self,
@@ -431,26 +488,36 @@ class BudgetValidatorTool:
         passed: list[str],
     ):
         """Validate project duration is appropriate."""
-        ranges = self.DURATION_RANGES.get(action_type, self.DURATION_RANGES['RIA'])
+        ranges = self.DURATION_RANGES.get(action_type, self.DURATION_RANGES["RIA"])
 
-        if duration_months < ranges['min']:
-            issues.append(ValidationIssue(
-                level=ValidationLevel.HIGH,
-                category=IssueCategory.DURATION,
-                message=f"Duration ({duration_months} months) below minimum for {action_type} ({ranges['min']} months)",
-                recommendation=f"Extend project duration to at least {ranges['min']} months",
-                affected_value=f"{duration_months} months",
-                expected_range=f"{ranges['min']}-{ranges['max']} months",
-            ))
-        elif duration_months > ranges['max']:
-            issues.append(ValidationIssue(
-                level=ValidationLevel.MEDIUM,
-                category=IssueCategory.DURATION,
-                message=f"Duration ({duration_months} months) exceeds typical maximum for {action_type} ({ranges['max']} months)",
-                recommendation="Consider phased approach or verify justification",
-                affected_value=f"{duration_months} months",
-                expected_range=f"{ranges['min']}-{ranges['max']} months",
-            ))
+        if duration_months < ranges["min"]:
+            issues.append(
+                ValidationIssue(
+                    level=ValidationLevel.HIGH,
+                    category=IssueCategory.DURATION,
+                    message=(
+                        f"Duration ({duration_months} months) below minimum "
+                        f"for {action_type} ({ranges['min']} months)"
+                    ),
+                    recommendation=f"Extend project duration to at least {ranges['min']} months",
+                    affected_value=f"{duration_months} months",
+                    expected_range=f"{ranges['min']}-{ranges['max']} months",
+                )
+            )
+        elif duration_months > ranges["max"]:
+            issues.append(
+                ValidationIssue(
+                    level=ValidationLevel.MEDIUM,
+                    category=IssueCategory.DURATION,
+                    message=(
+                        f"Duration ({duration_months} months) exceeds typical maximum "
+                        f"for {action_type} ({ranges['max']} months)"
+                    ),
+                    recommendation="Consider phased approach or verify justification",
+                    affected_value=f"{duration_months} months",
+                    expected_range=f"{ranges['min']}-{ranges['max']} months",
+                )
+            )
         else:
             passed.append(f"Duration ({duration_months} months) appropriate for {action_type}")
 
@@ -463,46 +530,67 @@ class BudgetValidatorTool:
         passed: list[str],
     ):
         """Validate consortium structure."""
-        reqs = self.CONSORTIUM_REQUIREMENTS.get(action_type, self.CONSORTIUM_REQUIREMENTS['RIA'])
+        reqs = self.CONSORTIUM_REQUIREMENTS.get(action_type, self.CONSORTIUM_REQUIREMENTS["RIA"])
 
-        if num_partners < reqs['min_partners']:
-            issues.append(ValidationIssue(
-                level=ValidationLevel.CRITICAL,
-                category=IssueCategory.CONSORTIUM,
-                message=f"Consortium has {num_partners} partners, minimum {reqs['min_partners']} required for {action_type}",
-                recommendation=f"Add at least {reqs['min_partners'] - num_partners} more partners",
-                affected_value=str(num_partners),
-                expected_range=f"Minimum {reqs['min_partners']}",
-            ))
+        if num_partners < reqs["min_partners"]:
+            issues.append(
+                ValidationIssue(
+                    level=ValidationLevel.CRITICAL,
+                    category=IssueCategory.CONSORTIUM,
+                    message=(
+                        f"Consortium has {num_partners} partners, "
+                        f"minimum {reqs['min_partners']} required for {action_type}"
+                    ),
+                    recommendation=(
+                        f"Add at least {reqs['min_partners'] - num_partners} more partners"
+                    ),
+                    affected_value=str(num_partners),
+                    expected_range=f"Minimum {reqs['min_partners']}",
+                )
+            )
         else:
             passed.append(f"Consortium size ({num_partners} partners) meets minimum requirement")
 
         # Check country distribution if consortium details provided
         if consortium:
-            countries = set(p.get('country', 'Unknown') for p in consortium)
-            if len(countries) < reqs['min_countries']:
-                issues.append(ValidationIssue(
-                    level=ValidationLevel.CRITICAL,
-                    category=IssueCategory.CONSORTIUM,
-                    message=f"Consortium covers {len(countries)} countries, minimum {reqs['min_countries']} required",
-                    recommendation="Add partners from additional EU Member States or Associated Countries",
-                    affected_value=str(len(countries)),
-                ))
+            countries = set(p.get("country", "Unknown") for p in consortium)
+            if len(countries) < reqs["min_countries"]:
+                issues.append(
+                    ValidationIssue(
+                        level=ValidationLevel.CRITICAL,
+                        category=IssueCategory.CONSORTIUM,
+                        message=(
+                            f"Consortium covers {len(countries)} countries, "
+                            f"minimum {reqs['min_countries']} required"
+                        ),
+                        recommendation=(
+                            "Add partners from additional EU Member States or Associated Countries"
+                        ),
+                        affected_value=str(len(countries)),
+                    )
+                )
             else:
                 passed.append(f"Geographic coverage ({len(countries)} countries) meets requirement")
 
             # Check coordinator budget share
-            coordinator = next((p for p in consortium if p.get('role', '').lower() == 'coordinator'), None)
-            if coordinator and 'budget_share' in coordinator:
-                coord_share = coordinator['budget_share']
-                if coord_share > reqs['max_coordinator_share']:
-                    issues.append(ValidationIssue(
-                        level=ValidationLevel.MEDIUM,
-                        category=IssueCategory.CONSORTIUM,
-                        message=f"Coordinator budget share ({coord_share:.0%}) may be too high",
-                        recommendation=f"Consider redistributing budget among partners (typical max: {reqs['max_coordinator_share']:.0%})",
-                        affected_value=f"{coord_share:.0%}",
-                    ))
+            coordinator = next(
+                (p for p in consortium if p.get("role", "").lower() == "coordinator"), None
+            )
+            if coordinator and "budget_share" in coordinator:
+                coord_share = coordinator["budget_share"]
+                if coord_share > reqs["max_coordinator_share"]:
+                    issues.append(
+                        ValidationIssue(
+                            level=ValidationLevel.MEDIUM,
+                            category=IssueCategory.CONSORTIUM,
+                            message=f"Coordinator budget share ({coord_share:.0%}) may be too high",
+                            recommendation=(
+                                "Consider redistributing budget among partners "
+                                f"(typical max: {reqs['max_coordinator_share']:.0%})"
+                            ),
+                            affected_value=f"{coord_share:.0%}",
+                        )
+                    )
 
     def _validate_budget_per_partner(
         self,
@@ -524,23 +612,37 @@ class BudgetValidatorTool:
         max_per_partner_year = 800_000
 
         if budget_per_partner_year < min_per_partner_year:
-            issues.append(ValidationIssue(
-                level=ValidationLevel.MEDIUM,
-                category=IssueCategory.BUDGET_RANGE,
-                message=f"Average budget per partner per year (€{budget_per_partner_year:,.0f}) is low",
-                recommendation="Verify partners have sufficient resources for meaningful contributions",
-                affected_value=f"€{budget_per_partner_year:,.0f}/partner/year",
-            ))
+            issues.append(
+                ValidationIssue(
+                    level=ValidationLevel.MEDIUM,
+                    category=IssueCategory.BUDGET_RANGE,
+                    message=(
+                        "Average budget per partner per year "
+                        f"(€{budget_per_partner_year:,.0f}) is low"
+                    ),
+                    recommendation=(
+                        "Verify partners have sufficient resources for meaningful contributions"
+                    ),
+                    affected_value=f"€{budget_per_partner_year:,.0f}/partner/year",
+                )
+            )
         elif budget_per_partner_year > max_per_partner_year:
-            issues.append(ValidationIssue(
-                level=ValidationLevel.MEDIUM,
-                category=IssueCategory.BUDGET_RANGE,
-                message=f"Average budget per partner per year (€{budget_per_partner_year:,.0f}) is high",
-                recommendation="Ensure budget distribution reflects actual work allocation",
-                affected_value=f"€{budget_per_partner_year:,.0f}/partner/year",
-            ))
+            issues.append(
+                ValidationIssue(
+                    level=ValidationLevel.MEDIUM,
+                    category=IssueCategory.BUDGET_RANGE,
+                    message=(
+                        "Average budget per partner per year "
+                        f"(€{budget_per_partner_year:,.0f}) is high"
+                    ),
+                    recommendation="Ensure budget distribution reflects actual work allocation",
+                    affected_value=f"€{budget_per_partner_year:,.0f}/partner/year",
+                )
+            )
         else:
-            passed.append(f"Budget per partner (€{budget_per_partner_year:,.0f}/year) is reasonable")
+            passed.append(
+                f"Budget per partner (€{budget_per_partner_year:,.0f}/year) is reasonable"
+            )
 
     def _calculate_compliance_score(
         self,
@@ -605,6 +707,7 @@ class BudgetValidatorTool:
 
 # Standalone execute function for tool orchestration
 
+
 def validate_budget_execute(
     total_cost: float,
     eu_contribution: float,
@@ -624,7 +727,8 @@ def validate_budget_execute(
         action_type: RIA, IA, CSA, ERC-STG, ERC-COG, ERC-ADG, EIC, MSCA
         duration_months: Project duration in months
         num_partners: Number of consortium partners
-        cost_breakdown: Optional dict with personnel, equipment, travel, subcontracting, other_direct, indirect
+        cost_breakdown: Optional dict with personnel, equipment, travel,
+            subcontracting, other_direct, indirect
         consortium: Optional list of partner dicts with country, type, budget_share, role
         call_budget_cap: Optional call-specific budget cap
 
@@ -645,23 +749,23 @@ def validate_budget_execute(
 
     # Convert to dict for JSON serialization
     return {
-        'success': True,
-        'valid': result.valid,
-        'compliance_score': round(result.compliance_score, 1),
-        'summary': result.summary,
-        'issues': [
+        "success": True,
+        "valid": result.valid,
+        "compliance_score": round(result.compliance_score, 1),
+        "summary": result.summary,
+        "issues": [
             {
-                'level': issue.level.value,
-                'category': issue.category.value,
-                'message': issue.message,
-                'recommendation': issue.recommendation,
-                'affected_value': issue.affected_value,
-                'expected_range': issue.expected_range,
+                "level": issue.level.value,
+                "category": issue.category.value,
+                "message": issue.message,
+                "recommendation": issue.recommendation,
+                "affected_value": issue.affected_value,
+                "expected_range": issue.expected_range,
             }
             for issue in result.issues
         ],
-        'passed_checks': result.passed_checks,
-        'critical_count': len(result.critical_issues),
-        'high_count': len(result.high_issues),
-        'action_type': action_type,
+        "passed_checks": result.passed_checks,
+        "critical_count": len(result.critical_issues),
+        "high_count": len(result.high_issues),
+        "action_type": action_type,
     }

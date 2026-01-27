@@ -35,12 +35,14 @@ from psycopg2.extras import DictCursor
 from psycopg2.pool import SimpleConnectionPool
 
 # Add parent directory to path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from app.services.embedding_service import EmbeddingService
 
 load_dotenv()
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 
@@ -89,14 +91,16 @@ class ProjectEmbeddingGenerator:
         cursor = conn.cursor()
 
         try:
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT COUNT(*)
                 FROM projects
                 WHERE title IS NOT NULL
                   AND objective IS NOT NULL
                   AND LENGTH(title) > 10
                   AND LENGTH(objective) > 50
-            """)
+            """
+            )
             return cursor.fetchone()[0]
         finally:
             cursor.close()
@@ -108,12 +112,14 @@ class ProjectEmbeddingGenerator:
         cursor = conn.cursor()
 
         try:
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT COUNT(*)
                 FROM project_embeddings
                 WHERE embedding_status = 'completed'
                   AND combined_embedding IS NOT NULL
-            """)
+            """
+            )
             return cursor.fetchone()[0]
         finally:
             cursor.close()
@@ -144,19 +150,20 @@ class ProjectEmbeddingGenerator:
                 if attempt < self.max_retries - 1:
                     await asyncio.sleep(1.0 * (attempt + 1))  # Exponential backoff
                 else:
-                    logger.error(f"All {self.max_retries} attempts failed for text: {text[:100]}...")
+                    logger.error(
+                        f"All {self.max_retries} attempts failed for text: {text[:100]}..."
+                    )
         return None
 
     async def generate_embeddings_batch(self, texts: list[str]) -> list[list[float] | None]:
         """Generate embeddings for multiple texts in a single API call (much faster)."""
         try:
             embeddings = await asyncio.to_thread(
-                self.embedding_service.generate_embeddings_batch,
-                texts
+                self.embedding_service.generate_embeddings_batch, texts
             )
             results = []
             for emb in embeddings:
-                if emb is not None and hasattr(emb, 'any') and emb.any():
+                if emb is not None and hasattr(emb, "any") and emb.any():
                     results.append(emb.tolist())
                 elif emb is not None and len(emb) > 0:
                     results.append(list(emb))
@@ -177,7 +184,7 @@ class ProjectEmbeddingGenerator:
         project_id: int,
         text: str,
         combined_embedding: list[float] | None,
-        model_version: str = "text-embedding-004"
+        model_version: str = "text-embedding-004",
     ) -> bool:
         """Store embedding in database with status tracking."""
         conn = self.db_pool.getconn()
@@ -236,9 +243,9 @@ class ProjectEmbeddingGenerator:
         texts = []
 
         for project in projects:
-            project_id = project['id']
-            title = project.get('title', '') or ''
-            objective = project.get('objective', '') or ''
+            project_id = project["id"]
+            title = project.get("title", "") or ""
+            objective = project.get("objective", "") or ""
 
             if not title and not objective:
                 logger.warning(f"Skipping project {project_id}: no title or objective")
@@ -269,7 +276,9 @@ class ProjectEmbeddingGenerator:
 
         return success_count, fail_count
 
-    async def run(self, batch_size: int = 50, max_batches: int | None = None, test_mode: bool = False):
+    async def run(
+        self, batch_size: int = 50, max_batches: int | None = None, test_mode: bool = False
+    ):
         """Main execution loop."""
         total_projects = self.get_total_projects_count()
         embedded_count = self.get_embedded_count()
@@ -314,7 +323,9 @@ class ProjectEmbeddingGenerator:
             processed += len(projects)
 
             logger.info(f"✅ Batch {batch_num + 1} complete: {success} successful, {fail} failed")
-            logger.info(f"📊 Progress: {total_success}/{remaining} ({total_success/remaining*100:.1f}%)")
+            logger.info(
+                f"📊 Progress: {total_success}/{remaining} ({total_success / remaining * 100:.1f}%)"
+            )
 
             batch_num += 1
 
@@ -332,7 +343,9 @@ class ProjectEmbeddingGenerator:
 
         # Suggest next steps
         if not test_mode and total_success < remaining:
-            logger.info(f"📋 Next: Run script again to process remaining {remaining - total_success} projects")
+            logger.info(
+                f"📋 Next: Run script again to process remaining {remaining - total_success} projects"
+            )
 
 
 async def main():

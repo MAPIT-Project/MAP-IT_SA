@@ -534,9 +534,9 @@ class TestPersonalizationValidation:
 
                 # Personalization scores should be valid (0.0 to 1.0)
                 for score in result.personalization_scores:
-                    assert (
-                        0.0 <= score <= 1.0
-                    ), f"Invalid personalization score for {result.scenario_name}: {score}"
+                    assert 0.0 <= score <= 1.0, (
+                        f"Invalid personalization score for {result.scenario_name}: {score}"
+                    )
 
     @pytest.mark.asyncio
     async def test_profile_usage_in_recommendations(
@@ -561,9 +561,9 @@ class TestPersonalizationValidation:
 
                 # Profile usage scores should be valid (0.0 to 1.0)
                 for score in result.profile_usage_scores:
-                    assert (
-                        0.0 <= score <= 1.0
-                    ), f"Invalid profile usage score for {result.scenario_name}: {score}"
+                    assert 0.0 <= score <= 1.0, (
+                        f"Invalid profile usage score for {result.scenario_name}: {score}"
+                    )
 
 
 class TestPersonalizationInfrastructure:
@@ -594,9 +594,9 @@ class TestPersonalizationInfrastructure:
                         has_personalization_validation = True
                         break
 
-            assert (
-                has_personalization_validation
-            ), f"No personalization validations in {scenario_file}"
+            assert has_personalization_validation, (
+                f"No personalization validations in {scenario_file}"
+            )
 
             # Check for personalization validations in final validations
             has_final_personalization = False
@@ -609,9 +609,9 @@ class TestPersonalizationInfrastructure:
                     has_final_personalization = True
                     break
 
-            assert (
-                has_final_personalization
-            ), f"No personalization validation in final_validations for {scenario_file}"
+            assert has_final_personalization, (
+                f"No personalization validation in final_validations for {scenario_file}"
+            )
 
     def test_personalization_agent_initialization(self):
         """Test that PersonalizationAgent initializes correctly."""

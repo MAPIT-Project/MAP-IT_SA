@@ -940,9 +940,9 @@ class TestScenario062LiveAPI:
 
         # Assertions
         assert analysis.error is None, f"Request failed: {analysis.error}"
-        assert result[
-            "passed"
-        ], f"Streaming test failed with score {result['score']}: {result['issues']}"
+        assert result["passed"], (
+            f"Streaming test failed with score {result['score']}: {result['issues']}"
+        )
 
     @live_api
     @pytest.mark.asyncio
@@ -960,15 +960,15 @@ class TestScenario062LiveAPI:
 
         # Verify all events have valid types
         for event in analysis.events:
-            assert (
-                event.type in ALLOWED_EVENT_TYPES or event.type == "agent_complete"
-            ), f"Invalid event type: {event.type}"
+            assert event.type in ALLOWED_EVENT_TYPES or event.type == "agent_complete", (
+                f"Invalid event type: {event.type}"
+            )
 
         # Verify all events are valid JSON
         for event in analysis.events:
-            assert (
-                event.parsed_data is not None or event.type == "parse_error"
-            ), f"Failed to parse event: {event.raw_data}"
+            assert event.parsed_data is not None or event.type == "parse_error", (
+                f"Failed to parse event: {event.raw_data}"
+            )
 
     @live_api
     @pytest.mark.asyncio
@@ -984,16 +984,16 @@ class TestScenario062LiveAPI:
         assert analysis.error is None, f"Request failed: {analysis.error}"
 
         # Check progressive streaming
-        assert (
-            analysis.token_count >= MIN_TOKEN_EVENTS
-        ), f"Expected at least {MIN_TOKEN_EVENTS} token events, got {analysis.token_count}"
+        assert analysis.token_count >= MIN_TOKEN_EVENTS, (
+            f"Expected at least {MIN_TOKEN_EVENTS} token events, got {analysis.token_count}"
+        )
 
         # Tokens should be spread over time
         spread = analysis.token_spread_seconds
         assert spread is not None, "No token spread calculated"
-        assert (
-            spread >= MIN_STREAMING_DURATION_SECONDS
-        ), f"Token spread {spread:.3f}s too small (min: {MIN_STREAMING_DURATION_SECONDS}s)"
+        assert spread >= MIN_STREAMING_DURATION_SECONDS, (
+            f"Token spread {spread:.3f}s too small (min: {MIN_STREAMING_DURATION_SECONDS}s)"
+        )
 
     @live_api
     @pytest.mark.asyncio
@@ -1009,9 +1009,9 @@ class TestScenario062LiveAPI:
         assert analysis.error is None, f"Request failed: {analysis.error}"
 
         # Check status before tokens
-        assert (
-            analysis.has_status_before_tokens
-        ), f"Status events should appear before tokens. Event sequence: {analysis.event_types}"
+        assert analysis.has_status_before_tokens, (
+            f"Status events should appear before tokens. Event sequence: {analysis.event_types}"
+        )
 
     @live_api
     @pytest.mark.asyncio
@@ -1027,9 +1027,9 @@ class TestScenario062LiveAPI:
         assert analysis.error is None, f"Request failed: {analysis.error}"
 
         # Check complete event
-        assert (
-            analysis.has_complete_event
-        ), f"Complete event missing. Event types: {analysis.unique_event_types}"
+        assert analysis.has_complete_event, (
+            f"Complete event missing. Event types: {analysis.unique_event_types}"
+        )
 
     @live_api
     @pytest.mark.asyncio
@@ -1156,9 +1156,9 @@ class TestScenario062EventTypes:
 
         # Check expected metadata fields
         assert "architecture" in metadata, "Missing architecture in metadata"
-        assert (
-            metadata.get("architecture") == "simplified_v3"
-        ), f"Wrong architecture: {metadata.get('architecture')}"
+        assert metadata.get("architecture") == "simplified_v3", (
+            f"Wrong architecture: {metadata.get('architecture')}"
+        )
 
 
 class TestScenario062Validation:

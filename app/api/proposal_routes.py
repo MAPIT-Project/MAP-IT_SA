@@ -13,13 +13,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from ..services.call_document_service import CallDocumentService
-from ..services.proposal_writing import (
+from ..services.proposal_writing import (  # Phase 2 - Evaluator Simulation; Phase 2 - Gap Analysis; Phase 2 - Score Storage; Phase 3 - Smart Rewriter
     BudgetAssistant,
     ComplianceChecker,
     EvaluationCriteriaMatcher,
-    # Phase 2 - Evaluator Simulation
     EvaluatorSimulator,
-    # Phase 2 - Gap Analysis
     GapAnalysisService,
     GapProgressTracker,
     InlineSuggestionsService,
@@ -27,9 +25,7 @@ from ..services.proposal_writing import (
     ProposalTemplateService,
     QualityImprover,
     RealTimeAnalyzer,
-    # Phase 2 - Score Storage
     ScoreStorageService,
-    # Phase 3 - Smart Rewriter
     SmartRewriter,
     SubmissionExporter,
     TriggerType,
@@ -45,6 +41,7 @@ router = APIRouter(prefix="/api/proposal", tags=["Proposal Writing"])
 # REQUEST/RESPONSE MODELS
 # ================================================================
 
+
 class ProposalCreate(BaseModel):
     call_id: str = Field(..., description="Call identifier")
     title: str = Field(..., description="Proposal title")
@@ -55,6 +52,7 @@ class ProposalCreate(BaseModel):
     estimated_budget: float | None = None
     conversation_id: int | None = None
 
+
 class PartnerInfo(BaseModel):
     name: str
     country: str
@@ -63,14 +61,17 @@ class PartnerInfo(BaseModel):
     person_months: float | None = None
     avg_monthly_rate: float | None = 5000
 
+
 class SectionDraftRequest(BaseModel):
     call_id: str
     section_id: str = Field(..., description="e.g., excellence.objectives")
     user_context: dict[str, Any] = Field(..., description="Project context and details")
-    
+
+
 class SectionImproveRequest(BaseModel):
     section_id: int = Field(..., description="Database section ID")
     improvement_instructions: str
+
 
 class BudgetGenerationRequest(BaseModel):
     call_id: str
@@ -79,15 +80,18 @@ class BudgetGenerationRequest(BaseModel):
     duration_months: int = 36
     total_budget: float | None = None
 
+
 class ComplianceCheckRequest(BaseModel):
     proposal_id: int
     sections: dict[str, str] = Field(..., description="Section ID -> content mapping")
     consortium: list[PartnerInfo] | None = []
     budget: dict[str, Any] | None = {}
 
+
 # ================================================================
 # DEPENDENCY INJECTION
 # ================================================================
+
 
 def get_db_pool():
     """Get database connection pool"""
@@ -96,53 +100,54 @@ def get_db_pool():
         raise HTTPException(status_code=500, detail="Database not configured")
     return psycopg2.pool.SimpleConnectionPool(1, 10, db_url)
 
-def get_call_doc_service(db_pool = Depends(get_db_pool)):
+
+def get_call_doc_service(db_pool=Depends(get_db_pool)):
     """Get CallDocumentService instance"""
     return CallDocumentService(db_pool)
 
+
 def get_template_service(
-    db_pool = Depends(get_db_pool),
-    call_doc_service = Depends(get_call_doc_service)
+    db_pool=Depends(get_db_pool), call_doc_service=Depends(get_call_doc_service)
 ):
     """Get ProposalTemplateService instance"""
     return ProposalTemplateService(db_pool, call_doc_service)
 
+
 def get_draft_generator(
-    call_doc_service = Depends(get_call_doc_service),
-    template_service = Depends(get_template_service)
+    call_doc_service=Depends(get_call_doc_service), template_service=Depends(get_template_service)
 ):
     """Get ProposalDraftGenerator instance"""
     return ProposalDraftGenerator(call_doc_service, template_service)
+
 
 # ================================================================
 # PROPOSAL MANAGEMENT ENDPOINTS
 # ================================================================
 
+
 @router.post("/create", summary="Create a new proposal")
-async def create_proposal(
-    proposal: ProposalCreate,
-    db_pool = Depends(get_db_pool)
-):
+async def create_proposal(proposal: ProposalCreate, db_pool=Depends(get_db_pool)):
     """
     Create a new proposal project
-    
+
     This initializes a proposal with basic information and generates
     a template structure based on the call requirements.
     """
-    
+
     try:
         conn = db_pool.getconn()
         cursor = conn.cursor()
-        
+
         # Determine proposal type from call documents
         call_doc_service = CallDocumentService(db_pool)
-        call_docs = await call_doc_service.get_call_documents(proposal.call_id)
-        
+        await call_doc_service.get_call_documents(proposal.call_id)
+
         # Simple type detection (can be enhanced)
         proposal_type = "RIA"  # Default
-        
+
         # Insert proposal
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO proposals (
                 call_identifier, proposal_title, proposal_acronym,
                 proposal_type, project_summary, research_area,
@@ -150,81 +155,90 @@ async def create_proposal(
                 status, completion_percentage
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'draft', 0)
             RETURNING id
-        """, (
-            proposal.call_id,
-            proposal.title,
-            proposal.acronym,
-            proposal_type,
-            proposal.project_idea,
-            proposal.research_area,
-            proposal.duration_months,
-            proposal.estimated_budget,
-            proposal.conversation_id
-        ))
-        
+        """,
+            (
+                proposal.call_id,
+                proposal.title,
+                proposal.acronym,
+                proposal_type,
+                proposal.project_idea,
+                proposal.research_area,
+                proposal.duration_months,
+                proposal.estimated_budget,
+                proposal.conversation_id,
+            ),
+        )
+
         proposal_id = cursor.fetchone()[0]
-        
+
         conn.commit()
         db_pool.putconn(conn)
-        
+
         # Generate template (not async)
         template_service = ProposalTemplateService(db_pool, call_doc_service)
         template = template_service.generate_template(proposal.call_id)
-        
+
         # Log activity
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO proposal_activity_log (proposal_id, activity_type, activity_description)
             VALUES (%s, 'created', %s)
-        """, (proposal_id, f"Proposal '{proposal.title}' created"))
+        """,
+            (proposal_id, f"Proposal '{proposal.title}' created"),
+        )
         conn.commit()
         db_pool.putconn(conn)
-        
+
         return {
             "proposal_id": proposal_id,
             "call_id": proposal.call_id,
             "title": proposal.title,
             "status": "draft",
             "template": template,
-            "message": "Proposal created successfully! Ready to start writing sections."
+            "message": "Proposal created successfully! Ready to start writing sections.",
         }
-        
+
     except Exception as e:
         logger.error(f"Error creating proposal: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
 
 @router.get("/{proposal_id}", summary="Get proposal details")
-async def get_proposal(
-    proposal_id: int,
-    db_pool = Depends(get_db_pool)
-):
+async def get_proposal(proposal_id: int, db_pool=Depends(get_db_pool)):
     """Get complete proposal information"""
-    
+
     try:
         conn = db_pool.getconn()
         cursor = conn.cursor()
-        
+
         # Get proposal overview
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT * FROM proposal_overview WHERE id = %s
-        """, (proposal_id,))
-        
+        """,
+            (proposal_id,),
+        )
+
         row = cursor.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="Proposal not found")
-        
+
         # Get current sections
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT section_id, section_name, section_content, word_count, quality_score
             FROM proposal_sections
             WHERE proposal_id = %s AND is_current = TRUE
             ORDER BY section_order
-        """, (proposal_id,))
-        
+        """,
+            (proposal_id,),
+        )
+
         sections = cursor.fetchall()
-        
+
         db_pool.putconn(conn)
-        
+
         return {
             "proposal_id": proposal_id,
             "overview": dict(zip([desc[0] for desc in cursor.description], row, strict=False)),
@@ -234,51 +248,54 @@ async def get_proposal(
                     "section_name": s[1],
                     "content": s[2],
                     "word_count": s[3],
-                    "quality_score": float(s[4]) if s[4] else None
+                    "quality_score": float(s[4]) if s[4] else None,
                 }
                 for s in sections
-            ]
+            ],
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error retrieving proposal: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
 
 @router.get("/list", summary="List all proposals")
-async def list_proposals(
-    status: str | None = None,
-    limit: int = 50,
-    db_pool = Depends(get_db_pool)
-):
+async def list_proposals(status: str | None = None, limit: int = 50, db_pool=Depends(get_db_pool)):
     """List proposals with optional status filter"""
-    
+
     try:
         conn = db_pool.getconn()
         cursor = conn.cursor()
-        
+
         if status:
-            cursor.execute("""
-                SELECT id, call_identifier, proposal_title, status, 
+            cursor.execute(
+                """
+                SELECT id, call_identifier, proposal_title, status,
                        completion_percentage, updated_at
                 FROM proposals
                 WHERE status = %s
                 ORDER BY updated_at DESC
                 LIMIT %s
-            """, (status, limit))
+            """,
+                (status, limit),
+            )
         else:
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT id, call_identifier, proposal_title, status,
                        completion_percentage, updated_at
                 FROM proposals
                 ORDER BY updated_at DESC
                 LIMIT %s
-            """, (limit,))
-        
+            """,
+                (limit,),
+            )
+
         proposals = cursor.fetchall()
         db_pool.putconn(conn)
-        
+
         return {
             "proposals": [
                 {
@@ -287,180 +304,195 @@ async def list_proposals(
                     "title": p[2],
                     "status": p[3],
                     "completion": p[4],
-                    "updated_at": p[5].isoformat() if p[5] else None
+                    "updated_at": p[5].isoformat() if p[5] else None,
                 }
                 for p in proposals
             ],
-            "count": len(proposals)
+            "count": len(proposals),
         }
-        
+
     except Exception as e:
         logger.error(f"Error listing proposals: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
 
 # ================================================================
 # TEMPLATE GENERATION
 # ================================================================
 
+
 @router.get("/template/{call_id}", summary="Generate proposal template")
 async def generate_template(
-    call_id: str,
-    template_service: ProposalTemplateService = Depends(get_template_service)
+    call_id: str, template_service: ProposalTemplateService = Depends(get_template_service)
 ):
     """
     Generate a structured proposal template based on call requirements
-    
+
     Returns the complete section structure, evaluation criteria mapping,
     and page limits for the specified call.
     """
-    
+
     try:
         template = template_service.generate_template(call_id)
-        
+
         return {
             "call_id": call_id,
             "template": template,
-            "message": f"Template generated for {call_id}"
+            "message": f"Template generated for {call_id}",
         }
-        
+
     except Exception as e:
         logger.error(f"Error generating template: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
 
 @router.get("/template/{call_id}/section/{section_id}", summary="Get section guidance")
 async def get_section_guidance(
     call_id: str,
     section_id: str,
-    template_service: ProposalTemplateService = Depends(get_template_service)
+    template_service: ProposalTemplateService = Depends(get_template_service),
 ):
     """Get specific guidance for a proposal section"""
-    
+
     try:
         guidance = template_service.get_section_guidance(call_id, section_id)
-        
-        return {
-            "section_id": section_id,
-            "guidance": guidance
-        }
-        
+
+        return {"section_id": section_id, "guidance": guidance}
+
     except Exception as e:
         logger.error(f"Error retrieving section guidance: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
 
 # ================================================================
 # DRAFT GENERATION
 # ================================================================
 
+
 @router.post("/draft/generate", summary="Generate section draft")
 async def generate_section_draft(
     request: SectionDraftRequest,
     draft_generator: ProposalDraftGenerator = Depends(get_draft_generator),
-    db_pool = Depends(get_db_pool)
+    db_pool=Depends(get_db_pool),
 ):
     """
     Generate an AI-powered draft for a proposal section
-    
+
     Provide the call ID, section ID, and project context to generate
     a professional draft that addresses evaluation criteria.
     """
-    
+
     try:
         # Generate draft
         draft_result = await draft_generator.generate_section_draft(
             call_id=request.call_id,
             section_id=request.section_id,
-            user_context=request.user_context
+            user_context=request.user_context,
         )
-        
+
         # If proposal_id is in context, save to database
-        proposal_id = request.user_context.get('proposal_id')
+        proposal_id = request.user_context.get("proposal_id")
         if proposal_id:
             conn = db_pool.getconn()
             cursor = conn.cursor()
-            
+
             # Check for existing section
-            cursor.execute("""
+            cursor.execute(
+                """
                 UPDATE proposal_sections
                 SET is_current = FALSE
                 WHERE proposal_id = %s AND section_id = %s AND is_current = TRUE
-            """, (proposal_id, request.section_id))
-            
+            """,
+                (proposal_id, request.section_id),
+            )
+
             # Insert new version
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO proposal_sections (
                     proposal_id, section_id, section_name, section_content,
                     quality_score, version, is_current
                 ) VALUES (%s, %s, %s, %s, %s, 1, TRUE)
                 RETURNING id
-            """, (
-                proposal_id,
-                request.section_id,
-                request.section_id.split('.')[-1].replace('_', ' ').title(),
-                draft_result['draft_text'],
-                draft_result.get('quality_score', 0.7)
-            ))
-            
+            """,
+                (
+                    proposal_id,
+                    request.section_id,
+                    request.section_id.split(".")[-1].replace("_", " ").title(),
+                    draft_result["draft_text"],
+                    draft_result.get("quality_score", 0.7),
+                ),
+            )
+
             section_id = cursor.fetchone()[0]
-            
+
             conn.commit()
             db_pool.putconn(conn)
-            
-            draft_result['section_id'] = section_id
-            draft_result['saved'] = True
-        
+
+            draft_result["section_id"] = section_id
+            draft_result["saved"] = True
+
         return {
             "success": True,
             "call_id": request.call_id,
             "section_id": request.section_id,
             "draft": draft_result,
-            "message": "Draft generated successfully!"
+            "message": "Draft generated successfully!",
         }
-        
+
     except Exception as e:
         logger.error(f"Error generating draft: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
 
 @router.post("/draft/improve", summary="Improve existing draft")
 async def improve_draft(
     request: SectionImproveRequest,
     draft_generator: ProposalDraftGenerator = Depends(get_draft_generator),
-    db_pool = Depends(get_db_pool)
+    db_pool=Depends(get_db_pool),
 ):
     """Improve an existing section draft based on user instructions"""
-    
+
     try:
         # Get current section content
         conn = db_pool.getconn()
         cursor = conn.cursor()
-        
-        cursor.execute("""
+
+        cursor.execute(
+            """
             SELECT section_content, section_id, proposal_id
             FROM proposal_sections
             WHERE id = %s
-        """, (request.section_id,))
-        
+        """,
+            (request.section_id,),
+        )
+
         row = cursor.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="Section not found")
-        
+
         original_content, section_id_str, proposal_id = row
-        
+
         # Improve draft
         improved_text = await draft_generator.improve_draft(
             original_draft=original_content,
             improvement_instructions=request.improvement_instructions,
             call_id="",  # Can be retrieved from proposal
-            section_id=section_id_str
+            section_id=section_id_str,
         )
-        
+
         # Save as new version
-        cursor.execute("""
+        cursor.execute(
+            """
             UPDATE proposal_sections
             SET is_current = FALSE
             WHERE id = %s
-        """, (request.section_id,))
-        
-        cursor.execute("""
+        """,
+            (request.section_id,),
+        )
+
+        cursor.execute(
+            """
             INSERT INTO proposal_sections (
                 proposal_id, section_id, section_name, section_content,
                 version, parent_version_id, is_current
@@ -470,272 +502,292 @@ async def improve_draft(
             FROM proposal_sections
             WHERE id = %s
             RETURNING id
-        """, (improved_text, request.section_id))
-        
+        """,
+            (improved_text, request.section_id),
+        )
+
         new_section_id = cursor.fetchone()[0]
-        
+
         conn.commit()
         db_pool.putconn(conn)
-        
+
         return {
             "success": True,
             "original_section_id": request.section_id,
             "new_section_id": new_section_id,
             "improved_text": improved_text,
-            "message": "Draft improved successfully!"
+            "message": "Draft improved successfully!",
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error improving draft: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
 
 # ================================================================
 # EVALUATION & COMPLIANCE
 # ================================================================
 
+
 @router.post("/evaluate/criteria", summary="Evaluate criteria coverage")
-async def evaluate_criteria(
-    section_id: int,
-    criteria: list[str],
-    db_pool = Depends(get_db_pool)
-):
+async def evaluate_criteria(section_id: int, criteria: list[str], db_pool=Depends(get_db_pool)):
     """Analyze how well a section addresses evaluation criteria"""
-    
+
     try:
         # Get section content
         conn = db_pool.getconn()
         cursor = conn.cursor()
-        
-        cursor.execute("""
+
+        cursor.execute(
+            """
             SELECT section_content, proposal_id
             FROM proposal_sections
             WHERE id = %s AND is_current = TRUE
-        """, (section_id,))
-        
+        """,
+            (section_id,),
+        )
+
         row = cursor.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="Section not found")
-        
+
         section_content, proposal_id = row
-        
+
         # Get call_id from proposal
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT call_identifier FROM proposals WHERE id = %s
-        """, (proposal_id,))
+        """,
+            (proposal_id,),
+        )
         call_id = cursor.fetchone()[0]
-        
+
         db_pool.putconn(conn)
-        
+
         # Analyze
         criteria_matcher = EvaluationCriteriaMatcher()
         analysis = await criteria_matcher.analyze_section(
-            section_text=section_content,
-            evaluation_criteria=criteria,
-            call_id=call_id
+            section_text=section_content, evaluation_criteria=criteria, call_id=call_id
         )
-        
+
         # Store results
         conn = db_pool.getconn()
         cursor = conn.cursor()
-        
-        for criterion, data in analysis['criteria_coverage'].items():
-            cursor.execute("""
+
+        for criterion, data in analysis["criteria_coverage"].items():
+            cursor.execute(
+                """
                 INSERT INTO section_criteria_mapping (
                     section_id, criterion_name, addressed, strength_score,
                     evidence, gaps
                 ) VALUES (%s, %s, %s, %s, %s, %s)
-                ON CONFLICT (section_id, criterion_name) 
+                ON CONFLICT (section_id, criterion_name)
                 DO UPDATE SET
                     addressed = EXCLUDED.addressed,
                     strength_score = EXCLUDED.strength_score,
                     evidence = EXCLUDED.evidence,
                     gaps = EXCLUDED.gaps,
                     last_checked = NOW()
-            """, (
-                section_id,
-                criterion,
-                data['addressed'],
-                data['strength'],
-                data['evidence'],
-                data['gaps']
-            ))
-        
+            """,
+                (
+                    section_id,
+                    criterion,
+                    data["addressed"],
+                    data["strength"],
+                    data["evidence"],
+                    data["gaps"],
+                ),
+            )
+
         conn.commit()
         db_pool.putconn(conn)
-        
+
         return {
             "section_id": section_id,
             "analysis": analysis,
-            "message": "Criteria evaluation complete"
+            "message": "Criteria evaluation complete",
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error evaluating criteria: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
 
 @router.post("/check/compliance", summary="Run compliance checks")
 async def check_compliance(
     request: ComplianceCheckRequest,
-    call_doc_service = Depends(get_call_doc_service),
-    db_pool = Depends(get_db_pool)
+    call_doc_service=Depends(get_call_doc_service),
+    db_pool=Depends(get_db_pool),
 ):
     """Run comprehensive compliance checks on a proposal"""
-    
+
     try:
         # Get proposal details
         conn = db_pool.getconn()
         cursor = conn.cursor()
-        
-        cursor.execute("""
+
+        cursor.execute(
+            """
             SELECT call_identifier, proposal_type
             FROM proposals
             WHERE id = %s
-        """, (request.proposal_id,))
-        
+        """,
+            (request.proposal_id,),
+        )
+
         row = cursor.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="Proposal not found")
-        
+
         call_id, proposal_type = row
         db_pool.putconn(conn)
-        
+
         # Build proposal data
         proposal_data = {
             "sections": request.sections,
             "consortium": [p.dict() for p in request.consortium],
-            "budget": request.budget
+            "budget": request.budget,
         }
-        
+
         # Run compliance checks
         compliance_checker = ComplianceChecker(call_doc_service, db_pool)
         compliance_result = await compliance_checker.run_compliance_check(
-            call_id=call_id,
-            proposal_data=proposal_data
+            call_id=call_id, proposal_data=proposal_data
         )
-        
+
         # Store compliance results
         conn = db_pool.getconn()
         cursor = conn.cursor()
-        
+
         # Clear old checks
-        cursor.execute("""
+        cursor.execute(
+            """
             DELETE FROM compliance_checks WHERE proposal_id = %s
-        """, (request.proposal_id,))
-        
+        """,
+            (request.proposal_id,),
+        )
+
         # Insert new checks
-        for check in compliance_result['detailed_checks']:
-            for issue in check['issues']:
-                cursor.execute("""
+        for check in compliance_result["detailed_checks"]:
+            for issue in check["issues"]:
+                cursor.execute(
+                    """
                     INSERT INTO compliance_checks (
                         proposal_id, check_type, check_category,
                         check_result, result_message
                     ) VALUES (%s, %s, %s, %s, %s)
-                """, (
-                    request.proposal_id,
-                    check['check_name'],
-                    'mandatory' if check['priority'] == 'critical' else 'recommended',
-                    check['status'],
-                    issue
-                ))
-        
+                """,
+                    (
+                        request.proposal_id,
+                        check["check_name"],
+                        "mandatory" if check["priority"] == "critical" else "recommended",
+                        check["status"],
+                        issue,
+                    ),
+                )
+
         conn.commit()
         db_pool.putconn(conn)
-        
+
         return {
             "proposal_id": request.proposal_id,
             "compliance": compliance_result,
-            "message": "Compliance check complete"
+            "message": "Compliance check complete",
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error checking compliance: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
 
 # ================================================================
 # BUDGET GENERATION
 # ================================================================
 
+
 @router.post("/budget/generate", summary="Generate budget table")
 async def generate_budget(request: BudgetGenerationRequest):
     """Generate a complete budget table with all calculations"""
-    
+
     try:
         budget_assistant = BudgetAssistant()
-        
+
         # Prepare project params
         project_params = {
             "duration_months": request.duration_months,
             "partners": [p.dict() for p in request.partners],
-            "total_budget": request.total_budget
+            "total_budget": request.total_budget,
         }
-        
+
         # Generate budget
         budget_result = await budget_assistant.generate_budget_table(
             call_id=request.call_id,
             proposal_type=request.proposal_type,
-            project_params=project_params
+            project_params=project_params,
         )
-        
+
         return {
             "success": True,
             "call_id": request.call_id,
             "budget": budget_result,
-            "message": "Budget generated successfully!"
+            "message": "Budget generated successfully!",
         }
-        
+
     except Exception as e:
         logger.error(f"Error generating budget: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
 
 # ================================================================
 # QUALITY IMPROVEMENT
 # ================================================================
 
+
 @router.post("/quality/analyze", summary="Analyze section quality")
-async def analyze_quality(
-    section_id: int,
-    db_pool = Depends(get_db_pool)
-):
+async def analyze_quality(section_id: int, db_pool=Depends(get_db_pool)):
     """Run comprehensive quality analysis on a section"""
-    
+
     try:
         # Get section content
         conn = db_pool.getconn()
         cursor = conn.cursor()
-        
-        cursor.execute("""
+
+        cursor.execute(
+            """
             SELECT section_content, section_id
             FROM proposal_sections
             WHERE id = %s AND is_current = TRUE
-        """, (section_id,))
-        
+        """,
+            (section_id,),
+        )
+
         row = cursor.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="Section not found")
-        
+
         section_content, section_id_str = row
         db_pool.putconn(conn)
-        
+
         # Analyze quality (uses ProposalAIService internally)
         quality_improver = QualityImprover()
-        
+
         analysis = await quality_improver.analyze_quality(
-            section_text=section_content,
-            section_type=section_id_str
+            section_text=section_content, section_type=section_id_str
         )
-        
+
         # Store improvement suggestions
         conn = db_pool.getconn()
         cursor = conn.cursor()
-        
-        for suggestion in analysis.get('improvement_suggestions', []):
-            cursor.execute("""
+
+        for suggestion in analysis.get("improvement_suggestions", []):
+            cursor.execute(
+                """
                 INSERT INTO improvement_suggestions (
                     section_id, proposal_id, suggestion_type,
                     suggestion_text, priority
@@ -743,190 +795,189 @@ async def analyze_quality(
                 SELECT %s, proposal_id, %s, %s, %s
                 FROM proposal_sections
                 WHERE id = %s
-            """, (
-                section_id,
-                suggestion['type'],
-                suggestion['suggestion'],
-                suggestion['priority'],
-                section_id
-            ))
-        
+            """,
+                (
+                    section_id,
+                    suggestion["type"],
+                    suggestion["suggestion"],
+                    suggestion["priority"],
+                    section_id,
+                ),
+            )
+
         conn.commit()
         db_pool.putconn(conn)
-        
+
         return {
             "section_id": section_id,
             "quality_analysis": analysis,
-            "message": "Quality analysis complete"
+            "message": "Quality analysis complete",
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error analyzing quality: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
 
 # ================================================================
 # EXPORT & FINALIZATION
 # ================================================================
 
+
 @router.get("/{proposal_id}/export/summary", summary="Export proposal summary")
-async def export_summary(
-    proposal_id: int,
-    db_pool = Depends(get_db_pool)
-):
+async def export_summary(proposal_id: int, db_pool=Depends(get_db_pool)):
     """Export a complete proposal summary in JSON format"""
-    
+
     try:
         conn = db_pool.getconn()
         cursor = conn.cursor()
-        
+
         # Get proposal overview
         cursor.execute("SELECT * FROM proposal_overview WHERE id = %s", (proposal_id,))
         overview = cursor.fetchone()
-        
+
         if not overview:
             raise HTTPException(status_code=404, detail="Proposal not found")
-        
+
         # Get sections
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT section_id, section_name, section_content, word_count
             FROM proposal_sections
             WHERE proposal_id = %s AND is_current = TRUE
             ORDER BY section_order
-        """, (proposal_id,))
+        """,
+            (proposal_id,),
+        )
         sections = cursor.fetchall()
-        
+
         # Get consortium
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT partner_name, partner_country, partner_type, partner_role
             FROM proposal_consortium
             WHERE proposal_id = %s
-        """, (proposal_id,))
+        """,
+            (proposal_id,),
+        )
         consortium = cursor.fetchall()
-        
+
         # Get budget
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT partner_name, total_eligible_costs, requested_funding
             FROM proposal_budgets
             WHERE proposal_id = %s
-        """, (proposal_id,))
+        """,
+            (proposal_id,),
+        )
         budget = cursor.fetchall()
-        
+
         db_pool.putconn(conn)
-        
+
         return {
             "proposal_id": proposal_id,
             "overview": {
                 "title": overview[2],
                 "call_id": overview[1],
                 "status": overview[4],
-                "completion": overview[5]
+                "completion": overview[5],
             },
             "sections": [
-                {
-                    "id": s[0],
-                    "name": s[1],
-                    "content": s[2],
-                    "words": s[3]
-                }
-                for s in sections
+                {"id": s[0], "name": s[1], "content": s[2], "words": s[3]} for s in sections
             ],
             "consortium": [
-                {
-                    "name": c[0],
-                    "country": c[1],
-                    "type": c[2],
-                    "role": c[3]
-                }
-                for c in consortium
+                {"name": c[0], "country": c[1], "type": c[2], "role": c[3]} for c in consortium
             ],
             "budget_summary": {
                 "total_eligible": sum(b[1] for b in budget) if budget else 0,
-                "total_funding": sum(b[2] for b in budget) if budget else 0
-            }
+                "total_funding": sum(b[2] for b in budget) if budget else 0,
+            },
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error exporting proposal: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # ================================================================
 # OFFICIAL DOCUMENT EXPORT ENDPOINTS
 # ================================================================
 
+
 @router.get("/export/{proposal_id}/part-b")
 async def export_part_b_docx(proposal_id: int):
     """
     Export Part B in official Word format (.docx)
-    
+
     Returns submission-ready Word document with:
     - Proper EU formatting
     - All sections (Excellence, Impact, Implementation)
     - Official structure and styling
     """
-    
+
     try:
-        db_url = os.getenv('DATABASE_URL')
+        db_url = os.getenv("DATABASE_URL")
         db_pool = psycopg2.pool.SimpleConnectionPool(1, 2, db_url)
-        
+
         exporter = SubmissionExporter(db_pool)
         docx_buffer = await exporter.export_part_b(proposal_id)
-        
+
         db_pool.closeall()
-        
+
         from fastapi.responses import StreamingResponse
-        
+
         return StreamingResponse(
             docx_buffer,
             media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             headers={
                 "Content-Disposition": f"attachment; filename=proposal_{proposal_id}_PartB.docx"
-            }
+            },
         )
-        
+
     except Exception as e:
         logger.error(f"Error exporting Part B: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/export/{proposal_id}/budget")
 async def export_budget_excel(proposal_id: int):
     """
     Export budget in official Excel format (.xlsx)
-    
+
     Returns submission-ready Excel with:
     - All partner budgets
     - Cost categories breakdown
     - Funding calculations
     - Official formatting
     """
-    
+
     try:
-        db_url = os.getenv('DATABASE_URL')
+        db_url = os.getenv("DATABASE_URL")
         db_pool = psycopg2.pool.SimpleConnectionPool(1, 2, db_url)
-        
+
         exporter = SubmissionExporter(db_pool)
         xlsx_buffer = await exporter.export_budget(proposal_id)
-        
+
         db_pool.closeall()
-        
+
         from fastapi.responses import StreamingResponse
-        
+
         return StreamingResponse(
             xlsx_buffer,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             headers={
                 "Content-Disposition": f"attachment; filename=proposal_{proposal_id}_Budget.xlsx"
-            }
+            },
         )
-        
+
     except Exception as e:
         logger.error(f"Error exporting budget: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/export/{proposal_id}/complete-package")
@@ -934,84 +985,86 @@ async def export_complete_package(
     proposal_id: int,
     include_budget: bool = True,
     include_ethics: bool = True,
-    include_security: bool = False
+    include_security: bool = False,
 ):
     """
     Export complete submission package as ZIP
-    
+
     Returns ZIP file containing:
     - Part B Word document
     - Budget Excel file
     - Ethics assessment (if applicable)
     - Security questionnaire (if applicable)
     - README with instructions
-    
+
     READY TO SUBMIT TO EU PORTAL! 🚀
     """
-    
+
     try:
-        db_url = os.getenv('DATABASE_URL')
+        db_url = os.getenv("DATABASE_URL")
         db_pool = psycopg2.pool.SimpleConnectionPool(1, 2, db_url)
-        
+
         exporter = SubmissionExporter(db_pool)
         zip_buffer = await exporter.export_proposal_package(
             proposal_id,
             include_budget=include_budget,
             include_ethics=include_ethics,
-            include_security=include_security
+            include_security=include_security,
         )
-        
+
         db_pool.closeall()
-        
+
         from fastapi.responses import StreamingResponse
-        
+
         return StreamingResponse(
             zip_buffer,
             media_type="application/zip",
             headers={
                 "Content-Disposition": f"attachment; filename=proposal_{proposal_id}_SUBMISSION_PACKAGE.zip"
-            }
+            },
         )
-        
+
     except Exception as e:
         logger.error(f"Error exporting package: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/export/{proposal_id}/ethics")
 async def export_ethics_assessment(proposal_id: int):
     """Export ethics self-assessment document"""
-    
+
     try:
-        db_url = os.getenv('DATABASE_URL')
+        db_url = os.getenv("DATABASE_URL")
         db_pool = psycopg2.pool.SimpleConnectionPool(1, 2, db_url)
-        
+
         exporter = SubmissionExporter(db_pool)
         docx_buffer = await exporter.export_ethics_assessment(proposal_id)
-        
+
         db_pool.closeall()
-        
+
         from fastapi.responses import StreamingResponse
-        
+
         return StreamingResponse(
             docx_buffer,
             media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             headers={
                 "Content-Disposition": f"attachment; filename=proposal_{proposal_id}_Ethics.docx"
-            }
+            },
         )
-        
+
     except Exception as e:
         logger.error(f"Error exporting ethics: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # ================================================================
 # PHASE 2: EVALUATOR SIMULATION (Task 08)
 # ================================================================
 
+
 class EvaluateSectionRequest(BaseModel):
     """Request to evaluate a proposal section."""
+
     section_text: str = Field(..., min_length=50, description="Section content to evaluate")
     section_type: str = Field(..., description="excellence, impact, or implementation")
     section_id: str = Field(..., description="Specific section like objectives, methodology")
@@ -1021,6 +1074,7 @@ class EvaluateSectionRequest(BaseModel):
 
 class EvaluateProposalRequest(BaseModel):
     """Request to evaluate multiple sections."""
+
     sections: dict[str, str] = Field(..., description="section_id -> text mapping")
     action_type: str = Field(default="RIA")
 
@@ -1047,7 +1101,7 @@ async def evaluate_section(request: EvaluateSectionRequest):
             section_type=request.section_type,
             section_id=request.section_id,
             call_id=request.call_id,
-            action_type=request.action_type
+            action_type=request.action_type,
         )
 
         # Generate human-readable report
@@ -1064,7 +1118,7 @@ async def evaluate_section(request: EvaluateSectionRequest):
                     "justification": cs.justification,
                     "strengths": cs.strengths,
                     "weaknesses": cs.weaknesses,
-                    "improvement_for_half_point": cs.improvement_for_half_point
+                    "improvement_for_half_point": cs.improvement_for_half_point,
                 }
                 for cs in result.criterion_scores
             ],
@@ -1072,12 +1126,12 @@ async def evaluate_section(request: EvaluateSectionRequest):
             "weaknesses": result.weaknesses,
             "top_improvements": result.top_improvements,
             "confidence": result.confidence,
-            "formatted_report": report
+            "formatted_report": report,
         }
 
     except Exception as e:
         logger.error(f"Error evaluating section: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/evaluate/proposal", summary="Evaluate full proposal")
@@ -1095,8 +1149,7 @@ async def evaluate_full_proposal(request: EvaluateProposalRequest):
         evaluator = EvaluatorSimulator()
 
         result = await evaluator.evaluate_full_proposal(
-            sections=request.sections,
-            action_type=request.action_type
+            sections=request.sections, action_type=request.action_type
         )
 
         # Add formatted summary
@@ -1106,15 +1159,17 @@ async def evaluate_full_proposal(request: EvaluateProposalRequest):
 
     except Exception as e:
         logger.error(f"Error evaluating proposal: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # ================================================================
 # PHASE 2: SCORE STORAGE & TRACKING (Task 09)
 # ================================================================
 
+
 class SaveScoreRequest(BaseModel):
     """Request to save an evaluation score."""
+
     proposal_id: str
     section_id: str
     section_type: str
@@ -1139,7 +1194,7 @@ async def save_section_score(request: SaveScoreRequest):
             "manual": TriggerType.MANUAL,
             "auto": TriggerType.AUTO,
             "save": TriggerType.SAVE,
-            "batch": TriggerType.BATCH
+            "batch": TriggerType.BATCH,
         }
         trigger = trigger_map.get(request.trigger, TriggerType.MANUAL)
 
@@ -1149,7 +1204,7 @@ async def save_section_score(request: SaveScoreRequest):
             section_type=request.section_type,
             content=request.content,
             score_result=request.score_result,
-            trigger=trigger
+            trigger=trigger,
         )
 
         return {
@@ -1158,12 +1213,12 @@ async def save_section_score(request: SaveScoreRequest):
             "predicted_score": stored.predicted_score,
             "score_tier": stored.score_tier,
             "confidence": stored.confidence,
-            "created_at": stored.created_at.isoformat()
+            "created_at": stored.created_at.isoformat(),
         }
 
     except Exception as e:
         logger.error(f"Error saving score: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/scores/section/{section_id}", summary="Get section score")
@@ -1185,14 +1240,14 @@ async def get_section_score(section_id: str):
             "strengths": score.strengths,
             "weaknesses": score.weaknesses,
             "evaluator_comments": score.evaluator_comments,
-            "created_at": score.created_at.isoformat()
+            "created_at": score.created_at.isoformat(),
         }
 
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error getting score: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/scores/proposal/{proposal_id}", summary="Get all proposal scores")
@@ -1210,16 +1265,16 @@ async def get_proposal_scores(proposal_id: str):
                     "section_type": s.section_type,
                     "predicted_score": s.predicted_score,
                     "score_tier": s.score_tier,
-                    "confidence": s.confidence
+                    "confidence": s.confidence,
                 }
                 for s in scores
             ],
-            "count": len(scores)
+            "count": len(scores),
         }
 
     except Exception as e:
         logger.error(f"Error getting proposal scores: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/scores/proposal/{proposal_id}/summary", summary="Get proposal score summary")
@@ -1232,7 +1287,11 @@ async def get_proposal_score_summary(proposal_id: str):
         if not summary:
             raise HTTPException(status_code=404, detail="No scores found for proposal")
 
-        completion = (summary.sections_scored / summary.total_sections * 100) if summary.total_sections > 0 else 0
+        completion = (
+            (summary.sections_scored / summary.total_sections * 100)
+            if summary.total_sections > 0
+            else 0
+        )
 
         return {
             "proposal_id": summary.proposal_id,
@@ -1245,14 +1304,14 @@ async def get_proposal_score_summary(proposal_id: str):
             "sections_scored": summary.sections_scored,
             "total_sections": summary.total_sections,
             "completion_percentage": round(completion, 1),
-            "last_updated": summary.last_updated.isoformat()
+            "last_updated": summary.last_updated.isoformat(),
         }
 
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error getting proposal summary: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/scores/section/{section_id}/history", summary="Get score history")
@@ -1275,26 +1334,28 @@ async def get_score_history(section_id: str, limit: int = 20):
                     "trigger_type": h.trigger_type,
                     "created_at": h.created_at.isoformat(),
                     "previous_score": h.previous_score,
-                    "score_change": h.score_change
+                    "score_change": h.score_change,
                 }
                 for h in history
             ],
             "trend": trend_data["trend"],
             "trend_data": trend_data.get("data", []),
-            "total_improvement": trend_data.get("total_improvement", 0)
+            "total_improvement": trend_data.get("total_improvement", 0),
         }
 
     except Exception as e:
         logger.error(f"Error getting score history: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # ================================================================
 # PHASE 2: GAP ANALYSIS (Task 10)
 # ================================================================
 
+
 class GapAnalysisRequest(BaseModel):
     """Request for gap analysis."""
+
     content: str = Field(..., min_length=100, description="Section content to analyze")
     section_type: str = Field(..., description="Type of section")
     current_score: float = Field(..., ge=0, le=5, description="Current predicted score")
@@ -1304,6 +1365,7 @@ class GapAnalysisRequest(BaseModel):
 
 class GapClosureRequest(BaseModel):
     """Request for gap closure suggestion."""
+
     gap_id: str
     gap_title: str
     gap_description: str
@@ -1333,7 +1395,7 @@ async def analyze_gaps(request: GapAnalysisRequest):
             section_type=request.section_type,
             current_score=request.current_score,
             target_score=request.target_score,
-            cluster=request.cluster
+            cluster=request.cluster,
         )
 
         return {
@@ -1353,7 +1415,7 @@ async def analyze_gaps(request: GapAnalysisRequest):
                     "effort": g.effort.value,
                     "specific_action": g.specific_action,
                     "example_text": g.example_text,
-                    "related_criterion": g.related_criterion
+                    "related_criterion": g.related_criterion,
                 }
                 for g in result.gaps
             ],
@@ -1361,12 +1423,12 @@ async def analyze_gaps(request: GapAnalysisRequest):
             "total_estimated_impact": result.total_estimated_impact,
             "recommended_priority_order": result.recommended_priority_order,
             "estimated_total_effort": result.estimated_total_effort,
-            "achievable_score": result.achievable_score
+            "achievable_score": result.achievable_score,
         }
 
     except Exception as e:
         logger.error(f"Error analyzing gaps: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/gaps/close-suggestion", summary="Get gap closure suggestion")
@@ -1392,20 +1454,18 @@ async def get_gap_closure_suggestion(request: GapClosureRequest):
             target_state=request.target_state,
             estimated_score_impact=0.3,
             effort=EffortLevel.MODERATE,
-            specific_action=request.specific_action
+            specific_action=request.specific_action,
         )
 
         result = await service.get_gap_closure_suggestion(
-            gap=gap,
-            content=request.content,
-            section_type=request.section_type
+            gap=gap, content=request.content, section_type=request.section_type
         )
 
         return result
 
     except Exception as e:
         logger.error(f"Error getting gap closure suggestion: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/gaps/section/{section_id}/gap/{gap_id}/resolve", summary="Mark gap resolved")
@@ -1414,22 +1474,18 @@ async def mark_gap_resolved(section_id: str, gap_id: str, resolved: bool = True)
     try:
         service = GapAnalysisService()
 
-        await service.track_gap_progress(
-            section_id=section_id,
-            gap_id=gap_id,
-            resolved=resolved
-        )
+        await service.track_gap_progress(section_id=section_id, gap_id=gap_id, resolved=resolved)
 
         return {
             "status": "success",
             "section_id": section_id,
             "gap_id": gap_id,
-            "resolved": resolved
+            "resolved": resolved,
         }
 
     except Exception as e:
         logger.error(f"Error marking gap resolved: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/gaps/section/{section_id}/progress", summary="Get section gap progress")
@@ -1445,12 +1501,12 @@ async def get_section_gap_progress(section_id: str):
             "gaps_resolved": result["gaps_resolved"],
             "completion_percentage": result["completion_percentage"],
             "score_history": result["score_history"],
-            "score_improvement": result["score_improvement"]
+            "score_improvement": result["score_improvement"],
         }
 
     except Exception as e:
         logger.error(f"Error getting section progress: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/gaps/proposal/{proposal_id}/progress", summary="Get proposal gap progress")
@@ -1465,20 +1521,22 @@ async def get_proposal_gap_progress(proposal_id: str):
             "total_gaps": result["total_gaps"],
             "resolved_gaps": result["resolved_gaps"],
             "completion_percentage": result["completion_percentage"],
-            "current_avg_score": result["current_avg_score"]
+            "current_avg_score": result["current_avg_score"],
         }
 
     except Exception as e:
         logger.error(f"Error getting proposal progress: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # ================================================================
 # PHASE 2: COMBINED EVALUATE & ANALYZE ENDPOINT
 # ================================================================
 
+
 class EvaluateAndAnalyzeRequest(BaseModel):
     """Request to evaluate and analyze gaps in one call."""
+
     content: str = Field(..., min_length=100)
     section_type: str
     section_id: str
@@ -1506,7 +1564,7 @@ async def evaluate_and_analyze(request: EvaluateAndAnalyzeRequest):
             section_text=request.content,
             section_type=request.section_type,
             section_id=request.section_id,
-            action_type=request.action_type
+            action_type=request.action_type,
         )
 
         # Analyze gaps
@@ -1517,9 +1575,9 @@ async def evaluate_and_analyze(request: EvaluateAndAnalyzeRequest):
             target_score=request.target_score,
             evaluation_result={
                 "weaknesses": eval_result.weaknesses,
-                "strengths": eval_result.strengths
+                "strengths": eval_result.strengths,
             },
-            cluster=request.cluster
+            cluster=request.cluster,
         )
 
         return {
@@ -1530,7 +1588,7 @@ async def evaluate_and_analyze(request: EvaluateAndAnalyzeRequest):
                 "strengths": eval_result.strengths,
                 "weaknesses": eval_result.weaknesses,
                 "top_improvements": eval_result.top_improvements,
-                "confidence": eval_result.confidence
+                "confidence": eval_result.confidence,
             },
             "gap_analysis": {
                 "current_score": gap_result.current_score,
@@ -1543,30 +1601,32 @@ async def evaluate_and_analyze(request: EvaluateAndAnalyzeRequest):
                         "title": g.title,
                         "specific_action": g.specific_action,
                         "estimated_score_impact": g.estimated_score_impact,
-                        "effort": g.effort.value
+                        "effort": g.effort.value,
                     }
                     for g in gap_result.gaps
                 ],
                 "priority_order": gap_result.recommended_priority_order,
-                "estimated_effort": gap_result.estimated_total_effort
-            }
+                "estimated_effort": gap_result.estimated_total_effort,
+            },
         }
 
     except Exception as e:
         logger.error(f"Error in evaluate-and-analyze: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # ================================================================
 # PHASE 3: SMART REWRITER (Task 11)
 # ================================================================
 
+
 class RewriteRequest(BaseModel):
     """Request to rewrite text with specific improvement focus."""
+
     original_text: str = Field(..., min_length=50, description="Text to rewrite")
     improvement_focus: str = Field(
         default="clarity",
-        description="Focus: clarity, impact, EU terminology, conciseness, structure, persuasiveness"
+        description="Focus: clarity, impact, EU terminology, conciseness, structure, persuasiveness",
     )
     section_type: str = Field(default="objectives", description="Type of section")
     preserve_length: bool = Field(default=False, description="Try to maintain similar word count")
@@ -1574,12 +1634,14 @@ class RewriteRequest(BaseModel):
 
 class RewriteOptionsRequest(BaseModel):
     """Request to generate multiple rewrite options."""
+
     original_text: str = Field(..., min_length=50, description="Text to rewrite")
     section_type: str = Field(default="objectives", description="Type of section")
 
 
 class StyleTransferRequest(BaseModel):
     """Request to rewrite using style from funded proposals."""
+
     original_text: str = Field(..., min_length=50, description="Text to rewrite")
     cluster: str | None = Field(None, description="HE cluster for finding similar proposals")
     action_type: str | None = Field(None, description="RIA, IA, or CSA")
@@ -1588,6 +1650,7 @@ class StyleTransferRequest(BaseModel):
 
 class SentenceRewriteRequest(BaseModel):
     """Request to rewrite a single sentence."""
+
     sentence: str = Field(..., min_length=10, description="Sentence to rewrite")
     context: str = Field(default="", description="Surrounding context")
     improvement: str = Field(default="clarity", description="What to improve")
@@ -1615,28 +1678,22 @@ async def rewrite_for_improvement(request: RewriteRequest):
             original_text=request.original_text,
             improvement_focus=request.improvement_focus,
             section_type=request.section_type,
-            preserve_length=request.preserve_length
+            preserve_length=request.preserve_length,
         )
 
         return {
-            "original": {
-                "text": result.original_text,
-                "word_count": result.word_count_original
-            },
-            "rewritten": {
-                "text": result.rewritten_text,
-                "word_count": result.word_count_rewritten
-            },
+            "original": {"text": result.original_text, "word_count": result.word_count_original},
+            "rewritten": {"text": result.rewritten_text, "word_count": result.word_count_rewritten},
             "style": result.style,
             "changes_made": result.changes_made,
             "before_after_examples": result.before_after_examples,
             "summary": result.improvement_summary,
-            "predicted_score_improvement": result.predicted_score_improvement
+            "predicted_score_improvement": result.predicted_score_improvement,
         }
 
     except Exception as e:
         logger.error(f"Error rewriting text: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/rewrite/options", summary="Generate multiple rewrite versions")
@@ -1655,8 +1712,7 @@ async def generate_rewrite_options(request: RewriteOptionsRequest):
         rewriter = SmartRewriter()
 
         options = await rewriter.generate_rewrite_options(
-            original_text=request.original_text,
-            section_type=request.section_type
+            original_text=request.original_text, section_type=request.section_type
         )
 
         return {
@@ -1666,15 +1722,15 @@ async def generate_rewrite_options(request: RewriteOptionsRequest):
                     "text": result.rewritten_text,
                     "word_count": result.word_count_rewritten,
                     "changes": result.changes_made[:3],  # Top 3 changes
-                    "summary": result.improvement_summary
+                    "summary": result.improvement_summary,
                 }
                 for style, result in options.items()
-            }
+            },
         }
 
     except Exception as e:
         logger.error(f"Error generating rewrite options: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/rewrite/style-transfer", summary="Rewrite using funded proposal style")
@@ -1692,28 +1748,22 @@ async def rewrite_with_style_transfer(request: StyleTransferRequest):
             original_text=request.original_text,
             cluster=request.cluster,
             action_type=request.action_type,
-            section_type=request.section_type
+            section_type=request.section_type,
         )
 
         return {
-            "original": {
-                "text": result.original_text,
-                "word_count": result.word_count_original
-            },
-            "rewritten": {
-                "text": result.rewritten_text,
-                "word_count": result.word_count_rewritten
-            },
+            "original": {"text": result.original_text, "word_count": result.word_count_original},
+            "rewritten": {"text": result.rewritten_text, "word_count": result.word_count_rewritten},
             "style_source": f"Funded {request.cluster or 'similar'} projects",
             "changes_made": result.changes_made,
             "before_after_examples": result.before_after_examples,
             "summary": result.improvement_summary,
-            "predicted_score_improvement": result.predicted_score_improvement
+            "predicted_score_improvement": result.predicted_score_improvement,
         }
 
     except Exception as e:
         logger.error(f"Error in style transfer rewrite: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/rewrite/sentence", summary="Rewrite a single sentence")
@@ -1727,16 +1777,14 @@ async def rewrite_sentence(request: SentenceRewriteRequest):
         rewriter = SmartRewriter()
 
         result = await rewriter.rewrite_sentence(
-            sentence=request.sentence,
-            context=request.context,
-            improvement=request.improvement
+            sentence=request.sentence, context=request.context, improvement=request.improvement
         )
 
         return result
 
     except Exception as e:
         logger.error(f"Error rewriting sentence: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/rewrite/compare", summary="Compare rewrite options with scores")
@@ -1752,22 +1800,21 @@ async def compare_rewrite_versions(request: RewriteOptionsRequest):
 
         # Generate options
         options = await rewriter.generate_rewrite_options(
-            original_text=request.original_text,
-            section_type=request.section_type
+            original_text=request.original_text, section_type=request.section_type
         )
 
         # Compare versions
         comparison = await rewriter.compare_versions(
             original=request.original_text,
             rewrites=list(options.values()),
-            section_type=request.section_type
+            section_type=request.section_type,
         )
 
         return comparison
 
     except Exception as e:
         logger.error(f"Error comparing rewrite versions: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/rewrite/all-styles", summary="Generate all 5 rewrite styles")
@@ -1783,8 +1830,7 @@ async def generate_all_styles(request: RewriteOptionsRequest):
         rewriter = SmartRewriter()
 
         options = await rewriter.rewrite_all_styles(
-            original_text=request.original_text,
-            section_type=request.section_type
+            original_text=request.original_text, section_type=request.section_type
         )
 
         return {
@@ -1795,37 +1841,43 @@ async def generate_all_styles(request: RewriteOptionsRequest):
                     "word_count": result.word_count_rewritten,
                     "changes": result.changes_made,
                     "summary": result.improvement_summary,
-                    "predicted_improvement": result.predicted_score_improvement
+                    "predicted_improvement": result.predicted_score_improvement,
                 }
                 for style, result in options.items()
             },
-            "available_styles": list(options.keys())
+            "available_styles": list(options.keys()),
         }
 
     except Exception as e:
         logger.error(f"Error generating all styles: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # ================================================================
 # PHASE 3: INLINE SUGGESTIONS (Task 13)
 # ================================================================
 
+
 class InlineAnalyzeRequest(BaseModel):
     """Request for inline suggestions analysis."""
+
     text: str = Field(..., min_length=10, description="Text to analyze")
     section_type: str = Field(default="general", description="Type of section")
     cluster: str | None = Field(None, description="HE cluster for context")
-    include_llm: bool = Field(default=True, description="Include AI analysis (slower but more thorough)")
+    include_llm: bool = Field(
+        default=True, description="Include AI analysis (slower but more thorough)"
+    )
 
 
 class QuickAnalyzeRequest(BaseModel):
     """Request for quick inline analysis (no LLM)."""
+
     text: str = Field(..., min_length=5, description="Text to analyze")
 
 
 class TextSpanResponse(BaseModel):
     """Response model for text span."""
+
     start: int
     end: int
     text: str
@@ -1833,6 +1885,7 @@ class TextSpanResponse(BaseModel):
 
 class SuggestionResponse(BaseModel):
     """Response model for a single suggestion."""
+
     id: str
     span: TextSpanResponse
     category: str
@@ -1845,6 +1898,7 @@ class SuggestionResponse(BaseModel):
 
 class InlineAnalysisResponse(BaseModel):
     """Response model for inline analysis."""
+
     suggestions: list[SuggestionResponse]
     score_impact: float
     stats: dict[str, int]
@@ -1873,35 +1927,31 @@ async def analyze_inline_suggestions(request: InlineAnalyzeRequest):
             text=request.text,
             section_type=request.section_type,
             cluster=request.cluster,
-            include_llm_analysis=request.include_llm
+            include_llm_analysis=request.include_llm,
         )
 
         return {
             "suggestions": [
                 {
                     "id": s.id,
-                    "span": {
-                        "start": s.span.start,
-                        "end": s.span.end,
-                        "text": s.span.text
-                    },
+                    "span": {"start": s.span.start, "end": s.span.end, "text": s.span.text},
                     "category": s.category.value,
                     "priority": s.priority.value,
                     "message": s.message,
                     "suggestion": s.suggestion,
                     "replacement": s.replacement,
-                    "learn_more": s.learn_more
+                    "learn_more": s.learn_more,
                 }
                 for s in result.suggestions
             ],
             "score_impact": result.score_impact,
             "stats": result.stats,
-            "total_suggestions": len(result.suggestions)
+            "total_suggestions": len(result.suggestions),
         }
 
     except Exception as e:
         logger.error(f"Error analyzing inline suggestions: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/suggestions/analyze-quick", summary="Quick analysis (no LLM)")
@@ -1921,27 +1971,23 @@ async def analyze_quick(request: QuickAnalyzeRequest):
             "suggestions": [
                 {
                     "id": s.id,
-                    "span": {
-                        "start": s.span.start,
-                        "end": s.span.end,
-                        "text": s.span.text
-                    },
+                    "span": {"start": s.span.start, "end": s.span.end, "text": s.span.text},
                     "category": s.category.value,
                     "priority": s.priority.value,
                     "message": s.message,
                     "suggestion": s.suggestion,
                     "replacement": s.replacement,
-                    "learn_more": s.learn_more
+                    "learn_more": s.learn_more,
                 }
                 for s in result.suggestions
             ],
             "score_impact": result.score_impact,
-            "stats": result.stats
+            "stats": result.stats,
         }
 
     except Exception as e:
         logger.error(f"Error in quick analysis: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/suggestions/feedback", summary="Get quick feedback counts")
@@ -1960,7 +2006,7 @@ async def get_quick_feedback(request: QuickAnalyzeRequest):
 
     except Exception as e:
         logger.error(f"Error getting quick feedback: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/suggestions/categories", summary="Get suggestion categories")
@@ -1977,57 +2023,57 @@ async def get_suggestion_categories():
                 "name": "EU Terminology",
                 "description": "Use official European Union terminology",
                 "icon": "flag-eu",
-                "color": "#003399"
+                "color": "#003399",
             },
             {
                 "id": "clarity",
                 "name": "Clarity",
                 "description": "Make the text clearer and easier to understand",
                 "icon": "lightbulb",
-                "color": "#fbbf24"
+                "color": "#fbbf24",
             },
             {
                 "id": "specificity",
                 "name": "Specificity",
                 "description": "Add specific details, numbers, or evidence",
                 "icon": "target",
-                "color": "#ef4444"
+                "color": "#ef4444",
             },
             {
                 "id": "impact",
                 "name": "Impact",
                 "description": "Strengthen impact statements",
                 "icon": "trending-up",
-                "color": "#10b981"
+                "color": "#10b981",
             },
             {
                 "id": "passive_voice",
                 "name": "Passive Voice",
                 "description": "Consider using active voice",
                 "icon": "edit",
-                "color": "#8b5cf6"
+                "color": "#8b5cf6",
             },
             {
                 "id": "wordiness",
                 "name": "Wordiness",
                 "description": "Can be more concise",
                 "icon": "scissors",
-                "color": "#6366f1"
+                "color": "#6366f1",
             },
             {
                 "id": "weak_verb",
                 "name": "Weak Verb",
                 "description": "Consider a stronger verb",
                 "icon": "zap",
-                "color": "#f59e0b"
+                "color": "#f59e0b",
             },
             {
                 "id": "vague_claim",
                 "name": "Vague Claim",
                 "description": "Needs quantification or evidence",
                 "icon": "help-circle",
-                "color": "#ef4444"
-            }
+                "color": "#ef4444",
+            },
         ]
     }
 
@@ -2036,8 +2082,10 @@ async def get_suggestion_categories():
 # PHASE 3: COMBINED REWRITE WITH SUGGESTIONS
 # ================================================================
 
+
 class RewriteWithSuggestionsRequest(BaseModel):
     """Request for combined rewrite + suggestions."""
+
     original_text: str = Field(..., min_length=50)
     section_type: str = Field(default="objectives")
     improvement_focus: str = Field(default="clarity")
@@ -2062,14 +2110,14 @@ async def rewrite_with_suggestions(request: RewriteWithSuggestionsRequest):
         rewrite_result = await rewriter.rewrite_for_improvement(
             original_text=request.original_text,
             improvement_focus=request.improvement_focus,
-            section_type=request.section_type
+            section_type=request.section_type,
         )
 
         # Analyze the rewritten text for remaining issues
         suggestion_result = await suggestion_service.analyze_text(
             text=rewrite_result.rewritten_text,
             section_type=request.section_type,
-            include_llm_analysis=False  # Quick check only
+            include_llm_analysis=False,  # Quick check only
         )
 
         response = {
@@ -2077,36 +2125,28 @@ async def rewrite_with_suggestions(request: RewriteWithSuggestionsRequest):
                 "text": rewrite_result.rewritten_text,
                 "word_count": rewrite_result.word_count_rewritten,
                 "changes_made": rewrite_result.changes_made,
-                "summary": rewrite_result.improvement_summary
+                "summary": rewrite_result.improvement_summary,
             },
             "remaining_suggestions": [
                 {
                     "id": s.id,
-                    "span": {
-                        "start": s.span.start,
-                        "end": s.span.end,
-                        "text": s.span.text
-                    },
+                    "span": {"start": s.span.start, "end": s.span.end, "text": s.span.text},
                     "category": s.category.value,
                     "message": s.message,
-                    "replacement": s.replacement
+                    "replacement": s.replacement,
                 }
                 for s in suggestion_result.suggestions
             ],
-            "remaining_issues_count": len(suggestion_result.suggestions)
+            "remaining_issues_count": len(suggestion_result.suggestions),
         }
 
         # Optionally include alternative styles
         if request.include_alternatives:
             alternatives = await rewriter.generate_rewrite_options(
-                original_text=request.original_text,
-                section_type=request.section_type
+                original_text=request.original_text, section_type=request.section_type
             )
             response["alternatives"] = {
-                style: {
-                    "text": result.rewritten_text,
-                    "summary": result.improvement_summary
-                }
+                style: {"text": result.rewritten_text, "summary": result.improvement_summary}
                 for style, result in alternatives.items()
             }
 
@@ -2114,7 +2154,7 @@ async def rewrite_with_suggestions(request: RewriteWithSuggestionsRequest):
 
     except Exception as e:
         logger.error(f"Error in rewrite with suggestions: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # ================================================================
@@ -2127,17 +2167,12 @@ import json
 from fastapi import WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 
-from ..services.proposal_writing.dashboard_service import (
-    DashboardService,
-)
-from ..services.proposal_writing.progress_tracking_service import (
-    ProgressTrackingService,
-)
-from ..services.proposal_writing.realtime_quality_service import (
-    RealTimeQualityService,
-)
+from ..services.proposal_writing.dashboard_service import DashboardService
+from ..services.proposal_writing.progress_tracking_service import ProgressTrackingService
+from ..services.proposal_writing.realtime_quality_service import RealTimeQualityService
 
 # --- Real-Time Quality Streaming Endpoints ---
+
 
 class QuickScoreRequest(BaseModel):
     content: str = Field(..., description="Text content to analyze")
@@ -2163,12 +2198,12 @@ async def get_quick_score(request: QuickScoreRequest):
         return {
             "score": estimated_score,
             "tier": tier.value,
-            "suggestion_count": quick_result.get('total', 0),
-            "tier_message": service._get_tier_message(tier)
+            "suggestion_count": quick_result.get("total", 0),
+            "tier_message": service._get_tier_message(tier),
         }
     except Exception as e:
         logger.error(f"Error getting quick score: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 class StreamQualityRequest(BaseModel):
@@ -2180,10 +2215,7 @@ class StreamQualityRequest(BaseModel):
 
 @router.post("/quality/stream/{section_id}", summary="Stream quality feedback (SSE)")
 async def stream_quality_sse(
-    section_id: str,
-    content: str,
-    section_type: str = "general",
-    cluster: str | None = None
+    section_id: str, content: str, section_type: str = "general", cluster: str | None = None
 ):
     """
     Server-Sent Events endpoint for streaming quality feedback.
@@ -2195,10 +2227,7 @@ async def stream_quality_sse(
 
     async def generate():
         async for feedback in service.stream_feedback(
-            content=content,
-            section_type=section_type,
-            section_id=section_id,
-            cluster=cluster
+            content=content, section_type=section_type, section_id=section_id, cluster=cluster
         ):
             yield f"data: {json.dumps(feedback.to_dict())}\n\n"
 
@@ -2208,7 +2237,7 @@ async def stream_quality_sse(
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
-        }
+        },
     )
 
 
@@ -2238,7 +2267,7 @@ async def quality_websocket(websocket: WebSocket, section_id: str):
                     content=content,
                     section_type=section_type,
                     section_id=section_id,
-                    cluster=cluster
+                    cluster=cluster,
                 ):
                     await websocket.send_json(feedback.to_dict())
 
@@ -2250,6 +2279,7 @@ async def quality_websocket(websocket: WebSocket, section_id: str):
 
 
 # --- Progress Tracking Endpoints ---
+
 
 class ProgressResponse(BaseModel):
     completion_percentage: float
@@ -2292,7 +2322,9 @@ class CheckAchievementsRequest(BaseModel):
     score_improvement: float | None = 0
 
 
-@router.get("/progress/{proposal_id}", response_model=ProgressResponse, summary="Get proposal progress")
+@router.get(
+    "/progress/{proposal_id}", response_model=ProgressResponse, summary="Get proposal progress"
+)
 async def get_proposal_progress(proposal_id: str):
     """Get progress snapshot for a proposal."""
     try:
@@ -2310,14 +2342,16 @@ async def get_proposal_progress(proposal_id: str):
             total_gaps=progress.total_gaps,
             suggestions_accepted=progress.suggestions_accepted,
             rewrites_applied=progress.rewrites_applied,
-            time_spent_minutes=progress.time_spent_minutes
+            time_spent_minutes=progress.time_spent_minutes,
         )
     except Exception as e:
         logger.error(f"Error getting progress: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@router.get("/progress/user/{user_id}/streak", response_model=StreakResponse, summary="Get user streak")
+@router.get(
+    "/progress/user/{user_id}/streak", response_model=StreakResponse, summary="Get user streak"
+)
 async def get_user_streak(user_id: str):
     """Get user's current writing streak."""
     try:
@@ -2327,12 +2361,14 @@ async def get_user_streak(user_id: str):
         return StreakResponse(
             current_streak=streak.current_streak,
             longest_streak=streak.longest_streak,
-            last_activity_date=str(streak.last_activity_date) if streak.last_activity_date else None,
-            is_active=streak.is_active
+            last_activity_date=(
+                str(streak.last_activity_date) if streak.last_activity_date else None
+            ),
+            is_active=streak.is_active,
         )
     except Exception as e:
         logger.error(f"Error getting streak: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/progress/user/{user_id}/record-activity", summary="Record user activity")
@@ -2342,13 +2378,10 @@ async def record_user_activity(user_id: str):
         service = ProgressTrackingService()
         streak = await service.record_activity(user_id)
 
-        return {
-            "current_streak": streak.current_streak,
-            "is_active": streak.is_active
-        }
+        return {"current_streak": streak.current_streak, "is_active": streak.is_active}
     except Exception as e:
         logger.error(f"Error recording activity: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/progress/achievements/all", summary="Get all achievements")
@@ -2361,7 +2394,7 @@ async def get_all_achievements(user_id: str | None = None):
         return {"achievements": achievements}
     except Exception as e:
         logger.error(f"Error getting achievements: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/progress/check-achievements", summary="Check and award achievements")
@@ -2374,13 +2407,11 @@ async def check_achievements(request: CheckAchievementsRequest):
             "word_count": request.word_count,
             "total_words": request.total_words,
             "score": request.score,
-            "score_improvement": request.score_improvement
+            "score_improvement": request.score_improvement,
         }
 
         new_achievements = await service.check_achievements(
-            user_id=request.user_id,
-            proposal_id=request.proposal_id,
-            context=context
+            user_id=request.user_id, proposal_id=request.proposal_id, context=context
         )
 
         return {
@@ -2391,17 +2422,18 @@ async def check_achievements(request: CheckAchievementsRequest):
                     "description": a.achievement.description,
                     "icon": a.achievement.icon,
                     "points": a.achievement.points,
-                    "rarity": a.achievement.rarity.value
+                    "rarity": a.achievement.rarity.value,
                 }
                 for a in new_achievements
             ]
         }
     except Exception as e:
         logger.error(f"Error checking achievements: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # --- Dashboard Endpoints ---
+
 
 class SectionSummaryResponse(BaseModel):
     id: str
@@ -2459,7 +2491,9 @@ class DashboardResponse(BaseModel):
     streak: int
 
 
-@router.get("/dashboard/{proposal_id}", response_model=DashboardResponse, summary="Get proposal dashboard")
+@router.get(
+    "/dashboard/{proposal_id}", response_model=DashboardResponse, summary="Get proposal dashboard"
+)
 async def get_proposal_dashboard(proposal_id: str, user_id: str):
     """
     Get complete dashboard data for a proposal.
@@ -2492,7 +2526,7 @@ async def get_proposal_dashboard(proposal_id: str, user_id: str):
                     word_count=s.word_count,
                     score=s.score,
                     gap_count=s.gap_count,
-                    suggestion_count=s.suggestion_count
+                    suggestion_count=s.suggestion_count,
                 )
                 for s in data.sections
             ],
@@ -2507,7 +2541,7 @@ async def get_proposal_dashboard(proposal_id: str, user_id: str):
                     section_title=a.section_title,
                     action_type=a.action_type,
                     estimated_minutes=a.estimated_minutes,
-                    impact=a.impact
+                    impact=a.impact,
                 )
                 for a in data.next_actions
             ],
@@ -2519,21 +2553,21 @@ async def get_proposal_dashboard(proposal_id: str, user_id: str):
                     description=c.description,
                     passed=c.passed,
                     details=c.details,
-                    blocking=c.blocking
+                    blocking=c.blocking,
                 )
                 for c in data.readiness_checks
             ],
             readiness_score=data.readiness_score,
             time_spent_minutes=data.time_spent_minutes,
             days_until_deadline=data.days_until_deadline,
-            streak=data.streak
+            streak=data.streak,
         )
 
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
         logger.error(f"Error getting dashboard: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/dashboard/{proposal_id}/summary", summary="Get quick dashboard summary")
@@ -2545,5 +2579,4 @@ async def get_dashboard_summary(proposal_id: str):
         return summary
     except Exception as e:
         logger.error(f"Error getting dashboard summary: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
+        raise HTTPException(status_code=500, detail=str(e)) from e

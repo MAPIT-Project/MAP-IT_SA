@@ -26,9 +26,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # Test Fixtures and Mock Data
 # ============================================================================
 
+
 @dataclass
 class MockCallResult:
     """Mock result for funding call tools."""
+
     call_id: str = "HORIZON-CL5-2024-D3-01"
     title: str = "Clean Hydrogen Research"
     deadline: str = "2024-06-15"
@@ -41,6 +43,7 @@ class MockCallResult:
 @dataclass
 class MockProjectResult:
     """Mock result for project tools."""
+
     project_id: str = "101000001"
     acronym: str = "HYDSTOR"
     title: str = "Hydrogen Storage Solutions"
@@ -53,6 +56,7 @@ class MockProjectResult:
 @dataclass
 class MockOrganization:
     """Mock result for partner tools."""
+
     name: str = "Technical University of Munich"
     country: str = "DE"
     entity_type: str = "HES"
@@ -76,16 +80,16 @@ class MockToolResults:
                     "call_id": f"HORIZON-CL5-2024-D3-0{i}",
                     "title": f"{topic.title()} Research Call {i}",
                     "description": f"This call focuses on {topic} research and innovation...",
-                    "deadline": f"2024-0{6+i}-15",
+                    "deadline": f"2024-0{6 + i}-15",
                     "action_type": "RIA" if i % 2 == 0 else "IA",
                     "cluster": "CL5",
-                    "budget": f"{(i+1)*5}M EUR",
-                    "work_programme": "2024"
+                    "budget": f"{(i + 1) * 5}M EUR",
+                    "work_programme": "2024",
                 }
                 for i in range(1, count + 1)
             ],
             "current_date": datetime.now().strftime("%Y-%m-%d"),
-            "search_metadata": {"source": "local_database", "api_used": False}
+            "search_metadata": {"source": "local_database", "api_used": False},
         }
 
     @staticmethod
@@ -110,11 +114,11 @@ class MockToolResults:
                     "coordinator_country": countries[i % len(countries)],
                     "consortium_size": 5 + i,
                     "objectives": f"This project aims to advance {topic} research...",
-                    "cluster": "CL4" if "ai" in topic.lower() else "CL5"
+                    "cluster": "CL4" if "ai" in topic.lower() else "CL5",
                 }
                 for i in range(1, count + 1)
             ],
-            "search_metadata": {"sources": ["postgresql", "neo4j"], "total_time_ms": 150}
+            "search_metadata": {"sources": ["postgresql", "neo4j"], "total_time_ms": 150},
         }
 
     @staticmethod
@@ -125,16 +129,16 @@ class MockToolResults:
             "tool_name": "search_local_database",
             "documents": [
                 {
-                    "title": f"Horizon Europe Work Programme 202{4+i}",
+                    "title": f"Horizon Europe Work Programme 202{4 + i}",
                     "content": "The minimum consortium composition requires at least 3 independent legal entities from 3 different EU Member States or Associated Countries.",
                     "source": "horizon_europe_wp",
                     "chunk_id": f"chunk_{i}",
-                    "relevance_score": 0.95 - (i * 0.1)
+                    "relevance_score": 0.95 - (i * 0.1),
                 }
                 for i in range(count)
             ],
             "query": query,
-            "results_count": count
+            "results_count": count,
         }
 
     @staticmethod
@@ -155,9 +159,9 @@ class MockToolResults:
                 "top_countries": [
                     {"country": "DE", "projects": 312, "share": 25.0},
                     {"country": "FR", "projects": 187, "share": 15.0},
-                    {"country": "NL", "projects": 156, "share": 12.5}
-                ]
-            }
+                    {"country": "NL", "projects": 156, "share": 12.5},
+                ],
+            },
         }
 
     @staticmethod
@@ -174,13 +178,13 @@ class MockToolResults:
                 "success_rate_percent": 18.5,
                 "top_clusters": [
                     {"cluster": "CL4", "projects": 420, "funding": 850000000},
-                    {"cluster": "CL5", "projects": 380, "funding": 720000000}
+                    {"cluster": "CL5", "projects": 380, "funding": 720000000},
                 ],
                 "top_organizations": [
                     {"name": "Fraunhofer", "projects": 245},
-                    {"name": "Max Planck", "projects": 189}
-                ]
-            }
+                    {"name": "Max Planck", "projects": 189},
+                ],
+            },
         }
 
     @staticmethod
@@ -191,28 +195,16 @@ class MockToolResults:
             "tool_name": "compare_programmes",
             "programmes": [prog1, prog2],
             "comparison": {
-                "target_applicants": {
-                    prog1: "Individual researchers",
-                    prog2: "SMEs and startups"
-                },
-                "funding_range": {
-                    prog1: "€1.5M - €10M",
-                    prog2: "Up to €17.5M (blended finance)"
-                },
-                "success_rate": {
-                    prog1: "12%",
-                    prog2: "8%"
-                },
+                "target_applicants": {prog1: "Individual researchers", prog2: "SMEs and startups"},
+                "funding_range": {prog1: "€1.5M - €10M", prog2: "Up to €17.5M (blended finance)"},
+                "success_rate": {prog1: "12%", prog2: "8%"},
                 "evaluation_criteria": {
                     prog1: "Scientific excellence",
-                    prog2: "Innovation and market potential"
+                    prog2: "Innovation and market potential",
                 },
-                "typical_duration": {
-                    prog1: "5 years",
-                    prog2: "2-3 years"
-                }
+                "typical_duration": {prog1: "5 years", prog2: "2-3 years"},
             },
-            "recommendation": f"Choose {prog1} for fundamental research, {prog2} for market-ready innovation"
+            "recommendation": f"Choose {prog1} for fundamental research, {prog2} for market-ready innovation",
         }
 
     @staticmethod
@@ -232,16 +224,16 @@ class MockToolResults:
                 "average_eu_contribution": 5800000,
                 "median_per_partner": 625000,
                 "average_consortium_size": 8,
-                "median_consortium_size": 7
+                "median_consortium_size": 7,
             },
             "sample_projects": [
                 {"acronym": "EXAMPLE1", "ec_contribution": 4500000, "partners": 7},
-                {"acronym": "EXAMPLE2", "ec_contribution": 6200000, "partners": 9}
+                {"acronym": "EXAMPLE2", "ec_contribution": 6200000, "partners": 9},
             ],
             "recommendations": [
                 "For RIA with 8 partners, target €4-6M EU contribution",
-                "Budget €500-700K per partner"
-            ]
+                "Budget €500-700K per partner",
+            ],
         }
 
     @staticmethod
@@ -259,26 +251,23 @@ class MockToolResults:
                     "HES": {"average_count": 3.5, "percentage": 38.0},
                     "REC": {"average_count": 2.8, "percentage": 30.4},
                     "PRC": {"average_count": 2.1, "percentage": 22.8},
-                    "SME": {"average_count": 0.8, "percentage": 8.7}
+                    "SME": {"average_count": 0.8, "percentage": 8.7},
                 },
                 "top_coordinator_types": [
                     {"type": "HES", "count": 180, "percentage": 56.2},
-                    {"type": "REC", "count": 95, "percentage": 29.7}
+                    {"type": "REC", "count": 95, "percentage": 29.7},
                 ],
                 "top_coordinator_countries": [
                     {"country": "DE", "count": 72, "percentage": 22.5},
-                    {"country": "NL", "count": 45, "percentage": 14.1}
+                    {"country": "NL", "count": 45, "percentage": 14.1},
                 ],
-                "country_diversity": {
-                    "average_countries": 7.5,
-                    "median_countries": 7
-                }
+                "country_diversity": {"average_countries": 7.5, "median_countries": 7},
             },
             "recommendations": [
                 "Target 8-10 partners for optimal consortium",
                 "Include 3-4 universities (HES) and 2-3 research institutes (REC)",
-                "Ensure at least 7 different countries for geographic diversity"
-            ]
+                "Ensure at least 7 different countries for geographic diversity",
+            ],
         }
 
     @staticmethod
@@ -300,8 +289,8 @@ class MockToolResults:
                     "total_horizon_projects": 89,
                     "recent_projects": [
                         {"acronym": "AIPROJECT1", "role": "coordinator"},
-                        {"acronym": "AIPROJECT2", "role": "participant"}
-                    ]
+                        {"acronym": "AIPROJECT2", "role": "participant"},
+                    ],
                 },
                 {
                     "name": "CNRS",
@@ -310,7 +299,7 @@ class MockToolResults:
                     "experience_score": 92,
                     "relevant_projects": 10,
                     "coordination_experience": 3,
-                    "total_horizon_projects": 156
+                    "total_horizon_projects": 156,
                 },
                 {
                     "name": "Fraunhofer",
@@ -319,9 +308,9 @@ class MockToolResults:
                     "experience_score": 90,
                     "relevant_projects": 9,
                     "coordination_experience": 4,
-                    "total_horizon_projects": 245
-                }
-            ][:15]
+                    "total_horizon_projects": 245,
+                },
+            ][:15],
         }
 
     @staticmethod
@@ -341,7 +330,7 @@ class MockToolResults:
                     "consortium_size": 8,
                     "coordinator_country": "DE",
                     "keywords": ["AI", "machine learning", "data"],
-                    "start_date": "2023-01-01"
+                    "start_date": "2023-01-01",
                 },
                 {
                     "project_id": "101000002",
@@ -350,15 +339,15 @@ class MockToolResults:
                     "similarity_score": 0.85,
                     "ec_contribution": 5200000,
                     "consortium_size": 10,
-                    "coordinator_country": "NL"
-                }
+                    "coordinator_country": "NL",
+                },
             ],
             "insights": {
                 "average_budget": 4850000,
                 "average_consortium_size": 9,
                 "common_keywords": ["AI", "machine learning", "data analysis"],
-                "funding_trend": "increasing"
-            }
+                "funding_trend": "increasing",
+            },
         }
 
     @staticmethod
@@ -375,24 +364,24 @@ class MockToolResults:
                 "timeline": {
                     "2021": {"calls": 35, "projects": 280, "funding": 1100000000},
                     "2022": {"calls": 40, "projects": 320, "funding": 1400000000},
-                    "2023": {"calls": 50, "projects": 380, "funding": 2000000000}
+                    "2023": {"calls": 50, "projects": 380, "funding": 2000000000},
                 },
                 "action_type_breakdown": {
                     "RIA": {"calls": 65, "funding_share": 55.0},
                     "IA": {"calls": 45, "funding_share": 35.0},
-                    "CSA": {"calls": 15, "funding_share": 10.0}
+                    "CSA": {"calls": 15, "funding_share": 10.0},
                 },
                 "top_topics": [
                     {"topic_pattern": "AI*", "calls": 25, "trend": "increasing"},
-                    {"topic_pattern": "DATA*", "calls": 18, "trend": "stable"}
+                    {"topic_pattern": "DATA*", "calls": 18, "trend": "stable"},
                 ],
                 "trend_detection": "increasing",
-                "trend_confidence": 0.85
+                "trend_confidence": 0.85,
             },
             "recommendations": [
                 "Funding in this area is growing - good time to apply",
-                "RIA is the dominant action type"
-            ]
+                "RIA is the dominant action type",
+            ],
         }
 
     @staticmethod
@@ -408,21 +397,22 @@ class MockToolResults:
                 "answer_context": "Based on the graph and vector search...",
                 "graph_results": [
                     {"type": "call", "id": "HORIZON-CL5-2024-D3-01", "title": "Clean Hydrogen"},
-                    {"type": "project", "id": "101000001", "title": "H2STORE"}
+                    {"type": "project", "id": "101000001", "title": "H2STORE"},
                 ],
                 "vector_results": [
-                    {"title": "Work Programme 2024", "content": "Hydrogen storage...", "score": 0.88}
+                    {
+                        "title": "Work Programme 2024",
+                        "content": "Hydrogen storage...",
+                        "score": 0.88,
+                    }
                 ],
-                "sources": [
-                    {"type": "neo4j", "count": 5},
-                    {"type": "vector", "count": 3}
-                ],
-                "total_time_ms": 245
+                "sources": [{"type": "neo4j", "count": 5}, {"type": "vector", "count": 3}],
+                "total_time_ms": 245,
             },
             "metadata": {
                 "search_type": "intelligent_hybrid",
-                "data_sources_used": ["neo4j", "vector"]
-            }
+                "data_sources_used": ["neo4j", "vector"],
+            },
         }
 
     @staticmethod
@@ -438,24 +428,20 @@ class MockToolResults:
                         "country": "NL",
                         "entity_type": "HES",
                         "experience_score": 95,
-                        "complementary_to": ["TUM", "CEA"]
+                        "complementary_to": ["TUM", "CEA"],
                     },
                     {
                         "organization": "CEA",
                         "country": "FR",
                         "entity_type": "REC",
-                        "experience_score": 92
-                    }
+                        "experience_score": 92,
+                    },
                 ],
                 "countries_covered": ["NL", "FR", "DE", "ES", "IT"],
                 "entity_mix": {"HES": 3, "REC": 2, "PRC": 2, "SME": 1},
-                "cluster": cluster_code
-            },
-            "metadata": {
                 "cluster": cluster_code,
-                "partners_suggested": 8,
-                "countries_covered": 5
-            }
+            },
+            "metadata": {"cluster": cluster_code, "partners_suggested": 8, "countries_covered": 5},
         }
 
     @staticmethod
@@ -469,25 +455,24 @@ class MockToolResults:
                 "partner_count": len(partners),
                 "country_count": len(set(p.get("country") for p in partners)),
                 "issues": [],
-                "warnings": [
-                    "Consider adding an SME partner for better evaluation"
-                ],
+                "warnings": ["Consider adding an SME partner for better evaluation"],
                 "eligibility_check": {
-                    "minimum_partners": {"required": 3, "actual": len(partners), "passed": len(partners) >= 3},
-                    "country_diversity": {"required": 3, "actual": 4, "passed": True}
-                }
+                    "minimum_partners": {
+                        "required": 3,
+                        "actual": len(partners),
+                        "passed": len(partners) >= 3,
+                    },
+                    "country_diversity": {"required": 3, "actual": 4, "passed": True},
+                },
             },
-            "metadata": {
-                "is_compliant": True,
-                "issues_count": 0,
-                "warnings_count": 1
-            }
+            "metadata": {"is_compliant": True, "issues_count": 0, "warnings_count": 1},
         }
 
 
 # ============================================================================
 # TOOL 1: search_funding_calls
 # ============================================================================
+
 
 class TestSearchFundingCallsTool:
     """Tests for the search_funding_calls tool."""
@@ -547,6 +532,7 @@ class TestSearchFundingCallsTool:
 # TOOL 2: search_projects
 # ============================================================================
 
+
 class TestSearchProjectsTool:
     """Tests for the search_projects tool."""
 
@@ -597,6 +583,7 @@ class TestSearchProjectsTool:
 # TOOL 3: search_documents (search_local_database)
 # ============================================================================
 
+
 class TestSearchDocumentsTool:
     """Tests for the document search tool."""
 
@@ -634,6 +621,7 @@ class TestSearchDocumentsTool:
 # TOOL 4: get_programme_statistics
 # ============================================================================
 
+
 class TestProgrammeStatisticsTool:
     """Tests for the get_programme_statistics tool."""
 
@@ -666,6 +654,7 @@ class TestProgrammeStatisticsTool:
 # ============================================================================
 # TOOL 5: get_country_statistics
 # ============================================================================
+
 
 class TestCountryStatisticsTool:
     """Tests for the get_country_statistics tool."""
@@ -700,6 +689,7 @@ class TestCountryStatisticsTool:
 # TOOL 6: compare_programmes
 # ============================================================================
 
+
 class TestCompareProgrammesTool:
     """Tests for the compare_programmes tool."""
 
@@ -729,6 +719,7 @@ class TestCompareProgrammesTool:
 # ============================================================================
 # TOOL 7: get_budget_benchmark
 # ============================================================================
+
 
 class TestBudgetBenchmarkTool:
     """Tests for the get_budget_benchmark tool."""
@@ -768,6 +759,7 @@ class TestBudgetBenchmarkTool:
 # ============================================================================
 # TOOL 8: get_consortium_patterns
 # ============================================================================
+
 
 class TestConsortiumPatternsTool:
     """Tests for the get_consortium_patterns tool."""
@@ -809,6 +801,7 @@ class TestConsortiumPatternsTool:
 # TOOL 9: find_experienced_partners
 # ============================================================================
 
+
 class TestFindExperiencedPartnersTool:
     """Tests for the find_experienced_partners tool."""
 
@@ -849,6 +842,7 @@ class TestFindExperiencedPartnersTool:
 # TOOL 10: get_similar_funded_projects
 # ============================================================================
 
+
 class TestSimilarProjectsTool:
     """Tests for the get_similar_funded_projects tool."""
 
@@ -888,6 +882,7 @@ class TestSimilarProjectsTool:
 # TOOL 11: analyze_call_history
 # ============================================================================
 
+
 class TestAnalyzeCallHistoryTool:
     """Tests for the analyze_call_history tool."""
 
@@ -913,7 +908,7 @@ class TestAnalyzeCallHistoryTool:
         result = MockToolResults.analyze_call_history("CL4")
         timeline = result["analysis"]["timeline"]
 
-        for year, data in timeline.items():
+        for _year, data in timeline.items():
             assert "calls" in data
             assert "projects" in data
             assert "funding" in data
@@ -928,6 +923,7 @@ class TestAnalyzeCallHistoryTool:
 # ============================================================================
 # TOOL 12: intelligent_search
 # ============================================================================
+
 
 class TestIntelligentSearchTool:
     """Tests for the intelligent_search tool."""
@@ -961,6 +957,7 @@ class TestIntelligentSearchTool:
 # TOOL 13: consortium_builder
 # ============================================================================
 
+
 class TestConsortiumBuilderTool:
     """Tests for the consortium_builder tool."""
 
@@ -993,6 +990,7 @@ class TestConsortiumBuilderTool:
 # TOOL 14: compliance_checker
 # ============================================================================
 
+
 class TestComplianceCheckerTool:
     """Tests for the compliance_checker tool."""
 
@@ -1001,7 +999,7 @@ class TestComplianceCheckerTool:
         partners = [
             {"country": "DE", "entity_type": "HES", "is_coordinator": True},
             {"country": "FR", "entity_type": "REC", "is_coordinator": False},
-            {"country": "NL", "entity_type": "PRC", "is_coordinator": False}
+            {"country": "NL", "entity_type": "PRC", "is_coordinator": False},
         ]
         result = MockToolResults.compliance_checker(partners, "RIA")
 
@@ -1014,7 +1012,7 @@ class TestComplianceCheckerTool:
         partners = [
             {"country": "DE", "entity_type": "HES"},
             {"country": "FR", "entity_type": "REC"},
-            {"country": "ES", "entity_type": "SME"}
+            {"country": "ES", "entity_type": "SME"},
         ]
         result = MockToolResults.compliance_checker(partners, "IA")
 
@@ -1026,6 +1024,7 @@ class TestComplianceCheckerTool:
 # ============================================================================
 # MULTI-TOOL CONJUNCTION SCENARIOS
 # ============================================================================
+
 
 class TestMultiToolScenarios:
     """Test scenarios requiring multiple tools working together."""
@@ -1187,6 +1186,7 @@ class TestMultiToolScenarios:
 # CONVERSATION CONTEXT SCENARIOS
 # ============================================================================
 
+
 class TestConversationContextScenarios:
     """Test scenarios that require maintaining conversation context."""
 
@@ -1196,14 +1196,13 @@ class TestConversationContextScenarios:
         initial_results = MockToolResults.search_funding_calls(10, "hydrogen")
 
         # Simulate context
-        context = {
+        {
             "previous_results": initial_results["calls"],
             "previous_tool": "search_funding_calls",
-            "previous_query": "hydrogen"
+            "previous_query": "hydrogen",
         }
 
         # Follow-up should reference context
-        follow_up_query = "Tell me more about the 3rd one"
         third_call = initial_results["calls"][2]
 
         assert third_call["call_id"] == "HORIZON-CL5-2024-D3-03"
@@ -1211,14 +1210,14 @@ class TestConversationContextScenarios:
     def test_refinement_of_search(self):
         """Test refining a search with additional criteria."""
         # Initial broad search
-        initial_results = MockToolResults.search_projects(50, "energy")
+        MockToolResults.search_projects(50, "energy")
 
         # Refinement should narrow down
         # Simulating AI understanding: "Only show RIA projects from 2023"
         refined_criteria = {
             "original_query": "energy",
             "action_type_filter": "RIA",
-            "year_filter": 2023
+            "year_filter": 2023,
         }
 
         assert refined_criteria["action_type_filter"] == "RIA"
@@ -1226,10 +1225,9 @@ class TestConversationContextScenarios:
     def test_comparison_with_previous_topic(self):
         """Test comparing current topic with previously discussed one."""
         # First topic
-        first_stats = MockToolResults.get_programme_statistics("ERC")
+        MockToolResults.get_programme_statistics("ERC")
 
         # Context stored
-        context = {"discussed_programme": "ERC"}
 
         # Follow-up: "How does EIC compare to that?"
         # AI should understand "that" = ERC
@@ -1241,6 +1239,7 @@ class TestConversationContextScenarios:
 # ============================================================================
 # ERROR HANDLING SCENARIOS
 # ============================================================================
+
 
 class TestErrorHandlingScenarios:
     """Test error handling across tools."""
@@ -1262,7 +1261,7 @@ class TestErrorHandlingScenarios:
             "success": False,
             "error": "Invalid action_type parameter",
             "error_type": "validation_error",
-            "tool_name": "get_budget_benchmark"
+            "tool_name": "get_budget_benchmark",
         }
 
         assert error_result["success"] is False
@@ -1276,7 +1275,7 @@ class TestErrorHandlingScenarios:
             "tool_name": "find_experienced_partners",
             "partners_found": 3,
             "partners": [{"name": "Org1"}, {"name": "Org2"}, {"name": "Org3"}],
-            "warning": "Search timed out, results may be incomplete"
+            "warning": "Search timed out, results may be incomplete",
         }
 
         assert partial_result["success"] is True
@@ -1286,6 +1285,7 @@ class TestErrorHandlingScenarios:
 # ============================================================================
 # EDGE CASE SCENARIOS
 # ============================================================================
+
 
 class TestEdgeCaseScenarios:
     """Test edge cases and boundary conditions."""
@@ -1305,7 +1305,7 @@ class TestEdgeCaseScenarios:
             "AI & machine learning",
             "research (quantum)",
             "EU's funding",
-            "CO2 reduction"
+            "CO2 reduction",
         ]
 
         for query in queries_to_test:
@@ -1326,12 +1326,17 @@ class TestEdgeCaseScenarios:
         # Min should be less than max
         assert benchmarks["min_eu_contribution"] < benchmarks["max_eu_contribution"]
         # Median should be between min and max
-        assert benchmarks["min_eu_contribution"] <= benchmarks["median_eu_contribution"] <= benchmarks["max_eu_contribution"]
+        assert (
+            benchmarks["min_eu_contribution"]
+            <= benchmarks["median_eu_contribution"]
+            <= benchmarks["max_eu_contribution"]
+        )
 
 
 # ============================================================================
 # INTEGRATION SCENARIOS
 # ============================================================================
+
 
 class TestIntegrationScenarios:
     """End-to-end integration scenarios."""
@@ -1396,6 +1401,7 @@ class TestIntegrationScenarios:
 # RESPONSE QUALITY TESTS
 # ============================================================================
 
+
 class TestResponseQuality:
     """Test that tool results meet quality standards."""
 
@@ -1415,11 +1421,13 @@ class TestResponseQuality:
             MockToolResults.analyze_call_history("CL4"),
             MockToolResults.intelligent_search("test query"),
             MockToolResults.consortium_builder("CLUSTER-4"),
-            MockToolResults.compliance_checker([{"country": "DE"}], "RIA")
+            MockToolResults.compliance_checker([{"country": "DE"}], "RIA"),
         ]
 
         for result in tool_results:
-            assert "success" in result, f"Tool result missing 'success' field: {result.get('tool_name', 'unknown')}"
+            assert "success" in result, (
+                f"Tool result missing 'success' field: {result.get('tool_name', 'unknown')}"
+            )
 
     def test_all_tools_return_tool_name(self):
         """All tools should return their tool_name."""
@@ -1436,7 +1444,7 @@ class TestResponseQuality:
             MockToolResults.analyze_call_history("CL4"),
             MockToolResults.intelligent_search("test"),
             MockToolResults.consortium_builder("CLUSTER-4"),
-            MockToolResults.compliance_checker([], "RIA")
+            MockToolResults.compliance_checker([], "RIA"),
         ]
 
         for result in tool_results:
@@ -1451,7 +1459,10 @@ class TestResponseQuality:
         assert budget["benchmarks"]["average_consortium_size"] > 0
 
         # Per-partner budget should be less than total
-        assert budget["benchmarks"]["median_per_partner"] < budget["benchmarks"]["median_eu_contribution"]
+        assert (
+            budget["benchmarks"]["median_per_partner"]
+            < budget["benchmarks"]["median_eu_contribution"]
+        )
 
     def test_percentages_are_valid(self):
         """Percentage values should be between 0 and 100."""

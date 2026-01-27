@@ -39,9 +39,7 @@ import httpx
 import pytest
 
 # Add project root to path
-sys.path.insert(
-    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 # API configuration
 API_BASE_URL = os.getenv("MAP_IT_API_URL", "http://localhost:8000")
@@ -304,9 +302,7 @@ class EvaluationResult:
 def check_api_available() -> bool:
     """Check if the API is available."""
     try:
-        response = httpx.get(
-            f"{API_BASE_URL}/api/v3/conversation/health", timeout=5.0
-        )
+        response = httpx.get(f"{API_BASE_URL}/api/v3/conversation/health", timeout=5.0)
         return response.status_code == 200
     except Exception:
         return False
@@ -319,9 +315,7 @@ live_api = pytest.mark.skipif(
 )
 
 
-def get_mapit_response(
-    query: str, conversation_id: int | None = None
-) -> dict[str, Any]:
+def get_mapit_response(query: str, conversation_id: int | None = None) -> dict[str, Any]:
     """
     Send a query to MAPIT and get the response.
 
@@ -452,9 +446,7 @@ def evaluate_query_fulfillment(response: str) -> tuple[int, str, list[str], list
         "profile",
         "type of",
     ]
-    guidance_found = sum(
-        1 for term in researcher_guidance_terms if term in response_lower
-    )
+    guidance_found = sum(1 for term in researcher_guidance_terms if term in response_lower)
 
     if guidance_found >= 4:
         score += 15
@@ -594,37 +586,37 @@ def evaluate_factual_accuracy(
         if not re.search(erc_budget_pattern, response, re.IGNORECASE):
             # Check if there's a wrong budget for ERC
             wrong_erc = re.search(
-                r"erc[^.]*?€?(\d+(?:\.\d+)?)\s*(?:M|million)",
-                response,
-                re.IGNORECASE
+                r"erc[^.]*?€?(\d+(?:\.\d+)?)\s*(?:M|million)", response, re.IGNORECASE
             )
             if wrong_erc:
                 wrong_amt = wrong_erc.group(1)
                 if wrong_amt != "1.5":
                     score -= 3
-                    errors.append({
-                        "claim": f"ERC Starting Grant budget stated as €{wrong_amt}M",
-                        "correct_value": "ERC-STG budget is up to €1.5M",
-                        "source": "eu-funding-domain",
-                    })
+                    errors.append(
+                        {
+                            "claim": f"ERC Starting Grant budget stated as €{wrong_amt}M",
+                            "correct_value": "ERC-STG budget is up to €1.5M",
+                            "source": "eu-funding-domain",
+                        }
+                    )
 
     # Check EIC-Pathfinder budget (should be €3-4M)
     eic_budget_pattern = r"(?:eic|pathfinder)[^.]*?€?[34](?:\.\d+)?\s*(?:M|million)"
     if not re.search(eic_budget_pattern, response, re.IGNORECASE):
         wrong_eic = re.search(
-            r"(?:eic|pathfinder)[^.]*?€?(\d+(?:\.\d+)?)\s*(?:M|million)",
-            response,
-            re.IGNORECASE
+            r"(?:eic|pathfinder)[^.]*?€?(\d+(?:\.\d+)?)\s*(?:M|million)", response, re.IGNORECASE
         )
         if wrong_eic:
             wrong_amt = wrong_eic.group(1)
             if wrong_amt not in ["3", "4", "3.0", "4.0"]:
                 score -= 3
-                errors.append({
-                    "claim": f"EIC Pathfinder budget stated as €{wrong_amt}M",
-                    "correct_value": "EIC-Pathfinder budget is €3-4M",
-                    "source": "eu-funding-domain",
-                })
+                errors.append(
+                    {
+                        "claim": f"EIC Pathfinder budget stated as €{wrong_amt}M",
+                        "correct_value": "EIC-Pathfinder budget is €3-4M",
+                        "source": "eu-funding-domain",
+                    }
+                )
 
     # Check funding rates (both should be 100%)
     if "70%" in response_lower:
@@ -634,18 +626,22 @@ def evaluate_factual_accuracy(
             ctx = context.group()
             if "erc" in ctx or "starting grant" in ctx:
                 score -= 4
-                errors.append({
-                    "claim": "ERC funding rate stated as 70%",
-                    "correct_value": "ERC Starting Grant has 100% funding rate",
-                    "source": "eu-funding-domain",
-                })
+                errors.append(
+                    {
+                        "claim": "ERC funding rate stated as 70%",
+                        "correct_value": "ERC Starting Grant has 100% funding rate",
+                        "source": "eu-funding-domain",
+                    }
+                )
             if "pathfinder" in ctx:
                 score -= 4
-                errors.append({
-                    "claim": "EIC Pathfinder funding rate stated as 70%",
-                    "correct_value": "EIC Pathfinder has 100% funding rate",
-                    "source": "eu-funding-domain",
-                })
+                errors.append(
+                    {
+                        "claim": "EIC Pathfinder funding rate stated as 70%",
+                        "correct_value": "EIC Pathfinder has 100% funding rate",
+                        "source": "eu-funding-domain",
+                    }
+                )
 
     # Check TRL ranges
     # ERC should be TRL 1-3, EIC-Pathfinder should be TRL 1-4
@@ -655,60 +651,63 @@ def evaluate_factual_accuracy(
         trl_end = erc_trl_context.group(2) or trl_start
         if int(trl_start) != 1 or int(trl_end) not in [3, 4]:
             score -= 2
-            errors.append({
-                "claim": f"ERC TRL range stated as TRL {trl_start}-{trl_end}",
-                "correct_value": "ERC focuses on TRL 1-3 (basic research)",
-                "source": "eu-funding-domain",
-            })
+            errors.append(
+                {
+                    "claim": f"ERC TRL range stated as TRL {trl_start}-{trl_end}",
+                    "correct_value": "ERC focuses on TRL 1-3 (basic research)",
+                    "source": "eu-funding-domain",
+                }
+            )
 
     eic_trl_context = re.search(
-        r"(?:eic|pathfinder)[^.]*?trl\s*(\d+)\s*-?\s*(\d+)?",
-        response_lower
+        r"(?:eic|pathfinder)[^.]*?trl\s*(\d+)\s*-?\s*(\d+)?", response_lower
     )
     if eic_trl_context:
         trl_start = eic_trl_context.group(1)
         trl_end = eic_trl_context.group(2) or trl_start
         if int(trl_start) != 1 or int(trl_end) not in [4, 5]:
             score -= 2
-            errors.append({
-                "claim": f"EIC Pathfinder TRL range stated as TRL {trl_start}-{trl_end}",
-                "correct_value": "EIC Pathfinder covers TRL 1-4",
-                "source": "eu-funding-domain",
-            })
+            errors.append(
+                {
+                    "claim": f"EIC Pathfinder TRL range stated as TRL {trl_start}-{trl_end}",
+                    "correct_value": "EIC Pathfinder covers TRL 1-4",
+                    "source": "eu-funding-domain",
+                }
+            )
 
     # Check consortium requirements
     # ERC: Single PI (no consortium requirement stated incorrectly)
     if "erc" in response_lower and "consortium" in response_lower:
         # Check if it incorrectly says ERC needs a consortium
         erc_consortium = re.search(
-            r"erc[^.]*?(?:requires?|needs?|must have)[^.]*?consortium",
-            response_lower
+            r"erc[^.]*?(?:requires?|needs?|must have)[^.]*?consortium", response_lower
         )
         if erc_consortium:
             score -= 3
-            errors.append({
-                "claim": "ERC stated as requiring consortium",
-                "correct_value": "ERC is single PI model, no consortium required",
-                "source": "eu-funding-domain",
-            })
+            errors.append(
+                {
+                    "claim": "ERC stated as requiring consortium",
+                    "correct_value": "ERC is single PI model, no consortium required",
+                    "source": "eu-funding-domain",
+                }
+            )
 
     # EIC-Pathfinder Open: 3 partners from 3 countries
     if "pathfinder" in response_lower:
         # Check if wrong number of partners mentioned
-        wrong_partners = re.search(
-            r"pathfinder[^.]*?(\d+)\s*partner",
-            response_lower
-        )
+        wrong_partners = re.search(r"pathfinder[^.]*?(\d+)\s*partner", response_lower)
         if wrong_partners:
             num = int(wrong_partners.group(1))
             if num != 3 and num != 1:  # 1 is valid for Challenges
                 score -= 2
-                errors.append({
-                    "claim": f"EIC Pathfinder stated as requiring {num} partners",
-                    "correct_value": "EIC Pathfinder Open requires 3 partners from "
-                                     "3 different countries",
-                    "source": "eu-funding-domain",
-                })
+                errors.append(
+                    {
+                        "claim": f"EIC Pathfinder stated as requiring {num} partners",
+                        "correct_value": "EIC Pathfinder Open requires 3 partners from "
+                        "3 different countries",
+                        "source": "eu-funding-domain",
+                    }
+                )
 
     notes = f"Accuracy check: {score}/25 points"
     if errors:
@@ -801,9 +800,7 @@ def evaluate_actionability(response: str) -> tuple[int, str]:
     )
 
 
-def evaluate_response(
-    response: str, response_metadata: dict[str, Any]
-) -> EvaluationResult:
+def evaluate_response(response: str, response_metadata: dict[str, Any]) -> EvaluationResult:
     """
     Perform full evaluation of the response.
 
@@ -828,9 +825,7 @@ def evaluate_response(
     actionability_score, actionability_notes = evaluate_actionability(response)
 
     # Calculate overall score
-    overall_score = (
-        fulfillment_score + specificity_score + accuracy_score + actionability_score
-    )
+    overall_score = fulfillment_score + specificity_score + accuracy_score + actionability_score
 
     # Determine result
     if overall_score >= PASS_THRESHOLD:
@@ -1072,8 +1067,7 @@ class TestPrompt035OfflineEvaluation:
         print(f"  Result: {evaluation.result}")
 
         assert evaluation.overall_score >= PASS_THRESHOLD, (
-            f"Excellent response scored {evaluation.overall_score}, "
-            f"expected >= {PASS_THRESHOLD}"
+            f"Excellent response scored {evaluation.overall_score}, expected >= {PASS_THRESHOLD}"
         )
         assert evaluation.result == "PASS"
 
@@ -1089,31 +1083,25 @@ class TestPrompt035OfflineEvaluation:
 
         # Partial should score below PASS threshold
         assert evaluation.overall_score < PASS_THRESHOLD, (
-            f"Partial response scored {evaluation.overall_score}, "
-            f"expected < {PASS_THRESHOLD}"
+            f"Partial response scored {evaluation.overall_score}, expected < {PASS_THRESHOLD}"
         )
 
     def test_poor_response_fails(self):
         """Test that a poor response scores < 70 (FAIL)."""
-        evaluation = evaluate_response(
-            SampleResponses.POOR_ERC_VS_EIC, {"source": "sample_poor"}
-        )
+        evaluation = evaluate_response(SampleResponses.POOR_ERC_VS_EIC, {"source": "sample_poor"})
 
         print("\nPoor Response Evaluation:")
         print(f"  Score: {evaluation.overall_score}/100")
         print(f"  Result: {evaluation.result}")
 
         assert evaluation.overall_score < NEEDS_REVIEW_THRESHOLD, (
-            f"Poor response scored {evaluation.overall_score}, "
-            f"expected < {NEEDS_REVIEW_THRESHOLD}"
+            f"Poor response scored {evaluation.overall_score}, expected < {NEEDS_REVIEW_THRESHOLD}"
         )
         assert evaluation.result == "FAIL"
 
     def test_evaluation_identifies_missing_items(self):
         """Test that evaluation identifies missing content."""
-        evaluation = evaluate_response(
-            SampleResponses.POOR_ERC_VS_EIC, {"source": "sample_poor"}
-        )
+        evaluation = evaluate_response(SampleResponses.POOR_ERC_VS_EIC, {"source": "sample_poor"})
 
         # Check that missing items are identified
         if evaluation.component_scores:
@@ -1136,8 +1124,7 @@ class TestPrompt035OfflineEvaluation:
         print(f"Excellent response factual errors: {excellent_eval.factual_errors}")
         # Should have no or few errors
         assert len(excellent_eval.factual_errors) <= 1, (
-            f"Excellent response has too many factual errors: "
-            f"{excellent_eval.factual_errors}"
+            f"Excellent response has too many factual errors: {excellent_eval.factual_errors}"
         )
 
     def test_evaluation_rewards_specificity(self):
@@ -1145,17 +1132,14 @@ class TestPrompt035OfflineEvaluation:
         excellent_eval = evaluate_response(
             SampleResponses.EXCELLENT_ERC_VS_EIC, {"source": "excellent"}
         )
-        poor_eval = evaluate_response(
-            SampleResponses.POOR_ERC_VS_EIC, {"source": "poor"}
-        )
+        poor_eval = evaluate_response(SampleResponses.POOR_ERC_VS_EIC, {"source": "poor"})
 
         # Excellent response should have much higher specificity
         excellent_specificity = excellent_eval.component_scores[0]["specificity"]
         poor_specificity = poor_eval.component_scores[0]["specificity"]
 
         assert excellent_specificity > poor_specificity, (
-            f"Excellent specificity ({excellent_specificity}) "
-            f"should be > poor ({poor_specificity})"
+            f"Excellent specificity ({excellent_specificity}) should be > poor ({poor_specificity})"
         )
 
     def test_save_evaluation_result_json(self):

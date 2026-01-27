@@ -9,14 +9,14 @@ from .rolling_summarizer import RollingSummarizer
 from .short_term_memory import ConversationTurn, ShortTermMemory
 
 __all__ = [
-    'ShortTermMemory',
-    'ConversationTurn',
-    'LongTermMemory',
-    'ConversationSummary',
-    'ConversationFact',
-    'EntityCard',
-    'RollingSummarizer',
-    'ContextWindowManager',
-    'ConversationContext',
-    'MemoryService'
+    "ShortTermMemory",
+    "ConversationTurn",
+    "LongTermMemory",
+    "ConversationSummary",
+    "ConversationFact",
+    "EntityCard",
+    "RollingSummarizer",
+    "ContextWindowManager",
+    "ConversationContext",
+    "MemoryService",
 ]

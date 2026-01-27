@@ -30,6 +30,7 @@ from psycopg2.extras import RealDictCursor
 # Import Gemini for AI-powered keyword expansion
 try:
     import google.generativeai as genai
+
     GEMINI_AVAILABLE = True
 except ImportError:
     GEMINI_AVAILABLE = False
@@ -40,60 +41,165 @@ logger = logging.getLogger(__name__)
 
 # Cluster code mapping
 CLUSTER_MAP = {
-    'CL1': 'CL1', 'CLUSTER1': 'CL1', 'CLUSTER-1': 'CL1', 'HEALTH': 'CL1', 'HLTH': 'CL1',
-    'CL2': 'CL2', 'CLUSTER2': 'CL2', 'CLUSTER-2': 'CL2', 'CULTURE': 'CL2',
-    'CL3': 'CL3', 'CLUSTER3': 'CL3', 'CLUSTER-3': 'CL3', 'SECURITY': 'CL3',
-    'CL4': 'CL4', 'CLUSTER4': 'CL4', 'CLUSTER-4': 'CL4', 'DIGITAL': 'CL4',
-    'CL5': 'CL5', 'CLUSTER5': 'CL5', 'CLUSTER-5': 'CL5', 'CLIMATE': 'CL5', 'ENERGY': 'CL5',
-    'CL6': 'CL6', 'CLUSTER6': 'CL6', 'CLUSTER-6': 'CL6', 'FOOD': 'CL6',
-    'EIC': 'EIC', 'ERC': 'ERC', 'MSCA': 'MSCA',
+    "CL1": "CL1",
+    "CLUSTER1": "CL1",
+    "CLUSTER-1": "CL1",
+    "HEALTH": "CL1",
+    "HLTH": "CL1",
+    "CL2": "CL2",
+    "CLUSTER2": "CL2",
+    "CLUSTER-2": "CL2",
+    "CULTURE": "CL2",
+    "CL3": "CL3",
+    "CLUSTER3": "CL3",
+    "CLUSTER-3": "CL3",
+    "SECURITY": "CL3",
+    "CL4": "CL4",
+    "CLUSTER4": "CL4",
+    "CLUSTER-4": "CL4",
+    "DIGITAL": "CL4",
+    "CL5": "CL5",
+    "CLUSTER5": "CL5",
+    "CLUSTER-5": "CL5",
+    "CLIMATE": "CL5",
+    "ENERGY": "CL5",
+    "CL6": "CL6",
+    "CLUSTER6": "CL6",
+    "CLUSTER-6": "CL6",
+    "FOOD": "CL6",
+    "EIC": "EIC",
+    "ERC": "ERC",
+    "MSCA": "MSCA",
 }
 
 # Cluster to CLUSTER-N mapping for graph queries
 CLUSTER_TO_GRAPH = {
-    'CL1': 'CLUSTER-1',
-    'CL2': 'CLUSTER-2',
-    'CL3': 'CLUSTER-3',
-    'CL4': 'CLUSTER-4',
-    'CL5': 'CLUSTER-5',
-    'CL6': 'CLUSTER-6',
+    "CL1": "CLUSTER-1",
+    "CL2": "CLUSTER-2",
+    "CL3": "CLUSTER-3",
+    "CL4": "CLUSTER-4",
+    "CL5": "CLUSTER-5",
+    "CL6": "CLUSTER-6",
 }
 
 # Keyword to cluster mapping for automatic cluster inference
 CLUSTER_KEYWORDS = {
-    'CLUSTER-1': [
-        'health', 'medical', 'clinical', 'disease', 'patient', 'healthcare',
-        'hospital', 'therapy', 'diagnosis', 'pharmaceutical', 'cancer',
-        'vaccine', 'drug', 'pandemic', 'infection', 'mental health',
-        'aging', 'biomedical', 'genomics', 'personalized medicine'
+    "CLUSTER-1": [
+        "health",
+        "medical",
+        "clinical",
+        "disease",
+        "patient",
+        "healthcare",
+        "hospital",
+        "therapy",
+        "diagnosis",
+        "pharmaceutical",
+        "cancer",
+        "vaccine",
+        "drug",
+        "pandemic",
+        "infection",
+        "mental health",
+        "aging",
+        "biomedical",
+        "genomics",
+        "personalized medicine",
     ],
-    'CLUSTER-2': [
-        'culture', 'democracy', 'social', 'heritage', 'creative', 'inclusive',
-        'society', 'governance', 'media', 'migration', 'citizenship',
-        'inequality', 'education', 'arts', 'humanities'
+    "CLUSTER-2": [
+        "culture",
+        "democracy",
+        "social",
+        "heritage",
+        "creative",
+        "inclusive",
+        "society",
+        "governance",
+        "media",
+        "migration",
+        "citizenship",
+        "inequality",
+        "education",
+        "arts",
+        "humanities",
     ],
-    'CLUSTER-3': [
-        'security', 'cybersecurity', 'border', 'crime', 'disaster',
-        'resilience', 'defence', 'terrorism', 'critical infrastructure',
-        'crisis', 'surveillance', 'forensics', 'protection'
+    "CLUSTER-3": [
+        "security",
+        "cybersecurity",
+        "border",
+        "crime",
+        "disaster",
+        "resilience",
+        "defence",
+        "terrorism",
+        "critical infrastructure",
+        "crisis",
+        "surveillance",
+        "forensics",
+        "protection",
     ],
-    'CLUSTER-4': [
-        'digital', 'AI', 'artificial intelligence', 'data', 'industry',
-        'space', 'manufacturing', 'robotics', 'computing', 'machine learning',
-        'quantum', 'electronics', 'semiconductor', 'cloud', '5G', '6G',
-        'IoT', 'internet of things', 'automation', 'cyber-physical'
+    "CLUSTER-4": [
+        "digital",
+        "AI",
+        "artificial intelligence",
+        "data",
+        "industry",
+        "space",
+        "manufacturing",
+        "robotics",
+        "computing",
+        "machine learning",
+        "quantum",
+        "electronics",
+        "semiconductor",
+        "cloud",
+        "5G",
+        "6G",
+        "IoT",
+        "internet of things",
+        "automation",
+        "cyber-physical",
     ],
-    'CLUSTER-5': [
-        'climate', 'energy', 'mobility', 'transport', 'hydrogen', 'battery',
-        'renewable', 'green', 'carbon', 'solar', 'wind', 'electric vehicle',
-        'decarbonization', 'sustainability', 'smart grid', 'fuel cell',
-        'emission', 'clean energy', 'circular economy'
+    "CLUSTER-5": [
+        "climate",
+        "energy",
+        "mobility",
+        "transport",
+        "hydrogen",
+        "battery",
+        "renewable",
+        "green",
+        "carbon",
+        "solar",
+        "wind",
+        "electric vehicle",
+        "decarbonization",
+        "sustainability",
+        "smart grid",
+        "fuel cell",
+        "emission",
+        "clean energy",
+        "circular economy",
     ],
-    'CLUSTER-6': [
-        'food', 'agriculture', 'bioeconomy', 'biodiversity', 'ocean', 'marine',
-        'environment', 'soil', 'water', 'forestry', 'fisheries', 'farming',
-        'ecosystem', 'nature', 'rural', 'bio-based', 'sustainable food'
-    ]
+    "CLUSTER-6": [
+        "food",
+        "agriculture",
+        "bioeconomy",
+        "biodiversity",
+        "ocean",
+        "marine",
+        "environment",
+        "soil",
+        "water",
+        "forestry",
+        "fisheries",
+        "farming",
+        "ecosystem",
+        "nature",
+        "rural",
+        "bio-based",
+        "sustainable food",
+    ],
 }
 
 
@@ -118,6 +224,7 @@ class CallHistoryTool:
         self._graph_service = None
         try:
             from ..data_intelligence.graph_service import GraphSearchService
+
             self._graph_service = GraphSearchService()
             logger.info("✅ Graph service available for call history analysis")
         except Exception as e:
@@ -127,10 +234,10 @@ class CallHistoryTool:
         self._gemini_model = None
         if GEMINI_AVAILABLE:
             try:
-                api_key = os.getenv('GEMINI_API_KEY')
+                api_key = os.getenv("GEMINI_API_KEY")
                 if api_key:
                     genai.configure(api_key=api_key)
-                    model_name = os.getenv('GEMINI_MODEL', 'gemini-flash-latest')
+                    model_name = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
                     self._gemini_model = genai.GenerativeModel(model_name)
                     logger.info(f"✅ Gemini available for keyword expansion (model: {model_name})")
             except Exception as e:
@@ -144,13 +251,15 @@ class CallHistoryTool:
 
     def _normalize_cluster(self, cluster: str) -> str:
         """Normalize cluster code."""
-        cluster_upper = cluster.upper().replace(' ', '').replace('-', '')
+        cluster_upper = cluster.upper().replace(" ", "").replace("-", "")
         return CLUSTER_MAP.get(cluster_upper, cluster.upper())
 
     def _cluster_to_graph_code(self, cluster: str) -> str | None:
         """Convert cluster code to graph format (CLUSTER-N)."""
         normalized = self._normalize_cluster(cluster)
-        return CLUSTER_TO_GRAPH.get(normalized, normalized if normalized.startswith('CLUSTER-') else None)
+        return CLUSTER_TO_GRAPH.get(
+            normalized, normalized if normalized.startswith("CLUSTER-") else None
+        )
 
     def _infer_clusters_from_keywords(self, keywords: str) -> list[str]:
         """Infer clusters from keywords for more targeted search."""
@@ -159,7 +268,7 @@ class CallHistoryTool:
 
         # Handle both string and list inputs for keywords
         if isinstance(keywords, list):
-            keywords_lower = ' '.join(str(k) for k in keywords).lower()
+            keywords_lower = " ".join(str(k) for k in keywords).lower()
         else:
             keywords_lower = str(keywords).lower()
         inferred = []
@@ -175,23 +284,93 @@ class CallHistoryTool:
 
     # Common keyword expansions for fallback when AI fails
     FALLBACK_EXPANSIONS = {
-        'ai': ['artificial intelligence', 'AI', 'machine learning', 'deep learning', 'neural network',
-               'computer vision', 'natural language processing', 'NLP', 'predictive analytics',
-               'data-driven', 'intelligent systems', 'automated', 'cognitive computing'],
-        'artificial intelligence': ['artificial intelligence', 'AI', 'machine learning', 'deep learning',
-                                   'neural network', 'computer vision', 'NLP', 'intelligent systems'],
-        'hydrogen': ['hydrogen', 'H2', 'fuel cell', 'electrolyzer', 'green hydrogen', 'clean hydrogen',
-                    'hydrogen storage', 'hydrogen production', 'power-to-gas', 'FCEV'],
-        'battery': ['battery', 'energy storage', 'lithium-ion', 'solid-state battery', 'EV battery',
-                   'battery management', 'BMS', 'cell chemistry', 'gigafactory'],
-        'quantum': ['quantum', 'quantum computing', 'quantum communication', 'quantum sensing',
-                   'qubit', 'quantum cryptography', 'quantum algorithms'],
-        'climate': ['climate', 'climate change', 'decarbonization', 'net-zero', 'greenhouse gas',
-                   'carbon neutral', 'climate adaptation', 'climate mitigation'],
-        'cybersecurity': ['cybersecurity', 'cyber security', 'information security', 'data protection',
-                         'threat detection', 'encryption', 'secure systems', 'privacy'],
-        'robotics': ['robotics', 'robot', 'autonomous systems', 'industrial automation', 'cobots',
-                    'manipulation', 'mobile robotics', 'human-robot interaction'],
+        "ai": [
+            "artificial intelligence",
+            "AI",
+            "machine learning",
+            "deep learning",
+            "neural network",
+            "computer vision",
+            "natural language processing",
+            "NLP",
+            "predictive analytics",
+            "data-driven",
+            "intelligent systems",
+            "automated",
+            "cognitive computing",
+        ],
+        "artificial intelligence": [
+            "artificial intelligence",
+            "AI",
+            "machine learning",
+            "deep learning",
+            "neural network",
+            "computer vision",
+            "NLP",
+            "intelligent systems",
+        ],
+        "hydrogen": [
+            "hydrogen",
+            "H2",
+            "fuel cell",
+            "electrolyzer",
+            "green hydrogen",
+            "clean hydrogen",
+            "hydrogen storage",
+            "hydrogen production",
+            "power-to-gas",
+            "FCEV",
+        ],
+        "battery": [
+            "battery",
+            "energy storage",
+            "lithium-ion",
+            "solid-state battery",
+            "EV battery",
+            "battery management",
+            "BMS",
+            "cell chemistry",
+            "gigafactory",
+        ],
+        "quantum": [
+            "quantum",
+            "quantum computing",
+            "quantum communication",
+            "quantum sensing",
+            "qubit",
+            "quantum cryptography",
+            "quantum algorithms",
+        ],
+        "climate": [
+            "climate",
+            "climate change",
+            "decarbonization",
+            "net-zero",
+            "greenhouse gas",
+            "carbon neutral",
+            "climate adaptation",
+            "climate mitigation",
+        ],
+        "cybersecurity": [
+            "cybersecurity",
+            "cyber security",
+            "information security",
+            "data protection",
+            "threat detection",
+            "encryption",
+            "secure systems",
+            "privacy",
+        ],
+        "robotics": [
+            "robotics",
+            "robot",
+            "autonomous systems",
+            "industrial automation",
+            "cobots",
+            "manipulation",
+            "mobile robotics",
+            "human-robot interaction",
+        ],
     }
 
     def _expand_keywords_with_ai(self, keywords: str) -> list[str]:
@@ -206,7 +385,7 @@ class CallHistoryTool:
         """
         # Handle list input
         if isinstance(keywords, list):
-            original_keywords = ', '.join(keywords)
+            original_keywords = ", ".join(keywords)
         else:
             original_keywords = keywords
 
@@ -214,7 +393,9 @@ class CallHistoryTool:
         keywords_lower = original_keywords.lower().strip()
         for key, expansion in self.FALLBACK_EXPANSIONS.items():
             if key in keywords_lower or keywords_lower == key:
-                logger.info(f"🔍 Using fallback expansion for '{original_keywords}': {len(expansion)} terms")
+                logger.info(
+                    f"🔍 Using fallback expansion for '{original_keywords}': {len(expansion)} terms"
+                )
                 return expansion
 
         if not self._gemini_model:
@@ -242,7 +423,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
                 generation_config=genai.types.GenerationConfig(
                     temperature=0.3,
                     max_output_tokens=500,
-                )
+                ),
             )
 
             # Try to get text, handle blocked responses
@@ -250,26 +431,28 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
                 response_text = response.text.strip()
             except Exception:
                 # Response might be blocked - check for candidates
-                if hasattr(response, 'candidates') and response.candidates:
+                if hasattr(response, "candidates") and response.candidates:
                     for candidate in response.candidates:
-                        if hasattr(candidate, 'content') and candidate.content:
+                        if hasattr(candidate, "content") and candidate.content:
                             for part in candidate.content.parts:
-                                if hasattr(part, 'text'):
+                                if hasattr(part, "text"):
                                     response_text = part.text.strip()
                                     break
                 else:
-                    raise ValueError("No valid response from AI")
+                    raise ValueError("No valid response from AI") from None
 
             # Parse JSON response
             # Handle markdown code blocks if present
-            if response_text.startswith('```'):
-                lines = response_text.split('\n')
-                response_text = '\n'.join(lines[1:-1])  # Remove first and last lines
+            if response_text.startswith("```"):
+                lines = response_text.split("\n")
+                response_text = "\n".join(lines[1:-1])  # Remove first and last lines
 
             expanded = json.loads(response_text)
 
             if isinstance(expanded, list) and len(expanded) > 0:
-                logger.info(f"🔍 AI expanded '{original_keywords}' to {len(expanded)} terms: {expanded[:5]}...")
+                logger.info(
+                    f"🔍 AI expanded '{original_keywords}' to {len(expanded)} terms: {expanded[:5]}..."
+                )
                 return expanded
             else:
                 logger.warning("⚠️ AI expansion returned unexpected format, using original")
@@ -286,7 +469,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
         """Extract year from topic code like HORIZON-CL5-2024-D3-01-04."""
         if not topic_code:
             return None
-        match = re.search(r'20[2-3][0-9]', topic_code)
+        match = re.search(r"20[2-3][0-9]", topic_code)
         if match:
             return int(match.group(0))
         return None
@@ -304,7 +487,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
         include_cluster_trends: bool = True,
         strict_match: bool = True,  # Use stricter keyword matching
         expand_scope: bool = False,  # NEW: Expand keywords to include related terms
-        limit: int = 500
+        limit: int = 500,
     ) -> dict[str, Any]:
         """
         Analyze historical funding patterns for specific topic areas.
@@ -341,11 +524,13 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
             if expand_scope and keywords:
                 expanded_keywords_list = self._expand_keywords_with_ai(keywords)
                 # Join expanded keywords for search (using comma separation)
-                keywords = ', '.join(expanded_keywords_list)
+                keywords = ", ".join(expanded_keywords_list)
                 # When expanding scope, don't use strict_match (we want broader results)
                 strict_match = False
                 # Also don't auto-apply cluster filter (we want cross-cluster results)
-                logger.info(f"🔍 Expanded scope: '{original_keywords}' → {len(expanded_keywords_list)} related terms")
+                logger.info(
+                    f"🔍 Expanded scope: '{original_keywords}' → {len(expanded_keywords_list)} related terms"
+                )
 
             # Normalize cluster if provided
             normalized_cluster = None
@@ -359,7 +544,9 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
             if not cluster and keywords:
                 inferred_clusters = self._infer_clusters_from_keywords(keywords)
                 if inferred_clusters:
-                    graph_cluster = inferred_clusters[0]  # Use first inferred cluster for graph queries
+                    graph_cluster = inferred_clusters[
+                        0
+                    ]  # Use first inferred cluster for graph queries
                     logger.info(f"Inferred clusters from keywords: {inferred_clusters}")
 
             # For AI-specific queries, auto-apply cluster filter for better accuracy
@@ -367,13 +554,25 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
             effective_cluster = normalized_cluster
             if not cluster and keywords and strict_match and not expand_scope:
                 # Check if this is an AI-specific query
-                keywords_lower = keywords.lower() if isinstance(keywords, str) else ' '.join(keywords).lower()
-                ai_keywords = ['artificial intelligence', ' ai ', 'ai,', ',ai', 'machine learning', 'deep learning', 'neural network']
-                if any(kw in keywords_lower or keywords_lower.startswith('ai') for kw in ai_keywords):
+                keywords_lower = (
+                    keywords.lower() if isinstance(keywords, str) else " ".join(keywords).lower()
+                )
+                ai_keywords = [
+                    "artificial intelligence",
+                    " ai ",
+                    "ai,",
+                    ",ai",
+                    "machine learning",
+                    "deep learning",
+                    "neural network",
+                ]
+                if any(
+                    kw in keywords_lower or keywords_lower.startswith("ai") for kw in ai_keywords
+                ):
                     # Auto-apply CL4 (Digital) cluster for AI queries
-                    effective_cluster = 'CL4'
+                    effective_cluster = "CL4"
                     if not graph_cluster:
-                        graph_cluster = 'CLUSTER-4'
+                        graph_cluster = "CLUSTER-4"
                     logger.info("Auto-applied CL4 cluster filter for AI-specific query")
 
             # Use hybrid approach if graph service available
@@ -395,7 +594,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
                     expand_scope=expand_scope,
                     original_keywords=original_keywords,
                     expanded_keywords_list=expanded_keywords_list,
-                    limit=limit
+                    limit=limit,
                 )
 
             # Fallback to SQL-only analysis
@@ -408,18 +607,19 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
                 action_types=action_types,
                 include_projects=include_projects,
                 strict_match=strict_match,
-                limit=limit
+                limit=limit,
             )
 
         except Exception as e:
             logger.error(f"Call history analysis error: {e}")
             import traceback
+
             traceback.print_exc()
             return {
                 "success": False,
                 "tool_name": "analyze_call_history",
                 "error": str(e),
-                "message": "Analysis failed. Please try again with different parameters."
+                "message": "Analysis failed. Please try again with different parameters.",
             }
 
     def _analyze_history_hybrid(
@@ -439,7 +639,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
         expand_scope: bool = False,
         original_keywords: str | None = None,
         expanded_keywords_list: list[str] | None = None,
-        limit: int = 500
+        limit: int = 500,
     ) -> dict[str, Any]:
         """
         Hybrid Graph+SQL analysis for funding history.
@@ -447,10 +647,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
         Uses parallel queries to graph and SQL for comprehensive analysis.
         With strict_match=True, uses stricter keyword matching for accuracy.
         """
-        results = {
-            'graph': {},
-            'sql': {}
-        }
+        results = {"graph": {}, "sql": {}}
 
         # Execute graph and SQL queries in parallel
         with ThreadPoolExecutor(max_workers=6) as executor:
@@ -459,77 +656,80 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
             # Graph queries (if graph service available)
             if self._graph_service:
                 if include_cluster_trends and graph_cluster:
-                    futures['graph_trends'] = executor.submit(
-                        self._get_graph_funding_trends,
-                        graph_cluster
+                    futures["graph_trends"] = executor.submit(
+                        self._get_graph_funding_trends, graph_cluster
                     )
 
                 if include_topic_evolution and graph_cluster:
-                    futures['graph_topics'] = executor.submit(
-                        self._get_graph_topic_landscape,
-                        graph_cluster,
-                        topic_pattern
+                    futures["graph_topics"] = executor.submit(
+                        self._get_graph_topic_landscape, graph_cluster, topic_pattern
                     )
 
                 if graph_cluster:
-                    futures['graph_stats'] = executor.submit(
-                        self._get_graph_cluster_statistics,
-                        graph_cluster
+                    futures["graph_stats"] = executor.submit(
+                        self._get_graph_cluster_statistics, graph_cluster
                     )
 
                 # NEW: Graph-based keyword search for projects
                 # This gives much better results than SQL ILIKE for semantic queries
                 if keywords:
-                    futures['graph_projects'] = executor.submit(
-                        self._get_graph_projects_by_keywords,
-                        keywords,
-                        graph_cluster,
-                        limit
+                    futures["graph_projects"] = executor.submit(
+                        self._get_graph_projects_by_keywords, keywords, graph_cluster, limit
                     )
 
                     # Also get funding trends for keyword-matched projects
-                    futures['graph_keyword_trends'] = executor.submit(
-                        self._get_graph_keyword_funding_trends,
-                        keywords,
-                        graph_cluster
+                    futures["graph_keyword_trends"] = executor.submit(
+                        self._get_graph_keyword_funding_trends, keywords, graph_cluster
                     )
 
             # SQL queries (as fallback/complement)
-            futures['sql_calls'] = executor.submit(
+            futures["sql_calls"] = executor.submit(
                 self._get_calls_history_sql,
-                topic_pattern, cluster, keywords,
-                year_from, year_to, action_types, limit,
-                strict_match
+                topic_pattern,
+                cluster,
+                keywords,
+                year_from,
+                year_to,
+                action_types,
+                limit,
+                strict_match,
             )
 
-            futures['sql_timeline'] = executor.submit(
+            futures["sql_timeline"] = executor.submit(
                 self._get_timeline_aggregates_sql,
-                topic_pattern, cluster, keywords,
-                year_from, year_to,
-                strict_match
+                topic_pattern,
+                cluster,
+                keywords,
+                year_from,
+                year_to,
+                strict_match,
             )
 
             if include_projects:
-                futures['sql_projects'] = executor.submit(
+                futures["sql_projects"] = executor.submit(
                     self._get_funded_projects_sql,
-                    topic_pattern, cluster, keywords,
-                    year_from, year_to, limit,
-                    strict_match
+                    topic_pattern,
+                    cluster,
+                    keywords,
+                    year_from,
+                    year_to,
+                    limit,
+                    strict_match,
                 )
 
             # Collect results
             for key, future in futures.items():
                 try:
-                    if key.startswith('graph_'):
-                        results['graph'][key.replace('graph_', '')] = future.result()
+                    if key.startswith("graph_"):
+                        results["graph"][key.replace("graph_", "")] = future.result()
                     else:
-                        results['sql'][key.replace('sql_', '')] = future.result()
+                        results["sql"][key.replace("sql_", "")] = future.result()
                 except Exception as e:
                     logger.warning(f"Query {key} failed: {e}")
-                    if key.startswith('graph_'):
-                        results['graph'][key.replace('graph_', '')] = None
+                    if key.startswith("graph_"):
+                        results["graph"][key.replace("graph_", "")] = None
                     else:
-                        results['sql'][key.replace('sql_', '')] = None
+                        results["sql"][key.replace("sql_", "")] = None
 
         # Merge and format results
         return self._merge_history_results(
@@ -545,7 +745,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
             include_projects=include_projects,
             expand_scope=expand_scope,
             original_keywords=original_keywords,
-            expanded_keywords_list=expanded_keywords_list
+            expanded_keywords_list=expanded_keywords_list,
         )
 
     def _get_graph_funding_trends(self, cluster: str) -> list[dict] | None:
@@ -554,19 +754,14 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
             return None
 
         try:
-            trends = self._graph_service.get_funding_trends(
-                cluster_code=cluster,
-                group_by='year'
-            )
+            trends = self._graph_service.get_funding_trends(cluster_code=cluster, group_by="year")
             return trends
         except Exception as e:
             logger.warning(f"Graph funding trends query failed: {e}")
             return None
 
     def _get_graph_topic_landscape(
-        self,
-        cluster: str,
-        topic_pattern: str | None = None
+        self, cluster: str, topic_pattern: str | None = None
     ) -> dict | None:
         """Get topic landscape and evolution from graph."""
         if not self._graph_service:
@@ -578,23 +773,23 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
             # Get all topics in cluster
             topics = self._graph_service.get_topics_by_cluster(cluster, limit=100)
             if topics:
-                result['total_topics'] = len(topics)
-                result['top_topics'] = topics[:15]
+                result["total_topics"] = len(topics)
+                result["top_topics"] = topics[:15]
 
                 # Analyze topic distribution by year (from topic codes)
                 topic_years = defaultdict(int)
                 for topic in topics:
-                    code = topic.get('code', '')
+                    code = topic.get("code", "")
                     year = self._extract_year_from_topic(code)
                     if year:
                         topic_years[year] += 1
 
-                result['topics_by_year'] = dict(sorted(topic_years.items(), reverse=True))
+                result["topics_by_year"] = dict(sorted(topic_years.items(), reverse=True))
 
             # Search for related topics if pattern provided
             if topic_pattern:
                 related = self._graph_service.search_topics(topic_pattern, limit=20)
-                result['related_topics'] = related
+                result["related_topics"] = related
 
             return result
         except Exception as e:
@@ -616,10 +811,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
             return None
 
     def _get_graph_projects_by_keywords(
-        self,
-        keywords: str,
-        cluster: str | None,
-        limit: int
+        self, keywords: str, cluster: str | None, limit: int
     ) -> list[dict] | None:
         """
         Get projects matching keywords using graph database.
@@ -637,17 +829,19 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
             if isinstance(keywords, list):
                 keyword_list = [k.strip() for k in keywords if k and k.strip()]
             else:
-                keyword_list = [k.strip() for k in str(keywords).split(',') if k.strip()]
+                keyword_list = [k.strip() for k in str(keywords).split(",") if k.strip()]
 
             # Use graph service's keyword search
             projects = self._graph_service.search_projects_by_keywords(
                 keywords=keyword_list,
                 status=None,  # Get all statuses
-                limit=limit
+                limit=limit,
             )
 
             if projects:
-                logger.info(f"📊 Graph keyword search found {len(projects)} projects for '{keywords}'")
+                logger.info(
+                    f"📊 Graph keyword search found {len(projects)} projects for '{keywords}'"
+                )
 
             return projects
 
@@ -655,11 +849,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
             logger.warning(f"Graph keyword project search failed: {e}")
             return None
 
-    def _get_graph_keyword_funding_trends(
-        self,
-        keywords: str,
-        cluster: str | None
-    ) -> dict | None:
+    def _get_graph_keyword_funding_trends(self, keywords: str, cluster: str | None) -> dict | None:
         """
         Get funding trends for keyword-matched projects from graph.
 
@@ -673,7 +863,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
             if isinstance(keywords, list):
                 keyword_list = [k.strip() for k in keywords if k and k.strip()]
             else:
-                keyword_list = [k.strip() for k in str(keywords).split(',') if k.strip()]
+                keyword_list = [k.strip() for k in str(keywords).split(",") if k.strip()]
 
             # Build word boundary patterns for short keywords (like "AI") to avoid false positives
             # Neo4j regex uses \\b for word boundaries
@@ -686,7 +876,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
                 else:
                     # Longer keywords can use partial match
                     pattern_parts.append(kw_lower)
-            search_pattern = '|'.join(pattern_parts)
+            search_pattern = "|".join(pattern_parts)
 
             # Build query to get funding by year for matching projects
             keyword_where = f"(toLower(p.title) =~ '.*({search_pattern}).*' OR toLower(p.objective) =~ '.*({search_pattern}).*')"
@@ -709,7 +899,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
                        COLLECT(DISTINCT p.fundingScheme) as funding_schemes
                 ORDER BY year DESC
                 """
-                params = {'cluster': cluster}
+                params = {"cluster": cluster}
             else:
                 # No cluster filter - use OPTIONAL MATCH
                 query = f"""
@@ -732,30 +922,28 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
             results = self._graph_service.db.execute_query(query, params)
 
             if results:
-                trends = {
-                    'by_year': {},
-                    'total_projects': 0,
-                    'total_funding': 0
-                }
+                trends = {"by_year": {}, "total_projects": 0, "total_funding": 0}
 
                 for r in results:
-                    year = r.get('year')
+                    year = r.get("year")
                     if year and year.isdigit():
                         year_int = int(year)
-                        project_count = r.get('project_count', 0)
-                        total_funding = r.get('total_funding', 0) or 0
-                        avg_funding = r.get('avg_funding', 0) or 0
+                        project_count = r.get("project_count", 0)
+                        total_funding = r.get("total_funding", 0) or 0
+                        avg_funding = r.get("avg_funding", 0) or 0
 
-                        trends['by_year'][year_int] = {
-                            'projects': project_count,
-                            'total_funding': total_funding,
-                            'avg_funding': avg_funding,
-                            'funding_schemes': r.get('funding_schemes', [])
+                        trends["by_year"][year_int] = {
+                            "projects": project_count,
+                            "total_funding": total_funding,
+                            "avg_funding": avg_funding,
+                            "funding_schemes": r.get("funding_schemes", []),
                         }
-                        trends['total_projects'] += project_count
-                        trends['total_funding'] += total_funding
+                        trends["total_projects"] += project_count
+                        trends["total_funding"] += total_funding
 
-                logger.info(f"📊 Graph keyword trends: {trends['total_projects']} projects, €{trends['total_funding']/1_000_000:.0f}M")
+                logger.info(
+                    f"📊 Graph keyword trends: {trends['total_projects']} projects, €{trends['total_funding'] / 1_000_000:.0f}M"
+                )
                 return trends
 
             return None
@@ -787,7 +975,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
         year_to: int | None,
         action_types: list[str] | None,
         limit: int,
-        strict_match: bool = True
+        strict_match: bool = True,
     ) -> list[dict]:
         """Get calls from funding_calls table (SQL).
 
@@ -819,7 +1007,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
                 if isinstance(keywords, list):
                     keyword_list = [k.strip() for k in keywords if k and k.strip()]
                 else:
-                    keyword_list = [k.strip() for k in str(keywords).split(',') if k.strip()]
+                    keyword_list = [k.strip() for k in str(keywords).split(",") if k.strip()]
                 if keyword_list:
                     keyword_conditions = []
                     for kw in keyword_list:
@@ -841,7 +1029,9 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
                                 params.extend([f"%{kw}%", f"%{kw}%", f"%{kw}%"])
                         else:
                             # Non-strict: Original behavior - match anywhere
-                            keyword_conditions.append("(title ILIKE %s OR scope ILIKE %s OR expected_outcome ILIKE %s)")
+                            keyword_conditions.append(
+                                "(title ILIKE %s OR scope ILIKE %s OR expected_outcome ILIKE %s)"
+                            )
                             params.extend([f"%{kw}%", f"%{kw}%", f"%{kw}%"])
                     # Use OR to match ANY of the keywords
                     where_conditions.append(f"({' OR '.join(keyword_conditions)})")
@@ -855,7 +1045,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
                 params.append(year_to)
 
             if action_types:
-                action_placeholders = ','.join(['%s'] * len(action_types))
+                action_placeholders = ",".join(["%s"] * len(action_types))
                 where_conditions.append(f"action_type IN ({action_placeholders})")
                 params.extend([at.upper() for at in action_types])
 
@@ -885,7 +1075,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
             calls = []
             for r in results:
                 # Extract year from topic_code if call_year is null
-                year = r['call_year'] or self._extract_year_from_topic(r['topic_code'])
+                year = r["call_year"] or self._extract_year_from_topic(r["topic_code"])
 
                 # Apply year_from filter for extracted years
                 if year_from and year and year < year_from:
@@ -893,15 +1083,18 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
                 if year_to and year and year > year_to:
                     continue
 
-                calls.append({
-                    "topic_code": r['topic_code'],
-                    "title": r['title'],
-                    "action_type": r['action_type'],
-                    "year": year,
-                    "deadline": str(r['deadline']) if r['deadline'] else None,
-                    "cluster": r['cluster'] or self._extract_cluster_from_topic(r['topic_code']),
-                    "budget_total": float(r['budget_total']) if r['budget_total'] else None
-                })
+                calls.append(
+                    {
+                        "topic_code": r["topic_code"],
+                        "title": r["title"],
+                        "action_type": r["action_type"],
+                        "year": year,
+                        "deadline": str(r["deadline"]) if r["deadline"] else None,
+                        "cluster": r["cluster"]
+                        or self._extract_cluster_from_topic(r["topic_code"]),
+                        "budget_total": float(r["budget_total"]) if r["budget_total"] else None,
+                    }
+                )
 
             cursor.close()
             conn.close()
@@ -920,7 +1113,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
         keywords: str | None,
         year_from: int | None,
         year_to: int | None,
-        strict_match: bool = True
+        strict_match: bool = True,
     ) -> dict[int, dict]:
         """Get aggregated timeline data from SQL (no limit)."""
         conn = self._get_connection()
@@ -954,20 +1147,24 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
             total_projects = 0
             total_funding = 0.0
             for r in results:
-                year = r['year']
+                year = r["year"]
                 if year:
                     timeline[year] = {
-                        "projects_funded": int(r['project_count'] or 0),
-                        "total_funding": float(r['total_funding'] or 0),
-                        "avg_project_budget": round(float(r['avg_funding'] or 0), 0),
+                        "projects_funded": int(r["project_count"] or 0),
+                        "total_funding": float(r["total_funding"] or 0),
+                        "avg_project_budget": round(float(r["avg_funding"] or 0), 0),
                         "calls": 0,  # Will be updated from calls data
-                        "key_topics": []
+                        "key_topics": [],
                     }
                     total_projects += timeline[year]["projects_funded"]
                     total_funding += timeline[year]["total_funding"]
 
-            logger.info(f"📊 SQL timeline query: cluster={cluster}, keywords={keywords}, strict={strict_match}")
-            logger.info(f"📊 SQL timeline results: {total_projects} projects, €{total_funding/1e6:.0f}M")
+            logger.info(
+                f"📊 SQL timeline query: cluster={cluster}, keywords={keywords}, strict={strict_match}"
+            )
+            logger.info(
+                f"📊 SQL timeline results: {total_projects} projects, €{total_funding / 1e6:.0f}M"
+            )
 
             cursor.close()
             conn.close()
@@ -987,7 +1184,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
         year_from: int | None,
         year_to: int | None,
         limit: int,
-        strict_match: bool = True
+        strict_match: bool = True,
     ) -> list[dict]:
         """Get funded projects matching criteria (SQL)."""
         conn = self._get_connection()
@@ -1024,21 +1221,25 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
 
             projects = []
             for r in results:
-                start_year = r['startDate'].year if r['startDate'] else None
-                projects.append({
-                    "id": str(r['id']),
-                    "acronym": r['acronym'],
-                    "title": r['title'],
-                    "topics": r['topics'],
-                    "eu_contribution": float(r['ecMaxContribution']) if r['ecMaxContribution'] else 0,
-                    "total_cost": float(r['totalCost']) if r['totalCost'] else 0,
-                    "start_date": str(r['startDate'])[:10] if r['startDate'] else None,
-                    "end_date": str(r['endDate'])[:10] if r['endDate'] else None,
-                    "start_year": start_year,
-                    "action_type": r['fundingScheme'],
-                    "status": r['status'],
-                    "cluster": self._extract_cluster_from_topic(r['topics'])
-                })
+                start_year = r["startDate"].year if r["startDate"] else None
+                projects.append(
+                    {
+                        "id": str(r["id"]),
+                        "acronym": r["acronym"],
+                        "title": r["title"],
+                        "topics": r["topics"],
+                        "eu_contribution": (
+                            float(r["ecMaxContribution"]) if r["ecMaxContribution"] else 0
+                        ),
+                        "total_cost": float(r["totalCost"]) if r["totalCost"] else 0,
+                        "start_date": str(r["startDate"])[:10] if r["startDate"] else None,
+                        "end_date": str(r["endDate"])[:10] if r["endDate"] else None,
+                        "start_year": start_year,
+                        "action_type": r["fundingScheme"],
+                        "status": r["status"],
+                        "cluster": self._extract_cluster_from_topic(r["topics"]),
+                    }
+                )
 
             cursor.close()
             conn.close()
@@ -1064,35 +1265,35 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
         include_projects: bool,
         expand_scope: bool = False,
         original_keywords: str | None = None,
-        expanded_keywords_list: list[str] | None = None
+        expanded_keywords_list: list[str] | None = None,
     ) -> dict[str, Any]:
         """Merge graph and SQL results into comprehensive response."""
 
-        calls = results['sql'].get('calls', [])
-        timeline = results['sql'].get('timeline', {})
-        projects = results['sql'].get('projects', []) if include_projects else []
+        calls = results["sql"].get("calls", [])
+        timeline = results["sql"].get("timeline", {})
+        projects = results["sql"].get("projects", []) if include_projects else []
 
-        graph_trends = results['graph'].get('trends')
-        graph_topics = results['graph'].get('topics')
-        graph_stats = results['graph'].get('stats')
+        graph_trends = results["graph"].get("trends")
+        graph_topics = results["graph"].get("topics")
+        graph_stats = results["graph"].get("stats")
 
         # NEW: Get graph keyword search results
-        graph_projects = results['graph'].get('projects', [])
-        graph_keyword_trends = results['graph'].get('keyword_trends')
+        graph_projects = results["graph"].get("projects", [])
+        graph_keyword_trends = results["graph"].get("keyword_trends")
 
         # Merge graph projects with SQL projects (graph first, then SQL)
         if graph_projects:
             # Create a set of existing project IDs to avoid duplicates
-            existing_ids = {p.get('id') for p in projects if p.get('id')}
+            existing_ids = {p.get("id") for p in projects if p.get("id")}
             for gp in graph_projects:
-                if gp.get('id') not in existing_ids:
+                if gp.get("id") not in existing_ids:
                     projects.append(gp)
-                    existing_ids.add(gp.get('id'))
+                    existing_ids.add(gp.get("id"))
             logger.info(f"📊 Merged {len(graph_projects)} graph projects with SQL results")
 
         # Use graph keyword trends if available (more accurate for keyword searches)
-        if graph_keyword_trends and graph_keyword_trends.get('by_year'):
-            keyword_timeline = graph_keyword_trends['by_year']
+        if graph_keyword_trends and graph_keyword_trends.get("by_year"):
+            keyword_timeline = graph_keyword_trends["by_year"]
             # Merge or replace timeline with graph keyword results
             for year, data in keyword_timeline.items():
                 if year not in timeline:
@@ -1101,19 +1302,17 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
                         "total_funding": 0,
                         "avg_project_budget": 0,
                         "calls": 0,
-                        "key_topics": []
+                        "key_topics": [],
                     }
                 # Use graph data as it's more accurate for keyword searches
                 timeline[year]["projects_funded"] = max(
-                    timeline[year]["projects_funded"],
-                    data.get('projects', 0)
+                    timeline[year]["projects_funded"], data.get("projects", 0)
                 )
                 timeline[year]["total_funding"] = max(
-                    timeline[year]["total_funding"],
-                    data.get('total_funding', 0)
+                    timeline[year]["total_funding"], data.get("total_funding", 0)
                 )
-                if data.get('avg_funding'):
-                    timeline[year]["avg_project_budget"] = data['avg_funding']
+                if data.get("avg_funding"):
+                    timeline[year]["avg_project_budget"] = data["avg_funding"]
             logger.info("📊 Enhanced timeline with graph keyword trends")
 
         # Check if we have any results now
@@ -1125,7 +1324,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
                     "topic_pattern": topic_pattern,
                     "cluster": cluster,
                     "keywords": keywords,
-                    "year_range": f"{year_from or 'start'}-{year_to or 'now'}"
+                    "year_range": f"{year_from or 'start'}-{year_to or 'now'}",
                 },
                 "calls_analyzed": 0,
                 "projects_funded": 0,
@@ -1133,18 +1332,18 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
                 "suggestions": [
                     "Remove year filters for broader results",
                     "Try different keywords",
-                    "Search by cluster only (e.g., CL4, CL5)"
+                    "Search by cluster only (e.g., CL4, CL5)",
                 ],
                 "metadata": {
                     "search_type": "hybrid",
                     "sources_used": ["graph", "sql"] if self._graph_service else ["sql"],
-                    "inferred_clusters": inferred_clusters
-                }
+                    "inferred_clusters": inferred_clusters,
+                },
             }
 
         # Update timeline with call counts
         for call in calls:
-            year = call.get('year')
+            year = call.get("year")
             if year and year in timeline:
                 timeline[year]["calls"] += 1
 
@@ -1154,7 +1353,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
         # Using cluster-wide trends would inflate the numbers significantly
         if graph_trends and not keywords:
             for trend in graph_trends:
-                period = trend.get('period')
+                period = trend.get("period")
                 if period and period.isdigit():
                     year = int(period)
                     if year not in timeline:
@@ -1163,18 +1362,16 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
                             "total_funding": 0,
                             "avg_project_budget": 0,
                             "calls": 0,
-                            "key_topics": []
+                            "key_topics": [],
                         }
                     # Update with graph data (may be more complete)
-                    if trend.get('project_count'):
+                    if trend.get("project_count"):
                         timeline[year]["projects_funded"] = max(
-                            timeline[year]["projects_funded"],
-                            trend['project_count']
+                            timeline[year]["projects_funded"], trend["project_count"]
                         )
-                    if trend.get('total_funding'):
+                    if trend.get("total_funding"):
                         timeline[year]["total_funding"] = max(
-                            timeline[year]["total_funding"],
-                            trend['total_funding']
+                            timeline[year]["total_funding"], trend["total_funding"]
                         )
 
         # Analyze by action type
@@ -1190,8 +1387,8 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
         recommendations = self._generate_recommendations(trends, top_topics, cluster, keywords)
 
         # Calculate totals from timeline (accurate, not limited)
-        total_funding = sum(t.get('total_funding', 0) for t in timeline.values())
-        total_projects = sum(t.get('projects_funded', 0) for t in timeline.values())
+        total_funding = sum(t.get("total_funding", 0) for t in timeline.values())
+        total_projects = sum(t.get("projects_funded", 0) for t in timeline.values())
 
         # Build response
         response = {
@@ -1202,7 +1399,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
                 "cluster": cluster,
                 "keywords": keywords,
                 "year_range": f"{year_from or '2021'}-{year_to or 'now'}",
-                "action_types": action_types
+                "action_types": action_types,
             },
             "calls_analyzed": len(calls),
             "total_funding_allocated": total_funding,
@@ -1219,40 +1416,42 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
                 "graph_trends_available": graph_trends is not None,
                 "graph_keyword_search_used": graph_keyword_trends is not None,
                 "graph_projects_found": len(graph_projects) if graph_projects else 0,
-                "sql_projects_found": len(results['sql'].get('projects', [])),
+                "sql_projects_found": len(results["sql"].get("projects", [])),
                 "total_projects_merged": len(projects),
                 "inferred_clusters": inferred_clusters,
                 "scope_expanded": expand_scope,
                 "original_keywords": original_keywords if expand_scope else None,
-                "expanded_keywords": expanded_keywords_list if expand_scope else None
+                "expanded_keywords": expanded_keywords_list if expand_scope else None,
             },
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
         # Track sources used
         if graph_trends or graph_topics or graph_stats or graph_keyword_trends or graph_projects:
             response["metadata"]["sources_used"].append("graph")
-        if calls or results['sql'].get('timeline') or results['sql'].get('projects'):
+        if calls or results["sql"].get("timeline") or results["sql"].get("projects"):
             response["metadata"]["sources_used"].append("sql")
 
         # Add topic landscape from graph if available
         if graph_topics:
             response["topic_landscape"] = {
-                "total_topics": graph_topics.get('total_topics', 0),
-                "top_topics": graph_topics.get('top_topics', [])[:10],
-                "topics_by_year": graph_topics.get('topics_by_year', {}),
-                "related_topics": graph_topics.get('related_topics', [])[:10] if topic_pattern else []
+                "total_topics": graph_topics.get("total_topics", 0),
+                "top_topics": graph_topics.get("top_topics", [])[:10],
+                "topics_by_year": graph_topics.get("topics_by_year", {}),
+                "related_topics": (
+                    graph_topics.get("related_topics", [])[:10] if topic_pattern else []
+                ),
             }
 
         # Add cluster statistics from graph if available
         if graph_stats:
             response["cluster_statistics"] = {
-                "cluster_code": graph_stats.get('code'),
-                "cluster_name": graph_stats.get('name'),
-                "total_projects": graph_stats.get('project_count'),
-                "total_funding": graph_stats.get('total_funding'),
-                "avg_budget": graph_stats.get('avg_budget'),
-                "funding_schemes": graph_stats.get('funding_schemes', [])
+                "cluster_code": graph_stats.get("code"),
+                "cluster_name": graph_stats.get("name"),
+                "total_projects": graph_stats.get("project_count"),
+                "total_funding": graph_stats.get("total_funding"),
+                "avg_budget": graph_stats.get("avg_budget"),
+                "funding_schemes": graph_stats.get("funding_schemes", []),
             }
 
         return response
@@ -1266,7 +1465,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
         year_to: int | None,
         action_types: list[str] | None,
         include_projects: bool,
-        limit: int
+        limit: int,
     ) -> dict[str, Any]:
         """SQL-only analysis (fallback when graph not available)."""
         conn = self._get_connection()
@@ -1275,29 +1474,26 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
                 "success": False,
                 "tool_name": "analyze_call_history",
                 "error": "Database unavailable",
-                "message": "Cannot analyze call history - database connection failed."
+                "message": "Cannot analyze call history - database connection failed.",
             }
 
         cursor = conn.cursor(cursor_factory=RealDictCursor)
 
         # Get calls from funding_calls table
         calls = self._get_calls_history_sql(
-            topic_pattern, cluster, keywords,
-            year_from, year_to, action_types, limit
+            topic_pattern, cluster, keywords, year_from, year_to, action_types, limit
         )
 
         # Get timeline aggregates (full data, no limit)
         timeline = self._get_timeline_aggregates_sql(
-            topic_pattern, cluster, keywords,
-            year_from, year_to
+            topic_pattern, cluster, keywords, year_from, year_to
         )
 
         # Get funded projects (limited, for samples and detailed analysis)
         projects = []
         if include_projects:
             projects = self._get_funded_projects_sql(
-                topic_pattern, cluster, keywords,
-                year_from, year_to, limit
+                topic_pattern, cluster, keywords, year_from, year_to, limit
             )
 
         cursor.close()
@@ -1311,7 +1507,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
                     "topic_pattern": topic_pattern,
                     "cluster": cluster,
                     "keywords": keywords,
-                    "year_range": f"{year_from or 'start'}-{year_to or 'now'}"
+                    "year_range": f"{year_from or 'start'}-{year_to or 'now'}",
                 },
                 "calls_analyzed": 0,
                 "projects_funded": 0,
@@ -1319,17 +1515,14 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
                 "suggestions": [
                     "Remove year filters for broader results",
                     "Try different keywords",
-                    "Search by cluster only (e.g., CL4, CL5)"
+                    "Search by cluster only (e.g., CL4, CL5)",
                 ],
-                "metadata": {
-                    "search_type": "sql_only",
-                    "sources_used": ["sql"]
-                }
+                "metadata": {"search_type": "sql_only", "sources_used": ["sql"]},
             }
 
         # Update timeline with call counts
         for call in calls:
-            year = call.get('year')
+            year = call.get("year")
             if year and year in timeline:
                 timeline[year]["calls"] += 1
 
@@ -1346,8 +1539,8 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
         recommendations = self._generate_recommendations(trends, top_topics, cluster, keywords)
 
         # Calculate totals from timeline (accurate, not limited)
-        total_funding = sum(t.get('total_funding', 0) for t in timeline.values())
-        total_projects = sum(t.get('projects_funded', 0) for t in timeline.values())
+        total_funding = sum(t.get("total_funding", 0) for t in timeline.values())
+        total_projects = sum(t.get("projects_funded", 0) for t in timeline.values())
 
         return {
             "success": True,
@@ -1357,7 +1550,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
                 "cluster": cluster,
                 "keywords": keywords,
                 "year_range": f"{year_from or '2021'}-{year_to or 'now'}",
-                "action_types": action_types
+                "action_types": action_types,
             },
             "calls_analyzed": len(calls),
             "total_funding_allocated": total_funding,
@@ -1368,28 +1561,25 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
             "trends": trends,
             "sample_funded_projects": self._format_sample_projects(projects[:8]),
             "recommendations": recommendations,
-            "metadata": {
-                "search_type": "sql_only",
-                "sources_used": ["sql"]
-            },
-            "timestamp": datetime.now().isoformat()
+            "metadata": {"search_type": "sql_only", "sources_used": ["sql"]},
+            "timestamp": datetime.now().isoformat(),
         }
 
     def _extract_cluster_from_topic(self, topic_code: str) -> str | None:
         """Extract cluster from topic code."""
         if not topic_code:
             return None
-        match = re.search(r'CL[1-6]', topic_code.upper())
+        match = re.search(r"CL[1-6]", topic_code.upper())
         if match:
             return match.group(0)
-        if 'HLTH' in topic_code.upper():
-            return 'CL1'
-        if 'ERC' in topic_code.upper():
-            return 'ERC'
-        if 'EIC' in topic_code.upper():
-            return 'EIC'
-        if 'MSCA' in topic_code.upper():
-            return 'MSCA'
+        if "HLTH" in topic_code.upper():
+            return "CL1"
+        if "ERC" in topic_code.upper():
+            return "ERC"
+        if "EIC" in topic_code.upper():
+            return "EIC"
+        if "MSCA" in topic_code.upper():
+            return "MSCA"
         return None
 
     def _build_where_clause(
@@ -1399,7 +1589,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
         keywords: str | None,
         year_from: int | None,
         year_to: int | None,
-        strict_match: bool = True
+        strict_match: bool = True,
     ) -> tuple:
         """Build WHERE clause and params for project queries.
 
@@ -1416,15 +1606,15 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
 
         if cluster:
             cluster_patterns = {
-                'CL1': ['CL1', 'HLTH'],
-                'CL2': ['CL2'],
-                'CL3': ['CL3'],
-                'CL4': ['CL4'],
-                'CL5': ['CL5'],
-                'CL6': ['CL6'],
-                'ERC': ['ERC'],
-                'EIC': ['EIC'],
-                'MSCA': ['MSCA'],
+                "CL1": ["CL1", "HLTH"],
+                "CL2": ["CL2"],
+                "CL3": ["CL3"],
+                "CL4": ["CL4"],
+                "CL5": ["CL5"],
+                "CL6": ["CL6"],
+                "ERC": ["ERC"],
+                "EIC": ["EIC"],
+                "MSCA": ["MSCA"],
             }
             patterns = cluster_patterns.get(cluster, [cluster])
             cluster_conditions = " OR ".join(["topics ILIKE %s" for _ in patterns])
@@ -1436,7 +1626,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
             if isinstance(keywords, list):
                 keyword_list = [k.strip() for k in keywords if k and k.strip()]
             else:
-                keyword_list = [k.strip() for k in str(keywords).split(',') if k.strip()]
+                keyword_list = [k.strip() for k in str(keywords).split(",") if k.strip()]
             if keyword_list:
                 keyword_conditions = []
                 for kw in keyword_list:
@@ -1459,45 +1649,41 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
                 where_conditions.append(f"({' OR '.join(keyword_conditions)})")
 
         if year_from:
-            where_conditions.append("EXTRACT(YEAR FROM \"startDate\") >= %s")
+            where_conditions.append('EXTRACT(YEAR FROM "startDate") >= %s')
             params.append(year_from)
 
         if year_to:
-            where_conditions.append("EXTRACT(YEAR FROM \"startDate\") <= %s")
+            where_conditions.append('EXTRACT(YEAR FROM "startDate") <= %s')
             params.append(year_to)
 
         return " AND ".join(where_conditions), params
 
     def _analyze_by_action_type(self, calls: list[dict], projects: list[dict]) -> dict[str, Any]:
         """Analyze funding by action type."""
-        by_type = defaultdict(lambda: {
-            "projects": 0,
-            "total_funding": 0,
-            "avg_funding": 0
-        })
+        by_type = defaultdict(lambda: {"projects": 0, "total_funding": 0, "avg_funding": 0})
 
         for project in projects:
-            action_type = project.get('action_type', 'Unknown')
+            action_type = project.get("action_type", "Unknown")
             # Normalize action type
             if action_type:
-                if 'RIA' in action_type.upper():
-                    action_type = 'RIA'
-                elif 'IA' in action_type.upper() and 'RIA' not in action_type.upper():
-                    action_type = 'IA'
-                elif 'CSA' in action_type.upper():
-                    action_type = 'CSA'
-                elif 'ERC' in action_type.upper():
-                    action_type = 'ERC'
-                elif 'MSCA' in action_type.upper():
-                    action_type = 'MSCA'
-                elif 'EIC' in action_type.upper():
-                    action_type = 'EIC'
+                if "RIA" in action_type.upper():
+                    action_type = "RIA"
+                elif "IA" in action_type.upper() and "RIA" not in action_type.upper():
+                    action_type = "IA"
+                elif "CSA" in action_type.upper():
+                    action_type = "CSA"
+                elif "ERC" in action_type.upper():
+                    action_type = "ERC"
+                elif "MSCA" in action_type.upper():
+                    action_type = "MSCA"
+                elif "EIC" in action_type.upper():
+                    action_type = "EIC"
 
             by_type[action_type]["projects"] += 1
-            by_type[action_type]["total_funding"] += project.get('eu_contribution', 0)
+            by_type[action_type]["total_funding"] += project.get("eu_contribution", 0)
 
         # Calculate averages
-        for action_type, data in by_type.items():
+        for _action_type, data in by_type.items():
             if data["projects"] > 0:
                 data["avg_funding"] = round(data["total_funding"] / data["projects"], 0)
 
@@ -1505,41 +1691,38 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
 
     def _identify_top_topics(self, projects: list[dict]) -> list[dict]:
         """Identify most funded topic areas."""
-        topic_stats = defaultdict(lambda: {
-            "topic": "",
-            "projects": 0,
-            "total_funding": 0,
-            "avg_funding": 0
-        })
+        topic_stats = defaultdict(
+            lambda: {"topic": "", "projects": 0, "total_funding": 0, "avg_funding": 0}
+        )
 
         for project in projects:
-            topic = project.get('topics', '')
+            topic = project.get("topics", "")
             if topic:
                 # Handle both list (from graph) and string (from SQL) formats
                 if isinstance(topic, list):
                     # Graph returns topics as a list
-                    main_topic = topic[0] if topic else ''
+                    main_topic = topic[0] if topic else ""
                 else:
                     # SQL returns topics as semicolon-separated string
-                    main_topic = str(topic).split(';')[0].strip()
+                    main_topic = str(topic).split(";")[0].strip()
 
                 if not main_topic:
                     continue
 
                 # Extract topic prefix (e.g., HORIZON-CL5-2024)
-                parts = main_topic.split('-')
+                parts = main_topic.split("-")
                 if len(parts) >= 3:
-                    topic_prefix = '-'.join(parts[:4]) if len(parts) >= 4 else main_topic
+                    topic_prefix = "-".join(parts[:4]) if len(parts) >= 4 else main_topic
                 else:
                     topic_prefix = main_topic
 
                 topic_stats[topic_prefix]["topic"] = topic_prefix
                 topic_stats[topic_prefix]["projects"] += 1
-                topic_stats[topic_prefix]["total_funding"] += project.get('eu_contribution', 0)
+                topic_stats[topic_prefix]["total_funding"] += project.get("eu_contribution", 0)
 
         # Calculate averages
         result = []
-        for topic_key, data in topic_stats.items():
+        for _topic_key, data in topic_stats.items():
             if data["projects"] > 0:
                 data["avg_funding"] = round(data["total_funding"] / data["projects"], 0)
             result.append(data)
@@ -1548,10 +1731,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
         return sorted(result, key=lambda x: x["total_funding"], reverse=True)
 
     def _detect_trends(
-        self,
-        timeline: dict,
-        projects: list[dict],
-        keywords: str | None
+        self, timeline: dict, projects: list[dict], keywords: str | None
     ) -> dict[str, Any]:
         """Detect funding trends over time."""
         years = sorted([y for y in timeline.keys() if isinstance(y, int)])
@@ -1559,15 +1739,15 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
         if len(years) < 2:
             return {
                 "funding_trend": "insufficient_data",
-                "note": "Need at least 2 years of data for trend analysis"
+                "note": "Need at least 2 years of data for trend analysis",
             }
 
         # Calculate year-over-year growth
         budgets = [timeline[y]["total_funding"] for y in years]
         growth_rates = []
         for i in range(1, len(budgets)):
-            if budgets[i-1] > 0:
-                growth = (budgets[i] - budgets[i-1]) / budgets[i-1] * 100
+            if budgets[i - 1] > 0:
+                growth = (budgets[i] - budgets[i - 1]) / budgets[i - 1] * 100
                 growth_rates.append(growth)
 
         avg_growth = sum(growth_rates) / len(growth_rates) if growth_rates else 0
@@ -1588,8 +1768,8 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
         project_counts = [timeline[y]["projects_funded"] for y in years]
         project_growth = []
         for i in range(1, len(project_counts)):
-            if project_counts[i-1] > 0:
-                growth = (project_counts[i] - project_counts[i-1]) / project_counts[i-1] * 100
+            if project_counts[i - 1] > 0:
+                growth = (project_counts[i] - project_counts[i - 1]) / project_counts[i - 1] * 100
                 project_growth.append(growth)
 
         avg_project_growth = sum(project_growth) / len(project_growth) if project_growth else 0
@@ -1604,52 +1784,52 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
             "total_projects_in_period": sum(project_counts),
             "total_funding_in_period": sum(budgets),
             "peak_year": years[budgets.index(max(budgets))] if budgets else None,
-            "peak_funding": max(budgets) if budgets else 0
+            "peak_funding": max(budgets) if budgets else 0,
         }
 
     def _generate_recommendations(
-        self,
-        trends: dict,
-        top_topics: list[dict],
-        cluster: str | None,
-        keywords: str | None
+        self, trends: dict, top_topics: list[dict], cluster: str | None, keywords: str | None
     ) -> list[str]:
         """Generate actionable recommendations based on analysis."""
         recommendations = []
 
         # Trend-based recommendations
-        trend = trends.get('funding_trend', 'unknown')
-        if trend in ['strongly_increasing', 'increasing']:
-            recommendations.append(f"Funding in this area is {trend.replace('_', ' ')} - good timing for proposals")
-        elif trend == 'stable':
+        trend = trends.get("funding_trend", "unknown")
+        if trend in ["strongly_increasing", "increasing"]:
+            recommendations.append(
+                f"Funding in this area is {trend.replace('_', ' ')} - good timing for proposals"
+            )
+        elif trend == "stable":
             recommendations.append("Funding remains stable - consistent opportunities available")
-        elif trend in ['decreasing', 'strongly_decreasing']:
+        elif trend in ["decreasing", "strongly_decreasing"]:
             recommendations.append("Funding trend is declining - consider related emerging topics")
 
         # Growth rate insight
-        growth = trends.get('year_over_year_funding_growth', 0)
+        growth = trends.get("year_over_year_funding_growth", 0)
         if growth > 15:
             recommendations.append(f"Strong growth ({growth:.0f}% YoY) indicates high EU priority")
         elif growth < -10:
-            recommendations.append(f"Declining funding ({growth:.0f}% YoY) - explore adjacent topic areas")
+            recommendations.append(
+                f"Declining funding ({growth:.0f}% YoY) - explore adjacent topic areas"
+            )
 
         # Top topics insights
         if top_topics:
             top_topic = top_topics[0]
-            avg_budget = top_topic.get('avg_funding', 0)
+            avg_budget = top_topic.get("avg_funding", 0)
             if avg_budget > 0:
                 recommendations.append(
-                    f"Average project budget: €{avg_budget/1_000_000:.1f}M - "
+                    f"Average project budget: €{avg_budget / 1_000_000:.1f}M - "
                     f"plan consortium accordingly"
                 )
 
         # Cluster-specific recommendations
         if cluster:
             cluster_tips = {
-                'CL4': "Digital cluster: Strong focus on AI, data, and cybersecurity",
-                'CL5': "Climate cluster: Emphasis on clean energy and decarbonization",
-                'CL6': "Food cluster: Focus on sustainable food systems and bioeconomy",
-                'CL1': "Health cluster: Priorities include digital health and personalized medicine",
+                "CL4": "Digital cluster: Strong focus on AI, data, and cybersecurity",
+                "CL5": "Climate cluster: Emphasis on clean energy and decarbonization",
+                "CL6": "Food cluster: Focus on sustainable food systems and bioeconomy",
+                "CL1": "Health cluster: Priorities include digital health and personalized medicine",
             }
             if cluster in cluster_tips:
                 recommendations.append(cluster_tips[cluster])
@@ -1666,30 +1846,33 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
         formatted = []
         for p in projects:
             # Handle topics which can be list (from graph) or string (from SQL)
-            topics = p.get('topics', '')
+            topics = p.get("topics", "")
             if isinstance(topics, list):
-                topic_str = topics[0][:50] if topics else 'N/A'
+                topic_str = topics[0][:50] if topics else "N/A"
             elif topics:
-                topic_str = str(topics).split(';')[0][:50]
+                topic_str = str(topics).split(";")[0][:50]
             else:
-                topic_str = 'N/A'
+                topic_str = "N/A"
 
-            formatted.append({
-                "acronym": p.get('acronym', 'N/A'),
-                "title": p.get('title', '')[:80] + "..." if len(p.get('title', '')) > 80 else p.get('title', ''),
-                "topic": topic_str,
-                "eu_contribution": p.get('eu_contribution', 0),
-                "start_date": p.get('start_date'),
-                "action_type": p.get('action_type'),
-                "cordis_url": f"https://cordis.europa.eu/project/id/{p.get('id')}"
-            })
+            formatted.append(
+                {
+                    "acronym": p.get("acronym", "N/A"),
+                    "title": (
+                        p.get("title", "")[:80] + "..."
+                        if len(p.get("title", "")) > 80
+                        else p.get("title", "")
+                    ),
+                    "topic": topic_str,
+                    "eu_contribution": p.get("eu_contribution", 0),
+                    "start_date": p.get("start_date"),
+                    "action_type": p.get("action_type"),
+                    "cordis_url": f"https://cordis.europa.eu/project/id/{p.get('id')}",
+                }
+            )
         return formatted
 
     def get_cluster_evolution(
-        self,
-        cluster: str,
-        year_from: int | None = None,
-        year_to: int | None = None
+        self, cluster: str, year_from: int | None = None, year_to: int | None = None
     ) -> dict[str, Any]:
         """
         NEW METHOD: Analyze how a cluster has evolved over time.
@@ -1708,39 +1891,37 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
 
         try:
             result = {
-                'success': True,
-                'cluster': normalized_cluster,
-                'graph_cluster': graph_cluster,
-                'source': 'neo4j_graph'
+                "success": True,
+                "cluster": normalized_cluster,
+                "graph_cluster": graph_cluster,
+                "source": "neo4j_graph",
             }
 
             # Get funding trends by year
             trends = self._graph_service.get_funding_trends(
-                cluster_code=graph_cluster,
-                group_by='year'
+                cluster_code=graph_cluster, group_by="year"
             )
             if trends:
-                result['yearly_trends'] = trends
+                result["yearly_trends"] = trends
 
             # Get cluster statistics
             stats = self._graph_service.get_cluster_statistics(cluster_code=graph_cluster)
             if stats:
-                result['statistics'] = stats[0] if isinstance(stats, list) and stats else stats
+                result["statistics"] = stats[0] if isinstance(stats, list) and stats else stats
 
             # Get topic landscape
             topics = self._graph_service.get_topics_by_cluster(graph_cluster, limit=50)
             if topics:
-                result['topic_landscape'] = {
-                    'total_topics': len(topics),
-                    'top_topics': topics[:15]
-                }
+                result["topic_landscape"] = {"total_topics": len(topics), "top_topics": topics[:15]}
 
             # Get budget statistics for the cluster
-            budget_stats = self._graph_service.get_budget_statistics(
-                cluster_code=graph_cluster
-            )
+            budget_stats = self._graph_service.get_budget_statistics(cluster_code=graph_cluster)
             if budget_stats:
-                result['budget_statistics'] = budget_stats[0] if isinstance(budget_stats, list) and budget_stats else budget_stats
+                result["budget_statistics"] = (
+                    budget_stats[0]
+                    if isinstance(budget_stats, list) and budget_stats
+                    else budget_stats
+                )
 
             return result
 
@@ -1749,43 +1930,32 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
             return self._get_cluster_evolution_sql(normalized_cluster, year_from, year_to)
 
     def _get_cluster_evolution_sql(
-        self,
-        cluster: str,
-        year_from: int | None,
-        year_to: int | None
+        self, cluster: str, year_from: int | None, year_to: int | None
     ) -> dict[str, Any]:
         """SQL fallback for cluster evolution analysis."""
         timeline = self._get_timeline_aggregates_sql(
-            topic_pattern=None,
-            cluster=cluster,
-            keywords=None,
-            year_from=year_from,
-            year_to=year_to
+            topic_pattern=None, cluster=cluster, keywords=None, year_from=year_from, year_to=year_to
         )
 
         trends = self._detect_trends(timeline, [], None)
 
         return {
-            'success': True,
-            'cluster': cluster,
-            'yearly_trends': [
+            "success": True,
+            "cluster": cluster,
+            "yearly_trends": [
                 {
-                    'period': str(year),
-                    'project_count': data['projects_funded'],
-                    'total_funding': data['total_funding'],
-                    'avg_budget': data['avg_project_budget']
+                    "period": str(year),
+                    "project_count": data["projects_funded"],
+                    "total_funding": data["total_funding"],
+                    "avg_budget": data["avg_project_budget"],
                 }
                 for year, data in sorted(timeline.items(), reverse=True)
             ],
-            'statistics': trends,
-            'source': 'postgresql'
+            "statistics": trends,
+            "source": "postgresql",
         }
 
-    def get_topic_history(
-        self,
-        topic_pattern: str,
-        include_similar: bool = True
-    ) -> dict[str, Any]:
+    def get_topic_history(self, topic_pattern: str, include_similar: bool = True) -> dict[str, Any]:
         """
         NEW METHOD: Get detailed history for a specific topic or topic pattern.
 
@@ -1793,10 +1963,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
             topic_pattern: Topic code pattern (e.g., "HORIZON-CL5-2024-D3")
             include_similar: Include similar/related topics from graph
         """
-        result = {
-            'success': True,
-            'topic_pattern': topic_pattern
-        }
+        result = {"success": True, "topic_pattern": topic_pattern}
 
         # Get projects under this topic
         projects = self._get_funded_projects_sql(
@@ -1805,30 +1972,32 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
             keywords=None,
             year_from=None,
             year_to=None,
-            limit=100
+            limit=100,
         )
 
-        result['projects_found'] = len(projects)
-        result['total_funding'] = sum(p.get('eu_contribution', 0) for p in projects)
-        result['sample_projects'] = self._format_sample_projects(projects[:10])
+        result["projects_found"] = len(projects)
+        result["total_funding"] = sum(p.get("eu_contribution", 0) for p in projects)
+        result["sample_projects"] = self._format_sample_projects(projects[:10])
 
         # Get related topics from graph
         if include_similar and self._graph_service:
             try:
                 related = self._graph_service.search_topics(topic_pattern, limit=20)
-                result['related_topics'] = related
-                result['source'] = 'hybrid'
+                result["related_topics"] = related
+                result["source"] = "hybrid"
             except Exception as e:
                 logger.warning(f"Graph related topics query failed: {e}")
-                result['source'] = 'sql_only'
+                result["source"] = "sql_only"
         else:
-            result['source'] = 'sql_only'
+            result["source"] = "sql_only"
 
         return result
 
 
 # Async wrapper for tool orchestrator compatibility
-async def analyze_call_history_execute(params: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
+async def analyze_call_history_execute(
+    params: dict[str, Any], context: dict[str, Any]
+) -> dict[str, Any]:
     """
     Execute call history analysis tool.
 
@@ -1844,23 +2013,23 @@ async def analyze_call_history_execute(params: dict[str, Any], context: dict[str
     """
     # Extract cluster with fallback alternatives (LLM might use different parameter names)
     cluster_param = (
-        params.get('cluster') or
-        params.get('cluster_code') or
-        params.get('cluster_id') or
-        params.get('pillar')
+        params.get("cluster")
+        or params.get("cluster_code")
+        or params.get("cluster_id")
+        or params.get("pillar")
     )
 
     tool = CallHistoryTool()
 
     return tool.analyze_history(
-        topic_pattern=params.get('topic_pattern'),
+        topic_pattern=params.get("topic_pattern"),
         cluster=cluster_param,
-        keywords=params.get('keywords'),
-        year_from=params.get('year_from'),
-        year_to=params.get('year_to'),
-        action_types=params.get('action_types'),
-        include_projects=params.get('include_projects', True),
-        include_topic_evolution=params.get('include_topic_evolution', True),
-        include_cluster_trends=params.get('include_cluster_trends', True),
-        limit=params.get('limit', 50)
+        keywords=params.get("keywords"),
+        year_from=params.get("year_from"),
+        year_to=params.get("year_to"),
+        action_types=params.get("action_types"),
+        include_projects=params.get("include_projects", True),
+        include_topic_evolution=params.get("include_topic_evolution", True),
+        include_cluster_trends=params.get("include_cluster_trends", True),
+        limit=params.get("limit", 50),
     )

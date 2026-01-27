@@ -19,8 +19,8 @@ Quality Scoring (100 points):
 - Actionability (10): Provides links to official documents
 """
 
-from datetime import datetime
 import re
+from datetime import datetime
 
 import pytest
 import requests
@@ -116,9 +116,9 @@ class TestWorkProgrammeDetection:
                     detected_cluster = f"Cluster {cluster_num}"
                     break
             assert detected_cluster is not None, f"Should detect cluster in: {query}"
-            assert (
-                expected_cluster in detected_cluster
-            ), f"Expected {expected_cluster} but got {detected_cluster}"
+            assert expected_cluster in detected_cluster, (
+                f"Expected {expected_cluster} but got {detected_cluster}"
+            )
 
     def test_year_extraction_from_query(self):
         """Test extraction of year context from queries."""
@@ -451,9 +451,9 @@ class TestAlternativeQueries:
             response_text = data.get("response", "").lower()
 
             # Should mention 2025
-            assert (
-                "2025" in response_text
-            ), "Query with explicit 2025 should reference 2025 in response"
+            assert "2025" in response_text, (
+                "Query with explicit 2025 should reference 2025 in response"
+            )
 
         except requests.exceptions.RequestException as e:
             pytest.skip(f"API not available: {e}")

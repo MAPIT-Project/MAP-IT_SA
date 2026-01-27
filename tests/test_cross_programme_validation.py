@@ -648,9 +648,9 @@ class TestCrossProgrammeValidation:
 
                 # Average accuracy should be at least 0.5 for valid scenarios
                 # (LLM responses may vary, so we use lenient thresholds)
-                assert (
-                    avg_accuracy >= 0.4
-                ), f"Average accuracy too low for {result.scenario_name}: {avg_accuracy:.2f}"
+                assert avg_accuracy >= 0.4, (
+                    f"Average accuracy too low for {result.scenario_name}: {avg_accuracy:.2f}"
+                )
 
     @pytest.mark.asyncio
     async def test_multi_programme_detection(
@@ -680,9 +680,9 @@ class TestCrossProgrammeValidation:
                 )
 
                 # At least one programme should be mentioned
-                assert (
-                    len(result.programmes_mentioned) >= 1
-                ), f"No programmes mentioned in {result.scenario_name}"
+                assert len(result.programmes_mentioned) >= 1, (
+                    f"No programmes mentioned in {result.scenario_name}"
+                )
 
     @pytest.mark.asyncio
     async def test_eligibility_validation(
@@ -767,9 +767,9 @@ class TestCrossProgrammeInfrastructure:
                                 has_cross_programme_validation = True
                                 break
 
-            assert (
-                has_cross_programme_validation
-            ), f"No cross-programme validations in {scenario_file}"
+            assert has_cross_programme_validation, (
+                f"No cross-programme validations in {scenario_file}"
+            )
 
     def test_phase6_scenarios_have_programme_accuracy_validations(self):
         """Verify PHASE 6 scenarios have programme accuracy validations."""

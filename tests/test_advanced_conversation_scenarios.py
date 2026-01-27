@@ -782,9 +782,9 @@ class TestAdvancedScenarioInfrastructure:
 
     def test_scenarios_directory_exists(self):
         """Verify the advanced scenarios directory exists."""
-        assert (
-            ADVANCED_SCENARIOS_DIR.exists()
-        ), f"Advanced scenarios directory not found: {ADVANCED_SCENARIOS_DIR}"
+        assert ADVANCED_SCENARIOS_DIR.exists(), (
+            f"Advanced scenarios directory not found: {ADVANCED_SCENARIOS_DIR}"
+        )
 
     def test_scenarios_loaded(self):
         """Verify that scenarios were loaded successfully."""
@@ -793,9 +793,9 @@ class TestAdvancedScenarioInfrastructure:
     def test_validation_scenario_exists(self):
         """Verify the test runner validation scenario exists."""
         validation_scenario = ADVANCED_SCENARIOS_DIR / "_test_runner_validation.yaml"
-        assert (
-            validation_scenario.exists()
-        ), f"Test runner validation scenario not found: {validation_scenario}"
+        assert validation_scenario.exists(), (
+            f"Test runner validation scenario not found: {validation_scenario}"
+        )
 
     @pytest.mark.asyncio
     async def test_goal_tracking_agent_integration(self, scenario_runner):

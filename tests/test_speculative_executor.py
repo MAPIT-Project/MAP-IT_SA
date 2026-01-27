@@ -25,6 +25,7 @@ class TestSpeculativeExecutorInitialization:
 
     def test_initialization_with_executor(self):
         """Test initialization with tool executor."""
+
         async def mock_executor(tool_name, params):
             return {"success": True}
 
@@ -34,6 +35,7 @@ class TestSpeculativeExecutorInitialization:
 
     def test_default_max_speculative_calls(self):
         """Test default max speculative calls."""
+
         async def mock_executor(tool_name, params):
             return {}
 
@@ -42,6 +44,7 @@ class TestSpeculativeExecutorInitialization:
 
     def test_empty_caches_on_init(self):
         """Test caches are empty on initialization."""
+
         async def mock_executor(tool_name, params):
             return {}
 
@@ -57,50 +60,51 @@ class TestToolIdentification:
     def executor(self):
         async def mock_executor(tool_name, params):
             return {"success": True}
+
         return SpeculativeExecutor(mock_executor)
 
     def test_funding_calls_query(self, executor):
         """Test funding calls query identifies correct tools."""
         tools = executor.identify_likely_tools("What open funding calls are there?")
-        assert 'search_funding_calls' in tools
+        assert "search_funding_calls" in tools
 
     def test_hydrogen_query(self, executor):
         """Test hydrogen query identifies multiple tools."""
         tools = executor.identify_likely_tools("Find hydrogen research funding")
         assert len(tools) > 0
         # Should identify both search tools
-        assert 'search_funding_calls' in tools or 'search_documents' in tools
+        assert "search_funding_calls" in tools or "search_documents" in tools
 
     def test_project_query(self, executor):
         """Test project query identifies project search."""
         tools = executor.identify_likely_tools("Show me similar funded projects")
-        assert 'search_projects' in tools
+        assert "search_projects" in tools
 
     def test_budget_query(self, executor):
         """Test budget query identifies budget tool."""
         tools = executor.identify_likely_tools("What is the typical budget for RIA?")
-        assert 'get_budget_benchmark' in tools
+        assert "get_budget_benchmark" in tools
 
     def test_statistics_query(self, executor):
         """Test statistics query identifies stats tool."""
         tools = executor.identify_likely_tools("What is the success rate for ERC?")
-        assert 'get_programme_statistics' in tools
+        assert "get_programme_statistics" in tools
 
     def test_eligibility_query(self, executor):
         """Test eligibility query identifies relevant tools."""
         tools = executor.identify_likely_tools("Am I eligible to apply?")
         # May identify search_documents or search_funding_calls depending on implementation
-        assert 'search_documents' in tools or 'search_funding_calls' in tools or len(tools) > 0
+        assert "search_documents" in tools or "search_funding_calls" in tools or len(tools) > 0
 
     def test_country_query(self, executor):
         """Test country query identifies country stats."""
         tools = executor.identify_likely_tools("How does Germany participate?")
-        assert 'get_country_statistics' in tools
+        assert "get_country_statistics" in tools
 
     def test_comparison_query(self, executor):
         """Test comparison query identifies compare tool."""
         tools = executor.identify_likely_tools("Compare EIC vs ERC")
-        assert 'compare_programmes' in tools
+        assert "compare_programmes" in tools
 
     def test_max_tools_limit(self, executor):
         """Test max speculative tools limit is respected."""
@@ -121,20 +125,21 @@ class TestKeywordExtraction:
     def executor(self):
         async def mock_executor(tool_name, params):
             return {}
+
         return SpeculativeExecutor(mock_executor)
 
     def test_removes_stop_words(self, executor):
         """Test stop words are removed."""
         keywords = executor._extract_keywords_from_query("What is the budget for a project?")
-        assert 'the' not in keywords
-        assert 'is' not in keywords
-        assert 'for' not in keywords
+        assert "the" not in keywords
+        assert "is" not in keywords
+        assert "for" not in keywords
 
     def test_keeps_important_words(self, executor):
         """Test important words are kept."""
         keywords = executor._extract_keywords_from_query("hydrogen energy research funding")
-        assert 'hydrogen' in keywords
-        assert 'energy' in keywords
+        assert "hydrogen" in keywords
+        assert "energy" in keywords
 
     def test_max_keywords(self, executor):
         """Test max keywords limit."""
@@ -152,43 +157,36 @@ class TestParameterGeneration:
     def executor(self):
         async def mock_executor(tool_name, params):
             return {}
+
         return SpeculativeExecutor(mock_executor)
 
     def test_funding_calls_params(self, executor):
         """Test parameter generation for search_funding_calls."""
-        params = executor._generate_default_params(
-            'search_funding_calls',
-            "Find hydrogen funding"
-        )
-        assert 'keywords' in params
-        assert 'status' in params
-        assert params['status'] == 'open'
+        params = executor._generate_default_params("search_funding_calls", "Find hydrogen funding")
+        assert "keywords" in params
+        assert "status" in params
+        assert params["status"] == "open"
 
     def test_projects_params(self, executor):
         """Test parameter generation for search_projects."""
-        params = executor._generate_default_params(
-            'search_projects',
-            "Find AI projects"
-        )
-        assert 'keywords' in params
+        params = executor._generate_default_params("search_projects", "Find AI projects")
+        assert "keywords" in params
 
     def test_documents_params(self, executor):
         """Test parameter generation for search_documents."""
         params = executor._generate_default_params(
-            'search_documents',
-            "What are the eligibility rules?"
+            "search_documents", "What are the eligibility rules?"
         )
-        assert 'query' in params
-        assert 'max_results' in params
+        assert "query" in params
+        assert "max_results" in params
 
     def test_budget_params(self, executor):
         """Test parameter generation for get_budget_benchmark."""
         params = executor._generate_default_params(
-            'get_budget_benchmark',
-            "What is typical RIA budget?"
+            "get_budget_benchmark", "What is typical RIA budget?"
         )
-        assert 'action_type' in params
-        assert params['action_type'] == 'RIA'
+        assert "action_type" in params
+        assert params["action_type"] == "RIA"
 
 
 class TestActionTypeExtraction:
@@ -198,31 +196,32 @@ class TestActionTypeExtraction:
     def executor(self):
         async def mock_executor(tool_name, params):
             return {}
+
         return SpeculativeExecutor(mock_executor)
 
     def test_extracts_ria(self, executor):
         """Test RIA extraction."""
-        assert executor._extract_action_type("RIA project budget") == 'RIA'
+        assert executor._extract_action_type("RIA project budget") == "RIA"
 
     def test_extracts_ia(self, executor):
         """Test IA extraction."""
-        assert executor._extract_action_type("innovation action budget") == 'IA'
+        assert executor._extract_action_type("innovation action budget") == "IA"
 
     def test_extracts_csa(self, executor):
         """Test CSA extraction."""
-        assert executor._extract_action_type("CSA coordination action") == 'CSA'
+        assert executor._extract_action_type("CSA coordination action") == "CSA"
 
     def test_extracts_erc(self, executor):
         """Test ERC extraction."""
-        assert executor._extract_action_type("ERC grant") == 'ERC'
+        assert executor._extract_action_type("ERC grant") == "ERC"
 
     def test_extracts_eic(self, executor):
         """Test EIC extraction."""
-        assert executor._extract_action_type("EIC Accelerator") == 'EIC'
+        assert executor._extract_action_type("EIC Accelerator") == "EIC"
 
     def test_default_ria(self, executor):
         """Test default to RIA."""
-        assert executor._extract_action_type("general project") == 'RIA'
+        assert executor._extract_action_type("general project") == "RIA"
 
 
 class TestProgrammeExtraction:
@@ -232,31 +231,32 @@ class TestProgrammeExtraction:
     def executor(self):
         async def mock_executor(tool_name, params):
             return {}
+
         return SpeculativeExecutor(mock_executor)
 
     def test_extracts_eic(self, executor):
         """Test EIC extraction."""
-        assert executor._extract_programme("EIC Accelerator stats") == 'EIC Accelerator'
+        assert executor._extract_programme("EIC Accelerator stats") == "EIC Accelerator"
 
     def test_extracts_erc(self, executor):
         """Test ERC extraction."""
-        assert executor._extract_programme("ERC grants") == 'ERC'
+        assert executor._extract_programme("ERC grants") == "ERC"
 
     def test_extracts_msca(self, executor):
         """Test MSCA extraction."""
-        assert executor._extract_programme("MSCA fellowship") == 'MSCA'
+        assert executor._extract_programme("MSCA fellowship") == "MSCA"
 
     def test_extracts_health_cluster(self, executor):
         """Test health maps to Cluster 1."""
-        assert executor._extract_programme("health research") == 'Cluster 1'
+        assert executor._extract_programme("health research") == "Cluster 1"
 
     def test_extracts_digital_cluster(self, executor):
         """Test digital maps to Cluster 4."""
-        assert executor._extract_programme("digital industry") == 'Cluster 4'
+        assert executor._extract_programme("digital industry") == "Cluster 4"
 
     def test_extracts_climate_cluster(self, executor):
         """Test climate maps to Cluster 5."""
-        assert executor._extract_programme("climate research") == 'Cluster 5'
+        assert executor._extract_programme("climate research") == "Cluster 5"
 
 
 class TestCountryExtraction:
@@ -266,24 +266,25 @@ class TestCountryExtraction:
     def executor(self):
         async def mock_executor(tool_name, params):
             return {}
+
         return SpeculativeExecutor(mock_executor)
 
     def test_extracts_germany(self, executor):
         """Test Germany extraction."""
-        assert executor._extract_country("German participation") == 'Germany'
+        assert executor._extract_country("German participation") == "Germany"
 
     def test_extracts_france(self, executor):
         """Test France extraction."""
-        assert executor._extract_country("projects in France") == 'France'
+        assert executor._extract_country("projects in France") == "France"
 
     def test_extracts_spain(self, executor):
         """Test Spain extraction."""
         # Note: Implementation matches exact word "spain", not "Spanish"
-        assert executor._extract_country("universities in spain") == 'Spain'
+        assert executor._extract_country("universities in spain") == "Spain"
 
     def test_default_germany(self, executor):
         """Test default to Germany."""
-        assert executor._extract_country("some country stats") == 'Germany'
+        assert executor._extract_country("some country stats") == "Germany"
 
 
 class TestClusterExtraction:
@@ -293,24 +294,25 @@ class TestClusterExtraction:
     def executor(self):
         async def mock_executor(tool_name, params):
             return {}
+
         return SpeculativeExecutor(mock_executor)
 
     def test_extracts_health_cluster(self, executor):
         """Test health cluster extraction."""
-        assert executor._extract_cluster("health research") == 'CL1'
+        assert executor._extract_cluster("health research") == "CL1"
 
     def test_extracts_digital_cluster(self, executor):
         """Test digital cluster extraction."""
-        assert executor._extract_cluster("digital technology") == 'CL4'
+        assert executor._extract_cluster("digital technology") == "CL4"
 
     def test_extracts_climate_cluster(self, executor):
         """Test climate cluster extraction."""
-        assert executor._extract_cluster("climate change") == 'CL5'
+        assert executor._extract_cluster("climate change") == "CL5"
 
     def test_extracts_food_cluster(self, executor):
         """Test food cluster extraction."""
         # Note: "food security" matches "security" (CL3) first, use unambiguous query
-        assert executor._extract_cluster("food production and bioeconomy") == 'CL6'
+        assert executor._extract_cluster("food production and bioeconomy") == "CL6"
 
     def test_returns_none_for_unknown(self, executor):
         """Test returns None for unknown."""
@@ -325,6 +327,7 @@ class TestSpeculativeExecution:
         async def executor(tool_name, params):
             await asyncio.sleep(0.01)
             return {"tool": tool_name, "success": True}
+
         return executor
 
     @pytest.mark.asyncio
@@ -359,7 +362,7 @@ class TestSpeculativeExecution:
         await asyncio.sleep(0.1)
 
         # Should be able to get result
-        result = await executor.get_speculative_result('search_funding_calls', timeout=1.0)
+        await executor.get_speculative_result("search_funding_calls", timeout=1.0)
         # May or may not be ready depending on timing
 
 
@@ -371,16 +374,17 @@ class TestTaskCancellation:
         async def executor(tool_name, params):
             await asyncio.sleep(10)  # Long sleep
             return {"success": True}
+
         return executor
 
     @pytest.mark.asyncio
     async def test_cancel_unused_speculation(self, slow_executor):
         """Test cancelling unused speculative tasks."""
         executor = SpeculativeExecutor(slow_executor)
-        tasks = await executor.start_speculative_execution("Find hydrogen funding projects compare stats")
+        await executor.start_speculative_execution("Find hydrogen funding projects compare stats")
 
         # Cancel unused tasks
-        executor.cancel_unused_speculation({'search_funding_calls'})
+        executor.cancel_unused_speculation({"search_funding_calls"})
 
         # Caches should be cleared
         assert len(executor.speculation_cache) == 0
@@ -393,6 +397,7 @@ class TestSpeculationStats:
     @pytest.mark.asyncio
     async def test_get_speculation_stats(self):
         """Test getting speculation statistics."""
+
         async def fast_executor(tool_name, params):
             return {"success": True}
 
@@ -402,10 +407,10 @@ class TestSpeculationStats:
         await asyncio.sleep(0.1)  # Let tasks complete
 
         stats = executor.get_speculation_stats()
-        assert 'total_speculative' in stats
-        assert 'completed' in stats
-        assert 'pending' in stats
-        assert 'cached_results' in stats
+        assert "total_speculative" in stats
+        assert "completed" in stats
+        assert "pending" in stats
+        assert "cached_results" in stats
 
 
 class TestEdgeCases:
@@ -414,6 +419,7 @@ class TestEdgeCases:
     @pytest.mark.asyncio
     async def test_empty_query(self):
         """Test handling empty query."""
+
         async def mock_executor(tool_name, params):
             return {}
 
@@ -425,6 +431,7 @@ class TestEdgeCases:
     @pytest.mark.asyncio
     async def test_executor_error(self):
         """Test handling executor errors."""
+
         async def failing_executor(tool_name, params):
             raise Exception("Tool failed")
 
@@ -437,6 +444,7 @@ class TestEdgeCases:
     @pytest.mark.asyncio
     async def test_timeout_handling(self):
         """Test timeout handling for slow results."""
+
         async def slow_executor(tool_name, params):
             await asyncio.sleep(10)
             return {"success": True}
@@ -445,7 +453,7 @@ class TestEdgeCases:
         await executor.start_speculative_execution("Find funding calls")
 
         # Should return None on timeout
-        result = await executor.get_speculative_result('search_funding_calls', timeout=0.01)
+        result = await executor.get_speculative_result("search_funding_calls", timeout=0.01)
         assert result is None
 
 

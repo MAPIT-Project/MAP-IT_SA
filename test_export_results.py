@@ -46,21 +46,19 @@ def get_response(conversation_id: int, question: str) -> dict:
     url = f"{BASE_URL}/{conversation_id}/message"
     try:
         response = requests.post(
-            url,
-            json={"message": question, "include_context": True},
-            timeout=120
+            url, json={"message": question, "include_context": True}, timeout=120
         )
         if response.status_code == 200:
             data = response.json()
             return {
                 "success": True,
                 "response": data.get("response", ""),
-                "metadata": data.get("metadata", {})
+                "metadata": data.get("metadata", {}),
             }
         else:
             return {
                 "success": False,
-                "error": f"HTTP {response.status_code}: {response.text[:200]}"
+                "error": f"HTTP {response.status_code}: {response.text[:200]}",
             }
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -82,14 +80,20 @@ def main():
 
             result = get_response(conversation_id, question)
 
-            results.append({
-                "category": category,
-                "question": question,
-                "response": result.get("response", "") if result["success"] else f"ERROR: {result.get('error', '')}",
-                "success": result["success"],
-                "iterations": result.get("metadata", {}).get("iterations", 0),
-                "confidence": result.get("metadata", {}).get("confidence", 0),
-            })
+            results.append(
+                {
+                    "category": category,
+                    "question": question,
+                    "response": (
+                        result.get("response", "")
+                        if result["success"]
+                        else f"ERROR: {result.get('error', '')}"
+                    ),
+                    "success": result["success"],
+                    "iterations": result.get("metadata", {}).get("iterations", 0),
+                    "confidence": result.get("metadata", {}).get("confidence", 0),
+                }
+            )
 
             if result["success"]:
                 print(f"      ✅ Got response ({len(result.get('response', ''))} chars)")

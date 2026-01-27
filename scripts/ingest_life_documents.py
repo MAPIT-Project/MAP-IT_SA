@@ -27,63 +27,60 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
 # LIFE document type mappings
 LIFE_DOCUMENT_TYPES = {
-    'work_programme': {
-        'patterns': ['work_programme', 'work-programme', 'mawp', 'multiannual'],
-        'type': 'work_programme',
-        'description': 'LIFE Multiannual Work Programme with priorities and budgets'
+    "work_programme": {
+        "patterns": ["work_programme", "work-programme", "mawp", "multiannual"],
+        "type": "work_programme",
+        "description": "LIFE Multiannual Work Programme with priorities and budgets",
     },
-    'regulation': {
-        'patterns': ['regulation', '2021_783', '2021-783', 'celex'],
-        'type': 'programme_guide',
-        'description': 'LIFE Regulation establishing the programme'
+    "regulation": {
+        "patterns": ["regulation", "2021_783", "2021-783", "celex"],
+        "type": "programme_guide",
+        "description": "LIFE Regulation establishing the programme",
     },
-    'priority_topics': {
-        'patterns': ['priority', 'topics', 'priorities'],
-        'type': 'programme_guide',
-        'description': 'LIFE Priority Topics for project applications'
+    "priority_topics": {
+        "patterns": ["priority", "topics", "priorities"],
+        "type": "programme_guide",
+        "description": "LIFE Priority Topics for project applications",
     },
-    'nature_biodiversity': {
-        'patterns': ['nature', 'biodiversity', 'natura', 'habitat'],
-        'type': 'programme_guide',
-        'description': 'Nature and Biodiversity sub-programme guidance'
+    "nature_biodiversity": {
+        "patterns": ["nature", "biodiversity", "natura", "habitat"],
+        "type": "programme_guide",
+        "description": "Nature and Biodiversity sub-programme guidance",
     },
-    'circular_economy': {
-        'patterns': ['circular', 'economy', 'quality_of_life', 'resource'],
-        'type': 'programme_guide',
-        'description': 'Circular Economy and Quality of Life guidance'
+    "circular_economy": {
+        "patterns": ["circular", "economy", "quality_of_life", "resource"],
+        "type": "programme_guide",
+        "description": "Circular Economy and Quality of Life guidance",
     },
-    'climate': {
-        'patterns': ['climate', 'mitigation', 'adaptation'],
-        'type': 'programme_guide',
-        'description': 'Climate Change Mitigation and Adaptation guidance'
+    "climate": {
+        "patterns": ["climate", "mitigation", "adaptation"],
+        "type": "programme_guide",
+        "description": "Climate Change Mitigation and Adaptation guidance",
     },
-    'clean_energy': {
-        'patterns': ['energy', 'transition', 'clean_energy', 'renewable'],
-        'type': 'programme_guide',
-        'description': 'Clean Energy Transition sub-programme guidance'
+    "clean_energy": {
+        "patterns": ["energy", "transition", "clean_energy", "renewable"],
+        "type": "programme_guide",
+        "description": "Clean Energy Transition sub-programme guidance",
     },
-    'application_guide': {
-        'patterns': ['application', 'guide', 'how_to', 'howto'],
-        'type': 'manual',
-        'description': 'Application guidance and templates'
+    "application_guide": {
+        "patterns": ["application", "guide", "how_to", "howto"],
+        "type": "manual",
+        "description": "Application guidance and templates",
     },
 }
 
 # LIFE Sub-programmes
 LIFE_SUBPROGRAMMES = {
-    'NAT': 'Nature and Biodiversity',
-    'ENV': 'Circular Economy and Quality of Life',
-    'CCA': 'Climate Change Mitigation and Adaptation',
-    'CET': 'Clean Energy Transition',
+    "NAT": "Nature and Biodiversity",
+    "ENV": "Circular Economy and Quality of Life",
+    "CCA": "Climate Change Mitigation and Adaptation",
+    "CET": "Clean Energy Transition",
 }
 
 
@@ -96,24 +93,24 @@ def detect_document_type(filename: str) -> tuple[str, str]:
     """
     filename_lower = filename.lower()
 
-    for doc_type, config in LIFE_DOCUMENT_TYPES.items():
-        for pattern in config['patterns']:
+    for _doc_type, config in LIFE_DOCUMENT_TYPES.items():
+        for pattern in config["patterns"]:
             if pattern in filename_lower:
-                return config['type'], config['description']
+                return config["type"], config["description"]
 
     # Default fallback
-    return 'guidance_document', 'LIFE Programme guidance document'
+    return "guidance_document", "LIFE Programme guidance document"
 
 
 def extract_year_from_filename(filename: str) -> str:
     """Extract programme year from filename."""
     # Match years like 2021, 2022, 2023, 2024, 2025, 2026, 2027
-    year_match = re.search(r'20(2[1-7])', filename)
+    year_match = re.search(r"20(2[1-7])", filename)
     if year_match:
         return f"20{year_match.group(1)}"
 
     # Match year ranges like 2021-2024, 2025-2027
-    range_match = re.search(r'(202[1-7])[-_](202[1-7])', filename)
+    range_match = re.search(r"(202[1-7])[-_](202[1-7])", filename)
     if range_match:
         return f"{range_match.group(1)}-{range_match.group(2)}"
 
@@ -125,16 +122,26 @@ def detect_subprogramme(content_preview: str) -> list[str]:
     content_lower = content_preview.lower() if content_preview else ""
     subprogrammes = []
 
-    if any(kw in content_lower for kw in ['nature', 'biodiversity', 'natura 2000', 'habitat', 'species']):
-        subprogrammes.append('NAT')
-    if any(kw in content_lower for kw in ['circular economy', 'waste', 'water', 'air quality', 'soil']):
-        subprogrammes.append('ENV')
-    if any(kw in content_lower for kw in ['climate change', 'mitigation', 'adaptation', 'greenhouse']):
-        subprogrammes.append('CCA')
-    if any(kw in content_lower for kw in ['clean energy', 'energy transition', 'renewable', 'energy efficiency']):
-        subprogrammes.append('CET')
+    if any(
+        kw in content_lower
+        for kw in ["nature", "biodiversity", "natura 2000", "habitat", "species"]
+    ):
+        subprogrammes.append("NAT")
+    if any(
+        kw in content_lower for kw in ["circular economy", "waste", "water", "air quality", "soil"]
+    ):
+        subprogrammes.append("ENV")
+    if any(
+        kw in content_lower for kw in ["climate change", "mitigation", "adaptation", "greenhouse"]
+    ):
+        subprogrammes.append("CCA")
+    if any(
+        kw in content_lower
+        for kw in ["clean energy", "energy transition", "renewable", "energy efficiency"]
+    ):
+        subprogrammes.append("CET")
 
-    return subprogrammes or ['general']
+    return subprogrammes or ["general"]
 
 
 def ingest_life_documents(source_dir: str, dry_run: bool = False):
@@ -172,6 +179,7 @@ def ingest_life_documents(source_dir: str, dry_run: bool = False):
     # Import ingestion service
     try:
         from app.services.ingestion_service import DocumentIngestionService
+
         ingestion_service = DocumentIngestionService()
     except ImportError as e:
         logger.error(f"Failed to import ingestion service: {e}")
@@ -179,7 +187,7 @@ def ingest_life_documents(source_dir: str, dry_run: bool = False):
 
     # Check service status
     stats = ingestion_service.get_service_stats()
-    if not stats.get('supabase_connected', False):
+    if not stats.get("supabase_connected", False):
         logger.error("Supabase connection failed. Check DATABASE_URL and SUPABASE_KEY.")
         return False
 
@@ -214,10 +222,10 @@ def ingest_life_documents(source_dir: str, dry_run: bool = False):
                     "ingested_by": "life_ingestion_script",
                     "budget": "5.432 billion EUR (2021-2027)",
                     "implementing_agency": "CINEA",
-                }
+                },
             )
 
-            if result.get('success'):
+            if result.get("success"):
                 logger.info(f"  SUCCESS: {pdf_file.name}")
                 logger.info(f"    Document ID: {result.get('document_id')}")
                 logger.info(f"    Chunks: {result.get('chunks_created')}")
@@ -256,19 +264,11 @@ def ingest_life_documents(source_dir: str, dry_run: bool = False):
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Ingest LIFE Programme documents into RAG system"
-    )
+    parser = argparse.ArgumentParser(description="Ingest LIFE Programme documents into RAG system")
     parser.add_argument(
-        "--source-dir",
-        default="newdocs/life",
-        help="Directory containing LIFE PDFs"
+        "--source-dir", default="newdocs/life", help="Directory containing LIFE PDFs"
     )
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Don't commit to database"
-    )
+    parser.add_argument("--dry-run", action="store_true", help="Don't commit to database")
     args = parser.parse_args()
 
     logger.info("=" * 60)
@@ -282,8 +282,7 @@ def main():
     source_dir = args.source_dir
     if not os.path.isabs(source_dir):
         source_dir = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            source_dir
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), source_dir
         )
 
     logger.info(f"Source directory: {source_dir}")

@@ -161,9 +161,9 @@ class TestScenario018ErasmusBudget:
             erasmus_budget_tools = [
                 t for t in tools_used if "erasmus" in t.lower() and "budget" in t.lower()
             ]
-            assert (
-                len(erasmus_budget_tools) > 0
-            ), f"Should use Erasmus budget tool, but got: {tools_used}"
+            assert len(erasmus_budget_tools) > 0, (
+                f"Should use Erasmus budget tool, but got: {tools_used}"
+            )
 
     @pytest.mark.asyncio
     async def test_mentions_student_mobility(self, conversation_id):
@@ -338,9 +338,9 @@ class TestScenario018ErasmusBudget:
             if "programme guide" in response_text or "national agency" in response_text:
                 score += 5
 
-            assert (
-                score >= self.PASS_THRESHOLD
-            ), f"Score {score} is below threshold {self.PASS_THRESHOLD}"
+            assert score >= self.PASS_THRESHOLD, (
+                f"Score {score} is below threshold {self.PASS_THRESHOLD}"
+            )
 
     @pytest.mark.asyncio
     async def test_returns_valid_json_response(self, conversation_id):
@@ -388,9 +388,9 @@ class TestScenario018ErasmusBudget:
             ]
 
             has_horizon_budget = any(ind in response_text for ind in horizon_budget_indicators)
-            assert (
-                not has_horizon_budget
-            ), "Response should not confuse Erasmus+ with Horizon Europe budget model"
+            assert not has_horizon_budget, (
+                "Response should not confuse Erasmus+ with Horizon Europe budget model"
+            )
 
     @pytest.mark.asyncio
     async def test_uses_erasmus_lump_sum_model(self, conversation_id):

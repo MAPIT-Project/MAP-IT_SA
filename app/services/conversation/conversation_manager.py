@@ -3,19 +3,20 @@ Main conversation management system that orchestrates all components.
 """
 
 import asyncio
-from collections.abc import AsyncGenerator
-from datetime import datetime
 import json
 import logging
 import os
 import random
 import re
+from collections.abc import AsyncGenerator
+from datetime import datetime
 from typing import Any
 
 import psycopg2
 
 from ...core.atomic_storage import StorageResult, get_atomic_storage
 from ...core.conversation_lock import get_conversation_lock
+from ..agents.tool_aware_agent import ToolCall
 from ..call_document_service import CallDocumentService
 from ..memory.memory_service import MemoryService
 from ..proposal_writing import (
@@ -186,7 +187,8 @@ class ConversationManager:
 
             agentic_status = "✓" if getattr(self, "_agentic_available", False) else "✗"
             logger.info(
-                f"✅ ConversationManager initialized (AI-only intent + Proposal Writing + Agentic Loop: {agentic_status})"
+                f"✅ ConversationManager initialized "
+                f"(AI-only intent + Proposal Writing + Agentic Loop: {agentic_status})"
             )
 
         except Exception as e:
@@ -257,7 +259,8 @@ class ConversationManager:
             )
 
             logger.info(
-                f"🎯 UNIFIED INTENT: {unified_intent.primary_intent} (confidence: {unified_intent.confidence:.2f})"
+                f"🎯 UNIFIED INTENT: {unified_intent.primary_intent} "
+                f"(confidence: {unified_intent.confidence:.2f})"
             )
             logger.info(f"   Reasoning: {unified_intent.reasoning[:100]}...")
             if unified_intent.call_id:
@@ -366,7 +369,10 @@ class ConversationManager:
                             "france",
                         ]
                     ):
-                        search_query = "eligibility EU member states associated countries third countries legal entities established participation"
+                        search_query = (
+                            "eligibility EU member states associated countries "
+                            "third countries legal entities established participation"
+                        )
                         logger.info("🎯 Geographic eligibility question detected")
                     # Budget/funding questions
                     elif any(
@@ -534,14 +540,16 @@ class ConversationManager:
 
             # Phase 4: Generate response
             logger.info(
-                f"📝 RESPONSE GENERATION: tool_results={tool_results is not None}, retrieval_results={len(retrieval_results)}"
+                f"📝 RESPONSE GENERATION: tool_results={tool_results is not None}, "
+                f"retrieval_results={len(retrieval_results)}"
             )
 
             if tool_results:
                 logger.info(f"🔧 TOOL RESULTS SUMMARY: {len(tool_results)} tools executed")
                 for tool_name, tool_result in tool_results.items():
                     logger.info(
-                        f"   Tool {tool_name}: success={tool_result.success}, has_result={tool_result.result is not None}"
+                        f"   Tool {tool_name}: success={tool_result.success}, "
+                        f"has_result={tool_result.result is not None}"
                     )
 
             # Non-streaming response
@@ -562,7 +570,9 @@ class ConversationManager:
                     f"📤 FINAL RESPONSE: {response.get('response', 'No response')[:500]}..."
                 )
                 logger.info(
-                    f"📊 RESPONSE METADATA: tools_executed={response.get('tools_executed', False)}, confidence={response.get('confidence', 0.0)}"
+                    f"📊 RESPONSE METADATA: "
+                    f"tools_executed={response.get('tools_executed', False)}, "
+                    f"confidence={response.get('confidence', 0.0)}"
                 )
 
                 # Store assistant response in memory for conversation continuity
@@ -575,7 +585,8 @@ class ConversationManager:
                         message_id=random.randint(10000, 99999),
                     )
                     logger.info(
-                        f"💾 Stored assistant response in memory ({len(assistant_response_text)} chars)"
+                        f"💾 Stored assistant response in memory "
+                        f"({len(assistant_response_text)} chars)"
                     )
 
                 return response
@@ -1061,8 +1072,9 @@ class ConversationManager:
             role = msg.get("sender", "unknown").upper()
             content = msg.get("text", "")
 
-            # For the most recent assistant message (likely contains the results user is referring to),
-            # keep much more content so agent can see "the 7th result", etc.
+            # For the most recent assistant message (likely contains the results
+            # user is referring to), keep much more content so agent can see
+            # "the 7th result", etc.
             is_most_recent_assistant = role == "ASSISTANT" and i == len(messages[-6:]) - 1
 
             if is_most_recent_assistant:
@@ -1219,14 +1231,15 @@ class ConversationManager:
             if not tool_info:
                 return agent_result.get("answer", "I was unable to find relevant information.")
 
-            prompt = f"""Based on the following search results, provide a helpful answer to the user's question.
+            prompt = f"""Based on the following search results, provide a helpful answer.
 
 USER QUESTION: {query}
 
 SEARCH RESULTS:
 {chr(10).join(tool_info[:3])}
 
-Provide a clear, well-structured answer. If the results include calls or projects, format them nicely with key details."""
+Provide a clear, well-structured answer. If the results include calls or projects,
+format them nicely with key details."""
 
             model = genai.GenerativeModel("gemini-2.0-flash")
             response = model.generate_content(
@@ -1254,7 +1267,7 @@ Provide a clear, well-structured answer. If the results include calls or project
         """
         Execute the selected service.
         """
-        service_name = service_decision.get("service")
+        service_decision.get("service")
 
         # This method is now handled by the 7-phase architecture
         return []
@@ -1268,7 +1281,8 @@ Provide a clear, well-structured answer. If the results include calls or project
         retrieval_results = []
 
         logger.debug(
-            f"🔄 DEBUG: _convert_tool_results_to_retrieval called with {len(tool_results)} tool results"
+            f"🔄 DEBUG: _convert_tool_results_to_retrieval called with "
+            f"{len(tool_results)} tool results"
         )
 
         for tool_name, tool_result_obj in tool_results.items():
@@ -1278,15 +1292,15 @@ Provide a clear, well-structured answer. If the results include calls or project
             try:
                 if tool_result_obj.success:
                     tool_data = tool_result_obj.result
-                    logger.debug(
-                        f"📊 DEBUG: Tool data type: {type(tool_data)}, keys: {list(tool_data.keys()) if isinstance(tool_data, dict) else 'Not a dict'}"
+                    tool_keys = (
+                        list(tool_data.keys()) if isinstance(tool_data, dict) else "Not a dict"
                     )
+                    logger.debug(f"📊 DEBUG: Tool data type: {type(tool_data)}, keys: {tool_keys}")
 
                     if tool_name == "eu_portal_search":
                         logger.debug("🔍 DEBUG: eu_portal_search - checking for 'calls' key...")
-                        logger.debug(
-                            f"📋 DEBUG: tool_data has 'calls': {('calls' in tool_data) if isinstance(tool_data, dict) else False}"
-                        )
+                        has_calls = ("calls" in tool_data) if isinstance(tool_data, dict) else False
+                        logger.debug(f"📋 DEBUG: tool_data has 'calls': {has_calls}")
                         if isinstance(tool_data, dict):
                             logger.debug(
                                 f"🔢 DEBUG: calls count: {len(tool_data.get('calls', []))}"
@@ -1309,10 +1323,20 @@ Provide a clear, well-structured answer. If the results include calls or project
                                     # Already a dict
                                     call_data = call
 
+                                content_text = (
+                                    f"**{call_data['title']}**\n\n"
+                                    f"Call ID: {call_data['identifier']}\n"
+                                    f"Status: {call_data['status']}\n"
+                                    f"Deadline: {call_data['deadline']}\n"
+                                    f"URL: {call_data['url']}\n\n"
+                                    f"{call_data.get('description', '')}"
+                                )
                                 retrieval_results.append(
                                     {
-                                        "content": f"**{call_data['title']}**\n\nCall ID: {call_data['identifier']}\nStatus: {call_data['status']}\nDeadline: {call_data['deadline']}\nURL: {call_data['url']}\n\n{call_data.get('description', '')}",
-                                        "citation": f"EU Funding Portal - {call_data['identifier']}",
+                                        "content": content_text,
+                                        "citation": (
+                                            f"EU Funding Portal - {call_data['identifier']}"
+                                        ),
                                         "chunk_id": f"call_{call_data['identifier']}",
                                         "metadata": {
                                             "source": "eu_portal_tool",
@@ -1326,10 +1350,11 @@ Provide a clear, well-structured answer. If the results include calls or project
                     elif tool_name == "search_cordis_projects":
                         # Format project search results
                         if tool_data.get("answer"):
+                            data_source = tool_data.get("data_source", "Unknown")
                             retrieval_results.append(
                                 {
                                     "content": tool_data["answer"],
-                                    "citation": f"CORDIS Projects - {tool_data.get('data_source', 'Unknown')}",
+                                    "citation": f"CORDIS Projects - {data_source}",
                                     "chunk_id": f"projects_{len(retrieval_results)}",
                                     "metadata": {
                                         "source": "cordis_tool",
@@ -1342,10 +1367,11 @@ Provide a clear, well-structured answer. If the results include calls or project
                     elif tool_name == "search_local_database":
                         # Format local database search results
                         if tool_data.get("answer"):
+                            local_data_source = tool_data.get("data_source", "Unknown")
                             retrieval_results.append(
                                 {
                                     "content": tool_data["answer"],
-                                    "citation": f"Local Database - {tool_data.get('data_source', 'Unknown')}",
+                                    "citation": f"Local Database - {local_data_source}",
                                     "chunk_id": f"database_{len(retrieval_results)}",
                                     "metadata": {
                                         "source": "local_database_tool",
@@ -1370,7 +1396,10 @@ Provide a clear, well-structured answer. If the results include calls or project
                             retrieval_results.append(
                                 {
                                     "content": answer_context,
-                                    "citation": f"Intelligent Search - {results.get('intent_type', 'general')}",
+                                    "citation": (
+                                        f"Intelligent Search - "
+                                        f"{results.get('intent_type', 'general')}"
+                                    ),
                                     "chunk_id": "intelligent_search_0",
                                     "metadata": {
                                         "source": "intelligent_search_tool",
@@ -1435,7 +1464,8 @@ Provide a clear, well-structured answer. If the results include calls or project
                 logger.error(f"Error converting tool result {tool_name}: {e}")
 
         logger.info(
-            f"🔄 Converted {len(tool_results)} tool results to {len(retrieval_results)} retrieval chunks"
+            f"🔄 Converted {len(tool_results)} tool results to "
+            f"{len(retrieval_results)} retrieval chunks"
         )
         return retrieval_results
 
@@ -1485,7 +1515,8 @@ Provide a clear, well-structured answer. If the results include calls or project
             )
 
             logger.info(
-                f"🤖 AI-ONLY PHASE: Intent analysis complete - {intent_analysis.intent_type} (confidence: {intent_analysis.confidence:.2f})"
+                f"🤖 AI-ONLY PHASE: Intent analysis complete - "
+                f"{intent_analysis.intent_type} (confidence: {intent_analysis.confidence:.2f})"
             )
 
             # Build context string
@@ -1496,8 +1527,6 @@ Provide a clear, well-structured answer. If the results include calls or project
             # Convert tool plan to ToolCall objects if needed
             tool_plan = None
             if intent_analysis.requires_tools and intent_analysis.tool_plan:
-                from ..agents.tool_aware_agent import ToolCall
-
                 tool_calls = []
                 for i, tool_spec in enumerate(intent_analysis.tool_plan):
                     tool_call = ToolCall(
@@ -1549,7 +1578,8 @@ Provide a clear, well-structured answer. If the results include calls or project
         """
         Retrieve call-specific information using BOTH structured metadata and document chunks.
 
-        PRIORITY 1: Structured metadata from API (instant answers for eligibility, budget, deadlines)
+        PRIORITY 1: Structured metadata from API
+            (instant answers for eligibility, budget, deadlines)
         PRIORITY 2: Document chunks for detailed information
         """
         if not self.call_doc_service:
@@ -1581,9 +1611,9 @@ DEADLINE:
 - Submission Deadline: {call_metadata.get("deadline_date", "See call documentation")}
 
 TYPE OF ACTION:
-- {", ".join(call_metadata.get("types_of_action", [])) if call_metadata.get("types_of_action") else "Not specified"}
+- {", ".join(call_metadata.get("types_of_action", [])) or "Not specified"}
 
-This metadata was extracted directly from the EU Portal API and represents the official call conditions."""
+This metadata was extracted from the EU Portal API (official call conditions)."""
 
                 results.append(
                     {
@@ -1613,10 +1643,12 @@ This metadata was extracted directly from the EU Portal API and represents the o
 
             # Convert to retrieval format
             for chunk in chunks:
+                doc_title = chunk["document_title"]
+                section_title = chunk.get("section_title", "N/A")
                 results.append(
                     {
                         "content": chunk["chunk_text"],
-                        "citation": f"{chunk['document_title']} - {chunk.get('section_title', 'N/A')}",
+                        "citation": f"{doc_title} - {section_title}",
                         "chunk_id": str(chunk["chunk_id"]),
                         "metadata": {
                             "source": "call_documents",
@@ -1627,8 +1659,10 @@ This metadata was extracted directly from the EU Portal API and represents the o
                     }
                 )
 
+            metadata_count = 1 if call_metadata else 0
             logger.info(
-                f"✅ Retrieved {len(results)} total items ({1 if call_metadata else 0} metadata + {len(chunks)} chunks)"
+                f"✅ Retrieved {len(results)} total items "
+                f"({metadata_count} metadata + {len(chunks)} chunks)"
             )
             return results
 
@@ -1673,11 +1707,11 @@ This metadata was extracted directly from the EU Portal API and represents the o
                     return results
                 else:
                     logger.info(
-                        "⚠️ Intelligent retrieval returned no results - AI will provide general guidance"
+                        "⚠️ Intelligent retrieval returned no results - "
+                        "AI will provide general guidance"
                     )
-                    return (
-                        []
-                    )  # Return empty list - AI will give professional response without mock data
+                    # Return empty - AI will give professional response without mock data
+                    return []
 
             # If intelligent retrieval is not available, return empty list
             logger.warning("⚠️ Intelligent retrieval not available - returning empty results")
@@ -1715,14 +1749,17 @@ This metadata was extracted directly from the EU Portal API and represents the o
                 context_chunks.insert(0, tool_context)
 
             # Phase 7: Generate appropriate response based on query type
+            retrieval_count = len(retrieval_results) if retrieval_results else 0
             logger.info(
-                f"🔄 RESPONSE TYPE DECISION: tool_results present = {tool_results is not None}, retrieval_results = {len(retrieval_results) if retrieval_results else 0}"
+                f"🔄 RESPONSE TYPE DECISION: tool_results present = "
+                f"{tool_results is not None}, retrieval_results = {retrieval_count}"
             )
 
             # If we have call document chunks, use AI to generate response with that context
             if retrieval_results and not tool_results:
                 logger.info(
-                    f"📚 Using call document chunks ({len(retrieval_results)} chunks) to generate response"
+                    f"📚 Using call document chunks ({len(retrieval_results)} chunks) "
+                    f"to generate response"
                 )
                 conversational_response = self._generate_conversational_response(
                     query=query,
@@ -1760,17 +1797,17 @@ This metadata was extracted directly from the EU Portal API and represents the o
                 # DEBUG: Log the exact structure of tool results
                 logger.info(f"🔧 TOOL RESULTS STRUCTURE: {list(tool_results.keys())}")
                 for tool_name, tool_result in tool_results.items():
+                    has_result = hasattr(tool_result, "result")
                     logger.info(
-                        f"   Tool {tool_name}: type={type(tool_result)}, has_result={hasattr(tool_result, 'result')}"
+                        f"   Tool {tool_name}: type={type(tool_result)}, has_result={has_result}"
                     )
                     if hasattr(tool_result, "result"):
                         logger.info(f"      Result type: {type(tool_result.result)}")
                         if isinstance(tool_result.result, dict):
                             logger.info(f"      Result keys: {list(tool_result.result.keys())}")
                             if "answer" in tool_result.result:
-                                logger.info(
-                                    f"      Has 'answer' field: {len(tool_result.result['answer'])} chars"
-                                )
+                                answer_len = len(tool_result.result["answer"])
+                                logger.info(f"      Has 'answer' field: {answer_len} chars")
                             if "projects_found" in tool_result.result:
                                 logger.info(
                                     f"      Projects found: {tool_result.result['projects_found']}"
@@ -1801,17 +1838,18 @@ This metadata was extracted directly from the EU Portal API and represents the o
                         "grounded": True,
                     }
                 else:
-                    # Other tools (eu_portal_search, search_cordis_projects, etc.) - use beautiful formatting
+                    # Other tools (eu_portal_search, search_cordis_projects, etc.)
+                    # Use beautiful formatting
                     formatted_response = self.unified_formatter.format_mixed_results(
-                        tool_results=tool_results, retrieval_results=retrieval_results, query=query
+                        tool_results=tool_results,
+                        retrieval_results=retrieval_results,
+                        query=query,
                     )
 
-                    logger.info(
-                        f"📝 FORMATTED RESPONSE LENGTH: {len(formatted_response) if formatted_response else 0}"
-                    )
-                    logger.info(
-                        f"📝 FORMATTED RESPONSE PREVIEW: {formatted_response[:500] if formatted_response else 'None'}..."
-                    )
+                    resp_len = len(formatted_response) if formatted_response else 0
+                    logger.info(f"📝 FORMATTED RESPONSE LENGTH: {resp_len}")
+                    preview = formatted_response[:500] if formatted_response else "None"
+                    logger.info(f"📝 FORMATTED RESPONSE PREVIEW: {preview}...")
 
                     response = {
                         "answer": formatted_response,
@@ -1838,7 +1876,12 @@ This metadata was extracted directly from the EU Portal API and represents the o
                     len(query_lower) < 15 and any(g in query_lower for g in ["hi", "hello", "hey"])
                 ):
                     logger.info("⚡ Fast greeting response - no tools needed")
-                    conversational_response = "Hello! I'm your Horizon Europe research funding assistant. I can help you find funding calls, search for research projects, answer questions about Horizon Europe programs, and assist with proposal writing. How can I help you today?"
+                    conversational_response = (
+                        "Hello! I'm your Horizon Europe research funding assistant. "
+                        "I can help you find funding calls, search for research projects, "
+                        "answer questions about Horizon Europe programs, and assist with "
+                        "proposal writing. How can I help you today?"
+                    )
                 else:
                     conversational_response = self._generate_conversational_response(
                         query=query,
@@ -1849,14 +1892,16 @@ This metadata was extracted directly from the EU Portal API and represents the o
 
                     # Add fallback notice if confidence is low (0.5 = fallback mode)
                     if intent_analysis.get("confidence", 1.0) <= 0.5:
-                        conversational_response = f"⚠️ **[DEV MODE]** Fallback logic active - AI intent detection failed. Response quality may be limited.\n\n{conversational_response}"
+                        conversational_response = (
+                            "⚠️ **[DEV MODE]** Fallback logic active - "
+                            "AI intent detection failed. Response quality may be limited."
+                            f"\n\n{conversational_response}"
+                        )
 
-                logger.info(
-                    f"💬 CONVERSATIONAL RESPONSE LENGTH: {len(conversational_response) if conversational_response else 0}"
-                )
-                logger.info(
-                    f"💬 CONVERSATIONAL RESPONSE PREVIEW: {conversational_response[:200] if conversational_response else 'None'}..."
-                )
+                conv_resp_len = len(conversational_response) if conversational_response else 0
+                logger.info(f"💬 CONVERSATIONAL RESPONSE LENGTH: {conv_resp_len}")
+                conv_preview = conversational_response[:200] if conversational_response else "None"
+                logger.info(f"💬 CONVERSATIONAL RESPONSE PREVIEW: {conv_preview}...")
 
                 response = {
                     "answer": conversational_response,
@@ -1938,7 +1983,8 @@ This metadata was extracted directly from the EU Portal API and represents the o
             )
 
             logger.info(
-                f"🎯 [STREAMING] UNIFIED INTENT: {unified_intent.primary_intent} (confidence: {unified_intent.confidence:.2f})"
+                f"🎯 [STREAMING] UNIFIED INTENT: {unified_intent.primary_intent} "
+                f"(confidence: {unified_intent.confidence:.2f})"
             )
             if unified_intent.call_id:
                 logger.info(f"   [STREAMING] Call ID: {unified_intent.call_id}")
@@ -2029,8 +2075,9 @@ This metadata was extracted directly from the EU Portal API and represents the o
                     proposal_mode=proposal_mode,
                 )
 
+                has_aiter = hasattr(result, "__aiter__")
                 logger.info(
-                    f"📝 [STREAMING] Result type: {type(result)}, has __aiter__: {hasattr(result, '__aiter__')}"
+                    f"📝 [STREAMING] Result type: {type(result)}, has __aiter__: {has_aiter}"
                 )
 
                 # Check if result is an async generator (for exports with progress)
@@ -2096,7 +2143,10 @@ This metadata was extracted directly from the EU Portal API and represents the o
                             "france",
                         ]
                     ):
-                        search_query = "eligibility EU member states associated countries third countries legal entities established participation"
+                        search_query = (
+                            "eligibility EU member states associated countries "
+                            "third countries legal entities established participation"
+                        )
                         logger.info("🎯 [STREAMING] Geographic eligibility question detected")
                     # Budget/funding questions
                     elif any(
@@ -2116,14 +2166,13 @@ This metadata was extracted directly from the EU Portal API and represents the o
                         call_id, user_message, keywords=[search_query] if search_query else []
                     )
                     if call_document_results:
-                        logger.info(
-                            f"✅ [STREAMING] Retrieved {len(call_document_results)} call-specific chunks"
-                        )
+                        doc_count = len(call_document_results)
+                        logger.info(f"✅ [STREAMING] Retrieved {doc_count} call-specific chunks")
                         yield {
                             "type": "progress",
                             "stage": "call_documents_loaded",
-                            "message": f"Loaded {len(call_document_results)} relevant document sections",
-                            "chunks_loaded": len(call_document_results),
+                            "message": f"Loaded {doc_count} relevant document sections",
+                            "chunks_loaded": doc_count,
                         }
                 except Exception as e:
                     logger.error(f"❌ [STREAMING] Error retrieving call documents: {e}")
@@ -2257,15 +2306,20 @@ This metadata was extracted directly from the EU Portal API and represents the o
                                 quality = agentic_metadata.get("quality_score", 0)
                                 confidence = agentic_metadata.get("confidence", "unknown")
                                 logger.info(
-                                    f"🤖 [AGENTIC] Completed: {iterations} iteration(s), quality={quality:.2f}, confidence={confidence}"
+                                    f"🤖 [AGENTIC] Completed: {iterations} iteration(s), "
+                                    f"quality={quality:.2f}, confidence={confidence}"
                                 )
 
                                 # Show user the quality info
                                 if iterations > 1:
+                                    refinements = iterations - 1
                                     yield {
                                         "type": "progress",
                                         "stage": "agentic_refined",
-                                        "message": f"Refined search {iterations - 1} time(s) for better results",
+                                        "message": (
+                                            f"Refined search {refinements} time(s) "
+                                            f"for better results"
+                                        ),
                                     }
 
                             elif update_type == "error":
@@ -2293,7 +2347,8 @@ This metadata was extracted directly from the EU Portal API and represents the o
                         else:
                             # Agentic failed, fall back to DataIntelligenceService
                             logger.warning(
-                                "⚠️ [STREAMING] Agentic Loop failed, falling back to DataIntelligenceService"
+                                "⚠️ [STREAMING] Agentic Loop failed, "
+                                "falling back to DataIntelligenceService"
                             )
                             retrieval_results = await self._fallback_to_data_intelligence(
                                 user_message, conversation_id
@@ -2372,9 +2427,9 @@ This metadata was extracted directly from the EU Portal API and represents the o
         start_time: datetime,
     ) -> AsyncGenerator[dict[str, Any], None]:
         """
-        Generate streaming response with progressive status updates following the AI-ONLY 4-phase architecture.
+        Generate streaming response with progressive status updates.
 
-        AI-ONLY PHASES:
+        Follows the AI-ONLY 4-phase architecture:
         Phase 1: Context Resolution
         Phase 2: AI-only Intent Analysis and Tool Planning
         Phase 3: Data Processing
@@ -2439,7 +2494,6 @@ This metadata was extracted directly from the EU Portal API and represents the o
             await asyncio.sleep(0.1)
 
             # Prepare context chunks
-            context_chunks = retrieval_results if retrieval_results is not None else []
 
             # Generate and stream the actual response
             if tool_results:
@@ -2474,9 +2528,12 @@ This metadata was extracted directly from the EU Portal API and represents the o
                     grounded = True
                     projects_found = 0
                 else:
-                    # Other tools (eu_portal_search, search_cordis_projects, etc.) - use beautiful formatting
+                    # Other tools (eu_portal_search, search_cordis_projects, etc.)
+                    # Use beautiful formatting
                     formatted_response = self.unified_formatter.format_mixed_results(
-                        tool_results=tool_results, retrieval_results=retrieval_results, query=query
+                        tool_results=tool_results,
+                        retrieval_results=retrieval_results,
+                        query=query,
                     )
 
                     if formatted_response:
@@ -2524,8 +2581,13 @@ This metadata was extracted directly from the EU Portal API and represents the o
                         and any(g in query_lower for g in ["hi", "hello", "hey"])
                     ):
                         logger.info("⚡ Fast greeting response - no tools needed")
-                        conversational_response = "Hello! I'm your Horizon Europe research funding assistant. I can help you find funding calls, search for research projects, answer questions about Horizon Europe programs, and assist with proposal writing. How can I help you today?"
-                    # For research funding queries, use enhanced fallback directly for better quality
+                        conversational_response = (
+                            "Hello! I'm your Horizon Europe research funding assistant. "
+                            "I can help you find funding calls, search for research "
+                            "projects, answer questions about Horizon Europe programs, "
+                            "and assist with proposal writing. How can I help you today?"
+                        )
+                    # For research funding queries, use enhanced fallback for better quality
                     elif any(
                         keyword in query_lower
                         for keyword in [
@@ -2545,7 +2607,11 @@ This metadata was extracted directly from the EU Portal API and represents the o
                         )
                         # Add fallback notice if confidence is low
                         if intent_analysis.get("confidence", 1.0) <= 0.5:
-                            conversational_response = f"⚠️ **[DEV MODE]** Fallback logic active - AI intent detection failed. Response quality may be limited.\n\n{conversational_response}"
+                            conversational_response = (
+                                "⚠️ **[DEV MODE]** Fallback logic active - "
+                                "AI intent detection failed. Response quality may "
+                                f"be limited.\n\n{conversational_response}"
+                            )
                     else:
                         conversational_response = self._generate_conversational_response(
                             query=query,
@@ -2556,7 +2622,11 @@ This metadata was extracted directly from the EU Portal API and represents the o
 
                     # Add fallback notice if confidence is low (0.5 = fallback mode)
                     if intent_analysis.get("confidence", 1.0) <= 0.5:
-                        conversational_response = f"⚠️ **[DEV MODE]** Fallback logic active - AI intent detection failed. Response quality may be limited.\n\n{conversational_response}"
+                        conversational_response = (
+                            "⚠️ **[DEV MODE]** Fallback logic active - "
+                            "AI intent detection failed. Response quality may "
+                            f"be limited.\n\n{conversational_response}"
+                        )
 
                 # Stream the conversational response in chunks
                 chunk_size = 50  # Characters per chunk
@@ -2732,12 +2802,15 @@ This metadata was extracted directly from the EU Portal API and represents the o
             if not context_chunks:
                 context_chunks = [
                     {
-                        "content": f"""This is a general query about European research and innovation.
-                    The user is asking: "{query}"
-
-                    Context: European research funding primarily comes through Horizon Europe (2021-2027, €95.5B budget),
-                    along with other programmes like LIFE, Digital Europe, and EIC. Focus areas include climate,
-                    digital transformation, health, and industrial competitiveness.""",
+                        "content": (
+                            f"This is a general query about European research and "
+                            f'innovation.\nThe user is asking: "{query}"\n\n'
+                            f"Context: European research funding primarily comes through "
+                            f"Horizon Europe (2021-2027, €95.5B budget), along with other "
+                            f"programmes like LIFE, Digital Europe, and EIC. Focus areas "
+                            f"include climate, digital transformation, health, and "
+                            f"industrial competitiveness."
+                        ),
                         "citation": "General EU Research Knowledge",
                         "chunk_id": "general_context",
                     }
@@ -2788,7 +2861,9 @@ This metadata was extracted directly from the EU Portal API and represents the o
         """
         Get system instructions for conversational responses tailored for research managers.
         """
-        return """You are an expert AI assistant specializing in European research funding and innovation, designed specifically to help research managers, grant writers, and research administrators.
+        return """You are an expert AI assistant specializing in European research funding \
+and innovation, designed specifically to help research managers, grant writers, \
+and research administrators.
 
 **YOUR EXPERTISE COVERS:**
 • Horizon Europe programme (2021-2027, €95.5 billion budget)
@@ -2816,12 +2891,13 @@ This metadata was extracted directly from the EU Portal API and represents the o
 
 **COUNTRY ELIGIBILITY GUIDANCE:**
 When answering questions about specific countries (e.g., "Can I apply from Switzerland?"):
-• If the documents describe general rules (e.g., "EU Member States and Associated Countries are eligible")
+• If docs describe general rules (e.g., "EU Member States and Associated Countries eligible")
 • You MAY use your knowledge to identify if the mentioned country falls into those categories
-• Example: If docs say "Associated Countries eligible" and user asks about Switzerland, you can answer "Yes, as Switzerland is an Associated Country"
+• Example: If docs say "Associated Countries eligible" and user asks about Switzerland, \
+you can answer "Yes, as Switzerland is an Associated Country"
 • Always cite the general rule from the documents [citation]
-• Add a disclaimer: "Please verify in the official call documentation for any specific restrictions"
-• You know: EU-27 members, Associated Countries (including Switzerland, Norway, Iceland, UK-partial, Israel, etc.)
+• Add disclaimer: "Verify in official call documentation for any specific restrictions"
+• You know: EU-27 members, Associated Countries (Switzerland, Norway, Iceland, UK, Israel, etc.)
 
 **SPECIALIZED KNOWLEDGE AREAS:**
 • Call identification and opportunity matching
@@ -2837,7 +2913,7 @@ When answering questions about specific countries (e.g., "Can I apply from Switz
 Use a professional, direct tone. Provide precise answers without unnecessary enthusiasm or preamble.
 
 **CURRENT CONTEXT:**
-You're answering questions about European research and innovation funding. Be concise and factual."""
+You're answering questions about European research and innovation funding. Be concise."""
 
     def _get_fallback_conversational_response(self, query: str, intent_analysis: dict) -> str:
         """
@@ -2846,7 +2922,7 @@ You're answering questions about European research and innovation funding. Be co
         query_lower = query.lower()
 
         if any(greeting in query_lower for greeting in ["hello", "hi", "hey"]):
-            return """Hello! 👋 I'm your AI assistant specializing in European research funding and innovation.
+            return """Hello! I'm your AI assistant for European research funding and innovation.
 
 I can help you with:
 • Finding current funding calls and opportunities
@@ -2876,14 +2952,19 @@ What would you like to explore today?"""
 What specific area would you like help with?"""
 
         elif "thank" in query_lower:
-            return """You're very welcome! 😊 I'm always happy to help with research funding and innovation questions.
+            return """You're very welcome! I'm always happy to help with research \
+funding and innovation questions.
 
-Feel free to ask me anything about EU funding opportunities, grant applications, or research programmes whenever you need assistance!"""
+Feel free to ask me anything about EU funding opportunities, grant applications, \
+or research programmes whenever you need assistance!"""
 
         else:
-            return """I'd be happy to help you with that! While I specialize in European research funding and innovation, I can provide guidance on a wide range of topics.
+            return """I'd be happy to help you with that! While I specialize in European \
+research funding and innovation, I can provide guidance on a wide range of topics.
 
-For the most current and specific information about funding calls or project opportunities, I can search the latest databases. Just let me know if you'd like me to look up anything specific!
+For the most current and specific information about funding calls or project \
+opportunities, I can search the latest databases. Just let me know if you'd like me \
+to look up anything specific!
 
 Is there a particular aspect of research funding or innovation you'd like to explore?"""
 
@@ -2895,7 +2976,8 @@ Is there a particular aspect of research funding or innovation you'd like to exp
 
         # Horizon Europe specific responses
         if "horizon europe" in query_lower:
-            return """**Horizon Europe** is the EU's key funding programme for research and innovation (2021-2027) with a budget of €95.5 billion.
+            return """**Horizon Europe** is the EU's key funding programme for research \
+and innovation (2021-2027) with a budget of EUR 95.5 billion.
 
 **Main Pillars:**
 1. **Excellent Science** - Supporting frontier research (€25.8B)
@@ -2914,7 +2996,7 @@ Is there a particular aspect of research funding or innovation you'd like to exp
 • Two-stage evaluation (remote + panel review)
 • Success rates typically 12-15%
 
-Would you like specific information about current calls, application strategies, or success examples?"""
+Would you like specific info about current calls, application strategies, or examples?"""
 
         # AI/Technology queries
         elif any(
@@ -2947,7 +3029,7 @@ The EU is heavily investing in digital technologies and AI:
 • Marie Curie fellowships for AI researchers
 • Innovation Actions for AI deployment
 
-Would you like me to search for current AI-related calls or provide specific application guidance?"""
+Would you like me to search for current AI-related calls or provide application guidance?"""
 
         # Healthcare queries
         elif any(
@@ -3226,7 +3308,7 @@ Every country has specialized support offices providing:
 • Success rate statistics
 • National funding complementarity
 
-Would you like specific information about research opportunities or support in particular countries?"""
+Would you like specific info about research opportunities or support in a particular country?"""
 
         # General/default response - comprehensive research manager assistant
         else:
@@ -3277,9 +3359,10 @@ I'm specialized in European research funding and innovation. Here's how I can as
 • "What's the budget for climate research?"
 • "Show me successful projects in my field"
 
-**Just ask me anything about EU research funding - I'm here to help you succeed!** 🎯
+**Just ask me anything about EU research funding - I'm here to help you succeed!**
 
-For the most current information, I can search live databases and provide real-time data. What specific area interests you most?"""
+For the most current information, I can search live databases and provide real-time data. \
+What specific area interests you most?"""
 
     def _get_system_instructions(self, intent_analysis: dict) -> str:
         """
@@ -3370,7 +3453,8 @@ Be helpful and conversational."""
                 existing = cursor.fetchone()
                 if existing:
                     logger.info(
-                        f"⚠️ Duplicate message detected (within 5s), reusing existing ID: {existing[0]}"
+                        f"⚠️ Duplicate message detected (within 5s), "
+                        f"reusing existing ID: {existing[0]}"
                     )
                     return existing[0]
 
@@ -3444,7 +3528,8 @@ Be helpful and conversational."""
                 existing = cursor.fetchone()
                 if existing:
                     logger.info(
-                        f"⚠️ Duplicate assistant message detected (within 5s), reusing existing ID: {existing[0]}"
+                        f"⚠️ Duplicate assistant message detected (within 5s), "
+                        f"reusing existing ID: {existing[0]}"
                     )
                     return existing[0]
 
@@ -3596,7 +3681,8 @@ Be helpful and conversational."""
                 recent_messages=conversation_history,
             )
             logger.info(
-                f"🎯 Intent: {intent_classification.primary_intent}, Complex: {intent_classification.requires_multi_tool}"
+                f"🎯 Intent: {intent_classification.primary_intent}, "
+                f"Complex: {intent_classification.requires_multi_tool}"
             )
         except Exception as e:
             logger.warning(f"Intent classification failed: {e}")
@@ -3801,7 +3887,7 @@ Be helpful and conversational."""
                 return 0
 
             count = 0
-            for tool_name, result in tool_results.items():
+            for _tool_name, result in tool_results.items():
                 if hasattr(result, "results") and result.results:
                     count += len(result.results)
                 elif isinstance(result, dict) and "results" in result:
@@ -4068,7 +4154,11 @@ Be helpful and conversational."""
                 call_id = proposal_mode.get("call_id")
                 if not call_id:
                     return {
-                        "response": "I'd be happy to generate a proposal template! Which call are you applying to? Please provide the call ID (e.g., HORIZON-CL3-2025-02-CS-ECCC-01).",
+                        "response": (
+                            "I'd be happy to generate a proposal template! Which call are "
+                            "you applying to? Please provide the call ID "
+                            "(e.g., HORIZON-CL3-2025-02-CS-ECCC-01)."
+                        ),
                         "needs_info": ["call_id"],
                     }
 
@@ -4085,11 +4175,17 @@ I've generated a complete proposal structure based on the call requirements:
 **Section Structure:**
 """
                 for section in template["structure"]["sections"]:
-                    response += f"\n**{section['order']}. {section['name']}** (max {section.get('page_limit', '?')} pages)"
+                    page_limit = section.get("page_limit", "?")
+                    response += (
+                        f"\n**{section['order']}. {section['name']}** (max {page_limit} pages)"
+                    )
                     for subsection in section.get("subsections", []):
                         response += f"\n   - {subsection['name']}"
 
-                response += "\n\n✅ Template ready! Would you like me to help you start writing a specific section?"
+                response += (
+                    "\n\n✅ Template ready! Would you like me to help you "
+                    "start writing a specific section?"
+                )
 
                 # Store template in context
                 await self.memory_service.redis_client.setex(
@@ -4116,7 +4212,11 @@ I've generated a complete proposal structure based on the call requirements:
                         if not call_id:
                             yield {
                                 "type": "response",
-                                "message": "Which call are you writing the proposal for? Please provide the call ID (e.g., HORIZON-CL3-2025-02-CS-ECCC-01).",
+                                "message": (
+                                    "Which call are you writing the proposal for? "
+                                    "Please provide the call ID "
+                                    "(e.g., HORIZON-CL3-2025-02-CS-ECCC-01)."
+                                ),
                             }
                             return
 
@@ -4144,7 +4244,8 @@ I've generated a complete proposal structure based on the call requirements:
 
                         # Add context if available
                         if conversation_context:
-                            project_idea = f"{conversation_context.get('project_acronym', 'Project')} - {user_message}"
+                            acronym = conversation_context.get("project_acronym", "Project")
+                            project_idea = f"{acronym} - {user_message}"
 
                         # Status 3: Generating content
                         yield {
@@ -4168,9 +4269,8 @@ I've generated a complete proposal structure based on the call requirements:
                             call_id=call_id, section_id=section_id, user_context=user_context
                         )
 
-                        logger.info(
-                            f"✅ Draft generated successfully: {draft_result.get('word_count', 0)} words"
-                        )
+                        word_count = draft_result.get("word_count", 0)
+                        logger.info(f"✅ Draft generated successfully: {word_count} words")
 
                         # Status 4: Streaming response
                         yield {
@@ -4247,7 +4347,11 @@ Would you like me to help with anything else?
 
                         yield {
                             "type": "error",
-                            "message": f"I encountered an error while generating the draft: {str(e)}\n\nPlease try again or let me know if you need help.",
+                            "message": (
+                                f"I encountered an error while generating the draft: "
+                                f"{str(e)}\n\nPlease try again or let me know if you "
+                                f"need help."
+                            ),
                         }
 
                 return stream_draft_generation()
@@ -4322,7 +4426,11 @@ Which section would you like me to analyze? Please provide the section text or s
                     if not proposal_id:
                         yield {
                             "type": "error",
-                            "message": "I couldn't find an active proposal in this conversation. Please create a proposal first or specify which proposal to export.",
+                            "message": (
+                                "I couldn't find an active proposal in this conversation. "
+                                "Please create a proposal first or specify which proposal "
+                                "to export."
+                            ),
                         }
                         return
 
@@ -4410,7 +4518,11 @@ Which section would you like me to analyze? Please provide the section text or s
                     if not proposal_id:
                         yield {
                             "type": "error",
-                            "message": "I couldn't find an active proposal in this conversation. Please create a proposal first or specify which proposal to export.",
+                            "message": (
+                                "I couldn't find an active proposal in this conversation. "
+                                "Please create a proposal first or specify which proposal "
+                                "to export."
+                            ),
                         }
                         return
 
@@ -4491,7 +4603,11 @@ Which section would you like me to analyze? Please provide the section text or s
                     if not proposal_id:
                         yield {
                             "type": "error",
-                            "message": "I couldn't find an active proposal in this conversation. Please create a proposal first or specify which proposal to export.",
+                            "message": (
+                                "I couldn't find an active proposal in this conversation. "
+                                "Please create a proposal first or specify which proposal "
+                                "to export."
+                            ),
                         }
                         return
 
@@ -4614,14 +4730,22 @@ Good luck with your submission! 🍀
             # Default
             else:
                 return {
-                    "response": "I'm in proposal writing mode! I can help you:\n\n✍️ Write proposal sections\n💰 Create budget tables\n✅ Check compliance\n🎨 Improve quality\n📋 Generate templates\n\nWhat would you like to do?",
+                    "response": (
+                        "I'm in proposal writing mode! I can help you:\n\n"
+                        "✍️ Write proposal sections\n💰 Create budget tables\n"
+                        "✅ Check compliance\n🎨 Improve quality\n"
+                        "📋 Generate templates\n\nWhat would you like to do?"
+                    ),
                     "mode": "proposal_writing",
                 }
 
         except Exception as e:
             logger.error(f"Error in proposal writing mode: {e}")
             return {
-                "response": f"I encountered an error while assisting with proposal writing: {str(e)}\n\nLet me help you with general questions instead.",
+                "response": (
+                    f"I encountered an error while assisting with proposal writing: "
+                    f"{str(e)}\n\nLet me help you with general questions instead."
+                ),
                 "error": str(e),
             }
 
@@ -4847,16 +4971,17 @@ Good luck with your submission! 🍀
         if follow_up_type in ["expand", "correction"]:
             try:
                 # Use Gemini to understand the original topic
-                prompt = f"""Based on this conversation, extract the ORIGINAL SEARCH TOPIC the user was asking about.
+                prompt = f"""Based on this conversation, extract the ORIGINAL SEARCH TOPIC \
+the user was asking about.
 
 CONVERSATION:
 {conversation_context[-2000:]}
 
 USER'S FOLLOW-UP: "{user_message}"
 
-The user is complaining or asking for more results. What was the ORIGINAL TOPIC they searched for?
+The user is complaining or asking for more results. What was the ORIGINAL TOPIC?
 
-Reply with ONLY the search topic (e.g., "funding calls in clean energy research" or "hydrogen projects").
+Reply with ONLY the search topic (e.g., "funding calls in clean energy research").
 Do NOT include phrases like "the user asked about" - just the topic itself."""
 
                 model = genai.GenerativeModel("gemini-2.0-flash")
@@ -5024,7 +5149,8 @@ async def test_project_search_improvements():
             if i >= 2:  # Messages 2-5 are project searches
                 if not tools_executed:
                     logger.warning(
-                        "   ⚠️  WARNING: Expected tools for project search but got conversational response"
+                        "   ⚠️  WARNING: Expected tools for project search "
+                        "but got conversational response"
                     )
                 else:
                     logger.info("   ✅ SUCCESS: Correctly routed to tools for project search")

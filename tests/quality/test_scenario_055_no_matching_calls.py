@@ -14,10 +14,10 @@ Query: "Find open calls for underwater basket weaving"
 Expected: Graceful "no results", suggests alternatives
 """
 
-from datetime import datetime
 import json
-from pathlib import Path
 import re
+from datetime import datetime
+from pathlib import Path
 
 import httpx
 import pytest
@@ -615,9 +615,9 @@ class TestLiveAPIIntegration:
             result = evaluator.evaluate(query, response)
 
             # Should at least not hallucinate
-            assert (
-                result["scores"]["factual_accuracy"] >= 20
-            ), f"Query '{query}' should not hallucinate"
+            assert result["scores"]["factual_accuracy"] >= 20, (
+                f"Query '{query}' should not hallucinate"
+            )
 
             # Should acknowledge no results
             response_lower = response.lower()

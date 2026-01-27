@@ -237,8 +237,7 @@ class TestScenario034ImplicitIntent:
             has_actions = self._has_actionable_next_steps(response_text)
 
             assert has_actions, (
-                f"Response should provide actionable next steps. "
-                f"Response: {response_text[:500]}..."
+                f"Response should provide actionable next steps. Response: {response_text[:500]}..."
             )
 
     @pytest.mark.asyncio
@@ -326,9 +325,7 @@ class TestScenario034ImplicitIntent:
                 for tool_used in tools_used
             )
 
-            assert used_search_tool, (
-                f"Response should use search tools. " f"Tools used: {tools_used}"
-            )
+            assert used_search_tool, f"Response should use search tools. Tools used: {tools_used}"
 
     @pytest.mark.asyncio
     async def test_response_not_empty(self, conversation_id):
@@ -341,9 +338,9 @@ class TestScenario034ImplicitIntent:
             result = response.json()
             response_text = result.get("response", "")
 
-            assert (
-                len(response_text) > 200
-            ), f"Response should be substantial. Length: {len(response_text)}"
+            assert len(response_text) > 200, (
+                f"Response should be substantial. Length: {len(response_text)}"
+            )
 
     @pytest.mark.asyncio
     async def test_mentions_horizon_europe(self, conversation_id):

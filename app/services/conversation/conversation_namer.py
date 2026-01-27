@@ -51,14 +51,14 @@ class ConversationNamer:
 
     def __init__(self):
         """Initialize the conversation namer with Gemini."""
-        self.api_key = os.getenv('GEMINI_API_KEY')
+        self.api_key = os.getenv("GEMINI_API_KEY")
         self.model = None
 
         if self.api_key:
             try:
                 genai.configure(api_key=self.api_key)
                 # Use flash for speed - naming should be fast
-                self.model = genai.GenerativeModel('gemini-2.0-flash-lite')
+                self.model = genai.GenerativeModel("gemini-2.0-flash-lite")
                 logger.info("ConversationNamer initialized with Gemini")
             except Exception as e:
                 logger.warning(f"Failed to initialize Gemini for naming: {e}")
@@ -114,20 +114,20 @@ Title:"""
             response = self.model.generate_content(
                 prompt,
                 generation_config={
-                    'temperature': 0.3,
-                    'max_output_tokens': 20,
-                }
+                    "temperature": 0.3,
+                    "max_output_tokens": 20,
+                },
             )
 
             if response and response.text:
                 # Clean up the response
                 name = response.text.strip()
                 # Remove quotes if present
-                name = name.strip('"\'')
+                name = name.strip("\"'")
                 # Limit length
                 words = name.split()
                 if len(words) > 6:
-                    name = ' '.join(words[:5])
+                    name = " ".join(words[:5])
                 return name
 
         except Exception as e:
@@ -147,25 +147,87 @@ Title:"""
         # Ultimate fallback - extract key words
         # Remove common words and take first meaningful ones
         stop_words = {
-            'i', 'me', 'my', 'we', 'our', 'you', 'your', 'the', 'a', 'an',
-            'is', 'are', 'was', 'were', 'be', 'been', 'being',
-            'have', 'has', 'had', 'do', 'does', 'did',
-            'will', 'would', 'could', 'should', 'may', 'might',
-            'what', 'which', 'who', 'when', 'where', 'why', 'how',
-            'can', 'want', 'need', 'help', 'please', 'find', 'show',
-            'tell', 'give', 'get', 'know', 'about', 'for', 'with',
-            'and', 'or', 'but', 'if', 'then', 'that', 'this',
-            'to', 'of', 'in', 'on', 'at', 'by', 'from',
-            'some', 'any', 'all', 'more', 'most', 'other',
+            "i",
+            "me",
+            "my",
+            "we",
+            "our",
+            "you",
+            "your",
+            "the",
+            "a",
+            "an",
+            "is",
+            "are",
+            "was",
+            "were",
+            "be",
+            "been",
+            "being",
+            "have",
+            "has",
+            "had",
+            "do",
+            "does",
+            "did",
+            "will",
+            "would",
+            "could",
+            "should",
+            "may",
+            "might",
+            "what",
+            "which",
+            "who",
+            "when",
+            "where",
+            "why",
+            "how",
+            "can",
+            "want",
+            "need",
+            "help",
+            "please",
+            "find",
+            "show",
+            "tell",
+            "give",
+            "get",
+            "know",
+            "about",
+            "for",
+            "with",
+            "and",
+            "or",
+            "but",
+            "if",
+            "then",
+            "that",
+            "this",
+            "to",
+            "of",
+            "in",
+            "on",
+            "at",
+            "by",
+            "from",
+            "some",
+            "any",
+            "all",
+            "more",
+            "most",
+            "other",
         }
 
         words = message_lower.split()
-        meaningful = [w.strip('?.,!') for w in words if w.strip('?.,!') not in stop_words and len(w) > 2]
+        meaningful = [
+            w.strip("?.,!") for w in words if w.strip("?.,!") not in stop_words and len(w) > 2
+        ]
 
         if meaningful:
             # Take up to 3 meaningful words and title case
             key_words = meaningful[:3]
-            return ' '.join(word.title() for word in key_words) + " Query"
+            return " ".join(word.title() for word in key_words) + " Query"
 
         return "New Conversation"
 

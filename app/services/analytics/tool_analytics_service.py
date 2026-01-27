@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ToolUsageEvent:
     """Single tool usage event."""
+
     tool_name: str
     parameters: dict[str, Any]
     execution_time_ms: int
@@ -68,12 +69,9 @@ class ToolAnalyticsService:
         self.enabled = bool(self.db_url)
 
         # In-memory metrics for real-time stats
-        self.session_metrics = defaultdict(lambda: {
-            'calls': 0,
-            'successes': 0,
-            'total_time_ms': 0,
-            'speculative_hits': 0
-        })
+        self.session_metrics = defaultdict(
+            lambda: {"calls": 0, "successes": 0, "total_time_ms": 0, "speculative_hits": 0}
+        )
 
         if self.enabled:
             try:
@@ -88,9 +86,7 @@ class ToolAnalyticsService:
     def _init_pool(self):
         """Initialize database connection pool."""
         if ToolAnalyticsService._pool is None:
-            ToolAnalyticsService._pool = pool.SimpleConnectionPool(
-                1, 5, self.db_url
-            )
+            ToolAnalyticsService._pool = pool.SimpleConnectionPool(1, 5, self.db_url)
 
     def _get_connection(self):
         """Get a connection from the pool."""
@@ -109,20 +105,20 @@ class ToolAnalyticsService:
             return
 
         # Update in-memory metrics
-        self.session_metrics[event.tool_name]['calls'] += 1
+        self.session_metrics[event.tool_name]["calls"] += 1
         if event.success:
-            self.session_metrics[event.tool_name]['successes'] += 1
-        self.session_metrics[event.tool_name]['total_time_ms'] += event.execution_time_ms
+            self.session_metrics[event.tool_name]["successes"] += 1
+        self.session_metrics[event.tool_name]["total_time_ms"] += event.execution_time_ms
         if event.speculative:
-            self.session_metrics[event.tool_name]['speculative_hits'] += 1
+            self.session_metrics[event.tool_name]["speculative_hits"] += 1
 
         # Buffer for batch write
         self.buffer.append(event)
 
         # Flush if buffer full or interval elapsed
         should_flush = (
-            len(self.buffer) >= self.buffer_size or
-            (datetime.now() - self.last_flush).seconds >= self.flush_interval
+            len(self.buffer) >= self.buffer_size
+            or (datetime.now() - self.last_flush).seconds >= self.flush_interval
         )
 
         if should_flush:
@@ -155,19 +151,22 @@ class ToolAnalyticsService:
             """
 
             for event in events:
-                cursor.execute(insert_sql, (
-                    event.timestamp,
-                    event.conversation_id,
-                    event.query_hash,
-                    event.tool_name,
-                    json.dumps(event.parameters) if event.parameters else None,
-                    event.execution_time_ms,
-                    event.success,
-                    event.error_message,
-                    event.result_count,
-                    event.result_quality_score,
-                    event.speculative
-                ))
+                cursor.execute(
+                    insert_sql,
+                    (
+                        event.timestamp,
+                        event.conversation_id,
+                        event.query_hash,
+                        event.tool_name,
+                        json.dumps(event.parameters) if event.parameters else None,
+                        event.execution_time_ms,
+                        event.success,
+                        event.error_message,
+                        event.result_count,
+                        event.result_quality_score,
+                        event.speculative,
+                    ),
+                )
 
             conn.commit()
             cursor.close()
@@ -180,12 +179,7 @@ class ToolAnalyticsService:
         finally:
             self._put_connection(conn)
 
-    async def track_tool_sequence(
-        self,
-        tools_used: list[str],
-        total_time_ms: int,
-        success: bool
-    ):
+    async def track_tool_sequence(self, tools_used: list[str], total_time_ms: int, success: bool):
         """Track a sequence of tools used together."""
         if not self.enabled or len(tools_used) < 2:
             return
@@ -199,7 +193,8 @@ class ToolAnalyticsService:
             cursor = conn.cursor()
 
             # Upsert tool combination
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO tool_combination_analytics
                 (tool_sequence, occurrence_count, avg_total_time_ms, success_rate, last_seen)
                 VALUES (%s, 1, %s, %s, NOW())
@@ -215,7 +210,9 @@ class ToolAnalyticsService:
                         tool_combination_analytics.occurrence_count + EXCLUDED.success_rate
                     ) / (tool_combination_analytics.occurrence_count + 1),
                     last_seen = NOW()
-            """, (tools_used, total_time_ms, 1.0 if success else 0.0))
+            """,
+                (tools_used, total_time_ms, 1.0 if success else 0.0),
+            )
 
             conn.commit()
             cursor.close()
@@ -231,13 +228,13 @@ class ToolAnalyticsService:
         """Get current session metrics (in-memory)."""
         metrics = {}
         for tool_name, data in self.session_metrics.items():
-            calls = data['calls']
+            calls = data["calls"]
             metrics[tool_name] = {
-                'total_calls': calls,
-                'successful_calls': data['successes'],
-                'success_rate': (data['successes'] / calls * 100) if calls > 0 else 0,
-                'avg_time_ms': (data['total_time_ms'] / calls) if calls > 0 else 0,
-                'speculative_hits': data['speculative_hits']
+                "total_calls": calls,
+                "successful_calls": data["successes"],
+                "success_rate": (data["successes"] / calls * 100) if calls > 0 else 0,
+                "avg_time_ms": (data["total_time_ms"] / calls) if calls > 0 else 0,
+                "speculative_hits": data["speculative_hits"],
             }
         return metrics
 
@@ -254,7 +251,8 @@ class ToolAnalyticsService:
 
             cursor = conn.cursor(cursor_factory=RealDictCursor)
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT
                     tool_name,
                     COUNT(*) as total_calls,
@@ -267,7 +265,9 @@ class ToolAnalyticsService:
                 WHERE timestamp > NOW() - (%s || ' hours')::INTERVAL
                 GROUP BY tool_name
                 ORDER BY total_calls DESC
-            """, (hours,))
+            """,
+                (hours,),
+            )
 
             results = cursor.fetchall()
             cursor.close()
@@ -275,7 +275,7 @@ class ToolAnalyticsService:
             return {
                 "period_hours": hours,
                 "tools": [dict(r) for r in results],
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
 
         except Exception as e:
@@ -297,7 +297,8 @@ class ToolAnalyticsService:
 
             cursor = conn.cursor(cursor_factory=RealDictCursor)
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT
                     tool_sequence,
                     occurrence_count,
@@ -308,7 +309,9 @@ class ToolAnalyticsService:
                 WHERE occurrence_count >= %s
                 ORDER BY occurrence_count DESC
                 LIMIT 20
-            """, (min_occurrences,))
+            """,
+                (min_occurrences,),
+            )
 
             results = cursor.fetchall()
             cursor.close()
@@ -316,7 +319,7 @@ class ToolAnalyticsService:
             return {
                 "min_occurrences": min_occurrences,
                 "combinations": [dict(r) for r in results],
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
 
         except Exception as e:
@@ -338,7 +341,8 @@ class ToolAnalyticsService:
 
             cursor = conn.cursor(cursor_factory=RealDictCursor)
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT
                     tool_name,
                     COUNT(*) as total_calls,
@@ -351,7 +355,9 @@ class ToolAnalyticsService:
                 GROUP BY tool_name
                 HAVING SUM(CASE WHEN execution_time_ms > %s THEN 1 ELSE 0 END) > 0
                 ORDER BY slow_pct DESC
-            """, (threshold_ms, threshold_ms, threshold_ms))
+            """,
+                (threshold_ms, threshold_ms, threshold_ms),
+            )
 
             results = cursor.fetchall()
             cursor.close()

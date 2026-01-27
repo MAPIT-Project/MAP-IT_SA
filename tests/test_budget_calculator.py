@@ -28,7 +28,7 @@ class TestBudgetCalculatorCostRatios:
     def test_ria_cost_ratios_sum_to_one(self):
         """Test RIA cost ratios sum to approximately 1.0."""
         tool = BudgetCalculatorTool()
-        ratios = tool.COST_RATIOS['RIA']
+        ratios = tool.COST_RATIOS["RIA"]
 
         total = sum(ratios.values())
         assert abs(total - 1.0) < 0.01, f"RIA ratios sum to {total}, expected ~1.0"
@@ -36,7 +36,7 @@ class TestBudgetCalculatorCostRatios:
     def test_ia_cost_ratios_sum_to_one(self):
         """Test IA cost ratios sum to approximately 1.0."""
         tool = BudgetCalculatorTool()
-        ratios = tool.COST_RATIOS['IA']
+        ratios = tool.COST_RATIOS["IA"]
 
         total = sum(ratios.values())
         assert abs(total - 1.0) < 0.01
@@ -44,7 +44,7 @@ class TestBudgetCalculatorCostRatios:
     def test_csa_cost_ratios_sum_to_one(self):
         """Test CSA cost ratios sum to approximately 1.0."""
         tool = BudgetCalculatorTool()
-        ratios = tool.COST_RATIOS['CSA']
+        ratios = tool.COST_RATIOS["CSA"]
 
         total = sum(ratios.values())
         assert abs(total - 1.0) < 0.01
@@ -53,7 +53,7 @@ class TestBudgetCalculatorCostRatios:
         """Test ERC cost ratios sum to approximately 1.0."""
         tool = BudgetCalculatorTool()
 
-        for grant_type in ['ERC-STG', 'ERC-COG', 'ERC-ADG']:
+        for grant_type in ["ERC-STG", "ERC-COG", "ERC-ADG"]:
             ratios = tool.COST_RATIOS[grant_type]
             total = sum(ratios.values())
             assert abs(total - 1.0) < 0.01, f"{grant_type} ratios sum to {total}"
@@ -61,7 +61,14 @@ class TestBudgetCalculatorCostRatios:
     def test_all_action_types_have_required_categories(self):
         """Test all action types have all required cost categories."""
         tool = BudgetCalculatorTool()
-        required_categories = ['personnel', 'equipment', 'travel', 'subcontracting', 'other_direct', 'indirect']
+        required_categories = [
+            "personnel",
+            "equipment",
+            "travel",
+            "subcontracting",
+            "other_direct",
+            "indirect",
+        ]
 
         for action_type, ratios in tool.COST_RATIOS.items():
             for category in required_categories:
@@ -71,15 +78,15 @@ class TestBudgetCalculatorCostRatios:
         """Test RIA has higher personnel ratio than IA."""
         tool = BudgetCalculatorTool()
 
-        assert tool.COST_RATIOS['RIA']['personnel'] > tool.COST_RATIOS['IA']['personnel']
+        assert tool.COST_RATIOS["RIA"]["personnel"] > tool.COST_RATIOS["IA"]["personnel"]
 
     def test_csa_highest_personnel_ratio(self):
         """Test CSA has highest personnel ratio among standard types."""
         tool = BudgetCalculatorTool()
 
-        csa_personnel = tool.COST_RATIOS['CSA']['personnel']
-        ria_personnel = tool.COST_RATIOS['RIA']['personnel']
-        ia_personnel = tool.COST_RATIOS['IA']['personnel']
+        csa_personnel = tool.COST_RATIOS["CSA"]["personnel"]
+        ria_personnel = tool.COST_RATIOS["RIA"]["personnel"]
+        ia_personnel = tool.COST_RATIOS["IA"]["personnel"]
 
         assert csa_personnel > ria_personnel
         assert csa_personnel > ia_personnel
@@ -88,8 +95,8 @@ class TestBudgetCalculatorCostRatios:
         """Test ERC grants typically have no subcontracting."""
         tool = BudgetCalculatorTool()
 
-        for grant_type in ['ERC-STG', 'ERC-COG', 'ERC-ADG']:
-            assert tool.COST_RATIOS[grant_type]['subcontracting'] == 0.0
+        for grant_type in ["ERC-STG", "ERC-COG", "ERC-ADG"]:
+            assert tool.COST_RATIOS[grant_type]["subcontracting"] == 0.0
 
 
 class TestPersonMonthCosts:
@@ -99,55 +106,55 @@ class TestPersonMonthCosts:
         """Test tier 1 country PM costs."""
         tool = BudgetCalculatorTool()
 
-        tier1_countries = ['DE', 'FR', 'NL', 'BE', 'AT', 'DK', 'SE', 'FI', 'LU', 'NO', 'CH']
+        tier1_countries = ["DE", "FR", "NL", "BE", "AT", "DK", "SE", "FI", "LU", "NO", "CH"]
         for country in tier1_countries:
-            assert country in tool.COUNTRY_TIERS['tier1']
+            assert country in tool.COUNTRY_TIERS["tier1"]
 
-        assert tool.PM_COSTS['tier1'] == 8500
+        assert tool.PM_COSTS["tier1"] == 8500
 
     def test_tier2_countries(self):
         """Test tier 2 country PM costs."""
         tool = BudgetCalculatorTool()
 
-        tier2_countries = ['ES', 'IT', 'PT', 'IE', 'CZ', 'SI', 'EE', 'GR', 'CY', 'MT']
+        tier2_countries = ["ES", "IT", "PT", "IE", "CZ", "SI", "EE", "GR", "CY", "MT"]
         for country in tier2_countries:
-            assert country in tool.COUNTRY_TIERS['tier2']
+            assert country in tool.COUNTRY_TIERS["tier2"]
 
-        assert tool.PM_COSTS['tier2'] == 6500
+        assert tool.PM_COSTS["tier2"] == 6500
 
     def test_tier3_countries(self):
         """Test tier 3 country PM costs."""
         tool = BudgetCalculatorTool()
 
-        tier3_countries = ['PL', 'HU', 'RO', 'BG', 'HR', 'SK', 'LT', 'LV']
+        tier3_countries = ["PL", "HU", "RO", "BG", "HR", "SK", "LT", "LV"]
         for country in tier3_countries:
-            assert country in tool.COUNTRY_TIERS['tier3']
+            assert country in tool.COUNTRY_TIERS["tier3"]
 
-        assert tool.PM_COSTS['tier3'] == 4500
+        assert tool.PM_COSTS["tier3"] == 4500
 
     def test_default_pm_cost(self):
         """Test default PM cost for unknown countries."""
         tool = BudgetCalculatorTool()
-        assert tool.PM_COSTS['default'] == 7000
+        assert tool.PM_COSTS["default"] == 7000
 
     def test_average_pm_cost_single_tier1(self):
         """Test average PM cost for single tier 1 country."""
         tool = BudgetCalculatorTool()
-        avg = tool._calculate_avg_pm_cost(['DE'])
+        avg = tool._calculate_avg_pm_cost(["DE"])
         assert avg == 8500
 
     def test_average_pm_cost_mixed_tiers(self):
         """Test average PM cost for mixed tier countries."""
         tool = BudgetCalculatorTool()
         # DE (8500) + PL (4500) = 13000 / 2 = 6500
-        avg = tool._calculate_avg_pm_cost(['DE', 'PL'])
+        avg = tool._calculate_avg_pm_cost(["DE", "PL"])
         assert avg == 6500
 
     def test_average_pm_cost_all_tiers(self):
         """Test average PM cost across all tiers."""
         tool = BudgetCalculatorTool()
         # DE (8500) + ES (6500) + PL (4500) = 19500 / 3 = 6500
-        avg = tool._calculate_avg_pm_cost(['DE', 'ES', 'PL'])
+        avg = tool._calculate_avg_pm_cost(["DE", "ES", "PL"])
         assert avg == 6500
 
     def test_average_pm_cost_no_countries(self):
@@ -159,7 +166,7 @@ class TestPersonMonthCosts:
     def test_average_pm_cost_unknown_country(self):
         """Test average PM cost for unknown country uses default."""
         tool = BudgetCalculatorTool()
-        avg = tool._calculate_avg_pm_cost(['XX'])  # Unknown country
+        avg = tool._calculate_avg_pm_cost(["XX"])  # Unknown country
         assert avg == 7000
 
 
@@ -169,29 +176,29 @@ class TestFundingRates:
     def test_ria_100_percent(self):
         """Test RIA has 100% funding rate."""
         tool = BudgetCalculatorTool()
-        assert tool.FUNDING_RATES['RIA'] == 1.0
+        assert tool.FUNDING_RATES["RIA"] == 1.0
 
     def test_ia_70_percent(self):
         """Test IA has 70% funding rate."""
         tool = BudgetCalculatorTool()
-        assert tool.FUNDING_RATES['IA'] == 0.7
+        assert tool.FUNDING_RATES["IA"] == 0.7
 
     def test_csa_100_percent(self):
         """Test CSA has 100% funding rate."""
         tool = BudgetCalculatorTool()
-        assert tool.FUNDING_RATES['CSA'] == 1.0
+        assert tool.FUNDING_RATES["CSA"] == 1.0
 
     def test_erc_100_percent(self):
         """Test all ERC grants have 100% funding rate."""
         tool = BudgetCalculatorTool()
 
-        for grant_type in ['ERC-STG', 'ERC-COG', 'ERC-ADG']:
+        for grant_type in ["ERC-STG", "ERC-COG", "ERC-ADG"]:
             assert tool.FUNDING_RATES[grant_type] == 1.0
 
     def test_eic_blended_rate(self):
         """Test EIC has blended rate."""
         tool = BudgetCalculatorTool()
-        assert tool.FUNDING_RATES['EIC'] == 0.7
+        assert tool.FUNDING_RATES["EIC"] == 0.7
 
 
 class TestBudgetCalculation:
@@ -202,82 +209,80 @@ class TestBudgetCalculation:
         tool = BudgetCalculatorTool()
 
         result = tool.calculate_budget(
-            action_type='RIA',
-            duration_months=36,
-            num_partners=8,
-            target_budget=5_000_000
+            action_type="RIA", duration_months=36, num_partners=8, target_budget=5_000_000
         )
 
-        assert result['success'] == True
-        assert result['calculated_budget']['total_cost'] == 5_000_000
-        assert result['calculated_budget']['eu_contribution'] == 5_000_000  # 100% for RIA
-        assert result['calculated_budget']['funding_rate'] == '100%'
+        assert result["success"]
+        assert result["calculated_budget"]["total_cost"] == 5_000_000
+        assert result["calculated_budget"]["eu_contribution"] == 5_000_000  # 100% for RIA
+        assert result["calculated_budget"]["funding_rate"] == "100%"
 
     def test_calculate_ia_budget_with_70_percent(self):
         """Test IA budget calculation with 70% funding."""
         tool = BudgetCalculatorTool()
 
         result = tool.calculate_budget(
-            action_type='IA',
-            duration_months=36,
-            num_partners=10,
-            target_budget=10_000_000
+            action_type="IA", duration_months=36, num_partners=10, target_budget=10_000_000
         )
 
-        assert result['calculated_budget']['total_cost'] == 10_000_000
-        assert result['calculated_budget']['eu_contribution'] == 7_000_000  # 70% for IA
-        assert result['calculated_budget']['funding_rate'] == '70%'
+        assert result["calculated_budget"]["total_cost"] == 10_000_000
+        assert result["calculated_budget"]["eu_contribution"] == 7_000_000  # 70% for IA
+        assert result["calculated_budget"]["funding_rate"] == "70%"
 
     def test_calculate_from_person_months(self):
         """Test budget calculation from total person-months."""
         tool = BudgetCalculatorTool()
 
         result = tool.calculate_budget(
-            action_type='RIA',
+            action_type="RIA",
             duration_months=36,
             num_partners=8,
             total_person_months=200,
-            countries=['DE', 'FR', 'ES']  # Mix of tier 1 and 2
+            countries=["DE", "FR", "ES"],  # Mix of tier 1 and 2
         )
 
-        assert result['success'] == True
-        assert result['effort_summary']['total_person_months'] == 200
-        assert result['calculated_budget']['total_cost'] > 0
+        assert result["success"]
+        assert result["effort_summary"]["total_person_months"] == 200
+        assert result["calculated_budget"]["total_cost"] > 0
 
     def test_breakdown_includes_all_categories(self):
         """Test breakdown includes all cost categories."""
         tool = BudgetCalculatorTool()
 
         result = tool.calculate_budget(
-            action_type='RIA',
+            action_type="RIA",
             duration_months=36,
             num_partners=8,
             target_budget=5_000_000,
-            include_breakdown=True
+            include_breakdown=True,
         )
 
-        breakdown = result['breakdown']
-        expected_categories = ['personnel', 'equipment', 'travel', 'subcontracting', 'other_direct', 'indirect']
+        breakdown = result["breakdown"]
+        expected_categories = [
+            "personnel",
+            "equipment",
+            "travel",
+            "subcontracting",
+            "other_direct",
+            "indirect",
+        ]
 
         for category in expected_categories:
             assert category in breakdown
-            assert 'amount' in breakdown[category]
-            assert 'percentage' in breakdown[category]
-            assert 'description' in breakdown[category]
+            assert "amount" in breakdown[category]
+            assert "percentage" in breakdown[category]
+            assert "description" in breakdown[category]
 
     def test_breakdown_amounts_sum_to_total(self):
         """Test breakdown amounts sum to total budget."""
         tool = BudgetCalculatorTool()
 
         result = tool.calculate_budget(
-            action_type='RIA',
-            duration_months=36,
-            num_partners=8,
-            target_budget=5_000_000
+            action_type="RIA", duration_months=36, num_partners=8, target_budget=5_000_000
         )
 
-        breakdown = result['breakdown']
-        total_from_breakdown = sum(cat['amount'] for cat in breakdown.values())
+        breakdown = result["breakdown"]
+        total_from_breakdown = sum(cat["amount"] for cat in breakdown.values())
 
         # Should be close to total (allowing for rounding)
         assert abs(total_from_breakdown - 5_000_000) < 1000
@@ -287,36 +292,30 @@ class TestBudgetCalculation:
         tool = BudgetCalculatorTool()
 
         result = tool.calculate_budget(
-            action_type='RIA',
-            duration_months=36,
-            num_partners=10,
-            target_budget=10_000_000
+            action_type="RIA", duration_months=36, num_partners=10, target_budget=10_000_000
         )
 
-        per_partner = result['per_partner']
+        per_partner = result["per_partner"]
 
-        assert per_partner['average'] == 1_000_000  # 10M / 10 partners
-        assert per_partner['coordinator_typical'] == 2_000_000  # 20% of total
-        assert 'partner_typical' in per_partner
-        assert 'pms_per_partner' in per_partner
+        assert per_partner["average"] == 1_000_000  # 10M / 10 partners
+        assert per_partner["coordinator_typical"] == 2_000_000  # 20% of total
+        assert "partner_typical" in per_partner
+        assert "pms_per_partner" in per_partner
 
     def test_effort_summary(self):
         """Test effort summary calculation."""
         tool = BudgetCalculatorTool()
 
         result = tool.calculate_budget(
-            action_type='RIA',
-            duration_months=36,
-            num_partners=8,
-            target_budget=5_000_000
+            action_type="RIA", duration_months=36, num_partners=8, target_budget=5_000_000
         )
 
-        effort = result['effort_summary']
+        effort = result["effort_summary"]
 
-        assert effort['total_person_months'] > 0
-        assert effort['person_months_per_partner'] > 0
-        assert effort['avg_pm_cost_used'] > 0
-        assert effort['pm_per_month'] > 0
+        assert effort["total_person_months"] > 0
+        assert effort["person_months_per_partner"] > 0
+        assert effort["avg_pm_cost_used"] > 0
+        assert effort["pm_per_month"] > 0
 
 
 class TestBudgetBenchmarks:
@@ -326,7 +325,7 @@ class TestBudgetBenchmarks:
         """Test benchmark retrieval for each action type."""
         tool = BudgetCalculatorTool()
 
-        action_types = ['RIA', 'IA', 'CSA', 'ERC-STG', 'ERC-COG', 'ERC-ADG']
+        action_types = ["RIA", "IA", "CSA", "ERC-STG", "ERC-COG", "ERC-ADG"]
 
         for action_type in action_types:
             # Use the correct method name: _get_budget_benchmarks_sql
@@ -335,19 +334,20 @@ class TestBudgetBenchmarks:
             # Benchmarks may be None if no data in database
             if benchmarks and len(benchmarks) > 0:
                 # Verify structure if data exists
-                has_range = ('min' in benchmarks and 'max' in benchmarks) or \
-                           ('min_budget' in benchmarks and 'max_budget' in benchmarks)
+                has_range = ("min" in benchmarks and "max" in benchmarks) or (
+                    "min_budget" in benchmarks and "max_budget" in benchmarks
+                )
                 assert has_range or benchmarks is not None
 
     def test_ria_benchmark_range(self):
         """Test RIA fallback benchmark range."""
         tool = BudgetCalculatorTool()
         # Use the correct method name: _get_budget_benchmarks_sql
-        benchmarks = tool._get_budget_benchmarks_sql('RIA')
+        benchmarks = tool._get_budget_benchmarks_sql("RIA")
 
         # If we get benchmarks from SQL, verify structure; otherwise fallback logic may vary
         if benchmarks:
-            assert 'min' in benchmarks or 'min_budget' in benchmarks
+            assert "min" in benchmarks or "min_budget" in benchmarks
         else:
             # No data from SQL - this is acceptable
             assert benchmarks is None or len(benchmarks) == 0
@@ -356,40 +356,41 @@ class TestBudgetBenchmarks:
         """Test ERC-StG benchmark retrieval."""
         tool = BudgetCalculatorTool()
         # Use the correct method name
-        benchmarks = tool._get_budget_benchmarks_sql('ERC-STG')
+        benchmarks = tool._get_budget_benchmarks_sql("ERC-STG")
 
         # ERC grants have strict caps - verify if data exists
-        if benchmarks and benchmarks.get('max'):
-            assert benchmarks['max'] <= 2_500_000  # ERC-STG max with team
+        if benchmarks and benchmarks.get("max"):
+            assert benchmarks["max"] <= 2_500_000  # ERC-STG max with team
 
     def test_erc_adg_higher_than_stg(self):
         """Test ERC-ADG has higher budget than ERC-STG."""
         tool = BudgetCalculatorTool()
 
-        stg = tool._get_budget_benchmarks_sql('ERC-STG')
-        adg = tool._get_budget_benchmarks_sql('ERC-ADG')
+        stg = tool._get_budget_benchmarks_sql("ERC-STG")
+        adg = tool._get_budget_benchmarks_sql("ERC-ADG")
 
         # If we have data for both, verify ADG > STG
-        if stg and adg and stg.get('max') and adg.get('max'):
-            assert adg['max'] > stg['max']
+        if stg and adg and stg.get("max") and adg.get("max"):
+            assert adg["max"] > stg["max"]
 
     def test_benchmark_comparison_in_result(self):
         """Test benchmark comparison is included in result."""
         tool = BudgetCalculatorTool()
 
         result = tool.calculate_budget(
-            action_type='RIA',
-            duration_months=36,
-            num_partners=8,
-            target_budget=5_000_000
+            action_type="RIA", duration_months=36, num_partners=8, target_budget=5_000_000
         )
 
-        benchmarks = result['benchmarks']
+        benchmarks = result["benchmarks"]
 
-        assert 'typical_range' in benchmarks
-        assert 'median' in benchmarks
-        assert 'your_budget_vs_median' in benchmarks
-        assert result['benchmarks']['your_budget_vs_median'] in ['within range', 'below typical', 'above typical']
+        assert "typical_range" in benchmarks
+        assert "median" in benchmarks
+        assert "your_budget_vs_median" in benchmarks
+        assert result["benchmarks"]["your_budget_vs_median"] in [
+            "within range",
+            "below typical",
+            "above typical",
+        ]
 
 
 class TestRecommendations:
@@ -400,29 +401,26 @@ class TestRecommendations:
         tool = BudgetCalculatorTool()
 
         result = tool.calculate_budget(
-            action_type='RIA',
-            duration_months=36,
-            num_partners=8,
-            target_budget=5_000_000
+            action_type="RIA", duration_months=36, num_partners=8, target_budget=5_000_000
         )
 
-        assert 'recommendations' in result
-        assert isinstance(result['recommendations'], list)
-        assert len(result['recommendations']) > 0
+        assert "recommendations" in result
+        assert isinstance(result["recommendations"], list)
+        assert len(result["recommendations"]) > 0
 
     def test_low_budget_warning(self):
         """Test warning for budget below typical range."""
         tool = BudgetCalculatorTool()
 
         result = tool.calculate_budget(
-            action_type='RIA',
+            action_type="RIA",
             duration_months=36,
             num_partners=8,
-            target_budget=500_000  # Very low
+            target_budget=500_000,  # Very low
         )
 
-        recommendations = result['recommendations']
-        low_budget_warning = any('below typical' in r.lower() for r in recommendations)
+        recommendations = result["recommendations"]
+        low_budget_warning = any("below typical" in r.lower() for r in recommendations)
 
         assert low_budget_warning
 
@@ -431,14 +429,14 @@ class TestRecommendations:
         tool = BudgetCalculatorTool()
 
         result = tool.calculate_budget(
-            action_type='RIA',
+            action_type="RIA",
             duration_months=36,
             num_partners=8,
-            target_budget=50_000_000  # Very high
+            target_budget=50_000_000,  # Very high
         )
 
-        recommendations = result['recommendations']
-        high_budget_warning = any('above typical' in r.lower() for r in recommendations)
+        recommendations = result["recommendations"]
+        high_budget_warning = any("above typical" in r.lower() for r in recommendations)
 
         assert high_budget_warning
 
@@ -447,14 +445,11 @@ class TestRecommendations:
         tool = BudgetCalculatorTool()
 
         result = tool.calculate_budget(
-            action_type='RIA',
-            duration_months=60,
-            num_partners=8,
-            target_budget=5_000_000
+            action_type="RIA", duration_months=60, num_partners=8, target_budget=5_000_000
         )
 
-        recommendations = result['recommendations']
-        duration_warning = any('48 months' in r for r in recommendations)
+        recommendations = result["recommendations"]
+        duration_warning = any("48 months" in r for r in recommendations)
 
         assert duration_warning
 
@@ -463,14 +458,11 @@ class TestRecommendations:
         tool = BudgetCalculatorTool()
 
         result = tool.calculate_budget(
-            action_type='IA',
-            duration_months=36,
-            num_partners=10,
-            target_budget=10_000_000
+            action_type="IA", duration_months=36, num_partners=10, target_budget=10_000_000
         )
 
-        recommendations = result['recommendations']
-        ia_note = any('70%' in r for r in recommendations)
+        recommendations = result["recommendations"]
+        ia_note = any("70%" in r for r in recommendations)
 
         assert ia_note
 
@@ -479,14 +471,11 @@ class TestRecommendations:
         tool = BudgetCalculatorTool()
 
         result = tool.calculate_budget(
-            action_type='ERC-STG',
-            duration_months=60,
-            num_partners=1,
-            target_budget=1_500_000
+            action_type="ERC-STG", duration_months=60, num_partners=1, target_budget=1_500_000
         )
 
-        recommendations = result['recommendations']
-        erc_note = any('single PI' in r for r in recommendations)
+        recommendations = result["recommendations"]
+        erc_note = any("single PI" in r for r in recommendations)
 
         assert erc_note
 
@@ -495,14 +484,14 @@ class TestRecommendations:
         tool = BudgetCalculatorTool()
 
         result = tool.calculate_budget(
-            action_type='RIA',
+            action_type="RIA",
             duration_months=36,
             num_partners=20,  # Many partners
-            target_budget=2_000_000  # 100k per partner
+            target_budget=2_000_000,  # 100k per partner
         )
 
-        recommendations = result['recommendations']
-        low_partner_warning = any('per-partner' in r.lower() for r in recommendations)
+        recommendations = result["recommendations"]
+        low_partner_warning = any("per-partner" in r.lower() for r in recommendations)
 
         assert low_partner_warning
 
@@ -515,41 +504,38 @@ class TestActionTypeNormalization:
         tool = BudgetCalculatorTool()
 
         result = tool.calculate_budget(
-            action_type='ria',  # lowercase
+            action_type="ria",  # lowercase
             duration_months=36,
             num_partners=8,
-            target_budget=5_000_000
+            target_budget=5_000_000,
         )
 
-        assert result['success'] == True
-        assert result['input_parameters']['action_type'] == 'RIA'
+        assert result["success"]
+        assert result["input_parameters"]["action_type"] == "RIA"
 
     def test_mixed_case_action_type(self):
         """Test mixed case action type is handled."""
         tool = BudgetCalculatorTool()
 
         result = tool.calculate_budget(
-            action_type='Ria',  # Mixed
+            action_type="Ria",  # Mixed
             duration_months=36,
             num_partners=8,
-            target_budget=5_000_000
+            target_budget=5_000_000,
         )
 
-        assert result['success'] == True
+        assert result["success"]
 
     def test_unknown_action_type_uses_ria_defaults(self):
         """Test unknown action type falls back to RIA ratios."""
         tool = BudgetCalculatorTool()
 
         result = tool.calculate_budget(
-            action_type='UNKNOWN',
-            duration_months=36,
-            num_partners=8,
-            target_budget=5_000_000
+            action_type="UNKNOWN", duration_months=36, num_partners=8, target_budget=5_000_000
         )
 
         # Should succeed using RIA defaults
-        assert result['success'] == True
+        assert result["success"]
 
 
 class TestAsyncWrapper:
@@ -558,17 +544,17 @@ class TestAsyncWrapper:
     def test_calculate_budget_execute(self):
         """Test async execute wrapper."""
         params = {
-            'action_type': 'RIA',
-            'duration_months': 36,
-            'num_partners': 8,
-            'target_budget': 5_000_000
+            "action_type": "RIA",
+            "duration_months": 36,
+            "num_partners": 8,
+            "target_budget": 5_000_000,
         }
         context = {}
 
         result = asyncio.run(calculate_budget_execute(params, context))
 
-        assert result['success'] == True
-        assert result['tool_name'] == 'calculate_budget'
+        assert result["success"]
+        assert result["tool_name"] == "calculate_budget"
 
     def test_execute_with_defaults(self):
         """Test execute uses defaults for missing params."""
@@ -577,10 +563,10 @@ class TestAsyncWrapper:
 
         result = asyncio.run(calculate_budget_execute(params, context))
 
-        assert result['success'] == True
-        assert result['input_parameters']['action_type'] == 'RIA'
-        assert result['input_parameters']['duration_months'] == 36
-        assert result['input_parameters']['num_partners'] == 8
+        assert result["success"]
+        assert result["input_parameters"]["action_type"] == "RIA"
+        assert result["input_parameters"]["duration_months"] == 36
+        assert result["input_parameters"]["num_partners"] == 8
 
 
 class TestBudgetCalculatorEdgeCases:
@@ -591,69 +577,57 @@ class TestBudgetCalculatorEdgeCases:
         tool = BudgetCalculatorTool()
 
         result = tool.calculate_budget(
-            action_type='ERC-STG',
-            duration_months=60,
-            num_partners=1,
-            target_budget=1_500_000
+            action_type="ERC-STG", duration_months=60, num_partners=1, target_budget=1_500_000
         )
 
-        assert result['success'] == True
-        assert result['per_partner']['average'] == 1_500_000
+        assert result["success"]
+        assert result["per_partner"]["average"] == 1_500_000
 
     def test_many_partners(self):
         """Test budget calculation for large consortium."""
         tool = BudgetCalculatorTool()
 
         result = tool.calculate_budget(
-            action_type='RIA',
-            duration_months=48,
-            num_partners=25,
-            target_budget=15_000_000
+            action_type="RIA", duration_months=48, num_partners=25, target_budget=15_000_000
         )
 
-        assert result['success'] == True
-        assert result['per_partner']['average'] == 600_000
+        assert result["success"]
+        assert result["per_partner"]["average"] == 600_000
 
     def test_short_duration(self):
         """Test budget for short duration project."""
         tool = BudgetCalculatorTool()
 
         result = tool.calculate_budget(
-            action_type='CSA',
-            duration_months=12,
-            num_partners=5,
-            target_budget=1_000_000
+            action_type="CSA", duration_months=12, num_partners=5, target_budget=1_000_000
         )
 
-        assert result['success'] == True
+        assert result["success"]
 
     def test_no_breakdown_option(self):
         """Test calculation without detailed breakdown."""
         tool = BudgetCalculatorTool()
 
         result = tool.calculate_budget(
-            action_type='RIA',
+            action_type="RIA",
             duration_months=36,
             num_partners=8,
             target_budget=5_000_000,
-            include_breakdown=False
+            include_breakdown=False,
         )
 
-        assert result['success'] == True
-        assert result['breakdown'] == {}
+        assert result["success"]
+        assert result["breakdown"] == {}
 
     def test_result_has_timestamp(self):
         """Test result includes timestamp."""
         tool = BudgetCalculatorTool()
 
         result = tool.calculate_budget(
-            action_type='RIA',
-            duration_months=36,
-            num_partners=8,
-            target_budget=5_000_000
+            action_type="RIA", duration_months=36, num_partners=8, target_budget=5_000_000
         )
 
-        assert 'timestamp' in result
+        assert "timestamp" in result
 
 
 if __name__ == "__main__":

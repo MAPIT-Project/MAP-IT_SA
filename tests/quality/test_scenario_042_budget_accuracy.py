@@ -477,12 +477,12 @@ class TestScenario042BudgetAccuracy:
         calls = self._get_random_calls_with_budgets(db_connection, count=10)
 
         assert len(calls) > 0, "Database should have calls with budgets"
-        assert all(
-            call.get("budget_total") is not None for call in calls
-        ), "All selected calls should have budget_total"
-        assert all(
-            call.get("topic_code") is not None for call in calls
-        ), "All calls should have topic codes"
+        assert all(call.get("budget_total") is not None for call in calls), (
+            "All selected calls should have budget_total"
+        )
+        assert all(call.get("topic_code") is not None for call in calls), (
+            "All calls should have topic codes"
+        )
 
     @pytest.mark.asyncio
     async def test_eu_portal_api_returns_budget(self, http_client):
@@ -637,9 +637,9 @@ class TestScenario042BudgetAccuracy:
             budget = call["budget_total"]
 
             # Should be numeric type
-            assert isinstance(
-                budget, int | float | Decimal
-            ), f"Budget for {call['topic_code']} is not numeric: {type(budget)}"
+            assert isinstance(budget, int | float | Decimal), (
+                f"Budget for {call['topic_code']} is not numeric: {type(budget)}"
+            )
 
             # Should be positive
             assert budget > 0, f"Budget for {call['topic_code']} should be positive: {budget}"

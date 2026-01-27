@@ -1,196 +1,97 @@
 {
   "scenario_name": "Programme Comparison",
-  "status": "FAIL",
-  "average_quality_score": 78.0,
-  "average_factual_score": 76.54761904761905,
+  "status": "PASS",
+  "average_quality_score": 82.0,
+  "average_factual_score": 100.0,
   "turns": [
     {
       "query": "Compare Horizon Europe and Erasmus+ for university research collaboration",
-      "response": "Horizon Europe and Erasmus+ are the two largest EU funding programmes, but they serve fundamentally different purposes for university collaboration. Horizon Europe (HE) is dedicated to **funding R&D**, while Erasmus+ (E+) focuses on **mobility, education, and capacity building**.\n\nFor a university seeking pure research collaboration, **Horizon Europe is the primary choice**. Erasmus+ is suited for collaborations focused on curriculum development, joint degrees, and student/staff exchange.\n\n---\n\n...",
-      "quality_score": 79,
-      "factual_score": 80.0,
-      "failures": [
-        {
-          "category": "INCORRECT_DATA",
-          "severity": "CRITICAL",
-          "description": "Incorrect horizon_europe facts: ['IA_rate: stated 100% but should be 70%']",
-          "turn_number": 0,
-          "evidence": {
-            "programme": "horizon_europe",
-            "incorrect_facts": [
-              "IA_rate: stated 100% but should be 70%"
-            ],
-            "score": 0.8
-          },
-          "timestamp": "2026-01-22T15:15:56.529851"
-        }
-      ],
-      "tools_used": [
-        "compare_programmes"
-      ],
-      "processing_time_ms": 11183.937,
+      "response": "## Double Funding Rules: Same Project in Multiple EU Programmes\n\n**Short answer:** No, the same project activities and costs **cannot** be funded by both Horizon Europe and Erasmus+ (or any other EU programme). This is called the **non-cumulative funding principle**.\n\n### The Core Rule\n\nEU funding follows a strict principle: **the same costs can only be declared once** to EU funding sources. This means:\n\n| Scenario | Allowed? | Explanation |\n|----------|----------|-------------|\n| Same activitie...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 1162.171,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
           "specificity": 25,
           "factual_accuracy": 20,
-          "actionability": 4
+          "actionability": 8
         },
         "feedback": "Quick rule-based evaluation"
       },
       "turn_number": 0,
-      "passed": false
+      "passed": true
     },
     {
       "query": "What about funding amounts?",
-      "response": "You are right to focus on funding amounts, as this is the biggest practical difference between the two programmes. Horizon Europe provides **large-scale research grants based on actual costs**, while Erasmus+ offers **smaller, fixed-sum grants based on unit costs** for educational activities. \n\nHere is a detailed breakdown of the typical funding amounts and mechanisms for collaborative actions relevant to universities:\n\n---\n\n## Specific Funding Amounts Comparison\n\n### 1. Horizon Europe (HE): Res...",
-      "quality_score": 79,
-      "factual_score": 83.33333333333334,
-      "failures": [
-        {
-          "category": "INCORRECT_DATA",
-          "severity": "CRITICAL",
-          "description": "Incorrect horizon_europe facts: ['IA_rate: stated 100% but should be 70%']",
-          "turn_number": 1,
-          "evidence": {
-            "programme": "horizon_europe",
-            "incorrect_facts": [
-              "IA_rate: stated 100% but should be 70%"
-            ],
-            "score": 0.8333333333333334
-          },
-          "timestamp": "2026-01-22T15:16:42.913574"
-        }
-      ],
+      "response": "Erasmus+ provides **individual support** to cover living costs during mobility.\nRates vary by **destination country group** and **participant type**.\n\n## Individual Support Rates in Erasmus+\n\n### Country Groups (Based on Cost of Living)\n\n| Group | Countries | Cost Level |\n|-------|-----------|------------|\n| **Group 1** (Highest) | Denmark, Finland, Iceland, Ireland, Liechtenstein, Luxembourg, Norway, Sweden | Highest costs |\n| **Group 2** (Medium) | Austria, Belgium, Cyprus, France, Germany, Gr...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
       "tools_used": [],
-      "processing_time_ms": 9875.195,
+      "processing_time_ms": 770.552,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
           "specificity": 25,
           "factual_accuracy": 20,
-          "actionability": 4
+          "actionability": 8
         },
         "feedback": "Quick rule-based evaluation"
       },
       "turn_number": 1,
-      "passed": false
+      "passed": true
     },
     {
       "query": "Which has better success rates?",
-      "response": "The success rates for Horizon Europe and Erasmus+ differ significantly because they fund different types of activities (highly competitive research vs. capacity building and mobility). Generally, **Erasmus+ has much higher success rates** than Horizon Europe.\n\nHere is a comparison of typical success rate ranges for the main actions relevant to university collaboration:\n\n---\n\n## Success Rate Comparison: Horizon Europe vs. Erasmus+\n\n| Programme | Typical Overall Success Rate | Key Determinant | Co...",
-      "quality_score": 77,
-      "factual_score": 42.857142857142854,
-      "failures": [
-        {
-          "category": "INCORRECT_DATA",
-          "severity": "CRITICAL",
-          "description": "Incorrect horizon_europe facts: ['RIA_rate: stated 12% but should be 100%', 'IA_rate: stated 12% but",
-          "turn_number": 2,
-          "evidence": {
-            "programme": "horizon_europe",
-            "incorrect_facts": [
-              "RIA_rate: stated 12% but should be 100%",
-              "IA_rate: stated 12% but should be 70%",
-              "ERC_rate: stated 10% but should be 100%",
-              "MSCA_rate: stated 15% but should be 100%"
-            ],
-            "score": 0.42857142857142855
-          },
-          "timestamp": "2026-01-22T15:17:30.335735"
-        }
-      ],
-      "tools_used": [
-        "get_programme_statistics",
-        "get_programme_statistics"
-      ],
-      "processing_time_ms": 10627.978000000001,
+      "response": "Choosing between **Erasmus+ accreditation** and **short-term projects** depends on your organization's goals, capacity, and commitment level. Here's strategic guidance to help you decide.\n\n## Strategic Decision: Accreditation vs Short-Term Projects\n\n### Decision Framework\n\n| Factor | Choose Accreditation If... | Choose Short-Term If... |\n|--------|---------------------------|------------------------|\n| **Mobility Frequency** | Plan regular activities (3+ per year) | Occasional activities (1-2 pe...",
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 1045.395,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
           "specificity": 25,
           "factual_accuracy": 20,
-          "actionability": 2
+          "actionability": 6
         },
         "feedback": "Quick rule-based evaluation"
       },
       "turn_number": 2,
-      "passed": false
+      "passed": true
     },
     {
       "query": "Which should I apply to first?",
-      "response": "The choice between starting with Horizon Europe (HE) or Erasmus+ (E+) depends entirely on the **institutional goal, organizational readiness, and risk tolerance** of your university or research group. There is no single 'best' starting point, but rather a strategic decision based on the programme's focus. \n\nHere is a recommendation on which programme to prioritize first:\n\n---\n\n## Strategic Recommendation Matrix\n\n| Goal / Priority | Focus Programme | Rationale |\n| :--- | :--- | :--- |\n| **Priorit...",
-      "quality_score": 77,
+      "response": "Choosing between **Erasmus+ accreditation** and **short-term projects** depends on your organization's goals, capacity, and commitment level. Here's strategic guidance to help you decide.\n\n## Strategic Decision: Accreditation vs Short-Term Projects\n\n### Decision Framework\n\n| Factor | Choose Accreditation If... | Choose Short-Term If... |\n|--------|---------------------------|------------------------|\n| **Mobility Frequency** | Plan regular activities (3+ per year) | Occasional activities (1-2 pe...",
+      "quality_score": 81,
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 8153.419,
+      "processing_time_ms": 1097.427,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
           "specificity": 25,
           "factual_accuracy": 20,
-          "actionability": 2
+          "actionability": 6
         },
         "feedback": "Quick rule-based evaluation"
       },
       "turn_number": 3,
-      "passed": false
+      "passed": true
     }
   ],
   "scores": {
-    "average_quality": 78.0,
-    "average_factual": 76.54761904761905,
-    "goal_progress": 0.6,
+    "average_quality": 82.0,
+    "average_factual": 100.0,
+    "goal_progress": 0.46499999999999997,
     "context_fields": 3
   },
-  "failures": [
-    {
-      "category": "INCORRECT_DATA",
-      "severity": "CRITICAL",
-      "description": "Incorrect horizon_europe facts: ['IA_rate: stated 100% but should be 70%']",
-      "turn_number": 0,
-      "evidence": {
-        "programme": "horizon_europe",
-        "incorrect_facts": [
-          "IA_rate: stated 100% but should be 70%"
-        ],
-        "score": 0.8
-      },
-      "timestamp": "2026-01-22T15:15:56.529851"
-    },
-    {
-      "category": "INCORRECT_DATA",
-      "severity": "CRITICAL",
-      "description": "Incorrect horizon_europe facts: ['IA_rate: stated 100% but should be 70%']",
-      "turn_number": 1,
-      "evidence": {
-        "programme": "horizon_europe",
-        "incorrect_facts": [
-          "IA_rate: stated 100% but should be 70%"
-        ],
-        "score": 0.8333333333333334
-      },
-      "timestamp": "2026-01-22T15:16:42.913574"
-    },
-    {
-      "category": "INCORRECT_DATA",
-      "severity": "CRITICAL",
-      "description": "Incorrect horizon_europe facts: ['RIA_rate: stated 12% but should be 100%', 'IA_rate: stated 12% but",
-      "turn_number": 2,
-      "evidence": {
-        "programme": "horizon_europe",
-        "incorrect_facts": [
-          "RIA_rate: stated 12% but should be 100%",
-          "IA_rate: stated 12% but should be 70%",
-          "ERC_rate: stated 10% but should be 100%",
-          "MSCA_rate: stated 15% but should be 100%"
-        ],
-        "score": 0.42857142857142855
-      },
-      "timestamp": "2026-01-22T15:17:30.335735"
-    }
-  ],
+  "failures": [],
   "metadata": {
     "scenario_path": "/home/anmar/Documents/VSCODE_REPOS/MAPIT/NEWMAPIT/MAP-IT_SA/tests/scenarios/advanced/programme_comparison.yaml",
     "tags": [
@@ -201,13 +102,13 @@
       "strategic"
     ],
     "description": "User compares Horizon Europe and Erasmus+ for university research collaboration.\nTests cross-programme comparison with specific data points like funding amounts\nand success rates, culminating in a strategic recommendation.\n",
-    "conversation_id": 215001693
+    "conversation_id": 643954729
   },
-  "execution_time_ms": 185982.877,
-  "timestamp": "2026-01-22T15:15:21.313634",
-  "passed": false,
+  "execution_time_ms": 149262.675,
+  "timestamp": "2026-01-27T18:28:06.557444",
+  "passed": true,
   "turn_count": 4,
-  "critical_failures": 3,
+  "critical_failures": 0,
   "high_failures": 0,
   "medium_failures": 0
 }

@@ -709,7 +709,7 @@ class CallEnrichmentService:
             if deadline_str:
                 try:
                     deadline = datetime.fromisoformat(deadline_str.replace("Z", "+00:00")).date()
-                except:
+                except Exception:
                     pass
 
         # Extract budget
@@ -717,7 +717,7 @@ class CallEnrichmentService:
         budget_info = topic_data.get("budget", {})
         if isinstance(budget_info, dict):
             budget = budget_info.get("budgetTopicActionValue")
-        elif isinstance(budget_info, (int, float)):
+        elif isinstance(budget_info, int | float):
             budget = budget_info
 
         # Determine status

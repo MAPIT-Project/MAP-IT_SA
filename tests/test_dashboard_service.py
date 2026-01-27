@@ -65,7 +65,7 @@ class TestSectionSummary:
             confidence=0.85,
             gap_count=2,
             suggestion_count=5,
-            last_edited=datetime.now()
+            last_edited=datetime.now(),
         )
 
         assert summary.id == "section-1"
@@ -88,7 +88,7 @@ class TestNextAction:
             section_title="Excellence",
             action_type="improve",
             estimated_minutes=30,
-            impact="+0.5 points"
+            impact="+0.5 points",
         )
 
         assert action.id == "action-1"
@@ -108,7 +108,7 @@ class TestReadinessCheck:
             description="Every section must have content",
             passed=True,
             details=None,
-            blocking=True
+            blocking=True,
         )
 
         assert check.id == "check-1"
@@ -140,7 +140,7 @@ class TestDashboardService:
             section_id="section-1",
             title="Excellence",
             section_type="excellence_objectives",
-            content=""
+            content="",
         )
 
         assert summary.status == SectionStatus.NOT_STARTED
@@ -153,7 +153,7 @@ class TestDashboardService:
             section_id="section-2",
             title="Excellence",
             section_type="excellence_objectives",
-            content="This is a draft section with enough content " * 20
+            content="This is a draft section with enough content " * 20,
         )
 
         assert summary.status == SectionStatus.DRAFT
@@ -168,7 +168,7 @@ class TestDashboardService:
             title="Excellence",
             section_type="excellence_objectives",
             content="Content " * 100,
-            score=3.8
+            score=3.8,
         )
 
         assert summary.status == SectionStatus.GOOD
@@ -182,7 +182,7 @@ class TestDashboardService:
             title="Excellence",
             section_type="excellence_objectives",
             content="Content " * 100,
-            score=2.5
+            score=2.5,
         )
 
         assert summary.status == SectionStatus.NEEDS_WORK
@@ -195,7 +195,7 @@ class TestDashboardService:
             title="Excellence",
             section_type="excellence_objectives",
             content="Content " * 100,
-            score=4.5
+            score=4.5,
         )
 
         assert summary.status == SectionStatus.EXCELLENT
@@ -208,7 +208,7 @@ class TestDashboardService:
             title="Excellence",
             section_type="excellence_objectives",
             content="Content " * 100,
-            score=3.2  # Between THRESHOLD_SCORE (3.0) and GOOD_SCORE (3.5)
+            score=3.2,  # Between THRESHOLD_SCORE (3.0) and GOOD_SCORE (3.5)
         )
 
         assert summary.status == SectionStatus.ACCEPTABLE
@@ -221,7 +221,7 @@ class TestDashboardService:
             title="Excellence",
             section_type="excellence_objectives",
             content="Content " * 100,
-            score=3.0  # Exactly at THRESHOLD_SCORE
+            score=3.0,  # Exactly at THRESHOLD_SCORE
         )
 
         assert summary.status == SectionStatus.ACCEPTABLE
@@ -234,7 +234,7 @@ class TestDashboardService:
             title="Excellence",
             section_type="excellence_objectives",
             content="Content " * 100,
-            score=3.5  # Exactly at GOOD_SCORE
+            score=3.5,  # Exactly at GOOD_SCORE
         )
 
         assert summary.status == SectionStatus.GOOD
@@ -247,7 +247,7 @@ class TestDashboardService:
             title="Excellence",
             section_type="excellence_objectives",
             content="Content " * 100,
-            score=4.0  # Exactly at EXCELLENT_SCORE
+            score=4.0,  # Exactly at EXCELLENT_SCORE
         )
 
         assert summary.status == SectionStatus.EXCELLENT
@@ -265,14 +265,12 @@ class TestDashboardService:
             title="Test",
             section_type="test",
             content="Content " * 100,
-            score=2.5
+            score=2.5,
         )
 
         # Update score
         updated = service.update_section_score(
-            proposal_id=proposal_id,
-            section_id="section-1",
-            score=3.8
+            proposal_id=proposal_id, section_id="section-1", score=3.8
         )
 
         assert updated is not None
@@ -281,11 +279,7 @@ class TestDashboardService:
 
     def test_update_section_score_not_found(self, service):
         """Test updating a non-existent section."""
-        result = service.update_section_score(
-            proposal_id="fake",
-            section_id="fake",
-            score=4.0
-        )
+        result = service.update_section_score(proposal_id="fake", section_id="fake", score=4.0)
 
         assert result is None
 
@@ -299,14 +293,11 @@ class TestDashboardService:
             title="Test",
             section_type="test",
             content="Content " * 100,
-            score=2.5
+            score=2.5,
         )
 
         updated = service.update_section_score(
-            proposal_id=proposal_id,
-            section_id="section-1",
-            score=3.8,
-            confidence=0.92
+            proposal_id=proposal_id, section_id="section-1", score=3.8, confidence=0.92
         )
 
         assert updated is not None
@@ -323,13 +314,13 @@ class TestDashboardService:
             title="Test",
             section_type="test",
             content="Content " * 100,
-            score=4.0  # Start as EXCELLENT
+            score=4.0,  # Start as EXCELLENT
         )
 
         updated = service.update_section_score(
             proposal_id=proposal_id,
             section_id="section-1",
-            score=2.5  # Below threshold
+            score=2.5,  # Below threshold
         )
 
         assert updated.status == SectionStatus.NEEDS_WORK
@@ -344,13 +335,13 @@ class TestDashboardService:
             title="Test",
             section_type="test",
             content="Content " * 100,
-            score=4.5  # Start as EXCELLENT
+            score=4.5,  # Start as EXCELLENT
         )
 
         updated = service.update_section_score(
             proposal_id=proposal_id,
             section_id="section-1",
-            score=3.2  # Between 3.0 and 3.5
+            score=3.2,  # Between 3.0 and 3.5
         )
 
         assert updated.status == SectionStatus.ACCEPTABLE
@@ -365,13 +356,13 @@ class TestDashboardService:
             title="Test",
             section_type="test",
             content="Content " * 100,
-            score=2.5  # Start as NEEDS_WORK
+            score=2.5,  # Start as NEEDS_WORK
         )
 
         updated = service.update_section_score(
             proposal_id=proposal_id,
             section_id="section-1",
-            score=3.7  # Between 3.5 and 4.0
+            score=3.7,  # Between 3.5 and 4.0
         )
 
         assert updated.status == SectionStatus.GOOD
@@ -386,13 +377,13 @@ class TestDashboardService:
             title="Test",
             section_type="test",
             content="Content " * 100,
-            score=2.5  # Start as NEEDS_WORK
+            score=2.5,  # Start as NEEDS_WORK
         )
 
         updated = service.update_section_score(
             proposal_id=proposal_id,
             section_id="section-1",
-            score=4.5  # Above 4.0
+            score=4.5,  # Above 4.0
         )
 
         assert updated.status == SectionStatus.EXCELLENT
@@ -408,14 +399,12 @@ class TestDashboardService:
             title="Test",
             section_type="test",
             content="Short",  # Less than 50 words
-            score=None
+            score=None,
         )
 
         # Update with a score
         updated = service.update_section_score(
-            proposal_id=proposal_id,
-            section_id="section-1",
-            score=4.0
+            proposal_id=proposal_id, section_id="section-1", score=4.0
         )
 
         # Status should stay NOT_STARTED due to short content
@@ -432,7 +421,7 @@ class TestDashboardService:
             title="My Proposal",
             call_id="CALL-123",
             call_title="Test Call",
-            deadline=deadline
+            deadline=deadline,
         )
 
         assert service._proposal_cache["test-proposal"]["title"] == "My Proposal"
@@ -468,7 +457,9 @@ class TestDashboardService:
     def test_generate_next_actions_not_started(self, service):
         """Test generating actions for not started sections."""
         sections = [
-            SectionSummary("1", "Section 1", "t", SectionStatus.NOT_STARTED, 0, None, None, 0, 0, None),
+            SectionSummary(
+                "1", "Section 1", "t", SectionStatus.NOT_STARTED, 0, None, None, 0, 0, None
+            ),
         ]
 
         actions = service._generate_next_actions("proposal-1", sections)
@@ -491,7 +482,9 @@ class TestDashboardService:
     def test_generate_next_actions_needs_work(self, service):
         """Test generating actions for sections below threshold."""
         sections = [
-            SectionSummary("1", "Section 1", "t", SectionStatus.NEEDS_WORK, 500, 2.5, None, 0, 0, None),
+            SectionSummary(
+                "1", "Section 1", "t", SectionStatus.NEEDS_WORK, 500, 2.5, None, 0, 0, None
+            ),
         ]
 
         actions = service._generate_next_actions("proposal-1", sections)
@@ -526,16 +519,26 @@ class TestDashboardService:
         # Critical should come before high
         if len(actions) >= 2:
             priorities = [a.priority for a in actions]
-            critical_idx = priorities.index(ActionPriority.CRITICAL) if ActionPriority.CRITICAL in priorities else float('inf')
-            high_idx = priorities.index(ActionPriority.HIGH) if ActionPriority.HIGH in priorities else float('inf')
+            critical_idx = (
+                priorities.index(ActionPriority.CRITICAL)
+                if ActionPriority.CRITICAL in priorities
+                else float("inf")
+            )
+            high_idx = (
+                priorities.index(ActionPriority.HIGH)
+                if ActionPriority.HIGH in priorities
+                else float("inf")
+            )
 
-            if critical_idx != float('inf') and high_idx != float('inf'):
+            if critical_idx != float("inf") and high_idx != float("inf"):
                 assert critical_idx < high_idx
 
     def test_generate_next_actions_limit(self, service):
         """Test that actions are limited to 10."""
         sections = [
-            SectionSummary(f"{i}", f"S{i}", "t", SectionStatus.NOT_STARTED, 0, None, None, 5, 0, None)
+            SectionSummary(
+                f"{i}", f"S{i}", "t", SectionStatus.NOT_STARTED, 0, None, None, 5, 0, None
+            )
             for i in range(15)
         ]
 
@@ -564,7 +567,9 @@ class TestDashboardService:
         """Test that gap actions priority depends on section score."""
         sections = [
             SectionSummary("1", "High Score", "t", SectionStatus.GOOD, 500, 3.8, None, 3, 0, None),
-            SectionSummary("2", "Low Score", "t", SectionStatus.NEEDS_WORK, 500, 2.5, None, 3, 0, None),
+            SectionSummary(
+                "2", "Low Score", "t", SectionStatus.NEEDS_WORK, 500, 2.5, None, 3, 0, None
+            ),
         ]
 
         actions = service._generate_next_actions("proposal-1", sections)
@@ -723,8 +728,8 @@ class TestDashboardService:
         """Test that blocking checks have more weight."""
         # Same number of passed/failed, but different weights
         checks = [
-            ReadinessCheck("1", "Cat", "Blocking", "Desc", True, None, True),   # 2 weight, passed
-            ReadinessCheck("2", "Cat", "NonBlock", "Desc", False, None, False), # 1 weight, failed
+            ReadinessCheck("1", "Cat", "Blocking", "Desc", True, None, True),  # 2 weight, passed
+            ReadinessCheck("2", "Cat", "NonBlock", "Desc", False, None, False),  # 1 weight, failed
         ]
 
         score = service._calculate_readiness_score(checks)
@@ -787,10 +792,7 @@ class TestDashboardService:
         user_id = "test-user"
 
         # Set up proposal
-        service.set_proposal_info(
-            proposal_id=proposal_id,
-            title="Test Proposal"
-        )
+        service.set_proposal_info(proposal_id=proposal_id, title="Test Proposal")
 
         # Add sections
         service.add_section(
@@ -799,7 +801,7 @@ class TestDashboardService:
             title="Section 1",
             section_type="excellence",
             content="Content " * 100,
-            score=3.8
+            score=3.8,
         )
 
         dashboard = await service.get_dashboard(proposal_id, user_id)
@@ -819,9 +821,7 @@ class TestDashboardService:
 
         # Set up progress
         await service.progress_service.update_progress(
-            proposal_id=proposal_id,
-            sections_completed=3,
-            total_sections=6
+            proposal_id=proposal_id, sections_completed=3, total_sections=6
         )
 
         dashboard = await service.get_dashboard(proposal_id, user_id)
@@ -843,7 +843,7 @@ class TestDashboardService:
             title="Section 1",
             section_type="excellence",
             content="Content " * 2000,  # Enough words
-            score=4.0  # Above threshold
+            score=4.0,  # Above threshold
         )
 
         dashboard = await service.get_dashboard(proposal_id, user_id)
@@ -867,7 +867,7 @@ class TestDashboardService:
             title="Section 1",
             section_type="excellence",
             content="Content " * 100,
-            score=3.8
+            score=3.8,
         )
 
         summary = await service.get_quick_summary(proposal_id)
@@ -897,7 +897,7 @@ class TestDashboardIntegration:
             title="Integration Test Proposal",
             call_id="CALL-123",
             call_title="Test Call 2024",
-            deadline=deadline
+            deadline=deadline,
         )
 
         # 2. Add multiple sections
@@ -907,7 +907,7 @@ class TestDashboardIntegration:
             title="Excellence",
             section_type="excellence_objectives",
             content="Excellent content " * 500,
-            score=4.2
+            score=4.2,
         )
 
         service.add_section(
@@ -916,7 +916,7 @@ class TestDashboardIntegration:
             title="Impact",
             section_type="impact_pathways",
             content="Impact content " * 300,
-            score=3.5
+            score=3.5,
         )
 
         service.add_section(
@@ -925,7 +925,7 @@ class TestDashboardIntegration:
             title="Implementation",
             section_type="implementation",
             content="",  # Not started
-            score=None
+            score=None,
         )
 
         # 3. Get dashboard
@@ -947,8 +947,7 @@ class TestDashboardIntegration:
 
         # Should have action for not_started section
         not_started_action = next(
-            (a for a in dashboard.next_actions if a.section_id == "implementation"),
-            None
+            (a for a in dashboard.next_actions if a.section_id == "implementation"), None
         )
         assert not_started_action is not None
         assert not_started_action.priority == ActionPriority.CRITICAL

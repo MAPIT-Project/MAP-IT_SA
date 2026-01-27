@@ -18,9 +18,7 @@ def send_message(conversation_id: int, message: str) -> dict:
 
     try:
         response = requests.post(
-            url,
-            json={"message": message, "include_context": True},
-            timeout=120
+            url, json={"message": message, "include_context": True}, timeout=120
         )
 
         if response.status_code == 200:
@@ -28,12 +26,12 @@ def send_message(conversation_id: int, message: str) -> dict:
             return {
                 "success": True,
                 "response": data.get("response", ""),
-                "metadata": data.get("metadata", {})
+                "metadata": data.get("metadata", {}),
             }
         else:
             return {
                 "success": False,
-                "error": f"HTTP {response.status_code}: {response.text[:500]}"
+                "error": f"HTTP {response.status_code}: {response.text[:500]}",
             }
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -105,7 +103,9 @@ def main():
 
     # Step 2: Follow-up about first call
     print("\nStep 2: Asking about the first call...")
-    result = send_message(conversation_id, "Tell me more about the first call. What are its eligibility requirements?")
+    result = send_message(
+        conversation_id, "Tell me more about the first call. What are its eligibility requirements?"
+    )
     if result["success"]:
         issues = check_response_quality(result["response"])
         if issues:

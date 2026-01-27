@@ -310,9 +310,9 @@ class TestScenario0452025Priorities:
             response_text = result.get("response", "")
 
             # Should be substantial for a priorities overview
-            assert (
-                len(response_text) >= 400
-            ), f"Response too short for priorities overview: {len(response_text)} chars"
+            assert len(response_text) >= 400, (
+                f"Response too short for priorities overview: {len(response_text)} chars"
+            )
             assert len(response_text) <= 15000, f"Response too long: {len(response_text)} chars"
 
     @pytest.mark.asyncio
@@ -402,9 +402,9 @@ class TestScenario0452025Priorities:
                 re.search(pattern, response_text, re.IGNORECASE) for pattern in conflicting_patterns
             )
 
-            assert (
-                not has_conflict
-            ), f"Response has conflicting year information. Response: {response_text[:500]}..."
+            assert not has_conflict, (
+                f"Response has conflicting year information. Response: {response_text[:500]}..."
+            )
 
     @pytest.mark.asyncio
     async def test_quality_score_threshold(self, conversation_id):

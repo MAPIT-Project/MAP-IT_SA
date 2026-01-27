@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ConversationEvent:
     """Single conversation message/response event."""
+
     conversation_id: int
     question: str
     response: str | None = None
@@ -84,9 +85,7 @@ class ConversationAnalyticsService:
     def _init_pool(self):
         """Initialize database connection pool."""
         if ConversationAnalyticsService._pool is None:
-            ConversationAnalyticsService._pool = pool.SimpleConnectionPool(
-                1, 5, self.db_url
-            )
+            ConversationAnalyticsService._pool = pool.SimpleConnectionPool(1, 5, self.db_url)
 
     def _get_connection(self):
         """Get a connection from the pool."""
@@ -111,7 +110,7 @@ class ConversationAnalyticsService:
         user_id: int = 1,
         session_id: str | None = None,
         status: str = "completed",
-        error_message: str | None = None
+        error_message: str | None = None,
     ) -> str | None:
         """
         Log a conversation event synchronously.
@@ -134,7 +133,7 @@ class ConversationAnalyticsService:
             session_id=session_id,
             status=status,
             error_message=error_message,
-            completed_at=datetime.now()
+            completed_at=datetime.now(),
         )
 
         return self._write_event(event)
@@ -151,7 +150,7 @@ class ConversationAnalyticsService:
         user_id: int = 1,
         session_id: str | None = None,
         status: str = "completed",
-        error_message: str | None = None
+        error_message: str | None = None,
     ) -> str | None:
         """
         Log a conversation event asynchronously (non-blocking).
@@ -173,7 +172,7 @@ class ConversationAnalyticsService:
             session_id=session_id,
             status=status,
             error_message=error_message,
-            completed_at=datetime.now()
+            completed_at=datetime.now(),
         )
 
         # Run in executor to avoid blocking
@@ -190,7 +189,8 @@ class ConversationAnalyticsService:
                 return None
 
             with conn.cursor() as cur:
-                cur.execute("""
+                cur.execute(
+                    """
                     INSERT INTO conversation_analytics (
                         conversation_id,
                         user_id,
@@ -210,24 +210,26 @@ class ConversationAnalyticsService:
                         %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
                     )
                     RETURNING id
-                """, (
-                    event.conversation_id,
-                    event.user_id,
-                    event.message_id,
-                    event.question,
-                    event.response,
-                    event.tools_used,
-                    event.confidence,
-                    event.response_time_ms,
-                    event.started_at,
-                    event.completed_at,
-                    Json(event.metadata),
-                    event.session_id,
-                    event.status,
-                    event.error_message
-                ))
+                """,
+                    (
+                        event.conversation_id,
+                        event.user_id,
+                        event.message_id,
+                        event.question,
+                        event.response,
+                        event.tools_used,
+                        event.confidence,
+                        event.response_time_ms,
+                        event.started_at,
+                        event.completed_at,
+                        Json(event.metadata),
+                        event.session_id,
+                        event.status,
+                        event.error_message,
+                    ),
+                )
 
-                result = cur.fetchone()
+                cur.fetchone()
                 conn.commit()
 
                 logger.debug(f"Logged conversation event: {event.message_id}")
@@ -253,7 +255,8 @@ class ConversationAnalyticsService:
                 return {"error": "No database connection"}
 
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT
                         COUNT(*) as total_messages,
                         COUNT(DISTINCT conversation_id) as unique_conversations,
@@ -266,12 +269,15 @@ class ConversationAnalyticsService:
                         SUM(CASE WHEN confidence < 0.4 OR confidence IS NULL THEN 1 ELSE 0 END) as low_confidence
                     FROM conversation_analytics
                     WHERE created_at > NOW() - INTERVAL '%s hours'
-                """, (hours,))
+                """,
+                    (hours,),
+                )
 
                 summary = dict(cur.fetchone())
 
                 # Get tool usage breakdown
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT
                         tool_name,
                         COUNT(*) as usage_count
@@ -281,9 +287,13 @@ class ConversationAnalyticsService:
                     GROUP BY tool_name
                     ORDER BY usage_count DESC
                     LIMIT 20
-                """, (hours,))
+                """,
+                    (hours,),
+                )
 
-                summary['tool_usage'] = {row['tool_name']: row['usage_count'] for row in cur.fetchall()}
+                summary["tool_usage"] = {
+                    row["tool_name"]: row["usage_count"] for row in cur.fetchall()
+                }
 
                 return summary
 
@@ -293,7 +303,9 @@ class ConversationAnalyticsService:
         finally:
             self._return_connection(conn)
 
-    def get_low_confidence_conversations(self, threshold: float = 0.4, limit: int = 50) -> list[dict[str, Any]]:
+    def get_low_confidence_conversations(
+        self, threshold: float = 0.4, limit: int = 50
+    ) -> list[dict[str, Any]]:
         """Get recent conversations with low confidence for review."""
         if not self.enabled:
             return []
@@ -305,7 +317,8 @@ class ConversationAnalyticsService:
                 return []
 
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT
                         id,
                         conversation_id,
@@ -319,7 +332,9 @@ class ConversationAnalyticsService:
                     WHERE confidence < %s OR confidence IS NULL
                     ORDER BY created_at DESC
                     LIMIT %s
-                """, (threshold, limit))
+                """,
+                    (threshold, limit),
+                )
 
                 return [dict(row) for row in cur.fetchall()]
 
@@ -337,7 +352,7 @@ class ConversationAnalyticsService:
         max_confidence: float | None = None,
         tools_filter: list[str] | None = None,
         limit: int = 100,
-        offset: int = 0
+        offset: int = 0,
     ) -> list[dict[str, Any]]:
         """Search and filter conversation analytics."""
         if not self.enabled:
@@ -353,7 +368,9 @@ class ConversationAnalyticsService:
             params = []
 
             if query:
-                conditions.append("to_tsvector('english', question) @@ plainto_tsquery('english', %s)")
+                conditions.append(
+                    "to_tsvector('english', question) @@ plainto_tsquery('english', %s)"
+                )
                 params.append(query)
 
             if conversation_id:
@@ -376,7 +393,8 @@ class ConversationAnalyticsService:
             params.extend([limit, offset])
 
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute(f"""
+                cur.execute(
+                    f"""
                     SELECT
                         id,
                         conversation_id,
@@ -393,7 +411,9 @@ class ConversationAnalyticsService:
                     WHERE {where_clause}
                     ORDER BY created_at DESC
                     LIMIT %s OFFSET %s
-                """, params)
+                """,
+                    params,
+                )
 
                 return [dict(row) for row in cur.fetchall()]
 
@@ -407,7 +427,7 @@ class ConversationAnalyticsService:
         self,
         start_date: datetime | None = None,
         end_date: datetime | None = None,
-        format: str = "json"
+        format: str = "json",
     ) -> list[dict[str, Any]]:
         """Export conversations for analysis."""
         if not self.enabled:
@@ -433,7 +453,8 @@ class ConversationAnalyticsService:
             where_clause = " AND ".join(conditions) if conditions else "1=1"
 
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute(f"""
+                cur.execute(
+                    f"""
                     SELECT
                         id,
                         conversation_id,
@@ -451,14 +472,16 @@ class ConversationAnalyticsService:
                     FROM conversation_analytics
                     WHERE {where_clause}
                     ORDER BY created_at ASC
-                """, params)
+                """,
+                    params,
+                )
 
                 results = [dict(row) for row in cur.fetchall()]
 
                 # Convert datetime objects to ISO strings for JSON serialization
                 for row in results:
-                    if row.get('created_at'):
-                        row['created_at'] = row['created_at'].isoformat()
+                    if row.get("created_at"):
+                        row["created_at"] = row["created_at"].isoformat()
 
                 return results
 

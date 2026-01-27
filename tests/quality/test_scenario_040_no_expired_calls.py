@@ -136,9 +136,9 @@ class TestScenario040NoExpiredCalls:
                 "status": "open",
             }
             normalized = service._normalize_call_status(call)
-            assert (
-                normalized["status"] == "closed"
-            ), f"Date format '{date_str}' should be detected as expired"
+            assert normalized["status"] == "closed", (
+                f"Date format '{date_str}' should be detected as expired"
+            )
 
     def test_datetime_object_handling(self):
         """Test that datetime objects are correctly handled."""
@@ -391,14 +391,14 @@ I found **8 open funding calls** matching your query.
             response_text = result.get("response", "")
 
             # Should NOT show "Status: Closed"
-            assert (
-                "status: closed" not in response_text.lower()
-            ), "Response should not show calls with 'Status: Closed'"
+            assert "status: closed" not in response_text.lower(), (
+                "Response should not show calls with 'Status: Closed'"
+            )
 
             # Should NOT mention calls are expired
-            assert (
-                "expired" not in response_text.lower()
-            ), "Response should not mention expired calls"
+            assert "expired" not in response_text.lower(), (
+                "Response should not mention expired calls"
+            )
 
     @pytest.mark.asyncio
     async def test_live_all_calls_are_open(self, conversation_id):
@@ -481,9 +481,9 @@ I found **8 open funding calls** matching your query.
             response_text = result.get("response", "")
 
             # Should return open calls only
-            assert (
-                "status: closed" not in response_text.lower()
-            ), "Variant query should not return closed calls"
+            assert "status: closed" not in response_text.lower(), (
+                "Variant query should not return closed calls"
+            )
 
             # Extract and verify dates
             months = (
@@ -532,9 +532,9 @@ I found **8 open funding calls** matching your query.
             response_text = result.get("response", "")
 
             score = self._score_response(response_text)
-            assert (
-                score >= self.PASS_THRESHOLD
-            ), f"Live response should score {self.PASS_THRESHOLD}+, got {score}"
+            assert score >= self.PASS_THRESHOLD, (
+                f"Live response should score {self.PASS_THRESHOLD}+, got {score}"
+            )
 
 
 class TestDataQualityVerification:

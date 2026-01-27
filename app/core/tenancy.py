@@ -90,6 +90,7 @@ def is_isolation_bypassed() -> bool:
 
 class TenantStatus(str, Enum):
     """Tenant account status."""
+
     ACTIVE = "active"
     SUSPENDED = "suspended"
     PENDING = "pending"
@@ -98,6 +99,7 @@ class TenantStatus(str, Enum):
 
 class TenantPlan(str, Enum):
     """Tenant subscription plan."""
+
     FREE = "free"
     BASIC = "basic"
     PREMIUM = "premium"
@@ -107,6 +109,7 @@ class TenantPlan(str, Enum):
 @dataclass
 class TenantLimits:
     """Usage limits for a tenant."""
+
     max_users: int = 5
     max_proposals: int = 10
     max_conversations_per_day: int = 50
@@ -117,10 +120,34 @@ class TenantLimits:
     def for_plan(cls, plan: TenantPlan) -> "TenantLimits":
         """Get limits for a plan."""
         limits_by_plan = {
-            TenantPlan.FREE: cls(max_users=3, max_proposals=5, max_conversations_per_day=20, max_storage_mb=100, max_api_requests_per_day=200),
-            TenantPlan.BASIC: cls(max_users=10, max_proposals=50, max_conversations_per_day=200, max_storage_mb=1000, max_api_requests_per_day=2000),
-            TenantPlan.PREMIUM: cls(max_users=50, max_proposals=500, max_conversations_per_day=1000, max_storage_mb=10000, max_api_requests_per_day=20000),
-            TenantPlan.ENTERPRISE: cls(max_users=10000, max_proposals=100000, max_conversations_per_day=100000, max_storage_mb=1000000, max_api_requests_per_day=1000000),
+            TenantPlan.FREE: cls(
+                max_users=3,
+                max_proposals=5,
+                max_conversations_per_day=20,
+                max_storage_mb=100,
+                max_api_requests_per_day=200,
+            ),
+            TenantPlan.BASIC: cls(
+                max_users=10,
+                max_proposals=50,
+                max_conversations_per_day=200,
+                max_storage_mb=1000,
+                max_api_requests_per_day=2000,
+            ),
+            TenantPlan.PREMIUM: cls(
+                max_users=50,
+                max_proposals=500,
+                max_conversations_per_day=1000,
+                max_storage_mb=10000,
+                max_api_requests_per_day=20000,
+            ),
+            TenantPlan.ENTERPRISE: cls(
+                max_users=10000,
+                max_proposals=100000,
+                max_conversations_per_day=100000,
+                max_storage_mb=1000000,
+                max_api_requests_per_day=1000000,
+            ),
         }
         return limits_by_plan.get(plan, limits_by_plan[TenantPlan.FREE])
 
@@ -128,6 +155,7 @@ class TenantLimits:
 @dataclass
 class Tenant:
     """A tenant (organization) in the system."""
+
     id: str
     name: str
     slug: str  # URL-friendly identifier
@@ -292,7 +320,7 @@ class TenantMiddleware(BaseHTTPMiddleware):
                 "error": "TENANT_INACTIVE",
                 "message": f"Tenant account is {tenant.status.value}",
                 "tenant_id": tenant.id,
-            }
+            },
         )
 
 
@@ -515,6 +543,7 @@ class TenantAwareRepository:
 
 def require_tenant(func: Callable) -> Callable:
     """Decorator to require a tenant context."""
+
     @wraps(func)
     async def wrapper(*args, **kwargs):
         tenant_id = get_current_tenant_id()
@@ -524,22 +553,23 @@ def require_tenant(func: Callable) -> Callable:
                 detail={
                     "error": "TENANT_REQUIRED",
                     "message": "A tenant context is required for this operation",
-                }
+                },
             )
         return await func(*args, **kwargs)
+
     return wrapper
 
 
 def require_tenant_feature(feature: str):
     """Decorator to require a specific tenant feature."""
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         async def wrapper(*args, **kwargs):
             tenant = get_current_tenant()
             if not tenant:
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail={"error": "TENANT_REQUIRED"}
+                    status_code=status.HTTP_400_BAD_REQUEST, detail={"error": "TENANT_REQUIRED"}
                 )
             if not tenant.has_feature(feature):
                 raise HTTPException(
@@ -549,15 +579,18 @@ def require_tenant_feature(feature: str):
                         "message": f"Feature '{feature}' is not available for your plan",
                         "feature": feature,
                         "plan": tenant.plan.value,
-                    }
+                    },
                 )
             return await func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
 def with_tenant(tenant_id: str):
     """Context manager to temporarily set tenant context."""
+
     class TenantContext:
         def __init__(self, tenant_id: str):
             self.tenant_id = tenant_id
@@ -579,6 +612,7 @@ def with_tenant(tenant_id: str):
 
 def admin_bypass(func: Callable) -> Callable:
     """Decorator to bypass tenant isolation for admin operations."""
+
     @wraps(func)
     async def wrapper(*args, **kwargs):
         try:
@@ -586,6 +620,7 @@ def admin_bypass(func: Callable) -> Callable:
             return await func(*args, **kwargs)
         finally:
             disable_bypass_isolation()
+
     return wrapper
 
 
@@ -612,6 +647,7 @@ class TenantService:
         if self.redis:
             try:
                 import json
+
                 cached = self.redis.get(f"tenant:{tenant_id}")
                 if cached:
                     data = json.loads(cached)
@@ -686,19 +722,22 @@ class TenantService:
 
             with self.db_pool.get_connection() as conn:
                 with conn.cursor() as cur:
-                    cur.execute(query, (
-                        tenant.id,
-                        tenant.name,
-                        tenant.slug,
-                        tenant.status.value,
-                        tenant.plan.value,
-                        tenant.admin_email,
-                        tenant.admin_name,
-                        json.dumps(tenant.settings),
-                        json.dumps(tenant.features),
-                        tenant.created_at,
-                        tenant.updated_at,
-                    ))
+                    cur.execute(
+                        query,
+                        (
+                            tenant.id,
+                            tenant.name,
+                            tenant.slug,
+                            tenant.status.value,
+                            tenant.plan.value,
+                            tenant.admin_email,
+                            tenant.admin_name,
+                            json.dumps(tenant.settings),
+                            json.dumps(tenant.features),
+                            tenant.created_at,
+                            tenant.updated_at,
+                        ),
+                    )
                     conn.commit()
 
         self._cache_tenant(tenant)
@@ -759,8 +798,12 @@ class TenantService:
             features=data.get("features", {}),
             admin_email=data.get("admin_email"),
             admin_name=data.get("admin_name"),
-            created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else None,
-            updated_at=datetime.fromisoformat(data["updated_at"]) if data.get("updated_at") else None,
+            created_at=(
+                datetime.fromisoformat(data["created_at"]) if data.get("created_at") else None
+            ),
+            updated_at=(
+                datetime.fromisoformat(data["updated_at"]) if data.get("updated_at") else None
+            ),
         )
 
 

@@ -19,12 +19,12 @@ Simple queries are those that:
 """
 
 import asyncio
-from dataclasses import dataclass, field
 import json
 import logging
 import os
 import sys
 import time
+from dataclasses import dataclass, field
 from typing import Any
 
 import pytest
@@ -883,12 +883,12 @@ class TestScenario058LiveAPI:
 
         # Assert performance targets
         assert metrics.error is None, f"Request failed: {metrics.error}"
-        assert (
-            metrics.meets_first_token_target
-        ), f"TTFT {metrics.time_to_first_token:.2f}s > {TARGET_FIRST_TOKEN_SECONDS}s target"
-        assert (
-            metrics.meets_total_time_target
-        ), f"Total {metrics.total_time:.2f}s > {TARGET_COMPLETE_SECONDS}s target"
+        assert metrics.meets_first_token_target, (
+            f"TTFT {metrics.time_to_first_token:.2f}s > {TARGET_FIRST_TOKEN_SECONDS}s target"
+        )
+        assert metrics.meets_total_time_target, (
+            f"Total {metrics.total_time:.2f}s > {TARGET_COMPLETE_SECONDS}s target"
+        )
 
     @live_api
     @pytest.mark.asyncio

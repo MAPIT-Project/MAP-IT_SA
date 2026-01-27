@@ -45,7 +45,9 @@ class TestV3ConversationRoutesUnit:
         app = FastAPI()
         app.include_router(router)
 
-        with patch('app.api.conversation_routes_v3.conversation_manager', mock_conversation_manager):
+        with patch(
+            "app.api.conversation_routes_v3.conversation_manager", mock_conversation_manager
+        ):
             yield app, mock_conversation_manager
 
     def test_message_request_validation(self):
@@ -55,11 +57,11 @@ class TestV3ConversationRoutesUnit:
         # Valid request
         req = MessageRequest(message="Test question")
         assert req.message == "Test question"
-        assert req.include_context == True  # Default
+        assert req.include_context  # Default
 
         # With explicit include_context
         req = MessageRequest(message="Test", include_context=False)
-        assert req.include_context == False
+        assert not req.include_context
 
     def test_message_response_structure(self):
         """Test MessageResponse model structure."""
@@ -67,7 +69,7 @@ class TestV3ConversationRoutesUnit:
 
         resp = MessageResponse(
             response="This is a test response",
-            metadata={"confidence": 0.9, "tools_used": ["search_funding_calls"]}
+            metadata={"confidence": 0.9, "tools_used": ["search_funding_calls"]},
         )
         assert resp.response == "This is a test response"
         assert resp.metadata["confidence"] == 0.9
@@ -79,27 +81,42 @@ class TestV3StreamingEndpoint:
     @pytest.fixture
     def mock_stream_generator(self):
         """Create a mock async generator for streaming."""
+
         async def generator():
             yield {"type": "status", "stage": "processing", "message": "Processing..."}
             yield {"type": "conversation_name", "name": "Test Conversation", "conversation_id": 123}
             yield {"type": "agent_thinking", "content": "Analyzing query..."}
-            yield {"type": "tool_call", "tool": "search_funding_calls", "args": {"keywords": "hydrogen"}}
+            yield {
+                "type": "tool_call",
+                "tool": "search_funding_calls",
+                "args": {"keywords": "hydrogen"},
+            }
             yield {"type": "tool_result", "tool": "search_funding_calls", "result": {"count": 5}}
             yield {"type": "token", "content": "Here are "}
             yield {"type": "token", "content": "the results..."}
             yield {"type": "complete", "metadata": {"architecture": "simplified_v3"}}
+
         return generator
 
     def test_sse_event_types_allowed(self):
         """Test that all expected SSE event types are allowed."""
-        allowed_types = ['status', 'progress', 'conversation_name', 'agent_thinking',
-                        'tool_call', 'tool_result', 'token', 'complete', 'error']
+        allowed_types = [
+            "status",
+            "progress",
+            "conversation_name",
+            "agent_thinking",
+            "tool_call",
+            "tool_result",
+            "token",
+            "complete",
+            "error",
+        ]
 
         # This is the list from conversation_routes_v3.py
         for event_type in allowed_types:
-            chunk = {'type': event_type}
+            chunk = {"type": event_type}
             # Should pass the filter check
-            assert chunk.get('type', '') in allowed_types
+            assert chunk.get("type", "") in allowed_types
 
     def test_sse_format(self):
         """Test SSE format compliance."""
@@ -116,7 +133,7 @@ class TestV3StreamingEndpoint:
         event = {
             "type": "conversation_name",
             "name": "Hydrogen Funding Calls",
-            "conversation_id": 12345
+            "conversation_id": 12345,
         }
 
         assert event["type"] == "conversation_name"
@@ -139,8 +156,8 @@ class TestV3NonStreamingEndpoint:
                 "tools_used": ["search_funding_calls"],
                 "iterations": 2,
                 "processing_time_ms": 1500,
-                "architecture": "simplified_v3"
-            }
+                "architecture": "simplified_v3",
+            },
         }
 
         for key in expected_keys:
@@ -159,9 +176,9 @@ class TestV3ContextEndpoint:
             "message_count": 5,
             "messages": [
                 {"sender": "user", "text": "Hello"},
-                {"sender": "assistant", "text": "Hi there!"}
+                {"sender": "assistant", "text": "Hi there!"},
             ],
-            "architecture": "simplified_v3"
+            "architecture": "simplified_v3",
         }
 
         assert mock_context["architecture"] == "simplified_v3"
@@ -177,10 +194,10 @@ class TestV3ClearContextEndpoint:
         mock_response = {
             "success": True,
             "message": "Conversation context cleared",
-            "conversation_id": 123
+            "conversation_id": 123,
         }
 
-        assert mock_response["success"] == True
+        assert mock_response["success"]
         assert "cleared" in mock_response["message"].lower()
 
 
@@ -192,12 +209,8 @@ class TestV3HealthEndpoint:
         mock_health = {
             "status": "healthy",
             "architecture": "simplified_v3",
-            "components": {
-                "redis": True,
-                "database": True,
-                "gemini": True
-            },
-            "timestamp": "2024-01-01T00:00:00"
+            "components": {"redis": True, "database": True, "gemini": True},
+            "timestamp": "2024-01-01T00:00:00",
         }
 
         assert mock_health["status"] in ["healthy", "degraded", "unhealthy"]
@@ -209,12 +222,8 @@ class TestV3HealthEndpoint:
         mock_health = {
             "status": "degraded",
             "architecture": "simplified_v3",
-            "components": {
-                "redis": True,
-                "database": False,
-                "gemini": True
-            },
-            "timestamp": "2024-01-01T00:00:00"
+            "components": {"redis": True, "database": False, "gemini": True},
+            "timestamp": "2024-01-01T00:00:00",
         }
 
         # Status should be degraded if not all components are healthy
@@ -226,7 +235,7 @@ class TestV3HealthEndpoint:
             "status": "unhealthy",
             "architecture": "simplified_v3",
             "error": "Connection refused",
-            "timestamp": "2024-01-01T00:00:00"
+            "timestamp": "2024-01-01T00:00:00",
         }
 
         assert mock_health["status"] == "unhealthy"
@@ -238,11 +247,7 @@ class TestV3ErrorHandling:
 
     def test_error_event_structure(self):
         """Test error event structure."""
-        error_event = {
-            "type": "error",
-            "error": "Database connection failed",
-            "stage": "error"
-        }
+        error_event = {"type": "error", "error": "Database connection failed", "stage": "error"}
 
         assert error_event["type"] == "error"
         assert "error" in error_event
@@ -261,7 +266,13 @@ class TestV3SSEEventTypes:
 
     def test_status_event(self):
         """Test status event structure and stages."""
-        stages = ["processing", "context_loaded", "agent_starting", "synthesizing", "streaming_response"]
+        stages = [
+            "processing",
+            "context_loaded",
+            "agent_starting",
+            "synthesizing",
+            "streaming_response",
+        ]
 
         for stage in stages:
             event = {"type": "status", "stage": stage, "message": f"Stage: {stage}"}
@@ -273,7 +284,7 @@ class TestV3SSEEventTypes:
         event = {
             "type": "conversation_name",
             "name": "Hydrogen Research Query",
-            "conversation_id": 42
+            "conversation_id": 42,
         }
 
         assert event["type"] == "conversation_name"
@@ -286,7 +297,7 @@ class TestV3SSEEventTypes:
             "type": "agent_thinking",
             "stage": "reasoning",
             "iteration": 1,
-            "thought": "I need to search for funding calls related to hydrogen..."
+            "thought": "I need to search for funding calls related to hydrogen...",
         }
 
         assert event["type"] == "agent_thinking"
@@ -298,7 +309,7 @@ class TestV3SSEEventTypes:
             "type": "tool_call",
             "stage": "executing_tool",
             "tool_name": "search_funding_calls",
-            "iteration": 1
+            "iteration": 1,
         }
 
         assert event["type"] == "tool_call"
@@ -310,7 +321,7 @@ class TestV3SSEEventTypes:
             "type": "tool_result",
             "stage": "tool_complete",
             "result_summary": "Found 15 funding calls matching criteria",
-            "iteration": 1
+            "iteration": 1,
         }
 
         assert event["type"] == "tool_result"
@@ -333,8 +344,8 @@ class TestV3SSEEventTypes:
                 "iterations": 2,
                 "tools_used": ["search_funding_calls", "get_call_details"],
                 "reasoning_steps": [],
-                "processing_time_ms": 2500
-            }
+                "processing_time_ms": 2500,
+            },
         }
 
         assert event["type"] == "complete"
@@ -350,22 +361,26 @@ class TestV3ConversationNamingIntegration:
         # First message: recent_messages should be empty
         recent_messages = []
         is_first_message = len(recent_messages) == 0
-        assert is_first_message == True
+        assert is_first_message
 
     def test_subsequent_messages_skip_naming(self):
         """Test that subsequent messages don't regenerate name."""
         recent_messages = [
             {"sender": "user", "text": "Hello"},
-            {"sender": "assistant", "text": "Hi!"}
+            {"sender": "assistant", "text": "Hi!"},
         ]
         is_first_message = len(recent_messages) == 0
-        assert is_first_message == False
+        assert not is_first_message
 
     def test_name_event_comes_early_in_stream(self):
         """Test that conversation_name event comes before tool calls."""
         events = [
             {"type": "status", "stage": "processing"},
-            {"type": "conversation_name", "name": "Test", "conversation_id": 1},  # Should come early
+            {
+                "type": "conversation_name",
+                "name": "Test",
+                "conversation_id": 1,
+            },  # Should come early
             {"type": "status", "stage": "context_loaded"},
             {"type": "agent_thinking", "content": "..."},
             {"type": "tool_call", "tool": "search_funding_calls"},
@@ -390,7 +405,7 @@ class TestV3MetadataStructure:
             "reasoning_steps": [
                 {"step": 1, "thought": "...", "tools_called": ["search_funding_calls"]}
             ],
-            "processing_time_ms": 2500
+            "processing_time_ms": 2500,
         }
 
         required_fields = ["architecture", "confidence", "tools_used", "processing_time_ms"]

@@ -194,9 +194,9 @@ class TestScenario002SearchCallsWithFilters:
 
             # Should indicate Open status (not closed)
             assert "Open" in response_text, "Response should indicate calls are Open"
-            assert (
-                "🔴" not in response_text or "🟢" in response_text
-            ), "Response should not have closed-only calls"
+            assert "🔴" not in response_text or "🟢" in response_text, (
+                "Response should not have closed-only calls"
+            )
 
     @pytest.mark.asyncio
     async def test_includes_apply_links(self, conversation_id):

@@ -21,10 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.core.neo4j_config import neo4j_db
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -37,435 +34,563 @@ class ErasmusNeo4jIngester:
     # Erasmus+ Key Actions and sub-actions
     ERASMUS_ACTIONS = {
         # KA1 - Learning Mobility
-        'KA1-HED': {
-            'code': 'KA1-HED',
-            'name': 'KA1 Higher Education Mobility',
-            'key_action': 'KA1',
-            'description': 'Learning mobility for higher education students and staff',
-            'min_partners': 1,
-            'min_countries': 1,
-            'requires_eche': True,
-            'coordinator_countries': 'programme',
-            'partner_countries': 'worldwide',
-            'duration_months_min': 2,
-            'duration_months_max': 12,
-            'typical_budget_min': 50000,
-            'typical_budget_max': 500000,
-            'funding_model': 'lump_sum',
+        "KA1-HED": {
+            "code": "KA1-HED",
+            "name": "KA1 Higher Education Mobility",
+            "key_action": "KA1",
+            "description": "Learning mobility for higher education students and staff",
+            "min_partners": 1,
+            "min_countries": 1,
+            "requires_eche": True,
+            "coordinator_countries": "programme",
+            "partner_countries": "worldwide",
+            "duration_months_min": 2,
+            "duration_months_max": 12,
+            "typical_budget_min": 50000,
+            "typical_budget_max": 500000,
+            "funding_model": "lump_sum",
         },
-        'KA1-VET': {
-            'code': 'KA1-VET',
-            'name': 'KA1 VET Mobility',
-            'key_action': 'KA1',
-            'description': 'Learning mobility for VET learners and staff',
-            'min_partners': 1,
-            'min_countries': 1,
-            'requires_eche': False,
-            'coordinator_countries': 'programme',
-            'partner_countries': 'worldwide',
-            'duration_months_min': 1,
-            'duration_months_max': 12,
-            'typical_budget_min': 30000,
-            'typical_budget_max': 300000,
-            'funding_model': 'lump_sum',
+        "KA1-VET": {
+            "code": "KA1-VET",
+            "name": "KA1 VET Mobility",
+            "key_action": "KA1",
+            "description": "Learning mobility for VET learners and staff",
+            "min_partners": 1,
+            "min_countries": 1,
+            "requires_eche": False,
+            "coordinator_countries": "programme",
+            "partner_countries": "worldwide",
+            "duration_months_min": 1,
+            "duration_months_max": 12,
+            "typical_budget_min": 30000,
+            "typical_budget_max": 300000,
+            "funding_model": "lump_sum",
         },
-        'KA1-SCH': {
-            'code': 'KA1-SCH',
-            'name': 'KA1 School Education Mobility',
-            'key_action': 'KA1',
-            'description': 'Learning mobility for school pupils and staff',
-            'min_partners': 1,
-            'min_countries': 1,
-            'requires_eche': False,
-            'coordinator_countries': 'programme',
-            'partner_countries': 'programme',
-            'duration_months_min': 1,
-            'duration_months_max': 12,
-            'typical_budget_min': 20000,
-            'typical_budget_max': 200000,
-            'funding_model': 'lump_sum',
+        "KA1-SCH": {
+            "code": "KA1-SCH",
+            "name": "KA1 School Education Mobility",
+            "key_action": "KA1",
+            "description": "Learning mobility for school pupils and staff",
+            "min_partners": 1,
+            "min_countries": 1,
+            "requires_eche": False,
+            "coordinator_countries": "programme",
+            "partner_countries": "programme",
+            "duration_months_min": 1,
+            "duration_months_max": 12,
+            "typical_budget_min": 20000,
+            "typical_budget_max": 200000,
+            "funding_model": "lump_sum",
         },
-        'KA1-ADU': {
-            'code': 'KA1-ADU',
-            'name': 'KA1 Adult Education Mobility',
-            'key_action': 'KA1',
-            'description': 'Learning mobility for adult education staff',
-            'min_partners': 1,
-            'min_countries': 1,
-            'requires_eche': False,
-            'coordinator_countries': 'programme',
-            'partner_countries': 'programme',
-            'duration_months_min': 1,
-            'duration_months_max': 12,
-            'typical_budget_min': 20000,
-            'typical_budget_max': 150000,
-            'funding_model': 'lump_sum',
+        "KA1-ADU": {
+            "code": "KA1-ADU",
+            "name": "KA1 Adult Education Mobility",
+            "key_action": "KA1",
+            "description": "Learning mobility for adult education staff",
+            "min_partners": 1,
+            "min_countries": 1,
+            "requires_eche": False,
+            "coordinator_countries": "programme",
+            "partner_countries": "programme",
+            "duration_months_min": 1,
+            "duration_months_max": 12,
+            "typical_budget_min": 20000,
+            "typical_budget_max": 150000,
+            "funding_model": "lump_sum",
         },
-        'KA1-YOU': {
-            'code': 'KA1-YOU',
-            'name': 'KA1 Youth Mobility',
-            'key_action': 'KA1',
-            'description': 'Youth exchanges and mobility of youth workers',
-            'min_partners': 2,
-            'min_countries': 2,
-            'requires_eche': False,
-            'coordinator_countries': 'programme',
-            'partner_countries': 'worldwide',
-            'duration_months_min': 5,
-            'duration_months_max': 60,
-            'typical_budget_min': 10000,
-            'typical_budget_max': 150000,
-            'funding_model': 'lump_sum',
+        "KA1-YOU": {
+            "code": "KA1-YOU",
+            "name": "KA1 Youth Mobility",
+            "key_action": "KA1",
+            "description": "Youth exchanges and mobility of youth workers",
+            "min_partners": 2,
+            "min_countries": 2,
+            "requires_eche": False,
+            "coordinator_countries": "programme",
+            "partner_countries": "worldwide",
+            "duration_months_min": 5,
+            "duration_months_max": 60,
+            "typical_budget_min": 10000,
+            "typical_budget_max": 150000,
+            "funding_model": "lump_sum",
         },
-
         # KA2 - Cooperation Partnerships
-        'KA2-COOP-HED': {
-            'code': 'KA2-COOP-HED',
-            'name': 'KA2 Cooperation Partnership Higher Education',
-            'key_action': 'KA2',
-            'description': 'Cooperation partnerships in higher education',
-            'min_partners': 3,
-            'min_countries': 3,
-            'requires_eche': False,
-            'coordinator_countries': 'programme',
-            'partner_countries': 'worldwide',
-            'duration_months_min': 12,
-            'duration_months_max': 36,
-            'typical_budget_min': 120000,
-            'typical_budget_max': 400000,
-            'funding_model': 'lump_sum',
+        "KA2-COOP-HED": {
+            "code": "KA2-COOP-HED",
+            "name": "KA2 Cooperation Partnership Higher Education",
+            "key_action": "KA2",
+            "description": "Cooperation partnerships in higher education",
+            "min_partners": 3,
+            "min_countries": 3,
+            "requires_eche": False,
+            "coordinator_countries": "programme",
+            "partner_countries": "worldwide",
+            "duration_months_min": 12,
+            "duration_months_max": 36,
+            "typical_budget_min": 120000,
+            "typical_budget_max": 400000,
+            "funding_model": "lump_sum",
         },
-        'KA2-COOP-VET': {
-            'code': 'KA2-COOP-VET',
-            'name': 'KA2 Cooperation Partnership VET',
-            'key_action': 'KA2',
-            'description': 'Cooperation partnerships in vocational education',
-            'min_partners': 3,
-            'min_countries': 3,
-            'requires_eche': False,
-            'coordinator_countries': 'programme',
-            'partner_countries': 'worldwide',
-            'duration_months_min': 12,
-            'duration_months_max': 36,
-            'typical_budget_min': 120000,
-            'typical_budget_max': 400000,
-            'funding_model': 'lump_sum',
+        "KA2-COOP-VET": {
+            "code": "KA2-COOP-VET",
+            "name": "KA2 Cooperation Partnership VET",
+            "key_action": "KA2",
+            "description": "Cooperation partnerships in vocational education",
+            "min_partners": 3,
+            "min_countries": 3,
+            "requires_eche": False,
+            "coordinator_countries": "programme",
+            "partner_countries": "worldwide",
+            "duration_months_min": 12,
+            "duration_months_max": 36,
+            "typical_budget_min": 120000,
+            "typical_budget_max": 400000,
+            "funding_model": "lump_sum",
         },
-        'KA2-COOP-SCH': {
-            'code': 'KA2-COOP-SCH',
-            'name': 'KA2 Cooperation Partnership School Education',
-            'key_action': 'KA2',
-            'description': 'Cooperation partnerships in school education',
-            'min_partners': 3,
-            'min_countries': 3,
-            'requires_eche': False,
-            'coordinator_countries': 'programme',
-            'partner_countries': 'programme',
-            'duration_months_min': 12,
-            'duration_months_max': 36,
-            'typical_budget_min': 120000,
-            'typical_budget_max': 400000,
-            'funding_model': 'lump_sum',
+        "KA2-COOP-SCH": {
+            "code": "KA2-COOP-SCH",
+            "name": "KA2 Cooperation Partnership School Education",
+            "key_action": "KA2",
+            "description": "Cooperation partnerships in school education",
+            "min_partners": 3,
+            "min_countries": 3,
+            "requires_eche": False,
+            "coordinator_countries": "programme",
+            "partner_countries": "programme",
+            "duration_months_min": 12,
+            "duration_months_max": 36,
+            "typical_budget_min": 120000,
+            "typical_budget_max": 400000,
+            "funding_model": "lump_sum",
         },
-        'KA2-COOP-ADU': {
-            'code': 'KA2-COOP-ADU',
-            'name': 'KA2 Cooperation Partnership Adult Education',
-            'key_action': 'KA2',
-            'description': 'Cooperation partnerships in adult education',
-            'min_partners': 3,
-            'min_countries': 3,
-            'requires_eche': False,
-            'coordinator_countries': 'programme',
-            'partner_countries': 'programme',
-            'duration_months_min': 12,
-            'duration_months_max': 36,
-            'typical_budget_min': 120000,
-            'typical_budget_max': 400000,
-            'funding_model': 'lump_sum',
+        "KA2-COOP-ADU": {
+            "code": "KA2-COOP-ADU",
+            "name": "KA2 Cooperation Partnership Adult Education",
+            "key_action": "KA2",
+            "description": "Cooperation partnerships in adult education",
+            "min_partners": 3,
+            "min_countries": 3,
+            "requires_eche": False,
+            "coordinator_countries": "programme",
+            "partner_countries": "programme",
+            "duration_months_min": 12,
+            "duration_months_max": 36,
+            "typical_budget_min": 120000,
+            "typical_budget_max": 400000,
+            "funding_model": "lump_sum",
         },
-        'KA2-COOP-YOU': {
-            'code': 'KA2-COOP-YOU',
-            'name': 'KA2 Cooperation Partnership Youth',
-            'key_action': 'KA2',
-            'description': 'Cooperation partnerships in youth',
-            'min_partners': 3,
-            'min_countries': 3,
-            'requires_eche': False,
-            'coordinator_countries': 'programme',
-            'partner_countries': 'worldwide',
-            'duration_months_min': 12,
-            'duration_months_max': 36,
-            'typical_budget_min': 120000,
-            'typical_budget_max': 400000,
-            'funding_model': 'lump_sum',
+        "KA2-COOP-YOU": {
+            "code": "KA2-COOP-YOU",
+            "name": "KA2 Cooperation Partnership Youth",
+            "key_action": "KA2",
+            "description": "Cooperation partnerships in youth",
+            "min_partners": 3,
+            "min_countries": 3,
+            "requires_eche": False,
+            "coordinator_countries": "programme",
+            "partner_countries": "worldwide",
+            "duration_months_min": 12,
+            "duration_months_max": 36,
+            "typical_budget_min": 120000,
+            "typical_budget_max": 400000,
+            "funding_model": "lump_sum",
         },
-
         # KA2 - Small-Scale Partnerships
-        'KA2-SSP-HED': {
-            'code': 'KA2-SSP-HED',
-            'name': 'KA2 Small-Scale Partnership Higher Education',
-            'key_action': 'KA2',
-            'description': 'Small-scale partnerships in higher education',
-            'min_partners': 2,
-            'min_countries': 2,
-            'requires_eche': False,
-            'coordinator_countries': 'programme',
-            'partner_countries': 'programme',
-            'duration_months_min': 6,
-            'duration_months_max': 24,
-            'typical_budget_min': 30000,
-            'typical_budget_max': 60000,
-            'funding_model': 'lump_sum',
+        "KA2-SSP-HED": {
+            "code": "KA2-SSP-HED",
+            "name": "KA2 Small-Scale Partnership Higher Education",
+            "key_action": "KA2",
+            "description": "Small-scale partnerships in higher education",
+            "min_partners": 2,
+            "min_countries": 2,
+            "requires_eche": False,
+            "coordinator_countries": "programme",
+            "partner_countries": "programme",
+            "duration_months_min": 6,
+            "duration_months_max": 24,
+            "typical_budget_min": 30000,
+            "typical_budget_max": 60000,
+            "funding_model": "lump_sum",
         },
-        'KA2-SSP-VET': {
-            'code': 'KA2-SSP-VET',
-            'name': 'KA2 Small-Scale Partnership VET',
-            'key_action': 'KA2',
-            'description': 'Small-scale partnerships in vocational education',
-            'min_partners': 2,
-            'min_countries': 2,
-            'requires_eche': False,
-            'coordinator_countries': 'programme',
-            'partner_countries': 'programme',
-            'duration_months_min': 6,
-            'duration_months_max': 24,
-            'typical_budget_min': 30000,
-            'typical_budget_max': 60000,
-            'funding_model': 'lump_sum',
+        "KA2-SSP-VET": {
+            "code": "KA2-SSP-VET",
+            "name": "KA2 Small-Scale Partnership VET",
+            "key_action": "KA2",
+            "description": "Small-scale partnerships in vocational education",
+            "min_partners": 2,
+            "min_countries": 2,
+            "requires_eche": False,
+            "coordinator_countries": "programme",
+            "partner_countries": "programme",
+            "duration_months_min": 6,
+            "duration_months_max": 24,
+            "typical_budget_min": 30000,
+            "typical_budget_max": 60000,
+            "funding_model": "lump_sum",
         },
-        'KA2-SSP-SCH': {
-            'code': 'KA2-SSP-SCH',
-            'name': 'KA2 Small-Scale Partnership School Education',
-            'key_action': 'KA2',
-            'description': 'Small-scale partnerships in school education',
-            'min_partners': 2,
-            'min_countries': 2,
-            'requires_eche': False,
-            'coordinator_countries': 'programme',
-            'partner_countries': 'programme',
-            'duration_months_min': 6,
-            'duration_months_max': 24,
-            'typical_budget_min': 30000,
-            'typical_budget_max': 60000,
-            'funding_model': 'lump_sum',
+        "KA2-SSP-SCH": {
+            "code": "KA2-SSP-SCH",
+            "name": "KA2 Small-Scale Partnership School Education",
+            "key_action": "KA2",
+            "description": "Small-scale partnerships in school education",
+            "min_partners": 2,
+            "min_countries": 2,
+            "requires_eche": False,
+            "coordinator_countries": "programme",
+            "partner_countries": "programme",
+            "duration_months_min": 6,
+            "duration_months_max": 24,
+            "typical_budget_min": 30000,
+            "typical_budget_max": 60000,
+            "funding_model": "lump_sum",
         },
-        'KA2-SSP-ADU': {
-            'code': 'KA2-SSP-ADU',
-            'name': 'KA2 Small-Scale Partnership Adult Education',
-            'key_action': 'KA2',
-            'description': 'Small-scale partnerships in adult education',
-            'min_partners': 2,
-            'min_countries': 2,
-            'requires_eche': False,
-            'coordinator_countries': 'programme',
-            'partner_countries': 'programme',
-            'duration_months_min': 6,
-            'duration_months_max': 24,
-            'typical_budget_min': 30000,
-            'typical_budget_max': 60000,
-            'funding_model': 'lump_sum',
+        "KA2-SSP-ADU": {
+            "code": "KA2-SSP-ADU",
+            "name": "KA2 Small-Scale Partnership Adult Education",
+            "key_action": "KA2",
+            "description": "Small-scale partnerships in adult education",
+            "min_partners": 2,
+            "min_countries": 2,
+            "requires_eche": False,
+            "coordinator_countries": "programme",
+            "partner_countries": "programme",
+            "duration_months_min": 6,
+            "duration_months_max": 24,
+            "typical_budget_min": 30000,
+            "typical_budget_max": 60000,
+            "funding_model": "lump_sum",
         },
-        'KA2-SSP-YOU': {
-            'code': 'KA2-SSP-YOU',
-            'name': 'KA2 Small-Scale Partnership Youth',
-            'key_action': 'KA2',
-            'description': 'Small-scale partnerships in youth',
-            'min_partners': 2,
-            'min_countries': 2,
-            'requires_eche': False,
-            'coordinator_countries': 'programme',
-            'partner_countries': 'programme',
-            'duration_months_min': 6,
-            'duration_months_max': 24,
-            'typical_budget_min': 30000,
-            'typical_budget_max': 60000,
-            'funding_model': 'lump_sum',
+        "KA2-SSP-YOU": {
+            "code": "KA2-SSP-YOU",
+            "name": "KA2 Small-Scale Partnership Youth",
+            "key_action": "KA2",
+            "description": "Small-scale partnerships in youth",
+            "min_partners": 2,
+            "min_countries": 2,
+            "requires_eche": False,
+            "coordinator_countries": "programme",
+            "partner_countries": "programme",
+            "duration_months_min": 6,
+            "duration_months_max": 24,
+            "typical_budget_min": 30000,
+            "typical_budget_max": 60000,
+            "funding_model": "lump_sum",
         },
-
         # KA2 - Capacity Building
-        'KA2-CBHE': {
-            'code': 'KA2-CBHE',
-            'name': 'KA2 Capacity Building Higher Education',
-            'key_action': 'KA2',
-            'description': 'Capacity building in higher education with third countries',
-            'min_partners': 4,
-            'min_countries': 3,
-            'requires_eche': False,
-            'coordinator_countries': 'programme',
-            'partner_countries': 'partner_regions',
-            'duration_months_min': 24,
-            'duration_months_max': 36,
-            'typical_budget_min': 500000,
-            'typical_budget_max': 1000000,
-            'funding_model': 'lump_sum',
+        "KA2-CBHE": {
+            "code": "KA2-CBHE",
+            "name": "KA2 Capacity Building Higher Education",
+            "key_action": "KA2",
+            "description": "Capacity building in higher education with third countries",
+            "min_partners": 4,
+            "min_countries": 3,
+            "requires_eche": False,
+            "coordinator_countries": "programme",
+            "partner_countries": "partner_regions",
+            "duration_months_min": 24,
+            "duration_months_max": 36,
+            "typical_budget_min": 500000,
+            "typical_budget_max": 1000000,
+            "funding_model": "lump_sum",
         },
-
         # Jean Monnet Actions
-        'JMO-MODULE': {
-            'code': 'JMO-MODULE',
-            'name': 'Jean Monnet Module',
-            'key_action': 'JMO',
-            'description': 'Short teaching programme on EU studies',
-            'min_partners': 1,
-            'min_countries': 1,
-            'requires_eche': False,
-            'coordinator_countries': 'worldwide',
-            'partner_countries': 'worldwide',
-            'duration_months_min': 36,
-            'duration_months_max': 36,
-            'typical_budget_min': 30000,
-            'typical_budget_max': 30000,
-            'funding_model': 'lump_sum',
+        "JMO-MODULE": {
+            "code": "JMO-MODULE",
+            "name": "Jean Monnet Module",
+            "key_action": "JMO",
+            "description": "Short teaching programme on EU studies",
+            "min_partners": 1,
+            "min_countries": 1,
+            "requires_eche": False,
+            "coordinator_countries": "worldwide",
+            "partner_countries": "worldwide",
+            "duration_months_min": 36,
+            "duration_months_max": 36,
+            "typical_budget_min": 30000,
+            "typical_budget_max": 30000,
+            "funding_model": "lump_sum",
         },
-        'JMO-CHAIR': {
-            'code': 'JMO-CHAIR',
-            'name': 'Jean Monnet Chair',
-            'key_action': 'JMO',
-            'description': 'Teaching post with specialization in EU studies',
-            'min_partners': 1,
-            'min_countries': 1,
-            'requires_eche': False,
-            'coordinator_countries': 'worldwide',
-            'partner_countries': 'worldwide',
-            'duration_months_min': 36,
-            'duration_months_max': 36,
-            'typical_budget_min': 50000,
-            'typical_budget_max': 50000,
-            'funding_model': 'lump_sum',
+        "JMO-CHAIR": {
+            "code": "JMO-CHAIR",
+            "name": "Jean Monnet Chair",
+            "key_action": "JMO",
+            "description": "Teaching post with specialization in EU studies",
+            "min_partners": 1,
+            "min_countries": 1,
+            "requires_eche": False,
+            "coordinator_countries": "worldwide",
+            "partner_countries": "worldwide",
+            "duration_months_min": 36,
+            "duration_months_max": 36,
+            "typical_budget_min": 50000,
+            "typical_budget_max": 50000,
+            "funding_model": "lump_sum",
         },
-        'JMO-COE': {
-            'code': 'JMO-COE',
-            'name': 'Jean Monnet Centre of Excellence',
-            'key_action': 'JMO',
-            'description': 'Focal point of knowledge on EU subjects',
-            'min_partners': 1,
-            'min_countries': 1,
-            'requires_eche': False,
-            'coordinator_countries': 'worldwide',
-            'partner_countries': 'worldwide',
-            'duration_months_min': 36,
-            'duration_months_max': 36,
-            'typical_budget_min': 100000,
-            'typical_budget_max': 100000,
-            'funding_model': 'lump_sum',
+        "JMO-COE": {
+            "code": "JMO-COE",
+            "name": "Jean Monnet Centre of Excellence",
+            "key_action": "JMO",
+            "description": "Focal point of knowledge on EU subjects",
+            "min_partners": 1,
+            "min_countries": 1,
+            "requires_eche": False,
+            "coordinator_countries": "worldwide",
+            "partner_countries": "worldwide",
+            "duration_months_min": 36,
+            "duration_months_max": 36,
+            "typical_budget_min": 100000,
+            "typical_budget_max": 100000,
+            "funding_model": "lump_sum",
         },
-
         # Sport Actions
-        'SPORT-COOP': {
-            'code': 'SPORT-COOP',
-            'name': 'Sport Cooperation Partnership',
-            'key_action': 'SPORT',
-            'description': 'Cooperation partnerships in grassroots sport',
-            'min_partners': 3,
-            'min_countries': 3,
-            'requires_eche': False,
-            'coordinator_countries': 'programme',
-            'partner_countries': 'programme',
-            'duration_months_min': 12,
-            'duration_months_max': 36,
-            'typical_budget_min': 120000,
-            'typical_budget_max': 400000,
-            'funding_model': 'lump_sum',
+        "SPORT-COOP": {
+            "code": "SPORT-COOP",
+            "name": "Sport Cooperation Partnership",
+            "key_action": "SPORT",
+            "description": "Cooperation partnerships in grassroots sport",
+            "min_partners": 3,
+            "min_countries": 3,
+            "requires_eche": False,
+            "coordinator_countries": "programme",
+            "partner_countries": "programme",
+            "duration_months_min": 12,
+            "duration_months_max": 36,
+            "typical_budget_min": 120000,
+            "typical_budget_max": 400000,
+            "funding_model": "lump_sum",
         },
-        'SPORT-SSP': {
-            'code': 'SPORT-SSP',
-            'name': 'Sport Small-Scale Partnership',
-            'key_action': 'SPORT',
-            'description': 'Small-scale partnerships in grassroots sport',
-            'min_partners': 2,
-            'min_countries': 2,
-            'requires_eche': False,
-            'coordinator_countries': 'programme',
-            'partner_countries': 'programme',
-            'duration_months_min': 6,
-            'duration_months_max': 24,
-            'typical_budget_min': 30000,
-            'typical_budget_max': 60000,
-            'funding_model': 'lump_sum',
+        "SPORT-SSP": {
+            "code": "SPORT-SSP",
+            "name": "Sport Small-Scale Partnership",
+            "key_action": "SPORT",
+            "description": "Small-scale partnerships in grassroots sport",
+            "min_partners": 2,
+            "min_countries": 2,
+            "requires_eche": False,
+            "coordinator_countries": "programme",
+            "partner_countries": "programme",
+            "duration_months_min": 6,
+            "duration_months_max": 24,
+            "typical_budget_min": 30000,
+            "typical_budget_max": 60000,
+            "funding_model": "lump_sum",
         },
-        'SPORT-EVENT': {
-            'code': 'SPORT-EVENT',
-            'name': 'Sport Not-for-profit Event',
-            'key_action': 'SPORT',
-            'description': 'Not-for-profit European sport events',
-            'min_partners': 3,
-            'min_countries': 3,
-            'requires_eche': False,
-            'coordinator_countries': 'programme',
-            'partner_countries': 'programme',
-            'duration_months_min': 12,
-            'duration_months_max': 18,
-            'typical_budget_min': 200000,
-            'typical_budget_max': 450000,
-            'funding_model': 'lump_sum',
+        "SPORT-EVENT": {
+            "code": "SPORT-EVENT",
+            "name": "Sport Not-for-profit Event",
+            "key_action": "SPORT",
+            "description": "Not-for-profit European sport events",
+            "min_partners": 3,
+            "min_countries": 3,
+            "requires_eche": False,
+            "coordinator_countries": "programme",
+            "partner_countries": "programme",
+            "duration_months_min": 12,
+            "duration_months_max": 18,
+            "typical_budget_min": 200000,
+            "typical_budget_max": 450000,
+            "funding_model": "lump_sum",
         },
     }
 
     # Erasmus+ Sectors
     ERASMUS_SECTORS = {
-        'HED': {
-            'code': 'HED',
-            'name': 'Higher Education',
-            'description': 'Universities and higher education institutions',
-            'org_types': ['HEI', 'UNIVERSITY', 'COLLEGE'],
+        "HED": {
+            "code": "HED",
+            "name": "Higher Education",
+            "description": "Universities and higher education institutions",
+            "org_types": ["HEI", "UNIVERSITY", "COLLEGE"],
         },
-        'VET': {
-            'code': 'VET',
-            'name': 'Vocational Education and Training',
-            'description': 'VET providers and training organizations',
-            'org_types': ['VET_PROVIDER', 'TRAINING_CENTRE', 'COMPANY'],
+        "VET": {
+            "code": "VET",
+            "name": "Vocational Education and Training",
+            "description": "VET providers and training organizations",
+            "org_types": ["VET_PROVIDER", "TRAINING_CENTRE", "COMPANY"],
         },
-        'SCH': {
-            'code': 'SCH',
-            'name': 'School Education',
-            'description': 'Primary and secondary schools',
-            'org_types': ['SCHOOL', 'PRIMARY_SCHOOL', 'SECONDARY_SCHOOL'],
+        "SCH": {
+            "code": "SCH",
+            "name": "School Education",
+            "description": "Primary and secondary schools",
+            "org_types": ["SCHOOL", "PRIMARY_SCHOOL", "SECONDARY_SCHOOL"],
         },
-        'ADU': {
-            'code': 'ADU',
-            'name': 'Adult Education',
-            'description': 'Adult learning providers',
-            'org_types': ['ADULT_EDUCATION', 'LIFELONG_LEARNING', 'COMMUNITY_ORG'],
+        "ADU": {
+            "code": "ADU",
+            "name": "Adult Education",
+            "description": "Adult learning providers",
+            "org_types": ["ADULT_EDUCATION", "LIFELONG_LEARNING", "COMMUNITY_ORG"],
         },
-        'YOU': {
-            'code': 'YOU',
-            'name': 'Youth',
-            'description': 'Youth organizations and non-formal learning',
-            'org_types': ['NGO', 'YOUTH_ORG', 'SOCIAL_ENTERPRISE'],
+        "YOU": {
+            "code": "YOU",
+            "name": "Youth",
+            "description": "Youth organizations and non-formal learning",
+            "org_types": ["NGO", "YOUTH_ORG", "SOCIAL_ENTERPRISE"],
         },
-        'SPORT': {
-            'code': 'SPORT',
-            'name': 'Sport',
-            'description': 'Sport organizations and clubs',
-            'org_types': ['SPORT_CLUB', 'SPORT_FEDERATION', 'NGO'],
+        "SPORT": {
+            "code": "SPORT",
+            "name": "Sport",
+            "description": "Sport organizations and clubs",
+            "org_types": ["SPORT_CLUB", "SPORT_FEDERATION", "NGO"],
         },
     }
 
     # Erasmus+ Programme Countries (EU + EEA + acceding)
     PROGRAMME_COUNTRIES = [
         # EU Member States
-        "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR",
-        "DE", "GR", "HU", "IE", "IT", "LV", "LT", "LU", "MT", "NL",
-        "PL", "PT", "RO", "SK", "SI", "ES", "SE",
+        "AT",
+        "BE",
+        "BG",
+        "HR",
+        "CY",
+        "CZ",
+        "DK",
+        "EE",
+        "FI",
+        "FR",
+        "DE",
+        "GR",
+        "HU",
+        "IE",
+        "IT",
+        "LV",
+        "LT",
+        "LU",
+        "MT",
+        "NL",
+        "PL",
+        "PT",
+        "RO",
+        "SK",
+        "SI",
+        "ES",
+        "SE",
         # EEA Countries
-        "IS", "LI", "NO",
+        "IS",
+        "LI",
+        "NO",
         # Other Programme Countries
-        "MK", "RS", "TR",
+        "MK",
+        "RS",
+        "TR",
     ]
 
     # Partner Country Regions
     PARTNER_REGIONS = {
-        'WESTERN_BALKANS': ['AL', 'BA', 'ME', 'XK'],
-        'EASTERN_PARTNERSHIP': ['AM', 'AZ', 'BY', 'GE', 'MD', 'UA'],
-        'SOUTHERN_MEDITERRANEAN': ['DZ', 'EG', 'IL', 'JO', 'LB', 'LY', 'MA', 'PS', 'SY', 'TN'],
-        'RUSSIA': ['RU'],
-        'ASIA': ['AF', 'BD', 'BT', 'CN', 'IN', 'ID', 'JP', 'KR', 'MY', 'MM', 'NP', 'PK', 'PH', 'SG', 'LK', 'TW', 'TH', 'VN'],
-        'CENTRAL_ASIA': ['KZ', 'KG', 'TJ', 'TM', 'UZ'],
-        'LATIN_AMERICA': ['AR', 'BO', 'BR', 'CL', 'CO', 'CR', 'CU', 'DO', 'EC', 'SV', 'GT', 'HT', 'HN', 'MX', 'NI', 'PA', 'PY', 'PE', 'UY', 'VE'],
-        'AFRICA': ['AO', 'BJ', 'BW', 'BF', 'BI', 'CM', 'CV', 'CF', 'TD', 'KM', 'CD', 'CG', 'CI', 'DJ', 'GQ', 'ER', 'SZ', 'ET', 'GA', 'GM', 'GH', 'GN', 'GW', 'KE', 'LS', 'LR', 'MG', 'MW', 'ML', 'MR', 'MU', 'MZ', 'NA', 'NE', 'NG', 'RW', 'ST', 'SN', 'SC', 'SL', 'SO', 'ZA', 'SS', 'SD', 'TZ', 'TG', 'UG', 'ZM', 'ZW'],
-        'CARIBBEAN': ['AG', 'BS', 'BB', 'BZ', 'DM', 'GD', 'GY', 'JM', 'KN', 'LC', 'VC', 'SR', 'TT'],
-        'PACIFIC': ['AU', 'FJ', 'KI', 'MH', 'FM', 'NR', 'NZ', 'PW', 'PG', 'WS', 'SB', 'TO', 'TV', 'VU'],
-        'OTHER_INDUSTRIALIZED': ['CA', 'US', 'CH', 'UK'],
+        "WESTERN_BALKANS": ["AL", "BA", "ME", "XK"],
+        "EASTERN_PARTNERSHIP": ["AM", "AZ", "BY", "GE", "MD", "UA"],
+        "SOUTHERN_MEDITERRANEAN": ["DZ", "EG", "IL", "JO", "LB", "LY", "MA", "PS", "SY", "TN"],
+        "RUSSIA": ["RU"],
+        "ASIA": [
+            "AF",
+            "BD",
+            "BT",
+            "CN",
+            "IN",
+            "ID",
+            "JP",
+            "KR",
+            "MY",
+            "MM",
+            "NP",
+            "PK",
+            "PH",
+            "SG",
+            "LK",
+            "TW",
+            "TH",
+            "VN",
+        ],
+        "CENTRAL_ASIA": ["KZ", "KG", "TJ", "TM", "UZ"],
+        "LATIN_AMERICA": [
+            "AR",
+            "BO",
+            "BR",
+            "CL",
+            "CO",
+            "CR",
+            "CU",
+            "DO",
+            "EC",
+            "SV",
+            "GT",
+            "HT",
+            "HN",
+            "MX",
+            "NI",
+            "PA",
+            "PY",
+            "PE",
+            "UY",
+            "VE",
+        ],
+        "AFRICA": [
+            "AO",
+            "BJ",
+            "BW",
+            "BF",
+            "BI",
+            "CM",
+            "CV",
+            "CF",
+            "TD",
+            "KM",
+            "CD",
+            "CG",
+            "CI",
+            "DJ",
+            "GQ",
+            "ER",
+            "SZ",
+            "ET",
+            "GA",
+            "GM",
+            "GH",
+            "GN",
+            "GW",
+            "KE",
+            "LS",
+            "LR",
+            "MG",
+            "MW",
+            "ML",
+            "MR",
+            "MU",
+            "MZ",
+            "NA",
+            "NE",
+            "NG",
+            "RW",
+            "ST",
+            "SN",
+            "SC",
+            "SL",
+            "SO",
+            "ZA",
+            "SS",
+            "SD",
+            "TZ",
+            "TG",
+            "UG",
+            "ZM",
+            "ZW",
+        ],
+        "CARIBBEAN": ["AG", "BS", "BB", "BZ", "DM", "GD", "GY", "JM", "KN", "LC", "VC", "SR", "TT"],
+        "PACIFIC": [
+            "AU",
+            "FJ",
+            "KI",
+            "MH",
+            "FM",
+            "NR",
+            "NZ",
+            "PW",
+            "PG",
+            "WS",
+            "SB",
+            "TO",
+            "TV",
+            "VU",
+        ],
+        "OTHER_INDUSTRIALIZED": ["CA", "US", "CH", "UK"],
     }
 
     def __init__(self):
@@ -514,13 +639,16 @@ class ErasmusNeo4jIngester:
         """Load Erasmus+ sector nodes."""
         logger.info("Loading Erasmus+ sectors...")
 
-        for code, info in self.ERASMUS_SECTORS.items():
-            self.db.execute_query("""
+        for _code, info in self.ERASMUS_SECTORS.items():
+            self.db.execute_query(
+                """
                 MERGE (s:ErasmusSector {code: $code})
                 SET s.name = $name,
                     s.description = $description,
                     s.org_types = $org_types
-            """, info)
+            """,
+                info,
+            )
 
         logger.info(f"Loaded {len(self.ERASMUS_SECTORS)} sectors")
 
@@ -531,18 +659,19 @@ class ErasmusNeo4jIngester:
         for code, info in self.ERASMUS_ACTIONS.items():
             # Extract sector from action code if present
             sector = None
-            for s in ['HED', 'VET', 'SCH', 'ADU', 'YOU', 'SPORT']:
+            for s in ["HED", "VET", "SCH", "ADU", "YOU", "SPORT"]:
                 if s in code:
                     sector = s
                     break
 
             action_data = {
                 **info,
-                'sector': sector,
+                "sector": sector,
             }
 
             # Create action node
-            self.db.execute_query("""
+            self.db.execute_query(
+                """
                 MERGE (a:ErasmusAction {code: $code})
                 SET a.name = $name,
                     a.key_action = $key_action,
@@ -558,15 +687,20 @@ class ErasmusNeo4jIngester:
                     a.typical_budget_max = $typical_budget_max,
                     a.funding_model = $funding_model,
                     a.sector = $sector
-            """, action_data)
+            """,
+                action_data,
+            )
 
             # Link to sector if applicable
             if sector:
-                self.db.execute_query("""
+                self.db.execute_query(
+                    """
                     MATCH (a:ErasmusAction {code: $action_code})
                     MATCH (s:ErasmusSector {code: $sector_code})
                     MERGE (a)-[:AVAILABLE_IN]->(s)
-                """, {"action_code": code, "sector_code": sector})
+                """,
+                    {"action_code": code, "sector_code": sector},
+                )
 
         logger.info(f"Loaded {len(self.ERASMUS_ACTIONS)} actions")
 
@@ -575,36 +709,45 @@ class ErasmusNeo4jIngester:
         logger.info("Loading partner regions...")
 
         # Create Programme Countries region
-        self.db.execute_query("""
+        self.db.execute_query(
+            """
             MERGE (r:PartnerRegion {code: 'PROGRAMME'})
             SET r.name = 'Programme Countries',
                 r.description = 'EU Member States, EEA, and acceding countries',
                 r.countries = $countries
-        """, {"countries": self.PROGRAMME_COUNTRIES})
+        """,
+            {"countries": self.PROGRAMME_COUNTRIES},
+        )
 
         # Create partner regions
         for region_code, countries in self.PARTNER_REGIONS.items():
-            self.db.execute_query("""
+            self.db.execute_query(
+                """
                 MERGE (r:PartnerRegion {code: $code})
                 SET r.name = $name,
                     r.countries = $countries
-            """, {
-                "code": region_code,
-                "name": region_code.replace('_', ' ').title(),
-                "countries": countries,
-            })
+            """,
+                {
+                    "code": region_code,
+                    "name": region_code.replace("_", " ").title(),
+                    "countries": countries,
+                },
+            )
 
         # Create Worldwide region
         all_partner_countries = []
         for countries in self.PARTNER_REGIONS.values():
             all_partner_countries.extend(countries)
 
-        self.db.execute_query("""
+        self.db.execute_query(
+            """
             MERGE (r:PartnerRegion {code: 'WORLDWIDE'})
             SET r.name = 'Worldwide',
                 r.description = 'All countries worldwide',
                 r.countries = $countries
-        """, {"countries": self.PROGRAMME_COUNTRIES + all_partner_countries})
+        """,
+            {"countries": self.PROGRAMME_COUNTRIES + all_partner_countries},
+        )
 
         logger.info(f"Loaded {len(self.PARTNER_REGIONS) + 2} partner regions")
 
@@ -613,37 +756,43 @@ class ErasmusNeo4jIngester:
         logger.info("Creating action-country relationships...")
 
         for code, info in self.ERASMUS_ACTIONS.items():
-            coordinator_countries = info['coordinator_countries']
-            partner_countries = info['partner_countries']
+            coordinator_countries = info["coordinator_countries"]
+            partner_countries = info["partner_countries"]
 
             # Map country rules to regions
             region_mapping = {
-                'programme': 'PROGRAMME',
-                'worldwide': 'WORLDWIDE',
-                'partner_regions': 'WORLDWIDE',
+                "programme": "PROGRAMME",
+                "worldwide": "WORLDWIDE",
+                "partner_regions": "WORLDWIDE",
             }
 
             # Coordinator countries
             if coordinator_countries in region_mapping:
-                self.db.execute_query("""
+                self.db.execute_query(
+                    """
                     MATCH (a:ErasmusAction {code: $action_code})
                     MATCH (r:PartnerRegion {code: $region_code})
                     MERGE (a)-[:REQUIRES_COORDINATOR_FROM]->(r)
-                """, {
-                    "action_code": code,
-                    "region_code": region_mapping[coordinator_countries],
-                })
+                """,
+                    {
+                        "action_code": code,
+                        "region_code": region_mapping[coordinator_countries],
+                    },
+                )
 
             # Partner countries
             if partner_countries in region_mapping:
-                self.db.execute_query("""
+                self.db.execute_query(
+                    """
                     MATCH (a:ErasmusAction {code: $action_code})
                     MATCH (r:PartnerRegion {code: $region_code})
                     MERGE (a)-[:ALLOWS_PARTNERS_FROM]->(r)
-                """, {
-                    "action_code": code,
-                    "region_code": region_mapping[partner_countries],
-                })
+                """,
+                    {
+                        "action_code": code,
+                        "region_code": region_mapping[partner_countries],
+                    },
+                )
 
         logger.info("Action-country relationships created")
 
@@ -653,23 +802,29 @@ class ErasmusNeo4jIngester:
 
         # Link programme countries
         for country in self.PROGRAMME_COUNTRIES:
-            self.db.execute_query("""
+            self.db.execute_query(
+                """
                 MATCH (c:Country {isoCode: $country_code})
                 MATCH (r:PartnerRegion {code: 'PROGRAMME'})
                 MERGE (c)-[:MEMBER_OF]->(r)
                 SET c.erasmus_programme_country = true
-            """, {"country_code": country})
+            """,
+                {"country_code": country},
+            )
 
         # Link partner region countries
         for region_code, countries in self.PARTNER_REGIONS.items():
             for country in countries:
-                self.db.execute_query("""
+                self.db.execute_query(
+                    """
                     MERGE (c:Country {isoCode: $country_code})
                     SET c.erasmus_partner_country = true
                     WITH c
                     MATCH (r:PartnerRegion {code: $region_code})
                     MERGE (c)-[:MEMBER_OF]->(r)
-                """, {"country_code": country, "region_code": region_code})
+                """,
+                    {"country_code": country, "region_code": region_code},
+                )
 
         logger.info("Country-region relationships created")
 
@@ -767,11 +922,7 @@ class ErasmusNeo4jIngester:
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(description="Ingest Erasmus+ data into Neo4j")
-    parser.add_argument(
-        "--clear",
-        action="store_true",
-        help="Clear Erasmus+ data before ingestion"
-    )
+    parser.add_argument("--clear", action="store_true", help="Clear Erasmus+ data before ingestion")
 
     args = parser.parse_args()
 
@@ -779,7 +930,7 @@ def main():
         ingester = ErasmusNeo4jIngester()
         stats = ingester.run(clear_first=args.clear)
 
-        if stats.get('actions', 0) > 0:
+        if stats.get("actions", 0) > 0:
             logger.info("\nErasmus+ reference data loaded successfully!")
             logger.info("You can now use graph-based eligibility checking.")
             return 0
@@ -790,6 +941,7 @@ def main():
     except Exception as e:
         logger.error(f"Ingestion failed: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 

@@ -256,9 +256,9 @@ class TestClarificationPatterns:
                 expected_topics=["hydrogen"],
                 current_response=response,
             )
-            assert (
-                result.details["asking_for_clarification"] is True
-            ), f"Failed to detect clarification in: {response}"
+            assert result.details["asking_for_clarification"] is True, (
+                f"Failed to detect clarification in: {response}"
+            )
 
     @pytest.mark.asyncio
     async def test_non_clarification_responses(self):
@@ -284,9 +284,9 @@ class TestClarificationPatterns:
                 expected_topics=["hydrogen"],
                 current_response=response,
             )
-            assert (
-                result.details["asking_for_clarification"] is False
-            ), f"False positive clarification detection in: {response}"
+            assert result.details["asking_for_clarification"] is False, (
+                f"False positive clarification detection in: {response}"
+            )
 
 
 class TestMessageRecord:

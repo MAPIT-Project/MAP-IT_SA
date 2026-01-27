@@ -232,7 +232,8 @@ class LocalCallSearchService:
 
                     self._enrichment_service = CallEnrichmentService(self._db_url)
                     logger.info(
-                        "✅ Call enrichment service available (will fetch missing data from EU Portal)"
+                        "✅ Call enrichment service available "
+                        "(will fetch missing data from EU Portal)"
                     )
                 except Exception as e:
                     logger.warning(f"Call enrichment service not available: {e}")
@@ -392,7 +393,8 @@ class LocalCallSearchService:
 
         # Log summary
         logger.info(
-            f"🔄 Resolution complete: {len(regular_calls)} regular + {len(resolved_children)} children = {len(combined)} total"
+            f"🔄 Resolution complete: {len(regular_calls)} regular + "
+            f"{len(resolved_children)} children = {len(combined)} total"
         )
         if parents_with_no_children:
             logger.info(f"  ⚠️ {len(parents_with_no_children)} parents had no children (excluded)")
@@ -443,7 +445,8 @@ class LocalCallSearchService:
             if deadline_date < today:
                 call_dict["status"] = "closed"
                 logger.debug(
-                    f"Status normalized to 'closed' for {call_dict.get('topic_code')} - deadline passed"
+                    f"Status normalized to 'closed' for {call_dict.get('topic_code')} "
+                    "- deadline passed"
                 )
 
         return call_dict
@@ -491,7 +494,8 @@ class LocalCallSearchService:
         today = date.today()
         current_year = today.year
         logger.info(
-            f"🔍 LOCAL SEARCH: '{query}' (cluster={cluster}, type={action_type}, include_closed={include_closed}, year={year_filter}, today={today})"
+            f"🔍 LOCAL SEARCH: '{query}' (cluster={cluster}, type={action_type}, "
+            f"include_closed={include_closed}, year={year_filter}, today={today})"
         )
 
         # STRATEGY 1: Try structured database first (fast, accurate keyword match)
@@ -730,7 +734,8 @@ class LocalCallSearchService:
                     # Merge enriched data (status, deadline, better title/description)
                     call_dict = {**call_dict, **enriched}
                     logger.info(
-                        f"✅ Enriched {c.topic_code}: status={enriched.get('status')}, deadline={enriched.get('deadline')}"
+                        f"✅ Enriched {c.topic_code}: status={enriched.get('status')}, "
+                        f"deadline={enriched.get('deadline')}"
                     )
 
             # Normalize status based on deadline (mark as closed if deadline passed)
@@ -851,7 +856,7 @@ class LocalCallSearchService:
 
                 if words:
                     # First add the FTS query parameter
-                    fts_param_index = len(params)
+                    len(params)
                     params.append(query)  # This will be used for plainto_tsquery
 
                     # Build conditions for each word with word-boundary awareness
@@ -864,14 +869,16 @@ class LocalCallSearchService:
                             # Use regex word boundary matching for short words
                             # PostgreSQL regex: \m = word start, \M = word end
                             word_conditions.append(
-                                "(topic_code ~* %s OR title ~* %s OR scope ~* %s OR expected_outcome ~* %s)"
+                                "(topic_code ~* %s OR title ~* %s OR scope ~* %s "
+                                "OR expected_outcome ~* %s)"
                             )
                             word_boundary_pattern = f"\\m{word}\\M"
                             params.extend([word_boundary_pattern] * 4)
                         else:
                             # For longer words, simple ILIKE is fine
                             word_conditions.append(
-                                "(topic_code ILIKE %s OR title ILIKE %s OR scope ILIKE %s OR expected_outcome ILIKE %s)"
+                                "(topic_code ILIKE %s OR title ILIKE %s OR scope ILIKE %s "
+                                "OR expected_outcome ILIKE %s)"
                             )
                             params.extend([f"%{word}%"] * 4)
 
@@ -1052,7 +1059,8 @@ class LocalCallSearchService:
             conn.close()
 
             logger.info(
-                f"🧠 Semantic search returned {len(results)} results for '{query}' (threshold={similarity_threshold})"
+                f"🧠 Semantic search returned {len(results)} results for '{query}' "
+                f"(threshold={similarity_threshold})"
             )
 
             # Add semantic match indicator
@@ -1370,7 +1378,8 @@ class LocalCallSearchService:
 
         if enrich and self._enrichment_service and needs_enrichment and topic_code:
             logger.info(
-                f"📡 Enriching {topic_code} from EU Portal API (scope={len(scope)}, title='{title[:30]}...')..."
+                f"📡 Enriching {topic_code} from EU Portal API "
+                f"(scope={len(scope)}, title='{title[:30]}...')..."
             )
             enriched = self._enrichment_service.get_call_details(topic_code)
             if enriched:
@@ -1425,7 +1434,8 @@ class LocalCallSearchService:
             if deadline_date < today:
                 status = "closed"
                 logger.debug(
-                    f"Status corrected to 'closed' for {call.get('topic_code')} - deadline {deadline} has passed"
+                    f"Status corrected to 'closed' for {call.get('topic_code')} "
+                    f"- deadline {deadline} has passed"
                 )
 
         # Format budget
@@ -1525,8 +1535,8 @@ class LocalCallSearchService:
 
             # If not found, try fuzzy matching for similar call IDs
             if not result:
-                # Create a pattern for fuzzy matching - e.g., HORIZON-CL5-2026-D3-01 could match HORIZON-CL5-2026-02-D3-01
-                # Extract parts of the topic code
+                # Create a pattern for fuzzy matching - e.g., HORIZON-CL5-2026-D3-01
+                # could match HORIZON-CL5-2026-02-D3-01. Extract parts of the topic code
                 parts = topic_code.split("-")
                 if len(parts) >= 3:
                     # Build a LIKE pattern with wildcards between parts
@@ -1536,7 +1546,8 @@ class LocalCallSearchService:
                         else "%".join(parts) + "%"
                     )
                     cursor.execute(
-                        "SELECT * FROM funding_calls WHERE topic_code LIKE %s ORDER BY topic_code LIMIT 5",
+                        "SELECT * FROM funding_calls "
+                        "WHERE topic_code LIKE %s ORDER BY topic_code LIMIT 5",
                         (f"%{like_pattern}%",),
                     )
                     fuzzy_results = cursor.fetchall()
@@ -1879,7 +1890,8 @@ class LocalCallSearchService:
 
         # Look for general scope/outcome sections
         scope_match = re.search(
-            r"(?:Scope|Expected Outcome|Objective)[s]?[:\s]+([A-Z][^\.]{50,400}(?:\.[^\.]{20,200})?)",
+            r"(?:Scope|Expected Outcome|Objective)[s]?[:\s]+"
+            r"([A-Z][^\.]{50,400}(?:\.[^\.]{20,200})?)",
             content,
             re.IGNORECASE,
         )

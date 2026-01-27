@@ -8,14 +8,15 @@ ARCHITECTURE: {HYBRID|GRAPH|SQL|VECTOR}
 - SQL (PostgreSQL): {SQL description}
 """
 
-import os
-import logging
-from typing import Optional, Dict, Any, List
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+import logging
+import os
+from typing import Any, Dict, List, Optional
+
+from dotenv import load_dotenv
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from dotenv import load_dotenv
-from concurrent.futures import ThreadPoolExecutor
 
 load_dotenv()
 logger = logging.getLogger(__name__)

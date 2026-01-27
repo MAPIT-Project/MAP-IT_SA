@@ -20,8 +20,7 @@ class TestScenario012CalculateBudget:
 
     BASE_URL = "http://localhost:8000"
     QUERY = (
-        "Calculate a budget for a 3-year project with 10 partners "
-        "doing renewable energy research"
+        "Calculate a budget for a 3-year project with 10 partners doing renewable energy research"
     )
     PASS_THRESHOLD = 80
 
@@ -57,9 +56,9 @@ class TestScenario012CalculateBudget:
             # The tool might be versioned (e.g., calculate_budget_1_0)
             has_calc_tool = any("calculate_budget" in t for t in tools_used)
 
-            assert (
-                has_calc_tool or tool_in_reasoning
-            ), f"Expected calculate_budget tool to be used. Tools: {tools_used}"
+            assert has_calc_tool or tool_in_reasoning, (
+                f"Expected calculate_budget tool to be used. Tools: {tools_used}"
+            )
 
     @pytest.mark.asyncio
     async def test_includes_total_budget(self, conversation_id):
@@ -91,9 +90,9 @@ class TestScenario012CalculateBudget:
             # Also check for any budget amount in millions
             has_budget_amount = bool(re.search(r"€[\d.,]+[MK]", response_text))
 
-            assert (
-                has_total or has_budget_amount
-            ), f"Response should contain a total budget amount. Response: {response_text[:500]}"
+            assert has_total or has_budget_amount, (
+                f"Response should contain a total budget amount. Response: {response_text[:500]}"
+            )
 
     @pytest.mark.asyncio
     async def test_includes_cost_breakdown_categories(self, conversation_id):
@@ -352,9 +351,9 @@ class TestScenario012CalculateBudget:
                 if re.search(r"partner|coordinator", response_text, re.IGNORECASE):
                     score += 10
 
-            assert (
-                score >= self.PASS_THRESHOLD
-            ), f"Quality score {score} below threshold {self.PASS_THRESHOLD}"
+            assert score >= self.PASS_THRESHOLD, (
+                f"Quality score {score} below threshold {self.PASS_THRESHOLD}"
+            )
 
     @pytest.mark.asyncio
     async def test_no_error_messages(self, conversation_id):
@@ -389,9 +388,9 @@ class TestScenario012CalculateBudget:
                 # Check if it's a soft mention vs. actual failure
                 hard_failures = ["failed", "error occurred", "unable to calculate"]
                 has_hard_failure = any(ind in response_text for ind in hard_failures)
-                assert (
-                    not has_hard_failure
-                ), f"Response contains error messages: {response_text[:300]}"
+                assert not has_hard_failure, (
+                    f"Response contains error messages: {response_text[:300]}"
+                )
 
     @pytest.mark.asyncio
     async def test_includes_recommendations(self, conversation_id):
@@ -493,8 +492,7 @@ class TestScenario012CalculateBudget:
             failures = [name for name, passed in assertions_passed if not passed]
             if failures:
                 pytest.fail(
-                    f"Scenario 012 failed checks: {failures}\n"
-                    f"Response: {response_text[:800]}..."
+                    f"Scenario 012 failed checks: {failures}\nResponse: {response_text[:800]}..."
                 )
 
     @pytest.mark.asyncio

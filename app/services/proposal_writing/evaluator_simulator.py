@@ -24,6 +24,7 @@ class ScoreLevel(Enum):
 @dataclass
 class CriterionScore:
     """Score for a single criterion."""
+
     criterion: str
     score: float
     justification: str
@@ -35,6 +36,7 @@ class CriterionScore:
 @dataclass
 class EvaluationResult:
     """Complete evaluation result for a section."""
+
     section_type: str
     overall_score: float
     criterion_scores: list[CriterionScore]
@@ -63,43 +65,43 @@ class EvaluatorSimulator:
             "objectives": [
                 "Clarity and pertinence of the project's objectives",
                 "Soundness of the proposed methodology",
-                "Ambition and innovation potential"
+                "Ambition and innovation potential",
             ],
             "methodology": [
                 "Soundness and credibility of the methodology",
                 "Appropriateness of the approach to the objectives",
-                "Quality of the interdisciplinary approach (if relevant)"
+                "Quality of the interdisciplinary approach (if relevant)",
             ],
             "beyond_sota": [
                 "Extent the proposed work is beyond state of the art",
                 "Innovation potential (scientific, technical, societal)",
-                "Appropriate consideration of gender dimension"
-            ]
+                "Appropriate consideration of gender dimension",
+            ],
         },
         "impact": {
             "pathways": [
                 "Credibility of the pathways to achieve expected impacts",
                 "Scale and significance of project's contribution to expected impacts",
-                "Suitability of project's contribution to the Work Programme"
+                "Suitability of project's contribution to the Work Programme",
             ],
             "dissemination": [
                 "Quality of proposed measures for exploitation of results",
                 "Quality of proposed dissemination measures",
-                "Quality of proposed communication activities"
-            ]
+                "Quality of proposed communication activities",
+            ],
         },
         "implementation": {
             "work_plan": [
                 "Coherence and effectiveness of the work plan",
                 "Appropriateness of the effort allocation",
-                "Quality and realism of the timeline"
+                "Quality and realism of the timeline",
             ],
             "consortium": [
                 "Quality, relevant expertise and complementarity of the consortium",
                 "Appropriateness of the management structures",
-                "Appropriateness of resource allocation (budget)"
-            ]
-        }
+                "Appropriateness of resource allocation (budget)",
+            ],
+        },
     }
 
     # Score thresholds
@@ -113,6 +115,7 @@ class EvaluatorSimulator:
         """Lazy load AI service."""
         if self._ai_service is None:
             from .proposal_ai_service import ProposalAIService
+
             self._ai_service = ProposalAIService()
         return self._ai_service
 
@@ -122,7 +125,7 @@ class EvaluatorSimulator:
         section_type: str,
         section_id: str,
         call_id: str = None,
-        action_type: str = "RIA"
+        action_type: str = "RIA",
     ) -> EvaluationResult:
         """
         Evaluate a proposal section as an EU evaluator would.
@@ -148,21 +151,17 @@ class EvaluatorSimulator:
             section_type=section_type,
             section_id=section_id,
             criteria=criteria,
-            action_type=action_type
+            action_type=action_type,
         )
 
         # Define the schema for structured output
         schema = {
             "type": "object",
             "properties": {
-                "overall_score": {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 5
-                },
+                "overall_score": {"type": "number", "minimum": 0, "maximum": 5},
                 "evaluator_summary": {
                     "type": "string",
-                    "description": "3-4 sentence ESR-style summary"
+                    "description": "3-4 sentence ESR-style summary",
                 },
                 "criteria_scores": {
                     "type": "array",
@@ -174,32 +173,33 @@ class EvaluatorSimulator:
                             "justification": {"type": "string"},
                             "strengths": {"type": "array", "items": {"type": "string"}},
                             "weaknesses": {"type": "array", "items": {"type": "string"}},
-                            "improvement_for_half_point": {"type": "string"}
+                            "improvement_for_half_point": {"type": "string"},
                         },
-                        "required": ["criterion", "score", "justification"]
-                    }
+                        "required": ["criterion", "score", "justification"],
+                    },
                 },
-                "strengths": {
-                    "type": "array",
-                    "items": {"type": "string"}
-                },
-                "weaknesses": {
-                    "type": "array",
-                    "items": {"type": "string"}
-                },
+                "strengths": {"type": "array", "items": {"type": "string"}},
+                "weaknesses": {"type": "array", "items": {"type": "string"}},
                 "top_improvements": {
                     "type": "array",
                     "items": {
                         "type": "object",
                         "properties": {
                             "improvement": {"type": "string"},
-                            "expected_score_increase": {"type": "number"}
+                            "expected_score_increase": {"type": "number"},
                         },
-                        "required": ["improvement"]
-                    }
-                }
+                        "required": ["improvement"],
+                    },
+                },
             },
-            "required": ["overall_score", "evaluator_summary", "criteria_scores", "strengths", "weaknesses", "top_improvements"]
+            "required": [
+                "overall_score",
+                "evaluator_summary",
+                "criteria_scores",
+                "strengths",
+                "weaknesses",
+                "top_improvements",
+            ],
         }
 
         try:
@@ -208,14 +208,11 @@ class EvaluatorSimulator:
             result = await ai_service.generate_structured(
                 prompt=prompt,
                 response_schema=schema,
-                temperature=0.2  # Low temperature for consistent evaluation
+                temperature=0.2,  # Low temperature for consistent evaluation
             )
 
             return self._parse_evaluation_result(
-                result=result,
-                section_type=section_type,
-                section_id=section_id,
-                criteria=criteria
+                result=result, section_type=section_type, section_id=section_id, criteria=criteria
             )
 
         except Exception as e:
@@ -224,17 +221,16 @@ class EvaluatorSimulator:
                 section_text=section_text,
                 section_type=section_type,
                 section_id=section_id,
-                criteria=criteria
+                criteria=criteria,
             )
 
     def _get_criteria(self, section_type: str, section_id: str) -> list[str]:
         """Get evaluation criteria for section."""
         section_criteria = self.CRITERIA.get(section_type, {})
-        return section_criteria.get(section_id, [
-            "Clarity and completeness",
-            "Relevance to call objectives",
-            "Quality of content"
-        ])
+        return section_criteria.get(
+            section_id,
+            ["Clarity and completeness", "Relevance to call objectives", "Quality of content"],
+        )
 
     def _build_evaluation_prompt(
         self,
@@ -242,7 +238,7 @@ class EvaluatorSimulator:
         section_type: str,
         section_id: str,
         criteria: list[str],
-        action_type: str
+        action_type: str,
     ) -> str:
         """Build prompt for evaluator simulation."""
         criteria_list = "\n".join([f"- {c}" for c in criteria])
@@ -289,11 +285,7 @@ Be rigorous but fair. Base your evaluation on:
 Evaluate as a real EU evaluator would - thorough, objective, and constructive."""
 
     def _parse_evaluation_result(
-        self,
-        result: dict[str, Any],
-        section_type: str,
-        section_id: str,
-        criteria: list[str]
+        self, result: dict[str, Any], section_type: str, section_id: str, criteria: list[str]
     ) -> EvaluationResult:
         """Parse AI result into EvaluationResult."""
         overall_score = result.get("overall_score", 3.0)
@@ -301,14 +293,16 @@ Evaluate as a real EU evaluator would - thorough, objective, and constructive.""
         # Parse criterion scores
         criterion_scores = []
         for cs in result.get("criteria_scores", []):
-            criterion_scores.append(CriterionScore(
-                criterion=cs.get("criterion", "Unknown"),
-                score=cs.get("score", 3.0),
-                justification=cs.get("justification", ""),
-                strengths=cs.get("strengths", []),
-                weaknesses=cs.get("weaknesses", []),
-                improvement_for_half_point=cs.get("improvement_for_half_point", "")
-            ))
+            criterion_scores.append(
+                CriterionScore(
+                    criterion=cs.get("criterion", "Unknown"),
+                    score=cs.get("score", 3.0),
+                    justification=cs.get("justification", ""),
+                    strengths=cs.get("strengths", []),
+                    weaknesses=cs.get("weaknesses", []),
+                    improvement_for_half_point=cs.get("improvement_for_half_point", ""),
+                )
+            )
 
         # Determine threshold status
         if overall_score >= 4.0:
@@ -324,10 +318,7 @@ Evaluate as a real EU evaluator would - thorough, objective, and constructive.""
             if isinstance(imp, dict):
                 top_improvements.append(imp)
             else:
-                top_improvements.append({
-                    "improvement": str(imp),
-                    "expected_score_increase": 0.5
-                })
+                top_improvements.append({"improvement": str(imp), "expected_score_increase": 0.5})
 
         return EvaluationResult(
             section_type=section_type,
@@ -338,22 +329,18 @@ Evaluate as a real EU evaluator would - thorough, objective, and constructive.""
             weaknesses=result.get("weaknesses", []),
             top_improvements=top_improvements,
             threshold_status=threshold_status,
-            confidence=0.85
+            confidence=0.85,
         )
 
     def _fallback_evaluation(
-        self,
-        section_text: str,
-        section_type: str,
-        section_id: str,
-        criteria: list[str]
+        self, section_text: str, section_type: str, section_id: str, criteria: list[str]
     ) -> EvaluationResult:
         """Fallback rule-based evaluation."""
         import re
 
         # Simple heuristics
         word_count = len(section_text.split())
-        has_headings = '#' in section_text or ':' in section_text
+        has_headings = "#" in section_text or ":" in section_text
 
         # Base score
         base_score = 3.0
@@ -369,13 +356,22 @@ Evaluate as a real EU evaluator would - thorough, objective, and constructive.""
             base_score += 0.25
 
         # Check for key terms
-        key_terms = ['innovative', 'european', 'impact', 'beyond', 'state of the art',
-                     'methodology', 'consortium', 'objectives', 'deliverables']
+        key_terms = [
+            "innovative",
+            "european",
+            "impact",
+            "beyond",
+            "state of the art",
+            "methodology",
+            "consortium",
+            "objectives",
+            "deliverables",
+        ]
         term_count = sum(1 for t in key_terms if t in section_text.lower())
         base_score += min(term_count * 0.1, 0.5)
 
         # Check for quantifiable claims
-        if re.search(r'\d+%|\d+\s*(?:million|billion|M€|EUR)', section_text):
+        if re.search(r"\d+%|\d+\s*(?:million|billion|M€|EUR)", section_text):
             base_score += 0.25
 
         # Clamp score
@@ -391,25 +387,25 @@ Evaluate as a real EU evaluator would - thorough, objective, and constructive.""
                     justification="Automated assessment - detailed AI evaluation unavailable",
                     strengths=[],
                     weaknesses=["Detailed analysis requires AI evaluation"],
-                    improvement_for_half_point=""
+                    improvement_for_half_point="",
                 )
                 for c in criteria
             ],
             esr_summary="Automated assessment. Please retry for detailed evaluation.",
             strengths=["Section is present and contains content"],
             weaknesses=["Detailed analysis unavailable"],
-            top_improvements=[{
-                "improvement": "Retry for detailed AI-powered evaluation",
-                "expected_score_increase": 0.0
-            }],
+            top_improvements=[
+                {
+                    "improvement": "Retry for detailed AI-powered evaluation",
+                    "expected_score_increase": 0.0,
+                }
+            ],
             threshold_status="at" if final_score >= 3.0 else "below",
-            confidence=0.3
+            confidence=0.3,
         )
 
     async def evaluate_full_proposal(
-        self,
-        sections: dict[str, str],
-        action_type: str = "RIA"
+        self, sections: dict[str, str], action_type: str = "RIA"
     ) -> dict[str, Any]:
         """
         Evaluate all sections and calculate total score.
@@ -431,7 +427,7 @@ Evaluate as a real EU evaluator would - thorough, objective, and constructive.""
             "impact.pathways": ("impact", "pathways"),
             "impact.dissemination": ("impact", "dissemination"),
             "implementation.work_plan": ("implementation", "work_plan"),
-            "implementation.consortium": ("implementation", "consortium")
+            "implementation.consortium": ("implementation", "consortium"),
         }
 
         # Evaluate each section
@@ -442,27 +438,26 @@ Evaluate as a real EU evaluator would - thorough, objective, and constructive.""
                     section_text=text,
                     section_type=section_type,
                     section_id=sub_section,
-                    action_type=action_type
+                    action_type=action_type,
                 )
                 section_results[section_id] = result
 
         # Calculate overall scores per main section
         excellence_scores = [
-            r.overall_score for k, r in section_results.items()
-            if k.startswith("excellence")
+            r.overall_score for k, r in section_results.items() if k.startswith("excellence")
         ]
         impact_scores = [
-            r.overall_score for k, r in section_results.items()
-            if k.startswith("impact")
+            r.overall_score for k, r in section_results.items() if k.startswith("impact")
         ]
         implementation_scores = [
-            r.overall_score for k, r in section_results.items()
-            if k.startswith("implementation")
+            r.overall_score for k, r in section_results.items() if k.startswith("implementation")
         ]
 
         excellence_avg = sum(excellence_scores) / len(excellence_scores) if excellence_scores else 0
         impact_avg = sum(impact_scores) / len(impact_scores) if impact_scores else 0
-        implementation_avg = sum(implementation_scores) / len(implementation_scores) if implementation_scores else 0
+        implementation_avg = (
+            sum(implementation_scores) / len(implementation_scores) if implementation_scores else 0
+        )
 
         total_score = excellence_avg + impact_avg + implementation_avg
         max_score = 15.0
@@ -474,7 +469,7 @@ Evaluate as a real EU evaluator would - thorough, objective, and constructive.""
             excellence=excellence_avg,
             impact=impact_avg,
             implementation=implementation_avg,
-            action_type=action_type
+            action_type=action_type,
         )
 
         return {
@@ -485,13 +480,13 @@ Evaluate as a real EU evaluator would - thorough, objective, and constructive.""
             "section_scores": {
                 "excellence": round(excellence_avg, 1),
                 "impact": round(impact_avg, 1),
-                "implementation": round(implementation_avg, 1)
+                "implementation": round(implementation_avg, 1),
             },
             "detailed_results": {
                 k: {
                     "score": r.overall_score,
                     "status": r.threshold_status,
-                    "summary": r.esr_summary
+                    "summary": r.esr_summary,
                 }
                 for k, r in section_results.items()
             },
@@ -499,7 +494,7 @@ Evaluate as a real EU evaluator would - thorough, objective, and constructive.""
                 total_score, excellence_avg, impact_avg, implementation_avg
             ),
             "funding_probability": funding_probability,
-            "recommendation": self._generate_recommendation(total_score, section_results)
+            "recommendation": self._generate_recommendation(total_score, section_results),
         }
 
     def _estimate_funding_probability(
@@ -508,7 +503,7 @@ Evaluate as a real EU evaluator would - thorough, objective, and constructive.""
         excellence: float,
         impact: float,
         implementation: float,
-        action_type: str
+        action_type: str,
     ) -> float:
         """Estimate probability of funding based on scores."""
         if total_score < 10:
@@ -534,11 +529,7 @@ Evaluate as a real EU evaluator would - thorough, objective, and constructive.""
         return round(base_prob, 2)
 
     def _generate_overall_assessment(
-        self,
-        total: float,
-        excellence: float,
-        impact: float,
-        implementation: float
+        self, total: float, excellence: float, impact: float, implementation: float
     ) -> str:
         """Generate overall assessment text."""
         if total >= 13:
@@ -571,9 +562,7 @@ Evaluate as a real EU evaluator would - thorough, objective, and constructive.""
             )
 
     def _generate_recommendation(
-        self,
-        total_score: float,
-        section_results: dict[str, EvaluationResult]
+        self, total_score: float, section_results: dict[str, EvaluationResult]
     ) -> str:
         """Generate actionable recommendation."""
         if total_score >= 13:
@@ -594,5 +583,5 @@ Evaluate as a real EU evaluator would - thorough, objective, and constructive.""
 
         expected_gain = 0.5
         if weakest_result.top_improvements:
-            expected_gain = weakest_result.top_improvements[0].get('expected_score_increase', 0.5)
+            expected_gain = weakest_result.top_improvements[0].get("expected_score_increase", 0.5)
         return f"Prioritize improving {weakest_id} (currently {weakest_result.overall_score:.1f}/5). Potential gain: {expected_gain} points."

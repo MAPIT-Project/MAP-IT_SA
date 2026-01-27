@@ -112,7 +112,7 @@ class TrendResponse(BaseModel):
 
 @router.get("/overview")
 async def get_analytics_overview(
-    days: int = Query(30, ge=1, le=365, description="Number of days to analyze")
+    days: int = Query(30, ge=1, le=365, description="Number of days to analyze"),
 ) -> dict[str, Any]:
     """
     Get comprehensive system analytics overview.
@@ -150,28 +150,28 @@ async def get_analytics_overview(
             "period": {
                 "days": days,
                 "start_date": start_date.isoformat(),
-                "end_date": datetime.now(UTC).isoformat()
+                "end_date": datetime.now(UTC).isoformat(),
             },
             "usage": usage,
             "performance": performance,
             "content": content,
             "proposals": proposals,
             "feedback": feedback,
-            "generated_at": datetime.now(UTC).isoformat()
+            "generated_at": datetime.now(UTC).isoformat(),
         }
 
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Failed to get analytics overview: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
     finally:
         _put_connection(conn)
 
 
 @router.get("/tools")
 async def get_tool_analytics(
-    hours: int = Query(24, ge=1, le=720, description="Hours to analyze")
+    hours: int = Query(24, ge=1, le=720, description="Hours to analyze"),
 ) -> dict[str, Any]:
     """
     Get detailed tool usage analytics.
@@ -198,15 +198,19 @@ async def get_tool_analytics(
         "slow_tools": slow_tools,
         "popular_combinations": combinations.get("combinations", []),
         "current_session": session_metrics,
-        "generated_at": datetime.now(UTC).isoformat()
+        "generated_at": datetime.now(UTC).isoformat(),
     }
 
 
 @router.get("/trends")
 async def get_metric_trends(
-    metric: str = Query(..., description="Metric to trend: queries, response_time, error_rate, feedback"),
-    granularity: str = Query("day", pattern="^(hour|day|week|month)$", description="Time granularity"),
-    days: int = Query(90, ge=1, le=365, description="Number of days")
+    metric: str = Query(
+        ..., description="Metric to trend: queries, response_time, error_rate, feedback"
+    ),
+    granularity: str = Query(
+        "day", pattern="^(hour|day|week|month)$", description="Time granularity"
+    ),
+    days: int = Query(90, ge=1, le=365, description="Number of days"),
 ) -> dict[str, Any]:
     """
     Get metric trends over time.
@@ -223,17 +227,13 @@ async def get_metric_trends(
         start_date = datetime.now(UTC) - timedelta(days=days)
 
         # Map granularity to PostgreSQL date_trunc
-        granularity_map = {
-            "hour": "hour",
-            "day": "day",
-            "week": "week",
-            "month": "month"
-        }
+        granularity_map = {"hour": "hour", "day": "day", "week": "week", "month": "month"}
 
         trunc = granularity_map.get(granularity, "day")
 
         if metric == "queries":
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT
                     DATE_TRUNC(%s, timestamp) as period,
                     COUNT(*) as value
@@ -241,10 +241,13 @@ async def get_metric_trends(
                 WHERE timestamp > %s
                 GROUP BY period
                 ORDER BY period
-            """, (trunc, start_date))
+            """,
+                (trunc, start_date),
+            )
 
         elif metric == "response_time":
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT
                     DATE_TRUNC(%s, timestamp) as period,
                     ROUND(AVG(execution_time_ms)::numeric, 0) as value
@@ -252,10 +255,13 @@ async def get_metric_trends(
                 WHERE timestamp > %s
                 GROUP BY period
                 ORDER BY period
-            """, (trunc, start_date))
+            """,
+                (trunc, start_date),
+            )
 
         elif metric == "error_rate":
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT
                     DATE_TRUNC(%s, timestamp) as period,
                     ROUND((SUM(CASE WHEN NOT success THEN 1 ELSE 0 END)::float /
@@ -264,10 +270,13 @@ async def get_metric_trends(
                 WHERE timestamp > %s
                 GROUP BY period
                 ORDER BY period
-            """, (trunc, start_date))
+            """,
+                (trunc, start_date),
+            )
 
         elif metric == "feedback":
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT
                     DATE_TRUNC(%s, created_at) as period,
                     ROUND(AVG(rating)::numeric, 2) as value
@@ -275,11 +284,13 @@ async def get_metric_trends(
                 WHERE created_at > %s
                 GROUP BY period
                 ORDER BY period
-            """, (trunc, start_date))
+            """,
+                (trunc, start_date),
+            )
         else:
             raise HTTPException(
                 status_code=400,
-                detail=f"Unknown metric: {metric}. Supported: queries, response_time, error_rate, feedback"
+                detail=f"Unknown metric: {metric}. Supported: queries, response_time, error_rate, feedback",
             )
 
         results = cursor.fetchall()
@@ -288,7 +299,7 @@ async def get_metric_trends(
         data = [
             {
                 "date": row["period"].isoformat() if row["period"] else None,
-                "value": float(row["value"]) if row["value"] else 0
+                "value": float(row["value"]) if row["value"] else 0,
             }
             for row in results
         ]
@@ -298,22 +309,21 @@ async def get_metric_trends(
             "granularity": granularity,
             "days": days,
             "data": data,
-            "generated_at": datetime.now(UTC).isoformat()
+            "generated_at": datetime.now(UTC).isoformat(),
         }
 
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Failed to get trends: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
     finally:
         _put_connection(conn)
 
 
 @router.get("/queries/popular")
 async def get_popular_queries(
-    days: int = Query(30, ge=1, le=365),
-    limit: int = Query(20, ge=1, le=100)
+    days: int = Query(30, ge=1, le=365), limit: int = Query(20, ge=1, le=100)
 ) -> dict[str, Any]:
     """Get most popular query patterns."""
     conn = None
@@ -325,7 +335,8 @@ async def get_popular_queries(
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         start_date = datetime.now(UTC) - timedelta(days=days)
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 query_hash,
                 COUNT(*) as occurrence_count,
@@ -336,7 +347,9 @@ async def get_popular_queries(
             GROUP BY query_hash
             ORDER BY occurrence_count DESC
             LIMIT %s
-        """, (start_date, limit))
+        """,
+            (start_date, limit),
+        )
 
         results = cursor.fetchall()
         cursor.close()
@@ -344,12 +357,12 @@ async def get_popular_queries(
         return {
             "period_days": days,
             "popular_queries": [dict(r) for r in results],
-            "generated_at": datetime.now(UTC).isoformat()
+            "generated_at": datetime.now(UTC).isoformat(),
         }
 
     except Exception as e:
         logger.error(f"Failed to get popular queries: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
     finally:
         _put_connection(conn)
 
@@ -364,7 +377,7 @@ async def analytics_health() -> dict[str, Any]:
         "buffer_size": len(analytics_service.buffer),
         "last_flush": analytics_service.last_flush.isoformat(),
         "session_tools_tracked": len(analytics_service.session_metrics),
-        "timestamp": datetime.now(UTC).isoformat()
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
 
@@ -373,23 +386,30 @@ async def _get_usage_metrics(cursor, start_date: datetime, days: int) -> dict[st
     """Get usage metrics from database."""
     try:
         # Total queries
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT COUNT(*) as total
             FROM tool_usage_analytics
             WHERE timestamp > %s
-        """, (start_date,))
+        """,
+            (start_date,),
+        )
         total = cursor.fetchone()["total"] or 0
 
         # Unique conversations
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT COUNT(DISTINCT conversation_id) as unique_convos
             FROM tool_usage_analytics
             WHERE timestamp > %s AND conversation_id IS NOT NULL
-        """, (start_date,))
+        """,
+            (start_date,),
+        )
         unique_convos = cursor.fetchone()["unique_convos"] or 0
 
         # Queries per day
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 DATE(timestamp) as day,
                 COUNT(*) as count
@@ -397,14 +417,14 @@ async def _get_usage_metrics(cursor, start_date: datetime, days: int) -> dict[st
             WHERE timestamp > %s
             GROUP BY day
             ORDER BY day
-        """, (start_date,))
-        queries_per_day = {
-            str(row["day"]): row["count"]
-            for row in cursor.fetchall()
-        }
+        """,
+            (start_date,),
+        )
+        queries_per_day = {str(row["day"]): row["count"] for row in cursor.fetchall()}
 
         # Peak hour
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 EXTRACT(HOUR FROM timestamp) as hour,
                 COUNT(*) as count
@@ -413,7 +433,9 @@ async def _get_usage_metrics(cursor, start_date: datetime, days: int) -> dict[st
             GROUP BY hour
             ORDER BY count DESC
             LIMIT 1
-        """, (start_date,))
+        """,
+            (start_date,),
+        )
         peak_result = cursor.fetchone()
         peak_hour = int(peak_result["hour"]) if peak_result else 0
 
@@ -422,7 +444,7 @@ async def _get_usage_metrics(cursor, start_date: datetime, days: int) -> dict[st
             "unique_conversations": unique_convos,
             "queries_per_day": queries_per_day,
             "peak_hour": peak_hour,
-            "avg_queries_per_conversation": round(total / max(unique_convos, 1), 2)
+            "avg_queries_per_conversation": round(total / max(unique_convos, 1), 2),
         }
     except Exception as e:
         logger.error(f"Failed to get usage metrics: {e}")
@@ -431,14 +453,15 @@ async def _get_usage_metrics(cursor, start_date: datetime, days: int) -> dict[st
             "unique_conversations": 0,
             "queries_per_day": {},
             "peak_hour": 0,
-            "avg_queries_per_conversation": 0
+            "avg_queries_per_conversation": 0,
         }
 
 
 async def _get_performance_metrics(cursor, start_date: datetime) -> dict[str, Any]:
     """Get performance metrics from database."""
     try:
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 ROUND(AVG(execution_time_ms)::numeric, 0) as avg_time,
                 ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY execution_time_ms)::numeric, 0) as p95_time,
@@ -446,11 +469,14 @@ async def _get_performance_metrics(cursor, start_date: datetime) -> dict[str, An
                        NULLIF(COUNT(*), 0) * 100)::numeric, 2) as error_rate
             FROM tool_usage_analytics
             WHERE timestamp > %s
-        """, (start_date,))
+        """,
+            (start_date,),
+        )
         result = cursor.fetchone()
 
         # Tool success rates
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 tool_name,
                 ROUND((SUM(CASE WHEN success THEN 1 ELSE 0 END)::float /
@@ -458,14 +484,18 @@ async def _get_performance_metrics(cursor, start_date: datetime) -> dict[str, An
             FROM tool_usage_analytics
             WHERE timestamp > %s
             GROUP BY tool_name
-        """, (start_date,))
-        tool_rates = {row["tool_name"]: float(row["success_rate"] or 0) for row in cursor.fetchall()}
+        """,
+            (start_date,),
+        )
+        tool_rates = {
+            row["tool_name"]: float(row["success_rate"] or 0) for row in cursor.fetchall()
+        }
 
         return {
             "avg_response_time_ms": float(result["avg_time"] or 0),
             "p95_response_time_ms": float(result["p95_time"] or 0),
             "error_rate": float(result["error_rate"] or 0),
-            "tool_success_rates": tool_rates
+            "tool_success_rates": tool_rates,
         }
     except Exception as e:
         logger.error(f"Failed to get performance metrics: {e}")
@@ -473,7 +503,7 @@ async def _get_performance_metrics(cursor, start_date: datetime) -> dict[str, An
             "avg_response_time_ms": 0,
             "p95_response_time_ms": 0,
             "error_rate": 0,
-            "tool_success_rates": {}
+            "tool_success_rates": {},
         }
 
 
@@ -481,7 +511,8 @@ async def _get_content_metrics(cursor, start_date: datetime) -> dict[str, Any]:
     """Get content metrics from database."""
     try:
         # Top tools
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 tool_name,
                 COUNT(*) as usage_count
@@ -490,11 +521,14 @@ async def _get_content_metrics(cursor, start_date: datetime) -> dict[str, Any]:
             GROUP BY tool_name
             ORDER BY usage_count DESC
             LIMIT 10
-        """, (start_date,))
+        """,
+            (start_date,),
+        )
         top_tools = [dict(row) for row in cursor.fetchall()]
 
         # Popular clusters (from parameters if available)
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 parameters->>'cluster' as cluster,
                 COUNT(*) as count
@@ -505,11 +539,14 @@ async def _get_content_metrics(cursor, start_date: datetime) -> dict[str, Any]:
             GROUP BY cluster
             ORDER BY count DESC
             LIMIT 10
-        """, (start_date,))
+        """,
+            (start_date,),
+        )
         popular_clusters = [dict(row) for row in cursor.fetchall()]
 
         # Popular countries
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 parameters->>'country' as country,
                 COUNT(*) as count
@@ -520,62 +557,67 @@ async def _get_content_metrics(cursor, start_date: datetime) -> dict[str, Any]:
             GROUP BY country
             ORDER BY count DESC
             LIMIT 10
-        """, (start_date,))
+        """,
+            (start_date,),
+        )
         popular_countries = [dict(row) for row in cursor.fetchall()]
 
         return {
             "top_queries": [],  # Would need query logging to implement
             "top_tools": top_tools,
             "popular_clusters": popular_clusters,
-            "popular_countries": popular_countries
+            "popular_countries": popular_countries,
         }
     except Exception as e:
         logger.error(f"Failed to get content metrics: {e}")
-        return {
-            "top_queries": [],
-            "top_tools": [],
-            "popular_clusters": [],
-            "popular_countries": []
-        }
+        return {"top_queries": [], "top_tools": [], "popular_clusters": [], "popular_countries": []}
 
 
 async def _get_proposal_metrics(cursor, start_date: datetime) -> dict[str, Any]:
     """Get proposal metrics from database."""
     try:
         # Check if proposal tables exist
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT EXISTS (
                 SELECT FROM information_schema.tables
                 WHERE table_name = 'proposals'
             )
-        """)
+        """
+        )
         if not cursor.fetchone()["exists"]:
             return {
                 "sessions_created": 0,
                 "sections_generated": 0,
                 "avg_completion_rate": 0,
-                "exports_generated": 0
+                "exports_generated": 0,
             }
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT COUNT(*) as sessions
             FROM proposals
             WHERE created_at > %s
-        """, (start_date,))
+        """,
+            (start_date,),
+        )
         sessions = cursor.fetchone()["sessions"] or 0
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT COUNT(*) as sections
             FROM proposal_sections
             WHERE created_at > %s
-        """, (start_date,))
+        """,
+            (start_date,),
+        )
         sections = cursor.fetchone()["sections"] or 0
 
         return {
             "sessions_created": sessions,
             "sections_generated": sections,
             "avg_completion_rate": 0,  # Would need completion tracking
-            "exports_generated": 0  # Would need export logging
+            "exports_generated": 0,  # Would need export logging
         }
     except Exception as e:
         logger.error(f"Failed to get proposal metrics: {e}")
@@ -583,7 +625,7 @@ async def _get_proposal_metrics(cursor, start_date: datetime) -> dict[str, Any]:
             "sessions_created": 0,
             "sections_generated": 0,
             "avg_completion_rate": 0,
-            "exports_generated": 0
+            "exports_generated": 0,
         }
 
 
@@ -591,30 +633,36 @@ async def _get_feedback_metrics(cursor, start_date: datetime) -> dict[str, Any]:
     """Get feedback metrics from database."""
     try:
         # Check if feedback table exists
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT EXISTS (
                 SELECT FROM information_schema.tables
                 WHERE table_name = 'response_feedback'
             )
-        """)
+        """
+        )
         if not cursor.fetchone()["exists"]:
             return {
                 "avg_rating": 0,
                 "rating_distribution": {},
                 "total_feedback_count": 0,
-                "improvement_suggestions": []
+                "improvement_suggestions": [],
             }
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 ROUND(AVG(rating)::numeric, 2) as avg_rating,
                 COUNT(*) as total
             FROM response_feedback
             WHERE created_at > %s
-        """, (start_date,))
+        """,
+            (start_date,),
+        )
         result = cursor.fetchone()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 rating,
                 COUNT(*) as count
@@ -622,14 +670,16 @@ async def _get_feedback_metrics(cursor, start_date: datetime) -> dict[str, Any]:
             WHERE created_at > %s
             GROUP BY rating
             ORDER BY rating
-        """, (start_date,))
+        """,
+            (start_date,),
+        )
         distribution = {int(row["rating"]): row["count"] for row in cursor.fetchall()}
 
         return {
             "avg_rating": float(result["avg_rating"] or 0),
             "rating_distribution": distribution,
             "total_feedback_count": result["total"] or 0,
-            "improvement_suggestions": []  # Would need AI analysis
+            "improvement_suggestions": [],  # Would need AI analysis
         }
     except Exception as e:
         logger.error(f"Failed to get feedback metrics: {e}")
@@ -637,5 +687,5 @@ async def _get_feedback_metrics(cursor, start_date: datetime) -> dict[str, Any]:
             "avg_rating": 0,
             "rating_distribution": {},
             "total_feedback_count": 0,
-            "improvement_suggestions": []
+            "improvement_suggestions": [],
         }

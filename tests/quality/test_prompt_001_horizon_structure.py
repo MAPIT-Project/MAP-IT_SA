@@ -183,7 +183,7 @@ def check_api_available() -> bool:
 # Skip decorator for live tests
 live_api = pytest.mark.skipif(
     not check_api_available(),
-    reason="Live API not available. Start Docker containers with: docker compose up"
+    reason="Live API not available. Start Docker containers with: docker compose up",
 )
 
 
@@ -246,8 +246,13 @@ def evaluate_query_fulfillment(response: str) -> tuple[int, str]:
     pillars_found = 0
     pillar_keywords = [
         ("pillar i", "pillar 1", "excellent science", "first pillar"),
-        ("pillar ii", "pillar 2", "global challenges", "second pillar",
-         "industrial competitiveness"),
+        (
+            "pillar ii",
+            "pillar 2",
+            "global challenges",
+            "second pillar",
+            "industrial competitiveness",
+        ),
         ("pillar iii", "pillar 3", "innovative europe", "third pillar"),
     ]
 
@@ -262,7 +267,11 @@ def evaluate_query_fulfillment(response: str) -> tuple[int, str]:
 
     # Check for Pillar I components (8 points)
     pillar1_components = [
-        "erc", "european research council", "msca", "marie", "research infrastructure"
+        "erc",
+        "european research council",
+        "msca",
+        "marie",
+        "research infrastructure",
     ]
     p1_found = sum(1 for comp in pillar1_components if comp in response_lower)
     p1_score = min(8, p1_found * 3)
@@ -313,15 +322,23 @@ def evaluate_specificity(response: str) -> tuple[int, str]:
 
     # Specific programme names mentioned (10 points)
     specific_programmes = [
-        "erc starting grant", "erc-stg",
-        "erc consolidator", "erc-cog",
-        "erc advanced", "erc-adg",
-        "msca postdoctoral", "msca-pf",
-        "msca doctoral network", "msca-dn",
-        "eic pathfinder", "eic-pathfinder",
+        "erc starting grant",
+        "erc-stg",
+        "erc consolidator",
+        "erc-cog",
+        "erc advanced",
+        "erc-adg",
+        "msca postdoctoral",
+        "msca-pf",
+        "msca doctoral network",
+        "msca-dn",
+        "eic pathfinder",
+        "eic-pathfinder",
         "eic accelerator",
-        "msca cofund", "msca-cofund",
-        "msca staff exchange", "msca-se",
+        "msca cofund",
+        "msca-cofund",
+        "msca staff exchange",
+        "msca-se",
     ]
 
     specific_count = sum(1 for prog in specific_programmes if prog in response_lower)
@@ -369,20 +386,24 @@ def evaluate_factual_accuracy(response: str) -> tuple[int, str, list[dict[str, s
     # Check for incorrect pillar count
     if "four pillar" in response_lower or "two pillar" in response_lower:
         score -= 10
-        errors.append({
-            "claim": "Incorrect number of pillars",
-            "correct_value": "3 pillars",
-            "source": "EU Funding Domain Skill"
-        })
+        errors.append(
+            {
+                "claim": "Incorrect number of pillars",
+                "correct_value": "3 pillars",
+                "source": "EU Funding Domain Skill",
+            }
+        )
 
     # Check for incorrect cluster count
     if "seven cluster" in response_lower or "five cluster" in response_lower:
         score -= 10
-        errors.append({
-            "claim": "Incorrect number of clusters",
-            "correct_value": "6 clusters",
-            "source": "EU Funding Domain Skill"
-        })
+        errors.append(
+            {
+                "claim": "Incorrect number of clusters",
+                "correct_value": "6 clusters",
+                "source": "EU Funding Domain Skill",
+            }
+        )
 
     # Check for misplaced components
     eic_in_response = "eic" in response_lower
@@ -394,11 +415,13 @@ def evaluate_factual_accuracy(response: str) -> tuple[int, str, list[dict[str, s
         pillar_i_idx = response_lower.index("pillar i")
         if eic_idx < pillar_i_idx + 200:
             score -= 5
-            errors.append({
-                "claim": "EIC placed in wrong pillar",
-                "correct_value": "EIC is under Pillar III (Innovative Europe)",
-                "source": "EU Funding Domain Skill"
-            })
+            errors.append(
+                {
+                    "claim": "EIC placed in wrong pillar",
+                    "correct_value": "EIC is under Pillar III (Innovative Europe)",
+                    "source": "EU Funding Domain Skill",
+                }
+            )
 
     # Check for correct placement of key items
     correct_placements = 0
@@ -437,9 +460,16 @@ def evaluate_actionability(response: str) -> tuple[int, str]:
 
     # Next steps or guidance (4 points)
     guidance_phrases = [
-        "you can", "you should", "recommend", "suggest",
-        "to learn more", "for more information", "check the",
-        "work programme", "funding finder", "participate"
+        "you can",
+        "you should",
+        "recommend",
+        "suggest",
+        "to learn more",
+        "for more information",
+        "check the",
+        "work programme",
+        "funding finder",
+        "participate",
     ]
     guidance_found = sum(1 for phrase in guidance_phrases if phrase in response_lower)
     score += min(4, guidance_found)
@@ -452,10 +482,7 @@ def evaluate_actionability(response: str) -> tuple[int, str]:
     return score, "; ".join(notes) if notes else "Good actionability with guidance provided"
 
 
-def evaluate_response(
-    response: str,
-    response_metadata: dict[str, Any]
-) -> EvaluationResult:
+def evaluate_response(response: str, response_metadata: dict[str, Any]) -> EvaluationResult:
     """
     Perform full evaluation of the response.
 
@@ -496,7 +523,7 @@ def evaluate_response(
             "actionability": actionability_score,
             "total": overall_score,
             "notes": f"Fulfillment: {fulfillment_notes}; Specificity: {specificity_notes}; "
-                     f"Accuracy: {accuracy_notes}; Actionability: {actionability_notes}"
+            f"Accuracy: {accuracy_notes}; Actionability: {actionability_notes}",
         }
     ]
 
@@ -586,12 +613,12 @@ class TestPrompt001HorizonStructure:
         save_result(evaluation, results_file)
 
         # Log evaluation summary
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("PROMPT 001: Horizon Europe Structure Evaluation")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"Overall Score: {evaluation.overall_score}/100")
         print(f"Result: {evaluation.result}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         if evaluation.component_scores:
             comp = evaluation.component_scores[0]
@@ -616,7 +643,7 @@ class TestPrompt001HorizonStructure:
                 print(f"  + {strength}")
 
         print(f"\nResults saved to: {results_file}")
-        print(f"{'='*60}\n")
+        print(f"{'=' * 60}\n")
 
         # For EVALUATE task: Record results and report status
         # The FIX IF NEEDED task will handle remediation if score < 85
@@ -697,8 +724,7 @@ class TestPrompt001OfflineEvaluation:
     def test_excellent_response_passes(self):
         """Test that an excellent response scores >= 85 (PASS)."""
         evaluation = evaluate_response(
-            SampleResponses.EXCELLENT_HORIZON_STRUCTURE,
-            {"source": "sample_excellent"}
+            SampleResponses.EXCELLENT_HORIZON_STRUCTURE, {"source": "sample_excellent"}
         )
 
         # Save result for reference
@@ -717,8 +743,7 @@ class TestPrompt001OfflineEvaluation:
     def test_partial_response_needs_review(self):
         """Test that a partial response scores 70-84 (NEEDS_REVIEW)."""
         evaluation = evaluate_response(
-            SampleResponses.PARTIAL_HORIZON_STRUCTURE,
-            {"source": "sample_partial"}
+            SampleResponses.PARTIAL_HORIZON_STRUCTURE, {"source": "sample_partial"}
         )
 
         print("\nPartial Response Evaluation:")
@@ -733,8 +758,7 @@ class TestPrompt001OfflineEvaluation:
     def test_poor_response_fails(self):
         """Test that a poor response scores < 70 (FAIL)."""
         evaluation = evaluate_response(
-            SampleResponses.POOR_HORIZON_STRUCTURE,
-            {"source": "sample_poor"}
+            SampleResponses.POOR_HORIZON_STRUCTURE, {"source": "sample_poor"}
         )
 
         print("\nPoor Response Evaluation:")
@@ -749,8 +773,7 @@ class TestPrompt001OfflineEvaluation:
     def test_evaluation_identifies_missing_clusters(self):
         """Test that evaluation identifies when clusters are missing."""
         evaluation = evaluate_response(
-            SampleResponses.PARTIAL_HORIZON_STRUCTURE,
-            {"source": "sample_partial"}
+            SampleResponses.PARTIAL_HORIZON_STRUCTURE, {"source": "sample_partial"}
         )
 
         # Check fix suggestions are generated for partial response
@@ -759,13 +782,9 @@ class TestPrompt001OfflineEvaluation:
     def test_evaluation_rewards_specificity(self):
         """Test that specific details improve the score."""
         excellent_eval = evaluate_response(
-            SampleResponses.EXCELLENT_HORIZON_STRUCTURE,
-            {"source": "excellent"}
+            SampleResponses.EXCELLENT_HORIZON_STRUCTURE, {"source": "excellent"}
         )
-        poor_eval = evaluate_response(
-            SampleResponses.POOR_HORIZON_STRUCTURE,
-            {"source": "poor"}
-        )
+        poor_eval = evaluate_response(SampleResponses.POOR_HORIZON_STRUCTURE, {"source": "poor"})
 
         # Excellent response should have much higher specificity
         excellent_specificity = excellent_eval.component_scores[0]["specificity"]
@@ -778,8 +797,7 @@ class TestPrompt001OfflineEvaluation:
     def test_save_evaluation_result_json(self):
         """Test that evaluation results are saved correctly as JSON."""
         evaluation = evaluate_response(
-            SampleResponses.EXCELLENT_HORIZON_STRUCTURE,
-            {"source": "test_json_save"}
+            SampleResponses.EXCELLENT_HORIZON_STRUCTURE, {"source": "test_json_save"}
         )
 
         # Use a separate test file to avoid overwriting live API results

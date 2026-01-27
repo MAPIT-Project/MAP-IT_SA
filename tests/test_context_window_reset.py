@@ -251,9 +251,9 @@ class TestContextAccumulationPrevention:
 
         # Final verification: max observed should be much less than 10x a single query
         # (would be ~20000 if accumulating, should be ~2000)
-        assert (
-            max_observed_size < 5000
-        ), f"Max observed size {max_observed_size} suggests accumulation across queries"
+        assert max_observed_size < 5000, (
+            f"Max observed size {max_observed_size} suggests accumulation across queries"
+        )
 
     def test_context_bounded_across_many_iterations(self):
         """Test that context remains bounded even with many iterations."""
@@ -276,9 +276,9 @@ class TestContextAccumulationPrevention:
         avg_size = sum(sizes_after_each_query) / len(sizes_after_each_query)
         for i, size in enumerate(sizes_after_each_query):
             deviation = abs(size - avg_size) / avg_size
-            assert (
-                deviation < 0.15
-            ), f"Query {i}: Size {size} deviates {deviation * 100:.1f}% from average {avg_size}"
+            assert deviation < 0.15, (
+                f"Query {i}: Size {size} deviates {deviation * 100:.1f}% from average {avg_size}"
+            )
 
 
 class TestContextResetWithRealAgent:

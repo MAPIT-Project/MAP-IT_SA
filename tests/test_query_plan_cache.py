@@ -255,12 +255,12 @@ class TestCacheOperations:
     def test_cache_disabled_without_redis(self):
         """Test cache is disabled without Redis."""
         cache = QueryPlanCache(redis_client=None)
-        assert cache.enabled == False
+        assert not cache.enabled
 
     def test_cache_enabled_with_redis(self, mock_redis):
         """Test cache is enabled with Redis."""
         cache = QueryPlanCache(redis_client=mock_redis)
-        assert cache.enabled == True
+        assert cache.enabled
 
     def test_get_cached_plan_miss(self, mock_redis):
         """Test cache miss returns None."""
@@ -274,35 +274,35 @@ class TestCacheOperations:
     def test_get_cached_plan_hit(self, mock_redis):
         """Test cache hit returns plan."""
         cached_data = {
-            'plan': {'tool_calls': ['search_funding_calls']},
-            'pattern': 'test pattern',
-            'hit_count': 5
+            "plan": {"tool_calls": ["search_funding_calls"]},
+            "pattern": "test pattern",
+            "hit_count": 5,
         }
         mock_redis.get.return_value = json.dumps(cached_data)
 
         cache = QueryPlanCache(redis_client=mock_redis)
         result = cache.get_cached_plan("Test query")
 
-        assert result == {'tool_calls': ['search_funding_calls']}
+        assert result == {"tool_calls": ["search_funding_calls"]}
 
     def test_cache_plan_success(self, mock_redis):
         """Test caching a plan."""
         cache = QueryPlanCache(redis_client=mock_redis)
 
-        plan = {'tool_calls': ['search_funding_calls'], 'thought': 'Need to search'}
+        plan = {"tool_calls": ["search_funding_calls"], "thought": "Need to search"}
         success = cache.cache_plan("Test query", plan, quality_score=0.9)
 
-        assert success == True
+        assert success
         mock_redis.setex.assert_called_once()
 
     def test_cache_plan_low_quality_rejected(self, mock_redis):
         """Test low quality plans are not cached."""
         cache = QueryPlanCache(redis_client=mock_redis)
 
-        plan = {'tool_calls': ['search_funding_calls']}
+        plan = {"tool_calls": ["search_funding_calls"]}
         success = cache.cache_plan("Test query", plan, quality_score=0.5)
 
-        assert success == False
+        assert not success
         mock_redis.setex.assert_not_called()
 
     def test_cache_plan_quality_threshold(self, mock_redis):
@@ -311,11 +311,11 @@ class TestCacheOperations:
 
         # Just below threshold
         success = cache.cache_plan("Test", {}, quality_score=0.69)
-        assert success == False
+        assert not success
 
         # At threshold
         success = cache.cache_plan("Test", {}, quality_score=0.7)
-        assert success == True
+        assert success
 
 
 class TestCacheInvalidation:
@@ -334,7 +334,7 @@ class TestCacheInvalidation:
 
         result = cache.invalidate_pattern("Test query")
 
-        assert result == True
+        assert result
         mock_redis.delete.assert_called_once()
 
     def test_invalidate_nonexistent(self, mock_redis):
@@ -344,7 +344,7 @@ class TestCacheInvalidation:
 
         result = cache.invalidate_pattern("Nonexistent query")
 
-        assert result == False
+        assert not result
 
 
 class TestHitCountTracking:
@@ -359,10 +359,7 @@ class TestHitCountTracking:
 
     def test_hit_count_incremented(self, mock_redis):
         """Test hit count is incremented on cache hit."""
-        cached_data = {
-            'plan': {'tool_calls': []},
-            'hit_count': 5
-        }
+        cached_data = {"plan": {"tool_calls": []}, "hit_count": 5}
         mock_redis.get.return_value = json.dumps(cached_data)
 
         cache = QueryPlanCache(redis_client=mock_redis)
@@ -380,13 +377,10 @@ class TestCacheStatistics:
     def mock_redis(self):
         """Create mock Redis with keys."""
         mock = MagicMock()
-        mock.keys.return_value = [
-            'query_plan:abc123',
-            'query_plan:def456'
-        ]
+        mock.keys.return_value = ["query_plan:abc123", "query_plan:def456"]
         mock.get.side_effect = [
-            json.dumps({'pattern': 'test 1', 'hit_count': 10, 'quality_score': 0.9}),
-            json.dumps({'pattern': 'test 2', 'hit_count': 5, 'quality_score': 0.8})
+            json.dumps({"pattern": "test 1", "hit_count": 10, "quality_score": 0.9}),
+            json.dumps({"pattern": "test 2", "hit_count": 5, "quality_score": 0.8}),
         ]
         return mock
 
@@ -395,23 +389,23 @@ class TestCacheStatistics:
         cache = QueryPlanCache(redis_client=mock_redis)
         stats = cache.get_cache_stats()
 
-        assert stats['enabled'] == True
-        assert 'cached_plans' in stats
-        assert 'total_hits' in stats
+        assert stats["enabled"]
+        assert "cached_plans" in stats
+        assert "total_hits" in stats
 
     def test_get_cache_stats_disabled(self):
         """Test getting stats when cache is disabled."""
         cache = QueryPlanCache(redis_client=None)
         stats = cache.get_cache_stats()
 
-        assert stats['enabled'] == False
+        assert not stats["enabled"]
 
     def test_stats_include_top_patterns(self, mock_redis):
         """Test stats include top patterns."""
         cache = QueryPlanCache(redis_client=mock_redis)
         stats = cache.get_cache_stats()
 
-        assert 'top_patterns' in stats
+        assert "top_patterns" in stats
 
 
 class TestClearAll:
@@ -421,7 +415,7 @@ class TestClearAll:
     def mock_redis(self):
         """Create mock Redis."""
         mock = MagicMock()
-        mock.keys.return_value = ['query_plan:1', 'query_plan:2', 'query_plan:3']
+        mock.keys.return_value = ["query_plan:1", "query_plan:2", "query_plan:3"]
         mock.delete.return_value = 3
         return mock
 
@@ -453,7 +447,7 @@ class TestTTLHandling:
         mock_redis = MagicMock()
         cache = QueryPlanCache(redis_client=mock_redis)
 
-        cache.cache_plan("Test", {'tool_calls': []}, quality_score=0.9)
+        cache.cache_plan("Test", {"tool_calls": []}, quality_score=0.9)
 
         # Check setex was called with TTL
         call_args = mock_redis.setex.call_args
@@ -468,28 +462,73 @@ class TestPatternExtractionComprehensive:
     def cache(self):
         return QueryPlanCache(redis_client=None)
 
-    @pytest.mark.parametrize("topic", [
-        "hydrogen", "quantum", "artificial intelligence", "machine learning",
-        "renewable", "solar", "wind", "battery", "energy storage",
-        "cancer", "diabetes", "cardiovascular", "healthcare",
-        "blockchain", "cybersecurity", "robotics", "autonomous",
-        "sustainable", "sustainability", "circular economy", "biodiversity",
-        "ocean", "marine", "space", "satellite",
-        "nanotechnology", "biotechnology",
-        "electric vehicles", "smart cities", "smart grid",
-        "agriculture", "food security",
-        "manufacturing", "advanced materials",
-        "photonics", "semiconductors",
-        "construction", "built environment",
-        "transport", "mobility", "logistics",
-        "water", "wastewater", "recycling",
-        "climate", "carbon", "decarbonization",
-        "digital", "digitalization", "software", "big data",
-        "health", "medical", "pharmaceutical",
-        "security", "defence", "emergency",
-        "5g", "6g", "telecommunications",
-        "green deal", "net zero"
-    ])
+    @pytest.mark.parametrize(
+        "topic",
+        [
+            "hydrogen",
+            "quantum",
+            "artificial intelligence",
+            "machine learning",
+            "renewable",
+            "solar",
+            "wind",
+            "battery",
+            "energy storage",
+            "cancer",
+            "diabetes",
+            "cardiovascular",
+            "healthcare",
+            "blockchain",
+            "cybersecurity",
+            "robotics",
+            "autonomous",
+            "sustainable",
+            "sustainability",
+            "circular economy",
+            "biodiversity",
+            "ocean",
+            "marine",
+            "space",
+            "satellite",
+            "nanotechnology",
+            "biotechnology",
+            "electric vehicles",
+            "smart cities",
+            "smart grid",
+            "agriculture",
+            "food security",
+            "manufacturing",
+            "advanced materials",
+            "photonics",
+            "semiconductors",
+            "construction",
+            "built environment",
+            "transport",
+            "mobility",
+            "logistics",
+            "water",
+            "wastewater",
+            "recycling",
+            "climate",
+            "carbon",
+            "decarbonization",
+            "digital",
+            "digitalization",
+            "software",
+            "big data",
+            "health",
+            "medical",
+            "pharmaceutical",
+            "security",
+            "defence",
+            "emergency",
+            "5g",
+            "6g",
+            "telecommunications",
+            "green deal",
+            "net zero",
+        ],
+    )
     def test_topic_keyword_replacement(self, cache, topic):
         """Test various topic keywords are replaced with {topic}."""
         query = f"Find {topic} funding opportunities"
@@ -497,14 +536,41 @@ class TestPatternExtractionComprehensive:
 
         assert "{topic}" in pattern, f"'{topic}' should be replaced with {{topic}}"
 
-    @pytest.mark.parametrize("country", [
-        "germany", "german", "france", "french", "spain", "spanish",
-        "italy", "italian", "netherlands", "dutch", "belgium",
-        "austria", "sweden", "denmark", "finland", "poland",
-        "czech", "portugal", "ireland", "greece", "hungary",
-        "romania", "bulgaria", "croatia", "slovakia", "slovenia",
-        "switzerland", "swiss", "norway", "norwegian"
-    ])
+    @pytest.mark.parametrize(
+        "country",
+        [
+            "germany",
+            "german",
+            "france",
+            "french",
+            "spain",
+            "spanish",
+            "italy",
+            "italian",
+            "netherlands",
+            "dutch",
+            "belgium",
+            "austria",
+            "sweden",
+            "denmark",
+            "finland",
+            "poland",
+            "czech",
+            "portugal",
+            "ireland",
+            "greece",
+            "hungary",
+            "romania",
+            "bulgaria",
+            "croatia",
+            "slovakia",
+            "slovenia",
+            "switzerland",
+            "swiss",
+            "norway",
+            "norwegian",
+        ],
+    )
     def test_country_name_replacement(self, cache, country):
         """Test country names are replaced with {country}."""
         query = f"Projects from {country}"
@@ -537,7 +603,7 @@ class TestEdgeCases:
         long_query = "find hydrogen " * 100
 
         # Should not crash
-        pattern = cache._extract_query_pattern(long_query)
+        cache._extract_query_pattern(long_query)
         key = cache._generate_cache_key(long_query)
 
         assert len(key) < 100  # Key should be reasonably short

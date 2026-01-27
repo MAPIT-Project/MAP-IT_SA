@@ -22,15 +22,17 @@ logger = logging.getLogger(__name__)
 
 class TriggerType(str, Enum):
     """What triggered the score calculation."""
-    MANUAL = "manual"       # User clicked "Evaluate"
-    AUTO = "auto"           # Automatic on content change
-    SAVE = "save"           # On section save
-    BATCH = "batch"         # Batch evaluation
+
+    MANUAL = "manual"  # User clicked "Evaluate"
+    AUTO = "auto"  # Automatic on content change
+    SAVE = "save"  # On section save
+    BATCH = "batch"  # Batch evaluation
 
 
 @dataclass
 class StoredScore:
     """A stored section score."""
+
     id: str
     proposal_id: str
     section_id: str
@@ -48,6 +50,7 @@ class StoredScore:
 @dataclass
 class ScoreHistoryEntry:
     """A historical score entry."""
+
     id: str
     section_id: str
     predicted_score: float
@@ -62,6 +65,7 @@ class ScoreHistoryEntry:
 @dataclass
 class ProposalScoreSummary:
     """Aggregated scores for a proposal."""
+
     proposal_id: str
     excellence_score: float | None
     impact_score: float | None
@@ -87,7 +91,7 @@ class ScoreStorageService:
 
     # Scoring thresholds
     THRESHOLD_SCORE = 3.0  # Minimum to pass
-    GOOD_SCORE = 4.0       # Competitive score
+    GOOD_SCORE = 4.0  # Competitive score
     EXCELLENT_SCORE = 4.5  # High-scoring proposal
 
     def __init__(self):
@@ -104,7 +108,7 @@ class ScoreStorageService:
         section_type: str,
         content: str,
         score_result: dict[str, Any],
-        trigger: TriggerType = TriggerType.MANUAL
+        trigger: TriggerType = TriggerType.MANUAL,
     ) -> StoredScore:
         """
         Save an evaluation score for a section.
@@ -124,33 +128,38 @@ class ScoreStorageService:
 
         # Check if content has changed
         existing = await self._get_existing_score(section_id)
-        if existing and existing.get('content_hash') == content_hash:
+        if existing and existing.get("content_hash") == content_hash:
             logger.info(f"Score already exists for unchanged content: {section_id}")
             return await self.get_section_score(section_id)
 
         # Determine score tier
-        predicted_score = score_result.get('overall_score', score_result.get('predicted_score', 3.0))
+        predicted_score = score_result.get(
+            "overall_score", score_result.get("predicted_score", 3.0)
+        )
         score_tier = self._get_score_tier(predicted_score)
 
         # Prepare criterion scores as JSON
-        criterion_scores = score_result.get('criterion_scores', {})
+        criterion_scores = score_result.get("criterion_scores", {})
         if isinstance(criterion_scores, list):
             # Convert list of CriterionScore objects to dict
             criterion_scores = {
-                cs.get('criterion', f'criterion_{i}'): cs.get('score', 0)
+                cs.get("criterion", f"criterion_{i}"): cs.get("score", 0)
                 for i, cs in enumerate(criterion_scores)
             }
 
-        strengths = score_result.get('strengths', [])
-        weaknesses = score_result.get('weaknesses', [])
-        evaluator_comments = score_result.get('esr_summary', score_result.get('evaluator_comments', ''))
-        confidence = score_result.get('confidence', 0.8)
+        strengths = score_result.get("strengths", [])
+        weaknesses = score_result.get("weaknesses", [])
+        evaluator_comments = score_result.get(
+            "esr_summary", score_result.get("evaluator_comments", "")
+        )
+        confidence = score_result.get("confidence", 0.8)
 
         conn = self._get_connection()
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 # Save current score (upsert)
-                cur.execute("""
+                cur.execute(
+                    """
                     INSERT INTO section_scores (
                         proposal_id, section_id, section_type,
                         predicted_score, confidence, score_tier,
@@ -168,57 +177,62 @@ class ScoreStorageService:
                         content_hash = EXCLUDED.content_hash,
                         updated_at = NOW()
                     RETURNING *
-                """, (
-                    proposal_id,
-                    section_id,
-                    section_type,
-                    predicted_score,
-                    confidence,
-                    score_tier,
-                    json.dumps(criterion_scores),
-                    json.dumps(strengths),
-                    json.dumps(weaknesses),
-                    evaluator_comments,
-                    content_hash
-                ))
+                """,
+                    (
+                        proposal_id,
+                        section_id,
+                        section_type,
+                        predicted_score,
+                        confidence,
+                        score_tier,
+                        json.dumps(criterion_scores),
+                        json.dumps(strengths),
+                        json.dumps(weaknesses),
+                        evaluator_comments,
+                        content_hash,
+                    ),
+                )
                 result = cur.fetchone()
 
                 # Add to history
-                cur.execute("""
+                cur.execute(
+                    """
                     INSERT INTO section_score_history (
                         section_id, proposal_id, predicted_score,
                         confidence, content_length, content_hash, trigger_type
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s)
-                """, (
-                    section_id,
-                    proposal_id,
-                    predicted_score,
-                    confidence,
-                    len(content),
-                    content_hash,
-                    trigger.value
-                ))
+                """,
+                    (
+                        section_id,
+                        proposal_id,
+                        predicted_score,
+                        confidence,
+                        len(content),
+                        content_hash,
+                        trigger.value,
+                    ),
+                )
 
                 conn.commit()
 
                 # Parse JSON fields
-                cs = result['criterion_scores']
-                st = result['strengths']
-                wk = result['weaknesses']
+                cs = result["criterion_scores"]
+                st = result["strengths"]
+                wk = result["weaknesses"]
 
                 return StoredScore(
-                    id=str(result['id']),
+                    id=str(result["id"]),
                     proposal_id=str(proposal_id),
                     section_id=str(section_id),
                     section_type=section_type,
-                    predicted_score=float(result['predicted_score']),
-                    confidence=float(result['confidence']),
-                    score_tier=result['score_tier'],
+                    predicted_score=float(result["predicted_score"]),
+                    confidence=float(result["confidence"]),
+                    score_tier=result["score_tier"],
                     criterion_scores=cs if isinstance(cs, dict) else json.loads(cs) if cs else {},
                     strengths=st if isinstance(st, list) else json.loads(st) if st else [],
                     weaknesses=wk if isinstance(wk, list) else json.loads(wk) if wk else [],
-                    evaluator_comments=result['evaluator_comments'] or '',
-                    created_at=result['created_at']
+                    evaluator_comments=result["evaluator_comments"] or "",
+                    created_at=result["created_at"],
                 )
         finally:
             conn.close()
@@ -228,31 +242,34 @@ class ScoreStorageService:
         conn = self._get_connection()
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT * FROM section_scores WHERE section_id = %s
-                """, (section_id,))
+                """,
+                    (section_id,),
+                )
                 result = cur.fetchone()
 
                 if not result:
                     return None
 
-                cs = result['criterion_scores']
-                st = result['strengths']
-                wk = result['weaknesses']
+                cs = result["criterion_scores"]
+                st = result["strengths"]
+                wk = result["weaknesses"]
 
                 return StoredScore(
-                    id=str(result['id']),
-                    proposal_id=str(result['proposal_id']),
-                    section_id=str(result['section_id']),
-                    section_type=result['section_type'],
-                    predicted_score=float(result['predicted_score']),
-                    confidence=float(result['confidence']),
-                    score_tier=result['score_tier'],
+                    id=str(result["id"]),
+                    proposal_id=str(result["proposal_id"]),
+                    section_id=str(result["section_id"]),
+                    section_type=result["section_type"],
+                    predicted_score=float(result["predicted_score"]),
+                    confidence=float(result["confidence"]),
+                    score_tier=result["score_tier"],
                     criterion_scores=cs if isinstance(cs, dict) else json.loads(cs) if cs else {},
                     strengths=st if isinstance(st, list) else json.loads(st) if st else [],
                     weaknesses=wk if isinstance(wk, list) else json.loads(wk) if wk else [],
-                    evaluator_comments=result['evaluator_comments'] or '',
-                    created_at=result['created_at']
+                    evaluator_comments=result["evaluator_comments"] or "",
+                    created_at=result["created_at"],
                 )
         finally:
             conn.close()
@@ -262,33 +279,40 @@ class ScoreStorageService:
         conn = self._get_connection()
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT * FROM section_scores
                     WHERE proposal_id = %s
                     ORDER BY section_type
-                """, (proposal_id,))
+                """,
+                    (proposal_id,),
+                )
                 results = cur.fetchall()
 
                 scores = []
                 for r in results:
-                    cs = r['criterion_scores']
-                    st = r['strengths']
-                    wk = r['weaknesses']
+                    cs = r["criterion_scores"]
+                    st = r["strengths"]
+                    wk = r["weaknesses"]
 
-                    scores.append(StoredScore(
-                        id=str(r['id']),
-                        proposal_id=str(r['proposal_id']),
-                        section_id=str(r['section_id']),
-                        section_type=r['section_type'],
-                        predicted_score=float(r['predicted_score']),
-                        confidence=float(r['confidence']),
-                        score_tier=r['score_tier'],
-                        criterion_scores=cs if isinstance(cs, dict) else json.loads(cs) if cs else {},
-                        strengths=st if isinstance(st, list) else json.loads(st) if st else [],
-                        weaknesses=wk if isinstance(wk, list) else json.loads(wk) if wk else [],
-                        evaluator_comments=r['evaluator_comments'] or '',
-                        created_at=r['created_at']
-                    ))
+                    scores.append(
+                        StoredScore(
+                            id=str(r["id"]),
+                            proposal_id=str(r["proposal_id"]),
+                            section_id=str(r["section_id"]),
+                            section_type=r["section_type"],
+                            predicted_score=float(r["predicted_score"]),
+                            confidence=float(r["confidence"]),
+                            score_tier=r["score_tier"],
+                            criterion_scores=(
+                                cs if isinstance(cs, dict) else json.loads(cs) if cs else {}
+                            ),
+                            strengths=st if isinstance(st, list) else json.loads(st) if st else [],
+                            weaknesses=wk if isinstance(wk, list) else json.loads(wk) if wk else [],
+                            evaluator_comments=r["evaluator_comments"] or "",
+                            created_at=r["created_at"],
+                        )
+                    )
 
                 return scores
         finally:
@@ -299,39 +323,55 @@ class ScoreStorageService:
         conn = self._get_connection()
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT * FROM proposal_scores WHERE proposal_id = %s
-                """, (proposal_id,))
+                """,
+                    (proposal_id,),
+                )
                 result = cur.fetchone()
 
                 if not result:
                     return None
 
                 return ProposalScoreSummary(
-                    proposal_id=str(result['proposal_id']),
-                    excellence_score=float(result['excellence_score']) if result['excellence_score'] else None,
-                    impact_score=float(result['impact_score']) if result['impact_score'] else None,
-                    implementation_score=float(result['implementation_score']) if result['implementation_score'] else None,
-                    overall_score=float(result['overall_score']) if result['overall_score'] else None,
-                    funding_probability=float(result['funding_probability']) if result['funding_probability'] else None,
-                    threshold_distance=float(result['threshold_distance']) if result['threshold_distance'] else None,
-                    sections_scored=result['sections_scored'],
-                    total_sections=result['total_sections'],
-                    last_updated=result['last_updated']
+                    proposal_id=str(result["proposal_id"]),
+                    excellence_score=(
+                        float(result["excellence_score"]) if result["excellence_score"] else None
+                    ),
+                    impact_score=float(result["impact_score"]) if result["impact_score"] else None,
+                    implementation_score=(
+                        float(result["implementation_score"])
+                        if result["implementation_score"]
+                        else None
+                    ),
+                    overall_score=(
+                        float(result["overall_score"]) if result["overall_score"] else None
+                    ),
+                    funding_probability=(
+                        float(result["funding_probability"])
+                        if result["funding_probability"]
+                        else None
+                    ),
+                    threshold_distance=(
+                        float(result["threshold_distance"])
+                        if result["threshold_distance"]
+                        else None
+                    ),
+                    sections_scored=result["sections_scored"],
+                    total_sections=result["total_sections"],
+                    last_updated=result["last_updated"],
                 )
         finally:
             conn.close()
 
-    async def get_score_history(
-        self,
-        section_id: str,
-        limit: int = 50
-    ) -> list[ScoreHistoryEntry]:
+    async def get_score_history(self, section_id: str, limit: int = 50) -> list[ScoreHistoryEntry]:
         """Get score history for a section."""
         conn = self._get_connection()
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT
                         sh.id,
                         sh.section_id,
@@ -347,36 +387,39 @@ class ScoreStorageService:
                     WHERE sh.section_id = %s
                     ORDER BY sh.created_at DESC
                     LIMIT %s
-                """, (section_id, limit))
+                """,
+                    (section_id, limit),
+                )
                 results = cur.fetchall()
 
                 return [
                     ScoreHistoryEntry(
-                        id=str(r['id']),
-                        section_id=str(r['section_id']),
-                        predicted_score=float(r['predicted_score']),
-                        confidence=float(r['confidence']),
-                        content_length=r['content_length'],
-                        trigger_type=r['trigger_type'],
-                        created_at=r['created_at'],
-                        previous_score=float(r['previous_score']) if r['previous_score'] else None,
-                        score_change=float(r['predicted_score']) - float(r['previous_score']) if r['previous_score'] else None
+                        id=str(r["id"]),
+                        section_id=str(r["section_id"]),
+                        predicted_score=float(r["predicted_score"]),
+                        confidence=float(r["confidence"]),
+                        content_length=r["content_length"],
+                        trigger_type=r["trigger_type"],
+                        created_at=r["created_at"],
+                        previous_score=float(r["previous_score"]) if r["previous_score"] else None,
+                        score_change=(
+                            float(r["predicted_score"]) - float(r["previous_score"])
+                            if r["previous_score"]
+                            else None
+                        ),
                     )
                     for r in results
                 ]
         finally:
             conn.close()
 
-    async def get_improvement_trend(
-        self,
-        section_id: str,
-        days: int = 7
-    ) -> dict[str, Any]:
+    async def get_improvement_trend(self, section_id: str, days: int = 7) -> dict[str, Any]:
         """Get improvement trend for a section over time."""
         conn = self._get_connection()
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT
                         DATE(created_at) as date,
                         AVG(predicted_score) as avg_score,
@@ -387,7 +430,9 @@ class ScoreStorageService:
                     AND created_at >= NOW() - INTERVAL '%s days'
                     GROUP BY DATE(created_at)
                     ORDER BY date
-                """, (section_id, days))
+                """,
+                    (section_id, days),
+                )
                 results = cur.fetchall()
 
                 if not results:
@@ -395,18 +440,18 @@ class ScoreStorageService:
 
                 data = [
                     {
-                        "date": str(r['date']),
-                        "avg_score": float(r['avg_score']),
-                        "max_score": float(r['max_score']),
-                        "evaluations": r['evaluations']
+                        "date": str(r["date"]),
+                        "avg_score": float(r["avg_score"]),
+                        "max_score": float(r["max_score"]),
+                        "evaluations": r["evaluations"],
                     }
                     for r in results
                 ]
 
                 # Calculate trend direction
                 if len(data) >= 2:
-                    first_score = data[0]['avg_score']
-                    last_score = data[-1]['avg_score']
+                    first_score = data[0]["avg_score"]
+                    last_score = data[-1]["avg_score"]
                     change = last_score - first_score
 
                     if change > 0.3:
@@ -421,7 +466,9 @@ class ScoreStorageService:
                 return {
                     "trend": trend,
                     "data": data,
-                    "total_improvement": data[-1]['avg_score'] - data[0]['avg_score'] if len(data) >= 2 else 0
+                    "total_improvement": (
+                        data[-1]["avg_score"] - data[0]["avg_score"] if len(data) >= 2 else 0
+                    ),
                 }
         finally:
             conn.close()
@@ -446,9 +493,12 @@ class ScoreStorageService:
         conn = self._get_connection()
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT content_hash FROM section_scores WHERE section_id = %s
-                """, (section_id,))
+                """,
+                    (section_id,),
+                )
                 return cur.fetchone()
         finally:
             conn.close()

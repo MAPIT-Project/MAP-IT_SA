@@ -26,9 +26,10 @@ logger = logging.getLogger(__name__)
 
 class EventPriority(Enum):
     """Priority levels for SSE events."""
+
     IMMEDIATE = "immediate"  # Flush immediately (errors, complete, tool_result)
-    HIGH = "high"           # Flush soon (status, tool_call, agent_thinking)
-    NORMAL = "normal"       # Buffer if possible (tokens)
+    HIGH = "high"  # Flush soon (status, tool_call, agent_thinking)
+    NORMAL = "normal"  # Buffer if possible (tokens)
 
 
 # Event type to priority mapping
@@ -37,14 +38,12 @@ EVENT_PRIORITIES: dict[str, EventPriority] = {
     "error": EventPriority.IMMEDIATE,
     "complete": EventPriority.IMMEDIATE,
     "tool_result": EventPriority.IMMEDIATE,
-
     # High priority events
     "status": EventPriority.HIGH,
     "progress": EventPriority.HIGH,
     "tool_call": EventPriority.HIGH,
     "agent_thinking": EventPriority.HIGH,
     "conversation_name": EventPriority.HIGH,
-
     # Normal priority (can be buffered)
     "token": EventPriority.NORMAL,
 }
@@ -60,9 +59,10 @@ class StreamBuffer:
     - Time interval threshold
     - Event priority
     """
-    max_buffer_size: int = 10          # Max events to buffer
-    flush_interval_ms: float = 100.0   # Flush interval in milliseconds
-    max_token_batch: int = 5           # Max tokens to batch together
+
+    max_buffer_size: int = 10  # Max events to buffer
+    flush_interval_ms: float = 100.0  # Flush interval in milliseconds
+    max_token_batch: int = 5  # Max tokens to batch together
 
     # Internal state
     buffer: list[dict[str, Any]] = field(default_factory=list)
@@ -165,10 +165,7 @@ class StreamingOptimizer:
     """
 
     def __init__(
-        self,
-        max_buffer_size: int = 10,
-        flush_interval_ms: float = 100.0,
-        max_token_batch: int = 5
+        self, max_buffer_size: int = 10, flush_interval_ms: float = 100.0, max_token_batch: int = 5
     ):
         """
         Initialize streaming optimizer.
@@ -181,12 +178,11 @@ class StreamingOptimizer:
         self.buffer = StreamBuffer(
             max_buffer_size=max_buffer_size,
             flush_interval_ms=flush_interval_ms,
-            max_token_batch=max_token_batch
+            max_token_batch=max_token_batch,
         )
 
     async def optimize_stream(
-        self,
-        event_source: AsyncIterator[dict[str, Any]]
+        self, event_source: AsyncIterator[dict[str, Any]]
     ) -> AsyncIterator[str]:
         """
         Optimize an event stream for SSE delivery.
@@ -227,7 +223,7 @@ def create_optimized_stream_response(
     event_source: AsyncIterator[dict[str, Any]],
     max_buffer_size: int = 10,
     flush_interval_ms: float = 100.0,
-    max_token_batch: int = 5
+    max_token_batch: int = 5,
 ) -> AsyncIterator[str]:
     """
     Create an optimized streaming response from an event source.
@@ -246,14 +242,12 @@ def create_optimized_stream_response(
     optimizer = StreamingOptimizer(
         max_buffer_size=max_buffer_size,
         flush_interval_ms=flush_interval_ms,
-        max_token_batch=max_token_batch
+        max_token_batch=max_token_batch,
     )
     return optimizer.optimize_stream(event_source)
 
 
-async def wrap_dict_result_as_stream(
-    result: dict[str, Any]
-) -> AsyncIterator[dict[str, Any]]:
+async def wrap_dict_result_as_stream(result: dict[str, Any]) -> AsyncIterator[dict[str, Any]]:
     """
     Wrap a dict result as a single-event async stream.
 
@@ -293,7 +287,7 @@ class StreamingMetrics:
     def record_event(self, event_data: str):
         """Record a sent event."""
         self.events_sent += 1
-        self.bytes_sent += len(event_data.encode('utf-8'))
+        self.bytes_sent += len(event_data.encode("utf-8"))
 
     def record_batch(self, batch_size: int):
         """Record a batch of events."""
@@ -330,8 +324,7 @@ class InstrumentedStreamingOptimizer(StreamingOptimizer):
         self.metrics = StreamingMetrics()
 
     async def optimize_stream(
-        self,
-        event_source: AsyncIterator[dict[str, Any]]
+        self, event_source: AsyncIterator[dict[str, Any]]
     ) -> AsyncIterator[str]:
         """Optimize stream with metrics tracking."""
         self.metrics.reset()

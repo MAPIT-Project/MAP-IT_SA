@@ -51,9 +51,9 @@ class TestScenario007ProgrammeStatistics:
             response_text = result.get("response", "")
 
             # Should mention success rate
-            assert (
-                "success rate" in response_text.lower() or "%" in response_text
-            ), "Response should mention success rate"
+            assert "success rate" in response_text.lower() or "%" in response_text, (
+                "Response should mention success rate"
+            )
 
     @pytest.mark.asyncio
     async def test_uses_get_programme_statistics_tool(self, conversation_id):
@@ -99,9 +99,9 @@ class TestScenario007ProgrammeStatistics:
             # Should have some reasonable percentages for EIC (not 50% or 90%)
             # EIC overall is 2-5%, stage rates can be higher (25-30%, 50-60%)
             low_rate_found = any(p <= 10 for p in percentages)
-            assert (
-                low_rate_found
-            ), f"Should mention a low success rate (<=10%) for EIC, found: {percentages}"
+            assert low_rate_found, (
+                f"Should mention a low success rate (<=10%) for EIC, found: {percentages}"
+            )
 
     @pytest.mark.asyncio
     async def test_mentions_eic_accelerator(self, conversation_id):
@@ -196,9 +196,9 @@ class TestScenario007ProgrammeStatistics:
                 ind.lower() in response_text.lower() for ind in response_indicators
             )
 
-            assert (
-                has_detail_in_tool or has_detail_in_response
-            ), "Should include funding information or detailed statistics"
+            assert has_detail_in_tool or has_detail_in_response, (
+                "Should include funding information or detailed statistics"
+            )
 
     @pytest.mark.asyncio
     async def test_quality_score_passes_threshold(self, conversation_id):
@@ -220,9 +220,9 @@ class TestScenario007ProgrammeStatistics:
 
             # Quality score should meet threshold
             score = quality_analysis.get("score", 0)
-            assert (
-                score >= self.PASS_THRESHOLD
-            ), f"Quality score {score} should be >= {self.PASS_THRESHOLD}"
+            assert score >= self.PASS_THRESHOLD, (
+                f"Quality score {score} should be >= {self.PASS_THRESHOLD}"
+            )
 
     @pytest.mark.asyncio
     async def test_no_error_in_response(self, conversation_id):

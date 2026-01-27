@@ -127,9 +127,9 @@ class TestScenario017ErasmusEligibility:
 
             # Should use check_erasmus_eligibility tool
             erasmus_tools = [t for t in tools_used if "erasmus" in t.lower()]
-            assert (
-                len(erasmus_tools) > 0
-            ), f"Should use Erasmus-specific tools, but got: {tools_used}"
+            assert len(erasmus_tools) > 0, (
+                f"Should use Erasmus-specific tools, but got: {tools_used}"
+            )
 
     @pytest.mark.asyncio
     async def test_provides_national_agency_info(self, conversation_id):
@@ -147,9 +147,9 @@ class TestScenario017ErasmusEligibility:
             response_text = result.get("response", "").lower()
 
             # Should mention National Agency
-            assert (
-                "national agency" in response_text
-            ), "Response should mention National Agency for guidance"
+            assert "national agency" in response_text, (
+                "Response should mention National Agency for guidance"
+            )
 
     @pytest.mark.asyncio
     async def test_provides_actionable_next_steps(self, conversation_id):
@@ -276,9 +276,9 @@ class TestScenario017ErasmusEligibility:
             if "programme guide" in response_text or "erasmus-plus.ec.europa.eu" in response_text:
                 score += 5
 
-            assert (
-                score >= self.PASS_THRESHOLD
-            ), f"Score {score} is below threshold {self.PASS_THRESHOLD}"
+            assert score >= self.PASS_THRESHOLD, (
+                f"Score {score} is below threshold {self.PASS_THRESHOLD}"
+            )
 
     @pytest.mark.asyncio
     async def test_returns_valid_json_response(self, conversation_id):
@@ -322,9 +322,9 @@ class TestScenario017ErasmusEligibility:
 
             # Erasmus+ queries should not return Horizon Europe call IDs
             # Erasmus+ queries should not return Horizon Europe call IDs
-            assert (
-                len(horizon_calls) == 0
-            ), f"Should not hallucinate Horizon Europe calls for Erasmus+: {horizon_calls}"
+            assert len(horizon_calls) == 0, (
+                f"Should not hallucinate Horizon Europe calls for Erasmus+: {horizon_calls}"
+            )
 
     @pytest.mark.asyncio
     async def test_response_mentions_vocation_education_context(self, conversation_id):
@@ -402,9 +402,9 @@ class TestScenario017ErasmusEligibility:
             ]
 
             has_alternative = any(ind in response_text for ind in alternative_indicators)
-            assert (
-                has_alternative
-            ), "Response should mention alternative pathway (short-term projects)"
+            assert has_alternative, (
+                "Response should mention alternative pathway (short-term projects)"
+            )
 
     @pytest.mark.asyncio
     async def test_accreditation_benefits_mentioned(self, conversation_id):

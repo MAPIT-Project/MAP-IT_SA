@@ -10,17 +10,25 @@ from pydantic import BaseModel, Field
 # Request Models
 class QuestionRequest(BaseModel):
     """Request model for RAG queries."""
+
     question: str = Field(..., description="The question to ask about European research projects")
-    max_results: int | None = Field(5, ge=1, le=20, description="Maximum number of projects to retrieve")
+    max_results: int | None = Field(
+        5, ge=1, le=20, description="Maximum number of projects to retrieve"
+    )
     ai_provider: str | None = Field(None, description="AI provider to use (openai or gemini)")
     ai_version: str | None = Field("V9", description="RAG version to use (V2-V9)")
-    use_local_db: bool | None = Field(None, description="Override global setting for database usage")
-    conversation_id: int | None = Field(None, description="Conversation ID for context-aware responses")
+    use_local_db: bool | None = Field(
+        None, description="Override global setting for database usage"
+    )
+    conversation_id: int | None = Field(
+        None, description="Conversation ID for context-aware responses"
+    )
 
 
 # Project-related Models
 class ProjectParticipant(BaseModel):
     """Model for project participant information."""
+
     name: str
     country: str
     city: str | None = None
@@ -28,12 +36,14 @@ class ProjectParticipant(BaseModel):
 
 class ProjectBudget(BaseModel):
     """Model for project budget information."""
+
     total_cost: str
     eu_contribution: str | None = None
 
 
 class Project(BaseModel):
     """Model for a research project."""
+
     title: str
     objective: str
     keywords: list[str]
@@ -45,6 +55,7 @@ class Project(BaseModel):
 # Response Models
 class SearchResponse(BaseModel):
     """Response model for RAG queries."""
+
     answer: str | None = None
     ai_provider: str | None = None
     ai_version: str | None = None
@@ -55,11 +66,11 @@ class SearchResponse(BaseModel):
     projects: list[Project] | None = None
     error: bool | None = False
     error_message: str | None = None
-    
+
     # Task-related fields for async processing
     task_id: str | None = None
     status: str | None = None  # "pending", "processing", "completed", "failed"
-    
+
     # Additional metadata
     logs: dict[str, Any] | None = None
     success: bool | None = True
@@ -67,12 +78,14 @@ class SearchResponse(BaseModel):
 
 class ErrorResponse(BaseModel):
     """Error response model."""
+
     error: str
     details: str
 
 
 class HealthResponse(BaseModel):
     """Health check response model."""
+
     status: str
     timestamp: float
     version: str
@@ -83,6 +96,7 @@ class HealthResponse(BaseModel):
 
 class TaskStatusResponse(BaseModel):
     """Task status response model."""
+
     task_id: str
     status: str  # "pending", "processing", "completed", "failed", "cancelled"
     result: SearchResponse | None = None
@@ -92,6 +106,7 @@ class TaskStatusResponse(BaseModel):
 
 class DatabaseStatusResponse(BaseModel):
     """Database status response model."""
+
     connected: bool
     total_projects: int | None = None
     last_updated: str | None = None
@@ -100,18 +115,21 @@ class DatabaseStatusResponse(BaseModel):
 
 class ProviderConfig(BaseModel):
     """Configuration for a specific provider."""
+
     model: str
     is_default: bool
 
 
 class ProvidersResponse(BaseModel):
     """Available AI providers response model."""
+
     available_providers: dict[str, dict[str, ProviderConfig]]
     default_provider: str
 
 
 class BenchmarkResponse(BaseModel):
     """Benchmark test response model."""
+
     test_name: str
     processing_time: float
     ai_provider: str

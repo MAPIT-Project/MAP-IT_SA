@@ -32,6 +32,7 @@ router = APIRouter(prefix="/api/alerts", tags=["alerts"])
 
 class AlertConfigRequest(BaseModel):
     """Alert configuration request."""
+
     enabled: bool = False
     frequency: str = Field("daily", pattern="^(immediate|daily|weekly)$")
     channel: str = Field("email", pattern="^(email|webhook|both)$")
@@ -43,6 +44,7 @@ class AlertConfigRequest(BaseModel):
 
 class CreateSavedSearchRequest(BaseModel):
     """Request to create a saved search."""
+
     name: str = Field(..., min_length=1, max_length=255)
     description: str | None = Field(None, max_length=1000)
     search_type: str = Field(..., pattern="^(calls|projects|partners)$")
@@ -52,6 +54,7 @@ class CreateSavedSearchRequest(BaseModel):
 
 class UpdateSavedSearchRequest(BaseModel):
     """Request to update a saved search."""
+
     name: str | None = Field(None, min_length=1, max_length=255)
     description: str | None = Field(None, max_length=1000)
     parameters: dict[str, Any] | None = None
@@ -61,6 +64,7 @@ class UpdateSavedSearchRequest(BaseModel):
 
 class SavedSearchResponse(BaseModel):
     """Saved search response."""
+
     id: str
     user_id: str
     name: str
@@ -78,6 +82,7 @@ class SavedSearchResponse(BaseModel):
 
 class SearchResultResponse(BaseModel):
     """Search execution result response."""
+
     search_id: str
     result_count: int
     new_count: int
@@ -89,6 +94,7 @@ class SearchResultResponse(BaseModel):
 
 class UserStatsResponse(BaseModel):
     """User statistics response."""
+
     total_searches: int
     active_searches: int
     inactive_searches: int

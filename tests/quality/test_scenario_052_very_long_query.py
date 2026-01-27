@@ -60,9 +60,9 @@ class TestLongQueryConstants:
         """Test that max processed length is reasonable (200-500 chars)."""
         from app.services.agents.tool_aware_agent import MAX_PROCESSED_QUERY_LENGTH
 
-        assert (
-            200 <= MAX_PROCESSED_QUERY_LENGTH <= 500
-        ), f"MAX_PROCESSED_QUERY_LENGTH {MAX_PROCESSED_QUERY_LENGTH} should be 200-500"
+        assert 200 <= MAX_PROCESSED_QUERY_LENGTH <= 500, (
+            f"MAX_PROCESSED_QUERY_LENGTH {MAX_PROCESSED_QUERY_LENGTH} should be 200-500"
+        )
 
 
 class TestLongQueryResultDataclass:
@@ -272,9 +272,9 @@ class TestExtractKeyDetailsFunction:
         # "University of Munich" as org are different entries
         details_lower = [d.lower() for d in details]
         exact_germany_count = details_lower.count("germany")
-        assert (
-            exact_germany_count <= 1
-        ), f"Should deduplicate exact matches, got {exact_germany_count} 'Germany'"
+        assert exact_germany_count <= 1, (
+            f"Should deduplicate exact matches, got {exact_germany_count} 'Germany'"
+        )
 
     def test_limits_details_to_ten(self):
         """Test that extracted details are limited to 10."""
@@ -368,9 +368,9 @@ class TestExtractIntentRuleBasedFunction:
 
         processed = _extract_intent_rule_based(query, key_details)
 
-        assert (
-            len(processed) <= MAX_PROCESSED_QUERY_LENGTH
-        ), f"Processed query too long: {len(processed)} > {MAX_PROCESSED_QUERY_LENGTH}"
+        assert len(processed) <= MAX_PROCESSED_QUERY_LENGTH, (
+            f"Processed query too long: {len(processed)} > {MAX_PROCESSED_QUERY_LENGTH}"
+        )
 
 
 # =============================================================================
@@ -650,9 +650,9 @@ Success rates for similar projects are typically 10-15%.
 
         result = evaluator.evaluate(original_query, good_response)
 
-        assert (
-            result["total_score"] >= 70
-        ), f"Good response should score well, got {result['total_score']}"
+        assert result["total_score"] >= 70, (
+            f"Good response should score well, got {result['total_score']}"
+        )
 
     def test_evaluator_scores_poor_response(self):
         """Test that evaluator gives low score to poor response."""
@@ -664,9 +664,9 @@ Success rates for similar projects are typically 10-15%.
 
         result = evaluator.evaluate(original_query, poor_response)
 
-        assert (
-            result["total_score"] < 50
-        ), f"Poor response should score low, got {result['total_score']}"
+        assert result["total_score"] < 50, (
+            f"Poor response should score low, got {result['total_score']}"
+        )
 
 
 # =============================================================================
@@ -742,9 +742,9 @@ class TestSampleLongQueries:
     def test_all_sample_queries_over_threshold(self):
         """Verify all sample queries are over 500 characters."""
         for sample in SAMPLE_LONG_QUERIES:
-            assert (
-                len(sample["query"]) > 500
-            ), f"Sample {sample['name']} is only {len(sample['query'])} chars"
+            assert len(sample["query"]) > 500, (
+                f"Sample {sample['name']} is only {len(sample['query'])} chars"
+            )
 
     def test_sample_queries_are_processed(self):
         """Test that all sample queries trigger processing."""
@@ -810,9 +810,9 @@ class TestLiveAPILongQuery:
                 json={"message": long_query},
             )
 
-            assert (
-                msg_response.status_code == 200
-            ), f"API should handle long query, got {msg_response.status_code}"
+            assert msg_response.status_code == 200, (
+                f"API should handle long query, got {msg_response.status_code}"
+            )
 
             result = msg_response.json()
             assert "answer" in result or "response" in result
@@ -849,9 +849,9 @@ class TestLiveAPILongQuery:
             evaluator = ScenarioEvaluator()
             evaluation = evaluator.evaluate(long_query, answer)
 
-            assert (
-                evaluation["total_score"] >= PASS_THRESHOLD
-            ), f"Response should score >= {PASS_THRESHOLD}, got {evaluation['total_score']}"
+            assert evaluation["total_score"] >= PASS_THRESHOLD, (
+                f"Response should score >= {PASS_THRESHOLD}, got {evaluation['total_score']}"
+            )
 
         except Exception as e:
             pytest.skip(f"API test failed: {e}")

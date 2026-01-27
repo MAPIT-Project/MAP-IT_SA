@@ -32,6 +32,7 @@ from app.services.quality.response_quality_analyzer import (
 # Fixtures
 # ============================================================================
 
+
 @pytest.fixture
 def analyzer() -> ResponseQualityAnalyzer:
     """Create a ResponseQualityAnalyzer instance for testing."""
@@ -41,6 +42,7 @@ def analyzer() -> ResponseQualityAnalyzer:
 # ============================================================================
 # Sample Responses for Testing
 # ============================================================================
+
 
 class SampleResponses:
     """Collection of sample responses for testing quality analysis."""
@@ -261,23 +263,27 @@ class SampleResponses:
 # Test Class: Deflection Detection
 # ============================================================================
 
+
 class TestDeflectionDetection:
     """Test deflection phrase detection capabilities."""
 
-    @pytest.mark.parametrize("phrase,expected_detected", [
-        ("could not find", True),
-        ("couldn't find", True),
-        ("no information available", True),
-        ("I am not sure", True),
-        ("I don't have", True),
-        ("unable to retrieve", True),
-        ("no results found", True),
-        ("try again later", True),
-        ("could not extract specific details", True),
-        ("found some information but", True),
-        ("this is a normal sentence", False),
-        ("the project was successful", False),
-    ])
+    @pytest.mark.parametrize(
+        "phrase,expected_detected",
+        [
+            ("could not find", True),
+            ("couldn't find", True),
+            ("no information available", True),
+            ("I am not sure", True),
+            ("I don't have", True),
+            ("unable to retrieve", True),
+            ("no results found", True),
+            ("try again later", True),
+            ("could not extract specific details", True),
+            ("found some information but", True),
+            ("this is a normal sentence", False),
+            ("the project was successful", False),
+        ],
+    )
     def test_deflection_phrase_detection(
         self, analyzer: ResponseQualityAnalyzer, phrase: str, expected_detected: bool
     ):
@@ -314,27 +320,31 @@ class TestDeflectionDetection:
 # Test Class: Query Type Inference
 # ============================================================================
 
+
 class TestQueryTypeInference:
     """Test query type inference from user queries."""
 
-    @pytest.mark.parametrize("query,expected_type", [
-        ("Tell me about HORIZON-CL5-2026-D3-01", QueryType.CALL_INFO),
-        ("What is the HORIZON-CL4-2025-DATA-01 call about?", QueryType.CALL_INFO),
-        ("Compare EIC vs ERC", QueryType.PROGRAMME_COMPARISON),
-        ("Difference between RIA and IA", QueryType.PROGRAMME_COMPARISON),
-        ("Can SMEs apply to Horizon Europe?", QueryType.ELIGIBILITY_FAQ),
-        ("Who is eligible for ERC grants?", QueryType.ELIGIBILITY_FAQ),
-        ("What is the typical budget for a RIA?", QueryType.BUDGET_BENCHMARK),
-        ("Average funding for Cluster 5", QueryType.BUDGET_BENCHMARK),
-        ("Find partners with hydrogen experience", QueryType.PARTNER_DISCOVERY),
-        ("Organizations working on AI in Germany", QueryType.PARTNER_DISCOVERY),
-        ("Find quantum computing projects", QueryType.PROJECT_SEARCH),
-        ("Search funded projects about climate", QueryType.PROJECT_SEARCH),
-        ("What is the typical consortium size?", QueryType.CONSORTIUM_PATTERN),
-        ("How many partners for a Health IA?", QueryType.CONSORTIUM_PATTERN),
-        ("What is the success rate for RIA?", QueryType.STATISTICS),
-        ("Hello, how are you?", QueryType.GENERAL),
-    ])
+    @pytest.mark.parametrize(
+        "query,expected_type",
+        [
+            ("Tell me about HORIZON-CL5-2026-D3-01", QueryType.CALL_INFO),
+            ("What is the HORIZON-CL4-2025-DATA-01 call about?", QueryType.CALL_INFO),
+            ("Compare EIC vs ERC", QueryType.PROGRAMME_COMPARISON),
+            ("Difference between RIA and IA", QueryType.PROGRAMME_COMPARISON),
+            ("Can SMEs apply to Horizon Europe?", QueryType.ELIGIBILITY_FAQ),
+            ("Who is eligible for ERC grants?", QueryType.ELIGIBILITY_FAQ),
+            ("What is the typical budget for a RIA?", QueryType.BUDGET_BENCHMARK),
+            ("Average funding for Cluster 5", QueryType.BUDGET_BENCHMARK),
+            ("Find partners with hydrogen experience", QueryType.PARTNER_DISCOVERY),
+            ("Organizations working on AI in Germany", QueryType.PARTNER_DISCOVERY),
+            ("Find quantum computing projects", QueryType.PROJECT_SEARCH),
+            ("Search funded projects about climate", QueryType.PROJECT_SEARCH),
+            ("What is the typical consortium size?", QueryType.CONSORTIUM_PATTERN),
+            ("How many partners for a Health IA?", QueryType.CONSORTIUM_PATTERN),
+            ("What is the success rate for RIA?", QueryType.STATISTICS),
+            ("Hello, how are you?", QueryType.GENERAL),
+        ],
+    )
     def test_query_type_inference(
         self, analyzer: ResponseQualityAnalyzer, query: str, expected_type: QueryType
     ):
@@ -346,6 +356,7 @@ class TestQueryTypeInference:
 # ============================================================================
 # Test Class: Content Requirements Validation
 # ============================================================================
+
 
 class TestContentRequirements:
     """Test content requirement checking for different query types."""
@@ -391,6 +402,7 @@ class TestContentRequirements:
 # ============================================================================
 # Test Class: Quality Scoring
 # ============================================================================
+
 
 class TestQualityScoring:
     """Test quality scoring accuracy."""
@@ -451,6 +463,7 @@ class TestQualityScoring:
 # Test Class: Response Categorization
 # ============================================================================
 
+
 class TestResponseCategorization:
     """Test response categorization accuracy."""
 
@@ -491,6 +504,7 @@ class TestResponseCategorization:
 # Test Class: Comprehensive Query Tests (25+ queries)
 # ============================================================================
 
+
 class TestComprehensiveQueries:
     """
     Comprehensive test suite with 25+ queries covering all query types.
@@ -500,41 +514,48 @@ class TestComprehensiveQueries:
     """
 
     # 5 Call ID Queries
-    @pytest.mark.parametrize("query,response,min_score,expected_category", [
-        (
-            "Tell me about HORIZON-CL5-2026-D3-01",
-            SampleResponses.GOOD_CALL_INFO,
-            70,
-            ResponseCategory.COMPLETE,
-        ),
-        (
-            "What is HORIZON-CL4-2025-DATA-01?",
-            SampleResponses.DEFLECTING_CALL_INFO,
-            0,
-            ResponseCategory.DEFLECTION,
-        ),
-        (
-            "Details for HORIZON-HLTH-2025-DISEASE-01",
-            SampleResponses.PARTIAL_CALL_INFO,
-            30,
-            ResponseCategory.PARTIAL,
-        ),
-        (
-            "HORIZON-CL6-2026-BIODIV-01 scope",
-            SampleResponses.GOOD_CALL_INFO,
-            70,
-            ResponseCategory.COMPLETE,
-        ),
-        (
-            "What is the deadline for HORIZON-EIC-2025-PATHFINDER?",
-            SampleResponses.DEFLECTING_CALL_INFO,
-            0,
-            ResponseCategory.DEFLECTION,
-        ),
-    ])
+    @pytest.mark.parametrize(
+        "query,response,min_score,expected_category",
+        [
+            (
+                "Tell me about HORIZON-CL5-2026-D3-01",
+                SampleResponses.GOOD_CALL_INFO,
+                70,
+                ResponseCategory.COMPLETE,
+            ),
+            (
+                "What is HORIZON-CL4-2025-DATA-01?",
+                SampleResponses.DEFLECTING_CALL_INFO,
+                0,
+                ResponseCategory.DEFLECTION,
+            ),
+            (
+                "Details for HORIZON-HLTH-2025-DISEASE-01",
+                SampleResponses.PARTIAL_CALL_INFO,
+                30,
+                ResponseCategory.PARTIAL,
+            ),
+            (
+                "HORIZON-CL6-2026-BIODIV-01 scope",
+                SampleResponses.GOOD_CALL_INFO,
+                70,
+                ResponseCategory.COMPLETE,
+            ),
+            (
+                "What is the deadline for HORIZON-EIC-2025-PATHFINDER?",
+                SampleResponses.DEFLECTING_CALL_INFO,
+                0,
+                ResponseCategory.DEFLECTION,
+            ),
+        ],
+    )
     def test_call_id_queries(
-        self, analyzer: ResponseQualityAnalyzer, query: str, response: str,
-        min_score: int, expected_category: ResponseCategory
+        self,
+        analyzer: ResponseQualityAnalyzer,
+        query: str,
+        response: str,
+        min_score: int,
+        expected_category: ResponseCategory,
     ):
         """Test call ID queries (5 queries)."""
         analysis = analyzer.analyze(query=query, response=response)
@@ -543,41 +564,48 @@ class TestComprehensiveQueries:
         assert analysis.category == expected_category
 
     # 5 Programme Comparison Queries
-    @pytest.mark.parametrize("query,response,min_score,expected_category", [
-        (
-            "Compare EIC Accelerator vs ERC",
-            SampleResponses.GOOD_PROGRAMME_COMPARISON,
-            70,
-            ResponseCategory.COMPLETE,
-        ),
-        (
-            "Difference between RIA and IA",
-            SampleResponses.DEFLECTING_COMPARISON,
-            0,
-            ResponseCategory.DEFLECTION,
-        ),
-        (
-            "ERC vs MSCA which is better",
-            SampleResponses.GOOD_PROGRAMME_COMPARISON,
-            70,
-            ResponseCategory.COMPLETE,
-        ),
-        (
-            "Compare Horizon Europe with Horizon 2020",
-            SampleResponses.DEFLECTING_COMPARISON,
-            0,
-            ResponseCategory.DEFLECTION,
-        ),
-        (
-            "EIC Pathfinder vs EIC Transition",
-            SampleResponses.GOOD_PROGRAMME_COMPARISON,
-            65,
-            ResponseCategory.COMPLETE,
-        ),
-    ])
+    @pytest.mark.parametrize(
+        "query,response,min_score,expected_category",
+        [
+            (
+                "Compare EIC Accelerator vs ERC",
+                SampleResponses.GOOD_PROGRAMME_COMPARISON,
+                70,
+                ResponseCategory.COMPLETE,
+            ),
+            (
+                "Difference between RIA and IA",
+                SampleResponses.DEFLECTING_COMPARISON,
+                0,
+                ResponseCategory.DEFLECTION,
+            ),
+            (
+                "ERC vs MSCA which is better",
+                SampleResponses.GOOD_PROGRAMME_COMPARISON,
+                70,
+                ResponseCategory.COMPLETE,
+            ),
+            (
+                "Compare Horizon Europe with Horizon 2020",
+                SampleResponses.DEFLECTING_COMPARISON,
+                0,
+                ResponseCategory.DEFLECTION,
+            ),
+            (
+                "EIC Pathfinder vs EIC Transition",
+                SampleResponses.GOOD_PROGRAMME_COMPARISON,
+                65,
+                ResponseCategory.COMPLETE,
+            ),
+        ],
+    )
     def test_programme_comparison_queries(
-        self, analyzer: ResponseQualityAnalyzer, query: str, response: str,
-        min_score: int, expected_category: ResponseCategory
+        self,
+        analyzer: ResponseQualityAnalyzer,
+        query: str,
+        response: str,
+        min_score: int,
+        expected_category: ResponseCategory,
     ):
         """Test programme comparison queries (5 queries)."""
         analysis = analyzer.analyze(query=query, response=response)
@@ -586,41 +614,48 @@ class TestComprehensiveQueries:
         assert analysis.category == expected_category
 
     # 5 Eligibility/FAQ Queries
-    @pytest.mark.parametrize("query,response,min_score,expected_category", [
-        (
-            "Can SMEs apply to Horizon Europe?",
-            SampleResponses.GOOD_ELIGIBILITY,
-            70,
-            ResponseCategory.COMPLETE,
-        ),
-        (
-            "Who is eligible for ERC grants?",
-            SampleResponses.DEFLECTING_ELIGIBILITY,
-            0,
-            ResponseCategory.DEFLECTION,
-        ),
-        (
-            "Requirements for RIA consortium",
-            SampleResponses.GOOD_ELIGIBILITY,
-            65,
-            ResponseCategory.COMPLETE,
-        ),
-        (
-            "Can US organizations participate?",
-            SampleResponses.DEFLECTING_ELIGIBILITY,
-            0,
-            ResponseCategory.DEFLECTION,
-        ),
-        (
-            "What are the rules for subcontracting?",
-            SampleResponses.GOOD_ELIGIBILITY,
-            60,
-            ResponseCategory.COMPLETE,
-        ),
-    ])
+    @pytest.mark.parametrize(
+        "query,response,min_score,expected_category",
+        [
+            (
+                "Can SMEs apply to Horizon Europe?",
+                SampleResponses.GOOD_ELIGIBILITY,
+                70,
+                ResponseCategory.COMPLETE,
+            ),
+            (
+                "Who is eligible for ERC grants?",
+                SampleResponses.DEFLECTING_ELIGIBILITY,
+                0,
+                ResponseCategory.DEFLECTION,
+            ),
+            (
+                "Requirements for RIA consortium",
+                SampleResponses.GOOD_ELIGIBILITY,
+                65,
+                ResponseCategory.COMPLETE,
+            ),
+            (
+                "Can US organizations participate?",
+                SampleResponses.DEFLECTING_ELIGIBILITY,
+                0,
+                ResponseCategory.DEFLECTION,
+            ),
+            (
+                "What are the rules for subcontracting?",
+                SampleResponses.GOOD_ELIGIBILITY,
+                60,
+                ResponseCategory.COMPLETE,
+            ),
+        ],
+    )
     def test_eligibility_faq_queries(
-        self, analyzer: ResponseQualityAnalyzer, query: str, response: str,
-        min_score: int, expected_category: ResponseCategory
+        self,
+        analyzer: ResponseQualityAnalyzer,
+        query: str,
+        response: str,
+        min_score: int,
+        expected_category: ResponseCategory,
     ):
         """Test eligibility/FAQ queries (5 queries)."""
         analysis = analyzer.analyze(query=query, response=response)
@@ -629,29 +664,36 @@ class TestComprehensiveQueries:
         assert analysis.category == expected_category
 
     # 3 Budget Benchmark Queries
-    @pytest.mark.parametrize("query,response,min_score,expected_category", [
-        (
-            "What is typical budget for Horizon RIA in Cluster 5?",
-            SampleResponses.GOOD_BUDGET_BENCHMARK,
-            70,
-            ResponseCategory.COMPLETE,
-        ),
-        (
-            "Average funding for Health cluster IA",
-            SampleResponses.DEFLECTING_BUDGET,
-            0,
-            ResponseCategory.DEFLECTION,
-        ),
-        (
-            "Budget range for CSA projects",
-            SampleResponses.GOOD_BUDGET_BENCHMARK,
-            65,
-            ResponseCategory.COMPLETE,
-        ),
-    ])
+    @pytest.mark.parametrize(
+        "query,response,min_score,expected_category",
+        [
+            (
+                "What is typical budget for Horizon RIA in Cluster 5?",
+                SampleResponses.GOOD_BUDGET_BENCHMARK,
+                70,
+                ResponseCategory.COMPLETE,
+            ),
+            (
+                "Average funding for Health cluster IA",
+                SampleResponses.DEFLECTING_BUDGET,
+                0,
+                ResponseCategory.DEFLECTION,
+            ),
+            (
+                "Budget range for CSA projects",
+                SampleResponses.GOOD_BUDGET_BENCHMARK,
+                65,
+                ResponseCategory.COMPLETE,
+            ),
+        ],
+    )
     def test_budget_benchmark_queries(
-        self, analyzer: ResponseQualityAnalyzer, query: str, response: str,
-        min_score: int, expected_category: ResponseCategory
+        self,
+        analyzer: ResponseQualityAnalyzer,
+        query: str,
+        response: str,
+        min_score: int,
+        expected_category: ResponseCategory,
     ):
         """Test budget benchmark queries (3 queries)."""
         analysis = analyzer.analyze(query=query, response=response)
@@ -660,29 +702,36 @@ class TestComprehensiveQueries:
         assert analysis.category == expected_category
 
     # 3 Partner Discovery Queries
-    @pytest.mark.parametrize("query,response,min_score,expected_category", [
-        (
-            "Find German SMEs with hydrogen experience",
-            SampleResponses.GOOD_PARTNER_DISCOVERY,
-            70,
-            ResponseCategory.COMPLETE,
-        ),
-        (
-            "Organizations working on AI in France",
-            SampleResponses.DEFLECTING_PARTNER,
-            0,
-            ResponseCategory.DEFLECTION,
-        ),
-        (
-            "Partners with quantum computing expertise",
-            SampleResponses.GOOD_PARTNER_DISCOVERY,
-            65,
-            ResponseCategory.COMPLETE,
-        ),
-    ])
+    @pytest.mark.parametrize(
+        "query,response,min_score,expected_category",
+        [
+            (
+                "Find German SMEs with hydrogen experience",
+                SampleResponses.GOOD_PARTNER_DISCOVERY,
+                70,
+                ResponseCategory.COMPLETE,
+            ),
+            (
+                "Organizations working on AI in France",
+                SampleResponses.DEFLECTING_PARTNER,
+                0,
+                ResponseCategory.DEFLECTION,
+            ),
+            (
+                "Partners with quantum computing expertise",
+                SampleResponses.GOOD_PARTNER_DISCOVERY,
+                65,
+                ResponseCategory.COMPLETE,
+            ),
+        ],
+    )
     def test_partner_discovery_queries(
-        self, analyzer: ResponseQualityAnalyzer, query: str, response: str,
-        min_score: int, expected_category: ResponseCategory
+        self,
+        analyzer: ResponseQualityAnalyzer,
+        query: str,
+        response: str,
+        min_score: int,
+        expected_category: ResponseCategory,
     ):
         """Test partner discovery queries (3 queries)."""
         analysis = analyzer.analyze(query=query, response=response)
@@ -691,23 +740,30 @@ class TestComprehensiveQueries:
         assert analysis.category == expected_category
 
     # 2 Project Search Queries
-    @pytest.mark.parametrize("query,response,min_score,expected_category", [
-        (
-            "Find quantum computing projects",
-            SampleResponses.GOOD_PROJECT_SEARCH,
-            70,
-            ResponseCategory.COMPLETE,
-        ),
-        (
-            "Search for climate adaptation projects",
-            SampleResponses.DEFLECTING_PROJECT,
-            0,
-            ResponseCategory.DEFLECTION,
-        ),
-    ])
+    @pytest.mark.parametrize(
+        "query,response,min_score,expected_category",
+        [
+            (
+                "Find quantum computing projects",
+                SampleResponses.GOOD_PROJECT_SEARCH,
+                70,
+                ResponseCategory.COMPLETE,
+            ),
+            (
+                "Search for climate adaptation projects",
+                SampleResponses.DEFLECTING_PROJECT,
+                0,
+                ResponseCategory.DEFLECTION,
+            ),
+        ],
+    )
     def test_project_search_queries(
-        self, analyzer: ResponseQualityAnalyzer, query: str, response: str,
-        min_score: int, expected_category: ResponseCategory
+        self,
+        analyzer: ResponseQualityAnalyzer,
+        query: str,
+        response: str,
+        min_score: int,
+        expected_category: ResponseCategory,
     ):
         """Test project search queries (2 queries)."""
         analysis = analyzer.analyze(query=query, response=response)
@@ -716,23 +772,30 @@ class TestComprehensiveQueries:
         assert analysis.category == expected_category
 
     # 2 Consortium Pattern Queries
-    @pytest.mark.parametrize("query,response,min_score,expected_category", [
-        (
-            "What is typical consortium size for Health IAs?",
-            SampleResponses.GOOD_CONSORTIUM_PATTERN,
-            70,
-            ResponseCategory.COMPLETE,
-        ),
-        (
-            "Partner mix for Climate cluster RIA",
-            SampleResponses.GOOD_CONSORTIUM_PATTERN,
-            65,
-            ResponseCategory.COMPLETE,
-        ),
-    ])
+    @pytest.mark.parametrize(
+        "query,response,min_score,expected_category",
+        [
+            (
+                "What is typical consortium size for Health IAs?",
+                SampleResponses.GOOD_CONSORTIUM_PATTERN,
+                70,
+                ResponseCategory.COMPLETE,
+            ),
+            (
+                "Partner mix for Climate cluster RIA",
+                SampleResponses.GOOD_CONSORTIUM_PATTERN,
+                65,
+                ResponseCategory.COMPLETE,
+            ),
+        ],
+    )
     def test_consortium_pattern_queries(
-        self, analyzer: ResponseQualityAnalyzer, query: str, response: str,
-        min_score: int, expected_category: ResponseCategory
+        self,
+        analyzer: ResponseQualityAnalyzer,
+        query: str,
+        response: str,
+        min_score: int,
+        expected_category: ResponseCategory,
     ):
         """Test consortium pattern queries (2 queries)."""
         analysis = analyzer.analyze(query=query, response=response)
@@ -743,6 +806,7 @@ class TestComprehensiveQueries:
 # ============================================================================
 # Test Class: Recommendations
 # ============================================================================
+
 
 class TestRecommendations:
     """Test recommendation generation."""
@@ -778,6 +842,7 @@ class TestRecommendations:
 # Test Class: Tool Results Validation
 # ============================================================================
 
+
 class TestToolResultsValidation:
     """Test tool results validation."""
 
@@ -787,7 +852,7 @@ class TestToolResultsValidation:
             "search_funding_calls": {
                 "success": True,
                 "calls_found": 5,
-                "calls": [{"id": "call1"}, {"id": "call2"}]
+                "calls": [{"id": "call1"}, {"id": "call2"}],
             }
         }
         score = analyzer._validate_tool_results(tool_results)
@@ -795,23 +860,14 @@ class TestToolResultsValidation:
 
     def test_empty_tool_results(self, analyzer: ResponseQualityAnalyzer):
         """Test validation of empty tool results."""
-        tool_results = {
-            "search_funding_calls": {
-                "success": True,
-                "calls_found": 0,
-                "calls": []
-            }
-        }
+        tool_results = {"search_funding_calls": {"success": True, "calls_found": 0, "calls": []}}
         score = analyzer._validate_tool_results(tool_results)
         assert score < 100
 
     def test_failed_tool_results(self, analyzer: ResponseQualityAnalyzer):
         """Test validation of failed tool results."""
         tool_results = {
-            "search_funding_calls": {
-                "success": False,
-                "error": "Database connection failed"
-            }
+            "search_funding_calls": {"success": False, "error": "Database connection failed"}
         }
         score = analyzer._validate_tool_results(tool_results)
         assert score < 100
@@ -820,6 +876,7 @@ class TestToolResultsValidation:
 # ============================================================================
 # Test Class: Quality Threshold
 # ============================================================================
+
 
 class TestQualityThreshold:
     """Test quality threshold checking."""
@@ -864,6 +921,7 @@ class TestQualityThreshold:
 # ============================================================================
 # Test Class: Edge Cases
 # ============================================================================
+
 
 class TestEdgeCases:
     """Test edge cases and boundary conditions."""
@@ -916,6 +974,7 @@ class TestEdgeCases:
 # ============================================================================
 # Test Class: Analysis Serialization
 # ============================================================================
+
 
 class TestAnalysisSerialization:
     """Test QualityAnalysis serialization."""

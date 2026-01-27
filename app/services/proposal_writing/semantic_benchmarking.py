@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 class BenchmarkDimension(str, Enum):
     """Dimensions for benchmarking analysis."""
+
     OVERALL_SIMILARITY = "overall_similarity"
     TECHNICAL_DEPTH = "technical_depth"
     IMPACT_CLARITY = "impact_clarity"
@@ -30,6 +31,7 @@ class BenchmarkDimension(str, Enum):
 @dataclass
 class BenchmarkExample:
     """A funded example used for benchmarking."""
+
     project_id: str
     project_acronym: str
     content: str
@@ -43,6 +45,7 @@ class BenchmarkExample:
 @dataclass
 class DimensionScore:
     """Score for a single benchmarking dimension."""
+
     dimension: BenchmarkDimension
     score: float  # 0-100
     benchmark_avg: float  # Average score of benchmark examples
@@ -54,6 +57,7 @@ class DimensionScore:
 @dataclass
 class BenchmarkResult:
     """Complete benchmarking result."""
+
     user_content: str
     section_type: str
     cluster: str | None
@@ -95,6 +99,7 @@ class SemanticBenchmarkingService:
         """Lazy load embedding service."""
         if self._embedding_service is None:
             from app.services.embedding_service import EmbeddingService
+
             self._embedding_service = EmbeddingService()
         return self._embedding_service
 
@@ -102,6 +107,7 @@ class SemanticBenchmarkingService:
         """Lazy load AI service."""
         if self._ai_service is None:
             from .proposal_ai_service import ProposalAIService
+
             self._ai_service = ProposalAIService()
         return self._ai_service
 
@@ -115,7 +121,7 @@ class SemanticBenchmarkingService:
         section_type: str,
         cluster: str | None = None,
         action_type: str | None = None,
-        num_examples: int = 5
+        num_examples: int = 5,
     ) -> BenchmarkResult:
         """
         Benchmark user content against funded proposals.
@@ -142,7 +148,7 @@ class SemanticBenchmarkingService:
             section_type=section_type,
             cluster=cluster,
             action_type=action_type,
-            limit=num_examples
+            limit=num_examples,
         )
 
         if not examples:
@@ -153,19 +159,13 @@ class SemanticBenchmarkingService:
         overall_similarity = self._calculate_overall_similarity(examples)
 
         # Step 4: Get dimension scores via LLM analysis
-        dimension_scores = await self._analyze_dimensions(
-            content, examples, section_type
-        )
+        dimension_scores = await self._analyze_dimensions(content, examples, section_type)
 
         # Step 5: Generate insights
-        insights = await self._generate_insights(
-            content, examples, dimension_scores, section_type
-        )
+        insights = await self._generate_insights(content, examples, dimension_scores, section_type)
 
         # Step 6: Calculate percentile rank
-        percentile = await self._calculate_percentile(
-            user_embedding, section_type, cluster
-        )
+        percentile = await self._calculate_percentile(user_embedding, section_type, cluster)
 
         return BenchmarkResult(
             user_content=content,
@@ -175,11 +175,11 @@ class SemanticBenchmarkingService:
             percentile_rank=percentile,
             dimension_scores=dimension_scores,
             top_examples=examples,
-            key_strengths=insights['strengths'],
-            key_gaps=insights['gaps'],
-            specific_suggestions=insights['suggestions'],
+            key_strengths=insights["strengths"],
+            key_gaps=insights["gaps"],
+            specific_suggestions=insights["suggestions"],
             examples_compared=len(examples),
-            avg_funded_similarity=overall_similarity
+            avg_funded_similarity=overall_similarity,
         )
 
     async def _find_benchmark_examples(
@@ -188,7 +188,7 @@ class SemanticBenchmarkingService:
         section_type: str,
         cluster: str | None,
         action_type: str | None,
-        limit: int
+        limit: int,
     ) -> list[BenchmarkExample]:
         """Find the most similar funded examples."""
         conn = self._get_connection()
@@ -235,13 +235,13 @@ class SemanticBenchmarkingService:
 
                 return [
                     BenchmarkExample(
-                        project_id=r['project_id'] or '',
-                        project_acronym=r['project_acronym'] or 'Unknown',
-                        content=r['content'] or '',
-                        cluster=r['cluster'],
-                        action_type=r['action_type'],
-                        total_cost=float(r['total_cost']) if r['total_cost'] else None,
-                        similarity_score=r['similarity'] * 100 if r['similarity'] else 0.0
+                        project_id=r["project_id"] or "",
+                        project_acronym=r["project_acronym"] or "Unknown",
+                        content=r["content"] or "",
+                        cluster=r["cluster"],
+                        action_type=r["action_type"],
+                        total_cost=float(r["total_cost"]) if r["total_cost"] else None,
+                        similarity_score=r["similarity"] * 100 if r["similarity"] else 0.0,
                     )
                     for r in results
                 ]
@@ -258,26 +258,21 @@ class SemanticBenchmarkingService:
         total_weight = sum(weights)
 
         weighted_sum = sum(
-            ex.similarity_score * w
-            for ex, w in zip(examples, weights, strict=False)
+            ex.similarity_score * w for ex, w in zip(examples, weights, strict=False)
         )
 
         return weighted_sum / total_weight
 
     async def _analyze_dimensions(
-        self,
-        content: str,
-        examples: list[BenchmarkExample],
-        section_type: str
+        self, content: str, examples: list[BenchmarkExample], section_type: str
     ) -> list[DimensionScore]:
         """Analyze content across multiple quality dimensions."""
         ai_service = self._get_ai_service()
 
         # Prepare benchmark text (top 3 examples)
-        benchmark_text = "\n\n---\n\n".join([
-            f"[{ex.project_acronym}]: {ex.content[:1500]}"
-            for ex in examples[:3]
-        ])
+        benchmark_text = "\n\n---\n\n".join(
+            [f"[{ex.project_acronym}]: {ex.content[:1500]}" for ex in examples[:3]]
+        )
 
         prompt = f"""Compare this user-written proposal section against successful funded proposals.
 
@@ -342,31 +337,36 @@ Score each dimension 0-100. Be honest but constructive."""
                             "user_score": {"type": "integer"},
                             "benchmark_avg": {"type": "integer"},
                             "explanation": {"type": "string"},
-                            "improvement_hint": {"type": "string"}
+                            "improvement_hint": {"type": "string"},
                         },
-                        "required": ["dimension", "user_score", "benchmark_avg", "explanation", "improvement_hint"]
-                    }
+                        "required": [
+                            "dimension",
+                            "user_score",
+                            "benchmark_avg",
+                            "explanation",
+                            "improvement_hint",
+                        ],
+                    },
                 }
             },
-            "required": ["dimensions"]
+            "required": ["dimensions"],
         }
 
-        response = await ai_service.generate_structured(
-            prompt=prompt,
-            response_schema=schema
-        )
+        response = await ai_service.generate_structured(prompt=prompt, response_schema=schema)
 
         dimension_scores = []
-        for dim in response.get('dimensions', []):
+        for dim in response.get("dimensions", []):
             try:
-                dimension_scores.append(DimensionScore(
-                    dimension=BenchmarkDimension(dim['dimension']),
-                    score=dim['user_score'],
-                    benchmark_avg=dim['benchmark_avg'],
-                    gap=dim['benchmark_avg'] - dim['user_score'],
-                    explanation=dim['explanation'],
-                    improvement_hint=dim['improvement_hint']
-                ))
+                dimension_scores.append(
+                    DimensionScore(
+                        dimension=BenchmarkDimension(dim["dimension"]),
+                        score=dim["user_score"],
+                        benchmark_avg=dim["benchmark_avg"],
+                        gap=dim["benchmark_avg"] - dim["user_score"],
+                        explanation=dim["explanation"],
+                        improvement_hint=dim["improvement_hint"],
+                    )
+                )
             except (KeyError, ValueError) as e:
                 logger.warning(f"Error parsing dimension: {e}")
                 continue
@@ -378,7 +378,7 @@ Score each dimension 0-100. Be honest but constructive."""
         content: str,
         examples: list[BenchmarkExample],
         dimension_scores: list[DimensionScore],
-        section_type: str
+        section_type: str,
     ) -> dict[str, list[str]]:
         """Generate actionable insights from benchmark comparison."""
         ai_service = self._get_ai_service()
@@ -432,38 +432,23 @@ Be specific and reference actual content. Max 3-4 items per category."""
         schema = {
             "type": "object",
             "properties": {
-                "strengths": {
-                    "type": "array",
-                    "items": {"type": "string"}
-                },
-                "gaps": {
-                    "type": "array",
-                    "items": {"type": "string"}
-                },
-                "suggestions": {
-                    "type": "array",
-                    "items": {"type": "string"}
-                }
+                "strengths": {"type": "array", "items": {"type": "string"}},
+                "gaps": {"type": "array", "items": {"type": "string"}},
+                "suggestions": {"type": "array", "items": {"type": "string"}},
             },
-            "required": ["strengths", "gaps", "suggestions"]
+            "required": ["strengths", "gaps", "suggestions"],
         }
 
-        response = await ai_service.generate_structured(
-            prompt=prompt,
-            response_schema=schema
-        )
+        response = await ai_service.generate_structured(prompt=prompt, response_schema=schema)
 
         return {
-            'strengths': response.get('strengths', []),
-            'gaps': response.get('gaps', []),
-            'suggestions': response.get('suggestions', [])
+            "strengths": response.get("strengths", []),
+            "gaps": response.get("gaps", []),
+            "suggestions": response.get("suggestions", []),
         }
 
     async def _calculate_percentile(
-        self,
-        user_embedding: list[float],
-        section_type: str,
-        cluster: str | None
+        self, user_embedding: list[float], section_type: str, cluster: str | None
     ) -> int:
         """
         Calculate what percentile the user content falls in
@@ -495,10 +480,10 @@ Be specific and reference actual content. Max 3-4 items per category."""
                 cur.execute(query, params)
                 result = cur.fetchone()
 
-                if not result or not result['user_similarity']:
+                if not result or not result["user_similarity"]:
                     return 50
 
-                user_similarity = result['user_similarity']
+                user_similarity = result["user_similarity"]
 
                 # Count how many examples have lower similarity (are worse matches)
                 count_query = """
@@ -529,18 +514,15 @@ Be specific and reference actual content. Max 3-4 items per category."""
                 cur.execute(count_query, count_params)
                 percentile_result = cur.fetchone()
 
-                if percentile_result and percentile_result['percentile']:
-                    return int(percentile_result['percentile'])
+                if percentile_result and percentile_result["percentile"]:
+                    return int(percentile_result["percentile"])
                 return 50
 
         finally:
             conn.close()
 
     def _create_empty_result(
-        self,
-        content: str,
-        section_type: str,
-        cluster: str | None
+        self, content: str, section_type: str, cluster: str | None
     ) -> BenchmarkResult:
         """Create an empty result when no benchmarks are available."""
         return BenchmarkResult(
@@ -555,7 +537,7 @@ Be specific and reference actual content. Max 3-4 items per category."""
             key_gaps=[],
             specific_suggestions=["Populate proposal examples to enable benchmarking"],
             examples_compared=0,
-            avg_funded_similarity=0.0
+            avg_funded_similarity=0.0,
         )
 
 
@@ -574,7 +556,7 @@ class BenchmarkVisualizer:
         benchmark_scores = []
 
         for ds in result.dimension_scores:
-            dimensions.append(ds.dimension.value.replace('_', ' ').title())
+            dimensions.append(ds.dimension.value.replace("_", " ").title())
             user_scores.append(ds.score)
             benchmark_scores.append(ds.benchmark_avg)
 
@@ -585,15 +567,15 @@ class BenchmarkVisualizer:
                     "label": "Your Content",
                     "data": user_scores,
                     "borderColor": "#3b82f6",
-                    "backgroundColor": "rgba(59, 130, 246, 0.2)"
+                    "backgroundColor": "rgba(59, 130, 246, 0.2)",
                 },
                 {
                     "label": "Funded Average",
                     "data": benchmark_scores,
                     "borderColor": "#10b981",
-                    "backgroundColor": "rgba(16, 185, 129, 0.2)"
-                }
-            ]
+                    "backgroundColor": "rgba(16, 185, 129, 0.2)",
+                },
+            ],
         }
 
     @staticmethod
@@ -603,14 +585,16 @@ class BenchmarkVisualizer:
 
         for ds in result.dimension_scores:
             status = "pass" if ds.gap <= 5 else "warning" if ds.gap <= 15 else "fail"
-            rows.append({
-                "dimension": ds.dimension.value.replace('_', ' ').title(),
-                "your_score": f"{ds.score:.0f}",
-                "benchmark": f"{ds.benchmark_avg:.0f}",
-                "gap": f"{ds.gap:+.0f}",
-                "status": status,
-                "hint": ds.improvement_hint
-            })
+            rows.append(
+                {
+                    "dimension": ds.dimension.value.replace("_", " ").title(),
+                    "your_score": f"{ds.score:.0f}",
+                    "benchmark": f"{ds.benchmark_avg:.0f}",
+                    "gap": f"{ds.gap:+.0f}",
+                    "status": status,
+                    "hint": ds.improvement_hint,
+                }
+            )
 
         return rows
 
@@ -625,35 +609,25 @@ class BenchmarkVisualizer:
             f"**Examples Compared:** {result.examples_compared}",
             "",
             "### Dimension Scores",
-            ""
+            "",
         ]
 
         for ds in result.dimension_scores:
             indicator = "PASS" if ds.gap <= 5 else "WARN" if ds.gap <= 15 else "FAIL"
-            lines.append(f"- [{indicator}] **{ds.dimension.value.replace('_', ' ').title()}**: "
-                        f"{ds.score:.0f}/100 (benchmark: {ds.benchmark_avg:.0f})")
+            lines.append(
+                f"- [{indicator}] **{ds.dimension.value.replace('_', ' ').title()}**: "
+                f"{ds.score:.0f}/100 (benchmark: {ds.benchmark_avg:.0f})"
+            )
 
-        lines.extend([
-            "",
-            "### Key Strengths",
-            ""
-        ])
+        lines.extend(["", "### Key Strengths", ""])
         for strength in result.key_strengths:
             lines.append(f"- {strength}")
 
-        lines.extend([
-            "",
-            "### Areas for Improvement",
-            ""
-        ])
+        lines.extend(["", "### Areas for Improvement", ""])
         for gap in result.key_gaps:
             lines.append(f"- {gap}")
 
-        lines.extend([
-            "",
-            "### Specific Suggestions",
-            ""
-        ])
+        lines.extend(["", "### Specific Suggestions", ""])
         for i, suggestion in enumerate(result.specific_suggestions, 1):
             lines.append(f"{i}. {suggestion}")
 
@@ -672,6 +646,7 @@ class RealTimeBenchmarker:
         """Lazy load embedding service."""
         if self._embedding_service is None:
             from app.services.embedding_service import EmbeddingService
+
             self._embedding_service = EmbeddingService()
         return self._embedding_service
 
@@ -679,11 +654,7 @@ class RealTimeBenchmarker:
         """Get database connection."""
         return psycopg2.connect(self._db_url)
 
-    async def quick_benchmark(
-        self,
-        content: str,
-        section_type: str
-    ) -> dict[str, Any]:
+    async def quick_benchmark(self, content: str, section_type: str) -> dict[str, Any]:
         """
         Fast benchmark for real-time feedback.
 
@@ -704,7 +675,7 @@ class RealTimeBenchmarker:
             "status": "ready",
             "similarity": similarity,
             "tier": self._get_tier(similarity),
-            "quick_hint": self._get_quick_hint(similarity)
+            "quick_hint": self._get_quick_hint(similarity),
         }
 
     async def _quick_similarity(self, embedding: list[float], section_type: str) -> float:
@@ -712,7 +683,8 @@ class RealTimeBenchmarker:
         conn = self._get_connection()
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT AVG(1 - (example_embedding <=> %s::vector)) * 100 as avg_similarity
                     FROM (
                         SELECT example_embedding
@@ -723,10 +695,12 @@ class RealTimeBenchmarker:
                         ORDER BY example_embedding <=> %s::vector
                         LIMIT 5
                     ) top5
-                """, (embedding, section_type, embedding))
+                """,
+                    (embedding, section_type, embedding),
+                )
 
                 result = cur.fetchone()
-                return result['avg_similarity'] if result and result['avg_similarity'] else 50.0
+                return result["avg_similarity"] if result and result["avg_similarity"] else 50.0
         finally:
             conn.close()
 
@@ -745,6 +719,6 @@ class RealTimeBenchmarker:
             "excellent": "Great! Your content aligns well with funded proposals.",
             "good": "Good progress. Consider adding more specific details.",
             "average": "Add more technical depth and EU policy references.",
-            "needs_work": "Focus on methodology and measurable impacts."
+            "needs_work": "Focus on methodology and measurable impacts.",
         }
         return hints[self._get_tier(similarity)]

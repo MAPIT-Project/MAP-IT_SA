@@ -18,8 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Setup logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -43,13 +42,13 @@ async def main(args):
     logger.info("\n[STEP 1] Extracting examples from projects...")
     extractor = ExampleExtractor()
 
-    clusters = args.clusters.split(',') if args.clusters else None
+    clusters = args.clusters.split(",") if args.clusters else None
 
     extraction_stats = await extractor.extract_from_all_projects(
         batch_size=args.batch_size,
         max_projects=args.max_projects,
         clusters=clusters,
-        skip_existing=args.skip_existing
+        skip_existing=args.skip_existing,
     )
 
     logger.info("\nExtraction Results:")
@@ -58,7 +57,7 @@ async def main(args):
     logger.info(f"  - Skipped (low quality): {extraction_stats['skipped_low_quality']}")
     logger.info(f"  - Errors: {extraction_stats['errors']}")
     logger.info("\n  By section type:")
-    for section_type, count in extraction_stats['examples_by_type'].items():
+    for section_type, count in extraction_stats["examples_by_type"].items():
         logger.info(f"    - {section_type}: {count}")
 
     # Step 2: Enrich high-quality examples (optional)
@@ -81,11 +80,11 @@ async def main(args):
     logger.info(f"  - High quality (>=0.7): {final_stats['high_quality_count']}")
 
     logger.info("\n  By section type:")
-    for section_type, count in final_stats.get('by_section_type', {}).items():
+    for section_type, count in final_stats.get("by_section_type", {}).items():
         logger.info(f"    - {section_type}: {count}")
 
     logger.info("\n  By action type:")
-    for action_type, count in final_stats.get('by_action_type', {}).items():
+    for action_type, count in final_stats.get("by_action_type", {}).items():
         logger.info(f"    - {action_type}: {count}")
 
     logger.info("\n" + "=" * 60)
@@ -98,39 +97,32 @@ async def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Populate proposal examples from CORDIS")
     parser.add_argument(
-        "--batch-size",
-        type=int,
-        default=100,
-        help="Number of projects to process at once"
+        "--batch-size", type=int, default=100, help="Number of projects to process at once"
     )
     parser.add_argument(
         "--max-projects",
         type=int,
         default=None,
-        help="Maximum number of projects to process (default: all)"
+        help="Maximum number of projects to process (default: all)",
     )
     parser.add_argument(
         "--clusters",
         type=str,
         default=None,
-        help="Comma-separated list of clusters to process (default: all)"
+        help="Comma-separated list of clusters to process (default: all)",
     )
-    parser.add_argument(
-        "--enrich",
-        action="store_true",
-        help="Run LLM enrichment after extraction"
-    )
+    parser.add_argument("--enrich", action="store_true", help="Run LLM enrichment after extraction")
     parser.add_argument(
         "--skip-existing",
         action="store_true",
         default=True,
-        help="Skip projects that already have examples (default: True)"
+        help="Skip projects that already have examples (default: True)",
     )
     parser.add_argument(
         "--no-skip-existing",
         action="store_false",
         dest="skip_existing",
-        help="Process all projects, even those with existing examples"
+        help="Process all projects, even those with existing examples",
     )
 
     args = parser.parse_args()

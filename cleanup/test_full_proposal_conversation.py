@@ -9,6 +9,7 @@ import requests
 
 API_BASE = "http://localhost:8000/api"
 
+
 def test_full_conversation():
     """Test a complete proposal writing conversation"""
 
@@ -27,7 +28,7 @@ def test_full_conversation():
         f"{API_BASE}/v2/conversation/{conversation_id}/message/stream",
         json={"message": message1, "userId": "test-user"},
         stream=True,
-        headers={"Accept": "text/event-stream"}
+        headers={"Accept": "text/event-stream"},
     )
 
     if response1.status_code != 200:
@@ -44,7 +45,7 @@ def test_full_conversation():
         f"{API_BASE}/v2/conversation/{conversation_id}/message/stream",
         json={"message": message2, "userId": "test-user"},
         stream=True,
-        headers={"Accept": "text/event-stream"}
+        headers={"Accept": "text/event-stream"},
     )
 
     if response2.status_code != 200:
@@ -61,7 +62,7 @@ def test_full_conversation():
         f"{API_BASE}/v2/conversation/{conversation_id}/message/stream",
         json={"message": message3, "userId": "test-user"},
         stream=True,
-        headers={"Accept": "text/event-stream"}
+        headers={"Accept": "text/event-stream"},
     )
 
     if response3.status_code != 200:
@@ -77,47 +78,47 @@ def test_full_conversation():
     responses = [response1, response2, response3]
     messages = [message1, message2, message3]
 
-    for i, (response, message) in enumerate(zip(responses, messages, strict=False)):
-        print(f"\n{'=' * 40} RESPONSE {i+1} {'=' * 40}")
+    for i, (response, _message) in enumerate(zip(responses, messages, strict=False)):
+        print(f"\n{'=' * 40} RESPONSE {i + 1} {'=' * 40}")
 
         progress_count = 0
         token_count = 0
 
         for line in response.iter_lines():
             if line:
-                line_str = line.decode('utf-8')
+                line_str = line.decode("utf-8")
 
-                if line_str.startswith('data: '):
+                if line_str.startswith("data: "):
                     data_str = line_str[6:]
 
                     try:
                         data = json.loads(data_str)
-                        msg_type = data.get('type')
+                        msg_type = data.get("type")
 
-                        if msg_type == 'status':
+                        if msg_type == "status":
                             print(f"⏳ Status: {data.get('stage')} - {data.get('message')}")
 
-                        elif msg_type == 'progress':
+                        elif msg_type == "progress":
                             progress_count += 1
                             print(f"📊 Progress: {data.get('message')}")
 
-                        elif msg_type == 'token':
+                        elif msg_type == "token":
                             token_count += 1
-                            content = data.get('content', '')
-                            print(content, end='', flush=True)
+                            content = data.get("content", "")
+                            print(content, end="", flush=True)
 
-                        elif msg_type == 'complete':
+                        elif msg_type == "complete":
                             print(f"\n✅ Complete! ({data.get('processing_time', 0):.1f}s)")
                             break
 
-                        elif msg_type == 'error':
+                        elif msg_type == "error":
                             print(f"\n❌ Error: {data.get('error')}")
                             break
 
                     except json.JSONDecodeError:
                         print(f"⚠️  Invalid JSON: {data_str}")
 
-        print(f"\n📈 Response {i+1} stats: {progress_count} progress, {token_count} tokens")
+        print(f"\n📈 Response {i + 1} stats: {progress_count} progress, {token_count} tokens")
 
     print(f"\n{'=' * 80}")
     print("🎉 Conversation test completed successfully!")
@@ -129,6 +130,6 @@ def test_full_conversation():
     print("   - Uses proper streaming format")
     print("{'=' * 80}\n")
 
+
 if __name__ == "__main__":
     test_full_conversation()
-

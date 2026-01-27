@@ -58,9 +58,7 @@ class IncrementalEmbeddingService:
     def _init_pool(self):
         """Initialize database connection pool."""
         if IncrementalEmbeddingService._pool is None:
-            IncrementalEmbeddingService._pool = pool.SimpleConnectionPool(
-                1, 5, self.db_url
-            )
+            IncrementalEmbeddingService._pool = pool.SimpleConnectionPool(1, 5, self.db_url)
 
     def _init_embedding_client(self):
         """Initialize the embedding client."""
@@ -155,43 +153,49 @@ class IncrementalEmbeddingService:
             cursor = conn.cursor(cursor_factory=RealDictCursor)
 
             # Total projects with valid content
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT COUNT(*) as count FROM projects
                 WHERE title IS NOT NULL AND objective IS NOT NULL
                   AND LENGTH(title) > 10 AND LENGTH(objective) > 50
-            """)
-            total = cursor.fetchone()['count']
+            """
+            )
+            total = cursor.fetchone()["count"]
 
             # By status
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT embedding_status, COUNT(*) as count
                 FROM project_embeddings
                 GROUP BY embedding_status
-            """)
-            by_status = {row['embedding_status']: row['count'] for row in cursor.fetchall()}
+            """
+            )
+            by_status = {row["embedding_status"]: row["count"] for row in cursor.fetchall()}
 
             # Needing update
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT COUNT(*) as count FROM projects p
                 LEFT JOIN project_embeddings pe ON p.id = pe.project_id
                 WHERE p.title IS NOT NULL AND p.objective IS NOT NULL
                   AND (pe.project_id IS NULL OR pe.embedding_status = 'failed')
-            """)
-            needing_update = cursor.fetchone()['count']
+            """
+            )
+            needing_update = cursor.fetchone()["count"]
 
             cursor.close()
 
-            completed = by_status.get('completed', 0)
+            completed = by_status.get("completed", 0)
             coverage = round(completed / total * 100, 1) if total > 0 else 0
 
             return {
-                'total_projects': total,
-                'embedded': completed,
-                'failed': by_status.get('failed', 0),
-                'pending': by_status.get('pending', 0),
-                'needing_update': needing_update,
-                'coverage_pct': coverage,
-                'timestamp': datetime.now().isoformat()
+                "total_projects": total,
+                "embedded": completed,
+                "failed": by_status.get("failed", 0),
+                "pending": by_status.get("pending", 0),
+                "needing_update": needing_update,
+                "coverage_pct": coverage,
+                "timestamp": datetime.now().isoformat(),
             }
 
         except Exception as e:
@@ -212,12 +216,10 @@ class IncrementalEmbeddingService:
                 text = text[:max_chars]
 
             result = genai.embed_content(
-                model=self.embedding_model,
-                content=text,
-                task_type="retrieval_document"
+                model=self.embedding_model, content=text, task_type="retrieval_document"
             )
 
-            return result['embedding']
+            return result["embedding"]
 
         except Exception as e:
             logger.error(f"Embedding generation error: {e}")
@@ -241,9 +243,9 @@ class IncrementalEmbeddingService:
             cursor = conn.cursor()
 
             for project in projects:
-                project_id = project['id']
-                title = project.get('title', '')
-                objective = project.get('objective', '')
+                project_id = project["id"]
+                title = project.get("title", "")
+                objective = project.get("objective", "")
 
                 # Combine title and objective for embedding
                 text = f"{title}. {objective}"
@@ -255,7 +257,8 @@ class IncrementalEmbeddingService:
 
                 if embedding:
                     # Upsert embedding
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         INSERT INTO project_embeddings
                         (project_id, embedding, text_length, embedding_status, updated_at)
                         VALUES (%s, %s, %s, 'completed', NOW())
@@ -265,11 +268,14 @@ class IncrementalEmbeddingService:
                             text_length = EXCLUDED.text_length,
                             embedding_status = 'completed',
                             updated_at = NOW()
-                    """, (project_id, embedding, text_length))
+                    """,
+                        (project_id, embedding, text_length),
+                    )
                     success += 1
                 else:
                     # Mark as failed
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         INSERT INTO project_embeddings
                         (project_id, text_length, embedding_status, updated_at)
                         VALUES (%s, %s, 'failed', NOW())
@@ -277,7 +283,9 @@ class IncrementalEmbeddingService:
                         DO UPDATE SET
                             embedding_status = 'failed',
                             updated_at = NOW()
-                    """, (project_id, text_length))
+                    """,
+                        (project_id, text_length),
+                    )
                     failed += 1
 
                 # Commit in batches
@@ -288,7 +296,9 @@ class IncrementalEmbeddingService:
             conn.commit()
             cursor.close()
 
-            logger.info(f"📊 Embedding batch: processed={processed}, success={success}, failed={failed}")
+            logger.info(
+                f"📊 Embedding batch: processed={processed}, success={success}, failed={failed}"
+            )
 
         except Exception as e:
             logger.error(f"Error processing embedding batch: {e}")
@@ -298,11 +308,7 @@ class IncrementalEmbeddingService:
         finally:
             self._put_connection(conn)
 
-        return {
-            "processed": processed,
-            "success": success,
-            "failed": failed
-        }
+        return {"processed": processed, "success": success, "failed": failed}
 
     def run_incremental_update(self, max_projects: int = 500) -> dict[str, Any]:
         """
@@ -327,7 +333,7 @@ class IncrementalEmbeddingService:
                 "status": "complete",
                 "message": "No projects need embedding updates",
                 "processed": 0,
-                "duration_seconds": 0
+                "duration_seconds": 0,
             }
 
         logger.info(f"🔄 Starting incremental embedding update for {len(projects)} projects")
@@ -336,7 +342,7 @@ class IncrementalEmbeddingService:
         total_results = {"processed": 0, "success": 0, "failed": 0}
 
         for i in range(0, len(projects), self.batch_size):
-            batch = projects[i:i + self.batch_size]
+            batch = projects[i : i + self.batch_size]
             batch_results = self.process_project_batch(batch)
 
             total_results["processed"] += batch_results.get("processed", 0)
@@ -353,8 +359,10 @@ class IncrementalEmbeddingService:
             "success": total_results["success"],
             "failed": total_results["failed"],
             "duration_seconds": round(duration, 1),
-            "rate_per_second": round(total_results["processed"] / duration, 1) if duration > 0 else 0,
-            "timestamp": datetime.now().isoformat()
+            "rate_per_second": (
+                round(total_results["processed"] / duration, 1) if duration > 0 else 0
+            ),
+            "timestamp": datetime.now().isoformat(),
         }
 
 

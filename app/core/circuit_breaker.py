@@ -18,14 +18,16 @@ logger = logging.getLogger(__name__)
 
 class CircuitState(Enum):
     """Circuit breaker states."""
-    CLOSED = "closed"      # Normal operation, calls pass through
-    OPEN = "open"          # Circuit tripped, calls are blocked
+
+    CLOSED = "closed"  # Normal operation, calls pass through
+    OPEN = "open"  # Circuit tripped, calls are blocked
     HALF_OPEN = "half_open"  # Testing if service recovered
 
 
 @dataclass
 class CircuitStats:
     """Statistics for a circuit breaker."""
+
     total_calls: int = 0
     successful_calls: int = 0
     failed_calls: int = 0
@@ -40,6 +42,7 @@ class CircuitStats:
 @dataclass
 class CircuitBreakerConfig:
     """Configuration for a circuit breaker."""
+
     failure_threshold: int = 5  # Failures before opening
     success_threshold: int = 3  # Successes in half-open before closing
     recovery_timeout: int = 60  # Seconds before trying half-open
@@ -76,13 +79,13 @@ class CircuitBreaker:
         success_threshold: int = 3,
         recovery_timeout: int = 60,
         expected_exception: type = Exception,
-        config: CircuitBreakerConfig | None = None
+        config: CircuitBreakerConfig | None = None,
     ):
         self.name = name
         self.config = config or CircuitBreakerConfig(
             failure_threshold=failure_threshold,
             success_threshold=success_threshold,
-            recovery_timeout=recovery_timeout
+            recovery_timeout=recovery_timeout,
         )
         self.expected_exception = expected_exception
 
@@ -128,9 +131,7 @@ class CircuitBreaker:
         if new_state == CircuitState.HALF_OPEN:
             self._half_open_calls = 0
 
-        logger.info(
-            f"Circuit '{self.name}' transitioned: {old_state.value} -> {new_state.value}"
-        )
+        logger.info(f"Circuit '{self.name}' transitioned: {old_state.value} -> {new_state.value}")
 
     def _on_success(self):
         """Handle successful call."""
@@ -166,12 +167,7 @@ class CircuitBreaker:
                         f"{self._stats.consecutive_failures} consecutive failures"
                     )
 
-    async def call(
-        self,
-        func: Callable,
-        *args,
-        **kwargs
-    ) -> Any:
+    async def call(self, func: Callable, *args, **kwargs) -> Any:
         """
         Execute a function through the circuit breaker.
 
@@ -194,19 +190,20 @@ class CircuitBreaker:
             else:
                 self._stats.rejected_calls += 1
                 from .exceptions import CircuitBreakerOpenError
+
                 raise CircuitBreakerOpenError(
-                    circuit_name=self.name,
-                    recovery_time=self._time_until_recovery()
+                    circuit_name=self.name, recovery_time=self._time_until_recovery()
                 )
 
         if self._state == CircuitState.HALF_OPEN:
             if self._half_open_calls >= self.config.half_open_max_calls:
                 self._stats.rejected_calls += 1
                 from .exceptions import CircuitBreakerOpenError
+
                 raise CircuitBreakerOpenError(
                     circuit_name=self.name,
                     recovery_time=10,  # Short wait for half-open limit
-                    message=f"Circuit '{self.name}' is in half-open state with max calls reached"
+                    message=f"Circuit '{self.name}' is in half-open state with max calls reached",
                 )
             self._half_open_calls += 1
 
@@ -249,15 +246,25 @@ class CircuitBreaker:
                 "rejected_calls": self._stats.rejected_calls,
                 "consecutive_failures": self._stats.consecutive_failures,
                 "consecutive_successes": self._stats.consecutive_successes,
-                "last_failure": self._stats.last_failure_time.isoformat() if self._stats.last_failure_time else None,
-                "last_success": self._stats.last_success_time.isoformat() if self._stats.last_success_time else None,
+                "last_failure": (
+                    self._stats.last_failure_time.isoformat()
+                    if self._stats.last_failure_time
+                    else None
+                ),
+                "last_success": (
+                    self._stats.last_success_time.isoformat()
+                    if self._stats.last_success_time
+                    else None
+                ),
             },
             "config": {
                 "failure_threshold": self.config.failure_threshold,
                 "success_threshold": self.config.success_threshold,
                 "recovery_timeout": self.config.recovery_timeout,
             },
-            "time_until_recovery": self._time_until_recovery() if self._state == CircuitState.OPEN else None
+            "time_until_recovery": (
+                self._time_until_recovery() if self._state == CircuitState.OPEN else None
+            ),
         }
 
 
@@ -276,7 +283,7 @@ def get_circuit_breaker(
     name: str,
     failure_threshold: int = 5,
     recovery_timeout: int = 60,
-    expected_exception: type = Exception
+    expected_exception: type = Exception,
 ) -> CircuitBreaker:
     """
     Get or create a named circuit breaker.
@@ -296,7 +303,7 @@ def get_circuit_breaker(
                 name=name,
                 failure_threshold=failure_threshold,
                 recovery_timeout=recovery_timeout,
-                expected_exception=expected_exception
+                expected_exception=expected_exception,
             )
         return _circuit_breakers[name]
 
@@ -304,38 +311,22 @@ def get_circuit_breaker(
 # Pre-configured circuit breakers for common services
 def get_neo4j_circuit() -> CircuitBreaker:
     """Get circuit breaker for Neo4j."""
-    return get_circuit_breaker(
-        name="neo4j",
-        failure_threshold=5,
-        recovery_timeout=60
-    )
+    return get_circuit_breaker(name="neo4j", failure_threshold=5, recovery_timeout=60)
 
 
 def get_gemini_circuit() -> CircuitBreaker:
     """Get circuit breaker for Gemini API."""
-    return get_circuit_breaker(
-        name="gemini",
-        failure_threshold=3,
-        recovery_timeout=30
-    )
+    return get_circuit_breaker(name="gemini", failure_threshold=3, recovery_timeout=30)
 
 
 def get_eu_portal_circuit() -> CircuitBreaker:
     """Get circuit breaker for EU Portal API."""
-    return get_circuit_breaker(
-        name="eu_portal",
-        failure_threshold=3,
-        recovery_timeout=120
-    )
+    return get_circuit_breaker(name="eu_portal", failure_threshold=3, recovery_timeout=120)
 
 
 def get_embedding_circuit() -> CircuitBreaker:
     """Get circuit breaker for embedding service."""
-    return get_circuit_breaker(
-        name="embedding",
-        failure_threshold=3,
-        recovery_timeout=60
-    )
+    return get_circuit_breaker(name="embedding", failure_threshold=3, recovery_timeout=60)
 
 
 def get_all_circuit_statuses() -> dict[str, dict[str, Any]]:
@@ -354,11 +345,12 @@ def reset_all_circuits():
 # DECORATOR FOR CIRCUIT BREAKER
 # ============================================================================
 
+
 def with_circuit_breaker(
     circuit_name: str,
     failure_threshold: int = 5,
     recovery_timeout: int = 60,
-    expected_exception: type = Exception
+    expected_exception: type = Exception,
 ):
     """
     Decorator to wrap async functions with a circuit breaker.
@@ -368,14 +360,17 @@ def with_circuit_breaker(
         async def query_neo4j(query: str):
             ...
     """
+
     def decorator(func: Callable) -> Callable:
         async def wrapper(*args, **kwargs):
             circuit = get_circuit_breaker(
                 name=circuit_name,
                 failure_threshold=failure_threshold,
                 recovery_timeout=recovery_timeout,
-                expected_exception=expected_exception
+                expected_exception=expected_exception,
             )
             return await circuit.call(func, *args, **kwargs)
+
         return wrapper
+
     return decorator

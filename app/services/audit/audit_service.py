@@ -35,6 +35,7 @@ logger = logging.getLogger(__name__)
 
 class AuditEventType(str, Enum):
     """Types of audit events."""
+
     # Authentication
     LOGIN = "auth.login"
     LOGOUT = "auth.logout"
@@ -93,6 +94,7 @@ class AuditEventType(str, Enum):
 
 class AuditAction(str, Enum):
     """CRUD actions for audit events."""
+
     CREATE = "create"
     READ = "read"
     UPDATE = "update"
@@ -106,6 +108,7 @@ class AuditAction(str, Enum):
 @dataclass
 class AuditEvent:
     """An audit event record."""
+
     event_id: str
     event_type: AuditEventType
     action: AuditAction
@@ -272,7 +275,7 @@ class AuditService:
                 "event_type": event.event_type.value,
                 "user_id": event.user_id,
                 "success": event.success,
-            }
+            },
         )
 
     async def flush(self):
@@ -308,29 +311,32 @@ class AuditService:
             with self.db_pool.get_connection() as conn:
                 with conn.cursor() as cur:
                     for event in events:
-                        cur.execute(query, (
-                            event.event_id,
-                            event.event_type.value,
-                            event.action.value,
-                            event.timestamp,
-                            event.user_id,
-                            event.organization_id,
-                            event.session_id,
-                            event.resource_type,
-                            event.resource_id,
-                            event.resource_name,
-                            event.ip_address,
-                            event.user_agent,
-                            event.request_id,
-                            event.endpoint,
-                            event.http_method,
-                            event.success,
-                            event.error_message,
-                            event.error_code,
-                            json.dumps(event.details),
-                            json.dumps(event.metadata),
-                            event.duration_ms,
-                        ))
+                        cur.execute(
+                            query,
+                            (
+                                event.event_id,
+                                event.event_type.value,
+                                event.action.value,
+                                event.timestamp,
+                                event.user_id,
+                                event.organization_id,
+                                event.session_id,
+                                event.resource_type,
+                                event.resource_id,
+                                event.resource_name,
+                                event.ip_address,
+                                event.user_agent,
+                                event.request_id,
+                                event.endpoint,
+                                event.http_method,
+                                event.success,
+                                event.error_message,
+                                event.error_code,
+                                json.dumps(event.details),
+                                json.dumps(event.metadata),
+                                event.duration_ms,
+                            ),
+                        )
                     conn.commit()
         except Exception as e:
             logger.error(f"Failed to write audit events: {e}")
@@ -735,10 +741,7 @@ class AuditService:
             "query_events": stats_row[4] or 0,
             "proposal_events": stats_row[5] or 0,
             "avg_duration_ms": float(stats_row[6]) if stats_row[6] else None,
-            "top_users": [
-                {"user_id": row[0], "event_count": row[1]}
-                for row in top_users
-            ],
+            "top_users": [{"user_id": row[0], "event_count": row[1]} for row in top_users],
         }
 
 

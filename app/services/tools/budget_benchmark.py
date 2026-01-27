@@ -25,22 +25,104 @@ logger = logging.getLogger(__name__)
 
 # Cluster keyword mapping for automatic cluster inference
 CLUSTER_KEYWORDS = {
-    'CLUSTER-1': ['health', 'medical', 'clinical', 'disease', 'patient', 'healthcare',
-                  'hospital', 'therapy', 'diagnosis', 'pharmaceutical', 'cancer',
-                  'vaccine', 'drug', 'pandemic', 'pathogen', 'infection'],
-    'CLUSTER-2': ['culture', 'democracy', 'social', 'heritage', 'creative', 'inclusive',
-                  'society', 'governance', 'media', 'migration', 'inequality', 'education'],
-    'CLUSTER-3': ['security', 'cybersecurity', 'border', 'crime', 'disaster', 'resilience',
-                  'defence', 'defense', 'terrorism', 'critical infrastructure', 'forensic'],
-    'CLUSTER-4': ['digital', 'AI', 'artificial intelligence', 'data', 'industry', 'space',
-                  'manufacturing', 'robotics', 'computing', 'machine learning', 'quantum',
-                  'electronics', 'semiconductor', 'cloud', 'IoT', 'blockchain'],
-    'CLUSTER-5': ['climate', 'energy', 'mobility', 'transport', 'hydrogen', 'battery',
-                  'renewable', 'green', 'carbon', 'solar', 'wind', 'electric vehicle',
-                  'sustainable', 'emission', 'fuel cell', 'smart grid'],
-    'CLUSTER-6': ['food', 'agriculture', 'bioeconomy', 'biodiversity', 'ocean', 'environment',
-                  'soil', 'water', 'forestry', 'marine', 'fisheries', 'circular economy',
-                  'ecosystem', 'nature', 'farming']
+    "CLUSTER-1": [
+        "health",
+        "medical",
+        "clinical",
+        "disease",
+        "patient",
+        "healthcare",
+        "hospital",
+        "therapy",
+        "diagnosis",
+        "pharmaceutical",
+        "cancer",
+        "vaccine",
+        "drug",
+        "pandemic",
+        "pathogen",
+        "infection",
+    ],
+    "CLUSTER-2": [
+        "culture",
+        "democracy",
+        "social",
+        "heritage",
+        "creative",
+        "inclusive",
+        "society",
+        "governance",
+        "media",
+        "migration",
+        "inequality",
+        "education",
+    ],
+    "CLUSTER-3": [
+        "security",
+        "cybersecurity",
+        "border",
+        "crime",
+        "disaster",
+        "resilience",
+        "defence",
+        "defense",
+        "terrorism",
+        "critical infrastructure",
+        "forensic",
+    ],
+    "CLUSTER-4": [
+        "digital",
+        "AI",
+        "artificial intelligence",
+        "data",
+        "industry",
+        "space",
+        "manufacturing",
+        "robotics",
+        "computing",
+        "machine learning",
+        "quantum",
+        "electronics",
+        "semiconductor",
+        "cloud",
+        "IoT",
+        "blockchain",
+    ],
+    "CLUSTER-5": [
+        "climate",
+        "energy",
+        "mobility",
+        "transport",
+        "hydrogen",
+        "battery",
+        "renewable",
+        "green",
+        "carbon",
+        "solar",
+        "wind",
+        "electric vehicle",
+        "sustainable",
+        "emission",
+        "fuel cell",
+        "smart grid",
+    ],
+    "CLUSTER-6": [
+        "food",
+        "agriculture",
+        "bioeconomy",
+        "biodiversity",
+        "ocean",
+        "environment",
+        "soil",
+        "water",
+        "forestry",
+        "marine",
+        "fisheries",
+        "circular economy",
+        "ecosystem",
+        "nature",
+        "farming",
+    ],
 }
 
 
@@ -64,6 +146,7 @@ class BudgetBenchmarkTool:
         self._graph_service = None
         try:
             from ..data_intelligence.graph_service import GraphSearchService
+
             self._graph_service = GraphSearchService()
             logger.info("✅ Graph service available for budget benchmarks")
         except Exception as e:
@@ -108,7 +191,7 @@ class BudgetBenchmarkTool:
         year: int | None = None,
         include_consortium_context: bool = True,
         include_org_type_breakdown: bool = True,
-        include_country_breakdown: bool = False
+        include_country_breakdown: bool = False,
     ) -> dict[str, Any]:
         """
         Get budget benchmarks using HYBRID Graph+SQL architecture.
@@ -125,7 +208,9 @@ class BudgetBenchmarkTool:
         Returns:
             Budget statistics with recommendations from hybrid sources
         """
-        logger.info(f"get_benchmark called with: cluster={cluster!r}, action_type={action_type!r}, topic_keywords={topic_keywords!r}")
+        logger.info(
+            f"get_benchmark called with: cluster={cluster!r}, action_type={action_type!r}, topic_keywords={topic_keywords!r}"
+        )
 
         # Normalize cluster code
         normalized_cluster = self._normalize_cluster_code(cluster)
@@ -146,13 +231,13 @@ class BudgetBenchmarkTool:
             year=year,
             include_consortium_context=include_consortium_context,
             include_org_type_breakdown=include_org_type_breakdown,
-            include_country_breakdown=include_country_breakdown
+            include_country_breakdown=include_country_breakdown,
         )
 
         # Add inferred clusters to metadata
         if inferred_clusters:
-            result['metadata'] = result.get('metadata', {})
-            result['metadata']['inferred_clusters'] = inferred_clusters
+            result["metadata"] = result.get("metadata", {})
+            result["metadata"]["inferred_clusters"] = inferred_clusters
 
         return result
 
@@ -173,27 +258,48 @@ class BudgetBenchmarkTool:
             logger.debug("_normalize_cluster_code: empty after strip")
             return None
 
-        cluster_upper = cluster.upper().replace(' ', '').replace('-', '')
+        cluster_upper = cluster.upper().replace(" ", "").replace("-", "")
         logger.debug(f"_normalize_cluster_code: input='{cluster}', normalized='{cluster_upper}'")
 
         # Map various formats to standard CLUSTER-X format
         cluster_map = {
             # Full names
-            'CLUSTER1': 'CLUSTER-1', 'CLUSTER2': 'CLUSTER-2', 'CLUSTER3': 'CLUSTER-3',
-            'CLUSTER4': 'CLUSTER-4', 'CLUSTER5': 'CLUSTER-5', 'CLUSTER6': 'CLUSTER-6',
+            "CLUSTER1": "CLUSTER-1",
+            "CLUSTER2": "CLUSTER-2",
+            "CLUSTER3": "CLUSTER-3",
+            "CLUSTER4": "CLUSTER-4",
+            "CLUSTER5": "CLUSTER-5",
+            "CLUSTER6": "CLUSTER-6",
             # Short codes CL1-CL6
-            'CL1': 'CLUSTER-1', 'CL2': 'CLUSTER-2', 'CL3': 'CLUSTER-3',
-            'CL4': 'CLUSTER-4', 'CL5': 'CLUSTER-5', 'CL6': 'CLUSTER-6',
+            "CL1": "CLUSTER-1",
+            "CL2": "CLUSTER-2",
+            "CL3": "CLUSTER-3",
+            "CL4": "CLUSTER-4",
+            "CL5": "CLUSTER-5",
+            "CL6": "CLUSTER-6",
             # Just numbers (1-6)
-            '1': 'CLUSTER-1', '2': 'CLUSTER-2', '3': 'CLUSTER-3',
-            '4': 'CLUSTER-4', '5': 'CLUSTER-5', '6': 'CLUSTER-6',
+            "1": "CLUSTER-1",
+            "2": "CLUSTER-2",
+            "3": "CLUSTER-3",
+            "4": "CLUSTER-4",
+            "5": "CLUSTER-5",
+            "6": "CLUSTER-6",
             # Thematic names
-            'HEALTH': 'CLUSTER-1', 'HLTH': 'CLUSTER-1',
-            'CULTURE': 'CLUSTER-2', 'SOCIETY': 'CLUSTER-2',
-            'SECURITY': 'CLUSTER-3', 'CIVIL': 'CLUSTER-3',
-            'DIGITAL': 'CLUSTER-4', 'INDUSTRY': 'CLUSTER-4', 'SPACE': 'CLUSTER-4',
-            'CLIMATE': 'CLUSTER-5', 'ENERGY': 'CLUSTER-5', 'MOBILITY': 'CLUSTER-5',
-            'FOOD': 'CLUSTER-6', 'BIO': 'CLUSTER-6', 'BIOECONOMY': 'CLUSTER-6',
+            "HEALTH": "CLUSTER-1",
+            "HLTH": "CLUSTER-1",
+            "CULTURE": "CLUSTER-2",
+            "SOCIETY": "CLUSTER-2",
+            "SECURITY": "CLUSTER-3",
+            "CIVIL": "CLUSTER-3",
+            "DIGITAL": "CLUSTER-4",
+            "INDUSTRY": "CLUSTER-4",
+            "SPACE": "CLUSTER-4",
+            "CLIMATE": "CLUSTER-5",
+            "ENERGY": "CLUSTER-5",
+            "MOBILITY": "CLUSTER-5",
+            "FOOD": "CLUSTER-6",
+            "BIO": "CLUSTER-6",
+            "BIOECONOMY": "CLUSTER-6",
         }
 
         result = cluster_map.get(cluster_upper)
@@ -202,15 +308,17 @@ class BudgetBenchmarkTool:
             return result
 
         # Fallback for formats like "CLUSTER-4" that are already correct
-        if cluster.upper().startswith('CLUSTER'):
+        if cluster.upper().startswith("CLUSTER"):
             # Extract number and format properly
-            match = re.search(r'(\d+)', cluster)
+            match = re.search(r"(\d+)", cluster)
             if match:
                 num = match.group(1)
                 result = f"CLUSTER-{num}"
                 logger.debug(f"_normalize_cluster_code: extracted number, result='{result}'")
                 return result
-            logger.warning(f"_normalize_cluster_code: starts with CLUSTER but no number found: '{cluster}'")
+            logger.warning(
+                f"_normalize_cluster_code: starts with CLUSTER but no number found: '{cluster}'"
+            )
             return cluster.upper()
 
         logger.warning(f"_normalize_cluster_code: could not normalize '{cluster}', returning None")
@@ -224,7 +332,7 @@ class BudgetBenchmarkTool:
         year: int | None,
         include_consortium_context: bool,
         include_org_type_breakdown: bool,
-        include_country_breakdown: bool
+        include_country_breakdown: bool,
     ) -> dict[str, Any]:
         """
         Execute hybrid Graph+SQL benchmark search.
@@ -244,51 +352,42 @@ class BudgetBenchmarkTool:
 
             # Submit graph query if available
             if self._graph_service and cluster:
-                futures['graph'] = executor.submit(
-                    self._get_benchmark_graph,
-                    cluster, action_type
-                )
+                futures["graph"] = executor.submit(self._get_benchmark_graph, cluster, action_type)
 
             # Submit SQL query
-            futures['sql'] = executor.submit(
-                self._get_benchmark_sql,
-                cluster, action_type, topic_keywords, year
+            futures["sql"] = executor.submit(
+                self._get_benchmark_sql, cluster, action_type, topic_keywords, year
             )
 
             # Submit consortium patterns if requested
             if include_consortium_context and self._graph_service and cluster:
-                futures['consortium'] = executor.submit(
-                    self._get_consortium_context,
-                    cluster
-                )
+                futures["consortium"] = executor.submit(self._get_consortium_context, cluster)
 
             # Submit org type breakdown if requested
             if include_org_type_breakdown and cluster:
-                futures['org_type'] = executor.submit(
-                    self._get_budget_by_org_type,
-                    cluster, action_type
+                futures["org_type"] = executor.submit(
+                    self._get_budget_by_org_type, cluster, action_type
                 )
 
             # Submit country breakdown if requested
             if include_country_breakdown and cluster:
-                futures['country'] = executor.submit(
-                    self._get_budget_by_country,
-                    cluster, action_type
+                futures["country"] = executor.submit(
+                    self._get_budget_by_country, cluster, action_type
                 )
 
             # Collect results
             for key, future in futures.items():
                 try:
                     result = future.result(timeout=30)
-                    if key == 'graph':
+                    if key == "graph":
                         graph_stats = result
-                    elif key == 'sql':
+                    elif key == "sql":
                         sql_stats = result
-                    elif key == 'consortium':
+                    elif key == "consortium":
                         consortium_patterns = result
-                    elif key == 'org_type':
+                    elif key == "org_type":
                         org_type_breakdown = result
-                    elif key == 'country':
+                    elif key == "country":
                         country_breakdown = result
                 except Exception as e:
                     logger.warning(f"Failed to get {key} benchmark: {e}")
@@ -297,23 +396,23 @@ class BudgetBenchmarkTool:
         merged_stats = self._merge_benchmark_results(graph_stats, sql_stats)
 
         # Get sample projects from SQL
-        if sql_stats and 'sample_projects' in sql_stats:
-            sample_projects = sql_stats['sample_projects']
+        if sql_stats and "sample_projects" in sql_stats:
+            sample_projects = sql_stats["sample_projects"]
 
         # Build response
-        statistics = merged_stats.get('statistics', {})
-        project_count = statistics.get('projects_analyzed', 0)
+        statistics = merged_stats.get("statistics", {})
+        project_count = statistics.get("projects_analyzed", 0)
 
         # Generate recommendations
         recommendations = self._generate_recommendations(
-            avg_budget=statistics.get('total_eu_contribution', {}).get('average', 0),
-            median_budget=statistics.get('total_eu_contribution', {}).get('median', 0),
-            std_dev=statistics.get('total_eu_contribution', {}).get('std_dev', 0),
-            avg_partners=statistics.get('consortium_size', {}).get('average', 0),
-            median_partners=statistics.get('consortium_size', {}).get('median', 0),
-            avg_per_partner=statistics.get('budget_per_partner', {}).get('average', 0),
+            avg_budget=statistics.get("total_eu_contribution", {}).get("average", 0),
+            median_budget=statistics.get("total_eu_contribution", {}).get("median", 0),
+            std_dev=statistics.get("total_eu_contribution", {}).get("std_dev", 0),
+            avg_partners=statistics.get("consortium_size", {}).get("average", 0),
+            median_partners=statistics.get("consortium_size", {}).get("median", 0),
+            avg_per_partner=statistics.get("budget_per_partner", {}).get("average", 0),
             action_type=action_type,
-            project_count=project_count
+            project_count=project_count,
         )
 
         result = {
@@ -323,41 +422,41 @@ class BudgetBenchmarkTool:
                 "cluster": cluster,
                 "action_type": action_type,
                 "topic_keywords": topic_keywords,
-                "year": year
+                "year": year,
             },
             "statistics": statistics,
             "recommendations": recommendations,
             "sample_projects": sample_projects,
             "metadata": {
-                "search_type": "hybrid" if graph_stats and sql_stats else ("graph_only" if graph_stats else "sql_only"),
+                "search_type": (
+                    "hybrid"
+                    if graph_stats and sql_stats
+                    else ("graph_only" if graph_stats else "sql_only")
+                ),
                 "sources_used": [],
-                "graph_project_count": graph_stats.get('project_count', 0) if graph_stats else 0,
-                "sql_project_count": sql_stats.get('project_count', 0) if sql_stats else 0
+                "graph_project_count": graph_stats.get("project_count", 0) if graph_stats else 0,
+                "sql_project_count": sql_stats.get("project_count", 0) if sql_stats else 0,
             },
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
         # Track sources used
         if graph_stats:
-            result['metadata']['sources_used'].append('graph')
+            result["metadata"]["sources_used"].append("graph")
         if sql_stats:
-            result['metadata']['sources_used'].append('sql')
+            result["metadata"]["sources_used"].append("sql")
 
         # Add optional breakdowns
         if consortium_patterns:
-            result['consortium_context'] = consortium_patterns
+            result["consortium_context"] = consortium_patterns
         if org_type_breakdown:
-            result['budget_by_org_type'] = org_type_breakdown
+            result["budget_by_org_type"] = org_type_breakdown
         if country_breakdown:
-            result['budget_by_country'] = country_breakdown
+            result["budget_by_country"] = country_breakdown
 
         return result
 
-    def _get_benchmark_graph(
-        self,
-        cluster: str,
-        action_type: str | None
-    ) -> dict[str, Any] | None:
+    def _get_benchmark_graph(self, cluster: str, action_type: str | None) -> dict[str, Any] | None:
         """
         Get budget statistics from Neo4j graph.
 
@@ -368,8 +467,7 @@ class BudgetBenchmarkTool:
 
         try:
             stats_list = self._graph_service.get_budget_statistics(
-                cluster_code=cluster,
-                action_type=action_type
+                cluster_code=cluster, action_type=action_type
             )
 
             if not stats_list:
@@ -381,24 +479,27 @@ class BudgetBenchmarkTool:
             else:
                 # Aggregate across clusters
                 stats = {
-                    'project_count': sum(s.get('project_count', 0) for s in stats_list),
-                    'total_funding': sum(s.get('total_funding', 0) for s in stats_list),
-                    'avg_budget': sum(s.get('avg_budget', 0) * s.get('project_count', 1) for s in stats_list) / max(sum(s.get('project_count', 1) for s in stats_list), 1),
-                    'min_budget': min(s.get('min_budget', float('inf')) for s in stats_list),
-                    'max_budget': max(s.get('max_budget', 0) for s in stats_list),
-                    'median_budget': stats_list[0].get('median_budget', 0),  # Approximate
-                    'cluster_code': cluster,
-                    'source': 'neo4j_graph'
+                    "project_count": sum(s.get("project_count", 0) for s in stats_list),
+                    "total_funding": sum(s.get("total_funding", 0) for s in stats_list),
+                    "avg_budget": sum(
+                        s.get("avg_budget", 0) * s.get("project_count", 1) for s in stats_list
+                    )
+                    / max(sum(s.get("project_count", 1) for s in stats_list), 1),
+                    "min_budget": min(s.get("min_budget", float("inf")) for s in stats_list),
+                    "max_budget": max(s.get("max_budget", 0) for s in stats_list),
+                    "median_budget": stats_list[0].get("median_budget", 0),  # Approximate
+                    "cluster_code": cluster,
+                    "source": "neo4j_graph",
                 }
 
             return {
-                'project_count': stats.get('project_count', 0),
-                'total_funding': stats.get('total_funding', 0),
-                'avg_budget': stats.get('avg_budget', 0),
-                'min_budget': stats.get('min_budget', 0),
-                'max_budget': stats.get('max_budget', 0),
-                'median_budget': stats.get('median_budget', 0),
-                'source': 'neo4j_graph'
+                "project_count": stats.get("project_count", 0),
+                "total_funding": stats.get("total_funding", 0),
+                "avg_budget": stats.get("avg_budget", 0),
+                "min_budget": stats.get("min_budget", 0),
+                "max_budget": stats.get("max_budget", 0),
+                "median_budget": stats.get("median_budget", 0),
+                "source": "neo4j_graph",
             }
 
         except Exception as e:
@@ -410,7 +511,7 @@ class BudgetBenchmarkTool:
         cluster: str | None,
         action_type: str | None,
         topic_keywords: str | None,
-        year: int | None
+        year: int | None,
     ) -> dict[str, Any] | None:
         """
         Get budget statistics from PostgreSQL.
@@ -432,12 +533,12 @@ class BudgetBenchmarkTool:
             if cluster:
                 # Map CLUSTER-X to topic patterns
                 cluster_topic_map = {
-                    'CLUSTER-1': 'HLTH',
-                    'CLUSTER-2': 'CL2',
-                    'CLUSTER-3': 'CL3',
-                    'CLUSTER-4': 'CL4',
-                    'CLUSTER-5': 'CL5',
-                    'CLUSTER-6': 'CL6',
+                    "CLUSTER-1": "HLTH",
+                    "CLUSTER-2": "CL2",
+                    "CLUSTER-3": "CL3",
+                    "CLUSTER-4": "CL4",
+                    "CLUSTER-5": "CL5",
+                    "CLUSTER-6": "CL6",
                 }
                 topic_pattern = cluster_topic_map.get(cluster, cluster)
                 where_conditions.append("p.topics ILIKE %s")
@@ -446,7 +547,7 @@ class BudgetBenchmarkTool:
             # Action type filter
             if action_type:
                 action_normalized = action_type.upper()
-                where_conditions.append("p.\"fundingScheme\" ILIKE %s")
+                where_conditions.append('p."fundingScheme" ILIKE %s')
                 params.append(f"%{action_normalized}%")
 
             # Topic keywords filter
@@ -460,7 +561,7 @@ class BudgetBenchmarkTool:
 
             # Year filter
             if year:
-                where_conditions.append("EXTRACT(YEAR FROM p.\"startDate\") = %s")
+                where_conditions.append('EXTRACT(YEAR FROM p."startDate") = %s')
                 params.append(year)
 
             where_clause = " AND ".join(where_conditions)
@@ -504,7 +605,7 @@ class BudgetBenchmarkTool:
             cursor.execute(stats_sql, params)
             stats_row = cursor.fetchone()
 
-            if not stats_row or stats_row['project_count'] == 0:
+            if not stats_row or stats_row["project_count"] == 0:
                 cursor.close()
                 conn.close()
                 return None
@@ -537,30 +638,31 @@ class BudgetBenchmarkTool:
             conn.close()
 
             return {
-                'project_count': int(stats_row['project_count']),
-                'total_funding': float(stats_row['total_funding'] or 0),
-                'avg_budget': float(stats_row['avg_budget'] or 0),
-                'min_budget': float(stats_row['min_budget'] or 0),
-                'max_budget': float(stats_row['max_budget'] or 0),
-                'median_budget': float(stats_row['median_budget'] or 0),
-                'std_dev': float(stats_row['std_dev'] or 0),
-                'avg_partners': float(stats_row['avg_partners'] or 0),
-                'min_partners': int(stats_row['min_partners'] or 0),
-                'max_partners': int(stats_row['max_partners'] or 0),
-                'median_partners': float(stats_row['median_partners'] or 0),
-                'avg_per_partner': float(stats_row['avg_per_partner'] or 0),
-                'source': 'postgresql',
-                'sample_projects': [
+                "project_count": int(stats_row["project_count"]),
+                "total_funding": float(stats_row["total_funding"] or 0),
+                "avg_budget": float(stats_row["avg_budget"] or 0),
+                "min_budget": float(stats_row["min_budget"] or 0),
+                "max_budget": float(stats_row["max_budget"] or 0),
+                "median_budget": float(stats_row["median_budget"] or 0),
+                "std_dev": float(stats_row["std_dev"] or 0),
+                "avg_partners": float(stats_row["avg_partners"] or 0),
+                "min_partners": int(stats_row["min_partners"] or 0),
+                "max_partners": int(stats_row["max_partners"] or 0),
+                "median_partners": float(stats_row["median_partners"] or 0),
+                "avg_per_partner": float(stats_row["avg_per_partner"] or 0),
+                "source": "postgresql",
+                "sample_projects": [
                     {
-                        "acronym": p.get('acronym') or 'N/A',
-                        "title": (p.get('title') or '')[:80] + ('...' if len(p.get('title') or '') > 80 else ''),
-                        "eu_contribution": round(float(p.get('eu_contribution') or 0), 0),
-                        "partners": int(p.get('partner_count') or 0),
-                        "action_type": p.get('fundingScheme') or p.get('fundingscheme') or 'N/A',
-                        "start_year": p.get('startDate').year if p.get('startDate') else None
+                        "acronym": p.get("acronym") or "N/A",
+                        "title": (p.get("title") or "")[:80]
+                        + ("..." if len(p.get("title") or "") > 80 else ""),
+                        "eu_contribution": round(float(p.get("eu_contribution") or 0), 0),
+                        "partners": int(p.get("partner_count") or 0),
+                        "action_type": p.get("fundingScheme") or p.get("fundingscheme") or "N/A",
+                        "start_year": p.get("startDate").year if p.get("startDate") else None,
                     }
                     for p in sample_projects
-                ]
+                ],
             }
 
         except Exception as e:
@@ -568,9 +670,7 @@ class BudgetBenchmarkTool:
             return None
 
     def _merge_benchmark_results(
-        self,
-        graph_stats: dict[str, Any] | None,
-        sql_stats: dict[str, Any] | None
+        self, graph_stats: dict[str, Any] | None, sql_stats: dict[str, Any] | None
     ) -> dict[str, Any]:
         """
         Merge benchmark results from Graph and SQL using weighted averaging.
@@ -590,8 +690,8 @@ class BudgetBenchmarkTool:
 
         # Both sources available - merge with weighted averaging
         # Weight by project count (more projects = more reliable)
-        graph_count = graph_stats.get('project_count', 0)
-        sql_count = sql_stats.get('project_count', 0)
+        graph_count = graph_stats.get("project_count", 0)
+        sql_count = sql_stats.get("project_count", 0)
         total_count = graph_count + sql_count
 
         if total_count == 0:
@@ -602,109 +702,104 @@ class BudgetBenchmarkTool:
 
         # Weighted average for key metrics
         avg_budget = (
-            graph_stats.get('avg_budget', 0) * graph_weight +
-            sql_stats.get('avg_budget', 0) * sql_weight
+            graph_stats.get("avg_budget", 0) * graph_weight
+            + sql_stats.get("avg_budget", 0) * sql_weight
         )
 
         # Use SQL for median (more accurate with keyword filtering)
-        median_budget = sql_stats.get('median_budget', graph_stats.get('median_budget', 0))
+        median_budget = sql_stats.get("median_budget", graph_stats.get("median_budget", 0))
 
         # Use the more extreme min/max values
         min_budget = min(
-            graph_stats.get('min_budget', float('inf')),
-            sql_stats.get('min_budget', float('inf'))
+            graph_stats.get("min_budget", float("inf")), sql_stats.get("min_budget", float("inf"))
         )
-        max_budget = max(
-            graph_stats.get('max_budget', 0),
-            sql_stats.get('max_budget', 0)
-        )
+        max_budget = max(graph_stats.get("max_budget", 0), sql_stats.get("max_budget", 0))
 
         # Use SQL for partner stats (has more detail)
-        avg_partners = sql_stats.get('avg_partners', 0)
-        median_partners = sql_stats.get('median_partners', 0)
-        avg_per_partner = sql_stats.get('avg_per_partner', 0)
-        std_dev = sql_stats.get('std_dev', 0)
+        avg_partners = sql_stats.get("avg_partners", 0)
+        median_partners = sql_stats.get("median_partners", 0)
+        avg_per_partner = sql_stats.get("avg_per_partner", 0)
+        std_dev = sql_stats.get("std_dev", 0)
 
         # Use max project count (graph covers all, SQL may be filtered)
         project_count = max(graph_count, sql_count)
 
         return {
-            'statistics': {
-                'projects_analyzed': project_count,
-                'total_eu_contribution': {
-                    'min': round(min_budget, 0),
-                    'max': round(max_budget, 0),
-                    'average': round(avg_budget, 0),
-                    'median': round(median_budget, 0),
-                    'std_dev': round(std_dev, 0)
+            "statistics": {
+                "projects_analyzed": project_count,
+                "total_eu_contribution": {
+                    "min": round(min_budget, 0),
+                    "max": round(max_budget, 0),
+                    "average": round(avg_budget, 0),
+                    "median": round(median_budget, 0),
+                    "std_dev": round(std_dev, 0),
                 },
-                'budget_per_partner': {
-                    'average': round(avg_per_partner, 0),
-                    'median': round(median_budget / max(median_partners, 1), 0)
+                "budget_per_partner": {
+                    "average": round(avg_per_partner, 0),
+                    "median": round(median_budget / max(median_partners, 1), 0),
                 },
-                'consortium_size': {
-                    'min': sql_stats.get('min_partners', 3),
-                    'max': sql_stats.get('max_partners', 20),
-                    'average': round(avg_partners, 1),
-                    'median': round(median_partners, 0)
-                }
+                "consortium_size": {
+                    "min": sql_stats.get("min_partners", 3),
+                    "max": sql_stats.get("max_partners", 20),
+                    "average": round(avg_partners, 1),
+                    "median": round(median_partners, 0),
+                },
             },
-            'data_source': 'hybrid_graph_sql'
+            "data_source": "hybrid_graph_sql",
         }
 
     def _format_sql_stats(self, sql_stats: dict[str, Any]) -> dict[str, Any]:
         """Format SQL-only stats into standard response format."""
         return {
-            'statistics': {
-                'projects_analyzed': sql_stats.get('project_count', 0),
-                'total_eu_contribution': {
-                    'min': round(sql_stats.get('min_budget', 0), 0),
-                    'max': round(sql_stats.get('max_budget', 0), 0),
-                    'average': round(sql_stats.get('avg_budget', 0), 0),
-                    'median': round(sql_stats.get('median_budget', 0), 0),
-                    'std_dev': round(sql_stats.get('std_dev', 0), 0)
+            "statistics": {
+                "projects_analyzed": sql_stats.get("project_count", 0),
+                "total_eu_contribution": {
+                    "min": round(sql_stats.get("min_budget", 0), 0),
+                    "max": round(sql_stats.get("max_budget", 0), 0),
+                    "average": round(sql_stats.get("avg_budget", 0), 0),
+                    "median": round(sql_stats.get("median_budget", 0), 0),
+                    "std_dev": round(sql_stats.get("std_dev", 0), 0),
                 },
-                'budget_per_partner': {
-                    'average': round(sql_stats.get('avg_per_partner', 0), 0),
-                    'median': round(sql_stats.get('median_budget', 0) / max(sql_stats.get('median_partners', 1), 1), 0)
+                "budget_per_partner": {
+                    "average": round(sql_stats.get("avg_per_partner", 0), 0),
+                    "median": round(
+                        sql_stats.get("median_budget", 0)
+                        / max(sql_stats.get("median_partners", 1), 1),
+                        0,
+                    ),
                 },
-                'consortium_size': {
-                    'min': sql_stats.get('min_partners', 3),
-                    'max': sql_stats.get('max_partners', 20),
-                    'average': round(sql_stats.get('avg_partners', 0), 1),
-                    'median': round(sql_stats.get('median_partners', 0), 0)
-                }
+                "consortium_size": {
+                    "min": sql_stats.get("min_partners", 3),
+                    "max": sql_stats.get("max_partners", 20),
+                    "average": round(sql_stats.get("avg_partners", 0), 1),
+                    "median": round(sql_stats.get("median_partners", 0), 0),
+                },
             },
-            'data_source': 'postgresql'
+            "data_source": "postgresql",
         }
 
     def _format_graph_stats(self, graph_stats: dict[str, Any]) -> dict[str, Any]:
         """Format graph-only stats into standard response format."""
-        avg_budget = graph_stats.get('avg_budget', 0)
-        median_budget = graph_stats.get('median_budget', 0)
+        avg_budget = graph_stats.get("avg_budget", 0)
+        median_budget = graph_stats.get("median_budget", 0)
 
         return {
-            'statistics': {
-                'projects_analyzed': graph_stats.get('project_count', 0),
-                'total_eu_contribution': {
-                    'min': round(graph_stats.get('min_budget', 0), 0),
-                    'max': round(graph_stats.get('max_budget', 0), 0),
-                    'average': round(avg_budget, 0),
-                    'median': round(median_budget, 0),
-                    'std_dev': 0  # Graph doesn't provide std_dev
+            "statistics": {
+                "projects_analyzed": graph_stats.get("project_count", 0),
+                "total_eu_contribution": {
+                    "min": round(graph_stats.get("min_budget", 0), 0),
+                    "max": round(graph_stats.get("max_budget", 0), 0),
+                    "average": round(avg_budget, 0),
+                    "median": round(median_budget, 0),
+                    "std_dev": 0,  # Graph doesn't provide std_dev
                 },
-                'budget_per_partner': {
-                    'average': round(avg_budget / 10, 0),  # Estimate ~10 partners
-                    'median': round(median_budget / 10, 0)
+                "budget_per_partner": {
+                    "average": round(avg_budget / 10, 0),  # Estimate ~10 partners
+                    "median": round(median_budget / 10, 0),
                 },
-                'consortium_size': {
-                    'min': 3,
-                    'max': 20,
-                    'average': 10,
-                    'median': 9
-                }
+                "consortium_size": {"min": 3, "max": 20, "average": 10, "median": 9},
             },
-            'data_source': 'neo4j_graph'
+            "data_source": "neo4j_graph",
         }
 
     def _get_consortium_context(self, cluster: str) -> dict[str, Any] | None:
@@ -713,18 +808,16 @@ class BudgetBenchmarkTool:
             return None
 
         try:
-            patterns = self._graph_service.get_consortium_patterns(
-                cluster_code=cluster
-            )
+            patterns = self._graph_service.get_consortium_patterns(cluster_code=cluster)
 
             if patterns:
                 pattern = patterns[0] if len(patterns) == 1 else patterns
                 return {
-                    'avg_partners': pattern.get('avg_partners', 0),
-                    'avg_countries': pattern.get('avg_countries', 0),
-                    'sample_size': pattern.get('sample_size', 0),
-                    'top_coordinator_countries': pattern.get('top_coordinator_countries', []),
-                    'source': 'neo4j_graph'
+                    "avg_partners": pattern.get("avg_partners", 0),
+                    "avg_countries": pattern.get("avg_countries", 0),
+                    "sample_size": pattern.get("sample_size", 0),
+                    "top_coordinator_countries": pattern.get("top_coordinator_countries", []),
+                    "source": "neo4j_graph",
                 }
             return None
 
@@ -733,9 +826,7 @@ class BudgetBenchmarkTool:
             return None
 
     def _get_budget_by_org_type(
-        self,
-        cluster: str,
-        action_type: str | None = None
+        self, cluster: str, action_type: str | None = None
     ) -> dict[str, Any] | None:
         """
         Get budget distribution by organization type.
@@ -751,24 +842,21 @@ class BudgetBenchmarkTool:
 
             # Map CLUSTER-X to topic patterns
             cluster_topic_map = {
-                'CLUSTER-1': 'HLTH',
-                'CLUSTER-2': 'CL2',
-                'CLUSTER-3': 'CL3',
-                'CLUSTER-4': 'CL4',
-                'CLUSTER-5': 'CL5',
-                'CLUSTER-6': 'CL6',
+                "CLUSTER-1": "HLTH",
+                "CLUSTER-2": "CL2",
+                "CLUSTER-3": "CL3",
+                "CLUSTER-4": "CL4",
+                "CLUSTER-5": "CL5",
+                "CLUSTER-6": "CL6",
             }
             topic_pattern = cluster_topic_map.get(cluster, cluster)
 
             # Build query
-            where_conditions = [
-                "p.\"frameworkProgramme\" = 'HORIZON'",
-                "p.topics ILIKE %s"
-            ]
+            where_conditions = ["p.\"frameworkProgramme\" = 'HORIZON'", "p.topics ILIKE %s"]
             params = [f"%{topic_pattern}%"]
 
             if action_type:
-                where_conditions.append("p.\"fundingScheme\" ILIKE %s")
+                where_conditions.append('p."fundingScheme" ILIKE %s')
                 params.append(f"%{action_type.upper()}%")
 
             where_clause = " AND ".join(where_conditions)
@@ -799,37 +887,48 @@ class BudgetBenchmarkTool:
 
             # Format results
             org_type_names = {
-                'HES': 'Higher Education',
-                'REC': 'Research Organizations',
-                'PRC': 'Private Companies',
-                'PUB': 'Public Bodies',
-                'OTH': 'Other'
+                "HES": "Higher Education",
+                "REC": "Research Organizations",
+                "PRC": "Private Companies",
+                "PUB": "Public Bodies",
+                "OTH": "Other",
             }
 
             breakdown = []
-            total_contribution = sum(r.get('total_contribution', 0) or 0 for r in results)
+            total_contribution = sum(r.get("total_contribution", 0) or 0 for r in results)
 
             for r in results:
-                org_type = r.get('org_type', 'OTH')
-                org_contribution = r.get('total_contribution', 0) or 0
+                org_type = r.get("org_type", "OTH")
+                org_contribution = r.get("total_contribution", 0) or 0
 
-                breakdown.append({
-                    'org_type': org_type,
-                    'org_type_name': org_type_names.get(org_type, org_type),
-                    'organization_count': int(r.get('org_count', 0)),
-                    'project_count': int(r.get('project_count', 0)),
-                    'avg_contribution': round(float(r.get('avg_contribution', 0) or 0), 0),
-                    'median_contribution': round(float(r.get('median_contribution', 0) or 0), 0),
-                    'total_contribution': round(org_contribution, 0),
-                    'percentage_of_total': round((org_contribution / total_contribution * 100) if total_contribution > 0 else 0, 1)
-                })
+                breakdown.append(
+                    {
+                        "org_type": org_type,
+                        "org_type_name": org_type_names.get(org_type, org_type),
+                        "organization_count": int(r.get("org_count", 0)),
+                        "project_count": int(r.get("project_count", 0)),
+                        "avg_contribution": round(float(r.get("avg_contribution", 0) or 0), 0),
+                        "median_contribution": round(
+                            float(r.get("median_contribution", 0) or 0), 0
+                        ),
+                        "total_contribution": round(org_contribution, 0),
+                        "percentage_of_total": round(
+                            (
+                                (org_contribution / total_contribution * 100)
+                                if total_contribution > 0
+                                else 0
+                            ),
+                            1,
+                        ),
+                    }
+                )
 
             return {
-                'cluster': cluster,
-                'action_type': action_type,
-                'by_org_type': breakdown,
-                'total_contribution': round(total_contribution, 0),
-                'source': 'postgresql'
+                "cluster": cluster,
+                "action_type": action_type,
+                "by_org_type": breakdown,
+                "total_contribution": round(total_contribution, 0),
+                "source": "postgresql",
             }
 
         except Exception as e:
@@ -837,10 +936,7 @@ class BudgetBenchmarkTool:
             return None
 
     def _get_budget_by_country(
-        self,
-        cluster: str,
-        action_type: str | None = None,
-        limit: int = 15
+        self, cluster: str, action_type: str | None = None, limit: int = 15
     ) -> dict[str, Any] | None:
         """
         Get budget distribution by country.
@@ -856,12 +952,12 @@ class BudgetBenchmarkTool:
 
             # Map CLUSTER-X to topic patterns
             cluster_topic_map = {
-                'CLUSTER-1': 'HLTH',
-                'CLUSTER-2': 'CL2',
-                'CLUSTER-3': 'CL3',
-                'CLUSTER-4': 'CL4',
-                'CLUSTER-5': 'CL5',
-                'CLUSTER-6': 'CL6',
+                "CLUSTER-1": "HLTH",
+                "CLUSTER-2": "CL2",
+                "CLUSTER-3": "CL3",
+                "CLUSTER-4": "CL4",
+                "CLUSTER-5": "CL5",
+                "CLUSTER-6": "CL6",
             }
             topic_pattern = cluster_topic_map.get(cluster, cluster)
 
@@ -869,12 +965,12 @@ class BudgetBenchmarkTool:
             where_conditions = [
                 "p.\"frameworkProgramme\" = 'HORIZON'",
                 "p.topics ILIKE %s",
-                "o.country IS NOT NULL"
+                "o.country IS NOT NULL",
             ]
             params = [f"%{topic_pattern}%"]
 
             if action_type:
-                where_conditions.append("p.\"fundingScheme\" ILIKE %s")
+                where_conditions.append('p."fundingScheme" ILIKE %s')
                 params.append(f"%{action_type.upper()}%")
 
             where_clause = " AND ".join(where_conditions)
@@ -907,28 +1003,37 @@ class BudgetBenchmarkTool:
                 return None
 
             # Format results
-            total_contribution = sum(r.get('total_contribution', 0) or 0 for r in results)
+            total_contribution = sum(r.get("total_contribution", 0) or 0 for r in results)
 
             breakdown = []
             for r in results:
-                country_contribution = r.get('total_contribution', 0) or 0
-                breakdown.append({
-                    'country': r.get('country'),
-                    'organization_count': int(r.get('org_count', 0)),
-                    'project_count': int(r.get('project_count', 0)),
-                    'coordinations': int(r.get('coordinations', 0)),
-                    'avg_contribution': round(float(r.get('avg_contribution', 0) or 0), 0),
-                    'total_contribution': round(country_contribution, 0),
-                    'percentage_of_total': round((country_contribution / total_contribution * 100) if total_contribution > 0 else 0, 1)
-                })
+                country_contribution = r.get("total_contribution", 0) or 0
+                breakdown.append(
+                    {
+                        "country": r.get("country"),
+                        "organization_count": int(r.get("org_count", 0)),
+                        "project_count": int(r.get("project_count", 0)),
+                        "coordinations": int(r.get("coordinations", 0)),
+                        "avg_contribution": round(float(r.get("avg_contribution", 0) or 0), 0),
+                        "total_contribution": round(country_contribution, 0),
+                        "percentage_of_total": round(
+                            (
+                                (country_contribution / total_contribution * 100)
+                                if total_contribution > 0
+                                else 0
+                            ),
+                            1,
+                        ),
+                    }
+                )
 
             return {
-                'cluster': cluster,
-                'action_type': action_type,
-                'by_country': breakdown,
-                'total_contribution': round(total_contribution, 0),
-                'countries_shown': len(breakdown),
-                'source': 'postgresql'
+                "cluster": cluster,
+                "action_type": action_type,
+                "by_country": breakdown,
+                "total_contribution": round(total_contribution, 0),
+                "countries_shown": len(breakdown),
+                "source": "postgresql",
             }
 
         except Exception as e:
@@ -944,7 +1049,7 @@ class BudgetBenchmarkTool:
         median_partners: float,
         avg_per_partner: float,
         action_type: str | None,
-        project_count: int
+        project_count: int,
     ) -> dict[str, Any]:
         """Generate budget recommendations based on statistics."""
         # Ensure numeric types (handle string values from database)
@@ -997,8 +1102,10 @@ class BudgetBenchmarkTool:
             "suggested_budget_range": f"{format_millions(lower)} - {format_millions(upper)}",
             "suggested_consortium_size": f"{partner_lower}-{partner_upper} partners",
             "suggested_budget_per_partner": f"{format_millions(per_partner_lower)} - {format_millions(per_partner_upper)}",
-            "confidence": "high" if project_count >= 20 else "medium" if project_count >= 5 else "low",
-            "notes": []
+            "confidence": (
+                "high" if project_count >= 20 else "medium" if project_count >= 5 else "low"
+            ),
+            "notes": [],
         }
 
         # Add contextual notes
@@ -1012,16 +1119,18 @@ class BudgetBenchmarkTool:
             if at == "RIA":
                 recommendations["notes"].append("RIA projects typically receive 100% funding rate")
             elif at == "IA":
-                recommendations["notes"].append("IA projects typically receive 70% funding rate (100% for non-profit)")
+                recommendations["notes"].append(
+                    "IA projects typically receive 70% funding rate (100% for non-profit)"
+                )
             elif at == "CSA":
-                recommendations["notes"].append("CSA projects are typically smaller with 100% funding rate")
+                recommendations["notes"].append(
+                    "CSA projects are typically smaller with 100% funding rate"
+                )
 
         return recommendations
 
     def _get_fallback_benchmarks(
-        self,
-        cluster: str | None = None,
-        action_type: str | None = None
+        self, cluster: str | None = None, action_type: str | None = None
     ) -> dict[str, Any]:
         """Return fallback benchmarks when databases are unavailable."""
 
@@ -1032,43 +1141,43 @@ class BudgetBenchmarkTool:
                 "median": 4_500_000,
                 "min": 2_000_000,
                 "max": 12_000_000,
-                "partners": 9
+                "partners": 9,
             },
             "IA": {
                 "avg": 8_000_000,
                 "median": 7_000_000,
                 "min": 3_000_000,
                 "max": 20_000_000,
-                "partners": 12
+                "partners": 12,
             },
             "CSA": {
                 "avg": 2_500_000,
                 "median": 2_000_000,
                 "min": 500_000,
                 "max": 5_000_000,
-                "partners": 6
+                "partners": 6,
             },
             "ERC-STG": {
                 "avg": 1_500_000,
                 "median": 1_500_000,
                 "min": 1_000_000,
                 "max": 1_500_000,
-                "partners": 1
+                "partners": 1,
             },
             "ERC-COG": {
                 "avg": 2_000_000,
                 "median": 2_000_000,
                 "min": 1_500_000,
                 "max": 2_000_000,
-                "partners": 1
+                "partners": 1,
             },
             "ERC-ADG": {
                 "avg": 2_500_000,
                 "median": 2_500_000,
                 "min": 2_000_000,
                 "max": 2_500_000,
-                "partners": 1
-            }
+                "partners": 1,
+            },
         }
 
         at = (action_type or "RIA").upper()
@@ -1082,57 +1191,48 @@ class BudgetBenchmarkTool:
                     "max": benchmark["max"],
                     "average": benchmark["avg"],
                     "median": benchmark["median"],
-                    "std_dev": "N/A"
+                    "std_dev": "N/A",
                 },
                 "budget_per_partner": {
                     "average": round(benchmark["avg"] / benchmark["partners"], 0),
-                    "median": round(benchmark["median"] / benchmark["partners"], 0)
+                    "median": round(benchmark["median"] / benchmark["partners"], 0),
                 },
                 "consortium_size": {
                     "typical": benchmark["partners"],
-                    "range": f"{max(3, benchmark['partners']-3)}-{benchmark['partners']+3}"
-                }
+                    "range": f"{max(3, benchmark['partners'] - 3)}-{benchmark['partners'] + 3}",
+                },
             },
-            "data_source": "fallback_estimates"
+            "data_source": "fallback_estimates",
         }
 
     # Additional methods for enhanced functionality
 
-    def get_budget_trends(
-        self,
-        cluster: str,
-        action_type: str | None = None
-    ) -> dict[str, Any]:
+    def get_budget_trends(self, cluster: str, action_type: str | None = None) -> dict[str, Any]:
         """
         Get budget trends over time for a cluster.
 
         Uses graph service for pre-aggregated trend data.
         """
         if not self._graph_service:
-            return {'success': False, 'error': 'Graph service not available'}
+            return {"success": False, "error": "Graph service not available"}
 
         try:
-            trends = self._graph_service.get_funding_trends(
-                cluster_code=cluster,
-                group_by='year'
-            )
+            trends = self._graph_service.get_funding_trends(cluster_code=cluster, group_by="year")
 
             return {
-                'success': True,
-                'cluster': cluster,
-                'action_type': action_type,
-                'trends': trends,
-                'source': 'neo4j_graph'
+                "success": True,
+                "cluster": cluster,
+                "action_type": action_type,
+                "trends": trends,
+                "source": "neo4j_graph",
             }
 
         except Exception as e:
             logger.error(f"Failed to get budget trends: {e}")
-            return {'success': False, 'error': str(e)}
+            return {"success": False, "error": str(e)}
 
     def get_benchmark_comparison(
-        self,
-        clusters: list[str],
-        action_type: str | None = None
+        self, clusters: list[str], action_type: str | None = None
     ) -> dict[str, Any]:
         """
         Compare budget benchmarks across multiple clusters.
@@ -1148,24 +1248,25 @@ class BudgetBenchmarkTool:
                     cluster=normalized,
                     action_type=action_type,
                     include_consortium_context=False,
-                    include_org_type_breakdown=False
+                    include_org_type_breakdown=False,
                 )
-                if result.get('success'):
-                    comparisons.append({
-                        'cluster': normalized,
-                        'statistics': result.get('statistics', {})
-                    })
+                if result.get("success"):
+                    comparisons.append(
+                        {"cluster": normalized, "statistics": result.get("statistics", {})}
+                    )
 
         return {
-            'success': True,
-            'action_type': action_type,
-            'comparisons': comparisons,
-            'clusters_compared': len(comparisons)
+            "success": True,
+            "action_type": action_type,
+            "comparisons": comparisons,
+            "clusters_compared": len(comparisons),
         }
 
 
 # Async wrapper for tool orchestrator compatibility
-async def get_budget_benchmark_execute(params: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
+async def get_budget_benchmark_execute(
+    params: dict[str, Any], context: dict[str, Any]
+) -> dict[str, Any]:
     """
     Execute budget benchmark tool.
 
@@ -1177,21 +1278,23 @@ async def get_budget_benchmark_execute(params: dict[str, Any], context: dict[str
     """
     # Extract cluster with fallback alternatives (LLM might use different parameter names)
     cluster_param = (
-        params.get('cluster') or
-        params.get('cluster_code') or
-        params.get('cluster_id') or
-        params.get('pillar')
+        params.get("cluster")
+        or params.get("cluster_code")
+        or params.get("cluster_id")
+        or params.get("pillar")
     )
-    logger.info(f"get_budget_benchmark_execute: params={params}, extracted cluster={cluster_param!r}")
+    logger.info(
+        f"get_budget_benchmark_execute: params={params}, extracted cluster={cluster_param!r}"
+    )
 
     tool = BudgetBenchmarkTool()
 
     return tool.get_benchmark(
         cluster=cluster_param,
-        action_type=params.get('action_type'),
-        topic_keywords=params.get('topic_keywords'),
-        year=params.get('year'),
-        include_consortium_context=params.get('include_consortium_context', True),
-        include_org_type_breakdown=params.get('include_org_type_breakdown', True),
-        include_country_breakdown=params.get('include_country_breakdown', False)
+        action_type=params.get("action_type"),
+        topic_keywords=params.get("topic_keywords"),
+        year=params.get("year"),
+        include_consortium_context=params.get("include_consortium_context", True),
+        include_org_type_breakdown=params.get("include_org_type_breakdown", True),
+        include_country_breakdown=params.get("include_country_breakdown", False),
     )

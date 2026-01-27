@@ -42,9 +42,9 @@ class TestArchitectureDocumentation:
 
     def test_documentation_file_exists(self):
         """Test that the architecture documentation file exists."""
-        assert (
-            ARCHITECTURE_DOC.exists()
-        ), f"Architecture documentation not found at {ARCHITECTURE_DOC}"
+        assert ARCHITECTURE_DOC.exists(), (
+            f"Architecture documentation not found at {ARCHITECTURE_DOC}"
+        )
 
     def test_documentation_is_readable(self):
         """Test that the documentation file can be read."""
@@ -60,16 +60,16 @@ class TestArchitectureDocumentation:
     def test_has_title(self):
         """Test that the documentation has a proper title."""
         content = ARCHITECTURE_DOC.read_text()
-        assert content.startswith(
-            "# Conversation Stability Architecture"
-        ), "Documentation should start with the title"
+        assert content.startswith("# Conversation Stability Architecture"), (
+            "Documentation should start with the title"
+        )
 
     def test_has_table_of_contents(self):
         """Test that the documentation has a table of contents."""
         content = ARCHITECTURE_DOC.read_text()
-        assert (
-            "## Table of Contents" in content or "1. [Overview]" in content
-        ), "Documentation should have a table of contents"
+        assert "## Table of Contents" in content or "1. [Overview]" in content, (
+            "Documentation should have a table of contents"
+        )
 
     @pytest.mark.parametrize("file_path", KEY_FILES)
     def test_key_file_referenced(self, file_path: str):
@@ -82,19 +82,19 @@ class TestArchitectureDocumentation:
     def test_lock_manager_usage_example(self):
         """Test that lock manager has a usage example."""
         content = ARCHITECTURE_DOC.read_text()
-        assert (
-            "get_conversation_lock" in content
-        ), "Lock manager usage example should include get_conversation_lock"
-        assert (
-            "async with" in content
-        ), "Lock manager usage should show async context manager pattern"
+        assert "get_conversation_lock" in content, (
+            "Lock manager usage example should include get_conversation_lock"
+        )
+        assert "async with" in content, (
+            "Lock manager usage should show async context manager pattern"
+        )
 
     def test_atomic_storage_usage_example(self):
         """Test that atomic storage has a usage example."""
         content = ARCHITECTURE_DOC.read_text()
-        assert (
-            "AtomicMessageStorage" in content or "store_message" in content
-        ), "Atomic storage usage example should be present"
+        assert "AtomicMessageStorage" in content or "store_message" in content, (
+            "Atomic storage usage example should be present"
+        )
         assert "StorageResult" in content, "StorageResult class should be documented"
 
     def test_test_agents_documented(self):
@@ -160,21 +160,21 @@ class TestArchitectureDocumentation:
         content = ARCHITECTURE_DOC.read_text()
 
         # Should have common issues
-        assert (
-            "Race Condition" in content or "race condition" in content
-        ), "Race condition debugging should be documented"
-        assert (
-            "Context Loss" in content or "context loss" in content
-        ), "Context loss debugging should be documented"
+        assert "Race Condition" in content or "race condition" in content, (
+            "Race condition debugging should be documented"
+        )
+        assert "Context Loss" in content or "context loss" in content, (
+            "Context loss debugging should be documented"
+        )
 
     def test_integration_guide_content(self):
         """Test that the integration guide has code examples."""
         content = ARCHITECTURE_DOC.read_text()
 
         # Should have integration examples
-        assert (
-            "Integrating" in content or "integrating" in content
-        ), "Integration guide should explain how to integrate modules"
+        assert "Integrating" in content or "integrating" in content, (
+            "Integration guide should explain how to integrate modules"
+        )
         assert "```python" in content, "Integration guide should have Python code examples"
 
 

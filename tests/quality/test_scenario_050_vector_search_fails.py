@@ -48,17 +48,17 @@ class TestTimeoutConfiguration:
         )
 
         # Embedding generation should have 10-60s timeout
-        assert (
-            10 <= EMBEDDING_TIMEOUT <= 60
-        ), f"EMBEDDING_TIMEOUT {EMBEDDING_TIMEOUT}s should be 10-60s"
+        assert 10 <= EMBEDDING_TIMEOUT <= 60, (
+            f"EMBEDDING_TIMEOUT {EMBEDDING_TIMEOUT}s should be 10-60s"
+        )
         # Vector search should be faster, 5-30s
-        assert (
-            5 <= VECTOR_SEARCH_TIMEOUT <= 30
-        ), f"VECTOR_SEARCH_TIMEOUT {VECTOR_SEARCH_TIMEOUT}s should be 5-30s"
+        assert 5 <= VECTOR_SEARCH_TIMEOUT <= 30, (
+            f"VECTOR_SEARCH_TIMEOUT {VECTOR_SEARCH_TIMEOUT}s should be 5-30s"
+        )
         # Graph context can be slower, 10-60s
-        assert (
-            10 <= GRAPH_CONTEXT_TIMEOUT <= 60
-        ), f"GRAPH_CONTEXT_TIMEOUT {GRAPH_CONTEXT_TIMEOUT}s should be 10-60s"
+        assert 10 <= GRAPH_CONTEXT_TIMEOUT <= 60, (
+            f"GRAPH_CONTEXT_TIMEOUT {GRAPH_CONTEXT_TIMEOUT}s should be 10-60s"
+        )
 
 
 class TestServiceAvailability:
@@ -68,34 +68,34 @@ class TestServiceAvailability:
         """Test that get_similar_funded_projects is in DEGRADABLE_TOOLS."""
         from app.core.service_availability import DEGRADABLE_TOOLS
 
-        assert (
-            "get_similar_funded_projects" in DEGRADABLE_TOOLS
-        ), "get_similar_funded_projects should be in DEGRADABLE_TOOLS"
+        assert "get_similar_funded_projects" in DEGRADABLE_TOOLS, (
+            "get_similar_funded_projects should be in DEGRADABLE_TOOLS"
+        )
 
     def test_similar_projects_degradable_on_embeddings(self):
         """Test that it can degrade when EMBEDDINGS unavailable."""
         from app.core.service_availability import DEGRADABLE_TOOLS, ServiceType
 
         degradable_services = DEGRADABLE_TOOLS.get("get_similar_funded_projects", [])
-        assert (
-            ServiceType.EMBEDDINGS in degradable_services
-        ), "get_similar_funded_projects should degrade when EMBEDDINGS unavailable"
+        assert ServiceType.EMBEDDINGS in degradable_services, (
+            "get_similar_funded_projects should degrade when EMBEDDINGS unavailable"
+        )
 
     def test_find_similar_projects_also_degradable(self):
         """Test that find_similar_projects is also in DEGRADABLE_TOOLS."""
         from app.core.service_availability import DEGRADABLE_TOOLS
 
-        assert (
-            "find_similar_projects" in DEGRADABLE_TOOLS
-        ), "find_similar_projects should be in DEGRADABLE_TOOLS"
+        assert "find_similar_projects" in DEGRADABLE_TOOLS, (
+            "find_similar_projects should be in DEGRADABLE_TOOLS"
+        )
 
     def test_tool_service_requirements(self):
         """Test that requirements are properly defined."""
         from app.core.service_availability import TOOL_SERVICE_REQUIREMENTS
 
-        assert (
-            "get_similar_funded_projects" in TOOL_SERVICE_REQUIREMENTS
-        ), "get_similar_funded_projects should be in TOOL_SERVICE_REQUIREMENTS"
+        assert "get_similar_funded_projects" in TOOL_SERVICE_REQUIREMENTS, (
+            "get_similar_funded_projects should be in TOOL_SERVICE_REQUIREMENTS"
+        )
 
 
 class TestKeywordFallbackMethod:
@@ -106,9 +106,9 @@ class TestKeywordFallbackMethod:
         from app.services.tools.similar_projects import SimilarProjectsTool
 
         tool = SimilarProjectsTool()
-        assert hasattr(
-            tool, "_get_keyword_fallback"
-        ), "SimilarProjectsTool should have _get_keyword_fallback method"
+        assert hasattr(tool, "_get_keyword_fallback"), (
+            "SimilarProjectsTool should have _get_keyword_fallback method"
+        )
 
     def test_fallback_accepts_reason_parameter(self):
         """Test that fallback method accepts fallback_reason parameter."""
@@ -120,21 +120,21 @@ class TestKeywordFallbackMethod:
         sig = inspect.signature(tool._get_keyword_fallback)
         params = list(sig.parameters.keys())
 
-        assert (
-            "fallback_reason" in params
-        ), "_get_keyword_fallback should accept fallback_reason parameter"
+        assert "fallback_reason" in params, (
+            "_get_keyword_fallback should accept fallback_reason parameter"
+        )
 
     def test_timeout_wrapper_method_exists(self):
         """Test that timeout wrapper methods exist."""
         from app.services.tools.similar_projects import SimilarProjectsTool
 
         tool = SimilarProjectsTool()
-        assert hasattr(
-            tool, "_generate_embedding_with_timeout"
-        ), "SimilarProjectsTool should have _generate_embedding_with_timeout method"
-        assert hasattr(
-            tool, "_get_vector_results_with_timeout"
-        ), "SimilarProjectsTool should have _get_vector_results_with_timeout method"
+        assert hasattr(tool, "_generate_embedding_with_timeout"), (
+            "SimilarProjectsTool should have _generate_embedding_with_timeout method"
+        )
+        assert hasattr(tool, "_get_vector_results_with_timeout"), (
+            "SimilarProjectsTool should have _get_vector_results_with_timeout method"
+        )
 
 
 class TestFallbackReasons:

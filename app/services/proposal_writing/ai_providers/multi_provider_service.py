@@ -28,11 +28,7 @@ class MultiProviderAIService:
     - Consistent interface across providers
     """
 
-    def __init__(
-        self,
-        primary_provider: str = "gemini",
-        enable_fallback: bool = True
-    ):
+    def __init__(self, primary_provider: str = "gemini", enable_fallback: bool = True):
         self.enable_fallback = enable_fallback
         self.providers: list[BaseAIProvider] = []
 
@@ -46,13 +42,13 @@ class MultiProviderAIService:
             "gemini": {
                 "class": GeminiProvider,
                 "api_key_env": "GEMINI_API_KEY",
-                "default_model": "gemini-2.0-flash-lite"
+                "default_model": "gemini-2.0-flash-lite",
             },
             "openai": {
                 "class": OpenAIProvider,
                 "api_key_env": "OPENAI_API_KEY",
-                "default_model": "gpt-4-turbo"
-            }
+                "default_model": "gpt-4-turbo",
+            },
         }
 
         # Initialize primary provider first
@@ -62,11 +58,15 @@ class MultiProviderAIService:
 
             if api_key:
                 try:
-                    provider = config["class"](ProviderConfig(
-                        name=primary_provider,
-                        api_key=api_key,
-                        model=os.getenv(f"{primary_provider.upper()}_MODEL", config["default_model"])
-                    ))
+                    provider = config["class"](
+                        ProviderConfig(
+                            name=primary_provider,
+                            api_key=api_key,
+                            model=os.getenv(
+                                f"{primary_provider.upper()}_MODEL", config["default_model"]
+                            ),
+                        )
+                    )
                     self.providers.append(provider)
                     logger.info(f"Initialized primary provider: {primary_provider}")
                 except Exception as e:
@@ -79,11 +79,15 @@ class MultiProviderAIService:
                     api_key = os.getenv(config["api_key_env"])
                     if api_key:
                         try:
-                            provider = config["class"](ProviderConfig(
-                                name=name,
-                                api_key=api_key,
-                                model=os.getenv(f"{name.upper()}_MODEL", config["default_model"])
-                            ))
+                            provider = config["class"](
+                                ProviderConfig(
+                                    name=name,
+                                    api_key=api_key,
+                                    model=os.getenv(
+                                        f"{name.upper()}_MODEL", config["default_model"]
+                                    ),
+                                )
+                            )
                             self.providers.append(provider)
                             logger.info(f"Initialized fallback provider: {name}")
                         except Exception as e:
@@ -102,11 +106,7 @@ class MultiProviderAIService:
             p.reset()
 
     async def generate_text(
-        self,
-        prompt: str,
-        temperature: float = 0.7,
-        max_tokens: int = 4000,
-        max_retries: int = 3
+        self, prompt: str, temperature: float = 0.7, max_tokens: int = 4000, max_retries: int = 3
     ) -> ProviderResponse:
         """
         Generate text with automatic fallback.
@@ -127,11 +127,11 @@ class MultiProviderAIService:
             for attempt in range(max_retries):
                 try:
                     response = await provider.generate_text(
-                        prompt=prompt,
-                        temperature=temperature,
-                        max_tokens=max_tokens
+                        prompt=prompt, temperature=temperature, max_tokens=max_tokens
                     )
-                    logger.info(f"Generated text using {provider.name} ({response.latency_ms:.0f}ms)")
+                    logger.info(
+                        f"Generated text using {provider.name} ({response.latency_ms:.0f}ms)"
+                    )
                     return response
 
                 except Exception as e:
@@ -142,7 +142,7 @@ class MultiProviderAIService:
 
                     if attempt < max_retries - 1:
                         # Exponential backoff
-                        await asyncio.sleep(2 ** attempt)
+                        await asyncio.sleep(2**attempt)
 
             # Provider exhausted, try next
             logger.warning(f"Provider {provider.name} exhausted, trying fallback...")
@@ -150,11 +150,7 @@ class MultiProviderAIService:
         raise RuntimeError(f"All providers failed. Last error: {last_error}")
 
     async def generate_structured(
-        self,
-        prompt: str,
-        schema: dict[str, Any],
-        temperature: float = 0.3,
-        max_retries: int = 3
+        self, prompt: str, schema: dict[str, Any], temperature: float = 0.3, max_retries: int = 3
     ) -> dict[str, Any]:
         """
         Generate structured JSON with automatic fallback.
@@ -172,9 +168,7 @@ class MultiProviderAIService:
             for attempt in range(max_retries):
                 try:
                     result = await provider.generate_structured(
-                        prompt=prompt,
-                        schema=schema,
-                        temperature=temperature
+                        prompt=prompt, schema=schema, temperature=temperature
                     )
                     logger.info(f"Generated structured output using {provider.name}")
                     return result
@@ -187,14 +181,14 @@ class MultiProviderAIService:
                     )
 
                     if attempt < max_retries - 1:
-                        await asyncio.sleep(2 ** attempt)
+                        await asyncio.sleep(2**attempt)
 
-        raise RuntimeError(f"All providers failed for structured generation. Last error: {last_error}")
+        raise RuntimeError(
+            f"All providers failed for structured generation. Last error: {last_error}"
+        )
 
     async def generate_stream(
-        self,
-        prompt: str,
-        temperature: float = 0.7
+        self, prompt: str, temperature: float = 0.7
     ) -> AsyncGenerator[str, None]:
         """
         Stream text generation with fallback.
@@ -208,10 +202,7 @@ class MultiProviderAIService:
 
         for provider in available:
             try:
-                async for chunk in provider.generate_stream(
-                    prompt=prompt,
-                    temperature=temperature
-                ):
+                async for chunk in provider.generate_stream(prompt=prompt, temperature=temperature):
                     yield chunk
                 return
 

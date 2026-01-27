@@ -89,9 +89,9 @@ class TestScenario009FindPartnersByExpertise:
             # The tool might be versioned (e.g., find_experienced_partners_1_0)
             has_partner_tool = any("find_experienced_partners" in t for t in tools_used)
 
-            assert (
-                has_partner_tool or tool_in_reasoning
-            ), f"Expected find_experienced_partners tool to be used. Tools: {tools_used}"
+            assert has_partner_tool or tool_in_reasoning, (
+                f"Expected find_experienced_partners tool to be used. Tools: {tools_used}"
+            )
 
     @pytest.mark.asyncio
     async def test_includes_project_counts(self, conversation_id):
@@ -168,9 +168,9 @@ class TestScenario009FindPartnersByExpertise:
             country_names = ["germany", "france", "finland", "sweden", "netherlands"]
             has_country_names = any(name in response_text.lower() for name in country_names)
 
-            assert (
-                len(country_codes) >= 3 or has_country_names
-            ), "Response should include country codes or names for partners"
+            assert len(country_codes) >= 3 or has_country_names, (
+                "Response should include country codes or names for partners"
+            )
 
     @pytest.mark.asyncio
     async def test_includes_organization_types(self, conversation_id):
@@ -234,9 +234,9 @@ class TestScenario009FindPartnersByExpertise:
                 for ind in ["example", "coordinator", "participant", "project"]
             )
 
-            assert (
-                len(project_acronyms) >= 3 or has_project_context
-            ), "Response should include example project names"
+            assert len(project_acronyms) >= 3 or has_project_context, (
+                "Response should include example project names"
+            )
 
     @pytest.mark.asyncio
     async def test_partners_relevant_to_hydrogen(self, conversation_id):
@@ -279,9 +279,9 @@ class TestScenario009FindPartnersByExpertise:
             quality_score = quality_analysis.get("score", 100)
 
             # Minimum acceptable score
-            assert (
-                quality_score >= self.PASS_THRESHOLD
-            ), f"Quality score {quality_score} below threshold {self.PASS_THRESHOLD}"
+            assert quality_score >= self.PASS_THRESHOLD, (
+                f"Quality score {quality_score} below threshold {self.PASS_THRESHOLD}"
+            )
 
     @pytest.mark.asyncio
     async def test_no_error_in_response(self, conversation_id):
@@ -371,9 +371,9 @@ class TestScenario009FindPartnersByExpertise:
 
             total_items = max(numbered_items, header_items, star_items, table_rows, bold_orgs)
 
-            assert (
-                total_items >= 5
-            ), f"Response should list at least 5 partners, found {total_items}"
+            assert total_items >= 5, (
+                f"Response should list at least 5 partners, found {total_items}"
+            )
 
 
 class TestFindPartnersOtherDomains:

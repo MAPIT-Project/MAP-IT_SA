@@ -19,20 +19,14 @@ from collections.abc import AsyncGenerator
 from datetime import datetime
 from typing import Any
 
-from .tool_aware_agent import (
-    AgentPlan,
-    ReasoningStep,
-    Tool,
-    ToolAwareAgent,
-    ToolCall,
-    ToolCategory,
-)
+from .tool_aware_agent import AgentPlan, ReasoningStep, Tool, ToolAwareAgent, ToolCall, ToolCategory
 
 logger = logging.getLogger(__name__)
 
 
 class ProposalToolCategory:
     """Categories for proposal-specific tools."""
+
     WRITING = "proposal_writing"
     QUALITY = "proposal_quality"
     NAVIGATION = "proposal_navigation"
@@ -112,139 +106,202 @@ When the user asks to "evaluate" or "score" a section:
         """Initialize proposal-specific tools."""
 
         # Section draft generation
-        self.register_tool(Tool(
-            name="generate_section_draft",
-            description="Generate AI draft content for a proposal section based on call requirements and similar funded projects.",
-            category=ToolCategory.DOCUMENTS,
-            parameters={
-                "section_id": "Section ID (e.g., 'excellence.objectives', 'impact.pathways')",
-                "call_id": "The funding call identifier",
-                "guidance": "Optional: Specific guidance for content generation",
-                "word_target": "Optional: Target word count (default: 500)",
-                "style": "Optional: Writing style ('formal', 'technical', 'accessible')"
-            },
-            examples=[
-                "generate_section_draft(section_id='excellence.objectives', call_id='HORIZON-CL5-2025-01')",
-                "generate_section_draft(section_id='impact.pathways', call_id='HORIZON-CL4-2025-02', word_target=800)"
-            ]
-        ))
+        self.register_tool(
+            Tool(
+                name="generate_section_draft",
+                description=(
+                    "Generate AI draft content for a proposal section based on "
+                    "call requirements and similar funded projects."
+                ),
+                category=ToolCategory.DOCUMENTS,
+                parameters={
+                    "section_id": "Section ID (e.g., 'excellence.objectives', 'impact.pathways')",
+                    "call_id": "The funding call identifier",
+                    "guidance": "Optional: Specific guidance for content generation",
+                    "word_target": "Optional: Target word count (default: 500)",
+                    "style": "Optional: Writing style ('formal', 'technical', 'accessible')",
+                },
+                examples=[
+                    (
+                        "generate_section_draft(section_id='excellence.objectives', "
+                        "call_id='HORIZON-CL5-2025-01')"
+                    ),
+                    (
+                        "generate_section_draft(section_id='impact.pathways', "
+                        "call_id='HORIZON-CL4-2025-02', word_target=800)"
+                    ),
+                ],
+            )
+        )
 
         # Section improvement
-        self.register_tool(Tool(
-            name="improve_section",
-            description="Improve existing section content for clarity, impact, and compliance with EU evaluation criteria.",
-            category=ToolCategory.DOCUMENTS,
-            parameters={
-                "section_id": "Section ID to improve",
-                "focus_areas": "Optional: Areas to focus on ('clarity', 'impact', 'structure', 'terminology', 'all')",
-                "preserve_length": "Optional: Keep similar word count (default: True)"
-            },
-            examples=[
-                "improve_section(section_id='excellence.methodology', focus_areas='impact')",
-                "improve_section(section_id='implementation.consortium', focus_areas='structure')"
-            ]
-        ))
+        self.register_tool(
+            Tool(
+                name="improve_section",
+                description=(
+                    "Improve existing section content for clarity, impact, and "
+                    "compliance with EU evaluation criteria."
+                ),
+                category=ToolCategory.DOCUMENTS,
+                parameters={
+                    "section_id": "Section ID to improve",
+                    "focus_areas": (
+                        "Optional: Areas to focus on "
+                        "('clarity', 'impact', 'structure', 'terminology', 'all')"
+                    ),
+                    "preserve_length": "Optional: Keep similar word count (default: True)",
+                },
+                examples=[
+                    "improve_section(section_id='excellence.methodology', focus_areas='impact')",
+                    (
+                        "improve_section(section_id='implementation.consortium', "
+                        "focus_areas='structure')"
+                    ),
+                ],
+            )
+        )
 
         # Section rewriting
-        self.register_tool(Tool(
-            name="rewrite_section",
-            description="Completely rewrite a section with a specific style or approach.",
-            category=ToolCategory.DOCUMENTS,
-            parameters={
-                "section_id": "Section ID to rewrite",
-                "style": "Writing style: 'concise', 'impactful', 'eu_evaluator_friendly', 'technical', 'accessible'",
-                "tone": "Optional: Tone adjustment ('confident', 'measured', 'ambitious')"
-            },
-            examples=[
-                "rewrite_section(section_id='excellence.objectives', style='eu_evaluator_friendly')",
-                "rewrite_section(section_id='impact.dissemination', style='impactful', tone='confident')"
-            ]
-        ))
+        self.register_tool(
+            Tool(
+                name="rewrite_section",
+                description="Completely rewrite a section with a specific style or approach.",
+                category=ToolCategory.DOCUMENTS,
+                parameters={
+                    "section_id": "Section ID to rewrite",
+                    "style": (
+                        "Writing style: 'concise', 'impactful', 'eu_evaluator_friendly', "
+                        "'technical', 'accessible'"
+                    ),
+                    "tone": "Optional: Tone adjustment ('confident', 'measured', 'ambitious')",
+                },
+                examples=[
+                    (
+                        "rewrite_section(section_id='excellence.objectives', "
+                        "style='eu_evaluator_friendly')"
+                    ),
+                    (
+                        "rewrite_section(section_id='impact.dissemination', "
+                        "style='impactful', tone='confident')"
+                    ),
+                ],
+            )
+        )
 
         # Section evaluation (EU evaluator simulation)
-        self.register_tool(Tool(
-            name="evaluate_section",
-            description="Simulate EU evaluator scoring (0-5 scale) with detailed feedback on strengths and weaknesses.",
-            category=ToolCategory.VALIDATION,
-            parameters={
-                "section_id": "Section ID to evaluate",
-                "evaluation_type": "Optional: 'quick' (fast) or 'detailed' (comprehensive)"
-            },
-            examples=[
-                "evaluate_section(section_id='excellence.methodology')",
-                "evaluate_section(section_id='impact.pathways', evaluation_type='detailed')"
-            ]
-        ))
+        self.register_tool(
+            Tool(
+                name="evaluate_section",
+                description=(
+                    "Simulate EU evaluator scoring (0-5 scale) with detailed feedback "
+                    "on strengths and weaknesses."
+                ),
+                category=ToolCategory.VALIDATION,
+                parameters={
+                    "section_id": "Section ID to evaluate",
+                    "evaluation_type": "Optional: 'quick' (fast) or 'detailed' (comprehensive)",
+                },
+                examples=[
+                    "evaluate_section(section_id='excellence.methodology')",
+                    "evaluate_section(section_id='impact.pathways', evaluation_type='detailed')",
+                ],
+            )
+        )
 
         # Gap analysis
-        self.register_tool(Tool(
-            name="analyze_gaps",
-            description="Identify gaps in a section and suggest specific fixes with effort estimates.",
-            category=ToolCategory.VALIDATION,
-            parameters={
-                "section_id": "Section ID to analyze",
-                "include_fixes": "Optional: Include suggested fixes (default: True)"
-            },
-            examples=[
-                "analyze_gaps(section_id='excellence.beyond_sota')",
-                "analyze_gaps(section_id='implementation.work_plan', include_fixes=True)"
-            ]
-        ))
+        self.register_tool(
+            Tool(
+                name="analyze_gaps",
+                description=(
+                    "Identify gaps in a section and suggest specific fixes with effort estimates."
+                ),
+                category=ToolCategory.VALIDATION,
+                parameters={
+                    "section_id": "Section ID to analyze",
+                    "include_fixes": "Optional: Include suggested fixes (default: True)",
+                },
+                examples=[
+                    "analyze_gaps(section_id='excellence.beyond_sota')",
+                    "analyze_gaps(section_id='implementation.work_plan', include_fixes=True)",
+                ],
+            )
+        )
 
         # Compliance check
-        self.register_tool(Tool(
-            name="check_compliance",
-            description="Check section or full proposal compliance with call requirements and EU rules.",
-            category=ToolCategory.VALIDATION,
-            parameters={
-                "section_id": "Optional: Specific section (or 'all' for full proposal)",
-                "check_type": "Optional: 'mandatory', 'recommended', or 'all'"
-            },
-            examples=[
-                "check_compliance(section_id='all')",
-                "check_compliance(section_id='implementation.consortium', check_type='mandatory')"
-            ]
-        ))
+        self.register_tool(
+            Tool(
+                name="check_compliance",
+                description=(
+                    "Check section or full proposal compliance with call requirements and EU rules."
+                ),
+                category=ToolCategory.VALIDATION,
+                parameters={
+                    "section_id": "Optional: Specific section (or 'all' for full proposal)",
+                    "check_type": "Optional: 'mandatory', 'recommended', or 'all'",
+                },
+                examples=[
+                    "check_compliance(section_id='all')",
+                    (
+                        "check_compliance(section_id='implementation.consortium', "
+                        "check_type='mandatory')"
+                    ),
+                ],
+            )
+        )
 
         # Get inline suggestions
-        self.register_tool(Tool(
-            name="get_suggestions",
-            description="Get inline text suggestions for grammar, clarity, terminology, and EU-specific language.",
-            category=ToolCategory.DOCUMENTS,
-            parameters={
-                "section_id": "Section ID to get suggestions for",
-                "suggestion_types": "Optional: Types to include ('grammar', 'clarity', 'terminology', 'impact', 'all')"
-            },
-            examples=[
-                "get_suggestions(section_id='excellence.objectives')",
-                "get_suggestions(section_id='impact.pathways', suggestion_types='terminology')"
-            ]
-        ))
+        self.register_tool(
+            Tool(
+                name="get_suggestions",
+                description=(
+                    "Get inline text suggestions for grammar, clarity, terminology, "
+                    "and EU-specific language."
+                ),
+                category=ToolCategory.DOCUMENTS,
+                parameters={
+                    "section_id": "Section ID to get suggestions for",
+                    "suggestion_types": (
+                        "Optional: Types to include "
+                        "('grammar', 'clarity', 'terminology', 'impact', 'all')"
+                    ),
+                },
+                examples=[
+                    "get_suggestions(section_id='excellence.objectives')",
+                    "get_suggestions(section_id='impact.pathways', suggestion_types='terminology')",
+                ],
+            )
+        )
 
         # Section navigation / focus
-        self.register_tool(Tool(
-            name="focus_section",
-            description="Navigate to and focus on a specific section. Updates the active section in the UI.",
-            category=ToolCategory.DOCUMENTS,
-            parameters={
-                "section_id": "Section ID to focus on"
-            },
-            examples=[
-                "focus_section(section_id='excellence.objectives')",
-                "focus_section(section_id='impact.dissemination')"
-            ]
-        ))
+        self.register_tool(
+            Tool(
+                name="focus_section",
+                description=(
+                    "Navigate to and focus on a specific section. "
+                    "Updates the active section in the UI."
+                ),
+                category=ToolCategory.DOCUMENTS,
+                parameters={"section_id": "Section ID to focus on"},
+                examples=[
+                    "focus_section(section_id='excellence.objectives')",
+                    "focus_section(section_id='impact.dissemination')",
+                ],
+            )
+        )
 
         # Document overview
-        self.register_tool(Tool(
-            name="get_document_overview",
-            description="Get a summary of the current proposal state: sections, word counts, scores, and gaps.",
-            category=ToolCategory.DOCUMENTS,
-            parameters={},
-            examples=[
-                "get_document_overview()"
-            ]
-        ))
+        self.register_tool(
+            Tool(
+                name="get_document_overview",
+                description=(
+                    "Get a summary of the current proposal state: sections, "
+                    "word counts, scores, and gaps."
+                ),
+                category=ToolCategory.DOCUMENTS,
+                parameters={},
+                examples=["get_document_overview()"],
+            )
+        )
 
     def _build_proposal_prompt(
         self,
@@ -252,7 +309,7 @@ When the user asks to "evaluate" or "score" a section:
         context: str,
         proposal_context: str,
         previous_steps: list[ReasoningStep],
-        tool_results: dict[str, Any]
+        tool_results: dict[str, Any],
     ) -> str:
         """
         Build the full prompt with proposal context.
@@ -274,7 +331,7 @@ When the user asks to "evaluate" or "score" a section:
             context=context,
             query=query,
             previous_steps=self._format_previous_steps(previous_steps),
-            tool_results=self._format_tool_results(tool_results)
+            tool_results=self._format_tool_results(tool_results),
         )
 
         # Inject proposal context before the current user message
@@ -348,13 +405,10 @@ When the user asks to "evaluate" or "score" a section:
         plan = AgentPlan(
             query=query,
             complexity=self._assess_complexity(query),
-            required_sources=self._identify_required_sources(query)
+            required_sources=self._identify_required_sources(query),
         )
 
-        logger.info(
-            f"📝 [ProposalAgent] Query: {query[:50]}... | "
-            f"Complexity: {plan.complexity}"
-        )
+        logger.info(f"📝 [ProposalAgent] Query: {query[:50]}... | Complexity: {plan.complexity}")
 
         # Check if this is a proposal-specific query
         proposal_intent = self._detect_proposal_intent(query)
@@ -362,12 +416,10 @@ When the user asks to "evaluate" or "score" a section:
             logger.info(f"📝 Detected proposal intent: {proposal_intent}")
 
         # Start speculative execution
-        speculative_tasks = {}
         if self.speculative_executor:
             try:
-                speculative_tasks = await self.speculative_executor.start_speculative_execution(
-                    query=query,
-                    context=context
+                await self.speculative_executor.start_speculative_execution(
+                    query=query, context=context
                 )
             except Exception as e:
                 logger.warning(f"Speculative execution failed: {e}")
@@ -387,7 +439,7 @@ When the user asks to "evaluate" or "score" a section:
                 context=context,
                 proposal_context=proposal_context,
                 previous_steps=plan.reasoning_steps,
-                tool_results=all_tool_results
+                tool_results=all_tool_results,
             )
 
             if not reasoning_result:
@@ -397,13 +449,13 @@ When the user asks to "evaluate" or "score" a section:
             # Create reasoning step
             step = ReasoningStep(
                 step_number=iteration,
-                thought=reasoning_result.get('thought', ''),
-                action=reasoning_result.get('action', 'conclude')
+                thought=reasoning_result.get("thought", ""),
+                action=reasoning_result.get("action", "conclude"),
             )
 
             # Handle different actions
-            if step.action == 'call_tools':
-                tool_calls = reasoning_result.get('tool_calls', [])
+            if step.action == "call_tools":
+                tool_calls = reasoning_result.get("tool_calls", [])
                 step.tool_calls = await self._execute_tool_calls_with_proposal(tool_calls)
 
                 # Collect results and track affected sections
@@ -411,15 +463,15 @@ When the user asks to "evaluate" or "score" a section:
                     if tc.success:
                         all_tool_results[f"{tc.tool_name}_{iteration}"] = tc.result
                         # Track sections affected by this tool
-                        if tc.parameters.get('section_id'):
-                            sections_affected.append(tc.parameters['section_id'])
+                        if tc.parameters.get("section_id"):
+                            sections_affected.append(tc.parameters["section_id"])
 
                 step.observation = self._summarize_tool_results(step.tool_calls)
-                step.next_action_needed = reasoning_result.get('needs_more_info', True)
+                step.next_action_needed = reasoning_result.get("needs_more_info", True)
 
-            elif step.action == 'conclude':
-                plan.final_answer = reasoning_result.get('conclusion', '')
-                plan.confidence = reasoning_result.get('confidence', 0.8)
+            elif step.action == "conclude":
+                plan.final_answer = reasoning_result.get("conclusion", "")
+                plan.confidence = reasoning_result.get("confidence", 0.8)
                 step.next_action_needed = False
 
             plan.reasoning_steps.append(step)
@@ -437,26 +489,26 @@ When the user asks to "evaluate" or "score" a section:
             self.speculative_executor.cancel_unused_speculation(used_tools)
 
         return {
-            'answer': plan.final_answer or self._build_fallback_answer(plan),
-            'success': plan.final_answer is not None,
-            'reasoning_steps': [
+            "answer": plan.final_answer or self._build_fallback_answer(plan),
+            "success": plan.final_answer is not None,
+            "reasoning_steps": [
                 {
-                    'step': s.step_number,
-                    'thought': s.thought,
-                    'action': s.action,
-                    'tools_called': [tc.tool_name for tc in s.tool_calls],
-                    'observation': s.observation[:200] if s.observation else ''
+                    "step": s.step_number,
+                    "thought": s.thought,
+                    "action": s.action,
+                    "tools_called": [tc.tool_name for tc in s.tool_calls],
+                    "observation": s.observation[:200] if s.observation else "",
                 }
                 for s in plan.reasoning_steps
             ],
-            'sources_used': list(all_tool_results.keys()),
-            'tool_results': all_tool_results,
-            'sections_affected': list(set(sections_affected)),
-            'complexity': plan.complexity,
-            'iterations': iteration,
-            'confidence': plan.confidence,
-            'total_time_ms': total_time,
-            'proposal_intent': proposal_intent
+            "sources_used": list(all_tool_results.keys()),
+            "tool_results": all_tool_results,
+            "sections_affected": list(set(sections_affected)),
+            "complexity": plan.complexity,
+            "iterations": iteration,
+            "confidence": plan.confidence,
+            "total_time_ms": total_time,
+            "proposal_intent": proposal_intent,
         }
 
     async def process_query_streaming(
@@ -496,17 +548,17 @@ When the user asks to "evaluate" or "score" a section:
         plan = AgentPlan(
             query=query,
             complexity=self._assess_complexity(query),
-            required_sources=self._identify_required_sources(query)
+            required_sources=self._identify_required_sources(query),
         )
 
         proposal_intent = self._detect_proposal_intent(query)
 
         # Yield initial status
         yield {
-            'type': 'status',
-            'stage': 'processing',
-            'message': 'Processing proposal request...',
-            'proposal_intent': proposal_intent
+            "type": "status",
+            "stage": "processing",
+            "message": "Processing proposal request...",
+            "proposal_intent": proposal_intent,
         }
 
         # ReAct loop with streaming
@@ -523,7 +575,7 @@ When the user asks to "evaluate" or "score" a section:
                 context=context,
                 proposal_context=proposal_context,
                 previous_steps=plan.reasoning_steps,
-                tool_results=all_tool_results
+                tool_results=all_tool_results,
             )
 
             if not reasoning_result:
@@ -531,31 +583,31 @@ When the user asks to "evaluate" or "score" a section:
 
             step = ReasoningStep(
                 step_number=iteration,
-                thought=reasoning_result.get('thought', ''),
-                action=reasoning_result.get('action', 'conclude')
+                thought=reasoning_result.get("thought", ""),
+                action=reasoning_result.get("action", "conclude"),
             )
 
             # Yield thinking event
             yield {
-                'type': 'agent_thinking',
-                'iteration': iteration,
-                'thought': step.thought,
-                'action': step.action
+                "type": "agent_thinking",
+                "iteration": iteration,
+                "thought": step.thought,
+                "action": step.action,
             }
 
-            if step.action == 'call_tools':
-                tool_calls = reasoning_result.get('tool_calls', [])
+            if step.action == "call_tools":
+                tool_calls = reasoning_result.get("tool_calls", [])
 
                 # Yield tool call events
                 for tc in tool_calls:
-                    tool_name = tc.get('tool', '')
-                    parameters = tc.get('parameters', {})
+                    tool_name = tc.get("tool", "")
+                    parameters = tc.get("parameters", {})
                     yield {
-                        'type': 'tool_call',
-                        'iteration': iteration,
-                        'tool_name': tool_name,
-                        'parameters': parameters,
-                        'reasoning': tc.get('reasoning', '')
+                        "type": "tool_call",
+                        "iteration": iteration,
+                        "tool_name": tool_name,
+                        "parameters": parameters,
+                        "reasoning": tc.get("reasoning", ""),
                     }
 
                 # Execute tools
@@ -565,35 +617,41 @@ When the user asks to "evaluate" or "score" a section:
                 for tc in step.tool_calls:
                     result_count = self._count_results(tc.result) if tc.success else 0
                     yield {
-                        'type': 'tool_result',
-                        'tool_name': tc.tool_name,
-                        'success': tc.success,
-                        'result_count': result_count,
-                        'execution_time_ms': tc.execution_time_ms
+                        "type": "tool_result",
+                        "tool_name": tc.tool_name,
+                        "success": tc.success,
+                        "result_count": result_count,
+                        "execution_time_ms": tc.execution_time_ms,
                     }
 
                     if tc.success:
                         all_tool_results[f"{tc.tool_name}_{iteration}"] = tc.result
 
                         # Yield section update for writing tools
-                        section_id = tc.parameters.get('section_id')
+                        section_id = tc.parameters.get("section_id")
                         if section_id and tc.tool_name in (
-                            'generate_section_draft', 'improve_section', 'rewrite_section'
+                            "generate_section_draft",
+                            "improve_section",
+                            "rewrite_section",
                         ):
                             sections_affected.append(section_id)
                             yield {
-                                'type': 'section_update',
-                                'section_id': section_id,
-                                'tool_name': tc.tool_name,
-                                'content': tc.result.get('content', '') if isinstance(tc.result, dict) else str(tc.result)
+                                "type": "section_update",
+                                "section_id": section_id,
+                                "tool_name": tc.tool_name,
+                                "content": (
+                                    tc.result.get("content", "")
+                                    if isinstance(tc.result, dict)
+                                    else str(tc.result)
+                                ),
                             }
 
                 step.observation = self._summarize_tool_results(step.tool_calls)
-                step.next_action_needed = reasoning_result.get('needs_more_info', True)
+                step.next_action_needed = reasoning_result.get("needs_more_info", True)
 
-            elif step.action == 'conclude':
-                plan.final_answer = reasoning_result.get('conclusion', '')
-                plan.confidence = reasoning_result.get('confidence', 0.8)
+            elif step.action == "conclude":
+                plan.final_answer = reasoning_result.get("conclusion", "")
+                plan.confidence = reasoning_result.get("confidence", 0.8)
                 step.next_action_needed = False
 
             plan.reasoning_steps.append(step)
@@ -605,16 +663,16 @@ When the user asks to "evaluate" or "score" a section:
         total_time = (datetime.now() - start_time).total_seconds() * 1000
 
         yield {
-            'type': 'agent_complete',
-            'result': {
-                'answer': plan.final_answer or self._build_fallback_answer(plan),
-                'success': plan.final_answer is not None,
-                'sections_affected': list(set(sections_affected)),
-                'iterations': iteration,
-                'confidence': plan.confidence,
-                'total_time_ms': total_time,
-                'proposal_intent': proposal_intent
-            }
+            "type": "agent_complete",
+            "result": {
+                "answer": plan.final_answer or self._build_fallback_answer(plan),
+                "success": plan.final_answer is not None,
+                "sections_affected": list(set(sections_affected)),
+                "iterations": iteration,
+                "confidence": plan.confidence,
+                "total_time_ms": total_time,
+                "proposal_intent": proposal_intent,
+            },
         }
 
     async def _reason_next_step_with_proposal(
@@ -623,7 +681,7 @@ When the user asks to "evaluate" or "score" a section:
         context: str,
         proposal_context: str,
         previous_steps: list[ReasoningStep],
-        tool_results: dict[str, Any]
+        tool_results: dict[str, Any],
     ) -> dict[str, Any] | None:
         """
         Get next reasoning step with proposal context.
@@ -643,7 +701,7 @@ When the user asks to "evaluate" or "score" a section:
             context=context,
             proposal_context=proposal_context,
             previous_steps=previous_steps,
-            tool_results=tool_results
+            tool_results=tool_results,
         )
 
         try:
@@ -656,7 +714,7 @@ When the user asks to "evaluate" or "score" a section:
                 import re
 
                 # Extract JSON from markdown code blocks if present
-                json_match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', response_text)
+                json_match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", response_text)
                 if json_match:
                     response_text = json_match.group(1)
 
@@ -668,9 +726,7 @@ When the user asks to "evaluate" or "score" a section:
             logger.error(f"Reasoning step failed: {e}")
             return None
 
-    async def _execute_tool_calls_with_proposal(
-        self, tool_calls: list[dict]
-    ) -> list[ToolCall]:
+    async def _execute_tool_calls_with_proposal(self, tool_calls: list[dict]) -> list[ToolCall]:
         """
         Execute tool calls with proposal context awareness.
 
@@ -683,15 +739,11 @@ When the user asks to "evaluate" or "score" a section:
         results = []
 
         for tc_spec in tool_calls:
-            tool_name = tc_spec.get('tool', '')
-            parameters = tc_spec.get('parameters', {})
-            reasoning = tc_spec.get('reasoning', '')
+            tool_name = tc_spec.get("tool", "")
+            parameters = tc_spec.get("parameters", {})
+            reasoning = tc_spec.get("reasoning", "")
 
-            tc = ToolCall(
-                tool_name=tool_name,
-                parameters=parameters,
-                reasoning=reasoning
-            )
+            tc = ToolCall(tool_name=tool_name, parameters=parameters, reasoning=reasoning)
 
             start_time = datetime.now()
 
@@ -718,20 +770,18 @@ When the user asks to "evaluate" or "score" a section:
     def _get_proposal_tool_names(self) -> list[str]:
         """Get list of proposal-specific tool names."""
         return [
-            'generate_section_draft',
-            'improve_section',
-            'rewrite_section',
-            'evaluate_section',
-            'analyze_gaps',
-            'check_compliance',
-            'get_suggestions',
-            'focus_section',
-            'get_document_overview'
+            "generate_section_draft",
+            "improve_section",
+            "rewrite_section",
+            "evaluate_section",
+            "analyze_gaps",
+            "check_compliance",
+            "get_suggestions",
+            "focus_section",
+            "get_document_overview",
         ]
 
-    async def _execute_proposal_tool(
-        self, tool_name: str, parameters: dict[str, Any]
-    ) -> Any:
+    async def _execute_proposal_tool(self, tool_name: str, parameters: dict[str, Any]) -> Any:
         """
         Execute a proposal-specific tool.
 
@@ -745,14 +795,12 @@ When the user asks to "evaluate" or "score" a section:
         try:
             from ..tools.proposal_tools import get_proposal_tool_executor
 
-            executor = get_proposal_tool_executor(
-                session_manager=self.session_manager
-            )
+            executor = get_proposal_tool_executor(session_manager=self.session_manager)
             return await executor.execute_tool(
                 tool_name=tool_name,
                 parameters=parameters,
                 session_id=self._current_session_id,
-                proposal_context=self._current_proposal_context
+                proposal_context=self._current_proposal_context,
             )
         except ImportError as e:
             logger.warning(f"Proposal tool executor not available: {e}")
@@ -771,28 +819,28 @@ When the user asks to "evaluate" or "score" a section:
         query_lower = query.lower()
 
         # Writing intents
-        if any(kw in query_lower for kw in ['write', 'draft', 'generate', 'create']):
-            if 'section' in query_lower or 'objectives' in query_lower:
-                return 'generate_section'
+        if any(kw in query_lower for kw in ["write", "draft", "generate", "create"]):
+            if "section" in query_lower or "objectives" in query_lower:
+                return "generate_section"
 
         # Improvement intents
-        if any(kw in query_lower for kw in ['improve', 'enhance', 'better', 'strengthen']):
-            return 'improve_section'
+        if any(kw in query_lower for kw in ["improve", "enhance", "better", "strengthen"]):
+            return "improve_section"
 
         # Rewrite intents
-        if any(kw in query_lower for kw in ['rewrite', 'rephrase', 'reformulate']):
-            return 'rewrite_section'
+        if any(kw in query_lower for kw in ["rewrite", "rephrase", "reformulate"]):
+            return "rewrite_section"
 
         # Evaluation intents
-        if any(kw in query_lower for kw in ['evaluate', 'score', 'assess', 'rate']):
-            return 'evaluate_section'
+        if any(kw in query_lower for kw in ["evaluate", "score", "assess", "rate"]):
+            return "evaluate_section"
 
         # Gap analysis intents
-        if any(kw in query_lower for kw in ['gap', 'missing', 'what\'s missing', 'lacks']):
-            return 'analyze_gaps'
+        if any(kw in query_lower for kw in ["gap", "missing", "what's missing", "lacks"]):
+            return "analyze_gaps"
 
         # Compliance intents
-        if any(kw in query_lower for kw in ['compliance', 'compliant', 'rules', 'requirements']):
-            return 'check_compliance'
+        if any(kw in query_lower for kw in ["compliance", "compliant", "rules", "requirements"]):
+            return "check_compliance"
 
         return None

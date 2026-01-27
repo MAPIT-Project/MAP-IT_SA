@@ -96,9 +96,7 @@ class ProposalToolExecutor:
 
                 if self.db_pool:
                     call_doc_service = CallDocumentService(self.db_pool)
-                    self._services[service_name] = ComplianceChecker(
-                        call_doc_service, self.db_pool
-                    )
+                    self._services[service_name] = ComplianceChecker(call_doc_service, self.db_pool)
                 else:
                     logger.warning("No db_pool for compliance_checker")
                     return None
@@ -157,15 +155,13 @@ class ProposalToolExecutor:
             logger.error(f"Tool execution failed for {tool_name}: {e}")
             return {"error": str(e), "tool": tool_name}
 
-    async def _generate_section_draft(
-        self, parameters: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def _generate_section_draft(self, parameters: dict[str, Any]) -> dict[str, Any]:
         """Generate a draft for a proposal section."""
         section_id = parameters.get("section_id", "")
         call_id = parameters.get("call_id", "")
         guidance = parameters.get("guidance", "")
         word_target = parameters.get("word_target", 500)
-        style = parameters.get("style", "formal")
+        parameters.get("style", "formal")
 
         service = self._get_service("draft_generator")
         if not service:
@@ -175,23 +171,20 @@ class ProposalToolExecutor:
                 "content": self._generate_placeholder_draft(section_id, word_target),
                 "word_count": word_target,
                 "generated": True,
-                "note": "Generated with placeholder service"
+                "note": "Generated with placeholder service",
             }
 
         try:
             # Call the actual service
             result = await service.generate_section(
-                call_id=call_id,
-                section_id=section_id,
-                guidance=guidance,
-                target_words=word_target
+                call_id=call_id, section_id=section_id, guidance=guidance, target_words=word_target
             )
             return {
                 "section_id": section_id,
                 "content": result.get("content", ""),
                 "word_count": len(result.get("content", "").split()),
                 "generated": True,
-                "sources_used": result.get("sources", [])
+                "sources_used": result.get("sources", []),
             }
         except Exception as e:
             logger.error(f"Draft generation failed: {e}")
@@ -200,7 +193,7 @@ class ProposalToolExecutor:
                 "content": self._generate_placeholder_draft(section_id, word_target),
                 "word_count": word_target,
                 "generated": True,
-                "error": str(e)
+                "error": str(e),
             }
 
     async def _improve_section(
@@ -209,7 +202,7 @@ class ProposalToolExecutor:
         """Improve existing section content."""
         section_id = parameters.get("section_id", "")
         focus_areas = parameters.get("focus_areas", "all")
-        preserve_length = parameters.get("preserve_length", True)
+        parameters.get("preserve_length", True)
 
         # Extract current content from proposal context
         current_content = self._extract_section_content(section_id, proposal_context)
@@ -218,7 +211,7 @@ class ProposalToolExecutor:
             return {
                 "section_id": section_id,
                 "error": "No content found to improve",
-                "improved": False
+                "improved": False,
             }
 
         service = self._get_service("quality_improver")
@@ -228,21 +221,21 @@ class ProposalToolExecutor:
                 "content": current_content,
                 "improvements_made": [],
                 "improved": False,
-                "note": "Improvement service unavailable"
+                "note": "Improvement service unavailable",
             }
 
         try:
             result = await service.improve_section(
                 content=current_content,
                 section_type=section_id.split(".")[-1] if "." in section_id else section_id,
-                focus_areas=focus_areas.split(",") if isinstance(focus_areas, str) else focus_areas
+                focus_areas=focus_areas.split(",") if isinstance(focus_areas, str) else focus_areas,
             )
             return {
                 "section_id": section_id,
                 "content": result.get("improved_content", current_content),
                 "original_content": current_content,
                 "improvements_made": result.get("improvements", []),
-                "improved": True
+                "improved": True,
             }
         except Exception as e:
             logger.error(f"Section improvement failed: {e}")
@@ -250,7 +243,7 @@ class ProposalToolExecutor:
                 "section_id": section_id,
                 "content": current_content,
                 "improved": False,
-                "error": str(e)
+                "error": str(e),
             }
 
     async def _rewrite_section(
@@ -267,7 +260,7 @@ class ProposalToolExecutor:
             return {
                 "section_id": section_id,
                 "error": "No content found to rewrite",
-                "rewritten": False
+                "rewritten": False,
             }
 
         service = self._get_service("smart_rewriter")
@@ -277,24 +270,24 @@ class ProposalToolExecutor:
                 "content": current_content,
                 "style_applied": style,
                 "rewritten": False,
-                "note": "Rewriter service unavailable"
+                "note": "Rewriter service unavailable",
             }
 
         try:
             from ..proposal_writing import RewriteStyle
 
             style_enum = getattr(RewriteStyle, style.upper(), RewriteStyle.EU_EVALUATOR_FRIENDLY)
-            result = await service.rewrite(
-                content=current_content,
-                style=style_enum,
-                tone=tone
-            )
+            result = await service.rewrite(content=current_content, style=style_enum, tone=tone)
             return {
                 "section_id": section_id,
-                "content": result.rewritten_content if hasattr(result, 'rewritten_content') else str(result),
+                "content": (
+                    result.rewritten_content
+                    if hasattr(result, "rewritten_content")
+                    else str(result)
+                ),
                 "original_content": current_content,
                 "style_applied": style,
-                "rewritten": True
+                "rewritten": True,
             }
         except Exception as e:
             logger.error(f"Section rewrite failed: {e}")
@@ -303,7 +296,7 @@ class ProposalToolExecutor:
                 "content": current_content,
                 "style_applied": style,
                 "rewritten": False,
-                "error": str(e)
+                "error": str(e),
             }
 
     async def _evaluate_section(
@@ -319,7 +312,7 @@ class ProposalToolExecutor:
             return {
                 "section_id": section_id,
                 "error": "No content found to evaluate",
-                "evaluated": False
+                "evaluated": False,
             }
 
         service = self._get_service("evaluator_simulator")
@@ -331,25 +324,27 @@ class ProposalToolExecutor:
             result = await service.evaluate(
                 content=current_content,
                 section_type=section_id.split(".")[-1] if "." in section_id else section_id,
-                detailed=(evaluation_type == "detailed")
+                detailed=(evaluation_type == "detailed"),
             )
             return {
                 "section_id": section_id,
-                "score": result.overall_score if hasattr(result, 'overall_score') else 3.0,
+                "score": result.overall_score if hasattr(result, "overall_score") else 3.0,
                 "max_score": 5.0,
                 "criterion_scores": [
                     {
                         "name": cs.name,
                         "score": cs.score,
                         "max": cs.max_score,
-                        "feedback": cs.feedback
+                        "feedback": cs.feedback,
                     }
-                    for cs in (result.criterion_scores if hasattr(result, 'criterion_scores') else [])
+                    for cs in (
+                        result.criterion_scores if hasattr(result, "criterion_scores") else []
+                    )
                 ],
-                "strengths": result.strengths if hasattr(result, 'strengths') else [],
-                "weaknesses": result.weaknesses if hasattr(result, 'weaknesses') else [],
-                "suggestions": result.suggestions if hasattr(result, 'suggestions') else [],
-                "evaluated": True
+                "strengths": result.strengths if hasattr(result, "strengths") else [],
+                "weaknesses": result.weaknesses if hasattr(result, "weaknesses") else [],
+                "suggestions": result.suggestions if hasattr(result, "suggestions") else [],
+                "evaluated": True,
             }
         except Exception as e:
             logger.error(f"Section evaluation failed: {e}")
@@ -372,23 +367,23 @@ class ProposalToolExecutor:
             result = await service.analyze(
                 content=current_content or "",
                 section_type=section_id.split(".")[-1] if "." in section_id else section_id,
-                include_fixes=include_fixes
+                include_fixes=include_fixes,
             )
             return {
                 "section_id": section_id,
                 "gaps": [
                     {
-                        "id": gap.id if hasattr(gap, 'id') else str(i),
-                        "description": gap.description if hasattr(gap, 'description') else str(gap),
-                        "severity": gap.severity.value if hasattr(gap, 'severity') else "major",
-                        "category": gap.category.value if hasattr(gap, 'category') else "content",
-                        "suggested_fix": gap.suggested_fix if hasattr(gap, 'suggested_fix') else "",
-                        "effort": gap.effort.value if hasattr(gap, 'effort') else "medium"
+                        "id": gap.id if hasattr(gap, "id") else str(i),
+                        "description": gap.description if hasattr(gap, "description") else str(gap),
+                        "severity": gap.severity.value if hasattr(gap, "severity") else "major",
+                        "category": gap.category.value if hasattr(gap, "category") else "content",
+                        "suggested_fix": gap.suggested_fix if hasattr(gap, "suggested_fix") else "",
+                        "effort": gap.effort.value if hasattr(gap, "effort") else "medium",
                     }
-                    for i, gap in enumerate(result.gaps if hasattr(result, 'gaps') else [])
+                    for i, gap in enumerate(result.gaps if hasattr(result, "gaps") else [])
                 ],
-                "gap_count": len(result.gaps) if hasattr(result, 'gaps') else 0,
-                "analyzed": True
+                "gap_count": len(result.gaps) if hasattr(result, "gaps") else 0,
+                "analyzed": True,
             }
         except Exception as e:
             logger.error(f"Gap analysis failed: {e}")
@@ -407,13 +402,12 @@ class ProposalToolExecutor:
                 "checks_passed": 5,
                 "checks_failed": 0,
                 "warnings": 0,
-                "details": ["Compliance check service unavailable - assuming compliant"]
+                "details": ["Compliance check service unavailable - assuming compliant"],
             }
 
         try:
             result = await service.check_compliance(
-                section_id=section_id if section_id != "all" else None,
-                check_type=check_type
+                section_id=section_id if section_id != "all" else None, check_type=check_type
             )
             return {
                 "section_id": section_id,
@@ -421,15 +415,11 @@ class ProposalToolExecutor:
                 "checks_passed": result.get("passed", 0),
                 "checks_failed": result.get("failed", 0),
                 "warnings": result.get("warnings", 0),
-                "details": result.get("details", [])
+                "details": result.get("details", []),
             }
         except Exception as e:
             logger.error(f"Compliance check failed: {e}")
-            return {
-                "section_id": section_id,
-                "compliant": True,
-                "error": str(e)
-            }
+            return {"section_id": section_id, "compliant": True, "error": str(e)}
 
     async def _get_suggestions(
         self, parameters: dict[str, Any], proposal_context: str | None
@@ -441,11 +431,7 @@ class ProposalToolExecutor:
         current_content = self._extract_section_content(section_id, proposal_context)
 
         if not current_content:
-            return {
-                "section_id": section_id,
-                "suggestions": [],
-                "suggestion_count": 0
-            }
+            return {"section_id": section_id, "suggestions": [], "suggestion_count": 0}
 
         service = self._get_service("suggestions_service")
         if not service:
@@ -453,28 +439,44 @@ class ProposalToolExecutor:
                 "section_id": section_id,
                 "suggestions": [],
                 "suggestion_count": 0,
-                "note": "Suggestions service unavailable"
+                "note": "Suggestions service unavailable",
             }
 
         try:
             result = await service.get_suggestions(
                 content=current_content,
-                categories=suggestion_types.split(",") if isinstance(suggestion_types, str) and suggestion_types != "all" else None
+                categories=(
+                    suggestion_types.split(",")
+                    if isinstance(suggestion_types, str) and suggestion_types != "all"
+                    else None
+                ),
             )
             return {
                 "section_id": section_id,
                 "suggestions": [
                     {
-                        "id": s.id if hasattr(s, 'id') else str(i),
-                        "type": s.category.value if hasattr(s, 'category') else "general",
-                        "original": s.original_text if hasattr(s, 'original_text') else "",
-                        "suggested": s.suggested_text if hasattr(s, 'suggested_text') else "",
-                        "reason": s.reason if hasattr(s, 'reason') else "",
-                        "priority": s.priority.value if hasattr(s, 'priority') else "medium"
+                        "id": s.id if hasattr(s, "id") else str(i),
+                        "type": s.category.value if hasattr(s, "category") else "general",
+                        "original": s.original_text if hasattr(s, "original_text") else "",
+                        "suggested": s.suggested_text if hasattr(s, "suggested_text") else "",
+                        "reason": s.reason if hasattr(s, "reason") else "",
+                        "priority": s.priority.value if hasattr(s, "priority") else "medium",
                     }
-                    for i, s in enumerate(result.suggestions if hasattr(result, 'suggestions') else result if isinstance(result, list) else [])
+                    for i, s in enumerate(
+                        result.suggestions
+                        if hasattr(result, "suggestions")
+                        else result
+                        if isinstance(result, list)
+                        else []
+                    )
                 ],
-                "suggestion_count": len(result.suggestions if hasattr(result, 'suggestions') else result if isinstance(result, list) else [])
+                "suggestion_count": len(
+                    result.suggestions
+                    if hasattr(result, "suggestions")
+                    else result
+                    if isinstance(result, list)
+                    else []
+                ),
             }
         except Exception as e:
             logger.error(f"Get suggestions failed: {e}")
@@ -482,7 +484,7 @@ class ProposalToolExecutor:
                 "section_id": section_id,
                 "suggestions": [],
                 "suggestion_count": 0,
-                "error": str(e)
+                "error": str(e),
             }
 
     async def _focus_section(
@@ -494,32 +496,20 @@ class ProposalToolExecutor:
         if self.session_manager and session_id:
             try:
                 await self.session_manager.set_active_section(session_id, section_id)
-                return {
-                    "section_id": section_id,
-                    "focused": True
-                }
+                return {"section_id": section_id, "focused": True}
             except Exception as e:
                 logger.error(f"Failed to focus section: {e}")
-                return {
-                    "section_id": section_id,
-                    "focused": False,
-                    "error": str(e)
-                }
-        return {
-            "section_id": section_id,
-            "focused": True,
-            "note": "No session manager available"
-        }
+                return {"section_id": section_id, "focused": False, "error": str(e)}
+        return {"section_id": section_id, "focused": True, "note": "No session manager available"}
 
-    async def _get_document_overview(
-        self, session_id: str | None
-    ) -> dict[str, Any]:
+    async def _get_document_overview(self, session_id: str | None) -> dict[str, Any]:
         """Get the document overview for the session."""
         if self.session_manager and session_id:
             try:
                 session = await self.session_manager.get_session(session_id)
                 if session:
                     from ..proposal_session import DocumentStateService
+
                     doc_service = DocumentStateService()
                     return doc_service.get_document_overview(session)
             except Exception as e:
@@ -527,16 +517,14 @@ class ProposalToolExecutor:
 
         return {
             "overview": "No document overview available",
-            "error": "Session not found or unavailable"
+            "error": "Session not found or unavailable",
         }
 
     # =========================================================================
     # Helper Methods
     # =========================================================================
 
-    def _extract_section_content(
-        self, section_id: str, proposal_context: str | None
-    ) -> str | None:
+    def _extract_section_content(self, section_id: str, proposal_context: str | None) -> str | None:
         """Extract section content from proposal context string."""
         if not proposal_context or not section_id:
             return None
@@ -599,12 +587,10 @@ We have identified key risks and mitigation strategies to ensure project success
 
         return templates.get(
             section_id.split(".")[-1],
-            f"## {section_name}\n\n[Content to be developed for this section]\n\nThis section should address:\n- Key points from the call\n- Relevant methodology\n- Expected outcomes"
+            f"## {section_name}\n\n[Content to be developed for this section]\n\nThis section should address:\n- Key points from the call\n- Relevant methodology\n- Expected outcomes",
         )
 
-    def _generate_placeholder_evaluation(
-        self, section_id: str, content: str
-    ) -> dict[str, Any]:
+    def _generate_placeholder_evaluation(self, section_id: str, content: str) -> dict[str, Any]:
         """Generate placeholder evaluation when service unavailable."""
         word_count = len(content.split()) if content else 0
         score = min(4.0, max(2.0, word_count / 200))  # Simple heuristic
@@ -618,10 +604,10 @@ We have identified key risks and mitigation strategies to ensure project success
             "suggestions": [
                 "Add measurable KPIs",
                 "Reference call requirements explicitly",
-                "Include timeline/milestones"
+                "Include timeline/milestones",
             ],
             "evaluated": True,
-            "note": "Placeholder evaluation - full service unavailable"
+            "note": "Placeholder evaluation - full service unavailable",
         }
 
     def _generate_placeholder_gaps(self, section_id: str) -> dict[str, Any]:
@@ -635,7 +621,7 @@ We have identified key risks and mitigation strategies to ensure project success
                     "severity": "major",
                     "category": "content",
                     "suggested_fix": "Include specific, measurable outcomes aligned with call expectations",
-                    "effort": "medium"
+                    "effort": "medium",
                 },
                 {
                     "id": "gap-2",
@@ -643,12 +629,12 @@ We have identified key risks and mitigation strategies to ensure project success
                     "severity": "minor",
                     "category": "compliance",
                     "suggested_fix": "Explicitly address each evaluation criterion from the call",
-                    "effort": "quick"
-                }
+                    "effort": "quick",
+                },
             ],
             "gap_count": 2,
             "analyzed": True,
-            "note": "Placeholder analysis - full service unavailable"
+            "note": "Placeholder analysis - full service unavailable",
         }
 
 
@@ -656,9 +642,7 @@ We have identified key risks and mitigation strategies to ensure project success
 _proposal_tool_executor: ProposalToolExecutor | None = None
 
 
-def get_proposal_tool_executor(
-    session_manager=None, db_pool=None
-) -> ProposalToolExecutor:
+def get_proposal_tool_executor(session_manager=None, db_pool=None) -> ProposalToolExecutor:
     """
     Get or create the proposal tool executor instance.
 
@@ -672,7 +656,6 @@ def get_proposal_tool_executor(
     global _proposal_tool_executor
     if _proposal_tool_executor is None:
         _proposal_tool_executor = ProposalToolExecutor(
-            session_manager=session_manager,
-            db_pool=db_pool
+            session_manager=session_manager, db_pool=db_pool
         )
     return _proposal_tool_executor

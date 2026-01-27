@@ -20,13 +20,13 @@ Complex queries are those that:
 """
 
 import asyncio
-from dataclasses import dataclass, field
 import json
 import logging
 import os
 import re
 import sys
 import time
+from dataclasses import dataclass, field
 from typing import Any
 
 import pytest
@@ -953,9 +953,9 @@ class TestScenario059LiveAPI:
 
         # Assert performance targets
         assert metrics.error is None, f"Request failed: {metrics.error}"
-        assert (
-            metrics.meets_max_acceptable
-        ), f"Total {metrics.total_time:.2f}s > {MAX_ACCEPTABLE_SECONDS}s max"
+        assert metrics.meets_max_acceptable, (
+            f"Total {metrics.total_time:.2f}s > {MAX_ACCEPTABLE_SECONDS}s max"
+        )
         assert metrics.has_multiple_tools, (
             f"Only {len(metrics.tools_used)} tools used, "
             f"expected >= {MINIMUM_TOOLS_FOR_COMPLEX_QUERY}"
@@ -1041,9 +1041,9 @@ class TestScenario059LiveAPI:
 
         # Assert minimum acceptable performance
         assert result["avg_total_time"] is not None, "No queries completed"
-        assert (
-            result["avg_total_time"] <= MAX_ACCEPTABLE_SECONDS
-        ), f"Average time {result['avg_total_time']:.2f}s > {MAX_ACCEPTABLE_SECONDS}s max"
+        assert result["avg_total_time"] <= MAX_ACCEPTABLE_SECONDS, (
+            f"Average time {result['avg_total_time']:.2f}s > {MAX_ACCEPTABLE_SECONDS}s max"
+        )
 
 
 class TestScenario059Validation:

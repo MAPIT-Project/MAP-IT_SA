@@ -12,5 +12,5 @@ __all__ = [
     "ToolUsageEvent",
     "ConversationAnalyticsService",
     "ConversationEvent",
-    "get_conversation_analytics_service"
+    "get_conversation_analytics_service",
 ]

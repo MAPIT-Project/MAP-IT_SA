@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 class OperationType(str, Enum):
     """Types of editing operations."""
+
     INSERT = "insert"
     DELETE = "delete"
     REPLACE = "replace"
@@ -39,6 +40,7 @@ class OperationType(str, Enum):
 @dataclass
 class CursorPosition:
     """Cursor position in a document."""
+
     section_id: str
     position: int  # Character offset
     selection_start: int | None = None
@@ -56,6 +58,7 @@ class CursorPosition:
 @dataclass
 class CollaboratorSession:
     """A collaborator's session in a proposal."""
+
     user_id: str
     session_id: str  # Proposal session ID
     connection_id: str  # Unique connection ID for this instance
@@ -85,6 +88,7 @@ class CollaboratorSession:
 @dataclass
 class SectionLock:
     """A lock on a proposal section."""
+
     section_id: str
     session_id: str  # Proposal session ID
     locked_by: str  # User ID
@@ -107,12 +111,13 @@ class SectionLock:
 @dataclass
 class EditOperation:
     """An editing operation for OT."""
+
     operation_id: str
     section_id: str
     operation_type: OperationType
     position: int
     content: str | None = None  # For insert/replace
-    length: int | None = None   # For delete/retain
+    length: int | None = None  # For delete/retain
     user_id: str | None = None
     timestamp: datetime = field(default_factory=datetime.utcnow)
     base_version: int = 0
@@ -134,6 +139,7 @@ class EditOperation:
 @dataclass
 class BroadcastEvent:
     """An event to broadcast to collaborators."""
+
     event_type: str
     session_id: str
     payload: dict[str, Any]
@@ -220,7 +226,11 @@ class CollaborationService:
         existing = await self.get_collaborators(session_id)
         used_colors = {c.color for c in existing}
         available_colors = [c for c in COLLABORATOR_COLORS if c not in used_colors]
-        color = available_colors[0] if available_colors else COLLABORATOR_COLORS[len(existing) % len(COLLABORATOR_COLORS)]
+        color = (
+            available_colors[0]
+            if available_colors
+            else COLLABORATOR_COLORS[len(existing) % len(COLLABORATOR_COLORS)]
+        )
 
         collaborator = CollaboratorSession(
             user_id=user_id,
@@ -249,7 +259,7 @@ class CollaborationService:
         return {
             "connection_id": connection_id,
             "collaborators": [c.to_dict() for c in collaborators],
-            "locked_sections": [l.to_dict() for l in locked_sections],
+            "locked_sections": [lock.to_dict() for lock in locked_sections],
             "your_color": color,
         }
 
@@ -579,7 +589,7 @@ class CollaborationService:
         else:
             session_locks = self._local_locks.get(session_id, {})
             now = datetime.now(UTC)
-            locks = [l for l in session_locks.values() if l.expires_at > now]
+            locks = [lock for lock in session_locks.values() if lock.expires_at > now]
 
         return locks
 
@@ -697,7 +707,7 @@ class CollaborationService:
                     transformed.position += len(pending.content or "")
                 elif pending.operation_type == OperationType.DELETE:
                     # Shift our position by delete length (negative)
-                    transformed.position -= (pending.length or 0)
+                    transformed.position -= pending.length or 0
                     transformed.position = max(0, transformed.position)
 
         return transformed
@@ -737,20 +747,25 @@ class CollaborationService:
             key = f"collab:ops:{session_id}:{section_id}"
             ops = []
 
-            for i in range(since_version + 1, int(self.redis.get(f"collab:version:{session_id}:{section_id}") or 0) + 1):
+            for i in range(
+                since_version + 1,
+                int(self.redis.get(f"collab:version:{session_id}:{section_id}") or 0) + 1,
+            ):
                 data = self.redis.hget(key, str(i))
                 if data:
                     op_dict = json.loads(data)
-                    ops.append(EditOperation(
-                        operation_id=op_dict["operation_id"],
-                        section_id=op_dict["section_id"],
-                        operation_type=OperationType(op_dict["operation_type"]),
-                        position=op_dict["position"],
-                        content=op_dict.get("content"),
-                        length=op_dict.get("length"),
-                        user_id=op_dict.get("user_id"),
-                        base_version=op_dict["base_version"],
-                    ))
+                    ops.append(
+                        EditOperation(
+                            operation_id=op_dict["operation_id"],
+                            section_id=op_dict["section_id"],
+                            operation_type=OperationType(op_dict["operation_type"]),
+                            position=op_dict["position"],
+                            content=op_dict.get("content"),
+                            length=op_dict.get("length"),
+                            user_id=op_dict.get("user_id"),
+                            base_version=op_dict["base_version"],
+                        )
+                    )
 
             return ops
         except Exception as e:
@@ -790,7 +805,7 @@ class CollaborationService:
         """Remove a listener."""
         if session_id in self._listeners:
             self._listeners[session_id] = [
-                l for l in self._listeners[session_id] if l != callback
+                listener for listener in self._listeners[session_id] if listener != callback
             ]
 
     async def _broadcast(self, event: BroadcastEvent):

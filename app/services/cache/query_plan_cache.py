@@ -49,8 +49,8 @@ class QueryPlanCache:
         - Remove punctuation except hyphens
         """
         normalized = query.lower().strip()
-        normalized = re.sub(r'\s+', ' ', normalized)
-        normalized = re.sub(r'[^\w\s\-]', '', normalized)
+        normalized = re.sub(r"\s+", " ", normalized)
+        normalized = re.sub(r"[^\w\s\-]", "", normalized)
         return normalized
 
     def _extract_query_pattern(self, query: str) -> str:
@@ -68,47 +68,49 @@ class QueryPlanCache:
         # Pattern replacements (order matters - more specific first)
         replacements = [
             # Clusters (specific codes only - not topic words)
-            (r'\b(cl[1-6]|cluster\s*[1-6])\b', '{cluster}'),
-
+            (r"\b(cl[1-6]|cluster\s*[1-6])\b", "{cluster}"),
             # Action types
-            (r'\b(ria|ia|csa|erc|eic|msca|cofund|lump[\s-]?sum|pcp|ppi)\b', '{action_type}'),
-
+            (r"\b(ria|ia|csa|erc|eic|msca|cofund|lump[\s-]?sum|pcp|ppi)\b", "{action_type}"),
             # Countries (EU member states and associated)
-            (r'\b(germany|german|france|french|spain|spanish|italy|italian|netherlands|dutch|belgium|belgian|austria|austrian|sweden|swedish|denmark|danish|finland|finnish|poland|polish|czech|portugal|portuguese|ireland|irish|greece|greek|hungary|hungarian|romania|romanian|bulgaria|bulgarian|croatia|croatian|slovakia|slovak|slovenia|slovenian|estonia|estonian|latvia|latvian|lithuania|lithuanian|luxembourg|malta|maltese|cyprus|switzerland|swiss|norway|norwegian|uk|united kingdom|israel|israeli)\b', '{country}'),
-
+            (
+                r"\b(germany|german|france|french|spain|spanish|italy|italian|netherlands|dutch|belgium|belgian|austria|austrian|sweden|swedish|denmark|danish|finland|finnish|poland|polish|czech|portugal|portuguese|ireland|irish|greece|greek|hungary|hungarian|romania|romanian|bulgaria|bulgarian|croatia|croatian|slovakia|slovak|slovenia|slovenian|estonia|estonian|latvia|latvian|lithuania|lithuanian|luxembourg|malta|maltese|cyprus|switzerland|swiss|norway|norwegian|uk|united kingdom|israel|israeli)\b",
+                "{country}",
+            ),
             # Country codes (2-letter only, avoiding common words)
-            (r'\b(de|fr|es|it|nl|be|at|se|dk|fi|pl|cz|pt|ie|gr|hu|ro|bg|hr|sk|si|ee|lv|lt|lu|mt|cy|ch|no|il)\b', '{country}'),
-
+            (
+                r"\b(de|fr|es|it|nl|be|at|se|dk|fi|pl|cz|pt|ie|gr|hu|ro|bg|hr|sk|si|ee|lv|lt|lu|mt|cy|ch|no|il)\b",
+                "{country}",
+            ),
             # Years
-            (r'\b(20[2-3][0-9])\b', '{year}'),
-
+            (r"\b(20[2-3][0-9])\b", "{year}"),
             # Specific topic keywords (comprehensive list of Horizon Europe research areas)
-            (r'\b(hydrogen|quantum|artificial intelligence|\bai\b|machine learning|deep learning|'
-             r'renewable|solar|wind|battery|batteries|energy storage|'
-             r'cancer|diabetes|cardiovascular|healthcare|health care|'
-             r'blockchain|cybersecurity|cyber security|robotics|autonomous|'
-             r'sustainable|sustainability|circular economy|biodiversity|'
-             r'ocean|marine|space|satellite|'
-             r'nanotechnology|nano|biotechnology|biotech|'
-             r'electric vehicles?|ev|smart cit(?:y|ies)|smart grid|'
-             r'agriculture|agri-food|food security|'
-             r'manufacturing|industry 4\.0|advanced materials|materials science|'
-             r'photonics|semiconductors?|electronics|'
-             r'construction|buildings?|built environment|'
-             r'transport|transportation|mobility|logistics|'
-             r'water|wastewater|waste management|recycling|'
-             r'climate|climate change|greenhouse|carbon|decarboni[sz]ation|'
-             r'digital|digitali[sz]ation|ict|software|data science|big data|'
-             r'health|medical|pharma|pharmaceutical|drug discovery|'
-             r'security|defence|defense|crisis|emergency|'
-             r'5g|6g|telecommunications?|network|connectivity|'
-             r'green deal|green transition|net zero|zero emission)\b', '{topic}'),
-
+            (
+                r"\b(hydrogen|quantum|artificial intelligence|\bai\b|machine learning|deep learning|"
+                r"renewable|solar|wind|battery|batteries|energy storage|"
+                r"cancer|diabetes|cardiovascular|healthcare|health care|"
+                r"blockchain|cybersecurity|cyber security|robotics|autonomous|"
+                r"sustainable|sustainability|circular economy|biodiversity|"
+                r"ocean|marine|space|satellite|"
+                r"nanotechnology|nano|biotechnology|biotech|"
+                r"electric vehicles?|ev|smart cit(?:y|ies)|smart grid|"
+                r"agriculture|agri-food|food security|"
+                r"manufacturing|industry 4\.0|advanced materials|materials science|"
+                r"photonics|semiconductors?|electronics|"
+                r"construction|buildings?|built environment|"
+                r"transport|transportation|mobility|logistics|"
+                r"water|wastewater|waste management|recycling|"
+                r"climate|climate change|greenhouse|carbon|decarboni[sz]ation|"
+                r"digital|digitali[sz]ation|ict|software|data science|big data|"
+                r"health|medical|pharma|pharmaceutical|drug discovery|"
+                r"security|defence|defense|crisis|emergency|"
+                r"5g|6g|telecommunications?|network|connectivity|"
+                r"green deal|green transition|net zero|zero emission)\b",
+                "{topic}",
+            ),
             # Budget amounts
-            (r'\b(\d+(?:\.\d+)?)\s*(million|m|billion|b|euro|eur|€|k|thousand)\b', '{amount}'),
-
+            (r"\b(\d+(?:\.\d+)?)\s*(million|m|billion|b|euro|eur|€|k|thousand)\b", "{amount}"),
             # Generic numbers
-            (r'\b\d{6,}\b', '{id}'),  # Project IDs
+            (r"\b\d{6,}\b", "{id}"),  # Project IDs
         ]
 
         pattern = normalized
@@ -145,8 +147,8 @@ class QueryPlanCache:
             cached = self.redis.get(cache_key)
             if cached:
                 data = json.loads(cached)
-                plan = data.get('plan')
-                pattern = data.get('pattern', '')
+                plan = data.get("plan")
+                pattern = data.get("pattern", "")
 
                 logger.info(f"✅ Cache HIT for pattern: '{pattern[:50]}...'")
 
@@ -163,11 +165,7 @@ class QueryPlanCache:
             return None
 
     def cache_plan(
-        self,
-        query: str,
-        plan: dict[str, Any],
-        context: str = "",
-        quality_score: float = 0.0
+        self, query: str, plan: dict[str, Any], context: str = "", quality_score: float = 0.0
     ) -> bool:
         """
         Cache a successful query plan.
@@ -196,19 +194,15 @@ class QueryPlanCache:
 
             # Store plan with metadata
             cache_data = {
-                'plan': plan,
-                'pattern': pattern,
-                'original_query': query[:200],  # Truncate for storage
-                'quality_score': quality_score,
-                'cached_at': datetime.now().isoformat(),
-                'hit_count': 0
+                "plan": plan,
+                "pattern": pattern,
+                "original_query": query[:200],  # Truncate for storage
+                "quality_score": quality_score,
+                "cached_at": datetime.now().isoformat(),
+                "hit_count": 0,
             }
 
-            self.redis.setex(
-                cache_key,
-                self.ttl_seconds,
-                json.dumps(cache_data)
-            )
+            self.redis.setex(cache_key, self.ttl_seconds, json.dumps(cache_data))
 
             logger.info(f"✅ Cached plan for pattern: '{pattern[:50]}...'")
             return True
@@ -223,8 +217,8 @@ class QueryPlanCache:
             cached = self.redis.get(cache_key)
             if cached:
                 data = json.loads(cached)
-                data['hit_count'] = data.get('hit_count', 0) + 1
-                data['last_hit'] = datetime.now().isoformat()
+                data["hit_count"] = data.get("hit_count", 0) + 1
+                data["last_hit"] = datetime.now().isoformat()
 
                 # Get remaining TTL and preserve it
                 ttl = self.redis.ttl(cache_key)
@@ -254,7 +248,7 @@ class QueryPlanCache:
     def get_cache_stats(self) -> dict[str, Any]:
         """Get cache statistics."""
         if not self.enabled:
-            return {'enabled': False}
+            return {"enabled": False}
 
         try:
             # Get all cache keys
@@ -268,27 +262,29 @@ class QueryPlanCache:
                     cached = self.redis.get(key)
                     if cached:
                         data = json.loads(cached)
-                        total_hits += data.get('hit_count', 0)
-                        patterns.append({
-                            'pattern': data.get('pattern', '')[:50],
-                            'hits': data.get('hit_count', 0),
-                            'quality': data.get('quality_score', 0)
-                        })
-                except:
+                        total_hits += data.get("hit_count", 0)
+                        patterns.append(
+                            {
+                                "pattern": data.get("pattern", "")[:50],
+                                "hits": data.get("hit_count", 0),
+                                "quality": data.get("quality_score", 0),
+                            }
+                        )
+                except Exception:
                     pass
 
             # Sort by hits
-            patterns.sort(key=lambda x: x['hits'], reverse=True)
+            patterns.sort(key=lambda x: x["hits"], reverse=True)
 
             return {
-                'enabled': True,
-                'cached_plans': len(keys),
-                'total_hits': total_hits,
-                'ttl_hours': self.ttl_seconds / 3600,
-                'top_patterns': patterns[:10]
+                "enabled": True,
+                "cached_plans": len(keys),
+                "total_hits": total_hits,
+                "ttl_hours": self.ttl_seconds / 3600,
+                "top_patterns": patterns[:10],
             }
         except Exception as e:
-            return {'enabled': True, 'error': str(e)}
+            return {"enabled": True, "error": str(e)}
 
     def clear_all(self) -> int:
         """Clear all cached plans. Returns number of keys deleted."""

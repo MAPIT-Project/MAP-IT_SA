@@ -21,10 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.core.neo4j_config import neo4j_db
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -36,173 +33,223 @@ class DigitalEuropeNeo4jIngester:
 
     # Digital Europe Specific Objectives
     DIGITAL_EUROPE_OBJECTIVES = {
-        'HPC': {
-            'code': 'HPC',
-            'name': 'High Performance Computing',
-            'description': 'Supercomputing infrastructure, EuroHPC JU, data infrastructure',
-            'budget': 2227000000,
-            'budget_formatted': '€2.227 billion',
-            'objectives': [
-                'Acquire world-class supercomputers',
-                'Develop European HPC infrastructure',
-                'Support HPC competence centers',
-                'Enable industrial and scientific applications',
+        "HPC": {
+            "code": "HPC",
+            "name": "High Performance Computing",
+            "description": "Supercomputing infrastructure, EuroHPC JU, data infrastructure",
+            "budget": 2227000000,
+            "budget_formatted": "€2.227 billion",
+            "objectives": [
+                "Acquire world-class supercomputers",
+                "Develop European HPC infrastructure",
+                "Support HPC competence centers",
+                "Enable industrial and scientific applications",
             ],
-            'priority_areas': ['supercomputing', 'EuroHPC', 'exascale', 'data_infrastructure', 'HPC_centers'],
-            'funding_rate': 50,
-            'funding_rate_notes': 'Up to 100% for supercomputer acquisition',
+            "priority_areas": [
+                "supercomputing",
+                "EuroHPC",
+                "exascale",
+                "data_infrastructure",
+                "HPC_centers",
+            ],
+            "funding_rate": 50,
+            "funding_rate_notes": "Up to 100% for supercomputer acquisition",
         },
-        'AI': {
-            'code': 'AI',
-            'name': 'Artificial Intelligence',
-            'description': 'AI testing facilities, data spaces, AI factories, AI Act support',
-            'budget': 2062000000,
-            'budget_formatted': '€2.062 billion',
-            'objectives': [
-                'Develop AI testing and experimentation facilities (TEFs)',
-                'Create common European data spaces',
-                'Support AI factories initiative',
-                'Implement AI Act requirements',
+        "AI": {
+            "code": "AI",
+            "name": "Artificial Intelligence",
+            "description": "AI testing facilities, data spaces, AI factories, AI Act support",
+            "budget": 2062000000,
+            "budget_formatted": "€2.062 billion",
+            "objectives": [
+                "Develop AI testing and experimentation facilities (TEFs)",
+                "Create common European data spaces",
+                "Support AI factories initiative",
+                "Implement AI Act requirements",
             ],
-            'priority_areas': ['AI_testing', 'data_spaces', 'TEFs', 'AI_factories', 'trustworthy_AI'],
-            'funding_rate': 50,
-            'funding_rate_notes': 'SMEs may receive higher rates',
+            "priority_areas": [
+                "AI_testing",
+                "data_spaces",
+                "TEFs",
+                "AI_factories",
+                "trustworthy_AI",
+            ],
+            "funding_rate": 50,
+            "funding_rate_notes": "SMEs may receive higher rates",
         },
-        'CYBERSECURITY': {
-            'code': 'CYBERSECURITY',
-            'name': 'Cybersecurity and Trust',
-            'description': 'Cybersecurity infrastructure, SOCs, ECCC initiatives, NIS2 support',
-            'budget': 1650000000,
-            'budget_formatted': '€1.650 billion',
-            'objectives': [
-                'Build EU cybersecurity capacity',
-                'Support Security Operation Centres (SOCs)',
-                'Strengthen ECCC and NCCs',
-                'Develop cybersecurity tools and services',
+        "CYBERSECURITY": {
+            "code": "CYBERSECURITY",
+            "name": "Cybersecurity and Trust",
+            "description": "Cybersecurity infrastructure, SOCs, ECCC initiatives, NIS2 support",
+            "budget": 1650000000,
+            "budget_formatted": "€1.650 billion",
+            "objectives": [
+                "Build EU cybersecurity capacity",
+                "Support Security Operation Centres (SOCs)",
+                "Strengthen ECCC and NCCs",
+                "Develop cybersecurity tools and services",
             ],
-            'priority_areas': ['SOCs', 'ECCC', 'NCCs', 'cyber_resilience', 'NIS2'],
-            'funding_rate': 50,
-            'funding_rate_notes': 'Managed jointly with ECCC',
+            "priority_areas": ["SOCs", "ECCC", "NCCs", "cyber_resilience", "NIS2"],
+            "funding_rate": 50,
+            "funding_rate_notes": "Managed jointly with ECCC",
         },
-        'SKILLS': {
-            'code': 'SKILLS',
-            'name': 'Advanced Digital Skills',
-            'description': 'Specialized training in HPC, AI, cybersecurity, data',
-            'budget': 577000000,
-            'budget_formatted': '€577 million',
-            'objectives': [
-                'Develop specialized digital skills programs',
-                'Train workforce in advanced technologies',
-                'Create certification programs',
-                'Support digital skills academies',
+        "SKILLS": {
+            "code": "SKILLS",
+            "name": "Advanced Digital Skills",
+            "description": "Specialized training in HPC, AI, cybersecurity, data",
+            "budget": 577000000,
+            "budget_formatted": "€577 million",
+            "objectives": [
+                "Develop specialized digital skills programs",
+                "Train workforce in advanced technologies",
+                "Create certification programs",
+                "Support digital skills academies",
             ],
-            'priority_areas': ['digital_training', 'certifications', 'academies', 'workforce'],
-            'funding_rate': 50,
-            'funding_rate_notes': 'Focus on specialized skills programs',
+            "priority_areas": ["digital_training", "certifications", "academies", "workforce"],
+            "funding_rate": 50,
+            "funding_rate_notes": "Focus on specialized skills programs",
         },
-        'DEPLOYMENT': {
-            'code': 'DEPLOYMENT',
-            'name': 'Deployment and Best Use',
-            'description': 'EDIHs, digital transformation, interoperability, multi-country projects',
-            'budget': 1072000000,
-            'budget_formatted': '€1.072 billion',
-            'objectives': [
-                'Support European Digital Innovation Hubs (EDIHs)',
-                'Enable digital transformation of SMEs and public sector',
-                'Promote interoperability solutions',
-                'Implement multi-country projects',
+        "DEPLOYMENT": {
+            "code": "DEPLOYMENT",
+            "name": "Deployment and Best Use",
+            "description": "EDIHs, digital transformation, interoperability, multi-country projects",
+            "budget": 1072000000,
+            "budget_formatted": "€1.072 billion",
+            "objectives": [
+                "Support European Digital Innovation Hubs (EDIHs)",
+                "Enable digital transformation of SMEs and public sector",
+                "Promote interoperability solutions",
+                "Implement multi-country projects",
             ],
-            'priority_areas': ['EDIHs', 'digital_transformation', 'interoperability', 'MCP'],
-            'funding_rate': 50,
-            'funding_rate_notes': 'EDIHs receive specific multi-year funding',
+            "priority_areas": ["EDIHs", "digital_transformation", "interoperability", "MCP"],
+            "funding_rate": 50,
+            "funding_rate_notes": "EDIHs receive specific multi-year funding",
         },
-        'SEMICONDUCTORS': {
-            'code': 'SEMICONDUCTORS',
-            'name': 'Semiconductors (Chips Act)',
-            'description': 'Chip design, pilot lines, competence centers under European Chips Act',
-            'budget': 0,  # Funded via Chips Act
-            'budget_formatted': 'Additional funding via Chips Act',
-            'objectives': [
-                'Strengthen EU semiconductor ecosystem',
-                'Support chip design competence centers',
-                'Develop pilot lines for advanced manufacturing',
-                'Build resilient supply chains',
+        "SEMICONDUCTORS": {
+            "code": "SEMICONDUCTORS",
+            "name": "Semiconductors (Chips Act)",
+            "description": "Chip design, pilot lines, competence centers under European Chips Act",
+            "budget": 0,  # Funded via Chips Act
+            "budget_formatted": "Additional funding via Chips Act",
+            "objectives": [
+                "Strengthen EU semiconductor ecosystem",
+                "Support chip design competence centers",
+                "Develop pilot lines for advanced manufacturing",
+                "Build resilient supply chains",
             ],
-            'priority_areas': ['chip_design', 'pilot_lines', 'competence_centers', 'supply_chain'],
-            'funding_rate': 50,
-            'funding_rate_notes': 'Part of European Chips Act initiative',
+            "priority_areas": ["chip_design", "pilot_lines", "competence_centers", "supply_chain"],
+            "funding_rate": 50,
+            "funding_rate_notes": "Part of European Chips Act initiative",
         },
     }
 
     # Digital Europe Action Types
     DIGITAL_EUROPE_ACTIONS = {
-        'GRANT': {
-            'code': 'GRANT',
-            'name': 'Grant',
-            'description': 'Grants for Digital Europe projects and initiatives',
-            'objectives': ['HPC', 'AI', 'CYBERSECURITY', 'SKILLS', 'DEPLOYMENT', 'SEMICONDUCTORS'],
-            'funding_rate_min': 50,
-            'funding_rate_max': 100,
-            'funding_rate_notes': '50% standard, up to 100% for specific actions',
-            'min_partners': 1,
-            'min_countries': 1,
-            'typical_consortium': '1-20 partners depending on call',
-            'country_rule': 'participating',
-            'org_types': [
-                'SME', 'STARTUP', 'LARGE_ENTERPRISE', 'RESEARCH', 'UNIVERSITY',
-                'PUBLIC_AUTHORITY', 'EDIH', 'HPC_CENTER', 'NGO', 'COMPETENCE_CENTER'
+        "GRANT": {
+            "code": "GRANT",
+            "name": "Grant",
+            "description": "Grants for Digital Europe projects and initiatives",
+            "objectives": ["HPC", "AI", "CYBERSECURITY", "SKILLS", "DEPLOYMENT", "SEMICONDUCTORS"],
+            "funding_rate_min": 50,
+            "funding_rate_max": 100,
+            "funding_rate_notes": "50% standard, up to 100% for specific actions",
+            "min_partners": 1,
+            "min_countries": 1,
+            "typical_consortium": "1-20 partners depending on call",
+            "country_rule": "participating",
+            "org_types": [
+                "SME",
+                "STARTUP",
+                "LARGE_ENTERPRISE",
+                "RESEARCH",
+                "UNIVERSITY",
+                "PUBLIC_AUTHORITY",
+                "EDIH",
+                "HPC_CENTER",
+                "NGO",
+                "COMPETENCE_CENTER",
             ],
-            'notes': 'Main funding instrument for Digital Europe. SMEs often prioritized.',
+            "notes": "Main funding instrument for Digital Europe. SMEs often prioritized.",
         },
-        'PROCUREMENT': {
-            'code': 'PROCUREMENT',
-            'name': 'Procurement',
-            'description': 'Public procurement contracts for services, supplies, or works',
-            'objectives': ['HPC', 'AI', 'CYBERSECURITY', 'DEPLOYMENT', 'SEMICONDUCTORS'],
-            'funding_rate_min': 100,
-            'funding_rate_max': 100,
-            'funding_rate_notes': '100% - Full payment for contract deliverables',
-            'min_partners': 1,
-            'min_countries': 1,
-            'typical_consortium': 'Single contractor or consortium',
-            'country_rule': 'participating',
-            'org_types': [
-                'SME', 'STARTUP', 'LARGE_ENTERPRISE', 'RESEARCH', 'UNIVERSITY',
-                'PUBLIC_AUTHORITY', 'HPC_CENTER', 'COMPETENCE_CENTER'
+        "PROCUREMENT": {
+            "code": "PROCUREMENT",
+            "name": "Procurement",
+            "description": "Public procurement contracts for services, supplies, or works",
+            "objectives": ["HPC", "AI", "CYBERSECURITY", "DEPLOYMENT", "SEMICONDUCTORS"],
+            "funding_rate_min": 100,
+            "funding_rate_max": 100,
+            "funding_rate_notes": "100% - Full payment for contract deliverables",
+            "min_partners": 1,
+            "min_countries": 1,
+            "typical_consortium": "Single contractor or consortium",
+            "country_rule": "participating",
+            "org_types": [
+                "SME",
+                "STARTUP",
+                "LARGE_ENTERPRISE",
+                "RESEARCH",
+                "UNIVERSITY",
+                "PUBLIC_AUTHORITY",
+                "HPC_CENTER",
+                "COMPETENCE_CENTER",
             ],
-            'notes': 'Tendering procedure, not a grant. Competitive bidding process.',
+            "notes": "Tendering procedure, not a grant. Competitive bidding process.",
         },
     }
 
     # EU Member States (27)
     EU_MEMBER_STATES = [
-        'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR',
-        'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL',
-        'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE',
+        "AT",
+        "BE",
+        "BG",
+        "HR",
+        "CY",
+        "CZ",
+        "DK",
+        "EE",
+        "FI",
+        "FR",
+        "DE",
+        "GR",
+        "HU",
+        "IE",
+        "IT",
+        "LV",
+        "LT",
+        "LU",
+        "MT",
+        "NL",
+        "PL",
+        "PT",
+        "RO",
+        "SK",
+        "SI",
+        "ES",
+        "SE",
     ]
 
     # EEA Countries (full participation)
-    EEA_COUNTRIES = ['IS', 'LI', 'NO']  # Iceland, Liechtenstein, Norway
+    EEA_COUNTRIES = ["IS", "LI", "NO"]  # Iceland, Liechtenstein, Norway
 
     # Associated Countries for Digital Europe
     ASSOCIATED_COUNTRIES = [
-        'UA',  # Ukraine
-        'MD',  # Moldova
-        'ME',  # Montenegro
-        'MK',  # North Macedonia
-        'RS',  # Serbia
-        'AL',  # Albania
-        'XK',  # Kosovo
-        'TR',  # Türkiye
-        'BA',  # Bosnia and Herzegovina
+        "UA",  # Ukraine
+        "MD",  # Moldova
+        "ME",  # Montenegro
+        "MK",  # North Macedonia
+        "RS",  # Serbia
+        "AL",  # Albania
+        "XK",  # Kosovo
+        "TR",  # Türkiye
+        "BA",  # Bosnia and Herzegovina
     ]
 
     # Partially Associated (specific objectives only)
     PARTIALLY_ASSOCIATED = {
-        'CH': {  # Switzerland
-            'name': 'Switzerland',
-            'objectives': ['HPC', 'AI'],
-            'notes': 'Participates in HPC and AI objectives only',
+        "CH": {  # Switzerland
+            "name": "Switzerland",
+            "objectives": ["HPC", "AI"],
+            "notes": "Participates in HPC and AI objectives only",
         },
     }
 
@@ -211,18 +258,46 @@ class DigitalEuropeNeo4jIngester:
 
     # Country name to ISO mapping
     COUNTRY_NAMES = {
-        'AT': 'Austria', 'BE': 'Belgium', 'BG': 'Bulgaria', 'HR': 'Croatia',
-        'CY': 'Cyprus', 'CZ': 'Czech Republic', 'DK': 'Denmark', 'EE': 'Estonia',
-        'FI': 'Finland', 'FR': 'France', 'DE': 'Germany', 'GR': 'Greece',
-        'HU': 'Hungary', 'IE': 'Ireland', 'IT': 'Italy', 'LV': 'Latvia',
-        'LT': 'Lithuania', 'LU': 'Luxembourg', 'MT': 'Malta', 'NL': 'Netherlands',
-        'PL': 'Poland', 'PT': 'Portugal', 'RO': 'Romania', 'SK': 'Slovakia',
-        'SI': 'Slovenia', 'ES': 'Spain', 'SE': 'Sweden',
-        'IS': 'Iceland', 'LI': 'Liechtenstein', 'NO': 'Norway',
-        'UA': 'Ukraine', 'MD': 'Moldova', 'ME': 'Montenegro',
-        'MK': 'North Macedonia', 'RS': 'Serbia', 'AL': 'Albania',
-        'XK': 'Kosovo', 'TR': 'Türkiye', 'BA': 'Bosnia and Herzegovina',
-        'CH': 'Switzerland',
+        "AT": "Austria",
+        "BE": "Belgium",
+        "BG": "Bulgaria",
+        "HR": "Croatia",
+        "CY": "Cyprus",
+        "CZ": "Czech Republic",
+        "DK": "Denmark",
+        "EE": "Estonia",
+        "FI": "Finland",
+        "FR": "France",
+        "DE": "Germany",
+        "GR": "Greece",
+        "HU": "Hungary",
+        "IE": "Ireland",
+        "IT": "Italy",
+        "LV": "Latvia",
+        "LT": "Lithuania",
+        "LU": "Luxembourg",
+        "MT": "Malta",
+        "NL": "Netherlands",
+        "PL": "Poland",
+        "PT": "Portugal",
+        "RO": "Romania",
+        "SK": "Slovakia",
+        "SI": "Slovenia",
+        "ES": "Spain",
+        "SE": "Sweden",
+        "IS": "Iceland",
+        "LI": "Liechtenstein",
+        "NO": "Norway",
+        "UA": "Ukraine",
+        "MD": "Moldova",
+        "ME": "Montenegro",
+        "MK": "North Macedonia",
+        "RS": "Serbia",
+        "AL": "Albania",
+        "XK": "Kosovo",
+        "TR": "Türkiye",
+        "BA": "Bosnia and Herzegovina",
+        "CH": "Switzerland",
     }
 
     def __init__(self):
@@ -270,8 +345,9 @@ class DigitalEuropeNeo4jIngester:
         """Load Digital Europe objective nodes."""
         logger.info("Loading Digital Europe objectives...")
 
-        for code, info in self.DIGITAL_EUROPE_OBJECTIVES.items():
-            self.db.execute_query("""
+        for _code, info in self.DIGITAL_EUROPE_OBJECTIVES.items():
+            self.db.execute_query(
+                """
                 MERGE (o:DigitalEuropeObjective {code: $code})
                 SET o.name = $name,
                     o.description = $description,
@@ -281,7 +357,9 @@ class DigitalEuropeNeo4jIngester:
                     o.priority_areas = $priority_areas,
                     o.funding_rate = $funding_rate,
                     o.funding_rate_notes = $funding_rate_notes
-            """, info)
+            """,
+                info,
+            )
 
         logger.info(f"Loaded {len(self.DIGITAL_EUROPE_OBJECTIVES)} objectives")
 
@@ -291,7 +369,8 @@ class DigitalEuropeNeo4jIngester:
 
         for code, info in self.DIGITAL_EUROPE_ACTIONS.items():
             # Create action node
-            self.db.execute_query("""
+            self.db.execute_query(
+                """
                 MERGE (a:DigitalEuropeAction {code: $code})
                 SET a.name = $name,
                     a.description = $description,
@@ -304,15 +383,20 @@ class DigitalEuropeNeo4jIngester:
                     a.country_rule = $country_rule,
                     a.org_types = $org_types,
                     a.notes = $notes
-            """, info)
+            """,
+                info,
+            )
 
             # Link to objectives
-            for objective_code in info['objectives']:
-                self.db.execute_query("""
+            for objective_code in info["objectives"]:
+                self.db.execute_query(
+                    """
                     MATCH (a:DigitalEuropeAction {code: $action_code})
                     MATCH (o:DigitalEuropeObjective {code: $objective_code})
                     MERGE (a)-[:BELONGS_TO_OBJECTIVE]->(o)
-                """, {"action_code": code, "objective_code": objective_code})
+                """,
+                    {"action_code": code, "objective_code": objective_code},
+                )
 
         logger.info(f"Loaded {len(self.DIGITAL_EUROPE_ACTIONS)} actions")
 
@@ -321,45 +405,60 @@ class DigitalEuropeNeo4jIngester:
         logger.info("Loading Digital Europe country regions...")
 
         # Create EU Member States region
-        self.db.execute_query("""
+        self.db.execute_query(
+            """
             MERGE (r:DigitalEuropeRegion {code: 'EU_MEMBERS'})
             SET r.name = 'EU Member States',
                 r.description = 'EU27 Member States - eligible for all Digital Europe objectives',
                 r.countries = $countries
-        """, {"countries": self.EU_MEMBER_STATES})
+        """,
+            {"countries": self.EU_MEMBER_STATES},
+        )
 
         # Create EEA region
-        self.db.execute_query("""
+        self.db.execute_query(
+            """
             MERGE (r:DigitalEuropeRegion {code: 'EEA'})
             SET r.name = 'EEA Countries',
                 r.description = 'Iceland, Liechtenstein, Norway - full participation',
                 r.countries = $countries
-        """, {"countries": self.EEA_COUNTRIES})
+        """,
+            {"countries": self.EEA_COUNTRIES},
+        )
 
         # Create Associated Countries region
-        self.db.execute_query("""
+        self.db.execute_query(
+            """
             MERGE (r:DigitalEuropeRegion {code: 'ASSOCIATED'})
             SET r.name = 'Associated Countries',
                 r.description = 'Countries with association agreements',
                 r.countries = $countries
-        """, {"countries": self.ASSOCIATED_COUNTRIES})
+        """,
+            {"countries": self.ASSOCIATED_COUNTRIES},
+        )
 
         # Create All Participating region
-        self.db.execute_query("""
+        self.db.execute_query(
+            """
             MERGE (r:DigitalEuropeRegion {code: 'ALL_PARTICIPATING'})
             SET r.name = 'All Participating Countries',
                 r.description = 'EU27 + EEA + Associated Countries eligible for Digital Europe',
                 r.countries = $countries
-        """, {"countries": self.ALL_PARTICIPATING})
+        """,
+            {"countries": self.ALL_PARTICIPATING},
+        )
 
         # Create Partially Associated region (Switzerland for HPC/AI)
         partially_associated_countries = list(self.PARTIALLY_ASSOCIATED.keys())
-        self.db.execute_query("""
+        self.db.execute_query(
+            """
             MERGE (r:DigitalEuropeRegion {code: 'PARTIALLY_ASSOCIATED'})
             SET r.name = 'Partially Associated Countries',
                 r.description = 'Countries with partial participation (specific objectives only)',
                 r.countries = $countries
-        """, {"countries": partially_associated_countries})
+        """,
+            {"countries": partially_associated_countries},
+        )
 
         logger.info("Loaded 5 country regions")
 
@@ -367,14 +466,17 @@ class DigitalEuropeNeo4jIngester:
         """Create relationships between actions and country eligibility."""
         logger.info("Creating action-country relationships...")
 
-        for code, info in self.DIGITAL_EUROPE_ACTIONS.items():
+        for code, _info in self.DIGITAL_EUROPE_ACTIONS.items():
             # All participating countries can be coordinators/partners
-            self.db.execute_query("""
+            self.db.execute_query(
+                """
                 MATCH (a:DigitalEuropeAction {code: $action_code})
                 MATCH (r:DigitalEuropeRegion {code: 'ALL_PARTICIPATING'})
                 MERGE (a)-[:ALLOWS_COORDINATOR_FROM]->(r)
                 MERGE (a)-[:ALLOWS_PARTNER_FROM]->(r)
-            """, {"action_code": code})
+            """,
+                {"action_code": code},
+            )
 
         logger.info("Action-country relationships created")
 
@@ -383,20 +485,26 @@ class DigitalEuropeNeo4jIngester:
         logger.info("Creating objective-country relationships...")
 
         # For HPC and AI objectives, include partially associated countries (Switzerland)
-        for objective in ['HPC', 'AI']:
-            self.db.execute_query("""
+        for objective in ["HPC", "AI"]:
+            self.db.execute_query(
+                """
                 MATCH (o:DigitalEuropeObjective {code: $objective_code})
                 MATCH (r:DigitalEuropeRegion {code: 'PARTIALLY_ASSOCIATED'})
                 MERGE (o)-[:ALLOWS_PARTICIPATION_FROM]->(r)
-            """, {"objective_code": objective})
+            """,
+                {"objective_code": objective},
+            )
 
         # All objectives allow full participation from regular regions
         for objective_code in self.DIGITAL_EUROPE_OBJECTIVES.keys():
-            self.db.execute_query("""
+            self.db.execute_query(
+                """
                 MATCH (o:DigitalEuropeObjective {code: $objective_code})
                 MATCH (r:DigitalEuropeRegion {code: 'ALL_PARTICIPATING'})
                 MERGE (o)-[:ALLOWS_PARTICIPATION_FROM]->(r)
-            """, {"objective_code": objective_code})
+            """,
+                {"objective_code": objective_code},
+            )
 
         logger.info("Objective-country relationships created")
 
@@ -406,7 +514,8 @@ class DigitalEuropeNeo4jIngester:
 
         # Mark EU Member States
         for country in self.EU_MEMBER_STATES:
-            self.db.execute_query("""
+            self.db.execute_query(
+                """
                 MERGE (c:Country {isoCode: $country_code})
                 SET c.digital_europe_eligible = true,
                     c.name = $country_name
@@ -416,11 +525,14 @@ class DigitalEuropeNeo4jIngester:
                 WITH c
                 MATCH (r2:DigitalEuropeRegion {code: 'ALL_PARTICIPATING'})
                 MERGE (c)-[:MEMBER_OF]->(r2)
-            """, {"country_code": country, "country_name": self.COUNTRY_NAMES.get(country, country)})
+            """,
+                {"country_code": country, "country_name": self.COUNTRY_NAMES.get(country, country)},
+            )
 
         # Mark EEA Countries
         for country in self.EEA_COUNTRIES:
-            self.db.execute_query("""
+            self.db.execute_query(
+                """
                 MERGE (c:Country {isoCode: $country_code})
                 SET c.digital_europe_eligible = true,
                     c.name = $country_name
@@ -430,11 +542,14 @@ class DigitalEuropeNeo4jIngester:
                 WITH c
                 MATCH (r2:DigitalEuropeRegion {code: 'ALL_PARTICIPATING'})
                 MERGE (c)-[:MEMBER_OF]->(r2)
-            """, {"country_code": country, "country_name": self.COUNTRY_NAMES.get(country, country)})
+            """,
+                {"country_code": country, "country_name": self.COUNTRY_NAMES.get(country, country)},
+            )
 
         # Mark Associated Countries
         for country in self.ASSOCIATED_COUNTRIES:
-            self.db.execute_query("""
+            self.db.execute_query(
+                """
                 MERGE (c:Country {isoCode: $country_code})
                 SET c.digital_europe_eligible = true,
                     c.name = $country_name
@@ -444,11 +559,14 @@ class DigitalEuropeNeo4jIngester:
                 WITH c
                 MATCH (r2:DigitalEuropeRegion {code: 'ALL_PARTICIPATING'})
                 MERGE (c)-[:MEMBER_OF]->(r2)
-            """, {"country_code": country, "country_name": self.COUNTRY_NAMES.get(country, country)})
+            """,
+                {"country_code": country, "country_name": self.COUNTRY_NAMES.get(country, country)},
+            )
 
         # Mark Partially Associated (Switzerland)
         for country, info in self.PARTIALLY_ASSOCIATED.items():
-            self.db.execute_query("""
+            self.db.execute_query(
+                """
                 MERGE (c:Country {isoCode: $country_code})
                 SET c.digital_europe_eligible = true,
                     c.digital_europe_partial = true,
@@ -457,11 +575,13 @@ class DigitalEuropeNeo4jIngester:
                 WITH c
                 MATCH (r:DigitalEuropeRegion {code: 'PARTIALLY_ASSOCIATED'})
                 MERGE (c)-[:MEMBER_OF]->(r)
-            """, {
-                "country_code": country,
-                "country_name": info['name'],
-                "objectives": info['objectives'],
-            })
+            """,
+                {
+                    "country_code": country,
+                    "country_name": info["name"],
+                    "objectives": info["objectives"],
+                },
+            )
 
         logger.info("Country-region relationships created")
 
@@ -469,7 +589,8 @@ class DigitalEuropeNeo4jIngester:
         """Create Digital Europe programme metadata node."""
         logger.info("Creating Digital Europe programme metadata...")
 
-        self.db.execute_query("""
+        self.db.execute_query(
+            """
             MERGE (p:Programme {code: 'DIGITAL_EUROPE'})
             SET p.name = 'Digital Europe',
                 p.full_name = 'Digital Europe Programme 2021-2027',
@@ -482,15 +603,19 @@ class DigitalEuropeNeo4jIngester:
                 p.legal_basis = 'Regulation (EU) 2021/694',
                 p.website = 'https://digital-strategy.ec.europa.eu/en/activities/digital-programme',
                 p.description = 'EU programme to bring digital technology to businesses, citizens and public administrations'
-        """)
+        """
+        )
 
         # Link objectives to programme
         for objective_code in self.DIGITAL_EUROPE_OBJECTIVES.keys():
-            self.db.execute_query("""
+            self.db.execute_query(
+                """
                 MATCH (p:Programme {code: 'DIGITAL_EUROPE'})
                 MATCH (o:DigitalEuropeObjective {code: $objective_code})
                 MERGE (o)-[:PART_OF]->(p)
-            """, {"objective_code": objective_code})
+            """,
+                {"objective_code": objective_code},
+            )
 
         logger.info("Programme metadata created")
 
@@ -499,21 +624,24 @@ class DigitalEuropeNeo4jIngester:
         logger.info("Creating programme synergy relationships...")
 
         synergies = [
-            ('HORIZON_EUROPE', 'Horizon Europe', 'Research and innovation synergies'),
-            ('CEF_DIGITAL', 'CEF Digital', 'Connectivity infrastructure synergies'),
-            ('RECOVERY_FUND', 'Recovery and Resilience Facility', 'Digital transition investments'),
-            ('ERASMUS_PLUS', 'Erasmus+', 'Digital skills and education synergies'),
+            ("HORIZON_EUROPE", "Horizon Europe", "Research and innovation synergies"),
+            ("CEF_DIGITAL", "CEF Digital", "Connectivity infrastructure synergies"),
+            ("RECOVERY_FUND", "Recovery and Resilience Facility", "Digital transition investments"),
+            ("ERASMUS_PLUS", "Erasmus+", "Digital skills and education synergies"),
         ]
 
         for prog_code, prog_name, synergy_desc in synergies:
-            self.db.execute_query("""
+            self.db.execute_query(
+                """
                 MERGE (p2:Programme {code: $prog_code})
                 SET p2.name = $prog_name
                 WITH p2
                 MATCH (p1:Programme {code: 'DIGITAL_EUROPE'})
                 MERGE (p1)-[s:HAS_SYNERGY_WITH]->(p2)
                 SET s.description = $synergy_desc
-            """, {"prog_code": prog_code, "prog_name": prog_name, "synergy_desc": synergy_desc})
+            """,
+                {"prog_code": prog_code, "prog_name": prog_name, "synergy_desc": synergy_desc},
+            )
 
         logger.info(f"Created {len(synergies)} synergy relationships")
 
@@ -634,9 +762,7 @@ def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(description="Ingest Digital Europe data into Neo4j")
     parser.add_argument(
-        "--clear",
-        action="store_true",
-        help="Clear Digital Europe data before ingestion"
+        "--clear", action="store_true", help="Clear Digital Europe data before ingestion"
     )
 
     args = parser.parse_args()
@@ -645,7 +771,7 @@ def main():
         ingester = DigitalEuropeNeo4jIngester()
         stats = ingester.run(clear_first=args.clear)
 
-        if stats.get('objectives', 0) > 0:
+        if stats.get("objectives", 0) > 0:
             logger.info("\nDigital Europe reference data loaded successfully!")
             logger.info("You can now use graph-based eligibility checking for Digital Europe.")
             return 0
@@ -656,6 +782,7 @@ def main():
     except Exception as e:
         logger.error(f"Ingestion failed: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 

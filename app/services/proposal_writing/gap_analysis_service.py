@@ -19,35 +19,39 @@ logger = logging.getLogger(__name__)
 
 class GapSeverity(str, Enum):
     """Severity level of a gap."""
-    CRITICAL = "critical"      # Must fix to reach threshold
-    MAJOR = "major"            # Significant impact on score
-    MINOR = "minor"            # Nice to fix, small impact
-    POLISH = "polish"          # Final touches
+
+    CRITICAL = "critical"  # Must fix to reach threshold
+    MAJOR = "major"  # Significant impact on score
+    MINOR = "minor"  # Nice to fix, small impact
+    POLISH = "polish"  # Final touches
 
 
 class GapCategory(str, Enum):
     """Category of gap."""
-    CONTENT_MISSING = "content_missing"       # Required content not present
-    CONTENT_WEAK = "content_weak"             # Content exists but insufficient
-    STRUCTURE = "structure"                    # Organization/flow issues
-    SPECIFICITY = "specificity"               # Too vague or generic
-    EU_ALIGNMENT = "eu_alignment"             # Missing EU priorities/terminology
-    QUANTIFICATION = "quantification"         # Missing metrics/KPIs
-    METHODOLOGY = "methodology"               # Approach not clear
-    INNOVATION = "innovation"                 # Beyond state-of-art not established
+
+    CONTENT_MISSING = "content_missing"  # Required content not present
+    CONTENT_WEAK = "content_weak"  # Content exists but insufficient
+    STRUCTURE = "structure"  # Organization/flow issues
+    SPECIFICITY = "specificity"  # Too vague or generic
+    EU_ALIGNMENT = "eu_alignment"  # Missing EU priorities/terminology
+    QUANTIFICATION = "quantification"  # Missing metrics/KPIs
+    METHODOLOGY = "methodology"  # Approach not clear
+    INNOVATION = "innovation"  # Beyond state-of-art not established
 
 
 class EffortLevel(str, Enum):
     """Estimated effort to close gap."""
-    QUICK = "quick"           # < 30 minutes
-    MODERATE = "moderate"     # 30 min - 2 hours
+
+    QUICK = "quick"  # < 30 minutes
+    MODERATE = "moderate"  # 30 min - 2 hours
     SUBSTANTIAL = "substantial"  # 2-4 hours
-    MAJOR = "major"           # > 4 hours
+    MAJOR = "major"  # > 4 hours
 
 
 @dataclass
 class Gap:
     """A single identified gap."""
+
     id: str
     category: GapCategory
     severity: GapSeverity
@@ -66,6 +70,7 @@ class Gap:
 @dataclass
 class GapAnalysisResult:
     """Complete gap analysis for a section."""
+
     section_id: str
     section_type: str
     current_score: float
@@ -101,6 +106,7 @@ class GapAnalysisService:
         """Lazy load AI service."""
         if self._ai_service is None:
             from .proposal_ai_service import ProposalAIService
+
             self._ai_service = ProposalAIService()
         return self._ai_service
 
@@ -108,6 +114,7 @@ class GapAnalysisService:
         """Lazy load evaluator."""
         if self._evaluator is None:
             from .evaluator_simulator import EvaluatorSimulator
+
             self._evaluator = EvaluatorSimulator()
         return self._evaluator
 
@@ -122,7 +129,7 @@ class GapAnalysisService:
         current_score: float,
         target_score: float | None = None,
         evaluation_result: dict | None = None,
-        cluster: str | None = None
+        cluster: str | None = None,
     ) -> GapAnalysisResult:
         """
         Analyze gaps between current content and target score.
@@ -149,7 +156,9 @@ class GapAnalysisService:
 
         score_gap = target_score - current_score
 
-        logger.info(f"Analyzing gaps: current={current_score}, target={target_score}, gap={score_gap}")
+        logger.info(
+            f"Analyzing gaps: current={current_score}, target={target_score}, gap={score_gap}"
+        )
 
         # Get evaluation if not provided
         if evaluation_result is None:
@@ -157,15 +166,15 @@ class GapAnalysisService:
             eval_result = await evaluator.evaluate_section(
                 section_text=content,
                 section_type=section_type,
-                section_id="objectives"  # Default
+                section_id="objectives",  # Default
             )
             evaluation_result = {
-                'weaknesses': eval_result.weaknesses,
-                'strengths': eval_result.strengths,
-                'criterion_scores': [
-                    {'criterion': cs.criterion, 'score': cs.score}
+                "weaknesses": eval_result.weaknesses,
+                "strengths": eval_result.strengths,
+                "criterion_scores": [
+                    {"criterion": cs.criterion, "score": cs.score}
                     for cs in eval_result.criterion_scores
-                ]
+                ],
             }
 
         # Identify gaps using LLM analysis
@@ -174,8 +183,8 @@ class GapAnalysisService:
             section_type=section_type,
             current_score=current_score,
             target_score=target_score,
-            weaknesses=evaluation_result.get('weaknesses', []),
-            cluster=cluster
+            weaknesses=evaluation_result.get("weaknesses", []),
+            cluster=cluster,
         )
 
         # Calculate metrics
@@ -202,7 +211,7 @@ class GapAnalysisService:
             total_estimated_impact=total_impact,
             recommended_priority_order=priority_order,
             estimated_total_effort=total_effort,
-            achievable_score=achievable
+            achievable_score=achievable,
         )
 
     async def _identify_gaps(
@@ -212,19 +221,21 @@ class GapAnalysisService:
         current_score: float,
         target_score: float,
         weaknesses: list[str],
-        cluster: str | None
+        cluster: str | None,
     ) -> list[Gap]:
         """Identify specific gaps using LLM analysis."""
         ai_service = self._get_ai_service()
 
-        weaknesses_text = "\n".join(f"- {w}" for w in weaknesses) if weaknesses else "None identified"
+        weaknesses_text = (
+            "\n".join(f"- {w}" for w in weaknesses) if weaknesses else "None identified"
+        )
 
         prompt = f"""Analyze this proposal section and identify specific gaps preventing a higher score.
 
 SECTION TYPE: {section_type}
 CURRENT SCORE: {current_score}/5
 TARGET SCORE: {target_score}/5
-CLUSTER: {cluster or 'General'}
+CLUSTER: {cluster or "General"}
 
 CONTENT:
 {content[:3000]}
@@ -283,53 +294,58 @@ Focus on the most impactful gaps first. Be specific and actionable."""
                             "effort": {"type": "string"},
                             "specific_action": {"type": "string"},
                             "example_text": {"type": "string"},
-                            "related_criterion": {"type": "string"}
+                            "related_criterion": {"type": "string"},
                         },
-                        "required": ["category", "severity", "title", "description",
-                                    "current_state", "target_state", "estimated_score_impact",
-                                    "effort", "specific_action"]
-                    }
+                        "required": [
+                            "category",
+                            "severity",
+                            "title",
+                            "description",
+                            "current_state",
+                            "target_state",
+                            "estimated_score_impact",
+                            "effort",
+                            "specific_action",
+                        ],
+                    },
                 }
             },
-            "required": ["gaps"]
+            "required": ["gaps"],
         }
 
-        response = await ai_service.generate_structured(
-            prompt=prompt,
-            response_schema=schema
-        )
+        response = await ai_service.generate_structured(prompt=prompt, response_schema=schema)
 
         gaps = []
-        for i, gap_data in enumerate(response.get('gaps', [])):
+        for i, gap_data in enumerate(response.get("gaps", [])):
             try:
                 # Validate category
-                category_str = gap_data['category'].lower()
+                category_str = gap_data["category"].lower()
                 if category_str not in [c.value for c in GapCategory]:
-                    category_str = 'content_weak'
+                    category_str = "content_weak"
 
                 # Validate severity
-                severity_str = gap_data['severity'].lower()
+                severity_str = gap_data["severity"].lower()
                 if severity_str not in [s.value for s in GapSeverity]:
-                    severity_str = 'major'
+                    severity_str = "major"
 
                 # Validate effort
-                effort_str = gap_data['effort'].lower()
+                effort_str = gap_data["effort"].lower()
                 if effort_str not in [e.value for e in EffortLevel]:
-                    effort_str = 'moderate'
+                    effort_str = "moderate"
 
                 gap = Gap(
-                    id=f"gap_{i+1}",
+                    id=f"gap_{i + 1}",
                     category=GapCategory(category_str),
                     severity=GapSeverity(severity_str),
-                    title=gap_data['title'],
-                    description=gap_data['description'],
-                    current_state=gap_data['current_state'],
-                    target_state=gap_data['target_state'],
-                    estimated_score_impact=min(1.0, max(0.1, gap_data['estimated_score_impact'])),
+                    title=gap_data["title"],
+                    description=gap_data["description"],
+                    current_state=gap_data["current_state"],
+                    target_state=gap_data["target_state"],
+                    estimated_score_impact=min(1.0, max(0.1, gap_data["estimated_score_impact"])),
                     effort=EffortLevel(effort_str),
-                    specific_action=gap_data['specific_action'],
-                    example_text=gap_data.get('example_text'),
-                    related_criterion=gap_data.get('related_criterion')
+                    specific_action=gap_data["specific_action"],
+                    example_text=gap_data.get("example_text"),
+                    related_criterion=gap_data.get("related_criterion"),
                 )
                 gaps.append(gap)
             except (KeyError, ValueError) as e:
@@ -348,14 +364,14 @@ Focus on the most impactful gaps first. Be specific and actionable."""
             GapSeverity.CRITICAL: 2.0,
             GapSeverity.MAJOR: 1.5,
             GapSeverity.MINOR: 1.0,
-            GapSeverity.POLISH: 0.5
+            GapSeverity.POLISH: 0.5,
         }
 
         effort_weights = {
             EffortLevel.QUICK: 1.0,
             EffortLevel.MODERATE: 2.0,
             EffortLevel.SUBSTANTIAL: 4.0,
-            EffortLevel.MAJOR: 8.0
+            EffortLevel.MAJOR: 8.0,
         }
 
         def priority_score(gap: Gap) -> float:
@@ -372,7 +388,7 @@ Focus on the most impactful gaps first. Be specific and actionable."""
             EffortLevel.QUICK: 20,
             EffortLevel.MODERATE: 75,
             EffortLevel.SUBSTANTIAL: 180,
-            EffortLevel.MAJOR: 360
+            EffortLevel.MAJOR: 360,
         }
 
         total_minutes = sum(effort_minutes[g.effort] for g in gaps)
@@ -388,10 +404,7 @@ Focus on the most impactful gaps first. Be specific and actionable."""
             return f"{hours:.0f} hours ({days:.1f} work days)"
 
     async def get_gap_closure_suggestion(
-        self,
-        gap: Gap,
-        content: str,
-        section_type: str
+        self, gap: Gap, content: str, section_type: str
     ) -> dict[str, Any]:
         """
         Get detailed suggestion for closing a specific gap.
@@ -430,48 +443,40 @@ Provide a specific rewrite that closes this gap. Respond with JSON:
                 "before_snippet": {"type": "string"},
                 "after_snippet": {"type": "string"},
                 "estimated_new_score_impact": {"type": "number"},
-                "additional_tips": {"type": "array", "items": {"type": "string"}}
+                "additional_tips": {"type": "array", "items": {"type": "string"}},
             },
-            "required": ["rewritten_text", "explanation", "before_snippet", "after_snippet"]
+            "required": ["rewritten_text", "explanation", "before_snippet", "after_snippet"],
         }
 
-        response = await ai_service.generate_structured(
-            prompt=prompt,
-            response_schema=schema
-        )
+        response = await ai_service.generate_structured(prompt=prompt, response_schema=schema)
 
         return response
 
-    async def track_gap_progress(
-        self,
-        section_id: str,
-        gap_id: str,
-        resolved: bool
-    ) -> None:
+    async def track_gap_progress(self, section_id: str, gap_id: str, resolved: bool) -> None:
         """Track when a gap is resolved."""
         conn = self._get_connection()
         try:
             with conn.cursor() as cur:
-                cur.execute("""
+                cur.execute(
+                    """
                     UPDATE gap_tracking
                     SET resolved = %s, resolved_at = NOW()
                     WHERE section_id = %s AND gap_id = %s
-                """, (resolved, section_id, gap_id))
+                """,
+                    (resolved, section_id, gap_id),
+                )
                 conn.commit()
         finally:
             conn.close()
 
-    async def save_gaps(
-        self,
-        section_id: str,
-        gaps: list[Gap]
-    ) -> None:
+    async def save_gaps(self, section_id: str, gaps: list[Gap]) -> None:
         """Save identified gaps to database."""
         conn = self._get_connection()
         try:
             with conn.cursor() as cur:
                 for gap in gaps:
-                    cur.execute("""
+                    cur.execute(
+                        """
                         INSERT INTO gap_tracking (
                             section_id, gap_id, category, severity,
                             title, estimated_impact, effort_level
@@ -482,15 +487,17 @@ Provide a specific rewrite that closes this gap. Respond with JSON:
                             title = EXCLUDED.title,
                             estimated_impact = EXCLUDED.estimated_impact,
                             effort_level = EXCLUDED.effort_level
-                    """, (
-                        section_id,
-                        gap.id,
-                        gap.category.value,
-                        gap.severity.value,
-                        gap.title,
-                        gap.estimated_score_impact,
-                        gap.effort.value
-                    ))
+                    """,
+                        (
+                            section_id,
+                            gap.id,
+                            gap.category.value,
+                            gap.severity.value,
+                            gap.title,
+                            gap.estimated_score_impact,
+                            gap.effort.value,
+                        ),
+                    )
                 conn.commit()
         finally:
             conn.close()
@@ -516,38 +523,48 @@ class GapProgressTracker:
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 # Get gap tracking data
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT gap_id, resolved, resolved_at
                     FROM gap_tracking
                     WHERE section_id = %s
-                """, (section_id,))
+                """,
+                    (section_id,),
+                )
                 tracking = cur.fetchall()
 
                 # Get score history
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT predicted_score, created_at
                     FROM section_score_history
                     WHERE section_id = %s
                     ORDER BY created_at
-                """, (section_id,))
+                """,
+                    (section_id,),
+                )
                 scores = cur.fetchall()
 
                 total_gaps = len(tracking)
-                resolved_gaps = sum(1 for t in tracking if t['resolved'])
+                resolved_gaps = sum(1 for t in tracking if t["resolved"])
 
                 score_improvement = 0
                 if len(scores) >= 2:
-                    score_improvement = float(scores[-1]['predicted_score']) - float(scores[0]['predicted_score'])
+                    score_improvement = float(scores[-1]["predicted_score"]) - float(
+                        scores[0]["predicted_score"]
+                    )
 
                 return {
                     "total_gaps_identified": total_gaps,
                     "gaps_resolved": resolved_gaps,
-                    "completion_percentage": (resolved_gaps / total_gaps * 100) if total_gaps > 0 else 0,
+                    "completion_percentage": (
+                        (resolved_gaps / total_gaps * 100) if total_gaps > 0 else 0
+                    ),
                     "score_history": [
-                        {"score": float(s['predicted_score']), "date": s['created_at'].isoformat()}
+                        {"score": float(s["predicted_score"]), "date": s["created_at"].isoformat()}
                         for s in scores
                     ],
-                    "score_improvement": score_improvement
+                    "score_improvement": score_improvement,
                 }
         finally:
             conn.close()
@@ -557,7 +574,8 @@ class GapProgressTracker:
         conn = self._get_connection()
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT
                         COUNT(DISTINCT gt.gap_id) as total_gaps,
                         COUNT(DISTINCT gt.gap_id) FILTER (WHERE gt.resolved) as resolved_gaps,
@@ -565,17 +583,23 @@ class GapProgressTracker:
                     FROM gap_tracking gt
                     JOIN section_scores ss ON gt.section_id = ss.section_id
                     WHERE ss.proposal_id = %s
-                """, (proposal_id,))
+                """,
+                    (proposal_id,),
+                )
                 result = cur.fetchone()
 
-                total_gaps = result['total_gaps'] or 0
-                resolved_gaps = result['resolved_gaps'] or 0
+                total_gaps = result["total_gaps"] or 0
+                resolved_gaps = result["resolved_gaps"] or 0
 
                 return {
                     "total_gaps": total_gaps,
                     "resolved_gaps": resolved_gaps,
-                    "current_avg_score": float(result['current_avg_score']) if result['current_avg_score'] else 0,
-                    "completion_percentage": (resolved_gaps / total_gaps * 100) if total_gaps else 0
+                    "current_avg_score": (
+                        float(result["current_avg_score"]) if result["current_avg_score"] else 0
+                    ),
+                    "completion_percentage": (
+                        (resolved_gaps / total_gaps * 100) if total_gaps else 0
+                    ),
                 }
         finally:
             conn.close()

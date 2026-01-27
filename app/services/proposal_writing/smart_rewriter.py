@@ -28,6 +28,7 @@ class RewriteStyle(Enum):
 @dataclass
 class RewriteResult:
     """Result of a rewrite operation."""
+
     original_text: str
     rewritten_text: str
     style: str
@@ -63,7 +64,7 @@ class SmartRewriter:
         original_text: str,
         improvement_focus: str,
         section_type: str = "objectives",
-        preserve_length: bool = False
+        preserve_length: bool = False,
     ) -> RewriteResult:
         """
         Rewrite text focusing on a specific improvement.
@@ -110,9 +111,7 @@ Provide your response with:
 
         try:
             result = await self.ai_service.generate_structured(
-                prompt=prompt,
-                response_schema=REWRITE_SCHEMA,
-                temperature=0.4
+                prompt=prompt, response_schema=REWRITE_SCHEMA, temperature=0.4
             )
 
             return RewriteResult(
@@ -124,7 +123,7 @@ Provide your response with:
                 improvement_summary=result.get("improvement_summary", ""),
                 word_count_original=len(original_text.split()),
                 word_count_rewritten=len(result.get("rewritten_text", "").split()),
-                predicted_score_improvement=0.3  # Estimated
+                predicted_score_improvement=0.3,  # Estimated
             )
 
         except Exception as e:
@@ -141,41 +140,36 @@ Provide your response with:
 - Improve logical flow between ideas
 - Add clear topic sentences to paragraphs
 - Remove unnecessary jargon""",
-
             "impact": """
 - Use stronger action verbs (develop, create, transform, pioneer)
 - Replace passive voice with active voice
 - Add quantifiable outcomes where possible
 - Emphasize breakthrough potential
 - Strengthen claims with evidence references""",
-
             "EU terminology": """
 - Add key EU terms: TRL, KPIs, deliverables, milestones, work packages
 - Reference EU strategies: European Green Deal, Digital Europe, etc.
 - Add "European added value" messaging
 - Include stakeholder engagement language
 - Reference relevant EU regulations and frameworks""",
-
             "conciseness": """
 - Remove redundant phrases
 - Eliminate unnecessary qualifiers (very, really, quite)
 - Combine related ideas
 - Remove tangential content
 - Focus on essential information only""",
-
             "structure": """
 - Add clear headings and subheadings
 - Use bullet points for lists
 - Improve paragraph organization
 - Add transition sentences
 - Create logical flow from problem to solution to impact""",
-
             "persuasiveness": """
 - Lead with strongest arguments
 - Add evidence and examples
 - Address potential concerns proactively
 - Use confident language (will, shall instead of might, could)
-- End sections with strong impact statements"""
+- End sections with strong impact statements""",
         }
 
         return guidance.get(focus, guidance["clarity"])
@@ -185,9 +179,7 @@ Provide your response with:
     # =========================================================================
 
     async def generate_rewrite_options(
-        self,
-        original_text: str,
-        section_type: str = "objectives"
+        self, original_text: str, section_type: str = "objectives"
     ) -> dict[str, RewriteResult]:
         """
         Generate multiple rewrite options for user to choose from.
@@ -218,7 +210,7 @@ Provide your response with:
             self.rewrite_for_improvement(
                 original_text, "EU terminology", section_type, preserve_length=True
             ),
-            return_exceptions=True
+            return_exceptions=True,
         )
 
         options = {}
@@ -241,7 +233,7 @@ Provide your response with:
         original_text: str,
         cluster: str = None,
         action_type: str = None,
-        section_type: str = "objectives"
+        section_type: str = "objectives",
     ) -> RewriteResult:
         """
         Rewrite text using style from successful funded proposals.
@@ -254,17 +246,12 @@ Provide your response with:
 
         # Find similar funded projects
         similar = await self.learning_service.find_similar_funded_projects(
-            user_idea=original_text,
-            cluster=cluster,
-            action_type=action_type,
-            limit=5
+            user_idea=original_text, cluster=cluster, action_type=action_type, limit=5
         )
 
         if not similar:
             # Fallback to regular rewrite
-            return await self.rewrite_for_improvement(
-                original_text, "impact", section_type
-            )
+            return await self.rewrite_for_improvement(original_text, "impact", section_type)
 
         # Extract example excerpts
         examples = [p.objective[:800] for p in similar[:3] if p.objective]
@@ -277,7 +264,7 @@ ORIGINAL TEXT:
 {original_text}
 
 SUCCESSFUL FUNDED PROJECT EXAMPLES:
-{chr(10).join([f'Example {i+1}: {ex}' for i, ex in enumerate(examples)])}
+{chr(10).join([f"Example {i + 1}: {ex}" for i, ex in enumerate(examples)])}
 
 REQUIREMENTS:
 1. Keep the user's core technical content and meaning
@@ -297,9 +284,7 @@ Provide a complete rewrite that sounds like it could come from a funded proposal
 
         try:
             result = await self.ai_service.generate_structured(
-                prompt=prompt,
-                response_schema=REWRITE_SCHEMA,
-                temperature=0.4
+                prompt=prompt, response_schema=REWRITE_SCHEMA, temperature=0.4
             )
 
             return RewriteResult(
@@ -311,7 +296,7 @@ Provide a complete rewrite that sounds like it could come from a funded proposal
                 improvement_summary=result.get("improvement_summary", ""),
                 word_count_original=len(original_text.split()),
                 word_count_rewritten=len(result.get("rewritten_text", "").split()),
-                predicted_score_improvement=0.5  # Higher for style transfer
+                predicted_score_improvement=0.5,  # Higher for style transfer
             )
 
         except Exception as e:
@@ -323,10 +308,7 @@ Provide a complete rewrite that sounds like it could come from a funded proposal
     # =========================================================================
 
     async def rewrite_sentence(
-        self,
-        sentence: str,
-        context: str,
-        improvement: str
+        self, sentence: str, context: str, improvement: str
     ) -> dict[str, Any]:
         """
         Rewrite a single sentence with specific improvement.
@@ -349,8 +331,8 @@ Provide exactly 2-3 alternative versions, ranked by quality."""
 
             # Parse alternatives from response
             alternatives = [
-                line.strip().lstrip('123.-) ')
-                for line in response.split('\n')
+                line.strip().lstrip("123.-) ")
+                for line in response.split("\n")
                 if line.strip() and len(line.strip()) > 20
             ][:3]
 
@@ -358,7 +340,7 @@ Provide exactly 2-3 alternative versions, ranked by quality."""
                 "original": sentence,
                 "alternatives": alternatives,
                 "improvement_focus": improvement,
-                "recommended": alternatives[0] if alternatives else sentence
+                "recommended": alternatives[0] if alternatives else sentence,
             }
 
         except Exception as e:
@@ -367,24 +349,20 @@ Provide exactly 2-3 alternative versions, ranked by quality."""
                 "original": sentence,
                 "alternatives": [],
                 "improvement_focus": improvement,
-                "recommended": sentence
+                "recommended": sentence,
             }
 
     # =========================================================================
     # COMPARISON AND DIFF
     # =========================================================================
 
-    def generate_diff(
-        self,
-        original: str,
-        rewritten: str
-    ) -> list[dict[str, Any]]:
+    def generate_diff(self, original: str, rewritten: str) -> list[dict[str, Any]]:
         """
         Generate a diff showing what changed between versions.
         """
 
-        original_sentences = original.split('.')
-        rewritten_sentences = rewritten.split('.')
+        original_sentences = original.split(".")
+        rewritten_sentences = rewritten.split(".")
 
         diffs = []
 
@@ -397,34 +375,18 @@ Provide exactly 2-3 alternative versions, ranked by quality."""
 
             if orig and rewr:
                 if orig.lower() != rewr.lower():
-                    diffs.append({
-                        "type": "modified",
-                        "original": orig,
-                        "rewritten": rewr,
-                        "position": i
-                    })
+                    diffs.append(
+                        {"type": "modified", "original": orig, "rewritten": rewr, "position": i}
+                    )
             elif orig and not rewr:
-                diffs.append({
-                    "type": "removed",
-                    "original": orig,
-                    "rewritten": "",
-                    "position": i
-                })
+                diffs.append({"type": "removed", "original": orig, "rewritten": "", "position": i})
             elif rewr and not orig:
-                diffs.append({
-                    "type": "added",
-                    "original": "",
-                    "rewritten": rewr,
-                    "position": i
-                })
+                diffs.append({"type": "added", "original": "", "rewritten": rewr, "position": i})
 
         return diffs
 
     async def compare_versions(
-        self,
-        original: str,
-        rewrites: list[RewriteResult],
-        section_type: str = "objectives"
+        self, original: str, rewrites: list[RewriteResult], section_type: str = "objectives"
     ) -> dict[str, Any]:
         """
         Compare original with multiple rewrite versions.
@@ -434,13 +396,12 @@ Provide exactly 2-3 alternative versions, ranked by quality."""
 
         # Import evaluator for score prediction
         from app.services.proposal_writing.evaluator_simulator import EvaluatorSimulator
+
         evaluator = EvaluatorSimulator()
 
         # Evaluate original
         original_eval = await evaluator.evaluate_section(
-            section_text=original,
-            section_type="excellence",
-            section_id=section_type
+            section_text=original, section_type="excellence", section_id=section_type
         )
 
         comparisons = []
@@ -450,18 +411,24 @@ Provide exactly 2-3 alternative versions, ranked by quality."""
             rewrite_eval = await evaluator.evaluate_section(
                 section_text=rewrite.rewritten_text,
                 section_type="excellence",
-                section_id=section_type
+                section_id=section_type,
             )
 
-            comparisons.append({
-                "style": rewrite.style,
-                "word_count_change": rewrite.word_count_rewritten - rewrite.word_count_original,
-                "original_score": original_eval.overall_score,
-                "rewritten_score": rewrite_eval.overall_score,
-                "score_change": rewrite_eval.overall_score - original_eval.overall_score,
-                "changes_made": rewrite.changes_made,
-                "recommendation": "Recommended" if rewrite_eval.overall_score > original_eval.overall_score else "Consider alternatives"
-            })
+            comparisons.append(
+                {
+                    "style": rewrite.style,
+                    "word_count_change": rewrite.word_count_rewritten - rewrite.word_count_original,
+                    "original_score": original_eval.overall_score,
+                    "rewritten_score": rewrite_eval.overall_score,
+                    "score_change": rewrite_eval.overall_score - original_eval.overall_score,
+                    "changes_made": rewrite.changes_made,
+                    "recommendation": (
+                        "Recommended"
+                        if rewrite_eval.overall_score > original_eval.overall_score
+                        else "Consider alternatives"
+                    ),
+                }
+            )
 
         # Sort by score improvement
         comparisons.sort(key=lambda x: x["score_change"], reverse=True)
@@ -470,7 +437,7 @@ Provide exactly 2-3 alternative versions, ranked by quality."""
             "original_score": original_eval.overall_score,
             "comparisons": comparisons,
             "best_option": comparisons[0]["style"] if comparisons else None,
-            "best_score_improvement": comparisons[0]["score_change"] if comparisons else 0
+            "best_score_improvement": comparisons[0]["score_change"] if comparisons else 0,
         }
 
     # =========================================================================
@@ -478,10 +445,7 @@ Provide exactly 2-3 alternative versions, ranked by quality."""
     # =========================================================================
 
     async def rewrite_for_technical_depth(
-        self,
-        original_text: str,
-        domain: str = "general",
-        section_type: str = "methodology"
+        self, original_text: str, domain: str = "general", section_type: str = "methodology"
     ) -> RewriteResult:
         """
         Rewrite to add more technical depth and rigor.
@@ -518,7 +482,7 @@ Provide a complete rewrite with enhanced technical depth."""
             result = await self.ai_service.generate_structured(
                 prompt=prompt,
                 response_schema=REWRITE_SCHEMA,
-                temperature=0.3  # Lower temperature for technical content
+                temperature=0.3,  # Lower temperature for technical content
             )
 
             return RewriteResult(
@@ -530,7 +494,7 @@ Provide a complete rewrite with enhanced technical depth."""
                 improvement_summary=result.get("improvement_summary", ""),
                 word_count_original=len(original_text.split()),
                 word_count_rewritten=len(result.get("rewritten_text", "").split()),
-                predicted_score_improvement=0.4
+                predicted_score_improvement=0.4,
             )
 
         except Exception as e:
@@ -541,7 +505,7 @@ Provide a complete rewrite with enhanced technical depth."""
         self,
         original_text: str,
         target_audience: str = "mixed evaluators",
-        section_type: str = "objectives"
+        section_type: str = "objectives",
     ) -> RewriteResult:
         """
         Rewrite for clearer, more accessible language.
@@ -576,9 +540,7 @@ Provide a complete rewrite that maintains rigor while improving accessibility.""
 
         try:
             result = await self.ai_service.generate_structured(
-                prompt=prompt,
-                response_schema=REWRITE_SCHEMA,
-                temperature=0.4
+                prompt=prompt, response_schema=REWRITE_SCHEMA, temperature=0.4
             )
 
             return RewriteResult(
@@ -590,7 +552,7 @@ Provide a complete rewrite that maintains rigor while improving accessibility.""
                 improvement_summary=result.get("improvement_summary", ""),
                 word_count_original=len(original_text.split()),
                 word_count_rewritten=len(result.get("rewritten_text", "").split()),
-                predicted_score_improvement=0.3
+                predicted_score_improvement=0.3,
             )
 
         except Exception as e:
@@ -602,9 +564,7 @@ Provide a complete rewrite that maintains rigor while improving accessibility.""
     # =========================================================================
 
     async def rewrite_all_styles(
-        self,
-        original_text: str,
-        section_type: str = "objectives"
+        self, original_text: str, section_type: str = "objectives"
     ) -> dict[str, RewriteResult]:
         """
         Generate all five rewrite styles for maximum choice.
@@ -615,12 +575,18 @@ Provide a complete rewrite that maintains rigor while improving accessibility.""
         logger.info("Generating all rewrite styles")
 
         results = await asyncio.gather(
-            self.rewrite_for_improvement(original_text, "conciseness", section_type, preserve_length=False),
-            self.rewrite_for_improvement(original_text, "impact", section_type, preserve_length=True),
-            self.rewrite_for_improvement(original_text, "EU terminology", section_type, preserve_length=True),
+            self.rewrite_for_improvement(
+                original_text, "conciseness", section_type, preserve_length=False
+            ),
+            self.rewrite_for_improvement(
+                original_text, "impact", section_type, preserve_length=True
+            ),
+            self.rewrite_for_improvement(
+                original_text, "EU terminology", section_type, preserve_length=True
+            ),
             self.rewrite_for_technical_depth(original_text, section_type=section_type),
             self.rewrite_for_accessibility(original_text, section_type=section_type),
-            return_exceptions=True
+            return_exceptions=True,
         )
 
         styles = ["concise", "impactful", "eu_aligned", "technical", "accessible"]

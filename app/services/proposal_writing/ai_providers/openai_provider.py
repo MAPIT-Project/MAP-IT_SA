@@ -23,6 +23,7 @@ class OpenAIProvider(BaseAIProvider):
         # Lazy import to avoid requiring openai if not used
         try:
             from openai import AsyncOpenAI
+
             self.client = AsyncOpenAI(api_key=config.api_key)
             self._available = True
         except ImportError:
@@ -31,10 +32,7 @@ class OpenAIProvider(BaseAIProvider):
             self.client = None
 
     async def generate_text(
-        self,
-        prompt: str,
-        temperature: float = 0.7,
-        max_tokens: int = 4000
+        self, prompt: str, temperature: float = 0.7, max_tokens: int = 4000
     ) -> ProviderResponse:
         """Generate text using OpenAI."""
 
@@ -48,7 +46,7 @@ class OpenAIProvider(BaseAIProvider):
                 model=self.config.model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=temperature,
-                max_tokens=max_tokens
+                max_tokens=max_tokens,
             )
 
             self.mark_success()
@@ -60,9 +58,9 @@ class OpenAIProvider(BaseAIProvider):
                 usage={
                     "prompt_tokens": response.usage.prompt_tokens,
                     "completion_tokens": response.usage.completion_tokens,
-                    "total_tokens": response.usage.total_tokens
+                    "total_tokens": response.usage.total_tokens,
                 },
-                latency_ms=(time.time() - start_time) * 1000
+                latency_ms=(time.time() - start_time) * 1000,
             )
 
         except Exception as e:
@@ -71,10 +69,7 @@ class OpenAIProvider(BaseAIProvider):
             raise
 
     async def generate_structured(
-        self,
-        prompt: str,
-        schema: dict[str, Any],
-        temperature: float = 0.3
+        self, prompt: str, schema: dict[str, Any], temperature: float = 0.3
     ) -> dict[str, Any]:
         """Generate structured JSON using OpenAI."""
 
@@ -88,15 +83,15 @@ class OpenAIProvider(BaseAIProvider):
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a helpful assistant that outputs valid JSON."
+                        "content": "You are a helpful assistant that outputs valid JSON.",
                     },
                     {
                         "role": "user",
-                        "content": f"{prompt}\n\nRespond with JSON matching this schema: {json.dumps(schema)}"
-                    }
+                        "content": f"{prompt}\n\nRespond with JSON matching this schema: {json.dumps(schema)}",
+                    },
                 ],
                 temperature=temperature,
-                response_format={"type": "json_object"}
+                response_format={"type": "json_object"},
             )
 
             self.mark_success()
@@ -108,9 +103,7 @@ class OpenAIProvider(BaseAIProvider):
             raise
 
     async def generate_stream(
-        self,
-        prompt: str,
-        temperature: float = 0.7
+        self, prompt: str, temperature: float = 0.7
     ) -> AsyncGenerator[str, None]:
         """Stream text generation."""
 
@@ -122,7 +115,7 @@ class OpenAIProvider(BaseAIProvider):
                 model=self.config.model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=temperature,
-                stream=True
+                stream=True,
             )
 
             async for chunk in stream:

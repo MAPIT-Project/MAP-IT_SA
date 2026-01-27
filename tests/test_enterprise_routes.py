@@ -129,9 +129,7 @@ class TestAnalyticsRoutesHealth:
         app = FastAPI()
         app.include_router(router)
 
-        with patch(
-            "app.api.analytics_routes.get_analytics_service", return_value=mock_service
-        ):
+        with patch("app.api.analytics_routes.get_analytics_service", return_value=mock_service):
             client = TestClient(app)
             response = client.get("/api/analytics/health")
 
@@ -148,17 +146,13 @@ class TestAnalyticsRoutesToolsEndpoint:
         """Create mock analytics service with tool data."""
         mock = MagicMock()
         mock.get_tool_performance.return_value = {
-            "tools": [
-                {"tool_name": "search_funding_calls", "avg_time_ms": 500, "count": 100}
-            ]
+            "tools": [{"tool_name": "search_funding_calls", "avg_time_ms": 500, "count": 100}]
         }
         mock.get_slow_tools.return_value = [
             {"tool_name": "get_budget_benchmark", "avg_time_ms": 3500}
         ]
         mock.get_popular_tool_combinations.return_value = {
-            "combinations": [
-                {"tools": ["search_calls", "get_details"], "count": 50}
-            ]
+            "combinations": [{"tools": ["search_calls", "get_details"], "count": 50}]
         }
         mock.get_session_metrics.return_value = {"active_tools": 5}
         return mock
@@ -230,9 +224,7 @@ class TestAnalyticsTrendsEndpoint:
             assert response.status_code == 422
 
             # Invalid granularity
-            response = client.get(
-                "/api/analytics/trends?metric=queries&granularity=invalid"
-            )
+            response = client.get("/api/analytics/trends?metric=queries&granularity=invalid")
             assert response.status_code == 422
 
     def test_trends_supported_metrics(self):
@@ -681,9 +673,7 @@ class TestCollaborationRoutesSession:
             return_value=mock_collaboration_service,
         ):
             client = TestClient(app)
-            response = client.post(
-                "/api/collaboration/session-123/leave?user_id=user-456"
-            )
+            response = client.post("/api/collaboration/session-123/leave?user_id=user-456")
 
             assert response.status_code == 200
             data = response.json()
@@ -951,9 +941,7 @@ class TestAuditRoutesHealth:
         app = FastAPI()
         app.include_router(router)
 
-        with patch(
-            "app.api.audit_routes.get_audit_service", return_value=mock_audit_service
-        ):
+        with patch("app.api.audit_routes.get_audit_service", return_value=mock_audit_service):
             client = TestClient(app)
             response = client.get("/api/audit/health")
 
@@ -1043,9 +1031,7 @@ class TestAuditRoutesQueries:
         app = FastAPI()
         app.include_router(router)
 
-        with patch(
-            "app.api.audit_routes.get_audit_service", return_value=mock_audit_service
-        ):
+        with patch("app.api.audit_routes.get_audit_service", return_value=mock_audit_service):
             client = TestClient(app)
             response = client.get("/api/audit/trail")
 
@@ -1062,9 +1048,7 @@ class TestAuditRoutesQueries:
         app = FastAPI()
         app.include_router(router)
 
-        with patch(
-            "app.api.audit_routes.get_audit_service", return_value=mock_audit_service
-        ):
+        with patch("app.api.audit_routes.get_audit_service", return_value=mock_audit_service):
             client = TestClient(app)
 
             # Filter by user_id
@@ -1088,9 +1072,7 @@ class TestAuditRoutesQueries:
         app = FastAPI()
         app.include_router(router)
 
-        with patch(
-            "app.api.audit_routes.get_audit_service", return_value=mock_audit_service
-        ):
+        with patch("app.api.audit_routes.get_audit_service", return_value=mock_audit_service):
             client = TestClient(app)
             response = client.get("/api/audit/trail/conversation/conv-123")
 
@@ -1107,9 +1089,7 @@ class TestAuditRoutesQueries:
         app = FastAPI()
         app.include_router(router)
 
-        with patch(
-            "app.api.audit_routes.get_audit_service", return_value=mock_audit_service
-        ):
+        with patch("app.api.audit_routes.get_audit_service", return_value=mock_audit_service):
             client = TestClient(app)
             response = client.get("/api/audit/user/user-456/activity")
 
@@ -1126,9 +1106,7 @@ class TestAuditRoutesQueries:
         app = FastAPI()
         app.include_router(router)
 
-        with patch(
-            "app.api.audit_routes.get_audit_service", return_value=mock_audit_service
-        ):
+        with patch("app.api.audit_routes.get_audit_service", return_value=mock_audit_service):
             client = TestClient(app)
             response = client.get("/api/audit/user/user-456/events")
 
@@ -1144,9 +1122,7 @@ class TestAuditRoutesQueries:
         app = FastAPI()
         app.include_router(router)
 
-        with patch(
-            "app.api.audit_routes.get_audit_service", return_value=mock_audit_service
-        ):
+        with patch("app.api.audit_routes.get_audit_service", return_value=mock_audit_service):
             client = TestClient(app)
             response = client.get("/api/audit/security")
 
@@ -1163,9 +1139,7 @@ class TestAuditRoutesQueries:
         app = FastAPI()
         app.include_router(router)
 
-        with patch(
-            "app.api.audit_routes.get_audit_service", return_value=mock_audit_service
-        ):
+        with patch("app.api.audit_routes.get_audit_service", return_value=mock_audit_service):
             client = TestClient(app)
             response = client.get("/api/audit/stats")
 
@@ -1181,9 +1155,7 @@ class TestAuditRoutesQueries:
         app = FastAPI()
         app.include_router(router)
 
-        with patch(
-            "app.api.audit_routes.get_audit_service", return_value=mock_audit_service
-        ):
+        with patch("app.api.audit_routes.get_audit_service", return_value=mock_audit_service):
             client = TestClient(app)
             response = client.post("/api/audit/cleanup?retention_days=90")
 

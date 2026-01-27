@@ -32,10 +32,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -43,52 +40,56 @@ class LIFECallSyncer:
     """Syncs LIFE calls from EU Portal API."""
 
     # EU Portal API endpoints
-    TOPIC_DETAILS_URL = "https://ec.europa.eu/info/funding-tenders/opportunities/data/topicDetails/{topic_id}.json"
+    TOPIC_DETAILS_URL = (
+        "https://ec.europa.eu/info/funding-tenders/opportunities/data/topicDetails/{topic_id}.json"
+    )
 
     # LIFE Sub-programmes
     SUBPROGRAMMES = {
-        'NAT': {
-            'name': 'Nature and Biodiversity',
-            'description': 'Conservation of nature and biodiversity',
-            'funding_rate': 75,
+        "NAT": {
+            "name": "Nature and Biodiversity",
+            "description": "Conservation of nature and biodiversity",
+            "funding_rate": 75,
         },
-        'ENV': {
-            'name': 'Circular Economy and Quality of Life',
-            'description': 'Resource efficiency, waste, water, air, soil',
-            'funding_rate': 60,
+        "ENV": {
+            "name": "Circular Economy and Quality of Life",
+            "description": "Resource efficiency, waste, water, air, soil",
+            "funding_rate": 60,
         },
-        'CCA': {
-            'name': 'Climate Change Mitigation and Adaptation',
-            'description': 'Reducing greenhouse gas emissions and adapting to climate change',
-            'funding_rate': 60,
+        "CCA": {
+            "name": "Climate Change Mitigation and Adaptation",
+            "description": "Reducing greenhouse gas emissions and adapting to climate change",
+            "funding_rate": 60,
         },
-        'CET': {
-            'name': 'Clean Energy Transition',
-            'description': 'Supporting the transition to clean energy',
-            'funding_rate': 95,
+        "CET": {
+            "name": "Clean Energy Transition",
+            "description": "Supporting the transition to clean energy",
+            "funding_rate": 95,
         },
     }
 
     # Project types
     PROJECT_TYPES = {
-        'SAP': 'Standard Action Projects',
-        'SIP': 'Strategic Integrated Projects',
-        'SNAP': 'Strategic Nature Projects',
-        'TA': 'Technical Assistance',
-        'OG': 'Operating Grants',
-        'PLP': 'Policy Support Projects',
-        'PREP': 'Preparatory Projects',
-        'INFO': 'Information and Governance Projects',
-        'STRAT': 'Strategic Projects',
-        'NGO': 'NGO Operating Grants',
+        "SAP": "Standard Action Projects",
+        "SIP": "Strategic Integrated Projects",
+        "SNAP": "Strategic Nature Projects",
+        "TA": "Technical Assistance",
+        "OG": "Operating Grants",
+        "PLP": "Policy Support Projects",
+        "PREP": "Preparatory Projects",
+        "INFO": "Information and Governance Projects",
+        "STRAT": "Strategic Projects",
+        "NGO": "NGO Operating Grants",
     }
 
     def __init__(self):
         self.session = requests.Session()
-        self.session.headers.update({
-            'User-Agent': 'MAP-IT-SA/1.0 LIFE Sync',
-            'Accept': 'application/json',
-        })
+        self.session.headers.update(
+            {
+                "User-Agent": "MAP-IT-SA/1.0 LIFE Sync",
+                "Accept": "application/json",
+            }
+        )
 
     def generate_topic_patterns(self, years: list[int]) -> list[str]:
         """Generate all possible LIFE topic patterns."""
@@ -100,46 +101,56 @@ class LIFECallSyncer:
             # ==========================================
 
             # Standard Action Projects (SAP) - main call format
-            patterns.extend([
-                f"LIFE-{year}-SAP-NAT-NATURE",      # Nature and Biodiversity
-                f"LIFE-{year}-SAP-ENV-ENVIRONMENT", # Circular Economy
-                f"LIFE-{year}-SAP-CLIMA-CCA",       # Climate Change Adaptation
-                f"LIFE-{year}-SAP-CLIMA-CCM",       # Climate Change Mitigation
-            ])
+            patterns.extend(
+                [
+                    f"LIFE-{year}-SAP-NAT-NATURE",  # Nature and Biodiversity
+                    f"LIFE-{year}-SAP-ENV-ENVIRONMENT",  # Circular Economy
+                    f"LIFE-{year}-SAP-CLIMA-CCA",  # Climate Change Adaptation
+                    f"LIFE-{year}-SAP-CLIMA-CCM",  # Climate Change Mitigation
+                ]
+            )
 
             # Clean Energy Transition (CET) calls
-            patterns.extend([
-                f"LIFE-{year}-CET-SAP",
-                f"LIFE-{year}-CET-LOCAL",
-                f"LIFE-{year}-CET-POLICY",
-            ])
+            patterns.extend(
+                [
+                    f"LIFE-{year}-CET-SAP",
+                    f"LIFE-{year}-CET-LOCAL",
+                    f"LIFE-{year}-CET-POLICY",
+                ]
+            )
 
             # Strategic projects - two-stage
-            patterns.extend([
-                f"LIFE-{year}-STRAT-NAT-two-stage",
-                f"LIFE-{year}-STRAT-ENV-two-stage",
-                f"LIFE-{year}-STRAT-two-stage",
-            ])
+            patterns.extend(
+                [
+                    f"LIFE-{year}-STRAT-NAT-two-stage",
+                    f"LIFE-{year}-STRAT-ENV-two-stage",
+                    f"LIFE-{year}-STRAT-two-stage",
+                ]
+            )
 
             # NGO Operating Grants
-            patterns.extend([
-                f"LIFE-{year}-NGO-OG",
-                f"LIFE-{year}-NGO-OG-SGA",
-            ])
+            patterns.extend(
+                [
+                    f"LIFE-{year}-NGO-OG",
+                    f"LIFE-{year}-NGO-OG-SGA",
+                ]
+            )
 
             # Technical Assistance
-            patterns.extend([
-                f"LIFE-{year}-TA-CAP",
-                f"LIFE-{year}-TA-PP",
-                f"LIFE-{year}-TA-PP-SIP-SNAP",
-            ])
+            patterns.extend(
+                [
+                    f"LIFE-{year}-TA-CAP",
+                    f"LIFE-{year}-TA-PP",
+                    f"LIFE-{year}-TA-PP-SIP-SNAP",
+                ]
+            )
 
             # ==========================================
             # FALLBACK PATTERNS (older format)
             # ==========================================
-            for subprog in ['NAT', 'ENV', 'CCA', 'CET']:
+            for subprog in ["NAT", "ENV", "CCA", "CET"]:
                 patterns.append(f"LIFE-{year}-{subprog}")
-                for ptype in ['SAP', 'SIP', 'SNAP', 'TA', 'OG']:
+                for ptype in ["SAP", "SIP", "SNAP", "TA", "OG"]:
                     patterns.append(f"LIFE-{year}-{subprog}-{ptype}")
 
         # Remove duplicates
@@ -173,28 +184,28 @@ class LIFECallSyncer:
 
     def parse_topic_data(self, data: dict[str, Any]) -> dict[str, Any]:
         """Parse topic data into funding call format."""
-        topic_details = data.get('TopicDetails', {})
+        topic_details = data.get("TopicDetails", {})
 
         # Extract basic info
-        topic_id = topic_details.get('identifier', '')
-        title = topic_details.get('title', '')
-        description = topic_details.get('description', '') or topic_details.get('introduction', '')
+        topic_id = topic_details.get("identifier", "")
+        title = topic_details.get("title", "")
+        description = topic_details.get("description", "") or topic_details.get("introduction", "")
 
         # Extract dates
-        deadline_dates = topic_details.get('deadlineDates', [])
+        deadline_dates = topic_details.get("deadlineDates", [])
         deadline = None
         if deadline_dates:
             deadline = max(deadline_dates)
 
-        publication_date = topic_details.get('publicationDateLong')
-        opening_date = topic_details.get('plannedOpeningDate') or topic_details.get('openingDate')
+        publication_date = topic_details.get("publicationDateLong")
+        opening_date = topic_details.get("plannedOpeningDate") or topic_details.get("openingDate")
 
         # Extract budget
-        budget_info = topic_details.get('budget', {})
+        budget_info = topic_details.get("budget", {})
         budget_range = None
         if budget_info:
-            budget_min = budget_info.get('budgetTopicActionMin')
-            budget_max = budget_info.get('budgetTopicActionMax')
+            budget_min = budget_info.get("budgetTopicActionMin")
+            budget_max = budget_info.get("budgetTopicActionMax")
             if budget_min and budget_max:
                 budget_range = f"€{budget_min:,.0f} - €{budget_max:,.0f}"
             elif budget_max:
@@ -204,36 +215,36 @@ class LIFECallSyncer:
         status = None
 
         # Check direct status field
-        if topic_details.get('status'):
-            status = topic_details['status']
+        if topic_details.get("status"):
+            status = topic_details["status"]
 
         # Check actions array for status
         if not status:
-            actions = topic_details.get('actions', [])
+            actions = topic_details.get("actions", [])
             if actions and isinstance(actions, list) and len(actions) > 0:
                 action = actions[0]
                 if isinstance(action, dict):
-                    status_obj = action.get('status', {})
+                    status_obj = action.get("status", {})
                     if isinstance(status_obj, dict):
-                        status = status_obj.get('abbreviation') or status_obj.get('description')
+                        status = status_obj.get("abbreviation") or status_obj.get("description")
                     elif isinstance(status_obj, str):
                         status = status_obj
 
         # Normalize status to valid database values
         if status:
             status = status.lower().strip()
-            if status in ['open', 'opening']:
-                status = 'open'
-            elif status in ['forthcoming', 'upcoming', 'planned']:
-                status = 'upcoming'
-            elif status in ['closed', 'evaluated', 'under evaluation', 'awarded']:
-                status = 'closed'
-            elif status in ['cancelled', 'withdrawn']:
-                status = 'cancelled'
+            if status in ["open", "opening"]:
+                status = "open"
+            elif status in ["forthcoming", "upcoming", "planned"]:
+                status = "upcoming"
+            elif status in ["closed", "evaluated", "under evaluation", "awarded"]:
+                status = "closed"
+            elif status in ["cancelled", "withdrawn"]:
+                status = "cancelled"
             else:
-                status = 'closed'
+                status = "closed"
         else:
-            status = 'closed'
+            status = "closed"
 
         # Determine sub-programme from topic ID
         subprogramme = self._detect_subprogramme(topic_id)
@@ -243,20 +254,20 @@ class LIFECallSyncer:
         project_type = self._detect_project_type(topic_id)
 
         return {
-            'topic_id': topic_id,
-            'title': title,
-            'description': description[:2000] if description else None,
-            'deadline': deadline,
-            'publication_date': publication_date,
-            'opening_date': opening_date,
-            'budget_range': budget_range,
-            'status': status,
-            'subprogramme': subprogramme,
-            'subprogramme_name': subprog_info.get('name', 'General'),
-            'project_type': project_type,
-            'funding_rate': subprog_info.get('funding_rate', 60),
-            'programme': 'life',
-            'url': f"https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/{topic_id}",
+            "topic_id": topic_id,
+            "title": title,
+            "description": description[:2000] if description else None,
+            "deadline": deadline,
+            "publication_date": publication_date,
+            "opening_date": opening_date,
+            "budget_range": budget_range,
+            "status": status,
+            "subprogramme": subprogramme,
+            "subprogramme_name": subprog_info.get("name", "General"),
+            "project_type": project_type,
+            "funding_rate": subprog_info.get("funding_rate", 60),
+            "programme": "life",
+            "url": f"https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/{topic_id}",
         }
 
     def _detect_subprogramme(self, topic_id: str) -> str:
@@ -264,37 +275,41 @@ class LIFECallSyncer:
         topic_upper = topic_id.upper()
 
         # Check for CLIMA patterns first (maps to CCA sub-programme)
-        if '-CLIMA-' in topic_upper or '-CLIMA' in topic_upper:
-            return 'CCA'
+        if "-CLIMA-" in topic_upper or "-CLIMA" in topic_upper:
+            return "CCA"
 
         # Check for Nature pattern
-        if '-NAT-NATURE' in topic_upper or '-NAT-' in topic_upper or topic_upper.endswith('-NAT'):
-            return 'NAT'
+        if "-NAT-NATURE" in topic_upper or "-NAT-" in topic_upper or topic_upper.endswith("-NAT"):
+            return "NAT"
 
         # Check for Environment pattern
-        if '-ENV-ENVIRONMENT' in topic_upper or '-ENV-' in topic_upper or topic_upper.endswith('-ENV'):
-            return 'ENV'
+        if (
+            "-ENV-ENVIRONMENT" in topic_upper
+            or "-ENV-" in topic_upper
+            or topic_upper.endswith("-ENV")
+        ):
+            return "ENV"
 
         # Check for CET pattern
-        if '-CET-' in topic_upper or topic_upper.endswith('-CET'):
-            return 'CET'
+        if "-CET-" in topic_upper or topic_upper.endswith("-CET"):
+            return "CET"
 
         # Check for standard codes
         for code in self.SUBPROGRAMMES.keys():
-            if f'-{code}' in topic_upper or f'-{code}-' in topic_upper:
+            if f"-{code}" in topic_upper or f"-{code}-" in topic_upper:
                 return code
 
-        return 'GENERAL'
+        return "GENERAL"
 
     def _detect_project_type(self, topic_id: str) -> str:
         """Detect project type from topic ID."""
         topic_upper = topic_id.upper()
 
         for code, name in self.PROJECT_TYPES.items():
-            if f'-{code}' in topic_upper or f'-{code}-' in topic_upper:
+            if f"-{code}" in topic_upper or f"-{code}-" in topic_upper:
                 return name
 
-        return 'Standard Action Projects'
+        return "Standard Action Projects"
 
     def upsert_call(self, conn, data: dict[str, Any]) -> bool:
         """Insert or update a LIFE call in the database."""
@@ -305,7 +320,8 @@ class LIFECallSyncer:
             metadata["synced_from_api"] = True
             metadata["synced_at"] = datetime.now(UTC).isoformat()
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO funding_calls (
                     programme, topic_code, title, scope, expected_outcome,
                     deadline, status, action_type, budget_total,
@@ -330,22 +346,24 @@ class LIFECallSyncer:
                     portal_url = COALESCE(EXCLUDED.portal_url, funding_calls.portal_url),
                     metadata = COALESCE(funding_calls.metadata, '{}'::jsonb) || EXCLUDED.metadata,
                     updated_at = NOW()
-            """, (
-                data.get("programme", "life"),
-                data.get("topic_code"),
-                data.get("title"),
-                data.get("scope"),
-                data.get("expected_outcome"),
-                data.get("deadline"),
-                data.get("status"),
-                data.get("action_type"),
-                data.get("budget_total"),
-                data.get("call_identifier"),
-                data.get("cluster"),
-                data.get("call_year"),
-                data.get("portal_url"),
-                json.dumps(metadata)
-            ))
+            """,
+                (
+                    data.get("programme", "life"),
+                    data.get("topic_code"),
+                    data.get("title"),
+                    data.get("scope"),
+                    data.get("expected_outcome"),
+                    data.get("deadline"),
+                    data.get("status"),
+                    data.get("action_type"),
+                    data.get("budget_total"),
+                    data.get("call_identifier"),
+                    data.get("cluster"),
+                    data.get("call_year"),
+                    data.get("portal_url"),
+                    json.dumps(metadata),
+                ),
+            )
 
             conn.commit()
             return True
@@ -355,16 +373,18 @@ class LIFECallSyncer:
             conn.rollback()
             return False
 
-    def sync_to_database(self, calls: list[dict[str, Any]], dry_run: bool = False) -> dict[str, int]:
+    def sync_to_database(
+        self, calls: list[dict[str, Any]], dry_run: bool = False
+    ) -> dict[str, int]:
         """Sync calls to the funding_calls table."""
         if dry_run:
             logger.info("DRY RUN - Would sync these calls:")
             for call in calls[:20]:
-                title = call.get('title', 'No title')[:60]
+                title = call.get("title", "No title")[:60]
                 logger.info(f"  {call['topic_id']}: {title}... ({call['status']})")
             if len(calls) > 20:
                 logger.info(f"  ... and {len(calls) - 20} more")
-            return {'synced': 0, 'dry_run': len(calls)}
+            return {"synced": 0, "dry_run": len(calls)}
 
         import os
 
@@ -373,13 +393,13 @@ class LIFECallSyncer:
         database_url = os.getenv("DATABASE_URL")
         if not database_url:
             logger.error("DATABASE_URL not set")
-            return {'synced': 0, 'errors': len(calls)}
+            return {"synced": 0, "errors": len(calls)}
 
         try:
             conn = psycopg2.connect(database_url)
         except Exception as e:
             logger.error(f"Database connection error: {e}")
-            return {'synced': 0, 'errors': len(calls)}
+            return {"synced": 0, "errors": len(calls)}
 
         synced = 0
         errors = 0
@@ -387,30 +407,31 @@ class LIFECallSyncer:
         for call in calls:
             try:
                 import re
-                year_match = re.search(r'20(\d{2})', call['topic_id'])
+
+                year_match = re.search(r"20(\d{2})", call["topic_id"])
                 call_year = int(f"20{year_match.group(1)}") if year_match else None
 
                 call_data = {
-                    'programme': 'life',
-                    'topic_code': call['topic_id'],
-                    'title': call.get('title'),
-                    'scope': call.get('description'),
-                    'expected_outcome': None,
-                    'deadline': call.get('deadline'),
-                    'status': call.get('status', 'closed'),
-                    'action_type': call.get('project_type'),
-                    'budget_total': None,
-                    'call_identifier': call.get('topic_id'),
-                    'cluster': call.get('subprogramme_name'),
-                    'call_year': call_year,
-                    'portal_url': call.get('url'),
-                    'metadata': {
-                        'source': 'eu_portal_api',
-                        'subprogramme': call.get('subprogramme'),
-                        'subprogramme_name': call.get('subprogramme_name'),
-                        'funding_rate': call.get('funding_rate'),
-                        'implementing_agency': 'CINEA',
-                    }
+                    "programme": "life",
+                    "topic_code": call["topic_id"],
+                    "title": call.get("title"),
+                    "scope": call.get("description"),
+                    "expected_outcome": None,
+                    "deadline": call.get("deadline"),
+                    "status": call.get("status", "closed"),
+                    "action_type": call.get("project_type"),
+                    "budget_total": None,
+                    "call_identifier": call.get("topic_id"),
+                    "cluster": call.get("subprogramme_name"),
+                    "call_year": call_year,
+                    "portal_url": call.get("url"),
+                    "metadata": {
+                        "source": "eu_portal_api",
+                        "subprogramme": call.get("subprogramme"),
+                        "subprogramme_name": call.get("subprogramme_name"),
+                        "funding_rate": call.get("funding_rate"),
+                        "implementing_agency": "CINEA",
+                    },
                 }
 
                 if self.upsert_call(conn, call_data):
@@ -423,7 +444,7 @@ class LIFECallSyncer:
                 errors += 1
 
         conn.close()
-        return {'synced': synced, 'errors': errors}
+        return {"synced": synced, "errors": errors}
 
     def run(self, years: list[int], dry_run: bool = False) -> dict[str, Any]:
         """Run the sync process."""
@@ -447,7 +468,9 @@ class LIFECallSyncer:
 
             checked += 1
             if checked % 50 == 0:
-                logger.info(f"  Checked {checked}/{len(patterns)} patterns, found {len(found_topics)} topics")
+                logger.info(
+                    f"  Checked {checked}/{len(patterns)} patterns, found {len(found_topics)} topics"
+                )
 
             time.sleep(0.05)  # Rate limiting
             details = self.fetch_topic_details(pattern)
@@ -469,14 +492,14 @@ class LIFECallSyncer:
         by_subprog = {}
         by_status = {}
         for call in all_calls:
-            subprog = call.get('subprogramme', 'GENERAL')
+            subprog = call.get("subprogramme", "GENERAL")
             by_subprog[subprog] = by_subprog.get(subprog, 0) + 1
-            status = call.get('status', 'unknown')
+            status = call.get("status", "unknown")
             by_status[status] = by_status.get(status, 0) + 1
 
         logger.info("\nBy sub-programme:")
         for subprog, count in sorted(by_subprog.items(), key=lambda x: -x[1]):
-            name = self.SUBPROGRAMMES.get(subprog, {}).get('name', subprog)
+            name = self.SUBPROGRAMMES.get(subprog, {}).get("name", subprog)
             logger.info(f"  {subprog} ({name}): {count}")
 
         logger.info("\nBy status:")
@@ -495,36 +518,30 @@ class LIFECallSyncer:
         logger.info(f"Errors: {result.get('errors', 0)}")
 
         return {
-            'total_found': len(all_calls),
-            'by_subprogramme': by_subprog,
-            'by_status': by_status,
-            **result
+            "total_found": len(all_calls),
+            "by_subprogramme": by_subprog,
+            "by_status": by_status,
+            **result,
         }
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Sync LIFE Programme calls from EU Portal API"
-    )
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Don't commit to database"
-    )
+    parser = argparse.ArgumentParser(description="Sync LIFE Programme calls from EU Portal API")
+    parser.add_argument("--dry-run", action="store_true", help="Don't commit to database")
     parser.add_argument(
         "--years",
         default="2024,2025,2026",
-        help="Comma-separated years to sync (default: 2024,2025,2026)"
+        help="Comma-separated years to sync (default: 2024,2025,2026)",
     )
 
     args = parser.parse_args()
 
-    years = [int(y.strip()) for y in args.years.split(',')]
+    years = [int(y.strip()) for y in args.years.split(",")]
 
     syncer = LIFECallSyncer()
     result = syncer.run(years=years, dry_run=args.dry_run)
 
-    if result.get('total_found', 0) > 0:
+    if result.get("total_found", 0) > 0:
         logger.info("\nSync completed successfully!")
         return 0
     else:

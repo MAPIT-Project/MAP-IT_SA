@@ -182,7 +182,7 @@ class TestScenario028MultiPartEligibilityCallsBudget:
         score = self.score_response(response)
 
         assert score["passed"], (
-            f"Score {score['total_score']}/100 below threshold 80. " f"Details: {score['details']}"
+            f"Score {score['total_score']}/100 below threshold 80. Details: {score['details']}"
         )
 
     @pytest.mark.asyncio
@@ -197,12 +197,12 @@ class TestScenario028MultiPartEligibilityCallsBudget:
         response_lower = response.lower()
 
         # Should contain eligibility information
-        assert any(
-            x in response_lower for x in ["eligible", "eligibility", "sme"]
-        ), "Response should address eligibility"
-        assert any(
-            x in response_lower for x in ["eic", "accelerator"]
-        ), "Response should mention EIC Accelerator"
+        assert any(x in response_lower for x in ["eligible", "eligibility", "sme"]), (
+            "Response should address eligibility"
+        )
+        assert any(x in response_lower for x in ["eic", "accelerator"]), (
+            "Response should mention EIC Accelerator"
+        )
 
     @pytest.mark.asyncio
     async def test_eic_deadline_only(self, conversation_id):
@@ -232,9 +232,9 @@ class TestScenario028MultiPartEligibilityCallsBudget:
         response_lower = response.lower()
 
         # Should contain budget information
-        assert any(
-            x in response_lower for x in ["budget", "grant", "equity", "million", "€"]
-        ), "Response should address budget"
+        assert any(x in response_lower for x in ["budget", "grant", "equity", "million", "€"]), (
+            "Response should address budget"
+        )
         assert "2.5" in response_lower, "Response should mention €2.5M grant amount"
 
     # ==================== Variant Query Tests ====================
@@ -243,8 +243,7 @@ class TestScenario028MultiPartEligibilityCallsBudget:
     async def test_variant_german_sme(self, conversation_id):
         """Test variant: SME from Germany."""
         query = (
-            "We are a German SME. Can we apply for EIC Accelerator? "
-            "What's the budget and deadline?"
+            "We are a German SME. Can we apply for EIC Accelerator? What's the budget and deadline?"
         )
 
         result = await self.send_query(conversation_id, query)
@@ -312,9 +311,9 @@ class TestScenario028MultiPartEligibilityCallsBudget:
         response_lower = response.lower()
 
         # Should contain specific deadline dates
-        assert any(
-            month in response_lower for month in ["march", "october"]
-        ), "Response should include specific deadline months"
+        assert any(month in response_lower for month in ["march", "october"]), (
+            "Response should include specific deadline months"
+        )
         assert "2026" in response_lower, "Response should include year 2026"
 
     @pytest.mark.asyncio
@@ -357,9 +356,9 @@ class TestScenario028MultiPartEligibilityCallsBudget:
         response_lower = response.lower()
 
         # Should contain relevant links
-        assert any(
-            x in response_lower for x in ["ec.europa.eu", "eic.ec", "portal", "ncp"]
-        ), "Response should include relevant links"
+        assert any(x in response_lower for x in ["ec.europa.eu", "eic.ec", "portal", "ncp"]), (
+            "Response should include relevant links"
+        )
 
     # ==================== Edge Case Tests ====================
 
@@ -373,16 +372,15 @@ class TestScenario028MultiPartEligibilityCallsBudget:
         response_lower = response.lower()
 
         # Should NOT contain Erasmus+ content
-        assert (
-            "erasmus" not in response_lower or "eic" in response_lower
-        ), "Response should not be about Erasmus+ for an EIC query"
+        assert "erasmus" not in response_lower or "eic" in response_lower, (
+            "Response should not be about Erasmus+ for an EIC query"
+        )
 
     @pytest.mark.asyncio
     async def test_handles_eic_with_horizon_mention(self, conversation_id):
         """Test that Horizon Europe + EIC query works correctly."""
         query = (
-            "Can my SME apply for Horizon Europe EIC Accelerator? "
-            "What's the deadline and budget?"
+            "Can my SME apply for Horizon Europe EIC Accelerator? What's the deadline and budget?"
         )
 
         result = await self.send_query(conversation_id, query)
@@ -391,9 +389,9 @@ class TestScenario028MultiPartEligibilityCallsBudget:
         response = result["response"]
         response_lower = response.lower()
 
-        assert any(
-            x in response_lower for x in ["eic", "accelerator"]
-        ), "Response should address EIC Accelerator"
+        assert any(x in response_lower for x in ["eic", "accelerator"]), (
+            "Response should address EIC Accelerator"
+        )
 
 
 # Run tests

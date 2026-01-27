@@ -112,9 +112,7 @@ class DocumentStateService:
                     section_id=section_id,
                     section_name=section_name,
                 )
-        logger.info(
-            f"Initialized {len(sections)} sections for {proposal_type} proposal"
-        )
+        logger.info(f"Initialized {len(sections)} sections for {proposal_type} proposal")
 
     # =========================================================================
     # Section Content Operations
@@ -183,9 +181,7 @@ class DocumentStateService:
         new_content = section.content + separator + content if section.content else content
         return self.update_section_content(session, section_id, new_content, "ai")
 
-    def clear_section(
-        self, session: ProposalSessionState, section_id: str
-    ) -> SectionState | None:
+    def clear_section(self, session: ProposalSessionState, section_id: str) -> SectionState | None:
         """
         Clear section content.
 
@@ -313,9 +309,7 @@ class DocumentStateService:
         section.gaps.append(gap)
         return gap
 
-    def resolve_gap(
-        self, session: ProposalSessionState, section_id: str, gap_id: str
-    ) -> bool:
+    def resolve_gap(self, session: ProposalSessionState, section_id: str, gap_id: str) -> bool:
         """
         Mark a gap as resolved.
 
@@ -440,9 +434,7 @@ class DocumentStateService:
     # Document Overview Operations
     # =========================================================================
 
-    def get_document_overview(
-        self, session: ProposalSessionState
-    ) -> dict[str, Any]:
+    def get_document_overview(self, session: ProposalSessionState) -> dict[str, Any]:
         """
         Get comprehensive document overview for agent context.
 
@@ -459,17 +451,19 @@ class DocumentStateService:
             unresolved_gaps = [g for g in section.gaps if not g.resolved]
             pending_suggestions = [s for s in section.suggestions if not s.applied]
 
-            sections_summary.append({
-                "id": section.section_id,
-                "name": section.section_name,
-                "status": section.status.value,
-                "word_count": section.word_count,
-                "quality_score": section.quality_score,
-                "completeness": self.calculate_section_completeness(section),
-                "unresolved_gaps": len(unresolved_gaps),
-                "pending_suggestions": len(pending_suggestions),
-                "is_locked": section.lock_status != SectionLockStatus.UNLOCKED,
-            })
+            sections_summary.append(
+                {
+                    "id": section.section_id,
+                    "name": section.section_name,
+                    "status": section.status.value,
+                    "word_count": section.word_count,
+                    "quality_score": section.quality_score,
+                    "completeness": self.calculate_section_completeness(section),
+                    "unresolved_gaps": len(unresolved_gaps),
+                    "pending_suggestions": len(pending_suggestions),
+                    "is_locked": section.lock_status != SectionLockStatus.UNLOCKED,
+                }
+            )
 
         return {
             "proposal_id": doc.proposal_id,
@@ -540,14 +534,10 @@ class DocumentStateService:
             "version": section.version,
             "gaps": unresolved_gaps,
             "suggestions": pending_suggestions,
-            "last_updated": (
-                section.last_updated.isoformat() if section.last_updated else None
-            ),
+            "last_updated": (section.last_updated.isoformat() if section.last_updated else None),
         }
 
-    def get_sections_needing_attention(
-        self, session: ProposalSessionState
-    ) -> list[dict[str, Any]]:
+    def get_sections_needing_attention(self, session: ProposalSessionState) -> list[dict[str, Any]]:
         """
         Get sections that need attention (low scores, gaps, incomplete).
 
@@ -576,18 +566,22 @@ class DocumentStateService:
                 reasons.append("Insufficient content")
 
             # Check for high-priority suggestions
-            high_priority = [s for s in section.suggestions if not s.applied and s.priority == "high"]
+            high_priority = [
+                s for s in section.suggestions if not s.applied and s.priority == "high"
+            ]
             if high_priority:
                 reasons.append(f"{len(high_priority)} high-priority suggestion(s)")
 
             if reasons:
-                attention_needed.append({
-                    "section_id": section.section_id,
-                    "section_name": section.section_name,
-                    "reasons": reasons,
-                    "word_count": section.word_count,
-                    "quality_score": section.quality_score,
-                })
+                attention_needed.append(
+                    {
+                        "section_id": section.section_id,
+                        "section_name": section.section_name,
+                        "reasons": reasons,
+                        "word_count": section.word_count,
+                        "quality_score": section.quality_score,
+                    }
+                )
 
         # Sort by urgency (critical gaps first, then low scores)
         attention_needed.sort(
@@ -603,9 +597,7 @@ class DocumentStateService:
     # Navigation Operations
     # =========================================================================
 
-    def set_active_section(
-        self, session: ProposalSessionState, section_id: str | None
-    ) -> bool:
+    def set_active_section(self, session: ProposalSessionState, section_id: str | None) -> bool:
         """
         Set the currently active section.
 

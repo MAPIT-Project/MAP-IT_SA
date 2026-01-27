@@ -651,9 +651,9 @@ class TestQualityBaselineInfrastructure:
 
     def test_scenarios_directory_exists(self):
         """Verify the advanced scenarios directory exists."""
-        assert (
-            ADVANCED_SCENARIOS_DIR.exists()
-        ), f"Advanced scenarios directory not found: {ADVANCED_SCENARIOS_DIR}"
+        assert ADVANCED_SCENARIOS_DIR.exists(), (
+            f"Advanced scenarios directory not found: {ADVANCED_SCENARIOS_DIR}"
+        )
 
     def test_results_directory_exists(self):
         """Verify the results directory exists or can be created."""

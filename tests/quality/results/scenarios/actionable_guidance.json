@@ -1,0 +1,27 @@
+{
+  "scenario": "060_actionable_guidance",
+  "timestamp": "2026-01-27T17:47:21.141068",
+  "query": "How do I apply for Horizon Europe?",
+  "response": "Here's a **complete step-by-step guide** to applying for Horizon Europe funding:\n\n## Step 1: Create Your EU Login Account (5 minutes)\n\nYour personal access key to all EU funding services.\n\n**How to do it:**\n1. Go to [EU Login](https://webgate.ec.europa.eu/cas/eim/external/register.cgi)\n2. Enter your email address\n3. Create a password\n4. Verify your email\n\n---\n\n## Step 2: Register Your Organization & Get a PIC (15-30 minutes)\n\nThe **PIC (Participant Identification Code)** is your organization's unique identifier. You only need to do this once.\n\n**How to register:**\n1. Log into the [Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)\n2. Go to \"My Organisation\" \u2192 \"Register Organisation\"\n3. Enter your organization's legal details (name, address, VAT)\n4. Upload supporting documents\n5. Receive your 9-digit PIC number\n\n**Tip:** Check if your organization already has a PIC before registering!\n\n---\n\n## Step 3: Find Suitable Calls\n\n1. Browse the [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search)\n2. Filter by \"Horizon Europe\" and your research area\n3. Review the [Work Programme](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON) for detailed topic descriptions\n4. Check deadlines and budget availability\n\n---\n\n## Step 4: Build Your Consortium\n\nMost Horizon Europe calls require international partnerships:\n\n- **Minimum:** 3 independent legal entities from 3 different EU/Associated Countries\n- **Typical:** 10-15 partners for RIA/IA projects\n\n**Where to find partners:**\n- [Partner Search Tool](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search)\n- [CORDIS](https://cordis.europa.eu/) - Find organizations active in your field\n- Network events and Info Days\n\n---\n\n## Step 5: Contact Your National Contact Point (NCP) - Highly Recommen",
+  "evaluation": {
+    "total_score": 95,
+    "max_score": 100,
+    "passed": true,
+    "threshold": 80,
+    "dimensions": {
+      "query_fulfillment": 40,
+      "specificity": 25,
+      "factual_accuracy": 20,
+      "actionability": 10
+    },
+    "feedback": {
+      "query_fulfillment": [],
+      "specificity": [],
+      "factual_accuracy": [],
+      "actionability": []
+    },
+    "query": "How do I apply for Horizon Europe?",
+    "response_length": 3605
+  },
+  "status": "PASS"
+}

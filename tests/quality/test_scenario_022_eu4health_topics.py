@@ -207,9 +207,9 @@ class TestScenario022EU4HealthTopics:
 
             # EU4Health should be mentioned more or other programmes shouldn't dominate
             if horizon_count > 0:
-                assert (
-                    eu4health_count >= horizon_count
-                ), "Response should primarily focus on EU4Health, not Horizon Europe"
+                assert eu4health_count >= horizon_count, (
+                    "Response should primarily focus on EU4Health, not Horizon Europe"
+                )
 
     @pytest.mark.asyncio
     async def test_mentions_specific_cancer_priorities(self, conversation_id):
@@ -240,9 +240,9 @@ class TestScenario022EU4HealthTopics:
             ]
 
             found_priorities = [p for p in cancer_priorities if p in response_text]
-            assert (
-                len(found_priorities) >= 2
-            ), f"Response should mention at least 2 cancer priorities, found: {found_priorities}"
+            assert len(found_priorities) >= 2, (
+                f"Response should mention at least 2 cancer priorities, found: {found_priorities}"
+            )
 
     @pytest.mark.asyncio
     async def test_response_is_well_structured(self, conversation_id):
@@ -286,9 +286,9 @@ class TestScenario022EU4HealthTopics:
             response_text = result.get("response", "")
 
             # Should be a comprehensive response
-            assert (
-                len(response_text) >= 500
-            ), f"Response should be comprehensive (500+ chars), got {len(response_text)}"
+            assert len(response_text) >= 500, (
+                f"Response should be comprehensive (500+ chars), got {len(response_text)}"
+            )
 
     @pytest.mark.asyncio
     async def test_overall_quality_score(self, conversation_id):
@@ -353,6 +353,6 @@ class TestScenario022EU4HealthTopics:
             if "http" in result.get("response", ""):
                 score += 5
 
-            assert (
-                score >= self.PASS_THRESHOLD
-            ), f"Quality score {score} below threshold {self.PASS_THRESHOLD}"
+            assert score >= self.PASS_THRESHOLD, (
+                f"Quality score {score} below threshold {self.PASS_THRESHOLD}"
+            )

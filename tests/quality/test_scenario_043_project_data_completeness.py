@@ -21,8 +21,8 @@ from typing import Any
 
 import httpx
 import psycopg2
-from psycopg2.extras import RealDictCursor
 import pytest
+from psycopg2.extras import RealDictCursor
 
 logger = logging.getLogger(__name__)
 

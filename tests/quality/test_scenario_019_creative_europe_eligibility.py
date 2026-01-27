@@ -154,9 +154,9 @@ class TestScenario019CreativeEuropeEligibility:
 
             # Should use check_creative_europe_eligibility tool
             has_ce_tool = any("creative_europe_eligibility" in tool for tool in tools_used)
-            assert (
-                has_ce_tool
-            ), f"Should use check_creative_europe_eligibility tool. Tools used: {tools_used}"
+            assert has_ce_tool, (
+                f"Should use check_creative_europe_eligibility tool. Tools used: {tools_used}"
+            )
 
     @pytest.mark.asyncio
     async def test_mentions_theater_context(self, conversation_id):
@@ -275,9 +275,9 @@ class TestScenario019CreativeEuropeEligibility:
                 actionability += 5
             score += min(actionability, 10)
 
-            assert (
-                score >= self.PASS_THRESHOLD
-            ), f"Quality score {score} below threshold {self.PASS_THRESHOLD}"
+            assert score >= self.PASS_THRESHOLD, (
+                f"Quality score {score} below threshold {self.PASS_THRESHOLD}"
+            )
 
     @pytest.mark.asyncio
     async def test_returns_valid_json_response(self, conversation_id):
@@ -384,6 +384,6 @@ class TestScenario019CreativeEuropeEligibility:
             ]
 
             has_specific_terms = any(term in response_text for term in ce_specific_terms)
-            assert (
-                has_specific_terms
-            ), "Response should include Creative Europe-specific terminology"
+            assert has_specific_terms, (
+                "Response should include Creative Europe-specific terminology"
+            )

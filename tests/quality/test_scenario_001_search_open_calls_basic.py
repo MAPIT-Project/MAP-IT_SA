@@ -51,9 +51,9 @@ class TestScenario001SearchOpenCallsBasic:
             response_text = result.get("response", "")
 
             # Should find funding opportunities
-            assert (
-                "funding opportunit" in response_text.lower()
-            ), "Response should mention funding opportunities"
+            assert "funding opportunit" in response_text.lower(), (
+                "Response should mention funding opportunities"
+            )
 
     @pytest.mark.asyncio
     async def test_includes_call_ids(self, conversation_id):
@@ -97,9 +97,9 @@ class TestScenario001SearchOpenCallsBasic:
             dates = re.findall(date_pattern, response_text)
 
             # At least some calls should have specific dates
-            assert (
-                len(dates) >= 1 or "Check official portal" in response_text
-            ), "Response should include at least one deadline date"
+            assert len(dates) >= 1 or "Check official portal" in response_text, (
+                "Response should include at least one deadline date"
+            )
 
     @pytest.mark.asyncio
     async def test_deadlines_are_in_future(self, conversation_id):
@@ -291,12 +291,12 @@ class TestV3FormatterIntegration:
             response_text = result.get("response", "")
 
             # Should NOT use the fallback "Finding X:" format
-            assert (
-                "**Finding 1:**" not in response_text
-            ), "Response should NOT use fallback 'Finding X:' format"
-            assert (
-                "**Finding 2:**" not in response_text
-            ), "Response should NOT use fallback 'Finding X:' format"
+            assert "**Finding 1:**" not in response_text, (
+                "Response should NOT use fallback 'Finding X:' format"
+            )
+            assert "**Finding 2:**" not in response_text, (
+                "Response should NOT use fallback 'Finding X:' format"
+            )
 
 
 if __name__ == "__main__":

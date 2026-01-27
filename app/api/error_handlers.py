@@ -34,7 +34,7 @@ def format_error_response(
     details: dict[str, Any] = None,
     suggestion: str = None,
     recoverable: bool = True,
-    request_id: str = None
+    request_id: str = None,
 ) -> dict[str, Any]:
     """
     Format a consistent error response.
@@ -84,7 +84,7 @@ async def mapit_exception_handler(request: Request, exc: MapItError) -> JSONResp
             "path": request.url.path,
             "method": request.method,
         },
-        exc_info=True if exc.http_status >= 500 else False
+        exc_info=True if exc.http_status >= 500 else False,
     )
 
     # Get user-friendly suggestion
@@ -101,9 +101,9 @@ async def mapit_exception_handler(request: Request, exc: MapItError) -> JSONResp
             details=exc.details if exc.details else None,
             suggestion=suggestion,
             recoverable=exc.recoverable,
-            request_id=request_id
+            request_id=request_id,
         ),
-        headers=_get_error_headers(exc)
+        headers=_get_error_headers(exc),
     )
 
 
@@ -151,7 +151,7 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException) 
             "status_code": exc.status_code,
             "path": request.url.path,
             "method": request.method,
-        }
+        },
     )
 
     return JSONResponse(
@@ -160,12 +160,14 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException) 
             error_code=error_code,
             message=str(exc.detail) if exc.detail else f"HTTP {exc.status_code} error",
             suggestion=get_user_suggestion(error_code),
-            recoverable=exc.status_code >= 500 or exc.status_code == 429
-        )
+            recoverable=exc.status_code >= 500 or exc.status_code == 429,
+        ),
     )
 
 
-async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+async def validation_exception_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
     """
     Handle Pydantic validation errors with detailed field information.
     """
@@ -173,11 +175,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     errors = []
     for error in exc.errors():
         field_path = " -> ".join(str(loc) for loc in error["loc"])
-        errors.append({
-            "field": field_path,
-            "message": error["msg"],
-            "type": error["type"]
-        })
+        errors.append({"field": field_path, "message": error["msg"], "type": error["type"]})
 
     logger.warning(
         f"Validation error: {len(errors)} field(s) invalid",
@@ -185,7 +183,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
             "errors": errors,
             "path": request.url.path,
             "method": request.method,
-        }
+        },
     )
 
     return JSONResponse(
@@ -195,8 +193,8 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
             message=f"Request validation failed: {len(errors)} error(s)",
             details={"validation_errors": errors},
             suggestion="Please check your input and ensure all required fields are provided in the correct format.",
-            recoverable=False
-        )
+            recoverable=False,
+        ),
     )
 
 
@@ -214,7 +212,7 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
             "exception_type": type(exc).__name__,
             "path": request.url.path,
             "method": request.method,
-        }
+        },
     )
 
     # Check if this is a known Python exception that we can handle better
@@ -243,11 +241,8 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
     return JSONResponse(
         status_code=500,
         content=format_error_response(
-            error_code=error_code,
-            message=message,
-            suggestion=suggestion,
-            recoverable=True
-        )
+            error_code=error_code, message=message, suggestion=suggestion, recoverable=True
+        ),
     )
 
 
@@ -308,6 +303,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
 
         # Add timing
         import time
+
         start_time = time.time()
 
         response = await call_next(request)
@@ -320,7 +316,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         if duration > 5.0:  # Log requests taking more than 5 seconds
             logger.warning(
                 f"Slow request: {request.method} {request.url.path} took {duration:.2f}s",
-                extra={"request_id": request_id, "duration": duration}
+                extra={"request_id": request_id, "duration": duration},
             )
 
         return response

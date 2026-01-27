@@ -54,9 +54,9 @@ class TestScenario013GenerateTimeline:
             # The tool might be versioned (e.g., generate_timeline_1_0)
             has_timeline_tool = any("generate_timeline" in t for t in tools_used)
 
-            assert (
-                has_timeline_tool or tool_in_reasoning
-            ), f"Expected generate_timeline tool to be used. Tools: {tools_used}"
+            assert has_timeline_tool or tool_in_reasoning, (
+                f"Expected generate_timeline tool to be used. Tools: {tools_used}"
+            )
 
     @pytest.mark.asyncio
     async def test_includes_work_packages(self, conversation_id):
@@ -80,9 +80,9 @@ class TestScenario013GenerateTimeline:
             # Also check for "Work Package" mentions
             has_wp_mentions = "work package" in response_text.lower()
 
-            assert (
-                len(wps_found) >= 3 or has_wp_mentions
-            ), f"Response should contain at least 3 work packages. Found: {wps_found}"
+            assert len(wps_found) >= 3 or has_wp_mentions, (
+                f"Response should contain at least 3 work packages. Found: {wps_found}"
+            )
 
     @pytest.mark.asyncio
     async def test_includes_milestones(self, conversation_id):
@@ -105,9 +105,9 @@ class TestScenario013GenerateTimeline:
 
             has_milestone_mentions = "milestone" in response_text.lower()
 
-            assert (
-                len(ms_found) >= 2 or has_milestone_mentions
-            ), f"Response should contain milestones. Found: {ms_found}"
+            assert len(ms_found) >= 2 or has_milestone_mentions, (
+                f"Response should contain milestones. Found: {ms_found}"
+            )
 
     @pytest.mark.asyncio
     async def test_includes_deliverables(self, conversation_id):
@@ -130,9 +130,9 @@ class TestScenario013GenerateTimeline:
 
             has_deliverable_mentions = "deliverable" in response_text.lower()
 
-            assert (
-                len(deliverables_found) >= 3 or has_deliverable_mentions
-            ), f"Response should contain deliverables. Found: {deliverables_found}"
+            assert len(deliverables_found) >= 3 or has_deliverable_mentions, (
+                f"Response should contain deliverables. Found: {deliverables_found}"
+            )
 
     @pytest.mark.asyncio
     async def test_timeline_spans_36_months(self, conversation_id):
@@ -162,8 +162,7 @@ class TestScenario013GenerateTimeline:
             )
 
             assert has_duration, (
-                f"Response should reference the 36-month duration. "
-                f"Response: {response_text[:500]}"
+                f"Response should reference the 36-month duration. Response: {response_text[:500]}"
             )
 
     @pytest.mark.asyncio
@@ -280,9 +279,9 @@ class TestScenario013GenerateTimeline:
             # Also accept if response has code block with timeline
             has_code_block = "```" in response_text
 
-            assert (
-                has_visual or has_code_block
-            ), "Response should include a visual timeline representation"
+            assert has_visual or has_code_block, (
+                "Response should include a visual timeline representation"
+            )
 
     @pytest.mark.asyncio
     async def test_no_error_messages(self, conversation_id):
@@ -429,9 +428,9 @@ class TestScenario013GenerateTimeline:
             if "http" in response_text or "portal" in text_lower:
                 score += 5
 
-            assert (
-                score >= self.PASS_THRESHOLD
-            ), f"Quality score {score} is below threshold {self.PASS_THRESHOLD}"
+            assert score >= self.PASS_THRESHOLD, (
+                f"Quality score {score} is below threshold {self.PASS_THRESHOLD}"
+            )
 
     @pytest.mark.asyncio
     async def test_full_scenario_integration(self, conversation_id):
@@ -450,23 +449,23 @@ class TestScenario013GenerateTimeline:
             metadata = result.get("metadata", {})
 
             # Basic assertions
-            assert (
-                len(response_text) > 1000
-            ), f"Response too short for timeline: {len(response_text)} chars"
+            assert len(response_text) > 1000, (
+                f"Response too short for timeline: {len(response_text)} chars"
+            )
 
             # Should have work packages, milestones, deliverables
             assert re.search(r"WP\d+", response_text), "Missing work packages"
-            assert (
-                re.search(r"MS\d+", response_text) or "milestone" in response_text.lower()
-            ), "Missing milestones"
+            assert re.search(r"MS\d+", response_text) or "milestone" in response_text.lower(), (
+                "Missing milestones"
+            )
             assert (
                 re.search(r"D\d+\.\d+", response_text) or "deliverable" in response_text.lower()
             ), "Missing deliverables"
 
             # Should reference 36 months
-            assert re.search(
-                r"36\s*month|M36|3\s*year", response_text, re.IGNORECASE
-            ), "Should reference 36-month duration"
+            assert re.search(r"36\s*month|M36|3\s*year", response_text, re.IGNORECASE), (
+                "Should reference 36-month duration"
+            )
 
             # Should have visual elements or structured output
             assert any(
@@ -482,9 +481,9 @@ class TestScenario013GenerateTimeline:
             tools_used = metadata.get("tools_used", [])
             assert any(
                 "timeline" in str(t).lower() for t in tools_used
-            ) or "generate_timeline" in str(
-                metadata.get("reasoning_steps", [])
-            ), f"generate_timeline tool should be used. Metadata: {metadata}"
+            ) or "generate_timeline" in str(metadata.get("reasoning_steps", [])), (
+                f"generate_timeline tool should be used. Metadata: {metadata}"
+            )
 
     @pytest.mark.asyncio
     async def test_response_consistency(self, conversation_id):

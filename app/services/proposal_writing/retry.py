@@ -26,9 +26,9 @@ def async_retry(
     retryable_exceptions: tuple[type[Exception], ...] = (
         ProposalWritingError,
         ConnectionError,
-        asyncio.TimeoutError
+        asyncio.TimeoutError,
     ),
-    on_retry: Callable[[Exception, int], None] | None = None
+    on_retry: Callable[[Exception, int], None] | None = None,
 ):
     """
     Async retry decorator with exponential backoff.
@@ -72,10 +72,7 @@ def async_retry(
                         raise
 
                     # Calculate delay
-                    delay = min(
-                        base_delay * (exponential_base ** attempt),
-                        max_delay
-                    )
+                    delay = min(base_delay * (exponential_base**attempt), max_delay)
 
                     # Add jitter
                     if jitter:
@@ -100,6 +97,7 @@ def async_retry(
             raise last_exception
 
         return wrapper
+
     return decorator
 
 
@@ -109,7 +107,7 @@ def sync_retry(
     max_delay: float = 30.0,
     exponential_base: float = 2.0,
     jitter: bool = True,
-    retryable_exceptions: tuple[type[Exception], ...] = (Exception,)
+    retryable_exceptions: tuple[type[Exception], ...] = (Exception,),
 ):
     """Synchronous retry decorator."""
 
@@ -131,7 +129,7 @@ def sync_retry(
                     if attempt == max_retries:
                         raise
 
-                    delay = min(base_delay * (exponential_base ** attempt), max_delay)
+                    delay = min(base_delay * (exponential_base**attempt), max_delay)
                     if jitter:
                         delay = delay * (0.5 + random.random())
 
@@ -143,6 +141,7 @@ def sync_retry(
             raise last_exception
 
         return wrapper
+
     return decorator
 
 
@@ -164,7 +163,7 @@ class CircuitBreaker:
         self,
         failure_threshold: int = 5,
         recovery_timeout: float = 60.0,
-        half_open_max_calls: int = 3
+        half_open_max_calls: int = 3,
     ):
         self.failure_threshold = failure_threshold
         self.recovery_timeout = recovery_timeout
@@ -234,7 +233,7 @@ class RetryConfig:
         base_delay: float = 1.0,
         max_delay: float = 30.0,
         exponential_base: float = 2.0,
-        jitter: bool = True
+        jitter: bool = True,
     ):
         self.max_retries = max_retries
         self.base_delay = base_delay
@@ -244,10 +243,7 @@ class RetryConfig:
 
     def get_delay(self, attempt: int) -> float:
         """Calculate delay for a given attempt."""
-        delay = min(
-            self.base_delay * (self.exponential_base ** attempt),
-            self.max_delay
-        )
+        delay = min(self.base_delay * (self.exponential_base**attempt), self.max_delay)
         if self.jitter:
             delay = delay * (0.5 + random.random())
         return delay

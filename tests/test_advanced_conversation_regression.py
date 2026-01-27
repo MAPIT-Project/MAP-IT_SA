@@ -220,9 +220,9 @@ class TestPhase2ProposalWorkflows:
         with open(scenario_path) as f:
             scenario = yaml.safe_load(f)
 
-        assert (
-            len(scenario["steps"]) >= 15
-        ), f"Full proposal journey should have 15+ steps, has {len(scenario['steps'])}"
+        assert len(scenario["steps"]) >= 15, (
+            f"Full proposal journey should have 15+ steps, has {len(scenario['steps'])}"
+        )
 
     @pytest.mark.asyncio
     async def test_goal_tracker_tracks_progress(self, goal_tracker):
@@ -430,9 +430,9 @@ class TestPhase4Personalization:
         with open(scenario_path) as f:
             scenario = yaml.safe_load(f)
 
-        assert (
-            len(scenario["steps"]) >= 10
-        ), f"Progressive profile should have 10+ steps, has {len(scenario['steps'])}"
+        assert len(scenario["steps"]) >= 10, (
+            f"Progressive profile should have 10+ steps, has {len(scenario['steps'])}"
+        )
 
 
 # =============================================================================
@@ -837,9 +837,9 @@ class TestScenarioFileIntegrity:
 
         # Should have scenarios for tasks 006-047 (minus infrastructure validation files)
         # That's roughly 42 scenarios
-        assert (
-            len(scenario_files) >= 38
-        ), f"Expected at least 38 scenarios, found {len(scenario_files)}"
+        assert len(scenario_files) >= 38, (
+            f"Expected at least 38 scenarios, found {len(scenario_files)}"
+        )
 
 
 # =============================================================================

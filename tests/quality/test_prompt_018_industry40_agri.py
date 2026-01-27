@@ -40,9 +40,7 @@ import httpx
 import pytest
 
 # Add project root to path
-sys.path.insert(
-    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 # API configuration
 API_BASE_URL = os.getenv("MAP_IT_API_URL", "http://localhost:8000")
@@ -290,9 +288,7 @@ class EvaluationResult:
 def check_api_available() -> bool:
     """Check if the API is available."""
     try:
-        response = httpx.get(
-            f"{API_BASE_URL}/api/v3/conversation/health", timeout=5.0
-        )
+        response = httpx.get(f"{API_BASE_URL}/api/v3/conversation/health", timeout=5.0)
         return response.status_code == 200
     except Exception:
         return False
@@ -305,9 +301,7 @@ live_api = pytest.mark.skipif(
 )
 
 
-def get_mapit_response(
-    query: str, conversation_id: int | None = None
-) -> dict[str, Any]:
+def get_mapit_response(query: str, conversation_id: int | None = None) -> dict[str, Any]:
     """
     Send a query to MAPIT and get the response.
 
@@ -486,9 +480,7 @@ def evaluate_specificity(response: str) -> tuple[int, str]:
         r"\d+[\.,]\d+\s*m(?:illion)?",
         r"\d+\s*million",
     ]
-    budget_matches = sum(
-        len(re.findall(pat, response, re.IGNORECASE)) for pat in budget_patterns
-    )
+    budget_matches = sum(len(re.findall(pat, response, re.IGNORECASE)) for pat in budget_patterns)
     if budget_matches >= 10:
         score += 6
     elif budget_matches >= 5:
@@ -507,9 +499,7 @@ def evaluate_specificity(response: str) -> tuple[int, str]:
         "led by",
         "coordinating",
     ]
-    coordinator_found = sum(
-        1 for ind in coordinator_indicators if ind in response_lower
-    )
+    coordinator_found = sum(1 for ind in coordinator_indicators if ind in response_lower)
     # Also check for institution names (universities, institutes)
     institution_patterns = [
         r"university of",
@@ -522,9 +512,7 @@ def evaluate_specificity(response: str) -> tuple[int, str]:
         r"politecnico",
         r"vtt",
     ]
-    institution_found = sum(
-        1 for pat in institution_patterns if re.search(pat, response_lower)
-    )
+    institution_found = sum(1 for pat in institution_patterns if re.search(pat, response_lower))
 
     if coordinator_found >= 5 or institution_found >= 8:
         score += 6
@@ -543,8 +531,20 @@ def evaluate_specificity(response: str) -> tuple[int, str]:
     acronyms = set(re.findall(acronym_pattern, response))
     # Filter out common non-acronyms
     excluded = {
-        "THE", "AND", "FOR", "WITH", "FROM", "THIS", "THAT", "WHICH", "ABOUT",
-        "IOT", "SME", "VET", "RIA", "CSA"
+        "THE",
+        "AND",
+        "FOR",
+        "WITH",
+        "FROM",
+        "THIS",
+        "THAT",
+        "WHICH",
+        "ABOUT",
+        "IOT",
+        "SME",
+        "VET",
+        "RIA",
+        "CSA",
     }
     acronyms = {a for a in acronyms if a not in excluded}
 
@@ -586,9 +586,7 @@ def evaluate_factual_accuracy(
             if "grant" in response_lower or "agreement" in response_lower:
                 nearby_idx = response_lower.find(num.lower())
                 if nearby_idx >= 0:
-                    context = response_lower[
-                        max(0, nearby_idx - 30) : nearby_idx + len(num) + 30
-                    ]
+                    context = response_lower[max(0, nearby_idx - 30) : nearby_idx + len(num) + 30]
                     if "grant" in context or "id" in context:
                         score -= 2
                         errors.append(
@@ -729,9 +727,7 @@ def evaluate_actionability(response: str) -> tuple[int, str]:
     )
 
 
-def evaluate_response(
-    response: str, response_metadata: dict[str, Any]
-) -> EvaluationResult:
+def evaluate_response(response: str, response_metadata: dict[str, Any]) -> EvaluationResult:
     """
     Perform full evaluation of the response.
 
@@ -756,9 +752,7 @@ def evaluate_response(
     actionability_score, actionability_notes = evaluate_actionability(response)
 
     # Calculate overall score
-    overall_score = (
-        fulfillment_score + specificity_score + accuracy_score + actionability_score
-    )
+    overall_score = fulfillment_score + specificity_score + accuracy_score + actionability_score
 
     # Determine result
     if overall_score >= PASS_THRESHOLD:
@@ -967,9 +961,7 @@ class TestPrompt018Industry40Agri:
         industry_keywords_found = sum(
             1 for kw in EXPECTED_INDUSTRY40_KEYWORDS if kw in response_lower
         )
-        agri_keywords_found = sum(
-            1 for kw in EXPECTED_AGRICULTURE_KEYWORDS if kw in response_lower
-        )
+        agri_keywords_found = sum(1 for kw in EXPECTED_AGRICULTURE_KEYWORDS if kw in response_lower)
 
         # Informational check
         print(f"Industry 4.0/5.0 keywords found: {industry_keywords_found}")
@@ -1002,8 +994,7 @@ class TestPrompt018OfflineEvaluation:
         print(f"  Result: {evaluation.result}")
 
         assert evaluation.overall_score >= PASS_THRESHOLD, (
-            f"Excellent response scored {evaluation.overall_score}, "
-            f"expected >= {PASS_THRESHOLD}"
+            f"Excellent response scored {evaluation.overall_score}, expected >= {PASS_THRESHOLD}"
         )
         assert evaluation.result == "PASS"
 
@@ -1019,8 +1010,7 @@ class TestPrompt018OfflineEvaluation:
 
         # Partial should score below PASS threshold
         assert evaluation.overall_score < PASS_THRESHOLD, (
-            f"Partial response scored {evaluation.overall_score}, "
-            f"expected < {PASS_THRESHOLD}"
+            f"Partial response scored {evaluation.overall_score}, expected < {PASS_THRESHOLD}"
         )
 
     def test_poor_response_fails(self):
@@ -1034,8 +1024,7 @@ class TestPrompt018OfflineEvaluation:
         print(f"  Result: {evaluation.result}")
 
         assert evaluation.overall_score < NEEDS_REVIEW_THRESHOLD, (
-            f"Poor response scored {evaluation.overall_score}, "
-            f"expected < {NEEDS_REVIEW_THRESHOLD}"
+            f"Poor response scored {evaluation.overall_score}, expected < {NEEDS_REVIEW_THRESHOLD}"
         )
         assert evaluation.result == "FAIL"
 
@@ -1061,17 +1050,14 @@ class TestPrompt018OfflineEvaluation:
         excellent_eval = evaluate_response(
             SampleResponses.EXCELLENT_INDUSTRY40_AGRI, {"source": "excellent"}
         )
-        poor_eval = evaluate_response(
-            SampleResponses.POOR_INDUSTRY40_AGRI, {"source": "poor"}
-        )
+        poor_eval = evaluate_response(SampleResponses.POOR_INDUSTRY40_AGRI, {"source": "poor"})
 
         # Excellent response should have much higher specificity
         excellent_specificity = excellent_eval.component_scores[0]["specificity"]
         poor_specificity = poor_eval.component_scores[0]["specificity"]
 
         assert excellent_specificity > poor_specificity, (
-            f"Excellent specificity ({excellent_specificity}) "
-            f"should be > poor ({poor_specificity})"
+            f"Excellent specificity ({excellent_specificity}) should be > poor ({poor_specificity})"
         )
 
     def test_save_evaluation_result_json(self):

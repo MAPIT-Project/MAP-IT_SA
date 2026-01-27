@@ -13,7 +13,7 @@ from typing import Any, TypeVar
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class TimeoutConfig:
@@ -134,7 +134,7 @@ async def with_timeout(
     timeout: float,
     error_message: str = "Operation timed out",
     return_on_timeout: Any = None,
-    raise_on_timeout: bool = True
+    raise_on_timeout: bool = True,
 ):
     """
     Execute a coroutine with a timeout.
@@ -170,22 +170,16 @@ async def with_timeout(
     """
     try:
         return await asyncio.wait_for(coro, timeout=timeout)
-    except TimeoutError:
+    except TimeoutError as e:
         logger.warning(f"Timeout after {timeout}s: {error_message}")
         if raise_on_timeout:
             from .exceptions import TimeoutError as MapItTimeoutError
-            raise MapItTimeoutError(
-                message=error_message,
-                timeout_seconds=timeout
-            )
+
+            raise MapItTimeoutError(message=error_message, timeout_seconds=timeout) from e
         return return_on_timeout
 
 
-def timeout_decorator(
-    seconds: float = None,
-    timeout_type: str = None,
-    error_message: str = None
-):
+def timeout_decorator(seconds: float = None, timeout_type: str = None, error_message: str = None):
     """
     Decorator to add timeout to async functions.
 
@@ -226,12 +220,10 @@ def timeout_decorator(
         @wraps(func)
         async def wrapper(*args, **kwargs):
             msg = error_message or f"{func.__name__} timed out after {timeout}s"
-            return await with_timeout(
-                func(*args, **kwargs),
-                timeout=timeout,
-                error_message=msg
-            )
+            return await with_timeout(func(*args, **kwargs), timeout=timeout, error_message=msg)
+
         return wrapper
+
     return decorator
 
 
@@ -250,10 +242,7 @@ class TimeoutContext:
     """
 
     def __init__(
-        self,
-        timeout: float,
-        operation_name: str = "Operation",
-        raise_on_timeout: bool = True
+        self, timeout: float, operation_name: str = "Operation", raise_on_timeout: bool = True
     ):
         self.timeout = timeout
         self.operation_name = operation_name
@@ -290,7 +279,6 @@ def get_timeout_for_operation(operation: str) -> float:
         # API operations
         "request": TimeoutConfig.REQUEST_TIMEOUT,
         "stream": TimeoutConfig.STREAM_TIMEOUT,
-
         # Service operations
         "llm_call": TimeoutConfig.LLM_CALL_TIMEOUT,
         "llm_stream": TimeoutConfig.LLM_STREAM_TIMEOUT,
@@ -302,13 +290,11 @@ def get_timeout_for_operation(operation: str) -> float:
         "graph": TimeoutConfig.GRAPH_QUERY_TIMEOUT,
         "vector_search": TimeoutConfig.VECTOR_SEARCH_TIMEOUT,
         "embedding": TimeoutConfig.EMBEDDING_TIMEOUT,
-
         # Agent operations
         "agent_iteration": TimeoutConfig.AGENT_ITERATION_TIMEOUT,
         "agent_total": TimeoutConfig.AGENT_TOTAL_TIMEOUT,
         "agent_planning": TimeoutConfig.AGENT_PLANNING_TIMEOUT,
         "agent_evaluation": TimeoutConfig.AGENT_EVALUATION_TIMEOUT,
-
         # Proposal operations
         "section_generation": TimeoutConfig.SECTION_GENERATION_TIMEOUT,
         "proposal_evaluation": TimeoutConfig.PROPOSAL_EVALUATION_TIMEOUT,

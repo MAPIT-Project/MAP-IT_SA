@@ -10,10 +10,10 @@ Tests that MAPIT handles highly specialized interdisciplinary queries correctly 
 Pass threshold: 75/100 (lower threshold for niche queries where exact matches are rare)
 """
 
-from datetime import datetime
 import json
-from pathlib import Path
 import re
+from datetime import datetime
+from pathlib import Path
 
 import httpx
 import pytest
@@ -386,9 +386,9 @@ related topics that could accommodate your project.
 4. **Consider writing to the EC** - for novel interdisciplinary topics"""
 
         result = evaluator.evaluate(query, excellent_response)
-        assert (
-            result["total_score"] >= 75
-        ), f"Expected excellent response to score 75+, got {result['total_score']}"
+        assert result["total_score"] >= 75, (
+            f"Expected excellent response to score 75+, got {result['total_score']}"
+        )
         assert result["passed"] is True
 
     def test_partial_response_scores_medium(self, evaluator):
@@ -403,9 +403,9 @@ Here are the results:
 These calls are available on the EU Portal."""
 
         result = evaluator.evaluate(query, partial_response)
-        assert (
-            result["total_score"] < 75
-        ), f"Expected partial response to score below 75, got {result['total_score']}"
+        assert result["total_score"] < 75, (
+            f"Expected partial response to score below 75, got {result['total_score']}"
+        )
         assert result["passed"] is False
 
     def test_hallucinating_response_fails(self, evaluator):
@@ -425,9 +425,9 @@ These calls are exactly what you need!"""
 
         result = evaluator.evaluate(query, hallucinating_response)
         # Hallucinating response should fail due to factual accuracy issues
-        assert (
-            result["dimensions"]["factual_accuracy"] < 15
-        ), "Hallucinating response should score low on factual accuracy"
+        assert result["dimensions"]["factual_accuracy"] < 15, (
+            "Hallucinating response should score low on factual accuracy"
+        )
 
     def test_honest_no_results_response(self, evaluator):
         """Test that an honest 'no exact matches' response scores reasonably."""
@@ -460,9 +460,9 @@ strategies for finding appropriate funding.
 
         result = evaluator.evaluate(query, honest_response)
         # Honest response should score reasonably well even without exact matches
-        assert (
-            result["dimensions"]["factual_accuracy"] >= 15
-        ), "Honest response should score well on factual accuracy"
+        assert result["dimensions"]["factual_accuracy"] >= 15, (
+            "Honest response should score well on factual accuracy"
+        )
 
     def test_detects_interdisciplinary_domains(self, evaluator):
         """Test that the evaluator correctly detects query domains."""
@@ -551,9 +551,9 @@ the calls listed above, 4) Register on the portal if you haven't already."""
         assert len(tools_used) > 0, "Should use at least one tool"
 
         # Check that response meets minimum threshold
-        assert (
-            result["total_score"] >= 60
-        ), f"Response scored only {result['total_score']}, expected at least 60 for niche queries"
+        assert result["total_score"] >= 60, (
+            f"Response scored only {result['total_score']}, expected at least 60 for niche queries"
+        )
 
     @pytest.mark.asyncio
     @pytest.mark.skipif(
@@ -577,9 +577,9 @@ the calls listed above, 4) Register on the portal if you haven't already."""
             result = evaluator.evaluate(query, response_text)
 
             # Even niche queries should get some reasonable response
-            assert (
-                result["total_score"] >= 40
-            ), f"Query '{query}' scored only {result['total_score']}, expected at least 40"
+            assert result["total_score"] >= 40, (
+                f"Query '{query}' scored only {result['total_score']}, expected at least 40"
+            )
 
     @pytest.mark.asyncio
     @pytest.mark.skipif(
@@ -598,9 +598,9 @@ the calls listed above, 4) Register on the portal if you haven't already."""
         result = evaluator.evaluate(query, response_text)
 
         # Critical: no hallucination
-        assert (
-            result["dimensions"]["factual_accuracy"] >= 10
-        ), "Response may contain hallucinated call IDs"
+        assert result["dimensions"]["factual_accuracy"] >= 10, (
+            "Response may contain hallucinated call IDs"
+        )
 
     # --------------------------------------------------------------------------
     # Edge case tests

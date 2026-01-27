@@ -18,11 +18,11 @@ router = APIRouter(prefix="/api/feedback", tags=["feedback"])
 
 class FeedbackRequest(BaseModel):
     """Request model for feedback submission."""
+
     conversation_id: str = Field(..., description="Conversation ID")
     rating: int = Field(..., ge=1, le=5, description="Rating 1-5")
     feedback_type: str = Field(
-        ...,
-        description="Type: 'helpful', 'not_helpful', 'incorrect', 'incomplete', 'other'"
+        ..., description="Type: 'helpful', 'not_helpful', 'incorrect', 'incomplete', 'other'"
     )
     feedback_text: str | None = Field(None, description="Optional detailed feedback")
     message_id: str | None = Field(None, description="Specific message ID")
@@ -35,6 +35,7 @@ class FeedbackRequest(BaseModel):
 
 class FeedbackResponse(BaseModel):
     """Response model for feedback submission."""
+
     success: bool
     feedback_id: int | None = None
     message: str | None = None
@@ -66,7 +67,7 @@ async def submit_feedback(request: FeedbackRequest):
             response_text=request.response_text[:500] if request.response_text else None,
             tools_used=request.tools_used,
             query_type=request.query_type,
-            response_time_ms=request.response_time_ms
+            response_time_ms=request.response_time_ms,
         )
 
         result = await service.submit_feedback(submission)
@@ -74,12 +75,12 @@ async def submit_feedback(request: FeedbackRequest):
 
     except Exception as e:
         logger.error(f"Feedback submission error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/summary")
 async def get_feedback_summary(
-    days: int = Query(30, ge=1, le=365, description="Number of days to summarize")
+    days: int = Query(30, ge=1, le=365, description="Number of days to summarize"),
 ):
     """
     Get feedback summary for the specified period.
@@ -97,7 +98,7 @@ async def get_feedback_summary(
         return await service.get_feedback_summary(days)
     except Exception as e:
         logger.error(f"Feedback summary error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/conversation/{conversation_id}")
@@ -108,14 +109,10 @@ async def get_conversation_feedback(conversation_id: str):
     try:
         service = get_feedback_service()
         feedback = await service.get_conversation_feedback(conversation_id)
-        return {
-            "conversation_id": conversation_id,
-            "feedback": feedback,
-            "count": len(feedback)
-        }
+        return {"conversation_id": conversation_id, "feedback": feedback, "count": len(feedback)}
     except Exception as e:
         logger.error(f"Conversation feedback error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/suggestions")
@@ -133,7 +130,7 @@ async def get_improvement_suggestions():
         return await service.get_improvement_suggestions()
     except Exception as e:
         logger.error(f"Improvement suggestions error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/health")
@@ -143,5 +140,7 @@ async def feedback_health():
     return {
         "status": "healthy" if service.enabled else "degraded",
         "enabled": service.enabled,
-        "message": "Feedback service is operational" if service.enabled else "Database not available"
+        "message": (
+            "Feedback service is operational" if service.enabled else "Database not available"
+        ),
     }

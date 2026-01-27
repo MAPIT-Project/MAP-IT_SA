@@ -201,9 +201,9 @@ class TestConcurrentMessages:
         await asyncio.gather(*tasks)
 
         # Verify all messages stored
-        assert (
-            len(mock_conversation_manager.stored_messages) == 5
-        ), f"Expected 5 messages, got {len(mock_conversation_manager.stored_messages)}"
+        assert len(mock_conversation_manager.stored_messages) == 5, (
+            f"Expected 5 messages, got {len(mock_conversation_manager.stored_messages)}"
+        )
 
         # Verify no duplicates (check unique IDs)
         ids = [m["id"] for m in mock_conversation_manager.stored_messages]
@@ -246,9 +246,9 @@ class TestConcurrentMessages:
             current = processing_times[i]
             next_item = processing_times[i + 1]
             # Next message should start after current ends
-            assert (
-                next_item["start"] >= current["end"]
-            ), f"Message {next_item['message']} started before {current['message']} finished"
+            assert next_item["start"] >= current["end"], (
+                f"Message {next_item['message']} started before {current['message']} finished"
+            )
 
 
 class TestConversationIsolation:

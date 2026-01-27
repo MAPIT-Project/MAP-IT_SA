@@ -31,9 +31,11 @@ logger = logging.getLogger(__name__)
 # Connection Pool Statistics
 # ============================================================================
 
+
 @dataclass
 class PoolStats:
     """Statistics for connection pool monitoring."""
+
     total_connections_created: int = 0
     total_connections_closed: int = 0
     total_requests: int = 0
@@ -60,23 +62,21 @@ class PoolStats:
             "successful_requests": self.successful_requests,
             "failed_requests": self.failed_requests,
             "timeout_requests": self.timeout_requests,
-            "success_rate": round(
-                self.successful_requests / max(self.total_requests, 1) * 100, 2
-            ),
+            "success_rate": round(self.successful_requests / max(self.total_requests, 1) * 100, 2),
             "avg_wait_time_ms": round(self.avg_wait_time_ms, 2),
             "uptime_seconds": uptime.total_seconds(),
             "uptime_human": str(uptime),
             "last_health_check": (
-                self.last_health_check.isoformat()
-                if self.last_health_check else None
+                self.last_health_check.isoformat() if self.last_health_check else None
             ),
-            "healthy": self.last_health_check_success
+            "healthy": self.last_health_check_success,
         }
 
 
 # ============================================================================
 # Database Pool Manager
 # ============================================================================
+
 
 class DatabasePool:
     """
@@ -97,7 +97,7 @@ class DatabasePool:
         max_connections: int = 20,
         connection_timeout: float = 30.0,
         validation_query: str = "SELECT 1",
-        name: str = "default"
+        name: str = "default",
     ):
         """
         Initialize the database pool.
@@ -129,9 +129,7 @@ class DatabasePool:
         """Create the underlying connection pool."""
         try:
             self._pool = pool.ThreadedConnectionPool(
-                minconn=self.min_connections,
-                maxconn=self.max_connections,
-                dsn=self.dsn
+                minconn=self.min_connections, maxconn=self.max_connections, dsn=self.dsn
             )
             self._stats.total_connections_created = self.min_connections
             logger.info(
@@ -143,11 +141,7 @@ class DatabasePool:
             raise
 
     @contextmanager
-    def get_connection(
-        self,
-        timeout: float | None = None,
-        cursor_factory=DictCursor
-    ) -> Generator:
+    def get_connection(self, timeout: float | None = None, cursor_factory=DictCursor) -> Generator:
         """
         Get a connection from the pool.
 
@@ -193,9 +187,7 @@ class DatabasePool:
                 with self._lock:
                     self._stats.failed_requests += 1
                     self._stats.current_in_use -= 1
-                raise ConnectionError(
-                    f"No available connections in pool '{self.name}'"
-                )
+                raise ConnectionError(f"No available connections in pool '{self.name}'")
 
             # Validate connection
             if not self._validate_connection(conn):
@@ -244,12 +236,7 @@ class DatabasePool:
         except Exception:
             return False
 
-    def execute(
-        self,
-        query: str,
-        params: tuple | None = None,
-        fetch: bool = True
-    ) -> list | None:
+    def execute(self, query: str, params: tuple | None = None, fetch: bool = True) -> list | None:
         """
         Execute a query using a pooled connection.
 
@@ -269,11 +256,7 @@ class DatabasePool:
                 conn.commit()
                 return None
 
-    def execute_many(
-        self,
-        query: str,
-        params_list: list
-    ) -> int:
+    def execute_many(self, query: str, params_list: list) -> int:
         """
         Execute a query with multiple parameter sets.
 
@@ -298,12 +281,7 @@ class DatabasePool:
             Health check result dictionary
         """
         start_time = time.time()
-        result = {
-            "pool_name": self.name,
-            "status": "unknown",
-            "latency_ms": 0,
-            "message": ""
-        }
+        result = {"pool_name": self.name, "status": "unknown", "latency_ms": 0, "message": ""}
 
         try:
             with self.get_connection(timeout=5.0) as conn:
@@ -358,6 +336,7 @@ class DatabasePool:
 # Global Pool Manager
 # ============================================================================
 
+
 class PoolManager:
     """
     Manager for multiple database pools.
@@ -365,7 +344,7 @@ class PoolManager:
     Provides a singleton pattern for managing database pools across the application.
     """
 
-    _instance: Optional['PoolManager'] = None
+    _instance: Optional["PoolManager"] = None
     _lock = threading.Lock()
 
     def __new__(cls):
@@ -388,18 +367,13 @@ class PoolManager:
                 name="main",
                 dsn=settings.database_url,
                 min_connections=settings.db_min_connections,
-                max_connections=settings.db_max_connections
+                max_connections=settings.db_max_connections,
             )
 
         self._initialized = True
 
     def create_pool(
-        self,
-        name: str,
-        dsn: str,
-        min_connections: int = 5,
-        max_connections: int = 20,
-        **kwargs
+        self, name: str, dsn: str, min_connections: int = 5, max_connections: int = 20, **kwargs
     ) -> DatabasePool:
         """
         Create a new database pool.
@@ -423,7 +397,7 @@ class PoolManager:
             min_connections=min_connections,
             max_connections=max_connections,
             name=name,
-            **kwargs
+            **kwargs,
         )
         self._pools[name] = db_pool
         return db_pool
@@ -462,6 +436,7 @@ class PoolManager:
 # Convenience Functions
 # ============================================================================
 
+
 def get_pool_manager() -> PoolManager:
     """Get the global pool manager instance."""
     manager = PoolManager()
@@ -483,11 +458,7 @@ def get_connection(pool_name: str = "main", **kwargs):
     return manager.get_connection(pool_name, **kwargs)
 
 
-def execute_query(
-    query: str,
-    params: tuple | None = None,
-    pool_name: str = "main"
-) -> list | None:
+def execute_query(query: str, params: tuple | None = None, pool_name: str = "main") -> list | None:
     """
     Execute a query using a pooled connection.
 

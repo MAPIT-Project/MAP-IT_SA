@@ -5,9 +5,9 @@ Formats tool results into beautifully structured responses for the user.
 This is a post-processor that takes raw tool results and formats them consistently.
 """
 
-from datetime import datetime
 import logging
 import re
+from datetime import datetime
 from typing import Any
 
 logger = logging.getLogger(__name__)

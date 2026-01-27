@@ -24,8 +24,8 @@ Sources:
 - https://erc.europa.eu/apply-grant/proof-concept
 """
 
-from dataclasses import dataclass
 import re
+from dataclasses import dataclass
 
 import httpx
 import pytest
@@ -457,9 +457,9 @@ class TestScenario061SourceAttribution:
             result = response.json()
             response_text = result.get("response", "").lower()
 
-            assert (
-                "erc" in response_text or "european research council" in response_text
-            ), "Response should mention ERC"
+            assert "erc" in response_text or "european research council" in response_text, (
+                "Response should mention ERC"
+            )
 
     @pytest.mark.asyncio
     async def test_response_contains_specific_amounts(self, conversation_id):
@@ -530,9 +530,9 @@ class TestScenario061SourceAttribution:
                 if any(kw in response_text for kw in GRANT_TYPE_KEYWORDS[grant_type])
             )
 
-            assert (
-                grant_types_found >= 3
-            ), f"Response should mention at least 3 grant types, found {grant_types_found}"
+            assert grant_types_found >= 3, (
+                f"Response should mention at least 3 grant types, found {grant_types_found}"
+            )
 
     @pytest.mark.asyncio
     async def test_response_passes_quality_threshold(self, conversation_id, evaluator):
@@ -590,9 +590,9 @@ class TestScenario061SourceAttribution:
             response_text = result.get("response", "")
 
             # Consolidator Grant should be €2 million
-            assert (
-                "2 million" in response_text.lower() or "€2" in response_text
-            ), "Consolidator Grant amount should be €2 million"
+            assert "2 million" in response_text.lower() or "€2" in response_text, (
+                "Consolidator Grant amount should be €2 million"
+            )
 
     @pytest.mark.asyncio
     async def test_response_includes_erc_url(self, conversation_id):
@@ -609,9 +609,9 @@ class TestScenario061SourceAttribution:
             response_text = result.get("response", "")
 
             # Must include erc.europa.eu URL
-            assert (
-                "erc.europa.eu" in response_text
-            ), "Response must include erc.europa.eu URL for source traceability"
+            assert "erc.europa.eu" in response_text, (
+                "Response must include erc.europa.eu URL for source traceability"
+            )
 
     @pytest.mark.asyncio
     async def test_no_error_in_response(self, conversation_id):
@@ -629,9 +629,9 @@ class TestScenario061SourceAttribution:
 
             error_indicators = ["error", "failed", "unable to", "could not", "exception"]
             for indicator in error_indicators:
-                assert (
-                    indicator not in response_text or "error handling" in response_text
-                ), f"Response should not contain error indicator: {indicator}"
+                assert indicator not in response_text or "error handling" in response_text, (
+                    f"Response should not contain error indicator: {indicator}"
+                )
 
 
 class TestSourceAttributionEdgeCases:
@@ -672,9 +672,9 @@ class TestSourceAttributionEdgeCases:
                 response_text = result.get("response", "").lower()
 
                 # Should mention ERC and include amounts
-                assert (
-                    "erc" in response_text or "european research council" in response_text
-                ), f"Response to '{query}' should mention ERC"
+                assert "erc" in response_text or "european research council" in response_text, (
+                    f"Response to '{query}' should mention ERC"
+                )
 
     @pytest.mark.asyncio
     async def test_specific_grant_type_query(self, conversation_id):
@@ -725,9 +725,9 @@ class TestSourceAttributionQuality:
         """
 
         score = evaluator.evaluate("What are the ERC grant amounts?", perfect_response)
-        assert (
-            score.total_score >= 90
-        ), f"Perfect response should score 90+, got {score.total_score}"
+        assert score.total_score >= 90, (
+            f"Perfect response should score 90+, got {score.total_score}"
+        )
 
     def test_minimal_score_response(self):
         """Test that a minimal response gets low score."""
@@ -754,6 +754,6 @@ class TestSourceAttributionQuality:
         """
 
         score = evaluator.evaluate("What are the ERC grant amounts?", no_source_response)
-        assert (
-            score.source_attribution < 15
-        ), "Missing source should get low source_attribution score"
+        assert score.source_attribution < 15, (
+            "Missing source should get low source_attribution score"
+        )

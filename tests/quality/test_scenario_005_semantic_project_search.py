@@ -240,9 +240,9 @@ class TestScenario005SemanticProjectSearch:
 
         # Allow up to 1 irrelevant phrase (in case of noisy results from API)
         # But fail if multiple irrelevant topics appear
-        assert (
-            len(found_irrelevant) <= 1
-        ), f"Results contain too many irrelevant projects: {found_irrelevant}"
+        assert len(found_irrelevant) <= 1, (
+            f"Results contain too many irrelevant projects: {found_irrelevant}"
+        )
 
     def test_includes_project_ids(self, conversation_id):
         """Test that project IDs are included."""
@@ -252,9 +252,9 @@ class TestScenario005SemanticProjectSearch:
         # Project IDs are typically 9 digits
         project_ids = re.findall(r"\b10\d{7}\b", response_text)
 
-        assert (
-            len(project_ids) >= 3
-        ), f"Should include at least 3 project IDs, found {len(project_ids)}"
+        assert len(project_ids) >= 3, (
+            f"Should include at least 3 project IDs, found {len(project_ids)}"
+        )
 
     def test_includes_cordis_links(self, conversation_id):
         """Test that CORDIS links are included."""
@@ -263,9 +263,9 @@ class TestScenario005SemanticProjectSearch:
 
         cordis_links = re.findall(r"https://cordis\.europa\.eu/project/id/\d+", response_text)
 
-        assert (
-            len(cordis_links) >= 3
-        ), f"Should include at least 3 CORDIS links, found {len(cordis_links)}"
+        assert len(cordis_links) >= 3, (
+            f"Should include at least 3 CORDIS links, found {len(cordis_links)}"
+        )
 
     def test_quality_score_passes_threshold(self, conversation_id):
         """Test that response quality score meets threshold."""
@@ -314,9 +314,9 @@ class TestScenario005SemanticProjectSearch:
         for query in semantic_queries:
             result = agent._detect_semantic_project_query(query, "")
             assert result is not None, f"Query should be detected as semantic: {query}"
-            assert (
-                result["tool_calls"][0]["tool"] == "get_similar_funded_projects"
-            ), f"Should use get_similar_funded_projects for: {query}"
+            assert result["tool_calls"][0]["tool"] == "get_similar_funded_projects", (
+                f"Should use get_similar_funded_projects for: {query}"
+            )
 
     def test_non_semantic_query_detection(self):
         """Test that regular project searches are NOT detected as semantic."""
@@ -369,9 +369,9 @@ class TestScenario005SemanticProjectSearch:
             if any(kw in title for kw in aviation_keywords):
                 relevant_count += 1
 
-        assert (
-            relevant_count >= 3
-        ), f"At least 3 of top 5 projects should be aviation/fuel related, found {relevant_count}"
+        assert relevant_count >= 3, (
+            f"At least 3 of top 5 projects should be aviation/fuel related, found {relevant_count}"
+        )
 
     def test_similarity_scores_are_reasonable(self):
         """Test that similarity scores are in expected range."""
@@ -408,9 +408,9 @@ class TestRegressionScenario005:
         result = agent._detect_query_type_for_tool_selection(query, "")
 
         assert result is not None, "Query should be pre-routed"
-        assert (
-            result["tool_calls"][0]["tool"] == "get_similar_funded_projects"
-        ), "Should use semantic search, not keyword search"
+        assert result["tool_calls"][0]["tool"] == "get_similar_funded_projects", (
+            "Should use semantic search, not keyword search"
+        )
 
     def test_semantic_search_returns_aviation_projects(self):
         """Regression: Semantic search for aviation fuels should return aviation projects."""
@@ -431,9 +431,9 @@ class TestRegressionScenario005:
             for title in titles
         )
 
-        assert (
-            aviation_related
-        ), f"Top 5 results should include aviation-related projects. Titles: {titles}"
+        assert aviation_related, (
+            f"Top 5 results should include aviation-related projects. Titles: {titles}"
+        )
 
 
 if __name__ == "__main__":

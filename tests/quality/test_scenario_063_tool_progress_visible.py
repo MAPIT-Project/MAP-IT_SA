@@ -1063,9 +1063,9 @@ class TestScenario063LiveAPI:
 
         # Assertions
         assert analysis.error is None, f"Request failed: {analysis.error}"
-        assert result[
-            "passed"
-        ], f"Tool progress test failed with score {result['score']}: {result['issues']}"
+        assert result["passed"], (
+            f"Tool progress test failed with score {result['score']}: {result['issues']}"
+        )
 
     @live_api
     @pytest.mark.asyncio
@@ -1081,9 +1081,9 @@ class TestScenario063LiveAPI:
         assert analysis.error is None, f"Request failed: {analysis.error}"
 
         # Check tool_call events
-        assert (
-            analysis.has_tool_calls
-        ), f"Expected tool_call events but got none. Event types: {analysis.unique_event_types}"
+        assert analysis.has_tool_calls, (
+            f"Expected tool_call events but got none. Event types: {analysis.unique_event_types}"
+        )
 
         # Verify tool_call has required fields
         for tc in analysis.tool_calls:
@@ -1104,9 +1104,9 @@ class TestScenario063LiveAPI:
         assert analysis.error is None, f"Request failed: {analysis.error}"
 
         # Check tool_result events
-        assert (
-            analysis.has_tool_results
-        ), f"Expected tool_result events but got none. Event types: {analysis.unique_event_types}"
+        assert analysis.has_tool_results, (
+            f"Expected tool_result events but got none. Event types: {analysis.unique_event_types}"
+        )
 
         # Verify tool_result has required fields
         for tr in analysis.tool_results:
@@ -1149,14 +1149,14 @@ class TestScenario063LiveAPI:
 
         # Check order
         if analysis.has_tool_calls:
-            assert (
-                analysis.tool_calls_before_tokens
-            ), f"Tool calls should appear before tokens. Event sequence: {analysis.event_types}"
+            assert analysis.tool_calls_before_tokens, (
+                f"Tool calls should appear before tokens. Event sequence: {analysis.event_types}"
+            )
 
         if analysis.has_tool_results:
-            assert (
-                analysis.tool_results_before_tokens
-            ), f"Tool results should appear before tokens. Event sequence: {analysis.event_types}"
+            assert analysis.tool_results_before_tokens, (
+                f"Tool results should appear before tokens. Event sequence: {analysis.event_types}"
+            )
 
     @live_api
     @pytest.mark.asyncio

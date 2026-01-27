@@ -52,9 +52,9 @@ class TestScenario003GetCallDetails:
             response_text = result.get("response", "")
 
             # Should mention the call ID
-            assert (
-                self.CALL_ID in response_text or "EIC" in response_text
-            ), "Response should reference the call ID or programme"
+            assert self.CALL_ID in response_text or "EIC" in response_text, (
+                "Response should reference the call ID or programme"
+            )
 
     @pytest.mark.asyncio
     async def test_includes_call_title(self, conversation_id):
@@ -87,9 +87,9 @@ class TestScenario003GetCallDetails:
             tools_used = result.get("metadata", {}).get("tools_used", [])
 
             # Should use get_call_details tool
-            assert any(
-                "get_call_details" in tool for tool in tools_used
-            ), f"Should use get_call_details tool, got: {tools_used}"
+            assert any("get_call_details" in tool for tool in tools_used), (
+                f"Should use get_call_details tool, got: {tools_used}"
+            )
 
     @pytest.mark.asyncio
     async def test_includes_scope_or_description(self, conversation_id):
@@ -124,9 +124,9 @@ class TestScenario003GetCallDetails:
             result = response.json()
             quality_score = result.get("metadata", {}).get("quality_analysis", {}).get("score", 0)
 
-            assert (
-                quality_score >= self.PASS_THRESHOLD
-            ), f"Quality score {quality_score} is below threshold {self.PASS_THRESHOLD}"
+            assert quality_score >= self.PASS_THRESHOLD, (
+                f"Quality score {quality_score} is below threshold {self.PASS_THRESHOLD}"
+            )
 
     @pytest.mark.asyncio
     async def test_no_deflection_or_error(self, conversation_id):
@@ -164,9 +164,9 @@ class TestScenario003GetCallDetails:
             response_text = result.get("response", "")
 
             # EIC calls typically specify TRL requirements
-            assert (
-                "TRL" in response_text or "technology readiness" in response_text.lower()
-            ), "Response should mention TRL for EIC calls"
+            assert "TRL" in response_text or "technology readiness" in response_text.lower(), (
+                "Response should mention TRL for EIC calls"
+            )
 
     @pytest.mark.asyncio
     async def test_includes_stages_or_phases(self, conversation_id):
@@ -181,9 +181,9 @@ class TestScenario003GetCallDetails:
             response_text = result.get("response", "")
 
             # This is a two-stage challenge
-            assert (
-                "stage" in response_text.lower()
-            ), "Response should mention the two-stage structure of this challenge"
+            assert "stage" in response_text.lower(), (
+                "Response should mention the two-stage structure of this challenge"
+            )
 
     @pytest.mark.asyncio
     async def test_service_returns_budget(self):
@@ -199,9 +199,9 @@ class TestScenario003GetCallDetails:
 
         assert result is not None, "Service should return call details"
         assert result.get("budget") is not None, "Service should return budget"
-        assert "million" in result.get("budget", "").lower() or "EUR" in result.get(
-            "budget", ""
-        ), f"Budget should be formatted, got: {result.get('budget')}"
+        assert "million" in result.get("budget", "").lower() or "EUR" in result.get("budget", ""), (
+            f"Budget should be formatted, got: {result.get('budget')}"
+        )
 
     @pytest.mark.asyncio
     async def test_service_returns_deadline(self):
@@ -218,9 +218,9 @@ class TestScenario003GetCallDetails:
         assert result is not None, "Service should return call details"
         assert result.get("deadline") is not None, "Service should return deadline"
         # Deadline should be in a readable format
-        assert re.search(
-            r"\d{1,2}\s+\w+\s+\d{4}", result.get("deadline", "")
-        ), f"Deadline should be formatted like '26 February 2026', got: {result.get('deadline')}"
+        assert re.search(r"\d{1,2}\s+\w+\s+\d{4}", result.get("deadline", "")), (
+            f"Deadline should be formatted like '26 February 2026', got: {result.get('deadline')}"
+        )
 
     @pytest.mark.asyncio
     async def test_service_returns_status(self):

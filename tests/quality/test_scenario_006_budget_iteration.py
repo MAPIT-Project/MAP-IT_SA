@@ -103,9 +103,9 @@ class TestScenario006BudgetIterationOffline:
         assert "name" in data
         assert data["name"] == "Budget Iteration"
         assert "steps" in data
-        assert (
-            len(data["steps"]) == NUM_TURNS
-        ), f"Expected {NUM_TURNS} turns, got {len(data['steps'])}"
+        assert len(data["steps"]) == NUM_TURNS, (
+            f"Expected {NUM_TURNS} turns, got {len(data['steps'])}"
+        )
 
     def test_results_directory_exists(self):
         """Verify results directory can be created."""
@@ -216,9 +216,9 @@ class TestScenario006BudgetIterationOffline:
         with open(SCENARIO_PATH) as f:
             data = yaml.safe_load(f)
 
-        assert (
-            len(data["steps"]) == NUM_TURNS
-        ), f"Expected {NUM_TURNS} turns, got {len(data['steps'])}"
+        assert len(data["steps"]) == NUM_TURNS, (
+            f"Expected {NUM_TURNS} turns, got {len(data['steps'])}"
+        )
 
 
 class TestScenario006BudgetIterationLive:
@@ -297,9 +297,9 @@ class TestScenario006BudgetIterationLive:
 
         # Assertions based on PRD requirements
         assert result.scenario_name == "Budget Iteration"
-        assert (
-            len(result.turns) == NUM_TURNS
-        ), f"Expected {NUM_TURNS} turns, got {len(result.turns)}"
+        assert len(result.turns) == NUM_TURNS, (
+            f"Expected {NUM_TURNS} turns, got {len(result.turns)}"
+        )
 
         # Check that budget-related terms are mentioned across conversation
         all_responses = " ".join(t.response for t in result.turns)
@@ -510,9 +510,9 @@ class TestScenario006BudgetIterationResults:
         assert "status" in result
 
         # Validate this is a 5-turn scenario
-        assert (
-            len(result["turns"]) == NUM_TURNS
-        ), f"Expected {NUM_TURNS} turns, got {len(result['turns'])}"
+        assert len(result["turns"]) == NUM_TURNS, (
+            f"Expected {NUM_TURNS} turns, got {len(result['turns'])}"
+        )
 
         # Log current status
         logger.info(f"Current status: {result['status']}")

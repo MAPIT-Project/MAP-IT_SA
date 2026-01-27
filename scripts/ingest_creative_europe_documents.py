@@ -31,10 +31,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -42,40 +39,50 @@ logger = logging.getLogger(__name__)
 # Valid database document_type values: work_programme, programme_guide, call_text,
 # grant_agreement, faq, manual, policy, template, additional_resource
 CREATIVE_EUROPE_DOCUMENT_TYPES = {
-    'annual_work_programme': {
-        'patterns': ['annual_work_programme', 'work_programme', 'awp_', '2026_annual', '2025_annual', '2024_annual', '2023_annual', '2022_annual', '2021_annual'],
-        'type': 'work_programme',
-        'description': 'Creative Europe Annual Work Programme - calls, budgets, objectives'
+    "annual_work_programme": {
+        "patterns": [
+            "annual_work_programme",
+            "work_programme",
+            "awp_",
+            "2026_annual",
+            "2025_annual",
+            "2024_annual",
+            "2023_annual",
+            "2022_annual",
+            "2021_annual",
+        ],
+        "type": "work_programme",
+        "description": "Creative Europe Annual Work Programme - calls, budgets, objectives",
     },
-    'funding_guide': {
-        'patterns': ['cultureu', 'funding_guide', 'funding-guide'],
-        'type': 'programme_guide',  # Use valid type
-        'description': 'CulturEU Funding Guide - comprehensive EU funding for cultural sectors'
+    "funding_guide": {
+        "patterns": ["cultureu", "funding_guide", "funding-guide"],
+        "type": "programme_guide",  # Use valid type
+        "description": "CulturEU Funding Guide - comprehensive EU funding for cultural sectors",
     },
-    'culture_strand': {
-        'patterns': ['culture_strand', 'culture_overview', 'culture_creative_europe'],
-        'type': 'programme_guide',  # Use valid type
-        'description': 'CULTURE strand - European cooperation projects, networks, platforms'
+    "culture_strand": {
+        "patterns": ["culture_strand", "culture_overview", "culture_creative_europe"],
+        "type": "programme_guide",  # Use valid type
+        "description": "CULTURE strand - European cooperation projects, networks, platforms",
     },
-    'media_strand': {
-        'patterns': ['media_strand', 'media_overview', 'media_creative_europe'],
-        'type': 'programme_guide',  # Use valid type
-        'description': 'MEDIA strand - audiovisual, film development, distribution, training'
+    "media_strand": {
+        "patterns": ["media_strand", "media_overview", "media_creative_europe"],
+        "type": "programme_guide",  # Use valid type
+        "description": "MEDIA strand - audiovisual, film development, distribution, training",
     },
-    'cross_sectoral': {
-        'patterns': ['cross_sectoral', 'cross-sectoral', 'crosssectoral'],
-        'type': 'programme_guide',  # Use valid type
-        'description': 'Cross-sectoral strand - news media, innovation labs'
+    "cross_sectoral": {
+        "patterns": ["cross_sectoral", "cross-sectoral", "crosssectoral"],
+        "type": "programme_guide",  # Use valid type
+        "description": "Cross-sectoral strand - news media, innovation labs",
     },
-    'green_aspects': {
-        'patterns': ['green', 'sustainability', 'environmental'],
-        'type': 'policy',  # Use valid type - evaluation/sustainability policy
-        'description': 'Green aspects quality assessment - sustainability evaluation criteria'
+    "green_aspects": {
+        "patterns": ["green", "sustainability", "environmental"],
+        "type": "policy",  # Use valid type - evaluation/sustainability policy
+        "description": "Green aspects quality assessment - sustainability evaluation criteria",
     },
-    'programme_brochure': {
-        'patterns': ['brochure', 'overview', 'programme_guide'],
-        'type': 'additional_resource',  # Use valid type
-        'description': 'Creative Europe Programme overview and objectives'
+    "programme_brochure": {
+        "patterns": ["brochure", "overview", "programme_guide"],
+        "type": "additional_resource",  # Use valid type
+        "description": "Creative Europe Programme overview and objectives",
     },
 }
 
@@ -89,13 +96,13 @@ def detect_document_type(filename: str) -> tuple[str, str]:
     """
     filename_lower = filename.lower()
 
-    for doc_type, config in CREATIVE_EUROPE_DOCUMENT_TYPES.items():
-        for pattern in config['patterns']:
+    for _doc_type, config in CREATIVE_EUROPE_DOCUMENT_TYPES.items():
+        for pattern in config["patterns"]:
             if pattern in filename_lower:
-                return config['type'], config['description']
+                return config["type"], config["description"]
 
     # Default fallback
-    return 'guidance_document', 'Creative Europe guidance document'
+    return "guidance_document", "Creative Europe guidance document"
 
 
 def extract_year_from_filename(filename: str) -> str:
@@ -103,12 +110,12 @@ def extract_year_from_filename(filename: str) -> str:
     import re
 
     # Match years like 2021, 2022, 2023, 2024, 2025, 2026, 2027
-    year_match = re.search(r'20(2[1-7])', filename)
+    year_match = re.search(r"20(2[1-7])", filename)
     if year_match:
         return f"20{year_match.group(1)}"
 
     # Match year ranges like 2021-2027
-    range_match = re.search(r'(202[1-7])[-_](202[1-7])', filename)
+    range_match = re.search(r"(202[1-7])[-_](202[1-7])", filename)
     if range_match:
         return f"{range_match.group(1)}-{range_match.group(2)}"
 
@@ -119,14 +126,14 @@ def detect_strand(filename: str) -> str:
     """Detect which Creative Europe strand the document relates to."""
     filename_lower = filename.lower()
 
-    if 'media' in filename_lower:
-        return 'MEDIA'
-    elif 'culture' in filename_lower and 'cross' not in filename_lower:
-        return 'CULTURE'
-    elif 'cross' in filename_lower or 'sectoral' in filename_lower:
-        return 'CROSS-SECTORAL'
+    if "media" in filename_lower:
+        return "MEDIA"
+    elif "culture" in filename_lower and "cross" not in filename_lower:
+        return "CULTURE"
+    elif "cross" in filename_lower or "sectoral" in filename_lower:
+        return "CROSS-SECTORAL"
     else:
-        return 'ALL'  # Applies to entire programme
+        return "ALL"  # Applies to entire programme
 
 
 def ingest_creative_europe_documents(source_dir: str, dry_run: bool = False):
@@ -165,6 +172,7 @@ def ingest_creative_europe_documents(source_dir: str, dry_run: bool = False):
     # Import ingestion service
     try:
         from app.services.ingestion_service import DocumentIngestionService
+
         ingestion_service = DocumentIngestionService()
     except ImportError as e:
         logger.error(f"Failed to import ingestion service: {e}")
@@ -172,7 +180,7 @@ def ingest_creative_europe_documents(source_dir: str, dry_run: bool = False):
 
     # Check service status
     stats = ingestion_service.get_service_stats()
-    if not stats.get('supabase_connected', False):
+    if not stats.get("supabase_connected", False):
         logger.error("Supabase connection failed. Check DATABASE_URL and SUPABASE_KEY.")
         return False
 
@@ -210,10 +218,10 @@ def ingest_creative_europe_documents(source_dir: str, dry_run: bool = False):
                     "ingested_by": "creative_europe_ingestion_script",
                     "funding_model": "grants",
                     "programme_period": "2021-2027",
-                }
+                },
             )
 
-            if result.get('success'):
+            if result.get("success"):
                 logger.info(f"  SUCCESS: {pdf_file.name}")
                 logger.info(f"    Document ID: {result.get('document_id')}")
                 logger.info(f"    Chunks: {result.get('chunks_created')}")
@@ -252,19 +260,13 @@ def ingest_creative_europe_documents(source_dir: str, dry_run: bool = False):
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Ingest Creative Europe documents into RAG system"
-    )
+    parser = argparse.ArgumentParser(description="Ingest Creative Europe documents into RAG system")
     parser.add_argument(
         "--source-dir",
         default="newdocs/creative_europe",
-        help="Directory containing Creative Europe PDFs"
+        help="Directory containing Creative Europe PDFs",
     )
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Don't commit to database"
-    )
+    parser.add_argument("--dry-run", action="store_true", help="Don't commit to database")
     args = parser.parse_args()
 
     logger.info("=" * 60)
@@ -278,8 +280,7 @@ def main():
     source_dir = args.source_dir
     if not os.path.isabs(source_dir):
         source_dir = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            source_dir
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), source_dir
         )
 
     logger.info(f"Source directory: {source_dir}")
@@ -290,7 +291,9 @@ def main():
         logger.info("\nIngestion completed!")
         logger.info("\nNext steps:")
         logger.info("1. Run: python scripts/sync_creative_europe_calls.py")
-        logger.info("2. Test with: curl -X POST http://localhost:8000/api/v3/conversation/test/message")
+        logger.info(
+            "2. Test with: curl -X POST http://localhost:8000/api/v3/conversation/test/message"
+        )
     else:
         logger.error("\nIngestion failed!")
         sys.exit(1)

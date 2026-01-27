@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 class SearchType(str, Enum):
     """Types of saved searches."""
+
     CALLS = "calls"
     PROJECTS = "projects"
     PARTNERS = "partners"
@@ -36,13 +37,15 @@ class SearchType(str, Enum):
 
 class AlertFrequency(str, Enum):
     """Alert notification frequency."""
+
     IMMEDIATE = "immediate"  # As soon as new results found
-    DAILY = "daily"          # Daily digest
-    WEEKLY = "weekly"        # Weekly digest
+    DAILY = "daily"  # Daily digest
+    WEEKLY = "weekly"  # Weekly digest
 
 
 class AlertChannel(str, Enum):
     """Notification channels."""
+
     EMAIL = "email"
     WEBHOOK = "webhook"
     BOTH = "both"
@@ -51,6 +54,7 @@ class AlertChannel(str, Enum):
 @dataclass
 class AlertConfig:
     """Alert configuration for a saved search."""
+
     enabled: bool = False
     frequency: AlertFrequency = AlertFrequency.DAILY
     channel: AlertChannel = AlertChannel.EMAIL
@@ -86,6 +90,7 @@ class AlertConfig:
 @dataclass
 class SavedSearch:
     """A saved search configuration."""
+
     id: str
     user_id: str
     name: str
@@ -128,12 +133,26 @@ class SavedSearch:
             name=row["name"],
             description=row.get("description"),
             search_type=SearchType(row["search_type"]),
-            parameters=row["parameters"] if isinstance(row["parameters"], dict) else json.loads(row["parameters"]),
-            alert_config=AlertConfig.from_dict(
-                row["alert_config"] if isinstance(row["alert_config"], dict) else json.loads(row["alert_config"])
+            parameters=(
+                row["parameters"]
+                if isinstance(row["parameters"], dict)
+                else json.loads(row["parameters"])
             ),
-            created_at=row["created_at"] if isinstance(row["created_at"], datetime) else datetime.fromisoformat(row["created_at"]),
-            updated_at=row["updated_at"] if isinstance(row["updated_at"], datetime) else datetime.fromisoformat(row["updated_at"]),
+            alert_config=AlertConfig.from_dict(
+                row["alert_config"]
+                if isinstance(row["alert_config"], dict)
+                else json.loads(row["alert_config"])
+            ),
+            created_at=(
+                row["created_at"]
+                if isinstance(row["created_at"], datetime)
+                else datetime.fromisoformat(row["created_at"])
+            ),
+            updated_at=(
+                row["updated_at"]
+                if isinstance(row["updated_at"], datetime)
+                else datetime.fromisoformat(row["updated_at"])
+            ),
             last_run=row.get("last_run"),
             last_result_hash=row.get("last_result_hash"),
             is_active=row.get("is_active", True),
@@ -145,6 +164,7 @@ class SavedSearch:
 @dataclass
 class SearchResult:
     """Result from running a saved search."""
+
     search_id: str
     results: list[dict[str, Any]]
     result_count: int
@@ -341,6 +361,7 @@ class SavedSearchService:
             SearchResult with all results and new results
         """
         import time
+
         start_time = time.time()
 
         # Execute the search based on type
@@ -386,6 +407,7 @@ class SavedSearchService:
         """Execute a call search."""
         try:
             from app.services.call_search.local_call_search_service import LocalCallSearchService
+
             service = LocalCallSearchService()
             result = await service.search(
                 keywords=params.get("keywords", ""),
@@ -405,6 +427,7 @@ class SavedSearchService:
             from app.services.project_search.local_project_search_service import (
                 LocalProjectSearchService,
             )
+
             service = LocalProjectSearchService()
             result = await service.search(
                 keywords=params.get("keywords", ""),
@@ -422,6 +445,7 @@ class SavedSearchService:
         """Execute a partner search."""
         try:
             from app.services.tools.partner_discovery import PartnerDiscoveryTool
+
             tool = PartnerDiscoveryTool()
             result = await tool.find_experienced_partners(
                 keywords=params.get("keywords", ""),
@@ -441,9 +465,7 @@ class SavedSearchService:
         return hashlib.md5(json.dumps(ids).encode()).hexdigest()
 
     async def _find_new_results(
-        self,
-        search: SavedSearch,
-        current_results: list[dict[str, Any]]
+        self, search: SavedSearch, current_results: list[dict[str, Any]]
     ) -> list[dict[str, Any]]:
         """Find results that weren't in the previous run."""
         # Get previous result IDs from cache
@@ -477,7 +499,7 @@ class SavedSearchService:
                 self.redis.setex(
                     cache_key,
                     timedelta(days=30),  # Keep for 30 days
-                    json.dumps(current_ids)
+                    json.dumps(current_ids),
                 )
             except Exception as e:
                 logger.warning(f"Failed to cache result IDs: {e}")
@@ -500,12 +522,15 @@ class SavedSearchService:
 
         with self.db_pool.get_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute(query, (
-                    result.executed_at,
-                    result.result_hash,
-                    datetime.now(UTC),
-                    search.id,
-                ))
+                cur.execute(
+                    query,
+                    (
+                        result.executed_at,
+                        result.result_hash,
+                        datetime.now(UTC),
+                        search.id,
+                    ),
+                )
                 conn.commit()
 
     # =========================================================================
@@ -631,11 +656,7 @@ class SavedSearchService:
             logger.error(f"Failed to send alert for search {search.id}: {e}")
             raise
 
-    def _prepare_alert_payload(
-        self,
-        search: SavedSearch,
-        result: SearchResult
-    ) -> dict[str, Any]:
+    def _prepare_alert_payload(self, search: SavedSearch, result: SearchResult) -> dict[str, Any]:
         """Prepare the alert notification payload."""
         return {
             "event": f"saved_search.{search.search_type.value}.new_results",
@@ -656,7 +677,9 @@ class SavedSearchService:
         Note: This is a placeholder. In production, integrate with
         an email service like SendGrid, AWS SES, or SMTP.
         """
-        logger.info(f"Sending email alert to {email}: {payload['search_name']} - {payload['new_count']} new results")
+        logger.info(
+            f"Sending email alert to {email}: {payload['search_name']} - {payload['new_count']} new results"
+        )
         # TODO: Integrate with email service
         # Example:
         # await email_service.send(
@@ -730,20 +753,23 @@ class SavedSearchService:
 
         with self.db_pool.get_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute(query, (
-                    search.id,
-                    search.user_id,
-                    search.name,
-                    search.description,
-                    search.search_type.value,
-                    json.dumps(search.parameters),
-                    json.dumps(search.alert_config.to_dict()),
-                    search.created_at,
-                    search.updated_at,
-                    search.is_active,
-                    search.run_count,
-                    search.alert_count,
-                ))
+                cur.execute(
+                    query,
+                    (
+                        search.id,
+                        search.user_id,
+                        search.name,
+                        search.description,
+                        search.search_type.value,
+                        json.dumps(search.parameters),
+                        json.dumps(search.alert_config.to_dict()),
+                        search.created_at,
+                        search.updated_at,
+                        search.is_active,
+                        search.run_count,
+                        search.alert_count,
+                    ),
+                )
                 conn.commit()
 
     async def _update_in_db(self, search: SavedSearch):
@@ -764,15 +790,18 @@ class SavedSearchService:
 
         with self.db_pool.get_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute(query, (
-                    search.name,
-                    search.description,
-                    json.dumps(search.parameters),
-                    json.dumps(search.alert_config.to_dict()),
-                    search.updated_at,
-                    search.is_active,
-                    search.id,
-                ))
+                cur.execute(
+                    query,
+                    (
+                        search.name,
+                        search.description,
+                        json.dumps(search.parameters),
+                        json.dumps(search.alert_config.to_dict()),
+                        search.updated_at,
+                        search.is_active,
+                        search.id,
+                    ),
+                )
                 conn.commit()
 
     # =========================================================================

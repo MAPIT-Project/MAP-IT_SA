@@ -554,8 +554,7 @@ class TestScenario032TopicRefinement:
             has_healthcare = self._has_healthcare_terms(turn2_text)
 
             assert refinement_detected or has_healthcare, (
-                f"Turn 2 should detect healthcare refinement. "
-                f"Reasoning: {reasoning_text[:400]}..."
+                f"Turn 2 should detect healthcare refinement. Reasoning: {reasoning_text[:400]}..."
             )
 
     @pytest.mark.asyncio
@@ -661,12 +660,12 @@ ASSISTANT: I found 10 projects on renewable energy..."""
             keywords = params.get("keywords", "").lower()
             cluster = params.get("cluster", "")
 
-            assert (
-                expected_keyword in keywords
-            ), f"Keywords should include '{expected_keyword}' for query '{query}', got: {keywords}"
-            assert (
-                cluster == expected_cluster
-            ), f"Cluster should be '{expected_cluster}' for query '{query}', got: {cluster}"
+            assert expected_keyword in keywords, (
+                f"Keywords should include '{expected_keyword}' for query '{query}', got: {keywords}"
+            )
+            assert cluster == expected_cluster, (
+                f"Cluster should be '{expected_cluster}' for query '{query}', got: {cluster}"
+            )
 
     @pytest.mark.asyncio
     async def test_context_preserved_across_turns(self, conversation_id):
@@ -685,9 +684,9 @@ ASSISTANT: I found 10 projects on renewable energy..."""
 
             messages = context.get("messages", [])
             # Should have at least 4 messages (2 user + 2 assistant)
-            assert (
-                len(messages) >= 4
-            ), f"Context should have at least 4 messages, got {len(messages)}"
+            assert len(messages) >= 4, (
+                f"Context should have at least 4 messages, got {len(messages)}"
+            )
 
             # Verify both queries are in context (check all messages, not just role=user)
             all_content = " ".join(m.get("content", "") for m in messages).lower()

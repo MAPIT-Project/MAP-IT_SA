@@ -72,9 +72,9 @@ class TestScenario008CountryStatistics:
                 "get_country_statistics" in str(step) for step in reasoning_steps
             )
 
-            assert (
-                "get_country_statistics" in tools_used or tool_in_reasoning
-            ), f"Expected get_country_statistics tool to be used. Tools: {tools_used}"
+            assert "get_country_statistics" in tools_used or tool_in_reasoning, (
+                f"Expected get_country_statistics tool to be used. Tools: {tools_used}"
+            )
 
     @pytest.mark.asyncio
     async def test_includes_project_counts(self, conversation_id):
@@ -218,9 +218,9 @@ class TestScenario008CountryStatistics:
             quality_score = quality_analysis.get("score", 100)
 
             # Minimum acceptable score
-            assert (
-                quality_score >= self.PASS_THRESHOLD
-            ), f"Quality score {quality_score} below threshold {self.PASS_THRESHOLD}"
+            assert quality_score >= self.PASS_THRESHOLD, (
+                f"Quality score {quality_score} below threshold {self.PASS_THRESHOLD}"
+            )
 
     @pytest.mark.asyncio
     async def test_no_error_in_response(self, conversation_id):

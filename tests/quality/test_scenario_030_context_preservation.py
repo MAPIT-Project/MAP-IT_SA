@@ -111,9 +111,9 @@ class TestScenario030ContextPreservation:
             tools_used = result.get("metadata", {}).get("tools_used", [])
             search_executed = any("search" in tool.lower() for tool in tools_used)
 
-            assert (
-                has_call_indicators or search_executed
-            ), f"Turn 1 should return funding calls or execute search. Tools used: {tools_used}"
+            assert has_call_indicators or search_executed, (
+                f"Turn 1 should return funding calls or execute search. Tools used: {tools_used}"
+            )
 
     @pytest.mark.asyncio
     async def test_turn1_includes_budgets(self, conversation_id):
@@ -226,9 +226,9 @@ class TestScenario030ContextPreservation:
                 t in turn2_text.lower() for t in ["€", "eur", "million", "budget"]
             )
 
-            assert (
-                len(budgets) > 0 or has_budget_mention
-            ), f"Turn 2 should include the budget amount. Response: {turn2_text[:500]}..."
+            assert len(budgets) > 0 or has_budget_mention, (
+                f"Turn 2 should include the budget amount. Response: {turn2_text[:500]}..."
+            )
 
     @pytest.mark.asyncio
     async def test_turn2_does_not_repeat_search(self, conversation_id):
@@ -253,9 +253,9 @@ class TestScenario030ContextPreservation:
                 # Should still be a valid answer about hydrogen calls
                 has_hydrogen = "hydrogen" in turn2_text
                 has_budget = any(t in turn2_text for t in ["€", "budget", "million", "funding"])
-                assert (
-                    has_hydrogen or has_budget
-                ), "Even with new search, response should be about hydrogen/budgets"
+                assert has_hydrogen or has_budget, (
+                    "Even with new search, response should be about hydrogen/budgets"
+                )
 
     @pytest.mark.asyncio
     async def test_turn2_does_not_lose_context(self, conversation_id):
@@ -309,9 +309,9 @@ class TestScenario030ContextPreservation:
 
             # Should have at least 2 messages (may not store all user messages)
             # Key is that context preserves assistant responses
-            assert (
-                message_count >= 2
-            ), f"Context should have at least 2 messages. Found: {message_count}"
+            assert message_count >= 2, (
+                f"Context should have at least 2 messages. Found: {message_count}"
+            )
 
             # Verify context has content from the conversation
             # API may use 'text'/'sender' or 'content'/'role' keys
@@ -323,9 +323,9 @@ class TestScenario030ContextPreservation:
             has_context = any(
                 term in all_content for term in ["hydrogen", "funding", "call", "budget", "highest"]
             )
-            assert (
-                has_context
-            ), f"Context should include conversation content. Found {len(messages)} messages."
+            assert has_context, (
+                f"Context should include conversation content. Found {len(messages)} messages."
+            )
 
     @pytest.mark.asyncio
     async def test_turn2_response_quality(self, conversation_id):

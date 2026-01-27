@@ -16,9 +16,9 @@ low count, low relevance), the agent self-corrects by:
 4. Iterating until sufficient results obtained or max iterations reached
 """
 
-from datetime import datetime
 import json
 import logging
+from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -589,9 +589,9 @@ class TestScenario057EndToEnd:
         ]
         has_relevant_content = any(term in response_lower for term in energy_terms)
 
-        assert (
-            has_relevant_content
-        ), f"Response should contain relevant terms. Response: {response[:200]}..."
+        assert has_relevant_content, (
+            f"Response should contain relevant terms. Response: {response[:200]}..."
+        )
 
 
 class TestSelfCorrectionPatterns:

@@ -104,9 +104,9 @@ class TestScenario008ConsortiumBuildingOffline:
         assert "name" in data
         assert data["name"] == "Consortium Building"
         assert "steps" in data
-        assert (
-            len(data["steps"]) == NUM_TURNS
-        ), f"Expected {NUM_TURNS} turns, got {len(data['steps'])}"
+        assert len(data["steps"]) == NUM_TURNS, (
+            f"Expected {NUM_TURNS} turns, got {len(data['steps'])}"
+        )
 
     def test_results_directory_exists(self):
         """Verify results directory can be created."""
@@ -223,9 +223,9 @@ class TestScenario008ConsortiumBuildingOffline:
         with open(SCENARIO_PATH) as f:
             data = yaml.safe_load(f)
 
-        assert (
-            len(data["steps"]) == NUM_TURNS
-        ), f"Expected {NUM_TURNS} turns, got {len(data['steps'])}"
+        assert len(data["steps"]) == NUM_TURNS, (
+            f"Expected {NUM_TURNS} turns, got {len(data['steps'])}"
+        )
 
 
 class TestScenario008ConsortiumBuildingLive:
@@ -304,9 +304,9 @@ class TestScenario008ConsortiumBuildingLive:
 
         # Assertions based on PRD requirements
         assert result.scenario_name == "Consortium Building"
-        assert (
-            len(result.turns) == NUM_TURNS
-        ), f"Expected {NUM_TURNS} turns, got {len(result.turns)}"
+        assert len(result.turns) == NUM_TURNS, (
+            f"Expected {NUM_TURNS} turns, got {len(result.turns)}"
+        )
 
         # Check that consortium-related terms are mentioned across conversation
         all_responses = " ".join(t.response for t in result.turns)
@@ -506,9 +506,9 @@ class TestScenario008ConsortiumBuildingLive:
         logger.info(f"Organization mentions across {NUM_TURNS} turns: {org_mentions}")
 
         # Should have multiple mentions of consortium/partner context across turns
-        assert (
-            partner_mentions >= 2 or consortium_mentions >= 2 or org_mentions >= 2
-        ), "Consortium context should be maintained across turns"
+        assert partner_mentions >= 2 or consortium_mentions >= 2 or org_mentions >= 2, (
+            "Consortium context should be maintained across turns"
+        )
 
 
 class TestScenario008ConsortiumBuildingResults:
@@ -531,9 +531,9 @@ class TestScenario008ConsortiumBuildingResults:
         assert "status" in result
 
         # Validate this is a 6-turn scenario
-        assert (
-            len(result["turns"]) == NUM_TURNS
-        ), f"Expected {NUM_TURNS} turns, got {len(result['turns'])}"
+        assert len(result["turns"]) == NUM_TURNS, (
+            f"Expected {NUM_TURNS} turns, got {len(result['turns'])}"
+        )
 
         # Log current status
         logger.info(f"Current status: {result['status']}")

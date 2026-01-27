@@ -188,9 +188,9 @@ class TestScenario023DigitalEuropeEligibility:
 
             # Should use check_digital_europe_eligibility tool
             has_dep_tool = any("digital_europe" in tool.lower() for tool in tools_used)
-            assert (
-                has_dep_tool
-            ), f"Should use check_digital_europe_eligibility tool. Tools used: {tools_used}"
+            assert has_dep_tool, (
+                f"Should use check_digital_europe_eligibility tool. Tools used: {tools_used}"
+            )
 
     @pytest.mark.asyncio
     async def test_provides_actionable_next_steps(self, conversation_id):

@@ -26,54 +26,68 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
 # Erasmus+ document type mappings
 ERASMUS_DOCUMENT_TYPES = {
-    'programme_guide': {
-        'patterns': ['programme_guide', 'programme-guide', 'program_guide', 'guide_2025', 'guide_2026', 'guide-2025', 'guide-2026'],
-        'type': 'programme_guide',
-        'description': 'Erasmus+ Programme Guide - comprehensive rules and eligibility'
+    "programme_guide": {
+        "patterns": [
+            "programme_guide",
+            "programme-guide",
+            "program_guide",
+            "guide_2025",
+            "guide_2026",
+            "guide-2025",
+            "guide-2026",
+        ],
+        "type": "programme_guide",
+        "description": "Erasmus+ Programme Guide - comprehensive rules and eligibility",
     },
-    'work_programme': {
-        'patterns': ['work_programme', 'work-programme', 'annual_work', 'awp_2025', 'awp_2026', 'awp-2025', 'awp-2026', 'awp-erasmus'],
-        'type': 'work_programme',
-        'description': 'Annual Work Programme with budget allocations'
+    "work_programme": {
+        "patterns": [
+            "work_programme",
+            "work-programme",
+            "annual_work",
+            "awp_2025",
+            "awp_2026",
+            "awp-2025",
+            "awp-2026",
+            "awp-erasmus",
+        ],
+        "type": "work_programme",
+        "description": "Annual Work Programme with budget allocations",
     },
-    'call_document': {
-        'patterns': ['call_for_proposals', 'call-for-proposals', 'call_2025', 'call_2026', 'cfp_'],
-        'type': 'call_document',
-        'description': 'Call for proposals with deadlines'
+    "call_document": {
+        "patterns": ["call_for_proposals", "call-for-proposals", "call_2025", "call_2026", "cfp_"],
+        "type": "call_document",
+        "description": "Call for proposals with deadlines",
     },
-    'application_form': {
-        'patterns': ['application_form', 'template', 'form_ka1', 'form_ka2'],
-        'type': 'application_template',
-        'description': 'Application forms and templates'
+    "application_form": {
+        "patterns": ["application_form", "template", "form_ka1", "form_ka2"],
+        "type": "application_template",
+        "description": "Application forms and templates",
     },
-    'budget_tool': {
-        'patterns': ['budget', 'lump_sum', 'unit_cost', 'financial'],
-        'type': 'budget_guidance',
-        'description': 'Budget calculation tools and financial guidance'
+    "budget_tool": {
+        "patterns": ["budget", "lump_sum", "unit_cost", "financial"],
+        "type": "budget_guidance",
+        "description": "Budget calculation tools and financial guidance",
     },
-    'ka1_mobility': {
-        'patterns': ['ka1', 'ka131', 'ka171', 'mobility', 'learning-mobility'],
-        'type': 'ka1_mobility',
-        'description': 'KA1 Learning Mobility guidance'
+    "ka1_mobility": {
+        "patterns": ["ka1", "ka131", "ka171", "mobility", "learning-mobility"],
+        "type": "ka1_mobility",
+        "description": "KA1 Learning Mobility guidance",
     },
-    'ka2_cooperation': {
-        'patterns': ['ka2', 'ka210', 'ka220', 'cooperation', 'partnerships'],
-        'type': 'ka2_cooperation',
-        'description': 'KA2 Cooperation Partnerships guidance'
+    "ka2_cooperation": {
+        "patterns": ["ka2", "ka210", "ka220", "cooperation", "partnerships"],
+        "type": "ka2_cooperation",
+        "description": "KA2 Cooperation Partnerships guidance",
     },
-    'eche': {
-        'patterns': ['eche', 'charter', 'higher-education'],
-        'type': 'eche_guidance',
-        'description': 'Erasmus Charter for Higher Education'
+    "eche": {
+        "patterns": ["eche", "charter", "higher-education"],
+        "type": "eche_guidance",
+        "description": "Erasmus Charter for Higher Education",
     },
 }
 
@@ -87,13 +101,13 @@ def detect_document_type(filename: str) -> tuple[str, str]:
     """
     filename_lower = filename.lower()
 
-    for doc_type, config in ERASMUS_DOCUMENT_TYPES.items():
-        for pattern in config['patterns']:
+    for _doc_type, config in ERASMUS_DOCUMENT_TYPES.items():
+        for pattern in config["patterns"]:
             if pattern in filename_lower:
-                return config['type'], config['description']
+                return config["type"], config["description"]
 
     # Default fallback
-    return 'guidance_document', 'Erasmus+ guidance document'
+    return "guidance_document", "Erasmus+ guidance document"
 
 
 def extract_year_from_filename(filename: str) -> str:
@@ -101,12 +115,12 @@ def extract_year_from_filename(filename: str) -> str:
     import re
 
     # Match years like 2025, 2026, 2027
-    year_match = re.search(r'20(2[5-7])', filename)
+    year_match = re.search(r"20(2[5-7])", filename)
     if year_match:
         return f"20{year_match.group(1)}"
 
     # Match year ranges like 2025-2026
-    range_match = re.search(r'(202[5-7])[-_](202[5-7])', filename)
+    range_match = re.search(r"(202[5-7])[-_](202[5-7])", filename)
     if range_match:
         return f"{range_match.group(1)}-{range_match.group(2)}"
 
@@ -148,6 +162,7 @@ def ingest_erasmus_documents(source_dir: str, dry_run: bool = False):
     # Import ingestion service
     try:
         from app.services.ingestion_service import DocumentIngestionService
+
         ingestion_service = DocumentIngestionService()
     except ImportError as e:
         logger.error(f"Failed to import ingestion service: {e}")
@@ -155,7 +170,7 @@ def ingest_erasmus_documents(source_dir: str, dry_run: bool = False):
 
     # Check service status
     stats = ingestion_service.get_service_stats()
-    if not stats.get('supabase_connected', False):
+    if not stats.get("supabase_connected", False):
         logger.error("Supabase connection failed. Check DATABASE_URL and SUPABASE_KEY.")
         return False
 
@@ -189,10 +204,10 @@ def ingest_erasmus_documents(source_dir: str, dry_run: bool = False):
                     "description": doc_description,
                     "ingested_by": "erasmus_ingestion_script",
                     "funding_model": "lump_sum",
-                }
+                },
             )
 
-            if result.get('success'):
+            if result.get("success"):
                 logger.info(f"  SUCCESS: {pdf_file.name}")
                 logger.info(f"    Document ID: {result.get('document_id')}")
                 logger.info(f"    Chunks: {result.get('chunks_created')}")
@@ -231,19 +246,11 @@ def ingest_erasmus_documents(source_dir: str, dry_run: bool = False):
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Ingest Erasmus+ documents into RAG system"
-    )
+    parser = argparse.ArgumentParser(description="Ingest Erasmus+ documents into RAG system")
     parser.add_argument(
-        "--source-dir",
-        default="newdocs/erasmus",
-        help="Directory containing Erasmus+ PDFs"
+        "--source-dir", default="newdocs/erasmus", help="Directory containing Erasmus+ PDFs"
     )
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Don't commit to database"
-    )
+    parser.add_argument("--dry-run", action="store_true", help="Don't commit to database")
     args = parser.parse_args()
 
     logger.info("=" * 60)
@@ -257,8 +264,7 @@ def main():
     source_dir = args.source_dir
     if not os.path.isabs(source_dir):
         source_dir = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            source_dir
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), source_dir
         )
 
     logger.info(f"Source directory: {source_dir}")
@@ -269,7 +275,9 @@ def main():
         logger.info("\nIngestion completed!")
         logger.info("\nNext steps:")
         logger.info("1. Run Phase 2: Sync Erasmus+ calls from API")
-        logger.info("2. Test with: curl -X POST http://localhost:8000/api/v3/conversation/test/message")
+        logger.info(
+            "2. Test with: curl -X POST http://localhost:8000/api/v3/conversation/test/message"
+        )
     else:
         logger.error("\nIngestion failed!")
         sys.exit(1)

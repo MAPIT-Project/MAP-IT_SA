@@ -42,9 +42,7 @@ import httpx
 import pytest
 
 # Add project root to path
-sys.path.insert(
-    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 # API configuration
 API_BASE_URL = os.getenv("MAP_IT_API_URL", "http://localhost:8000")
@@ -348,9 +346,7 @@ class EvaluationResult:
 def check_api_available() -> bool:
     """Check if the API is available."""
     try:
-        response = httpx.get(
-            f"{API_BASE_URL}/api/v3/conversation/health", timeout=5.0
-        )
+        response = httpx.get(f"{API_BASE_URL}/api/v3/conversation/health", timeout=5.0)
         return response.status_code == 200
     except Exception:
         return False
@@ -363,9 +359,7 @@ live_api = pytest.mark.skipif(
 )
 
 
-def get_mapit_response(
-    query: str, conversation_id: int | None = None
-) -> dict[str, Any]:
+def get_mapit_response(query: str, conversation_id: int | None = None) -> dict[str, Any]:
     """
     Send a query to MAPIT and get the response.
 
@@ -538,9 +532,7 @@ def evaluate_query_fulfillment(response: str) -> tuple[int, str, list[str], list
         missing_items.append("Projects not clearly Industry 4.0/5.0 related")
 
     # Check for soil regeneration relevance (10 points)
-    soil_keywords_found = sum(
-        1 for keyword in EXPECTED_SOIL_KEYWORDS if keyword in response_lower
-    )
+    soil_keywords_found = sum(1 for keyword in EXPECTED_SOIL_KEYWORDS if keyword in response_lower)
 
     if soil_keywords_found >= 5:
         score += 10
@@ -617,9 +609,7 @@ def evaluate_specificity(response: str) -> tuple[int, str]:
         r"\d+[\.,]\d+\s*m(?:illion)?",
         r"\d+\s*million",
     ]
-    budget_matches = sum(
-        len(re.findall(pat, response, re.IGNORECASE)) for pat in budget_patterns
-    )
+    budget_matches = sum(len(re.findall(pat, response, re.IGNORECASE)) for pat in budget_patterns)
     if budget_matches >= 10:
         score += 5
     elif budget_matches >= 5:
@@ -638,9 +628,7 @@ def evaluate_specificity(response: str) -> tuple[int, str]:
         "led by",
         "coordinating",
     ]
-    coordinator_found = sum(
-        1 for ind in coordinator_indicators if ind in response_lower
-    )
+    coordinator_found = sum(1 for ind in coordinator_indicators if ind in response_lower)
     # Also check for institution names
     institution_patterns = [
         r"university of",
@@ -656,9 +644,7 @@ def evaluate_specificity(response: str) -> tuple[int, str]:
         r"copenhagen",
         r"munich",
     ]
-    institution_found = sum(
-        1 for pat in institution_patterns if re.search(pat, response_lower)
-    )
+    institution_found = sum(1 for pat in institution_patterns if re.search(pat, response_lower))
 
     if coordinator_found >= 5 or institution_found >= 8:
         score += 5
@@ -675,8 +661,22 @@ def evaluate_specificity(response: str) -> tuple[int, str]:
     acronym_pattern = r"\b[A-Z][A-Z0-9\-]{2,}[A-Z0-9]\b"
     acronyms = set(re.findall(acronym_pattern, response))
     excluded = {
-        "THE", "AND", "FOR", "WITH", "FROM", "THIS", "THAT", "WHICH", "ABOUT",
-        "IOT", "SME", "VET", "RIA", "CSA", "DNA", "MRV"
+        "THE",
+        "AND",
+        "FOR",
+        "WITH",
+        "FROM",
+        "THIS",
+        "THAT",
+        "WHICH",
+        "ABOUT",
+        "IOT",
+        "SME",
+        "VET",
+        "RIA",
+        "CSA",
+        "DNA",
+        "MRV",
     }
     acronyms = {a for a in acronyms if a not in excluded}
 
@@ -740,9 +740,7 @@ def evaluate_factual_accuracy(
             if "grant" in response_lower or "agreement" in response_lower:
                 nearby_idx = response_lower.find(num.lower())
                 if nearby_idx >= 0:
-                    context = response_lower[
-                        max(0, nearby_idx - 30) : nearby_idx + len(num) + 30
-                    ]
+                    context = response_lower[max(0, nearby_idx - 30) : nearby_idx + len(num) + 30]
                     if "grant" in context or "id" in context:
                         score -= 2
                         errors.append(
@@ -884,9 +882,7 @@ def evaluate_actionability(response: str) -> tuple[int, str]:
     )
 
 
-def evaluate_response(
-    response: str, response_metadata: dict[str, Any]
-) -> EvaluationResult:
+def evaluate_response(response: str, response_metadata: dict[str, Any]) -> EvaluationResult:
     """
     Perform full evaluation of the response.
 
@@ -911,9 +907,7 @@ def evaluate_response(
     actionability_score, actionability_notes = evaluate_actionability(response)
 
     # Calculate overall score
-    overall_score = (
-        fulfillment_score + specificity_score + accuracy_score + actionability_score
-    )
+    overall_score = fulfillment_score + specificity_score + accuracy_score + actionability_score
 
     # Determine result
     if overall_score >= PASS_THRESHOLD:
@@ -973,9 +967,7 @@ def evaluate_response(
     # Identify strengths
     strengths = []
     if fulfillment_score >= 32:
-        strengths.append(
-            "Lists ~10 Industry 4.0/5.0 soil regeneration projects with objectives"
-        )
+        strengths.append("Lists ~10 Industry 4.0/5.0 soil regeneration projects with objectives")
     if specificity_score >= 20:
         strengths.append("Rich in project details (IDs, budgets, coordinators)")
     if accuracy_score >= 20:
@@ -1158,8 +1150,7 @@ class TestPrompt019OfflineEvaluation:
         print(f"  Result: {evaluation.result}")
 
         assert evaluation.overall_score >= PASS_THRESHOLD, (
-            f"Excellent response scored {evaluation.overall_score}, "
-            f"expected >= {PASS_THRESHOLD}"
+            f"Excellent response scored {evaluation.overall_score}, expected >= {PASS_THRESHOLD}"
         )
         assert evaluation.result == "PASS"
 
@@ -1175,8 +1166,7 @@ class TestPrompt019OfflineEvaluation:
 
         # Partial should score below PASS threshold
         assert evaluation.overall_score < PASS_THRESHOLD, (
-            f"Partial response scored {evaluation.overall_score}, "
-            f"expected < {PASS_THRESHOLD}"
+            f"Partial response scored {evaluation.overall_score}, expected < {PASS_THRESHOLD}"
         )
 
     def test_poor_response_fails(self):
@@ -1190,8 +1180,7 @@ class TestPrompt019OfflineEvaluation:
         print(f"  Result: {evaluation.result}")
 
         assert evaluation.overall_score < NEEDS_REVIEW_THRESHOLD, (
-            f"Poor response scored {evaluation.overall_score}, "
-            f"expected < {NEEDS_REVIEW_THRESHOLD}"
+            f"Poor response scored {evaluation.overall_score}, expected < {NEEDS_REVIEW_THRESHOLD}"
         )
         assert evaluation.result == "FAIL"
 
@@ -1208,9 +1197,7 @@ class TestPrompt019OfflineEvaluation:
 
             # Partial response should be missing objective summaries
             print(f"Missing items: {missing}")
-            has_objective_issue = any(
-                "objective" in item.lower() for item in missing
-            )
+            has_objective_issue = any("objective" in item.lower() for item in missing)
             # Either missing objectives identified or score is low
             assert has_objective_issue or evaluation.overall_score < 70, (
                 "Should identify missing objective summaries or score low"

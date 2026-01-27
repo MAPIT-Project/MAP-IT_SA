@@ -552,6 +552,6 @@ class TestIntegrationWithAPI:
         if "eic accelerator" in response_text and "eurostars" in response_text:
             # If both EIC Accelerator and Eurostars mentioned, likely SME response
             # Should also mention CCS topic
-            assert any(
-                term in response_text for term in ["carbon", "co2", "ccs", "capture"]
-            ), "Response should be about CCS, not generic SME guidance"
+            assert any(term in response_text for term in ["carbon", "co2", "ccs", "capture"]), (
+                "Response should be about CCS, not generic SME guidance"
+            )

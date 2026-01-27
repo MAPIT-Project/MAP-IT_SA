@@ -3,7 +3,7 @@ Unified Response Formatter for all types of research data.
 
 This service provides consistent, beautiful formatting for:
 - EU funding calls
-- Research projects  
+- Research projects
 - General research information
 - Tool results
 """
@@ -14,48 +14,45 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+
 class UnifiedResponseFormatter:
     """
     Unified formatter that provides consistent, beautiful formatting
     for all types of research information.
     """
-    
+
     def __init__(self):
         """Initialize the formatter."""
         pass
-    
+
     def format_tool_results(self, tool_results: dict[str, Any]) -> str:
         """
         Format tool execution results with appropriate styling.
-        
+
         Args:
             tool_results: Dictionary of tool results
-            
+
         Returns:
             Beautifully formatted response string
         """
         formatted_parts = []
-        
+
         for tool_name, tool_result in tool_results.items():
             # Handle both object-style and dict-style tool results
-            is_successful = (
-                (hasattr(tool_result, 'success') and tool_result.success) or
-                (isinstance(tool_result, dict) and tool_result.get('success', False))
+            is_successful = (hasattr(tool_result, "success") and tool_result.success) or (
+                isinstance(tool_result, dict) and tool_result.get("success", False)
             )
-            
+
             if is_successful:
                 # Extract the actual result data
-                result_data = (
-                    tool_result.result if hasattr(tool_result, 'result') 
-                    else tool_result
-                )
-                
-                if tool_name == 'eu_portal_search':
+                result_data = tool_result.result if hasattr(tool_result, "result") else tool_result
+
+                if tool_name == "eu_portal_search":
                     # Format EU portal call search results
                     formatted_calls = self._format_eu_calls(result_data)
                     formatted_parts.append(formatted_calls)
-                    
-                elif tool_name == 'search_cordis_projects':
+
+                elif tool_name == "search_cordis_projects":
                     # Format CORDIS project search results
                     logger.info(f"🔍 FORMATTING CORDIS TOOL RESULT: {tool_name}")
                     logger.info(f"🔍 RESULT DATA TYPE: {type(result_data)}")
@@ -63,20 +60,21 @@ class UnifiedResponseFormatter:
                         logger.info(f"🔍 RESULT DATA KEYS: {list(result_data.keys())}")
 
                     formatted_projects = self._format_cordis_projects(result_data)
-                    logger.info(f"🔍 CORDIS FORMATTED LENGTH: {len(formatted_projects) if formatted_projects else 0}")
+                    formatted_len = len(formatted_projects) if formatted_projects else 0
+                    logger.info(f"🔍 CORDIS FORMATTED LENGTH: {formatted_len}")
                     formatted_parts.append(formatted_projects)
 
-                elif tool_name == 'search_conversation_memory':
+                elif tool_name == "search_conversation_memory":
                     # Format conversation memory search results
                     formatted_memory = self._format_conversation_memory(result_data)
                     formatted_parts.append(formatted_memory)
 
-                elif tool_name == 'search_local_database':
+                elif tool_name == "search_local_database":
                     # Format local database search results
                     formatted_database = self._format_local_database(result_data)
                     formatted_parts.append(formatted_database)
 
-                elif tool_name == 'intelligent_search':
+                elif tool_name == "intelligent_search":
                     # Format intelligent search results (graph + vector + planner)
                     formatted_intelligent = self._format_intelligent_search(result_data)
                     formatted_parts.append(formatted_intelligent)
@@ -85,35 +83,38 @@ class UnifiedResponseFormatter:
                     # Generic tool result formatting
                     formatted_generic = self._format_generic_tool_result(tool_name, result_data)
                     formatted_parts.append(formatted_generic)
-        
+
         return "\n\n".join(formatted_parts) if formatted_parts else "No results found."
 
     def _format_conversation_memory(self, memory_data: dict[str, Any]) -> str:
         """Format conversation memory search results into natural conversational response."""
         try:
             # Extract the key information from the memory tool result
-            answer = memory_data.get('answer', '')
-            turns_found = memory_data.get('turns_found', 0)
-            total_turns = memory_data.get('total_turns_in_memory', 0)
-            sources = memory_data.get('sources', [])
-            confidence = memory_data.get('confidence', 0.0)
+            answer = memory_data.get("answer", "")
+            turns_found = memory_data.get("turns_found", 0)
+            memory_data.get("total_turns_in_memory", 0)
+            sources = memory_data.get("sources", [])
+            memory_data.get("confidence", 0.0)
 
             # If no conversation history found
             if turns_found == 0:
-                return "I don't have any conversation history to search through yet. This appears to be the start of our conversation."
+                return (
+                    "I don't have any conversation history to search through yet. "
+                    "This appears to be the start of our conversation."
+                )
 
             # Format the response based on what was found
             if turns_found == 1:
                 # Single message found - format it naturally
                 if sources and len(sources) > 0:
                     first_turn = sources[0]
-                    role = first_turn.get('role', 'user')
-                    content = first_turn.get('content', '')
+                    role = first_turn.get("role", "user")
+                    content = first_turn.get("content", "")
 
-                    if role == 'user':
-                        return f"Your first message was: \"{content}\""
+                    if role == "user":
+                        return f'Your first message was: "{content}"'
                     else:
-                        return f"The first message in our conversation was: \"{content}\""
+                        return f'The first message in our conversation was: "{content}"'
                 else:
                     return answer  # Fallback to the tool's answer
 
@@ -125,11 +126,11 @@ class UnifiedResponseFormatter:
             assistant_messages = []
 
             for source in sources[:5]:  # Limit to first 5 messages for readability
-                role = source.get('role', 'user')
-                content = source.get('content', '')
-                timestamp = source.get('timestamp', '')
+                role = source.get("role", "user")
+                content = source.get("content", "")
+                source.get("timestamp", "")
 
-                if role == 'user':
+                if role == "user":
                     user_messages.append(content)
                 else:
                     assistant_messages.append(content)
@@ -138,12 +139,12 @@ class UnifiedResponseFormatter:
             if user_messages:
                 formatted_parts.append("**Your messages:**")
                 for i, msg in enumerate(user_messages, 1):
-                    formatted_parts.append(f"{i}. \"{msg}\"")
+                    formatted_parts.append(f'{i}. "{msg}"')
 
             if assistant_messages:
                 formatted_parts.append("\n**My responses:**")
                 for i, msg in enumerate(assistant_messages, 1):
-                    formatted_parts.append(f"{i}. \"{msg}\"")
+                    formatted_parts.append(f'{i}. "{msg}"')
 
             if formatted_parts:
                 return "\n".join(formatted_parts)
@@ -153,13 +154,16 @@ class UnifiedResponseFormatter:
         except Exception as e:
             logger.error(f"Error formatting conversation memory: {e}")
             # Fallback to the raw answer from the tool
-            return memory_data.get('answer', 'I found some conversation history but had trouble formatting it.')
+            return memory_data.get(
+                "answer", "I found some conversation history but had trouble formatting it."
+            )
 
     def _format_intelligent_search(self, search_data: dict[str, Any]) -> str:
         """Format intelligent search results (graph + vector + planner) into a natural response.
 
         The intelligent_search tool returns:
-        - results.answer_context: Context for LLM (NOT a final answer) - contains metadata + documents
+        - results.answer_context: Context for LLM (NOT a final answer) - contains
+          metadata + documents
         - results.intent_type: Detected intent (e.g., 'general', 'eligibility', 'budget')
         - results.confidence: Confidence score
         - results.graph_results: Structured data from Neo4j
@@ -171,23 +175,23 @@ class UnifiedResponseFormatter:
         """
         try:
             # Extract the results object
-            results = search_data.get('results', {})
+            results = search_data.get("results", {})
             if not results:
                 results = search_data  # Maybe results are at top level
 
             formatted_parts = []
-            intent_type = results.get('intent_type', 'general')
-            confidence = results.get('confidence', 0.0)
+            intent_type = results.get("intent_type", "general")
+            results.get("confidence", 0.0)
 
             # First try to build from structured graph results (most valuable)
-            graph_results = results.get('graph_results', [])
+            graph_results = results.get("graph_results", [])
             if graph_results:
                 formatted_parts.append("**Based on our research database:**\n")
-                for i, result in enumerate(graph_results[:5], 1):
+                for _i, result in enumerate(graph_results[:5], 1):
                     if isinstance(result, str):
                         # Clean up graph result string
                         clean_result = result.strip()
-                        if clean_result and not clean_result.startswith('{'):
+                        if clean_result and not clean_result.startswith("{"):
                             formatted_parts.append(f"{clean_result}\n")
                     elif isinstance(result, dict):
                         # Format dict results nicely instead of just converting to string
@@ -196,17 +200,17 @@ class UnifiedResponseFormatter:
                             formatted_parts.append(f"{content}\n")
 
             # Then add vector results for supporting evidence
-            vector_results = results.get('vector_results', [])
+            vector_results = results.get("vector_results", [])
             if vector_results:
                 if formatted_parts:
                     formatted_parts.append("\n**From official documentation:**\n")
                 else:
                     formatted_parts.append("**Based on official documentation:**\n")
 
-                for i, result in enumerate(vector_results[:3], 1):
+                for _i, result in enumerate(vector_results[:3], 1):
                     if isinstance(result, dict):
-                        content = result.get('content', '')
-                        title = result.get('title', result.get('source', 'Horizon Europe Document'))
+                        content = result.get("content", "")
+                        title = result.get("title", result.get("source", "Horizon Europe Document"))
 
                         # Clean and truncate content
                         if content:
@@ -221,26 +225,26 @@ class UnifiedResponseFormatter:
             if formatted_parts:
                 # Add a helpful intro based on intent
                 intro = ""
-                if intent_type == 'general':
+                if intent_type == "general":
                     intro = "Here's what I found:\n\n"
-                elif intent_type == 'eligibility':
+                elif intent_type == "eligibility":
                     intro = "Regarding eligibility:\n\n"
-                elif intent_type == 'budget':
+                elif intent_type == "budget":
                     intro = "Regarding budget and funding:\n\n"
-                elif intent_type == 'consortium_requirements':
+                elif intent_type == "consortium_requirements":
                     intro = "Regarding consortium requirements:\n\n"
 
-                return intro + ''.join(formatted_parts).strip()
+                return intro + "".join(formatted_parts).strip()
 
             # Fallback: Try to extract content from answer_context if it contains document content
-            answer_context = results.get('answer_context', '')
+            answer_context = results.get("answer_context", "")
             if answer_context:
                 # The answer_context contains metadata we need to strip
                 # Look for actual document content after the headers
                 import re
 
                 # Try to find document content sections
-                doc_pattern = r'\[Document \d+: ([^\]]+)\].*?Content: (.+?)(?=\[Document|\Z)'
+                doc_pattern = r"\[Document \d+: ([^\]]+)\].*?Content: (.+?)(?=\[Document|\Z)"
                 matches = re.findall(doc_pattern, answer_context, re.DOTALL)
 
                 if matches:
@@ -250,74 +254,92 @@ class UnifiedResponseFormatter:
                         if len(content) > 300:
                             clean_content += "..."
                         formatted_parts.append(f"\n*From {title.strip()}:*\n{clean_content}\n")
-                    return ''.join(formatted_parts).strip()
+                    return "".join(formatted_parts).strip()
 
                 # If no structured documents found, try to extract any meaningful content
                 # Skip the metadata lines and get actual content
-                lines = answer_context.split('\n')
+                lines = answer_context.split("\n")
                 content_lines = []
-                skip_prefixes = ('USER QUERY:', 'DETECTED INTENT:', '====', '🎯', '📄', '📊')
+                skip_prefixes = ("USER QUERY:", "DETECTED INTENT:", "====", "🎯", "📄", "📊")
 
                 for line in lines:
                     line_stripped = line.strip()
-                    if line_stripped and not any(line_stripped.startswith(p) for p in skip_prefixes):
+                    if line_stripped and not any(
+                        line_stripped.startswith(p) for p in skip_prefixes
+                    ):
                         # Skip instruction lines
-                        if 'Your answer should:' not in line_stripped and not line_stripped.startswith(('1.', '2.', '3.', '4.')):
+                        if (
+                            "Your answer should:" not in line_stripped
+                            and not line_stripped.startswith(("1.", "2.", "3.", "4."))
+                        ):
                             content_lines.append(line_stripped)
 
                 if content_lines:
-                    return '\n'.join(content_lines[:10])
+                    return "\n".join(content_lines[:10])
 
             # Ultimate fallback
-            return "I found relevant information about your query, but I need more specific details to provide a focused answer. Could you please clarify what aspect you'd like to know more about?"
+            return (
+                "I found relevant information about your query, but I need more specific "
+                "details to provide a focused answer. Could you please clarify what aspect "
+                "you'd like to know more about?"
+            )
 
         except Exception as e:
             logger.error(f"Error formatting intelligent search: {e}")
-            return "I had trouble processing the search results. Please try rephrasing your question."
+            return (
+                "I had trouble processing the search results. Please try rephrasing your question."
+            )
 
     def _format_local_database(self, database_data: dict[str, Any]) -> str:
         """Format local database search results into natural conversational response."""
         try:
             # Debug: Log the structure of the database data
             logger.info(f"🔍 FORMATTING LOCAL DATABASE: data type = {type(database_data)}")
-            logger.info(f"🔍 DATABASE DATA KEYS: {list(database_data.keys()) if isinstance(database_data, dict) else 'Not a dict'}")
+            db_keys = (
+                list(database_data.keys()) if isinstance(database_data, dict) else "Not a dict"
+            )
+            logger.info(f"🔍 DATABASE DATA KEYS: {db_keys}")
 
             # Extract the key information from the database tool result
             # The answer might be nested in different structures
-            answer = ''
+            answer = ""
 
             # Try different possible locations for the answer
             if isinstance(database_data, dict):
                 # Direct answer field
-                if 'answer' in database_data:
-                    answer = database_data['answer']
+                if "answer" in database_data:
+                    answer = database_data["answer"]
                 # Nested in results
-                elif 'results' in database_data and isinstance(database_data['results'], dict):
-                    answer = database_data['results'].get('answer', '')
+                elif "results" in database_data and isinstance(database_data["results"], dict):
+                    answer = database_data["results"].get("answer", "")
                 # Nested in result object
-                elif 'result' in database_data and isinstance(database_data['result'], dict):
-                    answer = database_data['result'].get('answer', '')
+                elif "result" in database_data and isinstance(database_data["result"], dict):
+                    answer = database_data["result"].get("answer", "")
                 # Direct result field
-                elif 'result' in database_data:
-                    answer = database_data['result']
+                elif "result" in database_data:
+                    answer = database_data["result"]
 
-            documents_found = database_data.get('documents_found', 0)
-            data_source = database_data.get('data_source', 'Local Database')
-            search_type = database_data.get('search_type', 'unknown')
-            confidence = database_data.get('confidence', 0.0)
-            sources = database_data.get('sources', [])
+            database_data.get("documents_found", 0)
+            database_data.get("data_source", "Local Database")
+            database_data.get("search_type", "unknown")
+            database_data.get("confidence", 0.0)
+            database_data.get("sources", [])
 
-            logger.info(f"🔍 EXTRACTED ANSWER: '{answer[:200]}...' (length: {len(answer) if answer else 0})")
+            logger.info(
+                f"🔍 EXTRACTED ANSWER: '{answer[:200]}...' (length: {len(answer) if answer else 0})"
+            )
 
             # If no answer or empty answer, provide enhanced fallback for research queries
-            if not answer or answer.strip() == '':
+            if not answer or answer.strip() == "":
                 logger.info("🔍 NO ANSWER FOUND - using enhanced research fallback")
-                return self._get_enhanced_research_response(database_data.get('query', ''))
+                return self._get_enhanced_research_response(database_data.get("query", ""))
 
             # Check if the answer is too short or generic
             if len(answer.strip()) < 100 or "couldn't find" in answer.lower():
                 logger.info("🔍 POOR QUALITY ANSWER - enhancing with research knowledge")
-                enhanced_answer = self._get_enhanced_research_response(database_data.get('query', ''))
+                enhanced_answer = self._get_enhanced_research_response(
+                    database_data.get("query", "")
+                )
                 if enhanced_answer:
                     return enhanced_answer
 
@@ -327,21 +349,36 @@ class UnifiedResponseFormatter:
             clean_answer = answer.strip()
 
             # If the answer looks like it contains raw tool formatting, clean it up
-            if '🔧 Tool Result:' in clean_answer or '**Query:**' in clean_answer:
+            if "🔧 Tool Result:" in clean_answer or "**Query:**" in clean_answer:
                 logger.info("🔍 CLEANING RAW TOOL OUTPUT")
-                # This suggests the answer contains raw tool output - try to extract just the useful part
-                lines = clean_answer.split('\n')
+                # This suggests the answer contains raw tool output - try to extract
+                # just the useful part
+                lines = clean_answer.split("\n")
                 useful_lines = []
                 for line in lines:
                     # Skip technical lines that look like tool output
-                    if not any(skip in line for skip in ['🔧 Tool Result:', '**Query:**', '**Parameters Used:**', '**Results:**', '**Metadata:**']):
+                    if not any(
+                        skip in line
+                        for skip in [
+                            "🔧 Tool Result:",
+                            "**Query:**",
+                            "**Parameters Used:**",
+                            "**Results:**",
+                            "**Metadata:**",
+                        ]
+                    ):
                         useful_lines.append(line)
-                clean_answer = '\n'.join(useful_lines).strip()
+                clean_answer = "\n".join(useful_lines).strip()
 
             # If we ended up with empty content after cleaning, provide fallback
             if not clean_answer:
                 logger.info("🔍 CLEANING RESULTED IN EMPTY ANSWER - using fallback")
-                return "I couldn't find specific information to answer your question in the available documentation. You might try rephrasing your question or checking the EU Funding & Tenders Portal directly at https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home"
+                return (
+                    "I couldn't find specific information to answer your question in the "
+                    "available documentation. You might try rephrasing your question or "
+                    "checking the EU Funding & Tenders Portal directly at "
+                    "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home"
+                )
 
             logger.info(f"🔍 RETURNING CLEAN ANSWER: '{clean_answer[:100]}...'")
             return clean_answer
@@ -349,7 +386,9 @@ class UnifiedResponseFormatter:
         except Exception as e:
             logger.error(f"Error formatting local database: {e}")
             # Fallback to the raw answer from the tool
-            return database_data.get('answer', 'I found some information but had trouble formatting it.')
+            return database_data.get(
+                "answer", "I found some information but had trouble formatting it."
+            )
 
     def _format_eu_calls(self, call_data: dict[str, Any]) -> str:
         """
@@ -357,34 +396,35 @@ class UnifiedResponseFormatter:
         """
         # Handle different data structures from tool results
         calls = []
-        query = 'funding opportunities'
+        query = "funding opportunities"
 
         # Check if call_data is the tool result structure
         if isinstance(call_data, dict):
             # Tool result structure
-            if 'calls' in call_data:
-                calls = call_data['calls']
-            elif 'results' in call_data:
+            if "calls" in call_data:
+                calls = call_data["calls"]
+            elif "results" in call_data:
                 # Handle both list of objects and dict with results
-                results = call_data['results']
+                results = call_data["results"]
                 if isinstance(results, list):
                     calls = results
-                elif isinstance(results, dict) and 'calls' in results:
-                    calls = results['calls']
-            query = call_data.get('query', 'funding opportunities')
+                elif isinstance(results, dict) and "calls" in results:
+                    calls = results["calls"]
+            query = call_data.get("query", "funding opportunities")
         elif isinstance(call_data, list):
             # Direct list of calls
             calls = call_data
         else:
             # Try to extract calls from any structure
-            calls = getattr(call_data, 'results', []) if hasattr(call_data, 'results') else []
+            calls = getattr(call_data, "results", []) if hasattr(call_data, "results") else []
 
         # Convert EnhancedSearchResult objects to dictionaries if needed
         processed_calls = []
         for call in calls:
-            if hasattr(call, '__dataclass_fields__'):
+            if hasattr(call, "__dataclass_fields__"):
                 # Convert dataclass to dict
                 from dataclasses import asdict
+
                 processed_calls.append(asdict(call))
             elif isinstance(call, dict):
                 processed_calls.append(call)
@@ -394,13 +434,13 @@ class UnifiedResponseFormatter:
 
         if not processed_calls:
             return self._format_no_calls_found(query)
-        
+
         # Generate structured response with beautiful formatting
         answer_parts = [
             f"I found **{len(calls)} funding opportunities** for your query about '{query}':",
-            ""
+            "",
         ]
-        
+
         # Sort calls by status and deadline
         sorted_calls = self._sort_calls_by_priority(processed_calls)
 
@@ -408,105 +448,105 @@ class UnifiedResponseFormatter:
             call_summary = self._format_single_call(i, call)
             answer_parts.append(call_summary)
             answer_parts.append("")  # Empty line between calls
-        
+
         # Add helpful footer with suggestions
         answer_parts.extend(self._get_calls_footer_with_suggestions(query, len(calls)))
 
         return "\n".join(answer_parts)
-    
+
     def _format_single_call(self, index: int, call: dict[str, Any]) -> str:
         """Format a single funding call with all details."""
-        title = call.get('title', 'Unknown Call')
-        identifier = call.get('identifier', 'N/A')
-        deadline = call.get('deadline', 'Not specified')
-        status = call.get('status', 'Unknown')
-        programme = call.get('frameworkProgramme', 'Not specified')
-        description = call.get('description', 'No description available')
-        url = call.get('url', '')
-        
+        title = call.get("title", "Unknown Call")
+        identifier = call.get("identifier", "N/A")
+        deadline = call.get("deadline", "Not specified")
+        status = call.get("status", "Unknown")
+        programme = call.get("frameworkProgramme", "Not specified")
+        description = call.get("description", "No description available")
+        url = call.get("url", "")
+
         # New fields from local search
-        action_type = call.get('action_type', '')
-        budget = call.get('budget', '')
-        cluster = call.get('cluster', '')
-        work_programme = call.get('work_programme', '')
-        
+        action_type = call.get("action_type", "")
+        budget = call.get("budget", "")
+        call.get("cluster", "")
+        work_programme = call.get("work_programme", "")
+
         # Format deadline nicely with urgency indicators
         deadline_text = self._format_deadline(deadline)
-        
+
         # Build call summary with emojis and formatting
         call_summary = f"**{index}. {title}**"
-        
-        if identifier != 'N/A':
+
+        if identifier != "N/A":
             call_summary += f"\n📋 **Call ID:** {identifier}"
-        
+
         # Add action type (RIA, IA, CSA, etc.)
         if action_type:
             action_emoji = self._get_action_type_emoji(action_type)
             call_summary += f"\n{action_emoji} **Type:** {action_type}"
-        
-        if status != 'Unknown':
+
+        if status != "Unknown":
             status_emoji = self._get_status_emoji(status)
             call_summary += f"\n{status_emoji} **Status:** {status}"
-        
-        if deadline_text != 'Not specified':
+
+        if deadline_text != "Not specified":
             call_summary += f"\n⏰ **Application Deadline:** {deadline_text}"
-        
+
         # Add budget if available
         if budget:
             call_summary += f"\n💰 **Budget:** {budget}"
-        
-        if programme != 'Not specified':
+
+        if programme != "Not specified":
             call_summary += f"\n🏛️ **Programme:** {programme}"
         elif work_programme:
             call_summary += f"\n🏛️ **Work Programme:** {work_programme}"
-        
+
         # Add description (truncated) - only if meaningful
-        if description and description != 'No description available' and len(description) > 30:
-            desc_preview = description[:250] + ('...' if len(description) > 250 else '')
+        if description and description != "No description available" and len(description) > 30:
+            desc_preview = description[:250] + ("..." if len(description) > 250 else "")
             call_summary += f"\n\n**Scope:**\n{desc_preview}"
-        
+
         # Add link with proper emoji
         if url:
             call_summary += f"\n\n🔗 **Apply Here:** {url}"
         else:
             call_summary += "\n\n🔗 **Find on Portal:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home"
-        
+
         return call_summary
-    
+
     def _get_action_type_emoji(self, action_type: str) -> str:
         """Get appropriate emoji for action type."""
-        action_type_upper = action_type.upper() if action_type else ''
+        action_type_upper = action_type.upper() if action_type else ""
         emojis = {
-            'RIA': '🔬',      # Research and Innovation Action
-            'IA': '🏭',       # Innovation Action
-            'CSA': '🤝',      # Coordination and Support Action
-            'COFUND': '💱',   # Co-fund
-            'ERC': '🎓',      # European Research Council
-            'ERC-STG': '🌟',  # ERC Starting Grant
-            'ERC-COG': '⭐',  # ERC Consolidator Grant
-            'ERC-ADG': '🏆',  # ERC Advanced Grant
-            'EIC': '🚀',      # European Innovation Council
-            'EIC-ACCELERATOR': '🚀',
-            'EIC-PATHFINDER': '🔮',
-            'EIC-TRANSITION': '🔄',
-            'MSCA': '👩‍🔬',     # Marie Skłodowska-Curie Actions
-            'MSCA-PF': '👩‍🔬',
-            'MSCA-DN': '👨‍🎓',
-            'LUMP-SUM': '📦',
+            "RIA": "🔬",  # Research and Innovation Action
+            "IA": "🏭",  # Innovation Action
+            "CSA": "🤝",  # Coordination and Support Action
+            "COFUND": "💱",  # Co-fund
+            "ERC": "🎓",  # European Research Council
+            "ERC-STG": "🌟",  # ERC Starting Grant
+            "ERC-COG": "⭐",  # ERC Consolidator Grant
+            "ERC-ADG": "🏆",  # ERC Advanced Grant
+            "EIC": "🚀",  # European Innovation Council
+            "EIC-ACCELERATOR": "🚀",
+            "EIC-PATHFINDER": "🔮",
+            "EIC-TRANSITION": "🔄",
+            "MSCA": "👩‍🔬",  # Marie Skłodowska-Curie Actions
+            "MSCA-PF": "👩‍🔬",
+            "MSCA-DN": "👨‍🎓",
+            "LUMP-SUM": "📦",
         }
-        return emojis.get(action_type_upper, '📄')
-    
+        return emojis.get(action_type_upper, "📄")
+
     def _format_deadline(self, deadline: str) -> str:
         """Format deadline with urgency indicators."""
-        if not deadline or deadline == 'Not specified':
-            return 'Not specified'
-        
+        if not deadline or deadline == "Not specified":
+            return "Not specified"
+
         deadline_text = deadline
-        if 'T' in deadline:
+        if "T" in deadline:
             try:
-                deadline_date = datetime.strptime(deadline.split('T')[0], '%Y-%m-%d')
-                deadline_text = deadline_date.strftime('%B %d, %Y')
-                
+                deadline_date = datetime.strptime(deadline.split("T")[0], "%Y-%m-%d")
+                deadline_text = deadline_date.strftime("%B %d, %Y")
+
                 # Add urgency indicator
                 days_until_deadline = (deadline_date - datetime.now()).days
                 if days_until_deadline > 0:  # Future deadlines
@@ -516,49 +556,50 @@ class UnifiedResponseFormatter:
                         deadline_text += f" ⏰ **Soon** ({days_until_deadline} days left)"
                 else:
                     deadline_text += f" ❌ **EXPIRED** ({abs(days_until_deadline)} days ago)"
-            except:
+            except Exception:
                 pass  # Keep original format if parsing fails
-        
+
         return deadline_text
-    
+
     def _get_status_emoji(self, status: str) -> str:
         """Get appropriate emoji for call status."""
         status_lower = status.lower()
-        if 'open' in status_lower:
-            return '🟢'
-        elif 'closed' in status_lower:
-            return '🔴'
-        elif 'forthcoming' in status_lower:
-            return '🔵'
+        if "open" in status_lower:
+            return "🟢"
+        elif "closed" in status_lower:
+            return "🔴"
+        elif "forthcoming" in status_lower:
+            return "🔵"
         else:
-            return '📊'
-    
+            return "📊"
+
     def _sort_calls_by_priority(self, calls: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Sort calls by priority: Open > Forthcoming > Recent Closed."""
+
         def sort_key(call):
-            status = call.get('status', '').lower()
-            deadline = call.get('deadline', '')
-            
+            status = call.get("status", "").lower()
+            deadline = call.get("deadline", "")
+
             # Priority order: Open (1), Forthcoming (2), Closed (3)
-            if 'open' in status:
+            if "open" in status:
                 priority = 1
-            elif 'forthcoming' in status:
+            elif "forthcoming" in status:
                 priority = 2
             else:
                 priority = 3
-            
+
             # Secondary sort by deadline
             try:
-                if deadline and 'T' in deadline:
-                    deadline_date = datetime.strptime(deadline.split('T')[0], '%Y-%m-%d')
+                if deadline and "T" in deadline:
+                    deadline_date = datetime.strptime(deadline.split("T")[0], "%Y-%m-%d")
                     return (priority, deadline_date)
-            except:
+            except Exception:
                 pass
-            
+
             return (priority, datetime.now())
-        
+
         return sorted(calls, key=sort_key)
-    
+
     def _get_calls_footer_with_suggestions(self, query: str, results_count: int) -> list[str]:
         """Get helpful footer information for funding calls with suggestions."""
         footer_parts = [
@@ -581,32 +622,48 @@ class UnifiedResponseFormatter:
             "• Download the call documentation and work programme",
             "• Start building your consortium if partnerships are required",
             "• Prepare your proposal using the official templates",
-            ""
+            "",
         ]
 
         # Add suggestions based on results count
         if results_count <= 2:
-            footer_parts.extend([
-                "🔍 **Want More Options?** Try these refined searches:",
-                "• Add 'horizon europe' to your query for EU framework programme calls",
-                "• Try broader terms: 'sustainable energy', 'climate action', 'green transition'",
-                "• Consider related programmes: EIC Accelerator, LIFE Programme, Digital Europe",
-                "• Check different time periods or include closed calls for more options",
-                ""
-            ])
+            footer_parts.extend(
+                [
+                    "🔍 **Want More Options?** Try these refined searches:",
+                    "• Add 'horizon europe' to your query for EU framework programme calls",
+                    (
+                        "• Try broader terms: 'sustainable energy', 'climate action', "
+                        "'green transition'"
+                    ),
+                    (
+                        "• Consider related programmes: EIC Accelerator, LIFE Programme, "
+                        "Digital Europe"
+                    ),
+                    "• Check different time periods or include closed calls for more options",
+                    "",
+                ]
+            )
         elif results_count <= 5:
-            footer_parts.extend([
-                "🔍 **Explore More:**",
-                "• Try adding 'innovation' or 'research' to find additional opportunities",
-                "• Consider cross-cutting themes like 'digital transformation' or 'sustainability'",
-                "• Check related clusters: Health, Digital, Climate, or Mobility",
-                ""
-            ])
+            footer_parts.extend(
+                [
+                    "🔍 **Explore More:**",
+                    "• Try adding 'innovation' or 'research' to find additional opportunities",
+                    (
+                        "• Consider cross-cutting themes like 'digital transformation' "
+                        "or 'sustainability'"
+                    ),
+                    "• Check related clusters: Health, Digital, Climate, or Mobility",
+                    "",
+                ]
+            )
 
-        footer_parts.append("📅 **Stay Updated:** Check back regularly as new calls are published throughout the year.")
+        footer_parts.append(
+            "📅 **Stay Updated:** Check back regularly as new calls are published "
+            "throughout the year."
+        )
 
         return footer_parts
-    
+
     def _format_no_calls_found(self, query: str) -> str:
         """Format response when no calls are found."""
         current_year = datetime.now().year
@@ -614,32 +671,44 @@ class UnifiedResponseFormatter:
         # Use the exact query for the verification URL to avoid combining previous queries
         # Don't try to extract or clean the query - use it as-is
         search_terms = query.strip()
-        
+
         # If the query contains "OR" (indicating combined queries), extract the most recent term
         if " OR " in search_terms.upper():
             # Split by OR and take the last part (most recent query)
             parts = search_terms.upper().split(" OR ")
             if len(parts) > 1:
                 search_terms = parts[-1].strip()
-        
+
         # Clean up any remaining conversational phrases
         clean_phrases = [
-            "what are some open calls for", "what are some open calls about",
-            "open calls for", "open calls about", "calls for", "calls about",
-            "can you also include closed calls", "include closed calls"
+            "what are some open calls for",
+            "what are some open calls about",
+            "open calls for",
+            "open calls about",
+            "calls for",
+            "calls about",
+            "can you also include closed calls",
+            "include closed calls",
         ]
-        
+
         for phrase in clean_phrases:
             if phrase in search_terms.lower():
                 search_terms = search_terms.lower().replace(phrase, "").strip()
-        
+
         # Remove question marks and extra whitespace
         search_terms = search_terms.replace("?", "").strip()
-        
+
         if not search_terms:
             search_terms = "energy"
 
-        verification_url = f"https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search;freeTextSearchKeyword={search_terms.replace(' ', '%20')};sortQuery=sortStatus;orderBy=asc"
+        base_url = (
+            "https://ec.europa.eu/info/funding-tenders/opportunities/portal/"
+            "screen/opportunities/topic-search"
+        )
+        search_param = search_terms.replace(" ", "%20")
+        verification_url = (
+            f"{base_url};freeTextSearchKeyword={search_param};sortQuery=sortStatus;orderBy=asc"
+        )
 
         # Provide topic-specific guidance
         topic_guidance = self._get_topic_specific_guidance(search_terms)
@@ -647,9 +716,14 @@ class UnifiedResponseFormatter:
         # Generate specific query suggestions based on the cleaned query
         query_suggestions = self._generate_query_suggestions(query, search_terms)
 
+        no_calls_msg = (
+            f"I searched the EU Funding & Tenders Portal but found **no currently open "
+            f'calls** for "{search_terms}" right now in {current_year}.'
+        )
+
         return f"""**🔍 No Currently Open Calls Found**
 
-I searched the EU Funding & Tenders Portal but found **no currently open calls** for "{search_terms}" right now in {current_year}.
+{no_calls_msg}
 
 **🔗 Verify This Yourself:**
 **Manual Check:** {verification_url}
@@ -683,31 +757,33 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
 • Look for related programmes: EIC Accelerator, LIFE Programme, Digital Europe
 • Consider national/regional funding opportunities
 
-**💡 The Reality:** EU funding is competitive and cyclical. No open calls right now doesn't mean no opportunities - it means timing is everything!
+**💡 The Reality:** EU funding is competitive and cyclical. No open calls right now
+doesn't mean no opportunities - it means timing is everything!
 
 {topic_guidance}
 
 **🎯 Try These More Specific Queries:**
 {query_suggestions}"""
-    
+
     def _format_cordis_projects(self, project_data: dict[str, Any]) -> str:
         """Format CORDIS project search results."""
         logger.info(f"🎨 FORMATTING CORDIS PROJECTS: data type = {type(project_data)}")
-        logger.info(f"🎨 PROJECT DATA KEYS: {list(project_data.keys()) if isinstance(project_data, dict) else 'Not a dict'}")
+        proj_keys = list(project_data.keys()) if isinstance(project_data, dict) else "Not a dict"
+        logger.info(f"🎨 PROJECT DATA KEYS: {proj_keys}")
 
         # Handle the actual structure returned by the CORDIS tool
-        results = project_data.get('results', [])
-        metadata = project_data.get('metadata', {})
-        query = project_data.get('query', 'Unknown query')
+        results = project_data.get("results", [])
+        metadata = project_data.get("metadata", {})
+        query = project_data.get("query", "Unknown query")
 
         logger.info(f"🎨 RESULTS TYPE: {type(results)}")
         logger.info(f"🎨 METADATA: {metadata}")
 
         # Check if this is RAG response format (dict with answer field)
-        if isinstance(results, dict) and 'answer' in results:
+        if isinstance(results, dict) and "answer" in results:
             logger.info("🎨 DETECTED RAG RESPONSE FORMAT")
-            answer = results.get('answer', '')
-            projects_found = results.get('projects_found', 0)
+            answer = results.get("answer", "")
+            projects_found = results.get("projects_found", 0)
 
             if not answer:
                 logger.warning("🎨 NO ANSWER IN RAG RESPONSE - returning fallback message")
@@ -717,21 +793,26 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
             formatted_parts = [
                 f"**🔬 Research Projects Analysis** ({projects_found} projects)",
                 f"📊 **Search Query:** {query}",
-                ""
+                "",
             ]
 
             # Add the AI-generated answer
             formatted_parts.append(answer)
 
             # Add footer
-            formatted_parts.extend([
-                "",
-                "---",
-                f"💡 **Analysis based on {projects_found} research projects**",
-                "📊 **Data Source:** CORDIS Database with AI Analysis",
-                "",
-                "🔍 **Want more details?** Visit https://cordis.europa.eu/ to explore the full database."
-            ])
+            formatted_parts.extend(
+                [
+                    "",
+                    "---",
+                    f"💡 **Analysis based on {projects_found} research projects**",
+                    "📊 **Data Source:** CORDIS Database with AI Analysis",
+                    "",
+                    (
+                        "🔍 **Want more details?** Visit https://cordis.europa.eu/ "
+                        "to explore the full database."
+                    ),
+                ]
+            )
 
             formatted_response = "\n".join(formatted_parts)
             logger.info(f"🎨 FORMATTED RAG RESPONSE LENGTH: {len(formatted_response)}")
@@ -750,7 +831,9 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
                 # Log some sample values
                 for key in list(first_result.keys())[:3]:  # First 3 keys
                     value = first_result[key]
-                    logger.info(f"🎨 {key}: {str(value)[:100]}{'...' if len(str(value)) > 100 else ''}")
+                    logger.info(
+                        f"🎨 {key}: {str(value)[:100]}{'...' if len(str(value)) > 100 else ''}"
+                    )
 
         if not results or projects_found == 0:
             logger.warning("🎨 NO PROJECT RESULTS FOUND - returning fallback message")
@@ -760,19 +843,23 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
         formatted_parts = [
             f"**🔬 Research Projects Found** ({projects_found} projects)",
             f"📊 **Search Query:** {query}",
-            ""
+            "",
         ]
 
         for i, project in enumerate(results[:5], 1):  # Limit to top 5
             if isinstance(project, dict):
-                title = project.get('title', project.get('name', 'Unknown Title'))
-                description = project.get('description', project.get('summary', 'No description available'))
-                url = project.get('url', project.get('link', ''))
+                title = project.get("title", project.get("name", "Unknown Title"))
+                description = project.get(
+                    "description", project.get("summary", "No description available")
+                )
+                url = project.get("url", project.get("link", ""))
 
-                formatted_parts.extend([
-                    f"**{i}. {title}**",
-                    f"{description[:200]}{'...' if len(description) > 200 else ''}",
-                ])
+                formatted_parts.extend(
+                    [
+                        f"**{i}. {title}**",
+                        f"{description[:200]}{'...' if len(description) > 200 else ''}",
+                    ]
+                )
 
                 if url:
                     formatted_parts.append(f"🔗 [View Project]({url})")
@@ -780,46 +867,31 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
                 formatted_parts.append("")  # Empty line between projects
 
         # Add footer
-        formatted_parts.extend([
-            "---",
-            f"💡 **Total Projects Found:** {projects_found}",
-            "🔍 **Data Source:** CORDIS Database",
-            "",
-            "📚 **Want more details?** Visit https://cordis.europa.eu/ to explore the full database."
-        ])
+        formatted_parts.extend(
+            [
+                "---",
+                f"💡 **Total Projects Found:** {projects_found}",
+                "🔍 **Data Source:** CORDIS Database",
+                "",
+                (
+                    "📚 **Want more details?** Visit https://cordis.europa.eu/ "
+                    "to explore the full database."
+                ),
+            ]
+        )
 
         formatted_response = "\n".join(formatted_parts)
         logger.info(f"🎨 FORMATTED RESPONSE LENGTH: {len(formatted_response)}")
         return formatted_response
-        
-        # Add header with metadata
-        header_parts = [
-            f"**🔬 Research Projects Analysis** (Found: {projects_found} projects)",
-            f"📊 **Data Source:** {data_source}",
-            ""
-        ]
-        
-        # The answer already contains well-formatted project information
-        # Just add our header and ensure CORDIS links are properly formatted
-        formatted_answer = answer
-        
-        # Ensure CORDIS links have proper emoji
-        if 'cordis.europa.eu' in formatted_answer and '🔗' not in formatted_answer:
-            formatted_answer = formatted_answer.replace('https://cordis.europa.eu', '🔗 https://cordis.europa.eu')
-        
-        return "\n".join(header_parts) + formatted_answer
-    
+
     def _format_generic_tool_result(self, tool_name: str, result: dict[str, Any]) -> str:
         """Format generic tool results."""
-        formatted_parts = [
-            f"**🔧 Tool Result: {tool_name}**",
-            ""
-        ]
+        formatted_parts = [f"**🔧 Tool Result: {tool_name}**", ""]
 
         # Extract key information
         if isinstance(result, dict):
             for key, value in result.items():
-                if key in ['error', 'success', 'tool_name', 'score']:
+                if key in ["error", "success", "tool_name", "score"]:
                     continue  # Skip metadata
                 # Format value appropriately
                 if isinstance(value, dict):
@@ -843,9 +915,9 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
             return str(result)[:150]
 
         # Handle project results
-        if 'acronym' in result or 'project_id' in result:
-            acronym = result.get('acronym', '')
-            title = result.get('title', '')
+        if "acronym" in result or "project_id" in result:
+            acronym = result.get("acronym", "")
+            title = result.get("title", "")
             if acronym and title:
                 return f"{acronym}: {title[:100]}"
             elif title:
@@ -854,151 +926,179 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
                 return acronym
 
         # Handle content-based results
-        if 'content' in result:
-            content = result.get('content', '')
-            if content and not content.startswith('{'):
+        if "content" in result:
+            content = result.get("content", "")
+            if content and not content.startswith("{"):
                 return content[:200]
 
         # Handle name-based results
-        if 'name' in result:
-            name = result.get('name', '')
-            desc = result.get('description', '')[:100] if result.get('description') else ''
+        if "name" in result:
+            name = result.get("name", "")
+            desc = result.get("description", "")[:100] if result.get("description") else ""
             if name and desc:
                 return f"{name}: {desc}"
             elif name:
                 return name
 
         # Handle statistics
-        if 'success_rate' in result or 'count' in result or 'total' in result:
+        if "success_rate" in result or "count" in result or "total" in result:
             parts = []
-            for key in ['programme', 'country', 'cluster', 'topic']:
+            for key in ["programme", "country", "cluster", "topic"]:
                 if key in result:
                     parts.append(str(result[key]))
-            for key in ['success_rate', 'count', 'total', 'funding']:
+            for key in ["success_rate", "count", "total", "funding"]:
                 if key in result:
                     parts.append(f"{key.replace('_', ' ')}: {result[key]}")
             if parts:
                 return " - ".join(parts)
 
         # Fallback: extract meaningful fields
-        skip_keys = {'id', 'uuid', 'created_at', 'updated_at', 'score', 'error', 'success'}
+        skip_keys = {"id", "uuid", "created_at", "updated_at", "score", "error", "success"}
         items = [(k, v) for k, v in result.items() if v and k not in skip_keys][:3]
         if items:
             return ", ".join(f"{k}: {str(v)[:50]}" for k, v in items)
 
         return ""
-    
-    def format_mixed_results(self, 
-                           tool_results: dict[str, Any] | None = None,
-                           retrieval_results: list[dict] | None = None,
-                           query: str = "") -> str:
+
+    def format_mixed_results(
+        self,
+        tool_results: dict[str, Any] | None = None,
+        retrieval_results: list[dict] | None = None,
+        query: str = "",
+    ) -> str:
         """
         Format mixed results from tools and retrieval.
-        
+
         Args:
             tool_results: Results from tool execution
             retrieval_results: Results from document retrieval
             query: Original user query
-            
+
         Returns:
             Beautifully formatted combined response
         """
         formatted_parts = []
-        
+
         # Format tool results first (they're usually more specific)
         if tool_results:
             tool_formatted = self.format_tool_results(tool_results)
             if tool_formatted and tool_formatted != "No results found.":
                 formatted_parts.append(tool_formatted)
-        
+
         # Add retrieval results if available and not redundant
         if retrieval_results and not tool_results:
             retrieval_formatted = self._format_retrieval_results(retrieval_results, query)
             if retrieval_formatted:
                 formatted_parts.append(retrieval_formatted)
-        
+
         if not formatted_parts:
             return self._format_no_results(query)
-        
+
         return "\n\n---\n\n".join(formatted_parts)
-    
+
     def _format_retrieval_results(self, retrieval_results: list[dict], query: str) -> str:
         """Format document retrieval results."""
         if not retrieval_results:
             return ""
-        
-        formatted_parts = [
-            f"**📚 Document Search Results** for '{query}'",
-            ""
-        ]
-        
+
+        formatted_parts = [f"**📚 Document Search Results** for '{query}'", ""]
+
         for i, result in enumerate(retrieval_results[:3], 1):  # Limit to top 3
-            content = result.get('content', '')[:300]  # Truncate long content
-            citation = result.get('citation', 'Unknown source')
-            
-            formatted_parts.extend([
-                f"**{i}. {citation}**",
-                content + ("..." if len(result.get('content', '')) > 300 else ''),
-                ""
-            ])
-        
+            content = result.get("content", "")[:300]  # Truncate long content
+            citation = result.get("citation", "Unknown source")
+
+            formatted_parts.extend(
+                [
+                    f"**{i}. {citation}**",
+                    content + ("..." if len(result.get("content", "")) > 300 else ""),
+                    "",
+                ]
+            )
+
         return "\n".join(formatted_parts)
-    
+
     def _generate_query_suggestions(self, original_query: str, search_terms: str) -> str:
         """Generate specific query suggestions based on the original query."""
         suggestions = []
 
         # Base suggestions for common scenarios
         base_suggestions = [
-            f"\"{search_terms} horizon europe\"",
-            "\"renewable energy horizon europe\"",
-            "\"sustainable energy innovation\"",
-            "\"energy efficiency research\""
+            f'"{search_terms} horizon europe"',
+            '"renewable energy horizon europe"',
+            '"sustainable energy innovation"',
+            '"energy efficiency research"',
         ]
 
         # Add topic-specific suggestions
         search_terms_lower = search_terms.lower()
 
-        if any(term in search_terms_lower for term in ['energy', 'renewable', 'solar', 'wind', 'battery', 'hydrogen', 'clean']):
-            suggestions.extend([
-                f"\"{search_terms} horizon europe\"",
-                "\"renewable energy horizon europe\"",
-                "\"clean energy innovation\"",
-                "\"energy storage research\"",
-                "\"sustainable energy projects\""
-            ])
-        elif any(term in search_terms_lower for term in ['ai', 'artificial intelligence', 'digital', 'data', 'algorithm', 'machine learning']):
-            suggestions.extend([
-                f"\"{search_terms} horizon europe\"",
-                "\"artificial intelligence research\"",
-                "\"machine learning applications\"",
-                "\"digital transformation funding\"",
-                "\"AI innovation projects\""
-            ])
-        elif any(term in search_terms_lower for term in ['health', 'medical', 'healthcare', 'medicine', 'pharma', 'clinical']):
-            suggestions.extend([
-                f"\"{search_terms} horizon europe\"",
-                "\"medical research funding\"",
-                "\"healthcare innovation\"",
-                "\"clinical trials support\"",
-                "\"biomedical research projects\""
-            ])
-        elif any(term in search_terms_lower for term in ['climate', 'environment', 'sustainability', 'green']):
-            suggestions.extend([
-                f"\"{search_terms} horizon europe\"",
-                "\"climate change research\"",
-                "\"environmental sustainability\"",
-                "\"green technology innovation\"",
-                "\"circular economy projects\""
-            ])
+        if any(
+            term in search_terms_lower
+            for term in ["energy", "renewable", "solar", "wind", "battery", "hydrogen", "clean"]
+        ):
+            suggestions.extend(
+                [
+                    f'"{search_terms} horizon europe"',
+                    '"renewable energy horizon europe"',
+                    '"clean energy innovation"',
+                    '"energy storage research"',
+                    '"sustainable energy projects"',
+                ]
+            )
+        elif any(
+            term in search_terms_lower
+            for term in [
+                "ai",
+                "artificial intelligence",
+                "digital",
+                "data",
+                "algorithm",
+                "machine learning",
+            ]
+        ):
+            suggestions.extend(
+                [
+                    f'"{search_terms} horizon europe"',
+                    '"artificial intelligence research"',
+                    '"machine learning applications"',
+                    '"digital transformation funding"',
+                    '"AI innovation projects"',
+                ]
+            )
+        elif any(
+            term in search_terms_lower
+            for term in ["health", "medical", "healthcare", "medicine", "pharma", "clinical"]
+        ):
+            suggestions.extend(
+                [
+                    f'"{search_terms} horizon europe"',
+                    '"medical research funding"',
+                    '"healthcare innovation"',
+                    '"clinical trials support"',
+                    '"biomedical research projects"',
+                ]
+            )
+        elif any(
+            term in search_terms_lower
+            for term in ["climate", "environment", "sustainability", "green"]
+        ):
+            suggestions.extend(
+                [
+                    f'"{search_terms} horizon europe"',
+                    '"climate change research"',
+                    '"environmental sustainability"',
+                    '"green technology innovation"',
+                    '"circular economy projects"',
+                ]
+            )
         else:
             # Generic suggestions
             suggestions.extend(base_suggestions)
 
         # Format suggestions as a bulleted list
         suggestion_lines = []
-        for i, suggestion in enumerate(suggestions[:5], 1):  # Limit to 5 suggestions
-            suggestion_lines.append(f"• \"{suggestion}\"")
+        for _i, suggestion in enumerate(suggestions[:5], 1):  # Limit to 5 suggestions
+            suggestion_lines.append(f'• "{suggestion}"')
 
         return "\n".join(suggestion_lines)
 
@@ -1007,7 +1107,10 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
         search_terms_lower = search_terms.lower()
 
         # Energy-specific guidance
-        if any(term in search_terms_lower for term in ['energy', 'renewable', 'solar', 'wind', 'battery', 'hydrogen', 'clean']):
+        if any(
+            term in search_terms_lower
+            for term in ["energy", "renewable", "solar", "wind", "battery", "hydrogen", "clean"]
+        ):
             return """
 **🔋 Energy Topic Insights:**
 • **Cluster 5 (Climate, Energy & Mobility)** is your main target
@@ -1017,7 +1120,17 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
 • Look into **LIFE Programme** for environmental energy projects"""
 
         # AI/Digital specific guidance
-        elif any(term in search_terms_lower for term in ['ai', 'artificial intelligence', 'digital', 'data', 'algorithm', 'machine learning']):
+        elif any(
+            term in search_terms_lower
+            for term in [
+                "ai",
+                "artificial intelligence",
+                "digital",
+                "data",
+                "algorithm",
+                "machine learning",
+            ]
+        ):
             return """
 **🤖 AI/Digital Topic Insights:**
 • **Cluster 4 (Digital, Industry & Space)** is your primary cluster
@@ -1027,7 +1140,10 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
 • Check **Horizon Europe Digital & Industry** work programme"""
 
         # Health specific guidance
-        elif any(term in search_terms_lower for term in ['health', 'medical', 'healthcare', 'medicine', 'pharma', 'clinical']):
+        elif any(
+            term in search_terms_lower
+            for term in ["health", "medical", "healthcare", "medicine", "pharma", "clinical"]
+        ):
             return """
 **🏥 Health Topic Insights:**
 • **Cluster 1 (Health)** is your main focus area
@@ -1045,7 +1161,7 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
 • Consider **Marie Skłodowska-Curie Actions** for researcher mobility
 • Check **ERC grants** for frontier research
 • Look into **Widening participation** programmes if from eligible countries"""
-    
+
     def _format_no_results(self, query: str) -> str:
         """Format response when no results are found."""
         return f"""**🔍 No Results Found**
@@ -1068,10 +1184,13 @@ I couldn't find specific information for your query: "{query}"
         This provides comprehensive information based on the query type.
         """
         query_lower = query.lower()
-        
+
         # Horizon Europe specific responses
-        if any(term in query_lower for term in ['horizon europe', 'funding', 'budget', 'structure']):
-            return """**Horizon Europe** is the EU's key funding programme for research and innovation (2021-2027) with a budget of €95.5 billion.
+        if any(
+            term in query_lower for term in ["horizon europe", "funding", "budget", "structure"]
+        ):
+            return """**Horizon Europe** is the EU's key funding programme for research and
+innovation (2021-2027) with a budget of €95.5 billion.
 
 **Main Pillars:**
 1. **Excellent Science** - Supporting frontier research (€25.8B)
@@ -1103,10 +1222,14 @@ I couldn't find specific information for your query: "{query}"
 • Health: €8.2B | Digital & Industry: €15B | Climate & Energy: €15B
 • Food & Agriculture: €9B | Security: €4.8B | Culture & Society: €2.3B
 
-Would you like specific information about any particular pillar, programme, or application process?"""
+Would you like specific information about any particular pillar, programme, or
+application process?"""
 
         # AI/Technology queries
-        elif any(term in query_lower for term in ['ai', 'artificial intelligence', 'machine learning', 'quantum', 'digital']):
+        elif any(
+            term in query_lower
+            for term in ["ai", "artificial intelligence", "machine learning", "quantum", "digital"]
+        ):
             return """🤖 **Digital & AI Research in Horizon Europe**
 
 **Major Funding Streams:**
@@ -1145,10 +1268,13 @@ Would you like specific information about any particular pillar, programme, or a
 • Growing emphasis on AI skills and digital literacy
 • Strong support for AI standardization and certification
 
-Would you like information about specific AI calls, quantum computing opportunities, or digital innovation programs?"""
+Would you like information about specific AI calls, quantum computing opportunities,
+or digital innovation programs?"""
 
         # Health/Medical queries
-        elif any(term in query_lower for term in ['health', 'healthcare', 'medical', 'biotech', 'pharma']):
+        elif any(
+            term in query_lower for term in ["health", "healthcare", "medical", "biotech", "pharma"]
+        ):
             return """🏥 **Health Research in Horizon Europe**
 
 **Cluster 1 - Health Budget:** €8.2 billion (largest single cluster)
@@ -1190,10 +1316,14 @@ Would you like information about specific AI calls, quantum computing opportunit
 • **EIC Health:** Breakthrough health innovations
 • **LIFE Health:** Environmental health aspects
 
-Would you like specific information about cancer research, digital health opportunities, or infectious disease funding?"""
+Would you like specific information about cancer research, digital health opportunities,
+or infectious disease funding?"""
 
         # Climate/Environment queries
-        elif any(term in query_lower for term in ['climate', 'environment', 'green', 'sustainability', 'renewable', 'energy']):
+        elif any(
+            term in query_lower
+            for term in ["climate", "environment", "green", "sustainability", "renewable", "energy"]
+        ):
             return """🌍 **Climate & Environmental Research Funding**
 
 **EU Green Deal Investment:** €1 trillion transformation plan
@@ -1243,10 +1373,13 @@ Would you like specific information about cancer research, digital health opport
 • Demonstrate scalability and market potential
 • Engage with relevant EU platforms and networks
 
-Would you like information about specific environmental challenges, renewable energy technologies, or circular economy opportunities?"""
+Would you like information about specific environmental challenges, renewable energy
+technologies, or circular economy opportunities?"""
 
         # Country/collaboration queries
-        elif any(term in query_lower for term in ['country', 'countries', 'collaboration', 'partner']):
+        elif any(
+            term in query_lower for term in ["country", "countries", "collaboration", "partner"]
+        ):
             return """🌍 **European Research Collaboration Landscape**
 
 **Leading Research Nations (by funding received):**
@@ -1256,7 +1389,7 @@ Would you like information about specific environmental challenges, renewable en
 • Key institutions: Max Planck Society, Fraunhofer, leading universities
 • Collaboration style: Strong industry partnerships, excellent project management
 
-**🇫🇷 France** - €1.4B annually, 13% of projects  
+**🇫🇷 France** - €1.4B annually, 13% of projects
 • Strengths: Aerospace, nuclear, space, mathematics
 • Key institutions: CNRS, CEA, INRIA, grandes écoles system
 • Collaboration style: Strategic partnerships, strong government support
@@ -1304,7 +1437,8 @@ Would you like information about specific environmental challenges, renewable en
 • Consider language, cultural, and time zone factors
 • Plan for regular face-to-face meetings and exchange visits
 
-Would you like specific information about partnering with particular countries or finding collaborators in specific research areas?"""
+Would you like specific information about partnering with particular countries or
+finding collaborators in specific research areas?"""
 
         # Generic research management response
         else:

@@ -28,6 +28,7 @@ router = APIRouter(prefix="/api/health", tags=["health"])
 # HEALTH CHECK RESULT TYPES
 # ============================================================================
 
+
 class ServiceHealth:
     """Represents the health status of a single service."""
 
@@ -37,7 +38,7 @@ class ServiceHealth:
         status: str,  # "healthy", "degraded", "unhealthy"
         latency_ms: float | None = None,
         message: str | None = None,
-        details: dict[str, Any] | None = None
+        details: dict[str, Any] | None = None,
     ):
         self.name = name
         self.status = status
@@ -62,6 +63,7 @@ class ServiceHealth:
 # SERVICE HEALTH CHECKS
 # ============================================================================
 
+
 async def check_postgres() -> ServiceHealth:
     """Check PostgreSQL database connectivity and health."""
     start = time.time()
@@ -70,9 +72,7 @@ async def check_postgres() -> ServiceHealth:
 
         if not settings.use_local_db or not settings.database_url:
             return ServiceHealth(
-                name="postgres",
-                status="healthy",
-                message="Not configured (disabled)"
+                name="postgres", status="healthy", message="Not configured (disabled)"
             )
 
         import psycopg2
@@ -83,11 +83,13 @@ async def check_postgres() -> ServiceHealth:
         cursor.fetchone()
 
         # Get connection count
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT count(*)
             FROM pg_stat_activity
             WHERE datname = current_database()
-        """)
+        """
+        )
         connection_count = cursor.fetchone()[0]
 
         cursor.close()
@@ -99,17 +101,14 @@ async def check_postgres() -> ServiceHealth:
             name="postgres",
             status="healthy",
             latency_ms=latency,
-            details={"active_connections": connection_count}
+            details={"active_connections": connection_count},
         )
 
     except Exception as e:
         latency = (time.time() - start) * 1000
         logger.error(f"PostgreSQL health check failed: {e}")
         return ServiceHealth(
-            name="postgres",
-            status="unhealthy",
-            latency_ms=latency,
-            message=str(e)
+            name="postgres", status="unhealthy", latency_ms=latency, message=str(e)
         )
 
 
@@ -128,16 +127,13 @@ async def check_neo4j() -> ServiceHealth:
                 stats = db.get_database_stats()
                 details = {
                     "total_nodes": stats.get("total_nodes"),
-                    "total_relationships": stats.get("total_relationships")
+                    "total_relationships": stats.get("total_relationships"),
                 }
-            except:
+            except Exception:
                 details = {}
 
             return ServiceHealth(
-                name="neo4j",
-                status="healthy",
-                latency_ms=latency,
-                details=details
+                name="neo4j", status="healthy", latency_ms=latency, details=details
             )
         else:
             latency = (time.time() - start) * 1000
@@ -145,18 +141,13 @@ async def check_neo4j() -> ServiceHealth:
                 name="neo4j",
                 status="unhealthy",
                 latency_ms=latency,
-                message="Connection test failed"
+                message="Connection test failed",
             )
 
     except Exception as e:
         latency = (time.time() - start) * 1000
         logger.error(f"Neo4j health check failed: {e}")
-        return ServiceHealth(
-            name="neo4j",
-            status="unhealthy",
-            latency_ms=latency,
-            message=str(e)
-        )
+        return ServiceHealth(name="neo4j", status="unhealthy", latency_ms=latency, message=str(e))
 
 
 async def check_redis() -> ServiceHealth:
@@ -183,8 +174,8 @@ async def check_redis() -> ServiceHealth:
             details={
                 "connected_clients": info.get("connected_clients"),
                 "used_memory_human": info.get("used_memory_human"),
-                "redis_version": info.get("redis_version")
-            }
+                "redis_version": info.get("redis_version"),
+            },
         )
 
     except Exception as e:
@@ -194,7 +185,7 @@ async def check_redis() -> ServiceHealth:
             name="redis",
             status="degraded",  # Redis failure is not critical
             latency_ms=latency,
-            message=str(e)
+            message=str(e),
         )
 
 
@@ -205,11 +196,7 @@ async def check_gemini() -> ServiceHealth:
         from ..core.config import settings
 
         if not settings.gemini_api_key:
-            return ServiceHealth(
-                name="gemini",
-                status="healthy",
-                message="Not configured"
-            )
+            return ServiceHealth(name="gemini", status="healthy", message="Not configured")
 
         import google.generativeai as genai
 
@@ -223,18 +210,13 @@ async def check_gemini() -> ServiceHealth:
             name="gemini",
             status="healthy",
             latency_ms=latency,
-            details={"available_models": len(models)}
+            details={"available_models": len(models)},
         )
 
     except Exception as e:
         latency = (time.time() - start) * 1000
         logger.error(f"Gemini health check failed: {e}")
-        return ServiceHealth(
-            name="gemini",
-            status="unhealthy",
-            latency_ms=latency,
-            message=str(e)
-        )
+        return ServiceHealth(name="gemini", status="unhealthy", latency_ms=latency, message=str(e))
 
 
 async def check_embedding_service() -> ServiceHealth:
@@ -244,11 +226,7 @@ async def check_embedding_service() -> ServiceHealth:
         from ..core.config import settings
 
         if not settings.vector_search_enabled or not settings.effective_embedding_api_key:
-            return ServiceHealth(
-                name="embeddings",
-                status="healthy",
-                message="Not configured"
-            )
+            return ServiceHealth(name="embeddings", status="healthy", message="Not configured")
 
         from ..services.embedding_service import EmbeddingService
 
@@ -259,7 +237,7 @@ async def check_embedding_service() -> ServiceHealth:
                 name="embeddings",
                 status="healthy",
                 latency_ms=latency,
-                details={"model": settings.embedding_model}
+                details={"model": settings.embedding_model},
             )
         else:
             latency = (time.time() - start) * 1000
@@ -267,7 +245,7 @@ async def check_embedding_service() -> ServiceHealth:
                 name="embeddings",
                 status="degraded",
                 latency_ms=latency,
-                message="Test generation failed"
+                message="Test generation failed",
             )
 
     except Exception as e:
@@ -277,7 +255,7 @@ async def check_embedding_service() -> ServiceHealth:
             name="embeddings",
             status="degraded",  # Embedding failure allows fallback to keyword search
             latency_ms=latency,
-            message=str(e)
+            message=str(e),
         )
 
 
@@ -288,45 +266,35 @@ async def check_supabase() -> ServiceHealth:
         from ..core.config import settings
 
         if not settings.use_supabase:
-            return ServiceHealth(
-                name="supabase",
-                status="healthy",
-                message="Not configured"
-            )
+            return ServiceHealth(name="supabase", status="healthy", message="Not configured")
 
         from ..services.supabase_client import SupabaseVectorStore
 
         supabase = SupabaseVectorStore()
         if supabase.test_connection():
             latency = (time.time() - start) * 1000
-            return ServiceHealth(
-                name="supabase",
-                status="healthy",
-                latency_ms=latency
-            )
+            return ServiceHealth(name="supabase", status="healthy", latency_ms=latency)
         else:
             latency = (time.time() - start) * 1000
             return ServiceHealth(
                 name="supabase",
                 status="unhealthy",
                 latency_ms=latency,
-                message="Connection test failed"
+                message="Connection test failed",
             )
 
     except Exception as e:
         latency = (time.time() - start) * 1000
         logger.error(f"Supabase health check failed: {e}")
         return ServiceHealth(
-            name="supabase",
-            status="unhealthy",
-            latency_ms=latency,
-            message=str(e)
+            name="supabase", status="unhealthy", latency_ms=latency, message=str(e)
         )
 
 
 # ============================================================================
 # API ENDPOINTS
 # ============================================================================
+
 
 @router.get("")
 @router.get("/")
@@ -357,7 +325,7 @@ async def health_check() -> dict[str, Any]:
         check_gemini(),
         check_embedding_service(),
         check_supabase(),
-        return_exceptions=True
+        return_exceptions=True,
     )
 
     # Process results
@@ -382,10 +350,7 @@ async def health_check() -> dict[str, Any]:
         for svc in critical_services
     )
 
-    all_healthy = all(
-        s.get("status") == "healthy"
-        for s in services.values()
-    )
+    all_healthy = all(s.get("status") == "healthy" for s in services.values())
 
     if all_healthy:
         overall_status = "healthy"
@@ -399,7 +364,7 @@ async def health_check() -> dict[str, Any]:
         "services": services,
         "timestamp": datetime.now(UTC).isoformat(),
         "version": settings.app_version,
-        "environment": "docker" if settings.docker_env else "local"
+        "environment": "docker" if settings.docker_env else "local",
     }
 
 
@@ -435,11 +400,7 @@ async def readiness_check(response: Response) -> dict[str, Any]:
     if not ready:
         response.status_code = 503
 
-    return {
-        "ready": ready,
-        "checks": checks,
-        "timestamp": datetime.now(UTC).isoformat()
-    }
+    return {"ready": ready, "checks": checks, "timestamp": datetime.now(UTC).isoformat()}
 
 
 @router.get("/live")
@@ -452,10 +413,7 @@ async def liveness_check() -> dict[str, Any]:
 
     Returns 200 if alive.
     """
-    return {
-        "alive": True,
-        "timestamp": datetime.now(UTC).isoformat()
-    }
+    return {"alive": True, "timestamp": datetime.now(UTC).isoformat()}
 
 
 @router.get("/dependencies")
@@ -479,7 +437,7 @@ async def dependencies_status() -> dict[str, Any]:
         check_gemini(),
         check_embedding_service(),
         check_supabase(),
-        return_exceptions=True
+        return_exceptions=True,
     )
 
     dependencies = {}
@@ -488,7 +446,7 @@ async def dependencies_status() -> dict[str, Any]:
             dependencies[check.name] = {
                 **check.to_dict(),
                 "critical": check.name in ["postgres", "gemini"],
-                "fallback_available": check.name in ["neo4j", "redis", "embeddings"]
+                "fallback_available": check.name in ["neo4j", "redis", "embeddings"],
             }
 
     return {
@@ -497,9 +455,9 @@ async def dependencies_status() -> dict[str, Any]:
             "database_enabled": settings.use_local_db,
             "supabase_enabled": settings.use_supabase,
             "vector_search_enabled": settings.vector_search_enabled,
-            "ai_provider": settings.default_ai_provider
+            "ai_provider": settings.default_ai_provider,
         },
-        "timestamp": datetime.now(UTC).isoformat()
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
 
@@ -515,15 +473,12 @@ async def health_metrics() -> dict[str, Any]:
     """
     # Run quick checks
     checks = await asyncio.gather(
-        check_postgres(),
-        check_neo4j(),
-        check_redis(),
-        return_exceptions=True
+        check_postgres(), check_neo4j(), check_redis(), return_exceptions=True
     )
 
     metrics = {
         "mapit_health_status": 1.0,  # Will be updated based on checks
-        "services": {}
+        "services": {},
     }
 
     status_values = {"healthy": 1.0, "degraded": 0.5, "unhealthy": 0.0}
@@ -535,7 +490,7 @@ async def health_metrics() -> dict[str, Any]:
             overall_min = min(overall_min, status_value)
             metrics["services"][check.name] = {
                 "status": status_value,
-                "latency_ms": check.latency_ms or 0
+                "latency_ms": check.latency_ms or 0,
             }
 
     metrics["mapit_health_status"] = overall_min

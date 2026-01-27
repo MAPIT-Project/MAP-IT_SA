@@ -51,9 +51,7 @@ class TestStreamingFeedback:
     def test_creation_with_defaults(self):
         """Test creating feedback with default timestamp."""
         feedback = StreamingFeedback(
-            type=FeedbackType.QUICK_SCORE,
-            value=3.5,
-            message="Test message"
+            type=FeedbackType.QUICK_SCORE, value=3.5, message="Test message"
         )
         assert feedback.type == FeedbackType.QUICK_SCORE
         assert feedback.value == 3.5
@@ -63,9 +61,7 @@ class TestStreamingFeedback:
     def test_to_dict(self):
         """Test serialization to dictionary."""
         feedback = StreamingFeedback(
-            type=FeedbackType.QUALITY_TIER,
-            value="good",
-            message="Good quality"
+            type=FeedbackType.QUALITY_TIER, value="good", message="Good quality"
         )
         result = feedback.to_dict()
 
@@ -244,12 +240,15 @@ class TestRealTimeQualityService:
 
     def test_estimate_quick_score_long_content(self, service):
         """Test quick score for long content with technical terms."""
-        content = """
+        content = (
+            """
         This is a comprehensive methodology that addresses the project objectives.
         Our innovative framework will deliver measurable impact through consortium
         collaboration. We will achieve key deliverables and milestones aligned with
         Horizon Europe and the European Green Deal for sustainable digital transformation.
-        """ * 20  # Make it long enough
+        """
+            * 20
+        )  # Make it long enough
 
         quick_result = {"total": 0}
         score = service._estimate_quick_score(content, quick_result)
@@ -275,11 +274,14 @@ class TestRealTimeQualityService:
         assert poor_score >= 1.0
 
         # Excellent content
-        excellent_content = """
+        excellent_content = (
+            """
         Our innovative methodology framework delivers measurable impact
         through consortium objectives and milestone deliverables aligned
         with Horizon Europe sustainable digital transformation goals.
-        """ * 50
+        """
+            * 50
+        )
         excellent_score = service._estimate_quick_score(excellent_content, {"total": 0})
         assert excellent_score <= 5.0
 
@@ -306,9 +308,7 @@ class TestRealTimeQualityService:
     def test_should_run_deep_analysis_short_content(self, service):
         """Test that short content skips deep analysis."""
         result = service._should_run_deep_analysis(
-            section_id="test",
-            content_hash="hash123",
-            content_length=100
+            section_id="test", content_hash="hash123", content_length=100
         )
         assert result is False
 
@@ -318,9 +318,7 @@ class TestRealTimeQualityService:
         service._score_cache[content_hash] = (3.5, datetime.now())
 
         result = service._should_run_deep_analysis(
-            section_id="test",
-            content_hash=content_hash,
-            content_length=500
+            section_id="test", content_hash=content_hash, content_length=500
         )
         assert result is False
 
@@ -330,18 +328,14 @@ class TestRealTimeQualityService:
         service._last_deep_analysis[section_id] = datetime.now()
 
         result = service._should_run_deep_analysis(
-            section_id=section_id,
-            content_hash="new_hash",
-            content_length=500
+            section_id=section_id, content_hash="new_hash", content_length=500
         )
         assert result is False
 
     def test_should_run_deep_analysis_needed(self, service):
         """Test that uncached long content triggers deep analysis."""
         result = service._should_run_deep_analysis(
-            section_id="new_section",
-            content_hash="new_content_hash",
-            content_length=500
+            section_id="new_section", content_hash="new_content_hash", content_length=500
         )
         assert result is True
 
@@ -378,9 +372,7 @@ class TestRealTimeQualityService:
 
         items = []
         async for feedback in service.stream_feedback(
-            content=content,
-            section_type="excellence_objectives",
-            section_id="test-section"
+            content=content, section_type="excellence_objectives", section_id="test-section"
         ):
             items.append(feedback)
 
@@ -397,9 +389,7 @@ class TestRealTimeQualityService:
 
         items = []
         async for feedback in service.stream_feedback(
-            content=content,
-            section_type="general",
-            section_id="test"
+            content=content, section_type="general", section_id="test"
         ):
             items.append(feedback)
 
@@ -421,16 +411,13 @@ class TestRealTimeQualityService:
 
         items = []
         async for feedback in service.stream_feedback(
-            content=content,
-            section_type="general",
-            section_id="test-cached"
+            content=content, section_type="general", section_id="test-cached"
         ):
             items.append(feedback)
 
         # Find the quick score feedback
         quick_score_item = next(
-            (item for item in items if item.type == FeedbackType.QUICK_SCORE),
-            None
+            (item for item in items if item.type == FeedbackType.QUICK_SCORE), None
         )
         assert quick_score_item is not None
         assert quick_score_item.value == 4.5  # Should use cached score
@@ -445,7 +432,7 @@ class TestRealTimeQualityService:
             content=content,
             section_type="excellence_objectives",
             section_id="test-cluster",
-            cluster="digital"
+            cluster="digital",
         ):
             items.append(feedback)
 
@@ -498,10 +485,7 @@ class TestStreamingQualityIndicator:
 
     def test_init(self):
         """Test indicator initialization."""
-        indicator = StreamingQualityIndicator(
-            section_id="test-section",
-            section_type="excellence"
-        )
+        indicator = StreamingQualityIndicator(section_id="test-section", section_type="excellence")
 
         assert indicator.section_id == "test-section"
         assert indicator.section_type == "excellence"
@@ -542,10 +526,7 @@ class TestStreamingQualityIndicator:
         def callback(feedback):
             callbacks_received.append(feedback)
 
-        await indicator.update(
-            content="Test content for analysis " * 10,
-            on_feedback=callback
-        )
+        await indicator.update(content="Test content for analysis " * 10, on_feedback=callback)
 
         # Should have received callbacks
         assert len(callbacks_received) > 0
@@ -581,9 +562,7 @@ class TestDeepAnalysisStreaming:
 
         items = []
         async for feedback in service.stream_feedback(
-            content=content,
-            section_type="excellence_objectives",
-            section_id=section_id
+            content=content, section_type="excellence_objectives", section_id=section_id
         ):
             items.append(feedback)
 
@@ -594,8 +573,7 @@ class TestDeepAnalysisStreaming:
 
         # Verify SCORE_UPDATE has correct value
         score_update = next(
-            (item for item in items if item.type == FeedbackType.SCORE_UPDATE),
-            None
+            (item for item in items if item.type == FeedbackType.SCORE_UPDATE), None
         )
         assert score_update is not None
         assert score_update.value["score"] == 4.2
@@ -620,9 +598,7 @@ class TestDeepAnalysisStreaming:
 
         items = []
         async for feedback in service.stream_feedback(
-            content=content,
-            section_type="excellence_objectives",
-            section_id=section_id
+            content=content, section_type="excellence_objectives", section_id=section_id
         ):
             items.append(feedback)
 
@@ -632,8 +608,7 @@ class TestDeepAnalysisStreaming:
 
         # Verify improvement values
         improvement_item = next(
-            (item for item in items if item.type == FeedbackType.IMPROVEMENT),
-            None
+            (item for item in items if item.type == FeedbackType.IMPROVEMENT), None
         )
         assert improvement_item is not None
         assert improvement_item.value["previous"] == 3.0
@@ -657,9 +632,7 @@ class TestDeepAnalysisStreaming:
 
         items = []
         async for feedback in service.stream_feedback(
-            content=content,
-            section_type="excellence_objectives",
-            section_id=section_id
+            content=content, section_type="excellence_objectives", section_id=section_id
         ):
             items.append(feedback)
 
@@ -669,8 +642,7 @@ class TestDeepAnalysisStreaming:
 
         # Verify celebration threshold
         celebration_item = next(
-            (item for item in items if item.type == FeedbackType.CELEBRATION),
-            None
+            (item for item in items if item.type == FeedbackType.CELEBRATION), None
         )
         assert celebration_item is not None
         assert celebration_item.value == 3.0  # The threshold that was crossed
@@ -690,9 +662,7 @@ class TestDeepAnalysisStreaming:
 
         # Consume the generator
         async for _ in service.stream_feedback(
-            content=content,
-            section_type="excellence_objectives",
-            section_id="cache-test"
+            content=content, section_type="excellence_objectives", section_id="cache-test"
         ):
             pass
 
@@ -715,9 +685,7 @@ class TestDeepAnalysisStreaming:
 
         # Consume the generator
         async for _ in service.stream_feedback(
-            content=content,
-            section_type="excellence_objectives",
-            section_id=section_id
+            content=content, section_type="excellence_objectives", section_id=section_id
         ):
             pass
 
@@ -731,18 +699,14 @@ class TestDeepAnalysisStreaming:
     async def test_deep_analysis_error_handling(self, service):
         """Test that errors in deep analysis are handled gracefully."""
         # Make the evaluator raise an exception
-        service.evaluator.simulate_evaluation = AsyncMock(
-            side_effect=Exception("Simulated error")
-        )
+        service.evaluator.simulate_evaluation = AsyncMock(side_effect=Exception("Simulated error"))
 
         content = "Test content " * 100
 
         items = []
         # Should not raise, should handle error gracefully
         async for feedback in service.stream_feedback(
-            content=content,
-            section_type="excellence_objectives",
-            section_id="error-test"
+            content=content, section_type="excellence_objectives", section_id="error-test"
         ):
             items.append(feedback)
 
@@ -774,9 +738,7 @@ class TestDeepAnalysisStreaming:
 
         items = []
         async for feedback in service.stream_feedback(
-            content=content,
-            section_type="excellence_objectives",
-            section_id=section_id
+            content=content, section_type="excellence_objectives", section_id=section_id
         ):
             items.append(feedback)
 

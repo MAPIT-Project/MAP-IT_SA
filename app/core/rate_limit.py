@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class RateLimitConfig:
     """Rate limit configuration for a tier."""
+
     requests_per_minute: int
     requests_per_hour: int
     requests_per_day: int
@@ -38,28 +39,28 @@ TIER_LIMITS: dict[str, RateLimitConfig] = {
         requests_per_hour=100,
         requests_per_day=500,
         burst_size=5,
-        concurrent_requests=2
+        concurrent_requests=2,
     ),
     "basic": RateLimitConfig(
         requests_per_minute=60,
         requests_per_hour=600,
         requests_per_day=5000,
         burst_size=15,
-        concurrent_requests=5
+        concurrent_requests=5,
     ),
     "premium": RateLimitConfig(
         requests_per_minute=200,
         requests_per_hour=2000,
         requests_per_day=20000,
         burst_size=50,
-        concurrent_requests=10
+        concurrent_requests=10,
     ),
     "enterprise": RateLimitConfig(
         requests_per_minute=1000,
         requests_per_hour=10000,
         requests_per_day=100000,
         burst_size=200,
-        concurrent_requests=50
+        concurrent_requests=50,
     ),
 }
 
@@ -67,6 +68,7 @@ TIER_LIMITS: dict[str, RateLimitConfig] = {
 @dataclass
 class RateLimitResult:
     """Result of a rate limit check."""
+
     allowed: bool
     remaining_minute: int
     remaining_hour: int
@@ -95,10 +97,7 @@ class RateLimiter:
 
         try:
             self.redis_client = redis.from_url(
-                self.redis_url,
-                decode_responses=True,
-                socket_timeout=2,
-                socket_connect_timeout=2
+                self.redis_url, decode_responses=True, socket_timeout=2, socket_connect_timeout=2
             )
             # Test connection
             self.redis_client.ping()
@@ -107,11 +106,7 @@ class RateLimiter:
             logger.warning(f"Redis unavailable for rate limiting, using in-memory: {e}")
             self.redis_client = None
 
-    async def check_rate_limit(
-        self,
-        identifier: str,
-        tier: str = "free"
-    ) -> RateLimitResult:
+    async def check_rate_limit(self, identifier: str, tier: str = "free") -> RateLimitResult:
         """
         Check if request is within rate limits.
 
@@ -136,9 +131,7 @@ class RateLimiter:
                     identifier, config, minute_key, hour_key, day_key, now
                 )
             else:
-                result = self._check_memory(
-                    identifier, config, minute_key, hour_key, day_key, now
-                )
+                result = self._check_memory(identifier, config, minute_key, hour_key, day_key, now)
 
             result.tier = tier
             return result
@@ -153,7 +146,7 @@ class RateLimiter:
                 remaining_day=config.requests_per_day,
                 reset_minute=60,
                 reset_hour=3600,
-                tier=tier
+                tier=tier,
             )
 
     async def _check_redis(
@@ -163,7 +156,7 @@ class RateLimiter:
         minute_key: str,
         hour_key: str,
         day_key: str,
-        now: int
+        now: int,
     ) -> RateLimitResult:
         """Check rate limits using Redis."""
         pipe = self.redis_client.pipeline()
@@ -192,7 +185,7 @@ class RateLimiter:
                 remaining_day=max(0, config.requests_per_day - day_count),
                 reset_minute=minute_ttl,
                 reset_hour=hour_ttl,
-                retry_after=minute_ttl
+                retry_after=minute_ttl,
             )
 
         if hour_count >= config.requests_per_hour:
@@ -203,7 +196,7 @@ class RateLimiter:
                 remaining_day=max(0, config.requests_per_day - day_count),
                 reset_minute=minute_ttl,
                 reset_hour=hour_ttl,
-                retry_after=hour_ttl
+                retry_after=hour_ttl,
             )
 
         if day_count >= config.requests_per_day:
@@ -215,7 +208,7 @@ class RateLimiter:
                 remaining_day=0,
                 reset_minute=minute_ttl,
                 reset_hour=hour_ttl,
-                retry_after=seconds_until_midnight
+                retry_after=seconds_until_midnight,
             )
 
         # Increment counters
@@ -234,7 +227,7 @@ class RateLimiter:
             remaining_hour=config.requests_per_hour - hour_count - 1,
             remaining_day=config.requests_per_day - day_count - 1,
             reset_minute=minute_ttl,
-            reset_hour=hour_ttl
+            reset_hour=hour_ttl,
         )
 
     def _check_memory(
@@ -244,7 +237,7 @@ class RateLimiter:
         minute_key: str,
         hour_key: str,
         day_key: str,
-        now: int
+        now: int,
     ) -> RateLimitResult:
         """Check rate limits using in-memory store (fallback)."""
         # Initialize if needed
@@ -275,7 +268,7 @@ class RateLimiter:
                 remaining_day=max(0, config.requests_per_day - day_count),
                 reset_minute=int(minute_ttl),
                 reset_hour=int(hour_ttl),
-                retry_after=int(minute_ttl)
+                retry_after=int(minute_ttl),
             )
 
         if hour_count >= config.requests_per_hour:
@@ -286,7 +279,7 @@ class RateLimiter:
                 remaining_day=max(0, config.requests_per_day - day_count),
                 reset_minute=int(minute_ttl),
                 reset_hour=int(hour_ttl),
-                retry_after=int(hour_ttl)
+                retry_after=int(hour_ttl),
             )
 
         if day_count >= config.requests_per_day:
@@ -298,22 +291,13 @@ class RateLimiter:
                 remaining_day=0,
                 reset_minute=int(minute_ttl),
                 reset_hour=int(hour_ttl),
-                retry_after=seconds_until_midnight
+                retry_after=seconds_until_midnight,
             )
 
         # Increment counters
-        store[minute_key] = {
-            "count": minute_count + 1,
-            "expires": now + 60
-        }
-        store[hour_key] = {
-            "count": hour_count + 1,
-            "expires": now + 3600
-        }
-        store[day_key] = {
-            "count": day_count + 1,
-            "expires": now + 86400
-        }
+        store[minute_key] = {"count": minute_count + 1, "expires": now + 60}
+        store[hour_key] = {"count": hour_count + 1, "expires": now + 3600}
+        store[day_key] = {"count": day_count + 1, "expires": now + 86400}
 
         return RateLimitResult(
             allowed=True,
@@ -321,7 +305,7 @@ class RateLimiter:
             remaining_hour=config.requests_per_hour - hour_count - 1,
             remaining_day=config.requests_per_day - day_count - 1,
             reset_minute=60,
-            reset_hour=3600
+            reset_hour=3600,
         )
 
     def get_tier_limits(self, tier: str) -> dict[str, int]:
@@ -332,7 +316,7 @@ class RateLimiter:
             "requests_per_hour": config.requests_per_hour,
             "requests_per_day": config.requests_per_day,
             "burst_size": config.burst_size,
-            "concurrent_requests": config.concurrent_requests
+            "concurrent_requests": config.concurrent_requests,
         }
 
 
@@ -422,16 +406,16 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 "remaining": {
                     "minute": result.remaining_minute,
                     "hour": result.remaining_hour,
-                    "day": result.remaining_day
+                    "day": result.remaining_day,
                 },
                 "tier": result.tier,
-                "upgrade_hint": "Upgrade to a higher tier for increased limits."
+                "upgrade_hint": "Upgrade to a higher tier for increased limits.",
             },
             headers={
                 "Retry-After": str(result.retry_after or 60),
                 "X-RateLimit-Remaining": "0",
-                "X-RateLimit-Reset": str(result.reset_minute)
-            }
+                "X-RateLimit-Reset": str(result.reset_minute),
+            },
         )
 
 
@@ -464,9 +448,9 @@ async def check_rate_limit(request: Request) -> RateLimitResult:
             detail={
                 "error": "RATE_LIMIT_EXCEEDED",
                 "retry_after": result.retry_after,
-                "tier": tier
+                "tier": tier,
             },
-            headers={"Retry-After": str(result.retry_after or 60)}
+            headers={"Retry-After": str(result.retry_after or 60)},
         )
 
     return result
@@ -484,7 +468,9 @@ async def check_expensive_operation_limit(request: Request) -> RateLimitResult:
         identifier = f"expensive:{user.id}"
         tier = getattr(user, "tier", "free")
     else:
-        identifier = f"expensive:ip:{request.client.host}" if request.client else "expensive:unknown"
+        identifier = (
+            f"expensive:ip:{request.client.host}" if request.client else "expensive:unknown"
+        )
         tier = "free"
 
     # Use stricter limits for expensive operations
@@ -494,28 +480,28 @@ async def check_expensive_operation_limit(request: Request) -> RateLimitResult:
             requests_per_hour=20,
             requests_per_day=50,
             burst_size=2,
-            concurrent_requests=1
+            concurrent_requests=1,
         ),
         "basic": RateLimitConfig(
             requests_per_minute=10,
             requests_per_hour=100,
             requests_per_day=500,
             burst_size=5,
-            concurrent_requests=2
+            concurrent_requests=2,
         ),
         "premium": RateLimitConfig(
             requests_per_minute=30,
             requests_per_hour=300,
             requests_per_day=2000,
             burst_size=10,
-            concurrent_requests=5
+            concurrent_requests=5,
         ),
         "enterprise": RateLimitConfig(
             requests_per_minute=100,
             requests_per_hour=1000,
             requests_per_day=10000,
             burst_size=30,
-            concurrent_requests=20
+            concurrent_requests=20,
         ),
     }
 
@@ -537,9 +523,9 @@ async def check_expensive_operation_limit(request: Request) -> RateLimitResult:
                 "error": "EXPENSIVE_OPERATION_RATE_LIMITED",
                 "message": "Rate limit exceeded for expensive operations",
                 "retry_after": result.retry_after,
-                "tier": tier
+                "tier": tier,
             },
-            headers={"Retry-After": str(result.retry_after or 60)}
+            headers={"Retry-After": str(result.retry_after or 60)},
         )
 
     return result

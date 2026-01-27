@@ -45,9 +45,9 @@ class TestScenario020CreativeEuropeCalls:
 
             # Should use search_funding_calls tool
             has_search_tool = any("search_funding_calls" in tool for tool in tools_used)
-            assert (
-                has_search_tool
-            ), f"Should use search_funding_calls tool. Tools used: {tools_used}"
+            assert has_search_tool, (
+                f"Should use search_funding_calls tool. Tools used: {tools_used}"
+            )
 
     @pytest.mark.asyncio
     async def test_returns_media_strand_calls(self, conversation_id):
@@ -295,9 +295,9 @@ class TestScenario020CreativeEuropeCalls:
                 actionability += 5
             score += min(actionability, 10)
 
-            assert (
-                score >= self.PASS_THRESHOLD
-            ), f"Quality score {score} below threshold {self.PASS_THRESHOLD}"
+            assert score >= self.PASS_THRESHOLD, (
+                f"Quality score {score} below threshold {self.PASS_THRESHOLD}"
+            )
 
     @pytest.mark.asyncio
     async def test_returns_valid_json_response(self, conversation_id):
@@ -343,9 +343,9 @@ class TestScenario020CreativeEuropeCalls:
                 "media strand actions overview" in response_text and not has_search_tool
             )
 
-            assert (
-                not is_static_guidance
-            ), "Should search for actual calls, not return static guidance"
+            assert not is_static_guidance, (
+                "Should search for actual calls, not return static guidance"
+            )
 
     @pytest.mark.asyncio
     async def test_call_not_closed(self, conversation_id):
@@ -375,9 +375,9 @@ class TestScenario020CreativeEuropeCalls:
             # Should have found at least upcoming calls
             has_calls = "crea-media" in response_text or "funding opportunit" in response_text
 
-            assert (
-                has_calls and not is_closed_only
-            ), "Should return open or upcoming calls, not closed"
+            assert has_calls and not is_closed_only, (
+                "Should return open or upcoming calls, not closed"
+            )
 
     @pytest.mark.asyncio
     async def test_mentions_creative_europe_programme(self, conversation_id):

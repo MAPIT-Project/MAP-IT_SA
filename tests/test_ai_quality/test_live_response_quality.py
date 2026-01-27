@@ -62,7 +62,7 @@ def check_api_available() -> bool:
 # Skip decorator for live tests
 live_ai = pytest.mark.skipif(
     not check_api_available(),
-    reason="Live API not available. Start Docker containers with: docker compose up"
+    reason="Live API not available. Start Docker containers with: docker compose up",
 )
 
 
@@ -182,6 +182,7 @@ def api_client():
 # Health Check Test
 # ============================================================================
 
+
 @live_ai
 class TestAPIHealth:
     """Test that the API is healthy before running other tests."""
@@ -206,6 +207,7 @@ class TestAPIHealth:
 # Quality Analysis Tests
 # ============================================================================
 
+
 @live_ai
 class TestLiveResponseQuality:
     """
@@ -217,7 +219,6 @@ class TestLiveResponseQuality:
     3. Required elements are present
     """
 
-    
     def test_simple_faq_quality(self, api_client: LiveAPIClient):
         """Test quality of simple FAQ response."""
         result = api_client.send_message("What is Horizon Europe?")
@@ -232,15 +233,12 @@ class TestLiveResponseQuality:
         assert analysis.category != ResponseCategory.DEFLECTION, (
             f"Response is a deflection: {analysis.deflection_phrases_found}"
         )
-        assert analysis.category != ResponseCategory.EMPTY, (
-            f"Response is empty: {response[:100]}"
-        )
+        assert analysis.category != ResponseCategory.EMPTY, f"Response is empty: {response[:100]}"
         assert analysis.score >= MIN_QUALITY_SCORE, (
             f"Quality score too low ({analysis.score}). "
             f"Missing elements: {analysis.missing_elements}"
         )
 
-    
     def test_eligibility_faq_quality(self, api_client: LiveAPIClient):
         """Test quality of eligibility FAQ response."""
         result = api_client.send_message("Can SMEs participate in Horizon Europe RIA projects?")
@@ -252,9 +250,7 @@ class TestLiveResponseQuality:
         assert analysis.category != ResponseCategory.DEFLECTION, (
             f"Eligibility question got deflection: {analysis.deflection_phrases_found}"
         )
-        assert analysis.score >= MIN_QUALITY_SCORE, (
-            f"Quality score too low ({analysis.score})"
-        )
+        assert analysis.score >= MIN_QUALITY_SCORE, f"Quality score too low ({analysis.score})"
 
         # Should contain eligibility-related content
         response_lower = response.lower()
@@ -262,7 +258,6 @@ class TestLiveResponseQuality:
             f"Response doesn't address eligibility: {response[:300]}"
         )
 
-    
     def test_call_search_quality(self, api_client: LiveAPIClient):
         """Test quality of funding call search response."""
         result = api_client.send_message("Find open funding calls for hydrogen research")
@@ -282,11 +277,10 @@ class TestLiveResponseQuality:
 
         # Response should mention calls or funding opportunities
         response_lower = response.lower()
-        assert any(word in response_lower for word in ["call", "funding", "opportunity", "found"]), (
-            f"Response doesn't discuss funding calls: {response[:300]}"
-        )
+        assert any(
+            word in response_lower for word in ["call", "funding", "opportunity", "found"]
+        ), f"Response doesn't discuss funding calls: {response[:300]}"
 
-    
     def test_project_search_quality(self, api_client: LiveAPIClient):
         """Test quality of project search response."""
         result = api_client.send_message("Find funded projects about quantum computing")
@@ -305,7 +299,6 @@ class TestLiveResponseQuality:
             f"Response doesn't discuss projects: {response[:300]}"
         )
 
-    
     def test_budget_benchmark_quality(self, api_client: LiveAPIClient):
         """Test quality of budget benchmark response."""
         result = api_client.send_message(
@@ -319,16 +312,13 @@ class TestLiveResponseQuality:
         assert analysis.category != ResponseCategory.DEFLECTION, (
             f"Budget query got deflection: {analysis.deflection_phrases_found}"
         )
-        assert analysis.score >= MIN_QUALITY_SCORE, (
-            f"Quality score too low ({analysis.score})"
-        )
+        assert analysis.score >= MIN_QUALITY_SCORE, f"Quality score too low ({analysis.score})"
 
         # Response should contain budget-related numbers
         assert any(char.isdigit() for char in response), (
             f"Response contains no numbers for budget query: {response[:300]}"
         )
 
-    
     def test_partner_discovery_quality(self, api_client: LiveAPIClient):
         """Test quality of partner discovery response."""
         result = api_client.send_message(
@@ -345,20 +335,20 @@ class TestLiveResponseQuality:
 
         # Response should mention organizations or partners
         response_lower = response.lower()
-        assert any(word in response_lower for word in ["partner", "organization", "found", "experience"]), (
-            f"Response doesn't discuss partners: {response[:300]}"
-        )
+        assert any(
+            word in response_lower for word in ["partner", "organization", "found", "experience"]
+        ), f"Response doesn't discuss partners: {response[:300]}"
 
 
 # ============================================================================
 # Quality Metadata Tests
 # ============================================================================
 
+
 @live_ai
 class TestQualityMetadata:
     """Test that quality_analysis is included in response metadata."""
 
-    
     def test_quality_analysis_in_metadata(self, api_client: LiveAPIClient):
         """Test that quality_analysis is included in API response metadata."""
         result = api_client.send_message("What is the ERC Starting Grant?")
@@ -379,14 +369,14 @@ class TestQualityMetadata:
         else:
             # Log a warning but don't fail - the local analyzer still works
             logger.warning(
-                "quality_analysis not found in API metadata. "
-                "Using local analyzer for validation."
+                "quality_analysis not found in API metadata. Using local analyzer for validation."
             )
 
 
 # ============================================================================
 # Deflection Detection Tests
 # ============================================================================
+
 
 @live_ai
 class TestNoDeflections:
@@ -397,13 +387,15 @@ class TestNoDeflections:
     the AI is avoiding answering when it shouldn't.
     """
 
-    
-    @pytest.mark.parametrize("query", [
-        "What is Horizon Europe?",
-        "What is a RIA project type?",
-        "What is the minimum consortium size?",
-        "Can universities coordinate projects?",
-    ])
+    @pytest.mark.parametrize(
+        "query",
+        [
+            "What is Horizon Europe?",
+            "What is a RIA project type?",
+            "What is the minimum consortium size?",
+            "Can universities coordinate projects?",
+        ],
+    )
     def test_basic_faq_no_deflection(self, api_client: LiveAPIClient, query: str):
         """Test that basic FAQs don't result in deflections."""
         result = api_client.send_message(query)
@@ -418,13 +410,14 @@ class TestNoDeflections:
             f"Query '{query}' resulted in empty response"
         )
 
-    
     def test_deflection_phrase_check(self, api_client: LiveAPIClient):
         """Test that responses don't contain common deflection phrases."""
-        result = api_client.send_message("What are the eligibility requirements for Horizon Europe?")
+        result = api_client.send_message(
+            "What are the eligibility requirements for Horizon Europe?"
+        )
 
         response = result["response"].lower()
-        analysis = result["quality_analysis"]
+        result["quality_analysis"]
 
         # Check for common deflection phrases
         deflection_phrases = [
@@ -447,6 +440,7 @@ class TestNoDeflections:
 # Quality Score Threshold Tests
 # ============================================================================
 
+
 @live_ai
 class TestQualityThresholds:
     """
@@ -456,16 +450,16 @@ class TestQualityThresholds:
     acceptable levels for different query types.
     """
 
-    
-    @pytest.mark.parametrize("query,min_score", [
-        ("What is Horizon Europe?", 60),
-        ("Can SMEs apply to RIA projects?", 55),
-        ("What is the deadline for ERC Starting Grant?", 50),
-        ("Find hydrogen funding opportunities", 50),
-    ])
-    def test_quality_score_thresholds(
-        self, api_client: LiveAPIClient, query: str, min_score: int
-    ):
+    @pytest.mark.parametrize(
+        "query,min_score",
+        [
+            ("What is Horizon Europe?", 60),
+            ("Can SMEs apply to RIA projects?", 55),
+            ("What is the deadline for ERC Starting Grant?", 50),
+            ("Find hydrogen funding opportunities", 50),
+        ],
+    )
+    def test_quality_score_thresholds(self, api_client: LiveAPIClient, query: str, min_score: int):
         """Test that quality scores meet minimum thresholds."""
         result = api_client.send_message(query)
 
@@ -483,11 +477,11 @@ class TestQualityThresholds:
 # Performance Benchmarking
 # ============================================================================
 
+
 @live_ai
 class TestResponsePerformance:
     """Test response time performance."""
 
-    
     def test_simple_query_performance(self, api_client: LiveAPIClient):
         """Test that simple queries respond within reasonable time."""
         result = api_client.send_message("What is Horizon Europe?")
@@ -495,11 +489,8 @@ class TestResponsePerformance:
         elapsed_ms = result["elapsed_ms"]
 
         # Simple FAQ should respond within 30 seconds
-        assert elapsed_ms < 30000, (
-            f"Simple query took too long: {elapsed_ms}ms"
-        )
+        assert elapsed_ms < 30000, f"Simple query took too long: {elapsed_ms}ms"
 
-    
     def test_complex_query_performance(self, api_client: LiveAPIClient):
         """Test that complex queries respond within extended time."""
         result = api_client.send_message(
@@ -509,39 +500,31 @@ class TestResponsePerformance:
         elapsed_ms = result["elapsed_ms"]
 
         # Complex query with multiple tool calls - allow up to 120 seconds
-        assert elapsed_ms < 120000, (
-            f"Complex query took too long: {elapsed_ms}ms"
-        )
+        assert elapsed_ms < 120000, f"Complex query took too long: {elapsed_ms}ms"
 
 
 # ============================================================================
 # Conversation Context Tests
 # ============================================================================
 
+
 @live_ai
 class TestConversationContext:
     """Test conversation context handling."""
 
-    
     def test_follow_up_quality(self, api_client: LiveAPIClient):
         """Test that follow-up questions maintain quality."""
         conv_id = random.randint(1000000, 9999999)
 
         # First message
-        result1 = api_client.send_message(
-            "What is the EIC Accelerator?",
-            conversation_id=conv_id
-        )
+        result1 = api_client.send_message("What is the EIC Accelerator?", conversation_id=conv_id)
 
         assert result1["quality_analysis"].category != ResponseCategory.DEFLECTION, (
             "First message was a deflection"
         )
 
         # Follow-up message
-        result2 = api_client.send_message(
-            "What is the success rate?",
-            conversation_id=conv_id
-        )
+        result2 = api_client.send_message("What is the success rate?", conversation_id=conv_id)
 
         assert result2["quality_analysis"].category != ResponseCategory.DEFLECTION, (
             "Follow-up message was a deflection"

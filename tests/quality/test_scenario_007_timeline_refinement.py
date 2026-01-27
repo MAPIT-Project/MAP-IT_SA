@@ -103,9 +103,9 @@ class TestScenario007TimelineRefinementOffline:
         assert "name" in data
         assert data["name"] == "Timeline Refinement"
         assert "steps" in data
-        assert (
-            len(data["steps"]) == NUM_TURNS
-        ), f"Expected {NUM_TURNS} turns, got {len(data['steps'])}"
+        assert len(data["steps"]) == NUM_TURNS, (
+            f"Expected {NUM_TURNS} turns, got {len(data['steps'])}"
+        )
 
     def test_results_directory_exists(self):
         """Verify results directory can be created."""
@@ -218,9 +218,9 @@ class TestScenario007TimelineRefinementOffline:
         with open(SCENARIO_PATH) as f:
             data = yaml.safe_load(f)
 
-        assert (
-            len(data["steps"]) == NUM_TURNS
-        ), f"Expected {NUM_TURNS} turns, got {len(data['steps'])}"
+        assert len(data["steps"]) == NUM_TURNS, (
+            f"Expected {NUM_TURNS} turns, got {len(data['steps'])}"
+        )
 
 
 class TestScenario007TimelineRefinementLive:
@@ -299,9 +299,9 @@ class TestScenario007TimelineRefinementLive:
 
         # Assertions based on PRD requirements
         assert result.scenario_name == "Timeline Refinement"
-        assert (
-            len(result.turns) == NUM_TURNS
-        ), f"Expected {NUM_TURNS} turns, got {len(result.turns)}"
+        assert len(result.turns) == NUM_TURNS, (
+            f"Expected {NUM_TURNS} turns, got {len(result.turns)}"
+        )
 
         # Check that timeline-related terms are mentioned across conversation
         all_responses = " ".join(t.response for t in result.turns)
@@ -496,9 +496,9 @@ class TestScenario007TimelineRefinementLive:
         logger.info(f"Health mentions across {NUM_TURNS} turns: {health_mentions}")
 
         # Should have multiple mentions of timeline context across turns
-        assert (
-            timeline_mentions >= 2 or month_mentions >= 2
-        ), "Timeline context should be maintained across turns"
+        assert timeline_mentions >= 2 or month_mentions >= 2, (
+            "Timeline context should be maintained across turns"
+        )
 
 
 class TestScenario007TimelineRefinementResults:
@@ -521,9 +521,9 @@ class TestScenario007TimelineRefinementResults:
         assert "status" in result
 
         # Validate this is a 5-turn scenario
-        assert (
-            len(result["turns"]) == NUM_TURNS
-        ), f"Expected {NUM_TURNS} turns, got {len(result['turns'])}"
+        assert len(result["turns"]) == NUM_TURNS, (
+            f"Expected {NUM_TURNS} turns, got {len(result['turns'])}"
+        )
 
         # Log current status
         logger.info(f"Current status: {result['status']}")

@@ -96,9 +96,9 @@ class TestScenario004SearchProjectsByTopic:
             if reasoning_steps:
                 first_step = reasoning_steps[0]
                 first_thought = first_step.get("thought", "")
-                assert (
-                    "TUM" not in first_thought
-                ), f"Should not misinterpret 'quantum' as 'TUM': {first_thought}"
+                assert "TUM" not in first_thought, (
+                    f"Should not misinterpret 'quantum' as 'TUM': {first_thought}"
+                )
 
     @pytest.mark.asyncio
     async def test_no_tum_organization_misdetection(self, conversation_id, clear_redis_cache):
@@ -115,12 +115,12 @@ class TestScenario004SearchProjectsByTopic:
             response_text = result.get("response", "")
 
             # Should NOT have TUM organization header
-            assert (
-                "## Projects by TUM" not in response_text
-            ), "Response should not be about TUM organization"
-            assert (
-                "Projects by TUM" not in response_text
-            ), "Response should not be about TUM organization"
+            assert "## Projects by TUM" not in response_text, (
+                "Response should not be about TUM organization"
+            )
+            assert "Projects by TUM" not in response_text, (
+                "Response should not be about TUM organization"
+            )
 
     @pytest.mark.asyncio
     async def test_includes_project_ids(self, conversation_id, clear_redis_cache):
@@ -141,9 +141,9 @@ class TestScenario004SearchProjectsByTopic:
             project_id_pattern = r"(?:Project ID[:\*]*|🔢[^0-9]*)\s*\d{6,9}"
             project_ids = re.findall(project_id_pattern, response_text)
 
-            assert (
-                len(project_ids) >= 1
-            ), f"Response should include project IDs, got: {response_text[:300]}"
+            assert len(project_ids) >= 1, (
+                f"Response should include project IDs, got: {response_text[:300]}"
+            )
 
     @pytest.mark.asyncio
     async def test_includes_cordis_links(self, conversation_id, clear_redis_cache):
@@ -160,9 +160,9 @@ class TestScenario004SearchProjectsByTopic:
             response_text = result.get("response", "")
 
             # Should link to CORDIS
-            assert (
-                "cordis.europa.eu" in response_text.lower()
-            ), "Response should include CORDIS links"
+            assert "cordis.europa.eu" in response_text.lower(), (
+                "Response should include CORDIS links"
+            )
 
     @pytest.mark.asyncio
     async def test_includes_coordinator_info(self, conversation_id, clear_redis_cache):
@@ -179,9 +179,9 @@ class TestScenario004SearchProjectsByTopic:
             response_text = result.get("response", "")
 
             # Should have coordinator information
-            assert (
-                "coordinator" in response_text.lower()
-            ), "Response should include coordinator information"
+            assert "coordinator" in response_text.lower(), (
+                "Response should include coordinator information"
+            )
 
     @pytest.mark.asyncio
     async def test_includes_project_objectives(self, conversation_id, clear_redis_cache):
@@ -243,9 +243,9 @@ class TestScenario004SearchProjectsByTopic:
 
             # Quality score should meet threshold
             score = quality_analysis.get("score", 0)
-            assert (
-                score >= self.PASS_THRESHOLD
-            ), f"Quality score {score} should be >= {self.PASS_THRESHOLD}"
+            assert score >= self.PASS_THRESHOLD, (
+                f"Quality score {score} should be >= {self.PASS_THRESHOLD}"
+            )
 
     @pytest.mark.asyncio
     async def test_no_error_in_response(self, conversation_id, clear_redis_cache):
@@ -348,9 +348,9 @@ class TestTUMOrganizationPatternRegression:
             # First step should NOT think it's about TUM
             if reasoning_steps:
                 first_thought = reasoning_steps[0].get("thought", "")
-                assert (
-                    "TUM" not in first_thought
-                ), f"Should not detect TUM in 'quantum': {first_thought}"
+                assert "TUM" not in first_thought, (
+                    f"Should not detect TUM in 'quantum': {first_thought}"
+                )
 
             # Response should not be TUM organization projects
             assert "## Projects by TUM" not in response_text, "Should not return TUM projects"
@@ -374,9 +374,9 @@ class TestTUMOrganizationPatternRegression:
             # This is the expected behavior - TUM's should trigger org search
             # Note: If this fails, it's OK - the regex may be too restrictive
             # The important thing is that quantum doesn't trigger it
-            assert (
-                any("organization" in str(t).lower() for t in tools_used) or True
-            ), "Expected org search for explicit TUM query (optional check)"
+            assert any("organization" in str(t).lower() for t in tools_used) or True, (
+                "Expected org search for explicit TUM query (optional check)"
+            )
 
     @pytest.mark.asyncio
     async def test_quantum_computing_projects_are_relevant(self, conversation_id):

@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class RetryConfig:
     """Configuration for retry behavior."""
+
     max_attempts: int = 3
     base_delay: float = 1.0
     max_delay: float = 30.0
@@ -28,54 +29,25 @@ class RetryConfig:
 
 
 # Predefined retry configurations
-AGGRESSIVE_RETRY = RetryConfig(
-    max_attempts=5,
-    base_delay=0.5,
-    max_delay=10.0,
-    exponential_base=2.0
-)
+AGGRESSIVE_RETRY = RetryConfig(max_attempts=5, base_delay=0.5, max_delay=10.0, exponential_base=2.0)
 
-STANDARD_RETRY = RetryConfig(
-    max_attempts=3,
-    base_delay=1.0,
-    max_delay=30.0,
-    exponential_base=2.0
-)
+STANDARD_RETRY = RetryConfig(max_attempts=3, base_delay=1.0, max_delay=30.0, exponential_base=2.0)
 
-GENTLE_RETRY = RetryConfig(
-    max_attempts=2,
-    base_delay=2.0,
-    max_delay=60.0,
-    exponential_base=2.0
-)
+GENTLE_RETRY = RetryConfig(max_attempts=2, base_delay=2.0, max_delay=60.0, exponential_base=2.0)
 
 # Service-specific configurations
-LLM_RETRY_CONFIG = RetryConfig(
-    max_attempts=3,
-    base_delay=2.0,
-    max_delay=30.0,
-    exponential_base=2.0
-)
+LLM_RETRY_CONFIG = RetryConfig(max_attempts=3, base_delay=2.0, max_delay=30.0, exponential_base=2.0)
 
 DATABASE_RETRY_CONFIG = RetryConfig(
-    max_attempts=3,
-    base_delay=0.5,
-    max_delay=10.0,
-    exponential_base=2.0
+    max_attempts=3, base_delay=0.5, max_delay=10.0, exponential_base=2.0
 )
 
 EXTERNAL_API_RETRY_CONFIG = RetryConfig(
-    max_attempts=3,
-    base_delay=1.0,
-    max_delay=15.0,
-    exponential_base=2.0
+    max_attempts=3, base_delay=1.0, max_delay=15.0, exponential_base=2.0
 )
 
 
-def calculate_delay(
-    attempt: int,
-    config: RetryConfig
-) -> float:
+def calculate_delay(attempt: int, config: RetryConfig) -> float:
     """
     Calculate the delay before the next retry attempt.
 
@@ -89,10 +61,7 @@ def calculate_delay(
         Delay in seconds
     """
     # Exponential backoff
-    delay = min(
-        config.base_delay * (config.exponential_base ** attempt),
-        config.max_delay
-    )
+    delay = min(config.base_delay * (config.exponential_base**attempt), config.max_delay)
 
     # Add jitter if enabled
     if config.jitter:
@@ -107,7 +76,7 @@ def should_retry(
     exception: Exception,
     retryable_exceptions: tuple[type[Exception], ...],
     attempt: int,
-    max_attempts: int
+    max_attempts: int,
 ) -> bool:
     """
     Determine if an operation should be retried.
@@ -134,7 +103,7 @@ def async_retry(
     exponential_base: float = 2.0,
     retryable_exceptions: tuple[type[Exception], ...] = (Exception,),
     config: RetryConfig | None = None,
-    on_retry: Callable[[Exception, int], None] | None = None
+    on_retry: Callable[[Exception, int], None] | None = None,
 ):
     """
     Async retry decorator with exponential backoff.
@@ -157,6 +126,7 @@ def async_retry(
         async def call_llm():
             ...
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         async def wrapper(*args, **kwargs):
@@ -165,7 +135,7 @@ def async_retry(
                 max_attempts=max_attempts,
                 base_delay=base_delay,
                 max_delay=max_delay,
-                exponential_base=exponential_base
+                exponential_base=exponential_base,
             )
 
             last_exception = None
@@ -205,6 +175,7 @@ def async_retry(
                 raise last_exception
 
         return wrapper
+
     return decorator
 
 
@@ -214,7 +185,7 @@ def sync_retry(
     max_delay: float = 30.0,
     exponential_base: float = 2.0,
     retryable_exceptions: tuple[type[Exception], ...] = (Exception,),
-    config: RetryConfig | None = None
+    config: RetryConfig | None = None,
 ):
     """
     Synchronous retry decorator with exponential backoff.
@@ -230,7 +201,7 @@ def sync_retry(
                 max_attempts=max_attempts,
                 base_delay=base_delay,
                 max_delay=max_delay,
-                exponential_base=exponential_base
+                exponential_base=exponential_base,
             )
 
             last_exception = None
@@ -258,6 +229,7 @@ def sync_retry(
                 raise last_exception
 
         return wrapper
+
     return decorator
 
 
@@ -279,7 +251,7 @@ class RetryContext:
     def __init__(
         self,
         config: RetryConfig = None,
-        retryable_exceptions: tuple[type[Exception], ...] = (Exception,)
+        retryable_exceptions: tuple[type[Exception], ...] = (Exception,),
     ):
         self.config = config or STANDARD_RETRY
         self.retryable_exceptions = retryable_exceptions
@@ -326,7 +298,7 @@ async def retry_with_fallback(
     fallback_func: Callable,
     primary_retries: int = 2,
     retryable_exceptions: tuple[type[Exception], ...] = (Exception,),
-    fallback_on_timeout: bool = True
+    fallback_on_timeout: bool = True,
 ) -> Any:
     """
     Try primary function with retries, then fall back to secondary function.
@@ -372,7 +344,7 @@ async def retry_with_fallback(
     except Exception as e:
         logger.error(f"Fallback function also failed: {e}")
         # Re-raise the original exception from primary
-        raise last_exception or e
+        raise (last_exception or e) from e
 
 
 # Common retryable exceptions

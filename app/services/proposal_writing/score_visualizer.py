@@ -51,7 +51,7 @@ def generate_score_summary(evaluation_result: dict[str, Any]) -> str:
     # Funding probability
     prob = evaluation_result.get("funding_probability", 0)
     prob_bar = "=" * int(prob * 10) + "-" * (10 - int(prob * 10))
-    lines.append(f"Funding Probability: [{prob_bar}] {prob*100:.0f}%")
+    lines.append(f"Funding Probability: [{prob_bar}] {prob * 100:.0f}%")
 
     lines.append("")
     lines.append("-" * 60)
@@ -89,7 +89,9 @@ def generate_criterion_table(criterion_scores: list[dict]) -> str:
             status = "Needs Work"
 
         criterion_text = cs.get("criterion", "")
-        criterion_short = criterion_text[:40] + "..." if len(criterion_text) > 40 else criterion_text
+        criterion_short = (
+            criterion_text[:40] + "..." if len(criterion_text) > 40 else criterion_text
+        )
         lines.append(f"| {criterion_short} | {score:.1f} | {status} |")
 
     return "\n".join(lines)
@@ -162,8 +164,7 @@ def generate_section_report(evaluation_result: Any) -> str:
 
 
 def generate_comparison_chart_data(
-    current_scores: dict[str, float],
-    target_scores: dict[str, float] = None
+    current_scores: dict[str, float], target_scores: dict[str, float] = None
 ) -> dict[str, Any]:
     """Generate data for a comparison chart (for frontend visualization)."""
     if target_scores is None:
@@ -183,8 +184,8 @@ def generate_comparison_chart_data(
                 "data": list(target_scores.values()),
                 "backgroundColor": "rgba(16, 185, 129, 0.5)",
                 "borderColor": "rgb(16, 185, 129)",
-            }
-        ]
+            },
+        ],
     }
 
 
@@ -207,14 +208,11 @@ def generate_funding_probability_gauge(probability: float) -> dict[str, Any]:
         "max": 100,
         "color": color,
         "status": status,
-        "threshold_marker": 60  # Typical "good chance" threshold
+        "threshold_marker": 60,  # Typical "good chance" threshold
     }
 
 
-def format_improvement_priority_list(
-    improvements: list[dict[str, Any]],
-    max_items: int = 5
-) -> str:
+def format_improvement_priority_list(improvements: list[dict[str, Any]], max_items: int = 5) -> str:
     """Format improvements as a prioritized list."""
     lines = []
     lines.append("Priority Improvements:")
@@ -222,16 +220,16 @@ def format_improvement_priority_list(
 
     # Sort by expected score increase
     sorted_improvements = sorted(
-        improvements,
-        key=lambda x: x.get("expected_score_increase", 0),
-        reverse=True
+        improvements, key=lambda x: x.get("expected_score_increase", 0), reverse=True
     )[:max_items]
 
     for i, imp in enumerate(sorted_improvements, 1):
         improvement_text = imp.get("improvement", str(imp))
         score_increase = imp.get("expected_score_increase", 0)
 
-        priority = "HIGH" if score_increase >= 0.5 else "MEDIUM" if score_increase >= 0.25 else "LOW"
+        priority = (
+            "HIGH" if score_increase >= 0.5 else "MEDIUM" if score_increase >= 0.25 else "LOW"
+        )
 
         lines.append(f"{i}. [{priority}] {improvement_text}")
         if score_increase:

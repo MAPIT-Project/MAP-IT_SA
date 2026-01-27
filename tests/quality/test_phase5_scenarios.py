@@ -439,14 +439,14 @@ class TestPhase5FullExecution:
         )
 
         # Verify average quality score
-        assert (
-            report["summary"]["average_quality_score"] >= 80
-        ), f"Phase 5 average quality score {report['summary']['average_quality_score']} < 80"
+        assert report["summary"]["average_quality_score"] >= 80, (
+            f"Phase 5 average quality score {report['summary']['average_quality_score']} < 80"
+        )
 
         # Verify no critical failures
-        assert (
-            report["summary"]["critical_failures"] == 0
-        ), f"Phase 5 has {report['summary']['critical_failures']} critical failures"
+        assert report["summary"]["critical_failures"] == 0, (
+            f"Phase 5 has {report['summary']['critical_failures']} critical failures"
+        )
 
 
 # =============================================================================
@@ -486,9 +486,9 @@ class TestPhase5Infrastructure:
                 with open(scenario_path) as f:
                     data = yaml.safe_load(f)
                 actual_steps = len(data["steps"])
-                assert (
-                    actual_steps == expected_steps
-                ), f"{scenario_file} should have {expected_steps} steps, found {actual_steps}"
+                assert actual_steps == expected_steps, (
+                    f"{scenario_file} should have {expected_steps} steps, found {actual_steps}"
+                )
 
     def test_results_directory_creation(self, results_dir: Path):
         """Verify results directory can be created."""

@@ -32,9 +32,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # DATA CLASSES FOR TEST DATA
 # =============================================================================
 
+
 @dataclass
 class MockCallResult:
     """Mock funding call result."""
+
     call_id: str = "HORIZON-CL5-2024-D3-01"
     title: str = "Clean Hydrogen Research"
     status: str = "open"
@@ -58,6 +60,7 @@ class MockCallResult:
 @dataclass
 class MockProjectResult:
     """Mock project result."""
+
     project_id: str = "101000001"
     acronym: str = "HYDSTOR"
     title: str = "Hydrogen Storage Solutions"
@@ -85,6 +88,7 @@ class MockProjectResult:
 @dataclass
 class ConversationTurn:
     """Represents a single turn in a conversation."""
+
     user_message: str
     response_text: str = ""
     events: list[dict[str, Any]] = field(default_factory=list)
@@ -97,9 +101,18 @@ class ConversationTurn:
     def references_previous_result(self) -> bool:
         """Check if this turn references a previous result."""
         reference_patterns = [
-            "the first", "the second", "the third", "the 1st", "the 2nd",
-            "that one", "this call", "this project", "mentioned above",
-            "tell me more", "more details", "elaborate",
+            "the first",
+            "the second",
+            "the third",
+            "the 1st",
+            "the 2nd",
+            "that one",
+            "this call",
+            "this project",
+            "mentioned above",
+            "tell me more",
+            "more details",
+            "elaborate",
         ]
         lower_msg = self.user_message.lower()
         return any(pattern in lower_msg for pattern in reference_patterns)
@@ -108,6 +121,7 @@ class ConversationTurn:
 @dataclass
 class ScenarioStep:
     """A single step in a conversation scenario."""
+
     message: str
     validations: list[dict[str, Any]] = field(default_factory=list)
     expected_tools: list[str] = field(default_factory=list)
@@ -117,6 +131,7 @@ class ScenarioStep:
 @dataclass
 class ConversationScenario:
     """A complete conversation scenario for testing."""
+
     name: str
     description: str
     steps: list[ScenarioStep]
@@ -127,6 +142,7 @@ class ConversationScenario:
 @dataclass
 class ValidationResult:
     """Result of a validation check."""
+
     passed: bool
     name: str = ""
     message: str = ""
@@ -136,6 +152,7 @@ class ValidationResult:
 @dataclass
 class ScenarioResult:
     """Result of running a conversation scenario."""
+
     scenario_name: str
     validations: list[ValidationResult] = field(default_factory=list)
     errors: list[dict[str, Any]] = field(default_factory=list)
@@ -160,6 +177,7 @@ class ScenarioResult:
 # MOCK GENAI (GOOGLE GENERATIVE AI)
 # =============================================================================
 
+
 def create_mock_genai():
     """Create a mock for google.generativeai that simulates the real module."""
     mock_genai = MagicMock()
@@ -180,13 +198,14 @@ def mock_genai():
 @pytest.fixture
 def mock_genai_patched(mock_genai):
     """Auto-use fixture to mock google.generativeai in sys.modules."""
-    with patch.dict('sys.modules', {'google.generativeai': mock_genai}):
+    with patch.dict("sys.modules", {"google.generativeai": mock_genai}):
         yield mock_genai
 
 
 # =============================================================================
 # MOCK CONVERSATION MANAGER
 # =============================================================================
+
 
 def create_mock_conversation_manager():
     """Create a fully mocked conversation manager."""
@@ -228,40 +247,45 @@ def mock_conversation_manager():
 @pytest.fixture
 def mock_conversation_manager_with_tools(mock_conversation_manager):
     """Conversation manager with mocked tool execution."""
+
     async def mock_tool_execution(tool_calls):
         results = []
         for call in tool_calls:
-            tool_name = call.tool_name if hasattr(call, 'tool_name') else call.get('tool_name', '')
-            if tool_name == 'search_funding_calls':
-                results.append({
-                    "tool": tool_name,
-                    "result": {
-                        "calls": [MockCallResult().to_dict()],
-                        "count": 1,
+            tool_name = call.tool_name if hasattr(call, "tool_name") else call.get("tool_name", "")
+            if tool_name == "search_funding_calls":
+                results.append(
+                    {
+                        "tool": tool_name,
+                        "result": {
+                            "calls": [MockCallResult().to_dict()],
+                            "count": 1,
+                        },
                     }
-                })
-            elif tool_name == 'search_projects':
-                results.append({
-                    "tool": tool_name,
-                    "result": {
-                        "projects": [MockProjectResult().to_dict()],
-                        "count": 1,
+                )
+            elif tool_name == "search_projects":
+                results.append(
+                    {
+                        "tool": tool_name,
+                        "result": {
+                            "projects": [MockProjectResult().to_dict()],
+                            "count": 1,
+                        },
                     }
-                })
+                )
             else:
-                results.append({
-                    "tool": tool_name,
-                    "result": {"success": True}
-                })
+                results.append({"tool": tool_name, "result": {"success": True}})
         return results
 
-    mock_conversation_manager.tool_orchestrator.execute_plan = AsyncMock(side_effect=mock_tool_execution)
+    mock_conversation_manager.tool_orchestrator.execute_plan = AsyncMock(
+        side_effect=mock_tool_execution
+    )
     return mock_conversation_manager
 
 
 # =============================================================================
 # MOCK STREAMING GENERATORS
 # =============================================================================
+
 
 async def create_mock_stream_generator(
     include_name_event: bool = True,
@@ -283,7 +307,7 @@ async def create_mock_stream_generator(
         yield {
             "type": "conversation_name",
             "name": "Test Conversation",
-            "conversation_id": conversation_id
+            "conversation_id": conversation_id,
         }
 
     yield {"type": "status", "stage": "context_loaded", "message": "Context loaded"}
@@ -298,7 +322,7 @@ async def create_mock_stream_generator(
     # Stream response tokens
     words = response_text.split()
     for i in range(0, len(words), 3):
-        chunk = " ".join(words[i:i+3])
+        chunk = " ".join(words[i : i + 3])
         yield {"type": "token", "content": chunk + " "}
 
     yield {
@@ -308,7 +332,7 @@ async def create_mock_stream_generator(
             "tools_used": tools_used or ["search_funding_calls"],
             "iterations": 1,
             "processing_time_ms": 1500,
-        }
+        },
     }
 
 
@@ -321,6 +345,7 @@ def mock_stream_generator():
 # =============================================================================
 # MOCK REDIS
 # =============================================================================
+
 
 def create_mock_redis():
     """Create a mock Redis client."""
@@ -362,6 +387,7 @@ def mock_redis():
 # =============================================================================
 # MOCK DATABASE
 # =============================================================================
+
 
 def create_mock_db_connection():
     """Create a mock database connection."""
@@ -410,6 +436,7 @@ def mock_db_pool():
 # MOCK TOOL AWARE AGENT
 # =============================================================================
 
+
 @pytest.fixture
 def mock_tool_aware_agent(mock_genai_patched):
     """Create a mocked ToolAwareAgent."""
@@ -429,7 +456,7 @@ def mock_tool_aware_agent(mock_genai_patched):
     Final Answer: I found 5 open funding calls for hydrogen research.
     """
 
-    if hasattr(agent, 'llm') and agent.llm:
+    if hasattr(agent, "llm") and agent.llm:
         agent.llm.generate_content = MagicMock(return_value=mock_response)
 
     return agent
@@ -438,6 +465,7 @@ def mock_tool_aware_agent(mock_genai_patched):
 # =============================================================================
 # FASTAPI TEST CLIENT FIXTURES
 # =============================================================================
+
 
 @pytest.fixture
 def app_with_mocked_manager(mock_conversation_manager):
@@ -449,13 +477,14 @@ def app_with_mocked_manager(mock_conversation_manager):
     app = FastAPI()
     app.include_router(router)
 
-    with patch('app.api.conversation_routes_v3.conversation_manager', mock_conversation_manager):
+    with patch("app.api.conversation_routes_v3.conversation_manager", mock_conversation_manager):
         yield app, mock_conversation_manager
 
 
 # =============================================================================
 # TEST DATA FACTORIES
 # =============================================================================
+
 
 class TestDataFactory:
     """Factory for creating test data."""
@@ -466,9 +495,9 @@ class TestDataFactory:
         calls = []
         for i in range(count):
             call = MockCallResult(
-                call_id=f"HORIZON-CL5-2024-D3-{i+1:02d}",
-                title=f"Test Call {i+1}",
-                deadline=f"2024-{(i % 12) + 1:02d}-15"
+                call_id=f"HORIZON-CL5-2024-D3-{i + 1:02d}",
+                title=f"Test Call {i + 1}",
+                deadline=f"2024-{(i % 12) + 1:02d}-15",
             )
             calls.append(call.to_dict())
         return calls
@@ -479,27 +508,26 @@ class TestDataFactory:
         projects = []
         for i in range(count):
             project = MockProjectResult(
-                project_id=str(101000001 + i),
-                acronym=f"PROJ{i+1}",
-                title=f"Test Project {i+1}"
+                project_id=str(101000001 + i), acronym=f"PROJ{i + 1}", title=f"Test Project {i + 1}"
             )
             projects.append(project.to_dict())
         return projects
 
     @staticmethod
     def create_conversation_scenario(
-        name: str,
-        steps: list[dict[str, Any]]
+        name: str, steps: list[dict[str, Any]]
     ) -> ConversationScenario:
         """Create a conversation scenario from dict config."""
         scenario_steps = []
         for step in steps:
-            scenario_steps.append(ScenarioStep(
-                message=step.get("message", ""),
-                validations=step.get("validations", []),
-                expected_tools=step.get("expected_tools", []),
-                expected_patterns=step.get("expected_patterns", []),
-            ))
+            scenario_steps.append(
+                ScenarioStep(
+                    message=step.get("message", ""),
+                    validations=step.get("validations", []),
+                    expected_tools=step.get("expected_tools", []),
+                    expected_patterns=step.get("expected_patterns", []),
+                )
+            )
 
         return ConversationScenario(
             name=name,
@@ -518,6 +546,7 @@ def test_data_factory():
 # ASSERTION HELPERS
 # =============================================================================
 
+
 class AssertionHelpers:
     """Helper methods for common assertions."""
 
@@ -526,8 +555,15 @@ class AssertionHelpers:
         """Assert that an SSE event has valid structure."""
         assert "type" in event, "SSE event must have 'type' field"
         valid_types = [
-            'status', 'progress', 'conversation_name', 'agent_thinking',
-            'tool_call', 'tool_result', 'token', 'complete', 'error'
+            "status",
+            "progress",
+            "conversation_name",
+            "agent_thinking",
+            "tool_call",
+            "tool_result",
+            "token",
+            "complete",
+            "error",
         ]
         assert event["type"] in valid_types, f"Invalid event type: {event['type']}"
 
@@ -561,6 +597,7 @@ def assertion_helpers():
 # ENVIRONMENT FIXTURES
 # =============================================================================
 
+
 @pytest.fixture
 def api_base_url():
     """Get API base URL from environment or default."""
@@ -592,6 +629,7 @@ def skip_if_no_neo4j():
 # ASYNC UTILITIES
 # =============================================================================
 
+
 @pytest.fixture
 def event_loop():
     """Create an event loop for async tests."""
@@ -601,7 +639,7 @@ def event_loop():
 
 
 async def collect_stream_events(
-    stream_generator: AsyncGenerator[dict[str, Any], None]
+    stream_generator: AsyncGenerator[dict[str, Any], None],
 ) -> list[dict[str, Any]]:
     """Collect all events from a stream generator."""
     events = []
@@ -620,6 +658,7 @@ def collect_stream():
 # CLEANUP FIXTURES
 # =============================================================================
 
+
 @pytest.fixture(autouse=True)
 def reset_singletons():
     """Reset singleton instances between tests."""
@@ -627,8 +666,8 @@ def reset_singletons():
 
     # Reset known singletons
     singleton_classes = [
-        ('app.services.analytics.tool_analytics_service', 'ToolAnalyticsService'),
-        ('app.services.feedback.feedback_service', 'FeedbackService'),
+        ("app.services.analytics.tool_analytics_service", "ToolAnalyticsService"),
+        ("app.services.feedback.feedback_service", "FeedbackService"),
     ]
 
     for module_path, class_name in singleton_classes:
@@ -636,7 +675,7 @@ def reset_singletons():
             module = sys.modules.get(module_path)
             if module:
                 cls = getattr(module, class_name, None)
-                if cls and hasattr(cls, '_instance'):
+                if cls and hasattr(cls, "_instance"):
                     cls._instance = None
         except Exception:
             pass

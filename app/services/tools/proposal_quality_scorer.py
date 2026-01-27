@@ -22,16 +22,18 @@ logger = logging.getLogger(__name__)
 
 class QualityLevel(Enum):
     """Quality level classifications matching EU thresholds."""
-    EXCELLENT = "excellent"      # 4.5-5.0
-    VERY_GOOD = "very_good"      # 3.5-4.4
-    GOOD = "good"                # 3.0-3.4 (threshold)
+
+    EXCELLENT = "excellent"  # 4.5-5.0
+    VERY_GOOD = "very_good"  # 3.5-4.4
+    GOOD = "good"  # 3.0-3.4 (threshold)
     NEEDS_IMPROVEMENT = "needs_improvement"  # 2.0-2.9
-    WEAK = "weak"                # 0-1.9
+    WEAK = "weak"  # 0-1.9
 
 
 @dataclass
 class CriterionAssessment:
     """Assessment for a single evaluation criterion."""
+
     criterion: str
     score: float
     max_score: float = 5.0
@@ -44,8 +46,9 @@ class CriterionAssessment:
 @dataclass
 class SectionScore:
     """Score for a proposal section."""
+
     section_type: str  # excellence, impact, implementation
-    section_id: str    # objectives, methodology, etc.
+    section_id: str  # objectives, methodology, etc.
     score: float
     max_score: float = 5.0
     criteria: list[CriterionAssessment] = field(default_factory=list)
@@ -57,6 +60,7 @@ class SectionScore:
 @dataclass
 class ProposalQualityReport:
     """Complete quality report for a proposal."""
+
     overall_score: float
     max_score: float
     quality_level: str
@@ -97,52 +101,52 @@ class ProposalQualityScorerTool:
 
     # Section weights by action type
     ACTION_WEIGHTS = {
-        'RIA': {'excellence': 0.40, 'impact': 0.30, 'implementation': 0.30},
-        'IA': {'excellence': 0.30, 'impact': 0.40, 'implementation': 0.30},
-        'CSA': {'excellence': 0.30, 'impact': 0.35, 'implementation': 0.35},
+        "RIA": {"excellence": 0.40, "impact": 0.30, "implementation": 0.30},
+        "IA": {"excellence": 0.30, "impact": 0.40, "implementation": 0.30},
+        "CSA": {"excellence": 0.30, "impact": 0.35, "implementation": 0.35},
     }
 
     # Criteria by section
     CRITERIA = {
-        'excellence': {
-            'objectives': [
-                'Clarity and pertinence of objectives',
-                'Measurability and SMART criteria',
-                'Alignment with call scope',
+        "excellence": {
+            "objectives": [
+                "Clarity and pertinence of objectives",
+                "Measurability and SMART criteria",
+                "Alignment with call scope",
             ],
-            'methodology': [
-                'Soundness of methodology',
-                'Appropriateness of approach',
-                'Risk mitigation strategy',
+            "methodology": [
+                "Soundness of methodology",
+                "Appropriateness of approach",
+                "Risk mitigation strategy",
             ],
-            'state_of_art': [
-                'Beyond state-of-the-art advancement',
-                'Innovation potential',
-                'Scientific excellence',
-            ],
-        },
-        'impact': {
-            'pathways': [
-                'Credibility of impact pathways',
-                'Scale of contribution',
-                'Alignment with expected outcomes',
-            ],
-            'dissemination': [
-                'Exploitation plan quality',
-                'Dissemination measures',
-                'Communication strategy',
+            "state_of_art": [
+                "Beyond state-of-the-art advancement",
+                "Innovation potential",
+                "Scientific excellence",
             ],
         },
-        'implementation': {
-            'work_plan': [
-                'Work plan coherence',
-                'Timeline realism',
-                'Deliverable quality',
+        "impact": {
+            "pathways": [
+                "Credibility of impact pathways",
+                "Scale of contribution",
+                "Alignment with expected outcomes",
             ],
-            'consortium': [
-                'Partner complementarity',
-                'Management structure',
-                'Resource allocation',
+            "dissemination": [
+                "Exploitation plan quality",
+                "Dissemination measures",
+                "Communication strategy",
+            ],
+        },
+        "implementation": {
+            "work_plan": [
+                "Work plan coherence",
+                "Timeline realism",
+                "Deliverable quality",
+            ],
+            "consortium": [
+                "Partner complementarity",
+                "Management structure",
+                "Resource allocation",
             ],
         },
     }
@@ -155,6 +159,7 @@ class ProposalQualityScorerTool:
         """Lazy load evaluator simulator."""
         if self._evaluator is None:
             from ..proposal_writing.evaluator_simulator import EvaluatorSimulator
+
             self._evaluator = EvaluatorSimulator()
         return self._evaluator
 
@@ -162,6 +167,7 @@ class ProposalQualityScorerTool:
         """Lazy load gap analyzer."""
         if self._gap_analyzer is None:
             from ..proposal_writing.gap_analysis_service import GapAnalysisService
+
             self._gap_analyzer = GapAnalysisService()
         return self._gap_analyzer
 
@@ -215,17 +221,17 @@ class ProposalQualityScorerTool:
         """
         if not content or len(content.strip()) < 50:
             return {
-                'success': False,
-                'error': 'Content too short for meaningful evaluation (minimum 50 characters)',
-                'section_type': section_type,
+                "success": False,
+                "error": "Content too short for meaningful evaluation (minimum 50 characters)",
+                "section_type": section_type,
             }
 
         # Normalize section type
         section_type = section_type.lower()
         if section_type not in self.CRITERIA:
             return {
-                'success': False,
-                'error': f"Invalid section_type: {section_type}. Use: excellence, impact, implementation",
+                "success": False,
+                "error": f"Invalid section_type: {section_type}. Use: excellence, impact, implementation",
             }
 
         # If no section_id, infer from content or use first available
@@ -249,39 +255,39 @@ class ProposalQualityScorerTool:
 
             criteria_list = []
             for cs in result.criterion_scores:
-                criteria_list.append({
-                    'criterion': cs.criterion,
-                    'score': cs.score,
-                    'max_score': 5.0,
-                    'justification': cs.justification,
-                    'strengths': cs.strengths,
-                    'weaknesses': cs.weaknesses,
-                    'improvement_suggestion': cs.improvement_for_half_point,
-                })
+                criteria_list.append(
+                    {
+                        "criterion": cs.criterion,
+                        "score": cs.score,
+                        "max_score": 5.0,
+                        "justification": cs.justification,
+                        "strengths": cs.strengths,
+                        "weaknesses": cs.weaknesses,
+                        "improvement_suggestion": cs.improvement_for_half_point,
+                    }
+                )
 
             return {
-                'success': True,
-                'section_type': section_type,
-                'section_id': section_id,
-                'score': result.overall_score,
-                'max_score': 5.0,
-                'quality_level': quality_level,
-                'threshold_met': threshold_met,
-                'threshold': self.SECTION_THRESHOLD,
-                'criteria': criteria_list,
-                'summary': result.esr_summary,
-                'strengths': result.strengths,
-                'weaknesses': result.weaknesses,
-                'top_improvements': result.top_improvements,
-                'confidence': result.confidence,
+                "success": True,
+                "section_type": section_type,
+                "section_id": section_id,
+                "score": result.overall_score,
+                "max_score": 5.0,
+                "quality_level": quality_level,
+                "threshold_met": threshold_met,
+                "threshold": self.SECTION_THRESHOLD,
+                "criteria": criteria_list,
+                "summary": result.esr_summary,
+                "strengths": result.strengths,
+                "weaknesses": result.weaknesses,
+                "top_improvements": result.top_improvements,
+                "confidence": result.confidence,
             }
 
         except Exception as e:
             logger.error(f"Section scoring error: {e}")
             # Fallback to rule-based scoring
-            return await self._fallback_section_score(
-                content, section_type, section_id
-            )
+            return await self._fallback_section_score(content, section_type, section_id)
 
     async def _fallback_section_score(
         self,
@@ -302,8 +308,14 @@ class ProposalQualityScorerTool:
 
         # Check for structure indicators
         structure_indicators = [
-            'objective', 'methodology', 'approach', 'impact',
-            'result', 'outcome', 'deliverable', 'milestone',
+            "objective",
+            "methodology",
+            "approach",
+            "impact",
+            "result",
+            "outcome",
+            "deliverable",
+            "milestone",
         ]
         for indicator in structure_indicators:
             if indicator in content.lower():
@@ -312,21 +324,21 @@ class ProposalQualityScorerTool:
         score = min(score, 4.0)  # Cap at 4.0 for fallback
 
         return {
-            'success': True,
-            'section_type': section_type,
-            'section_id': section_id,
-            'score': round(score, 1),
-            'max_score': 5.0,
-            'quality_level': self._classify_quality(score),
-            'threshold_met': score >= self.SECTION_THRESHOLD,
-            'threshold': self.SECTION_THRESHOLD,
-            'criteria': [],
-            'summary': 'Rule-based evaluation (AI unavailable)',
-            'strengths': ['Content provided'],
-            'weaknesses': ['Detailed AI evaluation unavailable'],
-            'top_improvements': [],
-            'confidence': 0.3,
-            'fallback': True,
+            "success": True,
+            "section_type": section_type,
+            "section_id": section_id,
+            "score": round(score, 1),
+            "max_score": 5.0,
+            "quality_level": self._classify_quality(score),
+            "threshold_met": score >= self.SECTION_THRESHOLD,
+            "threshold": self.SECTION_THRESHOLD,
+            "criteria": [],
+            "summary": "Rule-based evaluation (AI unavailable)",
+            "strengths": ["Content provided"],
+            "weaknesses": ["Detailed AI evaluation unavailable"],
+            "top_improvements": [],
+            "confidence": 0.3,
+            "fallback": True,
         }
 
     async def score_full_proposal(
@@ -353,8 +365,8 @@ class ProposalQualityScorerTool:
         implementation_score = 0.0
 
         # Score each section
-        for section_type in ['excellence', 'impact', 'implementation']:
-            content = sections.get(section_type, '')
+        for section_type in ["excellence", "impact", "implementation"]:
+            content = sections.get(section_type, "")
 
             if content:
                 result = await self.score_section(
@@ -364,66 +376,68 @@ class ProposalQualityScorerTool:
                     call_id=call_id,
                 )
 
-                if result.get('success'):
-                    score = result.get('score', 0.0)
+                if result.get("success"):
+                    score = result.get("score", 0.0)
                     section_scores.append(result)
 
-                    if section_type == 'excellence':
+                    if section_type == "excellence":
                         excellence_score = score
-                    elif section_type == 'impact':
+                    elif section_type == "impact":
                         impact_score = score
                     else:
                         implementation_score = score
             else:
                 # Missing section
-                section_scores.append({
-                    'success': False,
-                    'section_type': section_type,
-                    'score': 0.0,
-                    'error': 'Section content not provided',
-                })
+                section_scores.append(
+                    {
+                        "success": False,
+                        "section_type": section_type,
+                        "score": 0.0,
+                        "error": "Section content not provided",
+                    }
+                )
 
         # Calculate overall score
         overall_score = excellence_score + impact_score + implementation_score
 
         # Determine threshold status
         if overall_score >= self.OVERALL_THRESHOLD + 2:
-            threshold_status = 'above'
+            threshold_status = "above"
         elif overall_score >= self.OVERALL_THRESHOLD:
-            threshold_status = 'at'
+            threshold_status = "at"
         else:
-            threshold_status = 'below'
+            threshold_status = "below"
 
         # Aggregate improvements
         all_improvements = []
         for section_result in section_scores:
-            if section_result.get('success') and section_result.get('top_improvements'):
-                for imp in section_result['top_improvements']:
-                    imp['section'] = section_result.get('section_type', 'unknown')
+            if section_result.get("success") and section_result.get("top_improvements"):
+                for imp in section_result["top_improvements"]:
+                    imp["section"] = section_result.get("section_type", "unknown")
                     all_improvements.append(imp)
 
         # Sort by expected score increase
-        all_improvements.sort(
-            key=lambda x: x.get('expected_score_increase', 0),
-            reverse=True
-        )
+        all_improvements.sort(key=lambda x: x.get("expected_score_increase", 0), reverse=True)
 
         return {
-            'success': True,
-            'overall_score': round(overall_score, 1),
-            'max_score': self.MAX_OVERALL_SCORE,
-            'quality_level': self._classify_quality(overall_score, self.MAX_OVERALL_SCORE),
-            'funding_probability': self._estimate_funding_probability(overall_score),
-            'threshold_status': threshold_status,
-            'threshold': self.OVERALL_THRESHOLD,
-            'excellence_score': round(excellence_score, 1),
-            'impact_score': round(impact_score, 1),
-            'implementation_score': round(implementation_score, 1),
-            'section_scores': section_scores,
-            'top_improvements': all_improvements[:5],
-            'summary': self._generate_summary(
-                overall_score, excellence_score, impact_score,
-                implementation_score, threshold_status
+            "success": True,
+            "overall_score": round(overall_score, 1),
+            "max_score": self.MAX_OVERALL_SCORE,
+            "quality_level": self._classify_quality(overall_score, self.MAX_OVERALL_SCORE),
+            "funding_probability": self._estimate_funding_probability(overall_score),
+            "threshold_status": threshold_status,
+            "threshold": self.OVERALL_THRESHOLD,
+            "excellence_score": round(excellence_score, 1),
+            "impact_score": round(impact_score, 1),
+            "implementation_score": round(implementation_score, 1),
+            "section_scores": section_scores,
+            "top_improvements": all_improvements[:5],
+            "summary": self._generate_summary(
+                overall_score,
+                excellence_score,
+                impact_score,
+                implementation_score,
+                threshold_status,
             ),
         }
 
@@ -436,16 +450,20 @@ class ProposalQualityScorerTool:
         threshold_status: str,
     ) -> str:
         """Generate executive summary of proposal quality."""
-        if threshold_status == 'above':
-            opening = f"This proposal scores {overall:.1f}/15.0, well above the funding threshold (10.0)."
-        elif threshold_status == 'at':
-            opening = f"This proposal scores {overall:.1f}/15.0, meeting the minimum funding threshold."
+        if threshold_status == "above":
+            opening = (
+                f"This proposal scores {overall:.1f}/15.0, well above the funding threshold (10.0)."
+            )
+        elif threshold_status == "at":
+            opening = (
+                f"This proposal scores {overall:.1f}/15.0, meeting the minimum funding threshold."
+            )
         else:
             gap = self.OVERALL_THRESHOLD - overall
             opening = f"This proposal scores {overall:.1f}/15.0, {gap:.1f} points below the funding threshold."
 
         # Identify strongest and weakest
-        scores = {'Excellence': excellence, 'Impact': impact, 'Implementation': implementation}
+        scores = {"Excellence": excellence, "Impact": impact, "Implementation": implementation}
         strongest = max(scores, key=scores.get)
         weakest = min(scores, key=scores.get)
 
@@ -475,11 +493,13 @@ class ProposalQualityScorerTool:
 
         # Quality indicators
         indicators = {
-            'word_count': word_count,
-            'char_count': char_count,
-            'has_structure': any(x in text.lower() for x in ['objective', 'approach', 'method', 'result']),
-            'has_quantification': any(char.isdigit() for char in text),
-            'sentence_count': text.count('.') + text.count('!') + text.count('?'),
+            "word_count": word_count,
+            "char_count": char_count,
+            "has_structure": any(
+                x in text.lower() for x in ["objective", "approach", "method", "result"]
+            ),
+            "has_quantification": any(char.isdigit() for char in text),
+            "sentence_count": text.count(".") + text.count("!") + text.count("?"),
         }
 
         # Simple quality estimate
@@ -489,11 +509,11 @@ class ProposalQualityScorerTool:
             quality_score += 0.5
         if word_count >= 500:
             quality_score += 0.5
-        if indicators['has_structure']:
+        if indicators["has_structure"]:
             quality_score += 0.5
-        if indicators['has_quantification']:
+        if indicators["has_quantification"]:
             quality_score += 0.3
-        if indicators['sentence_count'] >= 5:
+        if indicators["sentence_count"] >= 5:
             quality_score += 0.2
 
         quality_score = min(quality_score, 4.5)
@@ -502,22 +522,25 @@ class ProposalQualityScorerTool:
         suggestions = []
         if word_count < 200:
             suggestions.append("Content seems brief - consider expanding with more detail")
-        if not indicators['has_structure']:
-            suggestions.append("Add structural elements (objectives, methodology, expected results)")
-        if not indicators['has_quantification']:
+        if not indicators["has_structure"]:
+            suggestions.append(
+                "Add structural elements (objectives, methodology, expected results)"
+            )
+        if not indicators["has_quantification"]:
             suggestions.append("Include quantitative targets and metrics")
 
         return {
-            'success': True,
-            'quality_estimate': round(quality_score, 1),
-            'quality_level': self._classify_quality(quality_score),
-            'indicators': indicators,
-            'suggestions': suggestions,
-            'note': 'Quick check - use score_section() for detailed evaluation',
+            "success": True,
+            "quality_estimate": round(quality_score, 1),
+            "quality_level": self._classify_quality(quality_score),
+            "indicators": indicators,
+            "suggestions": suggestions,
+            "note": "Quick check - use score_section() for detailed evaluation",
         }
 
 
 # Standalone execute functions for tool orchestration
+
 
 async def score_proposal_section_execute(
     content: str,
@@ -570,9 +593,9 @@ async def score_full_proposal_execute(
         Complete proposal quality report
     """
     sections = {
-        'excellence': excellence_content,
-        'impact': impact_content,
-        'implementation': implementation_content,
+        "excellence": excellence_content,
+        "impact": impact_content,
+        "implementation": implementation_content,
     }
 
     tool = ProposalQualityScorerTool()

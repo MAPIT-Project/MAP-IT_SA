@@ -27,65 +27,70 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
 # Digital Europe document type mappings
 DIGITAL_EUROPE_DOCUMENT_TYPES = {
-    'work_programme': {
-        'patterns': ['work_programme', 'work-programme', 'wp_', 'wp-', 'wp2023', 'wp2024', 'wp2025'],
-        'type': 'work_programme',
-        'description': 'Digital Europe Work Programme with call topics and budgets'
+    "work_programme": {
+        "patterns": [
+            "work_programme",
+            "work-programme",
+            "wp_",
+            "wp-",
+            "wp2023",
+            "wp2024",
+            "wp2025",
+        ],
+        "type": "work_programme",
+        "description": "Digital Europe Work Programme with call topics and budgets",
     },
-    'regulation': {
-        'patterns': ['regulation', '2021_694', '2021-694', 'celex'],
-        'type': 'programme_guide',  # Use valid type
-        'description': 'Digital Europe Regulation establishing the programme'
+    "regulation": {
+        "patterns": ["regulation", "2021_694", "2021-694", "celex"],
+        "type": "programme_guide",  # Use valid type
+        "description": "Digital Europe Regulation establishing the programme",
     },
-    'implementing_decision': {
-        'patterns': ['implementing_decision', 'implementing-decision', 'c2025', 'c2024'],
-        'type': 'grant_agreement',  # Use valid type
-        'description': 'Commission Implementing Decision on financing and work programme'
+    "implementing_decision": {
+        "patterns": ["implementing_decision", "implementing-decision", "c2025", "c2024"],
+        "type": "grant_agreement",  # Use valid type
+        "description": "Commission Implementing Decision on financing and work programme",
     },
-    'amendment': {
-        'patterns': ['amendment', 'amend', 'amended'],
-        'type': 'work_programme',  # Use valid type
-        'description': 'Work Programme Amendment'
+    "amendment": {
+        "patterns": ["amendment", "amend", "amended"],
+        "type": "work_programme",  # Use valid type
+        "description": "Work Programme Amendment",
     },
-    'cybersecurity': {
-        'patterns': ['cybersecurity', 'cyber', 'eccc'],
-        'type': 'programme_guide',  # Use valid type
-        'description': 'Cybersecurity-specific work programme (ECCC managed)'
+    "cybersecurity": {
+        "patterns": ["cybersecurity", "cyber", "eccc"],
+        "type": "programme_guide",  # Use valid type
+        "description": "Cybersecurity-specific work programme (ECCC managed)",
     },
-    'ai': {
-        'patterns': ['ai_', 'artificial_intelligence', 'ai-factories'],
-        'type': 'programme_guide',  # Use valid type
-        'description': 'AI-specific guidance and work programme'
+    "ai": {
+        "patterns": ["ai_", "artificial_intelligence", "ai-factories"],
+        "type": "programme_guide",  # Use valid type
+        "description": "AI-specific guidance and work programme",
     },
-    'edih': {
-        'patterns': ['edih', 'innovation_hub', 'digital_innovation'],
-        'type': 'programme_guide',  # Use valid type
-        'description': 'European Digital Innovation Hubs guidance'
+    "edih": {
+        "patterns": ["edih", "innovation_hub", "digital_innovation"],
+        "type": "programme_guide",  # Use valid type
+        "description": "European Digital Innovation Hubs guidance",
     },
-    'skills': {
-        'patterns': ['skills', 'training', 'education'],
-        'type': 'manual',  # Use valid type
-        'description': 'Advanced Digital Skills guidance'
+    "skills": {
+        "patterns": ["skills", "training", "education"],
+        "type": "manual",  # Use valid type
+        "description": "Advanced Digital Skills guidance",
     },
 }
 
 # Digital Europe Specific Objectives
 DIGITAL_EUROPE_OBJECTIVES = {
-    'hpc': 'High Performance Computing',
-    'ai': 'Artificial Intelligence',
-    'cybersecurity': 'Cybersecurity and Trust',
-    'skills': 'Advanced Digital Skills',
-    'deployment': 'Deployment and Best Use of Digital Capacities',
-    'semiconductors': 'Semiconductors (Chips Act)',
+    "hpc": "High Performance Computing",
+    "ai": "Artificial Intelligence",
+    "cybersecurity": "Cybersecurity and Trust",
+    "skills": "Advanced Digital Skills",
+    "deployment": "Deployment and Best Use of Digital Capacities",
+    "semiconductors": "Semiconductors (Chips Act)",
 }
 
 
@@ -98,24 +103,24 @@ def detect_document_type(filename: str) -> tuple[str, str]:
     """
     filename_lower = filename.lower()
 
-    for doc_type, config in DIGITAL_EUROPE_DOCUMENT_TYPES.items():
-        for pattern in config['patterns']:
+    for _doc_type, config in DIGITAL_EUROPE_DOCUMENT_TYPES.items():
+        for pattern in config["patterns"]:
             if pattern in filename_lower:
-                return config['type'], config['description']
+                return config["type"], config["description"]
 
     # Default fallback
-    return 'guidance_document', 'Digital Europe guidance document'
+    return "guidance_document", "Digital Europe guidance document"
 
 
 def extract_year_from_filename(filename: str) -> str:
     """Extract programme year from filename."""
     # Match years like 2021, 2022, 2023, 2024, 2025, 2026, 2027
-    year_match = re.search(r'20(2[1-7])', filename)
+    year_match = re.search(r"20(2[1-7])", filename)
     if year_match:
         return f"20{year_match.group(1)}"
 
     # Match year ranges like 2021-2022, 2023-2024, 2025-2027
-    range_match = re.search(r'(202[1-7])[-_](202[1-7])', filename)
+    range_match = re.search(r"(202[1-7])[-_](202[1-7])", filename)
     if range_match:
         return f"{range_match.group(1)}-{range_match.group(2)}"
 
@@ -127,20 +132,26 @@ def detect_objective(content_preview: str) -> list[str]:
     content_lower = content_preview.lower() if content_preview else ""
     objectives = []
 
-    if any(kw in content_lower for kw in ['supercomputing', 'hpc', 'exascale', 'eurohpc']):
-        objectives.append('hpc')
-    if any(kw in content_lower for kw in ['artificial intelligence', ' ai ', 'machine learning', 'ai factories']):
-        objectives.append('ai')
-    if any(kw in content_lower for kw in ['cybersecurity', 'cyber', 'soc', 'security']):
-        objectives.append('cybersecurity')
-    if any(kw in content_lower for kw in ['digital skills', 'training', 'education', 'workforce']):
-        objectives.append('skills')
-    if any(kw in content_lower for kw in ['deployment', 'edih', 'interoperability', 'digital transformation']):
-        objectives.append('deployment')
-    if any(kw in content_lower for kw in ['semiconductor', 'chips', 'microelectronics']):
-        objectives.append('semiconductors')
+    if any(kw in content_lower for kw in ["supercomputing", "hpc", "exascale", "eurohpc"]):
+        objectives.append("hpc")
+    if any(
+        kw in content_lower
+        for kw in ["artificial intelligence", " ai ", "machine learning", "ai factories"]
+    ):
+        objectives.append("ai")
+    if any(kw in content_lower for kw in ["cybersecurity", "cyber", "soc", "security"]):
+        objectives.append("cybersecurity")
+    if any(kw in content_lower for kw in ["digital skills", "training", "education", "workforce"]):
+        objectives.append("skills")
+    if any(
+        kw in content_lower
+        for kw in ["deployment", "edih", "interoperability", "digital transformation"]
+    ):
+        objectives.append("deployment")
+    if any(kw in content_lower for kw in ["semiconductor", "chips", "microelectronics"]):
+        objectives.append("semiconductors")
 
-    return objectives or ['general']
+    return objectives or ["general"]
 
 
 def ingest_digital_europe_documents(source_dir: str, dry_run: bool = False):
@@ -178,6 +189,7 @@ def ingest_digital_europe_documents(source_dir: str, dry_run: bool = False):
     # Import ingestion service
     try:
         from app.services.ingestion_service import DocumentIngestionService
+
         ingestion_service = DocumentIngestionService()
     except ImportError as e:
         logger.error(f"Failed to import ingestion service: {e}")
@@ -185,7 +197,7 @@ def ingest_digital_europe_documents(source_dir: str, dry_run: bool = False):
 
     # Check service status
     stats = ingestion_service.get_service_stats()
-    if not stats.get('supabase_connected', False):
+    if not stats.get("supabase_connected", False):
         logger.error("Supabase connection failed. Check DATABASE_URL and SUPABASE_KEY.")
         return False
 
@@ -220,10 +232,10 @@ def ingest_digital_europe_documents(source_dir: str, dry_run: bool = False):
                     "ingested_by": "digital_europe_ingestion_script",
                     "budget": "7.588 billion EUR (2021-2027)",
                     "implementing_agency": "DG CONNECT / HaDEA",
-                }
+                },
             )
 
-            if result.get('success'):
+            if result.get("success"):
                 logger.info(f"  SUCCESS: {pdf_file.name}")
                 logger.info(f"    Document ID: {result.get('document_id')}")
                 logger.info(f"    Chunks: {result.get('chunks_created')}")
@@ -262,19 +274,13 @@ def ingest_digital_europe_documents(source_dir: str, dry_run: bool = False):
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Ingest Digital Europe documents into RAG system"
-    )
+    parser = argparse.ArgumentParser(description="Ingest Digital Europe documents into RAG system")
     parser.add_argument(
         "--source-dir",
         default="newdocs/digital_europe",
-        help="Directory containing Digital Europe PDFs"
+        help="Directory containing Digital Europe PDFs",
     )
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Don't commit to database"
-    )
+    parser.add_argument("--dry-run", action="store_true", help="Don't commit to database")
     args = parser.parse_args()
 
     logger.info("=" * 60)
@@ -288,8 +294,7 @@ def main():
     source_dir = args.source_dir
     if not os.path.isabs(source_dir):
         source_dir = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            source_dir
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), source_dir
         )
 
     logger.info(f"Source directory: {source_dir}")

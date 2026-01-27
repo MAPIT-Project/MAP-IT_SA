@@ -558,9 +558,7 @@ def evaluate_query_fulfillment(response: str) -> tuple[int, str, list[str], list
         missing_items.append("No upcoming calls identified for digital cultural heritage")
 
     # Component 2: Budget/deadline/key parameters (10 points)
-    has_budget = bool(
-        re.search(r"€[\d,\.]+|budget|million|funding rate", response_lower)
-    )
+    has_budget = bool(re.search(r"€[\d,\.]+|budget|million|funding rate", response_lower))
     has_deadline = bool(re.search(r"deadline|202[56]|march|september|february", response_lower))
     has_parameters = bool(
         re.search(r"consortium|partners?|duration|action type|ria|ia", response_lower)
@@ -592,9 +590,7 @@ def evaluate_query_fulfillment(response: str) -> tuple[int, str, list[str], list
 
     if projects_count >= 3 and with_coordinators >= 2 and with_partners >= 1:
         score += 15
-        found_items.append(
-            f"{projects_count} similar projects with coordinators and partner lists"
-        )
+        found_items.append(f"{projects_count} similar projects with coordinators and partner lists")
     elif projects_count >= 2 and with_coordinators >= 1:
         score += 10
         found_items.append(f"{projects_count} projects with some details")
@@ -1180,8 +1176,7 @@ class TestPrompt021OfflineEvaluation:
         print(f"  Result: {evaluation.result}")
 
         assert evaluation.overall_score < NEEDS_REVIEW_THRESHOLD, (
-            f"Poor response scored {evaluation.overall_score}, "
-            f"expected < {NEEDS_REVIEW_THRESHOLD}"
+            f"Poor response scored {evaluation.overall_score}, expected < {NEEDS_REVIEW_THRESHOLD}"
         )
         assert evaluation.result == "FAIL"
 

@@ -393,9 +393,9 @@ class TestGoalAchievementValidation:
             # For PHASE 2 scenarios, we expect at least partial achievement
             # since they have proper goal_progress validations
             if result.turns_executed >= 3:
-                assert (
-                    result.final_progress >= 0.3
-                ), f"Progress too low for {result.scenario_name}: {result.final_progress:.2f}"
+                assert result.final_progress >= 0.3, (
+                    f"Progress too low for {result.scenario_name}: {result.final_progress:.2f}"
+                )
 
 
 class TestGoalTrackingInfrastructure:
@@ -431,9 +431,9 @@ class TestGoalTrackingInfrastructure:
                     has_goal_achieved = True
                     break
 
-            assert (
-                has_goal_achieved
-            ), f"No goal_achieved validation in final_validations for {scenario_file}"
+            assert has_goal_achieved, (
+                f"No goal_achieved validation in final_validations for {scenario_file}"
+            )
 
     @pytest.mark.asyncio
     async def test_goal_tracker_initialization(self):

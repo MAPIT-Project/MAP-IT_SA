@@ -25,8 +25,7 @@ from .core.dependencies import initialize_cordis_repository, shutdown_cordis_rep
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -37,7 +36,7 @@ app = FastAPI(
     description="A Retrieval-Augmented Generation (RAG) system for querying European research projects from the CORDIS database.",
     docs_url="/docs",
     redoc_url="/redoc",
-    openapi_url="/openapi.json"
+    openapi_url="/openapi.json",
 )
 
 # Add CORS middleware
@@ -115,7 +114,7 @@ async def startup_event():
     logger.info(f"Database enabled: {settings.use_local_db}")
     logger.info(f"Supabase enabled: {settings.use_supabase}")
     logger.info(f"Vector search enabled: {settings.vector_search_enabled}")
-    
+
     # Log available AI providers
     providers = []
     if settings.openai_api_key:
@@ -123,15 +122,16 @@ async def startup_event():
     if settings.gemini_api_key:
         providers.append("Gemini")
     logger.info(f"Available AI providers: {', '.join(providers) if providers else 'None'}")
-    
+
     # Log embedding configuration
     if settings.google_embedding_api_key:
         logger.info(f"Google Embedding API configured: {settings.embedding_model}")
-    
+
     # Test services if enabled
     if settings.use_supabase:
         try:
             from .services.supabase_client import SupabaseVectorStore
+
             supabase = SupabaseVectorStore()
             if supabase.test_connection():
                 logger.info("✅ Supabase connection successful")
@@ -139,10 +139,11 @@ async def startup_event():
                 logger.warning("⚠️ Supabase connection failed")
         except Exception as e:
             logger.error(f"❌ Supabase initialization error: {e}")
-    
+
     if settings.vector_search_enabled and settings.google_embedding_api_key:
         try:
             from .services.embedding_service import EmbeddingService
+
             embedder = EmbeddingService()
             if embedder.test_embedding_generation():
                 logger.info("✅ Embedding service test successful")
@@ -150,7 +151,7 @@ async def startup_event():
                 logger.warning("⚠️ Embedding service test failed")
         except Exception as e:
             logger.error(f"❌ Embedding service initialization error: {e}")
-    
+
     # Initialize CORDIS repository if configured
     repository = initialize_cordis_repository()
     if repository:
@@ -163,7 +164,7 @@ async def startup_event():
 async def shutdown_event():
     """Application shutdown event."""
     logger.info(f"Shutting down {settings.app_name}")
-    
+
     # Shutdown CORDIS repository
     shutdown_cordis_repository()
 
@@ -179,5 +180,5 @@ if __name__ == "__main__":
         host=settings.api_host,
         port=settings.api_port,
         reload=settings.debug,
-        log_level="info"
+        log_level="info",
     )

@@ -190,9 +190,9 @@ class TestScenario025LIFEEligibility:
 
             # Should use check_life_eligibility tool
             has_life_tool = any("life" in tool.lower() for tool in tools_used)
-            assert (
-                has_life_tool
-            ), f"Should use check_life_eligibility tool. Tools used: {tools_used}"
+            assert has_life_tool, (
+                f"Should use check_life_eligibility tool. Tools used: {tools_used}"
+            )
 
     @pytest.mark.asyncio
     async def test_provides_actionable_next_steps(self, conversation_id):

@@ -418,9 +418,9 @@ Find your NCP: [NCP Network Directory](https://ec.europa.eu/info/funding-tenders
 [EU Login account](https://webgate.ec.europa.eu/cas/) - it only takes 5 minutes!"""
 
         result = evaluator.evaluate(query, excellent_response)
-        assert (
-            result["total_score"] >= 80
-        ), f"Excellent response scored {result['total_score']}, expected 80+"
+        assert result["total_score"] >= 80, (
+            f"Excellent response scored {result['total_score']}, expected 80+"
+        )
         assert result["passed"], "Excellent response should pass"
 
     def test_vague_response_scores_low(self, evaluator):
@@ -431,9 +431,9 @@ submit a proposal. The process involves registration and preparation.
 Good luck with your application!"""
 
         result = evaluator.evaluate(query, vague_response)
-        assert (
-            result["total_score"] < 60
-        ), f"Vague response scored {result['total_score']}, expected < 60"
+        assert result["total_score"] < 60, (
+            f"Vague response scored {result['total_score']}, expected < 60"
+        )
         assert not result["passed"], "Vague response should not pass"
 
     def test_partial_response_scores_medium(self, evaluator):
@@ -451,9 +451,9 @@ Visit the Funding & Tenders Portal at ec.europa.eu for more details."""
 
         result = evaluator.evaluate(query, partial_response)
         # Should score reasonably but not perfectly (missing links, NCP, detailed guidance)
-        assert (
-            50 <= result["total_score"] < 85
-        ), f"Partial response scored {result['total_score']}, expected 50-85"
+        assert 50 <= result["total_score"] < 85, (
+            f"Partial response scored {result['total_score']}, expected 50-85"
+        )
 
     def test_no_links_response_penalized(self, evaluator):
         """Test that a response without links scores lower on actionability."""
@@ -469,9 +469,9 @@ Step 6: Submit your proposal before the deadline"""
 
         result = evaluator.evaluate(query, no_links_response)
         # Should have lower actionability score due to missing links
-        assert (
-            result["dimensions"]["actionability"] <= 7
-        ), "Response without links should have limited actionability score"
+        assert result["dimensions"]["actionability"] <= 7, (
+            "Response without links should have limited actionability score"
+        )
 
     def test_dimension_weights_are_correct(self, evaluator):
         """Test that dimension weights sum to 100."""
@@ -671,9 +671,9 @@ Step 3: Find calls"""
                 if fb:
                     print(f"  {dim}: {'; '.join(fb)}")
 
-        assert (
-            result["total_score"] >= PASS_THRESHOLD
-        ), f"Score {result['total_score']} below threshold {PASS_THRESHOLD}"
+        assert result["total_score"] >= PASS_THRESHOLD, (
+            f"Score {result['total_score']} below threshold {PASS_THRESHOLD}"
+        )
 
     @pytest.mark.asyncio
     async def test_live_api_has_steps(self, evaluator):
@@ -717,9 +717,9 @@ Step 3: Find calls"""
         has_eu_login = "eu login" in response_lower
         has_pic = "pic" in response_lower
 
-        assert (
-            has_eu_login or has_pic
-        ), "Response should explain registration process (EU Login, PIC)"
+        assert has_eu_login or has_pic, (
+            "Response should explain registration process (EU Login, PIC)"
+        )
 
     @pytest.mark.asyncio
     async def test_live_api_mentions_ncp(self, evaluator):

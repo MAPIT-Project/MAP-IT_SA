@@ -31,7 +31,7 @@ class MapItError(Exception):
         error_code: str = "MAPIT_ERROR",
         details: dict[str, Any] | None = None,
         recoverable: bool = True,
-        http_status: int = 500
+        http_status: int = 500,
     ):
         self.message = message
         self.error_code = error_code
@@ -48,7 +48,7 @@ class MapItError(Exception):
             "message": self.message,
             "details": self.details,
             "recoverable": self.recoverable,
-            "timestamp": self.timestamp
+            "timestamp": self.timestamp,
         }
 
     def __str__(self) -> str:
@@ -59,21 +59,21 @@ class MapItError(Exception):
 # SERVICE AVAILABILITY EXCEPTIONS
 # ============================================================================
 
+
 class ServiceUnavailableError(MapItError):
     """External service is unavailable (database, API, etc.)."""
 
     def __init__(
-        self,
-        message: str,
-        service_name: str = None,
-        details: dict[str, Any] | None = None
+        self, message: str, service_name: str = None, details: dict[str, Any] | None = None
     ):
         super().__init__(
             message=message,
-            error_code=f"{service_name.upper()}_UNAVAILABLE" if service_name else "SERVICE_UNAVAILABLE",
+            error_code=(
+                f"{service_name.upper()}_UNAVAILABLE" if service_name else "SERVICE_UNAVAILABLE"
+            ),
             details={"service": service_name, **(details or {})},
             recoverable=True,
-            http_status=503
+            http_status=503,
         )
         self.service_name = service_name
 
@@ -81,28 +81,44 @@ class ServiceUnavailableError(MapItError):
 class Neo4jUnavailableError(ServiceUnavailableError):
     """Neo4j graph database is unavailable."""
 
-    def __init__(self, message: str = "Graph database is temporarily unavailable", details: dict[str, Any] | None = None):
+    def __init__(
+        self,
+        message: str = "Graph database is temporarily unavailable",
+        details: dict[str, Any] | None = None,
+    ):
         super().__init__(message=message, service_name="neo4j", details=details)
 
 
 class PostgresUnavailableError(ServiceUnavailableError):
     """PostgreSQL database is unavailable."""
 
-    def __init__(self, message: str = "Database is temporarily unavailable", details: dict[str, Any] | None = None):
+    def __init__(
+        self,
+        message: str = "Database is temporarily unavailable",
+        details: dict[str, Any] | None = None,
+    ):
         super().__init__(message=message, service_name="postgres", details=details)
 
 
 class RedisUnavailableError(ServiceUnavailableError):
     """Redis cache is unavailable."""
 
-    def __init__(self, message: str = "Cache service is temporarily unavailable", details: dict[str, Any] | None = None):
+    def __init__(
+        self,
+        message: str = "Cache service is temporarily unavailable",
+        details: dict[str, Any] | None = None,
+    ):
         super().__init__(message=message, service_name="redis", details=details)
 
 
 class EmbeddingServiceUnavailableError(ServiceUnavailableError):
     """Embedding generation service is unavailable."""
 
-    def __init__(self, message: str = "Embedding service is temporarily unavailable", details: dict[str, Any] | None = None):
+    def __init__(
+        self,
+        message: str = "Embedding service is temporarily unavailable",
+        details: dict[str, Any] | None = None,
+    ):
         super().__init__(message=message, service_name="embedding", details=details)
 
 
@@ -113,12 +129,12 @@ class AIProviderUnavailableError(ServiceUnavailableError):
         self,
         message: str = "AI provider is temporarily unavailable",
         provider: str = None,
-        details: dict[str, Any] | None = None
+        details: dict[str, Any] | None = None,
     ):
         super().__init__(
             message=message,
             service_name=provider or "ai_provider",
-            details={"provider": provider, **(details or {})}
+            details={"provider": provider, **(details or {})},
         )
 
 
@@ -129,18 +145,19 @@ class ExternalAPIUnavailableError(ServiceUnavailableError):
         self,
         message: str = "External API is temporarily unavailable",
         api_name: str = None,
-        details: dict[str, Any] | None = None
+        details: dict[str, Any] | None = None,
     ):
         super().__init__(
             message=message,
             service_name=api_name or "external_api",
-            details={"api": api_name, **(details or {})}
+            details={"api": api_name, **(details or {})},
         )
 
 
 # ============================================================================
 # DATA EXCEPTIONS
 # ============================================================================
+
 
 class DataNotFoundError(MapItError):
     """Requested data was not found."""
@@ -150,18 +167,14 @@ class DataNotFoundError(MapItError):
         message: str,
         resource_type: str = None,
         resource_id: str = None,
-        details: dict[str, Any] | None = None
+        details: dict[str, Any] | None = None,
     ):
         super().__init__(
             message=message,
             error_code=f"{resource_type.upper()}_NOT_FOUND" if resource_type else "NOT_FOUND",
-            details={
-                "resource_type": resource_type,
-                "resource_id": resource_id,
-                **(details or {})
-            },
+            details={"resource_type": resource_type, "resource_id": resource_id, **(details or {})},
             recoverable=False,
-            http_status=404
+            http_status=404,
         )
 
 
@@ -172,7 +185,7 @@ class CallNotFoundError(DataNotFoundError):
         super().__init__(
             message=message or f"Funding call '{call_id}' not found",
             resource_type="call",
-            resource_id=call_id
+            resource_id=call_id,
         )
 
 
@@ -183,7 +196,7 @@ class ProjectNotFoundError(DataNotFoundError):
         super().__init__(
             message=message or f"Project '{project_id}' not found",
             resource_type="project",
-            resource_id=project_id
+            resource_id=project_id,
         )
 
 
@@ -194,7 +207,7 @@ class ConversationNotFoundError(DataNotFoundError):
         super().__init__(
             message=message or f"Conversation '{conversation_id}' not found",
             resource_type="conversation",
-            resource_id=conversation_id
+            resource_id=conversation_id,
         )
 
 
@@ -205,7 +218,7 @@ class ProposalSessionNotFoundError(DataNotFoundError):
         super().__init__(
             message=message or f"Proposal session '{session_id}' not found",
             resource_type="proposal_session",
-            resource_id=session_id
+            resource_id=session_id,
         )
 
 
@@ -216,13 +229,14 @@ class DocumentNotFoundError(DataNotFoundError):
         super().__init__(
             message=message or f"Document '{document_id}' not found",
             resource_type="document",
-            resource_id=document_id
+            resource_id=document_id,
         )
 
 
 # ============================================================================
 # VALIDATION EXCEPTIONS
 # ============================================================================
+
 
 class ValidationError(MapItError):
     """Input validation failed."""
@@ -233,7 +247,7 @@ class ValidationError(MapItError):
         field: str = None,
         value: Any = None,
         constraints: dict[str, Any] | None = None,
-        details: dict[str, Any] | None = None
+        details: dict[str, Any] | None = None,
     ):
         super().__init__(
             message=message,
@@ -242,10 +256,10 @@ class ValidationError(MapItError):
                 "field": field,
                 "value": str(value)[:100] if value is not None else None,
                 "constraints": constraints,
-                **(details or {})
+                **(details or {}),
             },
             recoverable=False,
-            http_status=422
+            http_status=422,
         )
 
 
@@ -260,10 +274,7 @@ class MissingFieldError(ValidationError):
     """Required field is missing."""
 
     def __init__(self, field: str, message: str = None):
-        super().__init__(
-            message=message or f"Required field '{field}' is missing",
-            field=field
-        )
+        super().__init__(message=message or f"Required field '{field}' is missing", field=field)
 
 
 class InvalidFormatError(ValidationError):
@@ -273,13 +284,14 @@ class InvalidFormatError(ValidationError):
         super().__init__(
             message=message or f"Field '{field}' has invalid format. Expected: {expected_format}",
             field=field,
-            constraints={"expected_format": expected_format}
+            constraints={"expected_format": expected_format},
         )
 
 
 # ============================================================================
 # RATE LIMITING EXCEPTIONS
 # ============================================================================
+
 
 class RateLimitError(MapItError):
     """Rate limit exceeded."""
@@ -289,7 +301,7 @@ class RateLimitError(MapItError):
         message: str = "Rate limit exceeded",
         retry_after: int = None,
         limit_type: str = None,  # "minute", "hour", "day"
-        details: dict[str, Any] | None = None
+        details: dict[str, Any] | None = None,
     ):
         super().__init__(
             message=message,
@@ -297,10 +309,10 @@ class RateLimitError(MapItError):
             details={
                 "retry_after_seconds": retry_after,
                 "limit_type": limit_type,
-                **(details or {})
+                **(details or {}),
             },
             recoverable=True,
-            http_status=429
+            http_status=429,
         )
         self.retry_after = retry_after
 
@@ -308,22 +320,18 @@ class RateLimitError(MapItError):
 class APIRateLimitError(RateLimitError):
     """External API rate limit exceeded."""
 
-    def __init__(
-        self,
-        api_name: str,
-        retry_after: int = None,
-        message: str = None
-    ):
+    def __init__(self, api_name: str, retry_after: int = None, message: str = None):
         super().__init__(
             message=message or f"Rate limit exceeded for {api_name}",
             retry_after=retry_after,
-            details={"api": api_name}
+            details={"api": api_name},
         )
 
 
 # ============================================================================
 # TIMEOUT EXCEPTIONS
 # ============================================================================
+
 
 class TimeoutError(MapItError):
     """Operation timed out."""
@@ -333,18 +341,14 @@ class TimeoutError(MapItError):
         message: str = "Operation timed out",
         operation: str = None,
         timeout_seconds: float = None,
-        details: dict[str, Any] | None = None
+        details: dict[str, Any] | None = None,
     ):
         super().__init__(
             message=message,
             error_code="TIMEOUT",
-            details={
-                "operation": operation,
-                "timeout_seconds": timeout_seconds,
-                **(details or {})
-            },
+            details={"operation": operation, "timeout_seconds": timeout_seconds, **(details or {})},
             recoverable=True,
-            http_status=504
+            http_status=504,
         )
 
 
@@ -353,10 +357,14 @@ class LLMTimeoutError(TimeoutError):
 
     def __init__(self, provider: str = None, timeout_seconds: float = None):
         super().__init__(
-            message=f"LLM call timed out after {timeout_seconds}s" if timeout_seconds else "LLM call timed out",
+            message=(
+                f"LLM call timed out after {timeout_seconds}s"
+                if timeout_seconds
+                else "LLM call timed out"
+            ),
             operation="llm_call",
             timeout_seconds=timeout_seconds,
-            details={"provider": provider}
+            details={"provider": provider},
         )
 
 
@@ -368,7 +376,7 @@ class ToolExecutionTimeoutError(TimeoutError):
             message=f"Tool '{tool_name}' execution timed out",
             operation=f"tool:{tool_name}",
             timeout_seconds=timeout_seconds,
-            details={"tool": tool_name}
+            details={"tool": tool_name},
         )
 
 
@@ -379,7 +387,7 @@ class DatabaseTimeoutError(TimeoutError):
         super().__init__(
             message="Database query timed out",
             operation=operation or "database_query",
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
 
@@ -387,21 +395,17 @@ class DatabaseTimeoutError(TimeoutError):
 # TOOL EXCEPTIONS
 # ============================================================================
 
+
 class ToolExecutionError(MapItError):
     """Tool failed to execute."""
 
-    def __init__(
-        self,
-        message: str,
-        tool_name: str = None,
-        details: dict[str, Any] | None = None
-    ):
+    def __init__(self, message: str, tool_name: str = None, details: dict[str, Any] | None = None):
         super().__init__(
             message=message,
             error_code="TOOL_EXECUTION_ERROR",
             details={"tool": tool_name, **(details or {})},
             recoverable=True,
-            http_status=500
+            http_status=500,
         )
 
 
@@ -414,7 +418,7 @@ class ToolNotFoundError(MapItError):
             error_code="TOOL_NOT_FOUND",
             details={"tool": tool_name},
             recoverable=False,
-            http_status=400
+            http_status=400,
         )
 
 
@@ -426,24 +430,21 @@ class ToolValidationError(MapItError):
         message: str,
         tool_name: str = None,
         invalid_args: list[str] | None = None,
-        details: dict[str, Any] | None = None
+        details: dict[str, Any] | None = None,
     ):
         super().__init__(
             message=message,
             error_code="TOOL_VALIDATION_ERROR",
-            details={
-                "tool": tool_name,
-                "invalid_arguments": invalid_args,
-                **(details or {})
-            },
+            details={"tool": tool_name, "invalid_arguments": invalid_args, **(details or {})},
             recoverable=False,
-            http_status=400
+            http_status=400,
         )
 
 
 # ============================================================================
 # AGENT EXCEPTIONS
 # ============================================================================
+
 
 class AgentError(MapItError):
     """Agent processing error."""
@@ -453,14 +454,14 @@ class AgentError(MapItError):
         message: str,
         error_code: str = "AGENT_ERROR",
         iteration: int = None,
-        details: dict[str, Any] | None = None
+        details: dict[str, Any] | None = None,
     ):
         super().__init__(
             message=message,
             error_code=error_code,
             details={"iteration": iteration, **(details or {})},
             recoverable=True,
-            http_status=500
+            http_status=500,
         )
 
 
@@ -469,46 +470,43 @@ class AgentMaxIterationsError(AgentError):
 
     def __init__(self, max_iterations: int, last_score: float = None):
         super().__init__(
-            message=f"Agent reached maximum iterations ({max_iterations}) without finding sufficient results",
+            message=(
+                f"Agent reached maximum iterations ({max_iterations}) "
+                "without finding sufficient results"
+            ),
             error_code="AGENT_MAX_ITERATIONS",
             iteration=max_iterations,
-            details={"max_iterations": max_iterations, "last_score": last_score}
+            details={"max_iterations": max_iterations, "last_score": last_score},
         )
 
 
 class AgentPlanningError(AgentError):
     """Agent failed to create a valid plan."""
 
-    def __init__(self, message: str = "Agent failed to create a query plan", details: dict[str, Any] | None = None):
-        super().__init__(
-            message=message,
-            error_code="AGENT_PLANNING_ERROR",
-            details=details
-        )
+    def __init__(
+        self,
+        message: str = "Agent failed to create a query plan",
+        details: dict[str, Any] | None = None,
+    ):
+        super().__init__(message=message, error_code="AGENT_PLANNING_ERROR", details=details)
 
 
 # ============================================================================
 # CIRCUIT BREAKER EXCEPTIONS
 # ============================================================================
 
+
 class CircuitBreakerOpenError(MapItError):
     """Circuit breaker is open - service calls are blocked."""
 
-    def __init__(
-        self,
-        circuit_name: str,
-        recovery_time: int = None,
-        message: str = None
-    ):
+    def __init__(self, circuit_name: str, recovery_time: int = None, message: str = None):
         super().__init__(
-            message=message or f"Service '{circuit_name}' is temporarily unavailable (circuit breaker open)",
+            message=message
+            or f"Service '{circuit_name}' is temporarily unavailable (circuit breaker open)",
             error_code="CIRCUIT_BREAKER_OPEN",
-            details={
-                "circuit": circuit_name,
-                "recovery_time_seconds": recovery_time
-            },
+            details={"circuit": circuit_name, "recovery_time_seconds": recovery_time},
             recoverable=True,
-            http_status=503
+            http_status=503,
         )
 
 
@@ -516,20 +514,19 @@ class CircuitBreakerOpenError(MapItError):
 # AUTHENTICATION/AUTHORIZATION EXCEPTIONS
 # ============================================================================
 
+
 class AuthenticationError(MapItError):
     """Authentication failed."""
 
     def __init__(
-        self,
-        message: str = "Authentication required",
-        details: dict[str, Any] | None = None
+        self, message: str = "Authentication required", details: dict[str, Any] | None = None
     ):
         super().__init__(
             message=message,
             error_code="AUTHENTICATION_REQUIRED",
             details=details,
             recoverable=False,
-            http_status=401
+            http_status=401,
         )
 
 
@@ -539,7 +536,7 @@ class InvalidTokenError(AuthenticationError):
     def __init__(self, reason: str = None):
         super().__init__(
             message=f"Invalid or expired token: {reason}" if reason else "Invalid or expired token",
-            details={"reason": reason}
+            details={"reason": reason},
         )
 
 
@@ -550,17 +547,14 @@ class AuthorizationError(MapItError):
         self,
         message: str = "Insufficient permissions",
         required_roles: list[str] | None = None,
-        details: dict[str, Any] | None = None
+        details: dict[str, Any] | None = None,
     ):
         super().__init__(
             message=message,
             error_code="AUTHORIZATION_FAILED",
-            details={
-                "required_roles": required_roles,
-                **(details or {})
-            },
+            details={"required_roles": required_roles, **(details or {})},
             recoverable=False,
-            http_status=403
+            http_status=403,
         )
 
 
@@ -568,21 +562,19 @@ class AuthorizationError(MapItError):
 # EMBEDDING EXCEPTIONS
 # ============================================================================
 
+
 class EmbeddingError(MapItError):
     """Error generating or retrieving embeddings."""
 
     def __init__(
-        self,
-        message: str,
-        content_type: str = None,
-        details: dict[str, Any] | None = None
+        self, message: str, content_type: str = None, details: dict[str, Any] | None = None
     ):
         super().__init__(
             message=message,
             error_code="EMBEDDING_ERROR",
             details={"content_type": content_type, **(details or {})},
             recoverable=True,
-            http_status=500
+            http_status=500,
         )
 
 
@@ -590,32 +582,24 @@ class EmbeddingGenerationError(EmbeddingError):
     """Failed to generate embeddings."""
 
     def __init__(self, message: str = "Failed to generate embeddings", model: str = None):
-        super().__init__(
-            message=message,
-            content_type="generation",
-            details={"model": model}
-        )
+        super().__init__(message=message, content_type="generation", details={"model": model})
 
 
 # ============================================================================
 # CONFIGURATION EXCEPTIONS
 # ============================================================================
 
+
 class ConfigurationError(MapItError):
     """Configuration is invalid or missing."""
 
-    def __init__(
-        self,
-        message: str,
-        config_key: str = None,
-        details: dict[str, Any] | None = None
-    ):
+    def __init__(self, message: str, config_key: str = None, details: dict[str, Any] | None = None):
         super().__init__(
             message=message,
             error_code="CONFIGURATION_ERROR",
             details={"config_key": config_key, **(details or {})},
             recoverable=False,
-            http_status=500
+            http_status=500,
         )
 
 
@@ -624,14 +608,14 @@ class MissingConfigurationError(ConfigurationError):
 
     def __init__(self, config_key: str):
         super().__init__(
-            message=f"Missing required configuration: {config_key}",
-            config_key=config_key
+            message=f"Missing required configuration: {config_key}", config_key=config_key
         )
 
 
 # ============================================================================
 # HELPER FUNCTIONS
 # ============================================================================
+
 
 def get_user_suggestion(error_code: str) -> str:
     """
@@ -645,46 +629,62 @@ def get_user_suggestion(error_code: str) -> str:
     """
     suggestions = {
         # Service availability
-        "NEO4J_UNAVAILABLE": "Graph database is temporarily unavailable. Statistical queries may be limited. Try again in a few minutes.",
-        "POSTGRES_UNAVAILABLE": "Database is temporarily unavailable. Please try again in a few minutes.",
-        "REDIS_UNAVAILABLE": "Cache service is temporarily unavailable. Responses may be slower than usual.",
-        "EMBEDDING_UNAVAILABLE": "Semantic search is temporarily unavailable. Falling back to keyword search.",
-        "AI_PROVIDER_UNAVAILABLE": "AI service is temporarily unavailable. Please try again in a few minutes.",
-        "EXTERNAL_API_UNAVAILABLE": "External data source is temporarily unavailable. Some information may be outdated.",
-
+        "NEO4J_UNAVAILABLE": (
+            "Graph database is temporarily unavailable. "
+            "Statistical queries may be limited. Try again in a few minutes."
+        ),
+        "POSTGRES_UNAVAILABLE": (
+            "Database is temporarily unavailable. Please try again in a few minutes."
+        ),
+        "REDIS_UNAVAILABLE": (
+            "Cache service is temporarily unavailable. Responses may be slower than usual."
+        ),
+        "EMBEDDING_UNAVAILABLE": (
+            "Semantic search is temporarily unavailable. Falling back to keyword search."
+        ),
+        "AI_PROVIDER_UNAVAILABLE": (
+            "AI service is temporarily unavailable. Please try again in a few minutes."
+        ),
+        "EXTERNAL_API_UNAVAILABLE": (
+            "External data source is temporarily unavailable. Some information may be outdated."
+        ),
         # Data not found
-        "CALL_NOT_FOUND": "This call ID was not found. Check the ID format or search for similar calls.",
-        "PROJECT_NOT_FOUND": "This project was not found. Try searching with different keywords.",
-        "CONVERSATION_NOT_FOUND": "This conversation was not found. It may have expired or been deleted.",
-        "PROPOSAL_SESSION_NOT_FOUND": "This proposal session was not found. It may have been deleted.",
+        "CALL_NOT_FOUND": (
+            "This call ID was not found. Check the ID format or search for similar calls."
+        ),
+        "PROJECT_NOT_FOUND": ("This project was not found. Try searching with different keywords."),
+        "CONVERSATION_NOT_FOUND": (
+            "This conversation was not found. It may have expired or been deleted."
+        ),
+        "PROPOSAL_SESSION_NOT_FOUND": (
+            "This proposal session was not found. It may have been deleted."
+        ),
         "DOCUMENT_NOT_FOUND": "This document was not found. Check the document ID.",
-
         # Validation
         "VALIDATION_ERROR": "Please check your input and try again.",
-
         # Rate limiting
         "RATE_LIMITED": "Too many requests. Please wait before trying again.",
-
         # Timeout
         "TIMEOUT": "The operation took too long. Try a simpler query or try again later.",
-
         # Tool errors
-        "TOOL_EXECUTION_ERROR": "A tool failed to execute. The system will try alternative approaches.",
+        "TOOL_EXECUTION_ERROR": (
+            "A tool failed to execute. The system will try alternative approaches."
+        ),
         "TOOL_NOT_FOUND": "The requested tool is not available. Please check the tool name.",
-
         # Agent errors
         "AGENT_ERROR": "The AI agent encountered an issue. Please rephrase your query.",
-        "AGENT_MAX_ITERATIONS": "Could not find satisfactory results. Try rephrasing your question.",
-
+        "AGENT_MAX_ITERATIONS": (
+            "Could not find satisfactory results. Try rephrasing your question."
+        ),
         # Circuit breaker
-        "CIRCUIT_BREAKER_OPEN": "This service is temporarily unavailable. Please try again later.",
-
+        "CIRCUIT_BREAKER_OPEN": (
+            "This service is temporarily unavailable. Please try again later."
+        ),
         # Auth
         "AUTHENTICATION_REQUIRED": "Please log in to continue.",
         "AUTHORIZATION_FAILED": "You don't have permission to perform this action.",
-
         # Default
-        "MAPIT_ERROR": "An unexpected error occurred. Please try again."
+        "MAPIT_ERROR": "An unexpected error occurred. Please try again.",
     }
 
     return suggestions.get(error_code, suggestions["MAPIT_ERROR"])
@@ -714,7 +714,6 @@ def get_http_status(error_code: str) -> int:
         "RATE_LIMITED": 429,
         "TOOL_NOT_FOUND": 400,
         "TOOL_VALIDATION_ERROR": 400,
-
         # 5xx Server Errors
         "SERVICE_UNAVAILABLE": 503,
         "NEO4J_UNAVAILABLE": 503,

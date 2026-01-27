@@ -427,12 +427,12 @@ class TestScenario041DeadlineAccuracy:
         calls = self._get_random_calls_from_db(db_connection, count=10)
 
         assert len(calls) > 0, "Database should have calls with deadlines"
-        assert all(
-            call.get("deadline") is not None for call in calls
-        ), "All selected calls should have deadlines"
-        assert all(
-            call.get("topic_code") is not None for call in calls
-        ), "All calls should have topic codes"
+        assert all(call.get("deadline") is not None for call in calls), (
+            "All selected calls should have deadlines"
+        )
+        assert all(call.get("topic_code") is not None for call in calls), (
+            "All calls should have topic codes"
+        )
 
     @pytest.mark.asyncio
     async def test_eu_portal_api_accessible(self, http_client):
@@ -564,9 +564,9 @@ class TestScenario041DeadlineAccuracy:
             deadline = call["deadline"]
 
             # Should be either date or datetime object
-            assert isinstance(
-                deadline, date | datetime
-            ), f"Deadline for {call['topic_code']} is not a date: {type(deadline)}"
+            assert isinstance(deadline, date | datetime), (
+                f"Deadline for {call['topic_code']} is not a date: {type(deadline)}"
+            )
 
             # If datetime, it should be convertible to date
             if isinstance(deadline, datetime):

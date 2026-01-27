@@ -99,9 +99,9 @@ class TestServiceAvailability:
         """Test that get_call_details is in DEGRADABLE_TOOLS."""
         from app.core.service_availability import DEGRADABLE_TOOLS
 
-        assert (
-            "get_call_details" in DEGRADABLE_TOOLS
-        ), "get_call_details should be in DEGRADABLE_TOOLS"
+        assert "get_call_details" in DEGRADABLE_TOOLS, (
+            "get_call_details should be in DEGRADABLE_TOOLS"
+        )
 
     def test_eu_portal_api_service_type_exists(self):
         """Test that EU_PORTAL_API service type exists."""
@@ -114,9 +114,9 @@ class TestServiceAvailability:
         from app.core.service_availability import DEGRADABLE_TOOLS, ServiceType
 
         degradable_services = DEGRADABLE_TOOLS.get("get_call_details", [])
-        assert (
-            ServiceType.EU_PORTAL_API in degradable_services
-        ), "get_call_details should degrade when EU_PORTAL_API unavailable"
+        assert ServiceType.EU_PORTAL_API in degradable_services, (
+            "get_call_details should degrade when EU_PORTAL_API unavailable"
+        )
 
 
 # ============================================================================

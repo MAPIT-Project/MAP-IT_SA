@@ -15,6 +15,7 @@ from typing import Any
 
 class SessionStatus(str, Enum):
     """Status of a proposal session."""
+
     ACTIVE = "active"
     PAUSED = "paused"
     COMPLETED = "completed"
@@ -23,6 +24,7 @@ class SessionStatus(str, Enum):
 
 class SectionLockStatus(str, Enum):
     """Lock status for a section during AI generation."""
+
     UNLOCKED = "unlocked"
     LOCKED_BY_AI = "locked_by_ai"
     LOCKED_BY_USER = "locked_by_user"
@@ -30,6 +32,7 @@ class SectionLockStatus(str, Enum):
 
 class SectionStatus(str, Enum):
     """Status of a proposal section."""
+
     EMPTY = "empty"
     DRAFT = "draft"
     IN_REVIEW = "in_review"
@@ -39,6 +42,7 @@ class SectionStatus(str, Enum):
 @dataclass
 class InlineSuggestion:
     """Inline suggestion for text improvement."""
+
     suggestion_id: str
     start_position: int
     end_position: int
@@ -53,6 +57,7 @@ class InlineSuggestion:
 @dataclass
 class Gap:
     """Identified gap in a proposal section."""
+
     gap_id: str
     description: str
     severity: str  # 'critical', 'major', 'minor'
@@ -65,6 +70,7 @@ class Gap:
 @dataclass
 class SectionState:
     """State of a single proposal section."""
+
     section_id: str
     section_name: str
     content: str = ""
@@ -100,6 +106,7 @@ class SectionState:
 @dataclass
 class ProposalDocument:
     """Complete proposal document state."""
+
     proposal_id: int
     call_id: str
     title: str
@@ -143,7 +150,8 @@ class ProposalDocument:
         total_sections = len(self.sections)
         if total_sections > 0:
             completed = sum(
-                1 for s in self.sections.values()
+                1
+                for s in self.sections.values()
                 if s.status in (SectionStatus.IN_REVIEW, SectionStatus.COMPLETE)
             )
             self.completion_percentage = (completed / total_sections) * 100
@@ -151,7 +159,9 @@ class ProposalDocument:
         # Calculate overall score as average of sections with scores
         scored_sections = [s for s in self.sections.values() if s.quality_score is not None]
         if scored_sections:
-            self.overall_score = sum(s.quality_score for s in scored_sections) / len(scored_sections)
+            self.overall_score = sum(s.quality_score for s in scored_sections) / len(
+                scored_sections
+            )
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for API responses."""
@@ -174,6 +184,7 @@ class ProposalDocument:
 @dataclass
 class ConversationMessage:
     """A single message in the conversation."""
+
     message_id: str
     role: str  # 'user', 'assistant', 'system'
     content: str
@@ -186,6 +197,7 @@ class ConversationMessage:
 @dataclass
 class ConversationState:
     """Conversation state within a proposal session."""
+
     conversation_id: int
     messages: list[ConversationMessage] = field(default_factory=list)
     active_section_context: str | None = None  # Section the user is focused on
@@ -196,7 +208,7 @@ class ConversationState:
         content: str,
         tools_used: list[str] | None = None,
         sections_affected: list[str] | None = None,
-        metadata: dict[str, Any] | None = None
+        metadata: dict[str, Any] | None = None,
     ) -> ConversationMessage:
         """Add a message to the conversation."""
         message = ConversationMessage(
@@ -240,6 +252,7 @@ class ProposalSessionState:
     - Document state (sections, content, scores)
     - Real-time sync state (pending changes, locks)
     """
+
     session_id: str
     user_id: str
 
@@ -315,7 +328,9 @@ class ProposalSessionState:
         """Update the last activity timestamp."""
         self.last_activity_at = datetime.now(UTC)
 
-    def lock_section(self, section_id: str, lock_type: SectionLockStatus = SectionLockStatus.LOCKED_BY_AI) -> bool:
+    def lock_section(
+        self, section_id: str, lock_type: SectionLockStatus = SectionLockStatus.LOCKED_BY_AI
+    ) -> bool:
         """Lock a section for AI generation."""
         section = self.document.get_section(section_id)
         if section and section.lock_status == SectionLockStatus.UNLOCKED:
@@ -364,40 +379,52 @@ class ProposalSessionState:
         # Add section summaries
         for section in doc.sections.values():
             score_str = f"{section.quality_score:.1f}/5" if section.quality_score else "Not scored"
-            gaps_str = f", {len([g for g in section.gaps if not g.resolved])} gaps" if section.gaps else ""
+            gaps_str = (
+                f", {len([g for g in section.gaps if not g.resolved])} gaps" if section.gaps else ""
+            )
             context_parts.append(
                 f"- **{section.section_name}**: {section.word_count} words, {section.status.value}, Score: {score_str}{gaps_str}"
             )
 
         # Add active section details if present
         if active_section:
-            context_parts.extend([
-                "",
-                f"### Active Section: {active_section.section_name}",
-                f"**Status:** {active_section.status.value}",
-                f"**Words:** {active_section.word_count}",
-                f"**Score:** {active_section.quality_score:.1f}/5" if active_section.quality_score else "**Score:** Not yet evaluated",
-            ])
+            context_parts.extend(
+                [
+                    "",
+                    f"### Active Section: {active_section.section_name}",
+                    f"**Status:** {active_section.status.value}",
+                    f"**Words:** {active_section.word_count}",
+                    (
+                        f"**Score:** {active_section.quality_score:.1f}/5"
+                        if active_section.quality_score
+                        else "**Score:** Not yet evaluated"
+                    ),
+                ]
+            )
 
             if active_section.content:
                 preview = active_section.content[:1000]
                 if len(active_section.content) > 1000:
                     preview += "..."
-                context_parts.extend([
-                    "",
-                    "**Current Content:**",
-                    "```",
-                    preview,
-                    "```",
-                ])
+                context_parts.extend(
+                    [
+                        "",
+                        "**Current Content:**",
+                        "```",
+                        preview,
+                        "```",
+                    ]
+                )
 
             # Add top gaps
             unresolved_gaps = [g for g in active_section.gaps if not g.resolved][:3]
             if unresolved_gaps:
-                context_parts.extend([
-                    "",
-                    "**Top Gaps to Address:**",
-                ])
+                context_parts.extend(
+                    [
+                        "",
+                        "**Top Gaps to Address:**",
+                    ]
+                )
                 for gap in unresolved_gaps:
                     context_parts.append(f"- [{gap.severity}] {gap.description}")
 

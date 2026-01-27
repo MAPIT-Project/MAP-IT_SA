@@ -234,9 +234,9 @@ class TestErasmusProgrammeGuideIntegration:
         has_criteria = "criteria" in response_text
         has_evaluation = "evaluation" in response_text or "assessment" in response_text
 
-        assert (
-            has_quality or has_criteria or has_evaluation
-        ), "Response should mention quality, criteria, or evaluation"
+        assert has_quality or has_criteria or has_evaluation, (
+            "Response should mention quality, criteria, or evaluation"
+        )
 
     def test_no_outdated_guide_as_primary(self):
         """Test that outdated guide versions are not used as primary source."""
@@ -250,9 +250,9 @@ class TestErasmusProgrammeGuideIntegration:
             any(year in response_text for year in OUTDATED_GUIDE_YEARS) and not has_current
         )
 
-        assert (
-            not has_only_outdated
-        ), "Should not use only outdated guide versions as primary source"
+        assert not has_only_outdated, (
+            "Should not use only outdated guide versions as primary source"
+        )
 
     def test_response_includes_official_resources(self):
         """Test that response includes links to official Erasmus+ resources."""

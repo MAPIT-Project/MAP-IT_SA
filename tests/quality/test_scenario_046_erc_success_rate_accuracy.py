@@ -84,14 +84,14 @@ class TestScenario046ERCSuccessRateAccuracy:
 
                 # Check that system range overlaps with official range (with 2% tolerance)
                 # System minimum should not be more than 2% above official minimum
-                assert (
-                    sys_min <= official_max + 2
-                ), f"{grant_type}: system min {sys_min}% too high vs official max {official_max}%"
+                assert sys_min <= official_max + 2, (
+                    f"{grant_type}: system min {sys_min}% too high vs official max {official_max}%"
+                )
 
                 # System maximum should not be more than 2% below official maximum
-                assert (
-                    sys_max >= official_min - 2
-                ), f"{grant_type}: system max {sys_max}% too low vs official min {official_min}%"
+                assert sys_max >= official_min - 2, (
+                    f"{grant_type}: system max {sys_max}% too low vs official min {official_min}%"
+                )
 
     def test_extract_percentage_from_text(self):
         """Test percentage extraction from response text."""
@@ -178,9 +178,9 @@ class TestScenario046ERCSuccessRateAccuracy:
             result = response.json()
             response_text = result.get("response", "").lower()
 
-            assert (
-                "erc" in response_text or "european research council" in response_text
-            ), "Response should mention ERC"
+            assert "erc" in response_text or "european research council" in response_text, (
+                "Response should mention ERC"
+            )
 
     @pytest.mark.asyncio
     async def test_response_contains_percentages(self, conversation_id):
@@ -221,9 +221,9 @@ class TestScenario046ERCSuccessRateAccuracy:
             # At least one percentage should be in the Starting Grant range
             official_min, official_max = OFFICIAL_ERC_RANGES["starting_grant"]
             in_range = any(official_min <= p <= official_max for p in percentages)
-            assert (
-                in_range
-            ), f"Starting Grant rate should be {official_min}-{official_max}%, got: {percentages}"
+            assert in_range, (
+                f"Starting Grant rate should be {official_min}-{official_max}%, got: {percentages}"
+            )
 
     @pytest.mark.asyncio
     async def test_consolidator_grant_rate_accurate(self, conversation_id):
@@ -275,9 +275,9 @@ class TestScenario046ERCSuccessRateAccuracy:
             # At least one percentage should be in the Advanced Grant range
             official_min, official_max = OFFICIAL_ERC_RANGES["advanced_grant"]
             in_range = any(official_min <= p <= official_max for p in percentages)
-            assert (
-                in_range
-            ), f"Advanced Grant rate should be {official_min}-{official_max}%, got: {percentages}"
+            assert in_range, (
+                f"Advanced Grant rate should be {official_min}-{official_max}%, got: {percentages}"
+            )
 
     @pytest.mark.asyncio
     async def test_response_mentions_grant_types(self, conversation_id):
@@ -296,9 +296,9 @@ class TestScenario046ERCSuccessRateAccuracy:
             # Should mention at least 2 grant types
             grant_types = ["starting", "consolidator", "advanced", "synergy"]
             mentioned_types = sum(1 for gt in grant_types if gt in response_text)
-            assert (
-                mentioned_types >= 2
-            ), f"Should mention at least 2 grant types, found: {mentioned_types}"
+            assert mentioned_types >= 2, (
+                f"Should mention at least 2 grant types, found: {mentioned_types}"
+            )
 
     @pytest.mark.asyncio
     async def test_no_significantly_wrong_rates(self, conversation_id):
@@ -323,15 +323,15 @@ class TestScenario046ERCSuccessRateAccuracy:
 
             # No main grant rates should be above 20% (significantly wrong)
             wrong_rates = [p for p in main_grant_percentages if p > 20]
-            assert (
-                len(wrong_rates) == 0
-            ), f"Should not have significantly wrong rates (>20%): {wrong_rates}"
+            assert len(wrong_rates) == 0, (
+                f"Should not have significantly wrong rates (>20%): {wrong_rates}"
+            )
 
             # No main grant rates should be below 5% (significantly wrong)
             wrong_rates_low = [p for p in main_grant_percentages if p < 5]
-            assert (
-                len(wrong_rates_low) == 0
-            ), f"Should not have significantly wrong rates (<5%): {wrong_rates_low}"
+            assert len(wrong_rates_low) == 0, (
+                f"Should not have significantly wrong rates (<5%): {wrong_rates_low}"
+            )
 
     @pytest.mark.asyncio
     async def test_uses_programme_statistics_tool(self, conversation_id):
@@ -424,9 +424,9 @@ class TestScenario046ERCSuccessRateAccuracy:
             # If quality score available, check threshold
             if "score" in quality_analysis:
                 score = quality_analysis.get("score", 0)
-                assert (
-                    score >= self.PASS_THRESHOLD
-                ), f"Quality score {score} should be >= {self.PASS_THRESHOLD}"
+                assert score >= self.PASS_THRESHOLD, (
+                    f"Quality score {score} should be >= {self.PASS_THRESHOLD}"
+                )
 
     @pytest.mark.asyncio
     async def test_full_scenario_integration(self, conversation_id):
@@ -472,9 +472,9 @@ class TestScenario046ERCSuccessRateAccuracy:
             if all(5 <= p <= 20 for p in main_grant_rates if main_grant_rates):
                 score += 10
 
-            assert (
-                score >= self.PASS_THRESHOLD
-            ), f"Integration score {score} should be >= {self.PASS_THRESHOLD}"
+            assert score >= self.PASS_THRESHOLD, (
+                f"Integration score {score} should be >= {self.PASS_THRESHOLD}"
+            )
 
 
 class TestERCSuccessRateDataValidation:
@@ -531,6 +531,6 @@ class TestERCSuccessRateDataValidation:
             for rate in rates:
                 # Check with 2% tolerance
                 in_range_with_tolerance = (sys_min - 2) <= rate <= (sys_max + 2)
-                assert (
-                    in_range_with_tolerance
-                ), f"{grant_type}: {rate}% not within {sys_min}-{sys_max}% (with 2% tolerance)"
+                assert in_range_with_tolerance, (
+                    f"{grant_type}: {rate}% not within {sys_min}-{sys_max}% (with 2% tolerance)"
+                )

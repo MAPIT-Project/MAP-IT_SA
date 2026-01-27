@@ -184,9 +184,9 @@ class TestScenario021EU4HealthEligibility:
 
             # Should use check_eu4health_eligibility tool
             has_eu4h_tool = any("eu4health" in tool.lower() for tool in tools_used)
-            assert (
-                has_eu4h_tool
-            ), f"Should use check_eu4health_eligibility tool. Tools used: {tools_used}"
+            assert has_eu4h_tool, (
+                f"Should use check_eu4health_eligibility tool. Tools used: {tools_used}"
+            )
 
     @pytest.mark.asyncio
     async def test_provides_actionable_next_steps(self, conversation_id):
@@ -354,9 +354,9 @@ class TestScenario021EU4HealthEligibility:
                 actionability += 5
             score += min(actionability, 10)
 
-            assert (
-                score >= self.PASS_THRESHOLD
-            ), f"Quality score {score} below threshold {self.PASS_THRESHOLD}"
+            assert score >= self.PASS_THRESHOLD, (
+                f"Quality score {score} below threshold {self.PASS_THRESHOLD}"
+            )
 
     @pytest.mark.asyncio
     async def test_returns_valid_json_response(self, conversation_id):

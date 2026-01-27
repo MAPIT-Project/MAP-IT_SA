@@ -35,25 +35,25 @@ logger = logging.getLogger(__name__)
 class ResponseCategory(str, Enum):
     """Categories for AI response quality classification."""
 
-    COMPLETE = "complete"      # Response fully addresses the query with all required elements
-    PARTIAL = "partial"        # Response addresses some but not all aspects of the query
+    COMPLETE = "complete"  # Response fully addresses the query with all required elements
+    PARTIAL = "partial"  # Response addresses some but not all aspects of the query
     DEFLECTION = "deflection"  # Response deflects, claims inability to find/provide information
-    EMPTY = "empty"            # Response is essentially empty or has no meaningful content
-    ERROR = "error"            # Response indicates an error occurred
+    EMPTY = "empty"  # Response is essentially empty or has no meaningful content
+    ERROR = "error"  # Response indicates an error occurred
 
 
 class QueryType(str, Enum):
     """Types of queries for content requirement matching."""
 
-    CALL_INFO = "call_info"              # Questions about specific funding calls
+    CALL_INFO = "call_info"  # Questions about specific funding calls
     PROGRAMME_COMPARISON = "programme_comparison"  # Comparing programmes/schemes
     ELIGIBILITY_FAQ = "eligibility_faq"  # Questions about eligibility/rules
     BUDGET_BENCHMARK = "budget_benchmark"  # Budget-related queries
     PARTNER_DISCOVERY = "partner_discovery"  # Finding partners
-    PROJECT_SEARCH = "project_search"    # Searching for projects
+    PROJECT_SEARCH = "project_search"  # Searching for projects
     CONSORTIUM_PATTERN = "consortium_pattern"  # Consortium composition questions
-    STATISTICS = "statistics"            # Statistical queries
-    GENERAL = "general"                  # General queries
+    STATISTICS = "statistics"  # Statistical queries
+    GENERAL = "general"  # General queries
 
 
 @dataclass
@@ -282,19 +282,20 @@ class ResponseQualityAnalyzer:
 
         # Pre-compile deflection patterns for efficiency
         self._deflection_patterns = [
-            re.compile(re.escape(phrase), re.IGNORECASE)
-            for phrase in self.deflection_phrases
+            re.compile(re.escape(phrase), re.IGNORECASE) for phrase in self.deflection_phrases
         ]
 
         # Pre-compile query type patterns
         self._query_type_patterns: dict[QueryType, list[re.Pattern]] = {}
         for query_type, req in self.CONTENT_REQUIREMENTS.items():
             self._query_type_patterns[query_type] = [
-                re.compile(pattern, re.IGNORECASE)
-                for pattern in req.patterns
+                re.compile(pattern, re.IGNORECASE) for pattern in req.patterns
             ]
 
-        logger.info("ResponseQualityAnalyzer initialized with %d deflection phrases", len(self.deflection_phrases))
+        logger.info(
+            "ResponseQualityAnalyzer initialized with %d deflection phrases",
+            len(self.deflection_phrases),
+        )
 
     def analyze(
         self,
@@ -339,7 +340,9 @@ class ResponseQualityAnalyzer:
 
         # Step 3: Infer query type
         query_type = expected_query_type or self._infer_query_type(query_lower)
-        requirements = self.CONTENT_REQUIREMENTS.get(query_type, self.CONTENT_REQUIREMENTS[QueryType.GENERAL])
+        requirements = self.CONTENT_REQUIREMENTS.get(
+            query_type, self.CONTENT_REQUIREMENTS[QueryType.GENERAL]
+        )
 
         # Step 4: Check content requirements
         elements_found, missing_elements = self._check_content_requirements(
@@ -390,7 +393,9 @@ class ResponseQualityAnalyzer:
             List of deflection phrases found in the response.
         """
         found = []
-        for phrase, pattern in zip(self.deflection_phrases, self._deflection_patterns, strict=False):
+        for phrase, pattern in zip(
+            self.deflection_phrases, self._deflection_patterns, strict=False
+        ):
             if pattern.search(response_lower):
                 found.append(phrase)
         return found
@@ -501,7 +506,7 @@ class ResponseQualityAnalyzer:
 
         score = 100
 
-        for tool_name, result in tool_results.items():
+        for _tool_name, result in tool_results.items():
             if isinstance(result, dict):
                 # Check for error indicators
                 if result.get("error") or result.get("success") is False:
@@ -634,16 +639,17 @@ class ResponseQualityAnalyzer:
 
         if missing_elements:
             formatted_elements = [e.replace("_", " ") for e in missing_elements]
-            recommendations.append(
-                f"Missing required elements: {', '.join(formatted_elements)}"
-            )
+            recommendations.append(f"Missing required elements: {', '.join(formatted_elements)}")
 
         if requirements.query_type == QueryType.CALL_INFO and "deadline" in missing_elements:
             recommendations.append(
                 "Call information should always include deadline. Check call enrichment service."
             )
 
-        if requirements.query_type == QueryType.BUDGET_BENCHMARK and "budget_range" in missing_elements:
+        if (
+            requirements.query_type == QueryType.BUDGET_BENCHMARK
+            and "budget_range" in missing_elements
+        ):
             recommendations.append(
                 "Budget benchmarks should include specific ranges. Check budget_benchmark tool."
             )

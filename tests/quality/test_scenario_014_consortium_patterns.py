@@ -54,9 +54,9 @@ class TestScenario014ConsortiumPatterns:
             # The tool might be versioned (e.g., get_consortium_patterns_1_0)
             has_consortium_tool = any("consortium_patterns" in t for t in tools_used)
 
-            assert (
-                has_consortium_tool or tool_in_reasoning
-            ), f"Expected consortium_patterns tool to be used. Tools: {tools_used}"
+            assert has_consortium_tool or tool_in_reasoning, (
+                f"Expected consortium_patterns tool to be used. Tools: {tools_used}"
+            )
 
     @pytest.mark.asyncio
     async def test_includes_consortium_size(self, conversation_id):
@@ -104,9 +104,9 @@ class TestScenario014ConsortiumPatterns:
             # Should contain numeric values (e.g., "16 partners", "8 countries")
             numbers_found = re.findall(r"\d+\.?\d*", response_text)
 
-            assert (
-                len(numbers_found) >= 5
-            ), f"Response should contain specific numeric values. Found: {len(numbers_found)}"
+            assert len(numbers_found) >= 5, (
+                f"Response should contain specific numeric values. Found: {len(numbers_found)}"
+            )
 
     @pytest.mark.asyncio
     async def test_includes_org_type_breakdown(self, conversation_id):
@@ -290,9 +290,9 @@ class TestScenario014ConsortiumPatterns:
             percentage_pattern = r"\d+\s*%|\d+\s*-\s*\d+\s*%"
             percentages_found = re.findall(percentage_pattern, response_text)
 
-            assert (
-                len(percentages_found) >= 2
-            ), f"Response should include percentage breakdown. Found: {percentages_found}"
+            assert len(percentages_found) >= 2, (
+                f"Response should include percentage breakdown. Found: {percentages_found}"
+            )
 
     @pytest.mark.asyncio
     async def test_no_error_messages(self, conversation_id):
@@ -352,9 +352,9 @@ class TestScenario014ConsortiumPatterns:
 
             action_found = sum(1 for a in action_indicators if a in response_text)
 
-            assert (
-                action_found >= 2
-            ), f"Response should include actionable guidance. Action items found: {action_found}"
+            assert action_found >= 2, (
+                f"Response should include actionable guidance. Action items found: {action_found}"
+            )
 
     @pytest.mark.asyncio
     async def test_includes_real_organization_names(self, conversation_id):
@@ -389,9 +389,9 @@ class TestScenario014ConsortiumPatterns:
                 1 for pattern in org_patterns if re.search(pattern, response_text, re.IGNORECASE)
             )
 
-            assert (
-                orgs_found >= 2
-            ), f"Response should include real organization names. Found: {orgs_found}"
+            assert orgs_found >= 2, (
+                f"Response should include real organization names. Found: {orgs_found}"
+            )
 
     @pytest.mark.asyncio
     async def test_quality_score_threshold(self, conversation_id):
@@ -480,9 +480,9 @@ class TestScenario014ConsortiumPatterns:
             if "http" in response_text or "portal" in text_lower:
                 score += 5
 
-            assert (
-                score >= self.PASS_THRESHOLD
-            ), f"Quality score {score} is below threshold {self.PASS_THRESHOLD}"
+            assert score >= self.PASS_THRESHOLD, (
+                f"Quality score {score} is below threshold {self.PASS_THRESHOLD}"
+            )
 
     @pytest.mark.asyncio
     async def test_full_scenario_integration(self, conversation_id):
@@ -502,20 +502,20 @@ class TestScenario014ConsortiumPatterns:
             text_lower = response_text.lower()
 
             # Basic assertions
-            assert (
-                len(response_text) > 500
-            ), f"Response too short for consortium patterns: {len(response_text)} chars"
+            assert len(response_text) > 500, (
+                f"Response too short for consortium patterns: {len(response_text)} chars"
+            )
 
             # Should have consortium size
-            assert (
-                "partner" in text_lower or "size" in text_lower
-            ), "Missing consortium size information"
+            assert "partner" in text_lower or "size" in text_lower, (
+                "Missing consortium size information"
+            )
 
             # Should have organization types
             org_types = ["university", "research", "sme", "hospital", "public"]
-            assert (
-                sum(1 for t in org_types if t in text_lower) >= 2
-            ), "Missing organization type breakdown"
+            assert sum(1 for t in org_types if t in text_lower) >= 2, (
+                "Missing organization type breakdown"
+            )
 
             # Should reference project data
             assert re.search(
@@ -523,17 +523,17 @@ class TestScenario014ConsortiumPatterns:
             ), "Should be based on real project data"
 
             # Should have coordinator info
-            assert (
-                "coordinator" in text_lower or "lead" in text_lower
-            ), "Missing coordinator information"
+            assert "coordinator" in text_lower or "lead" in text_lower, (
+                "Missing coordinator information"
+            )
 
             # Metadata should indicate success
             tools_used = metadata.get("tools_used", [])
             assert any(
                 "consortium_patterns" in str(t).lower() for t in tools_used
-            ) or "consortium_patterns" in str(
-                metadata.get("reasoning_steps", [])
-            ), f"consortium_patterns tool should be used. Metadata: {metadata}"
+            ) or "consortium_patterns" in str(metadata.get("reasoning_steps", [])), (
+                f"consortium_patterns tool should be used. Metadata: {metadata}"
+            )
 
     @pytest.mark.asyncio
     async def test_response_structure(self, conversation_id):
@@ -564,6 +564,6 @@ class TestScenario014ConsortiumPatterns:
                 if re.search(pattern, response_text, re.MULTILINE)
             )
 
-            assert (
-                structure_found >= 2
-            ), f"Response should be well-structured. Structure elements: {structure_found}"
+            assert structure_found >= 2, (
+                f"Response should be well-structured. Structure elements: {structure_found}"
+            )

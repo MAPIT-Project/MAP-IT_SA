@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 class ReviewSeverity(str, Enum):
     """Severity levels for review findings."""
+
     CRITICAL = "critical"  # Must fix before submission
     MAJOR = "major"  # Should fix to improve chances
     MINOR = "minor"  # Nice to fix
@@ -31,6 +32,7 @@ class ReviewSeverity(str, Enum):
 
 class ReviewCategory(str, Enum):
     """Categories for review findings."""
+
     EXCELLENCE = "excellence"
     IMPACT = "impact"
     IMPLEMENTATION = "implementation"
@@ -44,6 +46,7 @@ class ReviewCategory(str, Enum):
 @dataclass
 class ReviewFinding:
     """A single review finding."""
+
     severity: ReviewSeverity
     category: ReviewCategory
     section: str
@@ -60,13 +63,14 @@ class ReviewFinding:
             "issue": self.issue,
             "suggestion": self.suggestion,
             "confidence": self.confidence,
-            "quote": self.quote
+            "quote": self.quote,
         }
 
 
 @dataclass
 class ReviewScore:
     """Score for a criterion."""
+
     criterion: str
     score: float  # 0-5 scale
     max_score: float = 5.0
@@ -104,7 +108,7 @@ class ComprehensiveReviewer:
         self,
         proposal: dict[str, Any],
         call_requirements: dict[str, Any] | None = None,
-        action_type: str = "RIA"
+        action_type: str = "RIA",
     ) -> dict[str, Any]:
         """
         Perform comprehensive proposal review.
@@ -139,7 +143,14 @@ class ComprehensiveReviewer:
         all_findings: list[ReviewFinding] = []
         all_scores: list[ReviewScore] = []
 
-        review_names = ["excellence", "impact", "implementation", "compliance", "language", "consistency"]
+        review_names = [
+            "excellence",
+            "impact",
+            "implementation",
+            "compliance",
+            "language",
+            "consistency",
+        ]
         for name, review in zip(review_names, reviews, strict=False):
             if isinstance(review, Exception):
                 logger.error(f"{name} review failed: {review}")
@@ -167,7 +178,7 @@ class ComprehensiveReviewer:
             "estimated_evaluator_score": estimated_score,
             "recommendation": recommendation,
             "summary": summary,
-            "scores": [asdict(s) if hasattr(s, '__dataclass_fields__') else s for s in all_scores],
+            "scores": [asdict(s) if hasattr(s, "__dataclass_fields__") else s for s in all_scores],
             "findings": [f.to_dict() for f in all_findings],
             "findings_by_severity": self._group_by_severity(all_findings),
             "findings_by_category": self._group_by_category(all_findings),
@@ -176,39 +187,36 @@ class ComprehensiveReviewer:
                 "sections_reviewed": list(proposal.keys()),
                 "total_findings": len(all_findings),
                 "duration_ms": round(duration_ms),
-                "timestamp": datetime.now(UTC).isoformat()
-            }
+                "timestamp": datetime.now(UTC).isoformat(),
+            },
         }
 
     async def _excellence_review(
-        self,
-        proposal: dict[str, Any],
-        requirements: dict[str, Any] | None,
-        action_type: str
+        self, proposal: dict[str, Any], requirements: dict[str, Any] | None, action_type: str
     ) -> dict[str, Any]:
         """Review excellence criterion."""
         excellence_content = proposal.get("excellence", "") or proposal.get("section_1", "")
 
         if not excellence_content:
             return {
-                "findings": [ReviewFinding(
-                    severity=ReviewSeverity.CRITICAL,
-                    category=ReviewCategory.EXCELLENCE,
-                    section="excellence",
-                    issue="Excellence section is missing or empty",
-                    suggestion="Add detailed excellence section covering objectives, methodology, and beyond state-of-art"
-                )],
+                "findings": [
+                    ReviewFinding(
+                        severity=ReviewSeverity.CRITICAL,
+                        category=ReviewCategory.EXCELLENCE,
+                        section="excellence",
+                        issue="Excellence section is missing or empty",
+                        suggestion="Add detailed excellence section covering objectives, methodology, and beyond state-of-art",
+                    )
+                ],
                 "score": ReviewScore(
-                    criterion="excellence",
-                    score=0.0,
-                    justification="Section missing"
-                )
+                    criterion="excellence", score=0.0, justification="Section missing"
+                ),
             }
 
         prompt = f"""You are an expert EU Horizon Europe proposal evaluator reviewing the Excellence section.
 
 ACTION TYPE: {action_type}
-{"CALL REQUIREMENTS: " + json.dumps(requirements.get('excellence_criteria', '')) if requirements else ""}
+{"CALL REQUIREMENTS: " + json.dumps(requirements.get("excellence_criteria", "")) if requirements else ""}
 
 PROPOSAL EXCELLENCE SECTION:
 {excellence_content[:8000]}
@@ -240,10 +248,7 @@ For each issue found, provide in JSON format:
 Be thorough but fair. Identify both strengths and weaknesses. Return valid JSON only."""
 
         try:
-            response = await asyncio.to_thread(
-                self.model.generate_content,
-                prompt
-            )
+            response = await asyncio.to_thread(self.model.generate_content, prompt)
             result = self._parse_json_response(response.text)
 
             findings = [
@@ -253,7 +258,7 @@ Be thorough but fair. Identify both strengths and weaknesses. Return valid JSON 
                     section="excellence",
                     issue=f.get("issue", ""),
                     suggestion=f.get("suggestion", ""),
-                    quote=f.get("quote")
+                    quote=f.get("quote"),
                 )
                 for f in result.get("findings", [])
             ]
@@ -264,7 +269,7 @@ Be thorough but fair. Identify both strengths and weaknesses. Return valid JSON 
                 score=float(score_data.get("value", 3.0)),
                 justification=score_data.get("justification", ""),
                 strengths=score_data.get("strengths", []),
-                weaknesses=score_data.get("weaknesses", [])
+                weaknesses=score_data.get("weaknesses", []),
             )
 
             return {"findings": findings, "score": score}
@@ -274,24 +279,25 @@ Be thorough but fair. Identify both strengths and weaknesses. Return valid JSON 
             return {"findings": [], "score": ReviewScore(criterion="excellence", score=3.0)}
 
     async def _impact_review(
-        self,
-        proposal: dict[str, Any],
-        requirements: dict[str, Any] | None,
-        action_type: str
+        self, proposal: dict[str, Any], requirements: dict[str, Any] | None, action_type: str
     ) -> dict[str, Any]:
         """Review impact criterion."""
         impact_content = proposal.get("impact", "") or proposal.get("section_2", "")
 
         if not impact_content:
             return {
-                "findings": [ReviewFinding(
-                    severity=ReviewSeverity.CRITICAL,
-                    category=ReviewCategory.IMPACT,
-                    section="impact",
-                    issue="Impact section is missing or empty",
-                    suggestion="Add impact section covering expected outcomes, exploitation, and communication"
-                )],
-                "score": ReviewScore(criterion="impact", score=0.0, justification="Section missing")
+                "findings": [
+                    ReviewFinding(
+                        severity=ReviewSeverity.CRITICAL,
+                        category=ReviewCategory.IMPACT,
+                        section="impact",
+                        issue="Impact section is missing or empty",
+                        suggestion="Add impact section covering expected outcomes, exploitation, and communication",
+                    )
+                ],
+                "score": ReviewScore(
+                    criterion="impact", score=0.0, justification="Section missing"
+                ),
             }
 
         prompt = f"""You are an expert EU Horizon Europe proposal evaluator reviewing the Impact section.
@@ -326,10 +332,7 @@ For each issue, provide JSON:
 Return valid JSON only."""
 
         try:
-            response = await asyncio.to_thread(
-                self.model.generate_content,
-                prompt
-            )
+            response = await asyncio.to_thread(self.model.generate_content, prompt)
             result = self._parse_json_response(response.text)
 
             findings = [
@@ -338,7 +341,7 @@ Return valid JSON only."""
                     category=ReviewCategory.IMPACT,
                     section="impact",
                     issue=f.get("issue", ""),
-                    suggestion=f.get("suggestion", "")
+                    suggestion=f.get("suggestion", ""),
                 )
                 for f in result.get("findings", [])
             ]
@@ -349,7 +352,7 @@ Return valid JSON only."""
                 score=float(score_data.get("value", 3.0)),
                 justification=score_data.get("justification", ""),
                 strengths=score_data.get("strengths", []),
-                weaknesses=score_data.get("weaknesses", [])
+                weaknesses=score_data.get("weaknesses", []),
             )
 
             return {"findings": findings, "score": score}
@@ -359,10 +362,7 @@ Return valid JSON only."""
             return {"findings": [], "score": ReviewScore(criterion="impact", score=3.0)}
 
     async def _implementation_review(
-        self,
-        proposal: dict[str, Any],
-        requirements: dict[str, Any] | None,
-        action_type: str
+        self, proposal: dict[str, Any], requirements: dict[str, Any] | None, action_type: str
     ) -> dict[str, Any]:
         """Review implementation criterion."""
         impl_content = proposal.get("implementation", "") or proposal.get("section_3", "")
@@ -413,10 +413,7 @@ For each issue, provide JSON:
 Return valid JSON only."""
 
         try:
-            response = await asyncio.to_thread(
-                self.model.generate_content,
-                prompt
-            )
+            response = await asyncio.to_thread(self.model.generate_content, prompt)
             result = self._parse_json_response(response.text)
 
             findings = [
@@ -425,7 +422,7 @@ Return valid JSON only."""
                     category=ReviewCategory.IMPLEMENTATION,
                     section="implementation",
                     issue=f.get("issue", ""),
-                    suggestion=f.get("suggestion", "")
+                    suggestion=f.get("suggestion", ""),
                 )
                 for f in result.get("findings", [])
             ]
@@ -436,7 +433,7 @@ Return valid JSON only."""
                 score=float(score_data.get("value", 3.0)),
                 justification=score_data.get("justification", ""),
                 strengths=score_data.get("strengths", []),
-                weaknesses=score_data.get("weaknesses", [])
+                weaknesses=score_data.get("weaknesses", []),
             )
 
             return {"findings": findings, "score": score}
@@ -446,9 +443,7 @@ Return valid JSON only."""
             return {"findings": [], "score": ReviewScore(criterion="implementation", score=3.0)}
 
     async def _compliance_review(
-        self,
-        proposal: dict[str, Any],
-        requirements: dict[str, Any] | None
+        self, proposal: dict[str, Any], requirements: dict[str, Any] | None
     ) -> dict[str, Any]:
         """Review compliance with EU requirements."""
         findings = []
@@ -456,38 +451,46 @@ Return valid JSON only."""
         # Check for required elements
         required_sections = ["excellence", "impact", "implementation"]
         for section in required_sections:
-            content = proposal.get(section, "") or proposal.get(f"section_{required_sections.index(section)+1}", "")
+            content = proposal.get(section, "") or proposal.get(
+                f"section_{required_sections.index(section) + 1}", ""
+            )
             if not content:
-                findings.append(ReviewFinding(
-                    severity=ReviewSeverity.CRITICAL,
-                    category=ReviewCategory.COMPLIANCE,
-                    section=section,
-                    issue=f"Required section '{section}' is missing",
-                    suggestion=f"Add the {section} section as required by EU guidelines"
-                ))
+                findings.append(
+                    ReviewFinding(
+                        severity=ReviewSeverity.CRITICAL,
+                        category=ReviewCategory.COMPLIANCE,
+                        section=section,
+                        issue=f"Required section '{section}' is missing",
+                        suggestion=f"Add the {section} section as required by EU guidelines",
+                    )
+                )
 
         # Check ethics mentions
         all_content = " ".join(str(v) for v in proposal.values() if isinstance(v, str))
 
         ethics_keywords = ["ethics", "gdpr", "data protection", "informed consent"]
         if not any(kw in all_content.lower() for kw in ethics_keywords):
-            findings.append(ReviewFinding(
-                severity=ReviewSeverity.MAJOR,
-                category=ReviewCategory.COMPLIANCE,
-                section="ethics",
-                issue="No mention of ethics or data protection considerations",
-                suggestion="Add ethics section addressing potential ethical issues and GDPR compliance"
-            ))
+            findings.append(
+                ReviewFinding(
+                    severity=ReviewSeverity.MAJOR,
+                    category=ReviewCategory.COMPLIANCE,
+                    section="ethics",
+                    issue="No mention of ethics or data protection considerations",
+                    suggestion="Add ethics section addressing potential ethical issues and GDPR compliance",
+                )
+            )
 
         # Check gender dimension
         if "gender" not in all_content.lower():
-            findings.append(ReviewFinding(
-                severity=ReviewSeverity.MINOR,
-                category=ReviewCategory.COMPLIANCE,
-                section="impact",
-                issue="Gender dimension not explicitly addressed",
-                suggestion="Consider how the project addresses gender aspects in research content and team composition"
-            ))
+            findings.append(
+                ReviewFinding(
+                    severity=ReviewSeverity.MINOR,
+                    category=ReviewCategory.COMPLIANCE,
+                    section="impact",
+                    issue="Gender dimension not explicitly addressed",
+                    suggestion="Consider how the project addresses gender aspects in research content and team composition",
+                )
+            )
 
         return {"findings": findings}
 
@@ -497,13 +500,15 @@ Return valid JSON only."""
 
         if len(all_content) < 500:
             return {
-                "findings": [ReviewFinding(
-                    severity=ReviewSeverity.MAJOR,
-                    category=ReviewCategory.LANGUAGE,
-                    section="all",
-                    issue="Proposal content is very short",
-                    suggestion="Expand proposal with more detailed content in all sections"
-                )]
+                "findings": [
+                    ReviewFinding(
+                        severity=ReviewSeverity.MAJOR,
+                        category=ReviewCategory.LANGUAGE,
+                        section="all",
+                        issue="Proposal content is very short",
+                        suggestion="Expand proposal with more detailed content in all sections",
+                    )
+                ]
             }
 
         prompt = f"""Analyze this EU proposal for language quality. Focus on:
@@ -531,10 +536,7 @@ Return JSON with findings:
 Return valid JSON only."""
 
         try:
-            response = await asyncio.to_thread(
-                self.model.generate_content,
-                prompt
-            )
+            response = await asyncio.to_thread(self.model.generate_content, prompt)
             result = self._parse_json_response(response.text)
 
             findings = [
@@ -544,7 +546,7 @@ Return valid JSON only."""
                     section="language",
                     issue=f.get("issue", ""),
                     suggestion=f.get("suggestion", ""),
-                    quote=f.get("quote")
+                    quote=f.get("quote"),
                 )
                 for f in result.get("findings", [])
             ]
@@ -586,10 +588,7 @@ Return JSON with inconsistencies found:
 Return valid JSON only."""
 
         try:
-            response = await asyncio.to_thread(
-                self.model.generate_content,
-                prompt
-            )
+            response = await asyncio.to_thread(self.model.generate_content, prompt)
             result = self._parse_json_response(response.text)
 
             findings = [
@@ -598,7 +597,7 @@ Return valid JSON only."""
                     category=ReviewCategory.CONSISTENCY,
                     section="consistency",
                     issue=f.get("issue", ""),
-                    suggestion=f.get("suggestion", "")
+                    suggestion=f.get("suggestion", ""),
                 )
                 for f in result.get("findings", [])
             ]
@@ -628,20 +627,14 @@ Return valid JSON only."""
             return {"findings": [], "score": {"value": 3.0}}
 
     def _calculate_overall_score(
-        self,
-        scores: list[ReviewScore],
-        findings: list[ReviewFinding]
+        self, scores: list[ReviewScore], findings: list[ReviewFinding]
     ) -> float:
         """Calculate overall proposal score."""
         if not scores:
             return 3.0
 
         # Weighted average of criterion scores
-        weights = {
-            "excellence": 0.4,
-            "impact": 0.3,
-            "implementation": 0.3
-        }
+        weights = {"excellence": 0.4, "impact": 0.3, "implementation": 0.3}
 
         total_weight = 0
         weighted_sum = 0
@@ -662,11 +655,7 @@ Return valid JSON only."""
 
         return round(final_score, 2)
 
-    async def _generate_review_summary(
-        self,
-        findings: list[ReviewFinding],
-        score: float
-    ) -> str:
+    async def _generate_review_summary(self, findings: list[ReviewFinding], score: float) -> str:
         """Generate executive summary of the review."""
         critical = [f for f in findings if f.severity == ReviewSeverity.CRITICAL]
         major = [f for f in findings if f.severity == ReviewSeverity.MAJOR]
@@ -698,11 +687,7 @@ Key Statistics:
 
         return summary
 
-    def _get_recommendation(
-        self,
-        score: float,
-        findings: list[ReviewFinding]
-    ) -> dict[str, Any]:
+    def _get_recommendation(self, score: float, findings: list[ReviewFinding]) -> dict[str, Any]:
         """Get submission recommendation."""
         critical_count = len([f for f in findings if f.severity == ReviewSeverity.CRITICAL])
         major_count = len([f for f in findings if f.severity == ReviewSeverity.MAJOR])
@@ -711,37 +696,35 @@ Key Statistics:
             return {
                 "status": "NOT_READY",
                 "message": f"Address {critical_count} critical issue(s) before submission",
-                "confidence": "high"
+                "confidence": "high",
             }
         elif major_count > 3:
             return {
                 "status": "NEEDS_WORK",
                 "message": f"Address {major_count} major issues to improve success chances",
-                "confidence": "medium"
+                "confidence": "medium",
             }
         elif score >= 4.0:
             return {
                 "status": "READY",
                 "message": "Proposal is competitive. Consider minor improvements.",
-                "confidence": "high"
+                "confidence": "high",
             }
         elif score >= 3.0:
             return {
                 "status": "ACCEPTABLE",
                 "message": "Meets threshold but improvements recommended for better chances",
-                "confidence": "medium"
+                "confidence": "medium",
             }
         else:
             return {
                 "status": "BELOW_THRESHOLD",
                 "message": "Significant revision needed to be competitive",
-                "confidence": "high"
+                "confidence": "high",
             }
 
     def _estimate_evaluator_score(
-        self,
-        score: float,
-        findings: list[ReviewFinding]
+        self, score: float, findings: list[ReviewFinding]
     ) -> dict[str, Any]:
         """Estimate likely evaluator score range."""
         # EU uses 0-5 scale with threshold of 3 per criterion
@@ -757,7 +740,7 @@ Key Statistics:
             "estimated_range": f"{low:.1f} - {high:.1f}",
             "threshold_status": "above" if score >= 3.0 else "below",
             "confidence": "medium",
-            "note": "Actual scores may vary based on evaluator interpretation and competition level"
+            "note": "Actual scores may vary based on evaluator interpretation and competition level",
         }
 
     def _group_by_severity(self, findings: list[ReviewFinding]) -> dict[str, list[dict]]:

@@ -25,7 +25,7 @@ class TestConversationNamerFallbackPatterns:
 
     def setup_method(self):
         """Create namer with no LLM for fallback testing."""
-        with patch.dict(os.environ, {'GEMINI_API_KEY': ''}):
+        with patch.dict(os.environ, {"GEMINI_API_KEY": ""}):
             self.namer = ConversationNamer()
             self.namer.model = None  # Force fallback mode
 
@@ -129,10 +129,19 @@ class TestConversationNamerFallbackPatterns:
     def test_research_topic_patterns(self):
         """Test recognition of specific research topics."""
         patterns = [
-            ("Hydrogen research funding", ["Energy", "Research", "Funding", "Query", "Green", "Opportunities"]),
-            ("AI and machine learning calls", ["Digital", "AI", "Research", "Query", "Funding", "Opportunities"]),
+            (
+                "Hydrogen research funding",
+                ["Energy", "Research", "Funding", "Query", "Green", "Opportunities"],
+            ),
+            (
+                "AI and machine learning calls",
+                ["Digital", "AI", "Research", "Query", "Funding", "Opportunities"],
+            ),
             ("Cancer research projects", ["Health", "Research", "Query", "Project"]),
-            ("Quantum computing opportunities", ["Digital", "AI", "Research", "Query", "Quantum", "Opportunities"]),
+            (
+                "Quantum computing opportunities",
+                ["Digital", "AI", "Research", "Query", "Quantum", "Opportunities"],
+            ),
         ]
         for message, expected_any in patterns:
             result = self.namer._generate_fallback(message)
@@ -305,6 +314,7 @@ class TestConversationNamerSingleton:
         """Test that get_conversation_namer returns same instance."""
         # Reset singleton
         import app.services.conversation.conversation_namer as module
+
         module._namer_instance = None
 
         namer1 = get_conversation_namer()
@@ -315,9 +325,10 @@ class TestConversationNamerSingleton:
     def test_singleton_initializes_once(self):
         """Test that ConversationNamer is only created once."""
         import app.services.conversation.conversation_namer as module
+
         module._namer_instance = None
 
-        with patch.object(ConversationNamer, '__init__', return_value=None) as mock_init:
+        with patch.object(ConversationNamer, "__init__", return_value=None) as mock_init:
             get_conversation_namer()
             get_conversation_namer()
             get_conversation_namer()
@@ -364,8 +375,8 @@ class TestConversationNamerEdgeCases:
     def test_mixed_case_patterns(self):
         """Test that pattern matching is case-insensitive."""
         result1 = self.namer._generate_fallback("HYDROGEN FUNDING")
-        result2 = self.namer._generate_fallback("hydrogen funding")
-        result3 = self.namer._generate_fallback("HyDrOgEn FuNdInG")
+        self.namer._generate_fallback("hydrogen funding")
+        self.namer._generate_fallback("HyDrOgEn FuNdInG")
 
         # All should match the same pattern
         assert "Energy" in result1 or "Funding" in result1 or "Query" in result1
@@ -390,23 +401,51 @@ class TestConversationNamerRealWorld:
         self.namer = ConversationNamer()
         self.namer.model = None
 
-    @pytest.mark.parametrize("query,expected_keywords", [
-        ("What open calls are there for AI research in healthcare?", ["Health", "Digital", "AI", "Query", "Funding", "Opportunities"]),
-        ("Can a Swiss SME participate in Horizon Europe RIA?", ["Eligibility", "Country", "Swiss", "Query", "Horizon"]),
-        ("Compare the success rates of ERC-StG and ERC-CoG", ["Comparison", "Programme", "Statistics", "Query", "Information"]),
-        ("Help me write the impact section of my climate proposal", ["Proposal", "Query", "Energy", "Research", "Green"]),
-        ("What is the typical consortium size for a CL5 project?", ["Query", "Project", "Search", "Consortium"]),
-        ("Show funded projects about quantum computing from Germany", ["Project", "Digital", "Country", "Query", "Search"]),
-        ("Budget breakdown for a 4-year IA with 12 partners", ["Budget", "Query", "Proposal", "Planning"]),
-        ("MSCA postdoctoral fellowship eligibility criteria", ["Programme", "Eligibility", "Query", "Information"]),
-    ])
+    @pytest.mark.parametrize(
+        "query,expected_keywords",
+        [
+            (
+                "What open calls are there for AI research in healthcare?",
+                ["Health", "Digital", "AI", "Query", "Funding", "Opportunities"],
+            ),
+            (
+                "Can a Swiss SME participate in Horizon Europe RIA?",
+                ["Eligibility", "Country", "Swiss", "Query", "Horizon"],
+            ),
+            (
+                "Compare the success rates of ERC-StG and ERC-CoG",
+                ["Comparison", "Programme", "Statistics", "Query", "Information"],
+            ),
+            (
+                "Help me write the impact section of my climate proposal",
+                ["Proposal", "Query", "Energy", "Research", "Green"],
+            ),
+            (
+                "What is the typical consortium size for a CL5 project?",
+                ["Query", "Project", "Search", "Consortium"],
+            ),
+            (
+                "Show funded projects about quantum computing from Germany",
+                ["Project", "Digital", "Country", "Query", "Search"],
+            ),
+            (
+                "Budget breakdown for a 4-year IA with 12 partners",
+                ["Budget", "Query", "Proposal", "Planning"],
+            ),
+            (
+                "MSCA postdoctoral fellowship eligibility criteria",
+                ["Programme", "Eligibility", "Query", "Information"],
+            ),
+        ],
+    )
     def test_real_world_queries(self, query, expected_keywords):
         """Test that real-world queries produce sensible names."""
         result = self.namer._generate_fallback(query)
 
         # At least one expected keyword should be in the result
-        assert any(kw in result for kw in expected_keywords), \
+        assert any(kw in result for kw in expected_keywords), (
             f"Expected one of {expected_keywords} in '{result}' for query: {query}"
+        )
 
 
 if __name__ == "__main__":

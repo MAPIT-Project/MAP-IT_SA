@@ -16,5 +16,5 @@ __all__ = [
     "ProviderStatus",
     "GeminiProvider",
     "OpenAIProvider",
-    "MultiProviderAIService"
+    "MultiProviderAIService",
 ]

@@ -38,10 +38,7 @@ from dotenv import load_dotenv
 from psycopg2.extras import RealDictCursor
 
 # Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 # EU Portal API endpoints (same as Horizon Europe)
@@ -52,7 +49,7 @@ EU_TOPIC_DETAILS = "https://ec.europa.eu/info/funding-tenders/opportunities/data
 def get_database_url() -> str:
     """Get database URL from environment."""
     load_dotenv()
-    db_url = os.getenv('DATABASE_URL')
+    db_url = os.getenv("DATABASE_URL")
     if not db_url:
         raise ValueError("DATABASE_URL environment variable not set")
     return db_url
@@ -70,34 +67,34 @@ class ErasmusPlusPortalSyncer:
 
         # Erasmus+ action type mappings (from ErasmusPlusExtractor)
         self.action_types = {
-            'KA1-HED': 'Higher Education Mobility',
-            'KA1-VET': 'VET Learners and Staff Mobility',
-            'KA1-SCH': 'School Education Staff Mobility',
-            'KA1-ADU': 'Adult Education Staff Mobility',
-            'KA1-YOU': 'Youth Mobility',
-            'KA1-DEGREE': 'Joint Master Degree',
-            'KA1-ICM': 'International Credit Mobility',
-            'KA2-COOP': 'Cooperation Partnership',
-            'KA2-SSP': 'Small-Scale Partnership',
-            'KA2-CBHE': 'Capacity Building Higher Education',
-            'KA2-ALLIANCES': 'Alliances for Innovation',
-            'KA2-COE': 'Centres of Vocational Excellence',
-            'KA3-INC-SOC': 'Social Inclusion',
-            'KA3-YOUTH-TOG': 'Youth Together',
-            'JMO-MODULE': 'Jean Monnet Module',
-            'JMO-CHAIR': 'Jean Monnet Chair',
-            'SPORT-COOP': 'Cooperation Partnership Sport',
-            'SPORT-SSCP': 'Small-Scale Partnership Sport',
+            "KA1-HED": "Higher Education Mobility",
+            "KA1-VET": "VET Learners and Staff Mobility",
+            "KA1-SCH": "School Education Staff Mobility",
+            "KA1-ADU": "Adult Education Staff Mobility",
+            "KA1-YOU": "Youth Mobility",
+            "KA1-DEGREE": "Joint Master Degree",
+            "KA1-ICM": "International Credit Mobility",
+            "KA2-COOP": "Cooperation Partnership",
+            "KA2-SSP": "Small-Scale Partnership",
+            "KA2-CBHE": "Capacity Building Higher Education",
+            "KA2-ALLIANCES": "Alliances for Innovation",
+            "KA2-COE": "Centres of Vocational Excellence",
+            "KA3-INC-SOC": "Social Inclusion",
+            "KA3-YOUTH-TOG": "Youth Together",
+            "JMO-MODULE": "Jean Monnet Module",
+            "JMO-CHAIR": "Jean Monnet Chair",
+            "SPORT-COOP": "Cooperation Partnership Sport",
+            "SPORT-SSCP": "Small-Scale Partnership Sport",
         }
 
         # Sector mappings
         self.sectors = {
-            'HED': 'Higher Education',
-            'VET': 'Vocational Education and Training',
-            'SCH': 'School Education',
-            'ADU': 'Adult Education',
-            'YOU': 'Youth',
-            'SPORT': 'Sport',
+            "HED": "Higher Education",
+            "VET": "Vocational Education and Training",
+            "SCH": "School Education",
+            "ADU": "Adult Education",
+            "YOU": "Youth",
+            "SPORT": "Sport",
         }
 
     def close(self):
@@ -107,13 +104,15 @@ class ErasmusPlusPortalSyncer:
     def get_existing_topics_from_db(self, conn) -> list[dict]:
         """Get all existing Erasmus+ topic codes from database."""
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT topic_code, title, status, deadline
             FROM funding_calls
             WHERE programme = 'erasmus'
               AND topic_code IS NOT NULL
             ORDER BY call_year DESC NULLS LAST, topic_code
-        """)
+        """
+        )
         results = cursor.fetchall()
         return [{"identifier": r["topic_code"], "title": r["title"] or ""} for r in results]
 
@@ -134,31 +133,63 @@ class ErasmusPlusPortalSyncer:
             # Education patterns (EDU domain)
             edu_patterns = [
                 # Capacity Building
-                'CBHE', 'CBHE-STRAND-1', 'CBHE-STRAND-2', 'CBHE-STRAND-3',
-                'CBVET', 'CB-VET',
+                "CBHE",
+                "CBHE-STRAND-1",
+                "CBHE-STRAND-2",
+                "CBHE-STRAND-3",
+                "CBVET",
+                "CB-VET",
                 # Centres of Excellence & Alliances
-                'COE', 'PI-COVE', 'PI-ALLIANCES', 'ALLIANCES',
+                "COE",
+                "PI-COVE",
+                "PI-ALLIANCES",
+                "ALLIANCES",
                 # Forward Looking & Teacher Academies
-                'FORWARD', 'TEACHER-ACADEMIES', 'TEACH-ACAD',
+                "FORWARD",
+                "TEACHER-ACADEMIES",
+                "TEACH-ACAD",
                 # Virtual Exchanges
-                'VIRT-EXCH', 'VIRTUAL-EXCHANGES',
+                "VIRT-EXCH",
+                "VIRTUAL-EXCHANGES",
                 # Policy & Experimental
-                'POL-EXP', 'POL-EXP-EU', 'POL-NET',
+                "POL-EXP",
+                "POL-EXP-EU",
+                "POL-NET",
                 # Accreditation & Mobility
-                'AM', 'AM-EB', 'AM-EB-MU', 'KA131-HE', 'KA171-HE',
+                "AM",
+                "AM-EB",
+                "AM-EB-MU",
+                "KA131-HE",
+                "KA171-HE",
                 # Cooperation Partnerships (various sectors)
-                'KA220-HED', 'KA220-VET', 'KA220-SCH', 'KA220-ADU', 'KA220-YOU',
-                'KA210-HED', 'KA210-VET', 'KA210-SCH', 'KA210-ADU', 'KA210-YOU',
+                "KA220-HED",
+                "KA220-VET",
+                "KA220-SCH",
+                "KA220-ADU",
+                "KA220-YOU",
+                "KA210-HED",
+                "KA210-VET",
+                "KA210-SCH",
+                "KA210-ADU",
+                "KA210-YOU",
                 # PPI and CSA
-                'PPI', 'CSA', 'CSAI', 'RSC',
+                "PPI",
+                "CSA",
+                "CSAI",
+                "RSC",
                 # Innovet & Platforms
-                'INNOVET', 'PLATFORM',
+                "INNOVET",
+                "PLATFORM",
                 # European Universities
-                'EUR-UNIV', 'EU-UNIV', 'EUROPEAN-UNIVERSITIES',
+                "EUR-UNIV",
+                "EU-UNIV",
+                "EUROPEAN-UNIVERSITIES",
                 # Digital Education
-                'DIGITAL', 'DIG-ED',
+                "DIGITAL",
+                "DIG-ED",
                 # Inclusion & Social
-                'INC-SOC', 'INCL',
+                "INC-SOC",
+                "INCL",
             ]
 
             for action in edu_patterns:
@@ -166,12 +197,16 @@ class ErasmusPlusPortalSyncer:
 
             # Sport patterns
             sport_patterns = [
-                'SCP',           # Cooperation Partnerships (main pattern)
-                'SSCP',          # Small-scale Partnerships
-                'NFPE', 'NPE',   # Non-profit Events
-                'COOP', 'COOP-PART',
-                'BE-ACTIVE', 'BEACTIVE',
-                'EWS', 'EWOS',   # European Week of Sport
+                "SCP",  # Cooperation Partnerships (main pattern)
+                "SSCP",  # Small-scale Partnerships
+                "NFPE",
+                "NPE",  # Non-profit Events
+                "COOP",
+                "COOP-PART",
+                "BE-ACTIVE",
+                "BEACTIVE",
+                "EWS",
+                "EWOS",  # European Week of Sport
             ]
 
             for action in sport_patterns:
@@ -179,15 +214,21 @@ class ErasmusPlusPortalSyncer:
 
             # Jean Monnet patterns
             jmo_patterns = [
-                'MODULE',        # JM Modules
-                'CHAIR',         # JM Chairs
-                'COE',           # JM Centres of Excellence
-                'NETWORKS', 'NETWORK',
-                'PROJECT', 'PROJECTS',
-                'OFET-HEI', 'OFET',
-                'LEARN-EU', 'LEARNING-EU',
-                'POLICY-DEBATE', 'POL-DEB',
-                'TEACHER-TRAINING', 'TT',
+                "MODULE",  # JM Modules
+                "CHAIR",  # JM Chairs
+                "COE",  # JM Centres of Excellence
+                "NETWORKS",
+                "NETWORK",
+                "PROJECT",
+                "PROJECTS",
+                "OFET-HEI",
+                "OFET",
+                "LEARN-EU",
+                "LEARNING-EU",
+                "POLICY-DEBATE",
+                "POL-DEB",
+                "TEACHER-TRAINING",
+                "TT",
             ]
 
             for action in jmo_patterns:
@@ -195,13 +236,19 @@ class ErasmusPlusPortalSyncer:
 
             # Youth patterns
             youth_patterns = [
-                'YOUTH-TOG', 'YOUTH-TOGETHER',
-                'YOUTH-PART', 'YOUTH-PARTICIPATION',
-                'DISCO', 'DISCOVEREU',
-                'SOLIDARITY',
-                'PART-NGO', 'ACCR-NGO',
-                'EYD', 'EU-YOUTH-DIALOGUE',
-                'CB-YOUTH', 'CAPACITY-BUILDING',
+                "YOUTH-TOG",
+                "YOUTH-TOGETHER",
+                "YOUTH-PART",
+                "YOUTH-PARTICIPATION",
+                "DISCO",
+                "DISCOVEREU",
+                "SOLIDARITY",
+                "PART-NGO",
+                "ACCR-NGO",
+                "EYD",
+                "EU-YOUTH-DIALOGUE",
+                "CB-YOUTH",
+                "CAPACITY-BUILDING",
             ]
 
             for action in youth_patterns:
@@ -220,9 +267,7 @@ class ErasmusPlusPortalSyncer:
             Set of discovered topic codes
         """
         discovered = set()
-        search_terms = [
-            'ERASMUS-EDU', 'ERASMUS-SPORT', 'ERASMUS-JMO', 'ERASMUS-YOUTH'
-        ]
+        search_terms = ["ERASMUS-EDU", "ERASMUS-SPORT", "ERASMUS-JMO", "ERASMUS-YOUTH"]
 
         logger.info("Discovering Erasmus+ topics via Search API...")
 
@@ -232,37 +277,36 @@ class ErasmusPlusPortalSyncer:
             for page in range(1, 10):  # Up to 9 pages per term
                 try:
                     payload = {
-                        'apiKey': self.api_key,
-                        'text': term,
-                        'pageSize': 100,
-                        'pageNumber': page,
+                        "apiKey": self.api_key,
+                        "text": term,
+                        "pageSize": 100,
+                        "pageNumber": page,
                     }
 
                     response = self.client.post(
                         self.search_api,
                         data=payload,
-                        headers={'Content-Type': 'application/x-www-form-urlencoded'}
+                        headers={"Content-Type": "application/x-www-form-urlencoded"},
                     )
 
                     if response.status_code != 200:
                         break
 
                     data = response.json()
-                    results = data.get('results', [])
+                    results = data.get("results", [])
 
                     if not results:
                         break
 
                     for result in results:
-                        source = str(result.get('source', ''))
+                        source = str(result.get("source", ""))
                         # Extract topic codes using regex
                         matches = re.findall(
-                            r'ERASMUS-(?:EDU|SPORT|JMO|YOUTH)-\d{4}-[A-Z0-9-]+',
-                            source.upper()
+                            r"ERASMUS-(?:EDU|SPORT|JMO|YOUTH)-\d{4}-[A-Z0-9-]+", source.upper()
                         )
                         for m in matches:
                             # Clean up any trailing timestamps
-                            clean = re.sub(r'\d{13,}.*', '', m).rstrip('-')
+                            clean = re.sub(r"\d{13,}.*", "", m).rstrip("-")
                             if clean and len(clean) > 15:  # Valid topic codes
                                 discovered.add(clean)
 
@@ -276,10 +320,7 @@ class ErasmusPlusPortalSyncer:
         return discovered
 
     def search_all_topics(
-        self,
-        status: str = "all",
-        conn=None,
-        years: list[int] | None = None
+        self, status: str = "all", conn=None, years: list[int] | None = None
     ) -> list[dict]:
         """
         Get all Erasmus+ topics to sync using hybrid approach:
@@ -364,7 +405,7 @@ class ErasmusPlusPortalSyncer:
 
             # Extract deadline and status
             deadline = None
-            status = 'unknown'
+            status = "unknown"
             actions = topic_data.get("actions", [])
 
             if actions and isinstance(actions, list) and len(actions) > 0:
@@ -424,7 +465,7 @@ class ErasmusPlusPortalSyncer:
 
             # Extract year from topic code
             call_year = None
-            year_match = re.search(r'-(\d{4})-', identifier)
+            year_match = re.search(r"-(\d{4})-", identifier)
             if year_match:
                 call_year = int(year_match.group(1))
 
@@ -447,8 +488,8 @@ class ErasmusPlusPortalSyncer:
                     "sector": sector,
                     "funding_model": "lump_sum",
                     "synced_from_api": True,
-                    "synced_at": datetime.now().isoformat()
-                }
+                    "synced_at": datetime.now().isoformat(),
+                },
             }
 
         except httpx.TimeoutException:
@@ -464,36 +505,36 @@ class ErasmusPlusPortalSyncer:
 
         # Match known action types
         for action_code in self.action_types.keys():
-            action_parts = action_code.replace('-', '')
-            if action_parts in topic_upper.replace('-', ''):
+            action_parts = action_code.replace("-", "")
+            if action_parts in topic_upper.replace("-", ""):
                 return action_code
 
         # Try to construct from parts
-        if 'KA1' in topic_upper:
-            for sector in ['HED', 'VET', 'SCH', 'ADU', 'YOU']:
+        if "KA1" in topic_upper:
+            for sector in ["HED", "VET", "SCH", "ADU", "YOU"]:
                 if sector in topic_upper:
                     return f"KA1-{sector}"
-            return 'KA1'
-        elif 'KA2' in topic_upper:
-            if 'COOP' in topic_upper:
-                return 'KA2-COOP'
-            elif 'SSP' in topic_upper:
-                return 'KA2-SSP'
-            return 'KA2'
-        elif 'KA3' in topic_upper:
-            return 'KA3'
-        elif 'JMO' in topic_upper:
-            if 'MODULE' in topic_upper:
-                return 'JMO-MODULE'
-            elif 'CHAIR' in topic_upper:
-                return 'JMO-CHAIR'
-            return 'JMO'
-        elif 'SPORT' in topic_upper:
-            if 'COOP' in topic_upper:
-                return 'SPORT-COOP'
-            elif 'SSCP' in topic_upper:
-                return 'SPORT-SSCP'
-            return 'SPORT'
+            return "KA1"
+        elif "KA2" in topic_upper:
+            if "COOP" in topic_upper:
+                return "KA2-COOP"
+            elif "SSP" in topic_upper:
+                return "KA2-SSP"
+            return "KA2"
+        elif "KA3" in topic_upper:
+            return "KA3"
+        elif "JMO" in topic_upper:
+            if "MODULE" in topic_upper:
+                return "JMO-MODULE"
+            elif "CHAIR" in topic_upper:
+                return "JMO-CHAIR"
+            return "JMO"
+        elif "SPORT" in topic_upper:
+            if "COOP" in topic_upper:
+                return "SPORT-COOP"
+            elif "SSCP" in topic_upper:
+                return "SPORT-SSCP"
+            return "SPORT"
 
         return None
 
@@ -503,23 +544,23 @@ class ErasmusPlusPortalSyncer:
         for sector_code in self.sectors.keys():
             if sector_code in topic_upper:
                 return sector_code
-        if 'SPORT' in topic_upper:
-            return 'SPORT'
+        if "SPORT" in topic_upper:
+            return "SPORT"
         return None
 
     def _extract_key_action(self, topic_code: str) -> str | None:
         """Extract key action from topic code."""
         topic_upper = topic_code.upper()
-        if 'KA1' in topic_upper:
-            return 'KA1'
-        elif 'KA2' in topic_upper:
-            return 'KA2'
-        elif 'KA3' in topic_upper:
-            return 'KA3'
-        elif 'JMO' in topic_upper:
-            return 'JMO'
-        elif 'SPORT' in topic_upper:
-            return 'SPORT'
+        if "KA1" in topic_upper:
+            return "KA1"
+        elif "KA2" in topic_upper:
+            return "KA2"
+        elif "KA3" in topic_upper:
+            return "KA3"
+        elif "JMO" in topic_upper:
+            return "JMO"
+        elif "SPORT" in topic_upper:
+            return "SPORT"
         return None
 
     def upsert_call(self, conn, data: dict[str, Any]) -> bool:
@@ -531,7 +572,8 @@ class ErasmusPlusPortalSyncer:
             metadata["synced_from_api"] = True
             metadata["synced_at"] = datetime.now().isoformat()
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO funding_calls (
                     programme, topic_code, title, scope, expected_outcome,
                     deadline, status, action_type, budget_total,
@@ -556,22 +598,24 @@ class ErasmusPlusPortalSyncer:
                     portal_url = COALESCE(EXCLUDED.portal_url, funding_calls.portal_url),
                     metadata = COALESCE(funding_calls.metadata, '{}'::jsonb) || EXCLUDED.metadata,
                     updated_at = NOW()
-            """, (
-                data.get("programme", "erasmus"),
-                data.get("topic_code"),
-                data.get("title"),
-                data.get("scope"),
-                data.get("expected_outcome"),
-                data.get("deadline"),
-                data.get("status"),
-                data.get("action_type"),
-                data.get("budget_total"),
-                data.get("call_identifier"),
-                data.get("cluster"),
-                data.get("call_year"),
-                data.get("portal_url"),
-                json.dumps(metadata)
-            ))
+            """,
+                (
+                    data.get("programme", "erasmus"),
+                    data.get("topic_code"),
+                    data.get("title"),
+                    data.get("scope"),
+                    data.get("expected_outcome"),
+                    data.get("deadline"),
+                    data.get("status"),
+                    data.get("action_type"),
+                    data.get("budget_total"),
+                    data.get("call_identifier"),
+                    data.get("cluster"),
+                    data.get("call_year"),
+                    data.get("portal_url"),
+                    json.dumps(metadata),
+                ),
+            )
 
             conn.commit()
             return True
@@ -583,41 +627,20 @@ class ErasmusPlusPortalSyncer:
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Sync Erasmus+ calls from EU Portal API"
-    )
+    parser = argparse.ArgumentParser(description="Sync Erasmus+ calls from EU Portal API")
     parser.add_argument(
         "--status",
         choices=["open", "closed", "upcoming", "all"],
         default="all",
-        help="Filter by status (default: all)"
+        help="Filter by status (default: all)",
     )
+    parser.add_argument("--limit", type=int, help="Limit number of calls to sync")
+    parser.add_argument("--dry-run", action="store_true", help="Don't update database")
+    parser.add_argument("--force", action="store_true", help="Re-sync all calls")
     parser.add_argument(
-        "--limit",
-        type=int,
-        help="Limit number of calls to sync"
+        "--delay", type=float, default=0.3, help="Delay between API calls (seconds)"
     )
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Don't update database"
-    )
-    parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Re-sync all calls"
-    )
-    parser.add_argument(
-        "--delay",
-        type=float,
-        default=0.3,
-        help="Delay between API calls (seconds)"
-    )
-    parser.add_argument(
-        "--year",
-        type=int,
-        help="Specific year to sync"
-    )
+    parser.add_argument("--year", type=int, help="Specific year to sync")
     args = parser.parse_args()
 
     logger.info("=" * 70)
@@ -654,11 +677,7 @@ def main():
         logger.info("STEP 1: GETTING TOPICS TO SYNC")
         logger.info("=" * 70)
 
-        topics = syncer.search_all_topics(
-            status=args.status,
-            conn=conn,
-            years=years
-        )
+        topics = syncer.search_all_topics(status=args.status, conn=conn, years=years)
         stats["topics_found"] = len(topics)
 
         if not topics:
@@ -667,7 +686,7 @@ def main():
 
         # Apply limit
         if args.limit:
-            topics = topics[:args.limit]
+            topics = topics[: args.limit]
             logger.info(f"Limited to {len(topics)} topics")
 
         # Step 2: Fetch details for each topic
@@ -721,32 +740,38 @@ def main():
             cursor = conn.cursor()
 
             # Total Erasmus+ calls
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT COUNT(*)
                 FROM funding_calls
                 WHERE programme = 'erasmus'
-            """)
+            """
+            )
             total = cursor.fetchone()[0]
 
             # By status
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT status, COUNT(*)
                 FROM funding_calls
                 WHERE programme = 'erasmus'
                 GROUP BY status
                 ORDER BY COUNT(*) DESC
-            """)
+            """
+            )
             by_status = cursor.fetchall()
 
             # By sector
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT cluster, COUNT(*)
                 FROM funding_calls
                 WHERE programme = 'erasmus'
                 GROUP BY cluster
                 ORDER BY COUNT(*) DESC
                 LIMIT 10
-            """)
+            """
+            )
             by_sector = cursor.fetchall()
 
             logger.info(f"\nDatabase now has {total} Erasmus+ calls:")

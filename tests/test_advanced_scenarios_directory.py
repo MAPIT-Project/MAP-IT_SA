@@ -24,12 +24,12 @@ class TestAdvancedScenariosDirectory:
 
     def test_advanced_directory_exists(self) -> None:
         """Test that the advanced scenarios directory exists."""
-        assert (
-            ADVANCED_SCENARIOS_DIR.exists()
-        ), f"Advanced scenarios directory not found: {ADVANCED_SCENARIOS_DIR}"
-        assert (
-            ADVANCED_SCENARIOS_DIR.is_dir()
-        ), f"Advanced scenarios path is not a directory: {ADVANCED_SCENARIOS_DIR}"
+        assert ADVANCED_SCENARIOS_DIR.exists(), (
+            f"Advanced scenarios directory not found: {ADVANCED_SCENARIOS_DIR}"
+        )
+        assert ADVANCED_SCENARIOS_DIR.is_dir(), (
+            f"Advanced scenarios path is not a directory: {ADVANCED_SCENARIOS_DIR}"
+        )
 
     def test_gitkeep_exists(self) -> None:
         """Test that .gitkeep file exists to track empty directory."""
@@ -94,9 +94,9 @@ class TestAdvancedScenariosReadme:
             "no_error",
         ]
         for validation_type in validation_types:
-            assert (
-                validation_type in content
-            ), f"README should document validation type: {validation_type}"
+            assert validation_type in content, (
+                f"README should document validation type: {validation_type}"
+            )
 
     def test_readme_documents_running_tests(self) -> None:
         """Test that README shows how to run tests."""
@@ -104,6 +104,6 @@ class TestAdvancedScenariosReadme:
         content = readme_path.read_text()
 
         assert "pytest" in content, "README should show pytest commands"
-        assert (
-            "test_advanced_conversation_scenarios" in content
-        ), "README should reference the test runner"
+        assert "test_advanced_conversation_scenarios" in content, (
+            "README should reference the test runner"
+        )

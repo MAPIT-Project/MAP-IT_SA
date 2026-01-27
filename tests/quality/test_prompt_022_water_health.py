@@ -614,9 +614,8 @@ def evaluate_query_fulfillment(response: str) -> tuple[int, str, list[str], list
 
     # Component 1: State-of-the-art projects (15 points)
     projects_count, with_participants, with_objectives = count_projects_with_details(response)
-    has_water_health = (
-        any(kw in response_lower for kw in EXPECTED_WATER_KEYWORDS[:7])
-        and any(kw in response_lower for kw in EXPECTED_HEALTH_KEYWORDS[:5])
+    has_water_health = any(kw in response_lower for kw in EXPECTED_WATER_KEYWORDS[:7]) and any(
+        kw in response_lower for kw in EXPECTED_HEALTH_KEYWORDS[:5]
     )
     has_urban_rural = any(kw in response_lower for kw in EXPECTED_URBAN_RURAL_KEYWORDS[:5])
 
@@ -635,9 +634,7 @@ def evaluate_query_fulfillment(response: str) -> tuple[int, str, list[str], list
 
     # Component 2: Participants from projects (10 points)
     participant_count = count_participants(response)
-    has_participant_lists = bool(
-        re.search(r"\d+\.\s+[A-Z][\w\s\-]+\s*\([A-Z]{2}\)", response)
-    )
+    has_participant_lists = bool(re.search(r"\d+\.\s+[A-Z][\w\s\-]+\s*\([A-Z]{2}\)", response))
 
     if participant_count >= 15 and has_participant_lists:
         score += 10
@@ -1238,17 +1235,14 @@ class TestPrompt022OfflineEvaluation:
 
     def test_poor_response_fails(self):
         """Test that a poor response scores < 70 (FAIL)."""
-        evaluation = evaluate_response(
-            SampleResponses.POOR_WATER_HEALTH, {"source": "sample_poor"}
-        )
+        evaluation = evaluate_response(SampleResponses.POOR_WATER_HEALTH, {"source": "sample_poor"})
 
         print("\nPoor Response Evaluation:")
         print(f"  Score: {evaluation.overall_score}/100")
         print(f"  Result: {evaluation.result}")
 
         assert evaluation.overall_score < NEEDS_REVIEW_THRESHOLD, (
-            f"Poor response scored {evaluation.overall_score}, "
-            f"expected < {NEEDS_REVIEW_THRESHOLD}"
+            f"Poor response scored {evaluation.overall_score}, expected < {NEEDS_REVIEW_THRESHOLD}"
         )
         assert evaluation.result == "FAIL"
 

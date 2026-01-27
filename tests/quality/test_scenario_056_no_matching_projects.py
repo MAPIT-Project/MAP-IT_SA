@@ -14,10 +14,10 @@ Query: "Find projects by organization 'XYZ123NotReal Inc'"
 Expected: Explains no results, suggests checking spelling
 """
 
-from datetime import datetime
 import json
-from pathlib import Path
 import re
+from datetime import datetime
+from pathlib import Path
 
 import httpx
 import pytest

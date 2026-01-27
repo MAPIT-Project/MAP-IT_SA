@@ -162,9 +162,9 @@ class TestStorageBeforeStreaming:
             tracker.record_event("token", content=answer[i : i + 50])
 
         # Verify storage happened before first token
-        assert (
-            tracker.storage_before_tokens()
-        ), "Storage must complete before first token is streamed"
+        assert tracker.storage_before_tokens(), (
+            "Storage must complete before first token is streamed"
+        )
 
         # Verify messages are in DB
         assert len(db_pool.stored_messages) == 2

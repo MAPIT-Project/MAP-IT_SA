@@ -28,48 +28,152 @@ ORG_TYPE_DESCRIPTIONS = {
     "PRC": "Private Companies (Large)",
     "SME": "Small and Medium Enterprises",
     "PUB": "Public Bodies",
-    "OTH": "Other Organizations"
+    "OTH": "Other Organizations",
 }
 
 # Cluster keyword mapping for automatic cluster inference
 CLUSTER_KEYWORDS = {
-    'CLUSTER-1': ['health', 'medical', 'clinical', 'disease', 'patient', 'healthcare',
-                  'hospital', 'therapy', 'diagnosis', 'pharmaceutical', 'cancer',
-                  'vaccine', 'drug', 'pandemic', 'pathogen', 'infection'],
-    'CLUSTER-2': ['culture', 'democracy', 'social', 'heritage', 'creative', 'inclusive',
-                  'society', 'governance', 'media', 'migration', 'inequality', 'education'],
-    'CLUSTER-3': ['security', 'cybersecurity', 'border', 'crime', 'disaster', 'resilience',
-                  'defence', 'defense', 'terrorism', 'critical infrastructure', 'forensic'],
-    'CLUSTER-4': ['digital', 'AI', 'artificial intelligence', 'data', 'industry', 'space',
-                  'manufacturing', 'robotics', 'computing', 'machine learning', 'quantum',
-                  'electronics', 'semiconductor', 'cloud', 'IoT', 'blockchain'],
-    'CLUSTER-5': ['climate', 'energy', 'mobility', 'transport', 'hydrogen', 'battery',
-                  'renewable', 'green', 'carbon', 'solar', 'wind', 'electric vehicle',
-                  'sustainable', 'emission', 'fuel cell', 'smart grid'],
-    'CLUSTER-6': ['food', 'agriculture', 'bioeconomy', 'biodiversity', 'ocean', 'environment',
-                  'soil', 'water', 'forestry', 'marine', 'fisheries', 'circular economy',
-                  'ecosystem', 'nature', 'farming']
+    "CLUSTER-1": [
+        "health",
+        "medical",
+        "clinical",
+        "disease",
+        "patient",
+        "healthcare",
+        "hospital",
+        "therapy",
+        "diagnosis",
+        "pharmaceutical",
+        "cancer",
+        "vaccine",
+        "drug",
+        "pandemic",
+        "pathogen",
+        "infection",
+    ],
+    "CLUSTER-2": [
+        "culture",
+        "democracy",
+        "social",
+        "heritage",
+        "creative",
+        "inclusive",
+        "society",
+        "governance",
+        "media",
+        "migration",
+        "inequality",
+        "education",
+    ],
+    "CLUSTER-3": [
+        "security",
+        "cybersecurity",
+        "border",
+        "crime",
+        "disaster",
+        "resilience",
+        "defence",
+        "defense",
+        "terrorism",
+        "critical infrastructure",
+        "forensic",
+    ],
+    "CLUSTER-4": [
+        "digital",
+        "AI",
+        "artificial intelligence",
+        "data",
+        "industry",
+        "space",
+        "manufacturing",
+        "robotics",
+        "computing",
+        "machine learning",
+        "quantum",
+        "electronics",
+        "semiconductor",
+        "cloud",
+        "IoT",
+        "blockchain",
+    ],
+    "CLUSTER-5": [
+        "climate",
+        "energy",
+        "mobility",
+        "transport",
+        "hydrogen",
+        "battery",
+        "renewable",
+        "green",
+        "carbon",
+        "solar",
+        "wind",
+        "electric vehicle",
+        "sustainable",
+        "emission",
+        "fuel cell",
+        "smart grid",
+    ],
+    "CLUSTER-6": [
+        "food",
+        "agriculture",
+        "bioeconomy",
+        "biodiversity",
+        "ocean",
+        "environment",
+        "soil",
+        "water",
+        "forestry",
+        "marine",
+        "fisheries",
+        "circular economy",
+        "ecosystem",
+        "nature",
+        "farming",
+    ],
 }
 
 # Cluster mapping (same as budget_benchmark)
 CLUSTER_MAP = {
-    'CL1': 'CLUSTER-1', 'CLUSTER1': 'CLUSTER-1', 'CLUSTER-1': 'CLUSTER-1', 'HEALTH': 'CLUSTER-1', 'HLTH': 'CLUSTER-1',
-    'CL2': 'CLUSTER-2', 'CLUSTER2': 'CLUSTER-2', 'CLUSTER-2': 'CLUSTER-2', 'CULTURE': 'CLUSTER-2',
-    'CL3': 'CLUSTER-3', 'CLUSTER3': 'CLUSTER-3', 'CLUSTER-3': 'CLUSTER-3', 'SECURITY': 'CLUSTER-3',
-    'CL4': 'CLUSTER-4', 'CLUSTER4': 'CLUSTER-4', 'CLUSTER-4': 'CLUSTER-4', 'DIGITAL': 'CLUSTER-4',
-    'CL5': 'CLUSTER-5', 'CLUSTER5': 'CLUSTER-5', 'CLUSTER-5': 'CLUSTER-5', 'CLIMATE': 'CLUSTER-5', 'ENERGY': 'CLUSTER-5',
-    'CL6': 'CLUSTER-6', 'CLUSTER6': 'CLUSTER-6', 'CLUSTER-6': 'CLUSTER-6', 'FOOD': 'CLUSTER-6',
-    'EIC': 'EIC', 'ERC': 'ERC', 'MSCA': 'MSCA',
+    "CL1": "CLUSTER-1",
+    "CLUSTER1": "CLUSTER-1",
+    "CLUSTER-1": "CLUSTER-1",
+    "HEALTH": "CLUSTER-1",
+    "HLTH": "CLUSTER-1",
+    "CL2": "CLUSTER-2",
+    "CLUSTER2": "CLUSTER-2",
+    "CLUSTER-2": "CLUSTER-2",
+    "CULTURE": "CLUSTER-2",
+    "CL3": "CLUSTER-3",
+    "CLUSTER3": "CLUSTER-3",
+    "CLUSTER-3": "CLUSTER-3",
+    "SECURITY": "CLUSTER-3",
+    "CL4": "CLUSTER-4",
+    "CLUSTER4": "CLUSTER-4",
+    "CLUSTER-4": "CLUSTER-4",
+    "DIGITAL": "CLUSTER-4",
+    "CL5": "CLUSTER-5",
+    "CLUSTER5": "CLUSTER-5",
+    "CLUSTER-5": "CLUSTER-5",
+    "CLIMATE": "CLUSTER-5",
+    "ENERGY": "CLUSTER-5",
+    "CL6": "CLUSTER-6",
+    "CLUSTER6": "CLUSTER-6",
+    "CLUSTER-6": "CLUSTER-6",
+    "FOOD": "CLUSTER-6",
+    "EIC": "EIC",
+    "ERC": "ERC",
+    "MSCA": "MSCA",
 }
 
 # Reverse mapping for SQL queries (CLUSTER-X -> topic pattern)
 CLUSTER_TO_TOPIC = {
-    'CLUSTER-1': 'HLTH',
-    'CLUSTER-2': 'CL2',
-    'CLUSTER-3': 'CL3',
-    'CLUSTER-4': 'CL4',
-    'CLUSTER-5': 'CL5',
-    'CLUSTER-6': 'CL6',
+    "CLUSTER-1": "HLTH",
+    "CLUSTER-2": "CL2",
+    "CLUSTER-3": "CL3",
+    "CLUSTER-4": "CL4",
+    "CLUSTER-5": "CL5",
+    "CLUSTER-6": "CL6",
 }
 
 
@@ -93,6 +197,7 @@ class ConsortiumPatternsTool:
         self._graph_service = None
         try:
             from ..data_intelligence.graph_service import GraphSearchService
+
             self._graph_service = GraphSearchService()
             logger.info("✅ Graph service available for consortium patterns")
         except Exception as e:
@@ -108,8 +213,10 @@ class ConsortiumPatternsTool:
         """Normalize cluster code to CLUSTER-X format."""
         if not cluster:
             return None
-        cluster_upper = cluster.upper().replace(' ', '').replace('-', '')
-        return CLUSTER_MAP.get(cluster_upper, cluster.upper() if cluster.upper().startswith('CLUSTER') else None)
+        cluster_upper = cluster.upper().replace(" ", "").replace("-", "")
+        return CLUSTER_MAP.get(
+            cluster_upper, cluster.upper() if cluster.upper().startswith("CLUSTER") else None
+        )
 
     def _infer_clusters_from_keywords(self, keywords: str) -> list[str]:
         """Infer relevant clusters from topic keywords."""
@@ -135,7 +242,7 @@ class ConsortiumPatternsTool:
         topic_keywords: str | None = None,
         min_projects: int = 10,
         include_successful_templates: bool = True,
-        include_coordinator_analysis: bool = True
+        include_coordinator_analysis: bool = True,
     ) -> dict[str, Any]:
         """
         Analyze consortium composition patterns using HYBRID Graph+SQL architecture.
@@ -168,13 +275,13 @@ class ConsortiumPatternsTool:
             topic_keywords=topic_keywords,
             min_projects=min_projects,
             include_successful_templates=include_successful_templates,
-            include_coordinator_analysis=include_coordinator_analysis
+            include_coordinator_analysis=include_coordinator_analysis,
         )
 
         # Add inferred clusters to metadata
         if inferred_clusters:
-            result['metadata'] = result.get('metadata', {})
-            result['metadata']['inferred_clusters'] = inferred_clusters
+            result["metadata"] = result.get("metadata", {})
+            result["metadata"]["inferred_clusters"] = inferred_clusters
 
         return result
 
@@ -185,7 +292,7 @@ class ConsortiumPatternsTool:
         topic_keywords: str | None,
         min_projects: int,
         include_successful_templates: bool,
-        include_coordinator_analysis: bool
+        include_coordinator_analysis: bool,
     ) -> dict[str, Any]:
         """Execute hybrid Graph+SQL consortium pattern analysis."""
         graph_patterns = None
@@ -199,42 +306,36 @@ class ConsortiumPatternsTool:
 
             # Submit graph query if available
             if self._graph_service and cluster:
-                futures['graph'] = executor.submit(
-                    self._get_patterns_graph,
-                    cluster, action_type
-                )
+                futures["graph"] = executor.submit(self._get_patterns_graph, cluster, action_type)
 
             # Submit SQL query
-            futures['sql'] = executor.submit(
-                self._get_patterns_sql,
-                cluster, action_type, topic_keywords
+            futures["sql"] = executor.submit(
+                self._get_patterns_sql, cluster, action_type, topic_keywords
             )
 
             # Submit successful templates if requested
             if include_successful_templates and self._graph_service and cluster:
-                futures['templates'] = executor.submit(
-                    self._get_successful_templates,
-                    cluster, action_type
+                futures["templates"] = executor.submit(
+                    self._get_successful_templates, cluster, action_type
                 )
 
             # Submit coordinator analysis if requested
             if include_coordinator_analysis and cluster:
-                futures['coordinator'] = executor.submit(
-                    self._get_coordinator_analysis,
-                    cluster, action_type
+                futures["coordinator"] = executor.submit(
+                    self._get_coordinator_analysis, cluster, action_type
                 )
 
             # Collect results
             for key, future in futures.items():
                 try:
                     result = future.result(timeout=30)
-                    if key == 'graph':
+                    if key == "graph":
                         graph_patterns = result
-                    elif key == 'sql':
+                    elif key == "sql":
                         sql_patterns = result
-                    elif key == 'templates':
+                    elif key == "templates":
                         successful_templates = result
-                    elif key == 'coordinator':
+                    elif key == "coordinator":
                         coordinator_analysis = result
                 except Exception as e:
                     logger.warning(f"Failed to get {key} patterns: {e}")
@@ -243,16 +344,16 @@ class ConsortiumPatternsTool:
         merged = self._merge_pattern_results(graph_patterns, sql_patterns)
 
         # Build response
-        project_count = merged.get('projects_analyzed', 0)
+        project_count = merged.get("projects_analyzed", 0)
 
         # Generate recommendations
         recommendations = self._generate_recommendations(
-            merged.get('organization_type_distribution', {}),
-            merged.get('country_patterns', {}),
-            merged.get('coordinator_profile', {}),
-            merged.get('consortium_size', {}),
+            merged.get("organization_type_distribution", {}),
+            merged.get("country_patterns", {}),
+            merged.get("coordinator_profile", {}),
+            merged.get("consortium_size", {}),
             action_type,
-            project_count
+            project_count,
         )
 
         result = {
@@ -261,71 +362,74 @@ class ConsortiumPatternsTool:
             "query_params": {
                 "cluster": cluster,
                 "action_type": action_type,
-                "topic_keywords": topic_keywords
+                "topic_keywords": topic_keywords,
             },
             "projects_analyzed": project_count,
-            "consortium_size": merged.get('consortium_size', {}),
-            "organization_type_distribution": merged.get('organization_type_distribution', {}),
-            "country_patterns": merged.get('country_patterns', {}),
-            "coordinator_profile": merged.get('coordinator_profile', {}),
+            "consortium_size": merged.get("consortium_size", {}),
+            "organization_type_distribution": merged.get("organization_type_distribution", {}),
+            "country_patterns": merged.get("country_patterns", {}),
+            "coordinator_profile": merged.get("coordinator_profile", {}),
             "recommendations": recommendations,
-            "sample_consortia": merged.get('sample_consortia', []),
+            "sample_consortia": merged.get("sample_consortia", []),
             "metadata": {
-                "search_type": "hybrid" if graph_patterns and sql_patterns else ("graph_only" if graph_patterns else "sql_only"),
+                "search_type": (
+                    "hybrid"
+                    if graph_patterns and sql_patterns
+                    else ("graph_only" if graph_patterns else "sql_only")
+                ),
                 "sources_used": [],
-                "graph_sample_size": graph_patterns.get('sample_size', 0) if graph_patterns else 0,
-                "sql_project_count": sql_patterns.get('project_count', 0) if sql_patterns else 0
+                "graph_sample_size": graph_patterns.get("sample_size", 0) if graph_patterns else 0,
+                "sql_project_count": sql_patterns.get("project_count", 0) if sql_patterns else 0,
             },
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
         # Track sources used
         if graph_patterns:
-            result['metadata']['sources_used'].append('graph')
+            result["metadata"]["sources_used"].append("graph")
         if sql_patterns:
-            result['metadata']['sources_used'].append('sql')
+            result["metadata"]["sources_used"].append("sql")
 
         # Add optional analyses
         if successful_templates:
-            result['successful_templates'] = successful_templates
+            result["successful_templates"] = successful_templates
         if coordinator_analysis:
-            result['coordinator_analysis'] = coordinator_analysis
+            result["coordinator_analysis"] = coordinator_analysis
 
         return result
 
-    def _get_patterns_graph(
-        self,
-        cluster: str,
-        action_type: str | None
-    ) -> dict[str, Any] | None:
+    def _get_patterns_graph(self, cluster: str, action_type: str | None) -> dict[str, Any] | None:
         """Get consortium patterns from Neo4j graph."""
         if not self._graph_service:
             return None
 
         try:
             patterns = self._graph_service.get_consortium_patterns(
-                cluster_code=cluster,
-                min_partners=3
+                cluster_code=cluster, min_partners=3
             )
 
             if not patterns:
                 return None
 
             # Get the pattern for this cluster
-            pattern = patterns[0] if len(patterns) == 1 else next(
-                (p for p in patterns if p.get('cluster_code') == cluster),
-                patterns[0] if patterns else None
+            pattern = (
+                patterns[0]
+                if len(patterns) == 1
+                else next(
+                    (p for p in patterns if p.get("cluster_code") == cluster),
+                    patterns[0] if patterns else None,
+                )
             )
 
             if not pattern:
                 return None
 
             return {
-                'avg_partners': pattern.get('avg_partners', 0),
-                'avg_countries': pattern.get('avg_countries', 0),
-                'sample_size': pattern.get('sample_size', 0),
-                'top_coordinator_countries': pattern.get('top_coordinator_countries', []),
-                'source': 'neo4j_graph'
+                "avg_partners": pattern.get("avg_partners", 0),
+                "avg_countries": pattern.get("avg_countries", 0),
+                "sample_size": pattern.get("sample_size", 0),
+                "top_coordinator_countries": pattern.get("top_coordinator_countries", []),
+                "source": "neo4j_graph",
             }
 
         except Exception as e:
@@ -333,10 +437,7 @@ class ConsortiumPatternsTool:
             return None
 
     def _get_patterns_sql(
-        self,
-        cluster: str | None,
-        action_type: str | None,
-        topic_keywords: str | None
+        self, cluster: str | None, action_type: str | None, topic_keywords: str | None
     ) -> dict[str, Any] | None:
         """Get consortium patterns from PostgreSQL."""
         try:
@@ -359,16 +460,14 @@ class ConsortiumPatternsTool:
             # Action type filter
             if action_type:
                 action_normalized = action_type.upper()
-                where_conditions.append("p.\"fundingScheme\" ILIKE %s")
+                where_conditions.append('p."fundingScheme" ILIKE %s')
                 params.append(f"%{action_normalized}%")
 
             # Topic keywords filter
             if topic_keywords:
                 keywords = topic_keywords.split()
                 for kw in keywords:
-                    where_conditions.append(
-                        "(p.objective ILIKE %s OR p.title ILIKE %s)"
-                    )
+                    where_conditions.append("(p.objective ILIKE %s OR p.title ILIKE %s)")
                     params.extend([f"%{kw}%", f"%{kw}%"])
 
             where_clause = " AND ".join(where_conditions)
@@ -400,7 +499,7 @@ class ConsortiumPatternsTool:
             cursor.execute(size_sql, params)
             size_stats = cursor.fetchone()
 
-            if not size_stats or size_stats['project_count'] == 0:
+            if not size_stats or size_stats["project_count"] == 0:
                 cursor.close()
                 conn.close()
                 return None
@@ -422,7 +521,7 @@ class ConsortiumPatternsTool:
             org_types = cursor.fetchall()
 
             # 3. Get country distribution
-            total_projects = int(size_stats['project_count'])
+            total_projects = int(size_stats["project_count"])
 
             country_sql = f"""
                 SELECT
@@ -442,12 +541,16 @@ class ConsortiumPatternsTool:
 
             countries = []
             for c in countries_raw:
-                countries.append({
-                    'country': c['country'],
-                    'participation_count': c['participation_count'],
-                    'project_count': c['project_count'],
-                    'participation_rate': round(100.0 * c['project_count'] / max(total_projects, 1), 2)
-                })
+                countries.append(
+                    {
+                        "country": c["country"],
+                        "participation_count": c["participation_count"],
+                        "project_count": c["project_count"],
+                        "participation_rate": round(
+                            100.0 * c["project_count"] / max(total_projects, 1), 2
+                        ),
+                    }
+                )
 
             # 4. Get coordinator profile
             coordinator_sql = f"""
@@ -494,60 +597,72 @@ class ConsortiumPatternsTool:
             # Process org type distribution
             org_type_distribution = {}
             for ot in org_types:
-                org_code = ot['org_type']
+                org_code = ot["org_type"]
                 if org_code:
                     org_type_distribution[org_code] = {
-                        "percentage": float(ot['percentage'] or 0),
-                        "avg_per_project": round(ot['participation_count'] / max(total_projects, 1), 1),
-                        "description": ORG_TYPE_DESCRIPTIONS.get(org_code, org_code)
+                        "percentage": float(ot["percentage"] or 0),
+                        "avg_per_project": round(
+                            ot["participation_count"] / max(total_projects, 1), 1
+                        ),
+                        "description": ORG_TYPE_DESCRIPTIONS.get(org_code, org_code),
                     }
 
             # Process coordinator profile
             coord_by_type = {}
             coord_by_country = {}
             for c in coordinators:
-                if c['coord_type']:
-                    coord_by_type[c['coord_type']] = coord_by_type.get(c['coord_type'], 0) + c['coordination_count']
-                if c['coord_country']:
-                    coord_by_country[c['coord_country']] = coord_by_country.get(c['coord_country'], 0) + c['coordination_count']
+                if c["coord_type"]:
+                    coord_by_type[c["coord_type"]] = (
+                        coord_by_type.get(c["coord_type"], 0) + c["coordination_count"]
+                    )
+                if c["coord_country"]:
+                    coord_by_country[c["coord_country"]] = (
+                        coord_by_country.get(c["coord_country"], 0) + c["coordination_count"]
+                    )
 
-            coord_by_type = dict(sorted(coord_by_type.items(), key=lambda x: x[1], reverse=True)[:5])
-            coord_by_country = dict(sorted(coord_by_country.items(), key=lambda x: x[1], reverse=True)[:10])
+            coord_by_type = dict(
+                sorted(coord_by_type.items(), key=lambda x: x[1], reverse=True)[:5]
+            )
+            coord_by_country = dict(
+                sorted(coord_by_country.items(), key=lambda x: x[1], reverse=True)[:10]
+            )
 
             # Process sample consortia
             sample_consortia = []
             for s in samples:
-                sample_consortia.append({
-                    "project_acronym": s['acronym'] or 'N/A',
-                    "consortium_size": int(s['partner_count'] or 0),
-                    "countries": int(s['country_count'] or 0),
-                    "eu_contribution": round(float(s['ecMaxContribution'] or 0), 0),
-                    "coordinator": {
-                        "name": s['coordinator_name'] or 'Unknown',
-                        "type": s['coordinator_type'] or 'Unknown',
-                        "country": s['coordinator_country'] or 'Unknown'
+                sample_consortia.append(
+                    {
+                        "project_acronym": s["acronym"] or "N/A",
+                        "consortium_size": int(s["partner_count"] or 0),
+                        "countries": int(s["country_count"] or 0),
+                        "eu_contribution": round(float(s["ecMaxContribution"] or 0), 0),
+                        "coordinator": {
+                            "name": s["coordinator_name"] or "Unknown",
+                            "type": s["coordinator_type"] or "Unknown",
+                            "country": s["coordinator_country"] or "Unknown",
+                        },
                     }
-                })
+                )
 
             return {
-                'project_count': total_projects,
-                'consortium_size': {
-                    'min': int(size_stats['min_partners'] or 0),
-                    'max': int(size_stats['max_partners'] or 0),
-                    'average': round(float(size_stats['avg_partners'] or 0), 1),
-                    'median': round(float(size_stats['median_partners'] or 0), 0)
+                "project_count": total_projects,
+                "consortium_size": {
+                    "min": int(size_stats["min_partners"] or 0),
+                    "max": int(size_stats["max_partners"] or 0),
+                    "average": round(float(size_stats["avg_partners"] or 0), 1),
+                    "median": round(float(size_stats["median_partners"] or 0), 0),
                 },
-                'geographic_diversity': {
-                    'avg_countries': round(float(size_stats['avg_countries'] or 0), 1),
-                    'min_countries': int(size_stats['min_countries'] or 0),
-                    'max_countries': int(size_stats['max_countries'] or 0)
+                "geographic_diversity": {
+                    "avg_countries": round(float(size_stats["avg_countries"] or 0), 1),
+                    "min_countries": int(size_stats["min_countries"] or 0),
+                    "max_countries": int(size_stats["max_countries"] or 0),
                 },
-                'org_type_distribution': org_type_distribution,
-                'country_distribution': countries,
-                'coordinator_by_type': coord_by_type,
-                'coordinator_by_country': coord_by_country,
-                'sample_consortia': sample_consortia,
-                'source': 'postgresql'
+                "org_type_distribution": org_type_distribution,
+                "country_distribution": countries,
+                "coordinator_by_type": coord_by_type,
+                "coordinator_by_country": coord_by_country,
+                "sample_consortia": sample_consortia,
+                "source": "postgresql",
             }
 
         except Exception as e:
@@ -555,9 +670,7 @@ class ConsortiumPatternsTool:
             return None
 
     def _merge_pattern_results(
-        self,
-        graph_patterns: dict[str, Any] | None,
-        sql_patterns: dict[str, Any] | None
+        self, graph_patterns: dict[str, Any] | None, sql_patterns: dict[str, Any] | None
     ) -> dict[str, Any]:
         """Merge pattern results from Graph and SQL."""
         if not graph_patterns and not sql_patterns:
@@ -571,89 +684,100 @@ class ConsortiumPatternsTool:
 
         # Both sources available - merge
         # Use SQL for detailed stats, Graph for aggregate patterns
-        graph_avg_partners = graph_patterns.get('avg_partners', 0)
-        sql_avg_partners = sql_patterns.get('consortium_size', {}).get('average', 0)
+        graph_avg_partners = graph_patterns.get("avg_partners", 0)
+        sql_avg_partners = sql_patterns.get("consortium_size", {}).get("average", 0)
 
         # Weighted average (prefer SQL when keyword filtering is applied)
-        avg_partners = (graph_avg_partners * 0.4 + sql_avg_partners * 0.6) if sql_avg_partners > 0 else graph_avg_partners
+        avg_partners = (
+            (graph_avg_partners * 0.4 + sql_avg_partners * 0.6)
+            if sql_avg_partners > 0
+            else graph_avg_partners
+        )
 
         return {
-            'projects_analyzed': sql_patterns.get('project_count', graph_patterns.get('sample_size', 0)),
-            'consortium_size': {
-                'min': sql_patterns.get('consortium_size', {}).get('min', 3),
-                'max': sql_patterns.get('consortium_size', {}).get('max', 30),
-                'average': round(avg_partners, 1),
-                'median': sql_patterns.get('consortium_size', {}).get('median', round(avg_partners)),
-                'recommended': f"{max(3, int(avg_partners) - 2)}-{int(avg_partners) + 3} partners"
+            "projects_analyzed": sql_patterns.get(
+                "project_count", graph_patterns.get("sample_size", 0)
+            ),
+            "consortium_size": {
+                "min": sql_patterns.get("consortium_size", {}).get("min", 3),
+                "max": sql_patterns.get("consortium_size", {}).get("max", 30),
+                "average": round(avg_partners, 1),
+                "median": sql_patterns.get("consortium_size", {}).get(
+                    "median", round(avg_partners)
+                ),
+                "recommended": f"{max(3, int(avg_partners) - 2)}-{int(avg_partners) + 3} partners",
             },
-            'organization_type_distribution': sql_patterns.get('org_type_distribution', {}),
-            'country_patterns': {
-                'top_participating': sql_patterns.get('country_distribution', [])[:10],
-                'geographic_diversity': {
-                    'avg_countries': graph_patterns.get('avg_countries', sql_patterns.get('geographic_diversity', {}).get('avg_countries', 6)),
-                    'min_countries': sql_patterns.get('geographic_diversity', {}).get('min_countries', 1),
-                    'max_countries': sql_patterns.get('geographic_diversity', {}).get('max_countries', 20)
-                }
+            "organization_type_distribution": sql_patterns.get("org_type_distribution", {}),
+            "country_patterns": {
+                "top_participating": sql_patterns.get("country_distribution", [])[:10],
+                "geographic_diversity": {
+                    "avg_countries": graph_patterns.get(
+                        "avg_countries",
+                        sql_patterns.get("geographic_diversity", {}).get("avg_countries", 6),
+                    ),
+                    "min_countries": sql_patterns.get("geographic_diversity", {}).get(
+                        "min_countries", 1
+                    ),
+                    "max_countries": sql_patterns.get("geographic_diversity", {}).get(
+                        "max_countries", 20
+                    ),
+                },
             },
-            'coordinator_profile': {
-                'by_type': sql_patterns.get('coordinator_by_type', {}),
-                'by_country': sql_patterns.get('coordinator_by_country', {}),
-                'top_countries_graph': graph_patterns.get('top_coordinator_countries', [])
+            "coordinator_profile": {
+                "by_type": sql_patterns.get("coordinator_by_type", {}),
+                "by_country": sql_patterns.get("coordinator_by_country", {}),
+                "top_countries_graph": graph_patterns.get("top_coordinator_countries", []),
             },
-            'sample_consortia': sql_patterns.get('sample_consortia', []),
-            'data_source': 'hybrid_graph_sql'
+            "sample_consortia": sql_patterns.get("sample_consortia", []),
+            "data_source": "hybrid_graph_sql",
         }
 
     def _format_sql_only_results(self, sql_patterns: dict[str, Any]) -> dict[str, Any]:
         """Format SQL-only results into standard format."""
-        avg_partners = sql_patterns.get('consortium_size', {}).get('average', 10)
+        avg_partners = sql_patterns.get("consortium_size", {}).get("average", 10)
         return {
-            'projects_analyzed': sql_patterns.get('project_count', 0),
-            'consortium_size': {
-                'min': sql_patterns.get('consortium_size', {}).get('min', 3),
-                'max': sql_patterns.get('consortium_size', {}).get('max', 30),
-                'average': avg_partners,
-                'median': sql_patterns.get('consortium_size', {}).get('median', avg_partners),
-                'recommended': f"{max(3, int(avg_partners) - 2)}-{int(avg_partners) + 3} partners"
+            "projects_analyzed": sql_patterns.get("project_count", 0),
+            "consortium_size": {
+                "min": sql_patterns.get("consortium_size", {}).get("min", 3),
+                "max": sql_patterns.get("consortium_size", {}).get("max", 30),
+                "average": avg_partners,
+                "median": sql_patterns.get("consortium_size", {}).get("median", avg_partners),
+                "recommended": f"{max(3, int(avg_partners) - 2)}-{int(avg_partners) + 3} partners",
             },
-            'organization_type_distribution': sql_patterns.get('org_type_distribution', {}),
-            'country_patterns': {
-                'top_participating': sql_patterns.get('country_distribution', [])[:10],
-                'geographic_diversity': sql_patterns.get('geographic_diversity', {})
+            "organization_type_distribution": sql_patterns.get("org_type_distribution", {}),
+            "country_patterns": {
+                "top_participating": sql_patterns.get("country_distribution", [])[:10],
+                "geographic_diversity": sql_patterns.get("geographic_diversity", {}),
             },
-            'coordinator_profile': {
-                'by_type': sql_patterns.get('coordinator_by_type', {}),
-                'by_country': sql_patterns.get('coordinator_by_country', {})
+            "coordinator_profile": {
+                "by_type": sql_patterns.get("coordinator_by_type", {}),
+                "by_country": sql_patterns.get("coordinator_by_country", {}),
             },
-            'sample_consortia': sql_patterns.get('sample_consortia', []),
-            'data_source': 'postgresql'
+            "sample_consortia": sql_patterns.get("sample_consortia", []),
+            "data_source": "postgresql",
         }
 
     def _format_graph_only_results(self, graph_patterns: dict[str, Any]) -> dict[str, Any]:
         """Format graph-only results into standard format."""
-        avg_partners = graph_patterns.get('avg_partners', 10)
+        avg_partners = graph_patterns.get("avg_partners", 10)
         return {
-            'projects_analyzed': graph_patterns.get('sample_size', 0),
-            'consortium_size': {
-                'average': round(avg_partners, 1),
-                'recommended': f"{max(3, int(avg_partners) - 2)}-{int(avg_partners) + 3} partners"
+            "projects_analyzed": graph_patterns.get("sample_size", 0),
+            "consortium_size": {
+                "average": round(avg_partners, 1),
+                "recommended": f"{max(3, int(avg_partners) - 2)}-{int(avg_partners) + 3} partners",
             },
-            'country_patterns': {
-                'geographic_diversity': {
-                    'avg_countries': graph_patterns.get('avg_countries', 6)
-                }
+            "country_patterns": {
+                "geographic_diversity": {"avg_countries": graph_patterns.get("avg_countries", 6)}
             },
-            'coordinator_profile': {
-                'top_countries_graph': graph_patterns.get('top_coordinator_countries', [])
+            "coordinator_profile": {
+                "top_countries_graph": graph_patterns.get("top_coordinator_countries", [])
             },
-            'sample_consortia': [],
-            'data_source': 'neo4j_graph'
+            "sample_consortia": [],
+            "data_source": "neo4j_graph",
         }
 
     def _get_successful_templates(
-        self,
-        cluster: str,
-        action_type: str | None
+        self, cluster: str, action_type: str | None
     ) -> list[dict[str, Any]] | None:
         """Get successful consortium templates from graph."""
         if not self._graph_service:
@@ -661,10 +785,7 @@ class ConsortiumPatternsTool:
 
         try:
             examples = self._graph_service.get_project_examples(
-                cluster_code=cluster,
-                funding_scheme=action_type,
-                min_budget=1000000,
-                limit=5
+                cluster_code=cluster, funding_scheme=action_type, min_budget=1000000, limit=5
             )
 
             if not examples:
@@ -675,21 +796,23 @@ class ConsortiumPatternsTool:
                 # Count org types in consortium
                 org_types = {}
                 countries = set()
-                for partner in project.get('partners', []):
-                    org_type = partner.get('type', 'OTH')
+                for partner in project.get("partners", []):
+                    org_type = partner.get("type", "OTH")
                     org_types[org_type] = org_types.get(org_type, 0) + 1
-                    if partner.get('country'):
-                        countries.add(partner['country'])
+                    if partner.get("country"):
+                        countries.add(partner["country"])
 
-                templates.append({
-                    'project_acronym': project.get('acronym'),
-                    'budget': project.get('budget'),
-                    'partner_count': project.get('partner_count'),
-                    'country_count': project.get('country_count'),
-                    'org_type_distribution': org_types,
-                    'countries': list(countries)[:10],
-                    'source': 'neo4j_graph'
-                })
+                templates.append(
+                    {
+                        "project_acronym": project.get("acronym"),
+                        "budget": project.get("budget"),
+                        "partner_count": project.get("partner_count"),
+                        "country_count": project.get("country_count"),
+                        "org_type_distribution": org_types,
+                        "countries": list(countries)[:10],
+                        "source": "neo4j_graph",
+                    }
+                )
 
             return templates
 
@@ -698,9 +821,7 @@ class ConsortiumPatternsTool:
             return None
 
     def _get_coordinator_analysis(
-        self,
-        cluster: str,
-        action_type: str | None
+        self, cluster: str, action_type: str | None
     ) -> dict[str, Any] | None:
         """Get coordinator analysis - who coordinates successfully."""
         if not self._graph_service:
@@ -708,19 +829,16 @@ class ConsortiumPatternsTool:
             return self._get_coordinator_analysis_sql(cluster, action_type)
 
         try:
-            top_orgs = self._graph_service.get_top_organizations(
-                cluster_code=cluster,
-                limit=20
-            )
+            top_orgs = self._graph_service.get_top_organizations(cluster_code=cluster, limit=20)
 
             # Filter to those with coordinations
-            coordinators = [o for o in top_orgs if o.get('coordinations', 0) > 0]
+            coordinators = [o for o in top_orgs if o.get("coordinations", 0) > 0]
 
             return {
-                'cluster': cluster,
-                'top_coordinators': coordinators[:10],
-                'total_found': len(coordinators),
-                'source': 'neo4j_graph'
+                "cluster": cluster,
+                "top_coordinators": coordinators[:10],
+                "total_found": len(coordinators),
+                "source": "neo4j_graph",
             }
 
         except Exception as e:
@@ -728,9 +846,7 @@ class ConsortiumPatternsTool:
             return self._get_coordinator_analysis_sql(cluster, action_type)
 
     def _get_coordinator_analysis_sql(
-        self,
-        cluster: str,
-        action_type: str | None
+        self, cluster: str, action_type: str | None
     ) -> dict[str, Any] | None:
         """Get coordinator analysis from SQL."""
         try:
@@ -745,12 +861,12 @@ class ConsortiumPatternsTool:
             where_conditions = [
                 "p.\"frameworkProgramme\" = 'HORIZON'",
                 "p.topics ILIKE %s",
-                "o.role = 'coordinator'"
+                "o.role = 'coordinator'",
             ]
             params = [f"%{topic_pattern}%"]
 
             if action_type:
-                where_conditions.append("p.\"fundingScheme\" ILIKE %s")
+                where_conditions.append('p."fundingScheme" ILIKE %s')
                 params.append(f"%{action_type.upper()}%")
 
             where_clause = " AND ".join(where_conditions)
@@ -778,20 +894,20 @@ class ConsortiumPatternsTool:
 
             coordinators = [
                 {
-                    'name': r['name'],
-                    'country': r['country'],
-                    'entity_type': r['entity_type'],
-                    'coordinations': int(r['coordinations']),
-                    'total_funding': round(float(r['total_funding'] or 0), 0)
+                    "name": r["name"],
+                    "country": r["country"],
+                    "entity_type": r["entity_type"],
+                    "coordinations": int(r["coordinations"]),
+                    "total_funding": round(float(r["total_funding"] or 0), 0),
                 }
                 for r in results
             ]
 
             return {
-                'cluster': cluster,
-                'top_coordinators': coordinators,
-                'total_found': len(coordinators),
-                'source': 'postgresql'
+                "cluster": cluster,
+                "top_coordinators": coordinators,
+                "total_found": len(coordinators),
+                "source": "postgresql",
             }
 
         except Exception as e:
@@ -805,7 +921,7 @@ class ConsortiumPatternsTool:
         coordinator: dict,
         size_stats: dict,
         action_type: str | None,
-        project_count: int
+        project_count: int,
     ) -> dict[str, Any]:
         """Generate actionable recommendations based on patterns."""
 
@@ -813,13 +929,17 @@ class ConsortiumPatternsTool:
             "ideal_composition": [],
             "country_advice": "",
             "coordinator_advice": "",
-            "confidence": "high" if project_count >= 20 else "medium" if project_count >= 5 else "low",
-            "notes": []
+            "confidence": (
+                "high" if project_count >= 20 else "medium" if project_count >= 5 else "low"
+            ),
+            "notes": [],
         }
 
         # Calculate ideal composition based on org type distribution
-        for org_type, data in sorted(org_dist.items(), key=lambda x: x[1].get('percentage', 0), reverse=True):
-            avg_count = data.get('avg_per_project', 0)
+        for org_type, data in sorted(
+            org_dist.items(), key=lambda x: x[1].get("percentage", 0), reverse=True
+        ):
+            avg_count = data.get("avg_per_project", 0)
             if avg_count >= 0.5:
                 count_str = f"{max(1, round(avg_count))}"
                 if avg_count >= 2:
@@ -828,22 +948,24 @@ class ConsortiumPatternsTool:
                 recommendations["ideal_composition"].append(f"{count_str} {desc}")
 
         # Country advice
-        geo_diversity = country_patterns.get('geographic_diversity', {})
-        avg_countries = geo_diversity.get('avg_countries', 6)
+        geo_diversity = country_patterns.get("geographic_diversity", {})
+        avg_countries = geo_diversity.get("avg_countries", 6)
         recommendations["country_advice"] = (
             f"Include partners from {max(3, int(avg_countries) - 2)}-{int(avg_countries) + 2} "
             f"EU member states for good geographic balance"
         )
 
         # Coordinator advice
-        coord_by_type = coordinator.get('by_type', {})
+        coord_by_type = coordinator.get("by_type", {})
         if coord_by_type:
             top_coord_type = max(coord_by_type.items(), key=lambda x: x[1])[0]
             coord_desc = ORG_TYPE_DESCRIPTIONS.get(top_coord_type, top_coord_type)
-            recommendations["coordinator_advice"] = f"{coord_desc} most commonly coordinate these projects"
+            recommendations["coordinator_advice"] = (
+                f"{coord_desc} most commonly coordinate these projects"
+            )
 
         # Check for top coordinator countries from graph
-        top_countries_graph = coordinator.get('top_countries_graph', [])
+        top_countries_graph = coordinator.get("top_countries_graph", [])
         if top_countries_graph:
             recommendations["notes"].append(
                 f"Top coordinator countries: {', '.join(top_countries_graph[:5])}"
@@ -853,11 +975,17 @@ class ConsortiumPatternsTool:
         if action_type:
             at = action_type.upper()
             if at == "RIA":
-                recommendations["notes"].append("RIA projects typically have strong research institution presence")
+                recommendations["notes"].append(
+                    "RIA projects typically have strong research institution presence"
+                )
             elif at == "IA":
-                recommendations["notes"].append("IA projects often have more industry partners for demonstration/deployment")
+                recommendations["notes"].append(
+                    "IA projects often have more industry partners for demonstration/deployment"
+                )
             elif at == "CSA":
-                recommendations["notes"].append("CSA projects are typically smaller with policy/coordination focus")
+                recommendations["notes"].append(
+                    "CSA projects are typically smaller with policy/coordination focus"
+                )
 
         if project_count < 10:
             recommendations["notes"].append(
@@ -867,16 +995,35 @@ class ConsortiumPatternsTool:
         return recommendations
 
     def _get_fallback_patterns(
-        self,
-        cluster: str | None = None,
-        action_type: str | None = None
+        self, cluster: str | None = None, action_type: str | None = None
     ) -> dict[str, Any]:
         """Return fallback patterns when databases are unavailable."""
 
         defaults = {
-            "RIA": {"size": 10, "countries": 7, "hes_pct": 35, "rec_pct": 30, "prc_pct": 20, "sme_pct": 15},
-            "IA": {"size": 14, "countries": 9, "hes_pct": 25, "rec_pct": 20, "prc_pct": 35, "sme_pct": 20},
-            "CSA": {"size": 8, "countries": 6, "hes_pct": 30, "rec_pct": 25, "prc_pct": 25, "sme_pct": 20}
+            "RIA": {
+                "size": 10,
+                "countries": 7,
+                "hes_pct": 35,
+                "rec_pct": 30,
+                "prc_pct": 20,
+                "sme_pct": 15,
+            },
+            "IA": {
+                "size": 14,
+                "countries": 9,
+                "hes_pct": 25,
+                "rec_pct": 20,
+                "prc_pct": 35,
+                "sme_pct": 20,
+            },
+            "CSA": {
+                "size": 8,
+                "countries": 6,
+                "hes_pct": 30,
+                "rec_pct": 25,
+                "prc_pct": 25,
+                "sme_pct": 20,
+            },
         }
 
         at = (action_type or "RIA").upper()
@@ -886,13 +1033,25 @@ class ConsortiumPatternsTool:
             "projects_analyzed": "N/A (using typical values)",
             "consortium_size": {
                 "typical": pattern["size"],
-                "recommended": f"{pattern['size'] - 2}-{pattern['size'] + 3} partners"
+                "recommended": f"{pattern['size'] - 2}-{pattern['size'] + 3} partners",
             },
             "organization_type_distribution": {
-                "HES": {"percentage": pattern["hes_pct"], "description": ORG_TYPE_DESCRIPTIONS["HES"]},
-                "REC": {"percentage": pattern["rec_pct"], "description": ORG_TYPE_DESCRIPTIONS["REC"]},
-                "PRC": {"percentage": pattern["prc_pct"], "description": ORG_TYPE_DESCRIPTIONS["PRC"]},
-                "SME": {"percentage": pattern["sme_pct"], "description": ORG_TYPE_DESCRIPTIONS["SME"]}
+                "HES": {
+                    "percentage": pattern["hes_pct"],
+                    "description": ORG_TYPE_DESCRIPTIONS["HES"],
+                },
+                "REC": {
+                    "percentage": pattern["rec_pct"],
+                    "description": ORG_TYPE_DESCRIPTIONS["REC"],
+                },
+                "PRC": {
+                    "percentage": pattern["prc_pct"],
+                    "description": ORG_TYPE_DESCRIPTIONS["PRC"],
+                },
+                "SME": {
+                    "percentage": pattern["sme_pct"],
+                    "description": ORG_TYPE_DESCRIPTIONS["SME"],
+                },
             },
             "country_patterns": {
                 "geographic_diversity": {"typical_countries": pattern["countries"]}
@@ -902,15 +1061,15 @@ class ConsortiumPatternsTool:
                     f"3-4 {ORG_TYPE_DESCRIPTIONS['HES']}",
                     f"2-3 {ORG_TYPE_DESCRIPTIONS['REC']}",
                     f"2-3 {ORG_TYPE_DESCRIPTIONS['PRC']}",
-                    f"1-2 {ORG_TYPE_DESCRIPTIONS['SME']}"
+                    f"1-2 {ORG_TYPE_DESCRIPTIONS['SME']}",
                 ],
                 "country_advice": f"Include partners from {pattern['countries'] - 2}-{pattern['countries'] + 2} EU member states",
                 "coordinator_advice": "Universities and research organizations coordinate most successfully",
                 "confidence": "low",
-                "notes": ["Using typical values - database unavailable for specific statistics"]
+                "notes": ["Using typical values - database unavailable for specific statistics"],
             },
             "sample_consortia": [],
-            "data_source": "fallback_estimates"
+            "data_source": "fallback_estimates",
         }
 
 
@@ -953,7 +1112,7 @@ class GeographicDiversificationTool:
         """Normalize cluster code."""
         if not cluster:
             return None
-        cluster_upper = cluster.upper().replace(' ', '').replace('-', '')
+        cluster_upper = cluster.upper().replace(" ", "").replace("-", "")
         return CLUSTER_MAP.get(cluster_upper, cluster.upper())
 
     def analyze_geographic_diversification(
@@ -961,7 +1120,7 @@ class GeographicDiversificationTool:
         cluster: str | None = None,
         country_groups: dict[str, list[str]] | None = None,
         exclude_widening: bool = True,
-        min_partners: int = 3
+        min_partners: int = 3,
     ) -> dict[str, Any]:
         """
         Analyze geographic diversification of country partners.
@@ -1033,8 +1192,8 @@ class GeographicDiversificationTool:
                     "error": "No projects found matching criteria",
                     "query_params": {
                         "cluster": normalized_cluster,
-                        "exclude_widening": exclude_widening
-                    }
+                        "exclude_widening": exclude_widening,
+                    },
                 }
 
             total_projects = len(projects)
@@ -1047,7 +1206,7 @@ class GeographicDiversificationTool:
                 "6_groups": 0,
                 "5_groups": 0,
                 "4_groups": 0,
-                "3_or_fewer": 0
+                "3_or_fewer": 0,
             }
 
             # Create reverse mapping: country -> group
@@ -1057,7 +1216,7 @@ class GeographicDiversificationTool:
                     country_to_group[country] = group_name
 
             for project in projects:
-                project_countries = project['countries'] or []
+                project_countries = project["countries"] or []
                 groups_in_project = set()
 
                 for country in project_countries:
@@ -1091,54 +1250,54 @@ class GeographicDiversificationTool:
             # Calculate percentages
             group_statistics = []
             for group_name, count in sorted(
-                group_presence.items(),
-                key=lambda x: x[1],
-                reverse=True
+                group_presence.items(), key=lambda x: x[1], reverse=True
             ):
-                group_statistics.append({
-                    "group": group_name,
-                    "countries": groups[group_name],
-                    "projects_with_partner": count,
-                    "share_percentage": round(100.0 * count / total_projects, 1)
-                })
+                group_statistics.append(
+                    {
+                        "group": group_name,
+                        "countries": groups[group_name],
+                        "projects_with_partner": count,
+                        "share_percentage": round(100.0 * count / total_projects, 1),
+                    }
+                )
 
             coverage_statistics = {
                 f"all_{len(groups)}_groups": {
                     "count": coverage_counts["all_groups"],
                     "share_percentage": round(
                         100.0 * coverage_counts["all_groups"] / total_projects, 1
-                    )
+                    ),
                 },
                 "7_groups": {
                     "count": coverage_counts["7_groups"],
                     "share_percentage": round(
                         100.0 * coverage_counts["7_groups"] / total_projects, 1
-                    )
+                    ),
                 },
                 "6_groups": {
                     "count": coverage_counts["6_groups"],
                     "share_percentage": round(
                         100.0 * coverage_counts["6_groups"] / total_projects, 1
-                    )
+                    ),
                 },
                 "5_groups": {
                     "count": coverage_counts["5_groups"],
                     "share_percentage": round(
                         100.0 * coverage_counts["5_groups"] / total_projects, 1
-                    )
+                    ),
                 },
                 "4_groups": {
                     "count": coverage_counts["4_groups"],
                     "share_percentage": round(
                         100.0 * coverage_counts["4_groups"] / total_projects, 1
-                    )
+                    ),
                 },
                 "3_or_fewer_groups": {
                     "count": coverage_counts["3_or_fewer"],
                     "share_percentage": round(
                         100.0 * coverage_counts["3_or_fewer"] / total_projects, 1
-                    )
-                }
+                    ),
+                },
             }
 
             # Calculate cumulative "at least N groups"
@@ -1146,27 +1305,48 @@ class GeographicDiversificationTool:
                 "at_least_7_groups": {
                     "count": coverage_counts["all_groups"] + coverage_counts["7_groups"],
                     "share_percentage": round(
-                        100.0 * (coverage_counts["all_groups"] + coverage_counts["7_groups"])
-                        / total_projects, 1
-                    )
+                        100.0
+                        * (coverage_counts["all_groups"] + coverage_counts["7_groups"])
+                        / total_projects,
+                        1,
+                    ),
                 },
                 "at_least_6_groups": {
-                    "count": (coverage_counts["all_groups"] + coverage_counts["7_groups"]
-                             + coverage_counts["6_groups"]),
+                    "count": (
+                        coverage_counts["all_groups"]
+                        + coverage_counts["7_groups"]
+                        + coverage_counts["6_groups"]
+                    ),
                     "share_percentage": round(
-                        100.0 * (coverage_counts["all_groups"] + coverage_counts["7_groups"]
-                                 + coverage_counts["6_groups"]) / total_projects, 1
-                    )
+                        100.0
+                        * (
+                            coverage_counts["all_groups"]
+                            + coverage_counts["7_groups"]
+                            + coverage_counts["6_groups"]
+                        )
+                        / total_projects,
+                        1,
+                    ),
                 },
                 "at_least_5_groups": {
-                    "count": (coverage_counts["all_groups"] + coverage_counts["7_groups"]
-                             + coverage_counts["6_groups"] + coverage_counts["5_groups"]),
+                    "count": (
+                        coverage_counts["all_groups"]
+                        + coverage_counts["7_groups"]
+                        + coverage_counts["6_groups"]
+                        + coverage_counts["5_groups"]
+                    ),
                     "share_percentage": round(
-                        100.0 * (coverage_counts["all_groups"] + coverage_counts["7_groups"]
-                                 + coverage_counts["6_groups"] + coverage_counts["5_groups"])
-                        / total_projects, 1
-                    )
-                }
+                        100.0
+                        * (
+                            coverage_counts["all_groups"]
+                            + coverage_counts["7_groups"]
+                            + coverage_counts["6_groups"]
+                            + coverage_counts["5_groups"]
+                        )
+                        / total_projects,
+                        1,
+                    ),
+                },
             }
 
             # Identify underrepresented and well-represented groups
@@ -1185,7 +1365,7 @@ class GeographicDiversificationTool:
                     "cluster": normalized_cluster,
                     "exclude_widening": exclude_widening,
                     "min_partners": min_partners,
-                    "country_groups_defined": len(groups)
+                    "country_groups_defined": len(groups),
                 },
                 "total_projects_analyzed": total_projects,
                 "country_groups": groups,
@@ -1193,31 +1373,35 @@ class GeographicDiversificationTool:
                 "coverage_statistics": coverage_statistics,
                 "at_least_coverage": at_least_stats,
                 "insights": {
-                    "typical_coverage": "5-6 groups" if (
-                        coverage_counts["5_groups"] + coverage_counts["6_groups"]
-                    ) / total_projects > 0.4 else "4-5 groups",
+                    "typical_coverage": (
+                        "5-6 groups"
+                        if (coverage_counts["5_groups"] + coverage_counts["6_groups"])
+                        / total_projects
+                        > 0.4
+                        else "4-5 groups"
+                    ),
                     "well_represented_groups": [g["group"] for g in well_represented],
                     "underrepresented_groups": [g["group"] for g in underrepresented],
-                    "avg_group_presence": round(avg_share, 1)
+                    "avg_group_presence": round(avg_share, 1),
                 },
                 "recommendations": {
                     "consortium_building": (
                         "Most projects cover 5-6 country groups. "
                         f"To maximize diversity, include partners from underrepresented groups: "
                         f"{', '.join([g['group'] for g in underrepresented[:3]])}."
-                        if underrepresented else
-                        "Geographic diversification is relatively balanced across groups."
+                        if underrepresented
+                        else "Geographic diversification is relatively balanced across groups."
                     ),
                     "evaluation_note": (
                         "Geographic diversity is positively evaluated in Horizon Europe. "
                         "Wider geographic coverage demonstrates broader European impact."
-                    )
+                    ),
                 },
                 "metadata": {
                     "data_source": "postgresql",
                     "widening_excluded": exclude_widening,
-                    "timestamp": datetime.now().isoformat()
-                }
+                    "timestamp": datetime.now().isoformat(),
+                },
             }
 
         except Exception as e:
@@ -1227,14 +1411,11 @@ class GeographicDiversificationTool:
                 "error": str(e),
                 "query_params": {
                     "cluster": normalized_cluster,
-                    "exclude_widening": exclude_widening
-                }
+                    "exclude_widening": exclude_widening,
+                },
             }
 
-    def _get_fallback_diversification(
-        self,
-        groups: dict[str, list[str]]
-    ) -> dict[str, Any]:
+    def _get_fallback_diversification(self, groups: dict[str, list[str]]) -> dict[str, Any]:
         """Return fallback diversification data when database unavailable."""
         # Estimated typical values based on EU funding patterns
         return {
@@ -1265,15 +1446,14 @@ class GeographicDiversificationTool:
             },
             "metadata": {
                 "data_source": "fallback_estimates",
-                "note": "Actual data unavailable - using typical EU funding patterns"
-            }
+                "note": "Actual data unavailable - using typical EU funding patterns",
+            },
         }
 
 
 # Async wrapper for geographic diversification tool
 async def analyze_geographic_diversification_execute(
-    params: dict[str, Any],
-    context: dict[str, Any]
+    params: dict[str, Any], context: dict[str, Any]
 ) -> dict[str, Any]:
     """
     Execute geographic diversification analysis tool.
@@ -1286,27 +1466,25 @@ async def analyze_geographic_diversification_execute(
     - Coverage statistics (projects with N+ country groups)
     """
     # Extract cluster with fallback alternatives
-    cluster_param = (
-        params.get('cluster') or
-        params.get('cluster_code') or
-        params.get('cluster_id')
-    )
+    cluster_param = params.get("cluster") or params.get("cluster_code") or params.get("cluster_id")
 
     # Extract country groups (use default if not provided)
-    country_groups = params.get('country_groups')
+    country_groups = params.get("country_groups")
 
     tool = GeographicDiversificationTool()
 
     return tool.analyze_geographic_diversification(
         cluster=cluster_param,
         country_groups=country_groups,
-        exclude_widening=params.get('exclude_widening', True),
-        min_partners=params.get('min_partners', 3)
+        exclude_widening=params.get("exclude_widening", True),
+        min_partners=params.get("min_partners", 3),
     )
 
 
 # Async wrapper for tool orchestrator compatibility
-async def get_consortium_patterns_execute(params: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
+async def get_consortium_patterns_execute(
+    params: dict[str, Any], context: dict[str, Any]
+) -> dict[str, Any]:
     """
     Execute consortium patterns tool.
 
@@ -1318,19 +1496,19 @@ async def get_consortium_patterns_execute(params: dict[str, Any], context: dict[
     """
     # Extract cluster with fallback alternatives (LLM might use different parameter names)
     cluster_param = (
-        params.get('cluster') or
-        params.get('cluster_code') or
-        params.get('cluster_id') or
-        params.get('pillar')
+        params.get("cluster")
+        or params.get("cluster_code")
+        or params.get("cluster_id")
+        or params.get("pillar")
     )
 
     tool = ConsortiumPatternsTool()
 
     return tool.get_patterns(
         cluster=cluster_param,
-        action_type=params.get('action_type'),
-        topic_keywords=params.get('topic_keywords'),
-        min_projects=params.get('min_projects', 10),
-        include_successful_templates=params.get('include_successful_templates', True),
-        include_coordinator_analysis=params.get('include_coordinator_analysis', True)
+        action_type=params.get("action_type"),
+        topic_keywords=params.get("topic_keywords"),
+        min_projects=params.get("min_projects", 10),
+        include_successful_templates=params.get("include_successful_templates", True),
+        include_coordinator_analysis=params.get("include_coordinator_analysis", True),
     )

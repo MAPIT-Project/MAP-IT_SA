@@ -321,9 +321,9 @@ class TestScenario029ComparisonRecommendation:
             if any(w in response_text for w in ["research", "demonstrat"]):
                 essential_elements += 1
 
-            assert (
-                essential_elements >= 3
-            ), f"Response should cover essential comparison elements. Found: {essential_elements}"
+            assert essential_elements >= 3, (
+                f"Response should cover essential comparison elements. Found: {essential_elements}"
+            )
 
     @pytest.mark.asyncio
     async def test_no_incorrect_programme_references(self, conversation_id):

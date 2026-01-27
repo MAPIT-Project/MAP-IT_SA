@@ -40,9 +40,7 @@ import httpx
 import pytest
 
 # Add project root to path
-sys.path.insert(
-    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 # API configuration
 API_BASE_URL = os.getenv("MAP_IT_API_URL", "http://localhost:8000")
@@ -54,8 +52,7 @@ NEEDS_REVIEW_THRESHOLD = 70
 
 # The query for this test
 PROMPT_007_QUERY = (
-    "I am working in health/cancer research. "
-    "What are the upcoming calls relevant for me?"
+    "I am working in health/cancer research. What are the upcoming calls relevant for me?"
 )
 
 # Expected content based on PRD requirements
@@ -244,9 +241,7 @@ class EvaluationResult:
 def check_api_available() -> bool:
     """Check if the API is available."""
     try:
-        response = httpx.get(
-            f"{API_BASE_URL}/api/v3/conversation/health", timeout=5.0
-        )
+        response = httpx.get(f"{API_BASE_URL}/api/v3/conversation/health", timeout=5.0)
         return response.status_code == 200
     except Exception:
         return False
@@ -259,9 +254,7 @@ live_api = pytest.mark.skipif(
 )
 
 
-def get_mapit_response(
-    query: str, conversation_id: int | None = None
-) -> dict[str, Any]:
+def get_mapit_response(query: str, conversation_id: int | None = None) -> dict[str, Any]:
     """
     Send a query to MAPIT and get the response.
 
@@ -386,36 +379,28 @@ def evaluate_specificity(response: str) -> tuple[int, str]:
     response_lower = response.lower()
 
     # Call IDs or topics (7 points)
-    call_id_found = sum(
-        1 for pat in CALL_DETAIL_PATTERNS["call_id"] if pat in response_lower
-    )
+    call_id_found = sum(1 for pat in CALL_DETAIL_PATTERNS["call_id"] if pat in response_lower)
     call_score = min(7, call_id_found * 2)
     score += call_score
     if call_id_found < 2:
         notes.append("Limited call ID/topic specificity")
 
     # Deadlines (7 points)
-    deadline_found = sum(
-        1 for pat in CALL_DETAIL_PATTERNS["deadline"] if pat in response_lower
-    )
+    deadline_found = sum(1 for pat in CALL_DETAIL_PATTERNS["deadline"] if pat in response_lower)
     deadline_score = min(7, deadline_found * 2)
     score += deadline_score
     if deadline_found < 2:
         notes.append("Limited deadline information")
 
     # Budget figures (6 points)
-    budget_found = sum(
-        1 for pat in CALL_DETAIL_PATTERNS["budget"] if pat in response_lower
-    )
+    budget_found = sum(1 for pat in CALL_DETAIL_PATTERNS["budget"] if pat in response_lower)
     budget_score = min(6, budget_found * 2)
     score += budget_score
     if budget_found < 2:
         notes.append("Limited budget information")
 
     # Call status (5 points)
-    status_found = sum(
-        1 for pat in CALL_DETAIL_PATTERNS["status"] if pat in response_lower
-    )
+    status_found = sum(1 for pat in CALL_DETAIL_PATTERNS["status"] if pat in response_lower)
     status_score = min(5, status_found * 2)
     score += status_score
 
@@ -565,9 +550,7 @@ def evaluate_actionability(response: str) -> tuple[int, str]:
     )
 
 
-def evaluate_response(
-    response: str, response_metadata: dict[str, Any]
-) -> EvaluationResult:
+def evaluate_response(response: str, response_metadata: dict[str, Any]) -> EvaluationResult:
     """
     Perform full evaluation of the response.
 
@@ -592,9 +575,7 @@ def evaluate_response(
     actionability_score, actionability_notes = evaluate_actionability(response)
 
     # Calculate overall score
-    overall_score = (
-        fulfillment_score + specificity_score + accuracy_score + actionability_score
-    )
+    overall_score = fulfillment_score + specificity_score + accuracy_score + actionability_score
 
     # Determine result
     if overall_score >= PASS_THRESHOLD:
@@ -780,9 +761,7 @@ class TestPrompt007HealthCalls:
 
         response_lower = result["response"].lower()
 
-        health_keywords_found = sum(
-            1 for kw in EXPECTED_CLUSTER1_KEYWORDS if kw in response_lower
-        )
+        health_keywords_found = sum(1 for kw in EXPECTED_CLUSTER1_KEYWORDS if kw in response_lower)
 
         # Informational check
         print(f"Health/Cluster 1 keywords found: {health_keywords_found}")
@@ -837,8 +816,7 @@ class TestPrompt007OfflineEvaluation:
         print(f"  Result: {evaluation.result}")
 
         assert evaluation.overall_score >= PASS_THRESHOLD, (
-            f"Excellent response scored {evaluation.overall_score}, "
-            f"expected >= {PASS_THRESHOLD}"
+            f"Excellent response scored {evaluation.overall_score}, expected >= {PASS_THRESHOLD}"
         )
         assert evaluation.result == "PASS"
 
@@ -854,31 +832,25 @@ class TestPrompt007OfflineEvaluation:
 
         # Partial should score below PASS threshold
         assert evaluation.overall_score < PASS_THRESHOLD, (
-            f"Partial response scored {evaluation.overall_score}, "
-            f"expected < {PASS_THRESHOLD}"
+            f"Partial response scored {evaluation.overall_score}, expected < {PASS_THRESHOLD}"
         )
 
     def test_poor_response_fails(self):
         """Test that a poor response scores < 70 (FAIL)."""
-        evaluation = evaluate_response(
-            SampleResponses.POOR_HEALTH_CALLS, {"source": "sample_poor"}
-        )
+        evaluation = evaluate_response(SampleResponses.POOR_HEALTH_CALLS, {"source": "sample_poor"})
 
         print("\nPoor Response Evaluation:")
         print(f"  Score: {evaluation.overall_score}/100")
         print(f"  Result: {evaluation.result}")
 
         assert evaluation.overall_score < NEEDS_REVIEW_THRESHOLD, (
-            f"Poor response scored {evaluation.overall_score}, "
-            f"expected < {NEEDS_REVIEW_THRESHOLD}"
+            f"Poor response scored {evaluation.overall_score}, expected < {NEEDS_REVIEW_THRESHOLD}"
         )
         assert evaluation.result == "FAIL"
 
     def test_evaluation_identifies_missing_items(self):
         """Test that evaluation identifies missing content."""
-        evaluation = evaluate_response(
-            SampleResponses.POOR_HEALTH_CALLS, {"source": "sample_poor"}
-        )
+        evaluation = evaluate_response(SampleResponses.POOR_HEALTH_CALLS, {"source": "sample_poor"})
 
         # Check that missing items are identified
         if evaluation.component_scores:
@@ -896,17 +868,14 @@ class TestPrompt007OfflineEvaluation:
         excellent_eval = evaluate_response(
             SampleResponses.EXCELLENT_HEALTH_CALLS, {"source": "excellent"}
         )
-        poor_eval = evaluate_response(
-            SampleResponses.POOR_HEALTH_CALLS, {"source": "poor"}
-        )
+        poor_eval = evaluate_response(SampleResponses.POOR_HEALTH_CALLS, {"source": "poor"})
 
         # Excellent response should have much higher specificity
         excellent_specificity = excellent_eval.component_scores[0]["specificity"]
         poor_specificity = poor_eval.component_scores[0]["specificity"]
 
         assert excellent_specificity > poor_specificity, (
-            f"Excellent specificity ({excellent_specificity}) "
-            f"should be > poor ({poor_specificity})"
+            f"Excellent specificity ({excellent_specificity}) should be > poor ({poor_specificity})"
         )
 
     def test_save_evaluation_result_json(self):

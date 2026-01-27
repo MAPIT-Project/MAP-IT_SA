@@ -13,6 +13,7 @@ from typing import Any
 
 class ProviderStatus(Enum):
     """Provider availability status."""
+
     AVAILABLE = "available"
     RATE_LIMITED = "rate_limited"
     ERROR = "error"
@@ -22,6 +23,7 @@ class ProviderStatus(Enum):
 @dataclass
 class ProviderResponse:
     """Standardized response from any provider."""
+
     text: str
     provider: str
     model: str
@@ -32,6 +34,7 @@ class ProviderResponse:
 @dataclass
 class ProviderConfig:
     """Configuration for a provider."""
+
     name: str
     api_key: str
     model: str
@@ -54,29 +57,21 @@ class BaseAIProvider(ABC):
 
     @abstractmethod
     async def generate_text(
-        self,
-        prompt: str,
-        temperature: float = 0.7,
-        max_tokens: int = 4000
+        self, prompt: str, temperature: float = 0.7, max_tokens: int = 4000
     ) -> ProviderResponse:
         """Generate free-form text."""
         pass
 
     @abstractmethod
     async def generate_structured(
-        self,
-        prompt: str,
-        schema: dict[str, Any],
-        temperature: float = 0.3
+        self, prompt: str, schema: dict[str, Any], temperature: float = 0.3
     ) -> dict[str, Any]:
         """Generate structured JSON output."""
         pass
 
     @abstractmethod
     async def generate_stream(
-        self,
-        prompt: str,
-        temperature: float = 0.7
+        self, prompt: str, temperature: float = 0.7
     ) -> AsyncGenerator[str, None]:
         """Stream text generation."""
         pass

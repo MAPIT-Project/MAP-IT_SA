@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 class ExampleType(str, Enum):
     """Types of extractable examples."""
+
     EXCELLENCE_OBJECTIVES = "excellence_objectives"
     EXCELLENCE_METHODOLOGY = "excellence_methodology"
     EXCELLENCE_AMBITION = "excellence_ambition"
@@ -32,6 +33,7 @@ class ExampleType(str, Enum):
 @dataclass
 class ExtractedExample:
     """An extracted example from a project."""
+
     project_id: str
     project_acronym: str
     section_type: ExampleType
@@ -111,6 +113,7 @@ class ExampleExtractor:
         """Lazy load embedding service."""
         if self._embedding_service is None:
             from app.services.embedding_service import EmbeddingService
+
             self._embedding_service = EmbeddingService()
         return self._embedding_service
 
@@ -123,7 +126,7 @@ class ExampleExtractor:
         batch_size: int = 100,
         max_projects: int | None = None,
         clusters: list[str] | None = None,
-        skip_existing: bool = True
+        skip_existing: bool = True,
     ) -> dict[str, int]:
         """
         Extract examples from all projects in the database.
@@ -184,7 +187,7 @@ class ExampleExtractor:
 
                 # Process in batches
                 for i in range(0, len(projects), batch_size):
-                    batch = projects[i:i + batch_size]
+                    batch = projects[i : i + batch_size]
 
                     for project in batch:
                         try:
@@ -205,7 +208,9 @@ class ExampleExtractor:
                             stats["errors"] += 1
 
                     conn.commit()
-                    logger.info(f"Processed {min(i + batch_size, len(projects))}/{len(projects)} projects")
+                    logger.info(
+                        f"Processed {min(i + batch_size, len(projects))}/{len(projects)} projects"
+                    )
 
         finally:
             conn.close()
@@ -215,19 +220,19 @@ class ExampleExtractor:
     async def _extract_from_project(self, project: dict) -> list[ExtractedExample]:
         """Extract all possible examples from a single project."""
         examples = []
-        objective = project['objective']
+        objective = project["objective"]
 
         # Always create a full objective example
         full_example = ExtractedExample(
-            project_id=project['id'],
-            project_acronym=project['acronym'] or '',
+            project_id=project["id"],
+            project_acronym=project["acronym"] or "",
             section_type=ExampleType.FULL_OBJECTIVE,
             content=objective,
             cluster=None,  # Will be filled from project if available
-            action_type=project.get('action_type'),
-            total_cost=project.get('total_cost'),
-            start_date=str(project.get('start_date')) if project.get('start_date') else None,
-            quality_score=self._score_content_quality(objective)
+            action_type=project.get("action_type"),
+            total_cost=project.get("total_cost"),
+            start_date=str(project.get("start_date")) if project.get("start_date") else None,
+            quality_score=self._score_content_quality(objective),
         )
         examples.append(full_example)
 
@@ -237,15 +242,17 @@ class ExampleExtractor:
         for section_type, content in segments.items():
             if content and len(content) >= self.MIN_CONTENT_LENGTH:
                 example = ExtractedExample(
-                    project_id=project['id'],
-                    project_acronym=project['acronym'] or '',
+                    project_id=project["id"],
+                    project_acronym=project["acronym"] or "",
                     section_type=section_type,
                     content=content,
                     cluster=None,
-                    action_type=project.get('action_type'),
-                    total_cost=project.get('total_cost'),
-                    start_date=str(project.get('start_date')) if project.get('start_date') else None,
-                    quality_score=self._score_content_quality(content)
+                    action_type=project.get("action_type"),
+                    total_cost=project.get("total_cost"),
+                    start_date=(
+                        str(project.get("start_date")) if project.get("start_date") else None
+                    ),
+                    quality_score=self._score_content_quality(content),
                 )
                 examples.append(example)
 
@@ -260,11 +267,13 @@ class ExampleExtractor:
         segments = {}
 
         # Split into paragraphs
-        paragraphs = [p.strip() for p in objective.split('\n\n') if p.strip()]
+        paragraphs = [p.strip() for p in objective.split("\n\n") if p.strip()]
 
         # If no double newlines, try single newlines
         if len(paragraphs) == 1:
-            paragraphs = [p.strip() for p in objective.split('\n') if p.strip() and len(p.strip()) > 50]
+            paragraphs = [
+                p.strip() for p in objective.split("\n") if p.strip() and len(p.strip()) > 50
+            ]
 
         for para in paragraphs:
             # Check each pattern type
@@ -300,30 +309,32 @@ class ExampleExtractor:
             score += 0.1
 
         # Sentence variety
-        sentences = re.split(r'[.!?]+', content)
+        sentences = re.split(r"[.!?]+", content)
         sentence_lengths = [len(s.split()) for s in sentences if s.strip()]
         if sentence_lengths:
             avg_len = sum(sentence_lengths) / len(sentence_lengths)
-            variance = sum((l - avg_len) ** 2 for l in sentence_lengths) / len(sentence_lengths)
+            variance = sum((sent_len - avg_len) ** 2 for sent_len in sentence_lengths) / len(
+                sentence_lengths
+            )
             if 5 < variance < 100:  # Good variety
                 score += 0.1
 
         # Technical vocabulary indicators
         technical_patterns = [
-            r'\b(methodology|framework|approach|analysis|implementation)\b',
-            r'\b(innovative|novel|breakthrough|state-of-the-art)\b',
-            r'\b(stakeholder|consortium|deliverable|milestone)\b',
-            r'\b(impact|outcome|objective|result)\b',
+            r"\b(methodology|framework|approach|analysis|implementation)\b",
+            r"\b(innovative|novel|breakthrough|state-of-the-art)\b",
+            r"\b(stakeholder|consortium|deliverable|milestone)\b",
+            r"\b(impact|outcome|objective|result)\b",
         ]
         tech_matches = sum(1 for p in technical_patterns if re.search(p, content, re.I))
         score += min(tech_matches * 0.05, 0.2)
 
         # Penalize boilerplate
         boilerplate_patterns = [
-            r'Lorem ipsum',
-            r'TBD|TBC|TODO',
-            r'Insert .* here',
-            r'\[placeholder\]',
+            r"Lorem ipsum",
+            r"TBD|TBC|TODO",
+            r"Insert .* here",
+            r"\[placeholder\]",
         ]
         if any(re.search(p, content, re.I) for p in boilerplate_patterns):
             score -= 0.3
@@ -335,10 +346,13 @@ class ExampleExtractor:
         try:
             # Generate embedding
             embedding_service = self._get_embedding_service()
-            embedding = await embedding_service.embed_text(example.content[:8000])  # Limit content for embedding
+            embedding = await embedding_service.embed_text(
+                example.content[:8000]
+            )  # Limit content for embedding
 
             with conn.cursor() as cur:
-                cur.execute("""
+                cur.execute(
+                    """
                     INSERT INTO proposal_examples (
                         project_id, section_type, content, source,
                         cluster, action_type, example_embedding, quality_score
@@ -349,16 +363,18 @@ class ExampleExtractor:
                         example_embedding = EXCLUDED.example_embedding,
                         quality_score = EXCLUDED.quality_score,
                         updated_at = NOW()
-                """, (
-                    example.project_id,
-                    example.section_type.value,
-                    example.content,
-                    'cordis',
-                    example.cluster,
-                    example.action_type,
-                    embedding,
-                    example.quality_score
-                ))
+                """,
+                    (
+                        example.project_id,
+                        example.section_type.value,
+                        example.content,
+                        "cordis",
+                        example.cluster,
+                        example.action_type,
+                        embedding,
+                        example.quality_score,
+                    ),
+                )
 
         except Exception as e:
             logger.error(f"Error saving example for project {example.project_id}: {e}")
@@ -369,45 +385,55 @@ class ExampleExtractor:
         conn = self._get_connection()
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("SELECT COUNT(*) as total FROM proposal_examples WHERE project_id IS NOT NULL")
-                total = cur.fetchone()['total']
+                cur.execute(
+                    "SELECT COUNT(*) as total FROM proposal_examples WHERE project_id IS NOT NULL"
+                )
+                total = cur.fetchone()["total"]
 
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT COUNT(*) as count FROM proposal_examples
                     WHERE example_embedding IS NOT NULL AND project_id IS NOT NULL
-                """)
-                with_embeddings = cur.fetchone()['count']
+                """
+                )
+                with_embeddings = cur.fetchone()["count"]
 
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT COUNT(*) as count FROM proposal_examples
                     WHERE quality_score >= 0.7 AND project_id IS NOT NULL
-                """)
-                high_quality = cur.fetchone()['count']
+                """
+                )
+                high_quality = cur.fetchone()["count"]
 
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT section_type, COUNT(*) as count
                     FROM proposal_examples
                     WHERE project_id IS NOT NULL
                     GROUP BY section_type
                     ORDER BY count DESC
-                """)
-                by_section = {row['section_type']: row['count'] for row in cur.fetchall()}
+                """
+                )
+                by_section = {row["section_type"]: row["count"] for row in cur.fetchall()}
 
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT action_type, COUNT(*) as count
                     FROM proposal_examples
                     WHERE project_id IS NOT NULL AND action_type IS NOT NULL
                     GROUP BY action_type
                     ORDER BY count DESC
-                """)
-                by_action_type = {row['action_type']: row['count'] for row in cur.fetchall()}
+                """
+                )
+                by_action_type = {row["action_type"]: row["count"] for row in cur.fetchall()}
 
                 return {
                     "total_examples": total,
                     "with_embeddings": with_embeddings,
                     "high_quality_count": high_quality,
                     "by_section_type": by_section,
-                    "by_action_type": by_action_type
+                    "by_action_type": by_action_type,
                 }
         finally:
             conn.close()
@@ -428,6 +454,7 @@ class ExampleEnricher:
         """Lazy load AI service."""
         if self._ai_service is None:
             from .proposal_ai_service import ProposalAIService
+
             self._ai_service = ProposalAIService()
         return self._ai_service
 
@@ -451,25 +478,31 @@ class ExampleEnricher:
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 # Get examples needing enrichment
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT id, content, section_type, cluster
                     FROM proposal_examples
                     WHERE enrichment_data IS NULL
                     AND quality_score >= 0.7
                     AND project_id IS NOT NULL
                     LIMIT %s
-                """, (batch_size,))
+                """,
+                    (batch_size,),
+                )
                 examples = cur.fetchall()
 
                 for example in examples:
                     try:
                         enrichment = await self._analyze_example(example)
 
-                        cur.execute("""
+                        cur.execute(
+                            """
                             UPDATE proposal_examples
                             SET enrichment_data = %s, enriched_at = NOW()
                             WHERE id = %s
-                        """, (enrichment, example['id']))
+                        """,
+                            (enrichment, example["id"]),
+                        )
 
                         stats["enriched"] += 1
 
@@ -492,8 +525,8 @@ class ExampleEnricher:
 
         prompt = f"""Analyze this funded EU proposal excerpt and identify what makes it effective.
 
-Content ({example['section_type']}):
-{example['content'][:2000]}
+Content ({example["section_type"]}):
+{example["content"][:2000]}
 
 Respond with JSON:
 {{
@@ -515,10 +548,10 @@ Respond with JSON:
                     "eu_terminology": {"type": "array", "items": {"type": "string"}},
                     "evaluator_appeal_factors": {"type": "array", "items": {"type": "string"}},
                     "estimated_section_score": {"type": "number"},
-                    "improvement_notes": {"type": "string"}
+                    "improvement_notes": {"type": "string"},
                 },
-                "required": ["key_strengths", "writing_techniques"]
-            }
+                "required": ["key_strengths", "writing_techniques"],
+            },
         )
 
         return json.dumps(response)

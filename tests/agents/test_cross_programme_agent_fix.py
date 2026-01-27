@@ -43,9 +43,9 @@ class TestFundingRateSuccessRateDistinction:
         funding_rate_errors = [
             f for f in result.facts_incorrect if "rate:" in f.lower() or "_rate:" in f.lower()
         ]
-        assert (
-            len(funding_rate_errors) == 0
-        ), f"Success rates incorrectly flagged as wrong funding rates: {funding_rate_errors}"
+        assert len(funding_rate_errors) == 0, (
+            f"Success rates incorrectly flagged as wrong funding rates: {funding_rate_errors}"
+        )
 
     @pytest.mark.asyncio
     async def test_funding_rate_correctly_validated(self, agent):
@@ -62,9 +62,9 @@ class TestFundingRateSuccessRateDistinction:
 
         # Should have correct facts about funding rates
         assert result.score >= 0.7, f"Correct funding rates should score >= 0.7, got {result.score}"
-        assert (
-            len(result.facts_incorrect) == 0
-        ), f"Correct funding rates flagged as incorrect: {result.facts_incorrect}"
+        assert len(result.facts_incorrect) == 0, (
+            f"Correct funding rates flagged as incorrect: {result.facts_incorrect}"
+        )
 
     @pytest.mark.asyncio
     async def test_incorrect_funding_rate_still_flagged(self, agent):
@@ -105,9 +105,9 @@ class TestFundingRateSuccessRateDistinction:
         funding_rate_errors = [
             f for f in result.facts_incorrect if "rate:" in f.lower() or "_rate:" in f.lower()
         ]
-        assert (
-            len(funding_rate_errors) == 0
-        ), f"Mixed response incorrectly flagged: {funding_rate_errors}"
+        assert len(funding_rate_errors) == 0, (
+            f"Mixed response incorrectly flagged: {funding_rate_errors}"
+        )
 
     @pytest.mark.asyncio
     async def test_success_rate_with_various_phrasings(self, agent):
@@ -127,9 +127,9 @@ class TestFundingRateSuccessRateDistinction:
             funding_rate_errors = [
                 f for f in result.facts_incorrect if "rate:" in f.lower() or "_rate:" in f.lower()
             ]
-            assert (
-                len(funding_rate_errors) == 0
-            ), f"Response '{response}' incorrectly flagged: {funding_rate_errors}"
+            assert len(funding_rate_errors) == 0, (
+                f"Response '{response}' incorrectly flagged: {funding_rate_errors}"
+            )
 
     @pytest.mark.asyncio
     async def test_comparison_response_not_flagged(self, agent):
@@ -160,9 +160,9 @@ class TestFundingRateSuccessRateDistinction:
         funding_rate_errors = [
             f for f in result.facts_incorrect if "rate:" in f.lower() or "_rate:" in f.lower()
         ]
-        assert (
-            len(funding_rate_errors) == 0
-        ), f"Comparison response incorrectly flagged: {funding_rate_errors}"
+        assert len(funding_rate_errors) == 0, (
+            f"Comparison response incorrectly flagged: {funding_rate_errors}"
+        )
 
 
 class TestProgrammeMentionDetection:
@@ -263,9 +263,9 @@ class TestMultiProgrammeBudgetValidation:
         result = await agent.validate_programme_facts(response, "erasmus_plus")
 
         budget_errors = [f for f in result.facts_incorrect if "budget" in f.lower()]
-        assert (
-            len(budget_errors) == 0
-        ), f"Horizon Europe's €95.5B incorrectly flagged as wrong Erasmus+ budget: {budget_errors}"
+        assert len(budget_errors) == 0, (
+            f"Horizon Europe's €95.5B incorrectly flagged as wrong Erasmus+ budget: {budget_errors}"
+        )
 
     @pytest.mark.asyncio
     async def test_multi_programme_response_no_false_positive_for_horizon(self, agent):
@@ -279,9 +279,9 @@ class TestMultiProgrammeBudgetValidation:
         result = await agent.validate_programme_facts(response, "horizon_europe")
 
         budget_errors = [f for f in result.facts_incorrect if "budget" in f.lower()]
-        assert (
-            len(budget_errors) == 0
-        ), f"Erasmus+'s €26.2B incorrectly flagged as wrong Horizon Europe budget: {budget_errors}"
+        assert len(budget_errors) == 0, (
+            f"Erasmus+'s €26.2B incorrectly flagged as wrong Horizon Europe budget: {budget_errors}"
+        )
 
     @pytest.mark.asyncio
     async def test_multi_programme_response_no_false_positive_for_creative_europe(self, agent):
@@ -297,9 +297,9 @@ class TestMultiProgrammeBudgetValidation:
         result = await agent.validate_programme_facts(response, "creative_europe")
 
         budget_errors = [f for f in result.facts_incorrect if "budget" in f.lower()]
-        assert (
-            len(budget_errors) == 0
-        ), f"Other programme budgets incorrectly flagged for Creative Europe: {budget_errors}"
+        assert len(budget_errors) == 0, (
+            f"Other programme budgets incorrectly flagged for Creative Europe: {budget_errors}"
+        )
 
     @pytest.mark.asyncio
     async def test_correct_budget_still_validated_in_multi_programme(self, agent):
@@ -347,6 +347,6 @@ class TestMultiProgrammeBudgetValidation:
         erasmus_result = await agent.validate_programme_facts(response, "erasmus_plus")
 
         budget_errors = [f for f in erasmus_result.facts_incorrect if "budget" in f.lower()]
-        assert (
-            len(budget_errors) == 0
-        ), f"User context learning scenario incorrectly flagged: {budget_errors}"
+        assert len(budget_errors) == 0, (
+            f"User context learning scenario incorrectly flagged: {budget_errors}"
+        )

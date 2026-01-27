@@ -29,38 +29,61 @@ class SpeculativeExecutor:
     # Format: (keywords tuple) -> [list of tool names]
     SPECULATION_PATTERNS = {
         # Funding calls queries
-        ('funding', 'calls', 'open', 'deadline', 'apply'): ['search_funding_calls'],
-        ('hydrogen', 'energy', 'renewable', 'solar', 'wind', 'battery', 'green'): ['search_funding_calls', 'search_documents'],
-        ('ai', 'artificial intelligence', 'machine learning', 'digital'): ['search_funding_calls', 'search_documents'],
-        ('health', 'cancer', 'disease', 'medical', 'clinical'): ['search_funding_calls', 'search_documents'],
-        ('quantum', 'computing', 'cybersecurity'): ['search_funding_calls', 'search_documents'],
-
+        ("funding", "calls", "open", "deadline", "apply"): ["search_funding_calls"],
+        ("hydrogen", "energy", "renewable", "solar", "wind", "battery", "green"): [
+            "search_funding_calls",
+            "search_documents",
+        ],
+        ("ai", "artificial intelligence", "machine learning", "digital"): [
+            "search_funding_calls",
+            "search_documents",
+        ],
+        ("health", "cancer", "disease", "medical", "clinical"): [
+            "search_funding_calls",
+            "search_documents",
+        ],
+        ("quantum", "computing", "cybersecurity"): ["search_funding_calls", "search_documents"],
         # Project queries
-        ('projects', 'funded', 'cordis', 'similar'): ['search_projects'],
-        ('find projects', 'show projects', 'projects about'): ['search_projects'],
-
+        ("projects", "funded", "cordis", "similar"): ["search_projects"],
+        ("find projects", "show projects", "projects about"): ["search_projects"],
         # Budget/consortium queries
-        ('budget', 'cost', 'typical', 'average', 'how much'): ['get_budget_benchmark'],
-        ('consortium', 'partners', 'composition', 'team'): ['get_consortium_patterns'],
-        ('partner', 'experienced', 'find partner', 'collaborator'): ['find_experienced_partners'],
-
+        ("budget", "cost", "typical", "average", "how much"): ["get_budget_benchmark"],
+        ("consortium", "partners", "composition", "team"): ["get_consortium_patterns"],
+        ("partner", "experienced", "find partner", "collaborator"): ["find_experienced_partners"],
         # Statistics queries
-        ('statistics', 'success rate', 'funding rate', 'how many'): ['get_programme_statistics'],
-        ('country', 'germany', 'france', 'spain', 'italy', 'participation'): ['get_country_statistics'],
-
+        ("statistics", "success rate", "funding rate", "how many"): ["get_programme_statistics"],
+        ("country", "germany", "france", "spain", "italy", "participation"): [
+            "get_country_statistics"
+        ],
         # Country eligibility queries - use get_country_statistics for clear YES/NO answers
-        ('can switzerland', 'can uk', 'can israel', 'can norway', 'switzerland participate', 'uk participate'): ['get_country_statistics'],
-        ('is switzerland', 'is uk', 'is israel', 'is norway', 'switzerland eligible', 'uk eligible'): ['get_country_statistics'],
-
+        (
+            "can switzerland",
+            "can uk",
+            "can israel",
+            "can norway",
+            "switzerland participate",
+            "uk participate",
+        ): ["get_country_statistics"],
+        (
+            "is switzerland",
+            "is uk",
+            "is israel",
+            "is norway",
+            "switzerland eligible",
+            "uk eligible",
+        ): ["get_country_statistics"],
         # Comparison queries
-        ('compare', 'difference', 'vs', 'versus', 'between'): ['compare_programmes'],
-
+        ("compare", "difference", "vs", "versus", "between"): ["compare_programmes"],
         # Document/eligibility queries (for general rules, not country-specific)
-        ('consortium eligibility', 'eligibility requirement', 'eligibility rule', 'who can apply'): ['search_documents'],
-        ('page limit', 'pages', 'format', 'template'): ['search_documents'],
-
+        (
+            "consortium eligibility",
+            "eligibility requirement",
+            "eligibility rule",
+            "who can apply",
+        ): ["search_documents"],
+        ("page limit", "pages", "format", "template"): ["search_documents"],
         # History/trends
-        ('history', 'trend', 'over time', 'years', 'timeline'): ['analyze_call_history'],
+        ("history", "trend", "over time", "years", "timeline"): ["analyze_call_history"],
     }
 
     def __init__(self, tool_executor: Callable[[str, dict], Awaitable[Any]]):
@@ -89,25 +112,74 @@ class SpeculativeExecutor:
             if any(kw in query_lower for kw in keywords):
                 likely_tools.update(tools)
 
-        return list(likely_tools)[:self.max_speculative_calls]
+        return list(likely_tools)[: self.max_speculative_calls]
 
     def _extract_keywords_from_query(self, query: str) -> str:
         """Extract key search terms from query."""
         # Remove common words and keep key terms
         stop_words = {
-            'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been',
-            'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would',
-            'could', 'should', 'may', 'might', 'must', 'can', 'i', 'me',
-            'my', 'we', 'our', 'you', 'your', 'what', 'which', 'who',
-            'how', 'when', 'where', 'why', 'for', 'to', 'of', 'in', 'on',
-            'at', 'by', 'with', 'about', 'find', 'show', 'get', 'tell',
-            'give', 'need', 'want', 'looking', 'search', 'help'
+            "the",
+            "a",
+            "an",
+            "is",
+            "are",
+            "was",
+            "were",
+            "be",
+            "been",
+            "have",
+            "has",
+            "had",
+            "do",
+            "does",
+            "did",
+            "will",
+            "would",
+            "could",
+            "should",
+            "may",
+            "might",
+            "must",
+            "can",
+            "i",
+            "me",
+            "my",
+            "we",
+            "our",
+            "you",
+            "your",
+            "what",
+            "which",
+            "who",
+            "how",
+            "when",
+            "where",
+            "why",
+            "for",
+            "to",
+            "of",
+            "in",
+            "on",
+            "at",
+            "by",
+            "with",
+            "about",
+            "find",
+            "show",
+            "get",
+            "tell",
+            "give",
+            "need",
+            "want",
+            "looking",
+            "search",
+            "help",
         }
 
-        words = re.findall(r'\b\w+\b', query.lower())
+        words = re.findall(r"\b\w+\b", query.lower())
         keywords = [w for w in words if w not in stop_words and len(w) > 2]
 
-        return ' '.join(keywords[:5])  # First 5 keywords
+        return " ".join(keywords[:5])  # First 5 keywords
 
     def _generate_default_params(self, tool_name: str, query: str) -> dict[str, Any]:
         """Generate reasonable default parameters for speculative execution."""
@@ -115,113 +187,121 @@ class SpeculativeExecutor:
 
         # Tool-specific parameter generation
         default_params = {
-            'search_funding_calls': {
-                'keywords': keywords,
-                'status': 'open'
+            "search_funding_calls": {"keywords": keywords, "status": "open"},
+            "search_projects": {"keywords": keywords},
+            "search_documents": {
+                "query": query[:200],  # Truncate for search
+                "max_results": 10,
             },
-            'search_projects': {
-                'keywords': keywords
-            },
-            'search_documents': {
-                'query': query[:200],  # Truncate for search
-                'max_results': 10
-            },
-            'get_budget_benchmark': {
-                'action_type': self._extract_action_type(query)
-            },
-            'get_consortium_patterns': {
-                'action_type': self._extract_action_type(query)
-            },
-            'find_experienced_partners': {
-                'keywords': keywords,
-                'limit': 10
-            },
-            'get_programme_statistics': {
-                'programme': self._extract_programme(query)
-            },
-            'get_country_statistics': {
-                'country': self._extract_country(query)
-            },
-            'get_similar_funded_projects': {
-                'query': query[:300],
-                'limit': 5
-            },
-            'compare_programmes': {
-                'programme_a': 'EIC',
-                'programme_b': 'ERC'
-            },
-            'analyze_call_history': {
-                'keywords': keywords,  # Include keywords for keyword-based history searches
-                'cluster': self._extract_cluster(query),
-                'year_from': 2021,
-                'year_to': 2025
+            "get_budget_benchmark": {"action_type": self._extract_action_type(query)},
+            "get_consortium_patterns": {"action_type": self._extract_action_type(query)},
+            "find_experienced_partners": {"keywords": keywords, "limit": 10},
+            "get_programme_statistics": {"programme": self._extract_programme(query)},
+            "get_country_statistics": {"country": self._extract_country(query)},
+            "get_similar_funded_projects": {"query": query[:300], "limit": 5},
+            "compare_programmes": {"programme_a": "EIC", "programme_b": "ERC"},
+            "analyze_call_history": {
+                "keywords": keywords,  # Include keywords for keyword-based history searches
+                "cluster": self._extract_cluster(query),
+                "year_from": 2021,
+                "year_to": 2025,
             },
         }
 
-        return default_params.get(tool_name, {'query': keywords})
+        return default_params.get(tool_name, {"query": keywords})
 
     def _extract_action_type(self, query: str) -> str:
         """Extract action type from query."""
         query_lower = query.lower()
-        if 'ria' in query_lower or 'research' in query_lower:
-            return 'RIA'
-        elif 'ia' in query_lower or 'innovation' in query_lower:
-            return 'IA'
-        elif 'csa' in query_lower or 'coordination' in query_lower:
-            return 'CSA'
-        elif 'erc' in query_lower:
-            return 'ERC'
-        elif 'eic' in query_lower:
-            return 'EIC'
-        return 'RIA'  # Default
+        if "ria" in query_lower or "research" in query_lower:
+            return "RIA"
+        elif "ia" in query_lower or "innovation" in query_lower:
+            return "IA"
+        elif "csa" in query_lower or "coordination" in query_lower:
+            return "CSA"
+        elif "erc" in query_lower:
+            return "ERC"
+        elif "eic" in query_lower:
+            return "EIC"
+        return "RIA"  # Default
 
     def _extract_programme(self, query: str) -> str:
         """Extract programme name from query."""
         query_lower = query.lower()
         programmes = {
-            'eic': 'EIC Accelerator',
-            'erc': 'ERC',
-            'msca': 'MSCA',
-            'cluster 1': 'Cluster 1',
-            'cluster 2': 'Cluster 2',
-            'cluster 3': 'Cluster 3',
-            'cluster 4': 'Cluster 4',
-            'cluster 5': 'Cluster 5',
-            'cluster 6': 'Cluster 6',
-            'health': 'Cluster 1',
-            'digital': 'Cluster 4',
-            'climate': 'Cluster 5',
-            'food': 'Cluster 6',
+            "eic": "EIC Accelerator",
+            "erc": "ERC",
+            "msca": "MSCA",
+            "cluster 1": "Cluster 1",
+            "cluster 2": "Cluster 2",
+            "cluster 3": "Cluster 3",
+            "cluster 4": "Cluster 4",
+            "cluster 5": "Cluster 5",
+            "cluster 6": "Cluster 6",
+            "health": "Cluster 1",
+            "digital": "Cluster 4",
+            "climate": "Cluster 5",
+            "food": "Cluster 6",
         }
         for key, value in programmes.items():
             if key in query_lower:
                 return value
-        return 'Horizon Europe'
+        return "Horizon Europe"
 
     def _extract_country(self, query: str) -> str:
         """Extract country from query."""
         query_lower = query.lower()
         countries = [
-            'germany', 'france', 'spain', 'italy', 'netherlands', 'belgium',
-            'austria', 'sweden', 'denmark', 'finland', 'poland', 'portugal',
-            'ireland', 'greece', 'hungary', 'romania', 'czech', 'switzerland',
-            'norway', 'uk', 'israel'
+            "germany",
+            "france",
+            "spain",
+            "italy",
+            "netherlands",
+            "belgium",
+            "austria",
+            "sweden",
+            "denmark",
+            "finland",
+            "poland",
+            "portugal",
+            "ireland",
+            "greece",
+            "hungary",
+            "romania",
+            "czech",
+            "switzerland",
+            "norway",
+            "uk",
+            "israel",
         ]
         for country in countries:
             if country in query_lower:
                 return country.title()
-        return 'Germany'  # Default
+        return "Germany"  # Default
 
     def _extract_cluster(self, query: str) -> str | None:
         """Extract cluster from query."""
         query_lower = query.lower()
         cluster_map = {
-            'health': 'CL1', 'cl1': 'CL1',
-            'culture': 'CL2', 'cl2': 'CL2', 'democracy': 'CL2',
-            'security': 'CL3', 'cl3': 'CL3', 'civil': 'CL3',
-            'digital': 'CL4', 'cl4': 'CL4', 'industry': 'CL4', 'space': 'CL4',
-            'climate': 'CL5', 'cl5': 'CL5', 'energy': 'CL5', 'mobility': 'CL5',
-            'food': 'CL6', 'cl6': 'CL6', 'bioeconomy': 'CL6',
+            "health": "CL1",
+            "cl1": "CL1",
+            "culture": "CL2",
+            "cl2": "CL2",
+            "democracy": "CL2",
+            "security": "CL3",
+            "cl3": "CL3",
+            "civil": "CL3",
+            "digital": "CL4",
+            "cl4": "CL4",
+            "industry": "CL4",
+            "space": "CL4",
+            "climate": "CL5",
+            "cl5": "CL5",
+            "energy": "CL5",
+            "mobility": "CL5",
+            "food": "CL6",
+            "cl6": "CL6",
+            "bioeconomy": "CL6",
         }
         for key, value in cluster_map.items():
             if key in query_lower:
@@ -229,9 +309,7 @@ class SpeculativeExecutor:
         return None
 
     async def start_speculative_execution(
-        self,
-        query: str,
-        context: str = ""
+        self, query: str, context: str = ""
     ) -> dict[str, asyncio.Task]:
         """
         Start speculative tool execution for likely-needed tools.
@@ -259,16 +337,15 @@ class SpeculativeExecutor:
             # Store the speculative params immediately (before task completes)
             # This allows param validation even while task is still running
             self.speculation_results[tool_name] = {
-                'result': None,  # Will be populated when task completes
-                'params': params,
-                'speculative': True,
-                'pending': True
+                "result": None,  # Will be populated when task completes
+                "params": params,
+                "speculative": True,
+                "pending": True,
             }
 
             # Start execution as background task
             task = asyncio.create_task(
-                self._execute_with_tracking(tool_name, params),
-                name=f"speculative_{tool_name}"
+                self._execute_with_tracking(tool_name, params), name=f"speculative_{tool_name}"
             )
             tasks[tool_name] = task
             self.speculation_cache[tool_name] = task
@@ -284,11 +361,11 @@ class SpeculativeExecutor:
 
             # Update the stored result (keeping params, removing pending flag)
             self.speculation_results[tool_name] = {
-                'result': result,
-                'params': params,
-                'duration_ms': duration,
-                'speculative': True,
-                'pending': False  # Mark as completed
+                "result": result,
+                "params": params,
+                "duration_ms": duration,
+                "speculative": True,
+                "pending": False,  # Mark as completed
             }
 
             logger.debug(f"🔮 Speculative result ready: {tool_name} ({duration:.0f}ms)")
@@ -297,15 +374,12 @@ class SpeculativeExecutor:
             logger.warning(f"Speculative execution failed for {tool_name}: {e}")
             # Mark as failed (not pending, but no result)
             if tool_name in self.speculation_results:
-                self.speculation_results[tool_name]['pending'] = False
-                self.speculation_results[tool_name]['error'] = str(e)
+                self.speculation_results[tool_name]["pending"] = False
+                self.speculation_results[tool_name]["error"] = str(e)
             return None
 
     async def get_speculative_result(
-        self,
-        tool_name: str,
-        timeout: float = 0.1,
-        requested_params: dict[str, Any] | None = None
+        self, tool_name: str, timeout: float = 0.1, requested_params: dict[str, Any] | None = None
     ) -> dict[str, Any] | None:
         """
         Get result from speculative execution if available.
@@ -323,15 +397,19 @@ class SpeculativeExecutor:
             cached = self.speculation_results[tool_name]
 
             # Skip if result is still pending (task not yet completed)
-            if cached.get('pending', False) or cached.get('result') is None:
+            if cached.get("pending", False) or cached.get("result") is None:
                 pass  # Fall through to task waiting below
             else:
-                cached_params = cached.get('params', {})
+                cached_params = cached.get("params", {})
 
                 # Validate that speculative params are compatible with requested params
                 # For search tools, keywords/query must overlap
-                if requested_params and not self._params_compatible(tool_name, cached_params, requested_params):
-                    logger.debug(f"⚠️ Speculative params don't match for {tool_name}, skipping cache")
+                if requested_params and not self._params_compatible(
+                    tool_name, cached_params, requested_params
+                ):
+                    logger.debug(
+                        f"⚠️ Speculative params don't match for {tool_name}, skipping cache"
+                    )
                     return None
 
                 logger.info(f"🎯 Using cached speculative result for: {tool_name}")
@@ -346,23 +424,24 @@ class SpeculativeExecutor:
             # Wait briefly for result
             result = await asyncio.wait_for(
                 asyncio.shield(task),  # Don't cancel if timeout
-                timeout=timeout
+                timeout=timeout,
             )
 
             # Get cached params to validate against requested params
             cached_entry = self.speculation_results.get(tool_name, {})
-            cached_params = cached_entry.get('params', {})
+            cached_params = cached_entry.get("params", {})
 
             # Validate params compatibility before returning
-            if requested_params and not self._params_compatible(tool_name, cached_params, requested_params):
-                logger.debug(f"⚠️ Speculative params don't match for {tool_name} (from task), skipping cache")
+            if requested_params and not self._params_compatible(
+                tool_name, cached_params, requested_params
+            ):
+                logger.debug(
+                    f"⚠️ Speculative params don't match for {tool_name} (from task), skipping cache"
+                )
                 return None
 
             logger.info(f"🎯 Speculative result ready for: {tool_name}")
-            return {
-                'result': result,
-                'speculative': True
-            }
+            return {"result": result, "speculative": True}
         except TimeoutError:
             logger.debug(f"⏳ Speculative result not ready: {tool_name}")
             return None
@@ -394,7 +473,9 @@ class SpeculativeExecutor:
         self.speculation_cache.clear()
         self.speculation_results.clear()
 
-    def _params_compatible(self, tool_name: str, cached_params: dict, requested_params: dict) -> bool:
+    def _params_compatible(
+        self, tool_name: str, cached_params: dict, requested_params: dict
+    ) -> bool:
         """
         Check if cached speculative params are compatible with requested params.
 
@@ -403,9 +484,9 @@ class SpeculativeExecutor:
         """
         # Tools that require exact parameter match (country, programme, etc.)
         exact_match_tools = {
-            'get_country_statistics': 'country',
-            'get_programme_statistics': 'programme',
-            'compare_programmes': None,  # Multiple params, just skip speculative cache
+            "get_country_statistics": "country",
+            "get_programme_statistics": "programme",
+            "compare_programmes": None,  # Multiple params, just skip speculative cache
         }
 
         if tool_name in exact_match_tools:
@@ -414,28 +495,35 @@ class SpeculativeExecutor:
                 # For tools like compare_programmes, don't use speculative cache
                 return False
 
-            cached_val = cached_params.get(param_key, '').lower().strip()
-            requested_val = requested_params.get(param_key, '').lower().strip()
+            cached_val = cached_params.get(param_key, "").lower().strip()
+            requested_val = requested_params.get(param_key, "").lower().strip()
 
             if cached_val != requested_val:
-                logger.debug(f"Parameter mismatch for {tool_name}: cached '{cached_val}' != requested '{requested_val}'")
+                logger.debug(
+                    f"Parameter mismatch for {tool_name}: cached '{cached_val}' != requested '{requested_val}'"
+                )
                 return False
 
             return True
 
         # Search tools require keyword/query overlap
-        search_tools = {'search_funding_calls', 'search_projects', 'search_documents',
-                        'find_experienced_partners', 'get_similar_funded_projects',
-                        'analyze_call_history'}  # History tool also uses keyword-based filtering
+        search_tools = {
+            "search_funding_calls",
+            "search_projects",
+            "search_documents",
+            "find_experienced_partners",
+            "get_similar_funded_projects",
+            "analyze_call_history",
+        }  # History tool also uses keyword-based filtering
 
         if tool_name in search_tools:
             # Extract keywords from both param sets
             cached_keywords = set()
             requested_keywords = set()
 
-            for key in ['keywords', 'query', 'topic']:
-                cached_val = cached_params.get(key, '')
-                req_val = requested_params.get(key, '')
+            for key in ["keywords", "query", "topic"]:
+                cached_val = cached_params.get(key, "")
+                req_val = requested_params.get(key, "")
 
                 if isinstance(cached_val, list):
                     cached_keywords.update(w.lower() for w in cached_val)
@@ -455,7 +543,9 @@ class SpeculativeExecutor:
             overlap_ratio = len(overlap) / min(len(cached_keywords), len(requested_keywords))
 
             if overlap_ratio < 0.5 and len(overlap) < 2:
-                logger.debug(f"Low keyword overlap ({overlap_ratio:.0%}): cached={cached_keywords}, requested={requested_keywords}")
+                logger.debug(
+                    f"Low keyword overlap ({overlap_ratio:.0%}): cached={cached_keywords}, requested={requested_keywords}"
+                )
                 return False
 
         return True
@@ -471,8 +561,8 @@ class SpeculativeExecutor:
         pending = len(self.speculation_cache) - completed
 
         return {
-            'total_speculative': len(self.speculation_cache),
-            'completed': completed,
-            'pending': pending,
-            'cached_results': len(self.speculation_results)
+            "total_speculative": len(self.speculation_cache),
+            "completed": completed,
+            "pending": pending,
+            "cached_results": len(self.speculation_results),
         }

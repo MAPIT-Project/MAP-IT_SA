@@ -45,9 +45,9 @@ class TestScenario010CollaborationNetwork:
             response_text = result.get("response", "")
 
             # Should use collaboration network formatting
-            assert (
-                "Collaboration Network" in response_text
-            ), "Response should use Collaboration Network format"
+            assert "Collaboration Network" in response_text, (
+                "Response should use Collaboration Network format"
+            )
 
     @pytest.mark.asyncio
     async def test_uses_get_collaboration_network_tool(self, conversation_id):
@@ -76,9 +76,9 @@ class TestScenario010CollaborationNetwork:
             # The tool might be versioned (e.g., get_collaboration_network_2_0)
             has_network_tool = any("get_collaboration_network" in t for t in tools_used)
 
-            assert (
-                has_network_tool or tool_in_reasoning
-            ), f"Expected get_collaboration_network tool to be used. Tools: {tools_used}"
+            assert has_network_tool or tool_in_reasoning, (
+                f"Expected get_collaboration_network tool to be used. Tools: {tools_used}"
+            )
 
     @pytest.mark.asyncio
     async def test_includes_partner_organizations(self, conversation_id):
@@ -235,9 +235,9 @@ class TestScenario010CollaborationNetwork:
             quality_score = quality_analysis.get("score", 100)
 
             # Minimum acceptable score
-            assert (
-                quality_score >= self.PASS_THRESHOLD
-            ), f"Quality score {quality_score} below threshold {self.PASS_THRESHOLD}"
+            assert quality_score >= self.PASS_THRESHOLD, (
+                f"Quality score {quality_score} below threshold {self.PASS_THRESHOLD}"
+            )
 
     @pytest.mark.asyncio
     async def test_no_error_in_response(self, conversation_id):
@@ -346,9 +346,9 @@ class TestCollaborationNetworkOtherOrganizations:
             response_text = result.get("response", "")
 
             # Should use collaboration network format
-            assert (
-                "Collaboration Network" in response_text or "Partner" in response_text
-            ), "Should show collaboration/partner information"
+            assert "Collaboration Network" in response_text or "Partner" in response_text, (
+                "Should show collaboration/partner information"
+            )
 
             # Should mention Fraunhofer or a specific Fraunhofer institute
             has_fraunhofer = "Fraunhofer" in response_text or "FRAUNHOFER" in response_text
@@ -373,9 +373,9 @@ class TestCollaborationNetworkOtherOrganizations:
             response_text = result.get("response", "")
 
             # Should use collaboration network format
-            assert (
-                "Collaboration Network" in response_text
-            ), "Should use Collaboration Network format"
+            assert "Collaboration Network" in response_text, (
+                "Should use Collaboration Network format"
+            )
 
             # Should mention CNRS
             has_cnrs = "CNRS" in response_text

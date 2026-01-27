@@ -26,73 +26,78 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
 # EU4Health document type mappings
 EU4HEALTH_DOCUMENT_TYPES = {
-    'annual_work_programme': {
-        'patterns': ['awp', 'work_programme', 'work-programme', 'annual_work', 'c2024', 'c2023', 'c2025'],
-        'type': 'work_programme',
-        'description': 'EU4Health Annual Work Programme with call topics and budgets'
+    "annual_work_programme": {
+        "patterns": [
+            "awp",
+            "work_programme",
+            "work-programme",
+            "annual_work",
+            "c2024",
+            "c2023",
+            "c2025",
+        ],
+        "type": "work_programme",
+        "description": "EU4Health Annual Work Programme with call topics and budgets",
     },
-    'regulation': {
-        'patterns': ['regulation', '2021_522', '2021-522', 'celex'],
-        'type': 'programme_guide',  # Use valid type - regulation is the foundational guide
-        'description': 'EU4Health Regulation establishing the programme'
+    "regulation": {
+        "patterns": ["regulation", "2021_522", "2021-522", "celex"],
+        "type": "programme_guide",  # Use valid type - regulation is the foundational guide
+        "description": "EU4Health Regulation establishing the programme",
     },
-    'call_document': {
-        'patterns': ['call_for_proposals', 'call-for-proposals', 'cfp_', 'call_'],
-        'type': 'grant_agreement',  # Use valid type
-        'description': 'Call for proposals with eligibility and deadlines'
+    "call_document": {
+        "patterns": ["call_for_proposals", "call-for-proposals", "cfp_", "call_"],
+        "type": "grant_agreement",  # Use valid type
+        "description": "Call for proposals with eligibility and deadlines",
     },
-    'action_grant': {
-        'patterns': ['action_grant', 'ag_', 'direct_grant', 'project_grant'],
-        'type': 'template',  # Use valid type
-        'description': 'Action Grant guidance and templates'
+    "action_grant": {
+        "patterns": ["action_grant", "ag_", "direct_grant", "project_grant"],
+        "type": "template",  # Use valid type
+        "description": "Action Grant guidance and templates",
     },
-    'joint_action': {
-        'patterns': ['joint_action', 'ja_', 'member_state'],
-        'type': 'manual',  # Use valid type
-        'description': 'Joint Action with Member States guidance'
+    "joint_action": {
+        "patterns": ["joint_action", "ja_", "member_state"],
+        "type": "manual",  # Use valid type
+        "description": "Joint Action with Member States guidance",
     },
-    'procurement': {
-        'patterns': ['procurement', 'tender', 'contract'],
-        'type': 'manual',  # Use valid type
-        'description': 'Procurement and tendering guidance'
+    "procurement": {
+        "patterns": ["procurement", "tender", "contract"],
+        "type": "manual",  # Use valid type
+        "description": "Procurement and tendering guidance",
     },
-    'crisis_preparedness': {
-        'patterns': ['crisis', 'preparedness', 'emergency', 'resilience'],
-        'type': 'programme_guide',  # Use valid type
-        'description': 'Crisis preparedness and health security guidance'
+    "crisis_preparedness": {
+        "patterns": ["crisis", "preparedness", "emergency", "resilience"],
+        "type": "programme_guide",  # Use valid type
+        "description": "Crisis preparedness and health security guidance",
     },
-    'disease_prevention': {
-        'patterns': ['prevention', 'disease', 'cancer', 'ncd', 'screening'],
-        'type': 'programme_guide',  # Use valid type
-        'description': 'Disease prevention and health promotion guidance'
+    "disease_prevention": {
+        "patterns": ["prevention", "disease", "cancer", "ncd", "screening"],
+        "type": "programme_guide",  # Use valid type
+        "description": "Disease prevention and health promotion guidance",
     },
-    'health_systems': {
-        'patterns': ['health_system', 'workforce', 'hta', 'ehr', 'ehds'],
-        'type': 'programme_guide',  # Use valid type
-        'description': 'Health systems and digital health guidance'
+    "health_systems": {
+        "patterns": ["health_system", "workforce", "hta", "ehr", "ehds"],
+        "type": "programme_guide",  # Use valid type
+        "description": "Health systems and digital health guidance",
     },
-    'digital_health': {
-        'patterns': ['digital', 'ehealth', 'telemedicine', 'data'],
-        'type': 'programme_guide',  # Use valid type
-        'description': 'Digital health and EHDS guidance'
+    "digital_health": {
+        "patterns": ["digital", "ehealth", "telemedicine", "data"],
+        "type": "programme_guide",  # Use valid type
+        "description": "Digital health and EHDS guidance",
     },
 }
 
 # EU4Health funding strands
 EU4HEALTH_STRANDS = {
-    'crisis': 'Crisis Preparedness',
-    'prevention': 'Disease Prevention & Health Promotion',
-    'health_systems': 'Health Systems & Workforce',
-    'digital': 'Digital Health',
+    "crisis": "Crisis Preparedness",
+    "prevention": "Disease Prevention & Health Promotion",
+    "health_systems": "Health Systems & Workforce",
+    "digital": "Digital Health",
 }
 
 
@@ -105,13 +110,13 @@ def detect_document_type(filename: str) -> tuple[str, str]:
     """
     filename_lower = filename.lower()
 
-    for doc_type, config in EU4HEALTH_DOCUMENT_TYPES.items():
-        for pattern in config['patterns']:
+    for _doc_type, config in EU4HEALTH_DOCUMENT_TYPES.items():
+        for pattern in config["patterns"]:
             if pattern in filename_lower:
-                return config['type'], config['description']
+                return config["type"], config["description"]
 
     # Default fallback
-    return 'guidance_document', 'EU4Health guidance document'
+    return "guidance_document", "EU4Health guidance document"
 
 
 def extract_year_from_filename(filename: str) -> str:
@@ -119,17 +124,17 @@ def extract_year_from_filename(filename: str) -> str:
     import re
 
     # Match years like 2021, 2022, 2023, 2024, 2025
-    year_match = re.search(r'20(2[1-7])', filename)
+    year_match = re.search(r"20(2[1-7])", filename)
     if year_match:
         return f"20{year_match.group(1)}"
 
     # Match c2024, c2023 patterns (Commission decision numbers)
-    c_year_match = re.search(r'c(202[1-7])', filename.lower())
+    c_year_match = re.search(r"c(202[1-7])", filename.lower())
     if c_year_match:
         return c_year_match.group(1)
 
     # Match year ranges like 2021-2027
-    range_match = re.search(r'(202[1-7])[-_](202[1-7])', filename)
+    range_match = re.search(r"(202[1-7])[-_](202[1-7])", filename)
     if range_match:
         return f"{range_match.group(1)}-{range_match.group(2)}"
 
@@ -141,16 +146,24 @@ def detect_strand(content_preview: str) -> list[str]:
     content_lower = content_preview.lower() if content_preview else ""
     strands = []
 
-    if any(kw in content_lower for kw in ['crisis', 'preparedness', 'emergency', 'resilience', 'antimicrobial', 'amr']):
-        strands.append('crisis')
-    if any(kw in content_lower for kw in ['prevention', 'cancer', 'ncd', 'screening', 'vaccination', 'hiv']):
-        strands.append('prevention')
-    if any(kw in content_lower for kw in ['health system', 'workforce', 'hta', 'shortage', 'medicines']):
-        strands.append('health_systems')
-    if any(kw in content_lower for kw in ['digital', 'ehealth', 'ehds', 'data', 'telemedicine']):
-        strands.append('digital')
+    if any(
+        kw in content_lower
+        for kw in ["crisis", "preparedness", "emergency", "resilience", "antimicrobial", "amr"]
+    ):
+        strands.append("crisis")
+    if any(
+        kw in content_lower
+        for kw in ["prevention", "cancer", "ncd", "screening", "vaccination", "hiv"]
+    ):
+        strands.append("prevention")
+    if any(
+        kw in content_lower for kw in ["health system", "workforce", "hta", "shortage", "medicines"]
+    ):
+        strands.append("health_systems")
+    if any(kw in content_lower for kw in ["digital", "ehealth", "ehds", "data", "telemedicine"]):
+        strands.append("digital")
 
-    return strands or ['general']
+    return strands or ["general"]
 
 
 def ingest_eu4health_documents(source_dir: str, dry_run: bool = False):
@@ -188,6 +201,7 @@ def ingest_eu4health_documents(source_dir: str, dry_run: bool = False):
     # Import ingestion service
     try:
         from app.services.ingestion_service import DocumentIngestionService
+
         ingestion_service = DocumentIngestionService()
     except ImportError as e:
         logger.error(f"Failed to import ingestion service: {e}")
@@ -195,7 +209,7 @@ def ingest_eu4health_documents(source_dir: str, dry_run: bool = False):
 
     # Check service status
     stats = ingestion_service.get_service_stats()
-    if not stats.get('supabase_connected', False):
+    if not stats.get("supabase_connected", False):
         logger.error("Supabase connection failed. Check DATABASE_URL and SUPABASE_KEY.")
         return False
 
@@ -230,10 +244,10 @@ def ingest_eu4health_documents(source_dir: str, dry_run: bool = False):
                     "ingested_by": "eu4health_ingestion_script",
                     "budget": "4.4 billion EUR (2021-2027)",
                     "implementing_agency": "HaDEA",
-                }
+                },
             )
 
-            if result.get('success'):
+            if result.get("success"):
                 logger.info(f"  SUCCESS: {pdf_file.name}")
                 logger.info(f"    Document ID: {result.get('document_id')}")
                 logger.info(f"    Chunks: {result.get('chunks_created')}")
@@ -272,19 +286,11 @@ def ingest_eu4health_documents(source_dir: str, dry_run: bool = False):
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Ingest EU4Health documents into RAG system"
-    )
+    parser = argparse.ArgumentParser(description="Ingest EU4Health documents into RAG system")
     parser.add_argument(
-        "--source-dir",
-        default="newdocs/eu4health",
-        help="Directory containing EU4Health PDFs"
+        "--source-dir", default="newdocs/eu4health", help="Directory containing EU4Health PDFs"
     )
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Don't commit to database"
-    )
+    parser.add_argument("--dry-run", action="store_true", help="Don't commit to database")
     args = parser.parse_args()
 
     logger.info("=" * 60)
@@ -298,8 +304,7 @@ def main():
     source_dir = args.source_dir
     if not os.path.isabs(source_dir):
         source_dir = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            source_dir
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), source_dir
         )
 
     logger.info(f"Source directory: {source_dir}")

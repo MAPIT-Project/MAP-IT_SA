@@ -33,6 +33,7 @@ def get_session_manager():
     if _session_manager is None:
         try:
             from ..services.proposal_session import ProposalSessionManager
+
             _session_manager = ProposalSessionManager()
             logger.info("✅ ProposalSessionManager initialized for V4 routes")
         except Exception as e:
@@ -47,9 +48,9 @@ def get_proposal_agent():
     if _proposal_agent is None:
         try:
             from ..services.agents import ProposalAwareAgent
+
             _proposal_agent = ProposalAwareAgent(
-                max_iterations=5,
-                session_manager=get_session_manager()
+                max_iterations=5, session_manager=get_session_manager()
             )
             logger.info("✅ ProposalAwareAgent initialized for V4 routes")
         except Exception as e:
@@ -62,8 +63,10 @@ def get_proposal_agent():
 # Request/Response Models
 # =============================================================================
 
+
 class CreateSessionRequest(BaseModel):
     """Request to create a new proposal session."""
+
     proposal_id: int = Field(..., description="Database ID of the proposal")
     call_id: str = Field(..., description="Funding call identifier")
     title: str = Field(..., description="Proposal title")
@@ -73,6 +76,7 @@ class CreateSessionRequest(BaseModel):
 
 class SessionResponse(BaseModel):
     """Response with session details."""
+
     session_id: str
     proposal_id: int
     call_id: str
@@ -87,20 +91,20 @@ class SessionResponse(BaseModel):
 
 class MessageRequest(BaseModel):
     """Request to send a message in a proposal session."""
+
     message: str = Field(..., description="User message")
-    section_context: str | None = Field(
-        default=None,
-        description="Optional section ID to focus on"
-    )
+    section_context: str | None = Field(default=None, description="Optional section ID to focus on")
 
 
 class SectionUpdateRequest(BaseModel):
     """Request to update section content."""
+
     content: str = Field(..., description="New section content")
 
 
 class SectionGenerateRequest(BaseModel):
     """Request to generate section content via AI."""
+
     guidance: str | None = Field(default=None, description="Guidance for generation")
     word_target: int = Field(default=500, description="Target word count")
     style: str = Field(default="formal", description="Writing style")
@@ -110,13 +114,9 @@ class SectionGenerateRequest(BaseModel):
 # Helper Functions
 # =============================================================================
 
+
 async def _ensure_proposal_exists(
-    manager,
-    proposal_id: int,
-    call_id: str,
-    title: str,
-    proposal_type: str,
-    user_id: str
+    manager, proposal_id: int, call_id: str, title: str, proposal_type: str, user_id: str
 ) -> int:
     """
     Ensure a proposal exists in the database, creating it if needed.
@@ -135,12 +135,10 @@ async def _ensure_proposal_exists(
     conn = manager.db_pool.getconn()
     try:
         from psycopg2.extras import RealDictCursor
+
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             # Check if proposal exists
-            cur.execute(
-                "SELECT id FROM proposals WHERE id = %s",
-                (proposal_id,)
-            )
+            cur.execute("SELECT id FROM proposals WHERE id = %s", (proposal_id,))
             existing = cur.fetchone()
 
             if existing:
@@ -157,7 +155,7 @@ async def _ensure_proposal_exists(
                 ) VALUES (%s, %s, %s, 'draft', %s, NOW(), NOW())
                 RETURNING id
                 """,
-                (call_id, title, proposal_type, user_id)
+                (call_id, title, proposal_type, user_id),
             )
             new_row = cur.fetchone()
             conn.commit()
@@ -178,10 +176,11 @@ async def _ensure_proposal_exists(
 # Session Management Endpoints
 # =============================================================================
 
+
 @router.post("/create", response_model=SessionResponse)
 async def create_session(
     request: CreateSessionRequest,
-    user_id: str = Query(default="default-user", description="User identifier")
+    user_id: str = Query(default="default-user", description="User identifier"),
 ):
     """
     Create a new proposal writing session.
@@ -202,7 +201,7 @@ async def create_session(
             call_id=request.call_id,
             title=request.title,
             proposal_type=request.proposal_type,
-            user_id=user_id
+            user_id=user_id,
         )
 
         session = await manager.create_session(
@@ -211,7 +210,7 @@ async def create_session(
             call_id=request.call_id,
             title=request.title,
             proposal_type=request.proposal_type,
-            conversation_id=request.conversation_id
+            conversation_id=request.conversation_id,
         )
 
         return SessionResponse(
@@ -224,12 +223,12 @@ async def create_session(
             completion_percentage=session.document.completion_percentage,
             total_words=session.document.total_words,
             sections={k: v.to_dict() for k, v in session.document.sections.items()},
-            created_at=session.created_at.isoformat()
+            created_at=session.created_at.isoformat(),
         )
 
     except Exception as e:
         logger.error(f"Failed to create session: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/{session_id}", response_model=SessionResponse)
@@ -254,14 +253,14 @@ async def get_session(session_id: str):
             completion_percentage=session.document.completion_percentage,
             total_words=session.document.total_words,
             sections={k: v.to_dict() for k, v in session.document.sections.items()},
-            created_at=session.created_at.isoformat()
+            created_at=session.created_at.isoformat(),
         )
 
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Failed to get session: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.delete("/{session_id}")
@@ -282,12 +281,13 @@ async def delete_session(session_id: str):
         raise
     except Exception as e:
         logger.error(f"Failed to delete session: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # =============================================================================
 # Chat Endpoints (SSE Streaming)
 # =============================================================================
+
 
 @router.post("/{session_id}/message/stream")
 async def send_message_stream(session_id: str, request: MessageRequest):
@@ -309,6 +309,7 @@ async def send_message_stream(session_id: str, request: MessageRequest):
     - complete: Final metadata
     - error: Error information
     """
+
     async def generate_stream():
         try:
             manager = get_session_manager()
@@ -334,11 +335,7 @@ async def send_message_stream(session_id: str, request: MessageRequest):
             logger.info(f"[V4] Processing message for session {session_id}")
 
             # Add user message to conversation
-            await manager.add_message(
-                session_id=session_id,
-                role="user",
-                content=request.message
-            )
+            await manager.add_message(session_id=session_id, role="user", content=request.message)
 
             yield f"data: {json.dumps({'type': 'status', 'stage': 'processing', 'message': 'Processing your request...'})}\n\n"
 
@@ -350,14 +347,14 @@ async def send_message_stream(session_id: str, request: MessageRequest):
                 query=request.message,
                 context=conversation_context,
                 proposal_context=proposal_context,
-                session_id=session_id
+                session_id=session_id,
             ):
-                event_type = event.get('type', '')
+                event_type = event.get("type", "")
 
                 # Handle section updates specially
-                if event_type == 'section_update':
-                    section_id = event.get('section_id')
-                    content = event.get('content', '')
+                if event_type == "section_update":
+                    section_id = event.get("section_id")
+                    content = event.get("content", "")
                     if section_id and content:
                         # Lock section during update
                         await manager.lock_section(session_id, section_id)
@@ -366,15 +363,15 @@ async def send_message_stream(session_id: str, request: MessageRequest):
                             session_id=session_id,
                             section_id=section_id,
                             content=content,
-                            source="ai"
+                            source="ai",
                         )
                         # Unlock section
                         await manager.unlock_section(session_id, section_id)
                         sections_affected.append(section_id)
 
                 # Capture final answer
-                if event_type == 'agent_complete':
-                    final_answer = event.get('result', {}).get('answer', '')
+                if event_type == "agent_complete":
+                    final_answer = event.get("result", {}).get("answer", "")
 
                 # Yield all events
                 yield f"data: {json.dumps(event)}\n\n"
@@ -385,7 +382,7 @@ async def send_message_stream(session_id: str, request: MessageRequest):
                     session_id=session_id,
                     role="assistant",
                     content=final_answer,
-                    sections_affected=sections_affected
+                    sections_affected=sections_affected,
                 )
 
             # Yield completion with updated session state
@@ -395,6 +392,7 @@ async def send_message_stream(session_id: str, request: MessageRequest):
         except Exception as e:
             logger.error(f"[V4] Error in streaming: {e}")
             import traceback
+
             traceback.print_exc()
             yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n"
 
@@ -405,7 +403,7 @@ async def send_message_stream(session_id: str, request: MessageRequest):
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
-        }
+        },
     )
 
 
@@ -438,46 +436,43 @@ async def send_message(session_id: str, request: MessageRequest):
             query=request.message,
             context=conversation_context,
             proposal_context=proposal_context,
-            session_id=session_id
+            session_id=session_id,
         )
 
         # Add assistant message
         await manager.add_message(
             session_id,
             "assistant",
-            result.get('answer', ''),
-            sections_affected=result.get('sections_affected', [])
+            result.get("answer", ""),
+            sections_affected=result.get("sections_affected", []),
         )
 
         return {
-            "response": result.get('answer', ''),
-            "sections_affected": result.get('sections_affected', []),
-            "tools_used": result.get('sources_used', []),
-            "confidence": result.get('confidence', 0),
+            "response": result.get("answer", ""),
+            "sections_affected": result.get("sections_affected", []),
+            "tools_used": result.get("sources_used", []),
+            "confidence": result.get("confidence", 0),
             "metadata": {
                 "architecture": "proposal_aware_v4",
-                "iterations": result.get('iterations', 0),
-                "proposal_intent": result.get('proposal_intent')
-            }
+                "iterations": result.get("iterations", 0),
+                "proposal_intent": result.get("proposal_intent"),
+            },
         }
 
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"[V4] Error in send_message: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # =============================================================================
 # Section Endpoints
 # =============================================================================
 
+
 @router.patch("/{session_id}/section/{section_id}")
-async def update_section(
-    session_id: str,
-    section_id: str,
-    request: SectionUpdateRequest
-):
+async def update_section(session_id: str, section_id: str, request: SectionUpdateRequest):
     """
     Update section content directly (user edit).
 
@@ -487,47 +482,38 @@ async def update_section(
         manager = get_session_manager()
 
         section = await manager.update_section_content(
-            session_id=session_id,
-            section_id=section_id,
-            content=request.content,
-            source="user"
+            session_id=session_id, section_id=section_id, content=request.content, source="user"
         )
 
         if not section:
-            raise HTTPException(
-                status_code=400,
-                detail="Failed to update section (may be locked)"
-            )
+            raise HTTPException(status_code=400, detail="Failed to update section (may be locked)")
 
         return {
             "success": True,
             "section_id": section_id,
             "word_count": section.word_count,
             "status": section.status.value,
-            "quality_score": section.quality_score
+            "quality_score": section.quality_score,
         }
 
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Failed to update section: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/{session_id}/section/{section_id}/generate")
-async def generate_section(
-    session_id: str,
-    section_id: str,
-    request: SectionGenerateRequest
-):
+async def generate_section(session_id: str, section_id: str, request: SectionGenerateRequest):
     """
     Generate AI content for a section (SSE streaming).
 
     Locks the section during generation to prevent conflicts.
     """
+
     async def generate_stream():
         manager = get_session_manager()
-        agent = get_proposal_agent()
+        get_proposal_agent()
 
         try:
             session = await manager.get_session(session_id)
@@ -546,6 +532,7 @@ async def generate_section(
             try:
                 # Use the agent's tool directly
                 from ..services.tools.proposal_tools import get_proposal_tool_executor
+
                 executor = get_proposal_tool_executor(session_manager=manager)
 
                 result = await executor.execute_tool(
@@ -555,20 +542,17 @@ async def generate_section(
                         "call_id": session.document.call_id,
                         "guidance": request.guidance,
                         "word_target": request.word_target,
-                        "style": request.style
+                        "style": request.style,
                     },
                     session_id=session_id,
-                    proposal_context=session.get_context_for_agent()
+                    proposal_context=session.get_context_for_agent(),
                 )
 
                 content = result.get("content", "")
 
                 # Update section with generated content
                 await manager.update_section_content(
-                    session_id=session_id,
-                    section_id=section_id,
-                    content=content,
-                    source="ai"
+                    session_id=session_id, section_id=section_id, content=content, source="ai"
                 )
 
                 yield f"data: {json.dumps({'type': 'content', 'section_id': section_id, 'content': content})}\n\n"
@@ -584,7 +568,7 @@ async def generate_section(
             # Ensure unlock on error
             try:
                 await manager.unlock_section(session_id, section_id)
-            except:
+            except Exception:
                 pass
 
     return StreamingResponse(
@@ -594,7 +578,7 @@ async def generate_section(
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
-        }
+        },
     )
 
 
@@ -613,21 +597,20 @@ async def evaluate_section(session_id: str, section_id: str):
             raise HTTPException(status_code=404, detail="Session not found")
 
         from ..services.tools.proposal_tools import get_proposal_tool_executor
+
         executor = get_proposal_tool_executor(session_manager=manager)
 
         result = await executor.execute_tool(
             tool_name="evaluate_section",
             parameters={"section_id": section_id, "evaluation_type": "detailed"},
             session_id=session_id,
-            proposal_context=session.get_context_for_agent()
+            proposal_context=session.get_context_for_agent(),
         )
 
         # Update section score in session
         if result.get("evaluated") and result.get("score") is not None:
             await manager.update_section_score(
-                session_id=session_id,
-                section_id=section_id,
-                score=result["score"]
+                session_id=session_id, section_id=section_id, score=result["score"]
             )
 
         return result
@@ -636,7 +619,7 @@ async def evaluate_section(session_id: str, section_id: str):
         raise
     except Exception as e:
         logger.error(f"Section evaluation failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/{session_id}/section/{section_id}/analyze-gaps")
@@ -652,13 +635,14 @@ async def analyze_section_gaps(session_id: str, section_id: str):
             raise HTTPException(status_code=404, detail="Session not found")
 
         from ..services.tools.proposal_tools import get_proposal_tool_executor
+
         executor = get_proposal_tool_executor(session_manager=manager)
 
         result = await executor.execute_tool(
             tool_name="analyze_gaps",
             parameters={"section_id": section_id, "include_fixes": True},
             session_id=session_id,
-            proposal_context=session.get_context_for_agent()
+            proposal_context=session.get_context_for_agent(),
         )
 
         return result
@@ -667,12 +651,13 @@ async def analyze_section_gaps(session_id: str, section_id: str):
         raise
     except Exception as e:
         logger.error(f"Gap analysis failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # =============================================================================
 # Navigation & Focus
 # =============================================================================
+
 
 @router.post("/{session_id}/focus/{section_id}")
 async def focus_section(session_id: str, section_id: str):
@@ -694,23 +679,20 @@ async def focus_section(session_id: str, section_id: str):
         raise
     except Exception as e:
         logger.error(f"Failed to focus section: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # =============================================================================
 # Health Check
 # =============================================================================
 
+
 @router.get("/health")
 async def health_check():
     """
     Health check for the V4 proposal session system.
     """
-    components = {
-        "session_manager": False,
-        "proposal_agent": False,
-        "database": False
-    }
+    components = {"session_manager": False, "proposal_agent": False, "database": False}
     errors = {}
 
     # Test session manager
@@ -745,5 +727,5 @@ async def health_check():
         "architecture": "proposal_aware_v4",
         "components": components,
         "errors": errors if errors else None,
-        "timestamp": datetime.now(UTC).isoformat()
+        "timestamp": datetime.now(UTC).isoformat(),
     }

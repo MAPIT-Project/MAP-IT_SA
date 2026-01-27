@@ -28,6 +28,7 @@ api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 class UserRole:
     """Available user roles."""
+
     ADMIN = "admin"
     RESEARCHER = "researcher"
     VIEWER = "viewer"
@@ -36,6 +37,7 @@ class UserRole:
 
 class TokenPayload(BaseModel):
     """JWT token payload."""
+
     sub: str  # User ID
     email: str | None = None
     roles: list[str] = Field(default_factory=list)
@@ -47,6 +49,7 @@ class TokenPayload(BaseModel):
 
 class User(BaseModel):
     """Authenticated user model."""
+
     id: str
     email: str | None = None
     roles: list[str] = Field(default_factory=list)
@@ -66,7 +69,9 @@ class AuthService:
 
         # Warn if using default secret in production
         if os.getenv("JWT_SECRET_KEY") is None:
-            logger.warning("JWT_SECRET_KEY not set - using generated secret. Set this in production!")
+            logger.warning(
+                "JWT_SECRET_KEY not set - using generated secret. Set this in production!"
+            )
 
     def create_access_token(
         self,
@@ -75,7 +80,7 @@ class AuthService:
         roles: list[str] | None = None,
         organization_id: str | None = None,
         tier: str = "free",
-        expires_delta: timedelta | None = None
+        expires_delta: timedelta | None = None,
     ) -> str:
         """Create JWT access token."""
         expires = datetime.now(UTC) + (expires_delta or self.access_token_expire)
@@ -88,7 +93,7 @@ class AuthService:
             "tier": tier,
             "exp": expires,
             "iat": datetime.now(UTC),
-            "type": "access"
+            "type": "access",
         }
 
         return jwt.encode(payload, self.secret_key, algorithm=self.algorithm)
@@ -97,23 +102,14 @@ class AuthService:
         """Create refresh token for token renewal."""
         expires = datetime.now(UTC) + self.refresh_token_expire
 
-        payload = {
-            "sub": user_id,
-            "exp": expires,
-            "iat": datetime.now(UTC),
-            "type": "refresh"
-        }
+        payload = {"sub": user_id, "exp": expires, "iat": datetime.now(UTC), "type": "refresh"}
 
         return jwt.encode(payload, self.secret_key, algorithm=self.algorithm)
 
     def verify_token(self, token: str, token_type: str = "access") -> TokenPayload:
         """Verify and decode JWT token."""
         try:
-            payload = jwt.decode(
-                token,
-                self.secret_key,
-                algorithms=[self.algorithm]
-            )
+            payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
 
             # Verify token type
             if payload.get("type") != token_type:
@@ -126,21 +122,21 @@ class AuthService:
                 org_id=payload.get("org_id"),
                 tier=payload.get("tier", "free"),
                 exp=datetime.fromtimestamp(payload["exp"]),
-                iat=datetime.fromtimestamp(payload["iat"])
+                iat=datetime.fromtimestamp(payload["iat"]),
             )
 
-        except ExpiredSignatureError:
+        except ExpiredSignatureError as e:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token has expired",
-                headers={"WWW-Authenticate": "Bearer"}
-            )
+                headers={"WWW-Authenticate": "Bearer"},
+            ) from e
         except InvalidTokenError as e:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail=f"Invalid token: {str(e)}",
-                headers={"WWW-Authenticate": "Bearer"}
-            )
+                headers={"WWW-Authenticate": "Bearer"},
+            ) from e
 
     def refresh_access_token(self, refresh_token: str) -> dict[str, str]:
         """Refresh an access token using a refresh token."""
@@ -152,18 +148,12 @@ class AuthService:
             # Note: In production, fetch fresh user data from database
         )
 
-        return {
-            "access_token": new_access_token,
-            "token_type": "bearer"
-        }
+        return {"access_token": new_access_token, "token_type": "bearer"}
 
     def decode_token_unsafe(self, token: str) -> dict[str, Any] | None:
         """Decode token without verification (for debugging only)."""
         try:
-            return jwt.decode(
-                token,
-                options={"verify_signature": False}
-            )
+            return jwt.decode(token, options={"verify_signature": False})
         except Exception:
             return None
 
@@ -195,7 +185,7 @@ class APIKeyValidator:
                 "user_id": "api_user_static",
                 "roles": [UserRole.API_USER],
                 "tier": "basic",
-                "org_id": None
+                "org_id": None,
             }
 
     def validate(self, api_key: str) -> User | None:
@@ -207,7 +197,7 @@ class APIKeyValidator:
                 roles=key_data["roles"],
                 tier=key_data["tier"],
                 organization_id=key_data.get("org_id"),
-                is_authenticated=True
+                is_authenticated=True,
             )
         return None
 
@@ -227,7 +217,7 @@ def get_api_key_validator() -> APIKeyValidator:
 async def get_current_user(
     request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
-    api_key: str | None = Depends(api_key_header)
+    api_key: str | None = Depends(api_key_header),
 ) -> User:
     """
     Get current authenticated user from JWT token or API key.
@@ -253,7 +243,7 @@ async def get_current_user(
                 roles=payload.roles,
                 organization_id=payload.org_id,
                 tier=payload.tier,
-                is_authenticated=True
+                is_authenticated=True,
             )
             request.state.user = user
             return user
@@ -264,14 +254,14 @@ async def get_current_user(
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Not authenticated",
-        headers={"WWW-Authenticate": "Bearer"}
+        headers={"WWW-Authenticate": "Bearer"},
     )
 
 
 async def get_current_user_optional(
     request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
-    api_key: str | None = Depends(api_key_header)
+    api_key: str | None = Depends(api_key_header),
 ) -> User | None:
     """
     Get current user if authenticated, otherwise return None.
@@ -282,12 +272,7 @@ async def get_current_user_optional(
         return await get_current_user(request, credentials, api_key)
     except HTTPException:
         # Create anonymous user
-        anonymous = User(
-            id="anonymous",
-            roles=[],
-            tier="free",
-            is_authenticated=False
-        )
+        anonymous = User(id="anonymous", roles=[], tier="free", is_authenticated=False)
         request.state.user = anonymous
         return anonymous
 
@@ -301,13 +286,15 @@ def require_roles(required_roles: list[str]):
         async def admin_stats(user: User = Depends(require_roles(["admin"]))):
             ...
     """
+
     async def role_checker(user: User = Depends(get_current_user)) -> User:
         if not any(role in user.roles for role in required_roles):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Requires one of: {', '.join(required_roles)}"
+                detail=f"Requires one of: {', '.join(required_roles)}",
             )
         return user
+
     return role_checker
 
 
@@ -330,10 +317,10 @@ def require_tier(min_tier: str):
 
         if user_level < required_level:
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Requires {min_tier} tier or higher"
+                status_code=status.HTTP_403_FORBIDDEN, detail=f"Requires {min_tier} tier or higher"
             )
         return user
+
     return tier_checker
 
 
@@ -364,7 +351,7 @@ class AuthMiddleware:
                     roles=payload.roles,
                     organization_id=payload.org_id,
                     tier=payload.tier,
-                    is_authenticated=True
+                    is_authenticated=True,
                 )
             except Exception:
                 # Invalid token - user remains unauthenticated
@@ -376,15 +363,19 @@ class AuthMiddleware:
 # Route decorators for convenience
 def authenticated(func):
     """Decorator to require authentication on a route."""
+
     @wraps(func)
     async def wrapper(*args, user: User = Depends(get_current_user), **kwargs):
         return await func(*args, user=user, **kwargs)
+
     return wrapper
 
 
 def admin_only(func):
     """Decorator to require admin role."""
+
     @wraps(func)
     async def wrapper(*args, user: User = Depends(require_roles([UserRole.ADMIN])), **kwargs):
         return await func(*args, user=user, **kwargs)
+
     return wrapper

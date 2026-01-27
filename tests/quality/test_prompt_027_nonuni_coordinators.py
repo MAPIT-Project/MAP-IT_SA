@@ -46,9 +46,7 @@ import httpx
 import pytest
 
 # Add project root to path
-sys.path.insert(
-    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 # API configuration
 API_BASE_URL = os.getenv("MAP_IT_API_URL", "http://localhost:8000")
@@ -400,9 +398,7 @@ class EvaluationResult:
 def check_api_available() -> bool:
     """Check if the API is available."""
     try:
-        response = httpx.get(
-            f"{API_BASE_URL}/api/v3/conversation/health", timeout=5.0
-        )
+        response = httpx.get(f"{API_BASE_URL}/api/v3/conversation/health", timeout=5.0)
         return response.status_code == 200
     except Exception:
         return False
@@ -415,9 +411,7 @@ live_api = pytest.mark.skipif(
 )
 
 
-def get_mapit_response(
-    query: str, conversation_id: int | None = None
-) -> dict[str, Any]:
+def get_mapit_response(query: str, conversation_id: int | None = None) -> dict[str, Any]:
     """
     Send a query to MAPIT and get the response.
 
@@ -488,9 +482,7 @@ def count_organizations_mentioned(response: str) -> int:
 
     # Count organizations with coordination patterns
     org_with_stats_pattern = r"(?:^|\n)\s*(?:-|\*|\d+\.)\s*\*?\*?[A-Z][A-Z\s\-]+\*?\*?"
-    org_with_stats_matches = len(
-        re.findall(org_with_stats_pattern, response, re.IGNORECASE)
-    )
+    org_with_stats_matches = len(re.findall(org_with_stats_pattern, response, re.IGNORECASE))
 
     # Count known non-uni research org mentions
     nonuni_count = 0
@@ -500,8 +492,7 @@ def count_organizations_mentioned(response: str) -> int:
 
     # Use highest count from different methods
     org_count = max(
-        numbered_matches, table_org_count, bullet_matches,
-        org_with_stats_matches, nonuni_count
+        numbered_matches, table_org_count, bullet_matches, org_with_stats_matches, nonuni_count
     )
 
     return min(org_count, 15)
@@ -575,9 +566,7 @@ def check_for_universities(response: str) -> list[str]:
                     # Extract the organization name
                     org_match = re.search(r"\*\*([^*]+)\*\*", line)
                     if org_match:
-                        universities_found.append(
-                            f"University: {org_match.group(1)}"
-                        )
+                        universities_found.append(f"University: {org_match.group(1)}")
                     else:
                         universities_found.append(
                             f"University keyword '{keyword}' in: {line[:50]}..."
@@ -614,18 +603,12 @@ def check_for_nonuni_orgs(response: str) -> tuple[int, list[str]]:
 
     # Check for known non-uni research organizations
     for keyword in NONUNI_RESEARCH_KEYWORDS[:30]:
-        if (
-            keyword.lower() in response_lower
-            and keyword.lower() not in ["rec", "(rec)"]
-        ):
+        if keyword.lower() in response_lower and keyword.lower() not in ["rec", "(rec)"]:
             nonuni_orgs_found.append(f"Research org: {keyword}")
 
     # Check for company indicators
     for keyword in COMPANY_KEYWORDS[:15]:
-        if (
-            keyword.lower() in response_lower
-            and keyword.lower() not in ["prc", "(prc)"]
-        ):
+        if keyword.lower() in response_lower and keyword.lower() not in ["prc", "(prc)"]:
             nonuni_orgs_found.append(f"Company: {keyword}")
 
     return len(set(nonuni_orgs_found)), list(set(nonuni_orgs_found))
@@ -706,12 +689,10 @@ def evaluate_query_fulfillment(response: str) -> tuple[int, str, list[str], list
 
     # Check for coordination statistics (10 points)
     has_coord_count = any(
-        re.search(pat, response_lower)
-        for pat in COORDINATOR_PATTERNS["coordination_count"]
+        re.search(pat, response_lower) for pat in COORDINATOR_PATTERNS["coordination_count"]
     )
     has_coord_role = any(
-        indicator in response_lower
-        for indicator in COORDINATOR_PATTERNS["coordinator_role"]
+        indicator in response_lower for indicator in COORDINATOR_PATTERNS["coordinator_role"]
     )
 
     stats_score = 0
@@ -793,19 +774,11 @@ def evaluate_specificity(response: str) -> tuple[int, str]:
         notes.append("No organization type indicators")
 
     # Coordination counts (6 points)
-    coord_numbers = re.findall(
-        r"\d+\s*(?:project|coordination|coordinated)", response_lower
-    )
-    coord_numbers += re.findall(
-        r"(?:project|coordination)[s]?\s*[\:]\s*\d+", response_lower
-    )
+    coord_numbers = re.findall(r"\d+\s*(?:project|coordination|coordinated)", response_lower)
+    coord_numbers += re.findall(r"(?:project|coordination)[s]?\s*[\:]\s*\d+", response_lower)
     coord_numbers += re.findall(r"\d+\s+as\s+coordinator", response_lower)
-    coord_numbers += re.findall(
-        r"projects?\s*coordinated\s*[\*:]*\s*\d+", response_lower
-    )
-    coord_numbers += re.findall(
-        r"coordinations?\s*[\|:]\s*\d+", response_lower
-    )
+    coord_numbers += re.findall(r"projects?\s*coordinated\s*[\*:]*\s*\d+", response_lower)
+    coord_numbers += re.findall(r"coordinations?\s*[\|:]\s*\d+", response_lower)
     # Table format: "Projects Coordinated (HE) | 242" or "| 242 |"
     # Look for table header mentioning coordinated and count subsequent numbers
     if "coordinated" in response_lower and "|" in response:
@@ -830,9 +803,7 @@ def evaluate_specificity(response: str) -> tuple[int, str]:
         r"\d+[\.,]\d+\s*(?:m(?:illion)?|bn|billion)",
         r"\d+\s*(?:m(?:illion)?|bn|billion)",
     ]
-    budget_matches = sum(
-        len(re.findall(pat, response, re.IGNORECASE)) for pat in budget_patterns
-    )
+    budget_matches = sum(len(re.findall(pat, response, re.IGNORECASE)) for pat in budget_patterns)
 
     if budget_matches >= 5:
         score += 5
@@ -847,9 +818,7 @@ def evaluate_specificity(response: str) -> tuple[int, str]:
 
     return (
         score,
-        "; ".join(notes)
-        if notes
-        else "Good specificity with non-university coordinator details",
+        "; ".join(notes) if notes else "Good specificity with non-university coordinator details",
     )
 
 
@@ -941,8 +910,7 @@ def evaluate_factual_accuracy(
                 errors.append(
                     {
                         "claim": f"Coordination count {value} seems too high",
-                        "correct_value": "Top RTOs typically coordinate 50-300 "
-                        "projects in HE",
+                        "correct_value": "Top RTOs typically coordinate 50-300 projects in HE",
                         "source": "Statistics validation",
                     }
                 )
@@ -1020,9 +988,7 @@ def evaluate_actionability(response: str) -> tuple[int, str]:
     )
 
 
-def evaluate_response(
-    response: str, response_metadata: dict[str, Any]
-) -> EvaluationResult:
+def evaluate_response(response: str, response_metadata: dict[str, Any]) -> EvaluationResult:
     """
     Perform full evaluation of the response.
 
@@ -1047,9 +1013,7 @@ def evaluate_response(
     actionability_score, actionability_notes = evaluate_actionability(response)
 
     # Calculate overall score
-    overall_score = (
-        fulfillment_score + specificity_score + accuracy_score + actionability_score
-    )
+    overall_score = fulfillment_score + specificity_score + accuracy_score + actionability_score
 
     # Determine result
     if overall_score >= PASS_THRESHOLD:
@@ -1227,9 +1191,7 @@ class TestPrompt027NonUniCoordinators:
         """Verify the response excludes universities (informational)."""
         results_file = RESULTS_DIR / "prompt_027_nonuni_coordinators.json"
         if not results_file.exists():
-            pytest.skip(
-                "Run test_evaluate_nonuni_coordinators first to generate results"
-            )
+            pytest.skip("Run test_evaluate_nonuni_coordinators first to generate results")
 
         with open(results_file) as f:
             result = json.load(f)
@@ -1256,9 +1218,7 @@ class TestPrompt027OfflineEvaluation:
             SampleResponses.EXCELLENT_NONUNI_COORDINATORS, {"source": "sample_excellent"}
         )
 
-        results_file = (
-            RESULTS_DIR / "prompt_027_nonuni_coordinators_sample_excellent.json"
-        )
+        results_file = RESULTS_DIR / "prompt_027_nonuni_coordinators_sample_excellent.json"
         save_result(evaluation, results_file)
 
         print("\nExcellent Response Evaluation:")
@@ -1266,8 +1226,7 @@ class TestPrompt027OfflineEvaluation:
         print(f"  Result: {evaluation.result}")
 
         assert evaluation.overall_score >= PASS_THRESHOLD, (
-            f"Excellent response scored {evaluation.overall_score}, "
-            f"expected >= {PASS_THRESHOLD}"
+            f"Excellent response scored {evaluation.overall_score}, expected >= {PASS_THRESHOLD}"
         )
         assert evaluation.result == "PASS"
 
@@ -1282,8 +1241,7 @@ class TestPrompt027OfflineEvaluation:
         print(f"  Result: {evaluation.result}")
 
         assert evaluation.overall_score < PASS_THRESHOLD, (
-            f"Partial response scored {evaluation.overall_score}, "
-            f"expected < {PASS_THRESHOLD}"
+            f"Partial response scored {evaluation.overall_score}, expected < {PASS_THRESHOLD}"
         )
 
     def test_response_with_universities_fails(self):
@@ -1313,8 +1271,7 @@ class TestPrompt027OfflineEvaluation:
         print(f"  Result: {evaluation.result}")
 
         assert evaluation.overall_score < NEEDS_REVIEW_THRESHOLD, (
-            f"Poor response scored {evaluation.overall_score}, "
-            f"expected < {NEEDS_REVIEW_THRESHOLD}"
+            f"Poor response scored {evaluation.overall_score}, expected < {NEEDS_REVIEW_THRESHOLD}"
         )
         assert evaluation.result == "FAIL"
 

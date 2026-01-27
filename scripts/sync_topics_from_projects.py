@@ -21,29 +21,36 @@ from dotenv import load_dotenv
 # Load environment
 load_dotenv()
 
+
 def get_db_connection():
-    return psycopg2.connect(os.environ['DATABASE_URL'])
+    return psycopg2.connect(os.environ["DATABASE_URL"])
 
 
 def get_topics_from_projects(conn):
     """Extract all unique topics from funded projects."""
     cur = conn.cursor()
 
-    cur.execute('''
+    cur.execute(
+        """
         SELECT DISTINCT topics
         FROM projects
         WHERE topics IS NOT NULL
         AND topics != ''
         AND "frameworkProgramme" = 'HORIZON'
-    ''')
+    """
+    )
 
     all_topics = set()
     for row in cur.fetchall():
         topics_str = row[0]
         if topics_str:
-            for t in topics_str.replace(';', ',').split(','):
+            for t in topics_str.replace(";", ",").split(","):
                 t = t.strip()
-                if t and (t.upper().startswith('HORIZON') or t.upper().startswith('ERC-') or t.upper().startswith('EIC-')):
+                if t and (
+                    t.upper().startswith("HORIZON")
+                    or t.upper().startswith("ERC-")
+                    or t.upper().startswith("EIC-")
+                ):
                     all_topics.add(t)
 
     return all_topics
@@ -52,7 +59,7 @@ def get_topics_from_projects(conn):
 def get_existing_topics(conn):
     """Get topics already in funding_calls."""
     cur = conn.cursor()
-    cur.execute('SELECT topic_code FROM funding_calls')
+    cur.execute("SELECT topic_code FROM funding_calls")
     return set(r[0].upper() for r in cur.fetchall() if r[0])
 
 
@@ -76,7 +83,7 @@ def parse_topic_data(topic_data, topic_id):
 
     # Extract deadline and status
     deadline = None
-    status = 'closed'  # Default for historical topics
+    status = "closed"  # Default for historical topics
     actions = topic_data.get("actions", [])
 
     if actions and isinstance(actions, list) and len(actions) > 0:
@@ -144,11 +151,11 @@ def parse_topic_data(topic_data, topic_id):
 
     # Year
     call_year = None
-    year_match = re.search(r'-(\d{4})-', identifier)
+    year_match = re.search(r"-(\d{4})-", identifier)
     if year_match:
         call_year = int(year_match.group(1))
     else:
-        year_match = re.match(r'ERC-(\d{4})', identifier)
+        year_match = re.match(r"ERC-(\d{4})", identifier)
         if year_match:
             call_year = int(year_match.group(1))
 
@@ -164,14 +171,15 @@ def parse_topic_data(topic_data, topic_id):
         "cluster": cluster,
         "call_year": call_year,
         "call_identifier": topic_data.get("callIdentifier"),
-        "portal_url": f"https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/{topic_id.lower()}"
+        "portal_url": f"https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/{topic_id.lower()}",
     }
 
 
 def upsert_topic(conn, data):
     """Insert or update topic in database."""
     cur = conn.cursor()
-    cur.execute('''
+    cur.execute(
+        """
         INSERT INTO funding_calls (
             programme, topic_code, title, scope, expected_outcome,
             deadline, status, action_type, budget_total, cluster,
@@ -191,11 +199,22 @@ def upsert_topic(conn, data):
             call_year = COALESCE(EXCLUDED.call_year, funding_calls.call_year),
             call_identifier = COALESCE(EXCLUDED.call_identifier, funding_calls.call_identifier),
             updated_at = NOW()
-    ''', (
-        data["topic_code"], data["title"], data["scope"], data["expected_outcome"],
-        data["deadline"], data["status"], data["action_type"], data["budget_total"],
-        data["cluster"], data["call_year"], data["call_identifier"], data["portal_url"]
-    ))
+    """,
+        (
+            data["topic_code"],
+            data["title"],
+            data["scope"],
+            data["expected_outcome"],
+            data["deadline"],
+            data["status"],
+            data["action_type"],
+            data["budget_total"],
+            data["cluster"],
+            data["call_year"],
+            data["call_identifier"],
+            data["portal_url"],
+        ),
+    )
     conn.commit()
 
 
@@ -255,11 +274,13 @@ def main():
     print("\n4. Final statistics:")
     cur = conn.cursor()
 
-    cur.execute('SELECT COUNT(*) FROM funding_calls')
+    cur.execute("SELECT COUNT(*) FROM funding_calls")
     total = cur.fetchone()[0]
     print(f"   Total calls in database: {total}")
 
-    cur.execute('SELECT call_year, COUNT(*) FROM funding_calls WHERE call_year IS NOT NULL GROUP BY call_year ORDER BY call_year')
+    cur.execute(
+        "SELECT call_year, COUNT(*) FROM funding_calls WHERE call_year IS NOT NULL GROUP BY call_year ORDER BY call_year"
+    )
     print("\n   By year:")
     for y, c in cur.fetchall():
         print(f"     {y}: {c}")

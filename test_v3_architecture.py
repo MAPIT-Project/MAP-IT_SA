@@ -32,43 +32,45 @@ async def test_v3_streaming():
         conversation_id=conversation_id,
         user_message="Show me AI funding calls",
         user_id=1,
-        streaming=True
+        streaming=True,
     )
 
     # Collect streaming events
     events = []
     async for event in result:
         events.append(event)
-        event_type = event.get('type', 'unknown')
+        event_type = event.get("type", "unknown")
 
-        if event_type == 'status':
+        if event_type == "status":
             print(f"  📊 STATUS: {event.get('stage')} - {event.get('message')}")
-        elif event_type == 'agent_thinking':
-            print(f"  🧠 THINKING (iter {event.get('iteration')}): {event.get('thought', '')[:60]}...")
-        elif event_type == 'tool_call':
+        elif event_type == "agent_thinking":
+            print(
+                f"  🧠 THINKING (iter {event.get('iteration')}): {event.get('thought', '')[:60]}..."
+            )
+        elif event_type == "tool_call":
             print(f"  🔧 TOOL CALL: {event.get('tool_name')} (iter {event.get('iteration')})")
-        elif event_type == 'tool_result':
+        elif event_type == "tool_result":
             print(f"  ✅ TOOL RESULT: {event.get('result_summary', '')[:60]}...")
-        elif event_type == 'token':
+        elif event_type == "token":
             pass  # Don't print every token
-        elif event_type == 'complete':
-            meta = event.get('metadata', {})
+        elif event_type == "complete":
+            meta = event.get("metadata", {})
             print("\n  🏁 COMPLETE:")
             print(f"     Architecture: {meta.get('architecture')}")
             print(f"     Iterations: {meta.get('iterations')}")
             print(f"     Tools: {meta.get('tools_used')}")
             print(f"     Time: {meta.get('processing_time_ms', 0):.0f}ms")
-        elif event_type == 'error':
+        elif event_type == "error":
             print(f"  ❌ ERROR: {event.get('error')}")
 
     # Collect response from tokens
-    response_text = ''.join([e.get('content', '') for e in events if e.get('type') == 'token'])
+    response_text = "".join([e.get("content", "") for e in events if e.get("type") == "token"])
     print(f"\n📝 Response ({len(response_text)} chars): {response_text[:200]}...")
 
     # Validate
-    has_complete = any(e.get('type') == 'complete' for e in events)
-    has_tokens = any(e.get('type') == 'token' for e in events)
-    is_v3 = any(e.get('metadata', {}).get('architecture') == 'simplified_v3' for e in events)
+    has_complete = any(e.get("type") == "complete" for e in events)
+    has_tokens = any(e.get("type") == "token" for e in events)
+    is_v3 = any(e.get("metadata", {}).get("architecture") == "simplified_v3" for e in events)
 
     success = has_complete and has_tokens and is_v3
     print(f"\n{'✅ STREAMING TEST PASSED' if success else '❌ STREAMING TEST FAILED'}")
@@ -99,19 +101,20 @@ async def test_v3_architecture():
         conversation_id=conversation_id,
         user_message="Tell me about funding opportunities in clean energy research",
         user_id=user_id,
-        streaming=False
+        streaming=False,
     )
 
     print("\n📊 Response 1:")
     print(f"   Architecture: {response1.get('metadata', {}).get('architecture', 'unknown')}")
     print(f"   Iterations: {response1.get('metadata', {}).get('iterations', 0)}")
     print(f"   Tools used: {response1.get('metadata', {}).get('tools_used', [])}")
-    answer1 = response1.get('response', '')
+    answer1 = response1.get("response", "")
     print(f"   Answer length: {len(answer1)} chars")
     print(f"   Answer preview: {answer1[:300]}...")
 
     # Wait for memory to persist
     import time
+
     time.sleep(0.5)
 
     # Test 2: Follow-up complaint
@@ -123,30 +126,31 @@ async def test_v3_architecture():
     recent = manager._get_recent_messages_simple(conversation_id, limit=5)
     print(f"\n📋 Memory before test 2: {len(recent)} messages")
     for msg in recent[:3]:
-        sender = msg.get('sender', 'unknown')
-        text = msg.get('text', '')[:60]
+        sender = msg.get("sender", "unknown")
+        text = msg.get("text", "")[:60]
         print(f"   - {sender}: {text}...")
 
     response2 = await manager.process_message_v3(
         conversation_id=conversation_id,
         user_message="you just gave me 1 call wtf",
         user_id=user_id,
-        streaming=False
+        streaming=False,
     )
 
     print("\n📊 Response 2:")
     print(f"   Architecture: {response2.get('metadata', {}).get('architecture', 'unknown')}")
     print(f"   Iterations: {response2.get('metadata', {}).get('iterations', 0)}")
     print(f"   Tools used: {response2.get('metadata', {}).get('tools_used', [])}")
-    answer2 = response2.get('response', '')
+    answer2 = response2.get("response", "")
     print(f"   Answer length: {len(answer2)} chars")
     print(f"   Answer preview: {answer2[:300]}...")
 
     # Validate test 2 - should search for more clean energy calls
     import re
-    horizon_calls = re.findall(r'HORIZON-[A-Z0-9-]+', answer2, re.IGNORECASE)
+
+    horizon_calls = re.findall(r"HORIZON-[A-Z0-9-]+", answer2, re.IGNORECASE)
     unique_calls = set(horizon_calls)
-    clean_energy_terms = ['clean', 'energy', 'climate', 'renewable', 'hydrogen', 'battery']
+    clean_energy_terms = ["clean", "energy", "climate", "renewable", "hydrogen", "battery"]
     mentioned_terms = [t for t in clean_energy_terms if t.lower() in answer2.lower()]
 
     print("\n✅ VALIDATION:")
@@ -163,22 +167,22 @@ async def test_v3_architecture():
             conversation_id=conversation_id,
             user_message="tell me more about the first one",
             user_id=user_id,
-            streaming=False
+            streaming=False,
         )
 
         print("\n📊 Response 3:")
         print(f"   Architecture: {response3.get('metadata', {}).get('architecture', 'unknown')}")
         print(f"   Iterations: {response3.get('metadata', {}).get('iterations', 0)}")
-        answer3 = response3.get('response', '')
+        answer3 = response3.get("response", "")
         print(f"   Answer length: {len(answer3)} chars")
         print(f"   Answer preview: {answer3[:300]}...")
 
     # Non-streaming verdict
     non_streaming_success = (
-        response1.get('metadata', {}).get('architecture') == 'simplified_v3' and
-        response2.get('metadata', {}).get('architecture') == 'simplified_v3' and
-        len(answer1) > 100 and
-        len(answer2) > 100
+        response1.get("metadata", {}).get("architecture") == "simplified_v3"
+        and response2.get("metadata", {}).get("architecture") == "simplified_v3"
+        and len(answer1) > 100
+        and len(answer2) > 100
     )
 
     print("\n" + "=" * 60)
@@ -207,6 +211,7 @@ async def test_v3_architecture():
     print("=" * 60)
 
     return all_success
+
 
 if __name__ == "__main__":
     success = asyncio.run(test_v3_architecture())

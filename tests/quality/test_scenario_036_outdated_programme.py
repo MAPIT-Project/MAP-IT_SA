@@ -11,10 +11,10 @@ like Horizon 2020 and FP7, explaining:
 Pass threshold: 80/100
 """
 
-from datetime import datetime
 import json
-from pathlib import Path
 import re
+from datetime import datetime
+from pathlib import Path
 
 import httpx
 import pytest
@@ -350,9 +350,9 @@ Horizon Europe is the current programme with a budget of **€95.5 billion**. It
 4. Contact your National Contact Point for guidance"""
 
         result = evaluator.evaluate(query, excellent_response)
-        assert (
-            result["total_score"] >= 80
-        ), f"Excellent response scored {result['total_score']}, expected 80+"
+        assert result["total_score"] >= 80, (
+            f"Excellent response scored {result['total_score']}, expected 80+"
+        )
         assert result["passed"], "Excellent response should pass"
 
     def test_incorrect_response_fails_accuracy(self, evaluator):
@@ -363,9 +363,9 @@ are many open calls available. H2020 is open for applications and you should \
 check the portal for current opportunities."""
 
         result = evaluator.evaluate(query, incorrect_response)
-        assert (
-            result["dimensions"]["factual_accuracy"] < 15
-        ), "Incorrect response should fail accuracy"
+        assert result["dimensions"]["factual_accuracy"] < 15, (
+            "Incorrect response should fail accuracy"
+        )
         assert not result["passed"], "Incorrect response should not pass"
 
     def test_vague_response_scores_lower(self, evaluator):
@@ -376,9 +376,9 @@ other EU funding programmes that are currently available."""
 
         result = evaluator.evaluate(query, vague_response)
         # Should get some points for saying ended but miss specificity
-        assert (
-            result["dimensions"]["specificity"] < 20
-        ), "Vague response should have lower specificity"
+        assert result["dimensions"]["specificity"] < 20, (
+            "Vague response should have lower specificity"
+        )
 
     def test_good_response_with_redirect(self, evaluator):
         """Test that a good response with clear redirect scores well."""
@@ -421,9 +421,9 @@ You should apply to Horizon Europe for current funding opportunities."""
 
         result = evaluator.evaluate(query, good_response)
         # FP7 response should pass basic checks even if H2020 not explicitly mentioned
-        assert (
-            result["dimensions"]["factual_accuracy"] >= 15
-        ), "FP7 closure response should be accurate"
+        assert result["dimensions"]["factual_accuracy"] >= 15, (
+            "FP7 closure response should be accurate"
+        )
 
     def test_combined_h2020_fp7_query(self, evaluator):
         """Test response to query about both old programmes."""
@@ -481,9 +481,9 @@ Next steps: Visit the EU Funding Portal for open Horizon Europe calls."""
                 if fb:
                     print(f"  {dim}: {'; '.join(fb)}")
 
-        assert (
-            result["total_score"] >= PASS_THRESHOLD
-        ), f"Score {result['total_score']} below threshold {PASS_THRESHOLD}"
+        assert result["total_score"] >= PASS_THRESHOLD, (
+            f"Score {result['total_score']} below threshold {PASS_THRESHOLD}"
+        )
 
     @pytest.mark.asyncio
     async def test_live_api_does_not_claim_h2020_open(self, evaluator):
@@ -539,9 +539,9 @@ Next steps: Visit the EU Funding Portal for open Horizon Europe calls."""
 
         # Should indicate FP7 is closed
         closed_indicators = ["closed", "ended", "no longer", "finished", "cannot"]
-        assert any(
-            ind in response_lower for ind in closed_indicators
-        ), "FP7 response should indicate programme is closed"
+        assert any(ind in response_lower for ind in closed_indicators), (
+            "FP7 response should indicate programme is closed"
+        )
 
     @pytest.mark.asyncio
     async def test_live_api_provides_next_steps(self, evaluator):
@@ -581,9 +581,9 @@ Next steps: Visit the EU Funding Portal for open Horizon Europe calls."""
         response_lower = response.lower()
 
         # Should still recognize H2020 is closed
-        assert any(
-            term in response_lower for term in ["closed", "ended", "no longer", "cannot"]
-        ), "Response should indicate H2020 is closed"
+        assert any(term in response_lower for term in ["closed", "ended", "no longer", "cannot"]), (
+            "Response should indicate H2020 is closed"
+        )
 
         # Should redirect to current programme
         assert "horizon europe" in response_lower, "Response should redirect to Horizon Europe"

@@ -16,25 +16,28 @@ logger = logging.getLogger(__name__)
 
 class AchievementCategory(str, Enum):
     """Categories of achievements."""
-    WRITING = "writing"           # Content creation
-    QUALITY = "quality"           # Score improvements
-    CONSISTENCY = "consistency"   # Streaks and habits
-    MILESTONE = "milestone"       # Major progress points
-    MASTERY = "mastery"           # Expert-level accomplishments
+
+    WRITING = "writing"  # Content creation
+    QUALITY = "quality"  # Score improvements
+    CONSISTENCY = "consistency"  # Streaks and habits
+    MILESTONE = "milestone"  # Major progress points
+    MASTERY = "mastery"  # Expert-level accomplishments
 
 
 class AchievementRarity(str, Enum):
     """Rarity levels for achievements."""
-    COMMON = "common"         # Easy to get
-    UNCOMMON = "uncommon"     # Moderate effort
-    RARE = "rare"             # Significant accomplishment
-    EPIC = "epic"             # Major milestone
-    LEGENDARY = "legendary"   # Exceptional achievement
+
+    COMMON = "common"  # Easy to get
+    UNCOMMON = "uncommon"  # Moderate effort
+    RARE = "rare"  # Significant accomplishment
+    EPIC = "epic"  # Major milestone
+    LEGENDARY = "legendary"  # Exceptional achievement
 
 
 @dataclass
 class Achievement:
     """Definition of an achievement."""
+
     id: str
     name: str
     description: str
@@ -48,6 +51,7 @@ class Achievement:
 @dataclass
 class UserAchievement:
     """A user's earned achievement."""
+
     achievement_id: str
     achievement: Achievement
     earned_at: datetime
@@ -57,6 +61,7 @@ class UserAchievement:
 @dataclass
 class ProgressSnapshot:
     """Snapshot of proposal progress."""
+
     proposal_id: str
     completion_percentage: float
     sections_completed: int
@@ -75,6 +80,7 @@ class ProgressSnapshot:
 @dataclass
 class Streak:
     """User writing streak."""
+
     current_streak: int
     longest_streak: int
     last_activity_date: date | None
@@ -100,7 +106,7 @@ class ProgressTrackingService:
             rarity=AchievementRarity.COMMON,
             icon="W",
             points=10,
-            criteria={"min_words": 100}
+            criteria={"min_words": 100},
         ),
         Achievement(
             id="page_turner",
@@ -110,7 +116,7 @@ class ProgressTrackingService:
             rarity=AchievementRarity.UNCOMMON,
             icon="P",
             points=25,
-            criteria={"min_words": 1000}
+            criteria={"min_words": 1000},
         ),
         Achievement(
             id="prolific_writer",
@@ -120,9 +126,8 @@ class ProgressTrackingService:
             rarity=AchievementRarity.RARE,
             icon="B",
             points=100,
-            criteria={"total_words": 10000}
+            criteria={"total_words": 10000},
         ),
-
         # Quality achievements
         Achievement(
             id="threshold_reached",
@@ -132,7 +137,7 @@ class ProgressTrackingService:
             rarity=AchievementRarity.COMMON,
             icon="C",
             points=20,
-            criteria={"min_score": 3.0}
+            criteria={"min_score": 3.0},
         ),
         Achievement(
             id="competitive_section",
@@ -142,7 +147,7 @@ class ProgressTrackingService:
             rarity=AchievementRarity.UNCOMMON,
             icon="S",
             points=50,
-            criteria={"min_score": 4.0}
+            criteria={"min_score": 4.0},
         ),
         Achievement(
             id="excellence_achieved",
@@ -152,7 +157,7 @@ class ProgressTrackingService:
             rarity=AchievementRarity.RARE,
             icon="T",
             points=100,
-            criteria={"min_score": 4.5}
+            criteria={"min_score": 4.5},
         ),
         Achievement(
             id="perfect_score",
@@ -162,7 +167,7 @@ class ProgressTrackingService:
             rarity=AchievementRarity.LEGENDARY,
             icon="D",
             points=500,
-            criteria={"min_score": 5.0}
+            criteria={"min_score": 5.0},
         ),
         Achievement(
             id="score_improver",
@@ -172,9 +177,8 @@ class ProgressTrackingService:
             rarity=AchievementRarity.UNCOMMON,
             icon="U",
             points=30,
-            criteria={"improvement": 1.0}
+            criteria={"improvement": 1.0},
         ),
-
         # Consistency achievements
         Achievement(
             id="streak_3",
@@ -184,7 +188,7 @@ class ProgressTrackingService:
             rarity=AchievementRarity.COMMON,
             icon="F",
             points=15,
-            criteria={"streak_days": 3}
+            criteria={"streak_days": 3},
         ),
         Achievement(
             id="streak_7",
@@ -194,7 +198,7 @@ class ProgressTrackingService:
             rarity=AchievementRarity.UNCOMMON,
             icon="FF",
             points=50,
-            criteria={"streak_days": 7}
+            criteria={"streak_days": 7},
         ),
         Achievement(
             id="streak_14",
@@ -204,9 +208,8 @@ class ProgressTrackingService:
             rarity=AchievementRarity.RARE,
             icon="FFF",
             points=150,
-            criteria={"streak_days": 14}
+            criteria={"streak_days": 14},
         ),
-
         # Milestone achievements
         Achievement(
             id="section_complete",
@@ -216,7 +219,7 @@ class ProgressTrackingService:
             rarity=AchievementRarity.COMMON,
             icon="V",
             points=20,
-            criteria={"sections_completed": 1}
+            criteria={"sections_completed": 1},
         ),
         Achievement(
             id="halfway_there",
@@ -226,7 +229,7 @@ class ProgressTrackingService:
             rarity=AchievementRarity.UNCOMMON,
             icon="G",
             points=75,
-            criteria={"completion_percentage": 50}
+            criteria={"completion_percentage": 50},
         ),
         Achievement(
             id="proposal_complete",
@@ -236,7 +239,7 @@ class ProgressTrackingService:
             rarity=AchievementRarity.EPIC,
             icon="Y",
             points=200,
-            criteria={"completion_percentage": 100}
+            criteria={"completion_percentage": 100},
         ),
         Achievement(
             id="all_above_threshold",
@@ -246,9 +249,8 @@ class ProgressTrackingService:
             rarity=AchievementRarity.EPIC,
             icon="R",
             points=250,
-            criteria={"all_sections_min_score": 3.0}
+            criteria={"all_sections_min_score": 3.0},
         ),
-
         # Mastery achievements
         Achievement(
             id="gap_closer",
@@ -258,7 +260,7 @@ class ProgressTrackingService:
             rarity=AchievementRarity.UNCOMMON,
             icon="X",
             points=40,
-            criteria={"gaps_resolved": 10}
+            criteria={"gaps_resolved": 10},
         ),
         Achievement(
             id="suggestion_adopter",
@@ -268,7 +270,7 @@ class ProgressTrackingService:
             rarity=AchievementRarity.UNCOMMON,
             icon="L",
             points=35,
-            criteria={"suggestions_accepted": 25}
+            criteria={"suggestions_accepted": 25},
         ),
         Achievement(
             id="rewrite_master",
@@ -278,7 +280,7 @@ class ProgressTrackingService:
             rarity=AchievementRarity.RARE,
             icon="M",
             points=75,
-            criteria={"rewrites_applied": 10}
+            criteria={"rewrites_applied": 10},
         ),
     ]
 
@@ -309,7 +311,7 @@ class ProgressTrackingService:
             suggestions_accepted=0,
             rewrites_applied=0,
             time_spent_minutes=0,
-            last_activity=datetime.now()
+            last_activity=datetime.now(),
         )
 
         self._progress_cache[proposal_id] = progress
@@ -327,7 +329,7 @@ class ProgressTrackingService:
         total_gaps: int | None = None,
         suggestions_accepted: int | None = None,
         rewrites_applied: int | None = None,
-        time_spent_minutes: int | None = None
+        time_spent_minutes: int | None = None,
     ) -> ProgressSnapshot:
         """Update progress for a proposal."""
         current = await self.get_progress(proposal_id)
@@ -356,7 +358,9 @@ class ProgressTrackingService:
 
         # Recalculate completion percentage
         if current.total_sections > 0:
-            current.completion_percentage = (current.sections_completed / current.total_sections) * 100
+            current.completion_percentage = (
+                current.sections_completed / current.total_sections
+            ) * 100
 
         current.last_activity = datetime.now()
         self._progress_cache[proposal_id] = current
@@ -374,7 +378,7 @@ class ProgressTrackingService:
             current_streak=0,
             longest_streak=0,
             last_activity_date=None,  # None indicates no activity recorded yet
-            is_active=False
+            is_active=False,
         )
 
         self._user_streaks_cache[user_id] = streak
@@ -415,10 +419,7 @@ class ProgressTrackingService:
         return current_streak
 
     async def check_achievements(
-        self,
-        user_id: str,
-        proposal_id: str,
-        context: dict[str, Any]
+        self, user_id: str, proposal_id: str, context: dict[str, Any]
     ) -> list[UserAchievement]:
         """
         Check if any new achievements have been earned.
@@ -449,9 +450,7 @@ class ProgressTrackingService:
             if self._check_criteria(achievement, context, progress, streak):
                 # Award achievement
                 user_achievement = await self._award_achievement(
-                    user_id=user_id,
-                    achievement=achievement,
-                    context=context
+                    user_id=user_id, achievement=achievement, context=context
                 )
                 earned.append(user_achievement)
 
@@ -462,7 +461,7 @@ class ProgressTrackingService:
         achievement: Achievement,
         context: dict[str, Any],
         progress: ProgressSnapshot,
-        streak: Streak
+        streak: Streak,
     ) -> bool:
         """Check if achievement criteria are met."""
         criteria = achievement.criteria
@@ -500,7 +499,10 @@ class ProgressTrackingService:
                 return False
 
         if "all_sections_min_score" in criteria:
-            if progress.lowest_score is None or progress.lowest_score < criteria["all_sections_min_score"]:
+            if (
+                progress.lowest_score is None
+                or progress.lowest_score < criteria["all_sections_min_score"]
+            ):
                 return False
 
         # Mastery criteria
@@ -519,17 +521,14 @@ class ProgressTrackingService:
         return True
 
     async def _award_achievement(
-        self,
-        user_id: str,
-        achievement: Achievement,
-        context: dict[str, Any]
+        self, user_id: str, achievement: Achievement, context: dict[str, Any]
     ) -> UserAchievement:
         """Award an achievement to a user."""
         user_achievement = UserAchievement(
             achievement_id=achievement.id,
             achievement=achievement,
             earned_at=datetime.now(),
-            context=context
+            context=context,
         )
 
         # Add to cache
@@ -566,7 +565,7 @@ class ProgressTrackingService:
                 "rarity": a.rarity.value,
                 "icon": a.icon,
                 "points": a.points,
-                "earned": a.id in earned_ids
+                "earned": a.id in earned_ids,
             }
             for a in self.ACHIEVEMENTS
         ]

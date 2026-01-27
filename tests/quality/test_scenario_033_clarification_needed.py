@@ -194,9 +194,9 @@ class TestScenario033ClarificationNeeded:
 
             provides_guidance = self._provides_helpful_guidance(response_text)
 
-            assert (
-                provides_guidance
-            ), f"Response should provide helpful guidance. Response: {response_text[:500]}..."
+            assert provides_guidance, (
+                f"Response should provide helpful guidance. Response: {response_text[:500]}..."
+            )
 
     @pytest.mark.asyncio
     async def test_when_is_deadline_variant(self, conversation_id):
@@ -325,9 +325,9 @@ class TestScenario033ClarificationNeeded:
             response_text = result.get("response", "")
 
             # Response should be substantial (more than just "Please clarify")
-            assert (
-                len(response_text) > 100
-            ), f"Response should be substantial, not minimal. Length: {len(response_text)}"
+            assert len(response_text) > 100, (
+                f"Response should be substantial, not minimal. Length: {len(response_text)}"
+            )
 
     @pytest.mark.asyncio
     async def test_which_one_should_i_choose(self, conversation_id):
@@ -361,9 +361,9 @@ class TestScenario033ClarificationNeeded:
             # For clarification responses, we accept a lower threshold
             # because the response is intentionally not fully answering
             # but is being appropriately cautious
-            assert (
-                score >= 50 or score == 0
-            ), f"Quality score should be acceptable. Score: {score}"  # 0 means quality not scored
+            assert score >= 50 or score == 0, (
+                f"Quality score should be acceptable. Score: {score}"
+            )  # 0 means quality not scored
 
     @pytest.mark.asyncio
     async def test_provides_typical_deadline_patterns(self, conversation_id):

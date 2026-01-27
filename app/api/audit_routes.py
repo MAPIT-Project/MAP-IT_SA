@@ -14,10 +14,7 @@ from typing import Any
 from fastapi import APIRouter, Query, status
 from pydantic import BaseModel
 
-from app.services.audit.audit_service import (
-    AuditEventType,
-    get_audit_service,
-)
+from app.services.audit.audit_service import AuditEventType, get_audit_service
 
 router = APIRouter(prefix="/api/audit", tags=["audit"])
 
@@ -29,6 +26,7 @@ router = APIRouter(prefix="/api/audit", tags=["audit"])
 
 class AuditEventResponse(BaseModel):
     """Audit event response."""
+
     event_id: str
     event_type: str
     action: str
@@ -47,6 +45,7 @@ class AuditEventResponse(BaseModel):
 
 class AuditTrailResponse(BaseModel):
     """Audit trail query response."""
+
     events: list[dict[str, Any]]
     total_count: int
     has_more: bool
@@ -54,6 +53,7 @@ class AuditTrailResponse(BaseModel):
 
 class UserActivityResponse(BaseModel):
     """User activity summary response."""
+
     user_id: str
     period_days: int
     total_events: int
@@ -62,6 +62,7 @@ class UserActivityResponse(BaseModel):
 
 class AuditStatsResponse(BaseModel):
     """Audit statistics response."""
+
     period_days: int
     total_events: int
     unique_users: int

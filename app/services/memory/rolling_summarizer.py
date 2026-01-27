@@ -13,18 +13,25 @@ from .short_term_memory import ConversationTurn
 logger = logging.getLogger(__name__)
 try:
     import openai
+
     OPENAI_AVAILABLE = True
 except ImportError:
     openai = None
     OPENAI_AVAILABLE = False
+
 
 class RollingSummarizer:
     """
     Progressive summarization using Gemini AI.
     Maintains task-focused summaries and extracts facts.
     """
-    
-    def __init__(self, ai_provider: str = "gemini", gemini_api_key: str = None, openrouter_api_key: str = None):
+
+    def __init__(
+        self,
+        ai_provider: str = "gemini",
+        gemini_api_key: str = None,
+        openrouter_api_key: str = None,
+    ):
         """
         Initialize summarizer with AI provider.
 
@@ -36,47 +43,49 @@ class RollingSummarizer:
         self.ai_provider = ai_provider.lower()
 
         if self.ai_provider == "gemini":
-            api_key = gemini_api_key or os.getenv('GEMINI_API_KEY')
+            api_key = gemini_api_key or os.getenv("GEMINI_API_KEY")
             if not api_key:
                 raise ValueError("GEMINI_API_KEY is required for Gemini provider")
 
             genai.configure(api_key=api_key)
-            self.model = genai.GenerativeModel('gemini-flash-lite-latest')
+            self.model = genai.GenerativeModel("gemini-flash-lite-latest")
             self.openai_client = None
         elif self.ai_provider == "openrouter":
             if not OPENAI_AVAILABLE:
-                raise ValueError("OpenAI package is required for OpenRouter. Install with: pip install openai")
+                raise ValueError(
+                    "OpenAI package is required for OpenRouter. Install with: pip install openai"
+                )
 
-            api_key = openrouter_api_key or os.getenv('OPENROUTER_API_KEY')
+            api_key = openrouter_api_key or os.getenv("OPENROUTER_API_KEY")
             if not api_key:
                 raise ValueError("OPENROUTER_API_KEY is required for OpenRouter provider")
 
             self.openai_client = openai.OpenAI(
-                api_key=api_key,
-                base_url="https://openrouter.ai/api/v1"
+                api_key=api_key, base_url="https://openrouter.ai/api/v1"
             )
             self.model = None
         else:
-            raise ValueError(f"Unsupported AI provider: {ai_provider}. Choose 'gemini' or 'openrouter'.")
-        
-    def summarize_turn(self,
-                       existing_summary: str | None,
-                       new_turns: list[ConversationTurn],
-                       max_tokens: int = 400) -> ConversationSummary:
+            raise ValueError(
+                f"Unsupported AI provider: {ai_provider}. Choose 'gemini' or 'openrouter'."
+            )
+
+    def summarize_turn(
+        self, existing_summary: str | None, new_turns: list[ConversationTurn], max_tokens: int = 400
+    ) -> ConversationSummary:
         """
         Update summary with new conversation turns.
-        
+
         Args:
             existing_summary: Previous summary text (if any)
             new_turns: New conversation turns to incorporate
             max_tokens: Maximum tokens for summary
-            
+
         Returns:
             Updated ConversationSummary
         """
         # Build context for summarization
         context = self._build_summarization_context(existing_summary, new_turns)
-        
+
         prompt = f"""You are a professional conversation summarizer. Your task is to create or update a conversation summary.
 
 EXISTING SUMMARY (if any):
@@ -114,7 +123,7 @@ FORMAT YOUR RESPONSE AS JSON:
                     model="x-ai/grok-4-fast:free",
                     messages=[{"role": "user", "content": prompt}],
                     temperature=0.3,
-                    max_tokens=max_tokens + 100
+                    max_tokens=max_tokens + 100,
                 )
                 response_text = response.choices[0].message.content
             else:
@@ -122,33 +131,32 @@ FORMAT YOUR RESPONSE AS JSON:
                 response = self.model.generate_content(
                     prompt,
                     generation_config=genai.GenerationConfig(
-                        temperature=0.3,
-                        max_output_tokens=max_tokens + 100
-                    )
+                        temperature=0.3, max_output_tokens=max_tokens + 100
+                    ),
                 )
                 response_text = response.text
 
             # Parse JSON response
             result = self._parse_json_response(response_text)
-            
+
             # Calculate token count (rough estimate)
-            token_count = len(result['summary']) // 4
-            
+            token_count = len(result["summary"]) // 4
+
             # Get message ID range
             message_ids = (
                 new_turns[0].message_id if new_turns else 0,
-                new_turns[-1].message_id if new_turns else 0
+                new_turns[-1].message_id if new_turns else 0,
             )
-            
+
             return ConversationSummary(
                 conversation_id=0,  # Will be set by caller
-                summary_text=result['summary'],
-                key_points=result['key_points'],
+                summary_text=result["summary"],
+                key_points=result["key_points"],
                 token_count=token_count,
                 created_at=datetime.now(),
-                covers_messages=message_ids
+                covers_messages=message_ids,
             )
-            
+
         except Exception as e:
             logger.error(f"Error in summarize_turn: {e}")
             # Return a basic summary on error
@@ -158,25 +166,24 @@ FORMAT YOUR RESPONSE AS JSON:
                 key_points=[],
                 token_count=0,
                 created_at=datetime.now(),
-                covers_messages=(0, 0)
+                covers_messages=(0, 0),
             )
-    
-    def extract_facts(self,
-                     conversation_turns: list[ConversationTurn]) -> list[ConversationFact]:
+
+    def extract_facts(self, conversation_turns: list[ConversationTurn]) -> list[ConversationFact]:
         """
         Extract facts from conversation turns.
-        
+
         Args:
             conversation_turns: List of conversation turns
-            
+
         Returns:
             List of extracted ConversationFact objects
         """
         if not conversation_turns:
             return []
-        
+
         context = self._build_conversation_context(conversation_turns)
-        
+
         prompt = f"""Analyze this conversation and extract important facts.
 
 CONVERSATION:
@@ -215,7 +222,7 @@ FORMAT YOUR RESPONSE AS JSON:
                     model="x-ai/grok-4-fast:free",
                     messages=[{"role": "user", "content": prompt}],
                     temperature=0.2,
-                    max_tokens=1000
+                    max_tokens=1000,
                 )
                 response_text = response.choices[0].message.content
             else:
@@ -223,45 +230,45 @@ FORMAT YOUR RESPONSE AS JSON:
                 response = self.model.generate_content(
                     prompt,
                     generation_config=genai.GenerationConfig(
-                        temperature=0.2,
-                        max_output_tokens=1000
-                    )
+                        temperature=0.2, max_output_tokens=1000
+                    ),
                 )
                 response_text = response.text
 
             result = self._parse_json_response(response_text)
-            
+
             facts = []
-            for fact_data in result.get('facts', []):
-                facts.append(ConversationFact(
-                    fact_type=fact_data['fact_type'],
-                    fact_content=fact_data['fact_content'],
-                    confidence=fact_data['confidence'],
-                    source_message_id=fact_data['source_message_id']
-                ))
-            
+            for fact_data in result.get("facts", []):
+                facts.append(
+                    ConversationFact(
+                        fact_type=fact_data["fact_type"],
+                        fact_content=fact_data["fact_content"],
+                        confidence=fact_data["confidence"],
+                        source_message_id=fact_data["source_message_id"],
+                    )
+                )
+
             return facts
-            
+
         except Exception as e:
             logger.error(f"Error in extract_facts: {e}")
             return []
-    
-    def extract_entities(self,
-                        conversation_turns: list[ConversationTurn]) -> list[EntityCard]:
+
+    def extract_entities(self, conversation_turns: list[ConversationTurn]) -> list[EntityCard]:
         """
         Extract and create entity cards from conversation.
-        
+
         Args:
             conversation_turns: List of conversation turns
-            
+
         Returns:
             List of EntityCard objects
         """
         if not conversation_turns:
             return []
-        
+
         context = self._build_conversation_context(conversation_turns)
-        
+
         prompt = f"""Analyze this conversation and extract important entities.
 
 CONVERSATION:
@@ -302,7 +309,7 @@ FORMAT YOUR RESPONSE AS JSON:
                     model="x-ai/grok-4-fast:free",
                     messages=[{"role": "user", "content": prompt}],
                     temperature=0.2,
-                    max_tokens=1000
+                    max_tokens=1000,
                 )
                 response_text = response.choices[0].message.content
             else:
@@ -310,49 +317,49 @@ FORMAT YOUR RESPONSE AS JSON:
                 response = self.model.generate_content(
                     prompt,
                     generation_config=genai.GenerationConfig(
-                        temperature=0.2,
-                        max_output_tokens=1000
-                    )
+                        temperature=0.2, max_output_tokens=1000
+                    ),
                 )
                 response_text = response.text
 
             result = self._parse_json_response(response_text)
-            
+
             entities = []
-            for entity_data in result.get('entities', []):
-                entities.append(EntityCard(
-                    entity_type=entity_data['entity_type'],
-                    entity_name=entity_data['entity_name'],
-                    entity_data=entity_data.get('entity_data', {}),
-                    first_mentioned=datetime.now(),
-                    reference_count=1
-                ))
-            
+            for entity_data in result.get("entities", []):
+                entities.append(
+                    EntityCard(
+                        entity_type=entity_data["entity_type"],
+                        entity_name=entity_data["entity_name"],
+                        entity_data=entity_data.get("entity_data", {}),
+                        first_mentioned=datetime.now(),
+                        reference_count=1,
+                    )
+                )
+
             return entities
-            
+
         except Exception as e:
             logger.error(f"Error in extract_entities: {e}")
             return []
-    
-    def recompute_from_scratch(self,
-                              full_history: list[ConversationTurn],
-                              max_tokens: int = 400) -> ConversationSummary:
+
+    def recompute_from_scratch(
+        self, full_history: list[ConversationTurn], max_tokens: int = 400
+    ) -> ConversationSummary:
         """
         Recompute summary from complete conversation history.
         Used periodically to prevent drift.
-        
+
         Args:
             full_history: Complete conversation history
             max_tokens: Maximum tokens for summary
-            
+
         Returns:
             Fresh ConversationSummary
         """
         # For full recomputation, we don't use existing summary
         return self.summarize_turn(None, full_history, max_tokens)
-    
-    def _build_conversation_context(self, 
-                                   turns: list[ConversationTurn]) -> str:
+
+    def _build_conversation_context(self, turns: list[ConversationTurn]) -> str:
         """Build formatted conversation context"""
         lines = []
         for turn in turns:
@@ -361,28 +368,28 @@ FORMAT YOUR RESPONSE AS JSON:
             lines.append(f"{role}: {turn.content}")
             lines.append("")
         return "\n".join(lines)
-    
-    def _build_summarization_context(self,
-                                    existing_summary: str | None,
-                                    new_turns: list[ConversationTurn]) -> str:
+
+    def _build_summarization_context(
+        self, existing_summary: str | None, new_turns: list[ConversationTurn]
+    ) -> str:
         """Build context for summarization"""
         return self._build_conversation_context(new_turns)
-    
+
     def _parse_json_response(self, response_text: str) -> dict[str, Any]:
         """Parse JSON from LLM response"""
         try:
             # Try to extract JSON from response
-            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+            json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
             if json_match:
                 return json.loads(json_match.group())
             else:
                 # Try parsing the whole response
                 return json.loads(response_text)
-        except:
+        except Exception:
             # Return empty structure on parse error
             return {
-                'summary': response_text[:400] if response_text else '',
-                'key_points': [],
-                'facts': [],
-                'entities': []
+                "summary": response_text[:400] if response_text else "",
+                "key_points": [],
+                "facts": [],
+                "entities": [],
             }

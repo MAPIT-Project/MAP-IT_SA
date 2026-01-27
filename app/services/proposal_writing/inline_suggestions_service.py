@@ -19,36 +19,40 @@ logger = logging.getLogger(__name__)
 
 class SuggestionCategory(str, Enum):
     """Category of inline suggestion."""
-    EU_TERMINOLOGY = "eu_terminology"       # Use official EU terms
-    CLARITY = "clarity"                     # Clearer language
-    SPECIFICITY = "specificity"             # More specific/quantified
-    IMPACT = "impact"                       # Stronger impact language
-    PASSIVE_VOICE = "passive_voice"         # Active voice preferred
-    WORDINESS = "wordiness"                 # Can be more concise
-    WEAK_VERB = "weak_verb"                 # Stronger verbs
-    VAGUE_CLAIM = "vague_claim"             # Needs evidence/metrics
-    MISSING_CONTEXT = "missing_context"     # Add context for evaluators
-    FORMATTING = "formatting"               # Structure improvements
+
+    EU_TERMINOLOGY = "eu_terminology"  # Use official EU terms
+    CLARITY = "clarity"  # Clearer language
+    SPECIFICITY = "specificity"  # More specific/quantified
+    IMPACT = "impact"  # Stronger impact language
+    PASSIVE_VOICE = "passive_voice"  # Active voice preferred
+    WORDINESS = "wordiness"  # Can be more concise
+    WEAK_VERB = "weak_verb"  # Stronger verbs
+    VAGUE_CLAIM = "vague_claim"  # Needs evidence/metrics
+    MISSING_CONTEXT = "missing_context"  # Add context for evaluators
+    FORMATTING = "formatting"  # Structure improvements
 
 
 class SuggestionPriority(str, Enum):
     """Priority level of suggestion."""
-    HIGH = "high"       # Significantly affects score
-    MEDIUM = "medium"   # Noticeable improvement
-    LOW = "low"         # Nice to have
+
+    HIGH = "high"  # Significantly affects score
+    MEDIUM = "medium"  # Noticeable improvement
+    LOW = "low"  # Nice to have
 
 
 @dataclass
 class TextSpan:
     """A span of text in the document."""
-    start: int      # Character offset from start
-    end: int        # Character offset end
-    text: str       # The actual text
+
+    start: int  # Character offset from start
+    end: int  # Character offset end
+    text: str  # The actual text
 
 
 @dataclass
 class InlineSuggestion:
     """A single inline suggestion."""
+
     id: str
     span: TextSpan
     category: SuggestionCategory
@@ -56,12 +60,13 @@ class InlineSuggestion:
     message: str
     suggestion: str
     replacement: str | None  # Direct replacement text
-    learn_more: str | None   # Link or explanation
+    learn_more: str | None  # Link or explanation
 
 
 @dataclass
 class AnalysisResult:
     """Result of inline analysis."""
+
     suggestions: list[InlineSuggestion]
     score_impact: float  # Estimated impact if all accepted
     stats: dict[str, int]  # Count by category
@@ -86,18 +91,15 @@ class InlineSuggestionsService:
         "budget": "financial resources",
         "timeline": "project duration / Gantt chart",
         "plan": "work plan / methodology",
-
         # Impact terms
         "help": "contribute to / enable",
         "improve": "enhance / strengthen",
         "make better": "optimize / advance",
         "change": "transform / revolutionize",
-
         # Technical terms
         "new technology": "innovative solution / novel approach",
         "cutting edge": "state-of-the-art / beyond state-of-the-art",
         "research": "R&I activities / scientific investigation",
-
         # EU-specific
         "european union": "EU / European Union",
         "green deal": "European Green Deal",
@@ -118,16 +120,30 @@ class InlineSuggestionsService:
 
     # Vague words that need quantification
     VAGUE_WORDS = [
-        "many", "several", "various", "significant",
-        "substantial", "major", "important", "considerable",
-        "some", "few", "most", "often", "usually",
-        "greatly", "highly", "very", "really", "quite"
+        "many",
+        "several",
+        "various",
+        "significant",
+        "substantial",
+        "major",
+        "important",
+        "considerable",
+        "some",
+        "few",
+        "most",
+        "often",
+        "usually",
+        "greatly",
+        "highly",
+        "very",
+        "really",
+        "quite",
     ]
 
     # Passive voice patterns
     PASSIVE_PATTERNS = [
-        r'\b(is|are|was|were|been|being)\s+\w+ed\b',
-        r'\b(will be|has been|have been)\s+\w+ed\b',
+        r"\b(is|are|was|were|been|being)\s+\w+ed\b",
+        r"\b(will be|has been|have been)\s+\w+ed\b",
     ]
 
     def __init__(self):
@@ -138,7 +154,7 @@ class InlineSuggestionsService:
         text: str,
         section_type: str,
         cluster: str | None = None,
-        include_llm_analysis: bool = True
+        include_llm_analysis: bool = True,
     ) -> AnalysisResult:
         """
         Analyze text for inline suggestions.
@@ -171,7 +187,7 @@ class InlineSuggestionsService:
 
         # Assign IDs
         for i, sug in enumerate(suggestions):
-            sug.id = f"sug_{i+1}"
+            sug.id = f"sug_{i + 1}"
 
         # Calculate stats
         stats = self._calculate_stats(suggestions)
@@ -179,34 +195,28 @@ class InlineSuggestionsService:
         # Estimate score impact
         score_impact = self._estimate_score_impact(suggestions)
 
-        return AnalysisResult(
-            suggestions=suggestions,
-            score_impact=score_impact,
-            stats=stats
-        )
+        return AnalysisResult(suggestions=suggestions, score_impact=score_impact, stats=stats)
 
     def _check_eu_terminology(self, text: str) -> list[InlineSuggestion]:
         """Check for non-EU terminology."""
         suggestions = []
 
         for incorrect, correct in self.EU_TERMINOLOGY_MAP.items():
-            pattern = re.compile(r'\b' + re.escape(incorrect) + r'\b', re.IGNORECASE)
+            pattern = re.compile(r"\b" + re.escape(incorrect) + r"\b", re.IGNORECASE)
 
             for match in pattern.finditer(text):
-                suggestions.append(InlineSuggestion(
-                    id="",
-                    span=TextSpan(
-                        start=match.start(),
-                        end=match.end(),
-                        text=match.group()
-                    ),
-                    category=SuggestionCategory.EU_TERMINOLOGY,
-                    priority=SuggestionPriority.MEDIUM,
-                    message=f"Consider using EU terminology: '{correct}'",
-                    suggestion=f"Replace '{match.group()}' with '{correct}'",
-                    replacement=correct,
-                    learn_more="EU proposals use specific terminology that evaluators expect"
-                ))
+                suggestions.append(
+                    InlineSuggestion(
+                        id="",
+                        span=TextSpan(start=match.start(), end=match.end(), text=match.group()),
+                        category=SuggestionCategory.EU_TERMINOLOGY,
+                        priority=SuggestionPriority.MEDIUM,
+                        message=f"Consider using EU terminology: '{correct}'",
+                        suggestion=f"Replace '{match.group()}' with '{correct}'",
+                        replacement=correct,
+                        learn_more="EU proposals use specific terminology that evaluators expect",
+                    )
+                )
 
         return suggestions
 
@@ -216,26 +226,24 @@ class InlineSuggestionsService:
 
         for weak, alternatives in self.WEAK_VERBS.items():
             # Match weak verb as whole word, not as part of compound
-            pattern = re.compile(r'\b' + weak + r'\b(?!\s+(to|up|out|in|on))', re.IGNORECASE)
+            pattern = re.compile(r"\b" + weak + r"\b(?!\s+(to|up|out|in|on))", re.IGNORECASE)
 
             for match in pattern.finditer(text):
                 # Skip if it's part of a common phrase where the verb is appropriate
-                context = text[max(0, match.start()-20):min(len(text), match.end()+20)]
+                text[max(0, match.start() - 20) : min(len(text), match.end() + 20)]
 
-                suggestions.append(InlineSuggestion(
-                    id="",
-                    span=TextSpan(
-                        start=match.start(),
-                        end=match.end(),
-                        text=match.group()
-                    ),
-                    category=SuggestionCategory.WEAK_VERB,
-                    priority=SuggestionPriority.LOW,
-                    message="Consider a stronger verb",
-                    suggestion=f"Try: {', '.join(alternatives[:3])}",
-                    replacement=alternatives[0],
-                    learn_more="Strong verbs convey action and capability more effectively"
-                ))
+                suggestions.append(
+                    InlineSuggestion(
+                        id="",
+                        span=TextSpan(start=match.start(), end=match.end(), text=match.group()),
+                        category=SuggestionCategory.WEAK_VERB,
+                        priority=SuggestionPriority.LOW,
+                        message="Consider a stronger verb",
+                        suggestion=f"Try: {', '.join(alternatives[:3])}",
+                        replacement=alternatives[0],
+                        learn_more="Strong verbs convey action and capability more effectively",
+                    )
+                )
 
         return suggestions
 
@@ -244,23 +252,21 @@ class InlineSuggestionsService:
         suggestions = []
 
         for vague in self.VAGUE_WORDS:
-            pattern = re.compile(r'\b' + vague + r'\b', re.IGNORECASE)
+            pattern = re.compile(r"\b" + vague + r"\b", re.IGNORECASE)
 
             for match in pattern.finditer(text):
-                suggestions.append(InlineSuggestion(
-                    id="",
-                    span=TextSpan(
-                        start=match.start(),
-                        end=match.end(),
-                        text=match.group()
-                    ),
-                    category=SuggestionCategory.VAGUE_CLAIM,
-                    priority=SuggestionPriority.MEDIUM,
-                    message=f"'{match.group()}' is vague - can you quantify?",
-                    suggestion="Add specific numbers, percentages, or metrics",
-                    replacement=None,
-                    learn_more="Evaluators prefer quantified claims (e.g., '30%' instead of 'significant')"
-                ))
+                suggestions.append(
+                    InlineSuggestion(
+                        id="",
+                        span=TextSpan(start=match.start(), end=match.end(), text=match.group()),
+                        category=SuggestionCategory.VAGUE_CLAIM,
+                        priority=SuggestionPriority.MEDIUM,
+                        message=f"'{match.group()}' is vague - can you quantify?",
+                        suggestion="Add specific numbers, percentages, or metrics",
+                        replacement=None,
+                        learn_more="Evaluators prefer quantified claims (e.g., '30%' instead of 'significant')",
+                    )
+                )
 
         return suggestions
 
@@ -272,20 +278,18 @@ class InlineSuggestionsService:
             regex = re.compile(pattern, re.IGNORECASE)
 
             for match in regex.finditer(text):
-                suggestions.append(InlineSuggestion(
-                    id="",
-                    span=TextSpan(
-                        start=match.start(),
-                        end=match.end(),
-                        text=match.group()
-                    ),
-                    category=SuggestionCategory.PASSIVE_VOICE,
-                    priority=SuggestionPriority.LOW,
-                    message="Consider active voice for stronger impact",
-                    suggestion="Rewrite to show who performs the action",
-                    replacement=None,
-                    learn_more="Active voice is more direct: 'We will develop...' vs 'will be developed'"
-                ))
+                suggestions.append(
+                    InlineSuggestion(
+                        id="",
+                        span=TextSpan(start=match.start(), end=match.end(), text=match.group()),
+                        category=SuggestionCategory.PASSIVE_VOICE,
+                        priority=SuggestionPriority.LOW,
+                        message="Consider active voice for stronger impact",
+                        suggestion="Rewrite to show who performs the action",
+                        replacement=None,
+                        learn_more="Active voice is more direct: 'We will develop...' vs 'will be developed'",
+                    )
+                )
 
         return suggestions
 
@@ -311,37 +315,32 @@ class InlineSuggestionsService:
         suggestions = []
 
         for wordy, concise in wordy_phrases.items():
-            pattern = re.compile(r'\b' + re.escape(wordy) + r'\b', re.IGNORECASE)
+            pattern = re.compile(r"\b" + re.escape(wordy) + r"\b", re.IGNORECASE)
 
             for match in pattern.finditer(text):
-                suggestions.append(InlineSuggestion(
-                    id="",
-                    span=TextSpan(
-                        start=match.start(),
-                        end=match.end(),
-                        text=match.group()
-                    ),
-                    category=SuggestionCategory.WORDINESS,
-                    priority=SuggestionPriority.LOW,
-                    message=f"Can be more concise: '{concise}'",
-                    suggestion=f"Replace with '{concise}'",
-                    replacement=concise,
-                    learn_more="Concise writing is easier to read and stays within page limits"
-                ))
+                suggestions.append(
+                    InlineSuggestion(
+                        id="",
+                        span=TextSpan(start=match.start(), end=match.end(), text=match.group()),
+                        category=SuggestionCategory.WORDINESS,
+                        priority=SuggestionPriority.LOW,
+                        message=f"Can be more concise: '{concise}'",
+                        suggestion=f"Replace with '{concise}'",
+                        replacement=concise,
+                        learn_more="Concise writing is easier to read and stays within page limits",
+                    )
+                )
 
         return suggestions
 
     async def _llm_analysis(
-        self,
-        text: str,
-        section_type: str,
-        cluster: str | None
+        self, text: str, section_type: str, cluster: str | None
     ) -> list[InlineSuggestion]:
         """Use LLM for deeper semantic analysis."""
         prompt = f"""Analyze this proposal text for specific improvements.
 
 SECTION TYPE: {section_type}
-CLUSTER: {cluster or 'General'}
+CLUSTER: {cluster or "General"}
 
 TEXT:
 {text[:2000]}
@@ -360,48 +359,44 @@ Only include suggestions where you can identify the exact text span."""
 
         try:
             response = await self.ai_service.generate_structured(
-                prompt=prompt,
-                response_schema=INLINE_SUGGESTIONS_SCHEMA,
-                temperature=0.3
+                prompt=prompt, response_schema=INLINE_SUGGESTIONS_SCHEMA, temperature=0.3
             )
 
             suggestions = []
-            for sug_data in response.get('suggestions', []):
+            for sug_data in response.get("suggestions", []):
                 # Find the text span
-                original = sug_data.get('original_text', '')
+                original = sug_data.get("original_text", "")
                 start = text.find(original)
 
                 if start == -1:
                     continue  # Skip if we can't find exact text
 
                 # Map category string to enum
-                category_str = sug_data.get('issue_type', 'clarity')
+                category_str = sug_data.get("issue_type", "clarity")
                 try:
                     category = SuggestionCategory(category_str)
                 except ValueError:
                     category = SuggestionCategory.CLARITY
 
                 # Map priority string to enum
-                priority_str = sug_data.get('priority', 'medium')
+                priority_str = sug_data.get("priority", "medium")
                 try:
                     priority = SuggestionPriority(priority_str)
                 except ValueError:
                     priority = SuggestionPriority.MEDIUM
 
-                suggestions.append(InlineSuggestion(
-                    id="",
-                    span=TextSpan(
-                        start=start,
-                        end=start + len(original),
-                        text=original
-                    ),
-                    category=category,
-                    priority=priority,
-                    message=sug_data.get('explanation', ''),
-                    suggestion=sug_data.get('suggested_text', ''),
-                    replacement=sug_data.get('suggested_text'),
-                    learn_more=None
-                ))
+                suggestions.append(
+                    InlineSuggestion(
+                        id="",
+                        span=TextSpan(start=start, end=start + len(original), text=original),
+                        category=category,
+                        priority=priority,
+                        message=sug_data.get("explanation", ""),
+                        suggestion=sug_data.get("suggested_text", ""),
+                        replacement=sug_data.get("suggested_text"),
+                        learn_more=None,
+                    )
+                )
 
             return suggestions
 
@@ -410,8 +405,7 @@ Only include suggestions where you can identify the exact text span."""
             return []
 
     def _deduplicate_suggestions(
-        self,
-        suggestions: list[InlineSuggestion]
+        self, suggestions: list[InlineSuggestion]
     ) -> list[InlineSuggestion]:
         """Remove duplicate and overlapping suggestions."""
         if not suggestions:
@@ -425,13 +419,12 @@ Only include suggestions where you can identify the exact text span."""
             # Check if overlaps with any existing suggestion
             overlaps = False
             for existing in result:
-                if (sug.span.start < existing.span.end and
-                    sug.span.end > existing.span.start):
+                if sug.span.start < existing.span.end and sug.span.end > existing.span.start:
                     # Keep higher priority one
                     priority_order = {
                         SuggestionPriority.HIGH: 3,
                         SuggestionPriority.MEDIUM: 2,
-                        SuggestionPriority.LOW: 1
+                        SuggestionPriority.LOW: 1,
                     }
                     if priority_order[sug.priority] > priority_order[existing.priority]:
                         result.remove(existing)
@@ -458,7 +451,7 @@ Only include suggestions where you can identify the exact text span."""
         impact_weights = {
             SuggestionPriority.HIGH: 0.1,
             SuggestionPriority.MEDIUM: 0.05,
-            SuggestionPriority.LOW: 0.02
+            SuggestionPriority.LOW: 0.02,
         }
 
         total = sum(impact_weights[s.priority] for s in suggestions)
@@ -482,9 +475,7 @@ class RealTimeAnalyzer:
         Returns within ~10ms.
         """
         return await self.service.analyze_text(
-            text=text,
-            section_type="general",
-            include_llm_analysis=False
+            text=text, section_type="general", include_llm_analysis=False
         )
 
     def analyze_sentence(self, sentence: str) -> list[InlineSuggestion]:
@@ -521,5 +512,5 @@ class RealTimeAnalyzer:
             "high": high_count,
             "medium": medium_count,
             "low": low_count,
-            "categories": self.service._calculate_stats(suggestions)
+            "categories": self.service._calculate_stats(suggestions),
         }

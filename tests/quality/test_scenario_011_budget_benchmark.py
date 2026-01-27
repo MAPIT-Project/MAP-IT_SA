@@ -54,9 +54,9 @@ class TestScenario011BudgetBenchmark:
             # The tool might be versioned (e.g., get_budget_benchmark_1_0)
             has_budget_tool = any("get_budget_benchmark" in t for t in tools_used)
 
-            assert (
-                has_budget_tool or tool_in_reasoning
-            ), f"Expected get_budget_benchmark tool to be used. Tools: {tools_used}"
+            assert has_budget_tool or tool_in_reasoning, (
+                f"Expected get_budget_benchmark tool to be used. Tools: {tools_used}"
+            )
 
     @pytest.mark.asyncio
     async def test_includes_budget_range(self, conversation_id):
@@ -87,9 +87,9 @@ class TestScenario011BudgetBenchmark:
                 for pattern in budget_range_patterns
             )
 
-            assert (
-                has_budget_range
-            ), f"Response should contain a budget range. Response: {response_text[:500]}"
+            assert has_budget_range, (
+                f"Response should contain a budget range. Response: {response_text[:500]}"
+            )
 
     @pytest.mark.asyncio
     async def test_budget_range_is_reasonable(self, conversation_id):
@@ -123,9 +123,9 @@ class TestScenario011BudgetBenchmark:
             # At least one number should be in the reasonable range
             if numbers:
                 reasonable_numbers = [n for n in numbers if 1 <= n <= 20]
-                assert (
-                    len(reasonable_numbers) > 0
-                ), f"Budget figures should be in reasonable RIA range (1-20M). Found: {numbers}"
+                assert len(reasonable_numbers) > 0, (
+                    f"Budget figures should be in reasonable RIA range (1-20M). Found: {numbers}"
+                )
 
     @pytest.mark.asyncio
     async def test_includes_real_project_data(self, conversation_id):
@@ -331,9 +331,9 @@ class TestScenario011BudgetBenchmark:
                 ):  # Practical advice
                     score += 10
 
-            assert (
-                score >= self.PASS_THRESHOLD
-            ), f"Quality score {score} below threshold {self.PASS_THRESHOLD}"
+            assert score >= self.PASS_THRESHOLD, (
+                f"Quality score {score} below threshold {self.PASS_THRESHOLD}"
+            )
 
     @pytest.mark.asyncio
     async def test_response_length_appropriate(self, conversation_id):
@@ -437,8 +437,7 @@ class TestScenario011BudgetBenchmark:
             failures = [name for name, passed in assertions_passed if not passed]
             if failures:
                 pytest.fail(
-                    f"Scenario 011 failed checks: {failures}\n"
-                    f"Response: {response_text[:800]}..."
+                    f"Scenario 011 failed checks: {failures}\nResponse: {response_text[:800]}..."
                 )
 
     @pytest.mark.asyncio
@@ -472,5 +471,5 @@ class TestScenario011BudgetBenchmark:
 
         # All runs should have budget and partner info
         for i, r in enumerate(results):
-            assert r["has_budget"], f"Run {i+1} missing budget information"
-            assert r["has_partners"], f"Run {i+1} missing partner information"
+            assert r["has_budget"], f"Run {i + 1} missing budget information"
+            assert r["has_partners"], f"Run {i + 1} missing partner information"

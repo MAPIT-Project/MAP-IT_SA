@@ -66,9 +66,9 @@ class TestScenario016HorizonEuropeFullFlow:
             call_indicators = ["call", "deadline", "apply", "funding", "budget"]
             has_calls = sum(1 for ind in call_indicators if ind in response_text) >= 3
 
-            assert (
-                has_eligibility or has_calls
-            ), "Response should confirm university eligibility or show applicable calls"
+            assert has_eligibility or has_calls, (
+                "Response should confirm university eligibility or show applicable calls"
+            )
 
     @pytest.mark.asyncio
     async def test_lists_ai_relevant_calls(self, conversation_id):
@@ -184,9 +184,9 @@ class TestScenario016HorizonEuropeFullFlow:
 
             guidance_found = sum(1 for g in guidance_indicators if g in response_text)
 
-            assert (
-                guidance_found >= 2
-            ), f"Response should include application guidance. Found {guidance_found} indicators"
+            assert guidance_found >= 2, (
+                f"Response should include application guidance. Found {guidance_found} indicators"
+            )
 
     @pytest.mark.asyncio
     async def test_includes_apply_links(self, conversation_id):
@@ -236,9 +236,9 @@ class TestScenario016HorizonEuropeFullFlow:
             has_call_search = any("search_funding_calls" in str(t) for t in tools_used)
             has_call_in_reasoning = any("search_funding_calls" in str(s) for s in reasoning_steps)
 
-            assert (
-                has_call_search or has_call_in_reasoning
-            ), f"Expected search_funding_calls tool. Tools: {tools_used}"
+            assert has_call_search or has_call_in_reasoning, (
+                f"Expected search_funding_calls tool. Tools: {tools_used}"
+            )
 
     @pytest.mark.asyncio
     async def test_references_horizon_europe(self, conversation_id):
@@ -429,9 +429,9 @@ class TestScenario016HorizonEuropeFullFlow:
             if "ec.europa.eu" in response_text or "https://" in response_text:
                 score += 5
 
-            assert (
-                score >= self.PASS_THRESHOLD
-            ), f"Quality score {score} is below threshold {self.PASS_THRESHOLD}"
+            assert score >= self.PASS_THRESHOLD, (
+                f"Quality score {score} is below threshold {self.PASS_THRESHOLD}"
+            )
 
     @pytest.mark.asyncio
     async def test_full_scenario_integration(self, conversation_id):
@@ -454,9 +454,9 @@ class TestScenario016HorizonEuropeFullFlow:
             assert len(response_text) > 500, f"Response too short: {len(response_text)} chars"
 
             # Must have AI content
-            assert any(
-                t in text_lower for t in ["ai", "artificial intelligence", "digital"]
-            ), "Missing AI content"
+            assert any(t in text_lower for t in ["ai", "artificial intelligence", "digital"]), (
+                "Missing AI content"
+            )
 
             # Must have Horizon Europe reference
             assert "horizon" in text_lower, "Missing Horizon Europe reference"
@@ -504,6 +504,6 @@ class TestScenario016HorizonEuropeFullFlow:
                 if re.search(pattern, response_text, re.MULTILINE)
             )
 
-            assert (
-                structure_found >= 2
-            ), f"Response should be well-structured. Found: {structure_found}"
+            assert structure_found >= 2, (
+                f"Response should be well-structured. Found: {structure_found}"
+            )

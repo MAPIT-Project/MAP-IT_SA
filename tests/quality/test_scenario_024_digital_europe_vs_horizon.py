@@ -359,9 +359,9 @@ class TestScenario024DigitalEuropeVsHorizon:
             if any(w in response_text for w in ["funding", "budget", "%"]):
                 essential_elements += 1
 
-            assert (
-                essential_elements >= 3
-            ), f"Response should cover essential comparison elements. Found: {essential_elements}"
+            assert essential_elements >= 3, (
+                f"Response should cover essential comparison elements. Found: {essential_elements}"
+            )
 
     @pytest.mark.asyncio
     async def test_overall_score_meets_threshold(self, conversation_id):

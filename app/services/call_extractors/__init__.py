@@ -30,30 +30,33 @@ from .life_programme import LIFEExtractor
 
 # Map programme IDs to extractor classes
 EXTRACTORS = {
-    'horizon_europe': HorizonEuropeExtractor,
-    'digital_europe': DigitalEuropeExtractor,
-    'life': LIFEExtractor,
-    'erasmus_plus': ErasmusPlusExtractor,
-    'creative_europe': CreativeEuropeExtractor,
-    'eu4health': EU4HealthExtractor,
+    "horizon_europe": HorizonEuropeExtractor,
+    "digital_europe": DigitalEuropeExtractor,
+    "life": LIFEExtractor,
+    "erasmus_plus": ErasmusPlusExtractor,
+    "creative_europe": CreativeEuropeExtractor,
+    "eu4health": EU4HealthExtractor,
 }
+
 
 def get_extractor(programme: str) -> CallExtractor:
     """Get the appropriate extractor for a programme."""
     if programme not in EXTRACTORS:
-        raise ValueError(f"No extractor for programme: {programme}. Available: {list(EXTRACTORS.keys())}")
+        raise ValueError(
+            f"No extractor for programme: {programme}. Available: {list(EXTRACTORS.keys())}"
+        )
     return EXTRACTORS[programme]()
 
-__all__ = [
-    'CallExtractor',
-    'FundingCall',
-    'HorizonEuropeExtractor',
-    'DigitalEuropeExtractor',
-    'LIFEExtractor',
-    'ErasmusPlusExtractor',
-    'CreativeEuropeExtractor',
-    'EU4HealthExtractor',
-    'EXTRACTORS',
-    'get_extractor',
-]
 
+__all__ = [
+    "CallExtractor",
+    "FundingCall",
+    "HorizonEuropeExtractor",
+    "DigitalEuropeExtractor",
+    "LIFEExtractor",
+    "ErasmusPlusExtractor",
+    "CreativeEuropeExtractor",
+    "EU4HealthExtractor",
+    "EXTRACTORS",
+    "get_extractor",
+]

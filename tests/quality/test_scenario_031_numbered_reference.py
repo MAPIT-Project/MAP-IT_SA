@@ -87,15 +87,15 @@ class TestScenario031NumberedReference:
             numbered_items = re.findall(r"\*\*\d+\.", response_text)
 
             # Either found projects OR tool was used correctly
-            assert (
-                has_projects or uses_search
-            ), "Turn 1 should either return projects or use search_projects tool"
+            assert has_projects or uses_search, (
+                "Turn 1 should either return projects or use search_projects tool"
+            )
 
             # If projects were found, should have numbered format
             if has_projects and numbered_items:
-                assert (
-                    len(numbered_items) >= 3
-                ), f"Turn 1 should have at least 3 numbered projects, found: {len(numbered_items)}"
+                assert len(numbered_items) >= 3, (
+                    f"Turn 1 should have at least 3 numbered projects, found: {len(numbered_items)}"
+                )
 
     @pytest.mark.asyncio
     async def test_turn1_includes_project_ids(self, conversation_id):
@@ -109,9 +109,9 @@ class TestScenario031NumberedReference:
 
             # Should have project IDs (numeric IDs like 101XXXXXX)
             project_ids = re.findall(r"10\d{7}", response_text)
-            assert (
-                len(project_ids) >= 3
-            ), f"Turn 1 should include at least 3 project IDs, found: {len(project_ids)}"
+            assert len(project_ids) >= 3, (
+                f"Turn 1 should include at least 3 project IDs, found: {len(project_ids)}"
+            )
 
     @pytest.mark.asyncio
     async def test_turn2_uses_appropriate_tools(self, conversation_id):
@@ -140,9 +140,9 @@ class TestScenario031NumberedReference:
                 for x in ["project 3", "objective", "coordinator", "funding"]
             )
 
-            assert (
-                uses_details_tool or uses_search_tool
-            ), f"Turn 2 should use get_project_details or search_projects, got: {tools_used}"
+            assert uses_details_tool or uses_search_tool, (
+                f"Turn 2 should use get_project_details or search_projects, got: {tools_used}"
+            )
             assert has_project_info, "Turn 2 response should contain project information"
 
     @pytest.mark.asyncio
@@ -180,9 +180,9 @@ class TestScenario031NumberedReference:
                     or "project 3" in turn2_text.lower()
                     or "third project" in turn2_text.lower()
                 )
-                assert (
-                    references_project
-                ), f"Turn 2 should reference project 3 ({project3_name}) from Turn 1"
+                assert references_project, (
+                    f"Turn 2 should reference project 3 ({project3_name}) from Turn 1"
+                )
 
     @pytest.mark.asyncio
     async def test_turn2_does_not_do_new_search(self, conversation_id):
@@ -200,9 +200,9 @@ class TestScenario031NumberedReference:
             # If search_projects is used, get_project_details should also be used
             if search_tools:
                 details_tools = [t for t in tools_used if "get_project_details" in str(t).lower()]
-                assert (
-                    details_tools or len(search_tools) <= 2
-                ), f"Turn 2 should use get_project_details, not just search_projects: {tools_used}"
+                assert details_tools or len(search_tools) <= 2, (
+                    f"Turn 2 should use get_project_details, not just search_projects: {tools_used}"
+                )
 
     @pytest.mark.asyncio
     async def test_turn2_provides_detailed_information(self, conversation_id):
@@ -234,9 +234,9 @@ class TestScenario031NumberedReference:
             found_details = sum(
                 1 for indicator in details_indicators if indicator in response_text.lower()
             )
-            assert (
-                found_details >= 2
-            ), f"Turn 2 should include detailed information (found {found_details} indicators)"
+            assert found_details >= 2, (
+                f"Turn 2 should include detailed information (found {found_details} indicators)"
+            )
 
     @pytest.mark.asyncio
     async def test_turn2_does_not_ask_for_clarification(self, conversation_id):
@@ -256,9 +256,9 @@ class TestScenario031NumberedReference:
             ]
 
             for phrase in clarification_phrases:
-                assert (
-                    phrase not in response_text.lower()
-                ), f"Turn 2 should not ask for clarification, found: '{phrase}'"
+                assert phrase not in response_text.lower(), (
+                    f"Turn 2 should not ask for clarification, found: '{phrase}'"
+                )
 
     @pytest.mark.asyncio
     async def test_turn2_includes_cordis_link_or_project_id(self, conversation_id):
@@ -277,9 +277,9 @@ class TestScenario031NumberedReference:
             # Also check if get_project_details was used (which includes CORDIS URL in result)
             uses_details_tool = any("get_project_details" in str(t).lower() for t in tools_used)
 
-            assert (
-                has_cordis_link or has_project_id or uses_details_tool
-            ), "Turn 2 should include a CORDIS link, project ID, or use get_project_details tool"
+            assert has_cordis_link or has_project_id or uses_details_tool, (
+                "Turn 2 should include a CORDIS link, project ID, or use get_project_details tool"
+            )
 
     @pytest.mark.asyncio
     async def test_context_api_shows_both_turns(self, conversation_id):
@@ -296,9 +296,9 @@ class TestScenario031NumberedReference:
 
             messages = context.get("messages", [])
             # Should have at least 4 messages (2 user + 2 assistant)
-            assert (
-                len(messages) >= 4
-            ), f"Context should have at least 4 messages, got {len(messages)}"
+            assert len(messages) >= 4, (
+                f"Context should have at least 4 messages, got {len(messages)}"
+            )
 
     @pytest.mark.asyncio
     async def test_turn2_reasoning_mentions_project3(self, conversation_id):
@@ -318,9 +318,9 @@ class TestScenario031NumberedReference:
                     or "third" in all_reasoning.lower()
                     or "previous" in all_reasoning.lower()
                 )
-                assert (
-                    mentions_project
-                ), "Turn 2 reasoning should mention identifying project 3 from context"
+                assert mentions_project, (
+                    "Turn 2 reasoning should mention identifying project 3 from context"
+                )
 
     @pytest.mark.asyncio
     async def test_overall_score_meets_threshold(self, conversation_id):
@@ -387,9 +387,9 @@ class TestScenario031NumberedReference:
             if "http" in turn2_text.lower():
                 score += 5
 
-            assert (
-                score >= self.PASS_THRESHOLD
-            ), f"Quality score {score} is below threshold {self.PASS_THRESHOLD}"
+            assert score >= self.PASS_THRESHOLD, (
+                f"Quality score {score} is below threshold {self.PASS_THRESHOLD}"
+            )
 
     @pytest.mark.asyncio
     async def test_turn1_uses_search_projects_tool(self, conversation_id):
@@ -416,6 +416,6 @@ class TestScenario031NumberedReference:
 
             # Should be a substantial response
             # (at least 500 characters for detailed project info)
-            assert (
-                len(response_text) >= 500
-            ), f"Turn 2 should provide substantial details, got {len(response_text)} chars"
+            assert len(response_text) >= 500, (
+                f"Turn 2 should provide substantial details, got {len(response_text)} chars"
+            )

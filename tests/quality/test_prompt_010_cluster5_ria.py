@@ -43,9 +43,7 @@ import httpx
 import pytest
 
 # Add project root to path
-sys.path.insert(
-    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 # API configuration
 API_BASE_URL = os.getenv("MAP_IT_API_URL", "http://localhost:8000")
@@ -57,8 +55,7 @@ NEEDS_REVIEW_THRESHOLD = 70
 
 # The query for this test
 PROMPT_010_QUERY = (
-    "What is the max project length and the payment modality "
-    "for Cluster 5 RIA projects?"
+    "What is the max project length and the payment modality for Cluster 5 RIA projects?"
 )
 
 # Expected content based on PRD requirements
@@ -295,9 +292,7 @@ class EvaluationResult:
 def check_api_available() -> bool:
     """Check if the API is available."""
     try:
-        response = httpx.get(
-            f"{API_BASE_URL}/api/v3/conversation/health", timeout=5.0
-        )
+        response = httpx.get(f"{API_BASE_URL}/api/v3/conversation/health", timeout=5.0)
         return response.status_code == 200
     except Exception:
         return False
@@ -310,9 +305,7 @@ live_api = pytest.mark.skipif(
 )
 
 
-def get_mapit_response(
-    query: str, conversation_id: int | None = None
-) -> dict[str, Any]:
+def get_mapit_response(query: str, conversation_id: int | None = None) -> dict[str, Any]:
     """
     Send a query to MAPIT and get the response.
 
@@ -370,13 +363,9 @@ def evaluate_query_fulfillment(response: str) -> tuple[int, str, list[str], list
     missing_items = []
 
     # Check for project duration information (20 points)
-    duration_keywords_found = sum(
-        1 for kw in EXPECTED_DURATION_KEYWORDS if kw in response_lower
-    )
+    duration_keywords_found = sum(1 for kw in EXPECTED_DURATION_KEYWORDS if kw in response_lower)
     # Need specific numbers like 36, 48, 60 months
-    has_duration_numbers = any(
-        num in response for num in ["36", "48", "60", "24"]
-    )
+    has_duration_numbers = any(num in response for num in ["36", "48", "60", "24"])
     has_month_mention = "month" in response_lower
 
     if duration_keywords_found >= 3 and has_duration_numbers and has_month_mention:
@@ -394,9 +383,7 @@ def evaluate_query_fulfillment(response: str) -> tuple[int, str, list[str], list
         missing_items.append("Project duration information")
 
     # Check for payment modality information (20 points)
-    payment_keywords_found = sum(
-        1 for kw in EXPECTED_PAYMENT_KEYWORDS if kw in response_lower
-    )
+    payment_keywords_found = sum(1 for kw in EXPECTED_PAYMENT_KEYWORDS if kw in response_lower)
     # Key payment structure terms
     has_prefinancing = any(
         term in response_lower for term in ["pre-financing", "prefinancing", "advance"]
@@ -465,12 +452,17 @@ def evaluate_specificity(response: str) -> tuple[int, str]:
 
     # Payment percentages or timing (6 points)
     payment_specifics = [
-        "50%", "30%", "40%", "30 day", "60 day", "90 day",
-        "18 month", "reporting period", "periodic report"
+        "50%",
+        "30%",
+        "40%",
+        "30 day",
+        "60 day",
+        "90 day",
+        "18 month",
+        "reporting period",
+        "periodic report",
     ]
-    payment_found = sum(
-        1 for spec in payment_specifics if spec.lower() in response_lower
-    )
+    payment_found = sum(1 for spec in payment_specifics if spec.lower() in response_lower)
     if payment_found >= 2:
         score += 6
     elif payment_found >= 1:
@@ -511,51 +503,59 @@ def evaluate_factual_accuracy(
     # Check funding rate accuracy
     if "ria" in response_lower:
         ria_idx = response_lower.find("ria")
-        nearby_text = response_lower[max(0, ria_idx - 100): ria_idx + 200]
+        nearby_text = response_lower[max(0, ria_idx - 100) : ria_idx + 200]
 
         # Wrong: RIA with 70% funding
         if "70%" in nearby_text and "100%" not in nearby_text:
             score -= 8
-            errors.append({
-                "claim": "RIA has 70% funding rate",
-                "correct_value": "RIA has 100% funding rate",
-                "source": "EU Funding Domain Skill",
-            })
+            errors.append(
+                {
+                    "claim": "RIA has 70% funding rate",
+                    "correct_value": "RIA has 100% funding rate",
+                    "source": "EU Funding Domain Skill",
+                }
+            )
 
         # Wrong: RIA with 80% funding
         if "80%" in nearby_text and "100%" not in nearby_text:
             score -= 8
-            errors.append({
-                "claim": "RIA has 80% funding rate",
-                "correct_value": "RIA has 100% funding rate",
-                "source": "EU Funding Domain Skill",
-            })
+            errors.append(
+                {
+                    "claim": "RIA has 80% funding rate",
+                    "correct_value": "RIA has 100% funding rate",
+                    "source": "EU Funding Domain Skill",
+                }
+            )
 
     # Check duration accuracy
     # Wrong: Very short duration claimed (< 12 months typical)
     if "12 month" in response_lower and "maximum" not in response_lower:
         duration_idx = response_lower.find("12 month")
-        nearby = response_lower[max(0, duration_idx - 50): duration_idx + 100]
+        nearby = response_lower[max(0, duration_idx - 50) : duration_idx + 100]
         if "typical" in nearby or "standard" in nearby:
             score -= 5
-            errors.append({
-                "claim": "Typical RIA duration is 12 months",
-                "correct_value": "Typical RIA duration is 36-48 months",
-                "source": "EU Funding Domain Skill",
-            })
+            errors.append(
+                {
+                    "claim": "Typical RIA duration is 12 months",
+                    "correct_value": "Typical RIA duration is 36-48 months",
+                    "source": "EU Funding Domain Skill",
+                }
+            )
 
     # Wrong: Very long duration claimed (> 72 months typical)
     for long_duration in ["72 month", "84 month", "96 month"]:
         if long_duration in response_lower:
             duration_idx = response_lower.find(long_duration)
-            nearby = response_lower[max(0, duration_idx - 50): duration_idx + 100]
+            nearby = response_lower[max(0, duration_idx - 50) : duration_idx + 100]
             if "maximum" not in nearby and "exceptional" not in nearby:
                 score -= 3
-                errors.append({
-                    "claim": f"RIA duration can be {long_duration}s",
-                    "correct_value": "Maximum RIA duration is typically 60 months",
-                    "source": "EU Funding Domain Skill",
-                })
+                errors.append(
+                    {
+                        "claim": f"RIA duration can be {long_duration}s",
+                        "correct_value": "Maximum RIA duration is typically 60 months",
+                        "source": "EU Funding Domain Skill",
+                    }
+                )
                 break
 
     # Check indirect cost rate if mentioned
@@ -564,14 +564,16 @@ def evaluate_factual_accuracy(
         for wrong_rate in ["20%", "30%", "35%", "40%"]:
             if wrong_rate in response:
                 idx = response.find(wrong_rate)
-                nearby = response_lower[max(0, idx - 100): idx + 100]
+                nearby = response_lower[max(0, idx - 100) : idx + 100]
                 if "indirect" in nearby or "overhead" in nearby:
                     score -= 3
-                    errors.append({
-                        "claim": f"Indirect cost rate is {wrong_rate}",
-                        "correct_value": "Indirect cost rate is 25% flat rate",
-                        "source": "EU Funding Domain Skill",
-                    })
+                    errors.append(
+                        {
+                            "claim": f"Indirect cost rate is {wrong_rate}",
+                            "correct_value": "Indirect cost rate is 25% flat rate",
+                            "source": "EU Funding Domain Skill",
+                        }
+                    )
                     break
 
     notes = f"Accuracy check: {score}/25 points"
@@ -656,9 +658,7 @@ def evaluate_actionability(response: str) -> tuple[int, str]:
     )
 
 
-def evaluate_response(
-    response: str, response_metadata: dict[str, Any]
-) -> EvaluationResult:
+def evaluate_response(response: str, response_metadata: dict[str, Any]) -> EvaluationResult:
     """
     Perform full evaluation of the response.
 
@@ -683,9 +683,7 @@ def evaluate_response(
     actionability_score, actionability_notes = evaluate_actionability(response)
 
     # Calculate overall score
-    overall_score = (
-        fulfillment_score + specificity_score + accuracy_score + actionability_score
-    )
+    overall_score = fulfillment_score + specificity_score + accuracy_score + actionability_score
 
     # Determine result
     if overall_score >= PASS_THRESHOLD:
@@ -699,9 +697,7 @@ def evaluate_response(
     component_scores = [
         {
             "component_id": "cluster5_ria_details",
-            "description": (
-                "Cluster 5 RIA project duration and payment modality"
-            ),
+            "description": ("Cluster 5 RIA project duration and payment modality"),
             "fulfillment": fulfillment_score,
             "specificity": specificity_score,
             "accuracy": accuracy_score,
@@ -874,9 +870,7 @@ class TestPrompt010Cluster5RIA:
 
         response_lower = result["response"].lower()
 
-        ria_keywords_found = sum(
-            1 for kw in EXPECTED_RIA_KEYWORDS if kw in response_lower
-        )
+        ria_keywords_found = sum(1 for kw in EXPECTED_RIA_KEYWORDS if kw in response_lower)
 
         # Informational check
         print(f"RIA keywords found: {ria_keywords_found}")
@@ -933,8 +927,7 @@ class TestPrompt010OfflineEvaluation:
         print(f"  Result: {evaluation.result}")
 
         assert evaluation.overall_score >= PASS_THRESHOLD, (
-            f"Excellent response scored {evaluation.overall_score}, "
-            f"expected >= {PASS_THRESHOLD}"
+            f"Excellent response scored {evaluation.overall_score}, expected >= {PASS_THRESHOLD}"
         )
         assert evaluation.result == "PASS"
 
@@ -950,31 +943,25 @@ class TestPrompt010OfflineEvaluation:
 
         # Partial should score below PASS threshold
         assert evaluation.overall_score < PASS_THRESHOLD, (
-            f"Partial response scored {evaluation.overall_score}, "
-            f"expected < {PASS_THRESHOLD}"
+            f"Partial response scored {evaluation.overall_score}, expected < {PASS_THRESHOLD}"
         )
 
     def test_poor_response_fails(self):
         """Test that a poor response scores < 70 (FAIL)."""
-        evaluation = evaluate_response(
-            SampleResponses.POOR_CLUSTER5_RIA, {"source": "sample_poor"}
-        )
+        evaluation = evaluate_response(SampleResponses.POOR_CLUSTER5_RIA, {"source": "sample_poor"})
 
         print("\nPoor Response Evaluation:")
         print(f"  Score: {evaluation.overall_score}/100")
         print(f"  Result: {evaluation.result}")
 
         assert evaluation.overall_score < NEEDS_REVIEW_THRESHOLD, (
-            f"Poor response scored {evaluation.overall_score}, "
-            f"expected < {NEEDS_REVIEW_THRESHOLD}"
+            f"Poor response scored {evaluation.overall_score}, expected < {NEEDS_REVIEW_THRESHOLD}"
         )
         assert evaluation.result == "FAIL"
 
     def test_evaluation_identifies_missing_items(self):
         """Test that evaluation identifies missing content."""
-        evaluation = evaluate_response(
-            SampleResponses.POOR_CLUSTER5_RIA, {"source": "sample_poor"}
-        )
+        evaluation = evaluate_response(SampleResponses.POOR_CLUSTER5_RIA, {"source": "sample_poor"})
 
         # Check that missing items are identified
         if evaluation.component_scores:
@@ -992,17 +979,14 @@ class TestPrompt010OfflineEvaluation:
         excellent_eval = evaluate_response(
             SampleResponses.EXCELLENT_CLUSTER5_RIA, {"source": "excellent"}
         )
-        poor_eval = evaluate_response(
-            SampleResponses.POOR_CLUSTER5_RIA, {"source": "poor"}
-        )
+        poor_eval = evaluate_response(SampleResponses.POOR_CLUSTER5_RIA, {"source": "poor"})
 
         # Excellent response should have much higher specificity
         excellent_specificity = excellent_eval.component_scores[0]["specificity"]
         poor_specificity = poor_eval.component_scores[0]["specificity"]
 
         assert excellent_specificity > poor_specificity, (
-            f"Excellent specificity ({excellent_specificity}) "
-            f"should be > poor ({poor_specificity})"
+            f"Excellent specificity ({excellent_specificity}) should be > poor ({poor_specificity})"
         )
 
     def test_save_evaluation_result_json(self):
