@@ -575,11 +575,14 @@ Ensure underlying data is accurate and up-to-date.
 
 ### Document Currency
 
-- [ ] **Scenario 047: Work Programme Version** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 047: Work Programme Version** `EXECUTE + FIX IF NEEDED`
   - Query: "What topics are in the Horizon Europe digital work programme?"
   - Verify: References 2024-2025 (or latest) work programme
   - Fix if: Uses outdated work programme version
   - Pass threshold: 80
+  - **Status: PASS (score 80+/100)**
+  - **Fix applied**: Added `_detect_work_programme_content_query()` method to pre-route queries about work programme content (topics, priorities, structure) to `search_documents` tool instead of `search_funding_calls`. Added cluster extraction, year extraction, and search query building helpers.
+  - **Tests**: `tests/quality/test_scenario_047_work_programme_version.py` (25 tests: 12 unit + 13 integration)
 
 - [ ] **Scenario 048: Erasmus+ Guide Version** `EXECUTE + FIX IF NEEDED`
   - Query: "What are the Erasmus+ quality criteria?"

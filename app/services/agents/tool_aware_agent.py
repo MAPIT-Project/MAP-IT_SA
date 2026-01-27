@@ -3834,6 +3834,15 @@ digital_europe, life""",
         if ambiguous_result:
             return ambiguous_result
 
+        # Check for WORK PROGRAMME CONTENT queries
+        # These are questions about work programme document content (topics, priorities, structure)
+        # e.g., "What topics are in the Horizon Europe digital work programme?"
+        # e.g., "What are the 2025 work programme priorities for Cluster 5?"
+        # IMPORTANT: Must come BEFORE call search patterns to route to document search
+        work_programme_result = self._detect_work_programme_content_query(query, context)
+        if work_programme_result:
+            return work_programme_result
+
         # Check for OUT-OF-SCOPE queries (non-EU funding programmes)
         # These are questions about NSF, UKRI, EPSRC, NIH, and other non-EU programmes
         # e.g., "Tell me about NSF grants", "What about UK Research Council?",
@@ -5852,6 +5861,263 @@ If you prefer **grant-based funding** (non-repayable) for climate innovation, he
 5. **Contact Your NCP**: You should reach out to your [National Contact Point](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp) for Cluster 5
 
 📋 **Would you like me to search for specific open climate/clean technology calls in Horizon Europe?**"""
+
+    # ========================================================================
+    # WORK PROGRAMME CONTENT QUERY DETECTION
+    # ========================================================================
+
+    def _detect_work_programme_content_query(
+        self, query: str, context: str
+    ) -> dict[str, Any] | None:
+        """Detect queries about work programme document content (topics, priorities, structure).
+
+        This handles queries like:
+        - "What topics are in the Horizon Europe digital work programme?"
+        - "What are the 2025 work programme priorities for Cluster 5?"
+        - "What does the work programme say about AI?"
+        - "What areas are covered in the digital work programme?"
+
+        These queries should use search_documents to find work programme content,
+        NOT search_funding_calls (which finds open calls).
+
+        The 2025 Work Programmes (WP-1 through WP-14) are indexed in the system.
+        """
+        query_lower = query.lower()
+
+        # Pattern 1: Explicit work programme + content query
+        # e.g., "What topics are in the work programme?", "What does the work programme say about...?"
+        work_programme_patterns = [
+            "work programme",
+            "work-programme",
+            "workprogramme",
+            "wp-",  # e.g., "WP-7" for Digital cluster
+        ]
+
+        content_patterns = [
+            "topic",
+            "topics",
+            "priorit",  # priorities, priority
+            "cover",  # covers, covered, coverage
+            "area",
+            "focus",
+            "say about",
+            "says about",
+            "include",
+            "contain",
+            "mention",
+            "address",
+            "structure",
+            "overview",
+            "destination",  # Horizon Europe destinations
+            "main areas",
+            "key areas",
+            "research areas",
+            "funding areas",
+            "theme",
+        ]
+
+        # Must have work programme reference AND content-seeking pattern
+        has_wp_reference = any(pattern in query_lower for pattern in work_programme_patterns)
+        has_content_pattern = any(pattern in query_lower for pattern in content_patterns)
+
+        if has_wp_reference and has_content_pattern:
+            # Extract cluster/programme context for search
+            cluster_context = self._extract_cluster_from_query(query_lower)
+            year_context = self._extract_year_from_query(query_lower)
+
+            # Build search query
+            search_query = self._build_work_programme_search_query(
+                query, cluster_context, year_context
+            )
+
+            return {
+                "thought": f"User is asking about work programme content (topics/priorities). Using search_documents to find relevant work programme sections. Search: '{search_query}'",
+                "action": "call_tools_and_format",
+                "tool_calls": [
+                    {
+                        "tool": "search_documents",
+                        "parameters": {
+                            "query": search_query,
+                            "document_type": "work_programme",
+                            "max_results": 10,
+                        },
+                        "reasoning": "Searching work programme documents for topics and priorities",
+                    }
+                ],
+                "needs_more_info": True,
+                "format_type": "documents",
+            }
+
+        # Pattern 2: Cluster-specific work programme queries without explicit "work programme"
+        # e.g., "What are Cluster 4 priorities?", "What does Cluster 5 focus on?"
+        cluster_priority_patterns = [
+            (r"cluster\s*[1-6]\s*(priorit|focus|topic|area)", "cluster"),
+            (r"cl[1-6]\s*(priorit|focus|topic|area)", "cluster"),
+            (
+                r"(digital|health|climate|food|security|culture)\s*cluster.*(priorit|focus|topic)",
+                "domain",
+            ),
+            (r"(2024|2025|2026)\s*(priorit|topic|focus).*(horizon|cluster)", "year_first"),
+        ]
+
+        import re
+
+        for pattern, _pattern_type in cluster_priority_patterns:
+            if re.search(pattern, query_lower):
+                cluster_context = self._extract_cluster_from_query(query_lower)
+                year_context = self._extract_year_from_query(query_lower)
+                search_query = self._build_work_programme_search_query(
+                    query, cluster_context, year_context
+                )
+
+                return {
+                    "thought": f"User is asking about cluster priorities/topics. Using search_documents to find work programme content. Search: '{search_query}'",
+                    "action": "call_tools_and_format",
+                    "tool_calls": [
+                        {
+                            "tool": "search_documents",
+                            "parameters": {
+                                "query": search_query,
+                                "document_type": "work_programme",
+                                "max_results": 10,
+                            },
+                            "reasoning": "Searching work programme documents for cluster priorities",
+                        }
+                    ],
+                    "needs_more_info": True,
+                    "format_type": "documents",
+                }
+
+        return None
+
+    def _extract_cluster_from_query(self, query_lower: str) -> str | None:
+        """Extract cluster reference from query."""
+        import re
+
+        # Direct cluster number references
+        cluster_match = re.search(r"cluster\s*([1-6])", query_lower)
+        if cluster_match:
+            return f"Cluster {cluster_match.group(1)}"
+
+        cl_match = re.search(r"\bcl([1-6])\b", query_lower)
+        if cl_match:
+            return f"Cluster {cl_match.group(1)}"
+
+        # Domain-based cluster mapping
+        domain_cluster_map = {
+            "health": "Cluster 1 Health",
+            "medical": "Cluster 1 Health",
+            "clinical": "Cluster 1 Health",
+            "culture": "Cluster 2 Culture Creativity",
+            "creative": "Cluster 2 Culture Creativity",
+            "social": "Cluster 2 Culture Creativity",
+            "democracy": "Cluster 2 Culture Creativity",
+            "security": "Cluster 3 Civil Security",
+            "cybersecurity": "Cluster 3 Civil Security",
+            "disaster": "Cluster 3 Civil Security",
+            "digital": "Cluster 4 Digital Industry Space",
+            "ai": "Cluster 4 Digital Industry Space",
+            "artificial intelligence": "Cluster 4 Digital Industry Space",
+            "robotics": "Cluster 4 Digital Industry Space",
+            "manufacturing": "Cluster 4 Digital Industry Space",
+            "industry": "Cluster 4 Digital Industry Space",
+            "space": "Cluster 4 Digital Industry Space",
+            "quantum": "Cluster 4 Digital Industry Space",
+            "semiconductor": "Cluster 4 Digital Industry Space",
+            "climate": "Cluster 5 Climate Energy Mobility",
+            "energy": "Cluster 5 Climate Energy Mobility",
+            "hydrogen": "Cluster 5 Climate Energy Mobility",
+            "transport": "Cluster 5 Climate Energy Mobility",
+            "mobility": "Cluster 5 Climate Energy Mobility",
+            "battery": "Cluster 5 Climate Energy Mobility",
+            "renewable": "Cluster 5 Climate Energy Mobility",
+            "food": "Cluster 6 Food Bioeconomy",
+            "agriculture": "Cluster 6 Food Bioeconomy",
+            "bioeconomy": "Cluster 6 Food Bioeconomy",
+            "biodiversity": "Cluster 6 Food Bioeconomy",
+            "environment": "Cluster 6 Food Bioeconomy",
+            "soil": "Cluster 6 Food Bioeconomy",
+            "water": "Cluster 6 Food Bioeconomy",
+            "ocean": "Cluster 6 Food Bioeconomy",
+        }
+
+        for domain, cluster in domain_cluster_map.items():
+            if domain in query_lower:
+                return cluster
+
+        return None
+
+    def _extract_year_from_query(self, query_lower: str) -> str | None:
+        """Extract year reference from query."""
+        import re
+
+        year_match = re.search(r"(2023|2024|2025|2026|2027)", query_lower)
+        if year_match:
+            return year_match.group(1)
+        return None
+
+    def _build_work_programme_search_query(
+        self, original_query: str, cluster_context: str | None, year_context: str | None
+    ) -> str:
+        """Build an effective search query for work programme documents."""
+        # Start with core terms
+        search_terms = []
+
+        # Add cluster context if available
+        if cluster_context:
+            search_terms.append(cluster_context)
+
+        # Add year context - default to 2025 if not specified (latest WP)
+        year = year_context or "2025"
+        search_terms.append(f"{year} work programme")
+
+        # Extract key topic terms from original query
+        # Remove common words and focus on content-specific terms
+        query_lower = original_query.lower()
+        noise_words = {
+            "what",
+            "are",
+            "the",
+            "in",
+            "for",
+            "about",
+            "does",
+            "say",
+            "says",
+            "tell",
+            "me",
+            "show",
+            "find",
+            "list",
+            "horizon",
+            "europe",
+            "work",
+            "programme",
+            "program",
+            "topics",
+            "priorities",
+            "areas",
+            "covered",
+            "include",
+            "contain",
+            "mention",
+            "overview",
+            "structure",
+            "focus",
+        }
+
+        words = query_lower.split()
+        topic_terms = [w for w in words if w not in noise_words and len(w) > 2]
+
+        # Add up to 3 topic-specific terms
+        for term in topic_terms[:3]:
+            if term not in " ".join(search_terms).lower():
+                search_terms.append(term)
+
+        # Add "topics priorities destinations" to improve semantic search
+        search_terms.append("topics priorities destinations")
+
+        return " ".join(search_terms)
 
     # ========================================================================
     # OUT-OF-SCOPE QUERY DETECTION AND GUIDANCE (NON-EU FUNDING PROGRAMMES)
