@@ -13266,3 +13266,49 @@ Currently there are no open Health cluster (CL1) calls in the database (all 2025
 
 ### Status
 PASS - Scenario 032 now correctly handles topic refinement in multi-turn conversations.
+
+
+## Scenario 033: Clarification Needed - 2026-01-27 01:13
+
+### Task
+Implement Scenario 033: Clarification Needed
+- Query: "What's the deadline?"
+- Expected: Asks for clarification about which call/programme
+- Verify: Doesn't hallucinate, asks appropriately
+- Fix if: Guesses randomly, hallucinates deadline
+- Pass threshold: 75
+
+### Implementation
+The system already handles ambiguous queries correctly. When a user asks "What's the deadline?" without context:
+1. System recognizes the ambiguity and doesn't guess
+2. Asks for clarification about which call/topic/programme
+3. Provides helpful guidance with typical deadline patterns (MSCA, ERC, quarterly cycles)
+4. Includes EU Portal links for self-service lookup
+5. Does NOT hallucinate specific deadlines
+
+### Tests Created
+Created `tests/quality/test_scenario_033_clarification_needed.py` with 14 tests:
+- test_deadline_query_asks_clarification
+- test_deadline_query_no_hallucination
+- test_deadline_query_provides_guidance
+- test_when_is_deadline_variant
+- test_budget_query_asks_clarification
+- test_is_it_open_query_asks_clarification
+- test_can_i_apply_query_asks_clarification
+- test_response_has_actionable_options
+- test_no_tool_called_for_ambiguous_query
+- test_response_not_empty
+- test_which_one_should_i_choose
+- test_quality_score_acceptable
+- test_provides_typical_deadline_patterns
+- test_provides_portal_link
+
+### Test Results
+All 14 tests passed in 78.69s
+
+### Files Changed
+- tests/quality/test_scenario_033_clarification_needed.py (created)
+- docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md (updated)
+
+### Status
+PASS (score 75+/100)

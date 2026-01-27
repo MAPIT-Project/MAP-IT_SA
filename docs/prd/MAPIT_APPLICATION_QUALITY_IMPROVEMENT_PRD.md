@@ -418,12 +418,15 @@ Test the system's ability to handle sophisticated user needs.
 
 ### Ambiguous Queries
 
-- [ ] **Scenario 033: Clarification Needed** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 033: Clarification Needed** `EXECUTE + FIX IF NEEDED`
   - Query: "What's the deadline?"
   - Expected: Asks for clarification about which call/programme
   - Verify: Doesn't hallucinate, asks appropriately
   - Fix if: Guesses randomly, hallucinates deadline
   - Pass threshold: 75
+  - **Status: PASS (score 75+/100)**
+  - **Verified**: System correctly asks for clarification when given ambiguous queries like "What's the deadline?" without context. Provides helpful guidance with typical deadline patterns (MSCA, ERC, quarterly cycles), EU Portal links, and actionable next steps while asking user to specify call/topic/programme. Does not hallucinate specific deadlines.
+  - **Tests**: `tests/quality/test_scenario_033_clarification_needed.py` (14 tests)
 
 - [ ] **Scenario 034: Implicit Intent** `EXECUTE + FIX IF NEEDED`
   - Query: "I work at a university and we have an idea about clean energy"
