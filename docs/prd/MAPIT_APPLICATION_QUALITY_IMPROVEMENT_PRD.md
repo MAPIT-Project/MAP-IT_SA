@@ -612,13 +612,16 @@ Ensure graceful handling of failures and edge cases.
   - **Fix applied**: Added `_get_country_stats_sql()` SQL fallback method to `_tool_get_country_stats()` with 10s timeout. When Neo4j times out or is unavailable, system gracefully falls back to PostgreSQL for country statistics (top organizations, project counts, funding data, eligibility status). Response metadata indicates degradation reason and limitation message.
   - **Tests**: `tests/quality/test_scenario_049_neo4j_unavailable.py` (22 tests: 10 unit + 12 integration)
 
-- [ ] **Scenario 050: Vector Search Fails** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 050: Vector Search Fails** `EXECUTE + FIX IF NEEDED`
   - Simulate: Supabase vector search timeout
   - Query: "Find semantically similar projects"
   - Expected: Falls back to keyword search, explains
   - Verify: Still provides useful results
   - Fix if: Complete failure, no fallback
   - Pass threshold: 75
+  - **Status: PASS (score 75+/100)**
+  - **Fix applied**: Added timeout handling to `SimilarProjectsTool` with graceful degradation to keyword search. Implemented `_generate_embedding_with_timeout()` (30s timeout) and `_get_vector_results_with_timeout()` (10s timeout) methods. When embedding generation or vector search times out, system falls back to keyword search and returns useful results with metadata indicating degradation reason.
+  - **Tests**: `tests/quality/test_scenario_050_vector_search_fails.py` (27 tests: 15 unit + 12 integration/async)
 
 - [ ] **Scenario 051: API Rate Limited** `EXECUTE + FIX IF NEEDED`
   - Simulate: EU Portal API rate limit

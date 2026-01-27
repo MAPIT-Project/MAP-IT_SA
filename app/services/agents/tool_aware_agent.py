@@ -14153,30 +14153,65 @@ Found **{total_found} organizations** with relevant track records:
             return {"error": str(e)}
 
     async def _tool_get_similar_funded_projects(self, params: dict) -> dict:
-        """Find funded projects semantically similar to a description."""
+        """
+        Find funded projects semantically similar to a description.
+
+        GRACEFUL DEGRADATION:
+        - If embedding generation times out → falls back to keyword search
+        - If vector search times out → falls back to keyword search
+        - If both fail → returns error with helpful message
+
+        Timeout handling is built into SimilarProjectsTool.find_similar().
+        """
         try:
+            from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+
             from ..tools.similar_projects import SimilarProjectsTool
 
             # Extract cluster with fallback alternatives
             cluster_param = self._extract_cluster_param(params)
 
             tool = SimilarProjectsTool()
-            result = tool.find_similar(
-                description=params.get("description", ""),
-                cluster=cluster_param,
-                action_type=params.get("action_type"),
-                min_budget=params.get("min_budget"),
-                max_budget=params.get("max_budget"),
-                year_from=params.get("year_from"),
-                limit=params.get("limit", 10),
-                similarity_threshold=params.get("similarity_threshold", 0.3),
-            )
 
-            return result
+            # Run in thread with overall timeout (tool has internal timeouts too)
+            def _execute():
+                return tool.find_similar(
+                    description=params.get("description", ""),
+                    cluster=cluster_param,
+                    action_type=params.get("action_type"),
+                    min_budget=params.get("min_budget"),
+                    max_budget=params.get("max_budget"),
+                    year_from=params.get("year_from"),
+                    limit=params.get("limit", 10),
+                    similarity_threshold=params.get("similarity_threshold", 0.3),
+                )
+
+            # Overall timeout of 60s (embedding 30s + vector 10s + overhead)
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(_execute)
+                try:
+                    result = future.result(timeout=60)
+                    return result
+                except FuturesTimeoutError:
+                    logger.warning("Similar projects tool timed out at agent level (60s)")
+                    # Fall back to keyword search via the tool's fallback
+                    return tool._get_keyword_fallback(
+                        description=params.get("description", ""),
+                        cluster=cluster_param,
+                        action_type=params.get("action_type"),
+                        limit=params.get("limit", 10),
+                        fallback_reason="agent_level_timeout",
+                    )
 
         except Exception as e:
             logger.error(f"Similar projects error: {e}")
-            return {"error": str(e)}
+            return {
+                "success": False,
+                "tool_name": "get_similar_funded_projects",
+                "error": str(e),
+                "message": "Search failed. Please try again with different parameters.",
+                "metadata": {"degraded": True, "fallback_reason": f"error: {type(e).__name__}"},
+            }
 
     async def _tool_analyze_call_history(self, params: dict) -> dict:
         """Analyze historical funding patterns for Horizon Europe topics.

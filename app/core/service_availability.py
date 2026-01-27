@@ -147,6 +147,7 @@ DEGRADABLE_TOOLS: dict[str, list[ServiceType]] = {
     "get_programme_statistics": [ServiceType.NEO4J],
     # These tools can work without embeddings, using keyword search
     "find_similar_projects": [ServiceType.EMBEDDINGS],
+    "get_similar_funded_projects": [ServiceType.EMBEDDINGS],  # Keyword fallback
     "search_projects": [ServiceType.NEO4J, ServiceType.EMBEDDINGS],
 }
 

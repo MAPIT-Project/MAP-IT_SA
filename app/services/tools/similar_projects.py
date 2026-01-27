@@ -7,6 +7,7 @@ ENHANCED with Hybrid Vector+Graph Architecture:
 - Combines embedding scores with graph relationships
 - Cluster inference from keywords
 - Enhanced consortium context from graph
+- Graceful degradation with keyword fallback on timeout
 
 Finds funded projects semantically similar to a user's project description
 using vector embeddings (768-dim, Google text-embedding-004) and graph context.
@@ -14,7 +15,7 @@ using vector embeddings (768-dim, Google text-embedding-004) and graph context.
 
 import logging
 import os
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from datetime import datetime
 from typing import Any
 
@@ -26,58 +27,148 @@ from psycopg2.extras import RealDictCursor
 load_dotenv()
 logger = logging.getLogger(__name__)
 
+# Timeout constants (in seconds)
+EMBEDDING_TIMEOUT = 30.0  # Time allowed for embedding generation
+VECTOR_SEARCH_TIMEOUT = 10.0  # Time allowed for vector similarity search
+GRAPH_CONTEXT_TIMEOUT = 30.0  # Time allowed for graph context enhancement
+
 
 # Cluster keyword mapping for automatic cluster inference
 CLUSTER_KEYWORDS = {
-    'CLUSTER-1': [
-        'health', 'medical', 'clinical', 'disease', 'patient', 'healthcare',
-        'hospital', 'therapy', 'diagnosis', 'pharmaceutical', 'cancer',
-        'vaccine', 'drug', 'pandemic', 'infection', 'mental health'
+    "CLUSTER-1": [
+        "health",
+        "medical",
+        "clinical",
+        "disease",
+        "patient",
+        "healthcare",
+        "hospital",
+        "therapy",
+        "diagnosis",
+        "pharmaceutical",
+        "cancer",
+        "vaccine",
+        "drug",
+        "pandemic",
+        "infection",
+        "mental health",
     ],
-    'CLUSTER-2': [
-        'culture', 'democracy', 'social', 'heritage', 'creative', 'inclusive',
-        'society', 'governance', 'media', 'migration', 'education'
+    "CLUSTER-2": [
+        "culture",
+        "democracy",
+        "social",
+        "heritage",
+        "creative",
+        "inclusive",
+        "society",
+        "governance",
+        "media",
+        "migration",
+        "education",
     ],
-    'CLUSTER-3': [
-        'security', 'cybersecurity', 'border', 'crime', 'disaster',
-        'resilience', 'defence', 'terrorism', 'critical infrastructure'
+    "CLUSTER-3": [
+        "security",
+        "cybersecurity",
+        "border",
+        "crime",
+        "disaster",
+        "resilience",
+        "defence",
+        "terrorism",
+        "critical infrastructure",
     ],
-    'CLUSTER-4': [
-        'digital', 'AI', 'artificial intelligence', 'data', 'industry',
-        'space', 'manufacturing', 'robotics', 'computing', 'machine learning',
-        'quantum', 'electronics', 'semiconductor', 'cloud', 'IoT'
+    "CLUSTER-4": [
+        "digital",
+        "AI",
+        "artificial intelligence",
+        "data",
+        "industry",
+        "space",
+        "manufacturing",
+        "robotics",
+        "computing",
+        "machine learning",
+        "quantum",
+        "electronics",
+        "semiconductor",
+        "cloud",
+        "IoT",
     ],
-    'CLUSTER-5': [
-        'climate', 'energy', 'mobility', 'transport', 'hydrogen', 'battery',
-        'renewable', 'green', 'carbon', 'solar', 'wind', 'electric vehicle',
-        'decarbonization', 'sustainability', 'smart grid', 'fuel cell'
+    "CLUSTER-5": [
+        "climate",
+        "energy",
+        "mobility",
+        "transport",
+        "hydrogen",
+        "battery",
+        "renewable",
+        "green",
+        "carbon",
+        "solar",
+        "wind",
+        "electric vehicle",
+        "decarbonization",
+        "sustainability",
+        "smart grid",
+        "fuel cell",
     ],
-    'CLUSTER-6': [
-        'food', 'agriculture', 'bioeconomy', 'biodiversity', 'ocean', 'marine',
-        'environment', 'soil', 'water', 'forestry', 'fisheries', 'farming'
-    ]
+    "CLUSTER-6": [
+        "food",
+        "agriculture",
+        "bioeconomy",
+        "biodiversity",
+        "ocean",
+        "marine",
+        "environment",
+        "soil",
+        "water",
+        "forestry",
+        "fisheries",
+        "farming",
+    ],
 }
 
 # Cluster mapping for topic codes
 CLUSTER_MAP = {
-    'CL1': 'HLTH', 'CLUSTER1': 'HLTH', 'CLUSTER-1': 'HLTH', 'HEALTH': 'HLTH',
-    'CL2': 'CL2', 'CLUSTER2': 'CL2', 'CLUSTER-2': 'CL2', 'CULTURE': 'CL2',
-    'CL3': 'CL3', 'CLUSTER3': 'CL3', 'CLUSTER-3': 'CL3', 'SECURITY': 'CL3',
-    'CL4': 'CL4', 'CLUSTER4': 'CL4', 'CLUSTER-4': 'CL4', 'DIGITAL': 'CL4',
-    'CL5': 'CL5', 'CLUSTER5': 'CL5', 'CLUSTER-5': 'CL5', 'CLIMATE': 'CL5', 'ENERGY': 'CL5',
-    'CL6': 'CL6', 'CLUSTER6': 'CL6', 'CLUSTER-6': 'CL6', 'FOOD': 'CL6',
-    'EIC': 'EIC', 'ERC': 'ERC', 'MSCA': 'MSCA',
+    "CL1": "HLTH",
+    "CLUSTER1": "HLTH",
+    "CLUSTER-1": "HLTH",
+    "HEALTH": "HLTH",
+    "CL2": "CL2",
+    "CLUSTER2": "CL2",
+    "CLUSTER-2": "CL2",
+    "CULTURE": "CL2",
+    "CL3": "CL3",
+    "CLUSTER3": "CL3",
+    "CLUSTER-3": "CL3",
+    "SECURITY": "CL3",
+    "CL4": "CL4",
+    "CLUSTER4": "CL4",
+    "CLUSTER-4": "CL4",
+    "DIGITAL": "CL4",
+    "CL5": "CL5",
+    "CLUSTER5": "CL5",
+    "CLUSTER-5": "CL5",
+    "CLIMATE": "CL5",
+    "ENERGY": "CL5",
+    "CL6": "CL6",
+    "CLUSTER6": "CL6",
+    "CLUSTER-6": "CL6",
+    "FOOD": "CL6",
+    "EIC": "EIC",
+    "ERC": "ERC",
+    "MSCA": "MSCA",
 }
 
 # Cluster to graph format
 CLUSTER_TO_GRAPH = {
-    'HLTH': 'CLUSTER-1',
-    'CL1': 'CLUSTER-1',
-    'CL2': 'CLUSTER-2',
-    'CL3': 'CLUSTER-3',
-    'CL4': 'CLUSTER-4',
-    'CL5': 'CLUSTER-5',
-    'CL6': 'CLUSTER-6',
+    "HLTH": "CLUSTER-1",
+    "CL1": "CLUSTER-1",
+    "CL2": "CLUSTER-2",
+    "CL3": "CLUSTER-3",
+    "CL4": "CLUSTER-4",
+    "CL5": "CLUSTER-5",
+    "CL6": "CLUSTER-6",
 }
 
 
@@ -103,6 +194,7 @@ class SimilarProjectsTool:
         self._graph_service = None
         try:
             from ..data_intelligence.graph_service import GraphSearchService
+
             self._graph_service = GraphSearchService()
             logger.info("✅ Graph service available for similar projects")
         except Exception as e:
@@ -119,15 +211,38 @@ class SimilarProjectsTool:
         if self._embedding_service is None:
             try:
                 from ..embedding_service import EmbeddingService
+
                 self._embedding_service = EmbeddingService()
             except Exception as e:
                 logger.error(f"Failed to initialize embedding service: {e}")
                 return None
         return self._embedding_service
 
+    def _generate_embedding_with_timeout(self, embedding_service, description: str):
+        """
+        Generate embedding with timeout protection.
+
+        Uses ThreadPoolExecutor to enforce timeout on embedding generation.
+        Falls back to None if embedding times out.
+        """
+
+        def _generate():
+            return embedding_service.generate_query_embedding(description)
+
+        try:
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(_generate)
+                return future.result(timeout=EMBEDDING_TIMEOUT)
+        except FuturesTimeoutError:
+            logger.warning(f"Embedding generation timed out after {EMBEDDING_TIMEOUT}s")
+            return None
+        except Exception as e:
+            logger.error(f"Embedding generation error: {e}")
+            return None
+
     def _normalize_cluster(self, cluster: str) -> str:
         """Normalize cluster code for SQL queries."""
-        cluster_upper = cluster.upper().replace(' ', '').replace('-', '')
+        cluster_upper = cluster.upper().replace(" ", "").replace("-", "")
         return CLUSTER_MAP.get(cluster_upper, cluster.upper())
 
     def _cluster_to_graph_code(self, cluster: str) -> str | None:
@@ -135,7 +250,9 @@ class SimilarProjectsTool:
         if not cluster:
             return None
         normalized = self._normalize_cluster(cluster)
-        return CLUSTER_TO_GRAPH.get(normalized, f'CLUSTER-{normalized[-1]}' if normalized.startswith('CL') else None)
+        return CLUSTER_TO_GRAPH.get(
+            normalized, f"CLUSTER-{normalized[-1]}" if normalized.startswith("CL") else None
+        )
 
     def _infer_clusters_from_description(self, description: str) -> list[str]:
         """Infer clusters from project description."""
@@ -165,7 +282,7 @@ class SimilarProjectsTool:
         limit: int = 10,
         similarity_threshold: float = 0.3,
         rerank_with_graph: bool = True,
-        include_graph_context: bool = True
+        include_graph_context: bool = True,
     ) -> dict[str, Any]:
         """
         Find funded Horizon Europe projects semantically similar to a description.
@@ -195,7 +312,7 @@ class SimilarProjectsTool:
                 "success": False,
                 "tool_name": "get_similar_funded_projects",
                 "error": "Description must be at least 20 characters",
-                "message": "Please provide a more detailed project description for better matching."
+                "message": "Please provide a more detailed description for better matching.",
             }
 
         # Infer clusters from description if not provided
@@ -216,15 +333,28 @@ class SimilarProjectsTool:
             # Get embedding service
             embedding_service = self._get_embedding_service()
             if not embedding_service:
-                return self._get_keyword_fallback(description, cluster, action_type, limit)
+                logger.warning("Embedding service unavailable, using keyword fallback")
+                return self._get_keyword_fallback(
+                    description,
+                    cluster,
+                    action_type,
+                    limit,
+                    fallback_reason="embedding_service_unavailable",
+                )
 
-            # Generate embedding for user's description
+            # Generate embedding for user's description WITH TIMEOUT
             logger.info(f"Generating embedding for description ({len(description)} chars)")
-            query_embedding = embedding_service.generate_query_embedding(description)
+            query_embedding = self._generate_embedding_with_timeout(embedding_service, description)
 
             if query_embedding is None or np.all(query_embedding == 0):
                 logger.warning("Failed to generate embedding, falling back to keyword search")
-                return self._get_keyword_fallback(description, cluster, action_type, limit)
+                return self._get_keyword_fallback(
+                    description,
+                    cluster,
+                    action_type,
+                    limit,
+                    fallback_reason="embedding_generation_failed",
+                )
 
             # Convert to list for PostgreSQL
             embedding_list = query_embedding.tolist()
@@ -244,7 +374,7 @@ class SimilarProjectsTool:
                     similarity_threshold=similarity_threshold,
                     rerank_with_graph=rerank_with_graph,
                     include_graph_context=include_graph_context,
-                    inferred_clusters=inferred_clusters
+                    inferred_clusters=inferred_clusters,
                 )
 
             # Fallback to vector-only search
@@ -257,14 +387,28 @@ class SimilarProjectsTool:
                 max_budget=max_budget,
                 year_from=year_from,
                 limit=limit,
-                similarity_threshold=similarity_threshold
+                similarity_threshold=similarity_threshold,
             )
 
+        except FuturesTimeoutError:
+            logger.warning(
+                f"Vector search timed out after {VECTOR_SEARCH_TIMEOUT}s, using keyword fallback"
+            )
+            return self._get_keyword_fallback(
+                description, cluster, action_type, limit, fallback_reason="vector_search_timeout"
+            )
         except Exception as e:
             logger.error(f"Similar projects search error: {e}")
             import traceback
+
             traceback.print_exc()
-            return self._get_keyword_fallback(description, cluster, action_type, limit)
+            return self._get_keyword_fallback(
+                description,
+                cluster,
+                action_type,
+                limit,
+                fallback_reason=f"error: {type(e).__name__}",
+            )
 
     def _find_similar_hybrid(
         self,
@@ -280,13 +424,15 @@ class SimilarProjectsTool:
         similarity_threshold: float,
         rerank_with_graph: bool,
         include_graph_context: bool,
-        inferred_clusters: list[str]
+        inferred_clusters: list[str],
     ) -> dict[str, Any]:
         """
         Hybrid Vector+Graph search with optional reranking.
+
+        If vector search times out, falls back to keyword search.
         """
-        # Step 1: Get vector similarity results
-        vector_results = self._get_vector_results(
+        # Step 1: Get vector similarity results WITH TIMEOUT
+        vector_results, timed_out = self._get_vector_results_with_timeout(
             embedding_list=embedding_list,
             cluster=cluster,
             action_type=action_type,
@@ -294,29 +440,35 @@ class SimilarProjectsTool:
             max_budget=max_budget,
             year_from=year_from,
             limit=limit * 2,  # Get more for reranking
-            similarity_threshold=similarity_threshold
+            similarity_threshold=similarity_threshold,
         )
+
+        # If vector search timed out, fall back to keyword search
+        if timed_out:
+            logger.warning("Vector search timed out in hybrid mode, falling back to keyword search")
+            return self._get_keyword_fallback(
+                description, cluster, action_type, limit, fallback_reason="vector_search_timeout"
+            )
 
         if not vector_results:
             return {
                 "success": True,
                 "tool_name": "get_similar_funded_projects",
-                "query_description": description[:200] + "..." if len(description) > 200 else description,
+                "query_description": (
+                    description[:200] + "..." if len(description) > 200 else description
+                ),
                 "projects_searched": "13,850+",
                 "matches_found": 0,
                 "similar_projects": [],
-                "message": "No similar projects found. Try a different description or lower the similarity threshold.",
+                "message": "No similar projects found. Try a different description.",
                 "suggestions": [
                     "Use more specific technical terms",
                     "Remove filters (cluster, action_type) for broader search",
-                    "Describe the methodology or approach in more detail"
+                    "Describe the methodology or approach in more detail",
                 ],
                 "data_source": "cordis_embeddings",
-                "metadata": {
-                    "search_type": "hybrid",
-                    "sources_used": ["vector"]
-                },
-                "timestamp": datetime.now().isoformat()
+                "metadata": {"search_type": "hybrid", "sources_used": ["vector"]},
+                "timestamp": datetime.now().isoformat(),
             }
 
         # Step 2: Enhance with graph context (parallel queries)
@@ -339,11 +491,13 @@ class SimilarProjectsTool:
         return {
             "success": True,
             "tool_name": "get_similar_funded_projects",
-            "query_description": description[:200] + "..." if len(description) > 200 else description,
+            "query_description": (
+                description[:200] + "..." if len(description) > 200 else description
+            ),
             "filters_applied": {
                 "cluster": cluster,
                 "action_type": action_type,
-                "budget_range": f"€{min_budget or 0:,} - €{max_budget:,}" if max_budget else None
+                "budget_range": f"€{min_budget or 0:,} - €{max_budget:,}" if max_budget else None,
             },
             "projects_searched": "13,850+",
             "matches_found": len(similar_projects),
@@ -355,10 +509,52 @@ class SimilarProjectsTool:
                 "search_type": "hybrid",
                 "sources_used": ["vector", "graph"] if include_graph_context else ["vector"],
                 "reranked_with_graph": rerank_with_graph,
-                "inferred_clusters": inferred_clusters
+                "inferred_clusters": inferred_clusters,
             },
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
+
+    def _get_vector_results_with_timeout(
+        self,
+        embedding_list: list[float],
+        cluster: str | None,
+        action_type: str | None,
+        min_budget: int | None,
+        max_budget: int | None,
+        year_from: int | None,
+        limit: int,
+        similarity_threshold: float,
+    ) -> tuple[list[dict], bool]:
+        """
+        Get vector similarity results with timeout protection.
+
+        Returns:
+            Tuple of (results, timed_out) where timed_out is True if the search timed out
+        """
+
+        def _execute_search():
+            return self._get_vector_results(
+                embedding_list=embedding_list,
+                cluster=cluster,
+                action_type=action_type,
+                min_budget=min_budget,
+                max_budget=max_budget,
+                year_from=year_from,
+                limit=limit,
+                similarity_threshold=similarity_threshold,
+            )
+
+        try:
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(_execute_search)
+                result = future.result(timeout=VECTOR_SEARCH_TIMEOUT)
+                return result, False
+        except FuturesTimeoutError:
+            logger.warning(f"Vector search timed out after {VECTOR_SEARCH_TIMEOUT}s")
+            return [], True
+        except Exception as e:
+            logger.error(f"Vector search with timeout error: {e}")
+            return [], False
 
     def _get_vector_results(
         self,
@@ -369,7 +565,7 @@ class SimilarProjectsTool:
         max_budget: int | None,
         year_from: int | None,
         limit: int,
-        similarity_threshold: float
+        similarity_threshold: float,
     ) -> list[dict]:
         """Get vector similarity results from pgvector."""
         conn = self._get_connection()
@@ -391,21 +587,21 @@ class SimilarProjectsTool:
 
             # Action type filter
             if action_type:
-                where_conditions.append("p.\"fundingScheme\" ILIKE %s")
+                where_conditions.append('p."fundingScheme" ILIKE %s')
                 params.append(f"%{action_type.upper()}%")
 
             # Budget filters
             if min_budget:
-                where_conditions.append("p.\"ecMaxContribution\" >= %s")
+                where_conditions.append('p."ecMaxContribution" >= %s')
                 params.append(min_budget)
 
             if max_budget:
-                where_conditions.append("p.\"ecMaxContribution\" <= %s")
+                where_conditions.append('p."ecMaxContribution" <= %s')
                 params.append(max_budget)
 
             # Year filter
             if year_from:
-                where_conditions.append("EXTRACT(YEAR FROM p.\"startDate\") >= %s")
+                where_conditions.append('EXTRACT(YEAR FROM p."startDate") >= %s')
                 params.append(year_from)
 
             where_clause = " AND ".join(where_conditions)
@@ -438,50 +634,61 @@ class SimilarProjectsTool:
                 ORDER BY similarity_score DESC
             """
 
-            params_with_embedding = [embedding_list] + params + [embedding_list, limit, similarity_threshold]
+            params_with_embedding = (
+                [embedding_list] + params + [embedding_list, limit, similarity_threshold]
+            )
             cursor.execute(sql, params_with_embedding)
             results = cursor.fetchall()
 
             # Get basic consortium info from SQL
             output = []
             for r in results:
-                project_id = r['id']
+                project_id = r["id"]
 
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT
                         COUNT(DISTINCT "organisationID") as partner_count,
                         COUNT(DISTINCT country) as country_count,
                         MAX(CASE WHEN role = 'coordinator' THEN name END) as coordinator_name,
-                        MAX(CASE WHEN role = 'coordinator' THEN country END) as coordinator_country,
-                        ARRAY_AGG(DISTINCT "activityType") FILTER (WHERE "activityType" IS NOT NULL) as org_types,
-                        ARRAY_AGG(DISTINCT country) FILTER (WHERE country IS NOT NULL) as countries
+                        MAX(CASE WHEN role = 'coordinator' THEN country END) as coord_country,
+                        ARRAY_AGG(DISTINCT "activityType")
+                            FILTER (WHERE "activityType" IS NOT NULL) as org_types,
+                        ARRAY_AGG(DISTINCT country)
+                            FILTER (WHERE country IS NOT NULL) as countries
                     FROM organizations
                     WHERE "projectID" = %s
-                """, [project_id])
+                """,
+                    [project_id],
+                )
                 consortium = cursor.fetchone()
 
-                output.append({
-                    'id': str(r['id']),
-                    'acronym': r['acronym'],
-                    'title': r['title'],
-                    'objective': r['objective'],
-                    'total_cost': float(r['totalCost'] or 0),
-                    'eu_contribution': float(r['ecMaxContribution'] or 0),
-                    'start_date': str(r['startDate'])[:10] if r['startDate'] else None,
-                    'end_date': str(r['endDate'])[:10] if r['endDate'] else None,
-                    'status': r['status'],
-                    'action_type': r['fundingScheme'],
-                    'topics': r['topics'],
-                    'similarity_score': float(r['similarity_score']),
-                    'consortium': {
-                        'size': int(consortium['partner_count'] or 0),
-                        'countries': int(consortium['country_count'] or 0),
-                        'coordinator_name': consortium['coordinator_name'],
-                        'coordinator_country': consortium['coordinator_country'],
-                        'org_types': consortium['org_types'] or [],
-                        'country_list': consortium['countries'][:10] if consortium['countries'] else []
+                output.append(
+                    {
+                        "id": str(r["id"]),
+                        "acronym": r["acronym"],
+                        "title": r["title"],
+                        "objective": r["objective"],
+                        "total_cost": float(r["totalCost"] or 0),
+                        "eu_contribution": float(r["ecMaxContribution"] or 0),
+                        "start_date": str(r["startDate"])[:10] if r["startDate"] else None,
+                        "end_date": str(r["endDate"])[:10] if r["endDate"] else None,
+                        "status": r["status"],
+                        "action_type": r["fundingScheme"],
+                        "topics": r["topics"],
+                        "similarity_score": float(r["similarity_score"]),
+                        "consortium": {
+                            "size": int(consortium["partner_count"] or 0),
+                            "countries": int(consortium["country_count"] or 0),
+                            "coordinator_name": consortium["coordinator_name"],
+                            "coordinator_country": consortium["coord_country"],
+                            "org_types": consortium["org_types"] or [],
+                            "country_list": (
+                                consortium["countries"][:10] if consortium["countries"] else []
+                            ),
+                        },
                     }
-                })
+                )
 
             cursor.close()
             conn.close()
@@ -494,9 +701,7 @@ class SimilarProjectsTool:
             return []
 
     def _enhance_with_graph_context(
-        self,
-        results: list[dict],
-        graph_cluster: str | None
+        self, results: list[dict], graph_cluster: str | None
     ) -> list[dict]:
         """Enhance results with graph context (parallel queries)."""
         if not self._graph_service or not results:
@@ -507,13 +712,11 @@ class SimilarProjectsTool:
             try:
                 # Get similar projects count from graph
                 similar = self._graph_service.find_similar_projects(
-                    project_id,
-                    similarity_type='cluster',
-                    limit=5
+                    project_id, similarity_type="cluster", limit=5
                 )
                 return {
-                    'graph_similar_count': len(similar) if similar else 0,
-                    'graph_similar': similar[:3] if similar else []
+                    "graph_similar_count": len(similar) if similar else 0,
+                    "graph_similar": similar[:3] if similar else [],
                 }
             except Exception as e:
                 logger.warning(f"Graph project info query failed for {project_id}: {e}")
@@ -522,7 +725,7 @@ class SimilarProjectsTool:
         # Parallel queries for graph context
         with ThreadPoolExecutor(max_workers=5) as executor:
             futures = {
-                executor.submit(get_graph_project_info, r['id']): i
+                executor.submit(get_graph_project_info, r["id"]): i
                 for i, r in enumerate(results[:10])  # Only top 10 for performance
             }
 
@@ -531,86 +734,79 @@ class SimilarProjectsTool:
                 try:
                     graph_info = future.result()
                     if graph_info:
-                        results[idx]['graph_context'] = graph_info
+                        results[idx]["graph_context"] = graph_info
                 except Exception as e:
                     logger.warning(f"Graph context query failed: {e}")
 
         return results
 
-    def _rerank_with_graph(
-        self,
-        results: list[dict],
-        graph_cluster: str | None
-    ) -> list[dict]:
+    def _rerank_with_graph(self, results: list[dict], graph_cluster: str | None) -> list[dict]:
         """Rerank results by combining embedding score with graph signals."""
         for r in results:
-            embedding_score = r.get('similarity_score', 0)
+            embedding_score = r.get("similarity_score", 0)
 
             # Graph signals
-            graph_context = r.get('graph_context', {})
-            graph_similar_count = graph_context.get('graph_similar_count', 0)
+            graph_context = r.get("graph_context", {})
+            graph_similar_count = graph_context.get("graph_similar_count", 0)
 
             # Consortium size (larger consortiums often indicate established topics)
-            consortium_size = r.get('consortium', {}).get('size', 0)
+            consortium_size = r.get("consortium", {}).get("size", 0)
             consortium_score = min(consortium_size / 15, 1.0) * 0.1  # Normalize, cap at 15 partners
 
             # Graph similarity score (more graph-similar projects = more established area)
             graph_score = min(graph_similar_count / 5, 1.0) * 0.1  # Normalize, cap at 5
 
             # Budget score (higher budgets may indicate EU priority)
-            budget = r.get('eu_contribution', 0)
+            budget = r.get("eu_contribution", 0)
             budget_score = min(budget / 10_000_000, 1.0) * 0.05  # Normalize, cap at 10M
 
             # Combined score (embedding weighted highest)
-            r['combined_score'] = (
-                embedding_score * 0.75 +
-                graph_score +
-                consortium_score +
-                budget_score
+            r["combined_score"] = (
+                embedding_score * 0.75 + graph_score + consortium_score + budget_score
             )
 
         # Sort by combined score
-        results.sort(key=lambda x: x.get('combined_score', 0), reverse=True)
+        results.sort(key=lambda x: x.get("combined_score", 0), reverse=True)
         return results
 
     def _format_results(self, results: list[dict]) -> list[dict]:
         """Format results for output."""
         formatted = []
         for i, r in enumerate(results):
-            keywords = self._extract_keywords(r.get('objective', ''))
+            keywords = self._extract_keywords(r.get("objective", ""))
 
             project = {
                 "rank": i + 1,
-                "similarity_score": round(r.get('similarity_score', 0), 3),
-                "combined_score": round(r.get('combined_score', r.get('similarity_score', 0)), 3),
-                "acronym": r.get('acronym') or 'N/A',
-                "title": r.get('title') or 'N/A',
-                "cordis_id": r.get('id'),
+                "similarity_score": round(r.get("similarity_score", 0), 3),
+                "combined_score": round(r.get("combined_score", r.get("similarity_score", 0)), 3),
+                "acronym": r.get("acronym") or "N/A",
+                "title": r.get("title") or "N/A",
+                "cordis_id": r.get("id"),
                 "cordis_url": f"https://cordis.europa.eu/project/id/{r.get('id')}",
-                "objective_summary": self._summarize_text(r.get('objective', ''), 300),
-                "total_cost": round(r.get('total_cost', 0), 0),
-                "eu_contribution": round(r.get('eu_contribution', 0), 0),
-                "start_date": r.get('start_date'),
-                "end_date": r.get('end_date'),
-                "status": r.get('status') or 'unknown',
-                "action_type": r.get('action_type') or 'N/A',
-                "topics": r.get('topics') or '',
+                "objective_summary": self._summarize_text(r.get("objective", ""), 300),
+                "total_cost": round(r.get("total_cost", 0), 0),
+                "eu_contribution": round(r.get("eu_contribution", 0), 0),
+                "start_date": r.get("start_date"),
+                "end_date": r.get("end_date"),
+                "status": r.get("status") or "unknown",
+                "action_type": r.get("action_type") or "N/A",
+                "topics": r.get("topics") or "",
                 "consortium": {
-                    "size": r.get('consortium', {}).get('size', 0),
-                    "countries": r.get('consortium', {}).get('countries', 0),
+                    "size": r.get("consortium", {}).get("size", 0),
+                    "countries": r.get("consortium", {}).get("countries", 0),
                     "coordinator": {
-                        "name": r.get('consortium', {}).get('coordinator_name') or 'Unknown',
-                        "country": r.get('consortium', {}).get('coordinator_country') or 'Unknown'
+                        "name": r.get("consortium", {}).get("coordinator_name") or "Unknown",
+                        "country": r.get("consortium", {}).get("coordinator_country") or "Unknown",
                     },
-                    "country_list": r.get('consortium', {}).get('country_list', [])
+                    "country_list": r.get("consortium", {}).get("country_list", []),
                 },
-                "keywords": keywords[:8]
+                "keywords": keywords[:8],
             }
 
             # Add graph context if available
-            if r.get('graph_context'):
-                project['graph_context'] = {
-                    'similar_projects_in_cluster': r['graph_context'].get('graph_similar_count', 0)
+            if r.get("graph_context"):
+                project["graph_context"] = {
+                    "similar_projects_in_cluster": r["graph_context"].get("graph_similar_count", 0)
                 }
 
             formatted.append(project)
@@ -627,10 +823,13 @@ class SimilarProjectsTool:
         max_budget: int | None,
         year_from: int | None,
         limit: int,
-        similarity_threshold: float
+        similarity_threshold: float,
     ) -> dict[str, Any]:
-        """Vector-only search (fallback when graph not available)."""
-        vector_results = self._get_vector_results(
+        """Vector-only search (fallback when graph not available).
+
+        If vector search times out, falls back to keyword search.
+        """
+        vector_results, timed_out = self._get_vector_results_with_timeout(
             embedding_list=embedding_list,
             cluster=cluster,
             action_type=action_type,
@@ -638,24 +837,32 @@ class SimilarProjectsTool:
             max_budget=max_budget,
             year_from=year_from,
             limit=limit,
-            similarity_threshold=similarity_threshold
+            similarity_threshold=similarity_threshold,
         )
+
+        # If vector search timed out, fall back to keyword search
+        if timed_out:
+            logger.warning(
+                "Vector search timed out in vector-only mode, falling back to keyword search"
+            )
+            return self._get_keyword_fallback(
+                description, cluster, action_type, limit, fallback_reason="vector_search_timeout"
+            )
 
         if not vector_results:
             return {
                 "success": True,
                 "tool_name": "get_similar_funded_projects",
-                "query_description": description[:200] + "..." if len(description) > 200 else description,
+                "query_description": (
+                    description[:200] + "..." if len(description) > 200 else description
+                ),
                 "projects_searched": "13,850+",
                 "matches_found": 0,
                 "similar_projects": [],
-                "message": "No similar projects found. Try a different description or lower the similarity threshold.",
+                "message": "No similar projects found. Try a different description.",
                 "data_source": "cordis_embeddings",
-                "metadata": {
-                    "search_type": "vector_only",
-                    "sources_used": ["vector"]
-                },
-                "timestamp": datetime.now().isoformat()
+                "metadata": {"search_type": "vector_only", "sources_used": ["vector"]},
+                "timestamp": datetime.now().isoformat(),
             }
 
         similar_projects = self._format_results(vector_results)
@@ -664,11 +871,13 @@ class SimilarProjectsTool:
         return {
             "success": True,
             "tool_name": "get_similar_funded_projects",
-            "query_description": description[:200] + "..." if len(description) > 200 else description,
+            "query_description": (
+                description[:200] + "..." if len(description) > 200 else description
+            ),
             "filters_applied": {
                 "cluster": cluster,
                 "action_type": action_type,
-                "budget_range": f"€{min_budget or 0:,} - €{max_budget:,}" if max_budget else None
+                "budget_range": f"€{min_budget or 0:,} - €{max_budget:,}" if max_budget else None,
             },
             "projects_searched": "13,850+",
             "matches_found": len(similar_projects),
@@ -676,35 +885,117 @@ class SimilarProjectsTool:
             "topic_analysis": insights.get("topic_analysis", {}),
             "insights": insights.get("insights", []),
             "data_source": "cordis_embeddings",
-            "metadata": {
-                "search_type": "vector_only",
-                "sources_used": ["vector"]
-            },
-            "timestamp": datetime.now().isoformat()
+            "metadata": {"search_type": "vector_only", "sources_used": ["vector"]},
+            "timestamp": datetime.now().isoformat(),
         }
 
     def _extract_keywords(self, text: str) -> list[str]:
         """Extract key terms from text (simple approach)."""
         stop_words = {
-            'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
-            'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were', 'been',
-            'be', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would',
-            'could', 'should', 'may', 'might', 'must', 'shall', 'can', 'need',
-            'this', 'that', 'these', 'those', 'it', 'its', 'they', 'their',
-            'which', 'who', 'whom', 'what', 'where', 'when', 'why', 'how',
-            'all', 'each', 'every', 'both', 'few', 'more', 'most', 'other',
-            'some', 'such', 'no', 'not', 'only', 'same', 'so', 'than', 'too',
-            'very', 'just', 'also', 'now', 'new', 'project', 'develop', 'research',
-            'approach', 'system', 'based', 'using', 'use', 'used', 'provide',
-            'including', 'well', 'through', 'within', 'between', 'into', 'over',
-            'european', 'europe', 'eu', 'horizon'
+            "the",
+            "a",
+            "an",
+            "and",
+            "or",
+            "but",
+            "in",
+            "on",
+            "at",
+            "to",
+            "for",
+            "of",
+            "with",
+            "by",
+            "from",
+            "as",
+            "is",
+            "was",
+            "are",
+            "were",
+            "been",
+            "be",
+            "have",
+            "has",
+            "had",
+            "do",
+            "does",
+            "did",
+            "will",
+            "would",
+            "could",
+            "should",
+            "may",
+            "might",
+            "must",
+            "shall",
+            "can",
+            "need",
+            "this",
+            "that",
+            "these",
+            "those",
+            "it",
+            "its",
+            "they",
+            "their",
+            "which",
+            "who",
+            "whom",
+            "what",
+            "where",
+            "when",
+            "why",
+            "how",
+            "all",
+            "each",
+            "every",
+            "both",
+            "few",
+            "more",
+            "most",
+            "other",
+            "some",
+            "such",
+            "no",
+            "not",
+            "only",
+            "same",
+            "so",
+            "than",
+            "too",
+            "very",
+            "just",
+            "also",
+            "now",
+            "new",
+            "project",
+            "develop",
+            "research",
+            "approach",
+            "system",
+            "based",
+            "using",
+            "use",
+            "used",
+            "provide",
+            "including",
+            "well",
+            "through",
+            "within",
+            "between",
+            "into",
+            "over",
+            "european",
+            "europe",
+            "eu",
+            "horizon",
         }
 
         words = text.lower().split()
         keywords = []
 
         for word in words:
-            clean_word = ''.join(c for c in word if c.isalnum())
+            clean_word = "".join(c for c in word if c.isalnum())
             if len(clean_word) > 3 and clean_word not in stop_words:
                 if clean_word not in keywords:
                     keywords.append(clean_word)
@@ -720,11 +1011,11 @@ class SimilarProjectsTool:
             return text
 
         truncated = text[:max_length]
-        last_period = truncated.rfind('.')
-        last_space = truncated.rfind(' ')
+        last_period = truncated.rfind(".")
+        last_space = truncated.rfind(" ")
 
         if last_period > max_length * 0.7:
-            return truncated[:last_period + 1]
+            return truncated[: last_period + 1]
         elif last_space > max_length * 0.8:
             return truncated[:last_space] + "..."
 
@@ -741,22 +1032,22 @@ class SimilarProjectsTool:
         action_types = {}
 
         for p in projects:
-            topics = p.get('topics', '')
+            topics = p.get("topics", "")
             if topics:
-                parts = topics.split(';') if ';' in topics else [topics]
+                parts = topics.split(";") if ";" in topics else [topics]
                 for topic in parts:
                     topic = topic.strip()
                     if topic:
-                        topic_parts = topic.split('-')
+                        topic_parts = topic.split("-")
                         if len(topic_parts) >= 3:
-                            prefix = '-'.join(topic_parts[:3])
+                            prefix = "-".join(topic_parts[:3])
                             topic_counts[prefix] = topic_counts.get(prefix, 0) + 1
 
-            budget = p.get('eu_contribution', 0)
+            budget = p.get("eu_contribution", 0)
             if budget > 0:
                 budgets.append(budget)
 
-            at = p.get('action_type', 'Unknown')
+            at = p.get("action_type", "Unknown")
             action_types[at] = action_types.get(at, 0) + 1
 
         sorted_topics = sorted(topic_counts.items(), key=lambda x: x[1], reverse=True)
@@ -765,19 +1056,21 @@ class SimilarProjectsTool:
             "funding_range": {
                 "min": min(budgets) if budgets else 0,
                 "max": max(budgets) if budgets else 0,
-                "average": sum(budgets) / len(budgets) if budgets else 0
-            }
+                "average": sum(budgets) / len(budgets) if budgets else 0,
+            },
         }
 
         if budgets:
             avg_budget = sum(budgets) / len(budgets)
-            insights.append(f"Average EU contribution for similar projects: €{avg_budget/1_000_000:.1f}M")
+            insights.append(
+                f"Average EU contribution for similar projects: €{avg_budget / 1_000_000:.1f}M"
+            )
 
         if sorted_topics:
             top_topic = sorted_topics[0][0]
             insights.append(f"Most common topic area: {top_topic}")
 
-        consortium_sizes = [p.get('consortium', {}).get('size', 0) for p in projects]
+        consortium_sizes = [p.get("consortium", {}).get("size", 0) for p in projects]
         if consortium_sizes:
             avg_size = sum(consortium_sizes) / len(consortium_sizes)
             insights.append(f"Typical consortium size: {avg_size:.0f} partners")
@@ -786,19 +1079,28 @@ class SimilarProjectsTool:
             top_action = max(action_types.items(), key=lambda x: x[1])[0]
             insights.append(f"Most common action type: {top_action}")
 
-        return {
-            "topic_analysis": topic_analysis,
-            "insights": insights
-        }
+        return {"topic_analysis": topic_analysis, "insights": insights}
 
     def _get_keyword_fallback(
         self,
         description: str,
         cluster: str | None,
         action_type: str | None,
-        limit: int
+        limit: int,
+        fallback_reason: str = "unknown",
     ) -> dict[str, Any]:
-        """Fallback to keyword search when embeddings unavailable."""
+        """
+        Fallback to keyword search when vector/embedding search unavailable.
+
+        Args:
+            description: Project description to search for
+            cluster: Optional cluster filter
+            action_type: Optional action type filter
+            limit: Maximum number of results
+            fallback_reason: Why fallback was triggered (for metadata/debugging)
+        """
+        logger.info(f"Using keyword fallback (reason: {fallback_reason})")
+
         try:
             conn = self._get_connection()
             if not conn:
@@ -806,7 +1108,8 @@ class SimilarProjectsTool:
                     "success": False,
                     "tool_name": "get_similar_funded_projects",
                     "error": "Database unavailable",
-                    "message": "Cannot search for similar projects - database connection failed."
+                    "message": "Cannot search for similar projects - database connection failed.",
+                    "metadata": {"fallback_reason": fallback_reason, "degraded": True},
                 }
 
             cursor = conn.cursor(cursor_factory=RealDictCursor)
@@ -818,7 +1121,7 @@ class SimilarProjectsTool:
                     "success": False,
                     "tool_name": "get_similar_funded_projects",
                     "error": "No keywords extracted",
-                    "message": "Could not extract meaningful keywords from description."
+                    "message": "Could not extract meaningful keywords from description.",
                 }
 
             where_conditions = ["p.\"frameworkProgramme\" = 'HORIZON'"]
@@ -838,7 +1141,7 @@ class SimilarProjectsTool:
                 params.append(f"%{cluster_normalized}%")
 
             if action_type:
-                where_conditions.append("p.\"fundingScheme\" ILIKE %s")
+                where_conditions.append('p."fundingScheme" ILIKE %s')
                 params.append(f"%{action_type.upper()}%")
 
             where_clause = " AND ".join(where_conditions)
@@ -868,19 +1171,31 @@ class SimilarProjectsTool:
 
             similar_projects = []
             for i, r in enumerate(results):
-                similar_projects.append({
-                    "rank": i + 1,
-                    "similarity_score": 0.0,
-                    "acronym": r['acronym'] or 'N/A',
-                    "title": r['title'] or 'N/A',
-                    "cordis_id": str(r['id']),
-                    "cordis_url": f"https://cordis.europa.eu/project/id/{r['id']}",
-                    "objective_summary": self._summarize_text(r['objective'] or '', 300),
-                    "eu_contribution": round(float(r['ecMaxContribution'] or 0), 0),
-                    "start_date": str(r['startDate'])[:10] if r['startDate'] else None,
-                    "action_type": r['fundingScheme'] or 'N/A',
-                    "note": "Matched by keywords (embedding search unavailable)"
-                })
+                similar_projects.append(
+                    {
+                        "rank": i + 1,
+                        "similarity_score": 0.0,
+                        "acronym": r["acronym"] or "N/A",
+                        "title": r["title"] or "N/A",
+                        "cordis_id": str(r["id"]),
+                        "cordis_url": f"https://cordis.europa.eu/project/id/{r['id']}",
+                        "objective_summary": self._summarize_text(r["objective"] or "", 300),
+                        "eu_contribution": round(float(r["ecMaxContribution"] or 0), 0),
+                        "start_date": str(r["startDate"])[:10] if r["startDate"] else None,
+                        "action_type": r["fundingScheme"] or "N/A",
+                        "note": "Matched by keywords (embedding search unavailable)",
+                    }
+                )
+
+            # Generate appropriate message based on fallback reason
+            if fallback_reason == "vector_search_timeout":
+                message = "Results based on keyword matching (semantic search timed out)."
+            elif fallback_reason == "embedding_service_unavailable":
+                message = "Results based on keyword matching (embedding service unavailable)."
+            elif fallback_reason == "embedding_generation_failed":
+                message = "Results based on keyword matching (embedding generation failed)."
+            else:
+                message = "Results based on keyword matching (semantic search unavailable)."
 
             return {
                 "success": True,
@@ -890,13 +1205,15 @@ class SimilarProjectsTool:
                 "keywords_used": keywords,
                 "matches_found": len(similar_projects),
                 "similar_projects": similar_projects,
-                "message": "Results based on keyword matching (semantic search unavailable).",
+                "message": message,
                 "data_source": "cordis_keyword_search",
                 "metadata": {
                     "search_type": "keyword_fallback",
-                    "sources_used": ["keyword"]
+                    "sources_used": ["keyword"],
+                    "fallback_reason": fallback_reason,
+                    "degraded": True,
                 },
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
 
         except Exception as e:
@@ -905,12 +1222,15 @@ class SimilarProjectsTool:
                 "success": False,
                 "tool_name": "get_similar_funded_projects",
                 "error": str(e),
-                "message": "Search failed. Please try again."
+                "metadata": {"fallback_reason": fallback_reason, "degraded": True},
+                "message": "Search failed. Please try again.",
             }
 
 
 # Async wrapper for tool orchestrator compatibility
-async def get_similar_funded_projects_execute(params: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
+async def get_similar_funded_projects_execute(
+    params: dict[str, Any], context: dict[str, Any]
+) -> dict[str, Any]:
     """
     Execute similar projects tool.
 
@@ -925,31 +1245,31 @@ async def get_similar_funded_projects_execute(params: dict[str, Any], context: d
     """
     # Extract cluster with fallback alternatives (LLM might use different parameter names)
     cluster_param = (
-        params.get('cluster') or
-        params.get('cluster_code') or
-        params.get('cluster_id') or
-        params.get('pillar')
+        params.get("cluster")
+        or params.get("cluster_code")
+        or params.get("cluster_id")
+        or params.get("pillar")
     )
 
     tool = SimilarProjectsTool()
 
-    description = params.get('description', '')
+    description = params.get("description", "")
     if not description:
         return {
             "success": False,
             "error": "description is required",
-            "tool_name": "get_similar_funded_projects"
+            "tool_name": "get_similar_funded_projects",
         }
 
     return tool.find_similar(
         description=description,
         cluster=cluster_param,
-        action_type=params.get('action_type'),
-        min_budget=params.get('min_budget'),
-        max_budget=params.get('max_budget'),
-        year_from=params.get('year_from'),
-        limit=params.get('limit', 10),
-        similarity_threshold=params.get('similarity_threshold', 0.3),
-        rerank_with_graph=params.get('rerank_with_graph', True),
-        include_graph_context=params.get('include_graph_context', True)
+        action_type=params.get("action_type"),
+        min_budget=params.get("min_budget"),
+        max_budget=params.get("max_budget"),
+        year_from=params.get("year_from"),
+        limit=params.get("limit", 10),
+        similarity_threshold=params.get("similarity_threshold", 0.3),
+        rerank_with_graph=params.get("rerank_with_graph", True),
+        include_graph_context=params.get("include_graph_context", True),
     )

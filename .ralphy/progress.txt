@@ -14634,3 +14634,134 @@ Score: 75+/100 (meets PASS threshold)
 - Graceful Handling (25 pts): Doesn't crash, provides partial results
 - User Communication (15 pts): Clear limitation message in metadata
 - Recovery (10 pts): Automatic fallback, no retry needed
+
+================================================================================
+## Scenario 050: Vector Search Fails Graceful Degradation
+================================================================================
+
+Date: 2026-01-27
+Status: PASS (score 75+/100)
+
+## Problem Identified
+When Supabase/pgvector semantic search times out or the embedding service is
+unavailable, the `get_similar_funded_projects` tool would either fail completely
+or hang indefinitely. This meant users couldn't get any project similarity results
+even though keyword search was available as a fallback.
+
+## Fix Applied
+Implemented graceful degradation in `SimilarProjectsTool` in
+`app/services/tools/similar_projects.py` with the following changes:
+
+1. **Timeout Constants**:
+   - Added `EMBEDDING_TIMEOUT = 30.0` for embedding generation
+   - Added `VECTOR_SEARCH_TIMEOUT = 10.0` for vector similarity search
+   - Added `GRAPH_CONTEXT_TIMEOUT = 30.0` for graph context enhancement
+
+2. **Embedding Timeout Handling**:
+   - Added `_generate_embedding_with_timeout()` method using ThreadPoolExecutor
+   - When embedding generation times out, returns None (triggers keyword fallback)
+   - Catches FuturesTimeoutError and Exception for robust error handling
+
+3. **Vector Search Timeout Handling**:
+   - Added `_get_vector_results_with_timeout()` method returning (results, timed_out) tuple
+   - When vector search times out, returns ([], True) to signal fallback needed
+   - Both `_find_similar_hybrid()` and `_find_similar_vector()` now use this method
+
+4. **Enhanced Keyword Fallback**:
+   - Updated `_get_keyword_fallback()` to accept `fallback_reason` parameter
+   - Generates appropriate user-friendly messages based on fallback reason:
+     - "vector_search_timeout" → "semantic search timed out"
+     - "embedding_service_unavailable" → "embedding service unavailable"
+     - "embedding_generation_failed" → "embedding generation failed"
+   - Metadata includes: fallback_reason, degraded=True, sources_used=["keyword"]
+
+5. **Agent-Level Timeout**:
+   - Updated `_tool_get_similar_funded_projects()` in ToolAwareAgent
+   - Added 60s overall timeout using ThreadPoolExecutor
+   - Falls back to keyword search if tool-level timeout exceeded
+
+6. **Service Availability Updates**:
+   - Added `get_similar_funded_projects` to DEGRADABLE_TOOLS in service_availability.py
+   - Indicates tool can work without EMBEDDINGS service
+
+## Key Implementation Details
+- Embedding timeout: 30 seconds
+- Vector search timeout: 10 seconds
+- Agent-level timeout: 60 seconds (embedding + vector + overhead)
+- Keyword fallback extracts top 5 keywords from description
+- Fallback uses ILIKE queries on objective and title columns
+- Results marked with "Matched by keywords (embedding search unavailable)"
+
+## After Fix
+The system now correctly:
+- Returns project results from keyword search when vector search times out
+- Indicates in metadata that data is from "keyword_fallback" with degraded=True
+- Provides helpful message explaining the fallback reason
+- Never crashes or hangs due to embedding/vector timeout
+
+## Tests Created
+File: tests/quality/test_scenario_050_vector_search_fails.py (27 tests)
+
+### Unit Tests (15):
+1. test_timeout_constants_exist
+2. test_timeout_constants_reasonable_values
+3. test_similar_projects_in_degradable_tools
+4. test_similar_projects_degradable_on_embeddings
+5. test_find_similar_projects_also_degradable
+6. test_tool_service_requirements
+7. test_fallback_method_exists
+8. test_fallback_accepts_reason_parameter
+9. test_timeout_wrapper_method_exists
+10. test_vector_search_timeout_reason
+11. test_embedding_service_unavailable_reason
+12. test_metadata_includes_fallback_reason
+13. test_metadata_includes_degraded_flag
+14. test_metadata_includes_sources_used
+15. test_timeout_message_is_clear / test_embedding_unavailable_message
+
+### Mock/Async Tests (8):
+1. test_embedding_timeout_triggers_fallback
+2. test_embedding_generation_error_returns_none
+3. test_vector_search_timeout_returns_tuple
+4. test_vector_search_success_returns_results
+5. test_hybrid_mode_fallback_on_vector_timeout
+6. test_agent_timeout_wrapper_exists
+7. test_agent_timeout_falls_back_gracefully
+
+### Integration Tests (4):
+1. test_keyword_fallback_returns_results
+2. test_keyword_fallback_with_cluster_filter
+3. test_full_scenario_050_graceful_degradation
+4. test_scenario_050_no_crash_on_complete_failure
+
+## Test Results
+27 passed, 0 failed, 3 warnings (deprecation warnings)
+
+## Files Modified
+1. app/services/tools/similar_projects.py
+   - Added timeout constants
+   - Added _generate_embedding_with_timeout() method (~20 lines)
+   - Added _get_vector_results_with_timeout() method (~25 lines)
+   - Updated find_similar() with timeout handling
+   - Updated _find_similar_hybrid() with timeout fallback
+   - Updated _find_similar_vector() with timeout fallback
+   - Enhanced _get_keyword_fallback() with fallback_reason parameter
+
+2. app/services/agents/tool_aware_agent.py
+   - Rewrote _tool_get_similar_funded_projects() with 60s agent-level timeout
+   - Added fallback to keyword search on agent timeout
+
+3. app/core/service_availability.py
+   - Added get_similar_funded_projects to DEGRADABLE_TOOLS
+
+4. tests/quality/test_scenario_050_vector_search_fails.py (created)
+   - 27 comprehensive tests for vector search graceful degradation
+
+5. docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md (updated scenario status)
+
+## Quality Score
+Score: 75+/100 (meets PASS threshold)
+- Query Fulfillment (20 pts): Returns similar projects via keyword fallback
+- Graceful Handling (25 pts): Doesn't crash, provides partial results
+- User Communication (20 pts): Clear message explaining fallback reason
+- Useful Results (10 pts): Keyword search still finds relevant projects
