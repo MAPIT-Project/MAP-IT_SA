@@ -750,12 +750,15 @@ Ensure the system is fast and pleasant to use.
 
 ### Streaming Experience
 
-- [ ] **Scenario 062: Streaming Works** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 062: Streaming Works** `EXECUTE + FIX IF NEEDED`
   - Send query to streaming endpoint
   - Expected: Tokens stream progressively, status updates shown
   - Verify: SSE events received correctly
   - Fix if: All-at-once response, broken streaming
   - Pass threshold: Streaming functional
+  - **Status: PASS (Streaming functional)**
+  - **Verified**: SSE events received correctly in `data: {json}\n\n` format, tokens stream progressively (multiple events over time), status events shown before tokens, all required event types present (status, token, complete), events arrive in proper order
+  - **Tests**: `tests/quality/test_scenario_062_streaming_works.py` (44 tests)
 
 - [ ] **Scenario 063: Tool Progress Visible** `EXECUTE + FIX IF NEEDED`
   - Query requiring multiple tools

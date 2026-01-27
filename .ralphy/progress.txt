@@ -15556,3 +15556,101 @@ The guidance response now includes:
 ✅ Eligibility criteria
 ✅ Actionable next steps with links
 ✅ NCP contact information
+
+---
+
+## Scenario 062: Streaming Works (COMPLETED)
+
+**Date:** 2026-01-27
+**Status:** PASSED (Streaming functional)
+**Query:** Various streaming queries to V3 endpoint
+
+### Problem
+Need to verify that the V3 streaming endpoint works correctly:
+1. SSE events are received in correct format (data: {json}\n\n)
+2. Tokens stream progressively (multiple token events over time)
+3. Status updates are shown before tokens
+4. Required event types are present (status, token, complete)
+5. Events arrive in proper order (status → agent events → tokens → complete)
+
+### Solution
+Created comprehensive test suite for Scenario 062: Streaming Works that verifies all streaming functionality:
+
+1. **StreamingEvent data class**: Represents a single SSE event with type, timestamp, raw_data, and parsed_data
+
+2. **StreamingAnalysis data class**: Comprehensive analysis of streaming response session with properties:
+   - `duration_seconds`: Total streaming duration
+   - `event_types`: List of all event types in order
+   - `unique_event_types`: Set of unique event types
+   - `token_count`: Number of token events
+   - `token_spread_seconds`: Time between first and last token
+   - `inter_token_gaps`: Time gaps between consecutive tokens
+   - `has_required_events`: Check if status, token, complete all present
+   - `has_progressive_streaming`: Check if tokens spread over time (not instant)
+   - `has_status_before_tokens`: Check if status events appear before tokens
+   - `has_complete_event`: Check if complete event received
+   - `complete_comes_last`: Check if complete is among last events
+   - `all_events_valid`: Check if all event types are valid/allowed
+   - `accumulated_response`: Concatenated text from token events
+
+3. **StreamingWorksEvaluator**: Evaluator with 100-point scoring rubric:
+   - SSE Format (20 points): All events in valid format
+   - Progressive Streaming (25 points): Multiple tokens over time
+   - Status Updates (15 points): Status events before tokens
+   - Event Completeness (20 points): All required events present
+   - Event Order (10 points): Events in correct sequence
+   - Response Quality (10 points): Non-empty response accumulated
+
+### Configuration
+- `MIN_TOKEN_EVENTS = 3`: At least 3 token events for progressive streaming
+- `MIN_STATUS_EVENTS = 1`: At least 1 status event before tokens
+- `MAX_INTER_TOKEN_GAP_SECONDS = 5.0`: Tokens should not be delayed more than 5s
+- `MIN_STREAMING_DURATION_SECONDS = 0.1`: Streaming should take some time
+
+### Allowed Event Types (from conversation_routes_v3.py)
+- `status`: Processing stages (processing, context_loaded, agent_starting, etc.)
+- `progress`: Legacy progress updates
+- `conversation_name`: First message auto-naming
+- `agent_thinking`: Agent reasoning at each iteration
+- `tool_call`: When a tool is being called
+- `tool_result`: Tool execution result
+- `token`: Streaming response text
+- `complete`: Final metadata
+- `error`: Error information
+
+### Files Modified
+- `docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md` - Marked scenario complete
+
+### Files Created
+- `tests/quality/test_scenario_062_streaming_works.py` - 44 tests covering:
+  - StreamingEvent data class tests
+  - StreamingAnalysis property tests
+  - StreamingWorksEvaluator scoring tests
+  - Live API integration tests (SSE format, progressive streaming, status events, complete event, response content)
+  - Event type specific tests (agent_thinking, tool_call, complete metadata)
+  - Validation tests
+
+### Test Results
+```
+44 passed in 44.58s
+Streaming functional: PASS
+```
+
+### Key Streaming Features Verified
+- SSE format: `data: {json}\n\n`
+- Progressive streaming: Multiple token events with time spread > 0.1s
+- Status before tokens: Status events always precede token events
+- Complete event: Always present at end of stream
+- Event order: status → agent_thinking → tool_call → tool_result → token → complete
+- Valid event types: All events match allowed event types
+- Response content: Accumulated text from token events is non-empty and relevant
+
+### Verification
+The streaming endpoint correctly:
+✅ Sends events in SSE format
+✅ Streams tokens progressively (not all at once)
+✅ Shows status updates before response tokens
+✅ Includes all required event types (status, token, complete)
+✅ Sends events in proper order
+✅ Accumulates response text from token events
+✅ Includes metadata in complete event (architecture: "simplified_v3")
