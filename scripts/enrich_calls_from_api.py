@@ -19,15 +19,14 @@ import argparse
 import json
 import logging
 import os
-import sys
 import time
-from datetime import datetime, date
-from typing import Optional, Dict, Any, List
+from datetime import date, datetime
+from typing import Any
 
 import httpx
 import psycopg2
-from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
+from psycopg2.extras import RealDictCursor
 
 # Setup logging
 logging.basicConfig(
@@ -49,7 +48,7 @@ def get_database_url() -> str:
     return db_url
 
 
-def get_calls_to_enrich(conn, force: bool = False, limit: Optional[int] = None) -> List[Dict]:
+def get_calls_to_enrich(conn, force: bool = False, limit: int | None = None) -> list[dict]:
     """Get list of calls that need enrichment."""
     cursor = conn.cursor(cursor_factory=RealDictCursor)
 
@@ -83,7 +82,7 @@ def get_calls_to_enrich(conn, force: bool = False, limit: Optional[int] = None) 
     return cursor.fetchall()
 
 
-def fetch_from_api(topic_code: str, client: httpx.Client) -> Optional[Dict[str, Any]]:
+def fetch_from_api(topic_code: str, client: httpx.Client) -> dict[str, Any] | None:
     """Fetch call details from EU Portal API."""
     # API requires lowercase topic codes
     url = f"{EU_PORTAL_TOPIC_DETAILS}/{topic_code.lower()}.json"
@@ -182,7 +181,7 @@ def fetch_from_api(topic_code: str, client: httpx.Client) -> Optional[Dict[str, 
         return None
 
 
-def update_call(conn, topic_code: str, data: Dict[str, Any], dry_run: bool = False) -> bool:
+def update_call(conn, topic_code: str, data: dict[str, Any], dry_run: bool = False) -> bool:
     """Update call in database with enriched data."""
     if dry_run:
         logger.info(f"  [DRY-RUN] Would update {topic_code}:")
@@ -306,7 +305,7 @@ def main():
 
         if not (has_new_deadline or has_new_scope or has_new_status) and not args.force:
             stats['skipped'] += 1
-            logger.debug(f"  Skipped - no new data")
+            logger.debug("  Skipped - no new data")
             continue
 
         # Update database

@@ -8,8 +8,6 @@ This module provides a single source of truth for:
 - Common patterns used across the application
 """
 from enum import Enum
-from typing import Dict, List, Set
-
 
 # =============================================================================
 # HORIZON EUROPE CLUSTERS
@@ -26,7 +24,7 @@ class HorizonCluster(str, Enum):
 
 
 # Cluster code to full name mapping
-CLUSTER_NAMES: Dict[str, str] = {
+CLUSTER_NAMES: dict[str, str] = {
     'CL1': 'Cluster 1: Health',
     'CL2': 'Cluster 2: Culture, Creativity & Inclusive Society',
     'CL3': 'Cluster 3: Civil Security for Society',
@@ -36,7 +34,7 @@ CLUSTER_NAMES: Dict[str, str] = {
 }
 
 # Cluster code to short name
-CLUSTER_SHORT_NAMES: Dict[str, str] = {
+CLUSTER_SHORT_NAMES: dict[str, str] = {
     'CL1': 'Health',
     'CL2': 'Culture',
     'CL3': 'Security',
@@ -46,7 +44,7 @@ CLUSTER_SHORT_NAMES: Dict[str, str] = {
 }
 
 # Keywords associated with each cluster
-CLUSTER_KEYWORDS: Dict[str, List[str]] = {
+CLUSTER_KEYWORDS: dict[str, list[str]] = {
     'CL1': [
         'health', 'cancer', 'pandemic', 'infectious disease', 'mental health',
         'ageing', 'pharmaceutical', 'vaccine', 'medical', 'clinical',
@@ -80,7 +78,7 @@ CLUSTER_KEYWORDS: Dict[str, List[str]] = {
 }
 
 # Keyword to cluster code mapping (reverse lookup)
-KEYWORD_TO_CLUSTER: Dict[str, str] = {}
+KEYWORD_TO_CLUSTER: dict[str, str] = {}
 for cluster, keywords in CLUSTER_KEYWORDS.items():
     for keyword in keywords:
         KEYWORD_TO_CLUSTER[keyword.lower()] = cluster
@@ -101,7 +99,7 @@ class ActionType(str, Enum):
 
 
 # Action type descriptions
-ACTION_TYPE_DESCRIPTIONS: Dict[str, str] = {
+ACTION_TYPE_DESCRIPTIONS: dict[str, str] = {
     'RIA': 'Research and Innovation Action - activities establishing new knowledge and exploring feasibility of new technology',
     'IA': 'Innovation Action - activities directly producing plans, designs, or prototypes for new products/services',
     'CSA': 'Coordination and Support Action - networking, coordination, and support activities',
@@ -111,14 +109,14 @@ ACTION_TYPE_DESCRIPTIONS: Dict[str, str] = {
 }
 
 # Action type TRL ranges
-ACTION_TYPE_TRL: Dict[str, tuple] = {
+ACTION_TYPE_TRL: dict[str, tuple] = {
     'RIA': (2, 5),  # TRL 2-5
     'IA': (5, 8),   # TRL 5-8
     'CSA': (None, None),  # N/A
 }
 
 # Action type funding rates
-ACTION_TYPE_FUNDING_RATES: Dict[str, Dict[str, int]] = {
+ACTION_TYPE_FUNDING_RATES: dict[str, dict[str, int]] = {
     'RIA': {'default': 100},
     'IA': {'large_company': 70, 'sme': 70, 'non_profit': 100, 'university': 100, 'research': 100},
     'CSA': {'default': 100},
@@ -130,7 +128,7 @@ ACTION_TYPE_FUNDING_RATES: Dict[str, Dict[str, int]] = {
 # =============================================================================
 
 # ERC programme types
-ERC_PROGRAMMES: Dict[str, Dict[str, any]] = {
+ERC_PROGRAMMES: dict[str, dict[str, any]] = {
     'ERC-STG': {'name': 'ERC Starting Grant', 'max_funding': 1_500_000, 'duration': 5},
     'ERC-COG': {'name': 'ERC Consolidator Grant', 'max_funding': 2_000_000, 'duration': 5},
     'ERC-ADG': {'name': 'ERC Advanced Grant', 'max_funding': 2_500_000, 'duration': 5},
@@ -139,14 +137,14 @@ ERC_PROGRAMMES: Dict[str, Dict[str, any]] = {
 }
 
 # EIC programme types
-EIC_PROGRAMMES: Dict[str, Dict[str, any]] = {
+EIC_PROGRAMMES: dict[str, dict[str, any]] = {
     'EIC-PATHFINDER': {'name': 'EIC Pathfinder', 'max_funding': 4_000_000, 'type': 'grant'},
     'EIC-TRANSITION': {'name': 'EIC Transition', 'max_funding': 2_500_000, 'type': 'grant'},
     'EIC-ACCELERATOR': {'name': 'EIC Accelerator', 'max_funding': 2_500_000, 'grant': True, 'equity': 15_000_000},
 }
 
 # MSCA programme types
-MSCA_PROGRAMMES: Dict[str, str] = {
+MSCA_PROGRAMMES: dict[str, str] = {
     'MSCA-PF': 'Postdoctoral Fellowships',
     'MSCA-DN': 'Doctoral Networks',
     'MSCA-SE': 'Staff Exchanges',
@@ -159,7 +157,7 @@ MSCA_PROGRAMMES: Dict[str, str] = {
 # PROPOSAL STRUCTURE
 # =============================================================================
 
-PROPOSAL_SECTIONS: Dict[str, Dict[str, str]] = {
+PROPOSAL_SECTIONS: dict[str, dict[str, str]] = {
     'EXCELLENCE': {
         'number': '1',
         'title': 'Excellence',
@@ -188,7 +186,7 @@ PROPOSAL_SECTIONS: Dict[str, Dict[str, str]] = {
 # ORGANISATION TYPES
 # =============================================================================
 
-ORGANISATION_TYPES: Dict[str, str] = {
+ORGANISATION_TYPES: dict[str, str] = {
     'HES': 'Higher or Secondary Education Establishment',
     'REC': 'Research Organisation',
     'PRC': 'Private Company',
@@ -197,14 +195,14 @@ ORGANISATION_TYPES: Dict[str, str] = {
     'SME': 'Small and Medium Enterprise',
 }
 
-ORGANISATION_TYPE_CODES: Set[str] = {'HES', 'REC', 'PRC', 'PUB', 'OTH', 'SME'}
+ORGANISATION_TYPE_CODES: set[str] = {'HES', 'REC', 'PRC', 'PUB', 'OTH', 'SME'}
 
 
 # =============================================================================
 # CONSORTIUM REQUIREMENTS
 # =============================================================================
 
-CONSORTIUM_REQUIREMENTS: Dict[str, Dict[str, any]] = {
+CONSORTIUM_REQUIREMENTS: dict[str, dict[str, any]] = {
     'RIA': {'min_partners': 3, 'min_countries': 3, 'eu_associated_required': True},
     'IA': {'min_partners': 3, 'min_countries': 3, 'eu_associated_required': True},
     'CSA': {'min_partners': 3, 'min_countries': 3, 'eu_associated_required': True},
@@ -218,7 +216,7 @@ CONSORTIUM_REQUIREMENTS: Dict[str, Dict[str, any]] = {
 # PAGE LIMITS
 # =============================================================================
 
-PAGE_LIMITS: Dict[str, Dict[str, int]] = {
+PAGE_LIMITS: dict[str, dict[str, int]] = {
     'RIA': {'single_stage': 45, 'two_stage_outline': 10, 'two_stage_full': 45},
     'IA': {'single_stage': 45, 'two_stage_outline': 10, 'two_stage_full': 45},
     'CSA': {'single_stage': 30},
@@ -237,7 +235,7 @@ def get_cluster_from_keyword(keyword: str) -> str | None:
     return KEYWORD_TO_CLUSTER.get(keyword.lower())
 
 
-def get_cluster_keywords(cluster_code: str) -> List[str]:
+def get_cluster_keywords(cluster_code: str) -> list[str]:
     """Get keywords for a cluster code."""
     return CLUSTER_KEYWORDS.get(cluster_code.upper(), [])
 

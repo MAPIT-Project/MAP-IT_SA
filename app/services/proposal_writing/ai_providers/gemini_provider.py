@@ -4,10 +4,11 @@ Google Gemini Provider
 AI provider implementation for Google Gemini models.
 """
 
+import json
 import logging
 import time
-import json
-from typing import Dict, Any, AsyncGenerator
+from collections.abc import AsyncGenerator
+from typing import Any
 
 import google.generativeai as genai
 
@@ -61,9 +62,9 @@ class GeminiProvider(BaseAIProvider):
     async def generate_structured(
         self,
         prompt: str,
-        schema: Dict[str, Any],
+        schema: dict[str, Any],
         temperature: float = 0.3
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate structured JSON using Gemini's JSON mode."""
 
         try:

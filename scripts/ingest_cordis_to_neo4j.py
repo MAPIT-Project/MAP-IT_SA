@@ -13,15 +13,13 @@ Usage:
     python scripts/ingest_cordis_to_neo4j.py [--data-dir DATA_DIR] [--clear]
 """
 
-import os
-import sys
-import re
 import argparse
 import logging
-from pathlib import Path
-from typing import Dict, List, Any, Optional
-from datetime import datetime
+import re
+import sys
 from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
 
 import pandas as pd
 from tqdm import tqdm
@@ -208,7 +206,7 @@ class CORDISIngester:
         logger.info(f"   ✅ Loaded {len(self.EU_MEMBER_STATES)} EU + {len(self.ASSOCIATED_COUNTRIES)} associated countries")
         logger.info("✅ Reference data loaded")
     
-    def extract_cluster_from_topic(self, topic_code: str) -> Optional[str]:
+    def extract_cluster_from_topic(self, topic_code: str) -> str | None:
         """
         Extract cluster code from topic identifier.
         

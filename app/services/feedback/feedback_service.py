@@ -5,16 +5,15 @@ Collects and analyzes user feedback on responses
 for continuous quality improvement.
 """
 
-import os
 import logging
-import json
-from typing import Dict, Any, Optional, List
-from datetime import datetime, date, timedelta
-from dataclasses import dataclass, asdict
-import psycopg2
-from psycopg2.extras import RealDictCursor
-from psycopg2 import pool
+import os
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any
+
 from dotenv import load_dotenv
+from psycopg2 import pool
+from psycopg2.extras import RealDictCursor
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -26,13 +25,13 @@ class FeedbackSubmission:
     conversation_id: str
     rating: int  # 1-5
     feedback_type: str  # 'helpful', 'not_helpful', 'incorrect', 'incomplete', 'other'
-    feedback_text: Optional[str] = None
-    message_id: Optional[str] = None
-    query_text: Optional[str] = None
-    response_text: Optional[str] = None
-    tools_used: Optional[List[str]] = None
-    query_type: Optional[str] = None
-    response_time_ms: Optional[int] = None
+    feedback_text: str | None = None
+    message_id: str | None = None
+    query_text: str | None = None
+    response_text: str | None = None
+    tools_used: list[str] | None = None
+    query_type: str | None = None
+    response_time_ms: int | None = None
 
 
 class FeedbackService:
@@ -84,7 +83,7 @@ class FeedbackService:
         if FeedbackService._pool and conn:
             FeedbackService._pool.putconn(conn)
 
-    async def submit_feedback(self, feedback: FeedbackSubmission) -> Dict[str, Any]:
+    async def submit_feedback(self, feedback: FeedbackSubmission) -> dict[str, Any]:
         """Submit user feedback."""
         if not self.enabled:
             return {"success": False, "error": "Feedback service not available"}
@@ -136,7 +135,7 @@ class FeedbackService:
         finally:
             self._put_connection(conn)
 
-    async def get_feedback_summary(self, days: int = 30) -> Dict[str, Any]:
+    async def get_feedback_summary(self, days: int = 30) -> dict[str, Any]:
         """Get feedback summary for last N days."""
         if not self.enabled:
             return {"error": "Feedback service not available"}
@@ -242,7 +241,7 @@ class FeedbackService:
         finally:
             self._put_connection(conn)
 
-    async def get_conversation_feedback(self, conversation_id: str) -> List[Dict]:
+    async def get_conversation_feedback(self, conversation_id: str) -> list[dict]:
         """Get all feedback for a specific conversation."""
         if not self.enabled:
             return []
@@ -274,7 +273,7 @@ class FeedbackService:
         finally:
             self._put_connection(conn)
 
-    async def get_improvement_suggestions(self) -> Dict[str, Any]:
+    async def get_improvement_suggestions(self) -> dict[str, Any]:
         """Analyze feedback to generate improvement suggestions."""
         if not self.enabled:
             return {"error": "Feedback service not available"}

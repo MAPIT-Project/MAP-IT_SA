@@ -3,7 +3,6 @@
 Script to update the Supabase schema to add 'additional_resource' to document_type constraint.
 """
 
-import os
 import sys
 from pathlib import Path
 
@@ -11,6 +10,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from app.services.supabase_client import SupabaseVectorStore
+
 
 def update_schema():
     """Update the database schema to add 'additional_resource' to document_type constraint."""

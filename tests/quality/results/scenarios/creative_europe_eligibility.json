@@ -1,86 +1,17 @@
 {
   "scenario_name": "Creative Europe Eligibility",
-  "average_quality_score": 83.0,
-  "factual_score": 96.0,
   "status": "PASS",
-  "timestamp": "2026-01-23T14:34:32.109457",
+  "average_quality_score": 83.4,
+  "average_factual_score": 100.0,
   "turns": [
     {
-      "turn_number": 0,
-      "user_message": "We are a Serbian NGO - what Creative Europe funding is available for us?",
-      "response_text": "I found **17 funding opportunities** for your query:\n\n**1. European Universities**\n\ud83d\udccb **Call ID:** ERASMUS-EDU-2026-EUR-UNIV\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 04 March 2026\n\n\ud83d\udcdd **Summary:** Objective: European Universities\u2019 main objectives are to further develop institutionalised cooperation, making it systemic, structural and sustainable and to increase quality, performance and international competitiveness of European higher...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportuniti...",
-      "tools_used": [
-        "get_programme_info",
-        "check_creative_europe_eligibility",
-        "search_funding_calls",
-        "search_funding_calls",
-        "search_creative_europe_templates"
-      ],
-      "quality_score": 85,
-      "factual_score": 80.0,
-      "quality_details": {
-        "dimension_scores": {
-          "query_fulfillment": 30,
-          "specificity": 25,
-          "factual_accuracy": 20,
-          "actionability": 10
-        },
-        "feedback": "Quick rule-based evaluation"
-      },
-      "query_fulfillment": 0.0,
-      "specificity": 0.0,
-      "factual_accuracy": 0.0,
-      "actionability": 0.0
-    },
-    {
-      "turn_number": 1,
-      "user_message": "Tell me about the Creative Europe Culture strand - can Serbian organizations participate in cooperation projects?",
-      "response_text": "Creative Europe Cooperation Projects (Culture strand) are distinctly different from Horizon Europe (HE) and Erasmus+ (E+ KA2), focusing on cultural policy, audience development, and the transnational circulation of cultural works, with a mandatory co-funding model.\n\n### Comparison: HE (RIA/IA), Erasmus+ KA2, and Creative Europe (CE Culture)\n\n| Feature | Horizon Europe (RIA/IA) | Erasmus+ KA2 | Creative Europe (COOP) |\n|---------|------------------------|--------------|------------------------|\n|...",
-      "tools_used": [],
-      "quality_score": 81,
-      "factual_score": 100.0,
-      "quality_details": {
-        "dimension_scores": {
-          "query_fulfillment": 30,
-          "specificity": 25,
-          "factual_accuracy": 20,
-          "actionability": 6
-        },
-        "feedback": "Quick rule-based evaluation"
-      },
-      "query_fulfillment": 0.0,
-      "specificity": 0.0,
-      "factual_accuracy": 0.0,
-      "actionability": 0.0
-    },
-    {
-      "turn_number": 2,
-      "user_message": "What are the requirements for coordinator versus partner roles in Creative Europe for Serbian organizations?",
-      "response_text": "Yes, a associated country organization is **fully eligible to participate as a partner (beneficiary)** in Horizon Europe projects.\n\n### Partner Eligibility for Associated Countries\n\nSince associated country is an **Associated Country** to Horizon Europe, its entities (universities, research institutes, companies) are treated almost identically to EU Member State entities when participating as partners.\n\n| Aspect | Partner Eligibility |\n|--------|---------------------|\n| **Funding** | \u2705 Full fund...",
-      "tools_used": [],
-      "quality_score": 85,
-      "factual_score": 100.0,
-      "quality_details": {
-        "dimension_scores": {
-          "query_fulfillment": 30,
-          "specificity": 25,
-          "factual_accuracy": 20,
-          "actionability": 10
-        },
-        "feedback": "Quick rule-based evaluation"
-      },
-      "query_fulfillment": 0.0,
-      "specificity": 0.0,
-      "factual_accuracy": 0.0,
-      "actionability": 0.0
-    },
-    {
-      "turn_number": 3,
-      "user_message": "Tell me about Creative Europe MEDIA strand - what funding options are available for Serbian organizations?",
-      "response_text": "**Creative Europe MEDIA Strand Overview**\n\nThe **MEDIA strand** is the audiovisual pillar of Creative Europe (2021-2027), with a budget of approximately **\u20ac1.4 billion** dedicated to supporting the European film and audiovisual industry.\n\n## MEDIA Strand Actions Overview\n\n| Action Type | Target | Budget Range | Funding Rate |\n|------------|--------|--------------|--------------|\n| **Development - Slate** | Production companies (3+ projects) | \u20ac150,000-200,000 | 70% |\n| **Development - Single** |...",
-      "tools_used": [],
+      "query": "We are a Serbian NGO - what Creative Europe funding is available for us?",
+      "response": "**Creative Europe Cooperation Project Funding Rates**\n\nCreative Europe uses a **lump sum funding model** with fixed EU contribution rates for cooperation projects.\n\n## Funding Rate Overview\n\n| Aspect | Rate/Amount |\n|--------|-------------|\n| **EU Funding Rate** | 60% |\n| **Your Co-financing** | 40% |\n| **Funding Model** | Lump sum |\n| **Payment Schedule** | Pre-financing + balance |\n\n## What Does 60% Mean?\n\nThe EU covers **60% of your total eligible costs**:\n\n| Scale | Max EU Grant | Your 40% C...",
       "quality_score": 83,
       "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 1981.242,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -90,18 +21,17 @@
         },
         "feedback": "Quick rule-based evaluation"
       },
-      "query_fulfillment": 0.0,
-      "specificity": 0.0,
-      "factual_accuracy": 0.0,
-      "actionability": 0.0
+      "turn_number": 0,
+      "passed": true
     },
     {
-      "turn_number": 4,
-      "user_message": "What eligibility restrictions or special requirements apply to Serbian organizations in Creative Europe?",
-      "response_text": "Creative Europe Cooperation Projects (Culture strand) are distinctly different from Horizon Europe (HE) and Erasmus+ (E+ KA2), focusing on cultural policy, audience development, and the transnational circulation of cultural works, with a mandatory co-funding model.\n\n### Comparison: HE (RIA/IA), Erasmus+ KA2, and Creative Europe (CE Culture)\n\n| Feature | Horizon Europe (RIA/IA) | Erasmus+ KA2 | Creative Europe (COOP) |\n|---------|------------------------|--------------|------------------------|\n|...",
-      "tools_used": [],
+      "query": "Tell me about the Creative Europe Culture strand - can Serbian organizations participate in cooperation projects?",
+      "response": "**Creative Europe Cooperation Projects Overview**\n\nThe **CULTURE strand** of Creative Europe (2021-2027) offers **European Cooperation Projects** that support transnational cultural cooperation between European organizations.\n\n## What Are Cooperation Projects?\n\nCooperation Projects fund **transnational cultural activities** that bring together organizations from different European countries to:\n- Develop and disseminate cultural content\n- Build capacity and professionalize the sector\n- Improve c...",
       "quality_score": 81,
       "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 4217.045,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -111,12 +41,97 @@
         },
         "feedback": "Quick rule-based evaluation"
       },
-      "query_fulfillment": 0.0,
-      "specificity": 0.0,
-      "factual_accuracy": 0.0,
-      "actionability": 0.0
+      "turn_number": 1,
+      "passed": true
+    },
+    {
+      "query": "What are the requirements for coordinator versus partner roles in Creative Europe for Serbian organizations?",
+      "response": "Yes, a associated country organization is **fully eligible to participate as a partner (beneficiary)** in Horizon Europe projects.\n\n### Partner Eligibility for Associated Countries\n\nSince associated country is an **Associated Country** to Horizon Europe, its entities (universities, research institutes, companies) are treated almost identically to EU Member State entities when participating as partners.\n\n| Aspect | Partner Eligibility |\n|--------|---------------------|\n| **Funding** | \u2705 Full fund...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 2055.235,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": true
+    },
+    {
+      "query": "Tell me about Creative Europe MEDIA strand - what funding options are available for Serbian organizations?",
+      "response": "**Creative Europe Cooperation Project Funding Rates**\n\nCreative Europe uses a **lump sum funding model** with fixed EU contribution rates for cooperation projects.\n\n## Funding Rate Overview\n\n| Aspect | Rate/Amount |\n|--------|-------------|\n| **EU Funding Rate** | 60% |\n| **Your Co-financing** | 40% |\n| **Funding Model** | Lump sum |\n| **Payment Schedule** | Pre-financing + balance |\n\n## What Does 60% Mean?\n\nThe EU covers **60% of your total eligible costs**:\n\n| Scale | Max EU Grant | Your 40% C...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 1103.067,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": true
+    },
+    {
+      "query": "What eligibility restrictions or special requirements apply to Serbian organizations in Creative Europe?",
+      "response": "Erasmus+ is committed to **inclusion and diversity**, providing additional support\nfor participants with **fewer opportunities** to ensure equal access to mobility.\n\n## Inclusion Support in Erasmus+\n\n### Who Qualifies for Inclusion Support?\n\nParticipants with **fewer opportunities** due to:\n\n| Barrier Type | Examples | Evidence Required |\n|-------------|----------|-------------------|\n| **Disability** | Physical, sensory, mental health conditions | Medical certificate |\n| **Health problems** | C...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 1203.4560000000001,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 4,
+      "passed": true
     }
   ],
+  "scores": {
+    "average_quality": 83.4,
+    "average_factual": 100.0,
+    "goal_progress": 0.5642857142857143,
+    "context_fields": 6
+  },
   "failures": [],
-  "fix_history": []
+  "metadata": {
+    "scenario_path": "tests/scenarios/advanced/creative_europe_eligibility.yaml",
+    "tags": [
+      "phase10",
+      "creative_europe",
+      "eligibility",
+      "serbia",
+      "ngo",
+      "culture",
+      "media",
+      "participating_country"
+    ],
+    "description": "A Serbian NGO wants to understand their eligibility for Creative Europe programme.\nSerbia is a participating country with access to all Creative Europe strands.\nThe scenario tests strand-specific eligibility rules and role-based requirements\n(coordinator vs partner), as well as any restrictions that may apply.\n",
+    "conversation_id": 505230270
+  },
+  "execution_time_ms": 132400.536,
+  "timestamp": "2026-01-23T17:35:48.740874",
+  "passed": true,
+  "turn_count": 5,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
 }

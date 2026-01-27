@@ -4,14 +4,14 @@ Download CORDIS Horizon Europe dataset from EU Open Data Portal.
 Downloads projects, deliverables, publications, and report summaries.
 """
 
-import os
-import sys
-import requests
-import zipfile
 import json
-from pathlib import Path
-from datetime import datetime
 import logging
+import sys
+import zipfile
+from datetime import datetime
+from pathlib import Path
+
+import requests
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)

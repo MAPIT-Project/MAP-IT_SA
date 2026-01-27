@@ -4,44 +4,38 @@ Proposal Writing API Routes
 Complete API endpoints for AI-powered proposal writing assistance.
 """
 
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
-from pydantic import BaseModel, Field
-from typing import List, Dict, Any, Optional
 import logging
-from datetime import datetime
+import os
+from typing import Any
 
+import psycopg2.pool
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
+
+from ..services.call_document_service import CallDocumentService
 from ..services.proposal_writing import (
-    ProposalTemplateService,
-    ProposalDraftGenerator,
-    EvaluationCriteriaMatcher,
     BudgetAssistant,
     ComplianceChecker,
-    QualityImprover,
-    SubmissionExporter,
+    EvaluationCriteriaMatcher,
     # Phase 2 - Evaluator Simulation
     EvaluatorSimulator,
-    EvaluationResult,
-    generate_score_summary,
-    generate_section_report,
-    # Phase 2 - Score Storage
-    ScoreStorageService,
-    TriggerType,
     # Phase 2 - Gap Analysis
     GapAnalysisService,
     GapProgressTracker,
+    InlineSuggestionsService,
+    ProposalDraftGenerator,
+    ProposalTemplateService,
+    QualityImprover,
+    RealTimeAnalyzer,
+    # Phase 2 - Score Storage
+    ScoreStorageService,
     # Phase 3 - Smart Rewriter
     SmartRewriter,
-    RewriteResult,
-    RewriteStyle,
-    # Phase 3 - Inline Suggestions
-    InlineSuggestionsService,
-    RealTimeAnalyzer,
-    SuggestionCategory,
-    SuggestionPriority,
+    SubmissionExporter,
+    TriggerType,
+    generate_score_summary,
+    generate_section_report,
 )
-from ..services.call_document_service import CallDocumentService
-import psycopg2.pool
-import os
 
 logger = logging.getLogger(__name__)
 
@@ -54,25 +48,25 @@ router = APIRouter(prefix="/api/proposal", tags=["Proposal Writing"])
 class ProposalCreate(BaseModel):
     call_id: str = Field(..., description="Call identifier")
     title: str = Field(..., description="Proposal title")
-    acronym: Optional[str] = Field(None, description="Proposal acronym")
+    acronym: str | None = Field(None, description="Proposal acronym")
     project_idea: str = Field(..., description="Brief project description")
-    research_area: Optional[str] = None
-    duration_months: Optional[int] = 36
-    estimated_budget: Optional[float] = None
-    conversation_id: Optional[int] = None
+    research_area: str | None = None
+    duration_months: int | None = 36
+    estimated_budget: float | None = None
+    conversation_id: int | None = None
 
 class PartnerInfo(BaseModel):
     name: str
     country: str
     type: str = Field(..., description="HES, REC, PRC, or OTH")
-    expertise: Optional[str] = None
-    person_months: Optional[float] = None
-    avg_monthly_rate: Optional[float] = 5000
+    expertise: str | None = None
+    person_months: float | None = None
+    avg_monthly_rate: float | None = 5000
 
 class SectionDraftRequest(BaseModel):
     call_id: str
     section_id: str = Field(..., description="e.g., excellence.objectives")
-    user_context: Dict[str, Any] = Field(..., description="Project context and details")
+    user_context: dict[str, Any] = Field(..., description="Project context and details")
     
 class SectionImproveRequest(BaseModel):
     section_id: int = Field(..., description="Database section ID")
@@ -81,15 +75,15 @@ class SectionImproveRequest(BaseModel):
 class BudgetGenerationRequest(BaseModel):
     call_id: str
     proposal_type: str = Field(..., description="RIA, IA, or CSA")
-    partners: List[PartnerInfo]
+    partners: list[PartnerInfo]
     duration_months: int = 36
-    total_budget: Optional[float] = None
+    total_budget: float | None = None
 
 class ComplianceCheckRequest(BaseModel):
     proposal_id: int
-    sections: Dict[str, str] = Field(..., description="Section ID -> content mapping")
-    consortium: Optional[List[PartnerInfo]] = []
-    budget: Optional[Dict[str, Any]] = {}
+    sections: dict[str, str] = Field(..., description="Section ID -> content mapping")
+    consortium: list[PartnerInfo] | None = []
+    budget: dict[str, Any] | None = {}
 
 # ================================================================
 # DEPENDENCY INJECTION
@@ -233,7 +227,7 @@ async def get_proposal(
         
         return {
             "proposal_id": proposal_id,
-            "overview": dict(zip([desc[0] for desc in cursor.description], row)),
+            "overview": dict(zip([desc[0] for desc in cursor.description], row, strict=False)),
             "sections": [
                 {
                     "section_id": s[0],
@@ -254,7 +248,7 @@ async def get_proposal(
 
 @router.get("/list", summary="List all proposals")
 async def list_proposals(
-    status: Optional[str] = None,
+    status: str | None = None,
     limit: int = 50,
     db_pool = Depends(get_db_pool)
 ):
@@ -504,7 +498,7 @@ async def improve_draft(
 @router.post("/evaluate/criteria", summary="Evaluate criteria coverage")
 async def evaluate_criteria(
     section_id: int,
-    criteria: List[str],
+    criteria: list[str],
     db_pool = Depends(get_db_pool)
 ):
     """Analyze how well a section addresses evaluation criteria"""
@@ -1022,12 +1016,12 @@ class EvaluateSectionRequest(BaseModel):
     section_type: str = Field(..., description="excellence, impact, or implementation")
     section_id: str = Field(..., description="Specific section like objectives, methodology")
     action_type: str = Field(default="RIA", description="RIA, IA, or CSA")
-    call_id: Optional[str] = Field(None, description="Optional call ID for context")
+    call_id: str | None = Field(None, description="Optional call ID for context")
 
 
 class EvaluateProposalRequest(BaseModel):
     """Request to evaluate multiple sections."""
-    sections: Dict[str, str] = Field(..., description="section_id -> text mapping")
+    sections: dict[str, str] = Field(..., description="section_id -> text mapping")
     action_type: str = Field(default="RIA")
 
 
@@ -1125,7 +1119,7 @@ class SaveScoreRequest(BaseModel):
     section_id: str
     section_type: str
     content: str
-    score_result: Dict[str, Any]
+    score_result: dict[str, Any]
     trigger: str = Field(default="manual", description="manual, auto, save, or batch")
 
 
@@ -1304,8 +1298,8 @@ class GapAnalysisRequest(BaseModel):
     content: str = Field(..., min_length=100, description="Section content to analyze")
     section_type: str = Field(..., description="Type of section")
     current_score: float = Field(..., ge=0, le=5, description="Current predicted score")
-    target_score: Optional[float] = Field(None, ge=0, le=5, description="Target score")
-    cluster: Optional[str] = Field(None, description="HE cluster for context")
+    target_score: float | None = Field(None, ge=0, le=5, description="Target score")
+    cluster: str | None = Field(None, description="HE cluster for context")
 
 
 class GapClosureRequest(BaseModel):
@@ -1383,7 +1377,7 @@ async def get_gap_closure_suggestion(request: GapClosureRequest):
     Returns text that can be directly applied to improve the section.
     """
     try:
-        from ..services.proposal_writing import Gap, GapCategory, GapSeverity, EffortLevel
+        from ..services.proposal_writing import EffortLevel, Gap, GapCategory, GapSeverity
 
         service = GapAnalysisService()
 
@@ -1489,8 +1483,8 @@ class EvaluateAndAnalyzeRequest(BaseModel):
     section_type: str
     section_id: str
     action_type: str = "RIA"
-    target_score: Optional[float] = None
-    cluster: Optional[str] = None
+    target_score: float | None = None
+    cluster: str | None = None
 
 
 @router.post("/evaluate-and-analyze", summary="Evaluate section and analyze gaps")
@@ -1587,8 +1581,8 @@ class RewriteOptionsRequest(BaseModel):
 class StyleTransferRequest(BaseModel):
     """Request to rewrite using style from funded proposals."""
     original_text: str = Field(..., min_length=50, description="Text to rewrite")
-    cluster: Optional[str] = Field(None, description="HE cluster for finding similar proposals")
-    action_type: Optional[str] = Field(None, description="RIA, IA, or CSA")
+    cluster: str | None = Field(None, description="HE cluster for finding similar proposals")
+    action_type: str | None = Field(None, description="RIA, IA, or CSA")
     section_type: str = Field(default="objectives", description="Type of section")
 
 
@@ -1821,7 +1815,7 @@ class InlineAnalyzeRequest(BaseModel):
     """Request for inline suggestions analysis."""
     text: str = Field(..., min_length=10, description="Text to analyze")
     section_type: str = Field(default="general", description="Type of section")
-    cluster: Optional[str] = Field(None, description="HE cluster for context")
+    cluster: str | None = Field(None, description="HE cluster for context")
     include_llm: bool = Field(default=True, description="Include AI analysis (slower but more thorough)")
 
 
@@ -1845,15 +1839,15 @@ class SuggestionResponse(BaseModel):
     priority: str
     message: str
     suggestion: str
-    replacement: Optional[str]
-    learn_more: Optional[str]
+    replacement: str | None
+    learn_more: str | None
 
 
 class InlineAnalysisResponse(BaseModel):
     """Response model for inline analysis."""
-    suggestions: List[SuggestionResponse]
+    suggestions: list[SuggestionResponse]
     score_impact: float
-    stats: Dict[str, int]
+    stats: dict[str, int]
 
 
 @router.post("/suggestions/analyze", summary="Analyze text for inline suggestions")
@@ -2128,26 +2122,20 @@ async def rewrite_with_suggestions(request: RewriteWithSuggestionsRequest):
 # ================================================================
 
 # Import Phase 4 services
-from ..services.proposal_writing.realtime_quality_service import (
-    RealTimeQualityService,
-    StreamingQualityIndicator,
-    FeedbackType,
-    QualityTier,
+import json
+
+from fastapi import WebSocket, WebSocketDisconnect
+from fastapi.responses import StreamingResponse
+
+from ..services.proposal_writing.dashboard_service import (
+    DashboardService,
 )
 from ..services.proposal_writing.progress_tracking_service import (
     ProgressTrackingService,
-    AchievementCategory,
-    AchievementRarity,
 )
-from ..services.proposal_writing.dashboard_service import (
-    DashboardService,
-    SectionStatus,
-    ActionPriority,
+from ..services.proposal_writing.realtime_quality_service import (
+    RealTimeQualityService,
 )
-from fastapi import WebSocket, WebSocketDisconnect
-from fastapi.responses import StreamingResponse
-import json
-
 
 # --- Real-Time Quality Streaming Endpoints ---
 
@@ -2187,7 +2175,7 @@ class StreamQualityRequest(BaseModel):
     content: str = Field(..., description="Text content to analyze")
     section_type: str = Field(default="general", description="Type of section")
     section_id: str = Field(..., description="Section ID for tracking")
-    cluster: Optional[str] = Field(None, description="HE cluster for context")
+    cluster: str | None = Field(None, description="HE cluster for context")
 
 
 @router.post("/quality/stream/{section_id}", summary="Stream quality feedback (SSE)")
@@ -2195,7 +2183,7 @@ async def stream_quality_sse(
     section_id: str,
     content: str,
     section_type: str = "general",
-    cluster: Optional[str] = None
+    cluster: str | None = None
 ):
     """
     Server-Sent Events endpoint for streaming quality feedback.
@@ -2267,9 +2255,9 @@ class ProgressResponse(BaseModel):
     completion_percentage: float
     sections_completed: int
     total_sections: int
-    average_score: Optional[float]
-    highest_score: Optional[float]
-    lowest_score: Optional[float]
+    average_score: float | None
+    highest_score: float | None
+    lowest_score: float | None
     gaps_resolved: int
     total_gaps: int
     suggestions_accepted: int
@@ -2280,7 +2268,7 @@ class ProgressResponse(BaseModel):
 class StreakResponse(BaseModel):
     current_streak: int
     longest_streak: int
-    last_activity_date: Optional[str]
+    last_activity_date: str | None
     is_active: bool
 
 
@@ -2298,10 +2286,10 @@ class AchievementResponse(BaseModel):
 class CheckAchievementsRequest(BaseModel):
     user_id: str
     proposal_id: str
-    word_count: Optional[int] = 0
-    total_words: Optional[int] = 0
-    score: Optional[float] = None
-    score_improvement: Optional[float] = 0
+    word_count: int | None = 0
+    total_words: int | None = 0
+    score: float | None = None
+    score_improvement: float | None = 0
 
 
 @router.get("/progress/{proposal_id}", response_model=ProgressResponse, summary="Get proposal progress")
@@ -2364,7 +2352,7 @@ async def record_user_activity(user_id: str):
 
 
 @router.get("/progress/achievements/all", summary="Get all achievements")
-async def get_all_achievements(user_id: Optional[str] = None):
+async def get_all_achievements(user_id: str | None = None):
     """Get all available achievements, optionally with user's earned status."""
     try:
         service = ProgressTrackingService()
@@ -2421,7 +2409,7 @@ class SectionSummaryResponse(BaseModel):
     section_type: str
     status: str
     word_count: int
-    score: Optional[float]
+    score: float | None
     gap_count: int
     suggestion_count: int
 
@@ -2431,8 +2419,8 @@ class NextActionResponse(BaseModel):
     title: str
     description: str
     priority: str
-    section_id: Optional[str]
-    section_title: Optional[str]
+    section_id: str | None
+    section_title: str | None
     action_type: str
     estimated_minutes: int
     impact: str
@@ -2444,30 +2432,30 @@ class ReadinessCheckResponse(BaseModel):
     title: str
     description: str
     passed: bool
-    details: Optional[str]
+    details: str | None
     blocking: bool
 
 
 class DashboardResponse(BaseModel):
     proposal_id: str
     proposal_title: str
-    call_title: Optional[str]
-    deadline: Optional[str]
+    call_title: str | None
+    deadline: str | None
 
     completion_percentage: float
-    overall_score: Optional[float]
-    funding_probability: Optional[float]
+    overall_score: float | None
+    funding_probability: float | None
     submission_ready: bool
 
-    sections: List[SectionSummaryResponse]
-    sections_by_status: Dict[str, int]
+    sections: list[SectionSummaryResponse]
+    sections_by_status: dict[str, int]
 
-    next_actions: List[NextActionResponse]
-    readiness_checks: List[ReadinessCheckResponse]
+    next_actions: list[NextActionResponse]
+    readiness_checks: list[ReadinessCheckResponse]
     readiness_score: float
 
     time_spent_minutes: int
-    days_until_deadline: Optional[int]
+    days_until_deadline: int | None
     streak: int
 
 

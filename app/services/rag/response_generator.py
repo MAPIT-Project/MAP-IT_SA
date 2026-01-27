@@ -1,10 +1,10 @@
 import logging
-from typing import List, Dict, Any, Optional, AsyncGenerator
-import google.generativeai as genai
-import json
-import re
 import os
+import re
+from collections.abc import AsyncGenerator
+from typing import Any
 
+import google.generativeai as genai
 
 logger = logging.getLogger(__name__)
 try:
@@ -56,9 +56,9 @@ class GroundedResponseGenerator:
     
     def generate_response(self,
                          query: str,
-                         context_chunks: List[Dict[str, Any]],
+                         context_chunks: list[dict[str, Any]],
                          conversation_context: str,
-                         system_instructions: Optional[str] = None) -> Dict[str, Any]:
+                         system_instructions: str | None = None) -> dict[str, Any]:
         """
         Generate grounded response with citations.
         
@@ -134,9 +134,9 @@ class GroundedResponseGenerator:
     
     async def generate_streaming_response(self,
                                          query: str,
-                                         context_chunks: List[Dict[str, Any]],
+                                         context_chunks: list[dict[str, Any]],
                                          conversation_context: str,
-                                         system_instructions: Optional[str] = None) -> AsyncGenerator[Dict[str, Any], None]:
+                                         system_instructions: str | None = None) -> AsyncGenerator[dict[str, Any], None]:
         """
         Generate streaming response with progressive output.
         """
@@ -226,9 +226,9 @@ class GroundedResponseGenerator:
     
     def _build_grounded_prompt(self,
                               query: str,
-                              context_chunks: List[Dict[str, Any]],
+                              context_chunks: list[dict[str, Any]],
                               conversation_context: str,
-                              system_instructions: Optional[str]) -> str:
+                              system_instructions: str | None) -> str:
         """
         Build prompt for grounded generation.
         """
@@ -268,7 +268,7 @@ Your response:"""
 
         return prompt
     
-    def _format_context_chunks(self, chunks: List[Dict[str, Any]]) -> str:
+    def _format_context_chunks(self, chunks: list[dict[str, Any]]) -> str:
         """
         Format context chunks for prompt.
         """
@@ -286,7 +286,7 @@ Your response:"""
     
     def _parse_response(self,
                        response_text: str,
-                       context_chunks: List[Dict[str, Any]]) -> Dict[str, Any]:
+                       context_chunks: list[dict[str, Any]]) -> dict[str, Any]:
         """
         Parse response and extract citations.
         """

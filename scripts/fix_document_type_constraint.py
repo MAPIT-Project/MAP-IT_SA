@@ -4,11 +4,12 @@ Script to fix the document_type constraint in the horizon_documents table.
 This adds support for 'additional_resource' document type.
 """
 
+import logging
 import os
 import sys
-import logging
-import psycopg2
 from pathlib import Path
+
+import psycopg2
 from dotenv import load_dotenv
 
 # Add the app directory to the Python path

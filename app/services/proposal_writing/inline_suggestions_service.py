@@ -7,9 +7,9 @@ Analyzes sentences and phrases for improvement opportunities.
 
 import logging
 import re
-from typing import List, Dict, Optional, Any
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 from app.services.proposal_writing.proposal_ai_service import ProposalAIService
 from app.services.proposal_writing.schemas.ai_schemas import INLINE_SUGGESTIONS_SCHEMA
@@ -55,16 +55,16 @@ class InlineSuggestion:
     priority: SuggestionPriority
     message: str
     suggestion: str
-    replacement: Optional[str]  # Direct replacement text
-    learn_more: Optional[str]   # Link or explanation
+    replacement: str | None  # Direct replacement text
+    learn_more: str | None   # Link or explanation
 
 
 @dataclass
 class AnalysisResult:
     """Result of inline analysis."""
-    suggestions: List[InlineSuggestion]
+    suggestions: list[InlineSuggestion]
     score_impact: float  # Estimated impact if all accepted
-    stats: Dict[str, int]  # Count by category
+    stats: dict[str, int]  # Count by category
 
 
 class InlineSuggestionsService:
@@ -137,7 +137,7 @@ class InlineSuggestionsService:
         self,
         text: str,
         section_type: str,
-        cluster: Optional[str] = None,
+        cluster: str | None = None,
         include_llm_analysis: bool = True
     ) -> AnalysisResult:
         """
@@ -185,7 +185,7 @@ class InlineSuggestionsService:
             stats=stats
         )
 
-    def _check_eu_terminology(self, text: str) -> List[InlineSuggestion]:
+    def _check_eu_terminology(self, text: str) -> list[InlineSuggestion]:
         """Check for non-EU terminology."""
         suggestions = []
 
@@ -210,7 +210,7 @@ class InlineSuggestionsService:
 
         return suggestions
 
-    def _check_weak_verbs(self, text: str) -> List[InlineSuggestion]:
+    def _check_weak_verbs(self, text: str) -> list[InlineSuggestion]:
         """Check for weak verbs that could be stronger."""
         suggestions = []
 
@@ -231,7 +231,7 @@ class InlineSuggestionsService:
                     ),
                     category=SuggestionCategory.WEAK_VERB,
                     priority=SuggestionPriority.LOW,
-                    message=f"Consider a stronger verb",
+                    message="Consider a stronger verb",
                     suggestion=f"Try: {', '.join(alternatives[:3])}",
                     replacement=alternatives[0],
                     learn_more="Strong verbs convey action and capability more effectively"
@@ -239,7 +239,7 @@ class InlineSuggestionsService:
 
         return suggestions
 
-    def _check_vague_words(self, text: str) -> List[InlineSuggestion]:
+    def _check_vague_words(self, text: str) -> list[InlineSuggestion]:
         """Check for vague words that need quantification."""
         suggestions = []
 
@@ -264,7 +264,7 @@ class InlineSuggestionsService:
 
         return suggestions
 
-    def _check_passive_voice(self, text: str) -> List[InlineSuggestion]:
+    def _check_passive_voice(self, text: str) -> list[InlineSuggestion]:
         """Check for passive voice constructions."""
         suggestions = []
 
@@ -289,7 +289,7 @@ class InlineSuggestionsService:
 
         return suggestions
 
-    def _check_wordiness(self, text: str) -> List[InlineSuggestion]:
+    def _check_wordiness(self, text: str) -> list[InlineSuggestion]:
         """Check for wordy phrases."""
         wordy_phrases = {
             "in order to": "to",
@@ -335,8 +335,8 @@ class InlineSuggestionsService:
         self,
         text: str,
         section_type: str,
-        cluster: Optional[str]
-    ) -> List[InlineSuggestion]:
+        cluster: str | None
+    ) -> list[InlineSuggestion]:
         """Use LLM for deeper semantic analysis."""
         prompt = f"""Analyze this proposal text for specific improvements.
 
@@ -411,8 +411,8 @@ Only include suggestions where you can identify the exact text span."""
 
     def _deduplicate_suggestions(
         self,
-        suggestions: List[InlineSuggestion]
-    ) -> List[InlineSuggestion]:
+        suggestions: list[InlineSuggestion]
+    ) -> list[InlineSuggestion]:
         """Remove duplicate and overlapping suggestions."""
         if not suggestions:
             return []
@@ -444,7 +444,7 @@ Only include suggestions where you can identify the exact text span."""
 
         return result
 
-    def _calculate_stats(self, suggestions: List[InlineSuggestion]) -> Dict[str, int]:
+    def _calculate_stats(self, suggestions: list[InlineSuggestion]) -> dict[str, int]:
         """Calculate suggestion statistics by category."""
         stats = {cat.value: 0 for cat in SuggestionCategory}
 
@@ -453,7 +453,7 @@ Only include suggestions where you can identify the exact text span."""
 
         return stats
 
-    def _estimate_score_impact(self, suggestions: List[InlineSuggestion]) -> float:
+    def _estimate_score_impact(self, suggestions: list[InlineSuggestion]) -> float:
         """Estimate potential score improvement if all suggestions accepted."""
         impact_weights = {
             SuggestionPriority.HIGH: 0.1,
@@ -487,7 +487,7 @@ class RealTimeAnalyzer:
             include_llm_analysis=False
         )
 
-    def analyze_sentence(self, sentence: str) -> List[InlineSuggestion]:
+    def analyze_sentence(self, sentence: str) -> list[InlineSuggestion]:
         """Analyze a single sentence (synchronous, for typing)."""
         suggestions = []
         suggestions.extend(self.service._check_eu_terminology(sentence))
@@ -495,7 +495,7 @@ class RealTimeAnalyzer:
         suggestions.extend(self.service._check_passive_voice(sentence))
         return suggestions
 
-    def get_quick_feedback(self, text: str) -> Dict[str, Any]:
+    def get_quick_feedback(self, text: str) -> dict[str, Any]:
         """
         Get quick feedback counts without full analysis.
 

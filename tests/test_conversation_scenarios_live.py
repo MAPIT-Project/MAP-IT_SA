@@ -3,7 +3,7 @@ Live tests for all conversation scenarios from CONVERSATION_SCENARIOS.md
 """
 import asyncio
 import json
-from typing import Dict, List
+
 from app.services.agents.tool_aware_agent import ToolAwareAgent
 
 # All test scenarios from the document
@@ -200,4 +200,4 @@ if __name__ == "__main__":
     with open("scenario_test_results.json", "w") as f:
         json.dump(results, f, indent=2, default=str)
 
-    print(f"\nDetailed results saved to scenario_test_results.json")
+    print("\nDetailed results saved to scenario_test_results.json")

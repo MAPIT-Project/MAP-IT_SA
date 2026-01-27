@@ -16,10 +16,10 @@ Features:
 import hashlib
 import json
 import logging
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 from uuid import uuid4
 
 import httpx
@@ -54,12 +54,12 @@ class AlertConfig:
     enabled: bool = False
     frequency: AlertFrequency = AlertFrequency.DAILY
     channel: AlertChannel = AlertChannel.EMAIL
-    email: Optional[str] = None
-    webhook_url: Optional[str] = None
-    webhook_secret: Optional[str] = None
+    email: str | None = None
+    webhook_url: str | None = None
+    webhook_secret: str | None = None
     min_results_to_alert: int = 1
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "enabled": self.enabled,
             "frequency": self.frequency.value,
@@ -71,7 +71,7 @@ class AlertConfig:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "AlertConfig":
+    def from_dict(cls, data: dict[str, Any]) -> "AlertConfig":
         return cls(
             enabled=data.get("enabled", False),
             frequency=AlertFrequency(data.get("frequency", "daily")),
@@ -89,19 +89,19 @@ class SavedSearch:
     id: str
     user_id: str
     name: str
-    description: Optional[str]
+    description: str | None
     search_type: SearchType
-    parameters: Dict[str, Any]
+    parameters: dict[str, Any]
     alert_config: AlertConfig
     created_at: datetime
     updated_at: datetime
-    last_run: Optional[datetime] = None
-    last_result_hash: Optional[str] = None
+    last_run: datetime | None = None
+    last_result_hash: str | None = None
     is_active: bool = True
     run_count: int = 0
     alert_count: int = 0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "user_id": self.user_id,
@@ -120,7 +120,7 @@ class SavedSearch:
         }
 
     @classmethod
-    def from_db_row(cls, row: Dict[str, Any]) -> "SavedSearch":
+    def from_db_row(cls, row: dict[str, Any]) -> "SavedSearch":
         """Create SavedSearch from database row."""
         return cls(
             id=row["id"],
@@ -146,9 +146,9 @@ class SavedSearch:
 class SearchResult:
     """Result from running a saved search."""
     search_id: str
-    results: List[Dict[str, Any]]
+    results: list[dict[str, Any]]
     result_count: int
-    new_results: List[Dict[str, Any]]
+    new_results: list[dict[str, Any]]
     new_count: int
     result_hash: str
     execution_time_ms: float
@@ -168,7 +168,7 @@ class SavedSearchService:
         """
         self.db_pool = db_pool
         self.redis = redis_client
-        self._http_client: Optional[httpx.AsyncClient] = None
+        self._http_client: httpx.AsyncClient | None = None
 
     @property
     def http_client(self) -> httpx.AsyncClient:
@@ -192,9 +192,9 @@ class SavedSearchService:
         user_id: str,
         name: str,
         search_type: SearchType,
-        parameters: Dict[str, Any],
-        description: Optional[str] = None,
-        alert_config: Optional[AlertConfig] = None,
+        parameters: dict[str, Any],
+        description: str | None = None,
+        alert_config: AlertConfig | None = None,
     ) -> SavedSearch:
         """
         Create a new saved search.
@@ -210,7 +210,7 @@ class SavedSearchService:
         Returns:
             Created SavedSearch
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         search = SavedSearch(
             id=str(uuid4()),
             user_id=user_id,
@@ -228,7 +228,7 @@ class SavedSearchService:
 
         return search
 
-    async def get_search(self, search_id: str) -> Optional[SavedSearch]:
+    async def get_search(self, search_id: str) -> SavedSearch | None:
         """Get a saved search by ID."""
         if not self.db_pool:
             return None
@@ -241,15 +241,15 @@ class SavedSearchService:
                 row = cur.fetchone()
                 if row:
                     columns = [desc[0] for desc in cur.description]
-                    return SavedSearch.from_db_row(dict(zip(columns, row)))
+                    return SavedSearch.from_db_row(dict(zip(columns, row, strict=False)))
         return None
 
     async def get_user_searches(
         self,
         user_id: str,
-        search_type: Optional[SearchType] = None,
+        search_type: SearchType | None = None,
         active_only: bool = True,
-    ) -> List[SavedSearch]:
+    ) -> list[SavedSearch]:
         """Get all saved searches for a user."""
         if not self.db_pool:
             return []
@@ -273,19 +273,19 @@ class SavedSearchService:
                 rows = cur.fetchall()
                 columns = [desc[0] for desc in cur.description]
                 for row in rows:
-                    searches.append(SavedSearch.from_db_row(dict(zip(columns, row))))
+                    searches.append(SavedSearch.from_db_row(dict(zip(columns, row, strict=False))))
 
         return searches
 
     async def update_search(
         self,
         search_id: str,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
-        parameters: Optional[Dict[str, Any]] = None,
-        alert_config: Optional[AlertConfig] = None,
-        is_active: Optional[bool] = None,
-    ) -> Optional[SavedSearch]:
+        name: str | None = None,
+        description: str | None = None,
+        parameters: dict[str, Any] | None = None,
+        alert_config: AlertConfig | None = None,
+        is_active: bool | None = None,
+    ) -> SavedSearch | None:
         """Update a saved search."""
         search = await self.get_search(search_id)
         if not search:
@@ -302,7 +302,7 @@ class SavedSearchService:
         if is_active is not None:
             search.is_active = is_active
 
-        search.updated_at = datetime.now(timezone.utc)
+        search.updated_at = datetime.now(UTC)
 
         await self._update_in_db(search)
         logger.info(f"Updated saved search: {search_id}")
@@ -374,7 +374,7 @@ class SavedSearchService:
             new_count=len(new_results),
             result_hash=result_hash,
             execution_time_ms=execution_time,
-            executed_at=datetime.now(timezone.utc),
+            executed_at=datetime.now(UTC),
         )
 
         # Update search metadata
@@ -382,7 +382,7 @@ class SavedSearchService:
 
         return search_result
 
-    async def _search_calls(self, params: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _search_calls(self, params: dict[str, Any]) -> list[dict[str, Any]]:
         """Execute a call search."""
         try:
             from app.services.call_search.local_call_search_service import LocalCallSearchService
@@ -399,10 +399,12 @@ class SavedSearchService:
             logger.error(f"Error searching calls: {e}")
             return []
 
-    async def _search_projects(self, params: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _search_projects(self, params: dict[str, Any]) -> list[dict[str, Any]]:
         """Execute a project search."""
         try:
-            from app.services.project_search.local_project_search_service import LocalProjectSearchService
+            from app.services.project_search.local_project_search_service import (
+                LocalProjectSearchService,
+            )
             service = LocalProjectSearchService()
             result = await service.search(
                 keywords=params.get("keywords", ""),
@@ -416,7 +418,7 @@ class SavedSearchService:
             logger.error(f"Error searching projects: {e}")
             return []
 
-    async def _search_partners(self, params: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _search_partners(self, params: dict[str, Any]) -> list[dict[str, Any]]:
         """Execute a partner search."""
         try:
             from app.services.tools.partner_discovery import PartnerDiscoveryTool
@@ -432,7 +434,7 @@ class SavedSearchService:
             logger.error(f"Error searching partners: {e}")
             return []
 
-    def _calculate_result_hash(self, results: List[Dict[str, Any]]) -> str:
+    def _calculate_result_hash(self, results: list[dict[str, Any]]) -> str:
         """Calculate a hash of the result set for change detection."""
         # Extract IDs or unique identifiers
         ids = sorted([str(r.get("id") or r.get("call_id") or r.get("name") or "") for r in results])
@@ -441,8 +443,8 @@ class SavedSearchService:
     async def _find_new_results(
         self,
         search: SavedSearch,
-        current_results: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        current_results: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """Find results that weren't in the previous run."""
         # Get previous result IDs from cache
         cache_key = f"saved_search:results:{search.id}"
@@ -501,7 +503,7 @@ class SavedSearchService:
                 cur.execute(query, (
                     result.executed_at,
                     result.result_hash,
-                    datetime.now(timezone.utc),
+                    datetime.now(UTC),
                     search.id,
                 ))
                 conn.commit()
@@ -510,7 +512,7 @@ class SavedSearchService:
     # Alert Processing
     # =========================================================================
 
-    async def get_due_searches(self, frequency: Optional[AlertFrequency] = None) -> List[SavedSearch]:
+    async def get_due_searches(self, frequency: AlertFrequency | None = None) -> list[SavedSearch]:
         """
         Get searches that are due for checking based on their frequency.
 
@@ -523,7 +525,7 @@ class SavedSearchService:
         if not self.db_pool:
             return []
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # Build query based on frequency
         query = """
@@ -557,11 +559,11 @@ class SavedSearchService:
                 rows = cur.fetchall()
                 columns = [desc[0] for desc in cur.description]
                 for row in rows:
-                    searches.append(SavedSearch.from_db_row(dict(zip(columns, row))))
+                    searches.append(SavedSearch.from_db_row(dict(zip(columns, row, strict=False))))
 
         return searches
 
-    async def process_alerts(self, frequency: Optional[AlertFrequency] = None) -> Dict[str, Any]:
+    async def process_alerts(self, frequency: AlertFrequency | None = None) -> dict[str, Any]:
         """
         Process all due saved search alerts.
 
@@ -599,7 +601,7 @@ class SavedSearchService:
             "searches_processed": processed,
             "alerts_sent": alerts_sent,
             "errors": errors,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
     async def _send_alert(self, search: SavedSearch, result: SearchResult):
@@ -633,7 +635,7 @@ class SavedSearchService:
         self,
         search: SavedSearch,
         result: SearchResult
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Prepare the alert notification payload."""
         return {
             "event": f"saved_search.{search.search_type.value}.new_results",
@@ -647,7 +649,7 @@ class SavedSearchService:
             "parameters": search.parameters,
         }
 
-    async def _send_email_alert(self, email: str, payload: Dict[str, Any]):
+    async def _send_email_alert(self, email: str, payload: dict[str, Any]):
         """
         Send email alert notification.
 
@@ -666,8 +668,8 @@ class SavedSearchService:
     async def _send_webhook_alert(
         self,
         webhook_url: str,
-        payload: Dict[str, Any],
-        secret: Optional[str] = None,
+        payload: dict[str, Any],
+        secret: str | None = None,
     ):
         """Send webhook alert notification."""
         import hmac
@@ -777,7 +779,7 @@ class SavedSearchService:
     # Statistics
     # =========================================================================
 
-    async def get_user_stats(self, user_id: str) -> Dict[str, Any]:
+    async def get_user_stats(self, user_id: str) -> dict[str, Any]:
         """Get saved search statistics for a user."""
         searches = await self.get_user_searches(user_id, active_only=False)
 
@@ -800,7 +802,7 @@ class SavedSearchService:
 
 
 # Singleton instance
-_saved_search_service: Optional[SavedSearchService] = None
+_saved_search_service: SavedSearchService | None = None
 
 
 def get_saved_search_service(

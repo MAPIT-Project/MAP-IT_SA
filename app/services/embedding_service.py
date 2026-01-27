@@ -2,16 +2,15 @@
 Embedding service for generating text embeddings using Google's API.
 """
 
-import os
-import hashlib
-import numpy as np
-from typing import List, Optional, Dict, Any
-import google.generativeai as genai
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
-import time
-from functools import lru_cache
+import hashlib
 import logging
+import time
+from concurrent.futures import ThreadPoolExecutor
+from typing import Any
+
+import google.generativeai as genai
+import numpy as np
 
 from ..core.config import settings
 
@@ -93,9 +92,9 @@ class EmbeddingService:
     
     def generate_embeddings_batch(
         self, 
-        texts: List[str], 
+        texts: list[str], 
         use_cache: bool = True
-    ) -> List[np.ndarray]:
+    ) -> list[np.ndarray]:
         """Generate embeddings for multiple texts in batches."""
         if not texts:
             logger.warning("⚠️ Empty text list provided for batch embedding")
@@ -195,9 +194,9 @@ class EmbeddingService:
     
     async def generate_embeddings_async(
         self, 
-        texts: List[str], 
+        texts: list[str], 
         max_workers: int = 5
-    ) -> List[np.ndarray]:
+    ) -> list[np.ndarray]:
         """Generate embeddings asynchronously for better performance."""
         if not texts:
             return []
@@ -301,7 +300,7 @@ class EmbeddingService:
         
         return True
     
-    def get_embedding_stats(self) -> Dict[str, Any]:
+    def get_embedding_stats(self) -> dict[str, Any]:
         """Get statistics about embedding generation."""
         stats = {
             'model_name': self.model_name,

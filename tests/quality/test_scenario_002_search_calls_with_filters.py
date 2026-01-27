@@ -13,8 +13,8 @@ This test verifies that the system properly filters search results by:
 - Status (open calls only)
 """
 
-from datetime import datetime, timedelta
 import re
+from datetime import datetime, timedelta
 
 import httpx
 import pytest

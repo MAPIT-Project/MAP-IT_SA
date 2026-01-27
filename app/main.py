@@ -8,22 +8,20 @@ Production-ready application with:
 - Circuit breaker support for external services
 """
 
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
-import uvicorn
 import logging
 
+import uvicorn
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from .api.call_document_routes import router as call_document_router
+from .api.conversation_routes_v3 import router as conversation_router_v3
+from .api.document_routes import router as document_router
+from .api.error_handlers import register_exception_handlers, register_middleware
+from .api.health_routes import router as health_router
+from .api.proposal_routes import router as proposal_router
 from .core.config import settings
 from .core.dependencies import initialize_cordis_repository, shutdown_cordis_repository
-from .api.document_routes import router as document_router
-from .api.conversation_routes_v3 import router as conversation_router_v3
-from .api.call_document_routes import router as call_document_router
-from .api.proposal_routes import router as proposal_router
-from .api.health_routes import router as health_router
-from .api.error_handlers import register_exception_handlers, register_middleware
-from .models.schemas import ErrorResponse
 
 # Configure logging
 logging.basicConfig(
@@ -69,34 +67,42 @@ app.include_router(proposal_router)
 
 # Include proposal document management routes (Live document editing)
 from .api.proposal_document_routes import router as proposal_document_router
+
 app.include_router(proposal_document_router)
 
 # Include feedback routes (user feedback collection and analysis)
 from .api.feedback_routes import router as feedback_router
+
 app.include_router(feedback_router)
 
 # V4 Proposal Session routes - unified AI Proposal Writer
 from .api.proposal_session_routes import router as proposal_session_router
+
 app.include_router(proposal_session_router)
 
 # Batch operations routes (Priority 4.2)
 from .api.batch_routes import router as batch_router
+
 app.include_router(batch_router)
 
 # Analytics dashboard routes (Priority 5.1)
 from .api.analytics_routes import router as analytics_router
+
 app.include_router(analytics_router)
 
 # Saved searches and alerts routes (Priority 5.2)
 from .api.alert_routes import router as alert_router
+
 app.include_router(alert_router)
 
 # Real-time collaboration routes (Priority 5.3)
 from .api.collaboration_routes import router as collaboration_router
+
 app.include_router(collaboration_router)
 
 # Audit logging routes (Priority 6.3)
 from .api.audit_routes import router as audit_router
+
 app.include_router(audit_router)
 
 

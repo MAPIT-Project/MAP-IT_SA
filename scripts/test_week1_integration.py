@@ -12,20 +12,20 @@ Tests all components of the Data Intelligence upgrade:
 Run with: python scripts/test_week1_integration.py
 """
 
-import os
-import sys
 import asyncio
 import logging
+import sys
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any
-from dataclasses import dataclass, field
+from typing import Any
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Load environment variables
 from dotenv import load_dotenv
+
 load_dotenv()
 
 # Configure logging - suppress verbose output
@@ -47,18 +47,18 @@ class TestResult:
     passed: bool
     duration_ms: float
     message: str
-    details: Dict[str, Any] = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
 
 
 class IntegrationTester:
     """Runs integration tests for Week 1 components."""
     
     def __init__(self):
-        self.results: List[TestResult] = []
+        self.results: list[TestResult] = []
         self.start_time = None
     
     def add_result(self, name: str, passed: bool, duration_ms: float, 
-                   message: str, details: Dict = None):
+                   message: str, details: dict = None):
         """Add a test result."""
         self.results.append(TestResult(
             name=name,

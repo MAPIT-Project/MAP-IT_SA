@@ -16,10 +16,8 @@ Usage:
     result = service.get_call_details("HORIZON-CL4-2025-DATA-01")
 """
 
-import re
 import logging
-from typing import List, Dict, Any, Optional
-from dataclasses import dataclass, asdict
+from typing import Any
 
 from app.core.neo4j_config import neo4j_db
 
@@ -64,7 +62,7 @@ class GraphSearchService:
     # QUERY TYPE A: Call/Topic Lookup
     # ========================================================================
     
-    def get_call_details(self, identifier: str) -> Optional[Dict[str, Any]]:
+    def get_call_details(self, identifier: str) -> dict[str, Any] | None:
         """
         Get detailed information about a specific call or topic.
         
@@ -139,7 +137,7 @@ class GraphSearchService:
             logger.error(f"Error getting call details for {identifier}: {e}")
             return None
     
-    def search_topics(self, search_term: str, limit: int = 20) -> List[Dict[str, Any]]:
+    def search_topics(self, search_term: str, limit: int = 20) -> list[dict[str, Any]]:
         """
         Search for topics by keyword.
         
@@ -173,7 +171,7 @@ class GraphSearchService:
             logger.error(f"Error searching topics: {e}")
             return []
 
-    def get_topics_by_cluster(self, cluster_code: str, limit: int = 50) -> List[Dict[str, Any]]:
+    def get_topics_by_cluster(self, cluster_code: str, limit: int = 50) -> list[dict[str, Any]]:
         """
         Get topics that belong to a specific cluster.
 
@@ -217,8 +215,8 @@ class GraphSearchService:
     def check_country_eligibility(
         self, 
         country_code: str, 
-        cluster_code: Optional[str] = None
-    ) -> Dict[str, Any]:
+        cluster_code: str | None = None
+    ) -> dict[str, Any]:
         """
         Check if a country is eligible to participate in Horizon Europe.
         
@@ -322,8 +320,8 @@ class GraphSearchService:
     def check_entity_type_eligibility(
         self, 
         entity_type: str,
-        action_type: Optional[str] = None
-    ) -> Dict[str, Any]:
+        action_type: str | None = None
+    ) -> dict[str, Any]:
         """
         Check eligibility and participation patterns for an entity type.
         
@@ -426,9 +424,9 @@ class GraphSearchService:
     
     def get_budget_statistics(
         self, 
-        cluster_code: Optional[str] = None,
-        action_type: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        cluster_code: str | None = None,
+        action_type: str | None = None
+    ) -> list[dict[str, Any]]:
         """
         Get budget statistics for projects, optionally filtered by cluster.
         
@@ -506,9 +504,9 @@ class GraphSearchService:
     
     def get_consortium_patterns(
         self, 
-        cluster_code: Optional[str] = None,
+        cluster_code: str | None = None,
         min_partners: int = 3
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Analyze consortium composition patterns for successful projects.
         
@@ -598,7 +596,7 @@ class GraphSearchService:
         self, 
         topic_code: str, 
         limit: int = 10
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Find topics similar to a given topic based on cluster and participation overlap.
         
@@ -677,7 +675,7 @@ class GraphSearchService:
         self, 
         org_name: str, 
         limit: int = 20
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Find organizations that have collaborated with a given organization.
         
@@ -734,7 +732,7 @@ class GraphSearchService:
             logger.error(f"Error finding organization partners: {e}")
             return []
     
-    def get_organization_profile(self, org_name: str) -> Optional[Dict[str, Any]]:
+    def get_organization_profile(self, org_name: str) -> dict[str, Any] | None:
         """
         Get detailed profile of an organization including participation history.
         
@@ -804,7 +802,7 @@ class GraphSearchService:
     # Utility Methods
     # ========================================================================
     
-    def get_cluster_overview(self) -> List[Dict[str, Any]]:
+    def get_cluster_overview(self) -> list[dict[str, Any]]:
         """Get overview of all clusters with project counts."""
         query = """
         MATCH (c:Cluster)
@@ -839,10 +837,10 @@ class GraphSearchService:
     
     def get_top_organizations(
         self,
-        cluster_code: Optional[str] = None,
-        country_code: Optional[str] = None,
+        cluster_code: str | None = None,
+        country_code: str | None = None,
         limit: int = 20
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Get top organizations by project participation.
 
@@ -965,12 +963,12 @@ class GraphSearchService:
     
     def get_project_examples(
         self,
-        cluster_code: Optional[str] = None,
-        topic_pattern: Optional[str] = None,
-        funding_scheme: Optional[str] = None,
+        cluster_code: str | None = None,
+        topic_pattern: str | None = None,
+        funding_scheme: str | None = None,
         min_budget: float = 0,
         limit: int = 10
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Get example projects with their details and success indicators.
         
@@ -1073,7 +1071,7 @@ class GraphSearchService:
         self,
         org_name: str,
         include_partners: bool = True
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """
         Get comprehensive track record for an organization.
         
@@ -1166,10 +1164,10 @@ class GraphSearchService:
     
     def check_consortium_compliance(
         self,
-        partners: List[Dict[str, str]],
+        partners: list[dict[str, str]],
         action_type: str = "RIA",
-        call_specific_rules: Optional[Dict] = None
-    ) -> Dict[str, Any]:
+        call_specific_rules: dict | None = None
+    ) -> dict[str, Any]:
         """
         Check if a proposed consortium meets eligibility requirements.
         
@@ -1307,11 +1305,11 @@ class GraphSearchService:
     def suggest_consortium_partners(
         self,
         cluster_code: str,
-        topic_code: Optional[str] = None,
-        coordinator_country: Optional[str] = None,
+        topic_code: str | None = None,
+        coordinator_country: str | None = None,
         target_partner_count: int = 5,
-        required_entity_types: Optional[List[str]] = None
-    ) -> Dict[str, Any]:
+        required_entity_types: list[str] | None = None
+    ) -> dict[str, Any]:
         """
         Suggest potential consortium partners for a project.
         
@@ -1370,7 +1368,7 @@ class GraphSearchService:
             candidates = self.db.execute_query(query, params)
             
             # Group by entity type
-            by_type: Dict[str, List[Dict]] = {"HES": [], "REC": [], "PRC": [], "PUB": [], "OTH": []}
+            by_type: dict[str, list[dict]] = {"HES": [], "REC": [], "PRC": [], "PUB": [], "OTH": []}
             countries_seen: set = set()
             
             suggestions = []
@@ -1423,9 +1421,9 @@ class GraphSearchService:
     
     def get_funding_trends(
         self,
-        cluster_code: Optional[str] = None,
+        cluster_code: str | None = None,
         group_by: str = "year"
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Get funding trends over time.
         
@@ -1498,7 +1496,7 @@ class GraphSearchService:
         project_id: str,
         similarity_type: str = "topic",
         limit: int = 10
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Find projects similar to a given project.
         
@@ -1585,9 +1583,9 @@ class GraphSearchService:
     def find_projects_by_organization(
         self,
         organization_name: str,
-        role: Optional[str] = None,
+        role: str | None = None,
         limit: int = 20
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Find all projects an organization participated in.
         
@@ -1656,10 +1654,10 @@ class GraphSearchService:
     
     def search_projects_by_keywords(
         self,
-        keywords: List[str],
-        status: Optional[str] = None,
+        keywords: list[str],
+        status: str | None = None,
         limit: int = 20
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Search for projects by keywords in title and objective.
         
@@ -1739,7 +1737,7 @@ class GraphSearchService:
         organization_name: str,
         depth: int = 1,
         limit: int = 50
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get the collaboration network of an organization.
         
@@ -1799,8 +1797,8 @@ class GraphSearchService:
     
     def get_cluster_statistics(
         self,
-        cluster_code: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        cluster_code: str | None = None
+    ) -> list[dict[str, Any]]:
         """
         Get statistics for clusters - project counts, funding, etc.
         
@@ -1854,9 +1852,9 @@ class GraphSearchService:
 
     def get_erasmus_actions(
         self,
-        key_action: Optional[str] = None,
-        sector: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        key_action: str | None = None,
+        sector: str | None = None
+    ) -> list[dict[str, Any]]:
         """
         Get Erasmus+ actions with their metadata.
 
@@ -1940,7 +1938,7 @@ class GraphSearchService:
             logger.error(f"Error getting Erasmus+ actions: {e}")
             return []
 
-    def get_erasmus_sectors(self) -> List[Dict[str, Any]]:
+    def get_erasmus_sectors(self) -> list[dict[str, Any]]:
         """
         Get all Erasmus+ sectors with their available actions.
 
@@ -1983,8 +1981,8 @@ class GraphSearchService:
     def check_erasmus_country_eligibility(
         self,
         country_code: str,
-        action_code: Optional[str] = None
-    ) -> Dict[str, Any]:
+        action_code: str | None = None
+    ) -> dict[str, Any]:
         """
         Check if a country is eligible for Erasmus+ actions.
 
@@ -2082,7 +2080,7 @@ class GraphSearchService:
                 "source": "fallback"
             }
 
-    def get_erasmus_action_details(self, action_code: str) -> Optional[Dict[str, Any]]:
+    def get_erasmus_action_details(self, action_code: str) -> dict[str, Any] | None:
         """
         Get detailed information about a specific Erasmus+ action.
 
@@ -2166,9 +2164,9 @@ class GraphSearchService:
     def find_eligible_erasmus_actions(
         self,
         country_code: str,
-        sector: Optional[str] = None,
+        sector: str | None = None,
         role: str = "participant"
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Find Erasmus+ actions that an organization from a country can participate in.
 
@@ -2262,7 +2260,7 @@ class GraphSearchService:
             logger.error(f"Error finding eligible Erasmus+ actions: {e}")
             return []
 
-    def get_partner_regions(self) -> List[Dict[str, Any]]:
+    def get_partner_regions(self) -> list[dict[str, Any]]:
         """
         Get all Erasmus+ partner regions with their countries.
 

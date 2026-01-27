@@ -4,12 +4,13 @@ Multi-Provider AI Service
 Automatically handles provider selection, fallback, and retry logic.
 """
 
+import asyncio
 import logging
 import os
-import asyncio
-from typing import Dict, Any, List, AsyncGenerator
+from collections.abc import AsyncGenerator
+from typing import Any
 
-from .base import BaseAIProvider, ProviderConfig, ProviderResponse, ProviderStatus
+from .base import BaseAIProvider, ProviderConfig, ProviderResponse
 from .gemini_provider import GeminiProvider
 from .openai_provider import OpenAIProvider
 
@@ -33,7 +34,7 @@ class MultiProviderAIService:
         enable_fallback: bool = True
     ):
         self.enable_fallback = enable_fallback
-        self.providers: List[BaseAIProvider] = []
+        self.providers: list[BaseAIProvider] = []
 
         # Initialize providers based on available API keys
         self._initialize_providers(primary_provider)
@@ -91,7 +92,7 @@ class MultiProviderAIService:
         if not self.providers:
             raise RuntimeError("No AI providers available. Check API keys.")
 
-    def _get_available_providers(self) -> List[BaseAIProvider]:
+    def _get_available_providers(self) -> list[BaseAIProvider]:
         """Get list of available providers."""
         return [p for p in self.providers if p.is_available()]
 
@@ -151,10 +152,10 @@ class MultiProviderAIService:
     async def generate_structured(
         self,
         prompt: str,
-        schema: Dict[str, Any],
+        schema: dict[str, Any],
         temperature: float = 0.3,
         max_retries: int = 3
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Generate structured JSON with automatic fallback.
         """
@@ -220,7 +221,7 @@ class MultiProviderAIService:
 
         raise RuntimeError("All providers failed for streaming")
 
-    def get_provider_status(self) -> Dict[str, str]:
+    def get_provider_status(self) -> dict[str, str]:
         """Get status of all providers."""
         return {p.name: p.status.value for p in self.providers}
 

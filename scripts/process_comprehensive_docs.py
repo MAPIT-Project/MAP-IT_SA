@@ -7,16 +7,15 @@ Script to process comprehensive Horizon Euro        logger.info("🛡️ Memory 
 Handles PDFs, HTML call pages, and prepares them for vector database ingestion.
 """
 
-import os
-import sys
-import json
-import re
-import logging
 import gc  # Garbage collection
+import json
+import logging
+import re
+import sys
 import time
-from pathlib import Path
-from typing import List, Dict, Any, Optional
 from datetime import datetime
+from pathlib import Path
+from typing import Any
 
 # Optional psutil import for memory monitoring
 try:
@@ -128,7 +127,7 @@ class ComprehensiveDocumentProcessor:
             logger.warning("⚠️ Garbage collection error: %s", e)
             gc.collect()  # Still try to collect
     
-    def load_call_metadata(self) -> List[Dict[str, Any]]:
+    def load_call_metadata(self) -> list[dict[str, Any]]:
         """Load call metadata from the downloaded JSON file."""
         metadata_file = self.base_download_dir / "all_calls_metadata.json"
         
@@ -137,7 +136,7 @@ class ComprehensiveDocumentProcessor:
             return []
         
         try:
-            with open(metadata_file, 'r', encoding='utf-8') as f:
+            with open(metadata_file, encoding='utf-8') as f:
                 calls = json.load(f)
             logger.info(f"📊 Loaded metadata for {len(calls)} calls")
             return calls
@@ -145,7 +144,7 @@ class ComprehensiveDocumentProcessor:
             logger.error(f"❌ Error loading call metadata: {e}")
             return []
     
-    def extract_text_from_pdf(self, pdf_path: Path) -> Optional[str]:
+    def extract_text_from_pdf(self, pdf_path: Path) -> str | None:
         """Extract text from PDF file in a memory-efficient way with strict size limits."""
         try:
             # Check file size first to prevent loading large files
@@ -205,7 +204,7 @@ class ComprehensiveDocumentProcessor:
             logger.error(f"❌ Error extracting text from {pdf_path.name}: {e}")
             return None
     
-    def extract_text_from_html(self, html_path: Path) -> Optional[str]:
+    def extract_text_from_html(self, html_path: Path) -> str | None:
         """Extract text from HTML file with size limits."""
         try:
             # Check file size first
@@ -215,7 +214,7 @@ class ComprehensiveDocumentProcessor:
                 return None
             
             from bs4 import BeautifulSoup
-            with open(html_path, 'r', encoding='utf-8', errors='ignore') as f:
+            with open(html_path, encoding='utf-8', errors='ignore') as f:
                 # Read file in chunks to prevent memory issues with large files
                 content = f.read(self.max_text_length)  # Only read up to max length
                 
@@ -304,7 +303,7 @@ class ComprehensiveDocumentProcessor:
             return match.group(0)
         return "2021-2027"  # Default Horizon Europe period
     
-    def chunk_text(self, text: str, chunk_size: int = 400, overlap: int = 100) -> List[Dict[str, Any]]:
+    def chunk_text(self, text: str, chunk_size: int = 400, overlap: int = 100) -> list[dict[str, Any]]:
         """Split text into chunks with metadata using character-based sliding window with safety limits."""
         if not text:
             return []
@@ -372,7 +371,7 @@ class ComprehensiveDocumentProcessor:
         
         return chunks
     
-    def process_document(self, filepath: Path) -> Optional[Dict[str, Any]]:
+    def process_document(self, filepath: Path) -> dict[str, Any] | None:
         """Process a single document and return structured data with extensive logging."""
         if not filepath.exists():
             logger.warning(f"⚠️ File does not exist: {filepath}")
@@ -392,17 +391,17 @@ class ComprehensiveDocumentProcessor:
             return None
             
         logger.info(f"📄 START Processing: {filename} (Size: {file_size_mb:.2f} MB)")
-        logger.info(f"   🧠 Memory check passed. Proceeding with extraction.")
+        logger.info("   🧠 Memory check passed. Proceeding with extraction.")
         
         start_time = time.time()
         
         try:
             # Extract text based on file type
             if filepath.suffix.lower() == '.pdf':
-                logger.info(f"   📖 Extracting text from PDF...")
+                logger.info("   📖 Extracting text from PDF...")
                 text = self.extract_text_from_pdf(filepath)
             elif filepath.suffix.lower() == '.html':
-                logger.info(f"   📖 Extracting text from HTML...")
+                logger.info("   📖 Extracting text from HTML...")
                 text = self.extract_text_from_html(filepath)
             else:
                 logger.warning(f"⚠️ Unsupported file type: {filepath.suffix}")
@@ -427,7 +426,7 @@ class ComprehensiveDocumentProcessor:
             logger.info(f"   📋 Metadata: Type={doc_type}, Cluster={cluster}, Year={programme_year}")
             
             # Create chunks
-            logger.info(f"   ✂️ Chunking text...")
+            logger.info("   ✂️ Chunking text...")
             chunks = self.chunk_text(text)
             
             # Limit chunks per document (only if limit is set)
@@ -481,7 +480,7 @@ class ComprehensiveDocumentProcessor:
             self.safe_garbage_collection()
             return None
     
-    def process_all_documents(self) -> Dict[str, Any]:
+    def process_all_documents(self) -> dict[str, Any]:
         """Process all documents in the comprehensive download directory incrementally to avoid memory issues."""
         logger.info("🚀 STARTING COMPREHENSIVE DOCUMENT PROCESSING")
         logger.info("📊 Memory safety settings: Threshold=%dMB, Max chunks/doc=%s",
@@ -514,7 +513,7 @@ class ComprehensiveDocumentProcessor:
         if processed_file.exists():
             logger.info("📁 Loading existing processed documents file...")
             try:
-                with open(processed_file, 'r', encoding='utf-8') as f:
+                with open(processed_file, encoding='utf-8') as f:
                     all_processed_docs = json.load(f)
                 # Update stats from existing file
                 processed_count = len(all_processed_docs)
@@ -697,7 +696,7 @@ class ComprehensiveDocumentProcessor:
             return False
         
         try:
-            with open(processed_file, 'r', encoding='utf-8') as f:
+            with open(processed_file, encoding='utf-8') as f:
                 all_docs = json.load(f)
             
             # Create ingestion-ready format

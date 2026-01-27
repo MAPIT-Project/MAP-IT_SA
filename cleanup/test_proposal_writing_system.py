@@ -5,25 +5,25 @@ This script tests all components of the proposal writing assistant.
 """
 
 import asyncio
-import sys
 import os
+import sys
 from datetime import datetime
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from app.services.proposal_writing import (
-    ProposalTemplateService,
-    ProposalDraftGenerator,
-    EvaluationCriteriaMatcher,
-    BudgetAssistant,
-    ComplianceChecker,
-    QualityImprover
-)
-from app.services.call_document_service import CallDocumentService
-from app.services.ai_intent_service import AIIntentService
 import psycopg2.pool
 
+from app.services.ai_intent_service import AIIntentService
+from app.services.call_document_service import CallDocumentService
+from app.services.proposal_writing import (
+    BudgetAssistant,
+    ComplianceChecker,
+    EvaluationCriteriaMatcher,
+    ProposalDraftGenerator,
+    ProposalTemplateService,
+    QualityImprover,
+)
 
 # Test configuration
 TEST_CALL_ID = "HORIZON-CL3-2025-02-CS-ECCC-01"
@@ -52,7 +52,7 @@ async def test_template_generation():
         template = template_service.generate_template(TEST_CALL_ID)
         await template
         
-        print(f"\n✅ Template generated successfully!")
+        print("\n✅ Template generated successfully!")
         print(f"   - Proposal Type: {template['proposal_type']}")
         print(f"   - Page Limit: {template['metadata']['page_limit']}")
         print(f"   - Sections: {len(template['structure']['sections'])}")
@@ -97,7 +97,7 @@ async def test_draft_generation():
         template_service = ProposalTemplateService(db_pool, call_doc_service)
         draft_generator = ProposalDraftGenerator(call_doc_service, template_service)
         
-        print(f"\n✍️ Generating draft for 'Objectives' section...")
+        print("\n✍️ Generating draft for 'Objectives' section...")
         
         user_context = {
             'project_idea': TEST_PROJECT_IDEA,
@@ -122,22 +122,22 @@ async def test_draft_generation():
             user_context=user_context
         )
         
-        print(f"\n✅ Draft generated successfully!")
-        print(f"\n📄 DRAFT TEXT:")
+        print("\n✅ Draft generated successfully!")
+        print("\n📄 DRAFT TEXT:")
         print("-" * 80)
         print(draft_result['draft_text'][:500] + "..." if len(draft_result['draft_text']) > 500 else draft_result['draft_text'])
         print("-" * 80)
         
-        print(f"\n📊 Draft Statistics:")
+        print("\n📊 Draft Statistics:")
         print(f"   - Word count: {draft_result['word_count']}")
         print(f"   - Estimated pages: {draft_result['estimated_pages']:.1f}")
         print(f"   - Quality score: {draft_result.get('quality_score', 0.7)*100:.0f}%")
         
-        print(f"\n📋 Evaluation Criteria Addressed:")
+        print("\n📋 Evaluation Criteria Addressed:")
         for criterion in draft_result.get('evaluation_criteria_addressed', []):
             print(f"   ✅ {criterion}")
         
-        print(f"\n💡 Improvement Suggestions:")
+        print("\n💡 Improvement Suggestions:")
         for suggestion in draft_result.get('suggestions', []):
             print(f"   • [{suggestion.get('priority', 'info')}] {suggestion.get('text', '')}")
         
@@ -190,10 +190,10 @@ async def test_criteria_evaluation():
             call_id=TEST_CALL_ID
         )
         
-        print(f"\n✅ Analysis complete!")
+        print("\n✅ Analysis complete!")
         print(f"\n📊 Overall Score: {analysis['overall_score']*100:.0f}%")
         
-        print(f"\n📋 Criteria Coverage:")
+        print("\n📋 Criteria Coverage:")
         for criterion, data in analysis['criteria_coverage'].items():
             status = "✅" if data['addressed'] else "❌"
             print(f"\n   {status} {criterion}")
@@ -203,7 +203,7 @@ async def test_criteria_evaluation():
             if data.get('gaps'):
                 print(f"      Gaps: {data['gaps'][:1]}")  # Show first gap
         
-        print(f"\n💡 Recommendations:")
+        print("\n💡 Recommendations:")
         for rec in analysis.get('recommendations', [])[:3]:
             print(f"   • [{rec.get('priority', 'info')}] {rec.get('text', '')[:100]}...")
         
@@ -258,7 +258,7 @@ async def test_budget_generation():
             'total_budget': 3000000
         }
         
-        print(f"\n💰 Generating budget for 3-partner consortium...")
+        print("\n💰 Generating budget for 3-partner consortium...")
         
         budget_result = await budget_assistant.generate_budget_table(
             call_id=TEST_CALL_ID,
@@ -266,16 +266,16 @@ async def test_budget_generation():
             project_params=project_params
         )
         
-        print(f"\n✅ Budget generated successfully!")
+        print("\n✅ Budget generated successfully!")
         
         print(f"\n{budget_result['budget_table_formatted']}")
         
-        print(f"\n📊 Summary:")
+        print("\n📊 Summary:")
         print(f"   - Total Eligible Costs: €{budget_result['summary']['total_eligible_costs']:,.2f}")
         print(f"   - Total Requested Funding: €{budget_result['summary']['total_requested_funding']:,.2f}")
         print(f"   - Average Funding Rate: {budget_result['summary']['average_funding_rate']*100:.1f}%")
         
-        print(f"\n✅ Compliance:")
+        print("\n✅ Compliance:")
         if budget_result['compliance']['compliant']:
             print("   ✓ Budget is compliant with call requirements")
         else:
@@ -284,7 +284,7 @@ async def test_budget_generation():
                 print(f"      - {issue}")
         
         if budget_result['compliance']['warnings']:
-            print(f"\n⚠️ Warnings:")
+            print("\n⚠️ Warnings:")
             for warning in budget_result['compliance']['warnings']:
                 print(f"   - {warning}")
         
@@ -342,21 +342,21 @@ async def test_compliance_check():
             }
         }
         
-        print(f"\n✅ Running compliance checks...")
+        print("\n✅ Running compliance checks...")
         
         compliance_result = await compliance_checker.run_compliance_check(
             call_id=TEST_CALL_ID,
             proposal_data=proposal_data
         )
         
-        print(f"\n📊 Compliance Report:")
+        print("\n📊 Compliance Report:")
         print(f"   Overall Compliant: {'✅ YES' if compliance_result['overall_compliant'] else '❌ NO'}")
-        print(f"\n   Summary:")
+        print("\n   Summary:")
         print(f"   - Critical Issues: {compliance_result['summary']['critical_issues']}")
         print(f"   - High Priority Issues: {compliance_result['summary']['high_priority_issues']}")
         print(f"   - Warnings: {compliance_result['summary']['warnings']}")
         
-        print(f"\n🚨 Action Items:")
+        print("\n🚨 Action Items:")
         for action_group in compliance_result['action_items']:
             print(f"\n   [{action_group['priority']}] {action_group['description']}")
             for item in action_group['items'][:3]:  # Show max 3
@@ -390,38 +390,38 @@ async def test_quality_improvement():
         and possibly integrate various components that might help in threat detection.
         """
         
-        print(f"\n🔍 Analyzing section quality...")
+        print("\n🔍 Analyzing section quality...")
         
         analysis = await quality_improver.analyze_quality(
             section_text=section_text,
             section_type='excellence.objectives'
         )
         
-        print(f"\n✅ Quality analysis complete!")
+        print("\n✅ Quality analysis complete!")
         print(f"\n📊 Overall Quality Score: {analysis['overall_quality_score']*100:.0f}%")
         
-        print(f"\n📖 Readability:")
+        print("\n📖 Readability:")
         print(f"   - Score: {analysis['readability']['score']*100:.0f}%")
         print(f"   - Avg sentence length: {analysis['readability']['avg_sentence_length']:.1f} words")
         for issue in analysis['readability']['issues'][:2]:
             print(f"   ⚠️ {issue}")
         
-        print(f"\n📝 Terminology:")
+        print("\n📝 Terminology:")
         print(f"   - Score: {analysis['terminology']['score']*100:.0f}%")
         print(f"   - Missing key terms: {', '.join(analysis['terminology']['missing_terms'][:3])}")
         
-        print(f"\n📐 Structure:")
+        print("\n📐 Structure:")
         print(f"   - Score: {analysis['structure']['score']*100:.0f}%")
         for issue in analysis['structure']['issues']:
             print(f"   ⚠️ {issue}")
         
-        print(f"\n💪 Impact Language:")
+        print("\n💪 Impact Language:")
         print(f"   - Score: {analysis['impact_language']['score']*100:.0f}%")
         print(f"   - Weak phrases found: {analysis['impact_language']['weak_phrases_count']}")
         for issue in analysis['impact_language']['issues'][:2]:
             print(f"   ⚠️ {issue}")
         
-        print(f"\n💡 Improvement Suggestions:")
+        print("\n💡 Improvement Suggestions:")
         for suggestion in analysis['improvement_suggestions']:
             print(f"   • [{suggestion['type']}] {suggestion['suggestion']}")
         
@@ -443,7 +443,7 @@ async def test_conversational_interface():
     try:
         from app.services.conversation.conversation_manager import ConversationManager
         
-        print(f"\n💬 Testing conversational proposal writing...")
+        print("\n💬 Testing conversational proposal writing...")
         
         manager = ConversationManager()
         conv_id = 99999
@@ -461,7 +461,7 @@ async def test_conversational_interface():
         print(f"   📋 Mode: {response1.get('mode', 'normal')}")
         
         # Test draft generation
-        print(f"\n2️⃣ User: 'Help me write the objectives section'")
+        print("\n2️⃣ User: 'Help me write the objectives section'")
         response2 = await manager.process_message(
             conversation_id=conv_id,
             user_message="Help me write the objectives section",
@@ -471,7 +471,7 @@ async def test_conversational_interface():
         
         print(f"   🤖 Response: {response2.get('response', '')[:200]}...")
         
-        print(f"\n✅ Conversational interface working!")
+        print("\n✅ Conversational interface working!")
         return True
         
     except Exception as e:

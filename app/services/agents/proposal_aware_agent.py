@@ -15,16 +15,17 @@ provide contextual assistance based on the current document state.
 """
 
 import logging
+from collections.abc import AsyncGenerator
 from datetime import datetime
-from typing import Any, AsyncGenerator, Dict, List, Optional
+from typing import Any
 
 from .tool_aware_agent import (
     AgentPlan,
     ReasoningStep,
     Tool,
     ToolAwareAgent,
-    ToolCategory,
     ToolCall,
+    ToolCategory,
 )
 
 logger = logging.getLogger(__name__)
@@ -250,8 +251,8 @@ When the user asks to "evaluate" or "score" a section:
         query: str,
         context: str,
         proposal_context: str,
-        previous_steps: List[ReasoningStep],
-        tool_results: Dict[str, Any]
+        previous_steps: list[ReasoningStep],
+        tool_results: dict[str, Any]
     ) -> str:
         """
         Build the full prompt with proposal context.
@@ -289,7 +290,7 @@ When the user asks to "evaluate" or "score" a section:
             # Fallback: append proposal context
             return base_prompt + "\n\n" + proposal_section
 
-    def _format_previous_steps(self, steps: List[ReasoningStep]) -> str:
+    def _format_previous_steps(self, steps: list[ReasoningStep]) -> str:
         """Format previous reasoning steps for the prompt."""
         if not steps:
             return "None yet"
@@ -305,7 +306,7 @@ When the user asks to "evaluate" or "score" a section:
             )
         return "\n".join(formatted)
 
-    def _format_tool_results(self, results: Dict[str, Any]) -> str:
+    def _format_tool_results(self, results: dict[str, Any]) -> str:
         """Format tool results for the prompt."""
         if not results:
             return "No tool results yet"
@@ -320,10 +321,10 @@ When the user asks to "evaluate" or "score" a section:
         self,
         query: str,
         context: str = "",
-        conversation_history: List[Dict] = None,
+        conversation_history: list[dict] = None,
         proposal_context: str = "",
         session_id: str = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Process a query with proposal context awareness.
 
@@ -462,10 +463,10 @@ When the user asks to "evaluate" or "score" a section:
         self,
         query: str,
         context: str = "",
-        conversation_history: List[Dict] = None,
+        conversation_history: list[dict] = None,
         proposal_context: str = "",
         session_id: str = None,
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+    ) -> AsyncGenerator[dict[str, Any], None]:
         """
         Process a query with streaming events.
 
@@ -504,7 +505,7 @@ When the user asks to "evaluate" or "score" a section:
         yield {
             'type': 'status',
             'stage': 'processing',
-            'message': f'Processing proposal request...',
+            'message': 'Processing proposal request...',
             'proposal_intent': proposal_intent
         }
 
@@ -621,9 +622,9 @@ When the user asks to "evaluate" or "score" a section:
         query: str,
         context: str,
         proposal_context: str,
-        previous_steps: List[ReasoningStep],
-        tool_results: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+        previous_steps: list[ReasoningStep],
+        tool_results: dict[str, Any]
+    ) -> dict[str, Any] | None:
         """
         Get next reasoning step with proposal context.
 
@@ -668,8 +669,8 @@ When the user asks to "evaluate" or "score" a section:
             return None
 
     async def _execute_tool_calls_with_proposal(
-        self, tool_calls: List[Dict]
-    ) -> List[ToolCall]:
+        self, tool_calls: list[dict]
+    ) -> list[ToolCall]:
         """
         Execute tool calls with proposal context awareness.
 
@@ -714,7 +715,7 @@ When the user asks to "evaluate" or "score" a section:
 
         return results
 
-    def _get_proposal_tool_names(self) -> List[str]:
+    def _get_proposal_tool_names(self) -> list[str]:
         """Get list of proposal-specific tool names."""
         return [
             'generate_section_draft',
@@ -729,7 +730,7 @@ When the user asks to "evaluate" or "score" a section:
         ]
 
     async def _execute_proposal_tool(
-        self, tool_name: str, parameters: Dict[str, Any]
+        self, tool_name: str, parameters: dict[str, Any]
     ) -> Any:
         """
         Execute a proposal-specific tool.
@@ -757,7 +758,7 @@ When the user asks to "evaluate" or "score" a section:
             logger.warning(f"Proposal tool executor not available: {e}")
             return {"error": f"Proposal tool executor not available: {e}"}
 
-    def _detect_proposal_intent(self, query: str) -> Optional[str]:
+    def _detect_proposal_intent(self, query: str) -> str | None:
         """
         Detect if the query has a proposal-specific intent.
 

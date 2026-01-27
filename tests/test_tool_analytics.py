@@ -9,19 +9,19 @@ Tests:
 - Buffer management
 """
 
-import pytest
-import asyncio
-from unittest.mock import Mock, patch, MagicMock
-from datetime import datetime, timedelta
-import sys
 import os
+import sys
+from datetime import datetime
+from unittest.mock import Mock, patch
+
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.services.analytics.tool_analytics_service import (
     ToolAnalyticsService,
     ToolUsageEvent,
-    get_analytics_service
+    get_analytics_service,
 )
 
 

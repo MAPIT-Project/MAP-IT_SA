@@ -5,11 +5,11 @@ Endpoints for submitting and retrieving user feedback on AI responses.
 """
 
 import logging
-from typing import Optional, List
+
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from app.services.feedback import FeedbackService, FeedbackSubmission, get_feedback_service
+from app.services.feedback import FeedbackSubmission, get_feedback_service
 
 logger = logging.getLogger(__name__)
 
@@ -24,21 +24,21 @@ class FeedbackRequest(BaseModel):
         ...,
         description="Type: 'helpful', 'not_helpful', 'incorrect', 'incomplete', 'other'"
     )
-    feedback_text: Optional[str] = Field(None, description="Optional detailed feedback")
-    message_id: Optional[str] = Field(None, description="Specific message ID")
-    query_text: Optional[str] = Field(None, description="The user's query")
-    response_text: Optional[str] = Field(None, description="The AI response (first 500 chars)")
-    tools_used: Optional[List[str]] = Field(None, description="Tools used in response")
-    query_type: Optional[str] = Field(None, description="Query type classification")
-    response_time_ms: Optional[int] = Field(None, description="Response time in ms")
+    feedback_text: str | None = Field(None, description="Optional detailed feedback")
+    message_id: str | None = Field(None, description="Specific message ID")
+    query_text: str | None = Field(None, description="The user's query")
+    response_text: str | None = Field(None, description="The AI response (first 500 chars)")
+    tools_used: list[str] | None = Field(None, description="Tools used in response")
+    query_type: str | None = Field(None, description="Query type classification")
+    response_time_ms: int | None = Field(None, description="Response time in ms")
 
 
 class FeedbackResponse(BaseModel):
     """Response model for feedback submission."""
     success: bool
-    feedback_id: Optional[int] = None
-    message: Optional[str] = None
-    error: Optional[str] = None
+    feedback_id: int | None = None
+    message: str | None = None
+    error: str | None = None
 
 
 @router.post("", response_model=FeedbackResponse)

@@ -8,8 +8,8 @@ Provides insights for the replanner to create better strategies.
 import logging
 import re
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional, Tuple
 from enum import Enum
+from typing import Any
 
 from .result_evaluator import EvaluationResult
 
@@ -49,8 +49,8 @@ class ReflectionResult:
     root_cause: FailureRootCause
     confidence: float  # 0-1
     improvement_action: ImprovementAction
-    suggested_query: Optional[str] = None
-    suggested_sources: List[str] = field(default_factory=list)
+    suggested_query: str | None = None
+    suggested_sources: list[str] = field(default_factory=list)
     reasoning: str = ""
 
 
@@ -83,10 +83,10 @@ class Reflector:
         self,
         query: str,
         evaluation: EvaluationResult,
-        current_plan: Dict,
-        results: Dict[str, Any],
-        failed_strategies: List[str],
-        entities: List[str] = None
+        current_plan: dict,
+        results: dict[str, Any],
+        failed_strategies: list[str],
+        entities: list[str] = None
     ) -> ReflectionResult:
         """
         Analyze why results were insufficient and suggest improvements.
@@ -144,11 +144,11 @@ class Reflector:
     def _determine_root_cause(
         self,
         query: str,
-        metrics: Dict[str, float],
-        results: Dict[str, Any],
-        plan: Dict,
-        entities: List[str] = None
-    ) -> Tuple[FailureRootCause, float]:
+        metrics: dict[str, float],
+        results: dict[str, Any],
+        plan: dict,
+        entities: list[str] = None
+    ) -> tuple[FailureRootCause, float]:
         """Determine the most likely root cause of failure."""
         
         causes_scores = []
@@ -207,11 +207,11 @@ class Reflector:
         self,
         query: str,
         root_cause: FailureRootCause,
-        current_plan: Dict,
-        failed_strategies: List[str],
-        metrics: Dict[str, float],
-        entities: List[str] = None
-    ) -> Tuple[ImprovementAction, Optional[str], List[str]]:
+        current_plan: dict,
+        failed_strategies: list[str],
+        metrics: dict[str, float],
+        entities: list[str] = None
+    ) -> tuple[ImprovementAction, str | None, list[str]]:
         """Generate improvement strategy based on root cause."""
         
         current_sources = [s.get('source') for s in current_plan.get('steps', [])]
@@ -259,7 +259,7 @@ class Reflector:
         suggested_query = self._extract_keywords(query, entities)
         return ImprovementAction.ADD_KEYWORDS, suggested_query, current_sources
     
-    def _refine_broad_query(self, query: str, entities: List[str] = None) -> str:
+    def _refine_broad_query(self, query: str, entities: list[str] = None) -> str:
         """Make a broad query more specific."""
         # Add specific focus if entities are available
         if entities and len(entities) > 0:
@@ -290,9 +290,9 @@ class Reflector:
     
     def _suggest_alternative_sources(
         self, 
-        current_sources: List[str], 
+        current_sources: list[str], 
         query: str
-    ) -> List[str]:
+    ) -> list[str]:
         """Suggest alternative data sources to try."""
         all_sources = ['graph', 'vector', 'keyword', 'calls', 'cordis']
         
@@ -314,7 +314,7 @@ class Reflector:
         
         return alternatives if alternatives else ['vector', 'keyword']
     
-    def _extract_keywords(self, query: str, entities: List[str] = None) -> str:
+    def _extract_keywords(self, query: str, entities: list[str] = None) -> str:
         """Extract important keywords for keyword search."""
         # Get words from query
         words = re.findall(r'\b\w{3,}\b', query.lower())
@@ -350,7 +350,7 @@ class Reflector:
         # Add current/upcoming qualifier
         return f"{query} 2025 2026"
     
-    def _enhance_with_entities(self, query: str, entities: List[str]) -> str:
+    def _enhance_with_entities(self, query: str, entities: list[str]) -> str:
         """Enhance query with entity context."""
         entity_str = ' '.join(entities[:3])  # Top 3 entities
         return f"{query} {entity_str}"
@@ -358,9 +358,9 @@ class Reflector:
     def _create_analysis_narrative(
         self,
         root_cause: FailureRootCause,
-        metrics: Dict[str, float],
-        plan: Dict,
-        entities: List[str] = None
+        metrics: dict[str, float],
+        plan: dict,
+        entities: list[str] = None
     ) -> str:
         """Create a human-readable analysis of what went wrong."""
         
@@ -402,7 +402,7 @@ class Reflector:
         
         # Add metrics context
         if metrics.get('result_count', 0) == 0:
-            base_narrative += f" No results were returned."
+            base_narrative += " No results were returned."
         elif metrics.get('avg_relevance', 0) < 0.5:
             base_narrative += f" Average relevance was low ({metrics.get('avg_relevance', 0):.2f})."
         
@@ -412,8 +412,8 @@ class Reflector:
         self,
         root_cause: FailureRootCause,
         action: ImprovementAction,
-        suggested_query: Optional[str],
-        suggested_sources: List[str]
+        suggested_query: str | None,
+        suggested_sources: list[str]
     ) -> str:
         """Create reasoning for the suggested improvement."""
         

@@ -6,13 +6,13 @@ Manages both current scores and historical tracking.
 """
 
 import hashlib
+import json
 import logging
 import os
-import json
-from typing import List, Dict, Optional, Any
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -38,9 +38,9 @@ class StoredScore:
     predicted_score: float
     confidence: float
     score_tier: str
-    criterion_scores: Dict[str, float]
-    strengths: List[str]
-    weaknesses: List[str]
+    criterion_scores: dict[str, float]
+    strengths: list[str]
+    weaknesses: list[str]
     evaluator_comments: str
     created_at: datetime
 
@@ -55,20 +55,20 @@ class ScoreHistoryEntry:
     content_length: int
     trigger_type: str
     created_at: datetime
-    previous_score: Optional[float]
-    score_change: Optional[float]
+    previous_score: float | None
+    score_change: float | None
 
 
 @dataclass
 class ProposalScoreSummary:
     """Aggregated scores for a proposal."""
     proposal_id: str
-    excellence_score: Optional[float]
-    impact_score: Optional[float]
-    implementation_score: Optional[float]
-    overall_score: Optional[float]
-    funding_probability: Optional[float]
-    threshold_distance: Optional[float]
+    excellence_score: float | None
+    impact_score: float | None
+    implementation_score: float | None
+    overall_score: float | None
+    funding_probability: float | None
+    threshold_distance: float | None
     sections_scored: int
     total_sections: int
     last_updated: datetime
@@ -103,7 +103,7 @@ class ScoreStorageService:
         section_id: str,
         section_type: str,
         content: str,
-        score_result: Dict[str, Any],
+        score_result: dict[str, Any],
         trigger: TriggerType = TriggerType.MANUAL
     ) -> StoredScore:
         """
@@ -223,7 +223,7 @@ class ScoreStorageService:
         finally:
             conn.close()
 
-    async def get_section_score(self, section_id: str) -> Optional[StoredScore]:
+    async def get_section_score(self, section_id: str) -> StoredScore | None:
         """Get the current score for a section."""
         conn = self._get_connection()
         try:
@@ -257,7 +257,7 @@ class ScoreStorageService:
         finally:
             conn.close()
 
-    async def get_proposal_scores(self, proposal_id: str) -> List[StoredScore]:
+    async def get_proposal_scores(self, proposal_id: str) -> list[StoredScore]:
         """Get all section scores for a proposal."""
         conn = self._get_connection()
         try:
@@ -294,7 +294,7 @@ class ScoreStorageService:
         finally:
             conn.close()
 
-    async def get_proposal_summary(self, proposal_id: str) -> Optional[ProposalScoreSummary]:
+    async def get_proposal_summary(self, proposal_id: str) -> ProposalScoreSummary | None:
         """Get aggregated scores for a proposal."""
         conn = self._get_connection()
         try:
@@ -326,7 +326,7 @@ class ScoreStorageService:
         self,
         section_id: str,
         limit: int = 50
-    ) -> List[ScoreHistoryEntry]:
+    ) -> list[ScoreHistoryEntry]:
         """Get score history for a section."""
         conn = self._get_connection()
         try:
@@ -371,7 +371,7 @@ class ScoreStorageService:
         self,
         section_id: str,
         days: int = 7
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get improvement trend for a section over time."""
         conn = self._get_connection()
         try:
@@ -441,7 +441,7 @@ class ScoreStorageService:
         else:
             return "below_threshold"
 
-    async def _get_existing_score(self, section_id: str) -> Optional[Dict]:
+    async def _get_existing_score(self, section_id: str) -> dict | None:
         """Get existing score record if any."""
         conn = self._get_connection()
         try:

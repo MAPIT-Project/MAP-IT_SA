@@ -12,14 +12,12 @@ Architecture:
 Results are fused using Reciprocal Rank Fusion (RRF) for optimal ranking.
 """
 
-import os
-import re
-import logging
 import asyncio
+import logging
+import re
 import time
-from typing import List, Dict, Any, Optional, Tuple
-from dataclasses import dataclass, asdict
-from datetime import datetime
+from dataclasses import asdict, dataclass
+from typing import Any
 
 from dotenv import load_dotenv
 
@@ -33,7 +31,7 @@ class ProjectSearchResult:
     project_id: str
     rcn: str
     title: str
-    acronym: Optional[str]
+    acronym: str | None
     objective: str
     start_date: str
     end_date: str
@@ -43,17 +41,17 @@ class ProjectSearchResult:
     programme: str
     funding_scheme: str
     topics: str
-    coordinator_name: Optional[str]
-    coordinator_country: Optional[str]
+    coordinator_name: str | None
+    coordinator_country: str | None
     participant_count: int
     country_count: int
     sme_count: int
-    participant_countries: List[str]
+    participant_countries: list[str]
     relevance_score: float
     data_source: str
     cordis_url: str
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return asdict(self)
 
@@ -80,7 +78,7 @@ class LocalProjectSearchService:
         'what', 'which', 'where', 'when', 'who', 'how', 'why',
         'the', 'a', 'an', 'and', 'or', 'but', 'if', 'then', 'else',
         'some', 'any', 'all', 'each', 'every', 'this', 'that', 'these', 'those',
-        'to', 'of', 'on', 'at', 'by', 'for', 'with', 'from', 'into', 'onto',
+        'to', 'of', 'on', 'at', 'by', 'into', 'onto',
         'can', 'could', 'should', 'would', 'may', 'might', 'must', 'will', 'shall'
     }
 
@@ -200,9 +198,9 @@ class LocalProjectSearchService:
     async def _search_vector(
         self,
         query: str,
-        filters: Dict[str, Any],
+        filters: dict[str, Any],
         limit: int
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Search projects using vector similarity.
 
@@ -327,11 +325,11 @@ class LocalProjectSearchService:
     async def search_projects(
         self,
         query: str,
-        filters: Optional[Dict[str, Any]] = None,
+        filters: dict[str, Any] | None = None,
         limit: int = 10,
         include_graph: bool = True,
         include_semantic: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Search for projects using all available local sources.
         
@@ -432,7 +430,7 @@ class LocalProjectSearchService:
         project_id: str,
         similarity_type: str = "topic",
         limit: int = 10
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Find projects similar to a given project.
         
@@ -480,7 +478,7 @@ class LocalProjectSearchService:
         self,
         project_id: str,
         limit: int = 10
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Find projects semantically similar to a given project using embeddings.
 
@@ -601,9 +599,9 @@ class LocalProjectSearchService:
     async def find_projects_by_organization(
         self,
         organization_name: str,
-        role: Optional[str] = None,
+        role: str | None = None,
         limit: int = 20
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Find all projects an organization participated in.
         
@@ -665,8 +663,8 @@ class LocalProjectSearchService:
     def _parse_query(
         self,
         query: str,
-        explicit_filters: Optional[Dict[str, Any]] = None
-    ) -> Tuple[Dict[str, Any], List[str]]:
+        explicit_filters: dict[str, Any] | None = None
+    ) -> tuple[dict[str, Any], list[str]]:
         """
         Parse query for implicit filters and extract search terms.
         
@@ -748,10 +746,10 @@ class LocalProjectSearchService:
     
     async def _search_postgres(
         self,
-        search_terms: List[str],
-        filters: Dict[str, Any],
+        search_terms: list[str],
+        filters: dict[str, Any],
         limit: int
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Search PostgreSQL using the CordisProjectRepository."""
         if not self._postgres_repo:
             return []
@@ -792,10 +790,10 @@ class LocalProjectSearchService:
     
     async def _search_graph(
         self,
-        search_terms: List[str],
-        filters: Dict[str, Any],
+        search_terms: list[str],
+        filters: dict[str, Any],
         limit: int
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Search Neo4j for projects matching criteria.
         
@@ -937,7 +935,7 @@ class LocalProjectSearchService:
         relationship_type: str,
         entity_value: str,
         limit: int = 20
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Search projects by graph relationships.
         
@@ -1044,9 +1042,9 @@ class LocalProjectSearchService:
     
     def _reciprocal_rank_fusion(
         self,
-        results_by_source: Dict[str, List[Dict]],
+        results_by_source: dict[str, list[dict]],
         k: int = 60
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Combine rankings using Reciprocal Rank Fusion.
         
@@ -1080,7 +1078,7 @@ class LocalProjectSearchService:
         
         return results
     
-    def _deduplicate(self, results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _deduplicate(self, results: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Remove duplicate projects, keeping highest-scored version."""
         seen = set()
         unique = []
@@ -1093,7 +1091,7 @@ class LocalProjectSearchService:
 
         return unique
 
-    def _enrich_coordinator_data(self, projects: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _enrich_coordinator_data(self, projects: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Enrich projects with coordinator data from PostgreSQL.
 
@@ -1184,7 +1182,7 @@ class LocalProjectSearchService:
 
         return projects
 
-    def _format_project(self, project: Dict[str, Any]) -> Dict[str, Any]:
+    def _format_project(self, project: dict[str, Any]) -> dict[str, Any]:
         """Format project for API response."""
         project_id = project.get('id', '')
 
@@ -1229,7 +1227,7 @@ class LocalProjectSearchService:
             'cordis_url': f"https://cordis.europa.eu/project/id/{project_id}" if project_id else None
         }
     
-    def _format_project_from_dto(self, dto) -> Dict[str, Any]:
+    def _format_project_from_dto(self, dto) -> dict[str, Any]:
         """Format a CordisProjectDTO for response."""
         return {
             'id': dto.id,

@@ -21,15 +21,14 @@ import argparse
 import json
 import logging
 import os
-import sys
 import time
-from datetime import datetime, date
-from typing import Optional, Dict, Any, List
+from datetime import date, datetime
+from typing import Any
 
 import httpx
 import psycopg2
-from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
+from psycopg2.extras import RealDictCursor
 
 # Setup logging
 logging.basicConfig(
@@ -68,7 +67,7 @@ class EUPortalSyncer:
         """Close HTTP client."""
         self.client.close()
 
-    def get_existing_topics_from_db(self, conn) -> List[Dict]:
+    def get_existing_topics_from_db(self, conn) -> list[dict]:
         """Get all existing topic codes from database."""
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute("""
@@ -80,7 +79,7 @@ class EUPortalSyncer:
         results = cursor.fetchall()
         return [{"identifier": r["topic_code"], "title": r["title"] or ""} for r in results]
 
-    def search_all_topics(self, status: str = "all", page_size: int = 100, conn=None) -> List[Dict]:
+    def search_all_topics(self, status: str = "all", page_size: int = 100, conn=None) -> list[dict]:
         """
         Get topics to sync. Uses existing database topics plus discovers new ones.
 
@@ -229,7 +228,7 @@ class EUPortalSyncer:
         logger.info(f"📊 Total: {len(all_topics)} topics to process")
         return all_topics
 
-    def fetch_topic_details(self, topic_id: str) -> Optional[Dict[str, Any]]:
+    def fetch_topic_details(self, topic_id: str) -> dict[str, Any] | None:
         """
         Fetch complete details for a topic from the EU Portal API.
 
@@ -370,7 +369,7 @@ class EUPortalSyncer:
             logger.debug(f"Error fetching {topic_id}: {e}")
             return None
 
-    def upsert_call(self, conn, data: Dict[str, Any]) -> bool:
+    def upsert_call(self, conn, data: dict[str, Any]) -> bool:
         """Insert or update a call in the database."""
         try:
             cursor = conn.cursor()

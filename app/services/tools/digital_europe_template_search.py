@@ -9,7 +9,7 @@ about objectives, requirements, and funding opportunities.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +84,7 @@ class DigitalEuropeTemplateSearchTool:
     def __init__(self):
         self.sections = DIGITAL_EUROPE_SECTIONS
 
-    def detect_section(self, query: str) -> List[str]:
+    def detect_section(self, query: str) -> list[str]:
         """Detect which sections a query is likely about."""
         query_lower = query.lower()
         matching_sections = []
@@ -97,7 +97,7 @@ class DigitalEuropeTemplateSearchTool:
 
         return matching_sections or ['general']
 
-    def detect_objective(self, query: str) -> Optional[str]:
+    def detect_objective(self, query: str) -> str | None:
         """Detect which objective the query is about."""
         query_lower = query.lower()
 
@@ -119,8 +119,8 @@ class DigitalEuropeTemplateSearchTool:
     def build_enhanced_query(
         self,
         query: str,
-        objective: Optional[str] = None,
-        section: Optional[str] = None,
+        objective: str | None = None,
+        section: str | None = None,
     ) -> str:
         """Build an enhanced query with context keywords."""
         enhanced = query
@@ -152,11 +152,11 @@ class DigitalEuropeTemplateSearchTool:
 
 async def search_digital_europe_templates_execute(
     query: str,
-    objective: Optional[str] = None,
-    section: Optional[str] = None,
-    topic: Optional[str] = None,
+    objective: str | None = None,
+    section: str | None = None,
+    topic: str | None = None,
     top_k: int = 5,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Search Digital Europe guidance documents for application information.
 

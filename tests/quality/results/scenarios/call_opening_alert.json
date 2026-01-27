@@ -1,23 +1,27 @@
 {
   "scenario_name": "Call Opening Alert",
-  "status": "PASS",
-  "average_quality_score": 83.0,
-  "average_factual_score": 100.0,
+  "status": "FAIL",
+  "average_quality_score": 81.0,
+  "average_factual_score": 73.33333333333333,
   "turns": [
     {
       "query": "When do the 2025 Horizon Europe calls open?",
-      "response": "The typical preparation time for a competitive Horizon Europe proposal (such as a Research and Innovation Action/RIA or Innovation Action/IA) ranges from **6 to 9 months**.\n\nWhile intense drafting occurs in the final 2-3 months, highly successful proposals require extensive preparation in the preceding phases, particularly for consortium building and strategic alignment with the specific call topic.\n\n### Proposal Preparation Timeline Breakdown\n\n| Phase | Duration | Key Activities |\n|-------|----...",
-      "quality_score": 83,
-      "factual_score": 100.0,
+      "response": "I found **16 funding opportunities** for your query:\n\n**1. Understand and minimise the environmental impacts of offshore wind energy**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-08\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: The EU\u2019s Offshore Strategy underlines that the deployment of offshore wind should be based on maritime spatial planning, assessing the economic, social, and environmental sustainability of the installations i...",
+      "quality_score": 85,
+      "factual_score": 50.0,
       "failures": [],
-      "tools_used": [],
-      "processing_time_ms": 1158.799,
+      "tools_used": [
+        "search_funding_calls",
+        "search_funding_calls",
+        "search_funding_calls"
+      ],
+      "processing_time_ms": 9706.817,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
           "specificity": 25,
           "factual_accuracy": 20,
-          "actionability": 8
+          "actionability": 10
         },
         "feedback": "Quick rule-based evaluation"
       },
@@ -26,15 +30,14 @@
     },
     {
       "query": "Specifically for health research",
-      "response": "I found **8 funding opportunities** for your query:\n\n**1. Improving the quality of life of persons with intellectual disabilities and their families**\n\ud83d\udccb **Call ID:** HORIZON-HLTH-2025-01-STAYHLTH-01\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83d\udcb0 **Budget:** EUR 10.2 million\n\n\ud83d\udcdd **Summary:** Projects should contribute to all of the following expected outcomes: Enhance the understanding and engagement on intergenerational fairness among policy makers, researchers and citize...",
+      "response": "I found **9 funding opportunities** for your query:\n\n**1. Capacity building in Higher Education: Cross-Regional**\n\ud83d\udccb **Call ID:** ERASMUS-EDU-2026-CBHE-CROSS-REGIONAL\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 10 February 2026\n\n\ud83d\udcdd **Summary:** Objective: CBHE funds international higher-education partnerships that strengthen universities and systems in eligible third countries not associated to the Programme.\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/...",
       "quality_score": 85,
-      "factual_score": 100.0,
+      "factual_score": 50.0,
       "failures": [],
       "tools_used": [
-        "search_funding_calls",
         "search_funding_calls"
       ],
-      "processing_time_ms": 10271.026000000002,
+      "processing_time_ms": 5546.432000000001,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -49,35 +52,49 @@
     },
     {
       "query": "What about the Cluster 1 work programme?",
-      "response": "I found **4 funding opportunities** for your query:\n\n**1. Overview of this call18 Proposals are invited against the following Destinations and topic(s): 18 The Director-General responsible for the call may...**\n\ud83d\udccb **Call ID:** HORIZON-MISS-2025-06\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-MISS-2025-06\n\n---\n\n**2. Strengthening skills and capacity for t...",
-      "quality_score": 85,
+      "response": "Based on my search for information about 'What about the Cluster 1 work programme?', here's what I found:\n\n**Finding 1:**\nNo open funding calls were found matching your search criteria. This could mean:\n- There are currently no open calls in this topic area\n- Relevant calls may have already closed\n- Upcoming calls may not yet be announced\n\nConsider checking the Horizon Europe Funding & Tenders Portal for the latest information.",
+      "quality_score": 77,
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [
-        "search_funding_calls",
         "search_funding_calls"
       ],
-      "processing_time_ms": 4745.964,
+      "processing_time_ms": 5219.9,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
           "specificity": 25,
           "factual_accuracy": 20,
-          "actionability": 10
+          "actionability": 2
         },
         "feedback": "Quick rule-based evaluation"
       },
       "turn_number": 2,
-      "passed": true
+      "passed": false
     },
     {
       "query": "When should I start preparing?",
-      "response": "For competitive Research and Innovation Actions (RIA) and Innovation Actions (IA) typically found in **Cluster 1 (Health)**, the ideal preparation time is **6 to 9 months** before the official deadline. Starting early is critical, especially since health proposals often require complex consortium agreements, clinical data access, or regulatory pathways.\n\n### Proposal Preparation Phases\n\nTo ensure a competitive submission in Cluster 1, your preparation should be structured into three main phases:...",
+      "response": "Starting early is one of the most critical factors for success in Horizon Europe proposals. For complex collaborative actions like Research and Innovation Actions (RIA) or Innovation Actions (IA), we strongly recommend starting the preparation process **6 to 9 months before the official call deadline**.\n\nThis extended timeline allows sufficient time for the three crucial phases of preparation:\n\n### 1. Strategic Phase (Months 9-6 before deadline)\n\n| Activity | Focus |\n|---|---|\n| **Topic Selectio...",
       "quality_score": 81,
-      "factual_score": 100.0,
-      "failures": [],
+      "factual_score": 66.66666666666666,
+      "failures": [
+        {
+          "category": "INCORRECT_DATA",
+          "severity": "CRITICAL",
+          "description": "Incorrect horizon_europe facts: ['IA_rate: stated 100% but should be 70%']",
+          "turn_number": 3,
+          "evidence": {
+            "programme": "horizon_europe",
+            "incorrect_facts": [
+              "IA_rate: stated 100% but should be 70%"
+            ],
+            "score": 0.6666666666666666
+          },
+          "timestamp": "2026-01-23T17:14:47.780119"
+        }
+      ],
       "tools_used": [],
-      "processing_time_ms": 6997.392,
+      "processing_time_ms": 5891.809,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -88,36 +105,51 @@
         "feedback": "Quick rule-based evaluation"
       },
       "turn_number": 3,
-      "passed": true
+      "passed": false
     },
     {
       "query": "What's the typical time between opening and deadline?",
-      "response": "The typical duration between the official call opening and the submission deadline for collaborative actions (RIA/IA/CSA) in Horizon Europe, including **Cluster 1 (Health)**, is generally **3 to 5 months**.\n\n### Standard Call Timeline\n\n| Stage | Typical Duration | Notes |\n|---|---|---|\n| **Call Opening to Deadline** | **3 to 5 months** | Proposals must be submitted electronically via the Funding & Tenders Portal before the exact cut-off time (usually 17:00:00 Brussels time). Page limits (45 page...",
-      "quality_score": 81,
+      "response": "The typical duration of the call window\u2014the time between the official opening date and the submission deadline\u2014in Horizon Europe depends on the type of call, but generally ranges from **3 to 6 months**.\n\n### Standard Call Window Durations\n\n| Call Type | Typical Open Period | Notes |\n|---|---|---|\n| **Single-Stage (RIA, IA, CSA)** | **4 to 6 months** | This is the standard open time for most calls, allowing consortia sufficient time for preparation and writing. |\n| **Two-Stage (Stage 1 - Outline)...",
+      "quality_score": 77,
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 6304.934,
+      "processing_time_ms": 4934.869,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
           "specificity": 25,
           "factual_accuracy": 20,
-          "actionability": 6
+          "actionability": 2
         },
         "feedback": "Quick rule-based evaluation"
       },
       "turn_number": 4,
-      "passed": true
+      "passed": false
     }
   ],
   "scores": {
-    "average_quality": 83.0,
-    "average_factual": 100.0,
-    "goal_progress": 0.9,
+    "average_quality": 81.0,
+    "average_factual": 73.33333333333333,
+    "goal_progress": 0.63,
     "context_fields": 3
   },
-  "failures": [],
+  "failures": [
+    {
+      "category": "INCORRECT_DATA",
+      "severity": "CRITICAL",
+      "description": "Incorrect horizon_europe facts: ['IA_rate: stated 100% but should be 70%']",
+      "turn_number": 3,
+      "evidence": {
+        "programme": "horizon_europe",
+        "incorrect_facts": [
+          "IA_rate: stated 100% but should be 70%"
+        ],
+        "score": 0.6666666666666666
+      },
+      "timestamp": "2026-01-23T17:14:47.780119"
+    }
+  ],
   "metadata": {
     "scenario_path": "tests/scenarios/advanced/call_opening_alert.yaml",
     "tags": [
@@ -130,13 +162,13 @@
       "timeline"
     ],
     "description": "A 5-step call opening workflow where a user wants to understand when 2025\nHorizon Europe calls open, specifically for health research, and when they\nshould start preparing. Tests the system's ability to handle work programme\ntimeline questions and provide preparation advice.\n",
-    "conversation_id": 1834876602
+    "conversation_id": 573179827
   },
-  "execution_time_ms": 42108.782,
-  "timestamp": "2026-01-23 12:06:56.063557",
-  "passed": true,
+  "execution_time_ms": 176792.84000000003,
+  "timestamp": "2026-01-23T17:12:32.284708",
+  "passed": false,
   "turn_count": 5,
-  "critical_failures": 0,
+  "critical_failures": 1,
   "high_failures": 0,
   "medium_failures": 0
 }

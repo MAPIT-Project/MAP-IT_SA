@@ -11,7 +11,7 @@ import logging
 import re
 from datetime import date
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .base import CallExtractor, FundingCall
 
@@ -180,7 +180,7 @@ class ErasmusPlusExtractor(CallExtractor):
         'Iceland', 'Liechtenstein', 'Norway', 'North Macedonia', 'Serbia', 'Turkey',
     ]
 
-    def extract_from_content(self, content: str, document_title: str = "") -> List[FundingCall]:
+    def extract_from_content(self, content: str, document_title: str = "") -> list[FundingCall]:
         """
         Extract Erasmus+ calls from document content.
 
@@ -211,7 +211,7 @@ class ErasmusPlusExtractor(CallExtractor):
         content: str,
         topic_code: str,
         document_title: str
-    ) -> Optional[FundingCall]:
+    ) -> FundingCall | None:
         """Extract details for a single Erasmus+ call."""
 
         # Extract basic info
@@ -277,7 +277,7 @@ class ErasmusPlusExtractor(CallExtractor):
             }
         )
 
-    def _extract_title(self, content: str, topic_code: str) -> Optional[str]:
+    def _extract_title(self, content: str, topic_code: str) -> str | None:
         """Extract call title from content."""
         # Look for topic code followed by colon/dash and title
         patterns = [
@@ -315,7 +315,7 @@ class ErasmusPlusExtractor(CallExtractor):
 
         return f"Erasmus+ Call {topic_code}"
 
-    def _extract_key_action(self, topic_code: str) -> Optional[str]:
+    def _extract_key_action(self, topic_code: str) -> str | None:
         """Extract Key Action from topic code."""
         # Match KA1, KA2, KA3
         match = re.search(r'KA(\d)', topic_code, re.IGNORECASE)
@@ -332,14 +332,14 @@ class ErasmusPlusExtractor(CallExtractor):
 
         return None
 
-    def _extract_sector(self, topic_code: str) -> Optional[str]:
+    def _extract_sector(self, topic_code: str) -> str | None:
         """Extract sector from topic code."""
         for sector_code in self.sectors.keys():
             if sector_code in topic_code.upper():
                 return sector_code
         return None
 
-    def _extract_action_type(self, topic_code: str) -> Optional[str]:
+    def _extract_action_type(self, topic_code: str) -> str | None:
         """Extract specific action type from topic code."""
         topic_upper = topic_code.upper()
 
@@ -363,7 +363,7 @@ class ErasmusPlusExtractor(CallExtractor):
 
         return key_action
 
-    def _extract_deadline(self, content: str, topic_code: str) -> Optional[date]:
+    def _extract_deadline(self, content: str, topic_code: str) -> date | None:
         """Extract deadline from content."""
         # Look for deadline patterns near the topic code
         context_pattern = rf'{re.escape(topic_code)}.{{0,1000}}'
@@ -388,13 +388,13 @@ class ErasmusPlusExtractor(CallExtractor):
 
         return None
 
-    def _extract_budget_info(self, action_type: Optional[str]) -> Optional[Dict[str, int]]:
+    def _extract_budget_info(self, action_type: str | None) -> dict[str, int] | None:
         """Get budget range for action type."""
         if action_type and action_type in self.budget_ranges:
             return self.budget_ranges[action_type]
         return None
 
-    def _extract_duration_info(self, action_type: Optional[str]) -> Optional[Dict[str, int]]:
+    def _extract_duration_info(self, action_type: str | None) -> dict[str, int] | None:
         """Get duration range for action type."""
         if action_type and action_type in self.duration_ranges:
             return self.duration_ranges[action_type]
@@ -404,8 +404,8 @@ class ErasmusPlusExtractor(CallExtractor):
         self,
         content: str,
         topic_code: str,
-        key_action: Optional[str]
-    ) -> Optional[str]:
+        key_action: str | None
+    ) -> str | None:
         """Extract eligibility requirements."""
         eligibility_parts = []
 
@@ -458,7 +458,7 @@ class ErasmusPlusExtractor(CallExtractor):
 
         return ' '.join(eligibility_parts) if eligibility_parts else None
 
-    def _extract_scope(self, content: str, topic_code: str) -> Optional[str]:
+    def _extract_scope(self, content: str, topic_code: str) -> str | None:
         """Extract scope/objectives from content."""
         context_pattern = rf'{re.escape(topic_code)}.{{0,3000}}'
         context_match = re.search(context_pattern, content, re.IGNORECASE | re.DOTALL)
@@ -480,7 +480,7 @@ class ErasmusPlusExtractor(CallExtractor):
 
         return None
 
-    def _determine_status(self, deadline: Optional[date]) -> str:
+    def _determine_status(self, deadline: date | None) -> str:
         """Determine call status based on deadline."""
         if not deadline:
             return 'upcoming'
@@ -493,7 +493,7 @@ class ErasmusPlusExtractor(CallExtractor):
         else:
             return 'upcoming'
 
-    def _is_programme_countries_only(self, key_action: Optional[str]) -> bool:
+    def _is_programme_countries_only(self, key_action: str | None) -> bool:
         """Check if action is limited to Programme Countries only."""
         # KA1 mobility to Partner Countries, KA2 CBHE, and JMO are open worldwide
         # Most other actions require Programme Country participation
@@ -509,7 +509,7 @@ class ErasmusPlusExtractor(CallExtractor):
         base_url = "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details"
         return f"{base_url}/{topic_code.lower()}"
 
-    def get_programme_info(self) -> Dict[str, Any]:
+    def get_programme_info(self) -> dict[str, Any]:
         """Return comprehensive information about the Erasmus+ programme."""
         return {
             'programme': self.programme,

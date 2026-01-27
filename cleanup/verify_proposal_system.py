@@ -3,6 +3,7 @@ Quick verification that the proposal writing system is working
 """
 
 import os
+
 import psycopg2
 from dotenv import load_dotenv
 
@@ -77,7 +78,7 @@ def verify_system():
         cursor.execute("DELETE FROM proposals WHERE id = %s", (test_id,))
         conn.commit()
         
-        print(f"\n   ✓ Cleaned up test data")
+        print("\n   ✓ Cleaned up test data")
         
         # Check views
         print("\n✅ Checking views:\n")

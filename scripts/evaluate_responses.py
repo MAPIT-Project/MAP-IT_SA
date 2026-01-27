@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-import os
-import json
-import time
 import argparse
-from typing import List, Dict, Any
+import json
+import os
+import time
+from typing import Any
 
 import requests
 
 
-def load_queries() -> List[Dict[str, Any]]:
+def load_queries() -> list[dict[str, Any]]:
     return [
         {
             "name": "calls_clean_energy",
@@ -41,7 +41,7 @@ def load_queries() -> List[Dict[str, Any]]:
     ]
 
 
-def score_response(item: Dict[str, Any], resp: Dict[str, Any]) -> Dict[str, Any]:
+def score_response(item: dict[str, Any], resp: dict[str, Any]) -> dict[str, Any]:
     text = (resp.get("response") or "").lower()
     route = resp.get("routing_decision")
     data_source = resp.get("data_source")

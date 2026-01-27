@@ -5,8 +5,8 @@ Test the full system with real questions about the call.
 
 import asyncio
 import sys
-import os
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -61,7 +61,7 @@ async def test_questions():
                 # Check metadata
                 if result.get('logs'):
                     logs = result['logs']
-                    print(f"\n📊 Stats:")
+                    print("\n📊 Stats:")
                     print(f"   Processing time: {logs.get('total_processing_time_ms', 0)}ms")
                     print(f"   Phases: {', '.join(logs.get('phases', []))}")
                 

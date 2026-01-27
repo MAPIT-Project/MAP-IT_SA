@@ -3,13 +3,14 @@ API routes for live proposal document management and editing.
 Enables real-time collaborative proposal writing with AI assistance.
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Query
-from typing import Dict, Any, List, Optional, Union
-from pydantic import BaseModel
 import logging
-from datetime import datetime
 import os
+from datetime import datetime
+from typing import Any
+
 import psycopg2.pool
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,7 @@ def get_db_pool():
 class ProposalSectionUpdate(BaseModel):
     """Request model for updating a proposal section"""
     content: str
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: dict[str, Any] | None = None
 
 class ProposalSectionResponse(BaseModel):
     """Response model for a proposal section"""
@@ -51,27 +52,27 @@ class ProposalSectionResponse(BaseModel):
     word_count: int
     estimated_pages: float
     last_updated: str
-    quality_score: Optional[float] = None
-    metadata: Optional[Dict[str, Any]] = None
+    quality_score: float | None = None
+    metadata: dict[str, Any] | None = None
 
 class ProposalDocumentResponse(BaseModel):
     """Response model for full proposal document"""
     proposal_id: int
-    call_id: Optional[str] = ""
-    proposal_title: Optional[str] = ""
-    proposal_acronym: Optional[str] = ""
-    proposal_type: Optional[str] = "RIA"
-    status: Optional[str] = "draft"
-    created_at: Optional[str] = ""
-    updated_at: Optional[str] = ""
-    sections: List[ProposalSectionResponse] = []
-    progress: Dict[str, Any] = {}
+    call_id: str | None = ""
+    proposal_title: str | None = ""
+    proposal_acronym: str | None = ""
+    proposal_type: str | None = "RIA"
+    status: str | None = "draft"
+    created_at: str | None = ""
+    updated_at: str | None = ""
+    sections: list[ProposalSectionResponse] = []
+    progress: dict[str, Any] = {}
 
 class AIEditRequest(BaseModel):
     """Request model for AI-powered section editing"""
     instruction: str
-    section_id: Optional[str] = None
-    context: Optional[str] = None
+    section_id: str | None = None
+    context: str | None = None
 
 # ============================================================================
 # PROPOSAL DOCUMENT ENDPOINTS
@@ -472,15 +473,15 @@ class ProposalCreateRequest(BaseModel):
     """Request model for creating a new proposal"""
     call_id: str
     proposal_title: str
-    proposal_acronym: Optional[str] = None
-    proposal_type: Optional[str] = "RIA"
-    user_id: Optional[str] = None
+    proposal_acronym: str | None = None
+    proposal_type: str | None = "RIA"
+    user_id: str | None = None
 
 
-@router.get("", response_model=List[ProposalDocumentResponse])
+@router.get("", response_model=list[ProposalDocumentResponse])
 async def list_proposals(
-    user_id: Optional[str] = Query(None, description="Filter by user ID"),
-    status: Optional[str] = Query(None, description="Filter by status"),
+    user_id: str | None = Query(None, description="Filter by user ID"),
+    status: str | None = Query(None, description="Filter by status"),
     limit: int = Query(50, description="Max results to return")
 ):
     """
@@ -584,7 +585,7 @@ async def list_proposals(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-def get_template_sections(proposal_type: str) -> List[tuple]:
+def get_template_sections(proposal_type: str) -> list[tuple]:
     """
     Get the correct section structure based on proposal type.
     Uses official Horizon Europe Part B templates.
@@ -648,7 +649,7 @@ def get_template_sections(proposal_type: str) -> List[tuple]:
     return get_template_sections("RIA")
 
 
-@router.post("", response_model=Dict[str, Any])
+@router.post("", response_model=dict[str, Any])
 async def create_proposal(request: ProposalCreateRequest):
     """
     Create a new proposal with section structure based on proposal type.

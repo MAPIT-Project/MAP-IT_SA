@@ -8,7 +8,6 @@ Replaces hardcoded domain-specific logic with intelligent call analysis.
 import logging
 import os
 import re
-from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 from enum import Enum
 
@@ -39,13 +38,13 @@ class CallUnderstanding:
     call_id: str
     cluster: HorizonCluster
     topic: str
-    sub_topics: List[str]
-    key_objectives: List[str]
-    expected_outcomes: List[str]
-    target_trl: Optional[str]
-    action_type: Optional[str]  # RIA, IA, CSA, etc.
-    terminology: List[str]  # Domain-specific terms to use
-    eu_priorities: List[str]  # Relevant EU policies/strategies
+    sub_topics: list[str]
+    key_objectives: list[str]
+    expected_outcomes: list[str]
+    target_trl: str | None
+    action_type: str | None  # RIA, IA, CSA, etc.
+    terminology: list[str]  # Domain-specific terms to use
+    eu_priorities: list[str]  # Relevant EU policies/strategies
     confidence: float
 
 
@@ -198,13 +197,13 @@ class CallUnderstandingService:
     def __init__(self):
         genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
         self.model = genai.GenerativeModel('gemini-2.0-flash-lite')
-        self._cache: Dict[str, CallUnderstanding] = {}
+        self._cache: dict[str, CallUnderstanding] = {}
 
     async def understand_call(
         self,
         call_id: str,
-        call_text: Optional[str] = None,
-        call_title: Optional[str] = None
+        call_text: str | None = None,
+        call_title: str | None = None
     ) -> CallUnderstanding:
         """
         Analyze a call to understand its topic and context.
@@ -298,8 +297,8 @@ class CallUnderstandingService:
     async def _analyze_with_llm(
         self,
         call_id: str,
-        call_text: Optional[str],
-        call_title: Optional[str],
+        call_text: str | None,
+        call_title: str | None,
         detected_cluster: HorizonCluster
     ) -> CallUnderstanding:
         """Use LLM for detailed call understanding."""
@@ -408,11 +407,11 @@ Focus on extracting factual information from the call. Be specific to this parti
             confidence=0.5  # Low confidence for minimal understanding
         )
 
-    def get_cluster_terminology(self, cluster: HorizonCluster) -> List[str]:
+    def get_cluster_terminology(self, cluster: HorizonCluster) -> list[str]:
         """Get terminology specific to a cluster."""
         return CLUSTER_TERMINOLOGY.get(cluster, [])
 
-    def get_cluster_priorities(self, cluster: HorizonCluster) -> List[str]:
+    def get_cluster_priorities(self, cluster: HorizonCluster) -> list[str]:
         """Get EU priorities relevant to a cluster."""
         return CLUSTER_EU_PRIORITIES.get(cluster, [])
 

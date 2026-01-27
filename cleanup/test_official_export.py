@@ -9,24 +9,26 @@ Tests the ability to create submission-ready documents:
 """
 
 import asyncio
-import sys
 import os
-from pathlib import Path
+import sys
 from datetime import datetime
+from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 # Test imports
+import psycopg2.pool
+
 from app.services.proposal_writing import (
-    SubmissionExporter,
+    OfficialBudgetExporter,
     OfficialDocumentProcessor,
     OfficialWordExporter,
-    OfficialBudgetExporter
+    SubmissionExporter,
 )
-import psycopg2.pool
 
 
 def print_header(text: str):

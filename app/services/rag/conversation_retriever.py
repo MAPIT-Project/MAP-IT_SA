@@ -1,12 +1,13 @@
-import logging
 import hashlib
 import json
-from typing import List, Dict, Any, Optional, Tuple
-from datetime import datetime, timedelta
-import redis
+import logging
 from dataclasses import dataclass
-from .hybrid_search import HybridSearchPipeline, SearchResult
+from datetime import datetime
+from typing import Any
 
+import redis
+
+from .hybrid_search import HybridSearchPipeline, SearchResult
 
 logger = logging.getLogger(__name__)
 @dataclass
@@ -15,9 +16,9 @@ class RetrievalContext:
     conversation_id: int
     current_query: str
     conversation_summary: str
-    recent_topics: List[str]
-    entity_mentions: List[str]
-    search_history: List[str]
+    recent_topics: list[str]
+    entity_mentions: list[str]
+    search_history: list[str]
 
 class ConversationAwareRetriever:
     """
@@ -44,7 +45,7 @@ class ConversationAwareRetriever:
     async def retrieve(self,
                       context: RetrievalContext,
                       max_chunks: int = 4,
-                      use_cache: bool = True) -> List[Dict[str, Any]]:
+                      use_cache: bool = True) -> list[dict[str, Any]]:
         """
         Retrieve relevant chunks considering conversation context.
         
@@ -127,7 +128,7 @@ class ConversationAwareRetriever:
         
         return enhanced_query
     
-    def _build_filters(self, context: RetrievalContext) -> Dict[str, Any]:
+    def _build_filters(self, context: RetrievalContext) -> dict[str, Any]:
         """
         Build metadata filters based on context.
         """
@@ -164,8 +165,8 @@ class ConversationAwareRetriever:
         return filters
     
     def _enrich_results(self,
-                       search_results: List[SearchResult],
-                       context: RetrievalContext) -> List[Dict[str, Any]]:
+                       search_results: list[SearchResult],
+                       context: RetrievalContext) -> list[dict[str, Any]]:
         """
         Enrich search results with additional context.
         """
@@ -255,7 +256,7 @@ class ConversationAwareRetriever:
     
     def _get_cached_results(self,
                            conversation_id: int,
-                           query: str) -> Optional[List[Dict[str, Any]]]:
+                           query: str) -> list[dict[str, Any]] | None:
         """
         Retrieve cached results if available.
         """
@@ -275,7 +276,7 @@ class ConversationAwareRetriever:
     def _cache_results(self,
                       conversation_id: int,
                       query: str,
-                      results: List[Dict[str, Any]]):
+                      results: list[dict[str, Any]]):
         """
         Cache retrieval results.
         """
@@ -325,7 +326,7 @@ class ConversationAwareRetriever:
         query_hash = hashlib.md5(query.encode()).hexdigest()
         return f"retrieval_cache:{conversation_id}:{query_hash}"
     
-    def get_retrieval_stats(self, conversation_id: int) -> Dict[str, Any]:
+    def get_retrieval_stats(self, conversation_id: int) -> dict[str, Any]:
         """
         Get statistics about retrieval for a conversation.
         """

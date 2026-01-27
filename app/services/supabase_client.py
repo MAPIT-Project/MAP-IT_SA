@@ -2,14 +2,12 @@
 Supabase client service for vector storage and retrieval.
 """
 
-import os
-import hashlib
-from typing import Optional, List, Dict, Any, Tuple
-from supabase import create_client, Client
-from dotenv import load_dotenv
-import numpy as np
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import Any
+
+import numpy as np
+from supabase import Client, create_client
 
 from ..core.config import settings
 
@@ -44,7 +42,7 @@ class SupabaseVectorStore:
             logger.error(f"❌ Supabase connection test failed: {e}")
             return False
     
-    def insert_document(self, document_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def insert_document(self, document_data: dict[str, Any]) -> dict[str, Any] | None:
         """Insert a new document record."""
         try:
             # Ensure required fields are present
@@ -55,9 +53,9 @@ class SupabaseVectorStore:
             
             # Add timestamps if not present
             if 'created_at' not in document_data:
-                document_data['created_at'] = datetime.now(timezone.utc).isoformat()
+                document_data['created_at'] = datetime.now(UTC).isoformat()
             if 'last_updated' not in document_data:
-                document_data['last_updated'] = datetime.now(timezone.utc).isoformat()
+                document_data['last_updated'] = datetime.now(UTC).isoformat()
             
             response = self.client.table("horizon_documents").insert(document_data).execute()
             
@@ -72,7 +70,7 @@ class SupabaseVectorStore:
             logger.error(f"❌ Error inserting document: {e}")
             return None
     
-    def insert_chunks(self, chunks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def insert_chunks(self, chunks: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Batch insert document chunks with embeddings."""
         try:
             # Convert numpy arrays to lists for JSON serialization
@@ -86,7 +84,7 @@ class SupabaseVectorStore:
                 
                 # Add timestamp if not present
                 if 'created_at' not in processed_chunk:
-                    processed_chunk['created_at'] = datetime.now(timezone.utc).isoformat()
+                    processed_chunk['created_at'] = datetime.now(UTC).isoformat()
                 
                 processed_chunks.append(processed_chunk)
             
@@ -116,8 +114,8 @@ class SupabaseVectorStore:
         query_embedding: np.ndarray,
         match_threshold: float = 0.7,
         match_count: int = 10,
-        filters: Optional[Dict[str, Any]] = None
-    ) -> List[Dict[str, Any]]:
+        filters: dict[str, Any] | None = None
+    ) -> list[dict[str, Any]]:
         """Perform semantic search using vector similarity."""
         try:
             embedding_list = query_embedding.tolist()
@@ -149,7 +147,7 @@ class SupabaseVectorStore:
         query_embedding: np.ndarray,
         match_count: int = 10,
         vector_weight: float = 0.5
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Perform hybrid search combining vector and keyword search."""
         try:
             embedding_list = query_embedding.tolist()
@@ -174,7 +172,7 @@ class SupabaseVectorStore:
             logger.error(f"❌ Error in hybrid search: {e}")
             return []
     
-    def get_document_by_id(self, document_id: str) -> Optional[Dict[str, Any]]:
+    def get_document_by_id(self, document_id: str) -> dict[str, Any] | None:
         """Retrieve a document by ID."""
         try:
             response = self.client.table("horizon_documents")\
@@ -194,7 +192,7 @@ class SupabaseVectorStore:
             logger.error(f"❌ Error retrieving document {document_id}: {e}")
             return None
     
-    def get_chunks_by_document(self, document_id: str) -> List[Dict[str, Any]]:
+    def get_chunks_by_document(self, document_id: str) -> list[dict[str, Any]]:
         """Get all chunks for a specific document."""
         try:
             response = self.client.table("document_chunks")\
@@ -218,22 +216,22 @@ class SupabaseVectorStore:
         self, 
         document_id: str, 
         status: str,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> Optional[Dict[str, Any]]:
+        metadata: dict[str, Any] | None = None
+    ) -> dict[str, Any] | None:
         """Update document processing status."""
         try:
             update_data = {
                 "status": status,
-                "last_updated": datetime.now(timezone.utc).isoformat()
+                "last_updated": datetime.now(UTC).isoformat()
             }
             
             if metadata:
                 update_data["metadata"] = metadata
             
             if status == "processing":
-                update_data["processing_started_at"] = datetime.now(timezone.utc).isoformat()
+                update_data["processing_started_at"] = datetime.now(UTC).isoformat()
             elif status in ["active", "failed"]:
-                update_data["processing_completed_at"] = datetime.now(timezone.utc).isoformat()
+                update_data["processing_completed_at"] = datetime.now(UTC).isoformat()
             
             response = self.client.table("horizon_documents")\
                 .update(update_data)\
@@ -269,7 +267,7 @@ class SupabaseVectorStore:
             logger.error(f"❌ Error checking duplicate: {e}")
             return False
     
-    def get_cached_embedding(self, text_hash: str) -> Optional[np.ndarray]:
+    def get_cached_embedding(self, text_hash: str) -> np.ndarray | None:
         """Retrieve cached embedding if it exists."""
         try:
             response = self.client.table("embedding_cache")\
@@ -283,7 +281,7 @@ class SupabaseVectorStore:
                 self.client.table("embedding_cache")\
                     .update({
                         "usage_count": response.data.get("usage_count", 0) + 1,
-                        "last_used": datetime.now(timezone.utc).isoformat()
+                        "last_used": datetime.now(UTC).isoformat()
                     })\
                     .eq("text_hash", text_hash)\
                     .execute()
@@ -293,7 +291,7 @@ class SupabaseVectorStore:
             
             return None
             
-        except Exception as e:
+        except Exception:
             logger.debug(f"No cached embedding found for hash: {text_hash}")
             return None
     
@@ -309,8 +307,8 @@ class SupabaseVectorStore:
                 "text_hash": text_hash,
                 "text_content": text_content[:1000],  # Store first 1000 chars for reference
                 "embedding": embedding.tolist(),
-                "created_at": datetime.now(timezone.utc).isoformat(),
-                "last_used": datetime.now(timezone.utc).isoformat()
+                "created_at": datetime.now(UTC).isoformat(),
+                "last_used": datetime.now(UTC).isoformat()
             }
             
             self.client.table("embedding_cache").upsert(cache_data).execute()
@@ -319,7 +317,7 @@ class SupabaseVectorStore:
         except Exception as e:
             logger.error(f"❌ Error caching embedding: {e}")
     
-    def get_document_stats(self) -> Dict[str, Any]:
+    def get_document_stats(self) -> dict[str, Any]:
         """Get database statistics."""
         try:
             response = self.client.rpc('get_document_stats').execute()
@@ -340,9 +338,9 @@ class SupabaseVectorStore:
         self,
         limit: int = 50,
         offset: int = 0,
-        status: Optional[str] = None,
-        document_type: Optional[str] = None
-    ) -> Tuple[List[Dict[str, Any]], int]:
+        status: str | None = None,
+        document_type: str | None = None
+    ) -> tuple[list[dict[str, Any]], int]:
         """List documents with pagination and filtering."""
         try:
             query = self.client.table("horizon_documents").select("*")
@@ -402,7 +400,7 @@ class SupabaseVectorStore:
     def cleanup_old_cache(self, days_old: int = 30) -> int:
         """Clean up old cached embeddings."""
         try:
-            cutoff_date = datetime.now(timezone.utc).replace(day=datetime.now(timezone.utc).day - days_old)
+            cutoff_date = datetime.now(UTC).replace(day=datetime.now(UTC).day - days_old)
             
             response = self.client.table("embedding_cache")\
                 .delete()\

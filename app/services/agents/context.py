@@ -4,10 +4,10 @@ Agent Context and State Management
 Tracks the agent's state across iterations of the agentic loop.
 """
 
-from enum import Enum
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
 from datetime import datetime
+from enum import Enum
+from typing import Any
 
 
 class AgentState(Enum):
@@ -28,8 +28,8 @@ class EvaluationResult:
     """Result of evaluating search results."""
     score: float                       # 0.0 - 1.0 quality score
     is_sufficient: bool                # Whether results are good enough
-    reasons: List[str] = field(default_factory=list)  # Explanation of score
-    suggestions: List[str] = field(default_factory=list)  # How to improve
+    reasons: list[str] = field(default_factory=list)  # Explanation of score
+    suggestions: list[str] = field(default_factory=list)  # How to improve
     
     def __str__(self) -> str:
         status = "✅ Sufficient" if self.is_sufficient else "❌ Insufficient"
@@ -41,7 +41,7 @@ class ReflectionResult:
     """Result of reflecting on failed search."""
     failure_analysis: str              # What went wrong
     root_cause: str                    # Category of failure
-    improvement_strategy: Dict[str, Any] = field(default_factory=dict)
+    improvement_strategy: dict[str, Any] = field(default_factory=dict)
     confidence: float = 0.5            # Confidence in the analysis
     
     # Root cause categories
@@ -67,7 +67,7 @@ class AgentContext:
     
     # Original query
     user_query: str
-    conversation_id: Optional[str] = None
+    conversation_id: str | None = None
     
     # Current state
     state: AgentState = AgentState.UNDERSTANDING
@@ -76,43 +76,43 @@ class AgentContext:
     started_at: datetime = field(default_factory=datetime.now)
     
     # Understanding phase
-    intent: Optional[str] = None
-    entities: List[str] = field(default_factory=list)
-    query_type: Optional[str] = None  # 'factual', 'exploratory', 'procedural'
+    intent: str | None = None
+    entities: list[str] = field(default_factory=list)
+    query_type: str | None = None  # 'factual', 'exploratory', 'procedural'
     
     # Planning phase
-    current_plan: Optional[Dict[str, Any]] = None
-    plan_history: List[Dict[str, Any]] = field(default_factory=list)
+    current_plan: dict[str, Any] | None = None
+    plan_history: list[dict[str, Any]] = field(default_factory=list)
     
     # Execution phase
-    results: Dict[str, Any] = field(default_factory=dict)
-    tool_calls: List[Dict[str, Any]] = field(default_factory=list)
-    execution_times: List[float] = field(default_factory=list)
+    results: dict[str, Any] = field(default_factory=dict)
+    tool_calls: list[dict[str, Any]] = field(default_factory=list)
+    execution_times: list[float] = field(default_factory=list)
     
     # Evaluation phase
     result_quality: float = 0.0
-    quality_history: List[float] = field(default_factory=list)
-    quality_reasons: List[str] = field(default_factory=list)
+    quality_history: list[float] = field(default_factory=list)
+    quality_reasons: list[str] = field(default_factory=list)
     is_sufficient: bool = False
     
     # Reflection phase
-    last_reflection: Optional[ReflectionResult] = None
-    failure_reasons: List[str] = field(default_factory=list)
-    improvement_suggestions: List[str] = field(default_factory=list)
+    last_reflection: ReflectionResult | None = None
+    failure_reasons: list[str] = field(default_factory=list)
+    improvement_suggestions: list[str] = field(default_factory=list)
     
     # Memory of strategies
-    successful_strategies: List[str] = field(default_factory=list)
-    failed_strategies: List[str] = field(default_factory=list)
-    tried_sources: List[str] = field(default_factory=list)
-    tried_queries: List[str] = field(default_factory=list)
+    successful_strategies: list[str] = field(default_factory=list)
+    failed_strategies: list[str] = field(default_factory=list)
+    tried_sources: list[str] = field(default_factory=list)
+    tried_queries: list[str] = field(default_factory=list)
     
     # Final output
-    final_response: Optional[str] = None
-    sources: List[Dict[str, Any]] = field(default_factory=list)
+    final_response: str | None = None
+    sources: list[dict[str, Any]] = field(default_factory=list)
     confidence_level: str = "medium"  # 'high', 'medium', 'low'
     
     # Metadata
-    error: Optional[str] = None
+    error: str | None = None
     
     def record_iteration(self, evaluation: EvaluationResult):
         """Record results from an iteration."""
@@ -121,7 +121,7 @@ class AgentContext:
         self.is_sufficient = evaluation.is_sufficient
         self.quality_reasons = evaluation.reasons
     
-    def record_plan(self, plan: Dict[str, Any]):
+    def record_plan(self, plan: dict[str, Any]):
         """Record a plan that was executed."""
         self.current_plan = plan
         self.plan_history.append(plan)
@@ -177,7 +177,7 @@ class AgentContext:
         
         return True
     
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> dict[str, Any]:
         """Get a summary of the agent's journey."""
         return {
             'query': self.user_query,

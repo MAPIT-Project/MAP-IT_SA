@@ -8,14 +8,15 @@ HYBRID ARCHITECTURE: Combines Neo4j graph patterns with PostgreSQL detailed anal
 for comprehensive consortium insights.
 """
 
-import os
 import logging
-from typing import Optional, Dict, Any, List
-from datetime import datetime
+import os
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
+from typing import Any
+
 import psycopg2
-from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
+from psycopg2.extras import RealDictCursor
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -110,7 +111,7 @@ class ConsortiumPatternsTool:
         cluster_upper = cluster.upper().replace(' ', '').replace('-', '')
         return CLUSTER_MAP.get(cluster_upper, cluster.upper() if cluster.upper().startswith('CLUSTER') else None)
 
-    def _infer_clusters_from_keywords(self, keywords: str) -> List[str]:
+    def _infer_clusters_from_keywords(self, keywords: str) -> list[str]:
         """Infer relevant clusters from topic keywords."""
         if not keywords:
             return []
@@ -129,13 +130,13 @@ class ConsortiumPatternsTool:
 
     def get_patterns(
         self,
-        cluster: Optional[str] = None,
-        action_type: Optional[str] = None,
-        topic_keywords: Optional[str] = None,
+        cluster: str | None = None,
+        action_type: str | None = None,
+        topic_keywords: str | None = None,
         min_projects: int = 10,
         include_successful_templates: bool = True,
         include_coordinator_analysis: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Analyze consortium composition patterns using HYBRID Graph+SQL architecture.
 
@@ -179,13 +180,13 @@ class ConsortiumPatternsTool:
 
     def _get_patterns_hybrid(
         self,
-        cluster: Optional[str],
-        action_type: Optional[str],
-        topic_keywords: Optional[str],
+        cluster: str | None,
+        action_type: str | None,
+        topic_keywords: str | None,
         min_projects: int,
         include_successful_templates: bool,
         include_coordinator_analysis: bool
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Execute hybrid Graph+SQL consortium pattern analysis."""
         graph_patterns = None
         sql_patterns = None
@@ -295,8 +296,8 @@ class ConsortiumPatternsTool:
     def _get_patterns_graph(
         self,
         cluster: str,
-        action_type: Optional[str]
-    ) -> Optional[Dict[str, Any]]:
+        action_type: str | None
+    ) -> dict[str, Any] | None:
         """Get consortium patterns from Neo4j graph."""
         if not self._graph_service:
             return None
@@ -333,10 +334,10 @@ class ConsortiumPatternsTool:
 
     def _get_patterns_sql(
         self,
-        cluster: Optional[str],
-        action_type: Optional[str],
-        topic_keywords: Optional[str]
-    ) -> Optional[Dict[str, Any]]:
+        cluster: str | None,
+        action_type: str | None,
+        topic_keywords: str | None
+    ) -> dict[str, Any] | None:
         """Get consortium patterns from PostgreSQL."""
         try:
             conn = self._get_connection()
@@ -555,9 +556,9 @@ class ConsortiumPatternsTool:
 
     def _merge_pattern_results(
         self,
-        graph_patterns: Optional[Dict[str, Any]],
-        sql_patterns: Optional[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        graph_patterns: dict[str, Any] | None,
+        sql_patterns: dict[str, Any] | None
+    ) -> dict[str, Any]:
         """Merge pattern results from Graph and SQL."""
         if not graph_patterns and not sql_patterns:
             return self._get_fallback_patterns(None, None)
@@ -603,7 +604,7 @@ class ConsortiumPatternsTool:
             'data_source': 'hybrid_graph_sql'
         }
 
-    def _format_sql_only_results(self, sql_patterns: Dict[str, Any]) -> Dict[str, Any]:
+    def _format_sql_only_results(self, sql_patterns: dict[str, Any]) -> dict[str, Any]:
         """Format SQL-only results into standard format."""
         avg_partners = sql_patterns.get('consortium_size', {}).get('average', 10)
         return {
@@ -628,7 +629,7 @@ class ConsortiumPatternsTool:
             'data_source': 'postgresql'
         }
 
-    def _format_graph_only_results(self, graph_patterns: Dict[str, Any]) -> Dict[str, Any]:
+    def _format_graph_only_results(self, graph_patterns: dict[str, Any]) -> dict[str, Any]:
         """Format graph-only results into standard format."""
         avg_partners = graph_patterns.get('avg_partners', 10)
         return {
@@ -652,8 +653,8 @@ class ConsortiumPatternsTool:
     def _get_successful_templates(
         self,
         cluster: str,
-        action_type: Optional[str]
-    ) -> Optional[List[Dict[str, Any]]]:
+        action_type: str | None
+    ) -> list[dict[str, Any]] | None:
         """Get successful consortium templates from graph."""
         if not self._graph_service:
             return None
@@ -699,8 +700,8 @@ class ConsortiumPatternsTool:
     def _get_coordinator_analysis(
         self,
         cluster: str,
-        action_type: Optional[str]
-    ) -> Optional[Dict[str, Any]]:
+        action_type: str | None
+    ) -> dict[str, Any] | None:
         """Get coordinator analysis - who coordinates successfully."""
         if not self._graph_service:
             # Fall back to SQL-based analysis
@@ -729,8 +730,8 @@ class ConsortiumPatternsTool:
     def _get_coordinator_analysis_sql(
         self,
         cluster: str,
-        action_type: Optional[str]
-    ) -> Optional[Dict[str, Any]]:
+        action_type: str | None
+    ) -> dict[str, Any] | None:
         """Get coordinator analysis from SQL."""
         try:
             conn = self._get_connection()
@@ -799,13 +800,13 @@ class ConsortiumPatternsTool:
 
     def _generate_recommendations(
         self,
-        org_dist: Dict,
-        country_patterns: Dict,
-        coordinator: Dict,
-        size_stats: Dict,
-        action_type: Optional[str],
+        org_dist: dict,
+        country_patterns: dict,
+        coordinator: dict,
+        size_stats: dict,
+        action_type: str | None,
         project_count: int
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate actionable recommendations based on patterns."""
 
         recommendations = {
@@ -867,9 +868,9 @@ class ConsortiumPatternsTool:
 
     def _get_fallback_patterns(
         self,
-        cluster: Optional[str] = None,
-        action_type: Optional[str] = None
-    ) -> Dict[str, Any]:
+        cluster: str | None = None,
+        action_type: str | None = None
+    ) -> dict[str, Any]:
         """Return fallback patterns when databases are unavailable."""
 
         defaults = {
@@ -957,11 +958,11 @@ class GeographicDiversificationTool:
 
     def analyze_geographic_diversification(
         self,
-        cluster: Optional[str] = None,
-        country_groups: Optional[Dict[str, List[str]]] = None,
+        cluster: str | None = None,
+        country_groups: dict[str, list[str]] | None = None,
         exclude_widening: bool = True,
         min_partners: int = 3
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Analyze geographic diversification of country partners.
 
@@ -1232,8 +1233,8 @@ class GeographicDiversificationTool:
 
     def _get_fallback_diversification(
         self,
-        groups: Dict[str, List[str]]
-    ) -> Dict[str, Any]:
+        groups: dict[str, list[str]]
+    ) -> dict[str, Any]:
         """Return fallback diversification data when database unavailable."""
         # Estimated typical values based on EU funding patterns
         return {
@@ -1271,9 +1272,9 @@ class GeographicDiversificationTool:
 
 # Async wrapper for geographic diversification tool
 async def analyze_geographic_diversification_execute(
-    params: Dict[str, Any],
-    context: Dict[str, Any]
-) -> Dict[str, Any]:
+    params: dict[str, Any],
+    context: dict[str, Any]
+) -> dict[str, Any]:
     """
     Execute geographic diversification analysis tool.
 
@@ -1305,7 +1306,7 @@ async def analyze_geographic_diversification_execute(
 
 
 # Async wrapper for tool orchestrator compatibility
-async def get_consortium_patterns_execute(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+async def get_consortium_patterns_execute(params: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
     """
     Execute consortium patterns tool.
 

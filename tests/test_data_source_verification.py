@@ -4,11 +4,11 @@ Verify the exact data sources being used for enhanced call search.
 Shows where the 29 quantum mechanics results are actually coming from.
 """
 
-import sys
-import time
-import requests
 import json
+import sys
 from pathlib import Path
+
+import requests
 
 # Add paths
 sys.path.insert(0, str(Path(__file__).parent))
@@ -114,8 +114,8 @@ def verify_data_sources():
     print("-" * 50)
     
     try:
-        from app.services.vector_search_service import VectorSearchService
         from app.services.supabase_client import SupabaseVectorStore
+        from app.services.vector_search_service import VectorSearchService
         
         print("📚 Testing your local vector database...")
         supabase = SupabaseVectorStore()

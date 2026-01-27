@@ -6,15 +6,15 @@ in official EU formats.
 """
 
 import logging
-from typing import Dict, Any, Optional
-from io import BytesIO
 import zipfile
 from datetime import datetime
+from io import BytesIO
+from typing import Any
 
 from .official_document_processor import (
+    OfficialBudgetExporter,
     OfficialDocumentProcessor,
     OfficialWordExporter,
-    OfficialBudgetExporter
 )
 
 logger = logging.getLogger(__name__)
@@ -107,7 +107,7 @@ class SubmissionExporter:
             zip_file.writestr("README.txt", readme_content)
         
         zip_buffer.seek(0)
-        logger.info(f"✅ Submission package created successfully")
+        logger.info("✅ Submission package created successfully")
         
         return zip_buffer
     
@@ -212,7 +212,7 @@ class SubmissionExporter:
         
         return buffer
     
-    async def _get_proposal_data(self, proposal_id: int) -> Dict[str, Any]:
+    async def _get_proposal_data(self, proposal_id: int) -> dict[str, Any]:
         """Get proposal metadata from database"""
         
         conn = self.db_pool.getconn()
@@ -245,7 +245,7 @@ class SubmissionExporter:
             'creator_name': row[5]
         }
     
-    async def _get_all_sections(self, proposal_id: int) -> Dict[str, str]:
+    async def _get_all_sections(self, proposal_id: int) -> dict[str, str]:
         """Get all proposal sections"""
         
         conn = self.db_pool.getconn()
@@ -264,7 +264,7 @@ class SubmissionExporter:
         
         return sections
     
-    async def _get_budget_data(self, proposal_id: int) -> Dict[str, Any]:
+    async def _get_budget_data(self, proposal_id: int) -> dict[str, Any]:
         """Get budget data"""
         
         conn = self.db_pool.getconn()
@@ -324,7 +324,7 @@ class SubmissionExporter:
             }
         }
     
-    async def _get_ethics_data(self, proposal_id: int) -> Dict[str, Any]:
+    async def _get_ethics_data(self, proposal_id: int) -> dict[str, Any]:
         """Get ethics assessment data"""
         
         conn = self.db_pool.getconn()
@@ -357,7 +357,7 @@ class SubmissionExporter:
             'vulnerable_groups': row[4]
         }
     
-    async def _get_security_data(self, proposal_id: int) -> Dict[str, Any]:
+    async def _get_security_data(self, proposal_id: int) -> dict[str, Any]:
         """Get security questionnaire data"""
         
         # Placeholder - would query security_questionnaires table
@@ -380,7 +380,7 @@ class SubmissionExporter:
         conn.commit()
         self.db_pool.putconn(conn)
     
-    def _generate_readme(self, proposal_data: Dict) -> str:
+    def _generate_readme(self, proposal_data: dict) -> str:
         """Generate README for submission package"""
         
         return f"""

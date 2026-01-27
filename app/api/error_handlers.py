@@ -5,25 +5,24 @@ Provides consistent error response formatting across all endpoints,
 with user-friendly suggestions and proper HTTP status codes.
 """
 
-from fastapi import Request, FastAPI
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
 import logging
-from typing import Dict, Any
+from typing import Any
+
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from ..core.exceptions import (
-    MapItError,
-    get_user_suggestion,
-    get_http_status,
-    ValidationError as MapItValidationError,
-    ServiceUnavailableError,
-    DataNotFoundError,
-    RateLimitError,
-    TimeoutError as MapItTimeoutError,
     AuthenticationError,
     AuthorizationError,
     CircuitBreakerOpenError,
+    DataNotFoundError,
+    MapItError,
+    RateLimitError,
+    ServiceUnavailableError,
+    TimeoutError as MapItTimeoutError,
+    get_user_suggestion,
 )
 
 logger = logging.getLogger(__name__)
@@ -32,11 +31,11 @@ logger = logging.getLogger(__name__)
 def format_error_response(
     error_code: str,
     message: str,
-    details: Dict[str, Any] = None,
+    details: dict[str, Any] = None,
     suggestion: str = None,
     recoverable: bool = True,
     request_id: str = None
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Format a consistent error response.
 
@@ -108,7 +107,7 @@ async def mapit_exception_handler(request: Request, exc: MapItError) -> JSONResp
     )
 
 
-def _get_error_headers(exc: MapItError) -> Dict[str, str]:
+def _get_error_headers(exc: MapItError) -> dict[str, str]:
     """Get additional headers for error responses."""
     headers = {}
 
@@ -293,6 +292,7 @@ def register_exception_handlers(app: FastAPI) -> None:
 # ============================================================================
 
 import uuid
+
 from starlette.middleware.base import BaseHTTPMiddleware
 
 

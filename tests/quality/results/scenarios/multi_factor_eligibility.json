@@ -11,7 +11,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 3673.9289999999996,
+      "processing_time_ms": 1007.12,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -31,7 +31,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 1875.279,
+      "processing_time_ms": 1861.1480000000001,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -51,7 +51,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 681.96,
+      "processing_time_ms": 679.352,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -71,7 +71,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 4909.294,
+      "processing_time_ms": 5132.968,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -91,7 +91,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 629.422,
+      "processing_time_ms": 632.984,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -113,7 +113,7 @@
   },
   "failures": [],
   "metadata": {
-    "scenario_path": "/home/anmar/Documents/VSCODE_REPOS/MAPIT/NEWMAPIT/MAP-IT_SA/tests/scenarios/advanced/multi_factor_eligibility.yaml",
+    "scenario_path": "tests/scenarios/advanced/multi_factor_eligibility.yaml",
     "tags": [
       "phase8",
       "eligibility",
@@ -123,10 +123,10 @@
       "restrictions"
     ],
     "description": "A Turkish university wants to participate in Horizon Europe. Turkey is an\nAssociated Country with eligibility that varies based on project topic.\nSome topics (defense, quantum, space) have additional restrictions.\nTests multi-factor eligibility reasoning and context preservation.\n",
-    "conversation_id": 1058767763
+    "conversation_id": 878825003
   },
-  "execution_time_ms": 133712.77000000002,
-  "timestamp": "2026-01-23T12:28:17.111102",
+  "execution_time_ms": 131946.823,
+  "timestamp": "2026-01-23T17:17:47.853607",
   "passed": true,
   "turn_count": 5,
   "critical_failures": 0,

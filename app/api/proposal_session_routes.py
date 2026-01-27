@@ -12,8 +12,8 @@ This is the V4 API - uses ProposalAwareAgent with proposal context injection.
 
 import json
 import logging
-from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
@@ -68,7 +68,7 @@ class CreateSessionRequest(BaseModel):
     call_id: str = Field(..., description="Funding call identifier")
     title: str = Field(..., description="Proposal title")
     proposal_type: str = Field(default="RIA", description="Proposal type (RIA, IA, CSA, ERC)")
-    conversation_id: Optional[int] = Field(default=None, description="Existing conversation ID")
+    conversation_id: int | None = Field(default=None, description="Existing conversation ID")
 
 
 class SessionResponse(BaseModel):
@@ -78,17 +78,17 @@ class SessionResponse(BaseModel):
     call_id: str
     title: str
     status: str
-    active_section_id: Optional[str]
+    active_section_id: str | None
     completion_percentage: float
     total_words: int
-    sections: Dict[str, Any]
+    sections: dict[str, Any]
     created_at: str
 
 
 class MessageRequest(BaseModel):
     """Request to send a message in a proposal session."""
     message: str = Field(..., description="User message")
-    section_context: Optional[str] = Field(
+    section_context: str | None = Field(
         default=None,
         description="Optional section ID to focus on"
     )
@@ -101,7 +101,7 @@ class SectionUpdateRequest(BaseModel):
 
 class SectionGenerateRequest(BaseModel):
     """Request to generate section content via AI."""
-    guidance: Optional[str] = Field(default=None, description="Guidance for generation")
+    guidance: str | None = Field(default=None, description="Guidance for generation")
     word_target: int = Field(default=500, description="Target word count")
     style: str = Field(default="formal", description="Writing style")
 
@@ -745,5 +745,5 @@ async def health_check():
         "architecture": "proposal_aware_v4",
         "components": components,
         "errors": errors if errors else None,
-        "timestamp": datetime.now(timezone.utc).isoformat()
+        "timestamp": datetime.now(UTC).isoformat()
     }

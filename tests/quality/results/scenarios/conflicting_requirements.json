@@ -2,19 +2,18 @@
   "scenario_name": "Conflicting Requirements",
   "status": "PASS",
   "average_quality_score": 84.2,
-  "average_factual_score": 100.0,
+  "average_factual_score": 90.0,
   "turns": [
     {
       "query": "Find EU funding calls for SMEs that offer 100% funding rate",
-      "response": "I found **16 funding opportunities** for your query:\n\n**1. Understanding and overcoming barriers to the scale-up of innovations supporting EU Missions**\n\ud83d\udccb **Call ID:** HORIZON-MISS-2026-07-CROSS-02\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 31 March 2026\n\ud83c\udfdb\ufe0f **Programme:** MISS\n\n\ud83d\udcdd **Summary:** Expected Outcome: The missions\u2019 stakeholder communities are better aware of the diversity of risk perception and risk management strategies related to technological and non-technological innovations among them.\n\n\ud83d\udd17 ...",
+      "response": "I found **2 funding opportunities** for your query:\n\n**1. Capacity building in Higher Education: Cross-Regional**\n\ud83d\udccb **Call ID:** ERASMUS-EDU-2026-CBHE-CROSS-REGIONAL\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 10 February 2026\n\n\ud83d\udcdd **Summary:** Objective: CBHE funds international higher-education partnerships that strengthen universities and systems in eligible third countries not associated to the Programme.\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/...",
       "quality_score": 83,
-      "factual_score": 100.0,
+      "factual_score": 50.0,
       "failures": [],
       "tools_used": [
-        "search_funding_calls",
         "search_funding_calls"
       ],
-      "processing_time_ms": 9927.932999999999,
+      "processing_time_ms": 8431.008,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -34,7 +33,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 2692.7799999999997,
+      "processing_time_ms": 2682.623,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -54,7 +53,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 1227.08,
+      "processing_time_ms": 1215.204,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -74,7 +73,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 1062.8999999999999,
+      "processing_time_ms": 1039.5220000000002,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -94,7 +93,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 1040.65,
+      "processing_time_ms": 1020.7360000000001,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -110,8 +109,8 @@
   ],
   "scores": {
     "average_quality": 84.2,
-    "average_factual": 100.0,
-    "goal_progress": 0.4385714285714286,
+    "average_factual": 90.0,
+    "goal_progress": 0.38142857142857145,
     "context_fields": 2
   },
   "failures": [],
@@ -130,10 +129,10 @@
       "graceful_degradation"
     ],
     "description": "A user progressively adds requirements that become impossible to satisfy.\nThe system should handle this gracefully, explaining constraints and\nsuggesting alternatives rather than failing or producing errors.\nTests error handling for impossible eligibility combinations.\n",
-    "conversation_id": 628138644
+    "conversation_id": 42660216
   },
-  "execution_time_ms": 138816.736,
-  "timestamp": "2026-01-23T15:05:33.644125",
+  "execution_time_ms": 136736.527,
+  "timestamp": "2026-01-23T17:40:16.271235",
   "passed": true,
   "turn_count": 5,
   "critical_failures": 0,

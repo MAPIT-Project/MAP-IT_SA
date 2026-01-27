@@ -11,14 +11,13 @@ Tests:
 - Error handling
 """
 
-import pytest
-import asyncio
 import json
-from unittest.mock import Mock, patch, AsyncMock, MagicMock
-from fastapi.testclient import TestClient
-from fastapi import FastAPI
-import sys
 import os
+import sys
+from unittest.mock import MagicMock, patch
+
+import pytest
+from fastapi import FastAPI
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

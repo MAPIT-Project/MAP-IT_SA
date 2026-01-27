@@ -16,7 +16,6 @@ import argparse
 import logging
 import sys
 from pathlib import Path
-from typing import Any, Dict
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -534,7 +533,7 @@ class DigitalEuropeNeo4jIngester:
 
         logger.info("Digital Europe data cleared")
 
-    def run(self, clear_first: bool = False) -> Dict[str, int]:
+    def run(self, clear_first: bool = False) -> dict[str, int]:
         """
         Run the complete Digital Europe ingestion pipeline.
 
@@ -584,7 +583,7 @@ class DigitalEuropeNeo4jIngester:
 
         return stats
 
-    def _get_stats(self) -> Dict[str, int]:
+    def _get_stats(self) -> dict[str, int]:
         """Get current Digital Europe data statistics."""
         query = """
         MATCH (o:DigitalEuropeObjective) WITH count(o) as objectives
@@ -614,7 +613,7 @@ class DigitalEuropeNeo4jIngester:
 
         return {}
 
-    def _print_summary(self, stats: Dict[str, int]) -> None:
+    def _print_summary(self, stats: dict[str, int]) -> None:
         """Print ingestion summary."""
         logger.info("\n" + "=" * 60)
         logger.info("DIGITAL EUROPE INGESTION SUMMARY")

@@ -5,18 +5,17 @@ Logs all conversation messages and responses to Supabase for analytics,
 quality monitoring, and iterative improvement.
 """
 
-import os
-import logging
-import json
 import asyncio
-from typing import Dict, Any, List, Optional
-from datetime import datetime
-from dataclasses import dataclass, asdict, field
-import psycopg2
-from psycopg2.extras import RealDictCursor, Json
-from psycopg2 import pool
-from dotenv import load_dotenv
+import logging
+import os
 import uuid
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Any
+
+from dotenv import load_dotenv
+from psycopg2 import pool
+from psycopg2.extras import Json, RealDictCursor
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -27,18 +26,18 @@ class ConversationEvent:
     """Single conversation message/response event."""
     conversation_id: int
     question: str
-    response: Optional[str] = None
-    tools_used: Optional[List[str]] = None
-    confidence: Optional[float] = None
-    response_time_ms: Optional[int] = None
-    metadata: Optional[Dict[str, Any]] = field(default_factory=dict)
+    response: str | None = None
+    tools_used: list[str] | None = None
+    confidence: float | None = None
+    response_time_ms: int | None = None
+    metadata: dict[str, Any] | None = field(default_factory=dict)
     user_id: int = 1
-    session_id: Optional[str] = None
+    session_id: str | None = None
     status: str = "completed"
-    error_message: Optional[str] = None
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
-    message_id: Optional[str] = None
+    error_message: str | None = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    message_id: str | None = None
 
     def __post_init__(self):
         if self.message_id is None:
@@ -66,7 +65,7 @@ class ConversationAnalyticsService:
             return
 
         self.db_url = os.getenv("DATABASE_URL")
-        self.buffer: List[ConversationEvent] = []
+        self.buffer: list[ConversationEvent] = []
         self.buffer_size = 10  # Batch write every 10 events
         self.flush_interval = 30  # Or every 30 seconds
         self.last_flush = datetime.now()
@@ -105,15 +104,15 @@ class ConversationAnalyticsService:
         conversation_id: int,
         question: str,
         response: str,
-        tools_used: Optional[List[str]] = None,
-        confidence: Optional[float] = None,
-        response_time_ms: Optional[int] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        tools_used: list[str] | None = None,
+        confidence: float | None = None,
+        response_time_ms: int | None = None,
+        metadata: dict[str, Any] | None = None,
         user_id: int = 1,
-        session_id: Optional[str] = None,
+        session_id: str | None = None,
         status: str = "completed",
-        error_message: Optional[str] = None
-    ) -> Optional[str]:
+        error_message: str | None = None
+    ) -> str | None:
         """
         Log a conversation event synchronously.
 
@@ -145,15 +144,15 @@ class ConversationAnalyticsService:
         conversation_id: int,
         question: str,
         response: str,
-        tools_used: Optional[List[str]] = None,
-        confidence: Optional[float] = None,
-        response_time_ms: Optional[int] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        tools_used: list[str] | None = None,
+        confidence: float | None = None,
+        response_time_ms: int | None = None,
+        metadata: dict[str, Any] | None = None,
         user_id: int = 1,
-        session_id: Optional[str] = None,
+        session_id: str | None = None,
         status: str = "completed",
-        error_message: Optional[str] = None
-    ) -> Optional[str]:
+        error_message: str | None = None
+    ) -> str | None:
         """
         Log a conversation event asynchronously (non-blocking).
 
@@ -181,7 +180,7 @@ class ConversationAnalyticsService:
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, self._write_event, event)
 
-    def _write_event(self, event: ConversationEvent) -> Optional[str]:
+    def _write_event(self, event: ConversationEvent) -> str | None:
         """Write a single event to the database."""
         conn = None
         try:
@@ -242,7 +241,7 @@ class ConversationAnalyticsService:
         finally:
             self._return_connection(conn)
 
-    def get_recent_analytics(self, hours: int = 24) -> Dict[str, Any]:
+    def get_recent_analytics(self, hours: int = 24) -> dict[str, Any]:
         """Get analytics summary for recent conversations."""
         if not self.enabled:
             return {"error": "Analytics disabled"}
@@ -294,7 +293,7 @@ class ConversationAnalyticsService:
         finally:
             self._return_connection(conn)
 
-    def get_low_confidence_conversations(self, threshold: float = 0.4, limit: int = 50) -> List[Dict[str, Any]]:
+    def get_low_confidence_conversations(self, threshold: float = 0.4, limit: int = 50) -> list[dict[str, Any]]:
         """Get recent conversations with low confidence for review."""
         if not self.enabled:
             return []
@@ -332,14 +331,14 @@ class ConversationAnalyticsService:
 
     def search_conversations(
         self,
-        query: Optional[str] = None,
-        conversation_id: Optional[int] = None,
-        min_confidence: Optional[float] = None,
-        max_confidence: Optional[float] = None,
-        tools_filter: Optional[List[str]] = None,
+        query: str | None = None,
+        conversation_id: int | None = None,
+        min_confidence: float | None = None,
+        max_confidence: float | None = None,
+        tools_filter: list[str] | None = None,
         limit: int = 100,
         offset: int = 0
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Search and filter conversation analytics."""
         if not self.enabled:
             return []
@@ -406,10 +405,10 @@ class ConversationAnalyticsService:
 
     def export_conversations(
         self,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
         format: str = "json"
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Export conversations for analysis."""
         if not self.enabled:
             return []

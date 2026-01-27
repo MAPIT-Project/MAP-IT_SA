@@ -4,11 +4,9 @@ Script to process procedural documents for enhanced FAQ handling.
 Adds procedural guides for portal navigation, filtering, and funding types.
 """
 
-import os
-import sys
 import json
+import sys
 from pathlib import Path
-import shutil
 
 # Add the app directory to the Python path
 sys.path.append(str(Path(__file__).parent.parent))
@@ -48,7 +46,7 @@ def process_procedural_documents():
     
     if processed_docs_file.exists():
         try:
-            with open(processed_docs_file, 'r', encoding='utf-8') as f:
+            with open(processed_docs_file, encoding='utf-8') as f:
                 processed_docs = json.load(f)
         except Exception as e:
             print(f"⚠️ Error loading processed documents: {e}")

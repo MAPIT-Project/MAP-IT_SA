@@ -25,9 +25,9 @@ Usage:
 import logging
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -61,10 +61,10 @@ class ContentRequirement:
     """Defines required elements for a specific query type."""
 
     query_type: QueryType
-    required_elements: List[str]
+    required_elements: list[str]
     min_elements_present: int
     min_response_length: int
-    patterns: List[str] = field(default_factory=list)  # Regex patterns to detect query type
+    patterns: list[str] = field(default_factory=list)  # Regex patterns to detect query type
 
 
 @dataclass
@@ -75,14 +75,14 @@ class QualityAnalysis:
     category: ResponseCategory
     confidence: float  # 0.0-1.0 confidence in the analysis
     query_type: QueryType
-    missing_elements: List[str]
-    deflection_phrases_found: List[str]
-    recommendations: List[str]
-    elements_found: List[str]
+    missing_elements: list[str]
+    deflection_phrases_found: list[str]
+    recommendations: list[str]
+    elements_found: list[str]
     response_length: int
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert analysis to dictionary for serialization."""
         return {
             "score": self.score,
@@ -118,7 +118,7 @@ class ResponseQualityAnalyzer:
     """
 
     # Phrases that indicate the AI is deflecting or avoiding answering
-    DEFLECTION_PHRASES: List[str] = [
+    DEFLECTION_PHRASES: list[str] = [
         "could not find",
         "couldn't find",
         "no information available",
@@ -159,7 +159,7 @@ class ResponseQualityAnalyzer:
     ]
 
     # Content requirements by query type
-    CONTENT_REQUIREMENTS: Dict[QueryType, ContentRequirement] = {
+    CONTENT_REQUIREMENTS: dict[QueryType, ContentRequirement] = {
         QueryType.CALL_INFO: ContentRequirement(
             query_type=QueryType.CALL_INFO,
             required_elements=["call_id", "deadline", "budget", "type", "status", "scope"],
@@ -269,7 +269,7 @@ class ResponseQualityAnalyzer:
         ),
     }
 
-    def __init__(self, custom_deflection_phrases: Optional[List[str]] = None) -> None:
+    def __init__(self, custom_deflection_phrases: list[str] | None = None) -> None:
         """
         Initialize the ResponseQualityAnalyzer.
 
@@ -287,7 +287,7 @@ class ResponseQualityAnalyzer:
         ]
 
         # Pre-compile query type patterns
-        self._query_type_patterns: Dict[QueryType, List[re.Pattern]] = {}
+        self._query_type_patterns: dict[QueryType, list[re.Pattern]] = {}
         for query_type, req in self.CONTENT_REQUIREMENTS.items():
             self._query_type_patterns[query_type] = [
                 re.compile(pattern, re.IGNORECASE)
@@ -300,8 +300,8 @@ class ResponseQualityAnalyzer:
         self,
         query: str,
         response: str,
-        tool_results: Optional[Dict[str, Any]] = None,
-        expected_query_type: Optional[QueryType] = None,
+        tool_results: dict[str, Any] | None = None,
+        expected_query_type: QueryType | None = None,
     ) -> QualityAnalysis:
         """
         Analyze the quality of an AI response.
@@ -379,7 +379,7 @@ class ResponseQualityAnalyzer:
             response_length=response_length,
         )
 
-    def _detect_deflection_phrases(self, response_lower: str) -> List[str]:
+    def _detect_deflection_phrases(self, response_lower: str) -> list[str]:
         """
         Detect deflection phrases in the response.
 
@@ -390,7 +390,7 @@ class ResponseQualityAnalyzer:
             List of deflection phrases found in the response.
         """
         found = []
-        for phrase, pattern in zip(self.deflection_phrases, self._deflection_patterns):
+        for phrase, pattern in zip(self.deflection_phrases, self._deflection_patterns, strict=False):
             if pattern.search(response_lower):
                 found.append(phrase)
         return found
@@ -422,7 +422,7 @@ class ResponseQualityAnalyzer:
         query_lower: str,
         response_lower: str,
         requirements: ContentRequirement,
-    ) -> Tuple[List[str], List[str]]:
+    ) -> tuple[list[str], list[str]]:
         """
         Check if the response meets content requirements.
 
@@ -486,7 +486,7 @@ class ResponseQualityAnalyzer:
 
         return elements_found, missing_elements
 
-    def _validate_tool_results(self, tool_results: Dict[str, Any]) -> int:
+    def _validate_tool_results(self, tool_results: dict[str, Any]) -> int:
         """
         Validate the quality of tool results.
 
@@ -525,12 +525,12 @@ class ResponseQualityAnalyzer:
     def _calculate_score(
         self,
         response_length: int,
-        deflection_phrases_found: List[str],
-        elements_found: List[str],
-        missing_elements: List[str],
+        deflection_phrases_found: list[str],
+        elements_found: list[str],
+        missing_elements: list[str],
         requirements: ContentRequirement,
         tool_quality_score: int,
-    ) -> Tuple[int, ResponseCategory, float]:
+    ) -> tuple[int, ResponseCategory, float]:
         """
         Calculate the overall quality score and determine category.
 
@@ -600,10 +600,10 @@ class ResponseQualityAnalyzer:
     def _generate_recommendations(
         self,
         category: ResponseCategory,
-        missing_elements: List[str],
-        deflection_phrases_found: List[str],
+        missing_elements: list[str],
+        deflection_phrases_found: list[str],
         requirements: ContentRequirement,
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Generate actionable recommendations for improving the response.
 

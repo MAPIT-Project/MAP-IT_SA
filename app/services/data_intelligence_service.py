@@ -13,19 +13,32 @@ Usage:
 """
 
 import logging
-from typing import Dict, Any, List, Optional, Union
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any
 
 try:
-    from .data_intelligence.graph_service import GraphSearchService
-    from .data_intelligence.query_planner import QueryPlanner, QueryPlan, ExecutionStep, ExtractedEntities
     from .data_intelligence.cross_encoder_reranker import CrossEncoderReranker, RankedDocument
+    from .data_intelligence.graph_service import GraphSearchService
+    from .data_intelligence.query_planner import (
+        ExecutionStep,
+        ExtractedEntities,
+        QueryPlan,
+        QueryPlanner,
+    )
     from .local_call_search_service import LocalCallSearchService
 except ImportError:
+    from app.services.data_intelligence.cross_encoder_reranker import (
+        CrossEncoderReranker,
+        RankedDocument,
+    )
     from app.services.data_intelligence.graph_service import GraphSearchService
-    from app.services.data_intelligence.query_planner import QueryPlanner, QueryPlan, ExecutionStep, ExtractedEntities
-    from app.services.data_intelligence.cross_encoder_reranker import CrossEncoderReranker, RankedDocument
+    from app.services.data_intelligence.query_planner import (
+        ExecutionStep,
+        ExtractedEntities,
+        QueryPlan,
+        QueryPlanner,
+    )
     from app.services.local_call_search_service import LocalCallSearchService
 
 logger = logging.getLogger(__name__)
@@ -38,7 +51,7 @@ class SourceResult:
     operation: str
     data: Any
     success: bool
-    error: Optional[str] = None
+    error: str | None = None
     execution_time_ms: float = 0.0
 
 
@@ -49,17 +62,17 @@ class IntelligentSearchResult:
     intent_type: str
     confidence: float
     answer_context: str
-    graph_results: List[Dict[str, Any]] = field(default_factory=list)
-    vector_results: List[Dict[str, Any]] = field(default_factory=list)
-    keyword_results: List[Dict[str, Any]] = field(default_factory=list)
-    sources: List[Dict[str, str]] = field(default_factory=list)
-    plan: Optional[QueryPlan] = None
-    execution_details: List[SourceResult] = field(default_factory=list)
+    graph_results: list[dict[str, Any]] = field(default_factory=list)
+    vector_results: list[dict[str, Any]] = field(default_factory=list)
+    keyword_results: list[dict[str, Any]] = field(default_factory=list)
+    sources: list[dict[str, str]] = field(default_factory=list)
+    plan: QueryPlan | None = None
+    execution_details: list[SourceResult] = field(default_factory=list)
     total_time_ms: float = 0.0
     success: bool = True
-    error: Optional[str] = None
+    error: str | None = None
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
             "query": self.query,
@@ -142,7 +155,7 @@ class DataIntelligenceService:
             self.call_service = None
             self._call_service_available = False
 
-        logger.info(f"🧠 Data Intelligence Service ready")
+        logger.info("🧠 Data Intelligence Service ready")
         logger.info(f"   Graph: {'✓' if self._graph_available else '✗'}")
         logger.info(f"   Vector: {'✓' if self._vector_available else '✗'}")
         logger.info(f"   Planner: {'✓' if self._planner_available else '✗'}")
@@ -299,7 +312,7 @@ class DataIntelligenceService:
                 error=str(e)
             )
     
-    async def _execute_graph_step(self, step: ExecutionStep) -> Optional[Union[Dict, List]]:
+    async def _execute_graph_step(self, step: ExecutionStep) -> dict | list | None:
         """Execute a graph database operation."""
         
         if not self._graph_available:
@@ -384,7 +397,7 @@ class DataIntelligenceService:
         self,
         step: ExecutionStep,
         cleaned_query: str
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Execute a vector search operation."""
         
         if not self._vector_available:
@@ -456,7 +469,7 @@ class DataIntelligenceService:
         self,
         step: ExecutionStep,
         cleaned_query: str
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Execute a keyword search operation."""
         
         if not self._vector_available:
@@ -494,9 +507,9 @@ class DataIntelligenceService:
         self,
         query: str,
         plan: QueryPlan,
-        graph_results: List[Dict],
-        vector_results: List[Dict],
-        keyword_results: List[Dict]
+        graph_results: list[dict],
+        vector_results: list[dict],
+        keyword_results: list[dict]
     ) -> str:
         """Build context string for LLM answer generation."""
         
@@ -675,12 +688,12 @@ class DataIntelligenceService:
     def _fuse_and_rerank(
         self,
         query: str,
-        graph_results: List[Dict],
-        vector_results: List[Dict],
-        keyword_results: List[Dict],
+        graph_results: list[dict],
+        vector_results: list[dict],
+        keyword_results: list[dict],
         top_k: int = 10,
         threshold: float = -5.0
-    ) -> List[RankedDocument]:
+    ) -> list[RankedDocument]:
         """
         Fuse results from multiple sources and rerank using cross-encoder.
         
@@ -735,7 +748,7 @@ class DataIntelligenceService:
             logger.error(f"❌ Reranking failed: {e}")
             return []
     
-    def get_service_status(self) -> Dict[str, Any]:
+    def get_service_status(self) -> dict[str, Any]:
         """Get status of all services."""
         return {
             "graph_available": self._graph_available,
@@ -775,7 +788,7 @@ if __name__ == "__main__":
         
         # Check status
         status = service.get_service_status()
-        logger.info(f"\n📊 Service Status:")
+        logger.info("\n📊 Service Status:")
         logger.info(f"   Graph: {'✓' if status['graph_available'] else '✗'}")
         logger.info(f"   Vector: {'✓' if status['vector_available'] else '✗'}")
         logger.info(f"   Planner: {'✓' if status['planner_available'] else '✗'}")
@@ -803,7 +816,7 @@ if __name__ == "__main__":
             logger.info(f"   Success: {'✓' if result.success else '✗'}")
             
             if result.graph_results:
-                logger.info(f"\n   📊 Sample Graph Result:")
+                logger.info("\n   📊 Sample Graph Result:")
                 sample = result.graph_results[0]
                 for k, v in list(sample.items())[:5]:
                     if v and k != "source":

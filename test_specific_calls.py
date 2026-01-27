@@ -4,10 +4,10 @@ Test specific call queries and follow-up questions.
 Tests the V3 API's conversation flow for call analysis.
 """
 
-import requests
-import json
-import time
 import sys
+import time
+
+import requests
 
 BASE_URL = "http://localhost:8000/api/v3/conversation"
 

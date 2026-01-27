@@ -4,8 +4,9 @@ Simple script to add procedural documents to the processed_documents.json file
 """
 
 import json
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+
 
 def add_procedural_documents():
     """Add procedural documents to the processed documents list."""
@@ -17,7 +18,7 @@ def add_procedural_documents():
         return False
     
     # Load existing processed documents
-    with open(processed_docs_file, 'r', encoding='utf-8') as f:
+    with open(processed_docs_file, encoding='utf-8') as f:
         processed_docs = json.load(f)
     
     # Procedural documents to add

@@ -3,10 +3,11 @@
 Export test results with questions and answers to a file for analysis.
 """
 
-import requests
 import json
-import time
 import sys
+import time
+
+import requests
 
 BASE_URL = "http://localhost:8000/api/v3/conversation"
 

@@ -11,13 +11,13 @@ Provides comprehensive health checks for all services including:
 Supports Kubernetes readiness/liveness probes.
 """
 
-from fastapi import APIRouter, Response
-from datetime import datetime, timezone
-from typing import Dict, Any, Optional
 import asyncio
 import logging
-import os
 import time
+from datetime import UTC, datetime
+from typing import Any
+
+from fastapi import APIRouter, Response
 
 logger = logging.getLogger(__name__)
 
@@ -35,9 +35,9 @@ class ServiceHealth:
         self,
         name: str,
         status: str,  # "healthy", "degraded", "unhealthy"
-        latency_ms: Optional[float] = None,
-        message: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None
+        latency_ms: float | None = None,
+        message: str | None = None,
+        details: dict[str, Any] | None = None
     ):
         self.name = name
         self.status = status
@@ -45,7 +45,7 @@ class ServiceHealth:
         self.message = message
         self.details = details or {}
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         result = {
             "status": self.status,
         }
@@ -163,8 +163,9 @@ async def check_redis() -> ServiceHealth:
     """Check Redis cache connectivity."""
     start = time.time()
     try:
-        from ..core.config import settings
         import redis
+
+        from ..core.config import settings
 
         redis_url = settings.redis_url or "redis://localhost:6379/0"
 
@@ -329,7 +330,7 @@ async def check_supabase() -> ServiceHealth:
 
 @router.get("")
 @router.get("/")
-async def health_check() -> Dict[str, Any]:
+async def health_check() -> dict[str, Any]:
     """
     Comprehensive health check for all services.
 
@@ -396,14 +397,14 @@ async def health_check() -> Dict[str, Any]:
     return {
         "status": overall_status,
         "services": services,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "version": settings.app_version,
         "environment": "docker" if settings.docker_env else "local"
     }
 
 
 @router.get("/ready")
-async def readiness_check(response: Response) -> Dict[str, Any]:
+async def readiness_check(response: Response) -> dict[str, Any]:
     """
     Kubernetes readiness probe.
 
@@ -437,12 +438,12 @@ async def readiness_check(response: Response) -> Dict[str, Any]:
     return {
         "ready": ready,
         "checks": checks,
-        "timestamp": datetime.now(timezone.utc).isoformat()
+        "timestamp": datetime.now(UTC).isoformat()
     }
 
 
 @router.get("/live")
-async def liveness_check() -> Dict[str, Any]:
+async def liveness_check() -> dict[str, Any]:
     """
     Kubernetes liveness probe.
 
@@ -453,12 +454,12 @@ async def liveness_check() -> Dict[str, Any]:
     """
     return {
         "alive": True,
-        "timestamp": datetime.now(timezone.utc).isoformat()
+        "timestamp": datetime.now(UTC).isoformat()
     }
 
 
 @router.get("/dependencies")
-async def dependencies_status() -> Dict[str, Any]:
+async def dependencies_status() -> dict[str, Any]:
     """
     Detailed dependency status for monitoring dashboards.
 
@@ -498,12 +499,12 @@ async def dependencies_status() -> Dict[str, Any]:
             "vector_search_enabled": settings.vector_search_enabled,
             "ai_provider": settings.default_ai_provider
         },
-        "timestamp": datetime.now(timezone.utc).isoformat()
+        "timestamp": datetime.now(UTC).isoformat()
     }
 
 
 @router.get("/metrics")
-async def health_metrics() -> Dict[str, Any]:
+async def health_metrics() -> dict[str, Any]:
     """
     Health metrics for Prometheus/monitoring systems.
 
@@ -538,6 +539,6 @@ async def health_metrics() -> Dict[str, Any]:
             }
 
     metrics["mapit_health_status"] = overall_min
-    metrics["timestamp"] = datetime.now(timezone.utc).isoformat()
+    metrics["timestamp"] = datetime.now(UTC).isoformat()
 
     return metrics

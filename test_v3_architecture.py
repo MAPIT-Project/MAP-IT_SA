@@ -3,13 +3,14 @@
 
 import asyncio
 import os
-import sys
 import random
+import sys
 
 # Add app to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 
@@ -52,7 +53,7 @@ async def test_v3_streaming():
             pass  # Don't print every token
         elif event_type == 'complete':
             meta = event.get('metadata', {})
-            print(f"\n  🏁 COMPLETE:")
+            print("\n  🏁 COMPLETE:")
             print(f"     Architecture: {meta.get('architecture')}")
             print(f"     Iterations: {meta.get('iterations')}")
             print(f"     Tools: {meta.get('tools_used')}")
@@ -101,7 +102,7 @@ async def test_v3_architecture():
         streaming=False
     )
 
-    print(f"\n📊 Response 1:")
+    print("\n📊 Response 1:")
     print(f"   Architecture: {response1.get('metadata', {}).get('architecture', 'unknown')}")
     print(f"   Iterations: {response1.get('metadata', {}).get('iterations', 0)}")
     print(f"   Tools used: {response1.get('metadata', {}).get('tools_used', [])}")
@@ -133,7 +134,7 @@ async def test_v3_architecture():
         streaming=False
     )
 
-    print(f"\n📊 Response 2:")
+    print("\n📊 Response 2:")
     print(f"   Architecture: {response2.get('metadata', {}).get('architecture', 'unknown')}")
     print(f"   Iterations: {response2.get('metadata', {}).get('iterations', 0)}")
     print(f"   Tools used: {response2.get('metadata', {}).get('tools_used', [])}")
@@ -148,7 +149,7 @@ async def test_v3_architecture():
     clean_energy_terms = ['clean', 'energy', 'climate', 'renewable', 'hydrogen', 'battery']
     mentioned_terms = [t for t in clean_energy_terms if t.lower() in answer2.lower()]
 
-    print(f"\n✅ VALIDATION:")
+    print("\n✅ VALIDATION:")
     print(f"   - HORIZON calls found: {len(unique_calls)}")
     print(f"   - Clean energy terms: {mentioned_terms}")
 
@@ -165,7 +166,7 @@ async def test_v3_architecture():
             streaming=False
         )
 
-        print(f"\n📊 Response 3:")
+        print("\n📊 Response 3:")
         print(f"   Architecture: {response3.get('metadata', {}).get('architecture', 'unknown')}")
         print(f"   Iterations: {response3.get('metadata', {}).get('iterations', 0)}")
         answer3 = response3.get('response', '')

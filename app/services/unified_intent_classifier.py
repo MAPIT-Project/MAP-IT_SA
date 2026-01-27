@@ -10,11 +10,12 @@ Single, intelligent AI system that classifies ALL user intents:
 """
 
 import json
-import re
 import logging
 import os
-from typing import Dict, Any, List, Optional, Tuple
+import re
 from dataclasses import dataclass
+from typing import Any
+
 import google.generativeai as genai
 
 logger = logging.getLogger(__name__)
@@ -28,29 +29,29 @@ class UnifiedIntent:
     
     # Tool planning
     requires_tools: bool
-    tool_plan: List[Dict[str, Any]]
+    tool_plan: list[dict[str, Any]]
     
     # NEW: Complexity and routing (determined by LLM, not regex!)
     complexity_type: str = "simple"  # "simple", "comparison", "analysis", "multi_source", "validation"
     requires_multi_tool: bool = False  # Should use ToolAwareAgent?
-    suggested_tools: List[str] = None  # Specific tools the LLM recommends
+    suggested_tools: list[str] = None  # Specific tools the LLM recommends
     complexity_reasoning: str = ""  # Why this complexity level?
     
     # Context extraction
-    call_id: Optional[str] = None  # For call-specific or proposal writing
-    section_id: Optional[str] = None  # For proposal writing sections
-    project_keywords: List[str] = None  # For project searches
-    call_keywords: List[str] = None  # For call searches
+    call_id: str | None = None  # For call-specific or proposal writing
+    section_id: str | None = None  # For proposal writing sections
+    project_keywords: list[str] = None  # For project searches
+    call_keywords: list[str] = None  # For call searches
     
     # Proposal-specific
-    proposal_action: Optional[str] = None  # "draft", "improve", "export", "navigate"
+    proposal_action: str | None = None  # "draft", "improve", "export", "navigate"
     
     # Follow-up specific
-    follow_up_type: Optional[str] = None  # "repeat", "clarify", "expand", "compare"
+    follow_up_type: str | None = None  # "repeat", "clarify", "expand", "compare"
     
     # Additional context
     conversation_context_used: bool = False
-    extracted_entities: Dict[str, Any] = None
+    extracted_entities: dict[str, Any] = None
 
 
 class UnifiedIntentClassifier:
@@ -71,7 +72,7 @@ class UnifiedIntentClassifier:
         self,
         user_message: str,
         conversation_id: int,
-        recent_messages: List[Dict[str, str]] = None
+        recent_messages: list[dict[str, str]] = None
     ) -> UnifiedIntent:
         """
         Classify user intent into one of 5 categories with high accuracy.
@@ -87,7 +88,7 @@ class UnifiedIntentClassifier:
         
         # Build conversation context
         conversation_context = self._build_conversation_context(recent_messages or [])
-        logger.info(f"🔍 Built conversation context:")
+        logger.info("🔍 Built conversation context:")
         logger.info(f"{conversation_context}")
         
         # Create comprehensive classification prompt
@@ -196,7 +197,7 @@ TOOLS: get_programme_statistics, get_country_statistics, compare_programmes, sea
 
 Respond with ONLY the JSON, no other text."""
     
-    def _build_conversation_context(self, recent_messages: List[Dict[str, str]]) -> str:
+    def _build_conversation_context(self, recent_messages: list[dict[str, str]]) -> str:
         """Build conversation context string"""
         if not recent_messages:
             return "No previous context"
@@ -309,10 +310,10 @@ Respond with ONLY the JSON, no other text."""
     
     def _generate_tool_plan(
         self,
-        classification: Dict[str, Any],
+        classification: dict[str, Any],
         user_message: str,
         conversation_id: int
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Generate appropriate tool plan based on intent"""
         
         intent = classification.get('primary_intent')
@@ -423,7 +424,7 @@ Respond with ONLY the JSON, no other text."""
                              'clarify', 'what did you', 'can you repeat', 'say that again']
         
         if any(trigger in message_lower for trigger in follow_up_triggers):
-            logger.info(f"Fallback detected as follow_up intent")
+            logger.info("Fallback detected as follow_up intent")
             return UnifiedIntent(
                 primary_intent="follow_up",
                 confidence=0.7,
@@ -444,7 +445,7 @@ Respond with ONLY the JSON, no other text."""
         # Check for call search intent
         call_search_keywords = ['call', 'calls', 'funding opportunit', 'open call', 'deadline', 'apply']
         if any(kw in message_lower for kw in call_search_keywords):
-            logger.info(f"Fallback detected as search_calls intent (keyword match)")
+            logger.info("Fallback detected as search_calls intent (keyword match)")
             return UnifiedIntent(
                 primary_intent="search_calls",
                 confidence=0.6,
@@ -470,7 +471,7 @@ Respond with ONLY the JSON, no other text."""
         # Check for project search intent
         project_search_keywords = ['project', 'projects', 'funded', 'cordis', 'research project']
         if any(kw in message_lower for kw in project_search_keywords):
-            logger.info(f"Fallback detected as search_projects intent (keyword match)")
+            logger.info("Fallback detected as search_projects intent (keyword match)")
             return UnifiedIntent(
                 primary_intent="search_projects",
                 confidence=0.6,
@@ -545,7 +546,7 @@ Respond with ONLY the JSON, no other text."""
 
         # Override to search_calls if strong signal and currently faq
         if has_call_signal and intent.primary_intent == 'faq':
-            logger.info(f"🔄 OVERRIDE: faq → search_calls (strong keyword signal detected)")
+            logger.info("🔄 OVERRIDE: faq → search_calls (strong keyword signal detected)")
             return UnifiedIntent(
                 primary_intent="search_calls",
                 confidence=0.75,
@@ -574,7 +575,7 @@ Respond with ONLY the JSON, no other text."""
 
         # Override to search_projects if strong signal and currently faq
         if has_project_signal and intent.primary_intent == 'faq':
-            logger.info(f"🔄 OVERRIDE: faq → search_projects (strong keyword signal detected)")
+            logger.info("🔄 OVERRIDE: faq → search_projects (strong keyword signal detected)")
             return UnifiedIntent(
                 primary_intent="search_projects",
                 confidence=0.75,
@@ -603,7 +604,7 @@ Respond with ONLY the JSON, no other text."""
 
         return intent  # No override needed
 
-    def extract_call_id(self, text: str) -> Optional[str]:
+    def extract_call_id(self, text: str) -> str | None:
         """Extract call ID from text"""
         # Match HORIZON-XXX-YYYY-ZZ-... pattern
         pattern = r'HORIZON-[A-Z0-9]+-\d{4}-[A-Z0-9]+-[A-Z0-9-]+'

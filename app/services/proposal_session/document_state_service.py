@@ -8,8 +8,7 @@ Works in conjunction with ProposalSessionManager for persistence.
 
 import logging
 import uuid
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from .session_state import (
     Gap,
@@ -75,7 +74,7 @@ class DocumentStateService:
     # Section Structure Operations
     # =========================================================================
 
-    def get_standard_sections(self, proposal_type: str) -> List[Tuple[str, str]]:
+    def get_standard_sections(self, proposal_type: str) -> list[tuple[str, str]]:
         """
         Get standard section structure for a proposal type.
 
@@ -127,7 +126,7 @@ class DocumentStateService:
         section_id: str,
         content: str,
         source: str = "user",
-    ) -> Optional[SectionState]:
+    ) -> SectionState | None:
         """
         Update section content with validation.
 
@@ -164,7 +163,7 @@ class DocumentStateService:
         section_id: str,
         content: str,
         separator: str = "\n\n",
-    ) -> Optional[SectionState]:
+    ) -> SectionState | None:
         """
         Append content to an existing section.
 
@@ -186,7 +185,7 @@ class DocumentStateService:
 
     def clear_section(
         self, session: ProposalSessionState, section_id: str
-    ) -> Optional[SectionState]:
+    ) -> SectionState | None:
         """
         Clear section content.
 
@@ -208,7 +207,7 @@ class DocumentStateService:
         session: ProposalSessionState,
         section_id: str,
         score: float,
-        breakdown: Optional[Dict[str, float]] = None,
+        breakdown: dict[str, float] | None = None,
     ) -> bool:
         """
         Update quality score for a section.
@@ -283,7 +282,7 @@ class DocumentStateService:
         category: str = "content",
         suggested_fix: str = "",
         effort_level: str = "medium",
-    ) -> Optional[Gap]:
+    ) -> Gap | None:
         """
         Add a gap to a section.
 
@@ -349,7 +348,7 @@ class DocumentStateService:
         priority: str = "medium",
         start_position: int = 0,
         end_position: int = 0,
-    ) -> Optional[InlineSuggestion]:
+    ) -> InlineSuggestion | None:
         """
         Add an inline suggestion to a section.
 
@@ -443,7 +442,7 @@ class DocumentStateService:
 
     def get_document_overview(
         self, session: ProposalSessionState
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get comprehensive document overview for agent context.
 
@@ -488,7 +487,7 @@ class DocumentStateService:
 
     def get_section_details(
         self, session: ProposalSessionState, section_id: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """
         Get detailed information about a section.
 
@@ -548,7 +547,7 @@ class DocumentStateService:
 
     def get_sections_needing_attention(
         self, session: ProposalSessionState
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Get sections that need attention (low scores, gaps, incomplete).
 
@@ -605,7 +604,7 @@ class DocumentStateService:
     # =========================================================================
 
     def set_active_section(
-        self, session: ProposalSessionState, section_id: Optional[str]
+        self, session: ProposalSessionState, section_id: str | None
     ) -> bool:
         """
         Set the currently active section.
@@ -626,7 +625,7 @@ class DocumentStateService:
 
     def get_next_section(
         self, session: ProposalSessionState, current_section_id: str
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Get the next section in order.
 
@@ -648,7 +647,7 @@ class DocumentStateService:
 
     def get_previous_section(
         self, session: ProposalSessionState, current_section_id: str
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Get the previous section in order.
 

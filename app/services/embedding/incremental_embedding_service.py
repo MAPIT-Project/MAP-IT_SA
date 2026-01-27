@@ -5,15 +5,15 @@ Detects and processes new/modified projects that need embeddings.
 Designed to be run as a scheduled task via Celery or cron.
 """
 
-import os
 import logging
-from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
-import psycopg2
-from psycopg2.extras import RealDictCursor
-from psycopg2 import pool
-from dotenv import load_dotenv
+import os
+from datetime import datetime
+from typing import Any
+
 import google.generativeai as genai
+from dotenv import load_dotenv
+from psycopg2 import pool
+from psycopg2.extras import RealDictCursor
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -77,7 +77,7 @@ class IncrementalEmbeddingService:
         if IncrementalEmbeddingService._pool and conn:
             IncrementalEmbeddingService._pool.putconn(conn)
 
-    def get_projects_needing_embeddings(self, limit: int = 500) -> List[Dict]:
+    def get_projects_needing_embeddings(self, limit: int = 500) -> list[dict]:
         """
         Find projects that need embeddings:
         1. New projects without embeddings
@@ -141,7 +141,7 @@ class IncrementalEmbeddingService:
         finally:
             self._put_connection(conn)
 
-    def get_embedding_stats(self) -> Dict[str, Any]:
+    def get_embedding_stats(self) -> dict[str, Any]:
         """Get current embedding statistics."""
         if not self.enabled:
             return {"error": "Embedding service not enabled"}
@@ -200,7 +200,7 @@ class IncrementalEmbeddingService:
         finally:
             self._put_connection(conn)
 
-    def generate_embedding(self, text: str) -> Optional[List[float]]:
+    def generate_embedding(self, text: str) -> list[float] | None:
         """Generate embedding for a text using Google's embedding model."""
         if not text or len(text.strip()) < 20:
             return None
@@ -223,7 +223,7 @@ class IncrementalEmbeddingService:
             logger.error(f"Embedding generation error: {e}")
             return None
 
-    def process_project_batch(self, projects: List[Dict]) -> Dict[str, int]:
+    def process_project_batch(self, projects: list[dict]) -> dict[str, int]:
         """Process a batch of projects and generate/store embeddings."""
         if not self.enabled:
             return {"processed": 0, "success": 0, "failed": 0}
@@ -304,7 +304,7 @@ class IncrementalEmbeddingService:
             "failed": failed
         }
 
-    def run_incremental_update(self, max_projects: int = 500) -> Dict[str, Any]:
+    def run_incremental_update(self, max_projects: int = 500) -> dict[str, Any]:
         """
         Run incremental embedding update.
 

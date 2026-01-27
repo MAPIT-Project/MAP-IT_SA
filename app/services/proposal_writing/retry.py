@@ -5,11 +5,12 @@ Decorators for automatic retry with exponential backoff.
 """
 
 import asyncio
-import logging
 import functools
-import time
+import logging
 import random
-from typing import Type, Tuple, Callable, Any, Optional
+import time
+from collections.abc import Callable
+from typing import Any
 
 from .exceptions import ProposalWritingError, RateLimitError
 
@@ -22,12 +23,12 @@ def async_retry(
     max_delay: float = 30.0,
     exponential_base: float = 2.0,
     jitter: bool = True,
-    retryable_exceptions: Tuple[Type[Exception], ...] = (
+    retryable_exceptions: tuple[type[Exception], ...] = (
         ProposalWritingError,
         ConnectionError,
         asyncio.TimeoutError
     ),
-    on_retry: Optional[Callable[[Exception, int], None]] = None
+    on_retry: Callable[[Exception, int], None] | None = None
 ):
     """
     Async retry decorator with exponential backoff.
@@ -108,7 +109,7 @@ def sync_retry(
     max_delay: float = 30.0,
     exponential_base: float = 2.0,
     jitter: bool = True,
-    retryable_exceptions: Tuple[Type[Exception], ...] = (Exception,)
+    retryable_exceptions: tuple[type[Exception], ...] = (Exception,)
 ):
     """Synchronous retry decorator."""
 

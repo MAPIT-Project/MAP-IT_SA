@@ -1,77 +1,113 @@
 {
   "scenario_name": "Returning User Context",
+  "status": "FAIL",
+  "average_quality_score": 81.0,
+  "average_factual_score": 100.0,
   "turns": [
     {
-      "turn_number": 0,
       "query": "I'm a researcher working on hydrogen storage technologies. Can you tell me about EU funding opportunities?",
-      "response_text": "I found **9 funding opportunities** for your query:\n\n**1. HORIZON-CL5-2025-03-D1-06**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2025-03-D1-06\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL5-2025-03-D1-06\n\n---\n\n**2. Demonstration of thermal energy storage solutions for solar thermal plants and systems**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-05\n\ud83d\udce6 **Type:** LUMP-SUM\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: Project results are expected to contribute to some of the following expected outcomes: Significant reduction of LCOHS (Levelised Cost of Heat Storage) and/or LCOE (Levelised Cost of Energy); Technology providers profit from...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d3-05\n\n---\n\n**3. Underground Thermal Energy Storage in dense urban areas**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-22\n\ud83d\udce6 **Type:** LUMP-SUM\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: Project results are expected to contribute to all of the following expected outcomes: Advanced European innovative knowledge basis and increased technology competitiveness in the area thermal storage; Improved security of the...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d3-22\n\n---\n\n**4. Development of innovative solutions strengthening the security of renewable energy value chains**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-14\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: The security of Europe`s clean energy system will, in the long-run, benefit from research and innovation addressing energy-security relevant criticalities of the underlying clean energy technology value chains.\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d3-14\n\n---\n\n**5. Phase out fossil fuel in energy intensive industries through the efficient integration of renewable energy sources**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D4-06\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: Project results are expected to contribute to all of the following expected outcomes: Based on the results of the project, at least one industrial sector with a significant heating demand in the EU and Associated Countries develops...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d4-06\n\n---\n\n**6. Competitiveness, energy security and integration aspects of advanced biofuels and renewable fuels of non-biological origin value chains**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-02\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: European energy security and industrial competitiveness are contested by the geopolitical circumstances and market situations around the world.\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d3-02\n\n---\n\n**7. Improved reliability and optimised operations and maintenance for wind energy systems**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-07\n\ud83d\udce6 **Type:** LUMP-SUM\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: Project results are expected to contribute to all of the following expected outcomes: Limit the risks related to wind energy systems (e.g., operational, financial, climate) and thus reduce the wind energy projects\u2019 uncertainties;...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d3-07\n\n---\n\n**8. Towards commercialisation of Perovskite PV and development of dedicated manufacturing equipment (EUPI-PV Partnership)**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-10\n\ud83d\udce6 **Type:** LUMP-SUM\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: The rapid development of perovskite solar cells (PSCs) over the past decade makes it the most promising next generation photovoltaic technology, owing to its prominent advantages such as tuneable bandgap, high absorption...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d3-10\n\n---\n\n**9. HORIZON-CL5-2025-D2-02-06**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2025-D2-02-06\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\ud83d\udcb0 **Budget:** EUR 15.0 million\n\n\ud83d\udcdd **Summary:** Advanced battery materials aiming at storage duration from 10 hours to seasonal storage are developed, thus contributing to the Renewable Energy targets set by RePowerEU; Minimised use of Critical Raw Materials (CRM) in line with the EU's Critical...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL5-2025-D2-02-06\n\n---\n\n---\n\n\ud83d\udca1 **How to Apply:**\n\u2022 **Register** on the EU Funding & Tenders Portal if you haven't already\n\u2022 **Check eligibility** criteria carefully for each call\n\u2022 **Prepare partnerships** - many calls require consortium applications\n\u2022 **Review evaluation criteria** and weightings in the call documentation\n\u2022 **Submit well before** the deadline - the portal can be busy near deadlines\n\n\ud83d\udcda **Useful Resources:**\n\u2022 [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)\n\u2022 [How to Participate Guide](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/how-to-participate/1)\n\u2022 [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search)\n\n\ud83c\udfaf **Next Steps:**\n\u2022 Click on the 'Apply' links above for full call details\n\u2022 Download the call documentation and work programme\n\u2022 Start building your consortium if partnerships are required",
-      "tools_used": [
-        "search_funding_calls"
-      ],
+      "response": "I found **9 funding opportunities** for your query:\n\n**1. HORIZON-CL5-2025-03-D1-06**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2025-03-D1-06\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL5-2025-03-D1-06\n\n---\n\n**2. Demonstration of thermal energy storage solutions for solar thermal plants and systems**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-...",
       "quality_score": 83,
       "factual_score": 100.0,
       "failures": [],
-      "context_evidence": [],
+      "tools_used": [
+        "search_funding_calls",
+        "search_funding_calls",
+        "search_projects",
+        "get_budget_benchmark"
+      ],
+      "processing_time_ms": 14324.564,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
       "passed": true
     },
     {
-      "turn_number": 1,
       "query": "We're a research institute in Germany with experience in Horizon 2020 projects",
-      "response_text": "Based on my search for information about 'We're a research institute in Germany with experience in Horizon 2020 projects', here's what I found:\n\n**Finding 1:**\nand  technical  support \nthroughout the policy cycle. The JRC focuses its research on Union policy priorities.\n\nAreas  of  intervention:  strengthening  the  knowledge  base  for  policy  making;  global  challenges  (health;  culture, \ncreativity and inclusive society; civil security for society; digital, industry and space; climate, energy and mobility; \nfood,  bioeconomy,  natural  resources,\n\n**Finding 2:**\nin  preparation  of  calls  for  proposals.  Get  connected  with  other  procurers \nand  experts  from  around  Europe  that  are  interested  and  active  on  innovation \nprocurement via the LinkedIn Group on Innovation Procurement. \n\nNational Contact Points (NCPs) in every Member State offer information and guidance in \nyour  own  language  on  how  to  apply  for  Horizon  Europe  funding",
-      "tools_used": [
-        "search_documents"
-      ],
-      "quality_score": 79,
+      "response": "Based on my search for information about 'We're a research institute in Germany with experience in Horizon 2020 projects', here's what I found:\n\n**Finding 1:**\nand  technical  support \nthroughout the policy cycle. The JRC focuses its research on Union policy priorities.\n\nAreas  of  intervention:  strengthening  the  knowledge  base  for  policy  making;  global  challenges  (health;  culture, \ncreativity and inclusive society; civil security for society; digital, industry and space; climate, ene...",
+      "quality_score": 81,
       "factual_score": 100.0,
       "failures": [],
-      "context_evidence": [],
-      "passed": false
+      "tools_used": [
+        "search_documents",
+        "get_country_statistics",
+        "get_consortium_patterns"
+      ],
+      "processing_time_ms": 8769.161,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": true
     },
     {
-      "turn_number": 2,
       "query": "What are the typical success rates for coordination projects?",
-      "response_text": "I am sorry, but the provided search results do not contain information about the typical success rates for coordination projects. The snippets focus on potential issues within grant agreements, such as false declarations, payment problems, and reporting failures. They do not provide any data or statistics on the success or failure rates of coordination projects.\n",
-      "tools_used": [
-        "search_documents"
-      ],
-      "quality_score": 75,
+      "response": "Unfortunately, the provided search results **do not contain information about the typical success rates for coordination projects.**\n\nThe results only provide statistics for Horizon Europe projects, including the total number of projects, total funding awarded, and budget breakdowns. Crucially, the success rate is listed as \"N/A%\".\n\nTherefore, I cannot answer your question about typical success rates for coordination projects based on the information provided. You would need to consult other sou...",
+      "quality_score": 77,
       "factual_score": 100.0,
       "failures": [],
-      "context_evidence": [],
+      "tools_used": [
+        "get_programme_statistics"
+      ],
+      "processing_time_ms": 9421.749,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 2
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
       "passed": false
     },
     {
-      "turn_number": 3,
       "query": "I mentioned earlier I work on hydrogen - any new calls open right now?",
-      "response_text": "I found **12 funding opportunities** for your query:\n\n**1. Phase out fossil fuel in energy intensive industries through the efficient integration of renewable energy sources**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D4-06\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: Project results are expected to contribute to all of the following expected outcomes: Based on the results of the project, at least one industrial sector with a significant heating demand in the EU and Associated Countries develops...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d4-06\n\n---\n\n**2. Competitiveness, energy security and integration aspects of advanced biofuels and renewable fuels of non-biological origin value chains**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-02\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: European energy security and industrial competitiveness are contested by the geopolitical circumstances and market situations around the world.\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d3-02\n\n---\n\n**3. Large-scale production of liquid advanced biofuels and renewable fuels of non-biological origin**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-01\n\ud83d\udce6 **Type:** LUMP-SUM\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: A quite wide portfolio of technologies, which are close to be deployed but still lack the real-world demonstration of economic viability, exists.\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d3-01\n\n---\n\n**4. HORIZON-CL5-2025-03-D1-06**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2025-03-D1-06\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL5-2025-03-D1-06\n\n---\n\n**5. Development of innovative solutions strengthening the security of renewable energy value chains**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-14\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: The security of Europe`s clean energy system will, in the long-run, benefit from research and innovation addressing energy-security relevant criticalities of the underlying clean energy technology value chains.\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d3-14\n\n---\n\n**6. Demonstration of thermal energy storage solutions for solar thermal plants and systems**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-05\n\ud83d\udce6 **Type:** LUMP-SUM\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: Project results are expected to contribute to some of the following expected outcomes: Significant reduction of LCOHS (Levelised Cost of Heat Storage) and/or LCOE (Levelised Cost of Energy); Technology providers profit from...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d3-05\n\n---\n\n**7. Underground Thermal Energy Storage in dense urban areas**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-22\n\ud83d\udce6 **Type:** LUMP-SUM\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: Project results are expected to contribute to all of the following expected outcomes: Advanced European innovative knowledge basis and increased technology competitiveness in the area thermal storage; Improved security of the...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d3-22\n\n---\n\n**8. Improved reliability and optimised operations and maintenance for wind energy systems**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-07\n\ud83d\udce6 **Type:** LUMP-SUM\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: Project results are expected to contribute to all of the following expected outcomes: Limit the risks related to wind energy systems (e.g., operational, financial, climate) and thus reduce the wind energy projects\u2019 uncertainties;...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d3-07\n\n---\n\n**9. Towards commercialisation of Perovskite PV and development of dedicated manufacturing equipment (EUPI-PV Partnership)**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-10\n\ud83d\udce6 **Type:** LUMP-SUM\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: The rapid development of perovskite solar cells (PSCs) over the past decade makes it the most promising next generation photovoltaic technology, owing to its prominent advantages such as tuneable bandgap, high absorption...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d3-10\n\n---\n\n**10. Smarter buildings as part of the energy system for increased efficiency and flexibility \u2013 Societal Readiness Pilot**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D4-02\n\ud83d\udce6 **Type:** LUMP-SUM\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: Project results are expected to contribute to all of the following expected outcomes: Measurable reduction in buildings\u2019 energy demand together with a reduced gap between their as-designed and as-built energy performance;...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d4-02\n\n---\n\n**11. Smarter buildings as part of the energy system for increased efficiency and flexibility \u2013 Societal Readiness Pilot**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Smarter buildings as part of the energy system for increased efficiency and flexibility \u2013 Societal Readiness Pilot\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL5-2026-02-D4-02\n\n---\n\n**12. Advancing lead markets and proof-of-concept for deep tech solutions contributing to EU Missions**\n\ud83d\udccb **Call ID:** HORIZON-MISS-2026-07-CROSS-03\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 31 March 2026\n\ud83c\udfdb\ufe0f **Programme:** MISS\n\n\ud83d\udcdd **Summary:** Expected Outcome: Expected outcomes : Stakeholders in Missions on European, national and regional level embrace their roles as actors in \u2018 lead markets for innovative products and services with a purpose \u2019 that are provided by public investments in...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-miss-2026-07-cross-03\n\n---\n\n---\n\n\ud83d\udca1 **How to Apply:**\n\u2022 **Register** on the EU Funding & Tenders Portal if you haven't already\n\u2022 **Check eligibility** criteria carefully for each call\n\u2022 **Prepare partnerships** - many calls require consortium applications\n\u2022 **Review evaluation criteria** and weightings in the call documentation\n\u2022 **Submit well before** the deadline - the portal can be busy near deadlines\n\n\ud83d\udcda **Useful Resources:**\n\u2022 [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)\n\u2022 [How to Participate Guide](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/how-to-participate/1)\n\u2022 [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search)\n\n\ud83c\udfaf **Next Steps:**\n\u2022 Click on the 'Apply' links above for full call details\n\u2022 Download the call documentation and work programme\n\u2022 Start building your consortium if partnerships are required",
-      "tools_used": [
-        "search_funding_calls"
-      ],
+      "response": "I found **12 funding opportunities** for your query:\n\n**1. Phase out fossil fuel in energy intensive industries through the efficient integration of renewable energy sources**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D4-06\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: Project results are expected to contribute to all of the following expected outcomes: Based on the results of the project, at least one industrial sector with a signif...",
       "quality_score": 83,
       "factual_score": 100.0,
       "failures": [],
-      "context_evidence": [
-        "hydrogen:storage",
-        "hydrogen:energy",
-        "hydrogen:clean",
-        "hydrogen:fuel",
-        "hydrogen:renewable",
-        "hydrogen:cl5",
-        "org:research",
-        "org:horizon"
+      "tools_used": [
+        "search_funding_calls",
+        "search_funding_calls"
       ],
+      "processing_time_ms": 6263.531000000001,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
       "passed": true
     }
   ],
-  "average_score": 80.0,
-  "factual_score": 100.0,
+  "scores": {
+    "average_quality": 81.0,
+    "average_factual": 100.0,
+    "goal_progress": 0.5885714285714285,
+    "context_fields": 5
+  },
   "failures": [],
-  "status": "PASS",
-  "execution_time_ms": 16430.686,
-  "timestamp": "2026-01-23T00:37:04.588106",
-  "fix_history": [],
   "metadata": {
-    "scenario_path": "/home/anmar/Documents/VSCODE_REPOS/MAPIT/NEWMAPIT/MAP-IT_SA/tests/scenarios/advanced/returning_user_context.yaml",
+    "scenario_path": "tests/scenarios/advanced/returning_user_context.yaml",
     "tags": [
       "phase4",
       "personalization",
@@ -81,6 +117,13 @@
       "memory"
     ],
     "description": "A 4-step scenario that tests context persistence across conversation turns.\nThe user establishes a hydrogen research context in the first messages,\nthen later references it with \"I mentioned earlier I work on hydrogen\".\nThe system should recall this context and provide relevant funding calls\nwithout asking the user to clarify the topic again.\n",
-    "conversation_id": 780596213
-  }
+    "conversation_id": 1659416297
+  },
+  "execution_time_ms": 135881.30000000002,
+  "timestamp": "2026-01-23T16:37:00.643488",
+  "passed": false,
+  "turn_count": 4,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
 }

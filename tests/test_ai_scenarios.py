@@ -12,14 +12,12 @@ Validates that:
 Run with: pytest tests/test_ai_scenarios.py -v
 """
 
-import pytest
-import asyncio
 import os
 import sys
-from typing import Dict, Any, List, Optional
-from unittest.mock import patch, MagicMock, AsyncMock
-from datetime import datetime
 from dataclasses import dataclass
+from datetime import datetime
+
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -66,7 +64,7 @@ class MockToolResults:
     """Factory for creating realistic mock tool results."""
 
     @staticmethod
-    def search_funding_calls(count: int = 5, topic: str = "hydrogen") -> Dict:
+    def search_funding_calls(count: int = 5, topic: str = "hydrogen") -> dict:
         """Mock search_funding_calls result."""
         return {
             "success": True,
@@ -91,7 +89,7 @@ class MockToolResults:
         }
 
     @staticmethod
-    def search_projects(count: int = 5, topic: str = "AI") -> Dict:
+    def search_projects(count: int = 5, topic: str = "AI") -> dict:
         """Mock search_projects result."""
         countries = ["DE", "FR", "ES", "IT", "NL", "BE", "SE", "AT", "FI", "DK"]
         return {
@@ -120,7 +118,7 @@ class MockToolResults:
         }
 
     @staticmethod
-    def search_documents(query: str = "eligibility", count: int = 3) -> Dict:
+    def search_documents(query: str = "eligibility", count: int = 3) -> dict:
         """Mock search_documents / search_local_database result."""
         return {
             "success": True,
@@ -140,7 +138,7 @@ class MockToolResults:
         }
 
     @staticmethod
-    def get_programme_statistics(programme: str = "RIA") -> Dict:
+    def get_programme_statistics(programme: str = "RIA") -> dict:
         """Mock get_programme_statistics result."""
         return {
             "success": True,
@@ -163,7 +161,7 @@ class MockToolResults:
         }
 
     @staticmethod
-    def get_country_statistics(country: str = "Germany") -> Dict:
+    def get_country_statistics(country: str = "Germany") -> dict:
         """Mock get_country_statistics result."""
         return {
             "success": True,
@@ -186,7 +184,7 @@ class MockToolResults:
         }
 
     @staticmethod
-    def compare_programmes(prog1: str = "ERC", prog2: str = "EIC") -> Dict:
+    def compare_programmes(prog1: str = "ERC", prog2: str = "EIC") -> dict:
         """Mock compare_programmes result."""
         return {
             "success": True,
@@ -218,7 +216,7 @@ class MockToolResults:
         }
 
     @staticmethod
-    def get_budget_benchmark(action_type: str = "RIA", cluster: str = None) -> Dict:
+    def get_budget_benchmark(action_type: str = "RIA", cluster: str = None) -> dict:
         """Mock get_budget_benchmark result."""
         return {
             "success": True,
@@ -247,7 +245,7 @@ class MockToolResults:
         }
 
     @staticmethod
-    def get_consortium_patterns(cluster: str = "CL4", action_type: str = "RIA") -> Dict:
+    def get_consortium_patterns(cluster: str = "CL4", action_type: str = "RIA") -> dict:
         """Mock get_consortium_patterns result."""
         return {
             "success": True,
@@ -284,7 +282,7 @@ class MockToolResults:
         }
 
     @staticmethod
-    def find_experienced_partners(topic: str = "AI", country: str = None) -> Dict:
+    def find_experienced_partners(topic: str = "AI", country: str = None) -> dict:
         """Mock find_experienced_partners result."""
         return {
             "success": True,
@@ -327,7 +325,7 @@ class MockToolResults:
         }
 
     @staticmethod
-    def get_similar_funded_projects(description: str) -> Dict:
+    def get_similar_funded_projects(description: str) -> dict:
         """Mock get_similar_funded_projects result."""
         return {
             "success": True,
@@ -364,7 +362,7 @@ class MockToolResults:
         }
 
     @staticmethod
-    def analyze_call_history(cluster: str = "CL4", keywords: str = None) -> Dict:
+    def analyze_call_history(cluster: str = "CL4", keywords: str = None) -> dict:
         """Mock analyze_call_history result."""
         return {
             "success": True,
@@ -398,7 +396,7 @@ class MockToolResults:
         }
 
     @staticmethod
-    def intelligent_search(query: str) -> Dict:
+    def intelligent_search(query: str) -> dict:
         """Mock intelligent_search result."""
         return {
             "success": True,
@@ -428,7 +426,7 @@ class MockToolResults:
         }
 
     @staticmethod
-    def consortium_builder(cluster_code: str = "CLUSTER-5") -> Dict:
+    def consortium_builder(cluster_code: str = "CLUSTER-5") -> dict:
         """Mock consortium_builder result."""
         return {
             "success": True,
@@ -461,7 +459,7 @@ class MockToolResults:
         }
 
     @staticmethod
-    def compliance_checker(partners: List[Dict], action_type: str = "RIA") -> Dict:
+    def compliance_checker(partners: list[dict], action_type: str = "RIA") -> dict:
         """Mock compliance_checker result."""
         return {
             "success": True,
@@ -1442,7 +1440,7 @@ class TestResponseQuality:
         ]
 
         for result in tool_results:
-            assert "tool_name" in result, f"Tool result missing 'tool_name' field"
+            assert "tool_name" in result, "Tool result missing 'tool_name' field"
 
     def test_numeric_values_are_reasonable(self):
         """Numeric values should be within reasonable ranges."""

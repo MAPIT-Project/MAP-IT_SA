@@ -4,16 +4,14 @@ Script to ingest comprehensive Horizon Europe documents into the vector database
 This enables the RAG system to answer questions about ANY call or topic.
 """
 
-import os
-import sys
-import json
-import logging
 import asyncio
 import hashlib
+import json
+import logging
+import sys
 import time
 from pathlib import Path
-from typing import List, Dict, Any, Optional
-from datetime import datetime
+from typing import Any
 
 # Add the app directory to the Python path
 sys.path.append(str(Path(__file__).parent.parent))
@@ -43,8 +41,8 @@ class ComprehensiveDocumentIngestor:
     def _initialize_services(self):
         """Initialize the required services."""
         try:
-            from app.services.supabase_client import SupabaseVectorStore
             from app.services.embedding_service import EmbeddingService
+            from app.services.supabase_client import SupabaseVectorStore
             from app.services.vector_search_service import VectorSearchService
             
             self.supabase = SupabaseVectorStore()
@@ -57,7 +55,7 @@ class ComprehensiveDocumentIngestor:
             logger.error(f"❌ Failed to initialize services: {e}")
             raise
     
-    async def check_existing_documents(self, chunks: List[Dict[str, Any]]) -> Dict[str, Any]:
+    async def check_existing_documents(self, chunks: list[dict[str, Any]]) -> dict[str, Any]:
         """Check which documents and chunks already exist to enable resume capability."""
         logger.info("🔍 Checking for existing documents and chunks...")
         
@@ -117,7 +115,7 @@ class ComprehensiveDocumentIngestor:
             logger.error(f"❌ Database connection check failed: {e}")
             return False
     
-    def load_ingestion_data(self) -> List[Dict[str, Any]]:
+    def load_ingestion_data(self) -> list[dict[str, Any]]:
         """Load ingestion-ready data from JSONL file."""
         if not self.ingestion_file.exists():
             logger.error(f"❌ Ingestion file not found: {self.ingestion_file}")
@@ -125,7 +123,7 @@ class ComprehensiveDocumentIngestor:
         
         ingestion_data = []
         try:
-            with open(self.ingestion_file, 'r', encoding='utf-8') as f:
+            with open(self.ingestion_file, encoding='utf-8') as f:
                 for line in f:
                     if line.strip():
                         item = json.loads(line.strip())
@@ -138,7 +136,7 @@ class ComprehensiveDocumentIngestor:
             logger.error(f"❌ Error loading ingestion data: {e}")
             return []
     
-    async def _create_document_records(self, chunks: List[Dict[str, Any]]) -> Dict[str, str]:
+    async def _create_document_records(self, chunks: list[dict[str, Any]]) -> dict[str, str]:
         """Create document records for all unique source documents and return mapping of source to document ID."""
         document_map = {}
         unique_sources = set()
@@ -248,7 +246,7 @@ class ComprehensiveDocumentIngestor:
             logger.warning(f"⚠️ Unknown document type '{document_type}', using 'manual'")
             return 'manual'
     
-    async def _create_single_document_record(self, source: str, document_data: Dict[str, Any]) -> Optional[str]:
+    async def _create_single_document_record(self, source: str, document_data: dict[str, Any]) -> str | None:
         """Create a single document record asynchronously with retry logic."""
         max_retries = 3
         retry_delay = 1
@@ -292,7 +290,7 @@ class ComprehensiveDocumentIngestor:
         logger.error(f"❌ Failed to create document after {max_retries} attempts: {source}")
         return None
     
-    async def _process_batch_concurrent(self, batch: List[Dict[str, Any]], document_map: Dict[str, str]) -> Dict[str, Any]:
+    async def _process_batch_concurrent(self, batch: list[dict[str, Any]], document_map: dict[str, str]) -> dict[str, Any]:
         """Process a batch of chunks concurrently for maximum performance."""
         logger.info(f"🔄 Processing {len(batch)} chunks concurrently...")
         
@@ -365,10 +363,10 @@ class ComprehensiveDocumentIngestor:
     
     async def _process_single_chunk_data(
         self, 
-        chunk: Dict[str, Any], 
+        chunk: dict[str, Any], 
         embedding: Any, 
-        document_map: Dict[str, str]
-    ) -> Optional[Dict[str, Any]]:
+        document_map: dict[str, str]
+    ) -> dict[str, Any] | None:
         """Process a single chunk's data preparation (async-safe operations only)."""
         try:
             # Get document ID from the map
@@ -406,7 +404,7 @@ class ComprehensiveDocumentIngestor:
             logger.error(f"❌ Error processing single chunk: {e}")
             return None
     
-    async def ingest_chunks(self, chunks: List[Dict[str, Any]], batch_size: Optional[int] = None) -> Dict[str, Any]:
+    async def ingest_chunks(self, chunks: list[dict[str, Any]], batch_size: int | None = None) -> dict[str, Any]:
         """Ingest chunks into the vector database with optimized concurrent processing."""
         if not chunks:
             logger.warning("⚠️ No chunks to ingest")
@@ -479,7 +477,7 @@ class ComprehensiveDocumentIngestor:
                 failed_ingestions.extend([chunk.get("id", "unknown") for chunk in batch])
         
         # Summary
-        logger.info(f"\n📊 Optimized Ingestion Summary:")
+        logger.info("\n📊 Optimized Ingestion Summary:")
         logger.info(f"✅ Successful: {successful_ingestions}/{total_chunks}")
         logger.info(f"❌ Failed: {len(failed_ingestions)}")
         
@@ -497,7 +495,7 @@ class ComprehensiveDocumentIngestor:
         """Update and log document statistics after ingestion."""
         try:
             stats = self.supabase.get_document_stats()
-            logger.info(f"📈 Database Statistics:")
+            logger.info("📈 Database Statistics:")
             logger.info(f"   Total Documents: {stats.get('total_documents', 0)}")
             logger.info(f"   Total Chunks: {stats.get('total_chunks', 0)}")
             logger.info(f"   Documents by Type: {json.dumps(stats.get('documents_by_type', {}), indent=2)}")
@@ -583,7 +581,7 @@ class ComprehensiveDocumentIngestor:
         total_time = time.time() - start_time
         chunks_per_second = len(chunks_to_process) / total_time if total_time > 0 else 0
         
-        logger.info(f"⚡ Performance metrics:")
+        logger.info("⚡ Performance metrics:")
         logger.info(f"   Total time: {total_time:.2f} seconds")
         logger.info(f"   Chunks per second: {chunks_per_second:.2f}")
         logger.info(f"   Average time per chunk: {total_time/len(chunks_to_process):.3f} seconds")
@@ -606,10 +604,10 @@ class ComprehensiveDocumentIngestor:
         logger.info(f"💾 Test results saved to: {test_file}")
         
         # Final summary
-        logger.info(f"\n🎉 Optimized Comprehensive Ingestion Completed!")
+        logger.info("\n🎉 Optimized Comprehensive Ingestion Completed!")
         logger.info(f"📊 Total chunks ingested: {ingestion_result['ingested']}")
         logger.info(f"⚡ Performance: {chunks_per_second:.2f} chunks/second")
-        logger.info(f"📈 Database now contains comprehensive Horizon Europe documentation")
+        logger.info("📈 Database now contains comprehensive Horizon Europe documentation")
         
         return True
 

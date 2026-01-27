@@ -11,7 +11,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 1269.155,
+      "processing_time_ms": 1324.737,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -31,7 +31,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 3474.565,
+      "processing_time_ms": 1247.084,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -46,12 +46,12 @@
     },
     {
       "query": "What are the options for long-term partnerships between VET institutions in Erasmus+?",
-      "response": "Yes, American (US) organizations can participate in Horizon Europe projects, but with specific limitations on funding and roles.\n\n### Third Country Participation Rules\n\nOrganizations from **Non-Associated Third Countries** (like the USA, Japan, China, Australia, Canada) can participate in Horizon Europe under specific conditions:\n\n| Aspect | Rule for Third Countries |\n|--------|-------------------------|\n| **Can participate?** | \u2705 Yes, in most calls |\n| **Count toward minimum?** | \u274c No - only MS...",
+      "response": "Erasmus+ **Key Action 2 (KA2)** offers excellent partnership opportunities for VET (Vocational Education and Training) institutions to collaborate on innovation, curriculum development, and best practice exchange.\n\n## VET Partnership Options in Erasmus+ KA2\n\n### Partnership Types for VET\n\n| Partnership Type | Min Partners | Duration | Budget | Focus |\n|-----------------|-------------|----------|--------|-------|\n| **Cooperation Partnerships** | 3 orgs from 3 countries | 12-36 months | \u20ac120K-400K...",
       "quality_score": 83,
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 2821.379,
+      "processing_time_ms": 2800.3559999999998,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -66,12 +66,12 @@
     },
     {
       "query": "What curriculum-related activities are funded under Erasmus+ KA2 Cooperation Partnerships?",
-      "response": "Yes, American (US) organizations can participate in Horizon Europe projects, but with specific limitations on funding and roles.\n\n### Third Country Participation Rules\n\nOrganizations from **Non-Associated Third Countries** (like the USA, Japan, China, Australia, Canada) can participate in Horizon Europe under specific conditions:\n\n| Aspect | Rule for Third Countries |\n|--------|-------------------------|\n| **Can participate?** | \u2705 Yes, in most calls |\n| **Count toward minimum?** | \u274c No - only MS...",
+      "response": "Erasmus+ **Key Action 2 (KA2)** offers excellent partnership opportunities for VET (Vocational Education and Training) institutions to collaborate on innovation, curriculum development, and best practice exchange.\n\n## VET Partnership Options in Erasmus+ KA2\n\n### Partnership Types for VET\n\n| Partnership Type | Min Partners | Duration | Budget | Focus |\n|-----------------|-------------|----------|--------|-------|\n| **Cooperation Partnerships** | 3 orgs from 3 countries | 12-36 months | \u20ac120K-400K...",
       "quality_score": 83,
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 6098.922,
+      "processing_time_ms": 5846.144,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -86,12 +86,12 @@
     },
     {
       "query": "How should a VET school combine Erasmus+ KA1 mobility with KA2 partnerships for maximum benefit?",
-      "response": "Yes, American (US) organizations can participate in Horizon Europe projects, but with specific limitations on funding and roles.\n\n### Third Country Participation Rules\n\nOrganizations from **Non-Associated Third Countries** (like the USA, Japan, China, Australia, Canada) can participate in Horizon Europe under specific conditions:\n\n| Aspect | Rule for Third Countries |\n|--------|-------------------------|\n| **Can participate?** | \u2705 Yes, in most calls |\n| **Count toward minimum?** | \u274c No - only MS...",
+      "response": "Erasmus+ Accreditation offers **significant advantages** for organizations that plan regular international mobility activities. Here are the key benefits of becoming accredited.\n\n## Key Benefits of Erasmus+ Accreditation\n\n### 1. Long-Term Funding Security (7 Years)\n\n| Benefit | Description |\n|---------|-------------|\n| **Guaranteed Access** | Access to mobility funding for up to 7 years (2021-2027) |\n| **Budget Predictability** | Annual budget allocation based on your Erasmus Plan |\n| **Continuo...",
       "quality_score": 83,
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 2295.704,
+      "processing_time_ms": 2389.537,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -108,7 +108,7 @@
   "scores": {
     "average_quality": 83.0,
     "average_factual": 100.0,
-    "goal_progress": 0.54,
+    "goal_progress": 0.6,
     "context_fields": 4
   },
   "failures": [],
@@ -125,10 +125,10 @@
       "partnerships"
     ],
     "description": "A VET (Vocational Education and Training) school wants to understand\nErasmus+ programme options. They are interested in international mobility\nfor students and staff, long-term partnerships, and curriculum development.\nThe scenario tests programme navigation and sector-specific recommendations.\n",
-    "conversation_id": 822330432
+    "conversation_id": 1698609871
   },
-  "execution_time_ms": 137826.29499999998,
-  "timestamp": "2026-01-23T13:35:44.125689",
+  "execution_time_ms": 136404.717,
+  "timestamp": "2026-01-23T17:26:41.869828",
   "passed": true,
   "turn_count": 5,
   "critical_failures": 0,

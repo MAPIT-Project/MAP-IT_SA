@@ -9,7 +9,7 @@ about sub-programmes, requirements, and funding opportunities.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +87,7 @@ class LIFETemplateSearchTool:
     def __init__(self):
         self.sections = LIFE_SECTIONS
 
-    def detect_section(self, query: str) -> List[str]:
+    def detect_section(self, query: str) -> list[str]:
         """Detect which sections a query is likely about."""
         query_lower = query.lower()
         matching_sections = []
@@ -100,7 +100,7 @@ class LIFETemplateSearchTool:
 
         return matching_sections or ['general']
 
-    def detect_subprogramme(self, query: str) -> Optional[str]:
+    def detect_subprogramme(self, query: str) -> str | None:
         """Detect which sub-programme the query is about."""
         query_lower = query.lower()
 
@@ -118,8 +118,8 @@ class LIFETemplateSearchTool:
     def build_enhanced_query(
         self,
         query: str,
-        subprogramme: Optional[str] = None,
-        section: Optional[str] = None,
+        subprogramme: str | None = None,
+        section: str | None = None,
     ) -> str:
         """Build an enhanced query with context keywords."""
         enhanced = query
@@ -149,11 +149,11 @@ class LIFETemplateSearchTool:
 
 async def search_life_templates_execute(
     query: str,
-    subprogramme: Optional[str] = None,
-    section: Optional[str] = None,
-    topic: Optional[str] = None,
+    subprogramme: str | None = None,
+    section: str | None = None,
+    topic: str | None = None,
     top_k: int = 5,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Search LIFE Programme guidance documents for application information.
 

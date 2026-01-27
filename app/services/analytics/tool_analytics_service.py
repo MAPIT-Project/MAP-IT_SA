@@ -5,18 +5,18 @@ Tracks tool usage patterns, performance, and quality metrics
 for optimization and monitoring.
 """
 
-import os
-import logging
-import json
 import hashlib
-from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
-from dataclasses import dataclass, asdict
+import json
+import logging
+import os
 from collections import defaultdict
-import psycopg2
-from psycopg2.extras import RealDictCursor
-from psycopg2 import pool
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any
+
 from dotenv import load_dotenv
+from psycopg2 import pool
+from psycopg2.extras import RealDictCursor
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -26,14 +26,14 @@ logger = logging.getLogger(__name__)
 class ToolUsageEvent:
     """Single tool usage event."""
     tool_name: str
-    parameters: Dict[str, Any]
+    parameters: dict[str, Any]
     execution_time_ms: int
     success: bool
-    error_message: Optional[str] = None
-    result_count: Optional[int] = None
-    result_quality_score: Optional[float] = None
-    conversation_id: Optional[str] = None
-    query_hash: Optional[str] = None
+    error_message: str | None = None
+    result_count: int | None = None
+    result_quality_score: float | None = None
+    conversation_id: str | None = None
+    query_hash: str | None = None
     speculative: bool = False
     timestamp: datetime = None
 
@@ -61,7 +61,7 @@ class ToolAnalyticsService:
             return
 
         self.db_url = os.getenv("DATABASE_URL")
-        self.buffer: List[ToolUsageEvent] = []
+        self.buffer: list[ToolUsageEvent] = []
         self.buffer_size = 50  # Batch write every 50 events
         self.flush_interval = 60  # Or every 60 seconds
         self.last_flush = datetime.now()
@@ -182,7 +182,7 @@ class ToolAnalyticsService:
 
     async def track_tool_sequence(
         self,
-        tools_used: List[str],
+        tools_used: list[str],
         total_time_ms: int,
         success: bool
     ):
@@ -227,7 +227,7 @@ class ToolAnalyticsService:
         finally:
             self._put_connection(conn)
 
-    def get_session_metrics(self) -> Dict[str, Any]:
+    def get_session_metrics(self) -> dict[str, Any]:
         """Get current session metrics (in-memory)."""
         metrics = {}
         for tool_name, data in self.session_metrics.items():
@@ -241,7 +241,7 @@ class ToolAnalyticsService:
             }
         return metrics
 
-    def get_tool_performance(self, hours: int = 24) -> Dict[str, Any]:
+    def get_tool_performance(self, hours: int = 24) -> dict[str, Any]:
         """Get tool performance metrics from database."""
         if not self.enabled:
             return {"error": "Analytics not enabled"}
@@ -284,7 +284,7 @@ class ToolAnalyticsService:
         finally:
             self._put_connection(conn)
 
-    def get_popular_tool_combinations(self, min_occurrences: int = 5) -> Dict[str, Any]:
+    def get_popular_tool_combinations(self, min_occurrences: int = 5) -> dict[str, Any]:
         """Get popular tool combinations."""
         if not self.enabled:
             return {"error": "Analytics not enabled"}
@@ -325,7 +325,7 @@ class ToolAnalyticsService:
         finally:
             self._put_connection(conn)
 
-    def get_slow_tools(self, threshold_ms: int = 2000) -> List[Dict]:
+    def get_slow_tools(self, threshold_ms: int = 2000) -> list[dict]:
         """Get tools that frequently exceed performance threshold."""
         if not self.enabled:
             return []

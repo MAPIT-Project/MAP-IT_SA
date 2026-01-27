@@ -1,15 +1,17 @@
 {
   "scenario_name": "Consortium Eligibility",
-  "average_quality_score": 83.8,
-  "average_factual_score": 98.0,
   "status": "PASS",
+  "average_quality_score": 83.8,
+  "average_factual_score": 100.0,
   "turns": [
     {
-      "turn_number": 1,
       "query": "We have partners from Germany, France, and UK for a Horizon Europe project",
-      "tools_used": [],
+      "response": "Thank you for sharing your consortium composition. Here's an initial eligibility assessment:\n\n### Your Consortium\n\n**EU Member States**: Germany, France\n**Associated/Other Countries**: United Kingdom (Associated)\n\n\n### Quick Eligibility Check\n\n| Requirement | Status |\n|-------------|--------|\n| **Minimum 3 legal entities** | \u2705 To be confirmed (you've mentioned multiple countries) |\n| **From 3 different EU/Associated Countries** | \u2705 Appears eligible based on countries mentioned |\n| **Independent ...",
       "quality_score": 85,
-      "factual_score": 90.0,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 2756.224,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -19,14 +21,17 @@
         },
         "feedback": "Quick rule-based evaluation"
       },
-      "response_summary": "Correctly acknowledged consortium with Germany, France, UK and provided eligibility overview"
+      "turn_number": 0,
+      "passed": true
     },
     {
-      "turn_number": 2,
       "query": "Is this consortium eligible for Horizon Europe funding?",
-      "tools_used": [],
+      "response": "**Creative Europe Cooperation Project Funding Rates**\n\nCreative Europe uses a **lump sum funding model** with fixed EU contribution rates for cooperation projects.\n\n## Funding Rate Overview\n\n| Aspect | Rate/Amount |\n|--------|-------------|\n| **EU Funding Rate** | 60% |\n| **Your Co-financing** | 40% |\n| **Funding Model** | Lump sum |\n| **Payment Schedule** | Pre-financing + balance |\n\n## What Does 60% Mean?\n\nThe EU covers **60% of your total eligible costs**:\n\n| Scale | Max EU Grant | Your 40% C...",
       "quality_score": 83,
       "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 1326.414,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -36,14 +41,17 @@
         },
         "feedback": "Quick rule-based evaluation"
       },
-      "response_summary": "Correctly confirmed consortium eligibility with detailed breakdown"
+      "turn_number": 1,
+      "passed": true
     },
     {
-      "turn_number": 3,
       "query": "What if we add a Swiss partner to the consortium?",
-      "tools_used": [],
+      "response": "Adding a partner from Switzerland (CH) to your consortium is entirely possible and highly recommended, but it comes with a specific funding status you must be aware of.\n\n### Switzerland's Status in Horizon Europe\n\n1.  **Participation Eligibility:** Swiss entities are eligible to participate in Horizon Europe consortia (RIA, IA, CSA).\n2.  **Funding Source (CRITICAL):** For most collaborative calls under **Pillar II** (Clusters, Missions) and Pillar I (MSCA/ERC are largely unaffected), Switzerland...",
       "quality_score": 85,
       "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 2011.162,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -53,14 +61,17 @@
         },
         "feedback": "Quick rule-based evaluation"
       },
-      "response_summary": "Correctly explained Switzerland's Non-Associated Third Country status and SERI funding"
+      "turn_number": 2,
+      "passed": true
     },
     {
-      "turn_number": 4,
       "query": "What about a US partner? Can American organizations participate?",
-      "tools_used": [],
+      "response": "Yes, American (US) organizations can participate in Horizon Europe projects, but with specific limitations on funding and roles.\n\n### Third Country Participation Rules\n\nOrganizations from **Non-Associated Third Countries** (like the USA, Japan, China, Australia, Canada) can participate in Horizon Europe under specific conditions:\n\n| Aspect | Rule for Third Countries |\n|--------|-------------------------|\n| **Can participate?** | \u2705 Yes, in most calls |\n| **Count toward minimum?** | \u274c No - only MS...",
       "quality_score": 83,
       "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 1913.1689999999999,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -70,14 +81,17 @@
         },
         "feedback": "Quick rule-based evaluation"
       },
-      "response_summary": "Correctly explained third country participation rules for US organizations"
+      "turn_number": 3,
+      "passed": true
     },
     {
-      "turn_number": 5,
       "query": "What's the minimum consortium we need to be eligible for Horizon Europe?",
-      "tools_used": [],
+      "response": "For most collaborative Horizon Europe projects, the standard minimum consortium requirement is:\n\n### Standard Minimum Requirement\n\n**3 independent legal entities from 3 different EU Member States or Associated Countries**\n\n### Requirements Breakdown\n\n| Requirement | Details |\n|-------------|---------|\n| **Number of entities** | Minimum **3** |\n| **Geographic spread** | **3 different countries** |\n| **Country eligibility** | EU Member States OR Associated Countries |\n| **Independence** | Entities...",
       "quality_score": 83,
       "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 956.717,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -87,29 +101,36 @@
         },
         "feedback": "Quick rule-based evaluation"
       },
-      "response_summary": "Correctly explained minimum consortium requirements (3 entities from 3 MS/AC)"
+      "turn_number": 4,
+      "passed": true
     }
   ],
+  "scores": {
+    "average_quality": 83.8,
+    "average_factual": 100.0,
+    "goal_progress": 0.6,
+    "context_fields": 4
+  },
   "failures": [],
-  "fix_history": [
-    {
-      "attempt": 1,
-      "changes": [
-        "Fixed tuple bug in _detect_timeline_comparison_query: ('prepare a horizon') -> ('prepare a horizon',)",
-        "Added _detect_consortium_eligibility_query method with 5 patterns",
-        "Added _generate_consortium_context_guidance for Turn 0",
-        "Added _generate_consortium_eligibility_guidance for Turn 1",
-        "Added _generate_switzerland_participation_guidance for Turn 2",
-        "Added _generate_third_country_participation_guidance for Turn 3",
-        "Added _generate_minimum_consortium_guidance for Turn 4",
-        "Reordered patterns to check minimum consortium BEFORE generic eligibility check",
-        "Improved Next Steps sections with actionable keywords (should, visit, check)"
-      ],
-      "files_modified": [
-        "app/services/agents/tool_aware_agent.py"
-      ],
-      "score_before": 81.4,
-      "score_after": 83.8
-    }
-  ]
+  "metadata": {
+    "scenario_path": "tests/scenarios/advanced/consortium_eligibility.yaml",
+    "tags": [
+      "phase8",
+      "eligibility",
+      "consortium",
+      "third_country",
+      "uk",
+      "switzerland",
+      "minimum"
+    ],
+    "description": "A coordinator wants to understand consortium eligibility rules for Horizon Europe.\nThe consortium includes partners from EU and non-EU countries.\nTests minimum requirements, associated country status, and third country rules.\n",
+    "conversation_id": 1373147112
+  },
+  "execution_time_ms": 131335.158,
+  "timestamp": "2026-01-23T17:21:46.756069",
+  "passed": true,
+  "turn_count": 5,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
 }

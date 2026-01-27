@@ -19,9 +19,9 @@ import json
 import logging
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import requests
 
@@ -90,7 +90,7 @@ class LIFECallSyncer:
             'Accept': 'application/json',
         })
 
-    def generate_topic_patterns(self, years: List[int]) -> List[str]:
+    def generate_topic_patterns(self, years: list[int]) -> list[str]:
         """Generate all possible LIFE topic patterns."""
         patterns = []
 
@@ -153,7 +153,7 @@ class LIFECallSyncer:
         logger.info(f"Generated {len(unique_patterns)} unique topic patterns to try")
         return unique_patterns
 
-    def fetch_topic_details(self, topic_id: str) -> Optional[Dict[str, Any]]:
+    def fetch_topic_details(self, topic_id: str) -> dict[str, Any] | None:
         """Fetch topic details from EU Portal API."""
         # API requires lowercase topic IDs
         url = self.TOPIC_DETAILS_URL.format(topic_id=topic_id.lower())
@@ -171,7 +171,7 @@ class LIFECallSyncer:
             logger.warning(f"Error fetching {topic_id}: {e}")
             return None
 
-    def parse_topic_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def parse_topic_data(self, data: dict[str, Any]) -> dict[str, Any]:
         """Parse topic data into funding call format."""
         topic_details = data.get('TopicDetails', {})
 
@@ -296,14 +296,14 @@ class LIFECallSyncer:
 
         return 'Standard Action Projects'
 
-    def upsert_call(self, conn, data: Dict[str, Any]) -> bool:
+    def upsert_call(self, conn, data: dict[str, Any]) -> bool:
         """Insert or update a LIFE call in the database."""
         try:
             cursor = conn.cursor()
 
             metadata = data.get("metadata", {})
             metadata["synced_from_api"] = True
-            metadata["synced_at"] = datetime.now(timezone.utc).isoformat()
+            metadata["synced_at"] = datetime.now(UTC).isoformat()
 
             cursor.execute("""
                 INSERT INTO funding_calls (
@@ -355,7 +355,7 @@ class LIFECallSyncer:
             conn.rollback()
             return False
 
-    def sync_to_database(self, calls: List[Dict[str, Any]], dry_run: bool = False) -> Dict[str, int]:
+    def sync_to_database(self, calls: list[dict[str, Any]], dry_run: bool = False) -> dict[str, int]:
         """Sync calls to the funding_calls table."""
         if dry_run:
             logger.info("DRY RUN - Would sync these calls:")
@@ -367,6 +367,7 @@ class LIFECallSyncer:
             return {'synced': 0, 'dry_run': len(calls)}
 
         import os
+
         import psycopg2
 
         database_url = os.getenv("DATABASE_URL")
@@ -424,7 +425,7 @@ class LIFECallSyncer:
         conn.close()
         return {'synced': synced, 'errors': errors}
 
-    def run(self, years: List[int], dry_run: bool = False) -> Dict[str, Any]:
+    def run(self, years: list[int], dry_run: bool = False) -> dict[str, Any]:
         """Run the sync process."""
         logger.info("=" * 60)
         logger.info("LIFE PROGRAMME CALL SYNC")

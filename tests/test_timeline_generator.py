@@ -11,18 +11,15 @@ Tests:
 - Edge cases and validation
 """
 
-import pytest
 import asyncio
-from unittest.mock import Mock, patch, MagicMock
-import sys
 import os
+import sys
+
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.services.tools.timeline_generator import (
-    TimelineGeneratorTool,
-    generate_timeline_execute
-)
+from app.services.tools.timeline_generator import TimelineGeneratorTool, generate_timeline_execute
 
 
 class TestTimelineGeneratorWPTemplates:

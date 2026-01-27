@@ -9,17 +9,15 @@ Provides endpoints for:
 """
 
 import asyncio
-import json
 import logging
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect, status
+from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect, status
 from pydantic import BaseModel, Field
 
 from app.services.collaboration.collaboration_service import (
     BroadcastEvent,
-    CollaborationService,
     CursorPosition,
     EditOperation,
     OperationType,
@@ -45,16 +43,16 @@ class JoinSessionResponse(BaseModel):
     """Response after joining a session."""
     connection_id: str
     your_color: str
-    collaborators: List[Dict[str, Any]]
-    locked_sections: List[Dict[str, Any]]
+    collaborators: list[dict[str, Any]]
+    locked_sections: list[dict[str, Any]]
 
 
 class CursorUpdateRequest(BaseModel):
     """Request to update cursor position."""
     section_id: str
     position: int = Field(..., ge=0)
-    selection_start: Optional[int] = None
-    selection_end: Optional[int] = None
+    selection_start: int | None = None
+    selection_end: int | None = None
 
 
 class LockSectionRequest(BaseModel):
@@ -65,16 +63,16 @@ class LockSectionRequest(BaseModel):
 class LockResponse(BaseModel):
     """Response for lock operations."""
     success: bool
-    lock: Optional[Dict[str, Any]] = None
-    message: Optional[str] = None
+    lock: dict[str, Any] | None = None
+    message: str | None = None
 
 
 class EditOperationRequest(BaseModel):
     """Request to apply an edit operation."""
     operation_type: str = Field(..., pattern="^(insert|delete|replace|retain)$")
     position: int = Field(..., ge=0)
-    content: Optional[str] = None
-    length: Optional[int] = None
+    content: str | None = None
+    length: int | None = None
     base_version: int = Field(0, ge=0)
 
 
@@ -82,7 +80,7 @@ class EditOperationResponse(BaseModel):
     """Response after applying an edit."""
     success: bool
     version: int
-    error: Optional[str] = None
+    error: str | None = None
 
 
 class CollaboratorResponse(BaseModel):
@@ -90,8 +88,8 @@ class CollaboratorResponse(BaseModel):
     user_id: str
     username: str
     color: str
-    active_section: Optional[str]
-    cursor: Optional[Dict[str, Any]]
+    active_section: str | None
+    cursor: dict[str, Any] | None
     is_connected: bool
 
 
@@ -105,7 +103,7 @@ class ConnectionManager:
 
     def __init__(self):
         # session_id -> {user_id -> websocket}
-        self.active_connections: Dict[str, Dict[str, WebSocket]] = {}
+        self.active_connections: dict[str, dict[str, WebSocket]] = {}
 
     async def connect(
         self,
@@ -137,8 +135,8 @@ class ConnectionManager:
     async def broadcast(
         self,
         session_id: str,
-        message: Dict[str, Any],
-        exclude_user: Optional[str] = None,
+        message: dict[str, Any],
+        exclude_user: str | None = None,
     ):
         """Broadcast a message to all users in a session."""
         if session_id not in self.active_connections:
@@ -164,7 +162,7 @@ class ConnectionManager:
         self,
         session_id: str,
         user_id: str,
-        message: Dict[str, Any],
+        message: dict[str, Any],
     ):
         """Send a message to a specific user."""
         if session_id in self.active_connections:
@@ -242,7 +240,7 @@ async def websocket_endpoint(
                     websocket.receive_json(),
                     timeout=60.0,
                 )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 # Send ping to check connection
                 await websocket.send_json({"event_type": "ping"})
                 continue
@@ -291,7 +289,7 @@ async def websocket_endpoint(
             elif event_type == "operation":
                 # Apply edit operation
                 operation = EditOperation(
-                    operation_id=payload.get("operation_id", str(datetime.now(timezone.utc).timestamp())),
+                    operation_id=payload.get("operation_id", str(datetime.now(UTC).timestamp())),
                     section_id=payload["section_id"],
                     operation_type=OperationType(payload["operation_type"]),
                     position=payload["position"],
@@ -366,7 +364,7 @@ async def leave_session(
     return {"success": True}
 
 
-@router.get("/{session_id}/collaborators", response_model=List[CollaboratorResponse])
+@router.get("/{session_id}/collaborators", response_model=list[CollaboratorResponse])
 async def get_collaborators(
     session_id: str,
 ):
@@ -466,7 +464,7 @@ async def refresh_lock(
     return {"success": success}
 
 
-@router.get("/{session_id}/locks", response_model=List[Dict[str, Any]])
+@router.get("/{session_id}/locks", response_model=list[dict[str, Any]])
 async def get_locked_sections(
     session_id: str,
 ):
@@ -488,7 +486,7 @@ async def apply_operation(
     service = get_collaboration_service()
 
     operation = EditOperation(
-        operation_id=str(datetime.now(timezone.utc).timestamp()),
+        operation_id=str(datetime.now(UTC).timestamp()),
         section_id=section_id,
         operation_type=OperationType(request.operation_type),
         position=request.position,
@@ -513,5 +511,5 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "collaboration",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }

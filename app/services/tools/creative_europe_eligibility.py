@@ -15,7 +15,7 @@ Creative Europe 2021-2027 has three strands:
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -27,13 +27,13 @@ class EligibilityResult:
     strand: str
     action_type: str
     action_name: str
-    requirements_met: List[str]
-    requirements_missing: List[str]
-    warnings: List[str]
-    recommendations: List[str]
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    requirements_met: list[str]
+    requirements_missing: list[str]
+    warnings: list[str]
+    recommendations: list[str]
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             'eligible': self.eligible,
             'strand': self.strand,
@@ -540,8 +540,8 @@ class CreativeEuropeEligibilityTool:
         self,
         org_type: str,
         country: str,
-        strand: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        strand: str | None = None,
+    ) -> list[dict[str, Any]]:
         """
         Get all Creative Europe actions an organization is eligible for.
 
@@ -581,7 +581,7 @@ class CreativeEuropeEligibilityTool:
 
         return eligible_actions
 
-    def get_participating_countries(self) -> Dict[str, List[str]]:
+    def get_participating_countries(self) -> dict[str, list[str]]:
         """Get participating countries by category."""
         return {
             'eu_member_states': self.EU_MEMBER_STATES.copy(),
@@ -589,7 +589,7 @@ class CreativeEuropeEligibilityTool:
             'media_countries': self.MEDIA_COUNTRIES.copy(),
         }
 
-    def get_strands(self) -> List[Dict[str, Any]]:
+    def get_strands(self) -> list[dict[str, Any]]:
         """Get overview of Creative Europe strands."""
         return [
             {
@@ -616,10 +616,10 @@ class CreativeEuropeEligibilityTool:
 async def check_creative_europe_eligibility_execute(
     org_type: str,
     country: str,
-    action_type: Optional[str] = None,
-    strand: Optional[str] = None,
+    action_type: str | None = None,
+    strand: str | None = None,
     is_coordinator: bool = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Check Creative Europe eligibility for an organization.
 
@@ -718,9 +718,9 @@ COUNTRY_NAME_TO_ISO = {
 
 def _try_graph_eligibility_check(
     country: str,
-    action_type: Optional[str] = None,
-    strand: Optional[str] = None,
-) -> Optional[Dict[str, Any]]:
+    action_type: str | None = None,
+    strand: str | None = None,
+) -> dict[str, Any] | None:
     """
     Try to use Neo4j graph for Creative Europe eligibility check.
 

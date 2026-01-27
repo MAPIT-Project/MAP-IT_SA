@@ -10,7 +10,7 @@ about actions, requirements, and funding opportunities.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +74,7 @@ class CreativeEuropeTemplateSearchTool:
     def __init__(self):
         self.sections = CREATIVE_EUROPE_SECTIONS
 
-    def detect_section(self, query: str) -> List[str]:
+    def detect_section(self, query: str) -> list[str]:
         """Detect which sections a query is likely about."""
         query_lower = query.lower()
         matching_sections = []
@@ -87,7 +87,7 @@ class CreativeEuropeTemplateSearchTool:
 
         return matching_sections or ['general']
 
-    def detect_strand(self, query: str) -> Optional[str]:
+    def detect_strand(self, query: str) -> str | None:
         """Detect which strand the query is about."""
         query_lower = query.lower()
 
@@ -103,8 +103,8 @@ class CreativeEuropeTemplateSearchTool:
     def build_enhanced_query(
         self,
         query: str,
-        strand: Optional[str] = None,
-        action_type: Optional[str] = None,
+        strand: str | None = None,
+        action_type: str | None = None,
     ) -> str:
         """Build an enhanced query with context keywords."""
         enhanced = query
@@ -137,11 +137,11 @@ class CreativeEuropeTemplateSearchTool:
 
 async def search_creative_europe_templates_execute(
     query: str,
-    strand: Optional[str] = None,
-    action_type: Optional[str] = None,
-    topic: Optional[str] = None,
+    strand: str | None = None,
+    action_type: str | None = None,
+    topic: str | None = None,
     top_k: int = 5,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Search Creative Europe guidance documents for application information.
 

@@ -9,6 +9,7 @@ Tests the following functionality:
 """
 
 import pytest
+
 from tests.agents.goal_tracking_agent import CompletionStatus, GoalTrackingAgent, ProgressScore
 
 

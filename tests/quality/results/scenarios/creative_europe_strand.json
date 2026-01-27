@@ -6,12 +6,12 @@
   "turns": [
     {
       "query": "We're a film production company - what Creative Europe funding is available?",
-      "response": "**Creative Europe Funding for Film Production Companies**\n\nAs a **film production company**, you have access to several Creative Europe funding streams tailored to support European audiovisual content throughout its lifecycle.\n\n## Relevant Funding Actions for Film Producers\n\n| Action | Purpose | Typical Funding | Best For |\n|--------|---------|-----------------|----------|\n| **Development - Slate** | Multiple projects | \u20ac150,000-200,000 | Established companies |\n| **Development - Single** | Indi...",
+      "response": "**Creative Europe Cooperation Project Funding Rates**\n\nCreative Europe uses a **lump sum funding model** with fixed EU contribution rates for cooperation projects.\n\n## Funding Rate Overview\n\n| Aspect | Rate/Amount |\n|--------|-------------|\n| **EU Funding Rate** | 60% |\n| **Your Co-financing** | 40% |\n| **Funding Model** | Lump sum |\n| **Payment Schedule** | Pre-financing + balance |\n\n## What Does 60% Mean?\n\nThe EU covers **60% of your total eligible costs**:\n\n| Scale | Max EU Grant | Your 40% C...",
       "quality_score": 83,
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 2323.764,
+      "processing_time_ms": 2163.821,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -31,7 +31,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 855.433,
+      "processing_time_ms": 858.94,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -46,12 +46,12 @@
     },
     {
       "query": "What Creative Europe MEDIA development funding options are available?",
-      "response": "**Creative Europe MEDIA Strand Overview**\n\nThe **MEDIA strand** is the audiovisual pillar of Creative Europe (2021-2027), with a budget of approximately **\u20ac1.4 billion** dedicated to supporting the European film and audiovisual industry.\n\n## MEDIA Strand Actions Overview\n\n| Action Type | Target | Budget Range | Funding Rate |\n|------------|--------|--------------|--------------|\n| **Development - Slate** | Production companies (3+ projects) | \u20ac150,000-200,000 | 70% |\n| **Development - Single** |...",
+      "response": "**Creative Europe Cooperation Project Funding Rates**\n\nCreative Europe uses a **lump sum funding model** with fixed EU contribution rates for cooperation projects.\n\n## Funding Rate Overview\n\n| Aspect | Rate/Amount |\n|--------|-------------|\n| **EU Funding Rate** | 60% |\n| **Your Co-financing** | 40% |\n| **Funding Model** | Lump sum |\n| **Payment Schedule** | Pre-financing + balance |\n\n## What Does 60% Mean?\n\nThe EU covers **60% of your total eligible costs**:\n\n| Scale | Max EU Grant | Your 40% C...",
       "quality_score": 83,
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 1390.4460000000001,
+      "processing_time_ms": 1297.141,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -71,7 +71,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 853.9330000000001,
+      "processing_time_ms": 857.7510000000001,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -91,7 +91,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 4698.254000000001,
+      "processing_time_ms": 4310.929,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -108,7 +108,7 @@
   "scores": {
     "average_quality": 83.0,
     "average_factual": 100.0,
-    "goal_progress": 0.6214285714285714,
+    "goal_progress": 0.5342857142857143,
     "context_fields": 4
   },
   "failures": [],
@@ -124,10 +124,10 @@
       "distribution"
     ],
     "description": "A film production company wants to understand Creative Europe programme options.\nThey are interested in the MEDIA strand, specifically development funding and\ndistribution support. The scenario tests programme navigation and strand-specific\nrecommendations for audiovisual sector organizations.\n",
-    "conversation_id": 476875963
+    "conversation_id": 1356203757
   },
-  "execution_time_ms": 131832.462,
-  "timestamp": "2026-01-23T14:20:36.475323",
+  "execution_time_ms": 132175.94,
+  "timestamp": "2026-01-23T17:33:36.554563",
   "passed": true,
   "turn_count": 5,
   "critical_failures": 0,

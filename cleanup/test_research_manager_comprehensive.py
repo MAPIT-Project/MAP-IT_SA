@@ -5,11 +5,12 @@ Testing queries that a research manager might have about Horizon Europe projects
 """
 
 import asyncio
-import aiohttp
 import json
-from typing import Dict, Any, List
 import time
 from datetime import datetime
+from typing import Any
+
+import aiohttp
 
 BASE_URL = "http://localhost:8000"
 
@@ -139,7 +140,7 @@ class ConversationAITester:
             print(f"❌ Health check error: {e}")
             return False
             
-    async def test_conversation_endpoint(self, query_data: Dict[str, Any], use_streaming: bool = True) -> Dict[str, Any]:
+    async def test_conversation_endpoint(self, query_data: dict[str, Any], use_streaming: bool = True) -> dict[str, Any]:
         """Test a single conversation query."""
         
         query = query_data["query"]
@@ -188,7 +189,7 @@ class ConversationAITester:
                 print(f"✅ Success (Quality: {quality_score:.2f}) - {processing_time:.2f}s")
                 print(f"Response preview: {result['response']}")
             else:
-                print(f"❌ Failed - Response too short or empty")
+                print("❌ Failed - Response too short or empty")
                 
             self.results.append(result)
             return result
@@ -208,7 +209,7 @@ class ConversationAITester:
             self.results.append(error_result)
             return error_result
             
-    async def _test_streaming_endpoint(self, payload: Dict[str, Any]) -> str:
+    async def _test_streaming_endpoint(self, payload: dict[str, Any]) -> str:
         """Test the streaming endpoint and collect full response."""
         url = f"{self.base_url}/api/v2/conversation/{self.conversation_id}/message/stream"
         
@@ -234,7 +235,7 @@ class ConversationAITester:
                             
             return full_response
             
-    async def _test_regular_endpoint(self, payload: Dict[str, Any]) -> str:
+    async def _test_regular_endpoint(self, payload: dict[str, Any]) -> str:
         """Test the regular (non-streaming) endpoint."""
         url = f"{self.base_url}/api/v2/conversation/{self.conversation_id}/message"
         
@@ -245,7 +246,7 @@ class ConversationAITester:
             data = await response.json()
             return data.get('response', '')
             
-    def _analyze_response_quality(self, response: str, query_data: Dict[str, Any]) -> float:
+    def _analyze_response_quality(self, response: str, query_data: dict[str, Any]) -> float:
         """Analyze the quality of the response based on expected content."""
         if not response:
             return 0.0
@@ -315,7 +316,7 @@ class ConversationAITester:
         except Exception as e:
             print(f"❌ Context endpoint error: {e}")
             
-    def generate_report(self) -> Dict[str, Any]:
+    def generate_report(self) -> dict[str, Any]:
         """Generate a comprehensive test report."""
         if not self.results:
             return {"error": "No test results available"}
@@ -421,7 +422,7 @@ async def main():
         print(f"⭐ Avg Quality Score: {summary['avg_quality_score']:.2f}/1.0")
         
         # Display category breakdown
-        print(f"\n📋 Results by Category:")
+        print("\n📋 Results by Category:")
         for category, stats in report["by_category"].items():
             print(f"  {category}: {stats['successful']}/{stats['total']} ({stats['success_rate']:.1f}%) - Quality: {stats['avg_quality']:.2f}")
             
@@ -434,7 +435,7 @@ async def main():
                 
         # Display recommendations
         if report["recommendations"]:
-            print(f"\n💡 Recommendations:")
+            print("\n💡 Recommendations:")
             for rec in report["recommendations"]:
                 print(f"  - {rec}")
                 
@@ -445,7 +446,7 @@ async def main():
                 "detailed_results": tester.results
             }, f, indent=2)
             
-        print(f"\n💾 Detailed results saved to 'test_report.json'")
+        print("\n💾 Detailed results saved to 'test_report.json'")
         
         return report
 

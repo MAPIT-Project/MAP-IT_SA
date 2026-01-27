@@ -15,8 +15,8 @@ import hashlib
 import json
 import logging
 import re
-from typing import Dict, Any, Optional
-from datetime import datetime, timedelta
+from datetime import datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -124,7 +124,7 @@ class QueryPlanCache:
         hash_val = hashlib.sha256(key_content.encode()).hexdigest()[:16]
         return f"{self.prefix}{hash_val}"
 
-    def get_cached_plan(self, query: str, context: str = "") -> Optional[Dict[str, Any]]:
+    def get_cached_plan(self, query: str, context: str = "") -> dict[str, Any] | None:
         """
         Retrieve cached plan for a query pattern.
 
@@ -165,7 +165,7 @@ class QueryPlanCache:
     def cache_plan(
         self,
         query: str,
-        plan: Dict[str, Any],
+        plan: dict[str, Any],
         context: str = "",
         quality_score: float = 0.0
     ) -> bool:
@@ -251,7 +251,7 @@ class QueryPlanCache:
             logger.warning(f"Cache invalidation error: {e}")
             return False
 
-    def get_cache_stats(self) -> Dict[str, Any]:
+    def get_cache_stats(self) -> dict[str, Any]:
         """Get cache statistics."""
         if not self.enabled:
             return {'enabled': False}

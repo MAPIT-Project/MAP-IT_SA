@@ -27,7 +27,7 @@ import sys
 import time
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 # Add app to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -104,7 +104,7 @@ class ErasmusPlusPortalSyncer:
         """Close HTTP client."""
         self.client.close()
 
-    def get_existing_topics_from_db(self, conn) -> List[Dict]:
+    def get_existing_topics_from_db(self, conn) -> list[dict]:
         """Get all existing Erasmus+ topic codes from database."""
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute("""
@@ -117,7 +117,7 @@ class ErasmusPlusPortalSyncer:
         results = cursor.fetchall()
         return [{"identifier": r["topic_code"], "title": r["title"] or ""} for r in results]
 
-    def generate_topic_patterns(self, years: List[int]) -> List[str]:
+    def generate_topic_patterns(self, years: list[int]) -> list[str]:
         """
         Generate all possible Erasmus+ topic code patterns.
 
@@ -279,8 +279,8 @@ class ErasmusPlusPortalSyncer:
         self,
         status: str = "all",
         conn=None,
-        years: Optional[List[int]] = None
-    ) -> List[Dict]:
+        years: list[int] | None = None
+    ) -> list[dict]:
         """
         Get all Erasmus+ topics to sync using hybrid approach:
         1. Discover topics via EU Portal Search API (most reliable)
@@ -334,7 +334,7 @@ class ErasmusPlusPortalSyncer:
         logger.info(f"Total: {len(all_topics)} unique topics to process")
         return all_topics
 
-    def fetch_topic_details(self, topic_id: str) -> Optional[Dict[str, Any]]:
+    def fetch_topic_details(self, topic_id: str) -> dict[str, Any] | None:
         """
         Fetch complete details for an Erasmus+ topic from the EU Portal API.
 
@@ -458,7 +458,7 @@ class ErasmusPlusPortalSyncer:
             logger.debug(f"Error fetching {topic_id}: {e}")
             return None
 
-    def _extract_action_type(self, topic_code: str) -> Optional[str]:
+    def _extract_action_type(self, topic_code: str) -> str | None:
         """Extract action type from Erasmus+ topic code."""
         topic_upper = topic_code.upper()
 
@@ -497,7 +497,7 @@ class ErasmusPlusPortalSyncer:
 
         return None
 
-    def _extract_sector(self, topic_code: str) -> Optional[str]:
+    def _extract_sector(self, topic_code: str) -> str | None:
         """Extract sector from topic code."""
         topic_upper = topic_code.upper()
         for sector_code in self.sectors.keys():
@@ -507,7 +507,7 @@ class ErasmusPlusPortalSyncer:
             return 'SPORT'
         return None
 
-    def _extract_key_action(self, topic_code: str) -> Optional[str]:
+    def _extract_key_action(self, topic_code: str) -> str | None:
         """Extract key action from topic code."""
         topic_upper = topic_code.upper()
         if 'KA1' in topic_upper:
@@ -522,7 +522,7 @@ class ErasmusPlusPortalSyncer:
             return 'SPORT'
         return None
 
-    def upsert_call(self, conn, data: Dict[str, Any]) -> bool:
+    def upsert_call(self, conn, data: dict[str, Any]) -> bool:
         """Insert or update an Erasmus+ call in the database."""
         try:
             cursor = conn.cursor()

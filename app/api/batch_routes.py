@@ -7,17 +7,16 @@ supporting both synchronous and asynchronous batch processing.
 Implements Priority 4.2 from IMPROVEMENT_ROADMAP.md
 """
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field, validator
-from typing import Dict, Any, List, Optional
-from enum import Enum
-from datetime import datetime, timezone
 import asyncio
-import uuid
-import time
 import logging
-import json
+import time
+import uuid
+from datetime import UTC, datetime
+from enum import Enum
+from typing import Any
+
+from fastapi import APIRouter, BackgroundTasks, HTTPException
+from pydantic import BaseModel, Field, validator
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +44,7 @@ class BatchOperation(BaseModel):
     """Single operation within a batch request."""
     id: str = Field(..., description="Unique identifier for this operation")
     type: OperationType = Field(..., description="Type of operation to execute")
-    params: Dict[str, Any] = Field(
+    params: dict[str, Any] = Field(
         default_factory=dict,
         description="Parameters for the operation"
     )
@@ -59,7 +58,7 @@ class BatchOperation(BaseModel):
 
 class BatchRequest(BaseModel):
     """Request for batch operations."""
-    operations: List[BatchOperation] = Field(
+    operations: list[BatchOperation] = Field(
         ...,
         min_items=1,
         max_items=50,
@@ -81,15 +80,15 @@ class OperationResult(BaseModel):
     """Result of a single operation."""
     id: str
     success: bool
-    result: Optional[Dict[str, Any]] = None
-    error: Optional[str] = None
+    result: dict[str, Any] | None = None
+    error: str | None = None
     execution_time_ms: float
 
 
 class BatchResponse(BaseModel):
     """Response from batch execution."""
     batch_id: str
-    results: Dict[str, OperationResult]
+    results: dict[str, OperationResult]
     completed: int
     failed: int
     total: int
@@ -114,20 +113,20 @@ class BatchStatus(BaseModel):
     completed_operations: int
     failed_operations: int
     progress_percent: float
-    started_at: Optional[str] = None
-    completed_at: Optional[str] = None
-    results: Optional[Dict[str, OperationResult]] = None
-    error: Optional[str] = None
+    started_at: str | None = None
+    completed_at: str | None = None
+    results: dict[str, OperationResult] | None = None
+    error: str | None = None
 
 
 # ============================================================================
 # In-memory batch storage (for development - use Redis in production)
 # ============================================================================
 
-_batch_storage: Dict[str, Dict[str, Any]] = {}
+_batch_storage: dict[str, dict[str, Any]] = {}
 
 
-async def store_batch_status(batch_id: str, status: Dict[str, Any]):
+async def store_batch_status(batch_id: str, status: dict[str, Any]):
     """Store batch status (use Redis in production)."""
     _batch_storage[batch_id] = status
     # Clean up old batches (keep last 1000)
@@ -137,7 +136,7 @@ async def store_batch_status(batch_id: str, status: Dict[str, Any]):
             del _batch_storage[key]
 
 
-async def get_batch_status(batch_id: str) -> Optional[Dict[str, Any]]:
+async def get_batch_status(batch_id: str) -> dict[str, Any] | None:
     """Get batch status (use Redis in production)."""
     return _batch_storage.get(batch_id)
 
@@ -174,7 +173,7 @@ async def execute_operation(operation: BatchOperation) -> OperationResult:
         )
 
 
-async def _execute_operation_internal(operation: BatchOperation) -> Dict[str, Any]:
+async def _execute_operation_internal(operation: BatchOperation) -> dict[str, Any]:
     """Execute operation based on type."""
 
     params = operation.params
@@ -294,7 +293,7 @@ async def process_batch_background(batch_id: str, request: BatchRequest):
             "completed_operations": 0,
             "failed_operations": 0,
             "progress_percent": 0.0,
-            "started_at": datetime.now(timezone.utc).isoformat(),
+            "started_at": datetime.now(UTC).isoformat(),
             "completed_at": None,
             "results": {},
             "error": None
@@ -320,7 +319,7 @@ async def process_batch_background(batch_id: str, request: BatchRequest):
                     if request.fail_fast:
                         break
 
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 failed += 1
                 results[operation.id] = OperationResult(
                     id=operation.id,
@@ -356,7 +355,7 @@ async def process_batch_background(batch_id: str, request: BatchRequest):
             "failed_operations": failed,
             "progress_percent": 100.0,
             "started_at": (await get_batch_status(batch_id))["started_at"],
-            "completed_at": datetime.now(timezone.utc).isoformat(),
+            "completed_at": datetime.now(UTC).isoformat(),
             "results": results,
             "error": None
         })
@@ -373,7 +372,7 @@ async def process_batch_background(batch_id: str, request: BatchRequest):
             "failed_operations": len(request.operations),
             "progress_percent": 0.0,
             "started_at": (await get_batch_status(batch_id) or {}).get("started_at"),
-            "completed_at": datetime.now(timezone.utc).isoformat(),
+            "completed_at": datetime.now(UTC).isoformat(),
             "results": None,
             "error": str(e)
         })
@@ -426,7 +425,7 @@ async def execute_batch(request: BatchRequest) -> BatchResponse:
         completed = 0
         failed = 0
 
-        for operation, result in zip(request.operations, results):
+        for operation, result in zip(request.operations, results, strict=False):
             if isinstance(result, Exception):
                 response_results[operation.id] = OperationResult(
                     id=operation.id,
@@ -455,7 +454,7 @@ async def execute_batch(request: BatchRequest) -> BatchResponse:
             status=status
         )
 
-    except asyncio.TimeoutError:
+    except TimeoutError:
         processing_time = (time.time() - start_time) * 1000
         logger.warning(f"Batch {batch_id} timed out after {request.timeout_seconds}s")
 
@@ -526,7 +525,7 @@ async def execute_batch_async(
         status="pending",
         total_operations=len(request.operations),
         status_url=f"/api/batch/{batch_id}/status",
-        created_at=datetime.now(timezone.utc).isoformat()
+        created_at=datetime.now(UTC).isoformat()
     )
 
 
@@ -559,7 +558,7 @@ async def get_batch_status_endpoint(batch_id: str) -> BatchStatus:
 
 
 @router.delete("/{batch_id}")
-async def cancel_batch(batch_id: str) -> Dict[str, Any]:
+async def cancel_batch(batch_id: str) -> dict[str, Any]:
     """
     Cancel a pending or processing batch operation.
 
@@ -589,7 +588,7 @@ async def cancel_batch(batch_id: str) -> Dict[str, Any]:
     await store_batch_status(batch_id, {
         **status,
         "status": "cancelled",
-        "completed_at": datetime.now(timezone.utc).isoformat(),
+        "completed_at": datetime.now(UTC).isoformat(),
         "error": "Batch cancelled by user"
     })
 
@@ -603,7 +602,7 @@ async def cancel_batch(batch_id: str) -> Dict[str, Any]:
 
 
 @router.get("/types")
-async def list_operation_types() -> Dict[str, Any]:
+async def list_operation_types() -> dict[str, Any]:
     """
     List all available batch operation types and their parameters.
     """

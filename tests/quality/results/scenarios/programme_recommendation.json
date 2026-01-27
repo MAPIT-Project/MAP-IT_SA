@@ -1,0 +1,97 @@
+{
+  "scenario_name": "Programme Recommendation",
+  "status": "PASS",
+  "average_quality_score": 83.0,
+  "average_factual_score": 100.0,
+  "turns": [
+    {
+      "query": "I'm a small museum wanting to digitize our collection and share it across Europe. Which EU funding programme should I apply to?",
+      "response": "Based on my search for information about 'I'm a small museum wanting to digitize our collection and share it across Europe. Which EU funding programme should I apply to?', here's what I found:\n\n**Finding 1:**\n## EU Funding Programme Recommendations\n\nBased on your profile, here are the most relevant EU funding programmes:\n\n### 1. \ud83c\udfa8 **Creative Europe**\n- **Budget**: \u20ac2.44B\n- **Focus**: Culture & Media\n- **Why it fits**: Matches 1 programme keywords: heritage; Tailored for cultural/creative organiz...",
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "recommend_programmes"
+      ],
+      "processing_time_ms": 5281.668,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
+      "passed": true
+    },
+    {
+      "query": "We also want to train our museum staff on digital skills. Is there EU funding for that too?",
+      "response": "**Creative Europe Cooperation Project Funding Rates**\n\nCreative Europe uses a **lump sum funding model** with fixed EU contribution rates for cooperation projects.\n\n## Funding Rate Overview\n\n| Aspect | Rate/Amount |\n|--------|-------------|\n| **EU Funding Rate** | 60% |\n| **Your Co-financing** | 40% |\n| **Funding Model** | Lump sum |\n| **Payment Schedule** | Pre-financing + balance |\n\n## What Does 60% Mean?\n\nThe EU covers **60% of your total eligible costs**:\n\n| Scale | Max EU Grant | Your 40% C...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 1430.397,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": true
+    },
+    {
+      "query": "What's the best strategy for our museum to combine both digitization and staff training funding?",
+      "response": "Erasmus+ funds **staff mobility** for teaching, training, and professional development\nactivities across all sectors (Higher Education, VET, Schools, Adult Education).\n\n## Staff Mobility Funding in Erasmus+\n\n### Eligible Staff Mobility Activities\n\n| Activity Type | Duration | Sectors |\n|--------------|----------|---------|\n| **Teaching assignments** | 2-60 days (min. 8 hours/week) | HED, VET, Schools, Adult Ed |\n| **Training/Job shadowing** | 2-60 days | All sectors |\n| **Staff development** | 2...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 1552.695,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": true
+    }
+  ],
+  "scores": {
+    "average_quality": 83.0,
+    "average_factual": 100.0,
+    "goal_progress": 0.36,
+    "context_fields": 4
+  },
+  "failures": [],
+  "metadata": {
+    "scenario_path": "tests/scenarios/advanced/programme_recommendation.yaml",
+    "tags": [
+      "phase1",
+      "multi-programme",
+      "recommendation",
+      "personalization",
+      "museum",
+      "cultural"
+    ],
+    "description": "A small museum wants to digitize their collection and share it across Europe.\nThey also want to train staff on digital skills. Tests personalized multi-programme\nrecommendations that consider the organization's profile (cultural institution, small,\ndigitization focus).\n",
+    "conversation_id": 829958895
+  },
+  "execution_time_ms": 81117.115,
+  "timestamp": "2026-01-23T16:06:12.104065",
+  "passed": true,
+  "turn_count": 3,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
+}

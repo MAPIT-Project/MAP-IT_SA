@@ -14,7 +14,7 @@ Key characteristics:
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ class BudgetBreakdown:
     total_budget: float = 0.0
     funding_rate: float = 0.0
 
-    def to_dict(self) -> Dict[str, float]:
+    def to_dict(self) -> dict[str, float]:
         return {
             'eu_grant': round(self.eu_grant, 2),
             'co_financing': round(self.co_financing, 2),
@@ -285,11 +285,11 @@ class CreativeEuropeBudgetCalculator:
     def calculate_budget(
         self,
         action_type: str,
-        requested_amount: Optional[float] = None,
+        requested_amount: float | None = None,
         project_scale: str = 'medium',  # 'small', 'medium', 'large'
         num_partners: int = 3,
-        duration_months: Optional[int] = None,
-    ) -> Dict[str, Any]:
+        duration_months: int | None = None,
+    ) -> dict[str, Any]:
         """
         Calculate budget for a Creative Europe action.
 
@@ -402,7 +402,7 @@ class CreativeEuropeBudgetCalculator:
             ],
         }
 
-    def _calculate_culture_breakdown(self, total: float) -> Dict[str, float]:
+    def _calculate_culture_breakdown(self, total: float) -> dict[str, float]:
         """Calculate CULTURE strand cost breakdown."""
         return {
             'staff_costs': round(total * self.CULTURE_COST_CATEGORIES['staff_costs'], 2),
@@ -413,7 +413,7 @@ class CreativeEuropeBudgetCalculator:
             'indirect_costs': round(total * self.CULTURE_COST_CATEGORIES['indirect_costs'], 2),
         }
 
-    def _calculate_media_dev_breakdown(self, total: float) -> Dict[str, float]:
+    def _calculate_media_dev_breakdown(self, total: float) -> dict[str, float]:
         """Calculate MEDIA development cost breakdown."""
         return {
             'option_rights': round(total * self.MEDIA_DEV_CATEGORIES['option_rights'], 2),
@@ -425,7 +425,7 @@ class CreativeEuropeBudgetCalculator:
             'overhead': round(total * self.MEDIA_DEV_CATEGORIES['overhead'], 2),
         }
 
-    def _calculate_generic_breakdown(self, total: float) -> Dict[str, float]:
+    def _calculate_generic_breakdown(self, total: float) -> dict[str, float]:
         """Calculate generic cost breakdown."""
         return {
             'personnel': round(total * 0.50, 2),
@@ -436,7 +436,7 @@ class CreativeEuropeBudgetCalculator:
             'indirect_costs': round(total * 0.07, 2),
         }
 
-    def get_action_budgets_by_strand(self, strand: str) -> List[Dict[str, Any]]:
+    def get_action_budgets_by_strand(self, strand: str) -> list[dict[str, Any]]:
         """Get budget information for all actions in a strand."""
         strand_upper = strand.upper()
         actions = []
@@ -459,12 +459,12 @@ class CreativeEuropeBudgetCalculator:
 # Tool execution function for ToolAwareAgent
 async def calculate_creative_europe_budget_execute(
     action_type: str,
-    requested_amount: Optional[float] = None,
+    requested_amount: float | None = None,
     project_scale: str = 'medium',
     num_partners: int = 3,
-    duration_months: Optional[int] = None,
-    strand: Optional[str] = None,
-) -> Dict[str, Any]:
+    duration_months: int | None = None,
+    strand: str | None = None,
+) -> dict[str, Any]:
     """
     Calculate Creative Europe grant budget.
 

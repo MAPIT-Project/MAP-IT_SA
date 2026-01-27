@@ -5,7 +5,7 @@ Verify proposal compliance with Horizon Europe requirements.
 """
 
 import logging
-from typing import Dict, Any, List
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +22,8 @@ class ComplianceChecker:
     async def run_compliance_check(
         self,
         call_id: str,
-        proposal_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        proposal_data: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Run comprehensive compliance checks
         
@@ -79,8 +79,8 @@ class ComplianceChecker:
     async def _check_mandatory_sections(
         self,
         call_id: str,
-        sections: Dict[str, str]
-    ) -> Dict[str, Any]:
+        sections: dict[str, str]
+    ) -> dict[str, Any]:
         """
         Check if all mandatory sections are present
         """
@@ -109,7 +109,7 @@ class ComplianceChecker:
             "priority": "critical"
         }
     
-    def _check_page_limits(self, sections: Dict[str, str]) -> Dict[str, Any]:
+    def _check_page_limits(self, sections: dict[str, str]) -> dict[str, Any]:
         """
         Check if sections respect page limits
         """
@@ -156,8 +156,8 @@ class ComplianceChecker:
     async def _check_consortium_composition(
         self,
         call_id: str,
-        consortium: List[Dict]
-    ) -> Dict[str, Any]:
+        consortium: list[dict]
+    ) -> dict[str, Any]:
         """
         Check consortium composition requirements
         """
@@ -209,7 +209,7 @@ class ComplianceChecker:
             "priority": "critical"
         }
     
-    def _check_budget_rules(self, budget: Dict[str, Any]) -> Dict[str, Any]:
+    def _check_budget_rules(self, budget: dict[str, Any]) -> dict[str, Any]:
         """
         Check budget compliance
         """
@@ -255,8 +255,8 @@ class ComplianceChecker:
     async def _check_criteria_coverage(
         self,
         call_id: str,
-        sections: Dict[str, str]
-    ) -> Dict[str, Any]:
+        sections: dict[str, str]
+    ) -> dict[str, Any]:
         """
         Check if evaluation criteria are addressed
         """
@@ -305,7 +305,7 @@ class ComplianceChecker:
             "priority": "medium"
         }
     
-    def _check_mandatory_annexes(self, annexes: List[str]) -> Dict[str, Any]:
+    def _check_mandatory_annexes(self, annexes: list[str]) -> dict[str, Any]:
         """
         Check for mandatory annexes
         """
@@ -332,8 +332,8 @@ class ComplianceChecker:
     
     def _aggregate_compliance_results(
         self,
-        checks: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        checks: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         """
         Aggregate all compliance check results
         """

@@ -11,7 +11,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 1477.375,
+      "processing_time_ms": 1412.5030000000002,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -31,7 +31,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 776.529,
+      "processing_time_ms": 741.715,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -51,7 +51,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 1019.5289999999999,
+      "processing_time_ms": 1019.5529999999999,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -71,7 +71,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 888.794,
+      "processing_time_ms": 894.715,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -107,10 +107,10 @@
       "graceful_handling"
     ],
     "description": "A user asks about historical EU funding programmes (H2020, FP7) that are\nno longer active. The system should provide historical context, explain\nthey cannot apply anymore, and guide them to current alternatives.\nTests handling of outdated programme references.\n",
-    "conversation_id": 1293366075
+    "conversation_id": 1014362642
   },
-  "execution_time_ms": 101117.52799999999,
-  "timestamp": "2026-01-23T15:21:19.412087",
+  "execution_time_ms": 101015.925,
+  "timestamp": "2026-01-23T17:42:33.007041",
   "passed": true,
   "turn_count": 4,
   "critical_failures": 0,

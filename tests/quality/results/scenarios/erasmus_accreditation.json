@@ -11,7 +11,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 1386.058,
+      "processing_time_ms": 1316.4180000000001,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -31,7 +31,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 824.874,
+      "processing_time_ms": 809.303,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -51,7 +51,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 742.81,
+      "processing_time_ms": 741.401,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -71,7 +71,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 1217.0859999999998,
+      "processing_time_ms": 1220.7669999999998,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -91,7 +91,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 4555.479,
+      "processing_time_ms": 4522.664,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -124,10 +124,10 @@
       "long_term"
     ],
     "description": "An organization (school, VET institution, or adult education provider) wants to\nunderstand whether they should pursue Erasmus+ accreditation or apply for\nshort-term mobility projects. The scenario tests understanding of accreditation\nbenefits, timeline, alternatives, and strategic decision-making.\n",
-    "conversation_id": 1714676682
+    "conversation_id": 265676581
   },
-  "execution_time_ms": 143170.37300000002,
-  "timestamp": "2026-01-23T14:11:25.926094",
+  "execution_time_ms": 143490.7,
+  "timestamp": "2026-01-23T17:31:13.063824",
   "passed": true,
   "turn_count": 5,
   "critical_failures": 0,

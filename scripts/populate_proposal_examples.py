@@ -6,11 +6,11 @@ Usage:
     python scripts/populate_proposal_examples.py [--batch-size 100] [--max-projects 1000] [--cluster CL4]
 """
 
-import asyncio
 import argparse
+import asyncio
 import logging
-import sys
 import os
+import sys
 from datetime import datetime
 
 # Add project root to path
@@ -26,13 +26,13 @@ logger = logging.getLogger(__name__)
 
 async def main(args):
     """Main execution function."""
-    from app.services.proposal_writing.example_extractor import ExampleExtractor, ExampleEnricher
+    from app.services.proposal_writing.example_extractor import ExampleEnricher, ExampleExtractor
 
     logger.info("=" * 60)
     logger.info("PROPOSAL EXAMPLES POPULATION SCRIPT")
     logger.info("=" * 60)
     logger.info(f"Started at: {datetime.now()}")
-    logger.info(f"Configuration:")
+    logger.info("Configuration:")
     logger.info(f"  - Batch size: {args.batch_size}")
     logger.info(f"  - Max projects: {args.max_projects or 'All'}")
     logger.info(f"  - Clusters: {args.clusters or 'All'}")

@@ -1,0 +1,137 @@
+{
+  "scenario_name": "Creative Europe Cooperation Project",
+  "status": "PASS",
+  "average_quality_score": 81.0,
+  "average_factual_score": 100.0,
+  "turns": [
+    {
+      "query": "What are Creative Europe cooperation projects and how do they work?",
+      "response": "**Creative Europe Cooperation Projects Overview**\n\nThe **CULTURE strand** of Creative Europe (2021-2027) offers **European Cooperation Projects** that support transnational cultural cooperation between European organizations.\n\n## What Are Cooperation Projects?\n\nCooperation Projects fund **transnational cultural activities** that bring together organizations from different European countries to:\n- Develop and disseminate cultural content\n- Build capacity and professionalize the sector\n- Improve c...",
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 4759.178000000001,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
+      "passed": true
+    },
+    {
+      "query": "What's the difference between small, medium, and large-scale Creative Europe cooperation projects?",
+      "response": "**Creative Europe Cooperation Projects Overview**\n\nThe **CULTURE strand** of Creative Europe (2021-2027) offers **European Cooperation Projects** that support transnational cultural cooperation between European organizations.\n\n## What Are Cooperation Projects?\n\nCooperation Projects fund **transnational cultural activities** that bring together organizations from different European countries to:\n- Develop and disseminate cultural content\n- Build capacity and professionalize the sector\n- Improve c...",
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 4196.701,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": true
+    },
+    {
+      "query": "We have 3 partners in our consortium - which Creative Europe cooperation project category fits us?",
+      "response": "**Creative Europe Cooperation Projects Overview**\n\nThe **CULTURE strand** of Creative Europe (2021-2027) offers **European Cooperation Projects** that support transnational cultural cooperation between European organizations.\n\n## What Are Cooperation Projects?\n\nCooperation Projects fund **transnational cultural activities** that bring together organizations from different European countries to:\n- Develop and disseminate cultural content\n- Build capacity and professionalize the sector\n- Improve c...",
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 2394.971,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": true
+    },
+    {
+      "query": "What is the Creative Europe cooperation project funding rate - how much does the EU cover?",
+      "response": "**Creative Europe Cooperation Projects Overview**\n\nThe **CULTURE strand** of Creative Europe (2021-2027) offers **European Cooperation Projects** that support transnational cultural cooperation between European organizations.\n\n## What Are Cooperation Projects?\n\nCooperation Projects fund **transnational cultural activities** that bring together organizations from different European countries to:\n- Develop and disseminate cultural content\n- Build capacity and professionalize the sector\n- Improve c...",
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 961.077,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": true
+    },
+    {
+      "query": "If we want to grow into a medium-scale Creative Europe cooperation project, what would we need?",
+      "response": "**Creative Europe Cooperation Projects Overview**\n\nThe **CULTURE strand** of Creative Europe (2021-2027) offers **European Cooperation Projects** that support transnational cultural cooperation between European organizations.\n\n## What Are Cooperation Projects?\n\nCooperation Projects fund **transnational cultural activities** that bring together organizations from different European countries to:\n- Develop and disseminate cultural content\n- Build capacity and professionalize the sector\n- Improve c...",
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 767.1170000000001,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 4,
+      "passed": true
+    }
+  ],
+  "scores": {
+    "average_quality": 81.0,
+    "average_factual": 100.0,
+    "goal_progress": 0.57,
+    "context_fields": 4
+  },
+  "failures": [],
+  "metadata": {
+    "scenario_path": "tests/scenarios/advanced/creative_europe_cooperation.yaml",
+    "tags": [
+      "phase10",
+      "creative_europe",
+      "cooperation",
+      "culture",
+      "small_scale",
+      "medium_scale",
+      "large_scale",
+      "partnership"
+    ],
+    "description": "A cultural organization wants to understand Creative Europe Cooperation Projects.\nThey want to know the difference between small, medium, and large-scale projects,\nand get guidance on which category fits their 3-partner consortium. The scenario\ntests understanding of partnership requirements, funding rates, and scale selection.\n",
+    "conversation_id": 254827016
+  },
+  "execution_time_ms": 135138.721,
+  "timestamp": "2026-01-23T17:38:01.132558",
+  "passed": true,
+  "turn_count": 5,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
+}

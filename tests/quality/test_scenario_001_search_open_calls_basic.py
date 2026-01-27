@@ -15,8 +15,8 @@ This test verifies that the system properly formats search results with:
 - Application guidance
 """
 
-from datetime import datetime
 import re
+from datetime import datetime
 
 import httpx
 import pytest

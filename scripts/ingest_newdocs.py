@@ -4,16 +4,16 @@ Script to ingest documents from the newdocs directory into the vector database.
 This includes 2025 work programmes, guidance documents, grant agreements, etc.
 """
 
-import os
-import sys
-from pathlib import Path
 import logging
+import sys
 import time
+from pathlib import Path
 
 # Add the app directory to the Python path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 # Configure logging
@@ -123,7 +123,7 @@ def ingest_newdocs():
                     logger.info(f"   ✅ Success! Created {chunk_count} chunks")
                 elif 'already exists' in str(result.get('error', '')):
                     skipped += 1
-                    logger.info(f"   ⏭️ Skipped (already exists)")
+                    logger.info("   ⏭️ Skipped (already exists)")
                 else:
                     failed += 1
                     logger.error(f"   ❌ Failed: {result.get('error')}")

@@ -1,14 +1,14 @@
-import logging
 import json
-import re
-from typing import List, Dict, Any, Optional, Tuple
-from datetime import datetime
-from dataclasses import dataclass
-import google.generativeai as genai
-from .short_term_memory import ConversationTurn
-from .long_term_memory import ConversationSummary, ConversationFact, EntityCard
+import logging
 import os
+import re
+from datetime import datetime
+from typing import Any
 
+import google.generativeai as genai
+
+from .long_term_memory import ConversationFact, ConversationSummary, EntityCard
+from .short_term_memory import ConversationTurn
 
 logger = logging.getLogger(__name__)
 try:
@@ -60,8 +60,8 @@ class RollingSummarizer:
             raise ValueError(f"Unsupported AI provider: {ai_provider}. Choose 'gemini' or 'openrouter'.")
         
     def summarize_turn(self,
-                       existing_summary: Optional[str],
-                       new_turns: List[ConversationTurn],
+                       existing_summary: str | None,
+                       new_turns: list[ConversationTurn],
                        max_tokens: int = 400) -> ConversationSummary:
         """
         Update summary with new conversation turns.
@@ -162,7 +162,7 @@ FORMAT YOUR RESPONSE AS JSON:
             )
     
     def extract_facts(self,
-                     conversation_turns: List[ConversationTurn]) -> List[ConversationFact]:
+                     conversation_turns: list[ConversationTurn]) -> list[ConversationFact]:
         """
         Extract facts from conversation turns.
         
@@ -247,7 +247,7 @@ FORMAT YOUR RESPONSE AS JSON:
             return []
     
     def extract_entities(self,
-                        conversation_turns: List[ConversationTurn]) -> List[EntityCard]:
+                        conversation_turns: list[ConversationTurn]) -> list[EntityCard]:
         """
         Extract and create entity cards from conversation.
         
@@ -335,7 +335,7 @@ FORMAT YOUR RESPONSE AS JSON:
             return []
     
     def recompute_from_scratch(self,
-                              full_history: List[ConversationTurn],
+                              full_history: list[ConversationTurn],
                               max_tokens: int = 400) -> ConversationSummary:
         """
         Recompute summary from complete conversation history.
@@ -352,7 +352,7 @@ FORMAT YOUR RESPONSE AS JSON:
         return self.summarize_turn(None, full_history, max_tokens)
     
     def _build_conversation_context(self, 
-                                   turns: List[ConversationTurn]) -> str:
+                                   turns: list[ConversationTurn]) -> str:
         """Build formatted conversation context"""
         lines = []
         for turn in turns:
@@ -363,12 +363,12 @@ FORMAT YOUR RESPONSE AS JSON:
         return "\n".join(lines)
     
     def _build_summarization_context(self,
-                                    existing_summary: Optional[str],
-                                    new_turns: List[ConversationTurn]) -> str:
+                                    existing_summary: str | None,
+                                    new_turns: list[ConversationTurn]) -> str:
         """Build context for summarization"""
         return self._build_conversation_context(new_turns)
     
-    def _parse_json_response(self, response_text: str) -> Dict[str, Any]:
+    def _parse_json_response(self, response_text: str) -> dict[str, Any]:
         """Parse JSON from LLM response"""
         try:
             # Try to extract JSON from response

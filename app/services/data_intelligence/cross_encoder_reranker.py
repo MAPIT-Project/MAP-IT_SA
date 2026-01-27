@@ -17,9 +17,9 @@ Usage:
 """
 
 import logging
-from typing import List, Dict, Any, Optional, Union
-from dataclasses import dataclass
 import time
+from dataclasses import dataclass
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -44,13 +44,13 @@ def _load_cross_encoder():
 class RankedDocument:
     """A document with its reranking score."""
     content: str
-    original_data: Dict[str, Any]
+    original_data: dict[str, Any]
     original_score: float
     rerank_score: float
     original_rank: int
     new_rank: int
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             **self.original_data,
             "content": self.content,
@@ -78,7 +78,7 @@ class CrossEncoderReranker:
     
     def __init__(
         self,
-        model_name: Optional[str] = None,
+        model_name: str | None = None,
         model_type: str = "fast",
         max_length: int = 768,  # Increased from 512 for better content handling
         device: str = "cpu"
@@ -132,11 +132,11 @@ class CrossEncoderReranker:
     def rerank(
         self,
         query: str,
-        documents: List[Dict[str, Any]],
+        documents: list[dict[str, Any]],
         content_key: str = "content",
-        top_k: Optional[int] = None,
-        score_threshold: Optional[float] = None
-    ) -> List[RankedDocument]:
+        top_k: int | None = None,
+        score_threshold: float | None = None
+    ) -> list[RankedDocument]:
         """
         Rerank documents based on query relevance.
         
@@ -178,7 +178,7 @@ class CrossEncoderReranker:
             
             # Create ranked documents
             ranked_docs = []
-            for (original_rank, doc, content), score in zip(valid_docs, scores):
+            for (original_rank, doc, content), score in zip(valid_docs, scores, strict=False):
                 ranked_docs.append(RankedDocument(
                     content=content,
                     original_data=doc,
@@ -215,11 +215,11 @@ class CrossEncoderReranker:
     def rerank_with_fusion(
         self,
         query: str,
-        results_list: List[List[Dict[str, Any]]],
+        results_list: list[list[dict[str, Any]]],
         content_key: str = "content",
         top_k: int = 10,
         deduplicate: bool = True
-    ) -> List[RankedDocument]:
+    ) -> list[RankedDocument]:
         """
         Rerank and fuse results from multiple sources.
         
@@ -245,7 +245,7 @@ class CrossEncoderReranker:
         # Rerank the combined set
         return self.rerank(query, all_docs, content_key, top_k)
     
-    def _extract_content(self, doc: Dict[str, Any], content_key: str) -> str:
+    def _extract_content(self, doc: dict[str, Any], content_key: str) -> str:
         """Extract text content from document."""
         
         # Try the specified key first
@@ -272,10 +272,10 @@ class CrossEncoderReranker:
     
     def _deduplicate(
         self,
-        documents: List[Dict[str, Any]],
+        documents: list[dict[str, Any]],
         content_key: str,
         similarity_threshold: float = 0.95
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Remove near-duplicate documents based on content."""
         
         seen_content = set()
@@ -298,9 +298,9 @@ class CrossEncoderReranker:
     
     def _create_passthrough_results(
         self,
-        documents: List[Dict[str, Any]],
+        documents: list[dict[str, Any]],
         content_key: str
-    ) -> List[RankedDocument]:
+    ) -> list[RankedDocument]:
         """Create results without reranking (passthrough mode)."""
         
         results = []
@@ -340,7 +340,7 @@ class CrossEncoderReranker:
             logger.error(f"Scoring failed: {e}")
             return 0.0
     
-    def get_model_info(self) -> Dict[str, Any]:
+    def get_model_info(self) -> dict[str, Any]:
         """Get information about the loaded model."""
         return {
             "model_name": self.model_name,
@@ -351,7 +351,7 @@ class CrossEncoderReranker:
 
 
 # Singleton instance for reuse
-_reranker_instance: Optional[CrossEncoderReranker] = None
+_reranker_instance: CrossEncoderReranker | None = None
 
 
 def get_reranker(model_type: str = "fast") -> CrossEncoderReranker:

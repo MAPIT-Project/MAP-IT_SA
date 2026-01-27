@@ -5,10 +5,10 @@ Tracks the agent's state across iterations of the agentic loop.
 """
 
 import logging
-from enum import Enum
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
 from datetime import datetime
+from enum import Enum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ class AgentContext:
     
     # Original query
     user_query: str
-    conversation_id: Optional[str] = None
+    conversation_id: str | None = None
     
     # Current state
     state: AgentState = AgentState.UNDERSTANDING
@@ -46,45 +46,45 @@ class AgentContext:
     started_at: datetime = field(default_factory=datetime.now)
     
     # Understanding phase results
-    intent: Optional[str] = None
-    entities: List[str] = field(default_factory=list)
-    query_type: Optional[str] = None  # 'factual', 'exploratory', 'procedural'
+    intent: str | None = None
+    entities: list[str] = field(default_factory=list)
+    query_type: str | None = None  # 'factual', 'exploratory', 'procedural'
     requires_graph: bool = False
     requires_vector: bool = False
     
     # Planning
-    current_plan: Optional[Dict] = None
-    plan_history: List[Dict] = field(default_factory=list)
+    current_plan: dict | None = None
+    plan_history: list[dict] = field(default_factory=list)
     
     # Execution
-    results: Dict[str, Any] = field(default_factory=dict)
-    tool_calls: List[Dict] = field(default_factory=list)
-    execution_times: Dict[str, float] = field(default_factory=dict)
+    results: dict[str, Any] = field(default_factory=dict)
+    tool_calls: list[dict] = field(default_factory=list)
+    execution_times: dict[str, float] = field(default_factory=dict)
     
     # Evaluation
     result_quality: float = 0.0  # 0-1 score
-    quality_history: List[float] = field(default_factory=list)
-    quality_reasons: List[str] = field(default_factory=list)
+    quality_history: list[float] = field(default_factory=list)
+    quality_reasons: list[str] = field(default_factory=list)
     is_sufficient: bool = False
     
     # Reflection (stored for replanning)
-    last_reflection: Optional[Dict] = None
-    failure_reasons: List[str] = field(default_factory=list)
-    improvement_suggestions: List[str] = field(default_factory=list)
+    last_reflection: dict | None = None
+    failure_reasons: list[str] = field(default_factory=list)
+    improvement_suggestions: list[str] = field(default_factory=list)
     
     # Memory of what worked/failed (prevents repeating mistakes)
-    successful_strategies: List[str] = field(default_factory=list)
-    failed_strategies: List[str] = field(default_factory=list)
-    tried_queries: List[str] = field(default_factory=list)
-    tried_sources: List[str] = field(default_factory=list)
+    successful_strategies: list[str] = field(default_factory=list)
+    failed_strategies: list[str] = field(default_factory=list)
+    tried_queries: list[str] = field(default_factory=list)
+    tried_sources: list[str] = field(default_factory=list)
     
     # Final output
-    final_response: Optional[str] = None
-    sources: List[Dict] = field(default_factory=list)
+    final_response: str | None = None
+    sources: list[dict] = field(default_factory=list)
     confidence_level: str = "medium"  # 'high', 'medium', 'low'
     
     # Error tracking
-    errors: List[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
     
     def transition_to(self, new_state: AgentState) -> None:
         """Transition to a new state with logging."""
@@ -92,7 +92,7 @@ class AgentContext:
         self.state = new_state
         logger.debug(f"Agent state: {old_state.value} → {new_state.value}")
     
-    def record_plan(self, plan: Dict) -> None:
+    def record_plan(self, plan: dict) -> None:
         """Record a new plan and update history."""
         self.current_plan = plan
         self.plan_history.append({
@@ -101,12 +101,12 @@ class AgentContext:
             'timestamp': datetime.now().isoformat()
         })
     
-    def record_results(self, results: Dict[str, Any], execution_time: float = 0) -> None:
+    def record_results(self, results: dict[str, Any], execution_time: float = 0) -> None:
         """Record execution results."""
         self.results = results
         self.execution_times[f'iteration_{self.iteration}'] = execution_time
     
-    def record_evaluation(self, score: float, reasons: List[str], is_sufficient: bool) -> None:
+    def record_evaluation(self, score: float, reasons: list[str], is_sufficient: bool) -> None:
         """Record evaluation results."""
         self.result_quality = score
         self.quality_history.append(score)
@@ -162,7 +162,7 @@ class AgentContext:
         queries = [s.get('query', '')[:30] for s in steps]
         return f"sources={sources}, queries={queries}"
     
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> dict[str, Any]:
         """Get a summary of the agent's session."""
         return {
             'query': self.user_query,
@@ -176,7 +176,7 @@ class AgentContext:
             'state': self.state.value
         }
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             'user_query': self.user_query,

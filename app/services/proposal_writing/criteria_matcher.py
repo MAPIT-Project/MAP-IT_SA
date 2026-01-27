@@ -5,7 +5,7 @@ Analyzes proposal content against evaluation criteria using structured AI output
 """
 
 import logging
-from typing import Dict, Any, List
+from typing import Any
 
 from .proposal_ai_service import ProposalAIService
 from .schemas.ai_schemas import CRITERIA_ANALYSIS_SCHEMA
@@ -24,9 +24,9 @@ class EvaluationCriteriaMatcher:
     async def analyze_section(
         self,
         section_text: str,
-        evaluation_criteria: List[str],
+        evaluation_criteria: list[str],
         call_id: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Analyze how well a section addresses evaluation criteria.
 
@@ -55,7 +55,7 @@ class EvaluationCriteriaMatcher:
     def _build_analysis_prompt(
         self,
         section_text: str,
-        criteria: List[str]
+        criteria: list[str]
     ) -> str:
         """Build prompt for structured criteria analysis."""
 
@@ -86,9 +86,9 @@ Be thorough but concise. Base scores on actual content, not assumptions."""
 
     def _transform_result(
         self,
-        result: Dict[str, Any],
-        criteria: List[str]
-    ) -> Dict[str, Any]:
+        result: dict[str, Any],
+        criteria: list[str]
+    ) -> dict[str, Any]:
         """Transform structured result to expected format."""
 
         # Build criteria coverage dict
@@ -133,8 +133,8 @@ Be thorough but concise. Base scores on actual content, not assumptions."""
     def _simple_criteria_analysis(
         self,
         section_text: str,
-        criteria: List[str]
-    ) -> Dict[str, Any]:
+        criteria: list[str]
+    ) -> dict[str, Any]:
         """Fallback: Simple keyword-based analysis."""
 
         coverage = {}
@@ -170,8 +170,8 @@ Be thorough but concise. Base scores on actual content, not assumptions."""
         self,
         version1: str,
         version2: str,
-        criteria: List[str]
-    ) -> Dict[str, Any]:
+        criteria: list[str]
+    ) -> dict[str, Any]:
         """
         Compare two versions of a section against criteria.
         """

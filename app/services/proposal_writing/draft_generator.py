@@ -4,13 +4,14 @@ Proposal Draft Generator
 AI-powered generation of proposal section drafts.
 """
 
-import logging
-from typing import Dict, Any, List, Optional
 import json
+import logging
 import os
+from typing import Any, Optional
+
 import google.generativeai as genai
 
-from .call_understanding_service import CallUnderstandingService, CallUnderstanding
+from .call_understanding_service import CallUnderstanding, CallUnderstandingService
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +34,8 @@ class ProposalDraftGenerator:
         self,
         call_id: str,
         section_id: str,
-        user_context: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        user_context: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Generate a draft for a specific proposal section
         
@@ -122,9 +123,9 @@ class ProposalDraftGenerator:
         section_id: str,
         call_id: str,
         call_understanding: CallUnderstanding,
-        guidance: Dict,
-        criteria: List[str],
-        user_context: Dict
+        guidance: dict,
+        criteria: list[str],
+        user_context: dict
     ) -> str:
         """
         Build the AI prompt for draft generation using dynamic call understanding.
@@ -233,7 +234,7 @@ Begin writing the section now:"""
 
         return prompt
     
-    def _get_call_metadata(self, call_id: str) -> Dict[str, Any]:
+    def _get_call_metadata(self, call_id: str) -> dict[str, Any]:
         """Get call metadata for better context"""
         try:
             # Try to get metadata from call document service
@@ -254,7 +255,7 @@ Begin writing the section now:"""
 
     # Note: _extract_call_topic removed - now handled by CallUnderstandingService
 
-    def _analyze_draft(self, draft_text: str, criteria: List[str]) -> Dict[str, Any]:
+    def _analyze_draft(self, draft_text: str, criteria: list[str]) -> dict[str, Any]:
         """
         Analyze draft quality and criteria coverage
         """
@@ -311,7 +312,7 @@ Begin writing the section now:"""
         self,
         text: str,
         section_id: str,
-        call_understanding: Optional[CallUnderstanding] = None
+        call_understanding: CallUnderstanding | None = None
     ) -> str:
         """
         Ensure critical EU alignment terms are included in the draft.
@@ -373,11 +374,11 @@ Begin writing the section now:"""
 
     def _create_contextual_insertions(
         self,
-        missing_terms: List[str],
+        missing_terms: list[str],
         section_id: str,
         text: str,
-        call_understanding: Optional[CallUnderstanding] = None
-    ) -> List[tuple]:
+        call_understanding: CallUnderstanding | None = None
+    ) -> list[tuple]:
         """
         Create contextual insertions for missing EU terms.
         Now cluster-aware - generates appropriate text based on call topic.

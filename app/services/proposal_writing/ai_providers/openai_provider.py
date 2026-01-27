@@ -4,10 +4,11 @@ OpenAI Provider
 AI provider implementation for OpenAI GPT models.
 """
 
+import json
 import logging
 import time
-import json
-from typing import Dict, Any, AsyncGenerator
+from collections.abc import AsyncGenerator
+from typing import Any
 
 from .base import BaseAIProvider, ProviderConfig, ProviderResponse
 
@@ -72,9 +73,9 @@ class OpenAIProvider(BaseAIProvider):
     async def generate_structured(
         self,
         prompt: str,
-        schema: Dict[str, Any],
+        schema: dict[str, Any],
         temperature: float = 0.3
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate structured JSON using OpenAI."""
 
         if not self._available or not self.client:

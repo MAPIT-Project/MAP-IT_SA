@@ -1,13 +1,12 @@
-import logging
 import json
-from typing import List, Dict, Any, Optional, Tuple
+import logging
+import os
+from dataclasses import dataclass
 from datetime import datetime
-from dataclasses import dataclass, asdict
+from typing import Any
+
 import psycopg2
 from psycopg2.extras import RealDictCursor
-import hashlib
-import os
-
 
 logger = logging.getLogger(__name__)
 @dataclass
@@ -15,10 +14,10 @@ class ConversationSummary:
     """Represents a conversation summary"""
     conversation_id: int
     summary_text: str
-    key_points: List[str]
+    key_points: list[str]
     token_count: int
     created_at: datetime
-    covers_messages: Tuple[int, int]  # (first_message_id, last_message_id)
+    covers_messages: tuple[int, int]  # (first_message_id, last_message_id)
 
 @dataclass
 class ConversationFact:
@@ -27,14 +26,14 @@ class ConversationFact:
     fact_content: str
     confidence: float
     source_message_id: int
-    metadata: Dict[str, Any] = None
+    metadata: dict[str, Any] = None
 
 @dataclass
 class EntityCard:
     """Represents an entity mentioned in conversation"""
     entity_type: str  # 'project', 'organization', 'person', 'topic'
     entity_name: str
-    entity_data: Dict[str, Any]
+    entity_data: dict[str, Any]
     first_mentioned: datetime
     reference_count: int
 
@@ -121,7 +120,7 @@ class LongTermMemory:
             logger.info(f"Database error in store_summary: {e}")
             return False
     
-    def get_summary(self, conversation_id: int) -> Optional[ConversationSummary]:
+    def get_summary(self, conversation_id: int) -> ConversationSummary | None:
         """
         Retrieve the latest summary for a conversation.
         
@@ -166,7 +165,7 @@ class LongTermMemory:
     
     def store_facts(self, 
                    conversation_id: int, 
-                   facts: List[ConversationFact]) -> bool:
+                   facts: list[ConversationFact]) -> bool:
         """
         Store extracted facts from conversation.
         
@@ -207,8 +206,8 @@ class LongTermMemory:
     
     def get_facts(self, 
                  conversation_id: int,
-                 fact_type: Optional[str] = None,
-                 min_confidence: float = 0.7) -> List[ConversationFact]:
+                 fact_type: str | None = None,
+                 min_confidence: float = 0.7) -> list[ConversationFact]:
         """
         Retrieve facts for a conversation.
         
@@ -305,7 +304,7 @@ class LongTermMemory:
     
     def get_entity_cards(self,
                         conversation_id: int,
-                        entity_type: Optional[str] = None) -> List[EntityCard]:
+                        entity_type: str | None = None) -> list[EntityCard]:
         """
         Retrieve entity cards for a conversation.
         

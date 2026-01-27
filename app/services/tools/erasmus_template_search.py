@@ -9,7 +9,7 @@ to provide targeted answers about application requirements.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +73,7 @@ class ErasmusTemplateSearchTool:
     def __init__(self):
         self.sections = ERASMUS_SECTIONS
 
-    def detect_section(self, query: str) -> List[str]:
+    def detect_section(self, query: str) -> list[str]:
         """Detect which sections a query is likely about."""
         query_lower = query.lower()
         matching_sections = []
@@ -86,8 +86,8 @@ class ErasmusTemplateSearchTool:
 
         return matching_sections or ['general']
 
-    def build_enhanced_query(self, query: str, key_action: Optional[str] = None,
-                             sector: Optional[str] = None) -> str:
+    def build_enhanced_query(self, query: str, key_action: str | None = None,
+                             sector: str | None = None) -> str:
         """Build an enhanced query with context keywords."""
         enhanced = query
 
@@ -119,11 +119,11 @@ class ErasmusTemplateSearchTool:
 
 async def search_erasmus_templates_execute(
     query: str,
-    key_action: Optional[str] = None,
-    sector: Optional[str] = None,
-    document_type: Optional[str] = None,
+    key_action: str | None = None,
+    sector: str | None = None,
+    document_type: str | None = None,
     top_k: int = 5,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Search Erasmus+ guidance documents for application information.
 

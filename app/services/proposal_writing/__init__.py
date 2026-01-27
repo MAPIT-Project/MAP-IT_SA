@@ -4,151 +4,151 @@ Proposal Writing Assistant Services
 This package provides AI-powered assistance for writing Horizon Europe proposals.
 """
 
-from .template_service import ProposalTemplateService
-from .draft_generator import ProposalDraftGenerator
-from .criteria_matcher import EvaluationCriteriaMatcher
-from .budget_assistant import BudgetAssistant
-from .compliance_checker import ComplianceChecker
-from .quality_improver import QualityImprover
-from .official_document_processor import (
-    OfficialDocumentProcessor,
-    OfficialWordExporter,
-    OfficialBudgetExporter
-)
-from .submission_exporter import SubmissionExporter
-from .call_understanding_service import (
-    CallUnderstandingService,
-    CallUnderstanding,
-    HorizonCluster,
-)
-from .proposal_ai_service import ProposalAIService
-from .schemas import (
-    CRITERIA_ANALYSIS_SCHEMA,
-    QUALITY_ANALYSIS_SCHEMA,
-    CALL_UNDERSTANDING_SCHEMA,
-    EVALUATOR_SIMULATION_SCHEMA,
-    REWRITE_SCHEMA,
-    INLINE_SUGGESTIONS_SCHEMA,
-)
 from .ai_providers import (
     BaseAIProvider,
+    GeminiProvider,
+    MultiProviderAIService,
+    OpenAIProvider,
     ProviderConfig,
     ProviderResponse,
     ProviderStatus,
-    GeminiProvider,
-    OpenAIProvider,
-    MultiProviderAIService,
+)
+from .budget_assistant import BudgetAssistant
+from .call_understanding_service import (
+    CallUnderstanding,
+    CallUnderstandingService,
+    HorizonCluster,
+)
+from .compliance_checker import ComplianceChecker
+from .criteria_matcher import EvaluationCriteriaMatcher
+from .dashboard_service import (
+    ActionPriority,
+    DashboardData,
+    DashboardService,
+    NextAction,
+    ReadinessCheck,
+    SectionStatus,
+    SectionSummary,
+)
+from .draft_generator import ProposalDraftGenerator
+from .evaluator_simulator import (
+    CriterionScore,
+    EvaluationResult,
+    EvaluatorSimulator,
+    ScoreLevel,
+)
+from .example_extractor import (
+    ExampleEnricher,
+    ExampleExtractor,
+    ExampleType,
+    ExtractedExample,
 )
 from .exceptions import (
-    ProposalWritingError,
     AIGenerationError,
     CallAnalysisError,
     DatabaseError,
-    ValidationError,
-    RateLimitError,
     ProposalTimeoutError,
+    ProposalWritingError,
     ProviderUnavailableError,
+    RateLimitError,
     TemplateError,
+    ValidationError,
 )
-from .retry import (
-    async_retry,
-    sync_retry,
-    CircuitBreaker,
-    RetryConfig,
-    AGGRESSIVE_RETRY,
-    STANDARD_RETRY,
-    GENTLE_RETRY,
+from .gap_analysis_service import (
+    EffortLevel,
+    Gap,
+    GapAnalysisResult,
+    GapAnalysisService,
+    GapCategory,
+    GapProgressTracker,
+    GapSeverity,
 )
+from .inline_suggestions_service import (
+    AnalysisResult,
+    InlineSuggestion,
+    InlineSuggestionsService,
+    RealTimeAnalyzer,
+    SuggestionCategory,
+    SuggestionPriority,
+    TextSpan,
+)
+from .official_document_processor import (
+    OfficialBudgetExporter,
+    OfficialDocumentProcessor,
+    OfficialWordExporter,
+)
+from .progress_tracking_service import (
+    Achievement,
+    AchievementCategory,
+    AchievementRarity,
+    ProgressSnapshot,
+    ProgressTrackingService,
+    Streak,
+    UserAchievement,
+)
+from .proposal_ai_service import ProposalAIService
 from .proposal_learning_service import (
     ProposalLearningService,
     SimilarProject,
     SuccessPattern,
 )
-from .example_extractor import (
-    ExampleExtractor,
-    ExampleEnricher,
-    ExampleType,
-    ExtractedExample,
-)
-from .semantic_benchmarking import (
-    SemanticBenchmarkingService,
-    BenchmarkResult,
-    BenchmarkExample,
-    BenchmarkDimension,
-    DimensionScore,
-    BenchmarkVisualizer,
-    RealTimeBenchmarker,
-)
-from .evaluator_simulator import (
-    EvaluatorSimulator,
-    EvaluationResult,
-    CriterionScore,
-    ScoreLevel,
-)
-from .score_visualizer import (
-    generate_score_bar,
-    generate_score_summary,
-    generate_criterion_table,
-    generate_section_report,
-    generate_comparison_chart_data,
-    generate_funding_probability_gauge,
-    format_improvement_priority_list,
-)
-from .score_storage_service import (
-    ScoreStorageService,
-    StoredScore,
-    ScoreHistoryEntry,
-    ProposalScoreSummary,
-    TriggerType,
-)
-from .gap_analysis_service import (
-    GapAnalysisService,
-    GapProgressTracker,
-    GapAnalysisResult,
-    Gap,
-    GapSeverity,
-    GapCategory,
-    EffortLevel,
-)
-from .smart_rewriter import (
-    SmartRewriter,
-    RewriteResult,
-    RewriteStyle,
-)
-from .inline_suggestions_service import (
-    InlineSuggestionsService,
-    RealTimeAnalyzer,
-    InlineSuggestion,
-    AnalysisResult,
-    TextSpan,
-    SuggestionCategory,
-    SuggestionPriority,
-)
+from .quality_improver import QualityImprover
 from .realtime_quality_service import (
-    RealTimeQualityService,
-    StreamingQualityIndicator,
-    StreamingFeedback,
     FeedbackType,
     QualityTier,
+    RealTimeQualityService,
+    StreamingFeedback,
+    StreamingQualityIndicator,
 )
-from .progress_tracking_service import (
-    ProgressTrackingService,
-    Achievement,
-    UserAchievement,
-    ProgressSnapshot,
-    Streak,
-    AchievementCategory,
-    AchievementRarity,
+from .retry import (
+    AGGRESSIVE_RETRY,
+    GENTLE_RETRY,
+    STANDARD_RETRY,
+    CircuitBreaker,
+    RetryConfig,
+    async_retry,
+    sync_retry,
 )
-from .dashboard_service import (
-    DashboardService,
-    DashboardData,
-    SectionSummary,
-    NextAction,
-    ReadinessCheck,
-    SectionStatus,
-    ActionPriority,
+from .schemas import (
+    CALL_UNDERSTANDING_SCHEMA,
+    CRITERIA_ANALYSIS_SCHEMA,
+    EVALUATOR_SIMULATION_SCHEMA,
+    INLINE_SUGGESTIONS_SCHEMA,
+    QUALITY_ANALYSIS_SCHEMA,
+    REWRITE_SCHEMA,
 )
+from .score_storage_service import (
+    ProposalScoreSummary,
+    ScoreHistoryEntry,
+    ScoreStorageService,
+    StoredScore,
+    TriggerType,
+)
+from .score_visualizer import (
+    format_improvement_priority_list,
+    generate_comparison_chart_data,
+    generate_criterion_table,
+    generate_funding_probability_gauge,
+    generate_score_bar,
+    generate_score_summary,
+    generate_section_report,
+)
+from .semantic_benchmarking import (
+    BenchmarkDimension,
+    BenchmarkExample,
+    BenchmarkResult,
+    BenchmarkVisualizer,
+    DimensionScore,
+    RealTimeBenchmarker,
+    SemanticBenchmarkingService,
+)
+from .smart_rewriter import (
+    RewriteResult,
+    RewriteStyle,
+    SmartRewriter,
+)
+from .submission_exporter import SubmissionExporter
+from .template_service import ProposalTemplateService
 
 __all__ = [
     'ProposalTemplateService',

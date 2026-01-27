@@ -8,10 +8,10 @@ Implements Priority 4.3 from IMPROVEMENT_ROADMAP.md
 """
 
 from .webhook_service import (
-    WebhookService,
-    WebhookEvent,
     WebhookConfig,
+    WebhookEvent,
     WebhookEventType,
+    WebhookService,
     get_webhook_service,
 )
 

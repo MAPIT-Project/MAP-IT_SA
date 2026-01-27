@@ -6,13 +6,14 @@ Tests the self-correcting query processing flow.
 """
 
 import asyncio
-import sys
 import os
+import sys
 
 # Add the app to the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 async def test_agentic_manager():
@@ -44,13 +45,13 @@ async def test_agentic_manager():
                 conversation_id="test_123"
             )
             
-            print(f"\n📊 Result:")
+            print("\n📊 Result:")
             print(f"   Success: {result.get('success')}")
             print(f"   Iterations: {result.get('metadata', {}).get('iterations')}")
             print(f"   Quality Score: {result.get('metadata', {}).get('final_quality_score', 0):.2f}")
             print(f"   Confidence: {result.get('metadata', {}).get('confidence')}")
             print(f"   Time: {result.get('metadata', {}).get('total_time_ms', 0):.0f}ms")
-            print(f"\n📝 Response preview:")
+            print("\n📝 Response preview:")
             response = result.get('response', '')
             print(f"   {response[:300]}..." if len(response) > 300 else f"   {response}")
             
@@ -88,7 +89,7 @@ async def test_streaming():
             elif update_type == 'progress':
                 print(f"   📊 {update.get('message')}")
             elif update_type == 'response':
-                print(f"\n   ✅ Final response received!")
+                print("\n   ✅ Final response received!")
                 print(f"   Iterations: {update.get('metadata', {}).get('iterations')}")
                 print(f"   Quality: {update.get('metadata', {}).get('quality_score', 0):.2f}")
             elif update_type == 'error':
@@ -111,7 +112,7 @@ async def test_component_chain():
     
     try:
         # Test ResultEvaluator
-        from app.services.agents import ResultEvaluator, EvaluationResult
+        from app.services.agents import ResultEvaluator
         
         evaluator = ResultEvaluator()
         
@@ -133,7 +134,7 @@ async def test_component_chain():
             entities=["RIA", "consortium"]
         )
         
-        print(f"\n📊 Evaluator test (good results):")
+        print("\n📊 Evaluator test (good results):")
         print(f"   Score: {eval_result.score:.2f}")
         print(f"   Sufficient: {eval_result.is_sufficient}")
         print(f"   Reasons: {eval_result.reasons[:2]}")
@@ -154,7 +155,7 @@ async def test_component_chain():
             entities=["RIA", "consortium"]
         )
         
-        print(f"\n📊 Evaluator test (bad results):")
+        print("\n📊 Evaluator test (bad results):")
         print(f"   Score: {eval_result_bad.score:.2f}")
         print(f"   Sufficient: {eval_result_bad.is_sufficient}")
         print(f"   Suggestions: {eval_result_bad.suggestions[:2]}")
@@ -173,7 +174,7 @@ async def test_component_chain():
             entities=["RIA", "consortium"]
         )
         
-        print(f"\n🔍 Reflector test:")
+        print("\n🔍 Reflector test:")
         print(f"   Root cause: {reflection.root_cause.value}")
         print(f"   Action: {reflection.improvement_action.value}")
         print(f"   Suggested query: {reflection.suggested_query}")
@@ -193,7 +194,7 @@ async def test_component_chain():
             entities=["RIA", "consortium"]
         )
         
-        print(f"\n📋 Replanner test:")
+        print("\n📋 Replanner test:")
         print(f"   Strategy: {new_plan.get('strategy')}")
         print(f"   New sources: {[s.get('source') for s in new_plan.get('steps', [])]}")
         print(f"   Reasoning: {new_plan.get('reasoning')}")

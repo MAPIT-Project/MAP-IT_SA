@@ -2,16 +2,17 @@
 Vector search service for semantic and hybrid search capabilities.
 """
 
-import numpy as np
-from typing import List, Dict, Any, Optional, Tuple
-from dataclasses import dataclass
-import re
 import logging
+import re
+from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
-from .supabase_client import SupabaseVectorStore
-from .embedding_service import EmbeddingService
+import numpy as np
+
 from ..core.config import settings
+from .embedding_service import EmbeddingService
+from .supabase_client import SupabaseVectorStore
 
 logger = logging.getLogger(__name__)
 
@@ -24,15 +25,15 @@ class SearchResult:
     document_title: str
     document_type: str
     score: float
-    metadata: Dict[str, Any]
-    section_title: Optional[str] = None
-    page_number: Optional[int] = None
-    highlights: Optional[List[str]] = None
+    metadata: dict[str, Any]
+    section_title: str | None = None
+    page_number: int | None = None
+    highlights: list[str] | None = None
 
 class VectorSearchService:
     """Advanced vector search with hybrid capabilities."""
     
-    def __init__(self, supabase_client: Optional[SupabaseVectorStore] = None, embedding_service: Optional[EmbeddingService] = None):
+    def __init__(self, supabase_client: SupabaseVectorStore | None = None, embedding_service: EmbeddingService | None = None):
         """Initialize the vector search service."""
         self.supabase = supabase_client or SupabaseVectorStore()
         self.embedder = embedding_service or EmbeddingService(cache_client=self.supabase)
@@ -48,10 +49,10 @@ class VectorSearchService:
         query: str,
         search_type: str = "hybrid",
         num_results: int = 15,  # Increased from 5 for better retrieval
-        filters: Optional[Dict[str, Any]] = None,
-        similarity_threshold: Optional[float] = None,
+        filters: dict[str, Any] | None = None,
+        similarity_threshold: float | None = None,
         rerank: bool = True
-    ) -> List[SearchResult]:
+    ) -> list[SearchResult]:
         """Main search interface supporting multiple search types."""
         
         if not query or not query.strip():
@@ -96,9 +97,9 @@ class VectorSearchService:
         self,
         query: str,
         num_results: int = 10,
-        filters: Optional[Dict[str, Any]] = None,
+        filters: dict[str, Any] | None = None,
         similarity_threshold: float = 0.7
-    ) -> List[SearchResult]:
+    ) -> list[SearchResult]:
         """Pure semantic search using vector similarity."""
         
         try:
@@ -144,8 +145,8 @@ class VectorSearchService:
         self,
         query: str,
         num_results: int = 10,
-        filters: Optional[Dict[str, Any]] = None
-    ) -> List[SearchResult]:
+        filters: dict[str, Any] | None = None
+    ) -> list[SearchResult]:
         """Traditional keyword-based search using PostgreSQL full-text search."""
         
         try:
@@ -200,10 +201,10 @@ class VectorSearchService:
         self,
         query: str,
         num_results: int = 10,
-        filters: Optional[Dict[str, Any]] = None,
+        filters: dict[str, Any] | None = None,
         similarity_threshold: float = 0.7,
         vector_weight: float = 0.6
-    ) -> List[SearchResult]:
+    ) -> list[SearchResult]:
         """Hybrid search combining semantic and keyword search."""
         
         try:
@@ -248,9 +249,9 @@ class VectorSearchService:
     
     def rerank_results(
         self, 
-        results: List[SearchResult], 
+        results: list[SearchResult], 
         query: str
-    ) -> List[SearchResult]:
+    ) -> list[SearchResult]:
         """Rerank results using additional signals."""
         
         if len(results) <= 1:
@@ -314,7 +315,7 @@ class VectorSearchService:
         # Sort by updated scores
         results.sort(key=lambda x: x.score, reverse=True)
         
-        logger.info(f"✅ Reranking completed")
+        logger.info("✅ Reranking completed")
         return results
     
     def process_query_keywords(self, query: str) -> str:
@@ -359,7 +360,7 @@ class VectorSearchService:
         content: str, 
         query: str, 
         context_length: int = 150
-    ) -> List[str]:
+    ) -> list[str]:
         """Extract highlighted snippets from content."""
         highlights = []
         query_words = [w.lower() for w in query.split() if len(w) > 2]
@@ -397,7 +398,7 @@ class VectorSearchService:
         chunk_id: str,
         num_similar: int = 5,
         similarity_threshold: float = 0.7
-    ) -> List[SearchResult]:
+    ) -> list[SearchResult]:
         """Find similar chunks to a given chunk."""
         
         try:
@@ -453,7 +454,7 @@ class VectorSearchService:
         document_type: str,
         num_results: int = 15,  # Increased from 5
         search_type: str = "hybrid"
-    ) -> List[SearchResult]:
+    ) -> list[SearchResult]:
         """Search within a specific document type."""
         
         filters = {'document_type': document_type}
@@ -474,7 +475,7 @@ class VectorSearchService:
         programme_year: str,
         num_results: int = 15,  # Increased from 5
         search_type: str = "hybrid"
-    ) -> List[SearchResult]:
+    ) -> list[SearchResult]:
         """Search within a specific programme year."""
         
         filters = {'year': programme_year}
@@ -489,7 +490,7 @@ class VectorSearchService:
         logger.info(f"📅 Programme year search ({programme_year}): {len(results)} results")
         return results
     
-    def get_search_suggestions(self, partial_query: str, limit: int = 5) -> List[str]:
+    def get_search_suggestions(self, partial_query: str, limit: int = 5) -> list[str]:
         """Get search suggestions based on partial query."""
         
         if len(partial_query) < 3:
@@ -541,7 +542,7 @@ class VectorSearchService:
             logger.error(f"❌ Error generating suggestions: {e}")
             return []
     
-    def get_search_stats(self) -> Dict[str, Any]:
+    def get_search_stats(self) -> dict[str, Any]:
         """Get statistics about search performance and usage."""
         
         try:

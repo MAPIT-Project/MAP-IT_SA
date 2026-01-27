@@ -246,7 +246,7 @@ def ingest_life_documents(source_dir: str, dry_run: bool = False):
     # Get final stats
     try:
         final_stats = ingestion_service.supabase.get_document_stats()
-        logger.info(f"\nDatabase Stats:")
+        logger.info("\nDatabase Stats:")
         logger.info(f"  Total Documents: {final_stats.get('total_documents', 0)}")
         logger.info(f"  Total Chunks: {final_stats.get('total_chunks', 0)}")
     except Exception as e:

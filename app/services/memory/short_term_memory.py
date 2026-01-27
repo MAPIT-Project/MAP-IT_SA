@@ -1,13 +1,12 @@
-import logging
 import json
-import hashlib
-from typing import List, Dict, Any, Optional
-from datetime import datetime, timedelta
-from dataclasses import dataclass, asdict
+import logging
+import os
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any
+
 import redis
 from redis.exceptions import RedisError
-import os
-
 
 logger = logging.getLogger(__name__)
 @dataclass
@@ -17,7 +16,7 @@ class ConversationTurn:
     role: str  # 'user' or 'assistant'
     content: str
     timestamp: datetime
-    metadata: Dict[str, Any] = None
+    metadata: dict[str, Any] = None
     
     def to_dict(self):
         return {
@@ -29,7 +28,7 @@ class ConversationTurn:
         }
     
     @classmethod
-    def from_dict(cls, data: Dict):
+    def from_dict(cls, data: dict):
         return cls(
             message_id=data['message_id'],
             role=data['role'],
@@ -113,7 +112,7 @@ class ShortTermMemory:
     
     def get_recent_turns(self, 
                         conversation_id: int, 
-                        n: Optional[int] = None) -> List[ConversationTurn]:
+                        n: int | None = None) -> list[ConversationTurn]:
         """
         Retrieve recent turns from memory.
         
@@ -201,7 +200,7 @@ class ShortTermMemory:
             logger.info(f"Redis error in clear_conversation: {e}")
             return False
     
-    def get_memory_stats(self, conversation_id: int) -> Dict[str, Any]:
+    def get_memory_stats(self, conversation_id: int) -> dict[str, Any]:
         """
         Get statistics about the short-term memory.
         

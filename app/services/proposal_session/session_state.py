@@ -6,11 +6,11 @@ combining conversation context with document state for seamless AI-assisted
 proposal writing.
 """
 
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from enum import Enum
-from typing import Any, Dict, List, Optional
 import uuid
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from enum import Enum
+from typing import Any
 
 
 class SessionStatus(str, Enum):
@@ -69,17 +69,17 @@ class SectionState:
     section_name: str
     content: str = ""
     word_count: int = 0
-    quality_score: Optional[float] = None  # 0-5 scale
+    quality_score: float | None = None  # 0-5 scale
     status: SectionStatus = SectionStatus.EMPTY
-    suggestions: List[InlineSuggestion] = field(default_factory=list)
-    gaps: List[Gap] = field(default_factory=list)
+    suggestions: list[InlineSuggestion] = field(default_factory=list)
+    gaps: list[Gap] = field(default_factory=list)
     lock_status: SectionLockStatus = SectionLockStatus.UNLOCKED
-    locked_at: Optional[datetime] = None
+    locked_at: datetime | None = None
     is_dirty: bool = False  # Has unsaved changes
     version: int = 1
-    last_updated: Optional[datetime] = None
+    last_updated: datetime | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for API responses."""
         return {
             "section_id": self.section_id,
@@ -103,17 +103,17 @@ class ProposalDocument:
     proposal_id: int
     call_id: str
     title: str
-    acronym: Optional[str] = None
+    acronym: str | None = None
     proposal_type: str = "RIA"
     status: str = "draft"
-    sections: Dict[str, SectionState] = field(default_factory=dict)
-    overall_score: Optional[float] = None
+    sections: dict[str, SectionState] = field(default_factory=dict)
+    overall_score: float | None = None
     completion_percentage: float = 0.0
     total_words: int = 0
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
-    def get_section(self, section_id: str) -> Optional[SectionState]:
+    def get_section(self, section_id: str) -> SectionState | None:
         """Get a section by ID."""
         return self.sections.get(section_id)
 
@@ -124,7 +124,7 @@ class ProposalDocument:
             section.content = content
             section.word_count = len(content.split()) if content else 0
             section.is_dirty = True
-            section.last_updated = datetime.now(timezone.utc)
+            section.last_updated = datetime.now(UTC)
 
             # Update status based on content
             if not content or section.word_count < 10:
@@ -153,7 +153,7 @@ class ProposalDocument:
         if scored_sections:
             self.overall_score = sum(s.quality_score for s in scored_sections) / len(scored_sections)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for API responses."""
         return {
             "proposal_id": self.proposal_id,
@@ -178,32 +178,32 @@ class ConversationMessage:
     role: str  # 'user', 'assistant', 'system'
     content: str
     timestamp: datetime
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    tools_used: List[str] = field(default_factory=list)
-    sections_affected: List[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
+    tools_used: list[str] = field(default_factory=list)
+    sections_affected: list[str] = field(default_factory=list)
 
 
 @dataclass
 class ConversationState:
     """Conversation state within a proposal session."""
     conversation_id: int
-    messages: List[ConversationMessage] = field(default_factory=list)
-    active_section_context: Optional[str] = None  # Section the user is focused on
+    messages: list[ConversationMessage] = field(default_factory=list)
+    active_section_context: str | None = None  # Section the user is focused on
 
     def add_message(
         self,
         role: str,
         content: str,
-        tools_used: Optional[List[str]] = None,
-        sections_affected: Optional[List[str]] = None,
-        metadata: Optional[Dict[str, Any]] = None
+        tools_used: list[str] | None = None,
+        sections_affected: list[str] | None = None,
+        metadata: dict[str, Any] | None = None
     ) -> ConversationMessage:
         """Add a message to the conversation."""
         message = ConversationMessage(
             message_id=str(uuid.uuid4()),
             role=role,
             content=content,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             metadata=metadata or {},
             tools_used=tools_used or [],
             sections_affected=sections_affected or [],
@@ -211,7 +211,7 @@ class ConversationState:
         self.messages.append(message)
         return message
 
-    def get_recent_messages(self, limit: int = 10) -> List[ConversationMessage]:
+    def get_recent_messages(self, limit: int = 10) -> list[ConversationMessage]:
         """Get the most recent messages."""
         return self.messages[-limit:] if self.messages else []
 
@@ -253,13 +253,13 @@ class ProposalSessionState:
     status: SessionStatus = SessionStatus.ACTIVE
     created_at: datetime = field(default_factory=datetime.utcnow)
     last_activity_at: datetime = field(default_factory=datetime.utcnow)
-    expires_at: Optional[datetime] = None
+    expires_at: datetime | None = None
 
     # Active focus
-    active_section_id: Optional[str] = None
+    active_section_id: str | None = None
 
     # Sync state
-    pending_changes: List[Dict[str, Any]] = field(default_factory=list)
+    pending_changes: list[dict[str, Any]] = field(default_factory=list)
 
     @classmethod
     def create_new(
@@ -280,8 +280,8 @@ class ProposalSessionState:
             call_id=call_id,
             title=title,
             proposal_type=proposal_type,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )
 
         # Initialize standard sections for RIA/IA proposals
@@ -313,14 +313,14 @@ class ProposalSessionState:
 
     def update_activity(self) -> None:
         """Update the last activity timestamp."""
-        self.last_activity_at = datetime.now(timezone.utc)
+        self.last_activity_at = datetime.now(UTC)
 
     def lock_section(self, section_id: str, lock_type: SectionLockStatus = SectionLockStatus.LOCKED_BY_AI) -> bool:
         """Lock a section for AI generation."""
         section = self.document.get_section(section_id)
         if section and section.lock_status == SectionLockStatus.UNLOCKED:
             section.lock_status = lock_type
-            section.locked_at = datetime.now(timezone.utc)
+            section.locked_at = datetime.now(UTC)
             return True
         return False
 
@@ -352,7 +352,7 @@ class ProposalSessionState:
         active_section = doc.get_section(self.active_section_id) if self.active_section_id else None
 
         context_parts = [
-            f"## Current Proposal State",
+            "## Current Proposal State",
             f"**Proposal:** {doc.title}" + (f" ({doc.acronym})" if doc.acronym else ""),
             f"**Call:** {doc.call_id}",
             f"**Type:** {doc.proposal_type}",
@@ -403,7 +403,7 @@ class ProposalSessionState:
 
         return "\n".join(context_parts)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for API responses."""
         return {
             "session_id": self.session_id,

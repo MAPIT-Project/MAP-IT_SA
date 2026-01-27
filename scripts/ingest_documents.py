@@ -3,10 +3,9 @@
 Script to ingest downloaded Horizon Europe documents into the RAG system.
 """
 
-import os
+import asyncio
 import sys
 from pathlib import Path
-import asyncio
 
 # Add the app directory to the Python path
 sys.path.append(str(Path(__file__).parent.parent))
@@ -28,7 +27,7 @@ async def ingest_documents():
         
         # Check service status
         stats = ingestion_service.get_service_stats()
-        print(f"📊 Service Status:")
+        print("📊 Service Status:")
         print(f"   Supabase Connected: {stats.get('supabase_connected', False)}")
         print(f"   Embedding Service Ready: {stats.get('embedding_stats', {}).get('cache_enabled', False)}")
         
@@ -116,19 +115,19 @@ async def ingest_documents():
             await asyncio.sleep(1)
         
         # Summary
-        print(f"\n📊 Ingestion Summary:")
+        print("\n📊 Ingestion Summary:")
         print(f"✅ Successful: {successful_ingestions}/{len(pdf_files)}")
         print(f"❌ Failed: {len(failed_ingestions)}")
         
         if failed_ingestions:
-            print(f"Failed ingestions:")
+            print("Failed ingestions:")
             for name in failed_ingestions:
                 print(f"  - {name}")
         
         # Get final database stats
         try:
             final_stats = ingestion_service.supabase.get_document_stats()
-            print(f"\n📈 Database Stats:")
+            print("\n📈 Database Stats:")
             print(f"   Total Documents: {final_stats.get('total_documents', 0)}")
             print(f"   Total Chunks: {final_stats.get('total_chunks', 0)}")
             print(f"   Documents by Type: {final_stats.get('documents_by_type', {})}")

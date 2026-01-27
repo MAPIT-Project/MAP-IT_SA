@@ -5,9 +5,9 @@ Simulate EU evaluator scoring to help users predict and improve scores.
 """
 
 import logging
-from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -27,8 +27,8 @@ class CriterionScore:
     criterion: str
     score: float
     justification: str
-    strengths: List[str]
-    weaknesses: List[str]
+    strengths: list[str]
+    weaknesses: list[str]
     improvement_for_half_point: str
 
 
@@ -37,11 +37,11 @@ class EvaluationResult:
     """Complete evaluation result for a section."""
     section_type: str
     overall_score: float
-    criterion_scores: List[CriterionScore]
+    criterion_scores: list[CriterionScore]
     esr_summary: str
-    strengths: List[str]
-    weaknesses: List[str]
-    top_improvements: List[Dict[str, Any]]
+    strengths: list[str]
+    weaknesses: list[str]
+    top_improvements: list[dict[str, Any]]
     threshold_status: str  # 'above', 'at', 'below'
     confidence: float
 
@@ -227,7 +227,7 @@ class EvaluatorSimulator:
                 criteria=criteria
             )
 
-    def _get_criteria(self, section_type: str, section_id: str) -> List[str]:
+    def _get_criteria(self, section_type: str, section_id: str) -> list[str]:
         """Get evaluation criteria for section."""
         section_criteria = self.CRITERIA.get(section_type, {})
         return section_criteria.get(section_id, [
@@ -241,7 +241,7 @@ class EvaluatorSimulator:
         section_text: str,
         section_type: str,
         section_id: str,
-        criteria: List[str],
+        criteria: list[str],
         action_type: str
     ) -> str:
         """Build prompt for evaluator simulation."""
@@ -290,10 +290,10 @@ Evaluate as a real EU evaluator would - thorough, objective, and constructive.""
 
     def _parse_evaluation_result(
         self,
-        result: Dict[str, Any],
+        result: dict[str, Any],
         section_type: str,
         section_id: str,
-        criteria: List[str]
+        criteria: list[str]
     ) -> EvaluationResult:
         """Parse AI result into EvaluationResult."""
         overall_score = result.get("overall_score", 3.0)
@@ -346,7 +346,7 @@ Evaluate as a real EU evaluator would - thorough, objective, and constructive.""
         section_text: str,
         section_type: str,
         section_id: str,
-        criteria: List[str]
+        criteria: list[str]
     ) -> EvaluationResult:
         """Fallback rule-based evaluation."""
         import re
@@ -408,9 +408,9 @@ Evaluate as a real EU evaluator would - thorough, objective, and constructive.""
 
     async def evaluate_full_proposal(
         self,
-        sections: Dict[str, str],
+        sections: dict[str, str],
         action_type: str = "RIA"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Evaluate all sections and calculate total score.
 
@@ -573,7 +573,7 @@ Evaluate as a real EU evaluator would - thorough, objective, and constructive.""
     def _generate_recommendation(
         self,
         total_score: float,
-        section_results: Dict[str, EvaluationResult]
+        section_results: dict[str, EvaluationResult]
     ) -> str:
         """Generate actionable recommendation."""
         if total_score >= 13:

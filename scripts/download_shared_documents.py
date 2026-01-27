@@ -11,12 +11,11 @@ Usage:
     python scripts/download_shared_documents.py [--all] [--cluster N]
 """
 
-import sys
+import argparse
 import hashlib
 import logging
+import sys
 from pathlib import Path
-from urllib.parse import urlparse
-import argparse
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))

@@ -1,0 +1,114 @@
+{
+  "scenario_name": "Programme Comparison",
+  "status": "PASS",
+  "average_quality_score": 82.0,
+  "average_factual_score": 100.0,
+  "turns": [
+    {
+      "query": "Compare Horizon Europe and Erasmus+ for university research collaboration",
+      "response": "## Double Funding Rules: Same Project in Multiple EU Programmes\n\n**Short answer:** No, the same project activities and costs **cannot** be funded by both Horizon Europe and Erasmus+ (or any other EU programme). This is called the **non-cumulative funding principle**.\n\n### The Core Rule\n\nEU funding follows a strict principle: **the same costs can only be declared once** to EU funding sources. This means:\n\n| Scenario | Allowed? | Explanation |\n|----------|----------|-------------|\n| Same activitie...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 1163.945,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
+      "passed": true
+    },
+    {
+      "query": "What about funding amounts?",
+      "response": "Erasmus+ provides **individual support** to cover living costs during mobility.\nRates vary by **destination country group** and **participant type**.\n\n## Individual Support Rates in Erasmus+\n\n### Country Groups (Based on Cost of Living)\n\n| Group | Countries | Cost Level |\n|-------|-----------|------------|\n| **Group 1** (Highest) | Denmark, Finland, Iceland, Ireland, Liechtenstein, Luxembourg, Norway, Sweden | Highest costs |\n| **Group 2** (Medium) | Austria, Belgium, Cyprus, France, Germany, Gr...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 746.105,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": true
+    },
+    {
+      "query": "Which has better success rates?",
+      "response": "Choosing between **Erasmus+ accreditation** and **short-term projects** depends on your organization's goals, capacity, and commitment level. Here's strategic guidance to help you decide.\n\n## Strategic Decision: Accreditation vs Short-Term Projects\n\n### Decision Framework\n\n| Factor | Choose Accreditation If... | Choose Short-Term If... |\n|--------|---------------------------|------------------------|\n| **Mobility Frequency** | Plan regular activities (3+ per year) | Occasional activities (1-2 pe...",
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 1029.91,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": true
+    },
+    {
+      "query": "Which should I apply to first?",
+      "response": "Choosing between **Erasmus+ accreditation** and **short-term projects** depends on your organization's goals, capacity, and commitment level. Here's strategic guidance to help you decide.\n\n## Strategic Decision: Accreditation vs Short-Term Projects\n\n### Decision Framework\n\n| Factor | Choose Accreditation If... | Choose Short-Term If... |\n|--------|---------------------------|------------------------|\n| **Mobility Frequency** | Plan regular activities (3+ per year) | Occasional activities (1-2 pe...",
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 1092.519,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": true
+    }
+  ],
+  "scores": {
+    "average_quality": 82.0,
+    "average_factual": 100.0,
+    "goal_progress": 0.46499999999999997,
+    "context_fields": 3
+  },
+  "failures": [],
+  "metadata": {
+    "scenario_path": "tests/scenarios/advanced/programme_comparison.yaml",
+    "tags": [
+      "phase1",
+      "multi-programme",
+      "comparison",
+      "cross-programme",
+      "strategic"
+    ],
+    "description": "User compares Horizon Europe and Erasmus+ for university research collaboration.\nTests cross-programme comparison with specific data points like funding amounts\nand success rates, culminating in a strategic recommendation.\n",
+    "conversation_id": 995361910
+  },
+  "execution_time_ms": 149616.5,
+  "timestamp": "2026-01-23T16:03:42.487908",
+  "passed": true,
+  "turn_count": 4,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
+}

@@ -16,8 +16,6 @@ import argparse
 import logging
 import sys
 from pathlib import Path
-from typing import Dict, List, Any
-from datetime import datetime
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -690,7 +688,7 @@ class ErasmusNeo4jIngester:
 
         logger.info("Erasmus+ data cleared")
 
-    def run(self, clear_first: bool = False) -> Dict[str, int]:
+    def run(self, clear_first: bool = False) -> dict[str, int]:
         """
         Run the complete Erasmus+ ingestion pipeline.
 
@@ -731,7 +729,7 @@ class ErasmusNeo4jIngester:
 
         return stats
 
-    def _get_stats(self) -> Dict[str, int]:
+    def _get_stats(self) -> dict[str, int]:
         """Get current Erasmus+ data statistics."""
         query = """
         MATCH (a:ErasmusAction) WITH count(a) as actions
@@ -752,7 +750,7 @@ class ErasmusNeo4jIngester:
 
         return {}
 
-    def _print_summary(self, stats: Dict[str, int]) -> None:
+    def _print_summary(self, stats: dict[str, int]) -> None:
         """Print ingestion summary."""
         logger.info("\n" + "=" * 60)
         logger.info("ERASMUS+ INGESTION SUMMARY")

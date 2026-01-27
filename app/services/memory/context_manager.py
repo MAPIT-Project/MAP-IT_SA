@@ -1,20 +1,22 @@
-from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
-from .short_term_memory import ShortTermMemory, ConversationTurn
-from .long_term_memory import LongTermMemory, ConversationSummary, ConversationFact, EntityCard
+from typing import Any
+
+from .long_term_memory import ConversationFact, ConversationSummary, EntityCard, LongTermMemory
+from .short_term_memory import ConversationTurn, ShortTermMemory
+
 
 @dataclass
 class ConversationContext:
     """Complete context for LLM input"""
     system_prompt: str
     rolling_summary: str
-    facts_and_constraints: List[str]
-    entity_cards: List[Dict[str, Any]]
+    facts_and_constraints: list[str]
+    entity_cards: list[dict[str, Any]]
     recent_messages: str
-    retrieved_chunks: List[str]
+    retrieved_chunks: list[str]
     current_query: str
     
-    def to_prompt(self, template: Optional[str] = None) -> str:
+    def to_prompt(self, template: str | None = None) -> str:
         """Convert context to formatted prompt"""
         if template:
             return template.format(
@@ -56,7 +58,7 @@ class ConversationContext:
         sections = [
             f"# System Instructions\n{self.system_prompt}",
             f"# Conversation Summary\n{self.rolling_summary}" if self.rolling_summary else "",
-            f"# Key Facts\n" + "\n".join(f"- {fact}" for fact in self.facts_and_constraints) if self.facts_and_constraints else "",
+            "# Key Facts\n" + "\n".join(f"- {fact}" for fact in self.facts_and_constraints) if self.facts_and_constraints else "",
             f"# Entities\n{self._format_entities()}" if self.entity_cards else "",
             f"# Recent Conversation\n{self.recent_messages}" if self.recent_messages else "",
             f"# Retrieved Information\n{self._format_chunks()}" if self.retrieved_chunks else "",
@@ -108,8 +110,8 @@ class ContextWindowManager:
     def build_context(self,
                      conversation_id: int,
                      current_query: str,
-                     retrieved_chunks: Optional[List[str]] = None,
-                     system_prompt: Optional[str] = None) -> ConversationContext:
+                     retrieved_chunks: list[str] | None = None,
+                     system_prompt: str | None = None) -> ConversationContext:
         """
         Build optimized context for LLM.
         
@@ -145,7 +147,7 @@ class ContextWindowManager:
         
         return context
     
-    def _get_system_prompt(self, custom_prompt: Optional[str]) -> str:
+    def _get_system_prompt(self, custom_prompt: str | None) -> str:
         """Get system prompt within token limit"""
         default_prompt = """You are a helpful AI assistant specializing in European research funding.
 Your responses should be:
@@ -163,7 +165,7 @@ Your responses should be:
         
         return prompt
     
-    def _format_summary(self, summary: Optional[ConversationSummary]) -> str:
+    def _format_summary(self, summary: ConversationSummary | None) -> str:
         """Format summary within token limit"""
         if not summary:
             return ""
@@ -178,7 +180,7 @@ Your responses should be:
         
         return text
     
-    def _format_facts(self, facts: List[ConversationFact]) -> List[str]:
+    def _format_facts(self, facts: list[ConversationFact]) -> list[str]:
         """Format facts within token limit"""
         if not facts:
             return []
@@ -202,7 +204,7 @@ Your responses should be:
         
         return formatted
     
-    def _format_entity_cards(self, entities: List[EntityCard]) -> List[Dict[str, Any]]:
+    def _format_entity_cards(self, entities: list[EntityCard]) -> list[dict[str, Any]]:
         """Format entity cards within token limit"""
         if not entities:
             return []
@@ -233,7 +235,7 @@ Your responses should be:
         
         return formatted
     
-    def _format_recent_turns(self, turns: List[ConversationTurn]) -> str:
+    def _format_recent_turns(self, turns: list[ConversationTurn]) -> str:
         """Format recent turns within token limit"""
         if not turns:
             return ""
@@ -257,7 +259,7 @@ Your responses should be:
         
         return "\n\n".join(context)
     
-    def _format_retrieved_chunks(self, chunks: Optional[List[str]]) -> List[str]:
+    def _format_retrieved_chunks(self, chunks: list[str] | None) -> list[str]:
         """Format retrieved chunks within token limit"""
         if not chunks:
             return []

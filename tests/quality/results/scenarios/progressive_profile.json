@@ -1,337 +1,281 @@
 {
   "scenario_name": "Progressive Profile Building",
+  "status": "FAIL",
+  "average_quality_score": 81.5,
+  "average_factual_score": 95.83333333333333,
   "turns": [
     {
-      "turn_number": 0,
       "query": "I work for an SME",
-      "response_text": "Thank you for sharing that context. **SMEs are a critical focus for Horizon Europe funding**, particularly for innovation activities and bringing breakthrough technologies to market.\n\nHere are the two primary pathways for SMEs in EU funding:\n\n### 1. The EIC Accelerator (The Main Pathway)\n\nThe **European Innovation Council (EIC) Accelerator** is specifically designed for SMEs with high-risk, high-impact innovation projects aiming to scale up quickly. It offers a unique 'Blended Finance' model:\n\n*   **Grant Component**: Up to **\u20ac2.5 million** (for low TRL activities).\n*   **Equity Component**: Up to **\u20ac15 million** (via the EIC Fund for market deployment and scale-up).\n*   **Focus**: Technology Readiness Levels (TRL) 6-9, focusing on deployment and market creation.\n*   **Consortium**: Typically a **single beneficiary SME** applying directly.\n\n### 2. Collaborative Horizon Europe Projects (RIA/IA)\n\nSMEs are highly encouraged to join large consortia under Horizon Europe's Pillar II Clusters (Health, Digital, Energy, etc.). Your SME status provides key advantages, especially in Innovation Actions (IA) which focus on TRL 5-8 (demonstration and piloting):\n\n| Action Type | SME Funding Rate | Focus |\n|---|---|---|\n| **RIA** (Research & Innovation) | **100%** of eligible costs | Research & knowledge generation (TRL 2-5) |\n| **IA** (Innovation Action) | **70%** of eligible costs | Demonstration, piloting, scale-up (TRL 5-8) |\n| **CSA** (Coordination & Support) | **100%** of eligible costs | Networking, standards, policy support |\n\n**Note:** If your SME is a non-profit entity (rare), the funding rate for IA is 100%.\n\n### 3. Digital Europe Programme\n\nIf your innovation is purely focused on digital transformation, skills, or High-Performance Computing (HPC) deployment (and does not involve fundamental R&D), the **Digital Europe Programme (\u20ac7.5B)** is also highly relevant for SMEs.\n\n---\n\n\ud83c\udfaf **Next Steps:**\n\u2022 **Identify your TRL**: Determine if your innovation is TRL 6-9 (EIC Accelerator) or TRL 3-5 (Horizon Europe RIA).\n\u2022 **Check the EIC Work Programme**: Review the current EIC Accelerator challenges and eligibility criteria.\n\u2022 **Find Consortium Partners**: If aiming for RIA/IA, use the [EU Funding & Tenders Portal Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search) to join existing consortia.\n\nTo help me find specific open calls and opportunities for your company, could you tell me:\n\n**What is your primary research or innovation domain (e.g., AI in healthcare, green hydrogen, precision farming)?**",
+      "response": "That's excellent! Small and Medium-sized Enterprises (SMEs) are a crucial pillar of EU funding strategy and have dedicated, highly beneficial funding schemes.\n\n### Primary Funding Pathways for SMEs\n\nYour organization is specifically targeted by several programmes, which offer higher funding rates and unique support compared to larger entities:\n\n#### 1. European Innovation Council (EIC) Accelerator\nThe **EIC Accelerator** is specifically designed for single SMEs (or small consortia) with high-ris...",
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
       "tools_used": [
         "recommend_programmes"
       ],
-      "quality_score": 79,
-      "factual_score": 100.0,
-      "failures": [],
-      "profile_evidence": [],
-      "accumulated_profile": {
-        "org_type": true,
-        "sector": false,
-        "subsector": false,
-        "location": false,
-        "size": false,
-        "revenue": false,
-        "goal": false,
-        "partnerships": false,
-        "experience": false
+      "processing_time_ms": 8438.725,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
       },
-      "passed": false
+      "turn_number": 0,
+      "passed": true
     },
     {
-      "turn_number": 1,
       "query": "We're in the healthcare sector",
-      "response_text": "Thank you for sharing that vital information. Your focus on the **Healthcare sector** is directly aligned with one of Horizon Europe's largest funding pillars: **Cluster 1 (Health)**, which focuses on everything from disease prevention to healthcare system transformation.\n\nSince you are an **SME** working in Health, your funding opportunities are diverse and strategic:\n\n### 1. Horizon Europe Cluster 1 (Health)\n\nCluster 1 supports collaborative Research and Innovation Actions (RIA) and Innovation Actions (IA) addressing major health challenges, often with budgets between **\u20ac3 million and \u20ac10 million** per consortium project.\n\n*   **Key Focus Areas**: Disease prevention, treatment development (including personalized medicine), healthcare systems, digital health, and pandemic preparedness.\n*   **Relevant Action Types for SMEs**:\n    *   **RIA (Research & Innovation Action)**: TRL 2-5, 100% funding rate.\n    *   **IA (Innovation Action)**: TRL 5-8 (piloting/demonstration), **70% funding rate** (100% for non-profits). SMEs are essential partners here.\n\n### 2. EU Mission on Cancer\n\nAs a cross-cutting initiative within Horizon Europe, the **Mission on Cancer** funds targeted research to improve the lives of over 3 million people by 2030 through prevention, cure, and quality of life improvements. Many calls here seek SMEs to deliver innovative tools and personalized solutions.\n\n### 3. EIC Accelerator (High TRL Health Tech)\n\nIf your innovation is mature (TRL 6-9), the **EIC Accelerator** remains the most suitable instrument for scaling health-tech SMEs, offering up to **\u20ac2.5M in grant** and **\u20ac15M in equity**.\n\n---\n\n\ud83c\udfaf **Next Steps:**\n\u2022 **Review Cluster 1**: Check the specific topics within the latest Cluster 1 Work Programme, identified by the call pattern `HORIZON-HLTH-*`.\n\u2022 **Check the Mission on Cancer**: Look for targeted calls starting with `HORIZON-MISS-*-CANCER-*`.\n\u2022 **Define your TRL**: Determine if your innovation is early-stage (RIA, Cluster 1 collaborative) or market-ready (EIC Accelerator).\n\u2022 **Identify specific domain**: To find partners and open calls, please specify your area (e.g., digital health, specific disease/therapy, medical devices).",
-      "tools_used": [],
-      "quality_score": 79,
+      "response": "I found **20 funding opportunities** for your query:\n\n**1. Advancing lead markets and proof-of-concept for deep tech solutions contributing to EU Missions**\n\ud83d\udccb **Call ID:** HORIZON-MISS-2026-07-CROSS-03\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 31 March 2026\n\ud83c\udfdb\ufe0f **Programme:** MISS\n\n\ud83d\udcdd **Summary:** Expected Outcome: Expected outcomes : Stakeholders in Missions on European, national and regional level embrace their roles as actors in \u2018 lead markets for innovative products and services with a purpose \u2019 that...",
+      "quality_score": 83,
       "factual_score": 100.0,
       "failures": [],
-      "profile_evidence": [],
-      "accumulated_profile": {
-        "org_type": true,
-        "sector": true,
-        "subsector": false,
-        "location": false,
-        "size": false,
-        "revenue": false,
-        "goal": false,
-        "partnerships": false,
-        "experience": false
-      },
-      "passed": false
-    },
-    {
-      "turn_number": 2,
-      "query": "Specifically medical devices",
-      "response_text": "I found **8 funding opportunities** for your query:\n\n**1. Advancing lead markets and proof-of-concept for deep tech solutions contributing to EU Missions**\n\ud83d\udccb **Call ID:** HORIZON-MISS-2026-07-CROSS-03\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 31 March 2026\n\ud83c\udfdb\ufe0f **Programme:** MISS\n\n\ud83d\udcdd **Summary:** Expected Outcome: Expected outcomes : Stakeholders in Missions on European, national and regional level embrace their roles as actors in \u2018 lead markets for innovative products and services with a purpose \u2019 that are provided by public investments in...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-miss-2026-07-cross-03\n\n---\n\n**2. Understanding and overcoming barriers to the scale-up of innovations supporting EU Missions**\n\ud83d\udccb **Call ID:** HORIZON-MISS-2026-07-CROSS-02\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 31 March 2026\n\ud83c\udfdb\ufe0f **Programme:** MISS\n\n\ud83d\udcdd **Summary:** Expected Outcome: The missions\u2019 stakeholder communities are better aware of the diversity of risk perception and risk management strategies related to technological and non-technological innovations among them.\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-miss-2026-07-cross-02\n\n---\n\n**3. HORIZON-CL5-2025-D2-02-06**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2025-D2-02-06\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\ud83d\udcb0 **Budget:** EUR 15.0 million\n\n\ud83d\udcdd **Summary:** Advanced battery materials aiming at storage duration from 10 hours to seasonal storage are developed, thus contributing to the Renewable Energy targets set by RePowerEU; Minimised use of Critical Raw Materials (CRM) in line with the EU's Critical...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL5-2025-D2-02-06\n\n---\n\n**4. Towards commercialisation of Perovskite PV and development of dedicated manufacturing equipment (EUPI-PV Partnership)**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-10\n\ud83d\udce6 **Type:** LUMP-SUM\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: The rapid development of perovskite solar cells (PSCs) over the past decade makes it the most promising next generation photovoltaic technology, owing to its prominent advantages such as tuneable bandgap, high absorption...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d3-10\n\n---\n\n**5. Accelerating Physical AI: Embodied Intelligence for the Next Frontier of AI-Powered Robotics**\n\ud83d\udccb **Call ID:** HORIZON-EIC-2026-AIC-01\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 26 February 2026\n\ud83c\udfdb\ufe0f **Programme:** EIC\n\ud83d\udcb0 **Budget:** EUR 219.0 million\n\n\ud83d\udcdd **Summary:** Expected Impact: This Challenge will support the ambitions of the AI Act, Apply AI Strategy. The AI powered robotics models developed under this Challenge are expected to comply with the EU concept for Trustworthy AI and the relevant ethical...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-eic-2026-aic-01\n\n---\n\n**6. Development of innovative solutions strengthening the security of renewable energy value chains**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-14\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: The security of Europe`s clean energy system will, in the long-run, benefit from research and innovation addressing energy-security relevant criticalities of the underlying clean energy technology value chains.\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d3-14\n\n---\n\n**7. Innovative space-based applications enhancing capabilities for a resilient Europe**\n\ud83d\udccb **Call ID:** HORIZON-EUSPA-2026-SPACE-02-52\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 24 February 2026\n\ud83d\udcb0 **Budget:** EUR 5.0 million\n\n\ud83d\udcdd **Summary:** Expected Outcome: Projects\u2019 results are expected to contribute to some or all of the following outcomes: Foster the development and validation of integrated synergistic space technologies that support the operational work of crisis and security...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-euspa-2026-space-02-52\n\n---\n\n**8. New CO2 capture technologies**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-24\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: Project results are expected to contribute to the following expected outcomes: New capture technologies (either from points sources or directly from air) should lead to reduced overall cost of capture, as well as lowest possible...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d3-24\n\n---\n\n---\n\n\ud83d\udca1 **How to Apply:**\n\u2022 **Register** on the EU Funding & Tenders Portal if you haven't already\n\u2022 **Check eligibility** criteria carefully for each call\n\u2022 **Prepare partnerships** - many calls require consortium applications\n\u2022 **Review evaluation criteria** and weightings in the call documentation\n\u2022 **Submit well before** the deadline - the portal can be busy near deadlines\n\n\ud83d\udcda **Useful Resources:**\n\u2022 [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)\n\u2022 [How to Participate Guide](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/how-to-participate/1)\n\u2022 [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search)\n\n\ud83c\udfaf **Next Steps:**\n\u2022 Click on the 'Apply' links above for full call details\n\u2022 Download the call documentation and work programme\n\u2022 Start building your consortium if partnerships are required",
       "tools_used": [
+        "search_funding_calls",
         "search_funding_calls",
         "search_funding_calls"
       ],
+      "processing_time_ms": 15959.418,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": true
+    },
+    {
+      "query": "Specifically medical devices",
+      "response": "I found **8 funding opportunities** for your query:\n\n**1. Advancing lead markets and proof-of-concept for deep tech solutions contributing to EU Missions**\n\ud83d\udccb **Call ID:** HORIZON-MISS-2026-07-CROSS-03\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 31 March 2026\n\ud83c\udfdb\ufe0f **Programme:** MISS\n\n\ud83d\udcdd **Summary:** Expected Outcome: Expected outcomes : Stakeholders in Missions on European, national and regional level embrace their roles as actors in \u2018 lead markets for innovative products and services with a purpose \u2019 that ...",
       "quality_score": 85,
       "factual_score": 100.0,
       "failures": [],
-      "profile_evidence": [],
-      "accumulated_profile": {
-        "org_type": true,
-        "sector": true,
-        "subsector": true,
-        "location": false,
-        "size": false,
-        "revenue": false,
-        "goal": false,
-        "partnerships": false,
-        "experience": false
+      "tools_used": [
+        "search_funding_calls"
+      ],
+      "processing_time_ms": 6554.347,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
       },
+      "turn_number": 2,
       "passed": true
     },
     {
-      "turn_number": 3,
       "query": "We're based in Germany",
-      "response_text": "I found **2 funding opportunities** for your query:\n\n**1. Advancing lead markets and proof-of-concept for deep tech solutions contributing to EU Missions**\n\ud83d\udccb **Call ID:** HORIZON-MISS-2026-07-CROSS-03\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 31 March 2026\n\ud83c\udfdb\ufe0f **Programme:** MISS\n\n\ud83d\udcdd **Summary:** Expected Outcome: Expected outcomes : Stakeholders in Missions on European, national and regional level embrace their roles as actors in \u2018 lead markets for innovative products and services with a purpose \u2019 that are provided by public investments in...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-miss-2026-07-cross-03\n\n---\n\n**2. Understanding and overcoming barriers to the scale-up of innovations supporting EU Missions**\n\ud83d\udccb **Call ID:** HORIZON-MISS-2026-07-CROSS-02\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 31 March 2026\n\ud83c\udfdb\ufe0f **Programme:** MISS\n\n\ud83d\udcdd **Summary:** Expected Outcome: The missions\u2019 stakeholder communities are better aware of the diversity of risk perception and risk management strategies related to technological and non-technological innovations among them.\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-miss-2026-07-cross-02\n\n---\n\n---\n\n\ud83d\udca1 **How to Apply:**\n\u2022 **Register** on the EU Funding & Tenders Portal if you haven't already\n\u2022 **Check eligibility** criteria carefully for each call\n\u2022 **Prepare partnerships** - many calls require consortium applications\n\u2022 **Review evaluation criteria** and weightings in the call documentation\n\u2022 **Submit well before** the deadline - the portal can be busy near deadlines\n\n\ud83d\udcda **Useful Resources:**\n\u2022 [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)\n\u2022 [How to Participate Guide](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/how-to-participate/1)\n\u2022 [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search)\n\n\ud83c\udfaf **Next Steps:**\n\u2022 Click on the 'Apply' links above for full call details\n\u2022 Download the call documentation and work programme\n\u2022 Start building your consortium if partnerships are required",
-      "tools_used": [
-        "search_funding_calls",
-        "get_country_statistics"
-      ],
+      "response": "I found **5 funding opportunities** for your query:\n\n**1. Advancing lead markets and proof-of-concept for deep tech solutions contributing to EU Missions**\n\ud83d\udccb **Call ID:** HORIZON-MISS-2026-07-CROSS-03\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 31 March 2026\n\ud83c\udfdb\ufe0f **Programme:** MISS\n\n\ud83d\udcdd **Summary:** Expected Outcome: Expected outcomes : Stakeholders in Missions on European, national and regional level embrace their roles as actors in \u2018 lead markets for innovative products and services with a purpose \u2019 that ...",
       "quality_score": 83,
       "factual_score": 100.0,
       "failures": [],
-      "profile_evidence": [],
-      "accumulated_profile": {
-        "org_type": true,
-        "sector": true,
-        "subsector": true,
-        "location": true,
-        "size": false,
-        "revenue": false,
-        "goal": false,
-        "partnerships": false,
-        "experience": false
+      "tools_used": [
+        "search_funding_calls"
+      ],
+      "processing_time_ms": 5556.342,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
       },
+      "turn_number": 3,
       "passed": true
     },
     {
-      "turn_number": 4,
       "query": "We have 50 employees",
-      "response_text": "Thank you for confirming your size. With 50 employees, you fit squarely within the EU definition of a Small and Medium-sized Enterprise (SME), which unlocks specific advantages and dedicated funding streams.\n\nBeing a German SME in the medical device sector gives you a significant strategic advantage in Horizon Europe:\n\n### 1. Advantageous Funding Instruments\n\nYour profile is perfectly suited for high-impact innovation funding:\n\n*   **EIC Accelerator (Primary Pathway)**: This is specifically designed for market-creating SMEs (like yours) with deep-tech solutions (TRL 6-9). It offers blended finance (up to **\u20ac2.5M grant + \u20ac15M equity**) to scale solutions with a clear market strategy.\n*   **Innovation Actions (IA)**: For collaborative projects (TRL 5-8), SMEs are crucial partners. Although the standard funding rate for a for-profit company is **70% of eligible costs** (vs. 100% for RIA), IAs focus on demonstration and deployment, aligning well with medical device certification and piloting.\n\n### 2. German Strength\n\nGermany consistently ranks among the top performers in Horizon Europe, both in terms of funding received and coordination success. This means you have easy access to a large, experienced network of academic and research institute partners (HES/REC) within Germany and strong institutional support for proposal preparation.\n\n### 3. Medical Devices (Cluster 1)\n\nIn Cluster 1 (Health), calls often target digital, robotic, and device-based solutions for clinical validation and improved patient outcomes. Your focus on medical devices is a direct match for many upcoming IA topics (e.g., in personalized medicine or advanced diagnostics).\n\n---\n\n\ud83c\udfaf **Next Steps:**\n\u2022 **Determine TRL**: Identify the current Technology Readiness Level (TRL) of your device (e.g., TRL 6 is often required for EIC/IA). \n\u2022 **Explore EIC Accelerator**: Review the EIC Work Programme and eligibility criteria, as this is your most focused opportunity for rapid market scaling.\n\u2022 **Filter Cluster 1 for IA**: Search specifically for Cluster 1 (Health) Innovation Actions (`HORIZON-HLTH-*-IA`) that mention 'medical devices' or 'diagnostics'.\n\u2022 **Contact German NCP**: Utilize your National Contact Point (NCP) for advice on proposal structuring, particularly leveraging Germany's strong research base.\n\nTo help me find the most specific open calls for your company, could you tell me: **What is the current Technology Readiness Level (TRL) of your medical device, and is your immediate goal collaboration (consortium) or individual scaling (EIC)?**",
-      "tools_used": [],
-      "quality_score": 79,
-      "factual_score": 100.0,
-      "failures": [],
-      "profile_evidence": [],
-      "accumulated_profile": {
-        "org_type": true,
-        "sector": true,
-        "subsector": true,
-        "location": true,
-        "size": true,
-        "revenue": false,
-        "goal": false,
-        "partnerships": false,
-        "experience": false
-      },
-      "passed": false
-    },
-    {
-      "turn_number": 5,
-      "query": "Annual revenue around 10M",
-      "response_text": "Thank you for providing the revenue figure. An annual revenue of \u20ac10 million further confirms your strong profile as an established, financially viable SME. This context is highly beneficial for several reasons:\n\n### Impact on Funding Eligibility and Competitiveness\n\n1.  **EIC Accelerator Competitiveness:** For the EIC Accelerator's blended finance option (grant + equity), strong and proven revenue like yours is a major competitive advantage. It demonstrates market traction and commercial feasibility, making the proposal highly attractive to evaluators and EIC Fund investors.\n\n2.  **Innovation Action (IA) Viability:** As a for-profit SME, your IA funding rate will be 70%. A \u20ac10M turnover provides excellent evidence of the capacity to finance the remaining 30% of costs, which is a key assessment factor for financial viability in collaborative projects.\n\n3.  **Financial Stability:** This revenue stream makes it highly likely you will pass the financial capacity check required for all EU grant beneficiaries, ensuring smooth project implementation.\n\nIn summary, your German SME profile\u2014medical device sector, 50 employees, \u20ac10M turnover\u2014is perfectly aligned with the Commission's goal of funding high-potential, market-ready deep-tech innovations.\n\n---\n\nTo move forward and identify the best specific opportunities (calls/programmes), we still need to determine the optimal strategic path. \n\n\ud83c\udfaf **Next Steps:**\n\u2022 **Financial Capacity:** Ensure internal finance teams are aware of the potential 70% funding rate (vs 100% for RIA/CSA) in collaborative Innovation Actions.\n\u2022 **EIC Market Analysis:** Prepare a high-level market assessment (Part A of EIC proposal) demonstrating how your \u20ac10M revenue validates market uptake.\n\u2022 **NCP Consultation:** Consult with your German National Contact Point (NCP) specifically regarding EIC equity valuation and grant requirements.\n\nCould you please confirm **What is the current Technology Readiness Level (TRL) of your medical device, and is your immediate goal collaboration (consortium) or individual scaling (EIC)?**",
-      "tools_used": [],
-      "quality_score": 79,
-      "factual_score": 100.0,
-      "failures": [],
-      "profile_evidence": [],
-      "accumulated_profile": {
-        "org_type": true,
-        "sector": true,
-        "subsector": true,
-        "location": true,
-        "size": true,
-        "revenue": true,
-        "goal": false,
-        "partnerships": false,
-        "experience": false
-      },
-      "passed": false
-    },
-    {
-      "turn_number": 6,
-      "query": "We want to expand into AI diagnostics",
-      "response_text": "I found **3 funding opportunities** for your query:\n\n**1. Accelerating Physical AI: Embodied Intelligence for the Next Frontier of AI-Powered Robotics**\n\ud83d\udccb **Call ID:** HORIZON-EIC-2026-AIC-01\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 26 February 2026\n\ud83c\udfdb\ufe0f **Programme:** EIC\n\ud83d\udcb0 **Budget:** EUR 219.0 million\n\n\ud83d\udcdd **Summary:** Expected Impact: This Challenge will support the ambitions of the AI Act, Apply AI Strategy. The AI powered robotics models developed under this Challenge are expected to comply with the EU concept for Trustworthy AI and the relevant ethical...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-eic-2026-aic-01\n\n---\n\n**2. Advancing lead markets and proof-of-concept for deep tech solutions contributing to EU Missions**\n\ud83d\udccb **Call ID:** HORIZON-MISS-2026-07-CROSS-03\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 31 March 2026\n\ud83c\udfdb\ufe0f **Programme:** MISS\n\n\ud83d\udcdd **Summary:** Expected Outcome: Expected outcomes : Stakeholders in Missions on European, national and regional level embrace their roles as actors in \u2018 lead markets for innovative products and services with a purpose \u2019 that are provided by public investments in...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-miss-2026-07-cross-03\n\n---\n\n**3. Innovative solutions for a generative AI-powered digital spine of the EU energy system**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-19\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: Project results are expected to contribute to all of the following expected outcomes: Availability of generative Artificial Intelligence (AI) tools for electricity system operators, energy service providers, and households and...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d3-19\n\n---\n\n---\n\n\ud83d\udca1 **How to Apply:**\n\u2022 **Register** on the EU Funding & Tenders Portal if you haven't already\n\u2022 **Check eligibility** criteria carefully for each call\n\u2022 **Prepare partnerships** - many calls require consortium applications\n\u2022 **Review evaluation criteria** and weightings in the call documentation\n\u2022 **Submit well before** the deadline - the portal can be busy near deadlines\n\n\ud83d\udcda **Useful Resources:**\n\u2022 [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)\n\u2022 [How to Participate Guide](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/how-to-participate/1)\n\u2022 [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search)\n\n\ud83c\udfaf **Next Steps:**\n\u2022 Click on the 'Apply' links above for full call details\n\u2022 Download the call documentation and work programme\n\u2022 Start building your consortium if partnerships are required",
-      "tools_used": [
-        "search_funding_calls",
-        "search_projects"
-      ],
-      "quality_score": 83,
-      "factual_score": 100.0,
-      "failures": [],
-      "profile_evidence": [],
-      "accumulated_profile": {
-        "org_type": true,
-        "sector": true,
-        "subsector": true,
-        "location": true,
-        "size": true,
-        "revenue": true,
-        "goal": true,
-        "partnerships": false,
-        "experience": false
-      },
-      "passed": true
-    },
-    {
-      "turn_number": 7,
-      "query": "We have some research partnerships already",
-      "response_text": "I found some information but couldn't extract specific details. Please try a more specific question.",
-      "tools_used": [
-        "get_consortium_patterns",
-        "get_consortium_patterns"
-      ],
-      "quality_score": 75,
-      "factual_score": 100.0,
-      "failures": [
-        {
-          "category": "NO_RESULTS",
-          "severity": "MEDIUM",
-          "description": "Response contains error pattern: 'couldn't extract'"
-        }
-      ],
-      "profile_evidence": [],
-      "accumulated_profile": {
-        "org_type": true,
-        "sector": true,
-        "subsector": true,
-        "location": true,
-        "size": true,
-        "revenue": true,
-        "goal": true,
-        "partnerships": false,
-        "experience": false
-      },
-      "passed": false
-    },
-    {
-      "turn_number": 8,
-      "query": "But never done EU funding before",
-      "response_text": "Thank you for clarifying your experience level. Knowing that you have strong research partnerships but are new to EU funding is the most important factor in determining the right strategy for your first application. This is a common situation for high-growth SMEs.\n\n### Strategic Guidance for First-Time Applicants (German SME, AI Diagnostics)\n\nGiven your excellent profile (established SME, \u20ac10M revenue, AI deep-tech focus) and lack of prior EU experience, we recommend a focused entry strategy:\n\n**1. Start as a Strong Participant (Partner)**\n\nFor collaborative grants (RIA/IA in Clusters 1 or 4), the proposal writing and administrative burden for the **Coordinator** is significant. We highly recommend targeting projects where you can join as a strong, essential **Partner** for your first 1-2 projects. This allows you to learn the process, build trust with EU networks, and establish a solid financial track record.\n\n**2. Leverage German National Contact Points (NCPs)**\n\nGermany has highly developed national support systems. Your **NCP for Health (Cluster 1)** and **Digital (Cluster 4/EIC)** can provide free proposal review, partner matchmaking, and administrative guidance specifically for first-time applicants. Use this resource heavily.\n\n**3. Target EIC Accelerator (High Risk, High Reward)**\n\nWhile highly competitive, the **EIC Accelerator** is specifically designed for single, market-ready SMEs like yours. Since you don't need a large consortium, the entry barrier is lower, focusing instead on market dominance and technological breakthrough. This should remain your primary target if your device is high TRL.\n\n**4. Focus on Implementation (Section 3)**\n\nEvaluators are often cautious with first-time coordinators. If you choose to lead, ensure **Section 3 (Implementation)** of your proposal is exceptionally robust, detailing management structures, financial planning, and risk mitigation. Your \u20ac10M revenue will strongly support the financial capacity assessment.\n\n---\n\nTo recommend the specific type of grant and the ideal next step (find partners vs. target solo grant), we need one piece of technical information:\n\nCould you please confirm **What is the current Technology Readiness Level (TRL) of your medical device, and is your immediate goal research (TRL 3-5) or demonstration/market entry (TRL 6-8)?**\n\n\ud83c\udfaf **Next Steps:**\n\u2022 **Contact German NCP:** Immediately connect with the relevant German NCP for personalized guidance and training materials for first-time applicants.\n\u2022 **Define Partner Profile:** Prepare a concise 1-page profile of your SME, expertise, and contribution (AI diagnostics) to use for partner searches.\n\u2022 **Focus on EIC or Partnership:** Based on your TRL, decide whether to pursue the EIC Accelerator solo track or seek an established consortium to join as a key partner in a Cluster 1/4 project.",
-      "tools_used": [],
+      "response": "Yes, understanding the **EU SME definition** is essential for accessing SME-specific funding.\n\n### EU Definition of SME (Small and Medium-sized Enterprise)\n\nTo be officially classified as an SME under EU rules, an organization must meet **ALL THREE** criteria:\n\n| Criterion | Threshold | Your Assessment |\n|-----------|-----------|-----------------|\n| **Staff Headcount** | **< 250 employees** | Count all FTEs (full-time equivalents) |\n| **Annual Turnover** | **\u2264 \u20ac50 million** | OR meet balance she...",
       "quality_score": 81,
       "factual_score": 100.0,
       "failures": [],
-      "profile_evidence": [],
-      "accumulated_profile": {
-        "org_type": true,
-        "sector": true,
-        "subsector": true,
-        "location": true,
-        "size": true,
-        "revenue": true,
-        "goal": true,
-        "partnerships": false,
-        "experience": true
+      "tools_used": [],
+      "processing_time_ms": 485.699,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
       },
+      "turn_number": 4,
       "passed": true
     },
     {
-      "turn_number": 9,
+      "query": "Annual revenue around 10M",
+      "response": "Thank you for confirming your size. With **50 employees** and **\u20ac10 million annual revenue**, your organization officially qualifies as a **Small/Medium-sized Enterprise (SME)**, specifically fitting within the upper boundary of the 'Small' category or the lower boundary of the 'Medium' category. This is a crucial strategic advantage for securing EU funding.\n\n### Strategic Funding Pathways for German MedTech SMEs\n\nBeing an SME in the Medical Devices sector, you have access to specialized funding...",
+      "quality_score": 79,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 8025.739,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 4
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 5,
+      "passed": false
+    },
+    {
+      "query": "We want to expand into AI diagnostics",
+      "response": "I found **4 funding opportunities** for your query:\n\n**1. Accelerating Physical AI: Embodied Intelligence for the Next Frontier of AI-Powered Robotics**\n\ud83d\udccb **Call ID:** HORIZON-EIC-2026-AIC-01\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 26 February 2026\n\ud83c\udfdb\ufe0f **Programme:** EIC\n\ud83d\udcb0 **Budget:** EUR 219.0 million\n\n\ud83d\udcdd **Summary:** Expected Impact: This Challenge will support the ambitions of the AI Act, Apply AI Strategy. The AI powered robotics models developed under this Challenge are expected to comply with the...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "search_funding_calls",
+        "search_projects",
+        "search_funding_calls",
+        "find_experienced_partners"
+      ],
+      "processing_time_ms": 25064.608,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 6,
+      "passed": true
+    },
+    {
+      "query": "We have some research partnerships already",
+      "response": "That is excellent news. Having established research partnerships significantly speeds up the consortium building phase. As a German MedTech SME focusing on **AI diagnostics** and aiming for **Innovation Actions (IA)** or **RIAs** in Cluster 1 (Health), your priority partners now shift to clinical sites and regulatory/dissemination entities to ensure successful validation and market uptake (TRL 5-8).\n\nBased on your profile and focus on 'AI diagnostics, medical devices, and clinical validation', h...",
+      "quality_score": 81,
+      "factual_score": 50.0,
+      "failures": [],
+      "tools_used": [
+        "find_experienced_partners",
+        "find_experienced_partners"
+      ],
+      "processing_time_ms": 21850.954,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 7,
+      "passed": true
+    },
+    {
+      "query": "But never done EU funding before",
+      "response": "**Creative Europe Cooperation Project Funding Rates**\n\nCreative Europe uses a **lump sum funding model** with fixed EU contribution rates for cooperation projects.\n\n## Funding Rate Overview\n\n| Aspect | Rate/Amount |\n|--------|-------------|\n| **EU Funding Rate** | 60% |\n| **Your Co-financing** | 40% |\n| **Funding Model** | Lump sum |\n| **Payment Schedule** | Pre-financing + balance |\n\n## What Does 60% Mean?\n\nThe EU covers **60% of your total eligible costs**:\n\n| Scale | Max EU Grant | Your 40% C...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 1104.624,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 8,
+      "passed": true
+    },
+    {
       "query": "What's our best option?",
-      "response_text": "Given your profile as a deep-tech SME in Germany focused on AI diagnostics and your lack of previous EU funding experience, your **best option** is not a single programme, but a **dual-track strategy** focused on minimizing administrative risk while maximizing funding potential in your specific domain.\n\n### Best Option: Dual-Track Strategy\n\n#### Track 1: High-Risk, High-Reward Lead (EIC Accelerator)\n\nThe **EIC Accelerator** is specifically designed for single SMEs with disruptive, high-TRL (Technology Readiness Level 6-8) innovations aimed at rapid market deployment. This is the optimal route if you want to lead your own project without forming a large consortium.\n\n| Programme | Focus | Funding Structure | Key Advantage | Status | \n|---|---|---|---|---|\n| **EIC Accelerator** | Breakthrough AI Diagnostics (TRL 6+) | Grant (\u20ac0.5M\u2013\u20ac2.5M) + Equity (\u20ac0.5M\u2013\u20ac15M) | Designed for single SMEs; fast-track to market | Highly competitive (~5% success rate)\n\n#### Track 2: Collaborative Entry & Track Record Building (Horizon Europe Cluster 1)\n\nTo build a rapid track record and gain essential experience with EU administrative processes, your most secure entry point is to join an existing consortium in the **Cluster 1 (Health)** Work Programme as a critical partner.\n\n| Programme | Action Type | Focus | Funding Rate | Key Advantage |\n|---|---|---|---|---|\n| **Cluster 1 Health** | **RIA/IA** | AI for disease prevention, clinical trials, healthcare systems | 100% (RIA) / 70% (IA) | Lower administrative burden, high learning curve, faster entry |\n| **Cluster 4 Digital** | **RIA/IA** | AI technologies, data platforms, industrial applications | 100% (RIA) / 70% (IA) | Leverages your core AI expertise, potential cross-cluster funding |\n\n### Recommendation for a First-Time Applicant\n\nWhile the EIC Accelerator is perfect for your company profile, the initial learning curve is extremely steep. We recommend the following sequence:\n\n1.  **Immediate Action (Partner Focus):** Focus the next 6-9 months on securing a strong partnership role in an **ongoing Cluster 1 (Health) RIA or IA call** (search for open calls using your AI diagnostics keywords).\n2.  **Long-Term Action (Lead Focus):** Simultaneously prepare your highly detailed **EIC Accelerator proposal** for the next cut-off (usually in late spring or fall).\n3.  **Leverage Support:** As a German SME, utilize your regional **National Contact Points (NCPs)**, especially the specialized NCPs for Health and EIC, for free proposal review and matchmaking services.\n\n---\n\n\ud83c\udfaf **Next Steps:**\n\u2022 **Verify TRL:** Determine if your AI diagnostic device is TRL 6+ (ready for market deployment) to confirm eligibility for the EIC Accelerator.\n\u2022 **Find Partners:** Use the `find_experienced_partners` tool to identify existing Cluster 1 (Health) consortia coordinators looking for German AI expertise.\n\u2022 **Review Work Programme:** Download and analyze the latest **Cluster 1 (Health) Work Programme** to identify RIA/IA topics where your technology is a critical component.\n\u2022 **Contact NCP:** Immediately reach out to the German NCP for EIC and Health for personalized application support and proposal review.",
+      "response": "Based on your profile\u2014a German MedTech SME focusing on **AI Diagnostics** in collaboration with a university, and having **no prior EU funding experience**\u2014your best strategic option is a **multi-pronged approach** focused on building a secure track record first.\n\nHere are your recommended primary and secondary pathways:\n\n### \ud83e\udd47 Primary Recommendation: Horizon Europe (Cluster 1 Health) - Partner Role\n\nStarting as a **partner** in a well-established consortium (RIA or IA) minimizes risk and offers...",
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
       "tools_used": [
         "recommend_programmes"
       ],
+      "processing_time_ms": 9026.751,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 9,
+      "passed": true
+    },
+    {
+      "query": "Tell me more about that option",
+      "response": "The primary recommendation\u2014participating as a partner in a Horizon Europe (HE) Cluster 1 (Health) project, specifically an RIA or IA\u2014is strategically the best starting point for a German MedTech SME with no prior EU funding experience.\n\n### 1. Horizon Europe Context: Pillar II\n\nYour project falls under **Pillar II: Global Challenges and European Industrial Competitiveness**, which hosts the thematic Clusters. **Cluster 1: Health** focuses specifically on improving health outcomes, addressing dis...",
       "quality_score": 79,
       "factual_score": 100.0,
       "failures": [],
-      "profile_evidence": [
-        "org_type",
-        "sector",
-        "subsector",
-        "location",
-        "goal",
-        "programme_rec"
+      "tools_used": [
+        "get_programme_info"
       ],
-      "accumulated_profile": {
-        "org_type": true,
-        "sector": true,
-        "subsector": true,
-        "location": true,
-        "size": true,
-        "revenue": true,
-        "goal": true,
-        "partnerships": false,
-        "experience": true
+      "processing_time_ms": 8187.666,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 4
+        },
+        "feedback": "Quick rule-based evaluation"
       },
+      "turn_number": 10,
       "passed": false
     },
     {
-      "turn_number": 10,
-      "query": "Tell me more about that option",
-      "response_text": "I found **4 funding opportunities** for your query:\n\n**1. Accelerating Physical AI: Embodied Intelligence for the Next Frontier of AI-Powered Robotics**\n\ud83d\udccb **Call ID:** HORIZON-EIC-2026-AIC-01\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 26 February 2026\n\ud83c\udfdb\ufe0f **Programme:** EIC\n\ud83d\udcb0 **Budget:** EUR 219.0 million\n\n\ud83d\udcdd **Summary:** Expected Impact: This Challenge will support the ambitions of the AI Act, Apply AI Strategy. The AI powered robotics models developed under this Challenge are expected to comply with the EU concept for Trustworthy AI and the relevant ethical...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-eic-2026-aic-01\n\n---\n\n**2. Advancing lead markets and proof-of-concept for deep tech solutions contributing to EU Missions**\n\ud83d\udccb **Call ID:** HORIZON-MISS-2026-07-CROSS-03\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 31 March 2026\n\ud83c\udfdb\ufe0f **Programme:** MISS\n\n\ud83d\udcdd **Summary:** Expected Outcome: Expected outcomes : Stakeholders in Missions on European, national and regional level embrace their roles as actors in \u2018 lead markets for innovative products and services with a purpose \u2019 that are provided by public investments in...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-miss-2026-07-cross-03\n\n---\n\n**3. Innovative solutions for a generative AI-powered digital spine of the EU energy system**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-19\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: Project results are expected to contribute to all of the following expected outcomes: Availability of generative Artificial Intelligence (AI) tools for electricity system operators, energy service providers, and households and...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d3-19\n\n---\n\n**4. Generative AI for Cybersecurity applications Call: Increased Cybersecurity Specific conditions Expected EU It is estimated that an EU contribution of...**\n\ud83d\udccb **Call ID:** HORIZON-CL3-2025-02-ECCC-01\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL3\n\ud83d\udcb0 **Budget:** EUR 40.0 million\n\n\ud83d\udcdd **Summary:** a) and the highest ranked proposal addressing expected outcome b), provided that the applications attain all thresholds 40.00 million. budget Type of Action Research and Innovation Actions\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL3-2025-02-ECCC-01\n\n---\n\n---\n\n\ud83d\udca1 **How to Apply:**\n\u2022 **Register** on the EU Funding & Tenders Portal if you haven't already\n\u2022 **Check eligibility** criteria carefully for each call\n\u2022 **Prepare partnerships** - many calls require consortium applications\n\u2022 **Review evaluation criteria** and weightings in the call documentation\n\u2022 **Submit well before** the deadline - the portal can be busy near deadlines\n\n\ud83d\udcda **Useful Resources:**\n\u2022 [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)\n\u2022 [How to Participate Guide](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/how-to-participate/1)\n\u2022 [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search)\n\n\ud83c\udfaf **Next Steps:**\n\u2022 Click on the 'Apply' links above for full call details\n\u2022 Download the call documentation and work programme\n\u2022 Start building your consortium if partnerships are required",
-      "tools_used": [
-        "get_programme_info",
-        "search_funding_calls",
-        "search_funding_calls"
-      ],
-      "quality_score": 83,
-      "factual_score": 100.0,
-      "failures": [],
-      "profile_evidence": [],
-      "accumulated_profile": {
-        "org_type": true,
-        "sector": true,
-        "subsector": true,
-        "location": true,
-        "size": true,
-        "revenue": true,
-        "goal": true,
-        "partnerships": false,
-        "experience": true
-      },
-      "passed": true
-    },
-    {
-      "turn_number": 11,
       "query": "What should be our next steps?",
-      "response_text": "Based on my search for information about 'What should be our next steps?', here's what I found:\n\n**Finding 1:**\nStatistics: {\n  \"projects_analyzed\": 366,\n  \"total_eu_contribution\": {\n    \"min\": 1780807.0,\n    \"max\": 22982612.0,\n    \"average\": 7104775.0,\n    \"median\": 6468604.0,\n    \"std_dev\": 2751262.0\n  },\n  \"budget_per_partner\": {\n    \"average\": 638835.0,\n    \"median\": 462043.0\n  },\n  \"consortium_size\": {\n    \"min\": 4,\n    \"max\": 24,\n    \"average\": 13.4,\n    \"median\": 14.0\n  }\n}\n\n**Finding 2:**\n## Top Organizations with Experience in 'AI diagnostics healthcare clinical trials'\n\nFound **10 organizations** with relevant track records:\n\n### 1. **KATHOLIEKE UNIVERSITEIT LEUVEN** (BE)\n- **Organization Type**: HES (Higher Education)\n- **Relevant Projects**: 40 (coordinated **5** projects)\n- **Total Funding**: \u20ac27,116,231\n- **Example Projects**: DECIPHER (coordinator), PCR-4-ALL (coordinator), LEAPS (coordinator)\n\n### 2. **KAROLINSKA INSTITUTET** (SE)\n- **Organization Type**: HES (Higher Education)\n- **Relevant Projects**: 40 (coordinated **3** projects)\n- **Total Funding**: \u20ac29,625,324\n- **Example Projects**: Changemaker (coordinator), WISDOM (coordinator), YiPEE (coordinator)\n\n### 3. **ERASMUS UNIVERSITAIR MEDISCH CENTRUM ROTTERDAM** (NL)\n- **Organization Type**: HES (Higher Education)\n- **Relevant Projects**: 37 (coordinated **2** projects)\n- **Total Funding**: \u20ac24,779,233\n- **Example Projects**: 4D PICTURE (coordinator), FAMILY (coordinator), MPX-RESPONSE (participant)\n\n### 4. **STICHTING RADBOUD UNIVERSITAIR MEDISCH CENTRUM** (NL)\n- **Organization Type**: HES (Higher Education)\n- **Relevant Projects**: 32 (coordinated **7** projects)\n- **Total Funding**: \u20ac32,939,625\n- **Example Projects**: SIMPATHIC (coordinator), DELIVER (coordinator), LightCure (coordinator)\n\n### 5. **CHARITE - UNIVERSITAETSMEDIZIN BERLIN** (DE)\n- **Organization Type**: HES (Higher Education)\n- **Relevant Projects**: 31 (coordinated **10** projects)\n- **Total Funding**: \u20ac25,084,018\n- **Example Projects**: COMFORT (coordinator), CYLCOMED (coordinator), EPIC (coordinator)\n\n### 6. **UNIVERSITAIR MEDISCH CENTRUM UTRECHT** (NL)\n- **Organization Type**: HES (Higher Education)\n- **Relevant Projects**: 28 (coordinated **8** projects)\n- **Total Funding**: \u20ac29,130,619\n- **Example Projects**: ARTILLERY (coordinator), CLARITY (coordinator), ECRAID-Prime (coordinator)\n\n### 7. **THE CHANCELLOR, MASTERS AND SCHOLARS OF THE UNIVERSITY OF OXFORD** (UK)\n- **Organization Type**: HES (Higher Education)\n- **Relevant Projects**: 27\n- **Total Funding**: \u20ac1,201,110\n- **Example Projects**: UltiMalVax (associatedPartner), ASSESS-DHT (associatedPartner), AI-PROGNOSIS (associatedPartner)\n\n### 8. **UNIVERSITATSKLINIKUM HEIDELBERG** (DE)\n- **Organization Type**: HES (Higher Education)\n- **Relevant Projects**: 21 (coordinated **5** projects)\n- **Total Funding**: \u20ac14,113,598\n- **Example Projects**: B-Path (coordinator), CONTAGIO (coordinator), TULIP (coordinator)\n\n### 9. **UNIVERSITY COLLEGE LONDON** (UK)\n- **Organization Type**: HES (Higher Education)\n- **Relevant Projects**: 20 (coordinated **1** projects)\n- **Total Funding**: \u20ac4,470,007\n- **Example Projects**: DataTools4Heart (associatedPartner), ARISTOTELES (associatedPartner), PREVALUNG EU (associatedPartner)\n\n### 10. **ACADEMISCH ZIEKENHUIS GRONINGEN** (NL)\n- **Organization Type**: HES (Higher Education)\n- **Relevant Projects**: 19 (coordinated **4** projects)\n- **Total Funding**: \u20ac17,082,249\n- **Example Projects**: TRUSTING (coordinator), More-EUROPA (coordinator), PRIME-CKD (coordinator)\n\n\n**Top countries for this topic**: NL, DE, UK, BE, SE\n\n---\n\n### How to Verify & Contact Partners\n\n- **CORDIS Database**: Search for specific projects at https://cordis.europa.eu\n- **EU Funding Portal**: https://ec.europa.eu/info/funding-tenders/\n- **Partner Search**: Use the EU Partner Search tool to find and contact organizations\n- **Verify Municipal Networks**: Check organizations' websites for urban/city partnerships, living labs, or pilot site descriptions\n",
-      "tools_used": [
-        "get_budget_benchmark",
-        "find_experienced_partners"
-      ],
-      "quality_score": 81,
+      "response": "Based on the recommendation to start as a partner in a Horizon Europe Cluster 1 (Health) Research and Innovation Action (RIA), your strategic next steps should be prioritized to move immediately into the execution and consortium building phase. This is critical as proposal writing takes 6-9 months.\n\n### 1. Project Alignment and Call Scouting (3-4 weeks)\n\n**Action: Determine Technology Readiness Level (TRL)**\n*   **Goal:** Pinpoint the current TRL of your AI diagnostic solution (1-9).\n*   **Decis...",
+      "quality_score": 79,
       "factual_score": 100.0,
       "failures": [],
-      "profile_evidence": [],
-      "accumulated_profile": {
-        "org_type": true,
-        "sector": true,
-        "subsector": true,
-        "location": true,
-        "size": true,
-        "revenue": true,
-        "goal": true,
-        "partnerships": false,
-        "experience": true
+      "tools_used": [],
+      "processing_time_ms": 8040.749999999999,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 4
+        },
+        "feedback": "Quick rule-based evaluation"
       },
-      "passed": true
+      "turn_number": 11,
+      "passed": false
     }
   ],
-  "average_score": 80.5,
-  "factual_score": 100.0,
-  "failures": [
-    {
-      "category": "NO_RESULTS",
-      "severity": "MEDIUM",
-      "description": "Response contains error pattern: 'couldn't extract'"
-    }
-  ],
-  "status": "PASS",
-  "execution_time_ms": 91766.86,
-  "timestamp": "2026-01-23T01:06:17.371548",
-  "fix_history": [],
-  "profile_tracking": {
-    "final_accumulated_profile": {
-      "org_type": true,
-      "sector": true,
-      "subsector": true,
-      "location": true,
-      "size": true,
-      "revenue": true,
-      "goal": true,
-      "partnerships": false,
-      "experience": true
-    },
-    "profile_fields_acknowledged": 8,
-    "profile_coverage_pct": 88.9
+  "scores": {
+    "average_quality": 81.5,
+    "average_factual": 95.83333333333333,
+    "goal_progress": 0.6,
+    "context_fields": 6
   },
+  "failures": [],
   "metadata": {
-    "scenario_path": "/home/anmar/Documents/VSCODE_REPOS/MAPIT/NEWMAPIT/MAP-IT_SA/tests/scenarios/advanced/progressive_profile.yaml",
+    "scenario_path": "tests/scenarios/advanced/progressive_profile.yaml",
     "tags": [
       "phase4",
       "personalization",
@@ -344,6 +288,13 @@
       "long-conversation"
     ],
     "description": "A 12-step profile building workflow where a user progressively reveals\ndetailed information about their organization across multiple turns.\nTests the system's ability to accumulate comprehensive user profile data\n(organization type, sector, subsector, location, size, revenue, goals,\npartnerships, and experience level) and synthesize this information to\nprovide highly personalized funding recommendations. This is an extended\nversion of the user_context_learning scenario that tests deeper profile\naccumulation with 12+ turns.\n",
-    "conversation_id": 975998233
-  }
+    "conversation_id": 1344716524
+  },
+  "execution_time_ms": 400582.625,
+  "timestamp": "2026-01-23T16:39:16.510333",
+  "passed": false,
+  "turn_count": 12,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
 }

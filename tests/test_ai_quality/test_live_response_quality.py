@@ -22,22 +22,22 @@ The tests validate:
 - Tool results are properly synthesized
 """
 
-import pytest
-import httpx
 import logging
-import random
-import time
-from typing import Optional, Dict, Any, List, Union
-import sys
 import os
+import random
+import sys
+import time
+from typing import Any
+
+import httpx
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from app.services.quality.response_quality_analyzer import (
-    ResponseQualityAnalyzer,
     QualityAnalysis,
     ResponseCategory,
-    QueryType,
+    ResponseQualityAnalyzer,
 )
 
 logger = logging.getLogger(__name__)
@@ -83,9 +83,9 @@ class LiveAPIClient:
     def send_message(
         self,
         query: str,
-        conversation_id: Optional[int] = None,
+        conversation_id: int | None = None,
         include_context: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Send a message to the V3 API and return the response with quality analysis.
 

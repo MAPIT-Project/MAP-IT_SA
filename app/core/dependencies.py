@@ -2,16 +2,17 @@
 FastAPI dependency injection for services and repositories.
 """
 
-from typing import Optional
-from fastapi import Depends, HTTPException, status
-from .config import settings
-from ..services.data.cordis_repository import CordisProjectRepository
 import logging
+
+from fastapi import HTTPException, status
+
+from ..services.data.cordis_repository import CordisProjectRepository
+from .config import settings
 
 logger = logging.getLogger(__name__)
 
 # Global repository instance (singleton pattern)
-_cordis_repository: Optional[CordisProjectRepository] = None
+_cordis_repository: CordisProjectRepository | None = None
 
 
 def get_cordis_repository() -> CordisProjectRepository:
@@ -46,7 +47,7 @@ def get_cordis_repository() -> CordisProjectRepository:
     return _cordis_repository
 
 
-def initialize_cordis_repository() -> Optional[CordisProjectRepository]:
+def initialize_cordis_repository() -> CordisProjectRepository | None:
     """
     Initialize the CORDIS repository during FastAPI startup.
     

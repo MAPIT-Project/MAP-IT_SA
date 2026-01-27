@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+
 from tests.agents.conversation_flow_agent import (
     ConversationFlowAgent,
     ConversationScenario,

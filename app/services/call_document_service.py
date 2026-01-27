@@ -12,17 +12,14 @@ Flow:
 This eliminates all manual work!
 """
 
-import logging
 import hashlib
-import re
-import requests
-from typing import List, Dict, Optional
-from pathlib import Path
-import psycopg2
-from psycopg2 import pool
-from psycopg2.extras import Json
-from datetime import datetime
 import json
+import logging
+import re
+from pathlib import Path
+
+import requests
+from psycopg2.extras import Json
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +33,7 @@ class CallDocumentService:
         self.shared_docs_dir = Path("data/shared_documents")
         self.shared_docs_dir.mkdir(parents=True, exist_ok=True)
     
-    def get_call_documents(self, call_identifier: str, force_refresh: bool = False) -> Dict:
+    def get_call_documents(self, call_identifier: str, force_refresh: bool = False) -> dict:
         """
         Get documents for a call - automatically fetch if not cached.
         
@@ -93,7 +90,7 @@ class CallDocumentService:
             cluster_doc_id = self._ensure_cluster_work_programme(call_identifier)
             if cluster_doc_id and cluster_doc_id not in processed_docs:
                 processed_docs.append(cluster_doc_id)
-                logger.info(f"✅ Added cluster-specific Work Programme (not in API response)")
+                logger.info("✅ Added cluster-specific Work Programme (not in API response)")
             
             # Step 4: Create mappings
             self._create_mappings(call_identifier, processed_docs)
@@ -115,7 +112,7 @@ class CallDocumentService:
             logger.error(f"❌ Error processing call {call_identifier}: {e}", exc_info=True)
             return None
     
-    def _check_if_mapped(self, call_identifier: str) -> Optional[Dict]:
+    def _check_if_mapped(self, call_identifier: str) -> dict | None:
         """Check if call already has documents mapped"""
         conn = self.db_pool.getconn()
         try:
@@ -166,7 +163,7 @@ class CallDocumentService:
         finally:
             self.db_pool.putconn(conn)
     
-    def _fetch_call_from_api(self, call_identifier: str) -> Optional[Dict]:
+    def _fetch_call_from_api(self, call_identifier: str) -> dict | None:
         """Fetch call data from EU Portal API"""
         
         try:
@@ -223,7 +220,7 @@ class CallDocumentService:
             logger.error(f"API request failed for {call_identifier}: {e}")
             return None
     
-    def _extract_and_store_call_metadata(self, call_identifier: str, call_data: Dict):
+    def _extract_and_store_call_metadata(self, call_identifier: str, call_data: dict):
         """Extract structured metadata from API response and store in database"""
         
         try:
@@ -357,7 +354,7 @@ class CallDocumentService:
         except Exception as e:
             logger.error(f"❌ Failed to extract/store call metadata: {e}")
     
-    def _extract_document_urls(self, call_data: Dict) -> List[Dict]:
+    def _extract_document_urls(self, call_data: dict) -> list[dict]:
         """Extract document URLs from API response"""
         
         doc_urls = []
@@ -394,7 +391,7 @@ class CallDocumentService:
             logger.error(f"Failed to extract document URLs: {e}")
             return []
     
-    def _classify_document_from_url(self, url: str, title: str) -> Dict:
+    def _classify_document_from_url(self, url: str, title: str) -> dict:
         """Classify document type and scope from URL and title"""
         
         url_lower = url.lower()
@@ -445,7 +442,7 @@ class CallDocumentService:
             'key': hashlib.md5(url.encode()).hexdigest()[:16]
         }
     
-    def _download_and_process_document(self, doc_info: Dict) -> Optional[int]:
+    def _download_and_process_document(self, doc_info: dict) -> int | None:
         """Download and process a document, return document ID"""
         
         url = doc_info['url']
@@ -476,7 +473,7 @@ class CallDocumentService:
             file_hash = self._compute_file_hash(file_path)
             
             # Parse and chunk
-            from scripts.manual_document_upload import SimpleDocumentParser, SimpleChunker
+            from scripts.manual_document_upload import SimpleChunker, SimpleDocumentParser
             
             parser = SimpleDocumentParser()
             parsed = parser.parse_pdf(file_path)
@@ -507,7 +504,7 @@ class CallDocumentService:
             logger.error(f"Failed to process document {url}: {e}", exc_info=True)
             return None
     
-    def _check_document_exists(self, url: str) -> Optional[int]:
+    def _check_document_exists(self, url: str) -> int | None:
         """Check if document already exists by URL"""
         conn = self.db_pool.getconn()
         try:
@@ -529,9 +526,9 @@ class CallDocumentService:
         return sha256_hash.hexdigest()
     
     def _store_document(self, doc_key: str, doc_type: str, doc_title: str,
-                       scope: str, scope_identifier: Optional[str],
+                       scope: str, scope_identifier: str | None,
                        file_path: str, file_hash: str, url: str,
-                       parsed: Dict, chunks: List) -> int:
+                       parsed: dict, chunks: list) -> int:
         """Store document and chunks in database"""
         conn = self.db_pool.getconn()
         try:
@@ -591,13 +588,13 @@ class CallDocumentService:
             conn.commit()
             return document_id
             
-        except Exception as e:
+        except Exception:
             conn.rollback()
             raise
         finally:
             self.db_pool.putconn(conn)
     
-    def _create_mappings(self, call_identifier: str, document_ids: List[int]):
+    def _create_mappings(self, call_identifier: str, document_ids: list[int]):
         """Create call-to-document mappings"""
         if not document_ids:
             return
@@ -635,20 +632,20 @@ class CallDocumentService:
             conn.commit()
             logger.info(f"✅ Created {len(document_ids)} mappings for {call_identifier}")
             
-        except Exception as e:
+        except Exception:
             conn.rollback()
             raise
         finally:
             self.db_pool.putconn(conn)
     
-    def _extract_cluster_from_call_id(self, call_id: str) -> Optional[str]:
+    def _extract_cluster_from_call_id(self, call_id: str) -> str | None:
         """Extract cluster from call ID"""
         match = re.search(r'CL(\d+)', call_id, re.IGNORECASE)
         if match:
             return f"CLUSTER-{match.group(1)}"
         return None
     
-    def _ensure_cluster_work_programme(self, call_identifier: str) -> Optional[int]:
+    def _ensure_cluster_work_programme(self, call_identifier: str) -> int | None:
         """
         Ensure cluster-specific work programme is available and return its document_id.
         Looks for patterns like: "HE Main Work Programme 2023–2025 – X. [Cluster Name]"
@@ -706,7 +703,7 @@ class CallDocumentService:
         finally:
             self.db_pool.putconn(conn)
     
-    def get_call_metadata(self, call_identifier: str) -> Optional[Dict]:
+    def get_call_metadata(self, call_identifier: str) -> dict | None:
         """
         Get structured metadata for a call (eligibility, budget, deadlines, etc.)
         This is FAST and gives instant answers without searching PDFs.
@@ -775,7 +772,7 @@ class CallDocumentService:
             logger.error(f"❌ Failed to retrieve call metadata: {e}")
             return None
     
-    def search_call_chunks(self, call_identifier: str, query: str, limit: int = 10) -> List[Dict]:
+    def search_call_chunks(self, call_identifier: str, query: str, limit: int = 10) -> list[dict]:
         """
         Search chunks for a specific call.
         Automatically fetches documents if not cached.

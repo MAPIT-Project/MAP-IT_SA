@@ -6,9 +6,9 @@ Learns from failed attempts to avoid repeating mistakes.
 """
 
 import logging
-from typing import List, Dict, Any, Optional, Set
+from typing import Any
 
-from .reflector import ReflectionResult, ImprovementAction, FailureRootCause
+from .reflector import ImprovementAction, ReflectionResult
 
 logger = logging.getLogger(__name__)
 
@@ -34,12 +34,12 @@ class Replanner:
         self,
         query: str,
         reflection: ReflectionResult,
-        failed_strategies: List[str],
-        tried_queries: List[str],
-        tried_sources: List[str],
+        failed_strategies: list[str],
+        tried_queries: list[str],
+        tried_sources: list[str],
         query_type: str = 'general_query',
-        entities: List[str] = None
-    ) -> Dict[str, Any]:
+        entities: list[str] = None
+    ) -> dict[str, Any]:
         """
         Generate a new execution plan incorporating lessons learned.
         
@@ -93,14 +93,14 @@ class Replanner:
         action: ImprovementAction,
         query: str,
         suggested_query: str,
-        suggested_sources: List[str],
-        failed_set: Set[str],
-        tried_queries_set: Set[str],
-        tried_sources_set: Set[str],
+        suggested_sources: list[str],
+        failed_set: set[str],
+        tried_queries_set: set[str],
+        tried_sources_set: set[str],
         query_type: str,
-        entities: List[str],
+        entities: list[str],
         reflection: ReflectionResult
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Build a new plan based on the improvement action."""
         
         if action == ImprovementAction.REFINE_QUERY:
@@ -153,9 +153,9 @@ class Replanner:
         self,
         refined_query: str,
         query_type: str,
-        tried_sources: Set[str],
-        entities: List[str] = None
-    ) -> Dict[str, Any]:
+        tried_sources: set[str],
+        entities: list[str] = None
+    ) -> dict[str, Any]:
         """Plan with a more refined/specific query."""
         
         sources = self.SOURCE_PRIORITIES.get(query_type, ['vector', 'keyword'])
@@ -186,8 +186,8 @@ class Replanner:
         self,
         broadened_query: str,
         query_type: str,
-        tried_sources: Set[str]
-    ) -> Dict[str, Any]:
+        tried_sources: set[str]
+    ) -> dict[str, Any]:
         """Plan with a broader query."""
         
         # Use vector search for broader queries (better semantic matching)
@@ -219,10 +219,10 @@ class Replanner:
     def _plan_new_sources(
         self,
         query: str,
-        suggested_sources: List[str],
-        tried_sources: Set[str],
+        suggested_sources: list[str],
+        tried_sources: set[str],
         query_type: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Plan using different data sources."""
         
         # Filter out already tried sources
@@ -253,8 +253,8 @@ class Replanner:
     def _plan_keyword_search(
         self,
         keyword_query: str,
-        tried_sources: Set[str]
-    ) -> Dict[str, Any]:
+        tried_sources: set[str]
+    ) -> dict[str, Any]:
         """Plan with keyword-based search."""
         
         steps = [
@@ -284,8 +284,8 @@ class Replanner:
     def _plan_semantic_search(
         self,
         query: str,
-        entities: List[str] = None
-    ) -> Dict[str, Any]:
+        entities: list[str] = None
+    ) -> dict[str, Any]:
         """Plan with semantic search."""
         
         steps = [
@@ -308,8 +308,8 @@ class Replanner:
         self,
         original_query: str,
         keyword_enhanced_query: str,
-        tried_sources: Set[str]
-    ) -> Dict[str, Any]:
+        tried_sources: set[str]
+    ) -> dict[str, Any]:
         """Plan with added keywords."""
         
         steps = [
@@ -339,9 +339,9 @@ class Replanner:
     def _plan_with_context(
         self,
         context_enhanced_query: str,
-        entities: List[str],
-        tried_sources: Set[str]
-    ) -> Dict[str, Any]:
+        entities: list[str],
+        tried_sources: set[str]
+    ) -> dict[str, Any]:
         """Plan with added context from entities."""
         
         steps = [
@@ -374,8 +374,8 @@ class Replanner:
     def _plan_temporal_search(
         self,
         temporal_query: str,
-        tried_sources: Set[str]
-    ) -> Dict[str, Any]:
+        tried_sources: set[str]
+    ) -> dict[str, Any]:
         """Plan with temporal constraints."""
         
         steps = [
@@ -413,8 +413,8 @@ class Replanner:
         self,
         query: str,
         query_type: str,
-        entities: List[str] = None
-    ) -> Dict[str, Any]:
+        entities: list[str] = None
+    ) -> dict[str, Any]:
         """Final attempt before acknowledging limitation."""
         
         # Try all sources with lower thresholds
@@ -455,8 +455,8 @@ class Replanner:
         self,
         query: str,
         query_type: str,
-        entities: List[str] = None
-    ) -> Dict[str, Any]:
+        entities: list[str] = None
+    ) -> dict[str, Any]:
         """Default hybrid approach combining multiple strategies."""
         
         steps = [

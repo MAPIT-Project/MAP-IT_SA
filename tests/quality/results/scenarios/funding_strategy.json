@@ -1,19 +1,19 @@
 {
   "scenario_name": "Funding Strategy",
   "status": "FAIL",
-  "average_quality_score": 80.0,
-  "average_factual_score": 100.0,
+  "average_quality_score": 81.0,
+  "average_factual_score": 91.66666666666667,
   "turns": [
     {
       "query": "Help me plan our research funding strategy for the next 3 years",
-      "response": "Developing a 3-year funding strategy is crucial for maximizing competitiveness and building a strong track record. This process should balance quick-win actions with high-risk, high-reward flagship applications.\n\nSince I do not yet have specific information about your organization type, sector, or experience, I will provide the general Horizon Europe **Strategic Planning Framework** and ask for key details to personalize your plan.\n\n### Horizon Europe Strategic Planning Framework\n\nThis framework...",
+      "response": "Developing a 3-year funding strategy requires aligning your goals and capacity with the EU funding landscape. The general approach involves building a track record before scaling up to larger projects.\n\n### Strategic Planning Framework (3-Year Cycle)\n\nThis framework is often recommended, regardless of the specific programme (Horizon Europe, Erasmus+, etc.):\n\n1. **Year 1: Build Track Record & Capacity**\n    * **Focus**: Participate as a partner in smaller, focused actions (e.g., MSCA Doctoral Net...",
       "quality_score": 79,
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [
         "recommend_programmes"
       ],
-      "processing_time_ms": 7653.524,
+      "processing_time_ms": 7961.8859999999995,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -28,7 +28,7 @@
     },
     {
       "query": "We're a university department focusing on cybersecurity",
-      "response": "I found **12 funding opportunities** for your query:\n\n**1. Innovative space-based applications enhancing capabilities for a resilient Europe**\n\ud83d\udccb **Call ID:** HORIZON-EUSPA-2026-SPACE-02-52\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 24 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Horizon Europe\n\ud83d\udcb0 **Budget:** EUR 5.0 million\n\n\ud83d\udcdd **Summary:** Expected Outcome: Projects\u2019 results are expected to contribute to some or all of the following outcomes: Foster the development and validation of integrated synergistic space techn...",
+      "response": "I found **11 funding opportunities** for your query:\n\n**1. Innovative space-based applications enhancing capabilities for a resilient Europe**\n\ud83d\udccb **Call ID:** HORIZON-EUSPA-2026-SPACE-02-52\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 24 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Horizon Europe\n\ud83d\udcb0 **Budget:** EUR 5.0 million\n\n\ud83d\udcdd **Summary:** Expected Outcome: Projects\u2019 results are expected to contribute to some or all of the following outcomes: Foster the development and validation of integrated synergistic space techn...",
       "quality_score": 83,
       "factual_score": 100.0,
       "failures": [],
@@ -37,7 +37,7 @@
         "search_funding_calls",
         "search_funding_calls"
       ],
-      "processing_time_ms": 7227.621,
+      "processing_time_ms": 9005.908,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -52,16 +52,16 @@
     },
     {
       "query": "What Horizon Europe options do we have?",
-      "response": "I found **12 funding opportunities** for your query:\n\n**1. Innovative space-based applications enhancing capabilities for a resilient Europe**\n\ud83d\udccb **Call ID:** HORIZON-EUSPA-2026-SPACE-02-52\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 24 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Horizon Europe\n\ud83d\udcb0 **Budget:** EUR 5.0 million\n\n\ud83d\udcdd **Summary:** Expected Outcome: Projects\u2019 results are expected to contribute to some or all of the following outcomes: Foster the development and validation of integrated synergistic space techn...",
+      "response": "I found **5 funding opportunities** for your query:\n\n**1. Innovative space-based applications enhancing capabilities for a resilient Europe**\n\ud83d\udccb **Call ID:** HORIZON-EUSPA-2026-SPACE-02-52\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 24 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Horizon Europe\n\ud83d\udcb0 **Budget:** EUR 5.0 million\n\n\ud83d\udcdd **Summary:** Expected Outcome: Projects\u2019 results are expected to contribute to some or all of the following outcomes: Foster the development and validation of integrated synergistic space techno...",
       "quality_score": 83,
-      "factual_score": 100.0,
+      "factual_score": 50.0,
       "failures": [],
       "tools_used": [
         "search_funding_calls",
         "search_funding_calls",
         "search_funding_calls"
       ],
-      "processing_time_ms": 7204.071,
+      "processing_time_ms": 6638.347000000001,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -83,7 +83,7 @@
       "tools_used": [
         "get_programme_info"
       ],
-      "processing_time_ms": 3351.3320000000003,
+      "processing_time_ms": 4698.612,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -98,36 +98,36 @@
     },
     {
       "query": "How should we sequence our applications?",
-      "response": "Developing a sequencing strategy requires aligning your department's current experience level with the typical risk and complexity of EU funding schemes. As a university department specializing in **Cybersecurity**, you have strong eligibility for both research (Horizon Europe) and capacity building (Erasmus+).\n\nHere is a recommended three-phase strategy for sequencing your applications:\n\n### 1. Phase 1: Build Track Record and Capacity (Year 1)\n\n**Goal:** Secure quick wins, establish internation...",
-      "quality_score": 79,
+      "response": "Sequencing your applications strategically is crucial for building a successful track record and maximizing your competitive advantage. As a **University Department (HES)** focusing on **Cybersecurity** (Cluster 3 and Cluster 4 topics), your strategy should typically follow a progression from individual excellence and participation to large-scale coordination and breakthrough research.\n\nHere is a recommended sequencing strategy:\n\n### Strategic Planning Framework (3-Year Cycle)\n\n| Year | Goal | K...",
+      "quality_score": 85,
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [
         "recommend_programmes"
       ],
-      "processing_time_ms": 9054.130000000001,
+      "processing_time_ms": 12765.517,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
           "specificity": 25,
           "factual_accuracy": 20,
-          "actionability": 4
+          "actionability": 10
         },
         "feedback": "Quick rule-based evaluation"
       },
       "turn_number": 4,
-      "passed": false
+      "passed": true
     },
     {
       "query": "What's a realistic timeline?",
-      "response": "## Project Timeline Generated\n\n**Project Parameters:**\n- Duration: 42 months\n- Action Type: RIA\n- Partners: 10\n- Total Effort: 450 person-months\n\n### Work Packages\n\n**WP1: Project Management**\n- Lead: P1 | Participants: P2, P3, P4, P5\n- Duration: M1 - M42 (42 months)\n- Effort: 36 person-months\n- Objective: *Ensure efficient coordination, quality management, and timely delivery of project outcomes.*\n- Tasks: Overall project coordination and monitoring; Quality assurance and risk management; Finan...",
+      "response": "## Project Timeline Generated\n\n**Project Parameters:**\n- Duration: 48 months\n- Action Type: RIA\n- Partners: 10\n- Total Effort: 550 person-months\n\n### Work Packages\n\n**WP1: Project Management**\n- Lead: P1 | Participants: P2, P3, P4, P5\n- Duration: M1 - M48 (48 months)\n- Effort: 44 person-months\n- Objective: *Ensure efficient coordination, quality management, and timely delivery of project outcomes.*\n- Tasks: Overall project coordination and monitoring; Quality assurance and risk management; Finan...",
       "quality_score": 77,
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [
         "generate_timeline"
       ],
-      "processing_time_ms": 4811.649,
+      "processing_time_ms": 5493.257,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -142,14 +142,14 @@
     }
   ],
   "scores": {
-    "average_quality": 80.0,
-    "average_factual": 100.0,
+    "average_quality": 81.0,
+    "average_factual": 91.66666666666667,
     "goal_progress": 0.7385714285714287,
     "context_fields": 3
   },
   "failures": [],
   "metadata": {
-    "scenario_path": "/home/anmar/Documents/VSCODE_REPOS/MAPIT/NEWMAPIT/MAP-IT_SA/tests/scenarios/advanced/funding_strategy.yaml",
+    "scenario_path": "tests/scenarios/advanced/funding_strategy.yaml",
     "tags": [
       "phase5",
       "strategic-planning",
@@ -160,10 +160,10 @@
       "multi-programme"
     ],
     "description": "A 6-step strategic planning workflow where a university cybersecurity\ndepartment seeks help creating a 3-year EU funding strategy. Tests the\nsystem's ability to provide multi-programme strategic advice, suggest\nlogical application sequencing, and create realistic timelines. The\nconversation builds user context progressively and validates that the\nfinal strategy incorporates both Horizon Europe and Erasmus+ options\nin a coherent multi-year plan.\n",
-    "conversation_id": 14673019
+    "conversation_id": 1918468720
   },
-  "execution_time_ms": 197946.786,
-  "timestamp": "2026-01-23T01:26:38.261322",
+  "execution_time_ms": 205770.403,
+  "timestamp": "2026-01-23T16:47:54.168367",
   "passed": false,
   "turn_count": 6,
   "critical_failures": 0,

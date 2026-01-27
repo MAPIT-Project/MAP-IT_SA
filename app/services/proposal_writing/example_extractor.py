@@ -5,18 +5,15 @@ Extracts proposal-like examples from CORDIS project objectives.
 Populates the proposal_examples table with categorized, embedded content.
 """
 
-import asyncio
 import logging
-import re
 import os
-from typing import List, Dict, Optional, Any
+import re
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
-
-from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -39,10 +36,10 @@ class ExtractedExample:
     project_acronym: str
     section_type: ExampleType
     content: str
-    cluster: Optional[str]
-    action_type: Optional[str]
-    total_cost: Optional[float]
-    start_date: Optional[str]
+    cluster: str | None
+    action_type: str | None
+    total_cost: float | None
+    start_date: str | None
     quality_score: float
 
 
@@ -124,10 +121,10 @@ class ExampleExtractor:
     async def extract_from_all_projects(
         self,
         batch_size: int = 100,
-        max_projects: Optional[int] = None,
-        clusters: Optional[List[str]] = None,
+        max_projects: int | None = None,
+        clusters: list[str] | None = None,
         skip_existing: bool = True
-    ) -> Dict[str, int]:
+    ) -> dict[str, int]:
         """
         Extract examples from all projects in the database.
 
@@ -215,7 +212,7 @@ class ExampleExtractor:
 
         return stats
 
-    async def _extract_from_project(self, project: Dict) -> List[ExtractedExample]:
+    async def _extract_from_project(self, project: dict) -> list[ExtractedExample]:
         """Extract all possible examples from a single project."""
         examples = []
         objective = project['objective']
@@ -254,7 +251,7 @@ class ExampleExtractor:
 
         return examples
 
-    def _segment_objective(self, objective: str) -> Dict[ExampleType, str]:
+    def _segment_objective(self, objective: str) -> dict[ExampleType, str]:
         """
         Segment an objective into component sections.
 
@@ -367,7 +364,7 @@ class ExampleExtractor:
             logger.error(f"Error saving example for project {example.project_id}: {e}")
             raise
 
-    async def get_extraction_stats(self) -> Dict[str, Any]:
+    async def get_extraction_stats(self) -> dict[str, Any]:
         """Get statistics about extracted examples."""
         conn = self._get_connection()
         try:
@@ -438,7 +435,7 @@ class ExampleEnricher:
         """Get database connection."""
         return psycopg2.connect(self._db_url)
 
-    async def enrich_examples(self, batch_size: int = 50) -> Dict[str, int]:
+    async def enrich_examples(self, batch_size: int = 50) -> dict[str, int]:
         """
         Enrich existing examples with LLM-analyzed metadata.
 
@@ -487,7 +484,7 @@ class ExampleEnricher:
 
         return stats
 
-    async def _analyze_example(self, example: Dict) -> str:
+    async def _analyze_example(self, example: dict) -> str:
         """Analyze an example for writing quality indicators."""
         import json
 

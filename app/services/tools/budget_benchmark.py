@@ -8,15 +8,16 @@ HYBRID ARCHITECTURE: Combines Neo4j graph queries with PostgreSQL keyword search
 for optimal results using RRF (Reciprocal Rank Fusion).
 """
 
+import logging
 import os
 import re
-import logging
-from typing import Optional, Dict, Any, List, Tuple
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+from typing import Any
+
 import psycopg2
-from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from psycopg2.extras import RealDictCursor
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -74,7 +75,7 @@ class BudgetBenchmarkTool:
             return None
         return psycopg2.connect(self.db_url)
 
-    def _infer_clusters_from_keywords(self, keywords: str) -> List[str]:
+    def _infer_clusters_from_keywords(self, keywords: str) -> list[str]:
         """
         Infer relevant clusters from topic keywords.
 
@@ -101,14 +102,14 @@ class BudgetBenchmarkTool:
 
     def get_benchmark(
         self,
-        cluster: Optional[str] = None,
-        action_type: Optional[str] = None,
-        topic_keywords: Optional[str] = None,
-        year: Optional[int] = None,
+        cluster: str | None = None,
+        action_type: str | None = None,
+        topic_keywords: str | None = None,
+        year: int | None = None,
         include_consortium_context: bool = True,
         include_org_type_breakdown: bool = True,
         include_country_breakdown: bool = False
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get budget benchmarks using HYBRID Graph+SQL architecture.
 
@@ -155,10 +156,10 @@ class BudgetBenchmarkTool:
 
         return result
 
-    def _normalize_cluster_code(self, cluster: Optional[str]) -> Optional[str]:
+    def _normalize_cluster_code(self, cluster: str | None) -> str | None:
         """Normalize cluster code to CLUSTER-X format."""
         if not cluster:
-            logger.debug(f"_normalize_cluster_code: input is None or empty")
+            logger.debug("_normalize_cluster_code: input is None or empty")
             return None
 
         # Handle various input types
@@ -169,7 +170,7 @@ class BudgetBenchmarkTool:
         # Strip whitespace
         cluster = cluster.strip()
         if not cluster:
-            logger.debug(f"_normalize_cluster_code: empty after strip")
+            logger.debug("_normalize_cluster_code: empty after strip")
             return None
 
         cluster_upper = cluster.upper().replace(' ', '').replace('-', '')
@@ -217,14 +218,14 @@ class BudgetBenchmarkTool:
 
     def _get_benchmark_hybrid(
         self,
-        cluster: Optional[str],
-        action_type: Optional[str],
-        topic_keywords: Optional[str],
-        year: Optional[int],
+        cluster: str | None,
+        action_type: str | None,
+        topic_keywords: str | None,
+        year: int | None,
         include_consortium_context: bool,
         include_org_type_breakdown: bool,
         include_country_breakdown: bool
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Execute hybrid Graph+SQL benchmark search.
 
@@ -355,8 +356,8 @@ class BudgetBenchmarkTool:
     def _get_benchmark_graph(
         self,
         cluster: str,
-        action_type: Optional[str]
-    ) -> Optional[Dict[str, Any]]:
+        action_type: str | None
+    ) -> dict[str, Any] | None:
         """
         Get budget statistics from Neo4j graph.
 
@@ -406,11 +407,11 @@ class BudgetBenchmarkTool:
 
     def _get_benchmark_sql(
         self,
-        cluster: Optional[str],
-        action_type: Optional[str],
-        topic_keywords: Optional[str],
-        year: Optional[int]
-    ) -> Optional[Dict[str, Any]]:
+        cluster: str | None,
+        action_type: str | None,
+        topic_keywords: str | None,
+        year: int | None
+    ) -> dict[str, Any] | None:
         """
         Get budget statistics from PostgreSQL.
 
@@ -568,9 +569,9 @@ class BudgetBenchmarkTool:
 
     def _merge_benchmark_results(
         self,
-        graph_stats: Optional[Dict[str, Any]],
-        sql_stats: Optional[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        graph_stats: dict[str, Any] | None,
+        sql_stats: dict[str, Any] | None
+    ) -> dict[str, Any]:
         """
         Merge benchmark results from Graph and SQL using weighted averaging.
 
@@ -651,7 +652,7 @@ class BudgetBenchmarkTool:
             'data_source': 'hybrid_graph_sql'
         }
 
-    def _format_sql_stats(self, sql_stats: Dict[str, Any]) -> Dict[str, Any]:
+    def _format_sql_stats(self, sql_stats: dict[str, Any]) -> dict[str, Any]:
         """Format SQL-only stats into standard response format."""
         return {
             'statistics': {
@@ -677,7 +678,7 @@ class BudgetBenchmarkTool:
             'data_source': 'postgresql'
         }
 
-    def _format_graph_stats(self, graph_stats: Dict[str, Any]) -> Dict[str, Any]:
+    def _format_graph_stats(self, graph_stats: dict[str, Any]) -> dict[str, Any]:
         """Format graph-only stats into standard response format."""
         avg_budget = graph_stats.get('avg_budget', 0)
         median_budget = graph_stats.get('median_budget', 0)
@@ -706,7 +707,7 @@ class BudgetBenchmarkTool:
             'data_source': 'neo4j_graph'
         }
 
-    def _get_consortium_context(self, cluster: str) -> Optional[Dict[str, Any]]:
+    def _get_consortium_context(self, cluster: str) -> dict[str, Any] | None:
         """Get consortium composition patterns from graph."""
         if not self._graph_service:
             return None
@@ -734,8 +735,8 @@ class BudgetBenchmarkTool:
     def _get_budget_by_org_type(
         self,
         cluster: str,
-        action_type: Optional[str] = None
-    ) -> Optional[Dict[str, Any]]:
+        action_type: str | None = None
+    ) -> dict[str, Any] | None:
         """
         Get budget distribution by organization type.
 
@@ -838,9 +839,9 @@ class BudgetBenchmarkTool:
     def _get_budget_by_country(
         self,
         cluster: str,
-        action_type: Optional[str] = None,
+        action_type: str | None = None,
         limit: int = 15
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """
         Get budget distribution by country.
 
@@ -942,9 +943,9 @@ class BudgetBenchmarkTool:
         avg_partners: float,
         median_partners: float,
         avg_per_partner: float,
-        action_type: Optional[str],
+        action_type: str | None,
         project_count: int
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate budget recommendations based on statistics."""
         # Ensure numeric types (handle string values from database)
         try:
@@ -1019,9 +1020,9 @@ class BudgetBenchmarkTool:
 
     def _get_fallback_benchmarks(
         self,
-        cluster: Optional[str] = None,
-        action_type: Optional[str] = None
-    ) -> Dict[str, Any]:
+        cluster: str | None = None,
+        action_type: str | None = None
+    ) -> dict[str, Any]:
         """Return fallback benchmarks when databases are unavailable."""
 
         # Default benchmarks based on action type
@@ -1100,8 +1101,8 @@ class BudgetBenchmarkTool:
     def get_budget_trends(
         self,
         cluster: str,
-        action_type: Optional[str] = None
-    ) -> Dict[str, Any]:
+        action_type: str | None = None
+    ) -> dict[str, Any]:
         """
         Get budget trends over time for a cluster.
 
@@ -1130,9 +1131,9 @@ class BudgetBenchmarkTool:
 
     def get_benchmark_comparison(
         self,
-        clusters: List[str],
-        action_type: Optional[str] = None
-    ) -> Dict[str, Any]:
+        clusters: list[str],
+        action_type: str | None = None
+    ) -> dict[str, Any]:
         """
         Compare budget benchmarks across multiple clusters.
 
@@ -1164,7 +1165,7 @@ class BudgetBenchmarkTool:
 
 
 # Async wrapper for tool orchestrator compatibility
-async def get_budget_benchmark_execute(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+async def get_budget_benchmark_execute(params: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
     """
     Execute budget benchmark tool.
 

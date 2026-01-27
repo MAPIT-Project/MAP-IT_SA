@@ -20,7 +20,6 @@ import os
 import re
 import sys
 from pathlib import Path
-from typing import Dict, Optional
 
 sys.path.append(str(Path(__file__).parent.parent))
 
@@ -101,7 +100,7 @@ DOCUMENT_TYPES = {
 }
 
 
-def categorize_template(filename: str, directory: str) -> Dict[str, str]:
+def categorize_template(filename: str, directory: str) -> dict[str, str]:
     """
     Categorize a template based on filename and directory.
 
@@ -151,7 +150,7 @@ def categorize_template(filename: str, directory: str) -> Dict[str, str]:
     return result
 
 
-def extract_action_type_from_filename(filename: str) -> Optional[str]:
+def extract_action_type_from_filename(filename: str) -> str | None:
     """Extract specific action type from filename."""
     filename_upper = filename.upper().replace('-', '_')
 
@@ -175,7 +174,7 @@ def extract_action_type_from_filename(filename: str) -> Optional[str]:
 def ingest_erasmus_templates(
     template_dir: str,
     dry_run: bool = False
-) -> Dict[str, int]:
+) -> dict[str, int]:
     """
     Ingest all Erasmus+ templates from directory.
 

@@ -8,15 +8,16 @@ This service implements the multi-step search workflow used by the EU Funding & 
 4. Multi-step result processing and scoring
 """
 
-import requests
-import json
-import time
-import logging
-from typing import List, Dict, Any, Optional, Tuple
-from datetime import datetime, timezone
-from dataclasses import dataclass, asdict, field
 import hashlib
+import json
+import logging
 import re
+import time
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from typing import Any
+
+import requests
 
 # Import the AI query parser
 try:
@@ -47,8 +48,8 @@ class EnhancedSearchResult:
     call_identifier: str
     url: str
     score: float
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    facets: Dict[str, Any] = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+    facets: dict[str, Any] = None
 
 class EnhancedCallSearchService:
     """Enhanced call search service matching EU portal sophistication."""
@@ -94,7 +95,7 @@ class EnhancedCallSearchService:
         include_closed: bool = False,
         programme_period: str = "2021 - 2027",
         enable_facet_analysis: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Main enhanced search method implementing the EU portal's workflow.
         
@@ -182,7 +183,7 @@ class EnhancedCallSearchService:
             if include_closed:
                 # Normalize status using deadline: if deadline is past, mark as Closed
                 try:
-                    now = datetime.now(timezone.utc)
+                    now = datetime.now(UTC)
                     for r in processed_results:
                         if getattr(r, 'deadline', None) and isinstance(r.deadline, str) and r.deadline not in ('Not specified', ''):
                             try:
@@ -260,7 +261,7 @@ class EnhancedCallSearchService:
                 'status': 'error'
             }
     
-    def _get_semantic_tags(self, query: str) -> List[TagBoost]:
+    def _get_semantic_tags(self, query: str) -> list[TagBoost]:
         """Get semantic tags using client-centricity.io API."""
         
         # Check cache first
@@ -377,10 +378,10 @@ class EnhancedCallSearchService:
     def _build_advanced_query(
         self,
         query: str,
-        tag_boosts: List[TagBoost],
+        tag_boosts: list[TagBoost],
         parsed_filters,  # QueryFilters object or None
         include_closed: bool = False  # Original boolean parameter
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Build the advanced query structure matching EU portal approach with intelligent filtering."""
         
         # Base query structure
@@ -544,7 +545,7 @@ class EnhancedCallSearchService:
         logger.debug(f"🔧 Built advanced query with {len(text_search_should)} search clauses")
         return base_query
     
-    def _get_facet_analysis(self, search_query: Dict[str, Any]) -> Dict[str, Any]:
+    def _get_facet_analysis(self, search_query: dict[str, Any]) -> dict[str, Any]:
         """Get facet analysis using the EU portal's facet API."""
         
         try:
@@ -587,7 +588,7 @@ class EnhancedCallSearchService:
         
         return {}
     
-    def _execute_enhanced_search(self, search_query: Dict[str, Any], max_results: int) -> List[Dict[str, Any]]:
+    def _execute_enhanced_search(self, search_query: dict[str, Any], max_results: int) -> list[dict[str, Any]]:
         """Execute the enhanced search with the built query."""
         
         try:
@@ -633,7 +634,7 @@ class EnhancedCallSearchService:
         
         return []
     
-    def _process_enhanced_results(self, raw_results: List[Dict[str, Any]], query: str) -> List[EnhancedSearchResult]:
+    def _process_enhanced_results(self, raw_results: list[dict[str, Any]], query: str) -> list[EnhancedSearchResult]:
         """Process raw results into enhanced result objects."""
         
         processed = []
@@ -697,10 +698,10 @@ class EnhancedCallSearchService:
     
     def _apply_intelligent_ranking(
         self,
-        results: List[EnhancedSearchResult],
+        results: list[EnhancedSearchResult],
         query: str,
-        tag_boosts: List[TagBoost]
-    ) -> List[EnhancedSearchResult]:
+        tag_boosts: list[TagBoost]
+    ) -> list[EnhancedSearchResult]:
         """Apply intelligent ranking based on multiple signals."""
         
         if len(results) <= 1:
@@ -755,7 +756,7 @@ class EnhancedCallSearchService:
         logger.info(f"📈 Applied intelligent ranking to {len(results)} results")
         return ranked
     
-    def _get_metadata_value(self, metadata: Dict[str, Any], key: str, default: Any = None) -> Any:
+    def _get_metadata_value(self, metadata: dict[str, Any], key: str, default: Any = None) -> Any:
         """Extract value from metadata arrays."""
         value = metadata.get(key)
         if isinstance(value, list) and value:
@@ -788,7 +789,7 @@ class EnhancedCallSearchService:
         
         return str(deadline_raw)
     
-    def _build_enhanced_description(self, result: Dict[str, Any], metadata: Dict[str, Any], query: str) -> str:
+    def _build_enhanced_description(self, result: dict[str, Any], metadata: dict[str, Any], query: str) -> str:
         """Build an enhanced, informative description from available data."""
         
         # Get the base title/content
@@ -1013,10 +1014,10 @@ class EnhancedCallSearchService:
     
     def _filter_by_relevance(
         self,
-        results: List[EnhancedSearchResult],
+        results: list[EnhancedSearchResult],
         query: str,
-        filters: Optional[object] = None
-    ) -> List[EnhancedSearchResult]:
+        filters: object | None = None
+    ) -> list[EnhancedSearchResult]:
         """Filter results by relevance to avoid returning irrelevant results when using status filters."""
         
         if not results or not query:
@@ -1139,7 +1140,7 @@ class EnhancedCallSearchService:
         
         return min(bonus, 1.0)  # Cap the bonus
 
-    def _build_call_url(self, identifier: str, raw_url: Optional[str] = None) -> str:
+    def _build_call_url(self, identifier: str, raw_url: str | None = None) -> str:
         """Build proper EU portal URL for the call."""
         
         # Treat /data/topicDetails and JSON links as invalid for end users
@@ -1163,7 +1164,7 @@ class EnhancedCallSearchService:
         # Fallback to general portal
         return "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/opportunities-tenders"
 
-    def get_search_suggestions(self, partial_query: str) -> List[str]:
+    def get_search_suggestions(self, partial_query: str) -> list[str]:
         """Get search suggestions based on partial query."""
         
         suggestions = []

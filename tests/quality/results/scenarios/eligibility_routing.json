@@ -1,87 +1,99 @@
 {
   "scenario_name": "Eligibility Routing",
+  "status": "FAIL",
+  "average_quality_score": 83.0,
+  "average_factual_score": 100.0,
   "turns": [
     {
-      "turn_number": 0,
       "query": "We're a Swiss company wanting to participate in EU funding programmes. What are our options?",
-      "response_text": "This is excellent news! As of 2024, Switzerland is fully associated with the Horizon Europe programme. This means your company participates on **equal terms** with entities from EU Member States and is eligible for full funding in nearly all Horizon Europe actions.\n\nHere is an overview of your primary options as a Swiss company seeking EU funding, particularly focusing on opportunities for companies and SMEs:\n\n### 1. Collaborative Projects (Pillar II)\n\nThese are the largest funding streams, focusing on global challenges and industrial competitiveness (Clusters 1-6).\n\n| Action Type | Focus | Funding Rate (For-Profit) | TRL Range |\n|-------------|-------------------|--------------------------|-----------|\n| **RIA** (Research) | Early-stage research (TRL 2-5) | 100% | 2-5 |\n| **IA** (Innovation) | Demonstration, prototyping (TRL 5-8) | 70% | 5-8 |\n| **CSA** (Coordination) | Networking, standardization, policy | 100% | N/A |\n\n*   **Eligibility**: Your company can act as a coordinator or a partner in a consortium (minimum 3 independent entities from 3 different EU/AC countries).\n*   **Applicability**: Search for topics relevant to your domain (e.g., Cluster 4 for Digital/Industry, Cluster 5 for Energy/Climate).\n\n### 2. European Innovation Council (EIC) Accelerator\n\nThe EIC Accelerator is specifically designed for high-risk, high-impact **SMEs** (which a company typically falls under) with deep-tech innovations that aim to create new markets.\n\n| Action Type | Focus | Funding Structure | Key Feature |\n|-------------|-------------------|-------------------|-------------|\n| **EIC Accelerator** | Scale-up and commercialization of radical innovations (TRL 5-9) | Up to \u20ac2.5M Grant (100% funding) + Up to \u20ac15M Equity Investment (Blended Finance) | Single beneficiary (SME only) |\n\n*   **Eligibility**: Highly relevant if your company is an SME (fewer than 250 employees and turnover <\u20ac50M or balance sheet <\u20ac43M).\n*   **Process**: Requires a short proposal (10-page limit) followed by a full proposal and pitching to a jury.\n\n### 3. Researcher Mobility and Training (MSCA)\n\nWhile often associated with academia, MSCA offers excellent opportunities for staff exchange and training that benefit companies:\n\n*   **MSCA Staff Exchanges (MSCA-SE)**: Supports short-term international and inter-sectoral secondments of staff (researchers, technical, management) for knowledge transfer. Your company can host or send staff to partners globally, receiving 100% funding for unit costs.\n*   **MSCA Doctoral Networks (MSCA-DN)**: Allows your company to host and train doctoral candidates in a high-quality international network, fully covering the PhD candidate's salary and research costs.\n\n***\n\n### Swiss Participation Success\n\nSwiss organizations have a strong track record of success in Horizon Europe and its predecessors, participating in 1,864 projects, with top participation rates across all clusters. Leading Swiss institutions include EPFL and ETH Zurich, demonstrating a robust research environment that is highly competitive in European calls.\n\n---\n\n\ud83c\udfaf **Next Steps:**\n\u2022 **Verify SME Status:** If you are an SME, investigate the specific eligibility criteria and preparation process for the EIC Accelerator.\n\u2022 **Find Relevant Calls:** Register on the [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home) and search the [Work Programmes](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON) for your specific industrial cluster (e.g., CL4 for digital or CL5 for energy).\n\u2022 **Find Partners:** Use the [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search) function to connect with established consortiums from EU Member States, which is crucial for collaborative projects (RIA/IA).\n\u2022 **Contact Euresearch:** Switzerland's dedicated National Contact Point (NCP) is Euresearch, which can provide tailored advice for Swiss companies applying to these specific programmes.",
-      "tools_used": [
-        "get_country_statistics"
-      ],
-      "quality_score": 81,
-      "factual_score": 100.0,
-      "failures": [],
-      "passed": true
-    },
-    {
-      "turn_number": 1,
-      "query": "Tell me about Horizon Europe eligibility for Swiss organizations. Can we coordinate projects?",
-      "response_text": "As a Swiss organization, you are highly eligible for Horizon Europe funding because **Switzerland is an Associated Country (AC)**. This grants you near-identical rights and obligations as an EU Member State entity for participation and funding in the vast majority of calls.\n\n### Horizon Europe Eligibility for Swiss Entities\n\n| Category | Status | Funding Rate | Coordination Role |\n|---|---|---|---|\n| **Participation** | Associated Country | Fully Eligible | **Yes, generally allowed** |\n| **Funding** | Equal to EU partners | 100% (RIA/CSA) or 70%/100% (IA) | N/A |\n\n#### 1. Project Coordination\n\n**Yes, Swiss organizations can coordinate Horizon Europe projects.**\n\nFor collaborative actions (RIA, IA, CSA), coordination is open to any entity established in an EU Member State or Associated Country, provided the specific call topic does not state otherwise (which is rare, typically only affecting sensitive security or defense topics).\n\n**Key Participation Rules:**\n*   **Consortium Minimum**: You must build a consortium of at least **3 independent legal entities** from **3 different EU Member States or Associated Countries**.\n*   **Full Funding**: Your organization is eligible for **full EU contribution** based on the action type (100% of eligible costs for RIA/CSA, and 70% or 100% for IA depending on profit status).\n\n#### 2. Specific Programme Eligibility\n\n*   **Collaborative Projects (Pillar II Clusters)**: Full participation rights. Highly encouraged to coordinate.\n*   **EIC Accelerator**: Swiss SMEs are fully eligible to apply for both the grant and equity components of Blended Finance.\n*   **ERC Grants**: Swiss host institutions can host PIs, who receive full funding.\n*   **MSCA**: Full participation rights for Swiss host institutions.\n\n***\n\n\ud83c\udfaf **Next Steps:**\n\u2022 **Review Work Programmes**: Download the relevant [Work Programmes](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON) to identify specific calls aligned with your research/innovation area.\n\u2022 **Check Coordination Requirements**: Always verify the specific rules and expected outcomes for the call ID you target, as coordinator duties are extensive.\n\u2022 **Find Partners**: Use the dedicated [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search) tool on the EU Portal to connect with established EU partners.\n\u2022 **Register on the Portal**: Ensure your organization is registered and has a valid PIC (Participant Identification Code) on the [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home) before applying.",
-      "tools_used": [],
-      "quality_score": 81,
-      "factual_score": 75.0,
-      "failures": [
-        {
-          "category": "INCORRECT_DATA",
-          "severity": "CRITICAL",
-          "description": "Incorrect horizon_europe facts: ['IA_rate: stated 100% but should be 70%']",
-          "turn_number": 1,
-          "evidence": {
-            "programme": "horizon_europe",
-            "incorrect_facts": [
-              "IA_rate: stated 100% but should be 70%"
-            ],
-            "score": 0.75
-          },
-          "timestamp": "2026-01-22T18:48:04.124093"
-        }
-      ],
-      "passed": false
-    },
-    {
-      "turn_number": 2,
-      "query": "Now tell me about Erasmus+ eligibility. Can Swiss organizations participate in the Erasmus+ programme?",
-      "response_text": "The eligibility status for Swiss organizations in the Erasmus+ Programme is **different** from their status in Horizon Europe, where they are fully associated. \n\nSwitzerland is currently **not an Erasmus+ Programme Country** but manages its student and staff exchanges through the **Swiss Programme Solution (SEMP)**, which is nationally funded.\n\n### 1. Erasmus+ Status Summary\n\n| Category | Status in Erasmus+ | Funding Source |\n|---|---|---|\n| **Formal Participation** | Partner Country (Non-Associated) | Limited/Self-Funded |\n| **Mobility (KA1)** | Managed nationally via SEMP | Swiss Federal Funding |\n| **Cooperation Projects (KA2)** | Can participate as a self-funded Partner | No direct EU funding |\n\n### 2. Impact on Key Actions\n\n#### A. Mobility (Key Action 1: KA1)\n\nSwiss mobility is primarily funded and managed through the **Swiss European Mobility Programme (SEMP)**, administered by Movetia, the Swiss agency for exchange and mobility. \n\n*   **Outgoing Mobility (Swiss participants to EU/AC)**: Funded by SEMP, mirroring Erasmus+ grants.\n*   **Incoming Mobility (EU/AC participants to Switzerland)**: Funded by SEMP, providing grants equivalent to Erasmus+ grants.\n\nSwiss organizations (HEIs, schools) act as hosts and partners in these exchanges, but the grants are national, not provided directly from the centralized Erasmus+ budget.\n\n#### B. Cooperation Projects (Key Action 2: KA2)\n\nSwiss organizations **cannot be formal beneficiaries or coordinators** in centrally funded Erasmus+ cooperation partnerships (KA2) or small-scale partnerships. \n\nThey may participate in consortia as a **Partner Country entity** under the following conditions:\n\n1.  **Non-funded Partner**: They can join a partnership (e.g., KA2 Cooperation Partnership) if their participation brings essential value, but they must be **self-funded** (i.e., they cannot receive EU grant money for their costs).\n2.  **Coordination**: Swiss organizations **cannot coordinate** standard Erasmus+ KA2 projects.\n\nThis funding limitation means Swiss partners must secure internal or national funding (often via Movetia or the Swiss State Secretariat for Education, Research and Innovation - SERI) to cover their participation costs in cooperation projects.\n\n***\n\n\ud83c\udfaf **Next Steps for Swiss Organizations (Erasmus+):**\n\u2022 **Contact Movetia**: Connect with the Swiss National Agency, [Movetia](https://www.movetia.ch/), for guidance on SEMP mobility funding and support for participation in EU-led KA2 projects.\n\u2022 **Explore KA2 Partnerships**: Focus on joining EU-led KA2 projects as a value-adding, self-funded Partner Country participant (check the specific call guidelines for Partner Country eligibility).\n\u2022 **Verify Project Type**: Determine if your planned activity falls under the decentralized (Mobility, KA2) or centralized (Jean Monnet, centralized Capacity Building) actions, as rules can slightly vary.\n\u2022 **Review the Swiss Programme Solution**: Read the latest updates on SERI's website regarding the national budget allocated for exchanges that replace Erasmus+ funding.",
-      "tools_used": [],
-      "quality_score": 81,
-      "factual_score": 100.0,
-      "failures": [],
-      "passed": true
-    },
-    {
-      "turn_number": 3,
-      "query": "Finally, what about Creative Europe? Can Swiss organizations participate in Creative Europe?",
-      "response_text": "Okay, based on the provided search result, here's the answer to your question about Swiss organizations participating in Creative Europe:\n\nThe provided document, the \"2022 Annual Work Programme for the implementation of the Creative Europe Programme,\" **does not explicitly mention Switzerland.**\n\nHowever, it *does* mention the following regarding participation:\n\n*   Countries participating through the Agreement on the European Economic Area: Iceland, Liechtenstein, and Norway.\n*   Acceding countries, candidate countries, and potential candidates, in accordance with the general principles and general terms and conditions for their participation in Union programmes.\n\n**Therefore, based solely on this document, it's not possible to definitively say whether Swiss organizations can participate in Creative Europe.** The document focuses on EEA countries and candidate countries. To determine Swiss eligibility, you would need to investigate whether Switzerland has a specific agreement with the EU regarding participation in Union programs, or if it falls under any other category mentioned (which is unlikely based on common knowledge).\n\n**In summary, the document doesn't provide a clear \"yes\" or \"no\" answer regarding Swiss participation. Further research is needed.**\n",
-      "tools_used": [
-        "search_documents"
-      ],
+      "response": "This is excellent news. Since Switzerland finalized its association to Horizon Europe in 2024, your company is now **fully eligible to participate and receive funding** across the vast majority of Horizon Europe calls, on equal terms with EU Member State entities.\n\n### 1. Key Funding Pathways for Swiss Companies\n\nYour primary strategic options within Horizon Europe are:\n\n#### A. EIC Accelerator (High-Impact SME Innovation)\nThis is the flagship programme for highly innovative Small and Medium-siz...",
       "quality_score": 77,
       "factual_score": 100.0,
       "failures": [],
-      "passed": false
-    }
-  ],
-  "average_score": 80.0,
-  "factual_score": 93.75,
-  "failures": [
-    {
-      "category": "INCORRECT_DATA",
-      "severity": "CRITICAL",
-      "description": "Incorrect horizon_europe facts: ['IA_rate: stated 100% but should be 70%']",
-      "turn_number": 1,
-      "evidence": {
-        "programme": "horizon_europe",
-        "incorrect_facts": [
-          "IA_rate: stated 100% but should be 70%"
-        ],
-        "score": 0.75
+      "tools_used": [
+        "get_country_statistics"
+      ],
+      "processing_time_ms": 9158.714,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 2
+        },
+        "feedback": "Quick rule-based evaluation"
       },
-      "timestamp": "2026-01-22T18:48:04.124093"
+      "turn_number": 0,
+      "passed": false
+    },
+    {
+      "query": "Tell me about Horizon Europe eligibility for Swiss organizations. Can we coordinate projects?",
+      "response": "Adding a partner from Switzerland (CH) to your consortium is entirely possible and highly recommended, but it comes with a specific funding status you must be aware of.\n\n### Switzerland's Status in Horizon Europe\n\n1.  **Participation Eligibility:** Swiss entities are eligible to participate in Horizon Europe consortia (RIA, IA, CSA).\n2.  **Funding Source (CRITICAL):** For most collaborative calls under **Pillar II** (Clusters, Missions) and Pillar I (MSCA/ERC are largely unaffected), Switzerland...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 4085.9880000000003,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": true
+    },
+    {
+      "query": "Now tell me about Erasmus+ eligibility. Can Swiss organizations participate in the Erasmus+ programme?",
+      "response": "Adding a partner from Switzerland (CH) to your consortium is entirely possible and highly recommended, but it comes with a specific funding status you must be aware of.\n\n### Switzerland's Status in Horizon Europe\n\n1.  **Participation Eligibility:** Swiss entities are eligible to participate in Horizon Europe consortia (RIA, IA, CSA).\n2.  **Funding Source (CRITICAL):** For most collaborative calls under **Pillar II** (Clusters, Missions) and Pillar I (MSCA/ERC are largely unaffected), Switzerland...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 650.386,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": true
+    },
+    {
+      "query": "Finally, what about Creative Europe? Can Swiss organizations participate in Creative Europe?",
+      "response": "Adding a partner from Switzerland (CH) to your consortium is entirely possible and highly recommended, but it comes with a specific funding status you must be aware of.\n\n### Switzerland's Status in Horizon Europe\n\n1.  **Participation Eligibility:** Swiss entities are eligible to participate in Horizon Europe consortia (RIA, IA, CSA).\n2.  **Funding Source (CRITICAL):** For most collaborative calls under **Pillar II** (Clusters, Missions) and Pillar I (MSCA/ERC are largely unaffected), Switzerland...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 628.996,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": true
     }
   ],
-  "status": "FAIL",
-  "execution_time_ms": 141389.53399999999,
-  "timestamp": "2026-01-22T18:49:31.510542",
+  "scores": {
+    "average_quality": 83.0,
+    "average_factual": 100.0,
+    "goal_progress": 0.32999999999999996,
+    "context_fields": 4
+  },
+  "failures": [],
   "metadata": {
     "scenario_path": "tests/scenarios/advanced/eligibility_routing.yaml",
     "tags": [
@@ -92,27 +104,13 @@
       "associated-country"
     ],
     "description": "A Swiss company wants to participate in EU funding programmes. Switzerland is an\nAssociated Country with specific eligibility rules that vary by programme.\nTests cross-programme eligibility routing and context preservation.\n",
-    "conversation_id": 185378626
+    "conversation_id": 213982505
   },
-  "fix_history": [
-    {
-      "attempt": 1,
-      "timestamp": "2026-01-22T18:50:00.000000",
-      "initial_score": 77.0,
-      "final_score": 80.0,
-      "files_modified": [
-        "app/services/agents/tool_aware_agent.py",
-        "tests/validators/failure_detector.py",
-        "tests/quality/test_scenario_004_eligibility_routing.py"
-      ],
-      "changes_summary": [
-        "Added _format_erasmus_eligibility_result() helper method to synthesize Erasmus+ eligibility tool results into readable text",
-        "Added _format_creative_europe_eligibility_result() helper method to synthesize Creative Europe eligibility tool results into readable text",
-        "Added eligibility result handling in _synthesize_from_results() to process check_erasmus_eligibility and check_creative_europe_eligibility tool outputs",
-        "Fixed false positive 'there are no' pattern in failure detector by adding context-sensitive detection that ignores positive contexts like 'there are no restrictions'",
-        "Fixed /health endpoint path in test file to use /api/health"
-      ],
-      "status": "PASS_THRESHOLD_MET"
-    }
-  ]
+  "execution_time_ms": 112407.68699999999,
+  "timestamp": "2026-01-23T16:07:33.222870",
+  "passed": false,
+  "turn_count": 4,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
 }

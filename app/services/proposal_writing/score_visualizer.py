@@ -4,7 +4,7 @@ Score Visualization Helpers
 Generate visual representations of evaluation scores.
 """
 
-from typing import Dict, Any, List
+from typing import Any
 
 
 def generate_score_bar(score: float, max_score: float = 5.0) -> str:
@@ -18,7 +18,7 @@ def generate_score_bar(score: float, max_score: float = 5.0) -> str:
     return f"[{bar}] {score:.1f}/{max_score:.0f} ({percentage:.0f}%)"
 
 
-def generate_score_summary(evaluation_result: Dict[str, Any]) -> str:
+def generate_score_summary(evaluation_result: dict[str, Any]) -> str:
     """Generate a formatted score summary."""
     lines = []
 
@@ -73,7 +73,7 @@ def generate_score_summary(evaluation_result: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def generate_criterion_table(criterion_scores: List[Dict]) -> str:
+def generate_criterion_table(criterion_scores: list[dict]) -> str:
     """Generate a table of criterion scores."""
     lines = []
     lines.append("| Criterion | Score | Status |")
@@ -162,9 +162,9 @@ def generate_section_report(evaluation_result: Any) -> str:
 
 
 def generate_comparison_chart_data(
-    current_scores: Dict[str, float],
-    target_scores: Dict[str, float] = None
-) -> Dict[str, Any]:
+    current_scores: dict[str, float],
+    target_scores: dict[str, float] = None
+) -> dict[str, Any]:
     """Generate data for a comparison chart (for frontend visualization)."""
     if target_scores is None:
         target_scores = {k: 4.0 for k in current_scores}
@@ -188,7 +188,7 @@ def generate_comparison_chart_data(
     }
 
 
-def generate_funding_probability_gauge(probability: float) -> Dict[str, Any]:
+def generate_funding_probability_gauge(probability: float) -> dict[str, Any]:
     """Generate data for a funding probability gauge (for frontend visualization)."""
     # Determine color based on probability
     if probability >= 0.6:
@@ -212,7 +212,7 @@ def generate_funding_probability_gauge(probability: float) -> Dict[str, Any]:
 
 
 def format_improvement_priority_list(
-    improvements: List[Dict[str, Any]],
+    improvements: list[dict[str, Any]],
     max_items: int = 5
 ) -> str:
     """Format improvements as a prioritized list."""

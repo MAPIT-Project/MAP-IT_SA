@@ -1,7 +1,7 @@
 {
   "scenario_name": "Budget Comparison",
   "status": "FAIL",
-  "average_quality_score": 80.2,
+  "average_quality_score": 80.6,
   "average_factual_score": 100.0,
   "turns": [
     {
@@ -11,7 +11,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 1628.929,
+      "processing_time_ms": 1493.681,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -31,7 +31,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 1849.334,
+      "processing_time_ms": 1853.7820000000002,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -51,7 +51,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 384.14300000000003,
+      "processing_time_ms": 383.72,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -71,7 +71,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 1724.697,
+      "processing_time_ms": 1670.27,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -86,21 +86,26 @@
     },
     {
       "query": "Show budget trends over 2021-2024",
-      "response": "Unfortunately, the provided search results don't contain specific budget trends over the years 2021-2024. The results only offer a budget benchmark analysis across 2302 projects.\n\nHere's what we *can* glean from the results:\n\n**Budget Benchmark Analysis (2302 projects):**\n\n*   **EU Contribution:**\n    *   Median: \u20ac4.9M\n    *   Average: \u20ac5.5M\n    *   Range: \u20ac0.3M - \u20ac87.2M\n*   **Consortium Size:** Average of 14.8 partners (approximately 13 partners median)\n*   **Recommended Budget:** \u20ac2.9M - \u20ac6.9M...",
-      "quality_score": 77,
+      "response": "While the expected budget per topic is set by the European Commission annually, analysis of funded Horizon Europe (HE) Research and Innovation Actions (RIA) from 2021 to 2024 shows a generally stable trend in average grant size, though with a clear shift towards higher median budgets compared to the previous programme (H2020).\n\n### Horizon Europe Budget Trends (2021-2024)\n\n| Metric | 2021-2024 Average (All RIA) | H2020 Average Comparison | Trend Analysis (2021-2024) |\n|---|---|---|---|\n| **Avera...",
+      "quality_score": 79,
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [
         "analyze_call_history",
+        "get_budget_benchmark",
+        "get_budget_benchmark",
+        "get_budget_benchmark",
+        "get_budget_benchmark",
+        "get_budget_benchmark",
         "get_budget_benchmark"
       ],
-      "processing_time_ms": 7296.068,
+      "processing_time_ms": 19036.114,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
           "specificity": 25,
           "factual_accuracy": 20,
-          "actionability": 2
+          "actionability": 4
         },
         "feedback": "Quick rule-based evaluation"
       },
@@ -109,7 +114,7 @@
     }
   ],
   "scores": {
-    "average_quality": 80.2,
+    "average_quality": 80.6,
     "average_factual": 100.0,
     "goal_progress": 0.54,
     "context_fields": 3
@@ -129,35 +134,13 @@
       "trends"
     ],
     "description": "A 5-step budget comparison workflow where a user compares typical budgets\nacross Horizon Europe action types (RIA, IA, EIC), explores per-partner\nbudgets, organization type variations, coordinator vs partner differences,\nand budget trends over 2021-2024. Tests the system's ability to provide\naccurate budget statistics and comparisons with clear explanations.\n",
-    "conversation_id": 1976614504
+    "conversation_id": 265017694
   },
-  "execution_time_ms": 110597.648,
-  "timestamp": "2026-01-23T11:06:21.814120",
+  "execution_time_ms": 135015.617,
+  "timestamp": "2026-01-23T17:02:16.403369",
   "passed": false,
   "turn_count": 5,
   "critical_failures": 0,
   "high_failures": 0,
-  "medium_failures": 0,
-  "fix_history": [
-    {
-      "attempt": 1,
-      "files_modified": [
-        "app/services/agents/tool_aware_agent.py"
-      ],
-      "changes": [
-        "Added _synthesize_from_results handler for get_budget_benchmark tool results",
-        "Added _detect_budget_trend_query() for routing budget trend queries to analyze_call_history",
-        "Added _detect_budget_variation_query() for detecting org type and coordinator budget queries",
-        "Added _generate_org_type_budget_guidance() for comprehensive org type budget guidance",
-        "Added _generate_coordinator_budget_guidance() for coordinator vs partner budget guidance",
-        "Added _detect_per_partner_budget_query() for per-partner budget queries",
-        "Added _generate_per_partner_budget_guidance() with actionable next steps",
-        "Fixed type checking for recommendations, sample_projects, org_types, top_coordinators"
-      ],
-      "score_before": 78.6,
-      "score_after": 80.2
-    }
-  ],
-  "prd_status": "PASS",
-  "prd_note": "Average score 80.2 meets PRD threshold (>= 80). Individual turn threshold is test framework internal."
+  "medium_failures": 0
 }

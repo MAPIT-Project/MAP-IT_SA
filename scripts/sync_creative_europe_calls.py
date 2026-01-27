@@ -28,9 +28,8 @@ import os
 import re
 import sys
 import time
-from datetime import date, datetime
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
 
 # Add app to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -122,7 +121,7 @@ class CreativeEuropePortalSyncer:
         """Close HTTP client."""
         self.client.close()
 
-    def get_existing_topics_from_db(self, conn) -> List[Dict]:
+    def get_existing_topics_from_db(self, conn) -> list[dict]:
         """Get all existing Creative Europe topic codes from database."""
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute("""
@@ -135,7 +134,7 @@ class CreativeEuropePortalSyncer:
         results = cursor.fetchall()
         return [{"identifier": r["topic_code"], "title": r["title"] or ""} for r in results]
 
-    def discover_topics_via_search_api(self) -> Dict[str, Dict]:
+    def discover_topics_via_search_api(self) -> dict[str, dict]:
         """
         Discover actual Creative Europe topic codes via EU Portal Search API.
 
@@ -212,7 +211,7 @@ class CreativeEuropePortalSyncer:
         logger.info(f"  Discovered {len(discovered)} unique Creative Europe topics")
         return discovered
 
-    def get_topic_details(self, topic_code: str) -> Optional[Dict]:
+    def get_topic_details(self, topic_code: str) -> dict | None:
         """
         Fetch detailed information about a specific topic from EU Portal.
 
@@ -239,7 +238,7 @@ class CreativeEuropePortalSyncer:
             logger.error(f"Exception fetching {topic_code}: {e}")
             return None
 
-    def parse_topic_details(self, topic_data: Dict) -> Dict:
+    def parse_topic_details(self, topic_data: dict) -> dict:
         """
         Parse topic details from EU Portal API into our database schema.
 
@@ -335,7 +334,7 @@ class CreativeEuropePortalSyncer:
             }
         }
 
-    def upsert_call(self, conn, call_data: Dict) -> bool:
+    def upsert_call(self, conn, call_data: dict) -> bool:
         """
         Insert or update a call in the database.
 
@@ -401,7 +400,7 @@ class CreativeEuropePortalSyncer:
             conn.rollback()  # Rollback on error to allow next insert
             return False
 
-    def parse_topic_from_search(self, topic_code: str, search_info: Dict) -> Dict:
+    def parse_topic_from_search(self, topic_code: str, search_info: dict) -> dict:
         """
         Parse topic information from search result into database schema.
 
@@ -471,12 +470,12 @@ class CreativeEuropePortalSyncer:
 
     def sync_all_calls(
         self,
-        status_filter: Optional[str] = None,
-        limit: Optional[int] = None,
+        status_filter: str | None = None,
+        limit: int | None = None,
         dry_run: bool = False,
         force: bool = False,
-        year: Optional[int] = None
-    ) -> Dict[str, int]:
+        year: int | None = None
+    ) -> dict[str, int]:
         """
         Sync all Creative Europe calls from EU Portal API.
 

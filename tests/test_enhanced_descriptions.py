@@ -4,10 +4,11 @@ Test script for enhanced description functionality.
 """
 
 import sys
-import os
+
 sys.path.append('.')
 
 from app.services.enhanced_call_search import EnhancedCallSearchService
+
 
 def test_enhanced_descriptions():
     print('🧪 Testing Enhanced Description Extraction')

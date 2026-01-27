@@ -11,18 +11,15 @@ Tests:
 - Funding rate calculations
 """
 
-import pytest
 import asyncio
-from unittest.mock import Mock, patch, MagicMock
-import sys
 import os
+import sys
+
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.services.tools.budget_calculator import (
-    BudgetCalculatorTool,
-    calculate_budget_execute
-)
+from app.services.tools.budget_calculator import BudgetCalculatorTool, calculate_budget_execute
 
 
 class TestBudgetCalculatorCostRatios:

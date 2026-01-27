@@ -19,10 +19,10 @@ Usage:
     assert score.total >= 85
 """
 
-from dataclasses import dataclass, field
-from datetime import datetime
 import logging
 import re
+from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any
 
 try:

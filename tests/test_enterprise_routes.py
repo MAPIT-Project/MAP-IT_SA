@@ -11,13 +11,12 @@ Tests:
 - Request/Response model validation
 """
 
-import json
 import os
 import sys
-import pytest
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -92,7 +91,7 @@ class TestAnalyticsRoutesHealth:
         mock = MagicMock()
         mock.enabled = True
         mock.buffer = []
-        mock.last_flush = datetime.now(timezone.utc)
+        mock.last_flush = datetime.now(UTC)
         mock.session_metrics = {}
         return mock
 
@@ -124,7 +123,7 @@ class TestAnalyticsRoutesHealth:
         mock_service = MagicMock()
         mock_service.enabled = False
         mock_service.buffer = []
-        mock_service.last_flush = datetime.now(timezone.utc)
+        mock_service.last_flush = datetime.now(UTC)
         mock_service.session_metrics = {}
 
         app = FastAPI()
@@ -356,8 +355,8 @@ class TestAlertRoutesCRUD:
             "search_type": "calls",
             "parameters": {"keywords": "test"},
             "alert_config": {"enabled": False},
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
+            "updated_at": datetime.now(UTC).isoformat(),
             "last_run": None,
             "is_active": True,
             "run_count": 0,
@@ -738,7 +737,7 @@ class TestCollaborationRoutesSession:
         mock_lock.to_dict.return_value = {
             "section_id": "section-1",
             "locked_by": "user-456",
-            "locked_at": datetime.now(timezone.utc).isoformat(),
+            "locked_at": datetime.now(UTC).isoformat(),
         }
         mock_collaboration_service.lock_section = AsyncMock(return_value=mock_lock)
 
@@ -1004,7 +1003,7 @@ class TestAuditRoutesQueries:
                     "event_id": "event-123",
                     "event_type": "query.completed",
                     "action": "execute",
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                     "user_id": "user-456",
                     "success": True,
                 }
@@ -1259,10 +1258,10 @@ class TestEnterpriseRoutesIntegration:
 
     def test_all_health_endpoints_accessible(self):
         """Test all health endpoints are accessible and return correct structure."""
-        from app.api.analytics_routes import router as analytics_router
         from app.api.alert_routes import router as alert_router
-        from app.api.collaboration_routes import router as collaboration_router
+        from app.api.analytics_routes import router as analytics_router
         from app.api.audit_routes import router as audit_router
+        from app.api.collaboration_routes import router as collaboration_router
 
         app = FastAPI()
         app.include_router(analytics_router)
@@ -1274,7 +1273,7 @@ class TestEnterpriseRoutesIntegration:
         mock_analytics = MagicMock()
         mock_analytics.enabled = True
         mock_analytics.buffer = []
-        mock_analytics.last_flush = datetime.now(timezone.utc)
+        mock_analytics.last_flush = datetime.now(UTC)
         mock_analytics.session_metrics = {}
 
         mock_audit = MagicMock()

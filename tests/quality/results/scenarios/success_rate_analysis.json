@@ -1,40 +1,40 @@
 {
   "scenario_name": "Success Rate Analysis",
   "status": "FAIL",
-  "average_quality_score": 81.66666666666667,
-  "average_factual_score": 100.0,
+  "average_quality_score": 80.0,
+  "average_factual_score": 95.83333333333333,
   "turns": [
     {
       "query": "What's the success rate for Horizon Europe?",
-      "response": "The overall success rate for Horizon Europe (2021-2027) is typically cited as ranging between **12% and 16%** across all funding actions, depending on the specific call year and thematic area. This means that, on average, for every 100 eligible proposals submitted, 12 to 16 are successful.\n\nHowever, the success rate varies significantly between Pillars and Clusters. Pillar I (Excellent Science, including ERC and MSCA) and Pillar III (Innovative Europe, including EIC) often have higher numbers of...",
-      "quality_score": 83,
-      "factual_score": 100.0,
+      "response": "The official overall success rate for Horizon Europe (HE) is generally **12% to 16%**, although this figure is complex and highly dependent on the specific action type and cluster you apply to.\n\n### Key Success Rate Context:\n\n1.  **High Competition:** Horizon Europe is highly competitive, especially in Pillar I (ERC, MSCA) and Pillar II (Clusters).\n2.  **Variability:** Success rates can range from **7-10%** for highly oversubscribed calls (like the ERC or specific EIC topics) up to **20%+** for ...",
+      "quality_score": 79,
+      "factual_score": 75.0,
       "failures": [
         {
           "category": "INCORRECT_DATA",
           "severity": "CRITICAL",
-          "description": "Incorrect horizon_europe facts: ['[none]']",
+          "description": "Incorrect horizon_europe facts: ['budget: stated \u20ac3.68B but should be ~\u20ac95.5 billion']",
           "turn_number": 0,
           "evidence": {
             "programme": "horizon_europe",
             "incorrect_facts": [
-              "[none]"
+              "budget: stated \u20ac3.68B but should be ~\u20ac95.5 billion"
             ],
-            "score": 1.0
+            "score": 0.75
           },
-          "timestamp": "2026-01-23T10:47:19.895349"
+          "timestamp": "2026-01-23T16:59:29.575548"
         }
       ],
       "tools_used": [
         "get_programme_statistics"
       ],
-      "processing_time_ms": 8287.631,
+      "processing_time_ms": 7806.62,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
           "specificity": 25,
           "factual_accuracy": 20,
-          "actionability": 8
+          "actionability": 4
         },
         "feedback": "Quick rule-based evaluation"
       },
@@ -43,25 +43,10 @@
     },
     {
       "query": "Break it down by cluster",
-      "response": "While the official success rate fluctuates annually and per call, project activity data and typical competitiveness levels offer a good breakdown of Horizon Europe by Cluster (Pillar II: Global Challenges and European Industrial Competitiveness). \n\nDirect, real-time success rates (applications/grants) are often published in annual monitoring reports; however, based on the volume of funded projects and average budget size, we can assess the scale of competition and funding available.\n\n### Horizon...",
-      "quality_score": 83,
+      "response": "While the overall success rate for Horizon Europe sits between 12% and 16%, the competitiveness and average funding size vary dramatically across the six thematic clusters of Pillar II. Topics within clusters with higher average project budgets (like Cluster 1) or higher overall project counts (like Cluster 4 and 5) often see intense competition.\n\nHere is a breakdown of the key statistics for funded Horizon Europe projects in Pillar II (Clusters 1-6) as of the latest data cohort:\n\n### Horizon Eu...",
+      "quality_score": 75,
       "factual_score": 100.0,
-      "failures": [
-        {
-          "category": "INCORRECT_DATA",
-          "severity": "CRITICAL",
-          "description": "Incorrect horizon_europe facts: ['[none]']",
-          "turn_number": 1,
-          "evidence": {
-            "programme": "horizon_europe",
-            "incorrect_facts": [
-              "[none]"
-            ],
-            "score": 1.0
-          },
-          "timestamp": "2026-01-23T10:47:38.405225"
-        }
-      ],
+      "failures": [],
       "tools_used": [
         "find_experienced_partners",
         "get_programme_statistics",
@@ -71,13 +56,13 @@
         "get_programme_statistics",
         "get_programme_statistics"
       ],
-      "processing_time_ms": 15480.738000000001,
+      "processing_time_ms": 18403.711000000003,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
           "specificity": 25,
           "factual_accuracy": 20,
-          "actionability": 8
+          "actionability": 0
         },
         "feedback": "Quick rule-based evaluation"
       },
@@ -89,24 +74,9 @@
       "response": "## Cluster Comparison: Cluster 5 - Climate, Energy & Mobility vs Cluster 1 - Health\n\n| Metric | Climate, Energy & Mobility | Health |\n|--------|---------|---------|\n| **Budget (2021-2027)** | ~\u20ac15.1 billion | ~\u20ac8.2 billion |\n| **Success Rate** | 13-16% | 14-17% |\n| **Competition Level** | Very High (Green Deal priority, high policy interest) | High (strong medical research community, many universities) |\n| **Topic Prefix** | HORIZON-CL5-* | HORIZON-HLTH-* |\n\n### Focus Areas\n\n**Cluster 5 - Climat...",
       "quality_score": 83,
       "factual_score": 100.0,
-      "failures": [
-        {
-          "category": "INCORRECT_DATA",
-          "severity": "CRITICAL",
-          "description": "Incorrect horizon_europe facts: ['[none]']",
-          "turn_number": 2,
-          "evidence": {
-            "programme": "horizon_europe",
-            "incorrect_facts": [
-              "[none]"
-            ],
-            "score": 1.0
-          },
-          "timestamp": "2026-01-23T10:47:41.723713"
-        }
-      ],
+      "failures": [],
       "tools_used": [],
-      "processing_time_ms": 350.123,
+      "processing_time_ms": 351.60999999999996,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -117,105 +87,27 @@
         "feedback": "Quick rule-based evaluation"
       },
       "turn_number": 2,
-      "passed": false
+      "passed": true
     },
     {
       "query": "What about by country?",
-      "response": "Analyzing Horizon Europe participation and success rates by country is complex, as performance is highly influenced by national R&D ecosystems and institutional experience. While success rates fluctuate, general patterns show disparities between countries based on specific systemic factors.\n\n### Factors Affecting Country Success Rates\n\n1.  **National R&D Investment:** Countries with a higher proportion of GDP dedicated to Research and Development (R&D) generally have stronger research infrastruc...",
-      "quality_score": 81,
-      "factual_score": 100.0,
-      "failures": [
-        {
-          "category": "INCORRECT_DATA",
-          "severity": "CRITICAL",
-          "description": "Incorrect horizon_europe facts: ['[none]']",
-          "turn_number": 3,
-          "evidence": {
-            "programme": "horizon_europe",
-            "incorrect_facts": [
-              "[none]"
-            ],
-            "score": 1.0
-          },
-          "timestamp": "2026-01-23T10:47:51.990847"
-        }
-      ],
-      "tools_used": [],
-      "processing_time_ms": 6907.591,
-      "quality_details": {
-        "dimension_scores": {
-          "query_fulfillment": 30,
-          "specificity": 25,
-          "factual_accuracy": 20,
-          "actionability": 6
-        },
-        "feedback": "Quick rule-based evaluation"
-      },
-      "turn_number": 3,
-      "passed": false
-    },
-    {
-      "query": "How does Germany compare to Poland?",
-      "response": "Based on my search for information about 'How does Germany compare to Poland?', here's what I found:\n\n**Finding 1:**\n## Top Organizations with Experience in 'ailable'\n\nFound **20 organizations** with relevant track records:\n\n### 1. **DEUTSCHES ZENTRUM FUR LUFT - UND RAUMFAHRT EV** (DE)\n- **Organization Type**: REC (Research Center)\n- **Relevant Projects**: 23 (coordinated **2** projects)\n- **Total Funding**: \u20ac21,470,388\n- **Example Projects**: HELENUS (coordinator), LUWEX (coordinator), COMPANIO...",
-      "quality_score": 81,
-      "factual_score": 100.0,
-      "failures": [
-        {
-          "category": "INCORRECT_DATA",
-          "severity": "CRITICAL",
-          "description": "Incorrect horizon_europe facts: ['[none]']",
-          "turn_number": 4,
-          "evidence": {
-            "programme": "horizon_europe",
-            "incorrect_facts": [
-              "[none]"
-            ],
-            "score": 1.0
-          },
-          "timestamp": "2026-01-23T10:47:58.424031"
-        }
-      ],
-      "tools_used": [
-        "find_experienced_partners",
-        "get_country_statistics",
-        "get_country_statistics"
-      ],
-      "processing_time_ms": 3901.756,
-      "quality_details": {
-        "dimension_scores": {
-          "query_fulfillment": 30,
-          "specificity": 25,
-          "factual_accuracy": 20,
-          "actionability": 6
-        },
-        "feedback": "Quick rule-based evaluation"
-      },
-      "turn_number": 4,
-      "passed": false
-    },
-    {
-      "query": "What factors improve success rates?",
-      "response": "Improving success rates in highly competitive EU funding programmes like Horizon Europe depends on several critical factors, ranging from the quality of the proposal to the systemic support available to the research organization.\n\n### Key Factors Driving High Success Rates\n\n1.  **Institutional Experience and Track Record:**\n    *   Organizations (like many of those high-performing institutions in Germany noted previously) that have participated in numerous H2020 and Horizon Europe projects are s...",
+      "response": "Breaking down Horizon Europe performance by country reveals significant disparities influenced by national R&D investment, institutional experience, and strong consortium networks. There are no fixed success rates, as these vary by programme and specific call, but clear trends exist based on country history and research capacity.\n\n### Horizon Europe Participation and Success Rate Trends\n\n#### 1. Factors Affecting Success\n\nParticipation and success are strongly correlated with:\n\n*   **National R&...",
       "quality_score": 79,
       "factual_score": 100.0,
       "failures": [
         {
-          "category": "INCORRECT_DATA",
+          "category": "NO_RESULTS",
           "severity": "CRITICAL",
-          "description": "Incorrect horizon_europe facts: ['[none]']",
-          "turn_number": 5,
+          "description": "Response contains no-results pattern: 'there are no'",
+          "turn_number": 3,
           "evidence": {
-            "programme": "horizon_europe",
-            "incorrect_facts": [
-              "[none]"
-            ],
-            "score": 1.0
+            "pattern": "there are no"
           },
-          "timestamp": "2026-01-23T10:48:07.403053"
+          "timestamp": "2026-01-23T17:00:58.021071"
         }
       ],
       "tools_used": [],
-      "processing_time_ms": 6574.447,
+      "processing_time_ms": 8514.608,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -225,100 +117,84 @@
         },
         "feedback": "Quick rule-based evaluation"
       },
-      "turn_number": 5,
+      "turn_number": 3,
       "passed": false
+    },
+    {
+      "query": "How does Germany compare to Poland?",
+      "response": "Based on my search for information about 'How does Germany compare to Poland?', here's what I found:\n\n**Finding 1:**\n## Top Organizations with Experience in 'climate'\n\nFound **20 organizations** with relevant track records:\n\n### 1. **DEUTSCHES ZENTRUM FUR LUFT - UND RAUMFAHRT EV** (DE)\n- **Organization Type**: REC (Research Center)\n- **Relevant Projects**: 39 (coordinated **6** projects)\n- **Total Funding**: \u20ac29,584,551\n- **Example Projects**: CLAIM (coordinator), F4EClim (coordinator), FlyECO (...",
+      "quality_score": 81,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "find_experienced_partners",
+        "get_country_statistics",
+        "get_country_statistics"
+      ],
+      "processing_time_ms": 4433.888,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 4,
+      "passed": true
+    },
+    {
+      "query": "What factors improve success rates?",
+      "response": "**Creative Europe Cooperation Project Funding Rates**\n\nCreative Europe uses a **lump sum funding model** with fixed EU contribution rates for cooperation projects.\n\n## Funding Rate Overview\n\n| Aspect | Rate/Amount |\n|--------|-------------|\n| **EU Funding Rate** | 60% |\n| **Your Co-financing** | 40% |\n| **Funding Model** | Lump sum |\n| **Payment Schedule** | Pre-financing + balance |\n\n## What Does 60% Mean?\n\nThe EU covers **60% of your total eligible costs**:\n\n| Scale | Max EU Grant | Your 40% C...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 742.91,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 5,
+      "passed": true
     }
   ],
   "scores": {
-    "average_quality": 81.66666666666667,
-    "average_factual": 100.0,
-    "goal_progress": 1.0,
+    "average_quality": 80.0,
+    "average_factual": 95.83333333333333,
+    "goal_progress": 0.7533333333333333,
     "context_fields": 3
   },
   "failures": [
     {
       "category": "INCORRECT_DATA",
       "severity": "CRITICAL",
-      "description": "Incorrect horizon_europe facts: ['[none]']",
+      "description": "Incorrect horizon_europe facts: ['budget: stated \u20ac3.68B but should be ~\u20ac95.5 billion']",
       "turn_number": 0,
       "evidence": {
         "programme": "horizon_europe",
         "incorrect_facts": [
-          "[none]"
+          "budget: stated \u20ac3.68B but should be ~\u20ac95.5 billion"
         ],
-        "score": 1.0
+        "score": 0.75
       },
-      "timestamp": "2026-01-23T10:47:19.895349"
+      "timestamp": "2026-01-23T16:59:29.575548"
     },
     {
-      "category": "INCORRECT_DATA",
+      "category": "NO_RESULTS",
       "severity": "CRITICAL",
-      "description": "Incorrect horizon_europe facts: ['[none]']",
-      "turn_number": 1,
-      "evidence": {
-        "programme": "horizon_europe",
-        "incorrect_facts": [
-          "[none]"
-        ],
-        "score": 1.0
-      },
-      "timestamp": "2026-01-23T10:47:38.405225"
-    },
-    {
-      "category": "INCORRECT_DATA",
-      "severity": "CRITICAL",
-      "description": "Incorrect horizon_europe facts: ['[none]']",
-      "turn_number": 2,
-      "evidence": {
-        "programme": "horizon_europe",
-        "incorrect_facts": [
-          "[none]"
-        ],
-        "score": 1.0
-      },
-      "timestamp": "2026-01-23T10:47:41.723713"
-    },
-    {
-      "category": "INCORRECT_DATA",
-      "severity": "CRITICAL",
-      "description": "Incorrect horizon_europe facts: ['[none]']",
+      "description": "Response contains no-results pattern: 'there are no'",
       "turn_number": 3,
       "evidence": {
-        "programme": "horizon_europe",
-        "incorrect_facts": [
-          "[none]"
-        ],
-        "score": 1.0
+        "pattern": "there are no"
       },
-      "timestamp": "2026-01-23T10:47:51.990847"
-    },
-    {
-      "category": "INCORRECT_DATA",
-      "severity": "CRITICAL",
-      "description": "Incorrect horizon_europe facts: ['[none]']",
-      "turn_number": 4,
-      "evidence": {
-        "programme": "horizon_europe",
-        "incorrect_facts": [
-          "[none]"
-        ],
-        "score": 1.0
-      },
-      "timestamp": "2026-01-23T10:47:58.424031"
-    },
-    {
-      "category": "INCORRECT_DATA",
-      "severity": "CRITICAL",
-      "description": "Incorrect horizon_europe facts: ['[none]']",
-      "turn_number": 5,
-      "evidence": {
-        "programme": "horizon_europe",
-        "incorrect_facts": [
-          "[none]"
-        ],
-        "score": 1.0
-      },
-      "timestamp": "2026-01-23T10:48:07.403053"
+      "timestamp": "2026-01-23T17:00:58.021071"
     }
   ],
   "metadata": {
@@ -333,22 +209,13 @@
       "analysis"
     ],
     "description": "A 6-step success rate analysis workflow where a user progressively\nexplores Horizon Europe success rates from overall programme statistics,\ndown to cluster-level and country-level comparisons, concluding with\nfactors that improve success. Tests the system's ability to provide\naccurate statistics, identify trends, and explain causal factors.\n",
-    "conversation_id": 1928817455
+    "conversation_id": 1671761781
   },
-  "execution_time_ms": 58405.813,
-  "timestamp": "2026-01-23T10:47:10.128677",
+  "execution_time_ms": 186787.745,
+  "timestamp": "2026-01-23T16:59:09.617639",
   "passed": false,
   "turn_count": 6,
-  "critical_failures": 6,
+  "critical_failures": 2,
   "high_failures": 0,
-  "medium_failures": 0,
-  "fix_history": [
-    "app/services/agents/tool_aware_agent.py: Added _detect_cluster_comparison_query() method for cluster comparison queries",
-    "app/services/agents/tool_aware_agent.py: Added _generate_cluster_comparison_guidance() for detailed cluster comparisons",
-    "app/services/agents/tool_aware_agent.py: Added comparison result handler in _synthesize_from_results()",
-    "app/services/agents/tool_aware_agent.py: Updated Next Steps to use actionable language"
-  ],
-  "fix_attempts": 1,
-  "prd_status": "PASS",
-  "note": "Critical failures are false positives (score 1.0 with facts_incorrect=[none]). PRD pass threshold is score >= 80."
+  "medium_failures": 0
 }

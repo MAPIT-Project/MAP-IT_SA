@@ -3,9 +3,9 @@
 Test the complete proposal writing conversation flow
 """
 
-import requests
 import json
-import time
+
+import requests
 
 API_BASE = "http://localhost:8000/api"
 
@@ -77,7 +77,7 @@ def test_full_conversation():
     responses = [response1, response2, response3]
     messages = [message1, message2, message3]
 
-    for i, (response, message) in enumerate(zip(responses, messages)):
+    for i, (response, message) in enumerate(zip(responses, messages, strict=False)):
         print(f"\n{'=' * 40} RESPONSE {i+1} {'=' * 40}")
 
         progress_count = 0

@@ -1,7 +1,7 @@
 # MAP-IT System Architecture
 
-> **Last Updated:** January 3, 2026
-> **Version:** 3.2 (V3/V4 + Erasmus+ Integration)
+> **Last Updated:** January 23, 2026
+> **Version:** 3.3 (V3/V4 + Erasmus+ + Creative Europe + Multi-Programme)
 
 ---
 
@@ -23,10 +23,16 @@
 
 ## System Overview
 
-MAP-IT is an intelligent research assistant for EU funding programs. It supports:
+MAP-IT is an intelligent research assistant for EU funding programs. It supports **6 EU funding programmes**:
 
-- **Horizon Europe**: Research and innovation (EIC, ERC, MSCA, Clusters 1-6)
-- **Erasmus+**: Education, training, youth and sport (KA1, KA2, KA3, Jean Monnet, Sport)
+| Programme | Budget | Focus |
+|-----------|--------|-------|
+| **Horizon Europe** | €95.5B | Research and innovation (EIC, ERC, MSCA, Clusters 1-6) |
+| **Erasmus+** | €26.2B | Education, training, youth and sport (KA1, KA2, KA3, Jean Monnet, Sport) |
+| **Creative Europe** | €2.44B | Culture, media, and cross-sectoral (CULTURE, MEDIA, CROSS-SECTORAL strands) |
+| **EU4Health** | €5.3B | Health policy, crisis preparedness, disease prevention |
+| **Digital Europe** | €7.5B | Digital transformation (HPC, AI, Cybersecurity, Skills, Deployment) |
+| **LIFE** | €5.4B | Environment and climate action (Nature, Circular Economy, Climate, Clean Energy) |
 
 The system uses a sophisticated **agentic architecture** that can:
 
@@ -47,6 +53,10 @@ The system uses a sophisticated **agentic architecture** that can:
 | **Statistics** | Get success rates, funding amounts, participation data |
 | **Comparisons** | Compare programmes, countries, or funding types |
 | **Document Search** | Search official EU regulations and work programmes |
+| **Multi-Programme Search** | Search across all EU programmes (Horizon Europe, Erasmus+, Creative Europe, EU4Health, Digital Europe, LIFE) |
+| **Programme Recommendations** | AI-powered recommendations for best-fit funding programmes |
+| **Proposal Quality Scoring** | Evaluate proposal sections using EU evaluation criteria |
+| **Geographic Analysis** | Analyze consortium geographic diversification patterns |
 
 ---
 
@@ -165,7 +175,8 @@ I found **15 funding opportunities** for your query:
 │  Smart Behavior:                                                            │
 │  • Simple queries ("What is RIA?") → 1-2 iterations, fast                  │
 │  • Complex queries ("Compare EIC vs ERC") → Up to 5 iterations, thorough   │
-│  • 23 tools available: stats, docs, calls, projects, proposal, Erasmus+    │
+│  • 34 tools available: stats, docs, calls, projects, proposal, Erasmus+,   │
+│    Creative Europe, multi-programme, proposal quality, geographic analysis │
 │  • Speculative execution: pre-runs likely tools for faster responses       │
 │  • Plan caching: reuses query plans for repeated patterns                  │
 │                                                                             │
@@ -219,7 +230,7 @@ The ToolAwareAgent uses the ReAct pattern (Reasoning + Acting):
 **Smart Behavior:**
 - Simple queries ("What is RIA?") → 1-2 iterations, fast
 - Complex queries ("Compare EIC vs ERC") → Up to 5 iterations, thorough
-- 23 tools available: stats, docs, calls, projects, proposal support, Erasmus+
+- 34 tools available: stats, docs, calls, projects, proposal support, Erasmus+, Creative Europe, multi-programme
 
 ### Phase 3: Response Generation
 
@@ -361,7 +372,7 @@ For **complex queries** (comparisons, analysis, multi-source), the Tool-Aware Ag
 
 ## Available Tools
 
-The system has **23 tools** available for the multi-tool agent:
+The system has **34 tools** available for the multi-tool agent:
 
 ### Statistics Tools
 
@@ -628,6 +639,188 @@ search_erasmus_templates(query='quality criteria KA2 partnership', key_action='K
 - Travel bands calculated by distance (10-99km, 100-499km, 500-1999km, etc.)
 - Sector-specific rates for HED, VET, SCH, ADU, YOU, SPORT
 
+### Creative Europe Programme Tools
+
+These tools provide specialized support for Creative Europe applications across CULTURE, MEDIA, and CROSS-SECTORAL strands:
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `check_creative_europe_eligibility` | Check organization eligibility for Creative Europe actions | `org_type`, `country`, `action_type`, `strand`, `is_coordinator` |
+| `calculate_creative_europe_budget` | Calculate Creative Europe grant amounts | `action_type`, `requested_amount`, `project_scale`, `num_partners`, `strand` |
+| `search_creative_europe_templates` | Search Creative Europe documents (Work Programmes, CulturEU Guide) | `query`, `strand`, `action_type`, `topic`, `top_k` |
+
+**Examples:**
+```python
+# Check eligibility for MEDIA development slate funding
+check_creative_europe_eligibility(org_type='PRODUCTION', country='France', action_type='DEVSLATE')
+# Returns: { "eligible": true, "requirements": [...], "funding_rate": "70%", ... }
+
+# Check eligibility for CULTURE cooperation projects
+check_creative_europe_eligibility(org_type='CULTURAL_ORG', country='Germany', strand='CULTURE')
+# Returns: { "eligible": true, "eligible_actions": ["COOP-SMALL", "COOP-MEDIUM", "COOP-LARGE"], ... }
+
+# Calculate budget for medium cooperation project
+calculate_creative_europe_budget(action_type='COOP-MEDIUM', num_partners=6, project_scale='large')
+# Returns: { "max_grant": 1000000, "funding_rate": "80%", "budget_range": {...}, ... }
+
+# Get all MEDIA action budget information
+calculate_creative_europe_budget(action_type='OVERVIEW', strand='MEDIA')
+# Returns: { "actions": [{"name": "DEVSLATE", "max_grant": 210000, ...}, ...] }
+
+# Search for evaluation criteria
+search_creative_europe_templates(query='cooperation project evaluation criteria', strand='CULTURE')
+# Returns: [{ "content": "...", "source": "Work Programme 2026", ... }]
+```
+
+**Creative Europe Strands:**
+- **CULTURE**: European Cooperation Projects (small/medium/large scale), Networks, Platforms, Literary Translation
+- **MEDIA**: Development (slate, single, co-dev), Distribution, Training, Festivals, Cinema Networks, Audience Development
+- **CROSS-SECTORAL**: Creative Innovation Labs, News Media Partnerships, Media Literacy, Music Moves Europe
+
+**Creative Europe Funding Model:**
+- Uses **lump sum** funding with co-financing requirements
+- Funding rates vary by action: 60-80% of eligible costs
+- Budget caps per action type (e.g., €200K for COOP-SMALL, €1M for COOP-MEDIUM, €2M for COOP-LARGE)
+
+### Multi-Programme Tools
+
+These tools enable cross-programme search and recommendations across all EU funding programmes:
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `search_all_programmes` | Search for funding across all EU programmes | `keywords`, `programmes` (optional), `status`, `year` |
+| `recommend_programmes` | Get AI recommendations for best-fit funding programmes | `description`, `organization_type`, `sector` |
+| `get_programme_info` | Get detailed information about a specific EU programme | `programme` (optional) |
+
+**Supported Programmes:**
+- **Horizon Europe** (€95.5B): Research and innovation
+- **Erasmus+** (€26.2B): Education, training, youth, sport
+- **Creative Europe** (€2.44B): Culture, media, cross-sectoral
+- **EU4Health** (€5.3B): Health policy and crisis response
+- **Digital Europe** (€7.5B): Digital capacity building
+- **LIFE** (€5.4B): Environment and climate action
+
+**Examples:**
+```python
+# Search across all programmes for renewable energy funding
+search_all_programmes(keywords='renewable energy')
+# Returns: { "horizon_europe": [...], "life": [...], "digital_europe": [...] }
+
+# Search specific programmes only
+search_all_programmes(keywords='digital skills', programmes=['erasmus_plus', 'digital_europe'])
+# Returns: { "erasmus_plus": [...], "digital_europe": [...] }
+
+# Get programme recommendations for a project idea
+recommend_programmes(description='Develop AI tools for early cancer detection', organization_type='university')
+# Returns: [
+#   { "programme": "horizon_europe", "score": 0.95, "reason": "Research focus, university eligibility" },
+#   { "programme": "eu4health", "score": 0.72, "reason": "Health domain alignment" }
+# ]
+
+# Get detailed info about a programme
+get_programme_info(programme='creative_europe')
+# Returns: { "name": "Creative Europe", "budget": "€2.44B", "strands": [...], "actions": [...] }
+
+# Get overview of all programmes
+get_programme_info()
+# Returns: { "programmes": [{"id": "horizon_europe", ...}, {"id": "erasmus_plus", ...}, ...] }
+```
+
+### Geographic Diversification Tool
+
+This tool analyzes consortium geographic diversification patterns by European region groups:
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `analyze_geographic_diversification` | Analyze geographic diversity of country partners in consortia | `cluster`, `exclude_widening`, `min_partners`, `country_groups` |
+
+**Default Country Groups:**
+- **Nordic**: NO, DK, SE, FI
+- **South Europe**: ES, PT, IT, GR
+- **Western Europe**: FR, DE, BE, NL, LU (BENELUX)
+- **Baltic**: EE, LV, LT
+- **CEE**: PL, SK, CZ, HU, SI
+- **Western Balkans**: HR, RS, ME
+- **EPC (Eastern Partnership)**: MD, BY, UA, GE, AM, AZ
+- **Islands**: IE, UK, MT, CY
+
+**Example:**
+```python
+# Analyze geographic diversification in Cluster 2 (SSH) projects
+analyze_geographic_diversification(cluster='CL2', exclude_widening=True)
+# Returns: {
+#   "coverage_statistics": {
+#     "projects_with_5_groups": 45,
+#     "projects_with_6_groups": 30,
+#     "projects_with_7_groups": 15,
+#     "projects_with_8_groups": 5
+#   },
+#   "group_representation": {
+#     "Nordic": {"projects_count": 320, "percentage": 67},
+#     "South Europe": {"projects_count": 450, "percentage": 94},
+#     ...
+#   },
+#   "underrepresented_groups": ["EPC", "Western Balkans"],
+#   "recommendations": [...]
+# }
+```
+
+### Proposal Quality Scoring Tools
+
+These tools evaluate proposal quality using EU Horizon Europe evaluation criteria:
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `score_proposal_section` | Evaluate a single proposal section (0-5 score) | `content`, `section_type`, `section_id`, `action_type` |
+| `score_full_proposal` | Evaluate complete proposal (0-15 score) | `excellence_content`, `impact_content`, `implementation_content`, `action_type` |
+| `quick_quality_check` | Fast quality check without full AI evaluation | `text`, `context` |
+| `validate_budget` | Validate budget against EU funding rules | `total_cost`, `eu_contribution`, `action_type`, `duration_months`, `num_partners`, `cost_breakdown` |
+
+**Section Types:**
+- **Excellence**: Objectives, methodology, state-of-the-art
+- **Impact**: Pathways to impact, dissemination, exploitation
+- **Implementation**: Work plan, consortium composition, resources
+
+**Examples:**
+```python
+# Score an excellence section
+score_proposal_section(content='Our project aims to...', section_type='excellence')
+# Returns: {
+#   "score": 4.2,
+#   "quality_level": "Good",
+#   "strengths": ["Clear objectives", "Novel methodology"],
+#   "weaknesses": ["Limited state-of-the-art coverage"],
+#   "suggestions": ["Expand literature review"]
+# }
+
+# Score a full proposal
+score_full_proposal(
+    excellence_content='...',
+    impact_content='...',
+    implementation_content='...',
+    action_type='RIA'
+)
+# Returns: {
+#   "total_score": 12.5,
+#   "funding_probability": "High",
+#   "sections": {"excellence": 4.2, "impact": 4.0, "implementation": 4.3}
+# }
+
+# Validate a proposal budget
+validate_budget(
+    total_cost=4000000,
+    eu_contribution=4000000,
+    action_type='RIA',
+    num_partners=8
+)
+# Returns: {
+#   "compliance_score": 95,
+#   "funding_rate_valid": true,
+#   "issues": [],
+#   "recommendations": [...]
+# }
+```
+
 ---
 
 ## Data Sources
@@ -738,6 +931,108 @@ search_erasmus_templates(query='quality criteria KA2 partnership', key_action='K
 - **Sport**: Cooperation Partnerships, Not-for-Profit Events
 
 **Queries via:** `VectorSearchService` with `filters={"programme": "erasmus"}`
+
+### 6. Creative Europe Data Sources
+
+**Purpose:** Creative Europe programme guidance and funding calls
+
+**Contains:**
+- Annual Work Programmes (2021-2026)
+- CulturEU Funding Guide
+- Strand overviews (CULTURE, MEDIA, Cross-sectoral)
+- Green aspects quality assessment guide
+- Funding calls (128+ calls synced from EU Portal API)
+
+**Coverage:**
+- Eligibility criteria by strand and action type
+- Budget rules and funding rates
+- Evaluation criteria
+- Strand-specific guidance
+
+**Strands:**
+- **CULTURE**: European Cooperation Projects (small/medium/large), Networks, Platforms, Literary Translation
+- **MEDIA**: Development (slate, single, co-dev), Distribution, Training, Festivals, Cinema Networks, Audience Development
+- **CROSS-SECTORAL**: Creative Innovation Labs, News Media Partnerships, Media Literacy, Music Moves Europe
+
+**Neo4j Graph Data:**
+- `CreativeEuropeStrand` nodes (3): CULTURE, MEDIA, CROSS-SECTORAL
+- `CreativeEuropeAction` nodes (24): All action types with full metadata
+- `CreativeEuropeRegion` nodes (3): Country eligibility by strand
+- Relationships: `BELONGS_TO_STRAND`, `ALLOWS_COORDINATOR_FROM`, `ALLOWS_PARTNER_FROM`, `MEMBER_OF`
+
+**Queries via:** `VectorSearchService` with `filters={"programme": "creative_europe"}`
+
+### 7. EU4Health Data Sources
+
+**Purpose:** EU4Health programme guidance and funding calls
+
+**Contains:**
+- Work Programmes (2021-2027)
+- Funding calls synced from EU Portal API
+- Eligibility rules and action types
+
+**Coverage:**
+- Action Grants (direct and operating)
+- Joint Actions with Member States
+- Procurement actions
+- Priority areas: Crisis preparedness, Disease prevention, Health systems, Digital health
+
+**Supported Action Types:**
+- **PJ-DIRECT-ACTIONS**: Project Grants
+- **OG-DIRECT-ACTIONS**: Operating Grants
+- **JA-JOINT-ACTIONS**: Joint Actions
+- **PP-PUBLIC-PROC**: Procurement
+
+**Eligibility Checker:** `EU4HealthEligibilityTool` class in `app/services/tools/eu4health_eligibility.py`
+
+### 8. Digital Europe Data Sources
+
+**Purpose:** Digital Europe Programme guidance and funding calls
+
+**Contains:**
+- Work Programmes (2021-2027)
+- Funding calls synced from EU Portal API
+- Eligibility rules by Specific Objective
+
+**Coverage:**
+- High Performance Computing (HPC)
+- Artificial Intelligence (AI)
+- Cybersecurity
+- Advanced Digital Skills
+- Deployment & Best Use
+
+**Supported Objectives:**
+- **SO1-HPC**: High Performance Computing
+- **SO2-AI**: Artificial Intelligence
+- **SO3-CYBER**: Cybersecurity
+- **SO4-SKILLS**: Advanced Digital Skills
+- **SO5-DEPLOY**: Deployment, Best Use of Digital Capacity
+
+**Eligibility Checker:** `DigitalEuropeEligibilityTool` class in `app/services/tools/digital_europe_eligibility.py`
+
+### 9. LIFE Programme Data Sources
+
+**Purpose:** LIFE Programme guidance and funding calls
+
+**Contains:**
+- Multi-Annual Work Programme (2021-2027)
+- Funding calls synced from EU Portal API
+- Eligibility rules by sub-programme
+
+**Coverage:**
+- Nature and Biodiversity
+- Circular Economy and Quality of Life
+- Climate Change Mitigation and Adaptation
+- Clean Energy Transition
+
+**Supported Project Types:**
+- **SAP**: Standard Action Projects
+- **SIP**: Strategic Integrated Projects (Nature)
+- **SNAP**: Strategic Nature Projects
+- **TA**: Technical Assistance
+- **OG**: Operating Grants for NGOs
+
+**Eligibility Checker:** `LIFEEligibilityTool` class in `app/services/tools/life_eligibility.py`
 
 ---
 
@@ -1180,8 +1475,32 @@ When using the streaming endpoint, progress updates are sent as SSE:
 
 ## Recently Implemented Improvements
 
-> **Latest Update:** December 19, 2025
-> **Previous Update:** December 9, 2025
+> **Latest Update:** January 23, 2026
+> **Previous Update:** January 3, 2026
+
+### January 23, 2026: Creative Europe, Multi-Programme & Quality Tools
+
+Major expansion with 11 new tools, bringing total to 34:
+
+**Creative Europe Programme Support:**
+- `check_creative_europe_eligibility`: Organization eligibility by strand/action
+- `calculate_creative_europe_budget`: Budget calculations with funding rates
+- `search_creative_europe_templates`: Document search for CE guidance
+- Full Neo4j graph integration with strand/action/region nodes
+
+**Multi-Programme Search:**
+- `search_all_programmes`: Cross-programme funding search
+- `recommend_programmes`: AI-powered programme recommendations
+- `get_programme_info`: Unified programme information
+
+**Proposal Quality Scoring:**
+- `score_proposal_section`: Section evaluation (0-5 score)
+- `score_full_proposal`: Full proposal evaluation (0-15 score)
+- `quick_quality_check`: Fast draft feedback
+- `validate_budget`: Budget rule compliance checking
+
+**Geographic Analysis:**
+- `analyze_geographic_diversification`: Consortium geographic diversity analysis
 
 ### December 19, 2025: V1/V2 Removal
 
@@ -1208,6 +1527,11 @@ All previous improvements have been implemented. See details below:
 | 7 | V3 project formatter enhancements (publications, deliverables) | ✅ Implemented | Enhanced `app/services/response/v3_response_formatter.py`, new methods in `cordis_repository.py` |
 | 8 | Partner Discovery hybrid Graph+SQL architecture | ✅ Implemented | Enhanced `app/services/tools/partner_discovery.py` |
 | 9 | Budget Benchmark hybrid Graph+SQL architecture | ✅ Implemented | Enhanced `app/services/tools/budget_benchmark.py` |
+| 10 | Creative Europe Programme Tools (3 tools) | ✅ Implemented | `app/services/tools/creative_europe_*.py` |
+| 11 | Multi-Programme Tools (4 tools) | ✅ Implemented | `app/services/tools/multi_programme_search.py` |
+| 12 | Proposal Quality Scoring Tools (4 tools) | ✅ Implemented | `app/services/tools/proposal_scoring.py` |
+| 13 | Geographic Diversification Tool | ✅ Implemented | `app/services/tools/geographic_diversification.py` |
+| 14 | Creative Europe Neo4j Graph Integration | ✅ Implemented | `scripts/ingest_creative_europe_to_neo4j.py` |
 
 ### Implementation Details
 
@@ -1273,8 +1597,110 @@ All previous improvements have been implemented. See details below:
 
 ### Tool Count Update
 
-The system now has **23 tools** available (increased from 20):
-- Added: `check_erasmus_eligibility`, `calculate_erasmus_budget`, `search_erasmus_templates`
+The system now has **34 tools** available (increased from 23):
+- **Added for Creative Europe**: `check_creative_europe_eligibility`, `calculate_creative_europe_budget`, `search_creative_europe_templates`
+- **Added for Multi-Programme**: `search_all_programmes`, `recommend_programmes`, `get_programme_info`
+- **Added for Proposal Quality**: `score_proposal_section`, `score_full_proposal`, `quick_quality_check`, `validate_budget`
+- **Added for Geographic Analysis**: `analyze_geographic_diversification`
+
+### Creative Europe Integration (January 2026)
+
+Full integration of Creative Europe programme support:
+
+**Phase 1: Document Ingestion**
+- Ingested Work Programmes 2021-2026
+- Ingested CulturEU Funding Guide
+- Strand overviews and green aspects assessment guide
+- Full coverage of eligibility, budget rules, evaluation criteria
+
+**Phase 2: API Sync**
+- Synced 128+ Creative Europe funding calls from EU Portal API
+- CREA-CULT, CREA-MEDIA, CREA-CROSS topics
+- Automatic status tracking and deadline monitoring
+
+**Phase 3: Creative Europe Tools**
+- `check_creative_europe_eligibility`: Organization eligibility by strand and action type
+- `calculate_creative_europe_budget`: Budget calculations with funding rates and caps
+- `search_creative_europe_templates`: Document search with strand/action filtering
+
+**Phase 4: Neo4j Graph Integration**
+- Added Creative Europe reference data to Neo4j graph database
+- New node types: `CreativeEuropeAction`, `CreativeEuropeStrand`, `CreativeEuropeRegion`
+- New relationships: `BELONGS_TO_STRAND`, `ALLOWS_COORDINATOR_FROM`, `ALLOWS_PARTNER_FROM`, `MEMBER_OF`
+- Graph-based eligibility checking for action/country rules
+
+**Neo4j Creative Europe Schema:**
+```
+(CreativeEuropeAction) -[:BELONGS_TO_STRAND]-> (CreativeEuropeStrand)
+                       -[:ALLOWS_COORDINATOR_FROM]-> (CreativeEuropeRegion)
+                       -[:ALLOWS_PARTNER_FROM]-> (CreativeEuropeRegion)
+(Country) -[:MEMBER_OF]-> (CreativeEuropeRegion)
+```
+
+**New Graph Methods in `graph_service.py`:**
+- `get_creative_europe_actions(strand, action_type)` - Get actions with metadata
+- `get_creative_europe_strands()` - Get all strands with action counts
+- `check_creative_europe_country_eligibility(country_code, action_code)` - Country-based eligibility
+- `get_creative_europe_action_details(action_code)` - Detailed action requirements
+
+**Files Created:**
+- `app/services/tools/creative_europe_eligibility.py`
+- `app/services/tools/creative_europe_budget_calculator.py`
+- `app/services/tools/creative_europe_template_search.py`
+- `scripts/ingest_creative_europe_documents.py`
+- `scripts/sync_creative_europe_calls.py`
+- `scripts/ingest_creative_europe_to_neo4j.py`
+
+### Multi-Programme Integration (January 2026)
+
+Cross-programme search and recommendation capabilities:
+
+**Features:**
+- Search across all 6 EU funding programmes in one query
+- AI-powered programme recommendations based on project description
+- Unified programme information endpoint
+
+**New Tools:**
+- `search_all_programmes`: Cross-programme funding search
+- `recommend_programmes`: AI recommendations for best-fit programmes
+- `get_programme_info`: Detailed programme information
+
+**Supported Programmes:**
+- Horizon Europe (€95.5B)
+- Erasmus+ (€26.2B)
+- Creative Europe (€2.44B)
+- EU4Health (€5.3B)
+- Digital Europe (€7.5B)
+- LIFE (€5.4B)
+
+### Proposal Quality Scoring (January 2026)
+
+New tools for proposal quality evaluation:
+
+**Features:**
+- Section-by-section scoring using EU evaluation criteria
+- Full proposal evaluation with funding probability
+- Budget validation against EU funding rules
+- Quick quality checks for draft feedback
+
+**New Tools:**
+- `score_proposal_section`: Evaluate single sections (0-5 score)
+- `score_full_proposal`: Full proposal evaluation (0-15 score)
+- `quick_quality_check`: Fast draft feedback
+- `validate_budget`: Budget rule compliance checking
+
+### Geographic Diversification Analysis (January 2026)
+
+New tool for consortium geographic analysis:
+
+**Features:**
+- Analyze geographic diversity by European region groups
+- Coverage statistics across 8 default country groups
+- Identify underrepresented regions
+- Consortium building recommendations
+
+**New Tool:**
+- `analyze_geographic_diversification`: Geographic diversity analysis
 
 ### Erasmus+ Integration (January 2026)
 

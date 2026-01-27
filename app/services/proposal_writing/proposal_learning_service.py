@@ -5,11 +5,11 @@ Learn from 13,865+ funded CORDIS projects to improve proposal quality.
 """
 
 import logging
-from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
+from typing import Any
 
-from app.services.embedding_service import EmbeddingService
 from app.core.config import settings
+from app.services.embedding_service import EmbeddingService
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ class SuccessPattern:
     """Pattern extracted from successful proposals."""
     pattern_type: str  # 'language', 'structure', 'terminology', 'approach'
     description: str
-    examples: List[str]
+    examples: list[str]
     frequency: float  # How often this pattern appears in successful proposals
 
 
@@ -75,7 +75,7 @@ class ProposalLearningService:
         action_type: str = None,
         min_funding: float = None,
         limit: int = 10
-    ) -> List[SimilarProject]:
+    ) -> list[SimilarProject]:
         """
         Find funded projects semantically similar to user's idea.
 
@@ -170,10 +170,10 @@ class ProposalLearningService:
 
     async def find_projects_by_keywords(
         self,
-        keywords: List[str],
+        keywords: list[str],
         cluster: str = None,
         limit: int = 20
-    ) -> List[SimilarProject]:
+    ) -> list[SimilarProject]:
         """
         Find funded projects by keyword matching (fallback method).
         """
@@ -236,9 +236,9 @@ class ProposalLearningService:
 
     async def extract_success_patterns(
         self,
-        similar_projects: List[SimilarProject],
+        similar_projects: list[SimilarProject],
         pattern_type: str = "all"
-    ) -> List[SuccessPattern]:
+    ) -> list[SuccessPattern]:
         """
         Extract patterns from successful proposals.
 
@@ -274,8 +274,8 @@ class ProposalLearningService:
 
     def _extract_terminology_patterns(
         self,
-        objectives: List[str]
-    ) -> List[SuccessPattern]:
+        objectives: list[str]
+    ) -> list[SuccessPattern]:
         """Extract commonly used terminology from successful proposals."""
 
         # Key EU/HE terms to look for
@@ -314,8 +314,8 @@ class ProposalLearningService:
 
     def _extract_language_patterns(
         self,
-        objectives: List[str]
-    ) -> List[SuccessPattern]:
+        objectives: list[str]
+    ) -> list[SuccessPattern]:
         """Extract effective language patterns."""
 
         patterns = []
@@ -352,8 +352,8 @@ class ProposalLearningService:
 
     def _extract_structure_patterns(
         self,
-        objectives: List[str]
-    ) -> List[SuccessPattern]:
+        objectives: list[str]
+    ) -> list[SuccessPattern]:
         """Extract structural patterns from objectives."""
 
         patterns = []
@@ -384,8 +384,8 @@ class ProposalLearningService:
 
     def _extract_approach_patterns(
         self,
-        projects: List[SimilarProject]
-    ) -> List[SuccessPattern]:
+        projects: list[SimilarProject]
+    ) -> list[SuccessPattern]:
         """Extract approach patterns from project metadata."""
 
         patterns = []
@@ -430,7 +430,7 @@ class ProposalLearningService:
         section_type: str = "objectives",
         cluster: str = None,
         action_type: str = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Benchmark user's text against funded proposals.
 
@@ -532,9 +532,9 @@ class ProposalLearningService:
     def _generate_benchmark_suggestions(
         self,
         user_text: str,
-        similar_projects: List[SimilarProject],
-        patterns: List[SuccessPattern]
-    ) -> List[str]:
+        similar_projects: list[SimilarProject],
+        patterns: list[SuccessPattern]
+    ) -> list[str]:
         """Generate specific improvement suggestions based on benchmark."""
 
         suggestions = []
@@ -587,7 +587,7 @@ class ProposalLearningService:
         cluster: str = None,
         action_type: str = None,
         limit: int = 5
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Get high-quality examples of specific sections from funded projects.
 
@@ -656,8 +656,8 @@ class ProposalLearningService:
     async def get_language_suggestions(
         self,
         user_text: str,
-        similar_projects: List[SimilarProject]
-    ) -> List[Dict[str, Any]]:
+        similar_projects: list[SimilarProject]
+    ) -> list[dict[str, Any]]:
         """
         Suggest better language based on successful proposals.
 

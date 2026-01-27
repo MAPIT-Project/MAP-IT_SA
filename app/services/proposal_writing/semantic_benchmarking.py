@@ -7,9 +7,9 @@ to provide data-driven quality assessment and improvement suggestions.
 
 import logging
 import os
-from typing import List, Dict, Optional, Any
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -33,11 +33,11 @@ class BenchmarkExample:
     project_id: str
     project_acronym: str
     content: str
-    cluster: Optional[str]
-    action_type: Optional[str]
-    total_cost: Optional[float]
+    cluster: str | None
+    action_type: str | None
+    total_cost: float | None
     similarity_score: float
-    relevant_excerpts: List[str] = field(default_factory=list)
+    relevant_excerpts: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -56,22 +56,22 @@ class BenchmarkResult:
     """Complete benchmarking result."""
     user_content: str
     section_type: str
-    cluster: Optional[str]
+    cluster: str | None
 
     # Overall metrics
     overall_similarity: float  # 0-100
     percentile_rank: int  # What % of funded proposals is this better than
 
     # Dimension breakdown
-    dimension_scores: List[DimensionScore]
+    dimension_scores: list[DimensionScore]
 
     # Benchmark examples
-    top_examples: List[BenchmarkExample]
+    top_examples: list[BenchmarkExample]
 
     # Insights
-    key_strengths: List[str]
-    key_gaps: List[str]
-    specific_suggestions: List[str]
+    key_strengths: list[str]
+    key_gaps: list[str]
+    specific_suggestions: list[str]
 
     # Statistics
     examples_compared: int
@@ -113,8 +113,8 @@ class SemanticBenchmarkingService:
         self,
         content: str,
         section_type: str,
-        cluster: Optional[str] = None,
-        action_type: Optional[str] = None,
+        cluster: str | None = None,
+        action_type: str | None = None,
         num_examples: int = 5
     ) -> BenchmarkResult:
         """
@@ -184,12 +184,12 @@ class SemanticBenchmarkingService:
 
     async def _find_benchmark_examples(
         self,
-        user_embedding: List[float],
+        user_embedding: list[float],
         section_type: str,
-        cluster: Optional[str],
-        action_type: Optional[str],
+        cluster: str | None,
+        action_type: str | None,
         limit: int
-    ) -> List[BenchmarkExample]:
+    ) -> list[BenchmarkExample]:
         """Find the most similar funded examples."""
         conn = self._get_connection()
         try:
@@ -248,7 +248,7 @@ class SemanticBenchmarkingService:
         finally:
             conn.close()
 
-    def _calculate_overall_similarity(self, examples: List[BenchmarkExample]) -> float:
+    def _calculate_overall_similarity(self, examples: list[BenchmarkExample]) -> float:
         """Calculate weighted average similarity to benchmark examples."""
         if not examples:
             return 0.0
@@ -259,7 +259,7 @@ class SemanticBenchmarkingService:
 
         weighted_sum = sum(
             ex.similarity_score * w
-            for ex, w in zip(examples, weights)
+            for ex, w in zip(examples, weights, strict=False)
         )
 
         return weighted_sum / total_weight
@@ -267,9 +267,9 @@ class SemanticBenchmarkingService:
     async def _analyze_dimensions(
         self,
         content: str,
-        examples: List[BenchmarkExample],
+        examples: list[BenchmarkExample],
         section_type: str
-    ) -> List[DimensionScore]:
+    ) -> list[DimensionScore]:
         """Analyze content across multiple quality dimensions."""
         ai_service = self._get_ai_service()
 
@@ -376,10 +376,10 @@ Score each dimension 0-100. Be honest but constructive."""
     async def _generate_insights(
         self,
         content: str,
-        examples: List[BenchmarkExample],
-        dimension_scores: List[DimensionScore],
+        examples: list[BenchmarkExample],
+        dimension_scores: list[DimensionScore],
         section_type: str
-    ) -> Dict[str, List[str]]:
+    ) -> dict[str, list[str]]:
         """Generate actionable insights from benchmark comparison."""
         ai_service = self._get_ai_service()
 
@@ -461,9 +461,9 @@ Be specific and reference actual content. Max 3-4 items per category."""
 
     async def _calculate_percentile(
         self,
-        user_embedding: List[float],
+        user_embedding: list[float],
         section_type: str,
-        cluster: Optional[str]
+        cluster: str | None
     ) -> int:
         """
         Calculate what percentile the user content falls in
@@ -540,7 +540,7 @@ Be specific and reference actual content. Max 3-4 items per category."""
         self,
         content: str,
         section_type: str,
-        cluster: Optional[str]
+        cluster: str | None
     ) -> BenchmarkResult:
         """Create an empty result when no benchmarks are available."""
         return BenchmarkResult(
@@ -567,7 +567,7 @@ class BenchmarkVisualizer:
     """
 
     @staticmethod
-    def generate_radar_chart_data(result: BenchmarkResult) -> Dict[str, Any]:
+    def generate_radar_chart_data(result: BenchmarkResult) -> dict[str, Any]:
         """Generate data for a radar/spider chart comparing dimensions."""
         dimensions = []
         user_scores = []
@@ -597,7 +597,7 @@ class BenchmarkVisualizer:
         }
 
     @staticmethod
-    def generate_comparison_table(result: BenchmarkResult) -> List[Dict]:
+    def generate_comparison_table(result: BenchmarkResult) -> list[dict]:
         """Generate a comparison table for display."""
         rows = []
 
@@ -683,7 +683,7 @@ class RealTimeBenchmarker:
         self,
         content: str,
         section_type: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Fast benchmark for real-time feedback.
 
@@ -707,7 +707,7 @@ class RealTimeBenchmarker:
             "quick_hint": self._get_quick_hint(similarity)
         }
 
-    async def _quick_similarity(self, embedding: List[float], section_type: str) -> float:
+    async def _quick_similarity(self, embedding: list[float], section_type: str) -> float:
         """Get quick similarity score."""
         conn = self._get_connection()
         try:

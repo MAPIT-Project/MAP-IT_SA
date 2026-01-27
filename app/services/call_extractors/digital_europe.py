@@ -16,8 +16,8 @@ https://digital-strategy.ec.europa.eu/en/activities/work-programmes-digital
 
 import logging
 import re
-from typing import List, Dict, Any, Optional
 from decimal import Decimal
+from typing import Any
 
 from .base import CallExtractor, FundingCall
 
@@ -71,7 +71,7 @@ class DigitalEuropeExtractor(CallExtractor):
         'GRANT': 'Grant for Identified Beneficiary',
     }
     
-    def extract_from_content(self, content: str, document_title: str = "") -> List[FundingCall]:
+    def extract_from_content(self, content: str, document_title: str = "") -> list[FundingCall]:
         """
         Extract Digital Europe calls from document content.
         """
@@ -96,7 +96,7 @@ class DigitalEuropeExtractor(CallExtractor):
         content: str, 
         topic_code: str,
         document_title: str
-    ) -> Optional[FundingCall]:
+    ) -> FundingCall | None:
         """Extract details for a single Digital Europe call."""
         
         title = self._extract_title(content, topic_code)
@@ -166,7 +166,7 @@ class DigitalEuropeExtractor(CallExtractor):
                 return area_name
         return "Digital Europe"
     
-    def _extract_action_type(self, content: str, topic_code: str) -> Optional[str]:
+    def _extract_action_type(self, content: str, topic_code: str) -> str | None:
         """Extract action type for Digital Europe call."""
         start_idx = content.upper().find(topic_code.upper())
         if start_idx == -1:
@@ -180,7 +180,7 @@ class DigitalEuropeExtractor(CallExtractor):
         
         return None
     
-    def _extract_expected_outcome(self, content: str, topic_code: str) -> Optional[str]:
+    def _extract_expected_outcome(self, content: str, topic_code: str) -> str | None:
         """Extract expected outcome section."""
         start_idx = content.upper().find(topic_code.upper())
         if start_idx == -1:
@@ -200,7 +200,7 @@ class DigitalEuropeExtractor(CallExtractor):
         
         return None
     
-    def _extract_scope(self, content: str, topic_code: str) -> Optional[str]:
+    def _extract_scope(self, content: str, topic_code: str) -> str | None:
         """Extract scope section."""
         start_idx = content.upper().find(topic_code.upper())
         if start_idx == -1:
@@ -220,7 +220,7 @@ class DigitalEuropeExtractor(CallExtractor):
         
         return None
     
-    def _extract_budget_info(self, content: str, topic_code: str) -> Dict[str, Any]:
+    def _extract_budget_info(self, content: str, topic_code: str) -> dict[str, Any]:
         """Extract budget information."""
         result = {}
         
@@ -249,7 +249,7 @@ class DigitalEuropeExtractor(CallExtractor):
         
         return result
     
-    def _generate_tags(self, title: str, scope: Optional[str], area: str) -> List[str]:
+    def _generate_tags(self, title: str, scope: str | None, area: str) -> list[str]:
         """Generate search tags."""
         tags = ['digital', 'europe']
         

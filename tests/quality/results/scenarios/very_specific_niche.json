@@ -1,0 +1,31 @@
+{
+  "scenario": "037_very_specific_niche",
+  "timestamp": "2026-01-27T01:53:29.271779",
+  "query": "Funding for underwater archaeology using AI in the Mediterranean",
+  "response": "I found **10 relevant document excerpts** for your query:\n\n### \ud83d\udcc4 Wp 7 Digital Industry And Space Horizon 2025 En\n\n**1. Excerpt**\n\ud83d\udcd1 *Page 126 | Type: Unknown*\n\n> organising thematic workshops to consult all interested communities. The results of this action will feed into the work of relevant groups working on submarine cable infrastructures, such as the European Submarine Cable Expert Group, the NIS 2 Coordination Group or the CER Group. Scope: Enabling technologies applicable to submarine connectivity infrastructures and systems, including its secondary use for pre-warning systems against natural hazards, are increasingly important to ensure Europes strategic autonomy as well as economic security....\n\n*Ref: 570760ec*\n\n**2. Excerpt**\n\ud83d\udcd1 *Page 227 | Type: Unknown*\n\n> tenders/opportunities/docs/2021-2027/horizon/guidance/ls- decision_he_en.pdf Part 7 - Page 226 of 339 [Page 227] Horizon Europe - Work Programme 2025 Digital, Industry and Space The development of validation and intercomparison protocols to estimate and quantify the benefits of improved assimilation methods and integration of new observations (e.g. data challenges, use of OSSEs). The development of new types of observations from satellites and in-situ and the improvement of space/time sampling of existing observations require a step change in data assimilation techniques to fully benefit from these new sources of data. Current techniques are facing hard limits to progress and need new approaches to make the best use of observation and advances in modelling (e.g. resolution)....\n\n*Ref: d205cace*\n\n**3. Excerpt**\n\ud83d\udcd1 *Page 226 | Type: Unknown*\n\n> in research and innovation content should be addressed only if relevant in relation to the objectives of the research effort. HORIZON-CL4-2025-02-SPACE-44: Copernicus Marine Environment Monitoring Service (CMEMS) evolution: new and innovative ocean data assimilation techniques Call: SPACE-HADEA Specific conditions Expected EU The Commission estimates that an EU contri",
+  "evaluation": {
+    "total_score": 80,
+    "max_score": 100,
+    "passed": true,
+    "threshold": 75,
+    "dimensions": {
+      "query_fulfillment": 30,
+      "specificity": 25,
+      "factual_accuracy": 15,
+      "actionability": 10
+    },
+    "feedback": {
+      "query_fulfillment": [
+        "Could acknowledge the interdisciplinary nature of the query"
+      ],
+      "specificity": [],
+      "factual_accuracy": [
+        "Should honestly acknowledge when exact matches don't exist"
+      ],
+      "actionability": []
+    },
+    "query": "Funding for underwater archaeology using AI in the Mediterranean",
+    "response_length": 7353
+  },
+  "status": "PASS"
+}

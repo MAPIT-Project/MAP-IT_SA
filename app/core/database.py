@@ -10,16 +10,15 @@ Provides a centralized, managed database connection pool with:
 Implements Priority 2.4 from IMPROVEMENT_ROADMAP.md
 """
 
-import os
 import logging
 import threading
 import time
+from collections.abc import Generator
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
-from typing import Optional, Dict, Any, Generator
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from typing import Any, Optional
 
-import psycopg2
 from psycopg2 import pool
 from psycopg2.extras import DictCursor, RealDictCursor
 
@@ -45,13 +44,13 @@ class PoolStats:
     peak_in_use: int = 0
     avg_wait_time_ms: float = 0.0
     total_wait_time_ms: float = 0.0
-    pool_created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    last_health_check: Optional[datetime] = None
+    pool_created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    last_health_check: datetime | None = None
     last_health_check_success: bool = False
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for API responses."""
-        uptime = datetime.now(timezone.utc) - self.pool_created_at
+        uptime = datetime.now(UTC) - self.pool_created_at
         return {
             "total_connections_created": self.total_connections_created,
             "total_connections_closed": self.total_connections_closed,
@@ -119,7 +118,7 @@ class DatabasePool:
         self.name = name
 
         self._lock = threading.Lock()
-        self._pool: Optional[pool.ThreadedConnectionPool] = None
+        self._pool: pool.ThreadedConnectionPool | None = None
         self._stats = PoolStats()
         self._closed = False
 
@@ -146,7 +145,7 @@ class DatabasePool:
     @contextmanager
     def get_connection(
         self,
-        timeout: Optional[float] = None,
+        timeout: float | None = None,
         cursor_factory=DictCursor
     ) -> Generator:
         """
@@ -200,7 +199,7 @@ class DatabasePool:
 
             # Validate connection
             if not self._validate_connection(conn):
-                logger.warning(f"Connection validation failed, reconnecting...")
+                logger.warning("Connection validation failed, reconnecting...")
                 conn.close()
                 conn = self._pool.getconn()
 
@@ -215,7 +214,7 @@ class DatabasePool:
                 self._stats.failed_requests += 1
             raise
 
-        except Exception as e:
+        except Exception:
             with self._lock:
                 self._stats.failed_requests += 1
 
@@ -248,9 +247,9 @@ class DatabasePool:
     def execute(
         self,
         query: str,
-        params: Optional[tuple] = None,
+        params: tuple | None = None,
         fetch: bool = True
-    ) -> Optional[list]:
+    ) -> list | None:
         """
         Execute a query using a pooled connection.
 
@@ -291,7 +290,7 @@ class DatabasePool:
                 conn.commit()
                 return cursor.rowcount
 
-    async def health_check(self) -> Dict[str, Any]:
+    async def health_check(self) -> dict[str, Any]:
         """
         Perform a health check on the pool.
 
@@ -318,7 +317,7 @@ class DatabasePool:
             result["message"] = "Connection successful"
 
             with self._lock:
-                self._stats.last_health_check = datetime.now(timezone.utc)
+                self._stats.last_health_check = datetime.now(UTC)
                 self._stats.last_health_check_success = True
 
         except Exception as e:
@@ -328,12 +327,12 @@ class DatabasePool:
             result["message"] = str(e)
 
             with self._lock:
-                self._stats.last_health_check = datetime.now(timezone.utc)
+                self._stats.last_health_check = datetime.now(UTC)
                 self._stats.last_health_check_success = False
 
         return result
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get pool statistics."""
         with self._lock:
             return self._stats.to_dict()
@@ -374,7 +373,7 @@ class PoolManager:
             with cls._lock:
                 if cls._instance is None:
                     cls._instance = super().__new__(cls)
-                    cls._instance._pools: Dict[str, DatabasePool] = {}
+                    cls._instance._pools: dict[str, DatabasePool] = {}
                     cls._instance._initialized = False
         return cls._instance
 
@@ -429,7 +428,7 @@ class PoolManager:
         self._pools[name] = db_pool
         return db_pool
 
-    def get_pool(self, name: str = "main") -> Optional[DatabasePool]:
+    def get_pool(self, name: str = "main") -> DatabasePool | None:
         """Get a pool by name."""
         return self._pools.get(name)
 
@@ -440,14 +439,14 @@ class PoolManager:
             raise ConnectionError(f"Pool '{pool_name}' not found")
         return db_pool.get_connection(**kwargs)
 
-    async def health_check_all(self) -> Dict[str, Any]:
+    async def health_check_all(self) -> dict[str, Any]:
         """Health check all pools."""
         results = {}
         for name, db_pool in self._pools.items():
             results[name] = await db_pool.health_check()
         return results
 
-    def get_all_stats(self) -> Dict[str, Any]:
+    def get_all_stats(self) -> dict[str, Any]:
         """Get statistics for all pools."""
         return {name: db_pool.get_stats() for name, db_pool in self._pools.items()}
 
@@ -486,9 +485,9 @@ def get_connection(pool_name: str = "main", **kwargs):
 
 def execute_query(
     query: str,
-    params: Optional[tuple] = None,
+    params: tuple | None = None,
     pool_name: str = "main"
-) -> Optional[list]:
+) -> list | None:
     """
     Execute a query using a pooled connection.
 
@@ -506,7 +505,7 @@ def execute_query(
     return db_pool.execute(query, params)
 
 
-async def check_database_health(pool_name: str = "main") -> Dict[str, Any]:
+async def check_database_health(pool_name: str = "main") -> dict[str, Any]:
     """Check database health for a specific pool."""
     db_pool = get_pool_manager().get_pool(pool_name)
     if not db_pool:

@@ -12,10 +12,10 @@ streaming tokens. This test file documents and verifies this behavior.
 """
 
 import asyncio
-from collections.abc import AsyncGenerator
-from datetime import datetime
 import os
 import sys
+from collections.abc import AsyncGenerator
+from datetime import datetime
 from typing import Any
 from unittest.mock import MagicMock
 

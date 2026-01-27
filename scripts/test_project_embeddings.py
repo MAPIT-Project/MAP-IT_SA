@@ -13,15 +13,16 @@ Usage:
     python scripts/test_project_embeddings.py
 """
 
-import os
-import sys
 import asyncio
 import logging
+import os
+import sys
 
 # Add parent directory to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -139,7 +140,7 @@ async def test_vector_search():
         projects = results.get('projects', [])
 
         if 'vector' in sources:
-            print(f"✅ Vector search included in results")
+            print("✅ Vector search included in results")
             print(f"   Sources used: {sources}")
             print(f"   Projects found: {len(projects)}")
             if projects:
@@ -163,8 +164,9 @@ async def test_similar_projects():
     print("="*60)
 
     try:
-        from app.services.local_project_search_service import LocalProjectSearchService
         import psycopg2
+
+        from app.services.local_project_search_service import LocalProjectSearchService
 
         # First, get a project ID that has an embedding
         db_url = os.getenv("DATABASE_URL")
@@ -221,8 +223,9 @@ async def test_tool_aware_agent():
     print("="*60)
 
     try:
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
         import psycopg2
+
+        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         # Get a project ID
         db_url = os.getenv("DATABASE_URL")
@@ -261,7 +264,7 @@ async def test_tool_aware_agent():
         })
 
         if result.get('success'):
-            print(f"✅ Tool execution successful")
+            print("✅ Tool execution successful")
             projects = result.get('projects', [])
             print(f"   Found {len(projects)} similar projects")
             return True

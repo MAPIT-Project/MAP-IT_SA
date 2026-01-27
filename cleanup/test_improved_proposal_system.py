@@ -3,19 +3,20 @@ Comprehensive test of the improved proposal generation system
 """
 
 import asyncio
-import sys
 import os
+import sys
 from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from app.services.proposal_writing import (
-    ProposalTemplateService,
-    ProposalDraftGenerator,
-    BudgetAssistant
-)
-from app.services.call_document_service import CallDocumentService
 import psycopg2.pool
+
+from app.services.call_document_service import CallDocumentService
+from app.services.proposal_writing import (
+    BudgetAssistant,
+    ProposalDraftGenerator,
+    ProposalTemplateService,
+)
 
 # Test configuration - Real Horizon Europe call
 TEST_CALL_ID = "HORIZON-CL3-2025-02-CS-ECCC-01"
@@ -100,7 +101,7 @@ async def test_complete_improved_system():
         
         template = await template_service.generate_template(TEST_CALL_ID)
         
-        print(f"✅ Template generated successfully!")
+        print("✅ Template generated successfully!")
         print(f"   Proposal Type: {template['proposal_type']}")
         print(f"   Page Limit: {template['metadata']['page_limit']}")
         print(f"   Sections: {len(template['structure']['sections'])}")
@@ -135,7 +136,7 @@ async def test_complete_improved_system():
             
             # Check for call ID references
             if TEST_CALL_ID in draft_result['draft_text']:
-                print(f"      📯 Contains call ID reference")
+                print("      📯 Contains call ID reference")
         
         # Test 3: Improved Budget Generation
         print("\n💰 3. IMPROVED BUDGET GENERATION")
@@ -153,7 +154,7 @@ async def test_complete_improved_system():
             project_params=project_params
         )
         
-        print(f"✅ Enhanced budget table generated!")
+        print("✅ Enhanced budget table generated!")
         print(f"\n{budget_result['budget_table_formatted']}")
         
         # Test 4: Quality Analysis
@@ -178,7 +179,7 @@ async def test_complete_improved_system():
         
         avg_quality = (total_quality / len(generated_drafts)) * 100
         
-        print(f"\n   📈 OVERALL STATISTICS:")
+        print("\n   📈 OVERALL STATISTICS:")
         print(f"      Total Words Generated: {total_words}")
         print(f"      Average Quality Score: {avg_quality:.0f}%")
         print(f"      Unique Criteria Addressed: {len(all_criteria_addressed)}")
@@ -190,7 +191,7 @@ async def test_complete_improved_system():
         
         objectives_draft = generated_drafts.get('excellence.objectives')
         if objectives_draft:
-            print(f"\n   Objectives Section Preview (first 400 words):")
+            print("\n   Objectives Section Preview (first 400 words):")
             print("   " + "-"*60)
             preview = objectives_draft['draft_text'][:400] + "..." if len(objectives_draft['draft_text']) > 400 else objectives_draft['draft_text']
             for line in preview.split('\n'):
@@ -206,33 +207,33 @@ async def test_complete_improved_system():
         print(f"   EU Alignment Score: {alignment_score*100:.0f}%")
         
         # Test 7: System Improvements Summary
-        print(f"\n🎯 7. SYSTEM IMPROVEMENTS SUMMARY")
+        print("\n🎯 7. SYSTEM IMPROVEMENTS SUMMARY")
         print("-" * 50)
         
-        print(f"   ✅ FIXED ISSUES:")
-        print(f"      • Async/await problems in template service")
-        print(f"      • Compliance checker async issues")
-        print(f"      • Draft generator template access")
+        print("   ✅ FIXED ISSUES:")
+        print("      • Async/await problems in template service")
+        print("      • Compliance checker async issues")
+        print("      • Draft generator template access")
         
-        print(f"\n   ✅ ENHANCEMENTS MADE:")
-        print(f"      • Detailed budget breakdown with percentages")
-        print(f"      • Call-specific references in generated content")
-        print(f"      • Improved prompt engineering with call metadata")
-        print(f"      • Better EU terminology integration")
+        print("\n   ✅ ENHANCEMENTS MADE:")
+        print("      • Detailed budget breakdown with percentages")
+        print("      • Call-specific references in generated content")
+        print("      • Improved prompt engineering with call metadata")
+        print("      • Better EU terminology integration")
         
-        print(f"\n   ✅ PERFORMANCE METRICS:")
+        print("\n   ✅ PERFORMANCE METRICS:")
         print(f"      • Content generation: {total_words} words")
         print(f"      • Quality consistency: {avg_quality:.0f}%")
         print(f"      • Call relevance: {call_references} sections reference call ID")
-        print(f"      • Budget detail: Full breakdown with cost analysis")
+        print("      • Budget detail: Full breakdown with cost analysis")
         
         # Final Assessment
-        print(f"\n🏆 FINAL ASSESSMENT")
+        print("\n🏆 FINAL ASSESSMENT")
         print("="*50)
-        print(f"System Status: IMPROVED AND FULLY FUNCTIONAL")
+        print("System Status: IMPROVED AND FULLY FUNCTIONAL")
         print(f"Effectiveness Score: {avg_quality:.0f}%")
         print(f"EU Alignment: {alignment_score*100:.0f}%")
-        print(f"Recommendation: EXCELLENT - READY FOR PRODUCTION USE")
+        print("Recommendation: EXCELLENT - READY FOR PRODUCTION USE")
         
         db_pool.closeall()
         return True

@@ -14,10 +14,9 @@ Options:
     --force: Re-extract even if calls already exist
 """
 
-import os
-import sys
 import argparse
 import logging
+import sys
 from pathlib import Path
 
 # Add project root to path
@@ -25,13 +24,14 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from dotenv import load_dotenv
+
 load_dotenv(project_root / '.env')
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
 from app.core.config import settings
-from app.services.call_extractors import HorizonEuropeExtractor, FundingCall
+from app.services.call_extractors import HorizonEuropeExtractor
 
 # Configure logging
 logging.basicConfig(
@@ -66,7 +66,7 @@ def ensure_table_exists(conn):
     logger.info("Creating funding_calls table...")
     
     if sql_file.exists():
-        with open(sql_file, 'r') as f:
+        with open(sql_file) as f:
             sql = f.read()
         cursor.execute(sql)
         conn.commit()

@@ -14,8 +14,8 @@ Key difference from Horizon Europe:
 """
 
 import logging
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from dataclasses import dataclass
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ class BudgetBreakdown:
             self.exceptional_costs
         )
 
-    def to_dict(self) -> Dict[str, float]:
+    def to_dict(self) -> dict[str, float]:
         return {
             'travel': round(self.travel, 2),
             'individual_support': round(self.individual_support, 2),
@@ -177,7 +177,7 @@ class ErasmusBudgetCalculator:
         include_org_support: bool = True,
         green_travel: bool = False,
         include_disadvantaged_top_up: int = 0,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Calculate budget for mobility activities (KA1).
 
@@ -265,8 +265,8 @@ class ErasmusBudgetCalculator:
         transnational_meetings: int = 4,
         intellectual_outputs: int = 0,
         coordinator_country: str = 'Germany',
-        target_budget: Optional[float] = None,
-    ) -> Dict[str, Any]:
+        target_budget: float | None = None,
+    ) -> dict[str, Any]:
         """
         Calculate budget for KA2 partnership projects.
 
@@ -377,7 +377,7 @@ class ErasmusBudgetCalculator:
         self,
         action_type: str,  # 'module', 'chair', 'coe', 'network', 'project'
         duration_years: int = 3,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Calculate budget for Jean Monnet actions.
 
@@ -422,7 +422,7 @@ class ErasmusBudgetCalculator:
         partnership_type: str,  # 'cooperation' or 'small_scale'
         num_partners: int,
         duration_months: int = 24,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Calculate budget for Sport actions.
 
@@ -496,8 +496,8 @@ async def calculate_erasmus_budget_execute(
     partnership_type: str = 'cooperation',
     distance_band: str = '500-1999km',
     green_travel: bool = False,
-    target_budget: Optional[float] = None,
-) -> Dict[str, Any]:
+    target_budget: float | None = None,
+) -> dict[str, Any]:
     """
     Calculate Erasmus+ lump sum budget.
 
@@ -521,9 +521,23 @@ async def calculate_erasmus_budget_execute(
     action_upper = action_type.upper()
 
     # Determine action category
-    if action_upper in ['MOBILITY', 'KA1'] or 'KA1' in action_upper:
+    # KA1 Mobility includes: staff_mobility, student_mobility, trainee_mobility, youth_mobility
+    mobility_keywords = ['MOBILITY', 'KA1', 'STUDENT', 'STAFF', 'TRAINEE', 'YOUTH', 'VET_MOBILITY', 'HED_MOBILITY']
+    is_mobility = any(kw in action_upper for kw in mobility_keywords)
+
+    if is_mobility:
+        # Determine specific mobility type
+        if 'STUDENT' in action_upper or 'HED' in action_upper:
+            mobility_type = 'student_mobility'
+        elif 'TRAINEE' in action_upper or 'VET' in action_upper:
+            mobility_type = 'trainee_mobility'
+        elif 'YOUTH' in action_upper:
+            mobility_type = 'youth_mobility'
+        else:
+            mobility_type = 'staff_mobility'  # Default for KA1/MOBILITY
+
         result = calculator.calculate_mobility_budget(
-            action_type='staff_mobility',
+            action_type=mobility_type,
             participants=num_participants,
             duration_days=duration_days,
             destination_country=destination_country,

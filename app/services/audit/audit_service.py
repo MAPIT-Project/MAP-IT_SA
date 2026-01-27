@@ -20,9 +20,9 @@ import json
 import logging
 from collections import deque
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from enum import Enum
-from typing import Any, Deque, Dict, List, Optional
+from typing import Any
 from uuid import uuid4
 
 # Configure structured logger for audit events
@@ -112,35 +112,35 @@ class AuditEvent:
     timestamp: datetime
 
     # Actor information
-    user_id: Optional[str] = None
-    organization_id: Optional[str] = None
-    session_id: Optional[str] = None
+    user_id: str | None = None
+    organization_id: str | None = None
+    session_id: str | None = None
 
     # Resource information
-    resource_type: Optional[str] = None
-    resource_id: Optional[str] = None
-    resource_name: Optional[str] = None
+    resource_type: str | None = None
+    resource_id: str | None = None
+    resource_name: str | None = None
 
     # Request information
-    ip_address: Optional[str] = None
-    user_agent: Optional[str] = None
-    request_id: Optional[str] = None
-    endpoint: Optional[str] = None
-    http_method: Optional[str] = None
+    ip_address: str | None = None
+    user_agent: str | None = None
+    request_id: str | None = None
+    endpoint: str | None = None
+    http_method: str | None = None
 
     # Outcome
     success: bool = True
-    error_message: Optional[str] = None
-    error_code: Optional[str] = None
+    error_message: str | None = None
+    error_code: str | None = None
 
     # Additional context
-    details: Dict[str, Any] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     # Performance
-    duration_ms: Optional[float] = None
+    duration_ms: float | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "event_id": self.event_id,
             "event_type": self.event_type.value,
@@ -165,7 +165,7 @@ class AuditEvent:
             "duration_ms": self.duration_ms,
         }
 
-    def to_log_record(self) -> Dict[str, Any]:
+    def to_log_record(self) -> dict[str, Any]:
         """Convert to structured log record for SIEM."""
         return {
             "event_id": self.event_id,
@@ -220,8 +220,8 @@ class AuditService:
         self.redis = redis_client
 
         # In-memory buffer for batch writes
-        self._buffer: Deque[AuditEvent] = deque(maxlen=self.BUFFER_SIZE)
-        self._last_flush = datetime.now(timezone.utc)
+        self._buffer: deque[AuditEvent] = deque(maxlen=self.BUFFER_SIZE)
+        self._last_flush = datetime.now(UTC)
         self._flush_lock = asyncio.Lock()
 
     # =========================================================================
@@ -244,7 +244,7 @@ class AuditService:
         # Check if we should flush
         should_flush = (
             len(self._buffer) >= self.BUFFER_SIZE
-            or (datetime.now(timezone.utc) - self._last_flush).seconds >= self.FLUSH_INTERVAL_SECONDS
+            or (datetime.now(UTC) - self._last_flush).seconds >= self.FLUSH_INTERVAL_SECONDS
             or self._is_high_priority(event)
         )
 
@@ -283,12 +283,12 @@ class AuditService:
 
             events = list(self._buffer)
             self._buffer.clear()
-            self._last_flush = datetime.now(timezone.utc)
+            self._last_flush = datetime.now(UTC)
 
         if self.db_pool:
             await self._write_to_db(events)
 
-    async def _write_to_db(self, events: List[AuditEvent]):
+    async def _write_to_db(self, events: list[AuditEvent]):
         """Write events to database."""
         if not self.db_pool or not events:
             return
@@ -344,10 +344,10 @@ class AuditService:
         user_id: str,
         conversation_id: str,
         query: str,
-        tools_used: List[str],
+        tools_used: list[str],
         duration_ms: float,
         success: bool = True,
-        error: Optional[str] = None,
+        error: str | None = None,
         request=None,
     ):
         """Log a conversation query event."""
@@ -355,7 +355,7 @@ class AuditService:
             event_id=str(uuid4()),
             event_type=AuditEventType.QUERY_COMPLETED if success else AuditEventType.QUERY_FAILED,
             action=AuditAction.EXECUTE,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             user_id=user_id,
             session_id=conversation_id,
             resource_type="conversation",
@@ -382,18 +382,18 @@ class AuditService:
     async def log_auth_event(
         self,
         event_type: AuditEventType,
-        user_id: Optional[str],
+        user_id: str | None,
         success: bool = True,
-        error: Optional[str] = None,
+        error: str | None = None,
         request=None,
-        details: Optional[Dict] = None,
+        details: dict | None = None,
     ):
         """Log an authentication event."""
         event = AuditEvent(
             event_id=str(uuid4()),
             event_type=event_type,
             action=AuditAction.LOGIN if "login" in event_type.value else AuditAction.LOGOUT,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             user_id=user_id,
             resource_type="auth",
             success=success,
@@ -417,7 +417,7 @@ class AuditService:
         proposal_title: str = None,
         section_id: str = None,
         action: AuditAction = AuditAction.UPDATE,
-        details: Optional[Dict] = None,
+        details: dict | None = None,
         request=None,
     ):
         """Log a proposal-related event."""
@@ -425,7 +425,7 @@ class AuditService:
             event_id=str(uuid4()),
             event_type=event_type,
             action=action,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             user_id=user_id,
             session_id=session_id,
             resource_type="proposal",
@@ -447,7 +447,7 @@ class AuditService:
         self,
         search_type: str,
         user_id: str,
-        query_params: Dict[str, Any],
+        query_params: dict[str, Any],
         result_count: int,
         duration_ms: float,
         request=None,
@@ -464,7 +464,7 @@ class AuditService:
             event_id=str(uuid4()),
             event_type=event_type_map.get(search_type, AuditEventType.DOCUMENT_SEARCH),
             action=AuditAction.READ,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             user_id=user_id,
             resource_type="search",
             duration_ms=duration_ms,
@@ -485,9 +485,9 @@ class AuditService:
         self,
         event_type: AuditEventType,
         admin_user_id: str,
-        target_user_id: Optional[str] = None,
+        target_user_id: str | None = None,
         action: AuditAction = AuditAction.UPDATE,
-        details: Optional[Dict] = None,
+        details: dict | None = None,
         request=None,
     ):
         """Log an admin action."""
@@ -495,7 +495,7 @@ class AuditService:
             event_id=str(uuid4()),
             event_type=event_type,
             action=action,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             user_id=admin_user_id,
             resource_type="admin",
             resource_id=target_user_id,
@@ -529,15 +529,15 @@ class AuditService:
 
     async def get_audit_trail(
         self,
-        resource_type: Optional[str] = None,
-        resource_id: Optional[str] = None,
-        user_id: Optional[str] = None,
-        event_types: Optional[List[AuditEventType]] = None,
-        start_time: Optional[datetime] = None,
-        end_time: Optional[datetime] = None,
+        resource_type: str | None = None,
+        resource_id: str | None = None,
+        user_id: str | None = None,
+        event_types: list[AuditEventType] | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
         limit: int = 100,
         offset: int = 0,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Query audit events.
 
@@ -595,7 +595,7 @@ class AuditService:
                 rows = cur.fetchall()
                 columns = [desc[0] for desc in cur.description]
                 for row in rows:
-                    events.append(dict(zip(columns, row)))
+                    events.append(dict(zip(columns, row, strict=False)))
 
         return events
 
@@ -604,12 +604,12 @@ class AuditService:
         user_id: str,
         days: int = 30,
         limit: int = 100,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get activity summary for a user."""
         if not self.db_pool:
             return {}
 
-        start_time = datetime.now(timezone.utc) - timedelta(days=days)
+        start_time = datetime.now(UTC) - timedelta(days=days)
 
         query = """
             SELECT
@@ -647,7 +647,7 @@ class AuditService:
         self,
         hours: int = 24,
         limit: int = 100,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Get recent security-related events."""
         security_types = [
             AuditEventType.LOGIN,
@@ -662,7 +662,7 @@ class AuditService:
 
         return await self.get_audit_trail(
             event_types=security_types,
-            start_time=datetime.now(timezone.utc) - timedelta(hours=hours),
+            start_time=datetime.now(UTC) - timedelta(hours=hours),
             limit=limit,
         )
 
@@ -670,13 +670,13 @@ class AuditService:
     # Maintenance
     # =========================================================================
 
-    async def cleanup_old_events(self, retention_days: Optional[int] = None):
+    async def cleanup_old_events(self, retention_days: int | None = None):
         """Delete audit events older than retention period."""
         if not self.db_pool:
             return 0
 
         days = retention_days or self.RETENTION_DAYS
-        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+        cutoff = datetime.now(UTC) - timedelta(days=days)
 
         query = "DELETE FROM audit_events WHERE timestamp < %s"
 
@@ -689,12 +689,12 @@ class AuditService:
         logger.info(f"Cleaned up {deleted} audit events older than {days} days")
         return deleted
 
-    async def get_statistics(self, days: int = 30) -> Dict[str, Any]:
+    async def get_statistics(self, days: int = 30) -> dict[str, Any]:
         """Get audit statistics."""
         if not self.db_pool:
             return {}
 
-        start_time = datetime.now(timezone.utc) - timedelta(days=days)
+        start_time = datetime.now(UTC) - timedelta(days=days)
 
         stats_query = """
             SELECT
@@ -743,7 +743,7 @@ class AuditService:
 
 
 # Singleton instance
-_audit_service: Optional[AuditService] = None
+_audit_service: AuditService | None = None
 
 
 def get_audit_service(

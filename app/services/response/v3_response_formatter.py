@@ -549,10 +549,21 @@ class V3ResponseFormatter:
         org_projects_result = None
         collaboration_network_result = None
         budget_calculation_result = None
+        erasmus_budget_result = None
 
         for _tool_name, result in tool_results.items():
             if not isinstance(result, dict):
                 continue
+
+            # Check for Erasmus+ budget calculation results (from calculate_erasmus_budget)
+            # These have "breakdown", "funding_model", and "metadata.programme": "erasmus_plus"
+            if (
+                "breakdown" in result
+                and "funding_model" in result
+                and result.get("metadata", {}).get("programme") == "erasmus_plus"
+            ):
+                erasmus_budget_result = result
+                continue  # Don't add these to generic results
 
             # Check for budget calculation results (from calculate_budget)
             # These have "calculated_budget", "breakdown", and "tool_name": "calculate_budget"
@@ -632,7 +643,12 @@ class V3ResponseFormatter:
                         # No ID, include but might be duplicate
                         all_projects.append(project)
 
-        # Format budget calculation results if available (highest priority)
+        # Format Erasmus+ budget calculation results if available (highest priority)
+        if erasmus_budget_result:
+            logger.info("📋 Formatting Erasmus+ budget calculation results")
+            return self.format_erasmus_budget_calculation(erasmus_budget_result, query)
+
+        # Format Horizon Europe budget calculation results if available
         if budget_calculation_result:
             logger.info("📋 Formatting budget calculation results")
             return self.format_budget_calculation(budget_calculation_result, query)
@@ -1078,6 +1094,170 @@ No collaboration partners found for this organization in the database.
         )
 
         return "\n".join(lines)
+
+    def format_erasmus_budget_calculation(
+        self, result: dict[str, Any], query: str = ""
+    ) -> str:
+        """Format Erasmus+ budget calculation results into a structured response."""
+        if not result.get("success"):
+            return "Erasmus+ budget calculation failed. Please try again with different parameters."
+
+        breakdown = result.get("breakdown", {})
+        parameters = result.get("parameters", {})
+        notes = result.get("notes", [])
+        funding_model = result.get("funding_model", "lump_sum")
+        budget_range = result.get("budget_range", {})
+        budget_options = result.get("budget_options", [])
+        metadata = result.get("metadata", {})
+
+        # Determine mobility type for header
+        action_type = parameters.get("action_type", "")
+        if not action_type and parameters.get("partnership_type"):
+            action_type = f"{parameters['partnership_type'].title()} Partnership"
+
+        # Format the action type nicely
+        action_display = self._format_erasmus_action_type(action_type)
+
+        lines = [
+            "## Erasmus+ Budget Calculation Results\n",
+            f"**Action Type:** {action_display}",
+            f"**Funding Model:** {funding_model.replace('_', ' ').title()}\n",
+        ]
+
+        # Add key parameters based on funding model
+        if funding_model == "unit_cost":
+            # Mobility parameters
+            participants = parameters.get("participants", 0)
+            duration_days = parameters.get("duration_days", 0)
+            destination = parameters.get("destination_country", "N/A")
+            origin = parameters.get("origin_country", "N/A")
+            distance_band = parameters.get("distance_band", "N/A")
+            green_travel = parameters.get("green_travel", False)
+
+            lines.append("**Project Parameters:**")
+            lines.append(f"- **Participants:** {participants}")
+            lines.append(f"- **Duration:** {duration_days} days (~{duration_days // 30} months)")
+            lines.append(f"- **Origin:** {origin} → **Destination:** {destination}")
+            lines.append(f"- **Distance Band:** {distance_band}")
+            if green_travel:
+                lines.append("- **Green Travel:** Yes (bonus included)")
+            lines.append("")
+        else:
+            # Partnership parameters
+            num_partners = parameters.get("num_partners", 0)
+            duration_months = parameters.get("duration_months", 0)
+            partnership_type = parameters.get("partnership_type", "")
+
+            lines.append("**Project Parameters:**")
+            lines.append(f"- **Partners:** {num_partners}")
+            lines.append(f"- **Duration:** {duration_months} months")
+            if partnership_type:
+                lines.append(f"- **Type:** {partnership_type.title()}")
+            lines.append("")
+
+        # Budget Summary
+        total = breakdown.get("total", 0)
+        lines.append("### 💰 Budget Summary\n")
+        lines.append(f"**Total Grant Amount:** €{total:,.0f}")
+        lines.append("")
+
+        # Detailed Breakdown
+        lines.append("### 📊 Cost Breakdown\n")
+        lines.append("| **Category** | **Amount** | **Description** |")
+        lines.append("|--------------|------------|-----------------|")
+
+        # Erasmus+ categories with icons
+        categories = [
+            ("travel", "✈️ Travel", "Unit costs based on distance band"),
+            ("individual_support", "👤 Individual Support", "Daily allowance for participants"),
+            ("organizational_support", "🏢 Organizational Support", "Per-participant admin costs"),
+            ("project_management", "📋 Project Management", "Monthly lump sums"),
+            ("transnational_meetings", "🤝 Transnational Meetings", "Meeting participation costs"),
+            ("intellectual_outputs", "📚 Intellectual Outputs", "Development costs"),
+            ("special_needs", "♿ Special Needs", "Additional support"),
+            ("exceptional_costs", "📦 Exceptional Costs", "Other eligible costs"),
+        ]
+
+        for key, name, desc in categories:
+            amount = breakdown.get(key, 0)
+            if amount > 0:
+                lines.append(f"| {name} | €{amount:,.0f} | {desc} |")
+
+        lines.append(f"| **TOTAL** | **€{total:,.0f}** | |")
+        lines.append("")
+
+        # Budget Range (for partnerships)
+        if budget_range:
+            min_budget = budget_range.get("min", 0)
+            max_budget = budget_range.get("max", 0)
+            lines.append("### 📈 Budget Range\n")
+            lines.append(
+                f"- **Minimum:** €{min_budget:,.0f}"
+            )
+            lines.append(f"- **Maximum:** €{max_budget:,.0f}")
+            lines.append("")
+
+        # Budget Options (for partnerships)
+        if budget_options:
+            lines.append("### 🎯 Available Grant Options\n")
+            for opt in budget_options:
+                label = opt.get("label", "")
+                amount = opt.get("amount", 0)
+                desc = opt.get("description", "")
+                lines.append(f"- **{label}:** €{amount:,.0f} - {desc}")
+            lines.append("")
+
+        # Notes from calculator
+        if notes:
+            lines.append("### 📝 Notes\n")
+            for note in notes:
+                lines.append(f"- {note}")
+            lines.append("")
+
+        # Actionable guidance specific to Erasmus+
+        lines.append(
+            """---
+
+🎯 **Next Steps:**
+• Check the [Erasmus+ Programme Guide](https://erasmus-plus.ec.europa.eu/programme-guide) for exact unit costs
+• Verify distance bands using the [EU Distance Calculator](https://ec.europa.eu/programmes/erasmus-plus/resources/distance-calculator_en)
+• Contact your National Agency for country-specific guidance
+• Use the official Erasmus+ budget forms for your application
+• Consider green travel options for additional funding
+
+📚 **Useful Resources:**
+• [Erasmus+ Programme Guide 2024-2027](https://erasmus-plus.ec.europa.eu/programme-guide)
+• [National Agencies](https://erasmus-plus.ec.europa.eu/contacts/national-agencies)
+• [Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/programmes/erasmus2027)"""
+        )
+
+        return "\n".join(lines)
+
+    def _format_erasmus_action_type(self, action_type: str) -> str:
+        """Format Erasmus+ action type for display."""
+        action_map = {
+            "student_mobility": "🎓 Student Mobility (KA1-HED)",
+            "staff_mobility": "👨‍🏫 Staff Mobility (KA1)",
+            "trainee_mobility": "🔧 Trainee/VET Mobility (KA1-VET)",
+            "youth_mobility": "🌍 Youth Mobility (KA1-Youth)",
+            "cooperation": "🤝 Cooperation Partnership (KA2)",
+            "small_scale": "📦 Small-Scale Partnership (KA2)",
+            "jean_monnet": "🇪🇺 Jean Monnet Action",
+            "sport": "⚽ Sport Partnership",
+        }
+
+        # Check for direct match
+        action_lower = action_type.lower().replace(" ", "_")
+        if action_lower in action_map:
+            return action_map[action_lower]
+
+        # Check for partial matches
+        for key, display in action_map.items():
+            if key in action_lower:
+                return display
+
+        # Default
+        return f"📋 {action_type.replace('_', ' ').title()}"
 
     def format_documents(self, documents: list[dict], query: str = "") -> str:
         """Format document search results with proper citations and source attribution."""

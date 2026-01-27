@@ -2,20 +2,18 @@
 Document ingestion service that orchestrates the complete pipeline.
 """
 
-import os
-import uuid
-from typing import List, Dict, Any, Optional, Tuple
-from pathlib import Path
-import logging
-from datetime import datetime, timezone
 import asyncio
+import logging
 from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
 
-from .document_processor import DocumentProcessor
+from ..core.config import settings
 from .chunking_service import TextChunker
+from .document_processor import DocumentProcessor
 from .embedding_service import EmbeddingService
 from .supabase_client import SupabaseVectorStore
-from ..core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -38,11 +36,11 @@ class DocumentIngestionService:
     def ingest_file(
         self,
         file_path: str,
-        document_type: Optional[str] = None,
-        programme_year: Optional[str] = None,
-        source_url: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        document_type: str | None = None,
+        programme_year: str | None = None,
+        source_url: str | None = None,
+        metadata: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Ingest a single file through the complete pipeline."""
         try:
             logger.info(f"🚀 Starting ingestion for: {file_path}")
@@ -103,7 +101,7 @@ class DocumentIngestionService:
             
             # Step 5: Prepare chunks for database insertion
             db_chunks = []
-            for chunk, embedding in zip(chunks, embeddings):
+            for chunk, embedding in zip(chunks, embeddings, strict=False):
                 chunk['embedding'] = embedding
                 db_chunks.append(chunk)
             
@@ -119,7 +117,7 @@ class DocumentIngestionService:
                 **doc_metadata,
                 'total_chunks': len(inserted_chunks),
                 'chunking_stats': self.chunker.get_chunking_stats(chunks),
-                'ingestion_completed_at': datetime.now(timezone.utc).isoformat()
+                'ingestion_completed_at': datetime.now(UTC).isoformat()
             }
             
             self.supabase.update_document_status(document_id, 'active', final_metadata)
@@ -143,7 +141,7 @@ class DocumentIngestionService:
                 self.supabase.update_document_status(
                     document_id, 
                     'failed', 
-                    {'error': str(e), 'failed_at': datetime.now(timezone.utc).isoformat()}
+                    {'error': str(e), 'failed_at': datetime.now(UTC).isoformat()}
                 )
             
             return {
@@ -155,10 +153,10 @@ class DocumentIngestionService:
     def ingest_web_page(
         self,
         url: str,
-        document_type: Optional[str] = None,
-        programme_year: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        document_type: str | None = None,
+        programme_year: str | None = None,
+        metadata: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Ingest a web page through the complete pipeline."""
         try:
             logger.info(f"🌐 Starting web ingestion for: {url}")
@@ -210,11 +208,11 @@ class DocumentIngestionService:
     
     def ingest_batch(
         self,
-        file_paths: List[str],
-        document_type: Optional[str] = None,
-        programme_year: Optional[str] = None,
+        file_paths: list[str],
+        document_type: str | None = None,
+        programme_year: str | None = None,
         max_workers: int = 3
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Ingest multiple files in parallel."""
         logger.info(f"📦 Starting batch ingestion for {len(file_paths)} files")
         
@@ -255,11 +253,11 @@ class DocumentIngestionService:
     async def ingest_file_async(
         self,
         file_path: str,
-        document_type: Optional[str] = None,
-        programme_year: Optional[str] = None,
-        source_url: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        document_type: str | None = None,
+        programme_year: str | None = None,
+        source_url: str | None = None,
+        metadata: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Async version of file ingestion."""
         loop = asyncio.get_event_loop()
         
@@ -277,9 +275,9 @@ class DocumentIngestionService:
         self,
         document_id: str,
         text_content: str,
-        doc_metadata: Dict[str, Any],
-        document_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        doc_metadata: dict[str, Any],
+        document_data: dict[str, Any]
+    ) -> dict[str, Any]:
         """Complete the ingestion pipeline after document creation."""
         try:
             # Step 3: Chunk text
@@ -305,7 +303,7 @@ class DocumentIngestionService:
             
             # Step 5: Prepare chunks for database insertion
             db_chunks = []
-            for chunk, embedding in zip(chunks, embeddings):
+            for chunk, embedding in zip(chunks, embeddings, strict=False):
                 chunk['embedding'] = embedding
                 db_chunks.append(chunk)
             
@@ -321,7 +319,7 @@ class DocumentIngestionService:
                 **doc_metadata,
                 'total_chunks': len(inserted_chunks),
                 'chunking_stats': self.chunker.get_chunking_stats(chunks),
-                'ingestion_completed_at': datetime.now(timezone.utc).isoformat()
+                'ingestion_completed_at': datetime.now(UTC).isoformat()
             }
             
             self.supabase.update_document_status(document_id, 'active', final_metadata)
@@ -343,7 +341,7 @@ class DocumentIngestionService:
             self.supabase.update_document_status(
                 document_id, 
                 'failed', 
-                {'error': str(e), 'failed_at': datetime.now(timezone.utc).isoformat()}
+                {'error': str(e), 'failed_at': datetime.now(UTC).isoformat()}
             )
             
             raise e
@@ -351,7 +349,7 @@ class DocumentIngestionService:
     def _extract_title(
         self, 
         text_content: str, 
-        metadata: Dict[str, Any], 
+        metadata: dict[str, Any], 
         file_path: str
     ) -> str:
         """Extract or generate a title for the document."""
@@ -413,7 +411,7 @@ class DocumentIngestionService:
         else:
             return 'unknown'
     
-    def _infer_programme_year(self, text_content: str) -> Optional[str]:
+    def _infer_programme_year(self, text_content: str) -> str | None:
         """Infer programme year from content."""
         import re
         
@@ -439,7 +437,7 @@ class DocumentIngestionService:
         
         return None
     
-    def get_ingestion_status(self, document_id: str) -> Dict[str, Any]:
+    def get_ingestion_status(self, document_id: str) -> dict[str, Any]:
         """Get the status of a document ingestion."""
         document = self.supabase.get_document_by_id(document_id)
         
@@ -466,7 +464,7 @@ class DocumentIngestionService:
         
         return status_info
     
-    def reprocess_document(self, document_id: str) -> Dict[str, Any]:
+    def reprocess_document(self, document_id: str) -> dict[str, Any]:
         """Reprocess a failed or existing document."""
         document = self.supabase.get_document_by_id(document_id)
         
@@ -497,7 +495,7 @@ class DocumentIngestionService:
                 document['source_url']
             )
     
-    def get_service_stats(self) -> Dict[str, Any]:
+    def get_service_stats(self) -> dict[str, Any]:
         """Get statistics about the ingestion service."""
         stats = {
             'supabase_connected': self.supabase.test_connection(),

@@ -6,14 +6,13 @@ This script identifies and removes duplicate documents from the horizon_document
 based on file_path and title, keeping only the most recent version of each document.
 """
 
-import os
-import sys
 import logging
-from datetime import datetime
+import sys
 from pathlib import Path
+
 import psycopg2
-from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
+from psycopg2.extras import RealDictCursor
 
 # Add the project root to the path
 project_root = Path(__file__).parent.parent
@@ -157,7 +156,7 @@ class DuplicateRemover:
             
             if not dry_run:
                 self.conn.commit()
-                logger.info(f"✅ Transaction committed successfully")
+                logger.info("✅ Transaction committed successfully")
             
             return total_removed_docs, total_removed_chunks
             
@@ -233,21 +232,21 @@ def main():
         removed_docs, removed_chunks = remover.remove_duplicates(duplicates, dry_run=True)
         
         # Ask for confirmation
-        print(f"\n⚠️  CONFIRMATION REQUIRED")
+        print("\n⚠️  CONFIRMATION REQUIRED")
         print(f"This will remove {sum(len(dup['document_ids']) - 1 for dup in duplicates)} duplicate documents")
-        print(f"and their associated chunks from the database.")
-        print(f"\nDocuments to be kept (most recent version of each):")
+        print("and their associated chunks from the database.")
+        print("\nDocuments to be kept (most recent version of each):")
         for dup in duplicates:
             print(f"  ✅ {dup['title'][:60]}...")
         
-        confirm = input(f"\nProceed with removal? (yes/no): ").lower().strip()
+        confirm = input("\nProceed with removal? (yes/no): ").lower().strip()
         
         if confirm in ['yes', 'y']:
             logger.info("\n🗑️  Removing duplicates...")
             logger.info("-" * 40)
             removed_docs, removed_chunks = remover.remove_duplicates(duplicates, dry_run=False)
             
-            logger.info(f"\n✅ Cleanup completed successfully!")
+            logger.info("\n✅ Cleanup completed successfully!")
             logger.info(f"   🗑️  Removed {removed_docs} duplicate documents")
             logger.info(f"   🗑️  Removed {removed_chunks} associated chunks")
             

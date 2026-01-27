@@ -12,12 +12,12 @@ Tests:
 - Quality score filtering
 """
 
-import pytest
-import asyncio
 import json
-from unittest.mock import Mock, patch, MagicMock
-import sys
 import os
+import sys
+from unittest.mock import MagicMock
+
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

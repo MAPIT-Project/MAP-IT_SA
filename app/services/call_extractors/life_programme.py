@@ -17,8 +17,8 @@ https://cinea.ec.europa.eu/programmes/life_en
 
 import logging
 import re
-from typing import List, Dict, Any, Optional
 from decimal import Decimal
+from typing import Any
 
 from .base import CallExtractor, FundingCall
 
@@ -81,7 +81,7 @@ class LIFEExtractor(CallExtractor):
         'PLP': 'Preparatory Project',
     }
     
-    def extract_from_content(self, content: str, document_title: str = "") -> List[FundingCall]:
+    def extract_from_content(self, content: str, document_title: str = "") -> list[FundingCall]:
         """
         Extract LIFE calls from document content.
         """
@@ -106,7 +106,7 @@ class LIFEExtractor(CallExtractor):
         content: str, 
         topic_code: str,
         document_title: str
-    ) -> Optional[FundingCall]:
+    ) -> FundingCall | None:
         """Extract details for a single LIFE call."""
         
         title = self._extract_title(content, topic_code)
@@ -188,21 +188,21 @@ class LIFEExtractor(CallExtractor):
                 return strand_name
         return "LIFE Programme"
     
-    def _extract_sub_programme(self, topic_code: str) -> Optional[str]:
+    def _extract_sub_programme(self, topic_code: str) -> str | None:
         """Extract the sub-programme from topic code."""
         for sub_code, sub_name in self.sub_programmes.items():
             if sub_code in topic_code.upper():
                 return sub_name
         return None
     
-    def _extract_action_type_from_code(self, topic_code: str) -> Optional[str]:
+    def _extract_action_type_from_code(self, topic_code: str) -> str | None:
         """Extract action type from topic code."""
         for action_code, action_name in self.action_types.items():
             if action_code in topic_code.upper():
                 return action_name
         return None
     
-    def _extract_expected_outcome(self, content: str, topic_code: str) -> Optional[str]:
+    def _extract_expected_outcome(self, content: str, topic_code: str) -> str | None:
         """Extract expected outcome section."""
         start_idx = content.upper().find(topic_code.upper())
         if start_idx == -1:
@@ -223,7 +223,7 @@ class LIFEExtractor(CallExtractor):
         
         return None
     
-    def _extract_scope(self, content: str, topic_code: str) -> Optional[str]:
+    def _extract_scope(self, content: str, topic_code: str) -> str | None:
         """Extract scope section."""
         start_idx = content.upper().find(topic_code.upper())
         if start_idx == -1:
@@ -244,7 +244,7 @@ class LIFEExtractor(CallExtractor):
         
         return None
     
-    def _extract_budget_info(self, content: str, topic_code: str) -> Dict[str, Any]:
+    def _extract_budget_info(self, content: str, topic_code: str) -> dict[str, Any]:
         """Extract budget information."""
         result = {}
         
@@ -292,10 +292,10 @@ class LIFEExtractor(CallExtractor):
     def _generate_tags(
         self, 
         title: str, 
-        scope: Optional[str], 
+        scope: str | None, 
         strand: str,
-        sub_programme: Optional[str]
-    ) -> List[str]:
+        sub_programme: str | None
+    ) -> list[str]:
         """Generate search tags."""
         tags = ['life', 'environment']
         

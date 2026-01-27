@@ -1,11 +1,12 @@
 """
 Test script to verify citations are saved during actual conversation
 """
-import os
-import sys
 import json
-import requests
+import os
 import time
+
+import requests
+
 
 def test_conversation_citations():
     """Test that citations are saved during a conversation"""

@@ -2,13 +2,14 @@
 Text chunking service for optimal document segmentation.
 """
 
-import re
-from typing import List, Dict, Any, Optional
-from dataclasses import dataclass
-import tiktoken
-import logging
-from datetime import datetime, timezone
 import hashlib
+import logging
+import re
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from typing import Any
+
+import tiktoken
 
 from ..core.config import settings
 
@@ -28,7 +29,7 @@ class ChunkConfig:
 class TextChunker:
     """Smart text chunking for optimal retrieval."""
     
-    def __init__(self, config: Optional[ChunkConfig] = None):
+    def __init__(self, config: ChunkConfig | None = None):
         """Initialize the text chunker."""
         self.config = config or ChunkConfig(
             chunk_size=settings.chunk_size,
@@ -47,9 +48,9 @@ class TextChunker:
     def chunk_text(
         self, 
         text: str, 
-        metadata: Optional[Dict[str, Any]] = None,
-        document_id: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        metadata: dict[str, Any] | None = None,
+        document_id: str | None = None
+    ) -> list[dict[str, Any]]:
         """Chunk text into overlapping segments with metadata."""
         if not text or not text.strip():
             logger.warning("⚠️ Empty text provided for chunking")
@@ -73,7 +74,7 @@ class TextChunker:
         logger.info(f"✅ Created {len(chunks)} chunks")
         return chunks
     
-    def _extract_document_sections(self, text: str) -> List[Dict[str, str]]:
+    def _extract_document_sections(self, text: str) -> list[dict[str, str]]:
         """Extract document sections with headers."""
         sections = []
         
@@ -146,10 +147,10 @@ class TextChunker:
     
     def _chunk_by_sections(
         self, 
-        sections: List[Dict[str, str]], 
-        metadata: Optional[Dict[str, Any]], 
-        document_id: Optional[str]
-    ) -> List[Dict[str, Any]]:
+        sections: list[dict[str, str]], 
+        metadata: dict[str, Any] | None, 
+        document_id: str | None
+    ) -> list[dict[str, Any]]:
         """Chunk text using document sections as boundaries."""
         chunks = []
         chunk_index = 0
@@ -192,9 +193,9 @@ class TextChunker:
     def _chunk_by_paragraphs(
         self, 
         text: str, 
-        metadata: Optional[Dict[str, Any]], 
-        document_id: Optional[str]
-    ) -> List[Dict[str, Any]]:
+        metadata: dict[str, Any] | None, 
+        document_id: str | None
+    ) -> list[dict[str, Any]]:
         """Chunk text using paragraph boundaries."""
         paragraphs = self._split_into_paragraphs(text)
         chunks = []
@@ -281,11 +282,11 @@ class TextChunker:
     def _split_large_text(
         self, 
         text: str, 
-        section_title: Optional[str],
+        section_title: str | None,
         start_index: int,
-        metadata: Optional[Dict[str, Any]], 
-        document_id: Optional[str]
-    ) -> List[Dict[str, Any]]:
+        metadata: dict[str, Any] | None, 
+        document_id: str | None
+    ) -> list[dict[str, Any]]:
         """Split large text into smaller chunks."""
         sentences = self._split_into_sentences(text)
         chunks = []
@@ -367,10 +368,10 @@ class TextChunker:
         self, 
         text: str, 
         start_index: int,
-        metadata: Optional[Dict[str, Any]], 
-        document_id: Optional[str],
-        section_title: Optional[str]
-    ) -> List[Dict[str, Any]]:
+        metadata: dict[str, Any] | None, 
+        document_id: str | None,
+        section_title: str | None
+    ) -> list[dict[str, Any]]:
         """Split text by words when sentences are too large."""
         words = text.split()
         chunks = []
@@ -412,7 +413,7 @@ class TextChunker:
         
         return chunks
     
-    def _split_into_paragraphs(self, text: str) -> List[str]:
+    def _split_into_paragraphs(self, text: str) -> list[str]:
         """Split text into paragraphs."""
         # Split by double newlines or common paragraph markers
         paragraphs = re.split(r'\n\s*\n', text)
@@ -426,7 +427,7 @@ class TextChunker:
         
         return cleaned
     
-    def _split_into_sentences(self, text: str) -> List[str]:
+    def _split_into_sentences(self, text: str) -> list[str]:
         """Split text into sentences."""
         # Enhanced sentence splitting for EU documents
         # Handle common abbreviations that shouldn't trigger sentence breaks
@@ -482,11 +483,11 @@ class TextChunker:
         content: str,
         chunk_index: int,
         token_count: int,
-        metadata: Optional[Dict[str, Any]],
-        document_id: Optional[str],
-        section_title: Optional[str] = None,
-        page_number: Optional[int] = None
-    ) -> Dict[str, Any]:
+        metadata: dict[str, Any] | None,
+        document_id: str | None,
+        section_title: str | None = None,
+        page_number: int | None = None
+    ) -> dict[str, Any]:
         """Create a chunk dictionary with all metadata."""
         # Extract page number from content if present
         if page_number is None:
@@ -516,12 +517,12 @@ class TextChunker:
                 'chunk_size': self.config.chunk_size,
                 'chunk_overlap': self.config.chunk_overlap
             },
-            'created_at': datetime.now(timezone.utc).isoformat()
+            'created_at': datetime.now(UTC).isoformat()
         })
         
         return chunk
     
-    def _post_process_chunks(self, chunks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _post_process_chunks(self, chunks: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Post-process chunks to improve quality."""
         if not chunks:
             return chunks
@@ -565,7 +566,7 @@ class TextChunker:
         
         return content.strip()
     
-    def get_chunking_stats(self, chunks: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def get_chunking_stats(self, chunks: list[dict[str, Any]]) -> dict[str, Any]:
         """Get statistics about the chunking results."""
         if not chunks:
             return {}

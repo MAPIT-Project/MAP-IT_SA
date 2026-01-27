@@ -3,14 +3,13 @@ Simple API endpoint for call-specific questions.
 Bypasses the complex conversation system and directly uses CallDocumentService.
 """
 
+import logging
+import os
+
+import google.generativeai as genai
+import psycopg2
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Optional
-import os
-import psycopg2
-from psycopg2 import pool
-import logging
-import google.generativeai as genai
 
 from ..services.call_document_service import CallDocumentService
 
@@ -30,7 +29,7 @@ model = genai.GenerativeModel("gemini-2.0-flash-exp")
 
 class CallQuestionRequest(BaseModel):
     question: str
-    call_id: Optional[str] = None
+    call_id: str | None = None
     max_chunks: int = 10
 
 

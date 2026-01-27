@@ -4,15 +4,15 @@ Smart Rewriter Service
 Provide actual rewritten content, not just suggestions.
 """
 
-import logging
 import asyncio
-from typing import Dict, Any, List, Optional
+import logging
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 from app.services.proposal_writing.proposal_ai_service import ProposalAIService
-from app.services.proposal_writing.schemas.ai_schemas import REWRITE_SCHEMA
 from app.services.proposal_writing.proposal_learning_service import ProposalLearningService
+from app.services.proposal_writing.schemas.ai_schemas import REWRITE_SCHEMA
 
 logger = logging.getLogger(__name__)
 
@@ -31,8 +31,8 @@ class RewriteResult:
     original_text: str
     rewritten_text: str
     style: str
-    changes_made: List[str]
-    before_after_examples: List[Dict[str, str]]
+    changes_made: list[str]
+    before_after_examples: list[dict[str, str]]
     improvement_summary: str
     word_count_original: int
     word_count_rewritten: int
@@ -188,7 +188,7 @@ Provide your response with:
         self,
         original_text: str,
         section_type: str = "objectives"
-    ) -> Dict[str, RewriteResult]:
+    ) -> dict[str, RewriteResult]:
         """
         Generate multiple rewrite options for user to choose from.
 
@@ -327,7 +327,7 @@ Provide a complete rewrite that sounds like it could come from a funded proposal
         sentence: str,
         context: str,
         improvement: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Rewrite a single sentence with specific improvement.
 
@@ -378,7 +378,7 @@ Provide exactly 2-3 alternative versions, ranked by quality."""
         self,
         original: str,
         rewritten: str
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Generate a diff showing what changed between versions.
         """
@@ -423,9 +423,9 @@ Provide exactly 2-3 alternative versions, ranked by quality."""
     async def compare_versions(
         self,
         original: str,
-        rewrites: List[RewriteResult],
+        rewrites: list[RewriteResult],
         section_type: str = "objectives"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Compare original with multiple rewrite versions.
 
@@ -605,7 +605,7 @@ Provide a complete rewrite that maintains rigor while improving accessibility.""
         self,
         original_text: str,
         section_type: str = "objectives"
-    ) -> Dict[str, RewriteResult]:
+    ) -> dict[str, RewriteResult]:
         """
         Generate all five rewrite styles for maximum choice.
 

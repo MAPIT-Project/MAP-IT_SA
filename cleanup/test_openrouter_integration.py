@@ -6,7 +6,7 @@ This script tests the OpenRouter functionality without making actual API calls.
 
 import os
 import sys
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 # Add the app directory to the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'app'))

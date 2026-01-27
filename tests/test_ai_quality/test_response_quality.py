@@ -15,21 +15,18 @@ These tests do NOT simply check "response exists" - they validate actual quality
 Run with: pytest tests/test_ai_quality/test_response_quality.py -v
 """
 
-import pytest
-from typing import List, Tuple, Optional
-import sys
 import os
+import sys
+
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from app.services.quality.response_quality_analyzer import (
-    ResponseQualityAnalyzer,
-    QualityAnalysis,
-    ResponseCategory,
     QueryType,
-    ContentRequirement,
+    ResponseCategory,
+    ResponseQualityAnalyzer,
 )
-
 
 # ============================================================================
 # Fixtures

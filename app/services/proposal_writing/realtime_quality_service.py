@@ -5,17 +5,17 @@ Provides streaming, incremental quality feedback during writing.
 Uses lightweight analysis for instant feedback with periodic deep analysis.
 """
 
-import asyncio
-import logging
 import hashlib
+import logging
 import re
-from typing import AsyncGenerator, Dict, Optional, Any, Callable
+from collections.abc import AsyncGenerator, Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
+from typing import Any
 
-from app.services.proposal_writing.inline_suggestions_service import RealTimeAnalyzer
 from app.services.proposal_writing.evaluator_simulator import EvaluatorSimulator
+from app.services.proposal_writing.inline_suggestions_service import RealTimeAnalyzer
 
 logger = logging.getLogger(__name__)
 
@@ -46,10 +46,10 @@ class StreamingFeedback:
     """A single piece of streaming feedback."""
     type: FeedbackType
     value: Any
-    message: Optional[str] = None
+    message: str | None = None
     timestamp: datetime = field(default_factory=datetime.now)
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         return {
             "type": self.type.value,
             "value": self.value,
@@ -87,16 +87,16 @@ class RealTimeQualityService:
     def __init__(self):
         self.quick_analyzer = RealTimeAnalyzer()
         self.evaluator = EvaluatorSimulator()
-        self._score_cache: Dict[str, tuple] = {}  # content_hash -> (score, timestamp)
-        self._last_deep_analysis: Dict[str, datetime] = {}
-        self._previous_scores: Dict[str, float] = {}  # section_id -> last known score
+        self._score_cache: dict[str, tuple] = {}  # content_hash -> (score, timestamp)
+        self._last_deep_analysis: dict[str, datetime] = {}
+        self._previous_scores: dict[str, float] = {}  # section_id -> last known score
 
     async def stream_feedback(
         self,
         content: str,
         section_type: str,
         section_id: str,
-        cluster: Optional[str] = None
+        cluster: str | None = None
     ) -> AsyncGenerator[StreamingFeedback, None]:
         """
         Stream quality feedback for content.
@@ -238,7 +238,7 @@ class RealTimeQualityService:
         """Generate hash for content caching."""
         return hashlib.md5(content.encode()).hexdigest()[:16]
 
-    def _get_cached_score(self, content_hash: str) -> Optional[float]:
+    def _get_cached_score(self, content_hash: str) -> float | None:
         """Get cached score if recent enough."""
         if content_hash in self._score_cache:
             score, timestamp = self._score_cache[content_hash]
@@ -257,7 +257,7 @@ class RealTimeQualityService:
             if v[1] > cutoff
         }
 
-    def _estimate_quick_score(self, content: str, quick_result: Dict) -> float:
+    def _estimate_quick_score(self, content: str, quick_result: dict) -> float:
         """
         Quick score estimation based on heuristics.
 
@@ -344,7 +344,7 @@ class RealTimeQualityService:
         self,
         previous: float,
         current: float
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Check if a celebration threshold was crossed."""
         for threshold, message in self.CELEBRATIONS.items():
             if previous < threshold <= current:
@@ -363,16 +363,16 @@ class StreamingQualityIndicator:
         self.section_id = section_id
         self.section_type = section_type
         self.service = RealTimeQualityService()
-        self.current_score: Optional[float] = None
-        self.current_tier: Optional[QualityTier] = None
+        self.current_score: float | None = None
+        self.current_tier: QualityTier | None = None
         self.suggestion_count: int = 0
         self.is_analyzing: bool = False
 
     async def update(
         self,
         content: str,
-        cluster: Optional[str] = None,
-        on_feedback: Optional[Callable[[StreamingFeedback], None]] = None
+        cluster: str | None = None,
+        on_feedback: Callable[[StreamingFeedback], None] | None = None
     ):
         """
         Update quality indicator with new content.
@@ -404,7 +404,7 @@ class StreamingQualityIndicator:
             if on_feedback:
                 on_feedback(feedback)
 
-    def get_state(self) -> Dict[str, Any]:
+    def get_state(self) -> dict[str, Any]:
         """Get current indicator state."""
         return {
             "score": self.current_score,

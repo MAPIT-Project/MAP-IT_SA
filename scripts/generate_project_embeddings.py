@@ -23,17 +23,16 @@ Examples:
     python scripts/generate_project_embeddings.py
 """
 
-import os
-import sys
+import argparse
 import asyncio
 import logging
-import argparse
-from typing import List, Dict, Any, Optional
-from datetime import datetime
-import psycopg2
+import os
+import sys
+from typing import Any
+
+from dotenv import load_dotenv
 from psycopg2.extras import DictCursor
 from psycopg2.pool import SimpleConnectionPool
-from dotenv import load_dotenv
 
 # Add parent directory to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -59,7 +58,7 @@ class ProjectEmbeddingGenerator:
         self.max_retries = 3
         self.rate_limit_delay = 0.5  # seconds between batches
 
-    def get_projects_needing_embeddings(self, limit: int = 1000) -> List[Dict[str, Any]]:
+    def get_projects_needing_embeddings(self, limit: int = 1000) -> list[dict[str, Any]]:
         """Get projects that don't have embeddings yet or have failed."""
         conn = self.db_pool.getconn()
         cursor = conn.cursor(cursor_factory=DictCursor)
@@ -131,7 +130,7 @@ class ProjectEmbeddingGenerator:
             combined = combined[:1997] + "..."
         return combined
 
-    async def generate_embedding(self, text: str) -> Optional[List[float]]:
+    async def generate_embedding(self, text: str) -> list[float] | None:
         """Generate embedding for text using EmbeddingService."""
         for attempt in range(self.max_retries):
             try:
@@ -148,7 +147,7 @@ class ProjectEmbeddingGenerator:
                     logger.error(f"All {self.max_retries} attempts failed for text: {text[:100]}...")
         return None
 
-    async def generate_embeddings_batch(self, texts: List[str]) -> List[Optional[List[float]]]:
+    async def generate_embeddings_batch(self, texts: list[str]) -> list[list[float] | None]:
         """Generate embeddings for multiple texts in a single API call (much faster)."""
         try:
             embeddings = await asyncio.to_thread(
@@ -177,7 +176,7 @@ class ProjectEmbeddingGenerator:
         self,
         project_id: int,
         text: str,
-        combined_embedding: Optional[List[float]],
+        combined_embedding: list[float] | None,
         model_version: str = "text-embedding-004"
     ) -> bool:
         """Store embedding in database with status tracking."""
@@ -227,7 +226,7 @@ class ProjectEmbeddingGenerator:
             cursor.close()
             self.db_pool.putconn(conn)
 
-    async def process_batch(self, projects: List[Dict[str, Any]]) -> tuple[int, int]:
+    async def process_batch(self, projects: list[dict[str, Any]]) -> tuple[int, int]:
         """Process a batch of projects using batch embedding API (much faster)."""
         success_count = 0
         fail_count = 0
@@ -270,7 +269,7 @@ class ProjectEmbeddingGenerator:
 
         return success_count, fail_count
 
-    async def run(self, batch_size: int = 50, max_batches: Optional[int] = None, test_mode: bool = False):
+    async def run(self, batch_size: int = 50, max_batches: int | None = None, test_mode: bool = False):
         """Main execution loop."""
         total_projects = self.get_total_projects_count()
         embedded_count = self.get_embedded_count()

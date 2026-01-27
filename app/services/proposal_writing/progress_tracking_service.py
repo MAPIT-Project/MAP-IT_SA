@@ -6,10 +6,10 @@ and provides motivation through gamification elements.
 """
 
 import logging
-from typing import List, Dict, Optional, Any
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta, date
+from dataclasses import dataclass
+from datetime import date, datetime, timedelta
 from enum import Enum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,7 @@ class Achievement:
     rarity: AchievementRarity
     icon: str
     points: int
-    criteria: Dict[str, Any]
+    criteria: dict[str, Any]
 
 
 @dataclass
@@ -51,7 +51,7 @@ class UserAchievement:
     achievement_id: str
     achievement: Achievement
     earned_at: datetime
-    context: Dict[str, Any]  # e.g., which proposal, what score
+    context: dict[str, Any]  # e.g., which proposal, what score
 
 
 @dataclass
@@ -61,15 +61,15 @@ class ProgressSnapshot:
     completion_percentage: float
     sections_completed: int
     total_sections: int
-    average_score: Optional[float]
-    highest_score: Optional[float]
-    lowest_score: Optional[float]
+    average_score: float | None
+    highest_score: float | None
+    lowest_score: float | None
     gaps_resolved: int
     total_gaps: int
     suggestions_accepted: int
     rewrites_applied: int
     time_spent_minutes: int
-    last_activity: Optional[datetime]
+    last_activity: datetime | None
 
 
 @dataclass
@@ -77,7 +77,7 @@ class Streak:
     """User writing streak."""
     current_streak: int
     longest_streak: int
-    last_activity_date: Optional[date]
+    last_activity_date: date | None
     is_active: bool
 
 
@@ -284,9 +284,9 @@ class ProgressTrackingService:
 
     def __init__(self):
         self._achievement_map = {a.id: a for a in self.ACHIEVEMENTS}
-        self._user_achievements_cache: Dict[str, List[UserAchievement]] = {}
-        self._user_streaks_cache: Dict[str, Streak] = {}
-        self._progress_cache: Dict[str, ProgressSnapshot] = {}
+        self._user_achievements_cache: dict[str, list[UserAchievement]] = {}
+        self._user_streaks_cache: dict[str, Streak] = {}
+        self._progress_cache: dict[str, ProgressSnapshot] = {}
 
     async def get_progress(self, proposal_id: str) -> ProgressSnapshot:
         """Get current progress snapshot for a proposal."""
@@ -318,16 +318,16 @@ class ProgressTrackingService:
     async def update_progress(
         self,
         proposal_id: str,
-        sections_completed: Optional[int] = None,
-        total_sections: Optional[int] = None,
-        average_score: Optional[float] = None,
-        highest_score: Optional[float] = None,
-        lowest_score: Optional[float] = None,
-        gaps_resolved: Optional[int] = None,
-        total_gaps: Optional[int] = None,
-        suggestions_accepted: Optional[int] = None,
-        rewrites_applied: Optional[int] = None,
-        time_spent_minutes: Optional[int] = None
+        sections_completed: int | None = None,
+        total_sections: int | None = None,
+        average_score: float | None = None,
+        highest_score: float | None = None,
+        lowest_score: float | None = None,
+        gaps_resolved: int | None = None,
+        total_gaps: int | None = None,
+        suggestions_accepted: int | None = None,
+        rewrites_applied: int | None = None,
+        time_spent_minutes: int | None = None
     ) -> ProgressSnapshot:
         """Update progress for a proposal."""
         current = await self.get_progress(proposal_id)
@@ -418,8 +418,8 @@ class ProgressTrackingService:
         self,
         user_id: str,
         proposal_id: str,
-        context: Dict[str, Any]
-    ) -> List[UserAchievement]:
+        context: dict[str, Any]
+    ) -> list[UserAchievement]:
         """
         Check if any new achievements have been earned.
 
@@ -460,7 +460,7 @@ class ProgressTrackingService:
     def _check_criteria(
         self,
         achievement: Achievement,
-        context: Dict[str, Any],
+        context: dict[str, Any],
         progress: ProgressSnapshot,
         streak: Streak
     ) -> bool:
@@ -522,7 +522,7 @@ class ProgressTrackingService:
         self,
         user_id: str,
         achievement: Achievement,
-        context: Dict[str, Any]
+        context: dict[str, Any]
     ) -> UserAchievement:
         """Award an achievement to a user."""
         user_achievement = UserAchievement(
@@ -541,7 +541,7 @@ class ProgressTrackingService:
 
         return user_achievement
 
-    async def _get_user_achievements(self, user_id: str) -> List[UserAchievement]:
+    async def _get_user_achievements(self, user_id: str) -> list[UserAchievement]:
         """Get all achievements for a user."""
         if user_id in self._user_achievements_cache:
             return self._user_achievements_cache[user_id]
@@ -550,7 +550,7 @@ class ProgressTrackingService:
         self._user_achievements_cache[user_id] = []
         return []
 
-    async def get_all_achievements(self, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def get_all_achievements(self, user_id: str | None = None) -> list[dict[str, Any]]:
         """Get all achievements, optionally with user's earned status."""
         earned_ids = set()
         if user_id:
@@ -571,12 +571,12 @@ class ProgressTrackingService:
             for a in self.ACHIEVEMENTS
         ]
 
-    async def get_leaderboard(self, limit: int = 10) -> List[Dict[str, Any]]:
+    async def get_leaderboard(self, limit: int = 10) -> list[dict[str, Any]]:
         """Get achievement leaderboard."""
         # In a real implementation, this would query the database
         # For now, return empty leaderboard
         return []
 
-    def get_total_points(self, achievements: List[UserAchievement]) -> int:
+    def get_total_points(self, achievements: list[UserAchievement]) -> int:
         """Calculate total points from achievements."""
         return sum(a.achievement.points for a in achievements)

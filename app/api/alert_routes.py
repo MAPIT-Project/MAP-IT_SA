@@ -8,17 +8,16 @@ Provides endpoints for:
 - Viewing user statistics
 """
 
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
 from app.services.alerts.saved_search_service import (
     AlertChannel,
     AlertConfig,
     AlertFrequency,
-    SavedSearchService,
     SearchType,
     get_saved_search_service,
 )
@@ -36,28 +35,28 @@ class AlertConfigRequest(BaseModel):
     enabled: bool = False
     frequency: str = Field("daily", pattern="^(immediate|daily|weekly)$")
     channel: str = Field("email", pattern="^(email|webhook|both)$")
-    email: Optional[str] = None
-    webhook_url: Optional[str] = None
-    webhook_secret: Optional[str] = None
+    email: str | None = None
+    webhook_url: str | None = None
+    webhook_secret: str | None = None
     min_results_to_alert: int = Field(1, ge=1, le=100)
 
 
 class CreateSavedSearchRequest(BaseModel):
     """Request to create a saved search."""
     name: str = Field(..., min_length=1, max_length=255)
-    description: Optional[str] = Field(None, max_length=1000)
+    description: str | None = Field(None, max_length=1000)
     search_type: str = Field(..., pattern="^(calls|projects|partners)$")
-    parameters: Dict[str, Any] = Field(default_factory=dict)
-    alert_config: Optional[AlertConfigRequest] = None
+    parameters: dict[str, Any] = Field(default_factory=dict)
+    alert_config: AlertConfigRequest | None = None
 
 
 class UpdateSavedSearchRequest(BaseModel):
     """Request to update a saved search."""
-    name: Optional[str] = Field(None, min_length=1, max_length=255)
-    description: Optional[str] = Field(None, max_length=1000)
-    parameters: Optional[Dict[str, Any]] = None
-    alert_config: Optional[AlertConfigRequest] = None
-    is_active: Optional[bool] = None
+    name: str | None = Field(None, min_length=1, max_length=255)
+    description: str | None = Field(None, max_length=1000)
+    parameters: dict[str, Any] | None = None
+    alert_config: AlertConfigRequest | None = None
+    is_active: bool | None = None
 
 
 class SavedSearchResponse(BaseModel):
@@ -65,13 +64,13 @@ class SavedSearchResponse(BaseModel):
     id: str
     user_id: str
     name: str
-    description: Optional[str]
+    description: str | None
     search_type: str
-    parameters: Dict[str, Any]
-    alert_config: Dict[str, Any]
+    parameters: dict[str, Any]
+    alert_config: dict[str, Any]
     created_at: str
     updated_at: str
-    last_run: Optional[str]
+    last_run: str | None
     is_active: bool
     run_count: int
     alert_count: int
@@ -84,8 +83,8 @@ class SearchResultResponse(BaseModel):
     new_count: int
     execution_time_ms: float
     executed_at: str
-    results: List[Dict[str, Any]]
-    new_results: List[Dict[str, Any]]
+    results: list[dict[str, Any]]
+    new_results: list[dict[str, Any]]
 
 
 class UserStatsResponse(BaseModel):
@@ -95,7 +94,7 @@ class UserStatsResponse(BaseModel):
     inactive_searches: int
     total_runs: int
     total_alerts_sent: int
-    by_type: Dict[str, int]
+    by_type: dict[str, int]
 
 
 # =============================================================================
@@ -103,7 +102,7 @@ class UserStatsResponse(BaseModel):
 # =============================================================================
 
 
-def _convert_alert_config(config: Optional[AlertConfigRequest]) -> Optional[AlertConfig]:
+def _convert_alert_config(config: AlertConfigRequest | None) -> AlertConfig | None:
     """Convert request model to service model."""
     if not config:
         return None
@@ -155,7 +154,7 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "alerts",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
 
@@ -188,10 +187,10 @@ async def create_saved_search(
     return _search_to_response(search)
 
 
-@router.get("", response_model=List[SavedSearchResponse])
+@router.get("", response_model=list[SavedSearchResponse])
 async def list_saved_searches(
     user_id: str = Query(..., description="User ID"),
-    search_type: Optional[str] = Query(None, pattern="^(calls|projects|partners)$"),
+    search_type: str | None = Query(None, pattern="^(calls|projects|partners)$"),
     active_only: bool = Query(True, description="Only return active searches"),
 ):
     """
@@ -377,7 +376,7 @@ async def run_saved_search(
 
 @router.post("/process-alerts")
 async def process_alerts(
-    frequency: Optional[str] = Query(None, pattern="^(immediate|daily|weekly)$"),
+    frequency: str | None = Query(None, pattern="^(immediate|daily|weekly)$"),
 ):
     """
     Manually trigger alert processing.

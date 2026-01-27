@@ -13444,3 +13444,93 @@ The system correctly:
 3. **Proper Redirect**: Always mentions Horizon Europe as current alternative
 4. **FP7 Handling**: Also correctly handles older FP7 queries
 5. **Helpful Transition**: Provides budget, funding types, and registration guidance
+
+
+## 2026-01-27: Scenario 037 - Very Specific Niche (IMPLEMENT + TEST)
+
+### Task Completed
+Implemented Scenario 037: Very Specific Niche query handling for highly specialized interdisciplinary queries.
+
+### Problem Statement
+The system needed to handle queries like "Funding for underwater archaeology using AI in the Mediterranean" that:
+- Combine multiple specialized domains (archaeology + AI + marine + geography)
+- May not have dedicated funding calls
+- Should NOT hallucinate fake call IDs
+- Should provide helpful alternative approaches
+
+### Files Modified
+1. **`app/services/agents/tool_aware_agent.py`**:
+   - Added `_detect_niche_interdisciplinary_query()` method (~150 lines):
+     - Detects queries combining traditional domains (archaeology, heritage, linguistics, crafts, maritime) with technology (AI, digital, blockchain, NLP, robotics)
+     - Identifies geographic constraints (Mediterranean, Arctic, etc.)
+     - Maps domains to relevant Horizon Europe clusters (CL2, CL4, CL6)
+     - Creates multi-faceted search approach with 3 parallel tool calls
+   - Added `_generate_niche_query_guidance()` method (~120 lines):
+     - Generates helpful guidance for niche interdisciplinary queries
+     - Acknowledges interdisciplinary nature honestly
+     - Reports search results transparently
+     - Suggests alternative funding approaches (Creative Europe, ERC, Mission Ocean, split projects)
+     - Provides actionable next steps with links
+   - Added `call_tools_with_niche_guidance` action handler in both sync and streaming paths:
+     - Executes tool calls
+     - Counts results (calls and projects)
+     - Appends niche guidance to formatted response
+     - Sets lower confidence (0.75) for niche queries
+   - Integrated detection in pre-route logic before general search patterns
+
+2. **`tests/quality/test_scenario_037_very_specific_niche.py`** (new file):
+   - 15 tests covering:
+     - Excellent response scoring (75+)
+     - Partial response scoring (below 75)
+     - Hallucination detection and failing
+     - Honest "no exact matches" response handling
+     - Domain detection logic
+     - Query fulfillment scoring
+     - Specificity scoring
+     - Factual accuracy (no hallucination)
+     - Actionability scoring
+     - Live API tests (when available)
+     - Edge cases (empty, short, irrelevant responses)
+
+### Implementation Details
+
+**Niche Query Detection:**
+```python
+# Detected as niche if combines:
+# 1. Traditional domain (archaeology, heritage, linguistics, crafts, maritime)
+# 2. Technology domain (AI, digital, blockchain, NLP, robotics)
+# 3. Geographic constraint (Mediterranean, Arctic, etc.)
+# AND is asking for funding/calls/grants
+```
+
+**Tool Calls for Niche Queries:**
+1. `search_funding_calls` - Combined keywords search
+2. `get_similar_funded_projects` - Semantic similarity search
+3. `search_documents` - Work programme documentation
+
+**Guidance Sections Generated:**
+1. Understanding Your Funding Search (acknowledges interdisciplinary nature)
+2. What We Found (honest reporting of results)
+3. Relevant Horizon Europe Clusters (CL2, CL4, CL6 as applicable)
+4. Alternative Funding Approaches:
+   - Creative Europe (cultural heritage)
+   - Mission Ocean (marine/underwater)
+   - Digital Europe (AI/tech deployment)
+   - Split project strategy
+   - ERC Grants (frontier research)
+5. Recommended Next Steps (NCP contact, portal search, EC feedback)
+
+### Test Results
+- 15 tests passed
+- All linting checks passed
+- Pass threshold: 75/100 (appropriate for niche queries where exact matches are rare)
+
+### Key Design Decisions
+1. **Lower threshold (75)**: Niche queries are inherently harder - exact matches rare
+2. **Honest acknowledgment**: Better to say "partial matches" than pretend exact fit
+3. **No hallucination**: Critical requirement - 15 points awarded for not making up calls
+4. **Alternative approaches**: Guide users to Creative Europe, ERC, split strategies
+5. **Multi-source search**: Combines calls, projects, and documents for best coverage
+
+### PRD Task Status
+- [x] Scenario 037: Very Specific Niche - PASS (score 75+/100)

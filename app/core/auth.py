@@ -4,19 +4,19 @@ Authentication and Authorization Module
 JWT-based authentication with role-based access control for MAP-IT.
 """
 
-import os
 import logging
+import os
 import secrets
-from datetime import datetime, timedelta, timezone
-from typing import Optional, List, Dict, Any
+from datetime import UTC, datetime, timedelta
 from functools import wraps
+from typing import Any
 
 import jwt
-from jwt.exceptions import InvalidTokenError, ExpiredSignatureError
-from fastapi import Depends, HTTPException, status, Request
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, APIKeyHeader
-from pydantic import BaseModel, EmailStr, Field
 from dotenv import load_dotenv
+from fastapi import Depends, HTTPException, Request, status
+from fastapi.security import APIKeyHeader, HTTPAuthorizationCredentials, HTTPBearer
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
+from pydantic import BaseModel, Field
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -37,9 +37,9 @@ class UserRole:
 class TokenPayload(BaseModel):
     """JWT token payload."""
     sub: str  # User ID
-    email: Optional[str] = None
-    roles: List[str] = Field(default_factory=list)
-    org_id: Optional[str] = None
+    email: str | None = None
+    roles: list[str] = Field(default_factory=list)
+    org_id: str | None = None
     tier: str = "free"  # free, basic, premium, enterprise
     exp: datetime
     iat: datetime
@@ -48,9 +48,9 @@ class TokenPayload(BaseModel):
 class User(BaseModel):
     """Authenticated user model."""
     id: str
-    email: Optional[str] = None
-    roles: List[str] = Field(default_factory=list)
-    organization_id: Optional[str] = None
+    email: str | None = None
+    roles: list[str] = Field(default_factory=list)
+    organization_id: str | None = None
     tier: str = "free"
     is_authenticated: bool = True
 
@@ -71,14 +71,14 @@ class AuthService:
     def create_access_token(
         self,
         user_id: str,
-        email: Optional[str] = None,
-        roles: Optional[List[str]] = None,
-        organization_id: Optional[str] = None,
+        email: str | None = None,
+        roles: list[str] | None = None,
+        organization_id: str | None = None,
         tier: str = "free",
-        expires_delta: Optional[timedelta] = None
+        expires_delta: timedelta | None = None
     ) -> str:
         """Create JWT access token."""
-        expires = datetime.now(timezone.utc) + (expires_delta or self.access_token_expire)
+        expires = datetime.now(UTC) + (expires_delta or self.access_token_expire)
 
         payload = {
             "sub": user_id,
@@ -87,7 +87,7 @@ class AuthService:
             "org_id": organization_id,
             "tier": tier,
             "exp": expires,
-            "iat": datetime.now(timezone.utc),
+            "iat": datetime.now(UTC),
             "type": "access"
         }
 
@@ -95,12 +95,12 @@ class AuthService:
 
     def create_refresh_token(self, user_id: str) -> str:
         """Create refresh token for token renewal."""
-        expires = datetime.now(timezone.utc) + self.refresh_token_expire
+        expires = datetime.now(UTC) + self.refresh_token_expire
 
         payload = {
             "sub": user_id,
             "exp": expires,
-            "iat": datetime.now(timezone.utc),
+            "iat": datetime.now(UTC),
             "type": "refresh"
         }
 
@@ -142,7 +142,7 @@ class AuthService:
                 headers={"WWW-Authenticate": "Bearer"}
             )
 
-    def refresh_access_token(self, refresh_token: str) -> Dict[str, str]:
+    def refresh_access_token(self, refresh_token: str) -> dict[str, str]:
         """Refresh an access token using a refresh token."""
         payload = self.verify_token(refresh_token, token_type="refresh")
 
@@ -157,7 +157,7 @@ class AuthService:
             "token_type": "bearer"
         }
 
-    def decode_token_unsafe(self, token: str) -> Optional[Dict[str, Any]]:
+    def decode_token_unsafe(self, token: str) -> dict[str, Any] | None:
         """Decode token without verification (for debugging only)."""
         try:
             return jwt.decode(
@@ -185,7 +185,7 @@ class APIKeyValidator:
     """Validate API keys against database or cache."""
 
     def __init__(self):
-        self.api_keys: Dict[str, Dict[str, Any]] = {}
+        self.api_keys: dict[str, dict[str, Any]] = {}
         # In production, load from database or environment
 
         # Load any static API keys from environment
@@ -198,7 +198,7 @@ class APIKeyValidator:
                 "org_id": None
             }
 
-    def validate(self, api_key: str) -> Optional[User]:
+    def validate(self, api_key: str) -> User | None:
         """Validate API key and return user if valid."""
         key_data = self.api_keys.get(api_key)
         if key_data:
@@ -226,8 +226,8 @@ def get_api_key_validator() -> APIKeyValidator:
 # Dependency functions
 async def get_current_user(
     request: Request,
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
-    api_key: Optional[str] = Depends(api_key_header)
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    api_key: str | None = Depends(api_key_header)
 ) -> User:
     """
     Get current authenticated user from JWT token or API key.
@@ -270,9 +270,9 @@ async def get_current_user(
 
 async def get_current_user_optional(
     request: Request,
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
-    api_key: Optional[str] = Depends(api_key_header)
-) -> Optional[User]:
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    api_key: str | None = Depends(api_key_header)
+) -> User | None:
     """
     Get current user if authenticated, otherwise return None.
 
@@ -292,7 +292,7 @@ async def get_current_user_optional(
         return anonymous
 
 
-def require_roles(required_roles: List[str]):
+def require_roles(required_roles: list[str]):
     """
     Dependency factory that requires specific roles.
 

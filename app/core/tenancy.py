@@ -15,12 +15,13 @@ Features:
 """
 
 import logging
+from collections.abc import Callable
 from contextvars import ContextVar
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, TypeVar
+from typing import Any, Optional, TypeVar
 
 from fastapi import HTTPException, Request, status
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -34,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 
 # Current tenant ID for the request
-current_tenant_id: ContextVar[Optional[str]] = ContextVar("current_tenant_id", default=None)
+current_tenant_id: ContextVar[str | None] = ContextVar("current_tenant_id", default=None)
 
 # Current tenant data (full tenant object)
 current_tenant: ContextVar[Optional["Tenant"]] = ContextVar("current_tenant", default=None)
@@ -43,7 +44,7 @@ current_tenant: ContextVar[Optional["Tenant"]] = ContextVar("current_tenant", de
 bypass_tenant_isolation: ContextVar[bool] = ContextVar("bypass_tenant_isolation", default=False)
 
 
-def get_current_tenant_id() -> Optional[str]:
+def get_current_tenant_id() -> str | None:
     """Get the current tenant ID from context."""
     return current_tenant_id.get()
 
@@ -53,7 +54,7 @@ def get_current_tenant() -> Optional["Tenant"]:
     return current_tenant.get()
 
 
-def set_tenant_context(tenant_id: Optional[str], tenant: Optional["Tenant"] = None):
+def set_tenant_context(tenant_id: str | None, tenant: Optional["Tenant"] = None):
     """Set the tenant context for the current request."""
     current_tenant_id.set(tenant_id)
     if tenant:
@@ -133,16 +134,16 @@ class Tenant:
     status: TenantStatus = TenantStatus.ACTIVE
     plan: TenantPlan = TenantPlan.FREE
     limits: TenantLimits = None
-    settings: Dict[str, Any] = None
+    settings: dict[str, Any] = None
     created_at: datetime = None
     updated_at: datetime = None
 
     # Contact information
-    admin_email: Optional[str] = None
-    admin_name: Optional[str] = None
+    admin_email: str | None = None
+    admin_name: str | None = None
 
     # Feature flags
-    features: Dict[str, bool] = None
+    features: dict[str, bool] = None
 
     def __post_init__(self):
         if self.limits is None:
@@ -152,11 +153,11 @@ class Tenant:
         if self.features is None:
             self.features = {}
         if self.created_at is None:
-            self.created_at = datetime.now(timezone.utc)
+            self.created_at = datetime.now(UTC)
         if self.updated_at is None:
-            self.updated_at = datetime.now(timezone.utc)
+            self.updated_at = datetime.now(UTC)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "name": self.name,
@@ -247,7 +248,7 @@ class TenantMiddleware(BaseHTTPMiddleware):
                 return True
         return False
 
-    async def _extract_tenant_id(self, request: Request) -> Optional[str]:
+    async def _extract_tenant_id(self, request: Request) -> str | None:
         """Extract tenant ID from request."""
         # 1. Check request state (set by auth middleware)
         user = getattr(request.state, "user", None)
@@ -269,7 +270,7 @@ class TenantMiddleware(BaseHTTPMiddleware):
 
         return None
 
-    async def _load_tenant(self, tenant_id: str) -> Optional[Tenant]:
+    async def _load_tenant(self, tenant_id: str) -> Tenant | None:
         """Load tenant from service or cache."""
         if self.tenant_service:
             return await self.tenant_service.get_tenant(tenant_id)
@@ -364,7 +365,7 @@ class TenantAwareRepository:
 
         return query, params
 
-    def _add_tenant_to_insert(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _add_tenant_to_insert(self, data: dict[str, Any]) -> dict[str, Any]:
         """Add tenant ID to data being inserted."""
         tenant_id = get_current_tenant_id()
         if tenant_id and not is_isolation_bypassed():
@@ -401,11 +402,11 @@ class TenantAwareRepository:
                 cur.execute(query, params)
                 rows = cur.fetchall()
                 columns = [desc[0] for desc in cur.description]
-                return [dict(zip(columns, row)) for row in rows]
+                return [dict(zip(columns, row, strict=False)) for row in rows]
 
     async def execute_insert(
         self,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         returning: str = "id",
     ) -> Any:
         """
@@ -444,7 +445,7 @@ class TenantAwareRepository:
     async def execute_update(
         self,
         record_id: str,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         id_column: str = "id",
     ) -> bool:
         """
@@ -599,9 +600,9 @@ class TenantService:
     def __init__(self, db_pool=None, redis_client=None):
         self.db_pool = db_pool
         self.redis = redis_client
-        self._cache: Dict[str, Tenant] = {}
+        self._cache: dict[str, Tenant] = {}
 
-    async def get_tenant(self, tenant_id: str) -> Optional[Tenant]:
+    async def get_tenant(self, tenant_id: str) -> Tenant | None:
         """Get tenant by ID with caching."""
         # Check cache
         if tenant_id in self._cache:
@@ -632,13 +633,13 @@ class TenantService:
                 row = cur.fetchone()
                 if row:
                     columns = [desc[0] for desc in cur.description]
-                    tenant = self._row_to_tenant(dict(zip(columns, row)))
+                    tenant = self._row_to_tenant(dict(zip(columns, row, strict=False)))
                     self._cache_tenant(tenant)
                     return tenant
 
         return None
 
-    async def get_tenant_by_slug(self, slug: str) -> Optional[Tenant]:
+    async def get_tenant_by_slug(self, slug: str) -> Tenant | None:
         """Get tenant by URL slug."""
         if not self.db_pool:
             return None
@@ -651,7 +652,7 @@ class TenantService:
                 row = cur.fetchone()
                 if row:
                     columns = [desc[0] for desc in cur.description]
-                    return self._row_to_tenant(dict(zip(columns, row)))
+                    return self._row_to_tenant(dict(zip(columns, row, strict=False)))
 
         return None
 
@@ -719,7 +720,7 @@ class TenantService:
             except Exception:
                 pass
 
-    def _row_to_tenant(self, row: Dict[str, Any]) -> Tenant:
+    def _row_to_tenant(self, row: dict[str, Any]) -> Tenant:
         """Convert database row to Tenant object."""
         import json
 
@@ -745,7 +746,7 @@ class TenantService:
             updated_at=row.get("updated_at"),
         )
 
-    def _dict_to_tenant(self, data: Dict[str, Any]) -> Tenant:
+    def _dict_to_tenant(self, data: dict[str, Any]) -> Tenant:
         """Convert dict to Tenant object."""
         return Tenant(
             id=data["id"],
@@ -764,7 +765,7 @@ class TenantService:
 
 
 # Singleton instance
-_tenant_service: Optional[TenantService] = None
+_tenant_service: TenantService | None = None
 
 
 def get_tenant_service(db_pool=None, redis_client=None) -> TenantService:

@@ -3,8 +3,8 @@
 Test script for Live Proposal Document Editor API
 """
 
+
 import requests
-import json
 
 API_BASE = "http://localhost:8000/api"
 
@@ -34,7 +34,7 @@ def test_endpoints():
             proposal_id = 1
             print(f"✅ Using existing proposal ID: {proposal_id}")
         else:
-            print(f"⚠️ No existing proposal found. Create one first via the proposal writing system.")
+            print("⚠️ No existing proposal found. Create one first via the proposal writing system.")
             proposal_id = None
     except Exception as e:
         print(f"❌ Error: {e}")
@@ -53,7 +53,7 @@ def test_endpoints():
         
         if response.status_code == 200:
             data = response.json()
-            print(f"✅ Retrieved proposal:")
+            print("✅ Retrieved proposal:")
             print(f"   - Title: {data.get('proposal_title', 'N/A')}")
             print(f"   - Call: {data.get('call_id', 'N/A')}")
             print(f"   - Sections: {len(data.get('sections', []))}")
@@ -76,12 +76,12 @@ def test_endpoints():
         
         if response.status_code == 200:
             section = response.json()
-            print(f"✅ Retrieved section:")
+            print("✅ Retrieved section:")
             print(f"   - Name: {section.get('section_name')}")
             print(f"   - Word count: {section.get('word_count', 0)}")
             print(f"   - Content preview: {section.get('content', '')[:100]}...")
         elif response.status_code == 404:
-            print(f"⚠️ Section not found - this is OK if no content yet")
+            print("⚠️ Section not found - this is OK if no content yet")
         else:
             print(f"❌ Failed: {response.status_code}")
     except Exception as e:
@@ -115,7 +115,7 @@ This test section has approximately 50 words."""
         
         if response.status_code == 200:
             result = response.json()
-            print(f"✅ Section updated:")
+            print("✅ Section updated:")
             print(f"   - Success: {result.get('success')}")
             print(f"   - Word count: {result.get('word_count')}")
             print(f"   - Estimated pages: {result.get('estimated_pages')}")
@@ -133,7 +133,7 @@ This test section has approximately 50 words."""
         if response.status_code == 200:
             progress = response.json()
             overall = progress.get('overall_progress', {})
-            print(f"✅ Progress retrieved:")
+            print("✅ Progress retrieved:")
             print(f"   - Completion: {overall.get('completion_percentage')}%")
             print(f"   - Complete sections: {overall.get('complete_sections')}")
             print(f"   - Draft sections: {overall.get('draft_sections')}")
@@ -153,9 +153,9 @@ This test section has approximately 50 words."""
         )
         
         if response.status_code == 200:
-            print(f"✅ Section deleted successfully")
+            print("✅ Section deleted successfully")
         elif response.status_code == 404:
-            print(f"⚠️ Section not found (may have been deleted already)")
+            print("⚠️ Section not found (may have been deleted already)")
         else:
             print(f"❌ Failed: {response.status_code}")
     except Exception as e:

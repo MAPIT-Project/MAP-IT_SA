@@ -1,25 +1,25 @@
 {
   "scenario_name": "Preference-Based Filtering",
   "status": "PASS",
-  "average_quality_score": 83.0,
-  "average_factual_score": 87.5,
+  "average_quality_score": 83.5,
+  "average_factual_score": 100.0,
   "turns": [
     {
       "query": "Find funding calls - but nothing with lump sum funding",
-      "response": "I found **15 funding opportunities** for your query:\n\n**1. Capacity building in Higher Education: Neighbourhood East**\n\ud83d\udccb **Call ID:** ERASMUS-EDU-2026-CBHE-REGION-2\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 10 February 2026\n\n\ud83d\udcdd **Summary:** Objective: CBHE funds international higher-education partnerships that strengthen universities and systems in eligible third countries not associated to the Programme.\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/t...",
-      "quality_score": 83,
-      "factual_score": 50.0,
+      "response": "I found **11 funding opportunities** for your query:\n\n**1. Innovative space-based applications enhancing capabilities for a resilient Europe**\n\ud83d\udccb **Call ID:** HORIZON-EUSPA-2026-SPACE-02-52\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 24 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Horizon Europe\n\ud83d\udcb0 **Budget:** EUR 5.0 million\n\n\ud83d\udcdd **Summary:** Expected Outcome: Projects\u2019 results are expected to contribute to some or all of the following outcomes: Foster the development and validation of integrated synergistic space techn...",
+      "quality_score": 85,
+      "factual_score": 100.0,
       "failures": [],
       "tools_used": [
         "search_funding_calls"
       ],
-      "processing_time_ms": 7135.2609999999995,
+      "processing_time_ms": 7268.927,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
           "specificity": 25,
           "factual_accuracy": 20,
-          "actionability": 8
+          "actionability": 10
         },
         "feedback": "Quick rule-based evaluation"
       },
@@ -28,14 +28,12 @@
     },
     {
       "query": "I prefer calls with 70%+ funding rate",
-      "response": "I found **6 funding opportunities** for your query:\n\n**1. Part 7 - Page 186 of 339 [Page 187] Horizon Europe - Work Programme 2025 Digital, Industry and Space Heading 1 - Accessing Space Proposals are...**\n\ud83d\udccb **Call ID:** HORIZON-EUSPA-2026-SPACE-03\n\ud83e\udd1d **Type:** CSA\n\ud83d\udfe1 **Status:** Upcoming\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83c\udfdb\ufe0f **Programme:** Horizon Europe\n\ud83d\udcb0 **Budget:** EUR 1.0 million\n\n\ud83d\udcdd **Summary:** Common regulatory practices and guidelines will facilitate access to European spac...",
+      "response": "**Creative Europe Cooperation Project Funding Rates**\n\nCreative Europe uses a **lump sum funding model** with fixed EU contribution rates for cooperation projects.\n\n## Funding Rate Overview\n\n| Aspect | Rate/Amount |\n|--------|-------------|\n| **EU Funding Rate** | 60% |\n| **Your Co-financing** | 40% |\n| **Funding Model** | Lump sum |\n| **Payment Schedule** | Pre-financing + balance |\n\n## What Does 60% Mean?\n\nThe EU covers **60% of your total eligible costs**:\n\n| Scale | Max EU Grant | Your 40% C...",
       "quality_score": 83,
       "factual_score": 100.0,
       "failures": [],
-      "tools_used": [
-        "search_funding_calls"
-      ],
-      "processing_time_ms": 5877.707,
+      "tools_used": [],
+      "processing_time_ms": 1094.3449999999998,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -50,14 +48,14 @@
     },
     {
       "query": "Show only calls with deadlines in Q2 2024",
-      "response": "I found **10 funding opportunities** for your query:\n\n**1. Innovative solutions for a generative AI-powered digital spine of the EU energy system**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-19\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: Project results are expected to contribute to all of the following expected outcomes: Availability of generative Artificial Intelligence (AI) tools for electricity system operators, energy servic...",
+      "response": "I found **6 funding opportunities** for your query:\n\n**1. Developing agroecology living labs and lighthouses for climate action under the Food and Nutrition Security and Sustainable Agriculture (FNSSA)...**\n\ud83d\udccb **Call ID:** HORIZON-CL6-2025-02-FARM2FORK-19\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL6\n\ud83d\udcb0 **Budget:** EUR 9.9 million\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HOR...",
       "quality_score": 83,
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [
         "search_funding_calls"
       ],
-      "processing_time_ms": 8083.928,
+      "processing_time_ms": 8199.451,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -72,14 +70,12 @@
     },
     {
       "query": "Remove any requiring more than 5 partners",
-      "response": "I found **14 funding opportunities** for your query:\n\n**1. Competitiveness, energy security and integration aspects of advanced biofuels and renewable fuels of non-biological origin value chains**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-02\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: European energy security and industrial competitiveness are contested by the geopolitical circumstances and market situations around the world.\n\n\ud83d\udd17...",
+      "response": "**Creative Europe Cooperation: Partner Count and Category Selection**\n\nBased on your consortium size, here's which cooperation project category you can apply for.\n\n## Partner Count Requirements\n\n| Your Partners | Eligible Category | Maximum EU Grant |\n|---------------|------------------|------------------|\n| **3 partners** | Small-scale \u2705 | \u20ac200,000 |\n| **4 partners** | Small-scale \u2705 | \u20ac200,000 |\n| **5 partners** | Small-scale \u2705 OR Medium-scale \u2705 | \u20ac200K or \u20ac1M |\n| **6-9 partners** | Small-scale...",
       "quality_score": 83,
       "factual_score": 100.0,
       "failures": [],
-      "tools_used": [
-        "search_funding_calls"
-      ],
-      "processing_time_ms": 11769.106000000002,
+      "tools_used": [],
+      "processing_time_ms": 2381.643,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -94,8 +90,8 @@
     }
   ],
   "scores": {
-    "average_quality": 83.0,
-    "average_factual": 87.5,
+    "average_quality": 83.5,
+    "average_factual": 100.0,
     "goal_progress": 0.5285714285714286,
     "context_fields": 1
   },
@@ -112,10 +108,10 @@
       "deadlines"
     ],
     "description": "A 4-step filtering workflow where a user progressively refines their\nfunding call search by specifying various preferences. Tests the system's\nability to accumulate user preferences (funding model exclusion, funding\nrate, deadline range, partner requirements) and apply these as filters\nto narrow down search results. The final list should reflect all\naccumulated preferences.\n",
-    "conversation_id": 38643262
+    "conversation_id": 953296582
   },
-  "execution_time_ms": 154541.922,
-  "timestamp": "2026-01-23T01:10:19.132598",
+  "execution_time_ms": 117077.885,
+  "timestamp": "2026-01-23T16:45:57.086262",
   "passed": true,
   "turn_count": 4,
   "critical_failures": 0,

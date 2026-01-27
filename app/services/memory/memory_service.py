@@ -5,7 +5,6 @@ Unified memory service that combines all memory components.
 import logging
 import os
 from datetime import datetime
-from typing import List, Optional
 
 import redis
 
@@ -91,7 +90,7 @@ class MemoryService:
         return success
 
     def get_context_for_query(
-        self, conversation_id: int, query: str, retrieved_chunks: Optional[List[str]] = None
+        self, conversation_id: int, query: str, retrieved_chunks: list[str] | None = None
     ) -> str:
         """
         Get optimized context for a query.
@@ -140,7 +139,7 @@ class MemoryService:
         except Exception as e:
             logger.error(f"Error updating summary: {e}")
 
-    def _extract_and_store_entities(self, conversation_id: int, turns: List[ConversationTurn]):
+    def _extract_and_store_entities(self, conversation_id: int, turns: list[ConversationTurn]):
         """Extract and store entity cards"""
         try:
             entities = self.summarizer.extract_entities(turns)

@@ -1,28 +1,28 @@
 {
   "scenario_name": "Capacity Building",
-  "status": "PASS",
-  "average_quality_score": 82.6,
+  "status": "FAIL",
+  "average_quality_score": 82.2,
   "average_factual_score": 100.0,
   "turns": [
     {
       "query": "We're new to EU funding - how do we get started?",
-      "response": "Welcome to Horizon Europe! Getting started can feel complex, but focusing on three initial phases\u2014Preparation, Partnering, and Proposal Writing\u2014will set you up for success. \n\n### Phase 1: Preparation & Finding Opportunities\n\nYour first step is identifying the right funding call that matches your research area (Cluster) and your intended Technology Readiness Level (TRL) for the project (Action Type).\n\n| Action Type | TRL Range | Funding Rate | Focus |\n|---|---|---|---|\n| **RIA** (Research & Innov...",
-      "quality_score": 81,
+      "response": "Welcome to Horizon Europe funding! Starting an EU project can seem complex, but by following a structured approach, you can significantly increase your chances of success. Horizon Europe focuses primarily on collaborative projects (Research and Innovation Actions - RIA, or Innovation Actions - IA).\n\n### 1. The Essential First Steps\n\n**A. Find a Relevant Call:** The programme budget is divided into **6 Thematic Clusters** (e.g., Health, Digital, Climate) and **5 EU Missions** (e.g., Cancer, Clima...",
+      "quality_score": 79,
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 7282.374,
+      "processing_time_ms": 11415.501,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
           "specificity": 25,
           "factual_accuracy": 20,
-          "actionability": 6
+          "actionability": 4
         },
         "feedback": "Quick rule-based evaluation"
       },
       "turn_number": 0,
-      "passed": true
+      "passed": false
     },
     {
       "query": "What programmes are best for beginners?",
@@ -31,7 +31,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 562.6210000000001,
+      "processing_time_ms": 565.207,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -51,7 +51,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 1622.466,
+      "processing_time_ms": 1607.366,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -71,7 +71,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 616.344,
+      "processing_time_ms": 608.861,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -91,7 +91,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 868.673,
+      "processing_time_ms": 869.343,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -106,7 +106,7 @@
     }
   ],
   "scores": {
-    "average_quality": 82.6,
+    "average_quality": 82.2,
     "average_factual": 100.0,
     "goal_progress": 0.39,
     "context_fields": 3
@@ -123,11 +123,11 @@
       "track-record"
     ],
     "description": "A 5-step onboarding workflow where an organization new to EU funding\nseeks help understanding how to get started. Tests the system's ability\nto provide beginner-appropriate advice, recommend suitable programmes,\nguide on partner vs coordinator roles, suggest appropriate project sizes,\nand outline a track record building strategy. The conversation builds\nuser context progressively (newcomer status) and validates that\nrecommendations are appropriately conservative for beginners.\n",
-    "conversation_id": 1039926572
+    "conversation_id": 1561163460
   },
-  "execution_time_ms": 121746.686,
-  "timestamp": "2026-01-23T02:04:36.315682",
-  "passed": true,
+  "execution_time_ms": 124757.56199999999,
+  "timestamp": "2026-01-23T16:53:52.144042",
+  "passed": false,
   "turn_count": 5,
   "critical_failures": 0,
   "high_failures": 0,

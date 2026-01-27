@@ -4,7 +4,6 @@ Script to convert print() statements to proper logging calls.
 Run with --dry-run first to preview changes.
 """
 import re
-import os
 import sys
 from pathlib import Path
 
@@ -57,7 +56,7 @@ def process_file(filepath: Path, dry_run: bool = True) -> tuple[int, list[str]]:
     """Process a single file and convert print statements."""
     changes = []
 
-    with open(filepath, 'r', encoding='utf-8') as f:
+    with open(filepath, encoding='utf-8') as f:
         lines = f.readlines()
 
     new_lines = []

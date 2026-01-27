@@ -11,7 +11,7 @@ import logging
 import re
 from datetime import date
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .base import CallExtractor, FundingCall
 
@@ -166,7 +166,7 @@ class CreativeEuropeExtractor(CallExtractor):
         'Montenegro', 'North Macedonia', 'Serbia', 'Tunisia', 'Ukraine',
     ]
 
-    def extract_from_content(self, content: str, document_title: str = "") -> List[FundingCall]:
+    def extract_from_content(self, content: str, document_title: str = "") -> list[FundingCall]:
         """
         Extract Creative Europe calls from document content.
 
@@ -198,7 +198,7 @@ class CreativeEuropeExtractor(CallExtractor):
         content: str,
         topic_code: str,
         document_title: str
-    ) -> Optional[FundingCall]:
+    ) -> FundingCall | None:
         """Extract details for a single Creative Europe call."""
 
         # Extract basic info
@@ -266,7 +266,7 @@ class CreativeEuropeExtractor(CallExtractor):
             }
         )
 
-    def _extract_title(self, content: str, topic_code: str) -> Optional[str]:
+    def _extract_title(self, content: str, topic_code: str) -> str | None:
         """Extract call title from content."""
         patterns = [
             rf'{re.escape(topic_code)}\s*[:–-]\s*(.{{20,200}}?)(?:\n|$)',
@@ -296,7 +296,7 @@ class CreativeEuropeExtractor(CallExtractor):
 
         return f"Creative Europe Call {topic_code}"
 
-    def _extract_strand(self, topic_code: str) -> Optional[str]:
+    def _extract_strand(self, topic_code: str) -> str | None:
         """Extract strand from topic code."""
         topic_upper = topic_code.upper()
 
@@ -310,7 +310,7 @@ class CreativeEuropeExtractor(CallExtractor):
 
         return None
 
-    def _extract_action_type(self, topic_code: str) -> Optional[str]:
+    def _extract_action_type(self, topic_code: str) -> str | None:
         """Extract action type from topic code."""
         topic_upper = topic_code.upper()
         strand = self._extract_strand(topic_code)
@@ -328,7 +328,7 @@ class CreativeEuropeExtractor(CallExtractor):
 
         return strand  # Return strand as fallback
 
-    def _extract_deadline(self, content: str, topic_code: str) -> Optional[date]:
+    def _extract_deadline(self, content: str, topic_code: str) -> date | None:
         """Extract deadline from content."""
         context_pattern = rf'{re.escape(topic_code)}.{{0,1500}}'
         context_match = re.search(context_pattern, content, re.IGNORECASE | re.DOTALL)
@@ -352,19 +352,19 @@ class CreativeEuropeExtractor(CallExtractor):
 
         return None
 
-    def _get_budget_info(self, action_type: Optional[str]) -> Optional[Dict[str, Any]]:
+    def _get_budget_info(self, action_type: str | None) -> dict[str, Any] | None:
         """Get budget information for action type."""
         if action_type and action_type in self.budget_ranges:
             return self.budget_ranges[action_type]
         return None
 
-    def _get_consortium_requirements(self, action_type: Optional[str]) -> Optional[Dict[str, int]]:
+    def _get_consortium_requirements(self, action_type: str | None) -> dict[str, int] | None:
         """Get consortium requirements for action type."""
         if action_type and action_type in self.consortium_requirements:
             return self.consortium_requirements[action_type]
         return None
 
-    def _get_duration_info(self, action_type: Optional[str]) -> Optional[Dict[str, int]]:
+    def _get_duration_info(self, action_type: str | None) -> dict[str, int] | None:
         """Get duration information for action type."""
         if action_type and action_type in self.duration_ranges:
             return self.duration_ranges[action_type]
@@ -374,9 +374,9 @@ class CreativeEuropeExtractor(CallExtractor):
         self,
         content: str,
         topic_code: str,
-        strand: Optional[str],
-        action_type: Optional[str]
-    ) -> Optional[str]:
+        strand: str | None,
+        action_type: str | None
+    ) -> str | None:
         """Extract eligibility requirements."""
         eligibility_parts = []
 
@@ -428,7 +428,7 @@ class CreativeEuropeExtractor(CallExtractor):
 
         return ' '.join(eligibility_parts) if eligibility_parts else None
 
-    def _extract_scope(self, content: str, topic_code: str) -> Optional[str]:
+    def _extract_scope(self, content: str, topic_code: str) -> str | None:
         """Extract scope/objectives from content."""
         context_pattern = rf'{re.escape(topic_code)}.{{0,3000}}'
         context_match = re.search(context_pattern, content, re.IGNORECASE | re.DOTALL)
@@ -452,9 +452,9 @@ class CreativeEuropeExtractor(CallExtractor):
 
     def _get_eligible_organizations(
         self,
-        strand: Optional[str],
-        action_type: Optional[str]
-    ) -> List[str]:
+        strand: str | None,
+        action_type: str | None
+    ) -> list[str]:
         """Get list of eligible organization types."""
         if strand == 'CULTURE':
             return [
@@ -490,7 +490,7 @@ class CreativeEuropeExtractor(CallExtractor):
             ]
         return []
 
-    def _determine_status(self, deadline: Optional[date]) -> str:
+    def _determine_status(self, deadline: date | None) -> str:
         """Determine call status based on deadline."""
         if not deadline:
             return 'upcoming'
@@ -508,7 +508,7 @@ class CreativeEuropeExtractor(CallExtractor):
         base_url = "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details"
         return f"{base_url}/{topic_code.lower()}"
 
-    def get_programme_info(self) -> Dict[str, Any]:
+    def get_programme_info(self) -> dict[str, Any]:
         """Return comprehensive information about the Creative Europe programme."""
         return {
             'programme': self.programme,

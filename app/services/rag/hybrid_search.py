@@ -1,13 +1,9 @@
-import logging
-import numpy as np
-from typing import List, Dict, Any, Optional, Tuple
-from dataclasses import dataclass
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
-import hashlib
-import json
-import os
+import logging
+from dataclasses import dataclass
+from typing import Any
 
+import numpy as np
 
 logger = logging.getLogger(__name__)
 @dataclass
@@ -16,10 +12,10 @@ class SearchResult:
     chunk_id: str
     content: str
     score: float
-    metadata: Dict[str, Any]
+    metadata: dict[str, Any]
     source: str  # 'vector', 'keyword', or 'hybrid'
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             'chunk_id': self.chunk_id,
             'content': self.content,
@@ -68,9 +64,9 @@ class HybridSearchPipeline:
     
     async def search(self,
                     query: str,
-                    filters: Optional[Dict[str, Any]] = None,
+                    filters: dict[str, Any] | None = None,
                     limit: int = 4,
-                    use_reranking: bool = True) -> List[SearchResult]:
+                    use_reranking: bool = True) -> list[SearchResult]:
         """
         Perform hybrid search with optional reranking.
         
@@ -113,8 +109,8 @@ class HybridSearchPipeline:
     
     async def _vector_search_async(self,
                                   query: str,
-                                  filters: Optional[Dict[str, Any]],
-                                  limit: int) -> List[SearchResult]:
+                                  filters: dict[str, Any] | None,
+                                  limit: int) -> list[SearchResult]:
         """
         Asynchronous vector search.
         """
@@ -129,8 +125,8 @@ class HybridSearchPipeline:
     
     def _vector_search(self,
                       query: str,
-                      filters: Optional[Dict[str, Any]],
-                      limit: int) -> List[SearchResult]:
+                      filters: dict[str, Any] | None,
+                      limit: int) -> list[SearchResult]:
         """
         Perform vector similarity search.
         """
@@ -164,8 +160,8 @@ class HybridSearchPipeline:
     
     async def _keyword_search_async(self,
                                    query: str,
-                                   filters: Optional[Dict[str, Any]],
-                                   limit: int) -> List[SearchResult]:
+                                   filters: dict[str, Any] | None,
+                                   limit: int) -> list[SearchResult]:
         """
         Asynchronous keyword search.
         """
@@ -180,8 +176,8 @@ class HybridSearchPipeline:
     
     def _keyword_search(self,
                        query: str,
-                       filters: Optional[Dict[str, Any]],
-                       limit: int) -> List[SearchResult]:
+                       filters: dict[str, Any] | None,
+                       limit: int) -> list[SearchResult]:
         """
         Perform keyword-based search.
         """
@@ -232,10 +228,10 @@ class HybridSearchPipeline:
             return query
     
     def _merge_results(self,
-                      vector_results: List[SearchResult],
-                      keyword_results: List[SearchResult],
+                      vector_results: list[SearchResult],
+                      keyword_results: list[SearchResult],
                       vector_weight: float,
-                      keyword_weight: float) -> List[SearchResult]:
+                      keyword_weight: float) -> list[SearchResult]:
         """
         Merge and deduplicate results from vector and keyword search.
         """
@@ -275,7 +271,7 @@ class HybridSearchPipeline:
     
     def _rerank_results(self,
                        query: str,
-                       results: List[SearchResult]) -> List[SearchResult]:
+                       results: list[SearchResult]) -> list[SearchResult]:
         """
         Rerank results using cross-encoder.
         """

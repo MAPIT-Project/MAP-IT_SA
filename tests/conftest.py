@@ -12,16 +12,17 @@ across multiple test files, providing:
 - Common assertion helpers
 """
 
-import pytest
 import asyncio
-import json
 import os
 import sys
-from unittest.mock import Mock, MagicMock, AsyncMock, patch
-from datetime import datetime
-from typing import AsyncGenerator, Dict, Any, List, Optional
-from dataclasses import dataclass, field
 import uuid
+from collections.abc import AsyncGenerator
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -42,7 +43,7 @@ class MockCallResult:
     type: str = "RIA"
     programme: str = "Horizon Europe"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "call_id": self.call_id,
             "title": self.title,
@@ -67,7 +68,7 @@ class MockProjectResult:
     end_date: str = "2026-12-31"
     coordinator_country: str = "DE"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.project_id,
             "acronym": self.acronym,
@@ -86,11 +87,11 @@ class ConversationTurn:
     """Represents a single turn in a conversation."""
     user_message: str
     response_text: str = ""
-    events: List[Dict[str, Any]] = field(default_factory=list)
-    tools_used: List[str] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    events: list[dict[str, Any]] = field(default_factory=list)
+    tools_used: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
     timestamp: datetime = field(default_factory=datetime.now)
-    error: Optional[str] = None
+    error: str | None = None
 
     @property
     def references_previous_result(self) -> bool:
@@ -108,9 +109,9 @@ class ConversationTurn:
 class ScenarioStep:
     """A single step in a conversation scenario."""
     message: str
-    validations: List[Dict[str, Any]] = field(default_factory=list)
-    expected_tools: List[str] = field(default_factory=list)
-    expected_patterns: List[str] = field(default_factory=list)
+    validations: list[dict[str, Any]] = field(default_factory=list)
+    expected_tools: list[str] = field(default_factory=list)
+    expected_patterns: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -118,8 +119,8 @@ class ConversationScenario:
     """A complete conversation scenario for testing."""
     name: str
     description: str
-    steps: List[ScenarioStep]
-    tags: List[str] = field(default_factory=list)
+    steps: list[ScenarioStep]
+    tags: list[str] = field(default_factory=list)
     stop_on_error: bool = True
 
 
@@ -129,23 +130,23 @@ class ValidationResult:
     passed: bool
     name: str = ""
     message: str = ""
-    details: Dict[str, Any] = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
 class ScenarioResult:
     """Result of running a conversation scenario."""
     scenario_name: str
-    validations: List[ValidationResult] = field(default_factory=list)
-    errors: List[Dict[str, Any]] = field(default_factory=list)
-    turns: List[ConversationTurn] = field(default_factory=list)
+    validations: list[ValidationResult] = field(default_factory=list)
+    errors: list[dict[str, Any]] = field(default_factory=list)
+    turns: list[ConversationTurn] = field(default_factory=list)
 
     @property
     def all_validations_passed(self) -> bool:
         return all(v.passed for v in self.validations)
 
     @property
-    def failed_validations(self) -> List[ValidationResult]:
+    def failed_validations(self) -> list[ValidationResult]:
         return [v for v in self.validations if not v.passed]
 
     def add_validation(self, name: str, passed: bool, message: str = ""):
@@ -266,9 +267,9 @@ async def create_mock_stream_generator(
     include_name_event: bool = True,
     include_tool_events: bool = True,
     response_text: str = "Here are the results based on your query.",
-    tools_used: List[str] = None,
-    error: Optional[str] = None,
-) -> AsyncGenerator[Dict[str, Any], None]:
+    tools_used: list[str] = None,
+    error: str | None = None,
+) -> AsyncGenerator[dict[str, Any], None]:
     """Create a mock async generator for streaming responses."""
     conversation_id = str(uuid.uuid4())[:8]
 
@@ -441,8 +442,9 @@ def mock_tool_aware_agent(mock_genai_patched):
 @pytest.fixture
 def app_with_mocked_manager(mock_conversation_manager):
     """Create FastAPI app with mocked conversation manager."""
-    from app.api.conversation_routes_v3 import router
     from fastapi import FastAPI
+
+    from app.api.conversation_routes_v3 import router
 
     app = FastAPI()
     app.include_router(router)
@@ -459,7 +461,7 @@ class TestDataFactory:
     """Factory for creating test data."""
 
     @staticmethod
-    def create_calls(count: int = 5) -> List[Dict[str, Any]]:
+    def create_calls(count: int = 5) -> list[dict[str, Any]]:
         """Create multiple mock funding calls."""
         calls = []
         for i in range(count):
@@ -472,7 +474,7 @@ class TestDataFactory:
         return calls
 
     @staticmethod
-    def create_projects(count: int = 5) -> List[Dict[str, Any]]:
+    def create_projects(count: int = 5) -> list[dict[str, Any]]:
         """Create multiple mock projects."""
         projects = []
         for i in range(count):
@@ -487,7 +489,7 @@ class TestDataFactory:
     @staticmethod
     def create_conversation_scenario(
         name: str,
-        steps: List[Dict[str, Any]]
+        steps: list[dict[str, Any]]
     ) -> ConversationScenario:
         """Create a conversation scenario from dict config."""
         scenario_steps = []
@@ -520,7 +522,7 @@ class AssertionHelpers:
     """Helper methods for common assertions."""
 
     @staticmethod
-    def assert_sse_event_valid(event: Dict[str, Any]):
+    def assert_sse_event_valid(event: dict[str, Any]):
         """Assert that an SSE event has valid structure."""
         assert "type" in event, "SSE event must have 'type' field"
         valid_types = [
@@ -530,19 +532,19 @@ class AssertionHelpers:
         assert event["type"] in valid_types, f"Invalid event type: {event['type']}"
 
     @staticmethod
-    def assert_response_has_required_fields(response: Dict[str, Any]):
+    def assert_response_has_required_fields(response: dict[str, Any]):
         """Assert that a response has required fields."""
         assert "response" in response or "answer" in response, "Response must have content"
         if "metadata" in response:
             assert isinstance(response["metadata"], dict)
 
     @staticmethod
-    def assert_tool_result_valid(result: Dict[str, Any], tool_name: str):
+    def assert_tool_result_valid(result: dict[str, Any], tool_name: str):
         """Assert that a tool result is valid."""
         assert "result" in result or "error" in result, "Tool result must have result or error"
 
     @staticmethod
-    def assert_conversation_context_valid(context: Dict[str, Any]):
+    def assert_conversation_context_valid(context: dict[str, Any]):
         """Assert that conversation context has expected structure."""
         expected_keys = ["short_term", "long_term_summary"]
         for key in expected_keys:
@@ -599,8 +601,8 @@ def event_loop():
 
 
 async def collect_stream_events(
-    stream_generator: AsyncGenerator[Dict[str, Any], None]
-) -> List[Dict[str, Any]]:
+    stream_generator: AsyncGenerator[dict[str, Any], None]
+) -> list[dict[str, Any]]:
     """Collect all events from a stream generator."""
     events = []
     async for event in stream_generator:

@@ -24,14 +24,14 @@ The ToolAwareAgent is smart enough to:
 """
 
 import logging
-import asyncio
+from collections.abc import AsyncGenerator
 from datetime import datetime
-from typing import Dict, Any, List, Optional, AsyncGenerator, Tuple
+from typing import Any
 
 from .agent_context import AgentContext, AgentState
-from .result_evaluator import ResultEvaluator, EvaluationResult
-from .reflector import Reflector, ReflectionResult, FailureRootCause
+from .reflector import FailureRootCause, ReflectionResult, Reflector
 from .replanner import Replanner
+from .result_evaluator import EvaluationResult, ResultEvaluator
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +85,7 @@ class AgenticManager:
                 from .tool_aware_agent import ToolAwareAgent
                 self.tool_agent = ToolAwareAgent(max_iterations=5)
                 self._tool_agent_available = True
-                logger.info(f"🛠️ ToolAwareAgent initialized (multi-tool reasoning enabled)")
+                logger.info("🛠️ ToolAwareAgent initialized (multi-tool reasoning enabled)")
             except Exception as e:
                 logger.warning(f"⚠️ ToolAwareAgent unavailable: {e}")
                 self._tool_agent_available = False
@@ -117,12 +117,12 @@ class AgenticManager:
     async def process_query(
         self,
         query: str,
-        conversation_id: Optional[str] = None,
-        conversation_history: List[Dict] = None,
+        conversation_id: str | None = None,
+        conversation_history: list[dict] = None,
         stream_progress: bool = False,
         force_simple: bool = False,  # Only use simple loop if explicitly forced
-        intent_classification: Optional[Any] = None  # UnifiedIntent from classifier
-    ) -> Dict[str, Any]:
+        intent_classification: Any | None = None  # UnifiedIntent from classifier
+    ) -> dict[str, Any]:
         """
         Process a query using the best available method.
         
@@ -156,7 +156,7 @@ class AgenticManager:
         
         # ALWAYS use ToolAwareAgent for best results (unless forced to simple or unavailable)
         if self._tool_agent_available and not force_simple:
-            logger.info(f"🧠 Using ToolAwareAgent (ReAct) for BEST results")
+            logger.info("🧠 Using ToolAwareAgent (ReAct) for BEST results")
             if complexity_type != 'auto':
                 logger.info(f"   LLM complexity hint: {complexity_type}")
             if suggested_tools:
@@ -235,7 +235,7 @@ class AgenticManager:
     async def _understand_query(
         self,
         context: AgentContext,
-        conversation_history: List[Dict] = None
+        conversation_history: list[dict] = None
     ) -> None:
         """Phase 1: Understand the user's query."""
         
@@ -572,7 +572,7 @@ class AgenticManager:
         
         return '\n'.join(parts)
 
-    def _format_graph_result(self, result: Dict[str, Any]) -> str:
+    def _format_graph_result(self, result: dict[str, Any]) -> str:
         """Format a graph database result into a readable string."""
         # Handle project results
         if 'acronym' in result or 'project_id' in result:
@@ -627,7 +627,7 @@ class AgenticManager:
 
         return "Result data available"
 
-    def _count_results(self, results: Dict[str, Any]) -> int:
+    def _count_results(self, results: dict[str, Any]) -> int:
         """Count total results across all sources."""
         total = 0
         for source in ['graph', 'vector', 'keyword']:
@@ -643,7 +643,7 @@ class AgenticManager:
         self,
         context: AgentContext,
         response: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Build the final output dictionary."""
         
         return {
@@ -668,7 +668,7 @@ class AgenticManager:
         self,
         context: AgentContext,
         error: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Build error output dictionary."""
         
         return {
@@ -689,10 +689,10 @@ class AgenticManager:
     async def _process_with_tool_agent(
         self,
         query: str,
-        conversation_history: List[Dict] = None,
+        conversation_history: list[dict] = None,
         complexity_type: str = 'standard',
-        suggested_tools: List[str] = None
-    ) -> Dict[str, Any]:
+        suggested_tools: list[str] = None
+    ) -> dict[str, Any]:
         """
         Process a complex query using the multi-tool ToolAwareAgent.
         
@@ -775,8 +775,8 @@ class AgenticManager:
     async def _run_standard_loop(
         self,
         context: AgentContext,
-        conversation_history: List[Dict] = None
-    ) -> Dict[str, Any]:
+        conversation_history: list[dict] = None
+    ) -> dict[str, Any]:
         """Run the standard self-correcting loop."""
         try:
             # PHASE 1: UNDERSTAND
@@ -823,11 +823,11 @@ class AgenticManager:
     async def process_query_streaming(
         self,
         query: str,
-        conversation_id: Optional[str] = None,
-        conversation_history: List[Dict] = None,
-        intent_classification: Optional[Any] = None,  # UnifiedIntent from classifier
+        conversation_id: str | None = None,
+        conversation_history: list[dict] = None,
+        intent_classification: Any | None = None,  # UnifiedIntent from classifier
         force_simple: bool = False
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+    ) -> AsyncGenerator[dict[str, Any], None]:
         """
         Process a query with streaming progress updates.
         
@@ -941,10 +941,10 @@ class AgenticManager:
     async def _stream_multi_tool_query(
         self,
         query: str,
-        conversation_history: List[Dict] = None,
+        conversation_history: list[dict] = None,
         complexity_type: str = 'simple',
-        suggested_tools: List[str] = None
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+        suggested_tools: list[str] = None
+    ) -> AsyncGenerator[dict[str, Any], None]:
         """
         Stream progress for multi-tool reasoning queries.
         
@@ -1059,8 +1059,8 @@ class AgenticManager:
     async def _stream_standard_query(
         self,
         query: str,
-        conversation_history: List[Dict] = None
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+        conversation_history: list[dict] = None
+    ) -> AsyncGenerator[dict[str, Any], None]:
         """Fallback standard streaming when multi-tool fails."""
         context = AgentContext(
             user_query=query,

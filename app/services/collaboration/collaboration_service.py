@@ -16,13 +16,13 @@ Features:
 """
 
 import asyncio
-import hashlib
 import json
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any
 from uuid import uuid4
 
 logger = logging.getLogger(__name__)
@@ -41,10 +41,10 @@ class CursorPosition:
     """Cursor position in a document."""
     section_id: str
     position: int  # Character offset
-    selection_start: Optional[int] = None
-    selection_end: Optional[int] = None
+    selection_start: int | None = None
+    selection_end: int | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "section_id": self.section_id,
             "position": self.position,
@@ -61,13 +61,13 @@ class CollaboratorSession:
     connection_id: str  # Unique connection ID for this instance
     username: str
     color: str  # Color for cursor/highlights
-    cursor: Optional[CursorPosition] = None
-    active_section: Optional[str] = None
+    cursor: CursorPosition | None = None
+    active_section: str | None = None
     joined_at: datetime = field(default_factory=datetime.utcnow)
     last_activity: datetime = field(default_factory=datetime.utcnow)
     is_connected: bool = True
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "user_id": self.user_id,
             "session_id": self.session_id,
@@ -92,7 +92,7 @@ class SectionLock:
     locked_at: datetime
     expires_at: datetime
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "section_id": self.section_id,
             "session_id": self.session_id,
@@ -100,7 +100,7 @@ class SectionLock:
             "locked_by_name": self.locked_by_name,
             "locked_at": self.locked_at.isoformat(),
             "expires_at": self.expires_at.isoformat(),
-            "is_expired": datetime.now(timezone.utc) > self.expires_at,
+            "is_expired": datetime.now(UTC) > self.expires_at,
         }
 
 
@@ -111,13 +111,13 @@ class EditOperation:
     section_id: str
     operation_type: OperationType
     position: int
-    content: Optional[str] = None  # For insert/replace
-    length: Optional[int] = None   # For delete/retain
-    user_id: Optional[str] = None
+    content: str | None = None  # For insert/replace
+    length: int | None = None   # For delete/retain
+    user_id: str | None = None
     timestamp: datetime = field(default_factory=datetime.utcnow)
     base_version: int = 0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "operation_id": self.operation_id,
             "section_id": self.section_id,
@@ -136,11 +136,11 @@ class BroadcastEvent:
     """An event to broadcast to collaborators."""
     event_type: str
     session_id: str
-    payload: Dict[str, Any]
-    exclude_user: Optional[str] = None
+    payload: dict[str, Any]
+    exclude_user: str | None = None
     timestamp: datetime = field(default_factory=datetime.utcnow)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "event_type": self.event_type,
             "session_id": self.session_id,
@@ -186,12 +186,12 @@ class CollaborationService:
         self.db_pool = db_pool
 
         # In-memory fallback if Redis not available
-        self._local_sessions: Dict[str, Dict[str, CollaboratorSession]] = {}
-        self._local_locks: Dict[str, Dict[str, SectionLock]] = {}
-        self._local_versions: Dict[str, Dict[str, int]] = {}
+        self._local_sessions: dict[str, dict[str, CollaboratorSession]] = {}
+        self._local_locks: dict[str, dict[str, SectionLock]] = {}
+        self._local_versions: dict[str, dict[str, int]] = {}
 
         # Event listeners for broadcasting
-        self._listeners: Dict[str, List[Callable]] = {}
+        self._listeners: dict[str, list[Callable]] = {}
 
     # =========================================================================
     # Session Management
@@ -202,7 +202,7 @@ class CollaborationService:
         session_id: str,
         user_id: str,
         username: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Join a collaboration session.
 
@@ -257,7 +257,7 @@ class CollaborationService:
         self,
         session_id: str,
         user_id: str,
-        connection_id: Optional[str] = None,
+        connection_id: str | None = None,
     ) -> bool:
         """
         Leave a collaboration session.
@@ -287,7 +287,7 @@ class CollaborationService:
 
         return True
 
-    async def get_collaborators(self, session_id: str) -> List[CollaboratorSession]:
+    async def get_collaborators(self, session_id: str) -> list[CollaboratorSession]:
         """Get all active collaborators in a session."""
         if self.redis:
             try:
@@ -314,14 +314,14 @@ class CollaborationService:
                 data = self.redis.hget(key, user_id)
                 if data:
                     user_dict = json.loads(data)
-                    user_dict["last_activity"] = datetime.now(timezone.utc).isoformat()
+                    user_dict["last_activity"] = datetime.now(UTC).isoformat()
                     self.redis.hset(key, user_id, json.dumps(user_dict))
             except Exception as e:
                 logger.warning(f"Redis error updating heartbeat: {e}")
         else:
             session = self._local_sessions.get(session_id, {}).get(user_id)
             if session:
-                session.last_activity = datetime.now(timezone.utc)
+                session.last_activity = datetime.now(UTC)
 
     # =========================================================================
     # Cursor Tracking
@@ -353,7 +353,7 @@ class CollaborationService:
                     user_dict = json.loads(data)
                     user_dict["cursor"] = cursor.to_dict()
                     user_dict["active_section"] = cursor.section_id
-                    user_dict["last_activity"] = datetime.now(timezone.utc).isoformat()
+                    user_dict["last_activity"] = datetime.now(UTC).isoformat()
                     self.redis.hset(key, user_id, json.dumps(user_dict))
             except Exception as e:
                 logger.warning(f"Redis error updating cursor: {e}")
@@ -362,7 +362,7 @@ class CollaborationService:
             if session:
                 session.cursor = cursor
                 session.active_section = cursor.section_id
-                session.last_activity = datetime.now(timezone.utc)
+                session.last_activity = datetime.now(UTC)
 
         # Broadcast cursor update
         await self._broadcast(
@@ -389,7 +389,7 @@ class CollaborationService:
         section_id: str,
         user_id: str,
         username: str,
-    ) -> Optional[SectionLock]:
+    ) -> SectionLock | None:
         """
         Lock a section for editing.
 
@@ -403,7 +403,7 @@ class CollaborationService:
             SectionLock if acquired, None if already locked
         """
         lock_key = f"collab:lock:{session_id}:{section_id}"
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         expires_at = now + timedelta(seconds=self.LOCK_EXPIRY_SECONDS)
 
         lock = SectionLock(
@@ -539,7 +539,7 @@ class CollaborationService:
                     lock_data = json.loads(existing)
                     if lock_data["locked_by"] == user_id:
                         lock_data["expires_at"] = (
-                            datetime.now(timezone.utc) + timedelta(seconds=self.LOCK_EXPIRY_SECONDS)
+                            datetime.now(UTC) + timedelta(seconds=self.LOCK_EXPIRY_SECONDS)
                         ).isoformat()
                         self.redis.setex(
                             lock_key,
@@ -552,7 +552,7 @@ class CollaborationService:
 
         return False
 
-    async def get_locked_sections(self, session_id: str) -> List[SectionLock]:
+    async def get_locked_sections(self, session_id: str) -> list[SectionLock]:
         """Get all locked sections in a session."""
         locks = []
 
@@ -572,13 +572,13 @@ class CollaborationService:
                             expires_at=datetime.fromisoformat(lock_dict["expires_at"]),
                         )
                         # Only include non-expired locks
-                        if lock.expires_at > datetime.now(timezone.utc):
+                        if lock.expires_at > datetime.now(UTC):
                             locks.append(lock)
             except Exception as e:
                 logger.warning(f"Redis error getting locks: {e}")
         else:
             session_locks = self._local_locks.get(session_id, {})
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             locks = [l for l in session_locks.values() if l.expires_at > now]
 
         return locks
@@ -600,7 +600,7 @@ class CollaborationService:
         section_id: str,
         user_id: str,
         operation: EditOperation,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Apply an editing operation with OT.
 
@@ -679,7 +679,7 @@ class CollaborationService:
     def _transform_operation(
         self,
         operation: EditOperation,
-        pending_ops: List[EditOperation],
+        pending_ops: list[EditOperation],
     ) -> EditOperation:
         """
         Transform operation against pending operations (OT).
@@ -728,7 +728,7 @@ class CollaborationService:
         session_id: str,
         section_id: str,
         since_version: int,
-    ) -> List[EditOperation]:
+    ) -> list[EditOperation]:
         """Get operations since a version for OT."""
         if not self.redis:
             return []
@@ -840,7 +840,7 @@ class CollaborationService:
         self,
         session_id: str,
         user_id: str,
-        connection_id: Optional[str] = None,
+        connection_id: str | None = None,
     ):
         """Remove a collaborator from the session."""
         if self.redis:
@@ -855,7 +855,7 @@ class CollaborationService:
         if user_id in session:
             del session[user_id]
 
-    def _dict_to_collaborator(self, data: Dict[str, Any]) -> CollaboratorSession:
+    def _dict_to_collaborator(self, data: dict[str, Any]) -> CollaboratorSession:
         """Convert dict to CollaboratorSession."""
         cursor = None
         if data.get("cursor"):
@@ -881,7 +881,7 @@ class CollaborationService:
 
     async def cleanup_inactive_sessions(self):
         """Cleanup inactive collaborator sessions."""
-        timeout = datetime.now(timezone.utc) - timedelta(seconds=self.INACTIVITY_TIMEOUT_SECONDS)
+        timeout = datetime.now(UTC) - timedelta(seconds=self.INACTIVITY_TIMEOUT_SECONDS)
 
         for session_id, collaborators in list(self._local_sessions.items()):
             for user_id, session in list(collaborators.items()):
@@ -890,7 +890,7 @@ class CollaborationService:
 
 
 # Singleton instance
-_collaboration_service: Optional[CollaborationService] = None
+_collaboration_service: CollaborationService | None = None
 
 
 def get_collaboration_service(

@@ -1,0 +1,163 @@
+{
+  "scenario_name": "Portfolio Planning",
+  "status": "FAIL",
+  "average_quality_score": 81.66666666666667,
+  "average_factual_score": 100.0,
+  "turns": [
+    {
+      "query": "We want to submit 5 proposals this year",
+      "response": "That is an ambitious and impressive goal! Submitting five high-quality proposals in one year requires excellent strategic planning and resource allocation. We can help you maximize your success rate by aligning your proposals with the right programmes and calls.\n\n### Strategic Planning Framework\n\nTo manage this volume, it is crucial to sequence your applications strategically. A common successful framework for organizations in Horizon Europe is:\n\n| Year | Focus | Recommended Actions |\n|---|---|-...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 6465.7080000000005,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
+      "passed": true
+    },
+    {
+      "query": "Our research areas are: AI, robotics, and human-machine interaction",
+      "response": "I found **11 funding opportunities** for your query:\n\n**1. On-site innovative robotic and automated solutions and techniques for more sustainable and less disruptive building renovation and construction**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D4-01\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: Project results are expected to contribute to all of the following expected outcomes: Measurable reduction in overall time spent on site f...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "search_funding_calls",
+        "search_funding_calls"
+      ],
+      "processing_time_ms": 8610.495,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": true
+    },
+    {
+      "query": "What calls match our profile?",
+      "response": "**Creative Europe Cooperation Project Funding Rates**\n\nCreative Europe uses a **lump sum funding model** with fixed EU contribution rates for cooperation projects.\n\n## Funding Rate Overview\n\n| Aspect | Rate/Amount |\n|--------|-------------|\n| **EU Funding Rate** | 60% |\n| **Your Co-financing** | 40% |\n| **Funding Model** | Lump sum |\n| **Payment Schedule** | Pre-financing + balance |\n\n## What Does 60% Mean?\n\nThe EU covers **60% of your total eligible costs**:\n\n| Scale | Max EU Grant | Your 40% C...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 1095.771,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": true
+    },
+    {
+      "query": "Which should we prioritize?",
+      "response": "To prioritize funding calls by feasibility when time is limited, you should assess each call against these criteria. Here is a systematic framework:\n\n### Feasibility Assessment Framework\n\n| Factor | High Feasibility (Score 3) | Medium (Score 2) | Low (Score 1) |\n|--------|--------------------------|------------------|---------------|\n| **Consortium Readiness** | Partners identified & committed | Some partners identified | Need to find partners |\n| **Topic Alignment** | Direct match to your work ...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 736.501,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": true
+    },
+    {
+      "query": "How do we avoid overlap?",
+      "response": "I found some information but couldn't extract specific details. Please try a more specific question.",
+      "quality_score": 75,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "search_projects"
+      ],
+      "processing_time_ms": 5565.174,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 0
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 4,
+      "passed": false
+    },
+    {
+      "query": "What's a realistic success expectation?",
+      "response": "Okay, based on the provided search results, here's a realistic expectation regarding success in the Creative Europe program:\n\n**Understanding Success in Creative Europe**\n\nThe provided data focuses on the Creative Europe program and gives some insight into project funding. However, it *doesn't* explicitly state a success rate. Therefore, we can't give you a percentage chance of getting funded.\n\n**What we *can* infer is:**\n\n*   **Competition is likely high:** The absence of a success rate suggest...",
+      "quality_score": 79,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "get_programme_statistics"
+      ],
+      "processing_time_ms": 6775.089,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 4
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 5,
+      "passed": false
+    }
+  ],
+  "scores": {
+    "average_quality": 81.66666666666667,
+    "average_factual": 100.0,
+    "goal_progress": 0.42000000000000004,
+    "context_fields": 2
+  },
+  "failures": [],
+  "metadata": {
+    "scenario_path": "tests/scenarios/advanced/portfolio_planning.yaml",
+    "tags": [
+      "phase5",
+      "strategic-planning",
+      "portfolio-planning",
+      "multi-proposal",
+      "ai",
+      "robotics",
+      "hmi"
+    ],
+    "description": "A 6-step portfolio planning workflow where a researcher seeks help planning\nmultiple proposal submissions for the year. Tests the system's ability to\nprovide portfolio-based advice including call matching, prioritization,\noverlap avoidance, and realistic success expectations. The conversation\nbuilds user context progressively (5 proposals goal, AI/robotics/HMI areas)\nand validates that recommendations consider diversification and success rates.\n",
+    "conversation_id": 1590235397
+  },
+  "execution_time_ms": 152203.663,
+  "timestamp": "2026-01-23T16:51:19.940819",
+  "passed": false,
+  "turn_count": 6,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
+}

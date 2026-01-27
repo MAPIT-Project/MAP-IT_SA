@@ -12,15 +12,16 @@ Finds funded projects semantically similar to a user's project description
 using vector embeddings (768-dim, Google text-embedding-004) and graph context.
 """
 
-import os
 import logging
-from typing import Optional, Dict, Any, List
-from datetime import datetime
+import os
 from concurrent.futures import ThreadPoolExecutor
-import psycopg2
-from psycopg2.extras import RealDictCursor
-from dotenv import load_dotenv
+from datetime import datetime
+from typing import Any
+
 import numpy as np
+import psycopg2
+from dotenv import load_dotenv
+from psycopg2.extras import RealDictCursor
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -129,14 +130,14 @@ class SimilarProjectsTool:
         cluster_upper = cluster.upper().replace(' ', '').replace('-', '')
         return CLUSTER_MAP.get(cluster_upper, cluster.upper())
 
-    def _cluster_to_graph_code(self, cluster: str) -> Optional[str]:
+    def _cluster_to_graph_code(self, cluster: str) -> str | None:
         """Convert cluster code to graph format (CLUSTER-N)."""
         if not cluster:
             return None
         normalized = self._normalize_cluster(cluster)
         return CLUSTER_TO_GRAPH.get(normalized, f'CLUSTER-{normalized[-1]}' if normalized.startswith('CL') else None)
 
-    def _infer_clusters_from_description(self, description: str) -> List[str]:
+    def _infer_clusters_from_description(self, description: str) -> list[str]:
         """Infer clusters from project description."""
         if not description:
             return []
@@ -156,16 +157,16 @@ class SimilarProjectsTool:
     def find_similar(
         self,
         description: str,
-        cluster: Optional[str] = None,
-        action_type: Optional[str] = None,
-        min_budget: Optional[int] = None,
-        max_budget: Optional[int] = None,
-        year_from: Optional[int] = None,
+        cluster: str | None = None,
+        action_type: str | None = None,
+        min_budget: int | None = None,
+        max_budget: int | None = None,
+        year_from: int | None = None,
         limit: int = 10,
         similarity_threshold: float = 0.3,
         rerank_with_graph: bool = True,
         include_graph_context: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Find funded Horizon Europe projects semantically similar to a description.
 
@@ -268,19 +269,19 @@ class SimilarProjectsTool:
     def _find_similar_hybrid(
         self,
         description: str,
-        embedding_list: List[float],
-        cluster: Optional[str],
-        graph_cluster: Optional[str],
-        action_type: Optional[str],
-        min_budget: Optional[int],
-        max_budget: Optional[int],
-        year_from: Optional[int],
+        embedding_list: list[float],
+        cluster: str | None,
+        graph_cluster: str | None,
+        action_type: str | None,
+        min_budget: int | None,
+        max_budget: int | None,
+        year_from: int | None,
         limit: int,
         similarity_threshold: float,
         rerank_with_graph: bool,
         include_graph_context: bool,
-        inferred_clusters: List[str]
-    ) -> Dict[str, Any]:
+        inferred_clusters: list[str]
+    ) -> dict[str, Any]:
         """
         Hybrid Vector+Graph search with optional reranking.
         """
@@ -361,15 +362,15 @@ class SimilarProjectsTool:
 
     def _get_vector_results(
         self,
-        embedding_list: List[float],
-        cluster: Optional[str],
-        action_type: Optional[str],
-        min_budget: Optional[int],
-        max_budget: Optional[int],
-        year_from: Optional[int],
+        embedding_list: list[float],
+        cluster: str | None,
+        action_type: str | None,
+        min_budget: int | None,
+        max_budget: int | None,
+        year_from: int | None,
         limit: int,
         similarity_threshold: float
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """Get vector similarity results from pgvector."""
         conn = self._get_connection()
         if not conn:
@@ -494,14 +495,14 @@ class SimilarProjectsTool:
 
     def _enhance_with_graph_context(
         self,
-        results: List[Dict],
-        graph_cluster: Optional[str]
-    ) -> List[Dict]:
+        results: list[dict],
+        graph_cluster: str | None
+    ) -> list[dict]:
         """Enhance results with graph context (parallel queries)."""
         if not self._graph_service or not results:
             return results
 
-        def get_graph_project_info(project_id: str) -> Optional[Dict]:
+        def get_graph_project_info(project_id: str) -> dict | None:
             """Get graph-based info for a project."""
             try:
                 # Get similar projects count from graph
@@ -538,9 +539,9 @@ class SimilarProjectsTool:
 
     def _rerank_with_graph(
         self,
-        results: List[Dict],
-        graph_cluster: Optional[str]
-    ) -> List[Dict]:
+        results: list[dict],
+        graph_cluster: str | None
+    ) -> list[dict]:
         """Rerank results by combining embedding score with graph signals."""
         for r in results:
             embedding_score = r.get('similarity_score', 0)
@@ -572,7 +573,7 @@ class SimilarProjectsTool:
         results.sort(key=lambda x: x.get('combined_score', 0), reverse=True)
         return results
 
-    def _format_results(self, results: List[Dict]) -> List[Dict]:
+    def _format_results(self, results: list[dict]) -> list[dict]:
         """Format results for output."""
         formatted = []
         for i, r in enumerate(results):
@@ -619,15 +620,15 @@ class SimilarProjectsTool:
     def _find_similar_vector(
         self,
         description: str,
-        embedding_list: List[float],
-        cluster: Optional[str],
-        action_type: Optional[str],
-        min_budget: Optional[int],
-        max_budget: Optional[int],
-        year_from: Optional[int],
+        embedding_list: list[float],
+        cluster: str | None,
+        action_type: str | None,
+        min_budget: int | None,
+        max_budget: int | None,
+        year_from: int | None,
         limit: int,
         similarity_threshold: float
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Vector-only search (fallback when graph not available)."""
         vector_results = self._get_vector_results(
             embedding_list=embedding_list,
@@ -682,7 +683,7 @@ class SimilarProjectsTool:
             "timestamp": datetime.now().isoformat()
         }
 
-    def _extract_keywords(self, text: str) -> List[str]:
+    def _extract_keywords(self, text: str) -> list[str]:
         """Extract key terms from text (simple approach)."""
         stop_words = {
             'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
@@ -729,7 +730,7 @@ class SimilarProjectsTool:
 
         return truncated + "..."
 
-    def _generate_insights(self, projects: List[Dict]) -> Dict[str, Any]:
+    def _generate_insights(self, projects: list[dict]) -> dict[str, Any]:
         """Generate insights from similar projects."""
         if not projects:
             return {"topic_analysis": {}, "insights": []}
@@ -793,10 +794,10 @@ class SimilarProjectsTool:
     def _get_keyword_fallback(
         self,
         description: str,
-        cluster: Optional[str],
-        action_type: Optional[str],
+        cluster: str | None,
+        action_type: str | None,
         limit: int
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Fallback to keyword search when embeddings unavailable."""
         try:
             conn = self._get_connection()
@@ -909,7 +910,7 @@ class SimilarProjectsTool:
 
 
 # Async wrapper for tool orchestrator compatibility
-async def get_similar_funded_projects_execute(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+async def get_similar_funded_projects_execute(params: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
     """
     Execute similar projects tool.
 

@@ -6,11 +6,12 @@ and configurable retry strategies for different operation types.
 """
 
 import asyncio
-from functools import wraps
-from typing import Type, Tuple, Callable, Any, Optional, Union
 import logging
 import random
+from collections.abc import Callable
 from dataclasses import dataclass
+from functools import wraps
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +105,7 @@ def calculate_delay(
 
 def should_retry(
     exception: Exception,
-    retryable_exceptions: Tuple[Type[Exception], ...],
+    retryable_exceptions: tuple[type[Exception], ...],
     attempt: int,
     max_attempts: int
 ) -> bool:
@@ -131,9 +132,9 @@ def async_retry(
     base_delay: float = 1.0,
     max_delay: float = 30.0,
     exponential_base: float = 2.0,
-    retryable_exceptions: Tuple[Type[Exception], ...] = (Exception,),
-    config: Optional[RetryConfig] = None,
-    on_retry: Optional[Callable[[Exception, int], None]] = None
+    retryable_exceptions: tuple[type[Exception], ...] = (Exception,),
+    config: RetryConfig | None = None,
+    on_retry: Callable[[Exception, int], None] | None = None
 ):
     """
     Async retry decorator with exponential backoff.
@@ -212,8 +213,8 @@ def sync_retry(
     base_delay: float = 1.0,
     max_delay: float = 30.0,
     exponential_base: float = 2.0,
-    retryable_exceptions: Tuple[Type[Exception], ...] = (Exception,),
-    config: Optional[RetryConfig] = None
+    retryable_exceptions: tuple[type[Exception], ...] = (Exception,),
+    config: RetryConfig | None = None
 ):
     """
     Synchronous retry decorator with exponential backoff.
@@ -278,13 +279,13 @@ class RetryContext:
     def __init__(
         self,
         config: RetryConfig = None,
-        retryable_exceptions: Tuple[Type[Exception], ...] = (Exception,)
+        retryable_exceptions: tuple[type[Exception], ...] = (Exception,)
     ):
         self.config = config or STANDARD_RETRY
         self.retryable_exceptions = retryable_exceptions
         self.attempt = 0
         self.succeeded = False
-        self.last_exception: Optional[Exception] = None
+        self.last_exception: Exception | None = None
 
     async def __aenter__(self):
         return self
@@ -324,7 +325,7 @@ async def retry_with_fallback(
     primary_func: Callable,
     fallback_func: Callable,
     primary_retries: int = 2,
-    retryable_exceptions: Tuple[Type[Exception], ...] = (Exception,),
+    retryable_exceptions: tuple[type[Exception], ...] = (Exception,),
     fallback_on_timeout: bool = True
 ) -> Any:
     """

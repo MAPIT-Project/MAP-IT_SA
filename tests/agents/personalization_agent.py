@@ -14,9 +14,9 @@ Usage:
     accumulation = agent.validate_context_accumulation()
 """
 
-from dataclasses import dataclass, field
 import logging
 import re
+from dataclasses import dataclass, field
 from typing import Any
 
 try:

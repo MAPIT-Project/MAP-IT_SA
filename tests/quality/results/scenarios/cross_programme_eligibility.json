@@ -1,7 +1,7 @@
 {
   "scenario_name": "Cross-Programme Eligibility",
   "status": "PASS",
-  "average_quality_score": 82.6,
+  "average_quality_score": 83.8,
   "average_factual_score": 100.0,
   "turns": [
     {
@@ -11,7 +11,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 5092.001,
+      "processing_time_ms": 4791.11,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -26,18 +26,18 @@
     },
     {
       "query": "What about different components of the same initiative? Can research be funded by Horizon Europe and training by Erasmus+?",
-      "response": "## Complementary Funding: Different Components, Different Programmes\n\n**Yes, you can!** Having different components of the same large-scale initiative funded by different EU programmes is a legitimate and common strategic approach - provided the principle of **non-cumulative funding** is strictly followed.\n\n### The Principle of Clear Delineation\n\nTo combine funding from Horizon Europe and Erasmus+ (or other programmes), you must ensure:\n\n| Requirement | Description | Example |\n|-------------|---...",
-      "quality_score": 81,
+      "response": "Erasmus+ provides **travel support** based on the distance between origin and destination,\nusing a **distance band system** with fixed amounts per band.\n\n## Travel Costs in Erasmus+ Mobility\n\n### How Travel Support is Calculated\n\n1. **Measure distance** from origin city to destination city (straight-line km)\n2. **Use EU Distance Calculator** for official calculation\n3. **Apply standard rate** from distance band table\n4. **Add green travel bonus** if using sustainable transport\n\n### Distance Band...",
+      "quality_score": 85,
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 5269.995,
+      "processing_time_ms": 5331.218,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
           "specificity": 25,
           "factual_accuracy": 20,
-          "actionability": 6
+          "actionability": 10
         },
         "feedback": "Quick rule-based evaluation"
       },
@@ -46,12 +46,12 @@
     },
     {
       "query": "Are there specific rules against double funding in EU programmes? What exactly is prohibited?",
-      "response": "## EU Double Funding Rules: What Is Explicitly Prohibited\n\nYes, there are specific and strict rules against double funding in EU programmes. These are governed by the **EU Financial Regulation** and reinforced in each programme's rules.\n\n### The Legal Framework\n\n**Article 191 of the EU Financial Regulation** states that:\n> \"Union grants shall not have the purpose or effect of producing a profit... The same costs shall not be financed twice by the Union budget.\"\n\n### What Is Specifically Prohibit...",
+      "response": "**Creative Europe Cooperation Project Funding Rates**\n\nCreative Europe uses a **lump sum funding model** with fixed EU contribution rates for cooperation projects.\n\n## Funding Rate Overview\n\n| Aspect | Rate/Amount |\n|--------|-------------|\n| **EU Funding Rate** | 60% |\n| **Your Co-financing** | 40% |\n| **Funding Model** | Lump sum |\n| **Payment Schedule** | Pre-financing + balance |\n\n## What Does 60% Mean?\n\nThe EU covers **60% of your total eligible costs**:\n\n| Scale | Max EU Grant | Your 40% C...",
       "quality_score": 83,
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 2104.6059999999998,
+      "processing_time_ms": 1490.703,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -66,18 +66,18 @@
     },
     {
       "query": "Can we apply to both Horizon Europe and Erasmus+ at the same time for related but distinct projects?",
-      "response": "## Double Funding Rules: Same Project in Multiple EU Programmes\n\n**Short answer:** No, the same project activities and costs **cannot** be funded by both Horizon Europe and Erasmus+ (or any other EU programme). This is called the **non-cumulative funding principle**.\n\n### The Core Rule\n\nEU funding follows a strict principle: **the same costs can only be declared once** to EU funding sources. This means:\n\n| Scenario | Allowed? | Explanation |\n|----------|----------|-------------|\n| Same activitie...",
-      "quality_score": 83,
+      "response": "**Participating in Multiple Creative Europe MEDIA Projects**\n\nGood news! There is **no general limit** on how many Creative Europe MEDIA projects your organization can participate in. However, there are important considerations and strategic approaches to maximize your success.\n\n## Multi-Project Participation Rules\n\n### General Principles\n\n| Rule | Details |\n|------|---------|\n| **No fixed limit** | Organizations can participate in multiple projects |\n| **Capacity assessment** | EC evaluates fin...",
+      "quality_score": 85,
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 4749.659000000001,
+      "processing_time_ms": 4864.641,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
           "specificity": 25,
           "factual_accuracy": 20,
-          "actionability": 8
+          "actionability": 10
         },
         "feedback": "Quick rule-based evaluation"
       },
@@ -86,12 +86,12 @@
     },
     {
       "query": "What's the best strategy for maximizing our chances across both programmes?",
-      "response": "## Strategic Approach to Multi-Programme EU Funding\n\nThis is an excellent strategy - maximizing your funding scope by targeting multiple EU programmes for different aspects of your work. Here's how to optimize your approach.\n\n### 1. Strategic Programme Selection\n\nChoose programmes based on **activity type**, not funding amount:\n\n| Your Activity Type | Best Programme | Typical Funding | Success Rate |\n|-------------------|----------------|-----------------|--------------|\n| **Basic Research** | H...",
+      "response": "Erasmus+ provides **individual support** to cover living costs during mobility.\nRates vary by **destination country group** and **participant type**.\n\n## Individual Support Rates in Erasmus+\n\n### Country Groups (Based on Cost of Living)\n\n| Group | Countries | Cost Level |\n|-------|-----------|------------|\n| **Group 1** (Highest) | Denmark, Finland, Iceland, Ireland, Liechtenstein, Luxembourg, Norway, Sweden | Highest costs |\n| **Group 2** (Medium) | Austria, Belgium, Cyprus, France, Germany, Gr...",
       "quality_score": 83,
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 1260.172,
+      "processing_time_ms": 690.72,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -106,9 +106,9 @@
     }
   ],
   "scores": {
-    "average_quality": 82.6,
+    "average_quality": 83.8,
     "average_factual": 100.0,
-    "goal_progress": 0.6,
+    "goal_progress": 0.54,
     "context_fields": 3
   },
   "failures": [],
@@ -123,10 +123,10 @@
       "erasmus"
     ],
     "description": "A research organization wants to understand rules about participating in\nmultiple EU funding programmes. They want to know about double funding\nrules, complementary funding strategies, and simultaneous applications.\n",
-    "conversation_id": 1727422474
+    "conversation_id": 1459272569
   },
-  "execution_time_ms": 249079.61000000002,
-  "timestamp": "2026-01-23T13:14:23.799186",
+  "execution_time_ms": 163776.21099999998,
+  "timestamp": "2026-01-23T17:23:58.092515",
   "passed": true,
   "turn_count": 5,
   "critical_failures": 0,

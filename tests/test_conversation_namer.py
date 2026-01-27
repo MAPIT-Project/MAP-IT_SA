@@ -8,18 +8,16 @@ Tests:
 - Singleton pattern
 """
 
-import pytest
 import asyncio
-from unittest.mock import Mock, patch, AsyncMock, MagicMock
-import sys
 import os
+import sys
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.services.conversation.conversation_namer import (
-    ConversationNamer,
-    get_conversation_namer
-)
+from app.services.conversation.conversation_namer import ConversationNamer, get_conversation_namer
 
 
 class TestConversationNamerFallbackPatterns:

@@ -7,7 +7,7 @@ Uses a fast LLM call to create concise, descriptive titles.
 
 import logging
 import os
-from typing import Optional
+
 import google.generativeai as genai
 
 logger = logging.getLogger(__name__)
@@ -85,7 +85,7 @@ class ConversationNamer:
         # Fallback to pattern matching
         return self._generate_fallback(first_message)
 
-    async def _generate_with_llm(self, message: str) -> Optional[str]:
+    async def _generate_with_llm(self, message: str) -> str | None:
         """Generate name using LLM."""
         prompt = f"""Generate a very short, descriptive title (2-5 words) for a conversation that starts with this message.
 The title should capture the main topic or intent.
@@ -171,7 +171,7 @@ Title:"""
 
 
 # Singleton instance
-_namer_instance: Optional[ConversationNamer] = None
+_namer_instance: ConversationNamer | None = None
 
 
 def get_conversation_namer() -> ConversationNamer:

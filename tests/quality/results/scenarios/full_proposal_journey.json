@@ -1,196 +1,351 @@
 {
   "scenario_name": "Full Proposal Journey",
+  "status": "FAIL",
+  "average_quality_score": 79.8,
+  "average_factual_score": 100.0,
   "turns": [
     {
-      "turn_number": 0,
       "query": "I want to write a proposal for hydrogen energy storage research",
-      "response_text": "I found **12 funding opportunities** for your query:\n\n**1. HORIZON-CL5-2025-D2-02-06**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2025-D2-02-06\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\ud83d\udcb0 **Budget:** EUR 15.0 million\n\n\ud83d\udcdd **Summary:** Advanced battery materials aiming at storage duration from 10 hours to seasonal storage are developed, thus contributing to the Renewable Energy targets set by RePowerEU; Minimised use of Critical Raw Materials (CRM) in line with the EU's Critical...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL5-2025-D2-02-06\n\n---\n\n**2. Demonstration of thermal energy storage solutions for solar thermal plants and systems**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-05\n\ud83d\udce6 **Type:** LUMP-SUM\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: Project results are expected to contribute to some of the following expected outcomes: Significant reduction of LCOHS (Levelised Cost of Heat Storage) and/or LCOE (Levelised Cost of Energy); Technology providers profit from...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d3-05\n\n---\n\n**3. Underground Thermal Energy Storage in dense urban areas**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-22\n\ud83d\udce6 **Type:** LUMP-SUM\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: Project results are expected to contribute to all of the following expected outcomes: Advanced European innovative knowledge basis and increased technology competitiveness in the area thermal storage; Improved security of the...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d3-22\n\n---\n\n**4. Development of innovative solutions strengthening the security of renewable energy value chains**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-14\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: The security of Europe`s clean energy system will, in the long-run, benefit from research and innovation addressing energy-security relevant criticalities of the underlying clean energy technology value chains.\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d3-14\n\n---\n\n**5. Innovative approaches for the deployment of Positive Energy Districts**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D4-04\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: Project results are expected to contribute to all of the following expected outcomes: Increased number of approaches and solutions enabling a net positive yearly energy balance at district level and the export of excess renewable...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d4-04\n\n---\n\n**6. Phase out fossil fuel in energy intensive industries through the efficient integration of renewable energy sources**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D4-06\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: Project results are expected to contribute to all of the following expected outcomes: Based on the results of the project, at least one industrial sector with a significant heating demand in the EU and Associated Countries develops...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d4-06\n\n---\n\n**7. New CO2 capture technologies**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-24\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: Project results are expected to contribute to the following expected outcomes: New capture technologies (either from points sources or directly from air) should lead to reduced overall cost of capture, as well as lowest possible...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d3-24\n\n---\n\n**8. HORIZON-CL5-2025-03-D1-06**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2025-03-D1-06\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL5-2025-03-D1-06\n\n---\n\n**9. Innovative tools and services to manage and empower energy communities**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-20\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: Project results are expected to contribute to all of the following expected outcomes: Integration of home and building assets in an efficient way based on common Internet of Things (IoT) communication standards for smart homes and...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d3-20\n\n---\n\n**10. Extending the lifetime of crystalline silicon PV modules (EUPI-PV Partnership)**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-12\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: Photovoltaic (PV) energy systems are one of the cheapest and fastest growing sources of electricity generation, largely thanks to an important decrease in the cost of solar modules in the last 10-15 years, and to their simple...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d3-12\n\n---\n\n**11. 20 Nonetheless, this does not preclude submission and selection of a proposal requesting different amounts**\n\ud83d\udccb **Call ID:** HORIZON-WIDERA-2025-05\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-WIDERA-2025-05\n\n---\n\n**12. Improved reliability and optimised operations and maintenance for wind energy systems**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-07\n\ud83d\udce6 **Type:** LUMP-SUM\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: Project results are expected to contribute to all of the following expected outcomes: Limit the risks related to wind energy systems (e.g., operational, financial, climate) and thus reduce the wind energy projects\u2019 uncertainties;...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d3-07\n\n---\n\n---\n\n\ud83d\udca1 **How to Apply:**\n\u2022 **Register** on the EU Funding & Tenders Portal if you haven't already\n\u2022 **Check eligibility** criteria carefully for each call\n\u2022 **Prepare partnerships** - many calls require consortium applications\n\u2022 **Review evaluation criteria** and weightings in the call documentation\n\u2022 **Submit well before** the deadline - the portal can be busy near deadlines\n\n\ud83d\udcda **Useful Resources:**\n\u2022 [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)\n\u2022 [How to Participate Guide](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/how-to-participate/1)\n\u2022 [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search)\n\n\ud83c\udfaf **Next Steps:**\n\u2022 Click on the 'Apply' links above for full call details\n\u2022 Download the call documentation and work programme\n\u2022 Start building your consortium if partnerships are required",
+      "response": "I found **12 funding opportunities** for your query:\n\n**1. HORIZON-CL5-2025-D2-02-06**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2025-D2-02-06\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\ud83d\udcb0 **Budget:** EUR 15.0 million\n\n\ud83d\udcdd **Summary:** Advanced battery materials aiming at storage duration from 10 hours to seasonal storage are developed, thus contributing to the Renewable Energy targets set by RePowerEU; Minimised use of Critical Raw Materials (CRM) in line ...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
       "tools_used": [
         "search_funding_calls",
         "search_projects",
         "get_budget_benchmark",
         "get_consortium_patterns"
       ],
-      "quality_score": 85,
-      "factual_score": 100.0,
-      "failures": [],
+      "processing_time_ms": 15477.094,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
       "passed": true
     },
     {
-      "turn_number": 1,
       "query": "What calls are available for hydrogen energy storage research?",
-      "response_text": "I found **13 funding opportunities** for your query:\n\n**1. HORIZON-CL5-2025-D2-02-06**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2025-D2-02-06\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\ud83d\udcb0 **Budget:** EUR 15.0 million\n\n\ud83d\udcdd **Summary:** Advanced battery materials aiming at storage duration from 10 hours to seasonal storage are developed, thus contributing to the Renewable Energy targets set by RePowerEU; Minimised use of Critical Raw Materials (CRM) in line with the EU's Critical...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL5-2025-D2-02-06\n\n---\n\n**2. Demonstration of thermal energy storage solutions for solar thermal plants and systems**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-05\n\ud83d\udce6 **Type:** LUMP-SUM\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: Project results are expected to contribute to some of the following expected outcomes: Significant reduction of LCOHS (Levelised Cost of Heat Storage) and/or LCOE (Levelised Cost of Energy); Technology providers profit from...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d3-05\n\n---\n\n**3. HORIZON-EIC-2026-TRANSITIONOPEN-01**\n\ud83d\udccb **Call ID:** HORIZON-EIC-2026-TRANSITIONOPEN-01\n\ud83d\udfe1 **Status:** Upcoming\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83d\udcb0 **Budget:** EUR 219.0 million\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-EIC-2026-TRANSITIONOPEN-01\n\n---\n\n**4. Underground Thermal Energy Storage in dense urban areas**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-22\n\ud83d\udce6 **Type:** LUMP-SUM\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: Project results are expected to contribute to all of the following expected outcomes: Advanced European innovative knowledge basis and increased technology competitiveness in the area thermal storage; Improved security of the...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d3-22\n\n---\n\n**5. Smarter buildings as part of the energy system for increased efficiency and flexibility \u2013 Societal Readiness Pilot**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Smarter buildings as part of the energy system for increased efficiency and flexibility \u2013 Societal Readiness Pilot\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL5-2026-02-D4-02\n\n---\n\n**6. 225 220 219 The budgets set out in the calls / Actions are indicative**\n\ud83d\udccb **Call ID:** HORIZON-EIC-2026-ACCELERATORCHALLENGES-01224\n\ud83d\udfe1 **Status:** Upcoming\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83d\udcb0 **Budget:** EUR 219.0 million\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-EIC-2026-ACCELERATORCHALLENGES-01224\n\n---\n\n**7. 166 HORIZON-EIC-2026-PATHFINDERCHALLENGES-01 96 HORIZON-EIC-2026-AIC-01 6 HORIZON-EIC-2026-TRANSITIONOPEN-01-01 100...**\n\ud83d\udccb **Call ID:** HORIZON-EIC-2026-PATHFINDEROPEN-01\n\ud83d\udfe1 **Status:** Upcoming\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83d\udcb0 **Budget:** EUR 219.0 million\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-EIC-2026-PATHFINDEROPEN-01\n\n---\n\n**8. Overview of this call18 Proposals are invited against the following Destinations and topic(s): 18 The Director-General responsible for the call may...**\n\ud83d\udccb **Call ID:** HORIZON-MISS-2025-06\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-MISS-2025-06\n\n---\n\n**9. Smarter buildings as part of the energy system for increased efficiency and flexibility \u2013 Societal Readiness Pilot**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D4-02\n\ud83d\udce6 **Type:** LUMP-SUM\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: Project results are expected to contribute to all of the following expected outcomes: Measurable reduction in buildings\u2019 energy demand together with a reduced gap between their as-designed and as-built energy performance;...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d4-02\n\n---\n\n**10. 100 HORIZON-EIC-2026-ACCELERATOROPEN-01220 221 222 223 414 Grant component 165 Equity component 249 HORIZON-EIC-2026-ACCELERATORCHALLENGES-01224 225...**\n\ud83d\udccb **Call ID:** HORIZON-EIC-2026-TRANSITIONOPEN-01-01\n\ud83d\udfe1 **Status:** Upcoming\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83d\udcb0 **Budget:** EUR 219.0 million\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-EIC-2026-TRANSITIONOPEN-01-01\n\n---\n\n**11. HORIZON-CL5-2025-03-D1-06**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2025-03-D1-06\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL5-2025-03-D1-06\n\n---\n\n**12. Phase out fossil fuel in energy intensive industries through the efficient integration of renewable energy sources**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D4-06\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: Project results are expected to contribute to all of the following expected outcomes: Based on the results of the project, at least one industrial sector with a significant heating demand in the EU and Associated Countries develops...\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2026-02-d4-06\n\n---\n\n**13. 96 HORIZON-EIC-2026-AIC-01 6 HORIZON-EIC-2026-TRANSITIONOPEN-01-01 100 HORIZON-EIC-2026-ACCELERATOROPEN-01220 221 222 223 414 Grant component 165...**\n\ud83d\udccb **Call ID:** HORIZON-EIC-2026-PATHFINDERCHALLENGES-01\n\ud83d\udfe1 **Status:** Upcoming\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83d\udcb0 **Budget:** EUR 219.0 million\n\n\ud83d\udd17 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-EIC-2026-PATHFINDERCHALLENGES-01\n\n---\n\n---\n\n\ud83d\udca1 **How to Apply:**\n\u2022 **Register** on the EU Funding & Tenders Portal if you haven't already\n\u2022 **Check eligibility** criteria carefully for each call\n\u2022 **Prepare partnerships** - many calls require consortium applications\n\u2022 **Review evaluation criteria** and weightings in the call documentation\n\u2022 **Submit well before** the deadline - the portal can be busy near deadlines\n\n\ud83d\udcda **Useful Resources:**\n\u2022 [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)\n\u2022 [How to Participate Guide](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/how-to-participate/1)\n\u2022 [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search)\n\n\ud83c\udfaf **Next Steps:**\n\u2022 Click on the 'Apply' links above for full call details\n\u2022 Download the call documentation and work programme\n\u2022 Start building your consortium if partnerships are required",
-      "tools_used": [
-        "search_funding_calls"
-      ],
+      "response": "I found **13 funding opportunities** for your query:\n\n**1. HORIZON-CL5-2025-D2-02-06**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2025-D2-02-06\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\ud83d\udcb0 **Budget:** EUR 15.0 million\n\n\ud83d\udcdd **Summary:** Advanced battery materials aiming at storage duration from 10 hours to seasonal storage are developed, thus contributing to the Renewable Energy targets set by RePowerEU; Minimised use of Critical Raw Materials (CRM) in line ...",
       "quality_score": 83,
       "factual_score": 100.0,
       "failures": [],
+      "tools_used": [
+        "search_funding_calls",
+        "search_funding_calls"
+      ],
+      "processing_time_ms": 5534.73,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
       "passed": true
     },
     {
-      "turn_number": 2,
       "query": "Tell me more about the most relevant call for hydrogen storage",
-      "response_text": "Based on the provided search result, the most relevant information regarding hydrogen storage calls is the mention of **InnovFin Energy Demonstration Projects**.\n\nHere's a breakdown:\n\n*   **InnovFin Energy Demonstration Projects:** This EU program has been effective at mobilizing finance for first-of-a-kind projects in innovative renewable energy production, **storage**, and smart grids.\n\n    *   **Focus:** Supports projects demonstrating innovative renewable energy technologies, including energy **storage** solutions.\n    *   **Funding:** Has mobilized EUR 346 million of EU support for 11 operations.\n    *   **Relevance to Hydrogen Storage:** While not exclusively focused on hydrogen, the program supports energy storage projects, which could include hydrogen storage technologies.\n\n**In summary:** If you're looking for funding opportunities related to hydrogen storage, researching InnovFin Energy Demonstration Projects and its successor programs would be a good starting point. Look for calls that specifically mention energy storage or renewable energy integration, as these may include hydrogen storage applications.\n",
-      "tools_used": [
-        "search_documents"
-      ],
-      "quality_score": 75,
+      "response": "## Call Details: HORIZON-CL5-2025-02-D2-08\n\n**Title:** Coordinated call with India on waste to renewable hydrogen\n**Status:** closed\n**Type:** LUMP-SUM\n**Deadline:** 03 September 2025\n\n**Description:**\nExpected Outcome: In addition to renewable hydrogen produced by water electrolysis, there is a need to develop other technologies to cover the sustainable hydrogen demand of future society including industry, energy and transport. Agricultural, forest and industrial biogenic waste resources may of...",
+      "quality_score": 81,
       "factual_score": 100.0,
       "failures": [],
-      "passed": false
+      "tools_used": [
+        "search_documents",
+        "get_call_details"
+      ],
+      "processing_time_ms": 6755.355,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": true
     },
     {
-      "turn_number": 3,
       "query": "What's the typical success rate for this type of call?",
-      "response_text": "Based on my search for information about 'What's the typical success rate for this type of call?', here's what I found:\n\n**Finding 1:**\n___________________________________________________________________________ \n\n{total costs invoiced (over past two years) \ntotal number of ad hoc queries (over past two years)} \n\nfor beneficiaries using own personnel AND external experts to reply to queries: \n\ntotal average personnel costs for ad hoc queries (over past two years), i.e.: \n\n{((average personnel costs for one hour spent on ad hoc\n\n**Finding 2:**\nn ad hoc queries (over past two years) \n__________________________________________________________ \nactual or usual annual working hours of one employee (over past two years)) \n\nmultiplied by \n\ntotal number of hours spent on ad hoc queries (over past two years)) \n\nplus \n\ntotal expert costs for all ad hoc queries (over past two years)} \n\ndivided by \n\n{total number of ad hoc queries (over past two",
-      "tools_used": [
-        "search_documents"
-      ],
-      "quality_score": 75,
+      "response": "**Creative Europe Cooperation Project Funding Rates**\n\nCreative Europe uses a **lump sum funding model** with fixed EU contribution rates for cooperation projects.\n\n## Funding Rate Overview\n\n| Aspect | Rate/Amount |\n|--------|-------------|\n| **EU Funding Rate** | 60% |\n| **Your Co-financing** | 40% |\n| **Funding Model** | Lump sum |\n| **Payment Schedule** | Pre-financing + balance |\n\n## What Does 60% Mean?\n\nThe EU covers **60% of your total eligible costs**:\n\n| Scale | Max EU Grant | Your 40% C...",
+      "quality_score": 83,
       "factual_score": 100.0,
       "failures": [],
-      "passed": false
+      "tools_used": [],
+      "processing_time_ms": 871.7660000000001,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": true
     },
     {
-      "turn_number": 4,
       "query": "Help me plan the budget for a 4 million euro project over 4 years",
-      "response_text": "Okay, based on the limited search result, I can offer some general guidance on budgeting for a 4 million euro project over 4 years. However, **please note that this is HIGHLY GENERAL and you'll need to consult specific guidelines for your project and funding source.** The provided document snippet emphasizes the importance of understanding the specific rules of your grant.\n\nHere's a breakdown of how to approach budgeting, keeping in mind the potential complexities mentioned in the search result:\n\n**1. Understand the Funding Source and its Rules:**\n\n*   **Crucially Important:** The document highlights that rules can vary significantly.  Before you do anything else, meticulously review the grant guidelines, call conditions, and any related documentation from the funding source.  Pay close attention to:\n    *   **Eligibility of Costs:** What types of expenses are allowed?  Are there any restrictions on specific items?\n    *   **Ceilings/Limits:** Are there maximum amounts you can allocate to certain categories (e.g., personnel, travel, equipment)?  The document mentions potential ceilings per subgrant or even per partner, especially in programs like Horizon Europe.\n    *   **Reporting Requirements:** How often will you need to report on spending? What level of detail is required?\n    *   **Auditing:** What are the auditing requirements?  You need to ensure you maintain proper documentation to support all expenses.\n    *   **Subgranting Rules:** If you plan to distribute funds to other organizations (subgrants), understand the rules for cascading requirements. The document advises against unnecessarily complex rules unless explicitly required.\n\n**2. Break Down the Project into Work Packages/Tasks:**\n\n*   Divide the 4-year project into manageable work packages or tasks. This allows you to allocate budget more effectively and track progress. For example:\n    *   **Year 1:** Project setup, initial research, hiring personnel.\n    *   **Year 2:** Data collection, analysis, development of prototypes.\n    *   **Year 3:** Testing, refinement, dissemination of results.\n    *   **Year 4:** Final reporting, project closure, impact assessment.\n\n**3. Identify Key Cost Categories:**\n\n*   Consider the following common cost categories, and tailor them to your specific project:\n    *   **Personnel:** Salaries, benefits, employer contributions for project staff.  This is often a significant portion of the budget.\n    *   **Travel:** Costs associated with travel for project meetings, conferences, data collection, etc.\n    *   **Equipment:** Purchase or rental of necessary equipment (computers, software, lab equipment, etc.).\n    *   **Consumables:** Materials and supplies needed for the project.\n    *   **Subcontracting/Subgrants:**  If you plan to outsource work or provide grants to other organizations.  Remember the document's warning about ceilings and rules related to subgrants.\n    *   **Overhead/Indirect Costs:** Costs that are not directly attributable to the project but are necessary for its operation (e.g., rent, utilities, administrative support).  Funding sources often have specific rules about how much overhead can be claimed.\n    *   **Dissemination/Communication:** Costs associated with sharing project results (e.g., publications, conferences, website development).\n    *   **Training:** Costs for training project staff or beneficiaries.\n    *   **Contingency:**  A reserve fund to cover unexpected expenses (typically 5-10% of the total budget).\n\n**4. Estimate Costs for Each Category and Year:**\n\n*   For each work package and cost category, estimate the expenses for each year of the project. Be realistic and justify your estimates.\n*   Get quotes from vendors for equipment and services.\n*   Use salary scales to estimate personnel costs.\n*   Factor in inflation and potential currency fluctuations.\n\n**5. Create a Detailed Budget Spreadsheet:**\n\n*   Use a spreadsheet program (e.g., Excel, Google Sheets) to create a detailed budget.\n*   Include columns for:\n    *   Work Package\n    *   Cost Category\n    *   Description of Expense\n    *   Year 1 Cost\n    *   Year 2 Cost\n    *   Year 3 Cost\n    *   Year 4 Cost\n    *   Total Cost\n    *   Justification/Notes\n\n**6. Review and Refine the Budget:**\n\n*   Review the budget carefully to ensure that it is realistic, accurate, and aligned with the project goals and funding source requirements.\n*   Get feedback from other team members and financial experts.\n*   Be prepared to revise the budget as needed.\n\n**7. Monitor and Track Spending:**\n\n*   Once the project is underway, track spending regularly to ensure that you are staying within budget.\n*   Compare actual spending to budgeted amounts and investigate any variances.\n*   Adjust the budget as needed, with approval from the funding source if required.\n\n**Example (Simplified):**\n\nLet's say you have a work package on \"Data Collection\" in Year 2.  Your budget might look like this (very simplified):\n\n| Work Package | Cost Category | Description | Year 2 Cost (\u20ac) |\n|---|---|---|---|\n| Data Collection | Travel | Travel to field sites | 10,000 |\n| Data Collection | Personnel | Researcher time for data analysis | 20,000 |\n| Data Collection | Consumables | Data collection materials | 2,000 |\n| **Total Data Collection (Year 2)** |  |  | **32,000** |\n\n**Important Considerations Based on the Search Result:**\n\n*   **Subgrant Ceilings:** If your project involves subgrants, be extremely careful about any ceilings per subgrant or per partner.  Make sure your budget reflects these limitations.\n*   **Horizon Europe:** If this is a Horizon Europe project, pay close attention to the rules regarding costs per partner.\n*   **Avoid Overly Complex Rules:** If you are subgranting, don't impose unnecessary rules on your subgrantees unless the funding source explicitly requires it.\n\n**In summary, budgeting for a 4 million euro project requires careful planning, attention to detail, and a thorough understanding of the funding source's requirements. Start by reviewing the grant guidelines meticulously, break down the project into manageable tasks, estimate costs accurately, and monitor spending closely.**\n",
-      "tools_used": [
-        "search_documents"
-      ],
+      "response": "The budget planning tool generated a detailed breakdown for your \u20ac4 million project over 4 years (48 months), based on the assumption that this is a **Research and Innovation Action (RIA)** with a typical consortium of **10 partners**.\n\n### Horizon Europe Budget Breakdown (RIA)\n\n| Cost Category | Target Allocation (\u20ac) | Percentage (%) | Notes |\n|:--------------|:----------------------|:---------------|:------|\n| **1. Personnel Costs** | \u20ac2,200,000 | 55.0% | Salaries and social charges (approx. 3...",
       "quality_score": 77,
       "factual_score": 100.0,
       "failures": [],
+      "tools_used": [
+        "calculate_budget"
+      ],
+      "processing_time_ms": 11259.717,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 2
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 4,
       "passed": false
     },
     {
-      "turn_number": 5,
       "query": "What types of partners should I look for in my consortium?",
-      "response_text": "Okay, based on the limited search results provided, it's difficult to give a comprehensive answer about the *specific* types of partners you should look for in your consortium. The single search result snippet is very general. However, we can infer some general directions:\n\n**General Guidance Based on the Snippet:**\n\nThe snippet suggests a focus on:\n\n*   **Member State Infrastructures:** Partners involved in relevant infrastructures within Member States. This implies a need for partners with existing infrastructure and expertise in managing it.\n*   **Digital Twins:** Partners involved in Member State initiatives on Digital Twins. This indicates a need for partners with expertise in digital twin technology, data modeling, simulation, and potentially specific domain knowledge related to the digital twin application.\n*   **International Partnerships:** The mention of \"development of a selection of international partnerships\" suggests that you should consider partners from different countries to bring diverse perspectives, expertise, and potentially access to different markets or resources.\n\n**Therefore, when building your consortium, consider partners who:**\n\n*   **Have existing infrastructure relevant to your project's goals.**\n*   **Possess expertise in Digital Twin technologies and related areas.**\n*   **Represent different Member States and/or international regions to bring diverse perspectives and resources.**\n\n**To give you a more tailored answer, I would need more information about:**\n\n*   **The specific goals and objectives of your consortium.** What problem are you trying to solve? What are you trying to achieve?\n*   **The industry or sector you are operating in.**\n*   **The type of project you are undertaking (e.g., research, development, implementation).**\n*   **The funding source or call for proposals you are responding to (if applicable).**\n\nWith more context, I can provide a much more specific and helpful answer.\n",
-      "tools_used": [
-        "search_documents"
-      ],
-      "quality_score": 79,
+      "response": "I found some information but couldn't extract specific details. Please try a more specific question.",
+      "quality_score": 75,
       "factual_score": 100.0,
       "failures": [],
+      "tools_used": [
+        "get_consortium_patterns"
+      ],
+      "processing_time_ms": 5089.602,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 0
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 5,
       "passed": false
     },
     {
-      "turn_number": 6,
       "query": "Find organizations experienced in hydrogen storage technology",
-      "response_text": "The provided search result is insufficient to directly answer the question \"Find organizations experienced in hydrogen storage technology.\"\n\nThe single search result mentions \"Demonstrated innovative solutions in energy storage concepts\" within the context of a Horizon Europe work program. This suggests the program *may* fund projects related to energy storage, which *could* include hydrogen storage. However, it doesn't list specific organizations with experience in the field.\n\n**To find organizations experienced in hydrogen storage technology, you would need more specific search results. Here's what would be helpful:**\n\n*   **Lists of organizations:** Direct links to websites or databases that list companies, research institutions, or universities working on hydrogen storage.\n*   **Project summaries:** Information about specific projects focused on hydrogen storage, including the participating organizations.\n*   **Publications and patents:** Research papers or patents related to hydrogen storage, which would identify the authors and their affiliated institutions.\n\n**In the absence of more detailed information, here's a general approach you could take to find such organizations:**\n\n1.  **Refine your search:** Use more specific keywords like \"hydrogen storage companies,\" \"hydrogen storage research institutions,\" \"hydrogen storage technology providers,\" or \"hydrogen storage project partners.\"\n2.  **Search academic databases:** Use databases like Google Scholar, Web of Science, or Scopus to find research papers on hydrogen storage and identify the authors and their institutions.\n3.  **Explore industry associations:** Look for industry associations related to hydrogen or energy storage, as they often have member directories.\n4.  **Check government funding agencies:** Agencies like the Department of Energy (in the US) or the European Commission often fund hydrogen storage research and development. Their websites may list funded projects and participating organizations.\n",
-      "tools_used": [
-        "search_documents"
-      ],
-      "quality_score": 77,
+      "response": "I have analyzed funded Horizon Europe and H2020 projects to identify organizations with extensive experience in **Hydrogen Storage Technology**. This domain falls primarily under **Cluster 5 (Climate, Energy & Mobility)**, which requires strong engagement from research institutions and technical universities. \n\nHere are 10 highly experienced organizations, ranked by relevance score and track record, that would be excellent consortium partners or potential coordinators:\n\n### Top 10 Experienced Pa...",
+      "quality_score": 81,
       "factual_score": 100.0,
       "failures": [],
-      "passed": false
+      "tools_used": [
+        "find_experienced_partners"
+      ],
+      "processing_time_ms": 10657.267,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 6,
+      "passed": true
     },
     {
-      "turn_number": 7,
       "query": "Generate a timeline for a 48-month project with 6 work packages",
-      "response_text": "I found some information but couldn't extract specific details. Please try a more specific question.",
-      "tools_used": [
-        "search_documents"
-      ],
-      "quality_score": 75,
+      "response": "**Creative Europe Cooperation Project Funding Rates**\n\nCreative Europe uses a **lump sum funding model** with fixed EU contribution rates for cooperation projects.\n\n## Funding Rate Overview\n\n| Aspect | Rate/Amount |\n|--------|-------------|\n| **EU Funding Rate** | 60% |\n| **Your Co-financing** | 40% |\n| **Funding Model** | Lump sum |\n| **Payment Schedule** | Pre-financing + balance |\n\n## What Does 60% Mean?\n\nThe EU covers **60% of your total eligible costs**:\n\n| Scale | Max EU Grant | Your 40% C...",
+      "quality_score": 83,
       "factual_score": 100.0,
       "failures": [],
-      "passed": false
+      "tools_used": [],
+      "processing_time_ms": 1114.12,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 7,
+      "passed": true
     },
     {
-      "turn_number": 8,
       "query": "What work packages should we have for hydrogen storage research?",
-      "response_text": "Unfortunately, the provided search result snippet is insufficient to answer your question about specific work packages for hydrogen storage research. It only mentions battery-related topics within the context of the Horizon Europe program.\n\nTo provide a helpful answer, I would need search results that specifically address hydrogen storage research and development. These results should ideally include:\n\n*   **Project descriptions:** Outlining the goals, objectives, and work packages of existing or proposed hydrogen storage research projects.\n*   **Funding calls:** Detailing the specific areas of hydrogen storage research that are being prioritized and the types of activities that are expected within funded projects.\n*   **Literature reviews or reports:** Summarizing the state-of-the-art in hydrogen storage research and identifying key challenges and opportunities that could be addressed in work packages.\n\n**Once I have access to relevant search results, I can help you identify appropriate work packages for your hydrogen storage research, potentially including:**\n\n*   **Materials development:** Focusing on the synthesis, characterization, and optimization of novel hydrogen storage materials (e.g., metal hydrides, MOFs, porous carbons).\n*   **System design and integration:** Addressing the engineering challenges of integrating hydrogen storage materials into practical systems (e.g., tanks, compressors, fuel cells).\n*   **Safety and reliability:** Investigating the safety aspects of hydrogen storage and developing strategies to mitigate risks.\n*   **Performance evaluation:** Developing and applying standardized methods for evaluating the performance of hydrogen storage systems (e.g., capacity, kinetics, durability).\n*   **Techno-economic analysis:** Assessing the economic viability of different hydrogen storage technologies and identifying pathways to reduce costs.\n*   **Modeling and simulation:** Developing and validating models to predict the behavior of hydrogen storage systems and optimize their design.\n*   **Demonstration and validation:** Testing and validating hydrogen storage technologies in real-world applications.\n\nPlease provide more relevant search results so I can give you a more specific and helpful answer.\n",
-      "tools_used": [
-        "search_documents"
-      ],
-      "quality_score": 81,
-      "factual_score": 100.0,
-      "failures": [],
-      "passed": true
-    },
-    {
-      "turn_number": 9,
-      "query": "What deliverables and milestones should we include?",
-      "response_text": "Based on the provided search result, here's a breakdown of potential deliverables and milestones to consider:\n\n**Deliverables:**\n\n*   **D2.2:** (Specific details not provided, but likely related to the overall project goals)\n*   **D2.3:** (Specific details not provided, but likely related to the overall project goals)\n*   **D2.4:** (Specific details not provided, but likely related to the overall project goals)\n*   **Interim Deliverable D2.3a:** This suggests a phased approach, with interim deliverables leading to larger ones.\n\n**Milestones (Related to Phase 3: Development & Testing):**\n\n*   **Objective:** Original development and field-testing of a limited set of first products/services (the test series).\n*   **Output and Results:** This phase aims to produce tangible outputs and results from the development and testing activities.\n\n**Key Considerations:**\n\n*   **Phase 3 Focus:** The provided information highlights a specific phase (Development & Testing) which suggests the project is structured in phases.\n*   **Test Series:** The emphasis on a \"test series\" indicates an iterative approach to product/service development, with testing informing further refinement.\n*   **EU Grants Context:** The document is related to EU grants, so deliverables and milestones should align with the grant requirements and reporting obligations.\n\n**To provide a more tailored answer, I would need more context about your specific project. However, based on the search result, you should consider including deliverables related to:**\n\n*   Project initiation and planning.\n*   Development and testing of products/services.\n*   Reporting and documentation.\n*   Interim deliverables to track progress.\n\n**And milestones related to:**\n\n*   Completion of key development tasks.\n*   Successful field-testing.\n*   Achievement of specific performance metrics.\n",
-      "tools_used": [
-        "search_documents"
-      ],
+      "response": "## Project Timeline Generated\n\n**Project Parameters:**\n- Duration: 48 months\n- Action Type: RIA\n- Partners: 8\n- Total Effort: 450 person-months\n\n### Work Packages\n\n**WP1: Project Management**\n- Lead: P1 | Participants: P2, P3, P4, P5\n- Duration: M1 - M48 (48 months)\n- Effort: 36 person-months\n- Objective: *Ensure efficient coordination, quality management, and timely delivery of project outcomes.*\n- Tasks: Overall project coordination and monitoring; Quality assurance and risk management; Financ...",
       "quality_score": 77,
       "factual_score": 100.0,
       "failures": [],
+      "tools_used": [
+        "find_experienced_partners",
+        "generate_timeline"
+      ],
+      "processing_time_ms": 6743.25,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 2
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 8,
       "passed": false
     },
     {
-      "turn_number": 10,
-      "query": "When is the deadline for submitting this proposal?",
-      "response_text": "I am sorry, but the provided search result does not contain the deadline for submitting the proposal. It only mentions that you can submit your proposal multiple times before the deadline. You will need to look elsewhere in the documentation or contact the relevant authority to find the specific deadline.\n",
-      "tools_used": [
-        "search_documents"
-      ],
-      "quality_score": 81,
+      "query": "What deliverables and milestones should we include?",
+      "response": "## Project Timeline Generated\n\n**Project Parameters:**\n- Duration: 48 months\n- Action Type: RIA\n- Partners: 8\n- Total Effort: 450 person-months\n\n### Work Packages\n\n**WP1: Project Management**\n- Lead: P1 | Participants: P2, P3, P4, P5\n- Duration: M1 - M48 (48 months)\n- Effort: 36 person-months\n- Objective: *Ensure efficient coordination, quality management, and timely delivery of project outcomes.*\n- Tasks: Overall project coordination and monitoring; Quality assurance and risk management; Financ...",
+      "quality_score": 77,
       "factual_score": 100.0,
       "failures": [],
+      "tools_used": [
+        "generate_timeline"
+      ],
+      "processing_time_ms": 4712.586,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 2
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 9,
+      "passed": false
+    },
+    {
+      "query": "When is the deadline for submitting this proposal?",
+      "response": "I found **15 funding opportunities** for your query:\n\n**1. Innovative solutions for a generative AI-powered digital spine of the EU energy system**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-19\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: Project results are expected to contribute to all of the following expected outcomes: Availability of generative Artificial Intelligence (AI) tools for electricity system operators, energy servic...",
+      "quality_score": 85,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "search_funding_calls",
+        "search_funding_calls",
+        "search_funding_calls",
+        "search_funding_calls"
+      ],
+      "processing_time_ms": 15079.565,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 10,
       "passed": true
     },
     {
-      "turn_number": 11,
       "query": "What are the evaluation criteria for this call?",
-      "response_text": "Based on the provided search result, the evaluation criteria for the call are based on:\n\n*   **Ranking within the objective:** Proposals that meet or exceed the threshold will be ranked.\n*   **Order of priority for funding:** The rankings determine the order in which proposals will be considered for funding.\n*   **Award criteria:** The Commission evaluates proposals based on specific award criteria (not detailed in the provided result).\n*   **Programme priorities:** The Commission considers the programme's priorities when making funding decisions.\n*   **Available budget:** The available budget is a key factor in determining which proposals are funded.\n\nIn summary, the evaluation process involves ranking proposals based on their scores against the objectives, considering award criteria and programme priorities, and ultimately making funding decisions based on the available budget.\n",
+      "response": "Based on the search result, the evaluation criteria for the call (likely a Horizon Europe 1st stage RIA, IA and CSA call) are assessed using a scoring system from 0 to 5, with half-marks allowed. Here's a breakdown of the scoring:\n\n*   **0:** The proposal fails to address the criterion or cannot be assessed due to missing or incomplete information.\n*   **1:** Poor.\n\nThe document provided is an evaluation form template, suggesting that the full evaluation criteria are likely detailed within the f...",
+      "quality_score": 77,
+      "factual_score": 100.0,
+      "failures": [],
       "tools_used": [
         "search_documents"
       ],
+      "processing_time_ms": 6892.526,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 2
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 11,
+      "passed": false
+    },
+    {
+      "query": "How should we structure our consortium of 8 partners?",
+      "response": "I found some information but couldn't extract specific details. Please try a more specific question.",
       "quality_score": 75,
       "factual_score": 100.0,
       "failures": [],
-      "passed": false
-    },
-    {
+      "tools_used": [
+        "get_consortium_patterns"
+      ],
+      "processing_time_ms": 4966.0599999999995,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 0
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
       "turn_number": 12,
-      "query": "How should we structure our consortium of 8 partners?",
-      "response_text": "Okay, based on the limited search results, here's what I can suggest about structuring your consortium of 8 partners:\n\n**The search results highlight the importance of \"Consortium composition and roles and responsibilities.\"** This is the key area to focus on when structuring your consortium.\n\nWhile the search results don't provide specific structural models, they strongly imply that you need to clearly define:\n\n1.  **Composition:** How the 8 partners fit together. This likely involves identifying the specific skills, resources, and expertise each partner brings to the table.\n2.  **Roles:** What each partner will *do* within the consortium. This should be specific and measurable.\n3.  **Responsibilities:** What each partner is *accountable* for. This includes deliverables, timelines, and quality standards.\n\n**Recommendations (based on general consortium best practices, since the search results are limited):**\n\n*   **Define a clear governance structure:** How will decisions be made? Will there be a steering committee, a project management team, or other governing bodies? Who has the final say?\n*   **Assign a lead partner/coordinator:** This partner is typically responsible for overall project management, communication, and reporting.\n*   **Clearly define communication protocols:** How will partners communicate with each other? How often will meetings be held? What tools will be used for collaboration?\n*   **Establish a conflict resolution mechanism:** What happens if there are disagreements between partners?\n*   **Document everything:** Put all agreements, roles, responsibilities, and processes in writing. This will help to avoid misunderstandings and ensure accountability.\n\n**Next Steps:**\n\nTo get more specific advice, you'll need to consider:\n\n*   **The specific goals of the consortium:** What are you trying to achieve?\n*   **The nature of the project:** Is it research-based, development-focused, or something else?\n*   **The funding source (if applicable):** Are there any specific requirements from the funding agency regarding consortium structure?\n\nGood luck!\n",
-      "tools_used": [
-        "search_documents"
-      ],
-      "quality_score": 79,
-      "factual_score": 100.0,
-      "failures": [],
       "passed": false
     },
     {
-      "turn_number": 13,
       "query": "Show me a typical budget breakdown per partner type",
-      "response_text": "Based on my search for information about 'Show me a typical budget breakdown per partner type', here's what I found:\n\n**Finding 1:**\nmount corresponding to the paid salary. The reimbursed amount is a cost for \nthe beneficiary and is recorded as such in its accounts. The beneficiary will declare the amount \nreimbursed to the government in its financial statements. \n\nAssociated partners vs affiliated entities and third parties giving in-kind contributions \n\nA new type of participant has been introduced (new for 2021-2027), the\n\n**Finding 2:**\nonnel  costs  (A.):  Types  of  costs  \u2014  Forms  \u2014  Eligibility  conditions  \u2014 \n\nCalculation \n\n1.1  What?  If  eligible  under  the  Grant  Agreement,  beneficiaries/affiliated  entities  may, \ndepending on the options that apply, charge \u2018Personnel costs\u2019. \n\nThis budget category covers the following subcategories: \n\n\u2212  Costs for employees (or equivalent) (see Article 6.2.A.1) \n\n\u2212  Costs for",
-      "tools_used": [
-        "search_documents"
-      ],
-      "quality_score": 77,
-      "factual_score": 100.0,
-      "failures": [],
-      "passed": false
-    },
-    {
-      "turn_number": 14,
-      "query": "Summarize our proposal plan including the key elements we've discussed",
-      "response_text": "Okay, based on the search results, here's a summary of what we can infer about your proposal plan:\n\n**Summary of Proposal Plan (Based on Limited Information):**\n\nThe search result indicates you're working on a **Stage-2 proposal** that builds upon a previously submitted **Stage-1 proposal.** A key requirement is that the Stage-2 proposal must be consistent with the Stage-1 proposal, particularly in how it addresses the concepts of **excellence and impact.**\n\n**Key Elements (Based on Limited Information):**\n\n*   **Consistency with Stage-1 Proposal:** The Stage-2 proposal should align with the Stage-1 proposal, especially regarding excellence and impact.\n*   **Excellence and Impact:** These concepts are critical and need to be addressed effectively.\n*   **Partnership:** The proposal includes a partnership element.\n*   **Substantial Differences:** You need to identify and justify any substantial differences between the Stage-1 and Stage-2 proposals.\n\n**Action Items (Implied):**\n\n*   **Review Stage-1 Proposal:** Re-familiarize yourself with the Stage-1 proposal, focusing on the sections addressing excellence and impact.\n*   **Identify Differences:** Carefully compare the Stage-2 proposal with the Stage-1 proposal to identify any substantial differences.\n*   **Justify Differences:** If there are substantial differences, clearly explain the reasons for these changes.\n*   **Partnership Details:** Ensure the partnership aspect of the proposal is well-defined and consistent.\n\n**Important Note:**\n\nThis summary is based on very limited information. To provide a more accurate and comprehensive summary, I would need access to the actual proposal documents or more detailed information about the proposal's content.\n",
-      "tools_used": [
-        "search_documents"
-      ],
+      "response": "## Per-Partner Budget Analysis for RIA projects\n\nBased on analysis of Horizon Europe funded projects, here are the typical per-partner budget ranges:\n\n### Average Per-Partner Budget by Action Type\n\n| Action Type | Average Per-Partner | Range | Typical Consortium |\n|-------------|--------------------|---------|--------------------|\n| **RIA** | \u20ac350K-400K | \u20ac200K-600K | 12-15 partners |\n| **IA** | \u20ac300K-450K | \u20ac150K-700K | 10-12 partners |\n| **CSA** | \u20ac150K-250K | \u20ac80K-400K | 8-12 partners |\n| **E...",
       "quality_score": 81,
       "factual_score": 100.0,
       "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 1957.209,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 6
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 13,
       "passed": true
+    },
+    {
+      "query": "Summarize our proposal plan including the key elements we've discussed",
+      "response": "Okay, here's a summary of our proposal plan, based on the consortium analysis we've reviewed.  It focuses on the key elements we've discussed in relation to successful consortium patterns:\n\n**Key Elements of Our Proposal Plan (Based on Consortium Analysis):**\n\n*   **Consortium Size:** We are aiming for **13 partners**, which aligns well with the recommended size of **12-17 partners** based on the analysis of 2302 projects. This size should provide sufficient expertise and resources without becom...",
+      "quality_score": 77,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "get_consortium_patterns",
+        "calculate_budget"
+      ],
+      "processing_time_ms": 8800.072,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 2
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 14,
+      "passed": false
     }
   ],
-  "average_score": 78.46666666666667,
-  "factual_score": 100.0,
+  "scores": {
+    "average_quality": 79.8,
+    "average_factual": 100.0,
+    "goal_progress": 0.6433333333333333,
+    "context_fields": 5
+  },
   "failures": [],
-  "status": "MAX_ATTEMPTS",
-  "execution_time_ms": 315871.862,
-  "timestamp": "2026-01-22T19:34:14.639689",
   "metadata": {
     "scenario_path": "tests/scenarios/advanced/full_proposal_journey.yaml",
     "tags": [
@@ -201,33 +356,13 @@
       "full-journey"
     ],
     "description": "A comprehensive 15+ step proposal development workflow for hydrogen energy storage\nresearch. Tests goal progression, context accumulation, and tool usage throughout\na complete proposal planning journey. The user starts with an idea and ends with\na complete proposal plan including budget, timeline, consortium, and deliverables.\n",
-    "conversation_id": 1686732286
+    "conversation_id": 769237638
   },
-  "fix_history": [
-    {
-      "attempt": 1,
-      "files_modified": ["app/services/agents/tool_aware_agent.py"],
-      "changes": "Added CRITICAL: Proposal Planning Tools section to system prompt with table showing correct tool for each query type",
-      "score_before": 79.0,
-      "score_after": 79.27,
-      "timestamp": "2026-01-22T18:20:00"
-    },
-    {
-      "attempt": 2,
-      "files_modified": ["app/services/agents/tool_aware_agent.py"],
-      "changes": "Updated tool descriptions for calculate_budget, generate_timeline, find_experienced_partners, get_programme_statistics to be more prominent and added DO NOT USE guidance to search_documents",
-      "score_before": 79.27,
-      "score_after": 78.73,
-      "timestamp": "2026-01-22T18:22:00"
-    },
-    {
-      "attempt": 3,
-      "files_modified": ["app/services/agents/tool_aware_agent.py"],
-      "changes": "Added CRITICAL: Proposal Planning Follow-ups section with table showing correct tools for follow-up questions",
-      "score_before": 78.73,
-      "score_after": 78.47,
-      "timestamp": "2026-01-22T18:28:00"
-    }
-  ],
-  "final_analysis": "Score 78.47 is 1.53 points below threshold (80). Root cause: LLM consistently chooses search_documents over specialized tools (calculate_budget, generate_timeline, find_experienced_partners) despite extensive prompt engineering. This appears to be a model behavior pattern that cannot be easily fixed via prompts alone. The agent correctly uses specialized tools on Turn 0 (initial query) but defaults to search_documents for follow-up queries in the same conversation. Recommend investigating: (1) tool routing logic in agent, (2) context window impact on tool selection, (3) alternative LLM or fine-tuning."
+  "execution_time_ms": 437717.945,
+  "timestamp": "2026-01-23T16:09:25.635247",
+  "passed": false,
+  "turn_count": 15,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
 }

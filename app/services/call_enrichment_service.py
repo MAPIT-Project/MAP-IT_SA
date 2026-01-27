@@ -11,12 +11,11 @@ Strategy:
 """
 
 import logging
-import re
-import httpx
-from typing import Dict, Any, Optional, List
-from datetime import date, datetime
+from datetime import datetime
 from decimal import Decimal
+from typing import Any
 
+import httpx
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
@@ -47,7 +46,7 @@ class CallEnrichmentService:
             self._client = httpx.Client(timeout=30.0)
         return self._client
     
-    def get_call_details(self, topic_code: str, force_refresh: bool = False) -> Optional[Dict[str, Any]]:
+    def get_call_details(self, topic_code: str, force_refresh: bool = False) -> dict[str, Any] | None:
         """
         Get complete call details, fetching from API if needed.
         
@@ -85,7 +84,7 @@ class CallEnrichmentService:
         
         return None
     
-    def enrich_search_results(self, calls: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def enrich_search_results(self, calls: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Enrich a list of search results with complete data.
         
@@ -110,7 +109,7 @@ class CallEnrichmentService:
         
         return enriched
     
-    def _is_complete(self, call: Dict[str, Any]) -> bool:
+    def _is_complete(self, call: dict[str, Any]) -> bool:
         """Check if call has all important fields including deadline."""
         required_fields = ['scope', 'title']
 
@@ -124,7 +123,7 @@ class CallEnrichmentService:
 
         return True
     
-    def _needs_enrichment(self, call: Dict[str, Any]) -> bool:
+    def _needs_enrichment(self, call: dict[str, Any]) -> bool:
         """Check if a call needs to be enriched."""
         # Missing or very short scope
         scope = call.get('scope') or call.get('description') or ''
@@ -141,7 +140,7 @@ class CallEnrichmentService:
 
         return False
     
-    def _get_local_call(self, topic_code: str) -> Optional[Dict[str, Any]]:
+    def _get_local_call(self, topic_code: str) -> dict[str, Any] | None:
         """Get call from local database."""
         try:
             conn = psycopg2.connect(self.db_url)
@@ -163,7 +162,7 @@ class CallEnrichmentService:
             logger.error(f"Database error: {e}")
             return None
     
-    def _fetch_from_api(self, topic_code: str) -> Optional[Dict[str, Any]]:
+    def _fetch_from_api(self, topic_code: str) -> dict[str, Any] | None:
         """
         Fetch call details from EU Portal API.
 
@@ -177,7 +176,7 @@ class CallEnrichmentService:
         # Fall back to search API
         return self._fetch_via_search_api(topic_code)
 
-    def _fetch_direct_topic_details(self, topic_code: str) -> Optional[Dict[str, Any]]:
+    def _fetch_direct_topic_details(self, topic_code: str) -> dict[str, Any] | None:
         """
         Fetch topic details directly from the EU Portal topic details JSON endpoint.
 
@@ -290,7 +289,7 @@ class CallEnrichmentService:
             logger.warning(f"Direct topic details fetch failed for {topic_code}: {e}")
             return None
 
-    def _fetch_via_search_api(self, topic_code: str) -> Optional[Dict[str, Any]]:
+    def _fetch_via_search_api(self, topic_code: str) -> dict[str, Any] | None:
         """
         Fetch call details via the EU Portal search API.
 
@@ -386,7 +385,7 @@ class CallEnrichmentService:
             traceback.print_exc()
             return None
     
-    def _parse_api_response(self, data: Dict[str, Any], topic_code: str) -> Dict[str, Any]:
+    def _parse_api_response(self, data: dict[str, Any], topic_code: str) -> dict[str, Any]:
         """Parse the topic details API response."""
         # The API response structure varies, handle different formats
         topic_data = data.get('topicDetails', data)
@@ -441,7 +440,7 @@ class CallEnrichmentService:
             'enriched_at': datetime.now().isoformat(),
         }
     
-    def _parse_search_result(self, result: Dict[str, Any], topic_code: str) -> Dict[str, Any]:
+    def _parse_search_result(self, result: dict[str, Any], topic_code: str) -> dict[str, Any]:
         """Parse a search API result."""
         # Metadata is a dict where values are lists
         metadata = result.get('metadata', {})
@@ -513,7 +512,7 @@ class CallEnrichmentService:
             'enriched_at': datetime.now().isoformat(),
         }
     
-    def _cache_call(self, topic_code: str, data: Dict[str, Any]) -> bool:
+    def _cache_call(self, topic_code: str, data: dict[str, Any]) -> bool:
         """Cache enriched call data to database."""
         try:
             conn = psycopg2.connect(self.db_url)

@@ -5,18 +5,17 @@ Tiered rate limiting based on user subscription tier.
 Uses Redis for distributed rate limiting across multiple instances.
 """
 
-import os
 import logging
+import os
 import time
-from datetime import datetime
-from typing import Optional, Dict, Any, Tuple
 from dataclasses import dataclass
+from typing import Any
 
-from fastapi import Request, HTTPException, status, Depends
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import Response
 import redis
 from dotenv import load_dotenv
+from fastapi import HTTPException, Request, status
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -33,7 +32,7 @@ class RateLimitConfig:
 
 
 # Tier configurations
-TIER_LIMITS: Dict[str, RateLimitConfig] = {
+TIER_LIMITS: dict[str, RateLimitConfig] = {
     "free": RateLimitConfig(
         requests_per_minute=10,
         requests_per_hour=100,
@@ -74,7 +73,7 @@ class RateLimitResult:
     remaining_day: int
     reset_minute: int  # Seconds until minute limit resets
     reset_hour: int  # Seconds until hour limit resets
-    retry_after: Optional[int] = None  # Seconds to wait if blocked
+    retry_after: int | None = None  # Seconds to wait if blocked
     tier: str = "free"
 
 
@@ -88,11 +87,11 @@ class RateLimiter:
 
     def __init__(self):
         self.redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
-        self.redis_client: Optional[redis.Redis] = None
+        self.redis_client: redis.Redis | None = None
         self.enabled = True
 
         # In-memory fallback for when Redis is unavailable
-        self.memory_store: Dict[str, Dict[str, Any]] = {}
+        self.memory_store: dict[str, dict[str, Any]] = {}
 
         try:
             self.redis_client = redis.from_url(
@@ -325,7 +324,7 @@ class RateLimiter:
             reset_hour=3600
         )
 
-    def get_tier_limits(self, tier: str) -> Dict[str, int]:
+    def get_tier_limits(self, tier: str) -> dict[str, int]:
         """Get limits for a tier."""
         config = TIER_LIMITS.get(tier, TIER_LIMITS["free"])
         return {
@@ -394,7 +393,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         return response
 
-    def _get_identifier_and_tier(self, request: Request) -> Tuple[str, str]:
+    def _get_identifier_and_tier(self, request: Request) -> tuple[str, str]:
         """Extract identifier and tier from request."""
         # Try to get from authenticated user
         user = getattr(request.state, "user", None)

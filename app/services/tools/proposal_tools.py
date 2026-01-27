@@ -18,8 +18,7 @@ Tools:
 """
 
 import logging
-import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +41,7 @@ class ProposalToolExecutor:
         """
         self.session_manager = session_manager
         self.db_pool = db_pool
-        self._services: Dict[str, Any] = {}
+        self._services: dict[str, Any] = {}
         self._init_services()
 
     def _init_services(self):
@@ -57,9 +56,8 @@ class ProposalToolExecutor:
 
         try:
             if service_name == "draft_generator":
-                from ..proposal_writing import ProposalDraftGenerator
                 from ..call_document_service import CallDocumentService
-                from ..proposal_writing import ProposalTemplateService
+                from ..proposal_writing import ProposalDraftGenerator, ProposalTemplateService
 
                 if self.db_pool:
                     call_doc_service = CallDocumentService(self.db_pool)
@@ -93,8 +91,8 @@ class ProposalToolExecutor:
                 self._services[service_name] = GapAnalysisService()
 
             elif service_name == "compliance_checker":
-                from ..proposal_writing import ComplianceChecker
                 from ..call_document_service import CallDocumentService
+                from ..proposal_writing import ComplianceChecker
 
                 if self.db_pool:
                     call_doc_service = CallDocumentService(self.db_pool)
@@ -118,10 +116,10 @@ class ProposalToolExecutor:
     async def execute_tool(
         self,
         tool_name: str,
-        parameters: Dict[str, Any],
-        session_id: Optional[str] = None,
-        proposal_context: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        parameters: dict[str, Any],
+        session_id: str | None = None,
+        proposal_context: str | None = None,
+    ) -> dict[str, Any]:
         """
         Execute a proposal tool.
 
@@ -160,8 +158,8 @@ class ProposalToolExecutor:
             return {"error": str(e), "tool": tool_name}
 
     async def _generate_section_draft(
-        self, parameters: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, parameters: dict[str, Any]
+    ) -> dict[str, Any]:
         """Generate a draft for a proposal section."""
         section_id = parameters.get("section_id", "")
         call_id = parameters.get("call_id", "")
@@ -206,8 +204,8 @@ class ProposalToolExecutor:
             }
 
     async def _improve_section(
-        self, parameters: Dict[str, Any], proposal_context: Optional[str]
-    ) -> Dict[str, Any]:
+        self, parameters: dict[str, Any], proposal_context: str | None
+    ) -> dict[str, Any]:
         """Improve existing section content."""
         section_id = parameters.get("section_id", "")
         focus_areas = parameters.get("focus_areas", "all")
@@ -256,8 +254,8 @@ class ProposalToolExecutor:
             }
 
     async def _rewrite_section(
-        self, parameters: Dict[str, Any], proposal_context: Optional[str]
-    ) -> Dict[str, Any]:
+        self, parameters: dict[str, Any], proposal_context: str | None
+    ) -> dict[str, Any]:
         """Rewrite section with a specific style."""
         section_id = parameters.get("section_id", "")
         style = parameters.get("style", "eu_evaluator_friendly")
@@ -309,8 +307,8 @@ class ProposalToolExecutor:
             }
 
     async def _evaluate_section(
-        self, parameters: Dict[str, Any], proposal_context: Optional[str]
-    ) -> Dict[str, Any]:
+        self, parameters: dict[str, Any], proposal_context: str | None
+    ) -> dict[str, Any]:
         """Evaluate section with EU evaluator simulation."""
         section_id = parameters.get("section_id", "")
         evaluation_type = parameters.get("evaluation_type", "detailed")
@@ -358,8 +356,8 @@ class ProposalToolExecutor:
             return self._generate_placeholder_evaluation(section_id, current_content)
 
     async def _analyze_gaps(
-        self, parameters: Dict[str, Any], proposal_context: Optional[str]
-    ) -> Dict[str, Any]:
+        self, parameters: dict[str, Any], proposal_context: str | None
+    ) -> dict[str, Any]:
         """Analyze gaps in a section."""
         section_id = parameters.get("section_id", "")
         include_fixes = parameters.get("include_fixes", True)
@@ -396,7 +394,7 @@ class ProposalToolExecutor:
             logger.error(f"Gap analysis failed: {e}")
             return self._generate_placeholder_gaps(section_id)
 
-    async def _check_compliance(self, parameters: Dict[str, Any]) -> Dict[str, Any]:
+    async def _check_compliance(self, parameters: dict[str, Any]) -> dict[str, Any]:
         """Check proposal compliance."""
         section_id = parameters.get("section_id", "all")
         check_type = parameters.get("check_type", "all")
@@ -434,8 +432,8 @@ class ProposalToolExecutor:
             }
 
     async def _get_suggestions(
-        self, parameters: Dict[str, Any], proposal_context: Optional[str]
-    ) -> Dict[str, Any]:
+        self, parameters: dict[str, Any], proposal_context: str | None
+    ) -> dict[str, Any]:
         """Get inline suggestions for a section."""
         section_id = parameters.get("section_id", "")
         suggestion_types = parameters.get("suggestion_types", "all")
@@ -488,8 +486,8 @@ class ProposalToolExecutor:
             }
 
     async def _focus_section(
-        self, parameters: Dict[str, Any], session_id: Optional[str]
-    ) -> Dict[str, Any]:
+        self, parameters: dict[str, Any], session_id: str | None
+    ) -> dict[str, Any]:
         """Set the active section in the session."""
         section_id = parameters.get("section_id", "")
 
@@ -514,8 +512,8 @@ class ProposalToolExecutor:
         }
 
     async def _get_document_overview(
-        self, session_id: Optional[str]
-    ) -> Dict[str, Any]:
+        self, session_id: str | None
+    ) -> dict[str, Any]:
         """Get the document overview for the session."""
         if self.session_manager and session_id:
             try:
@@ -537,8 +535,8 @@ class ProposalToolExecutor:
     # =========================================================================
 
     def _extract_section_content(
-        self, section_id: str, proposal_context: Optional[str]
-    ) -> Optional[str]:
+        self, section_id: str, proposal_context: str | None
+    ) -> str | None:
         """Extract section content from proposal context string."""
         if not proposal_context or not section_id:
             return None
@@ -606,7 +604,7 @@ We have identified key risks and mitigation strategies to ensure project success
 
     def _generate_placeholder_evaluation(
         self, section_id: str, content: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate placeholder evaluation when service unavailable."""
         word_count = len(content.split()) if content else 0
         score = min(4.0, max(2.0, word_count / 200))  # Simple heuristic
@@ -626,7 +624,7 @@ We have identified key risks and mitigation strategies to ensure project success
             "note": "Placeholder evaluation - full service unavailable"
         }
 
-    def _generate_placeholder_gaps(self, section_id: str) -> Dict[str, Any]:
+    def _generate_placeholder_gaps(self, section_id: str) -> dict[str, Any]:
         """Generate placeholder gap analysis when service unavailable."""
         return {
             "section_id": section_id,
@@ -655,7 +653,7 @@ We have identified key risks and mitigation strategies to ensure project success
 
 
 # Singleton instance for easy access
-_proposal_tool_executor: Optional[ProposalToolExecutor] = None
+_proposal_tool_executor: ProposalToolExecutor | None = None
 
 
 def get_proposal_tool_executor(

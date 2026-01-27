@@ -25,7 +25,7 @@ import sys
 import time
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 # Add app to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -96,7 +96,7 @@ class EU4HealthPortalSyncer:
         """Close HTTP client."""
         self.client.close()
 
-    def get_existing_topics_from_db(self, conn) -> List[Dict]:
+    def get_existing_topics_from_db(self, conn) -> list[dict]:
         """Get all existing EU4Health topic codes from database."""
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute("""
@@ -109,7 +109,7 @@ class EU4HealthPortalSyncer:
         results = cursor.fetchall()
         return [{"identifier": r["topic_code"], "title": r["title"] or ""} for r in results]
 
-    def generate_topic_patterns(self, years: List[int]) -> List[str]:
+    def generate_topic_patterns(self, years: list[int]) -> list[str]:
         """
         Generate all possible EU4Health topic code patterns.
 
@@ -235,8 +235,8 @@ class EU4HealthPortalSyncer:
         self,
         status: str = "all",
         conn=None,
-        years: Optional[List[int]] = None
-    ) -> List[Dict]:
+        years: list[int] | None = None
+    ) -> list[dict]:
         """
         Get all EU4Health topics to sync using hybrid approach.
 
@@ -282,7 +282,7 @@ class EU4HealthPortalSyncer:
         logger.info(f"Total: {len(all_topics)} unique topics to process")
         return all_topics
 
-    def fetch_topic_details(self, topic_id: str) -> Optional[Dict[str, Any]]:
+    def fetch_topic_details(self, topic_id: str) -> dict[str, Any] | None:
         """
         Fetch complete details for an EU4Health topic from the EU Portal API.
 
@@ -402,7 +402,7 @@ class EU4HealthPortalSyncer:
             logger.debug(f"Error fetching {topic_id}: {e}")
             return None
 
-    def _extract_action_type(self, topic_code: str) -> Optional[str]:
+    def _extract_action_type(self, topic_code: str) -> str | None:
         """Extract action type from EU4Health topic code."""
         topic_upper = topic_code.upper()
 
@@ -429,7 +429,7 @@ class EU4HealthPortalSyncer:
 
         return None
 
-    def _extract_strand(self, topic_code: str, title: str = "") -> Optional[str]:
+    def _extract_strand(self, topic_code: str, title: str = "") -> str | None:
         """Extract EU4Health strand from topic code or title."""
         combined = (topic_code + " " + title).upper()
 
@@ -453,7 +453,7 @@ class EU4HealthPortalSyncer:
 
         return None
 
-    def upsert_call(self, conn, data: Dict[str, Any]) -> bool:
+    def upsert_call(self, conn, data: dict[str, Any]) -> bool:
         """Insert or update an EU4Health call in the database."""
         try:
             cursor = conn.cursor()

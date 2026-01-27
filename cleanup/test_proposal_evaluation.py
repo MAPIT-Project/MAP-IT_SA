@@ -3,18 +3,16 @@ Direct evaluation of the proposal generation system for Horizon Europe calls
 """
 
 import asyncio
-import sys
 import os
+import sys
 from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from app.services.proposal_writing import (
-    ProposalTemplateService,
-    ProposalDraftGenerator
-)
-from app.services.call_document_service import CallDocumentService
 import psycopg2.pool
+
+from app.services.call_document_service import CallDocumentService
+from app.services.proposal_writing import ProposalDraftGenerator, ProposalTemplateService
 
 # Test configuration - Real Horizon Europe call
 TEST_CALL_ID = "HORIZON-CL3-2025-02-CS-ECCC-01"
@@ -66,7 +64,7 @@ async def evaluate_proposal_generation():
         
         template = await template_service.generate_template(TEST_CALL_ID)
         
-        print(f"✅ Template generated successfully!")
+        print("✅ Template generated successfully!")
         print(f"   Proposal Type: {template['proposal_type']}")
         print(f"   Page Limit: {template['metadata']['page_limit']}")
         print(f"   Sections: {len(template['structure']['sections'])}")
@@ -120,7 +118,7 @@ async def evaluate_proposal_generation():
         
         avg_quality = (total_quality / len(generated_drafts)) * 100
         
-        print(f"\n   📈 OVERALL STATISTICS:")
+        print("\n   📈 OVERALL STATISTICS:")
         print(f"      Total Words Generated: {total_words}")
         print(f"      Average Quality Score: {avg_quality:.0f}%")
         print(f"      Unique Criteria Addressed: {len(all_criteria_addressed)}")
@@ -131,7 +129,7 @@ async def evaluate_proposal_generation():
         
         objectives_draft = generated_drafts.get('excellence.objectives')
         if objectives_draft:
-            print(f"\n   Objectives Section Preview (first 300 words):")
+            print("\n   Objectives Section Preview (first 300 words):")
             print("   " + "-"*50)
             preview = objectives_draft['draft_text'][:300] + "..." if len(objectives_draft['draft_text']) > 300 else objectives_draft['draft_text']
             for line in preview.split('\n'):
@@ -146,23 +144,23 @@ async def evaluate_proposal_generation():
         alignment_score = assess_eu_alignment(generated_drafts, TEST_PROJECT)
         print(f"   EU Alignment Score: {alignment_score*100:.0f}%")
         
-        print(f"\n   ✅ STRENGTHS:")
-        print(f"      • Generates professional, structured content")
-        print(f"      • Addresses evaluation criteria systematically")
-        print(f"      • Uses appropriate EU terminology")
+        print("\n   ✅ STRENGTHS:")
+        print("      • Generates professional, structured content")
+        print("      • Addresses evaluation criteria systematically")
+        print("      • Uses appropriate EU terminology")
         print(f"      • Produces substantial content ({total_words} words)")
-        print(f"      • Quality scoring provides feedback")
+        print("      • Quality scoring provides feedback")
         
-        print(f"\n   ⚠️  AREAS FOR IMPROVEMENT:")
-        print(f"      • Could include more specific call references")
-        print(f"      • Budget generation needs enhancement")
-        print(f"      • Compliance checking has technical issues")
-        print(f"      • Conversational interface needs fixes")
+        print("\n   ⚠️  AREAS FOR IMPROVEMENT:")
+        print("      • Could include more specific call references")
+        print("      • Budget generation needs enhancement")
+        print("      • Compliance checking has technical issues")
+        print("      • Conversational interface needs fixes")
         
         db_pool.closeall()
         
         # Final Assessment
-        print(f"\n🎯 FINAL ASSESSMENT")
+        print("\n🎯 FINAL ASSESSMENT")
         print("="*40)
         print(f"Can this system assist with EU proposal writing? {'YES' if alignment_score > 0.7 else 'PARTIALLY'}")
         print(f"Effectiveness Score: {avg_quality:.0f}%")

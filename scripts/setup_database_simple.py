@@ -5,8 +5,9 @@ Simplified script to set up the Horizon Europe RAG database tables in Supabase.
 
 import os
 import sys
-import psycopg2
 from pathlib import Path
+
+import psycopg2
 
 # Add the app directory to the Python path
 sys.path.append(str(Path(__file__).parent.parent))

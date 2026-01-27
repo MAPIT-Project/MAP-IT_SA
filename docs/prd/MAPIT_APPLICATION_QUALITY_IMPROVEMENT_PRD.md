@@ -460,12 +460,15 @@ Test the system's ability to handle sophisticated user needs.
   - **Verified**: Existing `_detect_historical_applications_query()` method already handles H2020/FP7 queries correctly - returns clear "No" with programme status table, explains H2020 closed (2014-2020), redirects to Horizon Europe (2021-2027, €95.5B budget), lists available funding types (ERC, MSCA, RIA, IA, CSA, EIC), and provides actionable next steps with EU Portal links
   - **Tests**: `tests/quality/test_scenario_036_outdated_programme.py` (13 tests)
 
-- [ ] **Scenario 037: Very Specific Niche** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 037: Very Specific Niche** `EXECUTE + FIX IF NEEDED`
   - Query: "Funding for underwater archaeology using AI in the Mediterranean"
   - Expected: Best effort search, possibly Creative Europe + Horizon combination
   - Verify: Reasonable attempt, doesn't hallucinate
   - Fix if: Makes up specific calls that don't exist
   - Pass threshold: 75
+  - **Status: PASS (score 75+/100)**
+  - **Fix applied**: Added `_detect_niche_interdisciplinary_query()` method to detect highly specialized queries combining multiple domains (traditional fields + technology + geography). Added `_generate_niche_query_guidance()` method providing helpful guidance on alternative funding approaches (Creative Europe, ERC, Mission Ocean, splitting projects), relevant Horizon Europe clusters, and honest acknowledgment when exact matches don't exist. Added `call_tools_with_niche_guidance` action handler in both sync and streaming paths.
+  - **Tests**: `tests/quality/test_scenario_037_very_specific_niche.py` (15 tests)
 
 ### Real-World Scenarios
 

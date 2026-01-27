@@ -11,7 +11,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 2001.638,
+      "processing_time_ms": 2011.5789999999997,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -31,7 +31,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 475.78,
+      "processing_time_ms": 483.688,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -51,7 +51,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 608.939,
+      "processing_time_ms": 616.5749999999999,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -71,7 +71,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 663.965,
+      "processing_time_ms": 668.727,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -91,7 +91,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 4149.885,
+      "processing_time_ms": 4124.6939999999995,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -108,7 +108,7 @@
   "scores": {
     "average_quality": 83.4,
     "average_factual": 100.0,
-    "goal_progress": 0.98,
+    "goal_progress": 0.5642857142857143,
     "context_fields": 4
   },
   "failures": [],
@@ -124,10 +124,10 @@
       "ria"
     ],
     "description": "A company wants to understand SME eligibility for EU funding programmes.\nThe EU SME definition includes employee count, turnover, and ownership rules.\nCompanies linked to large enterprises may not qualify as SME.\nTests SME definition accuracy and ownership rule explanations.\n",
-    "conversation_id": 1573664570
+    "conversation_id": 1466907261
   },
-  "execution_time_ms": 20072.827,
-  "timestamp": "2026-01-23T12:45:03.543605",
+  "execution_time_ms": 106958.054,
+  "timestamp": "2026-01-23T17:19:59.802918",
   "passed": true,
   "turn_count": 5,
   "critical_failures": 0,

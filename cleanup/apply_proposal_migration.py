@@ -7,6 +7,7 @@ credentials from environment variables.
 
 import os
 import sys
+
 import psycopg2
 from dotenv import load_dotenv
 
@@ -51,7 +52,7 @@ def apply_migration():
         
         print(f"📄 Reading migration file: {migration_file}\n")
         
-        with open(migration_file, 'r') as f:
+        with open(migration_file) as f:
             migration_sql = f.read()
         
         print(f"📊 Migration file size: {len(migration_sql)} characters\n")

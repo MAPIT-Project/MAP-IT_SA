@@ -12,14 +12,15 @@ Helps users calculate realistic budget breakdowns for their proposals
 based on patterns from funded projects and Horizon Europe cost rules.
 """
 
-import os
 import logging
-from typing import Optional, Dict, Any, List
-from datetime import datetime
+import os
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
+from typing import Any
+
 import psycopg2
-from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
+from psycopg2.extras import RealDictCursor
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -183,7 +184,7 @@ class BudgetCalculatorTool:
             return None
         return psycopg2.connect(self.db_url)
 
-    def _normalize_cluster_code(self, cluster: Optional[str]) -> Optional[str]:
+    def _normalize_cluster_code(self, cluster: str | None) -> str | None:
         """Normalize cluster code to CLUSTER-N format."""
         if not cluster:
             return None
@@ -193,7 +194,7 @@ class BudgetCalculatorTool:
             cluster_upper = f"CLUSTER{cluster_upper[2]}"
         return CLUSTER_MAP.get(cluster_upper, cluster.upper() if cluster.upper().startswith('CLUSTER-') else None)
 
-    def _infer_clusters_from_keywords(self, keywords: str) -> List[str]:
+    def _infer_clusters_from_keywords(self, keywords: str) -> list[str]:
         """Infer clusters from research topic keywords."""
         if not keywords:
             return []
@@ -215,15 +216,15 @@ class BudgetCalculatorTool:
         action_type: str,
         duration_months: int,
         num_partners: int,
-        total_person_months: Optional[int] = None,
-        target_budget: Optional[float] = None,
-        countries: Optional[List[str]] = None,
-        cluster: Optional[str] = None,
-        topic_keywords: Optional[str] = None,
+        total_person_months: int | None = None,
+        target_budget: float | None = None,
+        countries: list[str] | None = None,
+        cluster: str | None = None,
+        topic_keywords: str | None = None,
         include_breakdown: bool = True,
         include_cluster_context: bool = True,
         include_similar_projects: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Calculate recommended budget breakdown for a Horizon Europe proposal.
 
@@ -298,17 +299,17 @@ class BudgetCalculatorTool:
         action_type: str,
         duration_months: int,
         num_partners: int,
-        total_person_months: Optional[int],
-        target_budget: Optional[float],
-        countries: Optional[List[str]],
-        cluster: Optional[str],
-        inferred_clusters: List[str],
-        ratios: Dict[str, float],
+        total_person_months: int | None,
+        target_budget: float | None,
+        countries: list[str] | None,
+        cluster: str | None,
+        inferred_clusters: list[str],
+        ratios: dict[str, float],
         funding_rate: float,
         include_breakdown: bool,
         include_cluster_context: bool,
         include_similar_projects: bool
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Hybrid Graph+SQL budget calculation with parallel queries.
         """
@@ -388,8 +389,8 @@ class BudgetCalculatorTool:
     def _get_graph_budget_statistics(
         self,
         cluster: str,
-        action_type: Optional[str]
-    ) -> Optional[Dict]:
+        action_type: str | None
+    ) -> dict | None:
         """Get budget statistics from graph database."""
         if not self._graph_service:
             return None
@@ -406,7 +407,7 @@ class BudgetCalculatorTool:
             logger.warning(f"Graph budget statistics query failed: {e}")
             return None
 
-    def _get_graph_consortium_patterns(self, cluster: str) -> Optional[Dict]:
+    def _get_graph_consortium_patterns(self, cluster: str) -> dict | None:
         """Get consortium patterns from graph database."""
         if not self._graph_service:
             return None
@@ -426,8 +427,8 @@ class BudgetCalculatorTool:
     def _get_graph_project_examples(
         self,
         cluster: str,
-        action_type: Optional[str]
-    ) -> Optional[List[Dict]]:
+        action_type: str | None
+    ) -> list[dict] | None:
         """Get project examples from graph database."""
         if not self._graph_service:
             return None
@@ -444,7 +445,7 @@ class BudgetCalculatorTool:
             logger.warning(f"Graph project examples query failed: {e}")
             return None
 
-    def _get_budget_benchmarks_sql(self, action_type: str) -> Dict[str, float]:
+    def _get_budget_benchmarks_sql(self, action_type: str) -> dict[str, float]:
         """Get budget benchmarks from SQL database."""
         try:
             conn = self._get_connection()
@@ -492,8 +493,8 @@ class BudgetCalculatorTool:
     def _get_similar_projects_sql(
         self,
         action_type: str,
-        cluster: Optional[str]
-    ) -> Optional[List[Dict]]:
+        cluster: str | None
+    ) -> list[dict] | None:
         """Get similar projects from SQL database."""
         try:
             conn = self._get_connection()
@@ -546,7 +547,7 @@ class BudgetCalculatorTool:
 
         return None
 
-    def _get_fallback_benchmarks(self, action_type: str) -> Dict[str, float]:
+    def _get_fallback_benchmarks(self, action_type: str) -> dict[str, float]:
         """Get fallback benchmarks when database is unavailable."""
         fallback = {
             'RIA': {'min': 2_000_000, 'max': 12_000_000, 'mean': 5_500_000, 'median': 5_000_000},
@@ -562,21 +563,21 @@ class BudgetCalculatorTool:
 
     def _merge_and_calculate(
         self,
-        results: Dict[str, Any],
+        results: dict[str, Any],
         action_type: str,
         duration_months: int,
         num_partners: int,
-        total_person_months: Optional[int],
-        target_budget: Optional[float],
-        countries: Optional[List[str]],
-        cluster: Optional[str],
-        inferred_clusters: List[str],
-        ratios: Dict[str, float],
+        total_person_months: int | None,
+        target_budget: float | None,
+        countries: list[str] | None,
+        cluster: str | None,
+        inferred_clusters: list[str],
+        ratios: dict[str, float],
         funding_rate: float,
         include_breakdown: bool,
         include_cluster_context: bool,
         include_similar_projects: bool
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Merge graph and SQL results and calculate budget."""
 
         # Get benchmarks - prefer graph if available, else use SQL
@@ -736,10 +737,10 @@ class BudgetCalculatorTool:
 
     def _adjust_ratios_from_graph(
         self,
-        base_ratios: Dict[str, float],
-        graph_stats: Optional[Dict],
-        cluster: Optional[str]
-    ) -> Dict[str, float]:
+        base_ratios: dict[str, float],
+        graph_stats: dict | None,
+        cluster: str | None
+    ) -> dict[str, float]:
         """
         Adjust cost ratios based on graph statistics.
 
@@ -764,9 +765,9 @@ class BudgetCalculatorTool:
     def _calculate_breakdown(
         self,
         total: float,
-        ratios: Dict[str, float],
+        ratios: dict[str, float],
         estimated_pms: int
-    ) -> Dict[str, Dict]:
+    ) -> dict[str, dict]:
         """Calculate detailed cost category breakdown."""
         return {
             'personnel': {
@@ -807,7 +808,7 @@ class BudgetCalculatorTool:
         total: float,
         num_partners: int,
         estimated_pms: int
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Calculate per-partner budget distribution."""
         coordinator_share = 0.20
         return {
@@ -817,7 +818,7 @@ class BudgetCalculatorTool:
             'pms_per_partner': round(estimated_pms / num_partners, 0)
         }
 
-    def _calculate_avg_pm_cost(self, countries: Optional[List[str]]) -> float:
+    def _calculate_avg_pm_cost(self, countries: list[str] | None) -> float:
         """Calculate average person-month cost based on country mix."""
         if not countries:
             return self.PM_COSTS['default']
@@ -836,7 +837,7 @@ class BudgetCalculatorTool:
 
         return total_cost / len(countries)
 
-    def _compare_to_median(self, total: float, benchmarks: Dict) -> str:
+    def _compare_to_median(self, total: float, benchmarks: dict) -> str:
         """Compare calculated budget to median."""
         median = benchmarks.get('median', benchmarks.get('mean', 5_000_000))
         min_val = benchmarks.get('min', median * 0.4)
@@ -856,10 +857,10 @@ class BudgetCalculatorTool:
         num_partners: int,
         duration: int,
         total_pms: int,
-        benchmarks: Dict,
-        graph_consortium: Optional[Dict],
-        cluster: Optional[str]
-    ) -> List[str]:
+        benchmarks: dict,
+        graph_consortium: dict | None,
+        cluster: str | None
+    ) -> list[str]:
         """Generate budget recommendations enhanced with graph data."""
         recommendations = []
 
@@ -961,13 +962,13 @@ class BudgetCalculatorTool:
         action_type: str,
         duration_months: int,
         num_partners: int,
-        total_person_months: Optional[int],
-        target_budget: Optional[float],
-        countries: Optional[List[str]],
-        ratios: Dict[str, float],
+        total_person_months: int | None,
+        target_budget: float | None,
+        countries: list[str] | None,
+        ratios: dict[str, float],
         funding_rate: float,
         include_breakdown: bool
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """SQL-only budget calculation (fallback)."""
         # Calculate average PM cost based on country mix
         avg_pm_cost = self._calculate_avg_pm_cost(countries)
@@ -1049,7 +1050,7 @@ class BudgetCalculatorTool:
 
 
 # Async wrapper for tool orchestrator compatibility
-async def calculate_budget_execute(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+async def calculate_budget_execute(params: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
     """
     Execute budget calculator tool.
 

@@ -6,9 +6,9 @@ and detailed context for debugging. All exceptions can be serialized to JSON
 for API responses.
 """
 
-from typing import Dict, Any, Optional, List
-from datetime import datetime, timezone
 import logging
+from datetime import UTC, datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ class MapItError(Exception):
         self,
         message: str,
         error_code: str = "MAPIT_ERROR",
-        details: Optional[Dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
         recoverable: bool = True,
         http_status: int = 500
     ):
@@ -38,10 +38,10 @@ class MapItError(Exception):
         self.details = details or {}
         self.recoverable = recoverable
         self.http_status = http_status
-        self.timestamp = datetime.now(timezone.utc).isoformat()
+        self.timestamp = datetime.now(UTC).isoformat()
         super().__init__(message)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize exception to dictionary for API responses."""
         return {
             "error": self.error_code,
@@ -66,7 +66,7 @@ class ServiceUnavailableError(MapItError):
         self,
         message: str,
         service_name: str = None,
-        details: Optional[Dict[str, Any]] = None
+        details: dict[str, Any] | None = None
     ):
         super().__init__(
             message=message,
@@ -81,28 +81,28 @@ class ServiceUnavailableError(MapItError):
 class Neo4jUnavailableError(ServiceUnavailableError):
     """Neo4j graph database is unavailable."""
 
-    def __init__(self, message: str = "Graph database is temporarily unavailable", details: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str = "Graph database is temporarily unavailable", details: dict[str, Any] | None = None):
         super().__init__(message=message, service_name="neo4j", details=details)
 
 
 class PostgresUnavailableError(ServiceUnavailableError):
     """PostgreSQL database is unavailable."""
 
-    def __init__(self, message: str = "Database is temporarily unavailable", details: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str = "Database is temporarily unavailable", details: dict[str, Any] | None = None):
         super().__init__(message=message, service_name="postgres", details=details)
 
 
 class RedisUnavailableError(ServiceUnavailableError):
     """Redis cache is unavailable."""
 
-    def __init__(self, message: str = "Cache service is temporarily unavailable", details: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str = "Cache service is temporarily unavailable", details: dict[str, Any] | None = None):
         super().__init__(message=message, service_name="redis", details=details)
 
 
 class EmbeddingServiceUnavailableError(ServiceUnavailableError):
     """Embedding generation service is unavailable."""
 
-    def __init__(self, message: str = "Embedding service is temporarily unavailable", details: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str = "Embedding service is temporarily unavailable", details: dict[str, Any] | None = None):
         super().__init__(message=message, service_name="embedding", details=details)
 
 
@@ -113,7 +113,7 @@ class AIProviderUnavailableError(ServiceUnavailableError):
         self,
         message: str = "AI provider is temporarily unavailable",
         provider: str = None,
-        details: Optional[Dict[str, Any]] = None
+        details: dict[str, Any] | None = None
     ):
         super().__init__(
             message=message,
@@ -129,7 +129,7 @@ class ExternalAPIUnavailableError(ServiceUnavailableError):
         self,
         message: str = "External API is temporarily unavailable",
         api_name: str = None,
-        details: Optional[Dict[str, Any]] = None
+        details: dict[str, Any] | None = None
     ):
         super().__init__(
             message=message,
@@ -150,7 +150,7 @@ class DataNotFoundError(MapItError):
         message: str,
         resource_type: str = None,
         resource_id: str = None,
-        details: Optional[Dict[str, Any]] = None
+        details: dict[str, Any] | None = None
     ):
         super().__init__(
             message=message,
@@ -232,8 +232,8 @@ class ValidationError(MapItError):
         message: str,
         field: str = None,
         value: Any = None,
-        constraints: Optional[Dict[str, Any]] = None,
-        details: Optional[Dict[str, Any]] = None
+        constraints: dict[str, Any] | None = None,
+        details: dict[str, Any] | None = None
     ):
         super().__init__(
             message=message,
@@ -252,7 +252,7 @@ class ValidationError(MapItError):
 class InvalidInputError(ValidationError):
     """Input data is invalid."""
 
-    def __init__(self, message: str, field: str = None, details: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str, field: str = None, details: dict[str, Any] | None = None):
         super().__init__(message=message, field=field, details=details)
 
 
@@ -289,7 +289,7 @@ class RateLimitError(MapItError):
         message: str = "Rate limit exceeded",
         retry_after: int = None,
         limit_type: str = None,  # "minute", "hour", "day"
-        details: Optional[Dict[str, Any]] = None
+        details: dict[str, Any] | None = None
     ):
         super().__init__(
             message=message,
@@ -333,7 +333,7 @@ class TimeoutError(MapItError):
         message: str = "Operation timed out",
         operation: str = None,
         timeout_seconds: float = None,
-        details: Optional[Dict[str, Any]] = None
+        details: dict[str, Any] | None = None
     ):
         super().__init__(
             message=message,
@@ -394,7 +394,7 @@ class ToolExecutionError(MapItError):
         self,
         message: str,
         tool_name: str = None,
-        details: Optional[Dict[str, Any]] = None
+        details: dict[str, Any] | None = None
     ):
         super().__init__(
             message=message,
@@ -425,8 +425,8 @@ class ToolValidationError(MapItError):
         self,
         message: str,
         tool_name: str = None,
-        invalid_args: Optional[List[str]] = None,
-        details: Optional[Dict[str, Any]] = None
+        invalid_args: list[str] | None = None,
+        details: dict[str, Any] | None = None
     ):
         super().__init__(
             message=message,
@@ -453,7 +453,7 @@ class AgentError(MapItError):
         message: str,
         error_code: str = "AGENT_ERROR",
         iteration: int = None,
-        details: Optional[Dict[str, Any]] = None
+        details: dict[str, Any] | None = None
     ):
         super().__init__(
             message=message,
@@ -479,7 +479,7 @@ class AgentMaxIterationsError(AgentError):
 class AgentPlanningError(AgentError):
     """Agent failed to create a valid plan."""
 
-    def __init__(self, message: str = "Agent failed to create a query plan", details: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str = "Agent failed to create a query plan", details: dict[str, Any] | None = None):
         super().__init__(
             message=message,
             error_code="AGENT_PLANNING_ERROR",
@@ -522,7 +522,7 @@ class AuthenticationError(MapItError):
     def __init__(
         self,
         message: str = "Authentication required",
-        details: Optional[Dict[str, Any]] = None
+        details: dict[str, Any] | None = None
     ):
         super().__init__(
             message=message,
@@ -549,8 +549,8 @@ class AuthorizationError(MapItError):
     def __init__(
         self,
         message: str = "Insufficient permissions",
-        required_roles: Optional[List[str]] = None,
-        details: Optional[Dict[str, Any]] = None
+        required_roles: list[str] | None = None,
+        details: dict[str, Any] | None = None
     ):
         super().__init__(
             message=message,
@@ -575,7 +575,7 @@ class EmbeddingError(MapItError):
         self,
         message: str,
         content_type: str = None,
-        details: Optional[Dict[str, Any]] = None
+        details: dict[str, Any] | None = None
     ):
         super().__init__(
             message=message,
@@ -608,7 +608,7 @@ class ConfigurationError(MapItError):
         self,
         message: str,
         config_key: str = None,
-        details: Optional[Dict[str, Any]] = None
+        details: dict[str, Any] | None = None
     ):
         super().__init__(
             message=message,

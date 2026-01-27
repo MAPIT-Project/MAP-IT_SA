@@ -4,18 +4,17 @@ Tests for DashboardService (Task 16)
 Tests dashboard aggregation, readiness checks, and next actions.
 """
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime, timedelta
 
+import pytest
+
 from app.services.proposal_writing.dashboard_service import (
+    ActionPriority,
     DashboardService,
-    DashboardData,
-    SectionSummary,
     NextAction,
     ReadinessCheck,
     SectionStatus,
-    ActionPriority,
+    SectionSummary,
 )
 
 

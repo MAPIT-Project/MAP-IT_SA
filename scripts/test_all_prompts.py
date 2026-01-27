@@ -5,10 +5,11 @@ and write the results to a file for manual analysis.
 """
 
 import asyncio
-import httpx
 import json
 from datetime import datetime
 from pathlib import Path
+
+import httpx
 
 # API Configuration
 API_BASE_URL = "http://localhost:8000"
@@ -270,7 +271,7 @@ async def main():
     print("\n\nWriting results to files...")
     md_file, json_file = write_results_to_file(results, timestamp)
 
-    print(f"\nResults saved to:")
+    print("\nResults saved to:")
     print(f"  - Markdown: {md_file}")
     print(f"  - JSON: {json_file}")
     print("\nTesting complete!")

@@ -3,16 +3,17 @@ Document processor service for extracting text from various document types.
 """
 
 import hashlib
-import re
-from typing import List, Dict, Any, Optional, Tuple
-from pathlib import Path
-import PyPDF2
-import pdfplumber
-from bs4 import BeautifulSoup
-import requests
-from urllib.parse import urljoin, urlparse
 import logging
-from datetime import datetime, timezone
+import re
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
+from urllib.parse import urljoin, urlparse
+
+import pdfplumber
+import PyPDF2
+import requests
+from bs4 import BeautifulSoup
 
 from ..core.config import settings
 
@@ -36,7 +37,7 @@ class DocumentProcessor:
         
         logger.info(f"✅ Document processor initialized. Supported formats: {self.supported_formats}")
     
-    def process_file(self, file_path: str, document_type: Optional[str] = None) -> Tuple[str, Dict[str, Any]]:
+    def process_file(self, file_path: str, document_type: str | None = None) -> tuple[str, dict[str, Any]]:
         """Process a file and extract text content and metadata."""
         file_path = Path(file_path)
         
@@ -63,7 +64,7 @@ class DocumentProcessor:
         else:
             raise ValueError(f"No processor available for: {file_extension}")
     
-    def process_pdf(self, file_path: str, document_type: Optional[str] = None) -> Tuple[str, Dict[str, Any]]:
+    def process_pdf(self, file_path: str, document_type: str | None = None) -> tuple[str, dict[str, Any]]:
         """Extract text and metadata from PDF files."""
         text_content = ""
         metadata = {
@@ -140,21 +141,21 @@ class DocumentProcessor:
             file_hash = hashlib.sha256(f.read()).hexdigest()
         
         metadata["file_hash"] = file_hash
-        metadata["extraction_date"] = datetime.now(timezone.utc).isoformat()
+        metadata["extraction_date"] = datetime.now(UTC).isoformat()
         metadata["content_length"] = len(text_content)
         
         logger.info(f"✅ PDF processed: {metadata['page_count']} pages, {len(text_content)} chars")
         
         return text_content, metadata
     
-    def process_text_file(self, file_path: str, document_type: Optional[str] = None) -> Tuple[str, Dict[str, Any]]:
+    def process_text_file(self, file_path: str, document_type: str | None = None) -> tuple[str, dict[str, Any]]:
         """Process plain text or markdown files."""
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, encoding='utf-8') as f:
                 text_content = f.read()
         except UnicodeDecodeError:
             # Try with different encoding
-            with open(file_path, 'r', encoding='latin-1') as f:
+            with open(file_path, encoding='latin-1') as f:
                 text_content = f.read()
         
         # Clean text
@@ -169,7 +170,7 @@ class DocumentProcessor:
             "file_size": Path(file_path).stat().st_size,
             "file_hash": file_hash,
             "extraction_method": "direct_read",
-            "extraction_date": datetime.now(timezone.utc).isoformat(),
+            "extraction_date": datetime.now(UTC).isoformat(),
             "content_length": len(text_content)
         }
         
@@ -177,9 +178,9 @@ class DocumentProcessor:
         
         return text_content, metadata
     
-    def process_html_file(self, file_path: str, document_type: Optional[str] = None) -> Tuple[str, Dict[str, Any]]:
+    def process_html_file(self, file_path: str, document_type: str | None = None) -> tuple[str, dict[str, Any]]:
         """Process HTML files."""
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, encoding='utf-8') as f:
             html_content = f.read()
         
         # Parse HTML
@@ -206,7 +207,7 @@ class DocumentProcessor:
             "file_size": Path(file_path).stat().st_size,
             "file_hash": file_hash,
             "extraction_method": "beautifulsoup",
-            "extraction_date": datetime.now(timezone.utc).isoformat(),
+            "extraction_date": datetime.now(UTC).isoformat(),
             "content_length": len(text_content),
             "html_title": title_text
         }
@@ -215,7 +216,7 @@ class DocumentProcessor:
         
         return text_content, metadata
     
-    def scrape_web_page(self, url: str, document_type: Optional[str] = None) -> Tuple[str, Dict[str, Any]]:
+    def scrape_web_page(self, url: str, document_type: str | None = None) -> tuple[str, dict[str, Any]]:
         """Scrape and extract text from web pages."""
         if not self.is_valid_url(url):
             raise ValueError(f"URL not allowed for scraping: {url}")
@@ -224,7 +225,7 @@ class DocumentProcessor:
             "source_url": url,
             "extraction_method": "web_scraping",
             "document_type": document_type or "web",
-            "extraction_date": datetime.now(timezone.utc).isoformat()
+            "extraction_date": datetime.now(UTC).isoformat()
         }
         
         try:
@@ -345,7 +346,7 @@ class DocumentProcessor:
         
         return text.strip()
     
-    def extract_sections(self, text: str) -> List[Dict[str, str]]:
+    def extract_sections(self, text: str) -> list[dict[str, str]]:
         """Extract sections and subsections from document text."""
         sections = []
         
@@ -430,7 +431,7 @@ class DocumentProcessor:
         """Calculate SHA-256 hash of content."""
         return hashlib.sha256(content.encode('utf-8')).hexdigest()
     
-    def get_file_info(self, file_path: str) -> Dict[str, Any]:
+    def get_file_info(self, file_path: str) -> dict[str, Any]:
         """Get basic file information without processing."""
         file_path = Path(file_path)
         

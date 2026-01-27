@@ -6,10 +6,10 @@ Provides submission readiness checks and prioritized next actions.
 """
 
 import logging
-from typing import List, Dict, Optional, Any
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 from app.services.proposal_writing.progress_tracking_service import ProgressTrackingService
 
@@ -42,11 +42,11 @@ class SectionSummary:
     section_type: str
     status: SectionStatus
     word_count: int
-    score: Optional[float]
-    confidence: Optional[float]
+    score: float | None
+    confidence: float | None
     gap_count: int
     suggestion_count: int
-    last_edited: Optional[datetime]
+    last_edited: datetime | None
 
 
 @dataclass
@@ -56,8 +56,8 @@ class NextAction:
     title: str
     description: str
     priority: ActionPriority
-    section_id: Optional[str]
-    section_title: Optional[str]
+    section_id: str | None
+    section_title: str | None
     action_type: str  # write, improve, review, fix
     estimated_minutes: int
     impact: str  # Description of impact
@@ -71,7 +71,7 @@ class ReadinessCheck:
     title: str
     description: str
     passed: bool
-    details: Optional[str]
+    details: str | None
     blocking: bool  # If false, can still submit
 
 
@@ -80,30 +80,30 @@ class DashboardData:
     """Complete dashboard data."""
     proposal_id: str
     proposal_title: str
-    call_id: Optional[str]
-    call_title: Optional[str]
-    deadline: Optional[datetime]
+    call_id: str | None
+    call_title: str | None
+    deadline: datetime | None
 
     # Overall metrics
     completion_percentage: float
-    overall_score: Optional[float]
-    funding_probability: Optional[float]
+    overall_score: float | None
+    funding_probability: float | None
     submission_ready: bool
 
     # Section breakdown
-    sections: List[SectionSummary]
-    sections_by_status: Dict[str, int]
+    sections: list[SectionSummary]
+    sections_by_status: dict[str, int]
 
     # Actions
-    next_actions: List[NextAction]
+    next_actions: list[NextAction]
 
     # Readiness
-    readiness_checks: List[ReadinessCheck]
+    readiness_checks: list[ReadinessCheck]
     readiness_score: float  # 0-100
 
     # Progress
     time_spent_minutes: int
-    days_until_deadline: Optional[int]
+    days_until_deadline: int | None
     streak: int
 
 
@@ -122,8 +122,8 @@ class DashboardService:
 
     def __init__(self):
         self.progress_service = ProgressTrackingService()
-        self._proposal_cache: Dict[str, Dict[str, Any]] = {}
-        self._sections_cache: Dict[str, List[SectionSummary]] = {}
+        self._proposal_cache: dict[str, dict[str, Any]] = {}
+        self._sections_cache: dict[str, list[SectionSummary]] = {}
 
     async def get_dashboard(
         self,
@@ -204,7 +204,7 @@ class DashboardService:
     async def _get_section_summaries(
         self,
         proposal_id: str
-    ) -> List[SectionSummary]:
+    ) -> list[SectionSummary]:
         """Get summaries for all sections."""
         # Check cache
         if proposal_id in self._sections_cache:
@@ -220,8 +220,8 @@ class DashboardService:
         title: str,
         section_type: str,
         content: str = "",
-        score: Optional[float] = None,
-        confidence: Optional[float] = None
+        score: float | None = None,
+        confidence: float | None = None
     ) -> SectionSummary:
         """Add a section to the dashboard cache."""
         word_count = len(content.split()) if content else 0
@@ -264,8 +264,8 @@ class DashboardService:
         proposal_id: str,
         section_id: str,
         score: float,
-        confidence: Optional[float] = None
-    ) -> Optional[SectionSummary]:
+        confidence: float | None = None
+    ) -> SectionSummary | None:
         """Update a section's score."""
         sections = self._sections_cache.get(proposal_id, [])
         for section in sections:
@@ -293,9 +293,9 @@ class DashboardService:
         self,
         proposal_id: str,
         title: str,
-        call_id: Optional[str] = None,
-        call_title: Optional[str] = None,
-        deadline: Optional[datetime] = None
+        call_id: str | None = None,
+        call_title: str | None = None,
+        deadline: datetime | None = None
     ):
         """Set proposal info in cache."""
         self._proposal_cache[proposal_id] = {
@@ -306,7 +306,7 @@ class DashboardService:
             'deadline': deadline
         }
 
-    def _count_by_status(self, sections: List[SectionSummary]) -> Dict[str, int]:
+    def _count_by_status(self, sections: list[SectionSummary]) -> dict[str, int]:
         """Count sections by status."""
         counts = {status.value: 0 for status in SectionStatus}
         for section in sections:
@@ -316,8 +316,8 @@ class DashboardService:
     def _generate_next_actions(
         self,
         proposal_id: str,
-        sections: List[SectionSummary]
-    ) -> List[NextAction]:
+        sections: list[SectionSummary]
+    ) -> list[NextAction]:
         """Generate prioritized list of next actions."""
         actions = []
         action_id = 0
@@ -329,7 +329,7 @@ class DashboardService:
                 actions.append(NextAction(
                     id=f"action_{action_id}",
                     title=f"Start writing: {section.title}",
-                    description=f"This section has no content yet. Start with an outline.",
+                    description="This section has no content yet. Start with an outline.",
                     priority=ActionPriority.CRITICAL,
                     section_id=section.id,
                     section_title=section.title,
@@ -398,8 +398,8 @@ class DashboardService:
     def _run_readiness_checks(
         self,
         proposal_id: str,
-        sections: List[SectionSummary]
-    ) -> List[ReadinessCheck]:
+        sections: list[SectionSummary]
+    ) -> list[ReadinessCheck]:
         """Run all submission readiness checks."""
         checks = []
 
@@ -504,7 +504,7 @@ class DashboardService:
 
         return checks
 
-    def _calculate_readiness_score(self, checks: List[ReadinessCheck]) -> float:
+    def _calculate_readiness_score(self, checks: list[ReadinessCheck]) -> float:
         """Calculate overall readiness score (0-100)."""
         if not checks:
             return 0.0
@@ -523,9 +523,9 @@ class DashboardService:
 
     def _estimate_funding_probability(
         self,
-        average_score: Optional[float],
+        average_score: float | None,
         readiness_score: float
-    ) -> Optional[float]:
+    ) -> float | None:
         """Estimate funding probability based on score and readiness."""
         if average_score is None:
             return None
@@ -548,7 +548,7 @@ class DashboardService:
 
         return min(0.95, base_prob * readiness_factor)
 
-    async def get_quick_summary(self, proposal_id: str) -> Dict[str, Any]:
+    async def get_quick_summary(self, proposal_id: str) -> dict[str, Any]:
         """Get a quick summary (lighter than full dashboard)."""
         sections = await self._get_section_summaries(proposal_id)
         proposal = self._proposal_cache.get(proposal_id, {})

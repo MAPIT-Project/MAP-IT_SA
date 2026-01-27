@@ -16,7 +16,6 @@ import argparse
 import logging
 import sys
 from pathlib import Path
-from typing import Dict, List, Any
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -659,7 +658,7 @@ class CreativeEuropeNeo4jIngester:
 
         logger.info("Creative Europe data cleared")
 
-    def run(self, clear_first: bool = False) -> Dict[str, int]:
+    def run(self, clear_first: bool = False) -> dict[str, int]:
         """
         Run the complete Creative Europe ingestion pipeline.
 
@@ -703,7 +702,7 @@ class CreativeEuropeNeo4jIngester:
 
         return stats
 
-    def _get_stats(self) -> Dict[str, int]:
+    def _get_stats(self) -> dict[str, int]:
         """Get current Creative Europe data statistics."""
         query = """
         MATCH (s:CreativeEuropeStrand) WITH count(s) as strands
@@ -729,7 +728,7 @@ class CreativeEuropeNeo4jIngester:
 
         return {}
 
-    def _print_summary(self, stats: Dict[str, int]) -> None:
+    def _print_summary(self, stats: dict[str, int]) -> None:
         """Print ingestion summary."""
         logger.info("\n" + "=" * 60)
         logger.info("CREATIVE EUROPE INGESTION SUMMARY")

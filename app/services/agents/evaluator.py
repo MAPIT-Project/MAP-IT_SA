@@ -7,10 +7,9 @@ Uses rule-based heuristics for speed, with optional LLM evaluation for edge case
 
 import logging
 import re
-from typing import Dict, Any, List, Tuple, Optional
-from dataclasses import dataclass
+from typing import Any
 
-from .context import EvaluationResult, AgentContext
+from .context import AgentContext, EvaluationResult
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +37,7 @@ class ResultEvaluator:
         self,
         query: str,
         query_type: str,
-        results: Dict[str, Any],
+        results: dict[str, Any],
         context: AgentContext
     ) -> EvaluationResult:
         """
@@ -85,7 +84,7 @@ class ResultEvaluator:
         # Calculate weighted final score
         # Count and relevance are most important
         weights = [0.25, 0.30, 0.20, 0.15, 0.10]
-        final_score = sum(s * w for s, w in zip(scores, weights))
+        final_score = sum(s * w for s, w in zip(scores, weights, strict=False))
         
         # Generate suggestions for improvement
         if final_score < self.SUFFICIENT_SCORE:
@@ -109,9 +108,9 @@ class ResultEvaluator:
     
     def _evaluate_count(
         self, 
-        results: Dict[str, Any],
+        results: dict[str, Any],
         query_type: str
-    ) -> Tuple[float, str]:
+    ) -> tuple[float, str]:
         """Evaluate if we have enough results."""
         total = self._count_results(results)
         
@@ -132,8 +131,8 @@ class ResultEvaluator:
     
     def _evaluate_relevance(
         self, 
-        results: Dict[str, Any]
-    ) -> Tuple[float, str]:
+        results: dict[str, Any]
+    ) -> tuple[float, str]:
         """Evaluate average relevance of results."""
         all_scores = []
         
@@ -162,8 +161,8 @@ class ResultEvaluator:
     
     def _evaluate_content_depth(
         self, 
-        results: Dict[str, Any]
-    ) -> Tuple[float, str]:
+        results: dict[str, Any]
+    ) -> tuple[float, str]:
         """Evaluate if results have substantial content."""
         content_lengths = []
         
@@ -193,8 +192,8 @@ class ResultEvaluator:
     def _evaluate_query_coverage(
         self, 
         query: str,
-        results: Dict[str, Any]
-    ) -> Tuple[float, str]:
+        results: dict[str, Any]
+    ) -> tuple[float, str]:
         """Evaluate how many query terms appear in results."""
         # Extract key terms from query (simple approach)
         query_terms = set(
@@ -225,9 +224,9 @@ class ResultEvaluator:
     
     def _evaluate_source_diversity(
         self, 
-        results: Dict[str, Any],
+        results: dict[str, Any],
         context: AgentContext
-    ) -> Tuple[float, str]:
+    ) -> tuple[float, str]:
         """Evaluate if results come from diverse sources."""
         sources_used = set()
         
@@ -254,11 +253,11 @@ class ResultEvaluator:
     
     def _generate_suggestions(
         self,
-        scores: List[float],
-        results: Dict[str, Any],
+        scores: list[float],
+        results: dict[str, Any],
         query: str,
         context: AgentContext
-    ) -> List[str]:
+    ) -> list[str]:
         """Generate suggestions for improving results."""
         suggestions = []
         
@@ -292,7 +291,7 @@ class ResultEvaluator:
         
         return suggestions[:3]  # Return top 3 suggestions
     
-    def _count_results(self, results: Dict[str, Any]) -> int:
+    def _count_results(self, results: dict[str, Any]) -> int:
         """Count total number of results."""
         total = 0
         for key in ['graph_results', 'vector_results', 'calls', 'documents', 'results']:
@@ -301,7 +300,7 @@ class ResultEvaluator:
                 total += len(items)
         return total
     
-    def _extract_relevance_score(self, item: Any) -> Optional[float]:
+    def _extract_relevance_score(self, item: Any) -> float | None:
         """Extract relevance score from a result item."""
         if isinstance(item, dict):
             for key in ['score', 'relevance_score', 'similarity', 'relevance']:
@@ -328,7 +327,7 @@ class ResultEvaluator:
             return item
         return ""
     
-    def _collect_all_content(self, results: Dict[str, Any]) -> str:
+    def _collect_all_content(self, results: dict[str, Any]) -> str:
         """Collect all text content from results."""
         all_text = []
         

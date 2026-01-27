@@ -11,10 +11,9 @@ Central orchestrator for AI-assisted proposal writing sessions. Manages:
 import json
 import logging
 import os
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
-import psycopg2
 from psycopg2.extras import RealDictCursor
 from psycopg2.pool import SimpleConnectionPool
 
@@ -58,7 +57,7 @@ class ProposalSessionManager:
     # Redis cache TTL (1 hour, refreshed on access)
     CACHE_TTL_SECONDS = 3600
 
-    def __init__(self, database_url: Optional[str] = None, redis_client=None):
+    def __init__(self, database_url: str | None = None, redis_client=None):
         """
         Initialize the session manager.
 
@@ -86,7 +85,7 @@ class ProposalSessionManager:
             logger.info("✅ ProposalSessionManager: Redis caching enabled")
 
         # In-memory session cache (fallback if no Redis)
-        self._session_cache: Dict[str, ProposalSessionState] = {}
+        self._session_cache: dict[str, ProposalSessionState] = {}
 
     # =========================================================================
     # Session CRUD Operations
@@ -99,7 +98,7 @@ class ProposalSessionManager:
         call_id: str,
         title: str,
         proposal_type: str = "RIA",
-        conversation_id: Optional[int] = None,
+        conversation_id: int | None = None,
     ) -> ProposalSessionState:
         """
         Create a new proposal session.
@@ -140,7 +139,7 @@ class ProposalSessionManager:
         )
         return session
 
-    async def get_session(self, session_id: str) -> Optional[ProposalSessionState]:
+    async def get_session(self, session_id: str) -> ProposalSessionState | None:
         """
         Get a session by ID.
 
@@ -166,7 +165,7 @@ class ProposalSessionManager:
 
     async def get_session_by_proposal(
         self, proposal_id: int, user_id: str
-    ) -> Optional[ProposalSessionState]:
+    ) -> ProposalSessionState | None:
         """
         Get active session for a proposal and user.
 
@@ -255,7 +254,7 @@ class ProposalSessionManager:
         section_id: str,
         content: str,
         source: str = "user",
-    ) -> Optional[SectionState]:
+    ) -> SectionState | None:
         """
         Update section content.
 
@@ -341,7 +340,7 @@ class ProposalSessionManager:
         return success
 
     async def set_active_section(
-        self, session_id: str, section_id: Optional[str]
+        self, session_id: str, section_id: str | None
     ) -> bool:
         """
         Set the currently active section (user focus).
@@ -459,9 +458,9 @@ class ProposalSessionManager:
         session_id: str,
         role: str,
         content: str,
-        tools_used: Optional[List[str]] = None,
-        sections_affected: Optional[List[str]] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        tools_used: list[str] | None = None,
+        sections_affected: list[str] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         """
         Add a message to the session conversation.
@@ -569,7 +568,7 @@ class ProposalSessionManager:
 
     async def _load_session_from_db(
         self, session_id: str
-    ) -> Optional[ProposalSessionState]:
+    ) -> ProposalSessionState | None:
         """Load session from database."""
         conn = self.db_pool.getconn()
         try:
@@ -738,7 +737,7 @@ class ProposalSessionManager:
                 # Update version in memory
                 section.version += 1
                 section.is_dirty = False
-                section.last_updated = datetime.now(timezone.utc)
+                section.last_updated = datetime.now(UTC)
         except Exception as e:
             conn.rollback()
             logger.error(f"❌ Failed to persist section {section_id}: {e}")
@@ -768,7 +767,7 @@ class ProposalSessionManager:
         else:
             self._session_cache[session.session_id] = session
 
-    def _get_cached_session(self, session_id: str) -> Optional[ProposalSessionState]:
+    def _get_cached_session(self, session_id: str) -> ProposalSessionState | None:
         """Get session from cache."""
         cache_key = f"proposal_session:{session_id}"
 
@@ -807,7 +806,7 @@ class ProposalSessionManager:
         Returns:
             Number of sessions cleaned up
         """
-        expiry_threshold = datetime.now(timezone.utc) - timedelta(hours=self.SESSION_EXPIRY_HOURS)
+        expiry_threshold = datetime.now(UTC) - timedelta(hours=self.SESSION_EXPIRY_HOURS)
 
         conn = self.db_pool.getconn()
         try:

@@ -8,9 +8,9 @@ This service provides consistent, beautiful formatting for:
 - Tool results
 """
 
-from typing import Dict, Any, List, Optional
-from datetime import datetime
 import logging
+from datetime import datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ class UnifiedResponseFormatter:
         """Initialize the formatter."""
         pass
     
-    def format_tool_results(self, tool_results: Dict[str, Any]) -> str:
+    def format_tool_results(self, tool_results: dict[str, Any]) -> str:
         """
         Format tool execution results with appropriate styling.
         
@@ -88,7 +88,7 @@ class UnifiedResponseFormatter:
         
         return "\n\n".join(formatted_parts) if formatted_parts else "No results found."
 
-    def _format_conversation_memory(self, memory_data: Dict[str, Any]) -> str:
+    def _format_conversation_memory(self, memory_data: dict[str, Any]) -> str:
         """Format conversation memory search results into natural conversational response."""
         try:
             # Extract the key information from the memory tool result
@@ -155,7 +155,7 @@ class UnifiedResponseFormatter:
             # Fallback to the raw answer from the tool
             return memory_data.get('answer', 'I found some conversation history but had trouble formatting it.')
 
-    def _format_intelligent_search(self, search_data: Dict[str, Any]) -> str:
+    def _format_intelligent_search(self, search_data: dict[str, Any]) -> str:
         """Format intelligent search results (graph + vector + planner) into a natural response.
 
         The intelligent_search tool returns:
@@ -275,7 +275,7 @@ class UnifiedResponseFormatter:
             logger.error(f"Error formatting intelligent search: {e}")
             return "I had trouble processing the search results. Please try rephrasing your question."
 
-    def _format_local_database(self, database_data: Dict[str, Any]) -> str:
+    def _format_local_database(self, database_data: dict[str, Any]) -> str:
         """Format local database search results into natural conversational response."""
         try:
             # Debug: Log the structure of the database data
@@ -351,7 +351,7 @@ class UnifiedResponseFormatter:
             # Fallback to the raw answer from the tool
             return database_data.get('answer', 'I found some information but had trouble formatting it.')
 
-    def _format_eu_calls(self, call_data: Dict[str, Any]) -> str:
+    def _format_eu_calls(self, call_data: dict[str, Any]) -> str:
         """
         Format EU funding calls with beautiful styling.
         """
@@ -414,7 +414,7 @@ class UnifiedResponseFormatter:
 
         return "\n".join(answer_parts)
     
-    def _format_single_call(self, index: int, call: Dict[str, Any]) -> str:
+    def _format_single_call(self, index: int, call: dict[str, Any]) -> str:
         """Format a single funding call with all details."""
         title = call.get('title', 'Unknown Call')
         identifier = call.get('identifier', 'N/A')
@@ -469,7 +469,7 @@ class UnifiedResponseFormatter:
         if url:
             call_summary += f"\n\n🔗 **Apply Here:** {url}"
         else:
-            call_summary += f"\n\n🔗 **Find on Portal:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home"
+            call_summary += "\n\n🔗 **Find on Portal:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home"
         
         return call_summary
     
@@ -533,7 +533,7 @@ class UnifiedResponseFormatter:
         else:
             return '📊'
     
-    def _sort_calls_by_priority(self, calls: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _sort_calls_by_priority(self, calls: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Sort calls by priority: Open > Forthcoming > Recent Closed."""
         def sort_key(call):
             status = call.get('status', '').lower()
@@ -559,7 +559,7 @@ class UnifiedResponseFormatter:
         
         return sorted(calls, key=sort_key)
     
-    def _get_calls_footer_with_suggestions(self, query: str, results_count: int) -> List[str]:
+    def _get_calls_footer_with_suggestions(self, query: str, results_count: int) -> list[str]:
         """Get helpful footer information for funding calls with suggestions."""
         footer_parts = [
             "---",
@@ -690,7 +690,7 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
 **🎯 Try These More Specific Queries:**
 {query_suggestions}"""
     
-    def _format_cordis_projects(self, project_data: Dict[str, Any]) -> str:
+    def _format_cordis_projects(self, project_data: dict[str, Any]) -> str:
         """Format CORDIS project search results."""
         logger.info(f"🎨 FORMATTING CORDIS PROJECTS: data type = {type(project_data)}")
         logger.info(f"🎨 PROJECT DATA KEYS: {list(project_data.keys()) if isinstance(project_data, dict) else 'Not a dict'}")
@@ -809,7 +809,7 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
         
         return "\n".join(header_parts) + formatted_answer
     
-    def _format_generic_tool_result(self, tool_name: str, result: Dict[str, Any]) -> str:
+    def _format_generic_tool_result(self, tool_name: str, result: dict[str, Any]) -> str:
         """Format generic tool results."""
         formatted_parts = [
             f"**🔧 Tool Result: {tool_name}**",
@@ -837,7 +837,7 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
 
         return "\n".join(formatted_parts)
 
-    def _format_graph_dict_result(self, result: Dict[str, Any]) -> str:
+    def _format_graph_dict_result(self, result: dict[str, Any]) -> str:
         """Format a graph/dict result into readable text."""
         if not isinstance(result, dict):
             return str(result)[:150]
@@ -889,8 +889,8 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
         return ""
     
     def format_mixed_results(self, 
-                           tool_results: Optional[Dict[str, Any]] = None,
-                           retrieval_results: Optional[List[Dict]] = None,
+                           tool_results: dict[str, Any] | None = None,
+                           retrieval_results: list[dict] | None = None,
                            query: str = "") -> str:
         """
         Format mixed results from tools and retrieval.
@@ -922,7 +922,7 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
         
         return "\n\n---\n\n".join(formatted_parts)
     
-    def _format_retrieval_results(self, retrieval_results: List[Dict], query: str) -> str:
+    def _format_retrieval_results(self, retrieval_results: list[dict], query: str) -> str:
         """Format document retrieval results."""
         if not retrieval_results:
             return ""
@@ -951,9 +951,9 @@ I searched the EU Funding & Tenders Portal but found **no currently open calls**
         # Base suggestions for common scenarios
         base_suggestions = [
             f"\"{search_terms} horizon europe\"",
-            f"\"renewable energy horizon europe\"",
-            f"\"sustainable energy innovation\"",
-            f"\"energy efficiency research\""
+            "\"renewable energy horizon europe\"",
+            "\"sustainable energy innovation\"",
+            "\"energy efficiency research\""
         ]
 
         # Add topic-specific suggestions

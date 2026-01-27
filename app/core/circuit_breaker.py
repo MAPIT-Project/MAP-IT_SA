@@ -5,13 +5,13 @@ Prevents cascading failures by temporarily blocking calls to failing services.
 Implements the standard circuit breaker states: CLOSED, OPEN, HALF_OPEN.
 """
 
-import asyncio
+import logging
+from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Callable, Any, Optional, Dict
-import logging
-from dataclasses import dataclass, field
 from threading import Lock
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -30,9 +30,9 @@ class CircuitStats:
     successful_calls: int = 0
     failed_calls: int = 0
     rejected_calls: int = 0  # Calls rejected while circuit open
-    last_failure_time: Optional[datetime] = None
-    last_success_time: Optional[datetime] = None
-    last_state_change: Optional[datetime] = None
+    last_failure_time: datetime | None = None
+    last_success_time: datetime | None = None
+    last_state_change: datetime | None = None
     consecutive_failures: int = 0
     consecutive_successes: int = 0
 
@@ -76,7 +76,7 @@ class CircuitBreaker:
         success_threshold: int = 3,
         recovery_timeout: int = 60,
         expected_exception: type = Exception,
-        config: Optional[CircuitBreakerConfig] = None
+        config: CircuitBreakerConfig | None = None
     ):
         self.name = name
         self.config = config or CircuitBreakerConfig(
@@ -237,7 +237,7 @@ class CircuitBreaker:
             self._half_open_calls = 0
             logger.info(f"Circuit '{self.name}' manually reset")
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Get comprehensive status of the circuit breaker."""
         return {
             "name": self.name,
@@ -268,7 +268,7 @@ class CircuitBreaker:
 # Circuit breakers for external services
 # These are instantiated lazily to avoid import-time errors
 
-_circuit_breakers: Dict[str, CircuitBreaker] = {}
+_circuit_breakers: dict[str, CircuitBreaker] = {}
 _circuit_lock = Lock()
 
 
@@ -338,7 +338,7 @@ def get_embedding_circuit() -> CircuitBreaker:
     )
 
 
-def get_all_circuit_statuses() -> Dict[str, Dict[str, Any]]:
+def get_all_circuit_statuses() -> dict[str, dict[str, Any]]:
     """Get status of all circuit breakers."""
     return {name: cb.get_status() for name, cb in _circuit_breakers.items()}
 

@@ -4,7 +4,7 @@ Custom Exceptions for Proposal Writing
 Structured exceptions with context for better error handling.
 """
 
-from typing import Dict, Any, Optional
+from typing import Any
 
 
 class ProposalWritingError(Exception):
@@ -14,7 +14,7 @@ class ProposalWritingError(Exception):
         self,
         message: str,
         code: str = "PROPOSAL_ERROR",
-        details: Optional[Dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
         recoverable: bool = True
     ):
         self.message = message
@@ -23,7 +23,7 @@ class ProposalWritingError(Exception):
         self.recoverable = recoverable
         super().__init__(self.message)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "error": self.code,
             "message": self.message,
@@ -40,7 +40,7 @@ class AIGenerationError(ProposalWritingError):
         message: str,
         provider: str = None,
         prompt_length: int = None,
-        details: Dict[str, Any] = None
+        details: dict[str, Any] = None
     ):
         super().__init__(
             message=message,
@@ -61,7 +61,7 @@ class CallAnalysisError(ProposalWritingError):
         self,
         message: str,
         call_id: str = None,
-        details: Dict[str, Any] = None
+        details: dict[str, Any] = None
     ):
         super().__init__(
             message=message,
@@ -78,7 +78,7 @@ class DatabaseError(ProposalWritingError):
         self,
         message: str,
         operation: str = None,
-        details: Dict[str, Any] = None
+        details: dict[str, Any] = None
     ):
         super().__init__(
             message=message,
@@ -95,7 +95,7 @@ class ValidationError(ProposalWritingError):
         self,
         message: str,
         field: str = None,
-        details: Dict[str, Any] = None
+        details: dict[str, Any] = None
     ):
         super().__init__(
             message=message,
@@ -113,7 +113,7 @@ class RateLimitError(ProposalWritingError):
         message: str,
         provider: str = None,
         retry_after: int = None,
-        details: Dict[str, Any] = None
+        details: dict[str, Any] = None
     ):
         super().__init__(
             message=message,
@@ -135,7 +135,7 @@ class ProposalTimeoutError(ProposalWritingError):
         message: str,
         operation: str = None,
         timeout_seconds: int = None,
-        details: Dict[str, Any] = None
+        details: dict[str, Any] = None
     ):
         super().__init__(
             message=message,
@@ -156,7 +156,7 @@ class ProviderUnavailableError(ProposalWritingError):
         self,
         message: str,
         provider: str = None,
-        details: Dict[str, Any] = None
+        details: dict[str, Any] = None
     ):
         super().__init__(
             message=message,
@@ -173,7 +173,7 @@ class TemplateError(ProposalWritingError):
         self,
         message: str,
         template_id: str = None,
-        details: Dict[str, Any] = None
+        details: dict[str, Any] = None
     ):
         super().__init__(
             message=message,

@@ -9,10 +9,10 @@ Architecture:
 2. Falls back to vector search if table has no results
 """
 
-from dataclasses import dataclass
-from datetime import date, datetime
 import logging
 import re
+from dataclasses import dataclass
+from datetime import date, datetime
 from typing import Any
 
 import psycopg2

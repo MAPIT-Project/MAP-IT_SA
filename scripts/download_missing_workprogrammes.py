@@ -10,11 +10,10 @@ This script downloads the work programmes you're missing:
 Run: python scripts/download_missing_workprogrammes.py
 """
 
-import os
 import sys
-import requests
 from pathlib import Path
-from datetime import datetime
+
+import requests
 
 # Base URL for Horizon Europe work programmes
 BASE_URL = "https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/wp-call/2025"
@@ -118,7 +117,7 @@ def main():
         
         # Try alternative URLs if main fails
         if not success and filename in ALTERNATIVE_URLS:
-            print(f"  🔄 Trying alternative URLs...")
+            print("  🔄 Trying alternative URLs...")
             for alt_url in ALTERNATIVE_URLS[filename]:
                 success = download_file(alt_url, dest_path, info['name'])
                 if success:

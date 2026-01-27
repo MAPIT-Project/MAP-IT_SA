@@ -1,85 +1,125 @@
 {
   "scenario_name": "Partner Comparison",
+  "status": "FAIL",
+  "average_quality_score": 80.6,
+  "average_factual_score": 90.0,
   "turns": [
     {
-      "turn_number": 0,
       "query": "Find experienced partners in renewable energy",
-      "response_text": "Based on my search for information about 'Find experienced partners in renewable energy', here's what I found:\n\n**Finding 1:**\n## Top Organizations with Experience in 'renewable energy hydrogen solar wind geothermal bioenergy clean energy sustainable power'\n\nFound **20 organizations** with relevant track records:\n\n### 1. **FRAUNHOFER GESELLSCHAFT ZUR FORDERUNG DER ANGEWANDTEN FORSCHUNG EV** (DE)\n- **Organization Type**: REC (Research Center)\n- **Relevant Projects**: 93 (coordinated **14** projects)\n- **Total Funding**: €75,951,578\n- **Example Projects**: APOLLO (coordinator), SUNREY (coordinator), WeGenerate (coordinator)\n\n### 2. **ETHNIKO KENTRO EREVNAS KAI TECHNOLOGIKIS ANAPTYXIS** (EL)\n- **Organization Type**: REC (Research Center)\n- **Relevant Projects**: 69 (coordinated **14** projects)\n- **Total Funding**: €37,744,778\n- **Example Projects**: ABATE (coordinator), FUELPHORIA (coordinator), SmartLivingEPC (coordinator)\n\n### 3. **COMMISSARIAT A L ENERGIE ATOMIQUE ET AUX ENERGIES ALTERNATIVES** (FR)\n- **Organization Type**: REC (Research Center)\n- **Relevant Projects**: 52 (coordinated **11** projects)\n- **Total Funding**: €39,179,186\n- **Example Projects**: CALECHE (coordinator), DC-POWER (coordinator), EVERPV (coordinator)\n\n### 4. **RINA CONSULTING SPA** (IT)\n- **Organization Type**: PRC (Private Company)\n- **Relevant Projects**: 49 (coordinated **12** projects)\n- **Total Funding**: €19,635,941\n- **Example Projects**: BAMBOO (coordinator), DATA CELLAR (coordinator), DAEDALOS (coordinator)\n\n### 5. **DANMARKS TEKNISKE UNIVERSITET** (DK)\n- **Organization Type**: HES (Higher Education)\n- **Relevant Projects**: 49 (coordinated **10** projects)\n- **Total Funding**: €37,927,703\n- **Example Projects**: FLOW (coordinator), UltraBat (coordinator), CO2NSTRUCT (coordinator)\n\n### 6. **TECHNISCHE UNIVERSITEIT DELFT** (NL)\n- **Organization Type**: HES (Higher Education)\n- **Relevant Projects**: 46 (coordinated **7** projects)\n- **Total Funding**: €33,466,833\n- **Example Projects**: CLARION (coordinator), EPIC Africa (coordinator), HOPE (coordinator)\n\n### 7. **DEUTSCHES ZENTRUM FUR LUFT - UND RAUMFAHRT EV** (DE)\n- **Organization Type**: REC (Research Center)\n- **Relevant Projects**: 44 (coordinated **8** projects)\n- **Total Funding**: €31,552,695\n- **Example Projects**: ABraytCSPfuture (coordinator), COLOSSUS (coordinator), FlyECO (coordinator)\n\n### 8. **FUNDACION TECNALIA RESEARCH & INNOVATION** (ES)\n- **Organization Type**: REC (Research Center)\n- **Relevant Projects**: 41 (coordinated **8** projects)\n- **Total Funding**: €26,836,167\n- **Example Projects**: TranSensus LCA (associatedPartner), APOLO (coordinator), RHINOCEROS (coordinator)\n\n### 9. **ETHNICON METSOVION POLYTECHNION** (EL)\n- **Organization Type**: HES (Higher Education)\n- **Relevant Projects**: 38 (coordinated **6** projects)\n- **Total Funding**: €18,029,834\n- **Example Projects**: CRONUS (coordinator), EnerTEF (coordinator), ESY (coordinator)\n\n### 10. **TEKNOLOGIAN TUTKIMUSKESKUS VTT OY** (FI)\n- **Organization Type**: REC (Research Center)\n- **Relevant Projects**: 36 (coordinated **14** projects)\n- **Total Funding**: €30,929,034\n- **Example Projects**: GLocalFlex (coordinator), ADMIRAL (coordinator), CANMILK (coordinator)\n\n\n**Top countries for this topic**: ES, DE, FR, IT, EL\n\n---\n\n### How to Verify & Contact Partners\n\n- **CORDIS Database**: Search for specific projects at https://cordis.europa.eu\n- **EU Funding Portal**: https://ec.europa.eu/info/funding-tenders/\n- **Partner Search**: Use the EU Partner Search tool to find and contact organizations\n- **Verify Municipal Networks**: Check organizations' websites for urban/city partnerships, living labs, or pilot site descriptions\n",
-      "tools_used": [
-        "find_experienced_partners"
-      ],
-      "quality_score": 81,
-      "factual_score": 100.0,
-      "failures": [],
-      "passed": true
-    },
-    {
-      "turn_number": 1,
-      "query": "Compare the top 3 organizations",
-      "response_text": "## Partner Comparison\n\nComparing the top 3 organizations from the partner search:\n\n| Organization | Country | Type | Projects | Coordinated | Total Funding |\n|-------------|---------|------|----------|-------------|---------------|\n| FRAUNHOFER GESELLSCHAFT ZUR FORDERUNG DE... | DE | REC | 93 | 14 | €75,951,578 |\n| ETHNIKO KENTRO EREVNAS KAI TECHNOLOGIKIS... | EL | REC | 69 | 14 | €37,744,778 |\n| COMMISSARIAT A L ENERGIE ATOMIQUE ET AUX... | FR | REC | 52 | 11 | €39,179,186 |\n\n### Key Insights:\n- **Highest Funding**: FRAUNHOFER GESELLSCHAFT ZUR FORDERUNG DER ANGEWANDTEN FORSCHUNG EV (€75,951,578)\n- **Most Coordination Experience**: FRAUNHOFER GESELLSCHAFT ZUR FORDERUNG DER ANGEWANDTEN FORSCHUNG EV (14 projects)\n- **Most Relevant Projects**: FRAUNHOFER GESELLSCHAFT ZUR FORDERUNG DER ANGEWANDTEN FORSCHUNG EV (93 projects)\n\n**Next Steps:**\n- Search CORDIS for detailed project information\n- Use the EU Partner Search tool to contact organizations\n- Verify current availability and interest\n",
-      "tools_used": [],
-      "quality_score": 77,
-      "factual_score": 100.0,
-      "failures": [],
-      "passed": false
-    },
-    {
-      "turn_number": 2,
-      "query": "Which has the most EU funding?",
-      "response_text": "## Partner Funding Comparison\n\nBased on the partner search results, here's the funding comparison:\n\n### 1. FRAUNHOFER GESELLSCHAFT ZUR FORDERUNG DER ANGEWANDTEN FORSCHUNG EV (DE)\n- **Total EU Funding**: €75,951,578\n- **Organization Type**: REC\n- **Relevant Projects**: 93\n\n### 2. COMMISSARIAT A L ENERGIE ATOMIQUE ET AUX ENERGIES ALTERNATIVES (FR)\n- **Total EU Funding**: €39,179,186\n- **Organization Type**: REC\n- **Relevant Projects**: 52\n\n### 3. ETHNIKO KENTRO EREVNAS KAI TECHNOLOGIKIS ANAPTYXIS (EL)\n- **Total EU Funding**: €37,744,778\n- **Organization Type**: REC\n- **Relevant Projects**: 69\n\n\n**Highest Funded**: FRAUNHOFER GESELLSCHAFT ZUR FORDERUNG DER ANGEWANDTEN FORSCHUNG EV with €75,951,578 in total EU funding.\n\n**Next Steps:**\n- Search CORDIS for detailed project information\n- Use the EU Partner Search tool to contact organizations\n- Verify current availability and interest\n",
-      "tools_used": [],
-      "quality_score": 77,
-      "factual_score": 100.0,
-      "failures": [],
-      "passed": false
-    },
-    {
-      "turn_number": 3,
-      "query": "Which has the most diverse collaboration network?",
-      "response_text": "## Collaboration Network Diversity Analysis\n\nOrganizations that coordinate more projects have built more diverse collaboration networks, as coordinators must assemble consortia from multiple countries and organization types.\n\n### Network Diversity Ranking (by coordination experience)\n\n| Organization | Country | Type | Projects Coordinated | Total Projects | Network Score |\n|--------------|---------|------|---------------------|----------------|---------------|\n| FRAUNHOFER GESELLSCHAFT ZUR FORDERUNG DE... | DE | REC | 14 | 93 | 135 |\n| ETHNIKO KENTRO EREVNAS KAI TECHNOLOGIKIS... | EL | REC | 14 | 69 | 111 |\n| RINA CONSULTING SPA | IT | PRC | 12 | 49 | 85 |\n| COMMISSARIAT A L ENERGIE ATOMIQUE ET AUX... | FR | REC | 11 | 52 | 85 |\n| DANMARKS TEKNISKE UNIVERSITET | DK | HES | 10 | 49 | 79 |\n\n### Most Diverse Collaboration Network\n\n**FRAUNHOFER GESELLSCHAFT ZUR FORDERUNG DER ANGEWANDTEN FORSCHUNG EV** has the most diverse collaboration network based on:\n- **14 projects coordinated** - Each coordinated project requires building a consortium\n- **93 total projects** - Broad participation across many consortia\n- **Country**: DE\n- **Organization Type**: REC\n\n**Note**: Actual network diversity can be verified via CORDIS by examining consortium compositions of coordinated projects.\n\n**Next Steps:**\n- Search CORDIS for the organization's project list\n- Review consortium compositions to understand collaboration patterns\n- Contact organizations for specific collaboration opportunities\n",
-      "tools_used": [],
+      "response": "I have identified a list of highly experienced organizations in the renewable energy domain, specifically focusing on projects funded under Horizon Europe's Cluster 5 (Climate, Energy and Mobility). These organizations have a proven track record, demonstrated by numerous projects and high coordination rates.\n\nHere are the top 10 most experienced partners for renewable energy, based on their participation and coordination roles in relevant EU projects:\n\n### Top 10 Experienced Renewable Energy Par...",
       "quality_score": 79,
       "factual_score": 100.0,
       "failures": [],
+      "tools_used": [
+        "find_experienced_partners"
+      ],
+      "processing_time_ms": 10083.878,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 4
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
       "passed": false
     },
     {
-      "turn_number": 4,
-      "query": "Recommend the best fit for a coordination role",
-      "response_text": "## Coordinator Recommendation\n\nBased on coordination experience from the partner search:\n\n### 1. FRAUNHOFER GESELLSCHAFT ZUR FORDERUNG DER ANGEWANDTEN FORSCHUNG EV (DE)\n- **Projects Coordinated**: 0\n- **Organization Type**: REC\n- **Total Funding**: €0\n\n\n**Next Steps:**\n- Contact the recommended organization via CORDIS or their website\n- Verify their availability and interest in your project topic\n- Discuss consortium composition and roles\n\n**Next Steps:**\n- Search CORDIS for detailed project information\n- Use the EU Partner Search tool to contact organizations\n- Verify current availability and interest\n",
-      "tools_used": [],
+      "query": "Compare the top 3 organizations",
+      "response": "## Partner Comparison\n\nComparing the top 3 organizations from the partner search:\n\n| Organization | Country | Type | Projects | Coordinated | Total Funding |\n|-------------|---------|------|----------|-------------|---------------|\n| FRAUNHOFER GESELLSCHAFT | - | - | - | - | - |\n| RINA CONSULTING SPA | - | - | - | - | - |\n| TECNALIA RESEARCH & INNOVATION | - | - | - | - | - |\n\n### Key Insights:\n\n**Next Steps:**\n- Search CORDIS for detailed project information\n- Use the EU Partner Search tool to ...",
       "quality_score": 77,
       "factual_score": 100.0,
       "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 138.36399999999998,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 2
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
       "passed": false
-    }
-  ],
-  "average_score": 78.2,
-  "factual_score": 100.0,
-  "failures": [],
-  "status": "CLOSE_TO_THRESHOLD",
-  "execution_time_ms": 67088.361,
-  "timestamp": "2026-01-22T22:42:30.981007",
-  "fix_history": [
+    },
     {
-      "attempt": 1,
-      "files_modified": [
-        "app/services/agents/tool_aware_agent.py"
+      "query": "Which has the most EU funding?",
+      "response": "**Creative Europe Cooperation Project Funding Rates**\n\nCreative Europe uses a **lump sum funding model** with fixed EU contribution rates for cooperation projects.\n\n## Funding Rate Overview\n\n| Aspect | Rate/Amount |\n|--------|-------------|\n| **EU Funding Rate** | 60% |\n| **Your Co-financing** | 40% |\n| **Funding Model** | Lump sum |\n| **Payment Schedule** | Pre-financing + balance |\n\n## What Does 60% Mean?\n\nThe EU covers **60% of your total eligible costs**:\n\n| Scale | Max EU Grant | Your 40% C...",
+      "quality_score": 83,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 903.3330000000001,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 8
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": true
+    },
+    {
+      "query": "Which has the most diverse collaboration network?",
+      "response": "Based on an analysis of the top 30 most frequent collaborators for each organization in Horizon Europe and H2020 projects (focused on renewable energy and technology), **Fraunhofer** has the overall most diverse collaboration network in terms of geographic spread and sheer volume of high-intensity partnerships.\n\nHowever, **RINA Consulting** shows greater **sectoral diversity** within its network, which is often crucial for collaborative projects.\n\n## Collaboration Network Diversity Comparison\n\n|...",
+      "quality_score": 79,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "get_collaboration_network",
+        "get_collaboration_network",
+        "get_collaboration_network"
       ],
-      "changes": [
-        "Added _detect_partner_comparison_query() method for context-based partner analysis",
-        "Added _extract_organization_names_from_context() method for organization extraction",
-        "Added _build_partner_comparison_conclusion() method for structured comparison responses",
-        "Added _build_network_diversity_conclusion() method for network analysis",
-        "Fixed _extract_org_type() to use word boundaries (prevents 'recommend' matching 'rec')",
-        "Fixed _extract_country() to use word boundaries for short codes (prevents 'fit' matching 'it')",
-        "Reordered context_synthesis_patterns to prioritize specific patterns over generic ones"
+      "processing_time_ms": 18145.880999999998,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 4
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": false
+    },
+    {
+      "query": "Recommend the best fit for a coordination role",
+      "response": "I found **7 funding opportunities** for your query:\n\n**1. Space Data Economy**\n\ud83d\udccb **Call ID:** HORIZON-EUSPA-2026-SPACE-02-51\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 24 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Horizon Europe\n\n\ud83d\udcdd **Summary:** Expected Outcome: This topic aims at supporting activities that are enabling or contributing to overcoming sectorial demand fragmentation and support scale up of the space data use, increasing the wider uptake and mass adoption of the EU space data...\n\n\ud83d\udd17 **Apply:** https://...",
+      "quality_score": 85,
+      "factual_score": 50.0,
+      "failures": [],
+      "tools_used": [
+        "search_funding_calls"
       ],
-      "score_before": 77.4,
-      "score_after": 78.2,
-      "notes": "Context truncation issue remains - turn 4 loses original partner data by the time it executes"
+      "processing_time_ms": 8413.864,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 10
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 4,
+      "passed": true
     }
   ],
+  "scores": {
+    "average_quality": 80.6,
+    "average_factual": 90.0,
+    "goal_progress": 0.7400000000000001,
+    "context_fields": 3
+  },
+  "failures": [],
   "metadata": {
     "scenario_path": "tests/scenarios/advanced/partner_comparison.yaml",
     "tags": [
@@ -90,6 +130,13 @@
       "recommendation"
     ],
     "description": "A 5-step partner comparison workflow for renewable energy research.\nTests partner discovery followed by detailed comparison of top candidates.\nThe scenario validates that the system can identify, compare, and recommend\npartners based on funding history and collaboration network diversity.\n",
-    "conversation_id": 1257035575
-  }
+    "conversation_id": 278278241
+  },
+  "execution_time_ms": 159542.119,
+  "timestamp": "2026-01-23T16:27:10.836291",
+  "passed": false,
+  "turn_count": 5,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
 }

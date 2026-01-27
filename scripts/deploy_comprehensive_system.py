@@ -4,14 +4,12 @@ Master deployment script for the comprehensive Horizon Europe RAG system.
 This script orchestrates the entire process from document acquisition to system testing.
 """
 
-import os
-import sys
+import asyncio
 import json
 import logging
-import asyncio
-import subprocess
-from pathlib import Path
+import sys
 from datetime import datetime
+from pathlib import Path
 
 # Configure logging
 logging.basicConfig(
@@ -138,7 +136,7 @@ class ComprehensiveSystemDeployer:
             # Check if ingestion was successful
             stats_file = self.processed_dir / "post_ingestion_stats.json"
             if stats_file.exists():
-                with open(stats_file, 'r') as f:
+                with open(stats_file) as f:
                     stats = json.load(f)
                 logger.info(f"✅ Documents ingested successfully. Stats: {json.dumps(stats, indent=2)}")
                 return True
@@ -169,7 +167,7 @@ class ComprehensiveSystemDeployer:
                 logger.info(f"✅ System testing completed. Report: {latest_report}")
                 
                 # Load and analyze test results
-                with open(latest_report, 'r') as f:
+                with open(latest_report) as f:
                     report = json.load(f)
                 
                 success_rate = report['summary']['overall_success_rate']
@@ -186,9 +184,9 @@ class ComprehensiveSystemDeployer:
         logger.info("🔍 Step 5: Verifying database content...")
         
         try:
+            from app.services.embedding_service import EmbeddingService
             from app.services.supabase_client import SupabaseVectorStore
             from app.services.vector_search_service import VectorSearchService
-            from app.services.embedding_service import EmbeddingService
             
             supabase = SupabaseVectorStore()
             embedder = EmbeddingService(cache_client=supabase)
@@ -220,7 +218,7 @@ class ComprehensiveSystemDeployer:
             successful_searches = sum(1 for r in results.values() if r["found"])
             coverage_rate = successful_searches / len(results) if results else 0
             
-            logger.info(f"📊 Database Verification:")
+            logger.info("📊 Database Verification:")
             for query, result in results.items():
                 status = "✅" if result["found"] else "❌"
                 logger.info(f"   {status} '{query}': {result['count']} results (score: {result['top_score']:.3f})")

@@ -5,11 +5,10 @@ Provides Pydantic models for validating API inputs with clear error messages,
 pattern matching, and value constraints.
 """
 
-from pydantic import BaseModel, Field, field_validator, model_validator
-from typing import Optional, List, Literal, Any, Dict
 import re
-from datetime import datetime
+from typing import Any, Literal
 
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 # ============================================================================
 # COMMON VALIDATORS
@@ -82,21 +81,21 @@ class SearchCallsRequest(BaseModel):
         max_length=500,
         description="Search keywords for finding calls"
     )
-    status: Optional[Literal['open', 'upcoming', 'closed', 'all']] = Field(
+    status: Literal['open', 'upcoming', 'closed', 'all'] | None = Field(
         default='all',
         description="Filter by call status"
     )
-    cluster: Optional[str] = Field(
+    cluster: str | None = Field(
         default=None,
         pattern=r'^(CL[1-6]|CLUSTER-[1-6])$',
         description="Filter by Horizon Europe cluster (CL1-CL6 or CLUSTER-1 to CLUSTER-6)"
     )
-    programme: Optional[str] = Field(
+    programme: str | None = Field(
         default=None,
         max_length=100,
         description="Filter by programme name"
     )
-    year: Optional[int] = Field(
+    year: int | None = Field(
         default=None,
         ge=2021,
         le=2030,
@@ -124,28 +123,28 @@ class SearchProjectsRequest(BaseModel):
         max_length=500,
         description="Search keywords for finding projects"
     )
-    cluster: Optional[str] = Field(
+    cluster: str | None = Field(
         default=None,
         pattern=r'^(CL[1-6]|CLUSTER-[1-6])$',
         description="Filter by Horizon Europe cluster"
     )
-    country: Optional[str] = Field(
+    country: str | None = Field(
         default=None,
         min_length=2,
         max_length=50,
         description="Filter by country (name or ISO code)"
     )
-    action_type: Optional[Literal['RIA', 'IA', 'CSA', 'COFUND', 'ERC', 'MSCA']] = Field(
+    action_type: Literal['RIA', 'IA', 'CSA', 'COFUND', 'ERC', 'MSCA'] | None = Field(
         default=None,
         description="Filter by action type"
     )
-    year_from: Optional[int] = Field(
+    year_from: int | None = Field(
         default=None,
         ge=2014,
         le=2030,
         description="Filter projects starting from this year"
     )
-    year_to: Optional[int] = Field(
+    year_to: int | None = Field(
         default=None,
         ge=2014,
         le=2030,
@@ -193,7 +192,7 @@ class ProposalSessionCreateRequest(BaseModel):
         ...,
         description="Type of proposal"
     )
-    description: Optional[str] = Field(
+    description: str | None = Field(
         default=None,
         max_length=5000,
         description="Brief proposal description"
@@ -223,7 +222,7 @@ class SectionGenerateRequest(BaseModel):
         max_length=100,
         description="Section identifier (e.g., 'excellence', 'impact', 'implementation')"
     )
-    user_input: Optional[str] = Field(
+    user_input: str | None = Field(
         default=None,
         max_length=10000,
         description="User-provided context for section generation"
@@ -245,12 +244,12 @@ class BudgetBenchmarkRequest(BaseModel):
         ...,
         description="Type of funding action"
     )
-    cluster: Optional[str] = Field(
+    cluster: str | None = Field(
         default=None,
         pattern=r'^(CL[1-6]|CLUSTER-[1-6])$',
         description="Horizon Europe cluster"
     )
-    topic_keywords: Optional[str] = Field(
+    topic_keywords: str | None = Field(
         default=None,
         max_length=500,
         description="Keywords for cluster inference"
@@ -274,17 +273,17 @@ class PartnerDiscoveryRequest(BaseModel):
         max_length=500,
         description="Keywords describing expertise area"
     )
-    country: Optional[str] = Field(
+    country: str | None = Field(
         default=None,
         min_length=2,
         max_length=50,
         description="Filter by country"
     )
-    org_type: Optional[Literal['HES', 'REC', 'PRC', 'PUB', 'OTH', 'SME']] = Field(
+    org_type: Literal['HES', 'REC', 'PRC', 'PUB', 'OTH', 'SME'] | None = Field(
         default=None,
         description="Filter by organization type"
     )
-    role: Optional[Literal['coordinator', 'participant', 'any']] = Field(
+    role: Literal['coordinator', 'participant', 'any'] | None = Field(
         default='any',
         description="Filter by role in projects"
     )
@@ -310,21 +309,21 @@ class SimilarProjectsRequest(BaseModel):
         max_length=5000,
         description="Project description to find similar projects for"
     )
-    cluster: Optional[str] = Field(
+    cluster: str | None = Field(
         default=None,
         pattern=r'^(CL[1-6]|CLUSTER-[1-6])$',
         description="Filter by cluster"
     )
-    action_type: Optional[Literal['RIA', 'IA', 'CSA', 'COFUND', 'ERC', 'MSCA']] = Field(
+    action_type: Literal['RIA', 'IA', 'CSA', 'COFUND', 'ERC', 'MSCA'] | None = Field(
         default=None,
         description="Filter by action type"
     )
-    min_budget: Optional[float] = Field(
+    min_budget: float | None = Field(
         default=None,
         ge=0,
         description="Minimum project budget in EUR"
     )
-    max_budget: Optional[float] = Field(
+    max_budget: float | None = Field(
         default=None,
         description="Maximum project budget in EUR"
     )
@@ -354,7 +353,7 @@ class FeedbackRequest(BaseModel):
         max_length=64,
         description="Conversation ID for the feedback"
     )
-    message_id: Optional[str] = Field(
+    message_id: str | None = Field(
         default=None,
         max_length=64,
         description="Specific message ID if applicable"
@@ -365,19 +364,19 @@ class FeedbackRequest(BaseModel):
         le=5,
         description="Rating from 1 (poor) to 5 (excellent)"
     )
-    comment: Optional[str] = Field(
+    comment: str | None = Field(
         default=None,
         max_length=2000,
         description="Optional feedback comment"
     )
-    tool_feedback: Optional[Dict[str, int]] = Field(
+    tool_feedback: dict[str, int] | None = Field(
         default=None,
         description="Per-tool ratings (tool_name -> rating 1-5)"
     )
 
     @field_validator('tool_feedback')
     @classmethod
-    def validate_tool_feedback(cls, v: Optional[Dict[str, int]]) -> Optional[Dict[str, int]]:
+    def validate_tool_feedback(cls, v: dict[str, int] | None) -> dict[str, int] | None:
         if v:
             for tool_name, rating in v.items():
                 if not isinstance(rating, int) or rating < 1 or rating > 5:
@@ -408,7 +407,7 @@ class BatchOperation(BaseModel):
         ...,
         description="Type of operation to execute"
     )
-    params: Dict[str, Any] = Field(
+    params: dict[str, Any] = Field(
         default_factory=dict,
         description="Parameters for the operation"
     )
@@ -417,7 +416,7 @@ class BatchOperation(BaseModel):
 class BatchRequest(BaseModel):
     """Request schema for batch operations."""
 
-    operations: List[BatchOperation] = Field(
+    operations: list[BatchOperation] = Field(
         ...,
         min_length=1,
         max_length=20,
@@ -426,7 +425,7 @@ class BatchRequest(BaseModel):
 
     @field_validator('operations')
     @classmethod
-    def validate_unique_ids(cls, v: List[BatchOperation]) -> List[BatchOperation]:
+    def validate_unique_ids(cls, v: list[BatchOperation]) -> list[BatchOperation]:
         ids = [op.id for op in v]
         if len(ids) != len(set(ids)):
             raise ValueError('Operation IDs must be unique')
@@ -444,7 +443,7 @@ class ExportRequest(BaseModel):
         default='docx',
         description="Export format"
     )
-    sections: Optional[List[str]] = Field(
+    sections: list[str] | None = Field(
         default=None,
         description="Specific sections to export (None = all)"
     )

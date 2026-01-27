@@ -16,18 +16,18 @@ Usage:
     print(plan.steps)  # [ExecutionStep(...), ...]
 """
 
-import os
-import re
+import asyncio
 import json
 import logging
-from pathlib import Path
-from typing import Dict, Any, List, Optional
-from dataclasses import dataclass, field, asdict
+import os
+import re
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
-import asyncio
+from pathlib import Path
+from typing import Any
 
-from dotenv import load_dotenv
 import google.generativeai as genai
+from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
@@ -41,10 +41,10 @@ class ExecutionStep:
     step_number: int
     source: str  # "graph", "vector", "keyword"
     operation: str
-    parameters: Dict[str, Any]
+    parameters: dict[str, Any]
     reason: str = ""
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "step": self.step_number,
             "source": self.source,
@@ -57,11 +57,11 @@ class ExecutionStep:
 @dataclass
 class ExtractedEntities:
     """Entities extracted from the query."""
-    topic_codes: List[str] = field(default_factory=list)
-    cluster_codes: List[str] = field(default_factory=list)
-    country_codes: List[str] = field(default_factory=list)
-    organization_names: List[str] = field(default_factory=list)
-    action_types: List[str] = field(default_factory=list)
+    topic_codes: list[str] = field(default_factory=list)
+    cluster_codes: list[str] = field(default_factory=list)
+    country_codes: list[str] = field(default_factory=list)
+    organization_names: list[str] = field(default_factory=list)
+    action_types: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -69,17 +69,17 @@ class QueryPlan:
     """Complete execution plan for a query."""
     intent_type: str
     confidence: float
-    steps: List[ExecutionStep]
+    steps: list[ExecutionStep]
     need_graph: str  # "required", "maybe", "never"
     need_vector: str
     need_keyword: str
     cleaned_query: str
     extracted_entities: ExtractedEntities
     fallback_strategy: str
-    raw_response: Optional[str] = None
+    raw_response: str | None = None
     planning_time_ms: float = 0.0
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "intent_type": self.intent_type,
             "confidence": self.confidence,
@@ -112,9 +112,9 @@ class QueryPlanner:
     
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        model_name: Optional[str] = None,
-        prompt_path: Optional[Path] = None
+        api_key: str | None = None,
+        model_name: str | None = None,
+        prompt_path: Path | None = None
     ):
         """
         Initialize the Query Planner.
@@ -142,7 +142,7 @@ class QueryPlanner:
         if not prompt_path.exists():
             raise FileNotFoundError(f"System prompt not found: {prompt_path}")
         
-        with open(prompt_path, 'r', encoding='utf-8') as f:
+        with open(prompt_path, encoding='utf-8') as f:
             self.system_prompt = f.read()
         
         logger.info(f"✅ Query Planner initialized with model: {self.model_name}")
@@ -176,7 +176,7 @@ class QueryPlanner:
                     self._call_llm(full_prompt),
                     timeout=timeout_seconds
                 )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 logger.warning(f"LLM timeout after {timeout_seconds}s, using fallback")
                 return self._create_fallback_plan(user_query, "LLM timeout")
             
@@ -286,7 +286,7 @@ class QueryPlanner:
             logger.debug(f"Raw response: {response_text[:500]}...")
             return self._create_fallback_plan(original_query, f"Parse error: {str(e)}")
     
-    def _extract_json(self, text: str) -> Optional[Dict[str, Any]]:
+    def _extract_json(self, text: str) -> dict[str, Any] | None:
         """Extract JSON object from text that may contain other content."""
         
         # Try to find JSON block

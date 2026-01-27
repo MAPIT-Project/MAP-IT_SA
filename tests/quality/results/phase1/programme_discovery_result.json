@@ -1,8 +1,8 @@
 {
   "scenario_name": "Programme Discovery",
-  "status": "FAIL",
-  "average_quality_score": 79.66666666666667,
-  "average_factual_score": 100.0,
+  "status": "PASS",
+  "average_quality_score": 83.66666666666667,
+  "average_factual_score": 83.33333333333333,
   "turns": [
     {
       "query": "I want to fund research on sustainable packaging materials",
@@ -11,13 +11,9 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [
-        "search_funding_calls",
-        "search_projects",
-        "search_funding_calls",
-        "get_budget_benchmark",
-        "get_consortium_patterns"
+        "search_funding_calls"
       ],
-      "processing_time_ms": 23750.261,
+      "processing_time_ms": 6050.9490000000005,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -32,18 +28,20 @@
     },
     {
       "query": "What about if we want to include training for our staff?",
-      "response": "Including staff training depends on the type of action you pursue. Horizon Europe offers both dedicated funding streams for staff exchange and mechanisms to cover essential training costs within research projects.\n\n### 1. Dedicated Funding: MSCA Staff Exchanges (MSCA-SE)\n\nIf the primary goal is knowledge transfer, skill development, and international/inter-sectoral mobility for existing staff, the best fit is the **Marie Sk\u0142odowska-Curie Actions Staff Exchanges (MSCA-SE)**. This action funds the...",
-      "quality_score": 81,
+      "response": "I found **5 funding opportunities** for your query:\n\n**1. HORIZON-CL5-2025-D2-02-06**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2025-D2-02-06\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** Check official portal for deadline\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\ud83d\udcb0 **Budget:** EUR 15.0 million\n\n\ud83d\udcdd **Summary:** Advanced battery materials aiming at storage duration from 10 hours to seasonal storage are developed, thus contributing to the Renewable Energy targets set by RePowerEU; Minimised use of Critical Raw Materials (CRM) in line w...",
+      "quality_score": 83,
       "factual_score": 100.0,
       "failures": [],
-      "tools_used": [],
-      "processing_time_ms": 8540.755000000001,
+      "tools_used": [
+        "search_funding_calls"
+      ],
+      "processing_time_ms": 5973.347000000001,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
           "specificity": 25,
           "factual_accuracy": 20,
-          "actionability": 6
+          "actionability": 8
         },
         "feedback": "Quick rule-based evaluation"
       },
@@ -52,30 +50,32 @@
     },
     {
       "query": "And what if we're a creative industry company making documentaries about sustainability?",
-      "response": "I found some information but couldn't extract specific details. Please try a more specific question.",
-      "quality_score": 75,
-      "factual_score": 100.0,
+      "response": "I found **14 funding opportunities** for your query:\n\n**1. Innovative pathways for low carbon and climate resilient building stock and built environment (Built4People Partnership)**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D4-03\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: Project results are expected to contribute to all of the following expected outcomes: Improved planning methods and procedures which are replicable and scalable ...",
+      "quality_score": 85,
+      "factual_score": 50.0,
       "failures": [],
       "tools_used": [
-        "recommend_programmes"
+        "search_funding_calls",
+        "search_all_programmes",
+        "get_programme_info"
       ],
-      "processing_time_ms": 5134.1720000000005,
+      "processing_time_ms": 6570.148999999999,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
           "specificity": 25,
           "factual_accuracy": 20,
-          "actionability": 0
+          "actionability": 10
         },
         "feedback": "Quick rule-based evaluation"
       },
       "turn_number": 2,
-      "passed": false
+      "passed": true
     }
   ],
   "scores": {
-    "average_quality": 79.66666666666667,
-    "average_factual": 100.0,
+    "average_quality": 83.66666666666667,
+    "average_factual": 83.33333333333333,
     "goal_progress": 0.63,
     "context_fields": 2
   },
@@ -89,11 +89,11 @@
       "cross-programme"
     ],
     "description": "User discovers which EU programme fits their needs through iterative conversation.\nTests cross-programme navigation as user's requirements evolve from pure research\nto training to creative documentation.\n",
-    "conversation_id": 756769275
+    "conversation_id": 1669064407
   },
-  "execution_time_ms": 98626.667,
-  "timestamp": "2026-01-22T15:13:42.684704",
-  "passed": false,
+  "execution_time_ms": 104111.167,
+  "timestamp": "2026-01-23T15:54:40.640419",
+  "passed": true,
   "turn_count": 3,
   "critical_failures": 0,
   "high_failures": 0,

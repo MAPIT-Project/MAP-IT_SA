@@ -4,17 +4,15 @@ Comprehensive script to download ALL Horizon Europe call documents and documenta
 This enables the RAG system to answer questions about ANY call or topic, past or present.
 """
 
-import os
-import sys
-import requests
 import json
-import time
-import re
-from pathlib import Path
-from typing import List, Dict, Any, Optional
-from urllib.parse import urlparse, quote
 import logging
+import sys
+import time
 from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+import requests
 
 # Add the app directory to the Python path
 sys.path.append(str(Path(__file__).parent.parent))
@@ -126,7 +124,7 @@ class HorizonEuropeCallDownloader:
             logger.error(f"❌ Failed to download {filename}: {e}")
             return False
     
-    def search_eu_portal_calls(self, search_text: str = "", filters: Optional[Dict] = None) -> List[Dict[str, Any]]:
+    def search_eu_portal_calls(self, search_text: str = "", filters: dict | None = None) -> list[dict[str, Any]]:
         """Search EU Portal for ALL Horizon Europe calls (not just open ones)."""
         all_calls = []
         page_number = 1
@@ -208,7 +206,7 @@ class HorizonEuropeCallDownloader:
         
         return all_calls
     
-    def _extract_call_data(self, result: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _extract_call_data(self, result: dict[str, Any]) -> dict[str, Any] | None:
         """Extract structured call data from API response."""
         try:
             metadata = result.get('metadata', {})
@@ -252,7 +250,7 @@ class HorizonEuropeCallDownloader:
         }
         return status_mapping.get(str(status_code), f"Unknown ({status_code})")
     
-    def _build_call_url(self, metadata: Dict[str, Any]) -> str:
+    def _build_call_url(self, metadata: dict[str, Any]) -> str:
         """Build proper EU portal URL for a call."""
         identifier = metadata.get('identifier', [None])[0] if isinstance(metadata.get('identifier'), list) else None
         if identifier:
@@ -485,7 +483,7 @@ class HorizonEuropeCallDownloader:
             total_success += 1
         
         # Summary
-        logger.info(f"\n📊 Comprehensive Download Summary:")
+        logger.info("\n📊 Comprehensive Download Summary:")
         logger.info(f"✅ Successful operations: {total_success}/{total_operations}")
         
         if total_success > 0:

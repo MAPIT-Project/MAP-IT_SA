@@ -1,8 +1,7 @@
-import re
 import hashlib
-from typing import List, Dict, Any, Optional, Tuple
+import re
 from dataclasses import dataclass
-import os
+from typing import Any
 
 # Optional imports with fallbacks
 try:
@@ -40,10 +39,10 @@ class DocumentChunk:
     start_char: int
     end_char: int
     token_count: int
-    metadata: Dict[str, Any]
-    embedding: Optional[List[float]] = None
+    metadata: dict[str, Any]
+    embedding: list[float] | None = None
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             'chunk_id': self.chunk_id,
             'document_id': self.document_id,
@@ -102,8 +101,8 @@ class IntelligentChunker:
             self.text_splitter = None
     
     def chunk_document(self,
-                      document: Dict[str, Any],
-                      chunking_strategy: str = "semantic") -> List[DocumentChunk]:
+                      document: dict[str, Any],
+                      chunking_strategy: str = "semantic") -> list[DocumentChunk]:
         """
         Chunk a document using specified strategy.
         
@@ -154,7 +153,7 @@ class IntelligentChunker:
         
         return document_chunks
     
-    def _semantic_chunking(self, text: str) -> List[str]:
+    def _semantic_chunking(self, text: str) -> list[str]:
         """
         Semantic chunking that respects document structure.
         Tries to keep related content together.
@@ -177,7 +176,7 @@ class IntelligentChunker:
         
         return overlapped_chunks
     
-    def _identify_sections(self, text: str) -> List[Dict[str, str]]:
+    def _identify_sections(self, text: str) -> list[dict[str, str]]:
         """
         Identify logical sections in document.
         Looks for headers, bullet points, paragraphs.
@@ -222,7 +221,7 @@ class IntelligentChunker:
         
         return sections
     
-    def _split_semantic_section(self, text: str) -> List[str]:
+    def _split_semantic_section(self, text: str) -> list[str]:
         """
         Split a section into semantic chunks.
         Tries to keep sentences and paragraphs together.
@@ -247,7 +246,7 @@ class IntelligentChunker:
         
         return validated_chunks
     
-    def _sentence_chunking(self, text: str) -> List[str]:
+    def _sentence_chunking(self, text: str) -> list[str]:
         """
         Chunk by sentences, grouping them to reach target size.
         """
@@ -284,7 +283,7 @@ class IntelligentChunker:
         
         return chunks
     
-    def _fixed_chunking(self, text: str) -> List[str]:
+    def _fixed_chunking(self, text: str) -> list[str]:
         """
         Simple fixed-size chunking with overlap.
         """
@@ -318,7 +317,7 @@ class IntelligentChunker:
             
             return chunks
     
-    def _apply_overlap(self, chunks: List[str]) -> List[str]:
+    def _apply_overlap(self, chunks: list[str]) -> list[str]:
         """
         Apply overlap between consecutive chunks.
         """
@@ -368,7 +367,7 @@ class IntelligentChunker:
             else:
                 return text[-overlap_chars:]
     
-    def _get_overlap_sentences(self, sentences: List[str]) -> List[str]:
+    def _get_overlap_sentences(self, sentences: list[str]) -> list[str]:
         """
         Get sentences for overlap (last few sentences).
         """
@@ -388,7 +387,7 @@ class IntelligentChunker:
         
         return overlap_sentences
     
-    def _split_large_chunk(self, text: str) -> List[str]:
+    def _split_large_chunk(self, text: str) -> list[str]:
         """
         Split a chunk that exceeds max size.
         """
@@ -437,9 +436,9 @@ class IntelligentChunker:
         return f"{doc_id}_chunk_{index}_{content_hash}"
     
     def _enrich_metadata(self, 
-                        base_metadata: Dict[str, Any],
+                        base_metadata: dict[str, Any],
                         chunk_content: str,
-                        chunk_index: int) -> Dict[str, Any]:
+                        chunk_index: int) -> dict[str, Any]:
         """
         Enrich chunk metadata with additional information.
         """

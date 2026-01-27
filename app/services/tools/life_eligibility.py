@@ -10,7 +10,7 @@ Checks organization eligibility for LIFE Programme actions based on:
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -21,13 +21,13 @@ class EligibilityResult:
     eligible: bool
     subprogramme: str
     subprogramme_name: str
-    requirements_met: List[str]
-    requirements_missing: List[str]
-    warnings: List[str]
-    recommendations: List[str]
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    requirements_met: list[str]
+    requirements_missing: list[str]
+    warnings: list[str]
+    recommendations: list[str]
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             'eligible': self.eligible,
             'subprogramme': self.subprogramme,
@@ -176,7 +176,7 @@ class LIFEEligibilityTool:
         org_type: str,
         country: str,
         subprogramme: str,
-        project_type: Optional[str] = None,
+        project_type: str | None = None,
     ) -> EligibilityResult:
         """
         Check if an organization is eligible for a LIFE sub-programme.
@@ -342,7 +342,7 @@ class LIFEEligibilityTool:
         self,
         org_type: str,
         country: str,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Get all LIFE sub-programmes an organization is eligible for.
 
@@ -376,7 +376,7 @@ class LIFEEligibilityTool:
 
         return eligible_subprogs
 
-    def get_participating_countries(self) -> Dict[str, List[str]]:
+    def get_participating_countries(self) -> dict[str, list[str]]:
         """Get participating countries by category."""
         return {
             'eu_member_states': self.EU_MEMBER_STATES.copy(),
@@ -384,11 +384,11 @@ class LIFEEligibilityTool:
             'associated': self.ASSOCIATED_COUNTRIES.copy(),
         }
 
-    def get_subprogrammes(self) -> Dict[str, Dict]:
+    def get_subprogrammes(self) -> dict[str, dict]:
         """Get LIFE sub-programmes."""
         return self.SUBPROGRAMMES.copy()
 
-    def get_project_types(self) -> Dict[str, Dict]:
+    def get_project_types(self) -> dict[str, dict]:
         """Get LIFE project types."""
         return self.PROJECT_TYPES.copy()
 
@@ -396,9 +396,9 @@ class LIFEEligibilityTool:
 async def check_life_eligibility_execute(
     org_type: str,
     country: str,
-    subprogramme: Optional[str] = None,
-    project_type: Optional[str] = None,
-) -> Dict[str, Any]:
+    subprogramme: str | None = None,
+    project_type: str | None = None,
+) -> dict[str, Any]:
     """
     Check LIFE eligibility for an organization.
 

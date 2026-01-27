@@ -13,13 +13,13 @@ Key Features:
 - Async-friendly design
 """
 
-import asyncio
 import json
 import logging
 import time
-from typing import AsyncIterator, Dict, Any, List, Optional, Callable
+from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ class EventPriority(Enum):
 
 
 # Event type to priority mapping
-EVENT_PRIORITIES: Dict[str, EventPriority] = {
+EVENT_PRIORITIES: dict[str, EventPriority] = {
     # Immediate flush events
     "error": EventPriority.IMMEDIATE,
     "complete": EventPriority.IMMEDIATE,
@@ -65,8 +65,8 @@ class StreamBuffer:
     max_token_batch: int = 5           # Max tokens to batch together
 
     # Internal state
-    buffer: List[Dict[str, Any]] = field(default_factory=list)
-    token_buffer: List[str] = field(default_factory=list)
+    buffer: list[dict[str, Any]] = field(default_factory=list)
+    token_buffer: list[str] = field(default_factory=list)
     last_flush_time: float = field(default_factory=time.time)
 
     def reset(self):
@@ -86,12 +86,12 @@ class StreamBuffer:
 
         return False
 
-    def _get_priority(self, event: Dict[str, Any]) -> EventPriority:
+    def _get_priority(self, event: dict[str, Any]) -> EventPriority:
         """Get priority for an event."""
         event_type = event.get("type", "")
         return EVENT_PRIORITIES.get(event_type, EventPriority.NORMAL)
 
-    def add(self, event: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def add(self, event: dict[str, Any]) -> list[dict[str, Any]]:
         """
         Add event to buffer, return events to flush.
 
@@ -131,7 +131,7 @@ class StreamBuffer:
 
         return []
 
-    def flush(self) -> List[Dict[str, Any]]:
+    def flush(self) -> list[dict[str, Any]]:
         """
         Flush all buffered events.
 
@@ -186,7 +186,7 @@ class StreamingOptimizer:
 
     async def optimize_stream(
         self,
-        event_source: AsyncIterator[Dict[str, Any]]
+        event_source: AsyncIterator[dict[str, Any]]
     ) -> AsyncIterator[str]:
         """
         Optimize an event stream for SSE delivery.
@@ -218,13 +218,13 @@ class StreamingOptimizer:
         finally:
             self.buffer.reset()
 
-    def _format_sse(self, event: Dict[str, Any]) -> str:
+    def _format_sse(self, event: dict[str, Any]) -> str:
         """Format event as SSE string."""
         return f"data: {json.dumps(event)}\n\n"
 
 
 def create_optimized_stream_response(
-    event_source: AsyncIterator[Dict[str, Any]],
+    event_source: AsyncIterator[dict[str, Any]],
     max_buffer_size: int = 10,
     flush_interval_ms: float = 100.0,
     max_token_batch: int = 5
@@ -252,8 +252,8 @@ def create_optimized_stream_response(
 
 
 async def wrap_dict_result_as_stream(
-    result: Dict[str, Any]
-) -> AsyncIterator[Dict[str, Any]]:
+    result: dict[str, Any]
+) -> AsyncIterator[dict[str, Any]]:
     """
     Wrap a dict result as a single-event async stream.
 
@@ -283,8 +283,8 @@ class StreamingMetrics:
         self.bytes_sent = 0
         self.batches_sent = 0
         self.tokens_batched = 0
-        self.start_time: Optional[float] = None
-        self.end_time: Optional[float] = None
+        self.start_time: float | None = None
+        self.end_time: float | None = None
 
     def start(self):
         """Start tracking."""
@@ -304,7 +304,7 @@ class StreamingMetrics:
         """Stop tracking."""
         self.end_time = time.time()
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get performance statistics."""
         duration = 0.0
         if self.start_time:
@@ -331,7 +331,7 @@ class InstrumentedStreamingOptimizer(StreamingOptimizer):
 
     async def optimize_stream(
         self,
-        event_source: AsyncIterator[Dict[str, Any]]
+        event_source: AsyncIterator[dict[str, Any]]
     ) -> AsyncIterator[str]:
         """Optimize stream with metrics tracking."""
         self.metrics.reset()
@@ -346,6 +346,6 @@ class InstrumentedStreamingOptimizer(StreamingOptimizer):
             self.metrics.stop()
             logger.debug(f"Stream metrics: {self.metrics.get_stats()}")
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """Get current metrics."""
         return self.metrics.get_stats()

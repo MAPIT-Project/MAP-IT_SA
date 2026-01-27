@@ -11,7 +11,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 1204.5459999999998,
+      "processing_time_ms": 1448.598,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -31,7 +31,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 579.407,
+      "processing_time_ms": 584.722,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -46,12 +46,12 @@
     },
     {
       "query": "What about Creative Europe cooperation projects?",
-      "response": "Creative Europe Cooperation Projects (Culture strand) are distinctly different from Horizon Europe (HE) and Erasmus+ (E+ KA2), focusing on cultural policy, audience development, and the transnational circulation of cultural works, with a mandatory co-funding model.\n\n### Comparison: HE (RIA/IA), Erasmus+ KA2, and Creative Europe (CE Culture)\n\n| Feature | Horizon Europe (RIA/IA) | Erasmus+ KA2 | Creative Europe (COOP) |\n|---------|------------------------|--------------|------------------------|\n|...",
+      "response": "**Creative Europe Cooperation Projects Overview**\n\nThe **CULTURE strand** of Creative Europe (2021-2027) offers **European Cooperation Projects** that support transnational cultural cooperation between European organizations.\n\n## What Are Cooperation Projects?\n\nCooperation Projects fund **transnational cultural activities** that bring together organizations from different European countries to:\n- Develop and disseminate cultural content\n- Build capacity and professionalize the sector\n- Improve c...",
       "quality_score": 81,
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 4150.356000000001,
+      "processing_time_ms": 4340.9890000000005,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -71,7 +71,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 651.088,
+      "processing_time_ms": 661.9979999999999,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -91,7 +91,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 781.802,
+      "processing_time_ms": 746.4849999999999,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -124,10 +124,10 @@
       "creative-europe"
     ],
     "description": "A 5-step timeline comparison workflow where a user compares proposal\npreparation timelines, decision times, and project start lags across\nHorizon Europe, Erasmus+ KA2, and Creative Europe cooperation projects.\nTests the system's ability to provide reasonable timeline estimates and\nclear programme differences.\n",
-    "conversation_id": 392622589
+    "conversation_id": 1468983153
   },
-  "execution_time_ms": 212909.13,
-  "timestamp": "2026-01-23T11:23:01.560021",
+  "execution_time_ms": 190184.717,
+  "timestamp": "2026-01-23T17:04:31.422182",
   "passed": true,
   "turn_count": 5,
   "critical_failures": 0,

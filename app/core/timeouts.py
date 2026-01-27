@@ -6,9 +6,10 @@ request hangs and ensure responsive failure.
 """
 
 import asyncio
-from functools import wraps
-from typing import TypeVar, Callable, Any, Optional
 import logging
+from collections.abc import Callable
+from functools import wraps
+from typing import Any, TypeVar
 
 logger = logging.getLogger(__name__)
 
@@ -169,7 +170,7 @@ async def with_timeout(
     """
     try:
         return await asyncio.wait_for(coro, timeout=timeout)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.warning(f"Timeout after {timeout}s: {error_message}")
         if raise_on_timeout:
             from .exceptions import TimeoutError as MapItTimeoutError
@@ -258,7 +259,7 @@ class TimeoutContext:
         self.operation_name = operation_name
         self.raise_on_timeout = raise_on_timeout
         self.timed_out = False
-        self._task: Optional[asyncio.Task] = None
+        self._task: asyncio.Task | None = None
 
     async def __aenter__(self):
         return self

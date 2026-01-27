@@ -15,13 +15,13 @@ Example:
     python scripts/manual_document_upload.py HORIZON-HLTH-2024-TOOL-12-01
 """
 
-import sys
 import asyncio
 import logging
-from pathlib import Path
-import psycopg2
-from psycopg2 import pool
 import os
+import sys
+from pathlib import Path
+
+import psycopg2
 from dotenv import load_dotenv
 
 # Add parent directory to path for imports
@@ -155,7 +155,7 @@ class SimpleChunker:
     
     def chunk_document(self, parsed_doc: dict, call_identifier: str, document_type: str) -> list:
         """Create chunks from parsed document"""
-        logger.info(f"  ✂️ Chunking document...")
+        logger.info("  ✂️ Chunking document...")
         
         chunks = []
         
@@ -239,7 +239,7 @@ async def process_manual_documents(call_identifier: str):
     
     if not upload_dir.exists():
         print(f"❌ Directory not found: {upload_dir}")
-        print(f"\nPlease create it and add PDF files:")
+        print("\nPlease create it and add PDF files:")
         print(f"  mkdir -p {upload_dir}")
         print(f"  # Copy your PDF files to {upload_dir}/")
         return
@@ -288,7 +288,7 @@ async def process_manual_documents(call_identifier: str):
             print(f"  ✅ Created: {len(chunks)} chunks")
             
             # Store in database
-            print(f"  💾 Storing in database...")
+            print("  💾 Storing in database...")
             store_document_and_chunks(
                 db_pool=db_pool,
                 call_identifier=call_identifier,
@@ -298,7 +298,7 @@ async def process_manual_documents(call_identifier: str):
                 parsed=parsed,
                 chunks=chunks
             )
-            print(f"  ✅ Stored successfully")
+            print("  ✅ Stored successfully")
             
             stats['documents_processed'] += 1
             
@@ -322,7 +322,7 @@ async def process_manual_documents(call_identifier: str):
         for error in stats['errors']:
             print(f"  - {error}")
     else:
-        print(f"\n✅ All documents processed successfully!")
+        print("\n✅ All documents processed successfully!")
     
     print("="*70)
     
@@ -342,7 +342,7 @@ async def process_manual_documents(call_identifier: str):
         """, (call_identifier,))
         chunk_count = cursor.fetchone()[0]
         
-        print(f"  ✅ Database records:")
+        print("  ✅ Database records:")
         print(f"     - Documents: {doc_count}")
         print(f"     - Chunks: {chunk_count}")
         
@@ -397,7 +397,7 @@ def store_document_and_chunks(db_pool, call_identifier: str, doc_type: str,
         
         conn.commit()
         
-    except Exception as e:
+    except Exception:
         conn.rollback()
         raise
     finally:

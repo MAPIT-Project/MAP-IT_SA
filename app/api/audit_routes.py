@@ -8,15 +8,14 @@ Provides endpoints for:
 - Audit statistics
 """
 
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
-from fastapi import APIRouter, Depends, Query, status
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Query, status
+from pydantic import BaseModel
 
 from app.services.audit.audit_service import (
     AuditEventType,
-    AuditService,
     get_audit_service,
 )
 
@@ -34,21 +33,21 @@ class AuditEventResponse(BaseModel):
     event_type: str
     action: str
     timestamp: str
-    user_id: Optional[str]
-    organization_id: Optional[str]
-    resource_type: Optional[str]
-    resource_id: Optional[str]
-    resource_name: Optional[str]
-    ip_address: Optional[str]
+    user_id: str | None
+    organization_id: str | None
+    resource_type: str | None
+    resource_id: str | None
+    resource_name: str | None
+    ip_address: str | None
     success: bool
-    error_message: Optional[str]
-    duration_ms: Optional[float]
-    details: Dict[str, Any]
+    error_message: str | None
+    duration_ms: float | None
+    details: dict[str, Any]
 
 
 class AuditTrailResponse(BaseModel):
     """Audit trail query response."""
-    events: List[Dict[str, Any]]
+    events: list[dict[str, Any]]
     total_count: int
     has_more: bool
 
@@ -58,7 +57,7 @@ class UserActivityResponse(BaseModel):
     user_id: str
     period_days: int
     total_events: int
-    event_counts: Dict[str, Any]
+    event_counts: dict[str, Any]
 
 
 class AuditStatsResponse(BaseModel):
@@ -70,8 +69,8 @@ class AuditStatsResponse(BaseModel):
     auth_events: int
     query_events: int
     proposal_events: int
-    avg_duration_ms: Optional[float]
-    top_users: List[Dict[str, Any]]
+    avg_duration_ms: float | None
+    top_users: list[dict[str, Any]]
 
 
 # =============================================================================
@@ -81,12 +80,12 @@ class AuditStatsResponse(BaseModel):
 
 @router.get("/trail", response_model=AuditTrailResponse)
 async def get_audit_trail(
-    resource_type: Optional[str] = Query(None, description="Filter by resource type"),
-    resource_id: Optional[str] = Query(None, description="Filter by resource ID"),
-    user_id: Optional[str] = Query(None, description="Filter by user ID"),
-    event_type: Optional[str] = Query(None, description="Filter by event type"),
-    start_time: Optional[datetime] = Query(None, description="Start of time range"),
-    end_time: Optional[datetime] = Query(None, description="End of time range"),
+    resource_type: str | None = Query(None, description="Filter by resource type"),
+    resource_id: str | None = Query(None, description="Filter by resource ID"),
+    user_id: str | None = Query(None, description="Filter by user ID"),
+    event_type: str | None = Query(None, description="Filter by event type"),
+    start_time: datetime | None = Query(None, description="Start of time range"),
+    end_time: datetime | None = Query(None, description="End of time range"),
     days: int = Query(7, ge=1, le=90, description="Number of days to look back"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum results"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
@@ -101,9 +100,9 @@ async def get_audit_trail(
 
     # Default time range if not specified
     if not start_time:
-        start_time = datetime.now(timezone.utc) - timedelta(days=days)
+        start_time = datetime.now(UTC) - timedelta(days=days)
     if not end_time:
-        end_time = datetime.now(timezone.utc)
+        end_time = datetime.now(UTC)
 
     # Parse event types
     event_types = None
@@ -201,7 +200,7 @@ async def get_user_events(
 
     events = await service.get_audit_trail(
         user_id=user_id,
-        start_time=datetime.now(timezone.utc) - timedelta(days=days),
+        start_time=datetime.now(UTC) - timedelta(days=days),
         limit=limit,
         offset=offset,
     )
@@ -307,7 +306,7 @@ async def cleanup_old_events(
         "success": True,
         "deleted_count": deleted_count,
         "retention_days": retention_days,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
 
@@ -323,5 +322,5 @@ async def health_check():
         "status": "healthy",
         "service": "audit",
         "buffer_size": len(service._buffer),
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }

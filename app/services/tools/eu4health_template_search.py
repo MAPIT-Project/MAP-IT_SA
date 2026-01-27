@@ -9,7 +9,7 @@ about actions, requirements, and funding opportunities.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +69,7 @@ class EU4HealthTemplateSearchTool:
     def __init__(self):
         self.sections = EU4HEALTH_SECTIONS
 
-    def detect_section(self, query: str) -> List[str]:
+    def detect_section(self, query: str) -> list[str]:
         """Detect which sections a query is likely about."""
         query_lower = query.lower()
         matching_sections = []
@@ -82,7 +82,7 @@ class EU4HealthTemplateSearchTool:
 
         return matching_sections or ['general']
 
-    def detect_strand(self, query: str) -> Optional[str]:
+    def detect_strand(self, query: str) -> str | None:
         """Detect which strand the query is about."""
         query_lower = query.lower()
 
@@ -100,8 +100,8 @@ class EU4HealthTemplateSearchTool:
     def build_enhanced_query(
         self,
         query: str,
-        strand: Optional[str] = None,
-        action_type: Optional[str] = None,
+        strand: str | None = None,
+        action_type: str | None = None,
     ) -> str:
         """Build an enhanced query with context keywords."""
         enhanced = query
@@ -136,11 +136,11 @@ class EU4HealthTemplateSearchTool:
 
 async def search_eu4health_templates_execute(
     query: str,
-    strand: Optional[str] = None,
-    action_type: Optional[str] = None,
-    topic: Optional[str] = None,
+    strand: str | None = None,
+    action_type: str | None = None,
+    topic: str | None = None,
     top_k: int = 5,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Search EU4Health guidance documents for application information.
 

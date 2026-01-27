@@ -11,9 +11,8 @@ import asyncio
 import logging
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from enum import Enum
-from typing import Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 
@@ -46,8 +45,8 @@ class ServiceStatus:
     service: ServiceType
     status: AvailabilityStatus
     last_check: datetime
-    latency_ms: Optional[float] = None
-    error_message: Optional[str] = None
+    latency_ms: float | None = None
+    error_message: str | None = None
     consecutive_failures: int = 0
 
     @property
@@ -59,7 +58,7 @@ class ServiceStatus:
 @dataclass
 class ServiceAvailability:
     """Overall service availability context."""
-    services: Dict[ServiceType, ServiceStatus] = field(default_factory=dict)
+    services: dict[ServiceType, ServiceStatus] = field(default_factory=dict)
     checked_at: datetime = field(default_factory=datetime.utcnow)
 
     @property
@@ -86,7 +85,7 @@ class ServiceAvailability:
         status = self.services.get(service_type)
         return status.is_available if status else False
 
-    def to_dict(self) -> Dict[str, bool]:
+    def to_dict(self) -> dict[str, bool]:
         """Convert to simple availability dictionary for tool filtering."""
         return {
             "postgres": self.postgres_available,
@@ -102,7 +101,7 @@ class ServiceAvailability:
 # ============================================================================
 
 # Maps tools to their required services
-TOOL_SERVICE_REQUIREMENTS: Dict[str, List[ServiceType]] = {
+TOOL_SERVICE_REQUIREMENTS: dict[str, list[ServiceType]] = {
     # Statistics tools - need Neo4j for graph queries
     "get_programme_statistics": [ServiceType.NEO4J],
     "get_country_statistics": [ServiceType.NEO4J],
@@ -137,7 +136,7 @@ TOOL_SERVICE_REQUIREMENTS: Dict[str, List[ServiceType]] = {
 }
 
 # Tools that can operate in degraded mode (with reduced functionality)
-DEGRADABLE_TOOLS: Dict[str, List[ServiceType]] = {
+DEGRADABLE_TOOLS: dict[str, list[ServiceType]] = {
     # These tools can work without Neo4j, using SQL fallbacks
     "get_budget_benchmark": [ServiceType.NEO4J],
     "get_consortium_patterns": [ServiceType.NEO4J],
@@ -171,9 +170,9 @@ class ServiceAvailabilityChecker:
     ):
         self.cache_ttl = timedelta(seconds=cache_ttl_seconds)
         self.max_consecutive_failures = max_consecutive_failures
-        self._cache: Optional[ServiceAvailability] = None
+        self._cache: ServiceAvailability | None = None
         self._lock = asyncio.Lock()
-        self._failure_counts: Dict[ServiceType, int] = {}
+        self._failure_counts: dict[ServiceType, int] = {}
 
     async def check_all_services(
         self,
@@ -191,7 +190,7 @@ class ServiceAvailabilityChecker:
         async with self._lock:
             # Return cached if still valid
             if not force_refresh and self._cache:
-                age = datetime.now(timezone.utc) - self._cache.checked_at
+                age = datetime.now(UTC) - self._cache.checked_at
                 if age < self.cache_ttl:
                     return self._cache
 
@@ -219,16 +218,16 @@ class ServiceAvailabilityChecker:
 
             self._cache = ServiceAvailability(
                 services=services,
-                checked_at=datetime.now(timezone.utc)
+                checked_at=datetime.now(UTC)
             )
 
             return self._cache
 
     async def get_available_tools(
         self,
-        all_tools: List[str],
+        all_tools: list[str],
         allow_degraded: bool = True
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Filter tools based on service availability.
 
@@ -250,7 +249,7 @@ class ServiceAvailabilityChecker:
                 availability.services.get(svc, ServiceStatus(
                     service=svc,
                     status=AvailabilityStatus.UNKNOWN,
-                    last_check=datetime.now(timezone.utc)
+                    last_check=datetime.now(UTC)
                 )).is_available
                 for svc in required_services
             )
@@ -268,7 +267,7 @@ class ServiceAvailabilityChecker:
                     availability.services.get(svc, ServiceStatus(
                         service=svc,
                         status=AvailabilityStatus.UNKNOWN,
-                        last_check=datetime.now(timezone.utc)
+                        last_check=datetime.now(UTC)
                     )).is_available
                     for svc in essential_services
                 )
@@ -281,7 +280,7 @@ class ServiceAvailabilityChecker:
     def get_degradation_notice(
         self,
         availability: ServiceAvailability
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Get a user-friendly notice about degraded functionality.
 
@@ -325,7 +324,7 @@ class ServiceAvailabilityChecker:
                 return ServiceStatus(
                     service=ServiceType.POSTGRES,
                     status=AvailabilityStatus.UNAVAILABLE,
-                    last_check=datetime.now(timezone.utc),
+                    last_check=datetime.now(UTC),
                     error_message="Not configured"
                 )
 
@@ -341,7 +340,7 @@ class ServiceAvailabilityChecker:
             return ServiceStatus(
                 service=ServiceType.POSTGRES,
                 status=AvailabilityStatus.AVAILABLE,
-                last_check=datetime.now(timezone.utc),
+                last_check=datetime.now(UTC),
                 latency_ms=latency
             )
 
@@ -350,7 +349,7 @@ class ServiceAvailabilityChecker:
             return ServiceStatus(
                 service=ServiceType.POSTGRES,
                 status=AvailabilityStatus.UNAVAILABLE,
-                last_check=datetime.now(timezone.utc),
+                last_check=datetime.now(UTC),
                 latency_ms=latency,
                 error_message=str(e)
             )
@@ -367,7 +366,7 @@ class ServiceAvailabilityChecker:
                 return ServiceStatus(
                     service=ServiceType.NEO4J,
                     status=AvailabilityStatus.AVAILABLE,
-                    last_check=datetime.now(timezone.utc),
+                    last_check=datetime.now(UTC),
                     latency_ms=latency
                 )
             else:
@@ -375,7 +374,7 @@ class ServiceAvailabilityChecker:
                 return ServiceStatus(
                     service=ServiceType.NEO4J,
                     status=AvailabilityStatus.UNAVAILABLE,
-                    last_check=datetime.now(timezone.utc),
+                    last_check=datetime.now(UTC),
                     latency_ms=latency,
                     error_message="Connection test failed"
                 )
@@ -385,7 +384,7 @@ class ServiceAvailabilityChecker:
             return ServiceStatus(
                 service=ServiceType.NEO4J,
                 status=AvailabilityStatus.UNAVAILABLE,
-                last_check=datetime.now(timezone.utc),
+                last_check=datetime.now(UTC),
                 latency_ms=latency,
                 error_message=str(e)
             )
@@ -394,8 +393,9 @@ class ServiceAvailabilityChecker:
         """Check Redis availability."""
         start = time.time()
         try:
-            from .config import settings
             import redis
+
+            from .config import settings
 
             redis_url = settings.redis_url or "redis://localhost:6379/0"
             r = redis.from_url(redis_url, socket_timeout=2)
@@ -405,7 +405,7 @@ class ServiceAvailabilityChecker:
             return ServiceStatus(
                 service=ServiceType.REDIS,
                 status=AvailabilityStatus.AVAILABLE,
-                last_check=datetime.now(timezone.utc),
+                last_check=datetime.now(UTC),
                 latency_ms=latency
             )
 
@@ -414,7 +414,7 @@ class ServiceAvailabilityChecker:
             return ServiceStatus(
                 service=ServiceType.REDIS,
                 status=AvailabilityStatus.DEGRADED,  # Redis is non-critical
-                last_check=datetime.now(timezone.utc),
+                last_check=datetime.now(UTC),
                 latency_ms=latency,
                 error_message=str(e)
             )
@@ -429,7 +429,7 @@ class ServiceAvailabilityChecker:
                 return ServiceStatus(
                     service=ServiceType.EMBEDDINGS,
                     status=AvailabilityStatus.DEGRADED,
-                    last_check=datetime.now(timezone.utc),
+                    last_check=datetime.now(UTC),
                     error_message="Not configured"
                 )
 
@@ -441,7 +441,7 @@ class ServiceAvailabilityChecker:
                 return ServiceStatus(
                     service=ServiceType.EMBEDDINGS,
                     status=AvailabilityStatus.AVAILABLE,
-                    last_check=datetime.now(timezone.utc),
+                    last_check=datetime.now(UTC),
                     latency_ms=latency
                 )
             else:
@@ -449,7 +449,7 @@ class ServiceAvailabilityChecker:
                 return ServiceStatus(
                     service=ServiceType.EMBEDDINGS,
                     status=AvailabilityStatus.DEGRADED,
-                    last_check=datetime.now(timezone.utc),
+                    last_check=datetime.now(UTC),
                     latency_ms=latency,
                     error_message="Test generation failed"
                 )
@@ -459,7 +459,7 @@ class ServiceAvailabilityChecker:
             return ServiceStatus(
                 service=ServiceType.EMBEDDINGS,
                 status=AvailabilityStatus.DEGRADED,  # Embeddings are non-critical
-                last_check=datetime.now(timezone.utc),
+                last_check=datetime.now(UTC),
                 latency_ms=latency,
                 error_message=str(e)
             )
@@ -474,7 +474,7 @@ class ServiceAvailabilityChecker:
                 return ServiceStatus(
                     service=ServiceType.GEMINI,
                     status=AvailabilityStatus.UNAVAILABLE,
-                    last_check=datetime.now(timezone.utc),
+                    last_check=datetime.now(UTC),
                     error_message="Not configured"
                 )
 
@@ -486,7 +486,7 @@ class ServiceAvailabilityChecker:
             return ServiceStatus(
                 service=ServiceType.GEMINI,
                 status=AvailabilityStatus.AVAILABLE,
-                last_check=datetime.now(timezone.utc),
+                last_check=datetime.now(UTC),
                 latency_ms=latency
             )
 
@@ -495,7 +495,7 @@ class ServiceAvailabilityChecker:
             return ServiceStatus(
                 service=ServiceType.GEMINI,
                 status=AvailabilityStatus.UNAVAILABLE,
-                last_check=datetime.now(timezone.utc),
+                last_check=datetime.now(UTC),
                 latency_ms=latency,
                 error_message=str(e)
             )
@@ -505,7 +505,7 @@ class ServiceAvailabilityChecker:
 # Global Instance
 # ============================================================================
 
-_checker: Optional[ServiceAvailabilityChecker] = None
+_checker: ServiceAvailabilityChecker | None = None
 
 
 def get_availability_checker() -> ServiceAvailabilityChecker:
@@ -522,7 +522,7 @@ async def check_services() -> ServiceAvailability:
     return await checker.check_all_services()
 
 
-async def get_available_tools(all_tools: List[str]) -> List[str]:
+async def get_available_tools(all_tools: list[str]) -> list[str]:
     """Convenience function to get available tools."""
     checker = get_availability_checker()
     return await checker.get_available_tools(all_tools)

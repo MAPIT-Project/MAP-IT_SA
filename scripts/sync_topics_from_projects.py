@@ -10,12 +10,12 @@ we know these topics actually exist (they funded projects).
 """
 
 import os
-import sys
 import re
 import time
+from datetime import date, datetime
+
 import httpx
 import psycopg2
-from datetime import datetime, date
 from dotenv import load_dotenv
 
 # Load environment
@@ -64,7 +64,7 @@ def fetch_topic_details(client, topic_id):
 
         if resp.status_code == 200:
             return resp.json().get("TopicDetails", {})
-    except Exception as e:
+    except Exception:
         pass
     return None
 

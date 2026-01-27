@@ -13,13 +13,10 @@ including all new features:
 Tests are organized by user journey scenarios.
 """
 
-import pytest
-import asyncio
-import json
-from unittest.mock import Mock, patch, MagicMock, AsyncMock
-from datetime import datetime
-import sys
 import os
+import sys
+
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

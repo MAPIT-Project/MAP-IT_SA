@@ -12,14 +12,15 @@ Generates realistic project timelines with work packages, deliverables,
 and milestones based on best practices from funded projects.
 """
 
-import os
 import logging
-from typing import Dict, Any, List, Optional
-from datetime import datetime
+import os
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
+from typing import Any
+
 import psycopg2
-from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
+from psycopg2.extras import RealDictCursor
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -315,7 +316,7 @@ class TimelineGeneratorTool:
             return None
         return psycopg2.connect(self.db_url)
 
-    def _normalize_cluster_code(self, cluster: Optional[str]) -> Optional[str]:
+    def _normalize_cluster_code(self, cluster: str | None) -> str | None:
         """Normalize cluster code to CLUSTER-N format."""
         if not cluster:
             return None
@@ -324,7 +325,7 @@ class TimelineGeneratorTool:
             cluster_upper = f"CLUSTER{cluster_upper[2]}"
         return CLUSTER_MAP.get(cluster_upper, cluster.upper() if cluster.upper().startswith('CLUSTER-') else None)
 
-    def _infer_clusters_from_keywords(self, keywords: str) -> List[str]:
+    def _infer_clusters_from_keywords(self, keywords: str) -> list[str]:
         """Infer clusters from research topic keywords."""
         if not keywords:
             return []
@@ -348,13 +349,13 @@ class TimelineGeneratorTool:
         num_partners: int,
         total_person_months: int,
         project_title: str = "Project",
-        custom_wps: Optional[List[Dict]] = None,
-        start_date: Optional[str] = None,
-        cluster: Optional[str] = None,
-        topic_keywords: Optional[str] = None,
+        custom_wps: list[dict] | None = None,
+        start_date: str | None = None,
+        cluster: str | None = None,
+        topic_keywords: str | None = None,
         use_real_patterns: bool = True,
         include_similar_projects: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Generate a project timeline with work packages, deliverables, and milestones.
 
@@ -427,12 +428,12 @@ class TimelineGeneratorTool:
         num_partners: int,
         total_person_months: int,
         project_title: str,
-        custom_wps: Optional[List[Dict]],
-        start_date: Optional[str],
-        cluster: Optional[str],
-        inferred_clusters: List[str],
+        custom_wps: list[dict] | None,
+        start_date: str | None,
+        cluster: str | None,
+        inferred_clusters: list[str],
         include_similar_projects: bool
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Hybrid Graph+SQL timeline generation with real project patterns.
         """
@@ -502,8 +503,8 @@ class TimelineGeneratorTool:
     def _get_graph_duration_statistics(
         self,
         cluster: str,
-        action_type: Optional[str]
-    ) -> Optional[Dict]:
+        action_type: str | None
+    ) -> dict | None:
         """Get duration statistics from graph database."""
         if not self._graph_service:
             return None
@@ -524,8 +525,8 @@ class TimelineGeneratorTool:
     def _get_graph_project_examples(
         self,
         cluster: str,
-        action_type: Optional[str]
-    ) -> Optional[List[Dict]]:
+        action_type: str | None
+    ) -> list[dict] | None:
         """Get project examples from graph database."""
         if not self._graph_service:
             return None
@@ -545,8 +546,8 @@ class TimelineGeneratorTool:
     def _get_sql_duration_statistics(
         self,
         action_type: str,
-        cluster: Optional[str]
-    ) -> Optional[Dict]:
+        cluster: str | None
+    ) -> dict | None:
         """Get duration statistics from SQL database."""
         try:
             conn = self._get_connection()
@@ -605,8 +606,8 @@ class TimelineGeneratorTool:
     def _get_sql_project_examples(
         self,
         action_type: str,
-        cluster: Optional[str]
-    ) -> Optional[List[Dict]]:
+        cluster: str | None
+    ) -> list[dict] | None:
         """Get project examples from SQL database."""
         try:
             conn = self._get_connection()
@@ -667,18 +668,18 @@ class TimelineGeneratorTool:
 
     def _generate_with_real_patterns(
         self,
-        results: Dict[str, Any],
+        results: dict[str, Any],
         action_type: str,
         duration_months: int,
         num_partners: int,
         total_person_months: int,
         project_title: str,
-        custom_wps: Optional[List[Dict]],
-        start_date: Optional[str],
-        cluster: Optional[str],
-        inferred_clusters: List[str],
+        custom_wps: list[dict] | None,
+        start_date: str | None,
+        cluster: str | None,
+        inferred_clusters: list[str],
         include_similar_projects: bool
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate timeline with real project patterns from graph and SQL."""
 
         # Get duration statistics
@@ -894,8 +895,8 @@ class TimelineGeneratorTool:
     def _get_cluster_customized_templates(
         self,
         action_type: str,
-        cluster: Optional[str]
-    ) -> List[Dict]:
+        cluster: str | None
+    ) -> list[dict]:
         """Get WP templates customized for the cluster."""
         base_templates = self.WP_TEMPLATES.get(action_type, self.WP_TEMPLATES['RIA'])
 
@@ -933,10 +934,10 @@ class TimelineGeneratorTool:
         num_partners: int,
         total_person_months: int,
         project_title: str,
-        custom_wps: Optional[List[Dict]],
-        start_date: Optional[str],
-        cluster: Optional[str]
-    ) -> Dict[str, Any]:
+        custom_wps: list[dict] | None,
+        start_date: str | None,
+        cluster: str | None
+    ) -> dict[str, Any]:
         """Template-based timeline generation (fallback)."""
         templates = custom_wps or self._get_cluster_customized_templates(action_type, cluster)
 
@@ -1065,9 +1066,9 @@ class TimelineGeneratorTool:
         end_month: int,
         action_type: str,
         counter_start: int,
-        cluster: Optional[str] = None,
-        wp_type: Optional[str] = None
-    ) -> tuple[List[Dict], int]:
+        cluster: str | None = None,
+        wp_type: str | None = None
+    ) -> tuple[list[dict], int]:
         """Generate typical deliverables for a WP."""
         deliverables = []
         duration = end_month - start_month
@@ -1170,7 +1171,7 @@ class TimelineGeneratorTool:
         start_month: int,
         end_month: int,
         counter_start: int
-    ) -> tuple[List[Dict], int]:
+    ) -> tuple[list[dict], int]:
         """Generate milestones for a WP."""
         milestones = []
         duration = end_month - start_month
@@ -1253,7 +1254,7 @@ class TimelineGeneratorTool:
         else:
             return 'default'
 
-    def _generate_gantt_data(self, work_packages: List[Dict], duration: int) -> Dict[str, Any]:
+    def _generate_gantt_data(self, work_packages: list[dict], duration: int) -> dict[str, Any]:
         """Generate Gantt chart data for visualization."""
         gantt_rows = []
 
@@ -1283,7 +1284,7 @@ class TimelineGeneratorTool:
             'dependencies': dependencies
         }
 
-    def _generate_ascii_gantt(self, work_packages: List[Dict], duration: int) -> str:
+    def _generate_ascii_gantt(self, work_packages: list[dict], duration: int) -> str:
         """Generate a formatted ASCII Gantt chart."""
         lines = []
 
@@ -1337,7 +1338,7 @@ class TimelineGeneratorTool:
 
         return '\n'.join(lines)
 
-    def _generate_wp_dependencies(self, work_packages: List[Dict]) -> List[Dict]:
+    def _generate_wp_dependencies(self, work_packages: list[dict]) -> list[dict]:
         """Generate WP dependencies based on timing and logical sequence."""
         dependencies = []
 
@@ -1362,7 +1363,7 @@ class TimelineGeneratorTool:
                             'from': f"WP{other_wp['number']}",
                             'to': f"WP{wp_num}",
                             'type': 'depends_on',
-                            'description': f"Research depends on requirements"
+                            'description': "Research depends on requirements"
                         })
                 elif wp_type == 'validation' and other_type == 'research':
                     if other_wp['start_month'] < wp['start_month']:
@@ -1370,7 +1371,7 @@ class TimelineGeneratorTool:
                             'from': f"WP{other_wp['number']}",
                             'to': f"WP{wp_num}",
                             'type': 'depends_on',
-                            'description': f"Validation depends on research outputs"
+                            'description': "Validation depends on research outputs"
                         })
                 elif wp_type == 'pilot' and other_type == 'validation':
                     if other_wp['start_month'] < wp['start_month']:
@@ -1378,7 +1379,7 @@ class TimelineGeneratorTool:
                             'from': f"WP{other_wp['number']}",
                             'to': f"WP{wp_num}",
                             'type': 'depends_on',
-                            'description': f"Pilot depends on validated components"
+                            'description': "Pilot depends on validated components"
                         })
 
         return dependencies
@@ -1393,7 +1394,7 @@ class TimelineGeneratorTool:
                 bar.append('░')
         return ''.join(bar)
 
-    def _identify_phases(self, work_packages: List[Dict], duration: int) -> List[Dict]:
+    def _identify_phases(self, work_packages: list[dict], duration: int) -> list[dict]:
         """Identify project phases based on WP overlap patterns."""
         phases = []
 
@@ -1416,7 +1417,7 @@ class TimelineGeneratorTool:
 
         return phases
 
-    def _count_by_type(self, deliverables: List[Dict]) -> Dict[str, int]:
+    def _count_by_type(self, deliverables: list[dict]) -> dict[str, int]:
         """Count deliverables by type."""
         counts = {}
         for d in deliverables:
@@ -1426,11 +1427,11 @@ class TimelineGeneratorTool:
 
     def _generate_timeline_recommendations(
         self,
-        work_packages: List[Dict],
+        work_packages: list[dict],
         duration: int,
         action_type: str,
         num_partners: int
-    ) -> List[str]:
+    ) -> list[str]:
         """Generate recommendations for the timeline (template-based)."""
         recommendations = []
 
@@ -1492,13 +1493,13 @@ class TimelineGeneratorTool:
 
     def _generate_timeline_recommendations_hybrid(
         self,
-        work_packages: List[Dict],
+        work_packages: list[dict],
         duration: int,
         action_type: str,
         num_partners: int,
-        duration_context: Optional[Dict],
-        cluster: Optional[str]
-    ) -> List[str]:
+        duration_context: dict | None,
+        cluster: str | None
+    ) -> list[str]:
         """Generate recommendations enhanced with real data."""
         recommendations = []
 
@@ -1581,7 +1582,7 @@ class TimelineGeneratorTool:
 
 
 # Async wrapper for tool orchestrator compatibility
-async def generate_timeline_execute(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+async def generate_timeline_execute(params: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
     """
     Execute timeline generator tool.
 

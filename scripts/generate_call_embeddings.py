@@ -17,14 +17,12 @@ import argparse
 import logging
 import os
 import sys
-import time
-from datetime import datetime
-from typing import List, Dict, Any, Optional
+from typing import Any
 
-import psycopg2
-from psycopg2.extras import RealDictCursor, execute_values
-from dotenv import load_dotenv
 import numpy as np
+import psycopg2
+from dotenv import load_dotenv
+from psycopg2.extras import RealDictCursor, execute_values
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -48,7 +46,7 @@ def get_database_url() -> str:
     return db_url
 
 
-def create_call_text(call: Dict[str, Any]) -> str:
+def create_call_text(call: dict[str, Any]) -> str:
     """
     Create a rich text representation of a call for embedding.
 
@@ -120,8 +118,8 @@ def create_call_text(call: Dict[str, Any]) -> str:
 def get_calls_to_embed(
     conn,
     force: bool = False,
-    limit: Optional[int] = None
-) -> List[Dict]:
+    limit: int | None = None
+) -> list[dict]:
     """Get list of calls that need embeddings."""
     cursor = conn.cursor(cursor_factory=RealDictCursor)
 
@@ -184,7 +182,7 @@ def update_call_embedding(
 
 def update_embeddings_batch(
     conn,
-    updates: List[tuple]  # List of (call_id, embedding_list)
+    updates: list[tuple]  # List of (call_id, embedding_list)
 ) -> int:
     """Update multiple call embeddings in a single transaction."""
     try:
@@ -292,7 +290,7 @@ def main():
                 embeddings = embedding_service.generate_embeddings_batch(batch_texts, use_cache=False)
 
                 updates = []
-                for j, (c, emb) in enumerate(zip(batch_calls, embeddings)):
+                for j, (c, emb) in enumerate(zip(batch_calls, embeddings, strict=False)):
                     if embedding_service.validate_embedding(emb) and not np.all(emb == 0):
                         updates.append((str(c['id']), emb.tolist()))
                         stats['success'] += 1
@@ -316,7 +314,7 @@ def main():
             embeddings = embedding_service.generate_embeddings_batch(batch_texts, use_cache=False)
 
             updates = []
-            for c, emb in zip(batch_calls, embeddings):
+            for c, emb in zip(batch_calls, embeddings, strict=False):
                 if embedding_service.validate_embedding(emb) and not np.all(emb == 0):
                     updates.append((str(c['id']), emb.tolist()))
                     stats['success'] += 1

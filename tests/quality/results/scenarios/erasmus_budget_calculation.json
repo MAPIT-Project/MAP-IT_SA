@@ -11,7 +11,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 1480.991,
+      "processing_time_ms": 1427.724,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -31,7 +31,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 684.79,
+      "processing_time_ms": 681.0469999999999,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -51,7 +51,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 4687.523999999999,
+      "processing_time_ms": 4681.443,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -71,7 +71,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 4470.889999999999,
+      "processing_time_ms": 4292.5019999999995,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -91,7 +91,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 971.09,
+      "processing_time_ms": 886.7040000000001,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -125,10 +125,10 @@
       "ka1"
     ],
     "description": "A VET school or higher education institution wants to understand how to\ncalculate the budget for an Erasmus+ KA1 mobility project. The scenario\ntests understanding of Erasmus+ unit costs, travel distance bands,\nindividual support rates, and inclusion support.\n",
-    "conversation_id": 1225293746
+    "conversation_id": 1623637407
   },
-  "execution_time_ms": 134442.78900000002,
-  "timestamp": "2026-01-23T13:47:32.825393",
+  "execution_time_ms": 134784.664,
+  "timestamp": "2026-01-23T17:28:58.277867",
   "passed": true,
   "turn_count": 5,
   "critical_failures": 0,

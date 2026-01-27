@@ -5,14 +5,14 @@ Multi-pass review simulating EU evaluators for Excellence, Impact, and Implement
 Provides detailed feedback, scoring, and improvement suggestions.
 """
 
-import os
-import logging
-import json
 import asyncio
-from typing import Dict, Any, List, Optional
-from dataclasses import dataclass, field, asdict
-from datetime import datetime, timezone
+import json
+import logging
+import os
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime
 from enum import Enum
+from typing import Any
 
 import google.generativeai as genai
 from dotenv import load_dotenv
@@ -50,9 +50,9 @@ class ReviewFinding:
     issue: str
     suggestion: str
     confidence: float = 0.8
-    quote: Optional[str] = None  # Relevant quote from proposal
+    quote: str | None = None  # Relevant quote from proposal
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "severity": self.severity.value,
             "category": self.category.value,
@@ -71,8 +71,8 @@ class ReviewScore:
     score: float  # 0-5 scale
     max_score: float = 5.0
     justification: str = ""
-    strengths: List[str] = field(default_factory=list)
-    weaknesses: List[str] = field(default_factory=list)
+    strengths: list[str] = field(default_factory=list)
+    weaknesses: list[str] = field(default_factory=list)
 
 
 class ComprehensiveReviewer:
@@ -102,10 +102,10 @@ class ComprehensiveReviewer:
 
     async def full_review(
         self,
-        proposal: Dict[str, Any],
-        call_requirements: Optional[Dict[str, Any]] = None,
+        proposal: dict[str, Any],
+        call_requirements: dict[str, Any] | None = None,
         action_type: str = "RIA"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Perform comprehensive proposal review.
 
@@ -136,11 +136,11 @@ class ComprehensiveReviewer:
         reviews = await asyncio.gather(*review_tasks, return_exceptions=True)
 
         # Process results
-        all_findings: List[ReviewFinding] = []
-        all_scores: List[ReviewScore] = []
+        all_findings: list[ReviewFinding] = []
+        all_scores: list[ReviewScore] = []
 
         review_names = ["excellence", "impact", "implementation", "compliance", "language", "consistency"]
-        for name, review in zip(review_names, reviews):
+        for name, review in zip(review_names, reviews, strict=False):
             if isinstance(review, Exception):
                 logger.error(f"{name} review failed: {review}")
                 continue
@@ -176,16 +176,16 @@ class ComprehensiveReviewer:
                 "sections_reviewed": list(proposal.keys()),
                 "total_findings": len(all_findings),
                 "duration_ms": round(duration_ms),
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(UTC).isoformat()
             }
         }
 
     async def _excellence_review(
         self,
-        proposal: Dict[str, Any],
-        requirements: Optional[Dict[str, Any]],
+        proposal: dict[str, Any],
+        requirements: dict[str, Any] | None,
         action_type: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Review excellence criterion."""
         excellence_content = proposal.get("excellence", "") or proposal.get("section_1", "")
 
@@ -275,10 +275,10 @@ Be thorough but fair. Identify both strengths and weaknesses. Return valid JSON 
 
     async def _impact_review(
         self,
-        proposal: Dict[str, Any],
-        requirements: Optional[Dict[str, Any]],
+        proposal: dict[str, Any],
+        requirements: dict[str, Any] | None,
         action_type: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Review impact criterion."""
         impact_content = proposal.get("impact", "") or proposal.get("section_2", "")
 
@@ -360,10 +360,10 @@ Return valid JSON only."""
 
     async def _implementation_review(
         self,
-        proposal: Dict[str, Any],
-        requirements: Optional[Dict[str, Any]],
+        proposal: dict[str, Any],
+        requirements: dict[str, Any] | None,
         action_type: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Review implementation criterion."""
         impl_content = proposal.get("implementation", "") or proposal.get("section_3", "")
         budget_content = proposal.get("budget", "")
@@ -447,9 +447,9 @@ Return valid JSON only."""
 
     async def _compliance_review(
         self,
-        proposal: Dict[str, Any],
-        requirements: Optional[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        proposal: dict[str, Any],
+        requirements: dict[str, Any] | None
+    ) -> dict[str, Any]:
         """Review compliance with EU requirements."""
         findings = []
 
@@ -491,7 +491,7 @@ Return valid JSON only."""
 
         return {"findings": findings}
 
-    async def _language_review(self, proposal: Dict[str, Any]) -> Dict[str, Any]:
+    async def _language_review(self, proposal: dict[str, Any]) -> dict[str, Any]:
         """Review language quality and clarity."""
         all_content = " ".join(str(v) for v in proposal.values() if isinstance(v, str))
 
@@ -555,7 +555,7 @@ Return valid JSON only."""
             logger.error(f"Language review failed: {e}")
             return {"findings": []}
 
-    async def _consistency_review(self, proposal: Dict[str, Any]) -> Dict[str, Any]:
+    async def _consistency_review(self, proposal: dict[str, Any]) -> dict[str, Any]:
         """Check internal consistency across sections."""
         proposal_json = json.dumps(proposal, indent=2, default=str)[:10000]
 
@@ -609,7 +609,7 @@ Return valid JSON only."""
             logger.error(f"Consistency review failed: {e}")
             return {"findings": []}
 
-    def _parse_json_response(self, text: str) -> Dict[str, Any]:
+    def _parse_json_response(self, text: str) -> dict[str, Any]:
         """Parse JSON from AI response."""
         try:
             # Try to extract JSON from markdown code blocks
@@ -629,8 +629,8 @@ Return valid JSON only."""
 
     def _calculate_overall_score(
         self,
-        scores: List[ReviewScore],
-        findings: List[ReviewFinding]
+        scores: list[ReviewScore],
+        findings: list[ReviewFinding]
     ) -> float:
         """Calculate overall proposal score."""
         if not scores:
@@ -664,7 +664,7 @@ Return valid JSON only."""
 
     async def _generate_review_summary(
         self,
-        findings: List[ReviewFinding],
+        findings: list[ReviewFinding],
         score: float
     ) -> str:
         """Generate executive summary of the review."""
@@ -701,8 +701,8 @@ Key Statistics:
     def _get_recommendation(
         self,
         score: float,
-        findings: List[ReviewFinding]
-    ) -> Dict[str, Any]:
+        findings: list[ReviewFinding]
+    ) -> dict[str, Any]:
         """Get submission recommendation."""
         critical_count = len([f for f in findings if f.severity == ReviewSeverity.CRITICAL])
         major_count = len([f for f in findings if f.severity == ReviewSeverity.MAJOR])
@@ -741,8 +741,8 @@ Key Statistics:
     def _estimate_evaluator_score(
         self,
         score: float,
-        findings: List[ReviewFinding]
-    ) -> Dict[str, Any]:
+        findings: list[ReviewFinding]
+    ) -> dict[str, Any]:
         """Estimate likely evaluator score range."""
         # EU uses 0-5 scale with threshold of 3 per criterion
         # Overall threshold typically 10/15 or similar
@@ -760,14 +760,14 @@ Key Statistics:
             "note": "Actual scores may vary based on evaluator interpretation and competition level"
         }
 
-    def _group_by_severity(self, findings: List[ReviewFinding]) -> Dict[str, List[Dict]]:
+    def _group_by_severity(self, findings: list[ReviewFinding]) -> dict[str, list[dict]]:
         """Group findings by severity."""
         grouped = {s.value: [] for s in ReviewSeverity}
         for f in findings:
             grouped[f.severity.value].append(f.to_dict())
         return grouped
 
-    def _group_by_category(self, findings: List[ReviewFinding]) -> Dict[str, List[Dict]]:
+    def _group_by_category(self, findings: list[ReviewFinding]) -> dict[str, list[dict]]:
         """Group findings by category."""
         grouped = {c.value: [] for c in ReviewCategory}
         for f in findings:

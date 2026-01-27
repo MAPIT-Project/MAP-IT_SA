@@ -24,15 +24,14 @@ import json
 import logging
 import os
 import re
-import sys
 import time
-from datetime import datetime, date
-from typing import Optional, Dict, Any, List, Tuple
+from datetime import date, datetime
+from typing import Any
 
 import httpx
 import psycopg2
-from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
+from psycopg2.extras import RealDictCursor
 
 # Setup logging
 logging.basicConfig(
@@ -54,7 +53,7 @@ def get_database_url() -> str:
     return db_url
 
 
-def is_valid_topic_code(topic_code: str) -> Tuple[bool, str]:
+def is_valid_topic_code(topic_code: str) -> tuple[bool, str]:
     """
     Check if a topic code is valid and complete.
 
@@ -118,7 +117,7 @@ def is_garbled_title(title: str) -> bool:
     return False
 
 
-def needs_enrichment(call: Dict[str, Any]) -> Tuple[bool, List[str]]:
+def needs_enrichment(call: dict[str, Any]) -> tuple[bool, list[str]]:
     """
     Check if a call needs enrichment and why.
 
@@ -155,7 +154,7 @@ def needs_enrichment(call: Dict[str, Any]) -> Tuple[bool, List[str]]:
     return len(reasons) > 0, reasons
 
 
-def fetch_from_api(topic_code: str, client: httpx.Client) -> Optional[Dict[str, Any]]:
+def fetch_from_api(topic_code: str, client: httpx.Client) -> dict[str, Any] | None:
     """Fetch call details from EU Portal API."""
     # API requires lowercase topic codes
     url = f"{EU_PORTAL_TOPIC_DETAILS}/{topic_code.lower()}.json"
@@ -253,7 +252,7 @@ def fetch_from_api(topic_code: str, client: httpx.Client) -> Optional[Dict[str, 
         return None
 
 
-def update_call(conn, topic_code: str, data: Dict[str, Any], dry_run: bool = False) -> bool:
+def update_call(conn, topic_code: str, data: dict[str, Any], dry_run: bool = False) -> bool:
     """Update call in database with enriched data."""
     if dry_run:
         return True
@@ -321,7 +320,7 @@ def delete_call(conn, topic_code: str, dry_run: bool = False) -> bool:
         return False
 
 
-def get_all_calls(conn, force: bool = False, limit: Optional[int] = None) -> List[Dict]:
+def get_all_calls(conn, force: bool = False, limit: int | None = None) -> list[dict]:
     """Get all calls from database."""
     cursor = conn.cursor(cursor_factory=RealDictCursor)
 
@@ -411,7 +410,7 @@ def main():
         else:
             stats['valid_no_enrichment'] += 1
 
-    logger.info(f"\nAnalysis complete:")
+    logger.info("\nAnalysis complete:")
     logger.info(f"  - Valid, complete: {stats['valid_no_enrichment']}")
     logger.info(f"  - Needs enrichment: {len(calls_to_enrich)}")
     logger.info(f"  - Invalid topic code: {len(invalid_calls)}")

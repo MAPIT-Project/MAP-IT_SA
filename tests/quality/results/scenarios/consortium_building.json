@@ -1,117 +1,169 @@
 {
   "scenario_name": "Consortium Building",
+  "status": "FAIL",
+  "average_quality_score": 77.66666666666667,
+  "average_factual_score": 100.0,
   "turns": [
     {
-      "turn_number": 0,
       "query": "We need partners for an AI in agriculture project",
-      "response_text": "Based on my search for information about 'We need partners for an AI in agriculture project', here's what I found:\n\n**Finding 1:**\n## Top Organizations with Experience in 'AI machine learning agriculture precision farming digital twin'\n\nFound **15 organizations** with relevant track records:\n\n### 1. **KATHOLIEKE UNIVERSITEIT LEUVEN** (BE)\n- **Organization Type**: HES (Higher Education)\n- **Relevant Projects**: 419 (coordinated **172** projects)\n- **Total Funding**: €245,011,638\n- **Example Projects**: HOTBIO (associatedPartner), ChemProFlav (associatedPartner), BioAlgae (associatedPartner)\n\n### 2. **FRAUNHOFER GESELLSCHAFT ZUR FORDERUNG DER ANGEWANDTEN FORSCHUNG EV** (DE)\n- **Organization Type**: REC (Research Center)\n- **Relevant Projects**: 491 (coordinated **59** projects)\n- **Total Funding**: €330,042,708\n- **Example Projects**: 6G-ICARUS (associatedPartner), 6G-TERARIS (associatedPartner), LANDSCAPEforCHANGE (associatedPartner)\n\n### 3. **CENTRE NATIONAL DE LA RECHERCHE SCIENTIFIQUE CNRS** (FR)\n- **Organization Type**: REC (Research Center)\n- **Relevant Projects**: 881 (coordinated **386** projects)\n- **Total Funding**: €614,706,866\n- **Example Projects**: MuCol (associatedPartner), ALGETIQ (associatedPartner), AURORA (associatedPartner)\n\n### 4. **CONSIGLIO NAZIONALE DELLE RICERCHE** (IT)\n- **Organization Type**: REC (Research Center)\n- **Relevant Projects**: 387 (coordinated **76** projects)\n- **Total Funding**: €145,534,103\n- **Example Projects**: EagleEye (associatedPartner), ACINETWORK (associatedPartner), Blue-Paths (associatedPartner)\n\n### 5. **ETHNIKO KENTRO EREVNAS KAI TECHNOLOGIKIS ANAPTYXIS** (EL)\n- **Organization Type**: REC (Research Center)\n- **Relevant Projects**: 239 (coordinated **59** projects)\n- **Total Funding**: €121,464,236\n- **Example Projects**: SURPLAS (coordinator), ABATE (coordinator), AIDEAS (coordinator)\n\n(... 10 organizations listed with funding and project details)\n\n**Top countries for this topic**: IT, FI, DK, ES, BE\n\n---\n\n### How to Verify & Contact Partners\n\n- **CORDIS Database**: Search for specific projects at https://cordis.europa.eu\n- **EU Funding Portal**: https://ec.europa.eu/info/funding-tenders/\n- **Partner Search**: Use the EU Partner Search tool to find and contact organizations",
-      "tools_used": ["find_experienced_partners"],
+      "response": "Based on my search for information about 'We need partners for an AI in agriculture project', here's what I found:\n\n**Finding 1:**\n## Top Organizations with Experience in 'AI machine learning precision farming smart agriculture sensors'\n\nFound **10 organizations** with relevant track records:\n\n### 1. **CONSULAI, CONSULTORIA AGROINDUSTRIAL LDA** (PT)\n- **Organization Type**: PRC (Private Company)\n- **Relevant Projects**: 15 (coordinated **1** projects)\n- **Total Funding**: \u20ac5,578,586\n- **Example ...",
       "quality_score": 79,
       "factual_score": 100.0,
       "failures": [],
+      "tools_used": [
+        "find_experienced_partners",
+        "find_experienced_partners"
+      ],
+      "processing_time_ms": 7291.797,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 4
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
       "passed": false
     },
     {
-      "turn_number": 1,
       "query": "Find organizations experienced in precision farming",
-      "response_text": "The provided search results are unfortunately not helpful in identifying organizations experienced in precision farming. The documents listed appear to be related to European grant programs and funding initiatives across various sectors, but they do not mention specific organizations or projects involved in precision agriculture.\n\nTo find organizations experienced in precision farming, you would need to search for resources like:\n\n*   **Agricultural research institutions:** Many universities and research centers have departments or programs focused on precision agriculture.\n*   **Agricultural technology companies:** Companies developing and selling precision farming equipment and software.\n*   **Government agricultural agencies:** These agencies often have resources and programs related to precision agriculture.\n*   **Agricultural consulting firms:** Some consulting firms specialize in helping farmers implement precision agriculture techniques.\n*   **Farmer cooperatives and associations:** Some of these organizations are involved in promoting and adopting precision agriculture practices.\n\nYou can use search engines like Google, specialized databases like AgEcon Search, or directories of agricultural organizations to find relevant information.",
-      "tools_used": ["search_documents"],
+      "response": "Based on your interest in an AI in agriculture project, here are 10 highly experienced organizations in the field of **Precision Farming** from Horizon Europe and H2020 data. These organizations (primarily Research Institutes and Universities) often lead large Cluster 6 consortia and possess expertise in sensor technology, data integration, and agricultural modeling:\n\n### Top 10 Experienced Precision Farming Partners\n\n| # | Organization Name | Country | Type | Relevant Projects | As Coordinator ...",
       "quality_score": 77,
       "factual_score": 100.0,
-      "failures": ["wrong_tool_selected"],
+      "failures": [],
+      "tools_used": [
+        "find_experienced_partners"
+      ],
+      "processing_time_ms": 10027.172999999999,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 2
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
       "passed": false
     },
     {
-      "turn_number": 2,
       "query": "We need an SME partner from Southern Europe",
-      "response_text": "Based on my search for information about 'We need an SME partner from Southern Europe', here's what I found:\n\n**Finding 1:**\n## Top Organizations with Experience in 'southern europe'\n\nFound **20 organizations** with relevant track records:\n\n### 1. **ELECTRICITE DE FRANCE** (FR)\n- **Organization Type**: PRC (Private Company)\n- **Relevant Projects**: 37 (coordinated **3** projects)\n- **Total Funding**: €19,019,698\n\n(... 10 organizations listed with funding details)\n\n**Top countries for this topic**: FR",
-      "tools_used": ["find_experienced_partners"],
+      "response": "Based on my search for information about 'We need an SME partner from Southern Europe', here's what I found:\n\n**Finding 1:**\n## Top Organizations with Experience in 'AI precision farming agriculture sensors'\n\nFound **20 organizations** with relevant track records:\n\n### 1. **TELEFONICA INNOVACION DIGITAL SL** (ES)\n- **Organization Type**: PRC (Private Company)\n- **Relevant Projects**: 52 (coordinated **3** projects)\n- **Total Funding**: \u20ac20,847,542\n- **Example Projects**: TWIN6G (associatedPartne...",
       "quality_score": 79,
       "factual_score": 100.0,
       "failures": [],
+      "tools_used": [
+        "find_experienced_partners",
+        "find_experienced_partners"
+      ],
+      "processing_time_ms": 8658.392,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 4
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
       "passed": false
     },
     {
-      "turn_number": 3,
       "query": "Find a research organization from Germany",
-      "response_text": "Based on my search for information about 'Find a research organization from Germany', here's what I found:\n\n**Finding 1:**\n## Top Organizations with Experience in 'germany'\n\nFound **18 organizations** with relevant track records:\n\n### 1. **DEUTSCHES ZENTRUM FUR LUFT - UND RAUMFAHRT EV** (DE)\n- **Organization Type**: REC (Research Center)\n- **Relevant Projects**: 10 (coordinated **2** projects)\n- **Total Funding**: €9,846,514\n\n(... research organizations listed)\n\n**Top countries for this topic**: DE",
-      "tools_used": ["find_experienced_partners"],
+      "response": "Based on my search for information about 'Find a research organization from Germany', here's what I found:\n\n**Finding 1:**\n## Top Organizations with Experience in 'AI machine learning precision farming agriculture sensors'\n\nFound **10 organizations** with relevant track records:\n\n### 1. **DEUTSCHES ZENTRUM FUR LUFT - UND RAUMFAHRT EV** (DE)\n- **Organization Type**: REC (Research Center)\n- **Relevant Projects**: 230 (coordinated **37** projects)\n- **Total Funding**: \u20ac196,793,924\n- **Example Proje...",
       "quality_score": 79,
       "factual_score": 100.0,
       "failures": [],
+      "tools_used": [
+        "find_experienced_partners",
+        "find_experienced_partners"
+      ],
+      "processing_time_ms": 8201.104000000001,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 4
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
       "passed": false
     },
     {
-      "turn_number": 4,
       "query": "What's a typical consortium size for this topic?",
-      "response_text": "I found some information but couldn't extract specific details. Please try a more specific question.",
-      "tools_used": ["get_consortium_patterns"],
+      "response": "I found some information but couldn't extract specific details. Please try a more specific question.",
       "quality_score": 75,
       "factual_score": 100.0,
-      "failures": ["low_response_quality"],
+      "failures": [],
+      "tools_used": [
+        "get_consortium_patterns",
+        "get_consortium_patterns"
+      ],
+      "processing_time_ms": 4715.045,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 0
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 4,
       "passed": false
     },
     {
-      "turn_number": 5,
       "query": "Show our proposed consortium",
-      "response_text": "Based on my search for information about 'Show our proposed consortium', here's what I found:\n\n**Finding 1:**\nequest  to  add  a  new  beneficiary  with  several  affiliated \nentities  (see  Article  8).  The  granting  authority  requests  a  signed  declaration  for  the  joint  and \nseveral  liability  of  the  affiliated  entities  (Annex  3a).\n\n**Finding 2:**\now important terms which are mentioned repeatedly throughout \nthe different provisions of the Grant Agreement.",
-      "tools_used": ["search_documents"],
+      "response": "Based on our previous partner discovery searches focusing on **AI, Precision Farming, and Agriculture Sensors**, here is a summary of the organizations identified for your proposed consortium draft:\n\n### Proposed Draft Consortium (AI/Precision Agriculture Focus)\n\nThis draft currently includes 9 highly experienced organizations spanning large corporations, consulting experts, and leading German research institutes. (Note: The coordinator role is currently undefined.)\n\n| Organization Name | Countr...",
       "quality_score": 77,
       "factual_score": 100.0,
-      "failures": ["wrong_tool_selected", "missing_context_synthesis"],
+      "failures": [],
+      "tools_used": [],
+      "processing_time_ms": 9143.213,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 2
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 5,
       "passed": false
     }
   ],
-  "average_score": 77.66666666666667,
-  "factual_score": 100.0,
-  "failures": ["LLM_tool_selection_not_following_hints", "context_synthesis_not_working"],
-  "status": "MAX_ATTEMPTS",
-  "execution_time_ms": 91193.776,
-  "timestamp": "2026-01-22T20:34:05.504217",
+  "scores": {
+    "average_quality": 77.66666666666667,
+    "average_factual": 100.0,
+    "goal_progress": 0.6,
+    "context_fields": 6
+  },
+  "failures": [],
   "metadata": {
     "scenario_path": "tests/scenarios/advanced/consortium_building.yaml",
-    "tags": ["phase2", "proposal-development", "consortium", "partners", "agriculture", "ai"],
-    "description": "A 6-step consortium building workflow for an AI in agriculture project.\nTests iterative partner discovery, geographic filtering, organization type filtering,\nconsortium size guidance, and final composition summary. The scenario validates\nthat partner context accumulates across turns and geographic balance is considered.\n",
-    "conversation_id": 614218687
-  },
-  "fix_history": [
-    {
-      "attempt": 1,
-      "file_modified": "app/services/agents/tool_aware_agent.py",
-      "change_description": "Added Consortium Building Workflow section to system prompt with explicit instructions for using find_experienced_partners and get_consortium_patterns tools. Also added more patterns to search_documents exclusion list.",
-      "result": "Score remained at 77.67 - LLM still selecting search_documents for precision farming query"
-    },
-    {
-      "attempt": 2,
-      "file_modified": "app/services/agents/tool_aware_agent.py",
-      "change_description": "Added _get_tool_hint() method to inject tool hints into context for partner discovery, consortium patterns, budget, and timeline queries. Added _detect_query_type_for_tool_selection() to fallback reasoning. Enhanced fallback to detect partner/consortium queries and use correct tools.",
-      "result": "Turns 2-4 improved to use correct tools. Turn 1 still using search_documents. Score remained at 77.67"
-    },
-    {
-      "attempt": 3,
-      "file_modified": "app/services/agents/tool_aware_agent.py",
-      "change_description": "Enhanced tool hints with specific parameter suggestions. Added context synthesis patterns for 'show our proposed consortium' type queries. Made hints more forceful with MANDATORY keyword.",
-      "result": "No improvement. LLM still not following hints for Turn 1 (precision farming) and Turn 5 (consortium summary). Score remained at 77.67"
-    }
-  ],
-  "root_cause_analysis": {
-    "primary_issue": "LLM tool selection not following explicit hints",
-    "affected_turns": [1, 5],
-    "details": {
-      "turn_1": "Query 'Find organizations experienced in precision farming' should trigger find_experienced_partners but LLM selects search_documents despite: (1) Pattern matching 'precision farming' and 'experienced in' in tool hints, (2) Tool hints injected into context, (3) Explicit system prompt guidance",
-      "turn_5": "Query 'Show our proposed consortium' should synthesize from conversation context but LLM calls search_documents instead of using previous turn results"
-    },
-    "root_causes": [
-      "LLM (Gemini) not reliably following tool selection hints in context",
-      "Tool hints added to context may be ignored by the model during reasoning",
-      "search_documents appears to be the model's default fallback regardless of hints",
-      "Context synthesis for multi-turn conversations not working as expected"
+    "tags": [
+      "phase2",
+      "proposal-development",
+      "consortium",
+      "partners",
+      "agriculture",
+      "ai"
     ],
-    "recommendations": [
-      "Consider implementing programmatic tool routing based on keyword detection BEFORE LLM reasoning",
-      "Evaluate alternative LLM models with better instruction following",
-      "Add pre-processing step to detect partner/consortium queries and force tool selection",
-      "Consider model fine-tuning for better tool selection in EU funding domain"
-    ]
-  }
+    "description": "A 6-step consortium building workflow for an AI in agriculture project.\nTests iterative partner discovery, geographic filtering, organization type filtering,\nconsortium size guidance, and final composition summary. The scenario validates\nthat partner context accumulates across turns and geographic balance is considered.\n",
+    "conversation_id": 421282724
+  },
+  "execution_time_ms": 145688.998,
+  "timestamp": "2026-01-23T16:21:38.737441",
+  "passed": false,
+  "turn_count": 6,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
 }

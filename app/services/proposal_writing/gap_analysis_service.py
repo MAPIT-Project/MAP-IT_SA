@@ -7,9 +7,9 @@ providing a prioritized roadmap to reach funding threshold.
 
 import logging
 import os
-from typing import List, Dict, Optional, Any
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -58,8 +58,8 @@ class Gap:
     estimated_score_impact: float  # How many points this gap costs
     effort: EffortLevel
     specific_action: str
-    example_text: Optional[str] = None
-    related_criterion: Optional[str] = None
+    example_text: str | None = None
+    related_criterion: str | None = None
     is_resolved: bool = False
 
 
@@ -71,10 +71,10 @@ class GapAnalysisResult:
     current_score: float
     target_score: float
     score_gap: float
-    gaps: List[Gap]
+    gaps: list[Gap]
     critical_count: int
     total_estimated_impact: float
-    recommended_priority_order: List[str]  # Gap IDs in order
+    recommended_priority_order: list[str]  # Gap IDs in order
     estimated_total_effort: str
     achievable_score: float  # Score if all gaps closed
 
@@ -120,9 +120,9 @@ class GapAnalysisService:
         content: str,
         section_type: str,
         current_score: float,
-        target_score: Optional[float] = None,
-        evaluation_result: Optional[Dict] = None,
-        cluster: Optional[str] = None
+        target_score: float | None = None,
+        evaluation_result: dict | None = None,
+        cluster: str | None = None
     ) -> GapAnalysisResult:
         """
         Analyze gaps between current content and target score.
@@ -211,9 +211,9 @@ class GapAnalysisService:
         section_type: str,
         current_score: float,
         target_score: float,
-        weaknesses: List[str],
-        cluster: Optional[str]
-    ) -> List[Gap]:
+        weaknesses: list[str],
+        cluster: str | None
+    ) -> list[Gap]:
         """Identify specific gaps using LLM analysis."""
         ai_service = self._get_ai_service()
 
@@ -338,7 +338,7 @@ Focus on the most impactful gaps first. Be specific and actionable."""
 
         return gaps
 
-    def _prioritize_gaps(self, gaps: List[Gap]) -> List[str]:
+    def _prioritize_gaps(self, gaps: list[Gap]) -> list[str]:
         """
         Prioritize gaps by impact-to-effort ratio.
 
@@ -366,7 +366,7 @@ Focus on the most impactful gaps first. Be specific and actionable."""
         sorted_gaps = sorted(gaps, key=priority_score, reverse=True)
         return [g.id for g in sorted_gaps]
 
-    def _estimate_total_effort(self, gaps: List[Gap]) -> str:
+    def _estimate_total_effort(self, gaps: list[Gap]) -> str:
         """Estimate total effort to close all gaps."""
         effort_minutes = {
             EffortLevel.QUICK: 20,
@@ -392,7 +392,7 @@ Focus on the most impactful gaps first. Be specific and actionable."""
         gap: Gap,
         content: str,
         section_type: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get detailed suggestion for closing a specific gap.
 
@@ -464,7 +464,7 @@ Provide a specific rewrite that closes this gap. Respond with JSON:
     async def save_gaps(
         self,
         section_id: str,
-        gaps: List[Gap]
+        gaps: list[Gap]
     ) -> None:
         """Save identified gaps to database."""
         conn = self._get_connection()
@@ -510,7 +510,7 @@ class GapProgressTracker:
         """Get database connection."""
         return psycopg2.connect(self._db_url)
 
-    async def get_section_progress(self, section_id: str) -> Dict[str, Any]:
+    async def get_section_progress(self, section_id: str) -> dict[str, Any]:
         """Get gap closure progress for a section."""
         conn = self._get_connection()
         try:
@@ -552,7 +552,7 @@ class GapProgressTracker:
         finally:
             conn.close()
 
-    async def get_proposal_progress(self, proposal_id: str) -> Dict[str, Any]:
+    async def get_proposal_progress(self, proposal_id: str) -> dict[str, Any]:
         """Get overall gap progress for a proposal."""
         conn = self._get_connection()
         try:

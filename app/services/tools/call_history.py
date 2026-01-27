@@ -14,17 +14,18 @@ funded, when, and under which calls. Helps users understand funding landscape
 and identify trends.
 """
 
-import os
-import logging
-import re
 import json
-from typing import Optional, Dict, Any, List, Tuple
-from datetime import datetime
+import logging
+import os
+import re
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
+from typing import Any
+
 import psycopg2
-from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
+from psycopg2.extras import RealDictCursor
 
 # Import Gemini for AI-powered keyword expansion
 try:
@@ -146,12 +147,12 @@ class CallHistoryTool:
         cluster_upper = cluster.upper().replace(' ', '').replace('-', '')
         return CLUSTER_MAP.get(cluster_upper, cluster.upper())
 
-    def _cluster_to_graph_code(self, cluster: str) -> Optional[str]:
+    def _cluster_to_graph_code(self, cluster: str) -> str | None:
         """Convert cluster code to graph format (CLUSTER-N)."""
         normalized = self._normalize_cluster(cluster)
         return CLUSTER_TO_GRAPH.get(normalized, normalized if normalized.startswith('CLUSTER-') else None)
 
-    def _infer_clusters_from_keywords(self, keywords: str) -> List[str]:
+    def _infer_clusters_from_keywords(self, keywords: str) -> list[str]:
         """Infer clusters from keywords for more targeted search."""
         if not keywords:
             return []
@@ -193,7 +194,7 @@ class CallHistoryTool:
                     'manipulation', 'mobile robotics', 'human-robot interaction'],
     }
 
-    def _expand_keywords_with_ai(self, keywords: str) -> List[str]:
+    def _expand_keywords_with_ai(self, keywords: str) -> list[str]:
         """
         Use AI to expand keywords to include related terms for broader scope searches.
 
@@ -271,7 +272,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
                 logger.info(f"🔍 AI expanded '{original_keywords}' to {len(expanded)} terms: {expanded[:5]}...")
                 return expanded
             else:
-                logger.warning(f"⚠️ AI expansion returned unexpected format, using original")
+                logger.warning("⚠️ AI expansion returned unexpected format, using original")
                 return [original_keywords]
 
         except json.JSONDecodeError as e:
@@ -281,7 +282,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
             logger.warning(f"⚠️ AI keyword expansion failed: {e}, using original")
             return [original_keywords]
 
-    def _extract_year_from_topic(self, topic_code: str) -> Optional[int]:
+    def _extract_year_from_topic(self, topic_code: str) -> int | None:
         """Extract year from topic code like HORIZON-CL5-2024-D3-01-04."""
         if not topic_code:
             return None
@@ -292,19 +293,19 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
 
     def analyze_history(
         self,
-        topic_pattern: Optional[str] = None,
-        cluster: Optional[str] = None,
-        keywords: Optional[str] = None,
-        year_from: Optional[int] = None,
-        year_to: Optional[int] = None,
-        action_types: Optional[List[str]] = None,
+        topic_pattern: str | None = None,
+        cluster: str | None = None,
+        keywords: str | None = None,
+        year_from: int | None = None,
+        year_to: int | None = None,
+        action_types: list[str] | None = None,
         include_projects: bool = True,
         include_topic_evolution: bool = True,
         include_cluster_trends: bool = True,
         strict_match: bool = True,  # Use stricter keyword matching
         expand_scope: bool = False,  # NEW: Expand keywords to include related terms
         limit: int = 500
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Analyze historical funding patterns for specific topic areas.
 
@@ -373,7 +374,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
                     effective_cluster = 'CL4'
                     if not graph_cluster:
                         graph_cluster = 'CLUSTER-4'
-                    logger.info(f"Auto-applied CL4 cluster filter for AI-specific query")
+                    logger.info("Auto-applied CL4 cluster filter for AI-specific query")
 
             # Use hybrid approach if graph service available
             # Now also trigger for keyword searches (not just cluster)
@@ -423,23 +424,23 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
 
     def _analyze_history_hybrid(
         self,
-        topic_pattern: Optional[str],
-        cluster: Optional[str],
-        graph_cluster: Optional[str],
-        keywords: Optional[str],
-        year_from: Optional[int],
-        year_to: Optional[int],
-        action_types: Optional[List[str]],
+        topic_pattern: str | None,
+        cluster: str | None,
+        graph_cluster: str | None,
+        keywords: str | None,
+        year_from: int | None,
+        year_to: int | None,
+        action_types: list[str] | None,
         include_projects: bool,
         include_topic_evolution: bool,
         include_cluster_trends: bool,
-        inferred_clusters: List[str],
+        inferred_clusters: list[str],
         strict_match: bool = True,
         expand_scope: bool = False,
-        original_keywords: Optional[str] = None,
-        expanded_keywords_list: Optional[List[str]] = None,
+        original_keywords: str | None = None,
+        expanded_keywords_list: list[str] | None = None,
         limit: int = 500
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Hybrid Graph+SQL analysis for funding history.
 
@@ -547,7 +548,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
             expanded_keywords_list=expanded_keywords_list
         )
 
-    def _get_graph_funding_trends(self, cluster: str) -> Optional[List[Dict]]:
+    def _get_graph_funding_trends(self, cluster: str) -> list[dict] | None:
         """Get funding trends from graph database."""
         if not self._graph_service:
             return None
@@ -565,8 +566,8 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
     def _get_graph_topic_landscape(
         self,
         cluster: str,
-        topic_pattern: Optional[str] = None
-    ) -> Optional[Dict]:
+        topic_pattern: str | None = None
+    ) -> dict | None:
         """Get topic landscape and evolution from graph."""
         if not self._graph_service:
             return None
@@ -600,7 +601,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
             logger.warning(f"Graph topic landscape query failed: {e}")
             return None
 
-    def _get_graph_cluster_statistics(self, cluster: str) -> Optional[Dict]:
+    def _get_graph_cluster_statistics(self, cluster: str) -> dict | None:
         """Get cluster statistics from graph."""
         if not self._graph_service:
             return None
@@ -617,9 +618,9 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
     def _get_graph_projects_by_keywords(
         self,
         keywords: str,
-        cluster: Optional[str],
+        cluster: str | None,
         limit: int
-    ) -> Optional[List[Dict]]:
+    ) -> list[dict] | None:
         """
         Get projects matching keywords using graph database.
 
@@ -657,8 +658,8 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
     def _get_graph_keyword_funding_trends(
         self,
         keywords: str,
-        cluster: Optional[str]
-    ) -> Optional[Dict]:
+        cluster: str | None
+    ) -> dict | None:
         """
         Get funding trends for keyword-matched projects from graph.
 
@@ -763,7 +764,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
             logger.warning(f"Graph keyword funding trends query failed: {e}")
             return None
 
-    def _get_graph_cluster_statistics_old(self, cluster: str) -> Optional[Dict]:
+    def _get_graph_cluster_statistics_old(self, cluster: str) -> dict | None:
         """Get cluster statistics from graph (original method kept for reference)."""
         if not self._graph_service:
             return None
@@ -779,15 +780,15 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
 
     def _get_calls_history_sql(
         self,
-        topic_pattern: Optional[str],
-        cluster: Optional[str],
-        keywords: Optional[str],
-        year_from: Optional[int],
-        year_to: Optional[int],
-        action_types: Optional[List[str]],
+        topic_pattern: str | None,
+        cluster: str | None,
+        keywords: str | None,
+        year_from: int | None,
+        year_to: int | None,
+        action_types: list[str] | None,
         limit: int,
         strict_match: bool = True
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """Get calls from funding_calls table (SQL).
 
         With strict_match=True:
@@ -847,7 +848,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
 
             if year_from:
                 where_conditions.append("(call_year >= %s OR topic_code ~ %s)")
-                params.extend([year_from, f"20[2-3][0-9]"])  # Will filter after
+                params.extend([year_from, "20[2-3][0-9]"])  # Will filter after
 
             if year_to:
                 where_conditions.append("(call_year <= %s OR call_year IS NULL)")
@@ -914,13 +915,13 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
 
     def _get_timeline_aggregates_sql(
         self,
-        topic_pattern: Optional[str],
-        cluster: Optional[str],
-        keywords: Optional[str],
-        year_from: Optional[int],
-        year_to: Optional[int],
+        topic_pattern: str | None,
+        cluster: str | None,
+        keywords: str | None,
+        year_from: int | None,
+        year_to: int | None,
         strict_match: bool = True
-    ) -> Dict[int, Dict]:
+    ) -> dict[int, dict]:
         """Get aggregated timeline data from SQL (no limit)."""
         conn = self._get_connection()
         if not conn:
@@ -980,14 +981,14 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
 
     def _get_funded_projects_sql(
         self,
-        topic_pattern: Optional[str],
-        cluster: Optional[str],
-        keywords: Optional[str],
-        year_from: Optional[int],
-        year_to: Optional[int],
+        topic_pattern: str | None,
+        cluster: str | None,
+        keywords: str | None,
+        year_from: int | None,
+        year_to: int | None,
         limit: int,
         strict_match: bool = True
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """Get funded projects matching criteria (SQL)."""
         conn = self._get_connection()
         if not conn:
@@ -1051,20 +1052,20 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
 
     def _merge_history_results(
         self,
-        results: Dict[str, Any],
-        topic_pattern: Optional[str],
-        cluster: Optional[str],
-        graph_cluster: Optional[str],
-        keywords: Optional[str],
-        year_from: Optional[int],
-        year_to: Optional[int],
-        action_types: Optional[List[str]],
-        inferred_clusters: List[str],
+        results: dict[str, Any],
+        topic_pattern: str | None,
+        cluster: str | None,
+        graph_cluster: str | None,
+        keywords: str | None,
+        year_from: int | None,
+        year_to: int | None,
+        action_types: list[str] | None,
+        inferred_clusters: list[str],
         include_projects: bool,
         expand_scope: bool = False,
-        original_keywords: Optional[str] = None,
-        expanded_keywords_list: Optional[List[str]] = None
-    ) -> Dict[str, Any]:
+        original_keywords: str | None = None,
+        expanded_keywords_list: list[str] | None = None
+    ) -> dict[str, Any]:
         """Merge graph and SQL results into comprehensive response."""
 
         calls = results['sql'].get('calls', [])
@@ -1113,7 +1114,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
                 )
                 if data.get('avg_funding'):
                     timeline[year]["avg_project_budget"] = data['avg_funding']
-            logger.info(f"📊 Enhanced timeline with graph keyword trends")
+            logger.info("📊 Enhanced timeline with graph keyword trends")
 
         # Check if we have any results now
         if not calls and not timeline and not graph_trends and not graph_keyword_trends:
@@ -1258,15 +1259,15 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
 
     def _analyze_history_sql(
         self,
-        topic_pattern: Optional[str],
-        cluster: Optional[str],
-        keywords: Optional[str],
-        year_from: Optional[int],
-        year_to: Optional[int],
-        action_types: Optional[List[str]],
+        topic_pattern: str | None,
+        cluster: str | None,
+        keywords: str | None,
+        year_from: int | None,
+        year_to: int | None,
+        action_types: list[str] | None,
         include_projects: bool,
         limit: int
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """SQL-only analysis (fallback when graph not available)."""
         conn = self._get_connection()
         if not conn:
@@ -1374,7 +1375,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
             "timestamp": datetime.now().isoformat()
         }
 
-    def _extract_cluster_from_topic(self, topic_code: str) -> Optional[str]:
+    def _extract_cluster_from_topic(self, topic_code: str) -> str | None:
         """Extract cluster from topic code."""
         if not topic_code:
             return None
@@ -1393,11 +1394,11 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
 
     def _build_where_clause(
         self,
-        topic_pattern: Optional[str],
-        cluster: Optional[str],
-        keywords: Optional[str],
-        year_from: Optional[int],
-        year_to: Optional[int],
+        topic_pattern: str | None,
+        cluster: str | None,
+        keywords: str | None,
+        year_from: int | None,
+        year_to: int | None,
         strict_match: bool = True
     ) -> tuple:
         """Build WHERE clause and params for project queries.
@@ -1467,7 +1468,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
 
         return " AND ".join(where_conditions), params
 
-    def _analyze_by_action_type(self, calls: List[Dict], projects: List[Dict]) -> Dict[str, Any]:
+    def _analyze_by_action_type(self, calls: list[dict], projects: list[dict]) -> dict[str, Any]:
         """Analyze funding by action type."""
         by_type = defaultdict(lambda: {
             "projects": 0,
@@ -1502,7 +1503,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
 
         return dict(sorted(by_type.items(), key=lambda x: x[1]["total_funding"], reverse=True))
 
-    def _identify_top_topics(self, projects: List[Dict]) -> List[Dict]:
+    def _identify_top_topics(self, projects: list[dict]) -> list[dict]:
         """Identify most funded topic areas."""
         topic_stats = defaultdict(lambda: {
             "topic": "",
@@ -1548,10 +1549,10 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
 
     def _detect_trends(
         self,
-        timeline: Dict,
-        projects: List[Dict],
-        keywords: Optional[str]
-    ) -> Dict[str, Any]:
+        timeline: dict,
+        projects: list[dict],
+        keywords: str | None
+    ) -> dict[str, Any]:
         """Detect funding trends over time."""
         years = sorted([y for y in timeline.keys() if isinstance(y, int)])
 
@@ -1608,11 +1609,11 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
 
     def _generate_recommendations(
         self,
-        trends: Dict,
-        top_topics: List[Dict],
-        cluster: Optional[str],
-        keywords: Optional[str]
-    ) -> List[str]:
+        trends: dict,
+        top_topics: list[dict],
+        cluster: str | None,
+        keywords: str | None
+    ) -> list[str]:
         """Generate actionable recommendations based on analysis."""
         recommendations = []
 
@@ -1660,7 +1661,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
 
         return recommendations[:5]
 
-    def _format_sample_projects(self, projects: List[Dict]) -> List[Dict]:
+    def _format_sample_projects(self, projects: list[dict]) -> list[dict]:
         """Format sample projects for output."""
         formatted = []
         for p in projects:
@@ -1687,9 +1688,9 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
     def get_cluster_evolution(
         self,
         cluster: str,
-        year_from: Optional[int] = None,
-        year_to: Optional[int] = None
-    ) -> Dict[str, Any]:
+        year_from: int | None = None,
+        year_to: int | None = None
+    ) -> dict[str, Any]:
         """
         NEW METHOD: Analyze how a cluster has evolved over time.
 
@@ -1750,9 +1751,9 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
     def _get_cluster_evolution_sql(
         self,
         cluster: str,
-        year_from: Optional[int],
-        year_to: Optional[int]
-    ) -> Dict[str, Any]:
+        year_from: int | None,
+        year_to: int | None
+    ) -> dict[str, Any]:
         """SQL fallback for cluster evolution analysis."""
         timeline = self._get_timeline_aggregates_sql(
             topic_pattern=None,
@@ -1784,7 +1785,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
         self,
         topic_pattern: str,
         include_similar: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         NEW METHOD: Get detailed history for a specific topic or topic pattern.
 
@@ -1827,7 +1828,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
 
 
 # Async wrapper for tool orchestrator compatibility
-async def analyze_call_history_execute(params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+async def analyze_call_history_execute(params: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
     """
     Execute call history analysis tool.
 

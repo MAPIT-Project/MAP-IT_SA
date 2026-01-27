@@ -11,7 +11,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 1382.689,
+      "processing_time_ms": 1470.57,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -31,7 +31,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 743.535,
+      "processing_time_ms": 753.3349999999999,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -51,7 +51,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 827.244,
+      "processing_time_ms": 804.563,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -71,7 +71,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 812.576,
+      "processing_time_ms": 791.922,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -91,7 +91,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 803.123,
+      "processing_time_ms": 813.925,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -126,10 +126,10 @@
       "msca"
     ],
     "description": "A 5-step funding type comparison workflow where a user compares different\nHorizon Europe funding mechanisms (RIA, IA, CSA, EIC Pathfinder, MSCA).\nTests the system's ability to accurately explain the differences between\nfunding types, including funding rates, TRL levels, consortium requirements,\nand flexibility. The conversation builds user context progressively and\nvalidates that comparisons are accurate and informative.\n",
-    "conversation_id": 711669655
+    "conversation_id": 1464831063
   },
-  "execution_time_ms": 102120.74900000001,
-  "timestamp": "2026-01-23T10:23:17.008352",
+  "execution_time_ms": 102290.461,
+  "timestamp": "2026-01-23T16:57:27.323871",
   "passed": true,
   "turn_count": 5,
   "critical_failures": 0,

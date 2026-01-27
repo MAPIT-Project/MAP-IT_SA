@@ -15,10 +15,10 @@ import hashlib
 import json
 import logging
 import zlib
+from collections.abc import Callable
 from datetime import timedelta
-from typing import Any, Dict, Optional, List, Callable
 from functools import wraps
-import asyncio
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +78,7 @@ class ResultCache:
         else:
             logger.warning("⚠️ Result cache disabled (no Redis client)")
 
-    def _make_key(self, query_type: str, params: Dict) -> str:
+    def _make_key(self, query_type: str, params: dict) -> str:
         """
         Generate cache key from query type and parameters.
 
@@ -138,8 +138,8 @@ class ResultCache:
     async def get(
         self,
         query_type: str,
-        params: Dict
-    ) -> Optional[Any]:
+        params: dict
+    ) -> Any | None:
         """
         Get cached result.
 
@@ -175,9 +175,9 @@ class ResultCache:
     async def set(
         self,
         query_type: str,
-        params: Dict,
+        params: dict,
         result: Any,
-        ttl: Optional[timedelta] = None
+        ttl: timedelta | None = None
     ) -> bool:
         """
         Cache a result.
@@ -213,7 +213,7 @@ class ResultCache:
     async def invalidate(
         self,
         query_type: str,
-        params: Dict
+        params: dict
     ) -> bool:
         """
         Invalidate a cached result.
@@ -287,7 +287,7 @@ class ResultCache:
             logger.error(f"Failed to clear cache: {e}")
             return 0
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get cache statistics."""
         total_requests = self.stats["hits"] + self.stats["misses"]
         hit_rate = (self.stats["hits"] / total_requests * 100) if total_requests > 0 else 0
@@ -338,8 +338,8 @@ class ResultCache:
 
 def cached_result(
     query_type: str,
-    ttl: Optional[timedelta] = None,
-    key_params: Optional[List[str]] = None
+    ttl: timedelta | None = None,
+    key_params: list[str] | None = None
 ):
     """
     Decorator to cache function results.
@@ -388,7 +388,7 @@ def cached_result(
 
 
 # Global cache instance (initialized lazily)
-_global_cache: Optional[ResultCache] = None
+_global_cache: ResultCache | None = None
 
 
 def get_result_cache() -> ResultCache:
@@ -398,8 +398,9 @@ def get_result_cache() -> ResultCache:
     if _global_cache is None:
         # Try to get Redis client
         try:
-            import redis
             import os
+
+            import redis
 
             redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
             client = redis.from_url(redis_url, decode_responses=False)
@@ -413,7 +414,7 @@ def get_result_cache() -> ResultCache:
     return _global_cache
 
 
-def invalidate_cache_on_update(query_types: List[str]):
+def invalidate_cache_on_update(query_types: list[str]):
     """
     Decorator to invalidate cache when data is updated.
 

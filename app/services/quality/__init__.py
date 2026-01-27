@@ -6,10 +6,10 @@ detecting deflection patterns, and validating content completeness.
 """
 
 from .response_quality_analyzer import (
-    ResponseQualityAnalyzer,
+    ContentRequirement,
     QualityAnalysis,
     ResponseCategory,
-    ContentRequirement,
+    ResponseQualityAnalyzer,
 )
 
 __all__ = [

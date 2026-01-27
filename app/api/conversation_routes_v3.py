@@ -5,17 +5,18 @@ V3 uses a single agentic loop (ToolAwareAgent) - no intent classification.
 The agent decides what tools to use based on the query and conversation context.
 """
 
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
-from typing import Optional, Dict, Any
 import json
 import logging
 import time
 from datetime import datetime
+from typing import Any
 
-from ..services.conversation.conversation_manager import ConversationManager
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+
 from ..services.analytics import get_conversation_analytics_service
+from ..services.conversation.conversation_manager import ConversationManager
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v3/conversation", tags=["conversation-v3"])
@@ -34,7 +35,7 @@ class MessageRequest(BaseModel):
 
 class MessageResponse(BaseModel):
     response: str
-    metadata: Dict[str, Any]
+    metadata: dict[str, Any]
 
 
 @router.post("/{conversation_id}/message/stream")
@@ -367,7 +368,7 @@ async def health_check():
                     timeout=5.0  # 5 second timeout for health check
                 )
                 components['gemini'] = bool(test_response.text)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 errors['gemini'] = 'Timeout waiting for response'
                 logger.warning("Health check - Gemini timed out")
         else:
@@ -454,10 +455,10 @@ async def get_low_confidence_conversations(
 
 @router.get("/analytics/search")
 async def search_conversation_analytics(
-    query: Optional[str] = None,
-    conversation_id: Optional[int] = None,
-    min_confidence: Optional[float] = None,
-    max_confidence: Optional[float] = None,
+    query: str | None = None,
+    conversation_id: int | None = None,
+    min_confidence: float | None = None,
+    max_confidence: float | None = None,
     limit: int = 100,
     offset: int = 0
 ):
@@ -495,8 +496,8 @@ async def search_conversation_analytics(
 
 @router.get("/analytics/export")
 async def export_conversation_analytics(
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None
+    start_date: str | None = None,
+    end_date: str | None = None
 ):
     """
     Export conversation analytics for analysis.

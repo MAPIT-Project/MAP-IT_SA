@@ -3,10 +3,10 @@ Entry point for the CORDIS Research Projects RAG API.
 This file serves as the main entry point that can be used directly or with uvicorn.
 """
 
-from app.main import app
 
 if __name__ == "__main__":
     import uvicorn
+
     from app.core.config import settings
     
     uvicorn.run(

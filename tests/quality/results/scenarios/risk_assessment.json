@@ -11,7 +11,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 1611.484,
+      "processing_time_ms": 1628.004,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -31,7 +31,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 569.341,
+      "processing_time_ms": 585.945,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -51,7 +51,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 661.4799999999999,
+      "processing_time_ms": 673.575,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -71,7 +71,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 639.571,
+      "processing_time_ms": 648.363,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -91,7 +91,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 696.119,
+      "processing_time_ms": 704.812,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -123,10 +123,10 @@
       "mitigation"
     ],
     "description": "A 5-step risk assessment workflow where a user explores the risks and\nchallenges of applying to EIC Accelerator. Tests the system's ability\nto identify risks accurately, explain how factors like prior funding\nand company size affect success, discuss the interview stage, and\nprovide actionable mitigation strategies. The conversation builds\nuser context progressively and validates that advice is appropriately\nrisk-aware and practical.\n",
-    "conversation_id": 550993484
+    "conversation_id": 933447183
   },
-  "execution_time_ms": 90418.189,
-  "timestamp": "2026-01-23T10:13:09.367504",
+  "execution_time_ms": 90422.426,
+  "timestamp": "2026-01-23T16:55:56.902382",
   "passed": true,
   "turn_count": 5,
   "critical_failures": 0,

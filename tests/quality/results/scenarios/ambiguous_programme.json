@@ -2,7 +2,7 @@
   "scenario_name": "Ambiguous Programme Reference",
   "status": "PASS",
   "average_quality_score": 84.5,
-  "average_factual_score": 87.5,
+  "average_factual_score": 100.0,
   "turns": [
     {
       "query": "Tell me about the innovation fund",
@@ -11,7 +11,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 3774.318,
+      "processing_time_ms": 1339.015,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -31,7 +31,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 544.2860000000001,
+      "processing_time_ms": 555.608,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -46,16 +46,14 @@
     },
     {
       "query": "The one for climate",
-      "response": "I found **18 funding opportunities** for your query:\n\n**1. Competitiveness, energy security and integration aspects of advanced biofuels and renewable fuels of non-biological origin value chains**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-02\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: European energy security and industrial competitiveness are contested by the geopolitical circumstances and market situations around the world.\n\n\ud83d\udd17...",
+      "response": "I found **15 funding opportunities** for your query:\n\n**1. Development of innovative solutions strengthening the security of renewable energy value chains**\n\ud83d\udccb **Call ID:** HORIZON-CL5-2026-02-D3-14\n\ud83d\udfe2 **Status:** Open\n\u23f0 **Deadline:** 17 February 2026\n\ud83c\udfdb\ufe0f **Programme:** Cluster CL5\n\n\ud83d\udcdd **Summary:** Expected Outcome: The security of Europe`s clean energy system will, in the long-run, benefit from research and innovation addressing energy-security relevant criticalities of the underlying clean energy ...",
       "quality_score": 85,
-      "factual_score": 50.0,
+      "factual_score": 100.0,
       "failures": [],
       "tools_used": [
-        "search_funding_calls",
-        "search_funding_calls",
         "search_funding_calls"
       ],
-      "processing_time_ms": 21994.043,
+      "processing_time_ms": 6460.314,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -75,7 +73,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 775.279,
+      "processing_time_ms": 766.426,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -91,13 +89,13 @@
   ],
   "scores": {
     "average_quality": 84.5,
-    "average_factual": 87.5,
+    "average_factual": 100.0,
     "goal_progress": 0.63,
     "context_fields": 2
   },
   "failures": [],
   "metadata": {
-    "scenario_path": "/home/anmar/Documents/VSCODE_REPOS/MAPIT/NEWMAPIT/MAP-IT_SA/tests/scenarios/advanced/ambiguous_programme.yaml",
+    "scenario_path": "tests/scenarios/advanced/ambiguous_programme.yaml",
     "tags": [
       "phase11",
       "error_handling",
@@ -111,10 +109,10 @@
       "graceful_handling"
     ],
     "description": "A user asks about \"the innovation fund\" without specifying which one.\nThe system should handle this ambiguity by presenting options or asking\nfor clarification, then narrowing down based on user follow-ups.\nTests disambiguation and clarification handling.\n",
-    "conversation_id": 1958692934
+    "conversation_id": 1865781220
   },
-  "execution_time_ms": 125403.887,
-  "timestamp": "2026-01-23T15:32:35.559737",
+  "execution_time_ms": 94418.918,
+  "timestamp": "2026-01-23T17:44:14.026028",
   "passed": true,
   "turn_count": 4,
   "critical_failures": 0,

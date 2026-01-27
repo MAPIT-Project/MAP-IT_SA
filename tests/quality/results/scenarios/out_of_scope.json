@@ -11,7 +11,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 2328.8160000000003,
+      "processing_time_ms": 1470.89,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -31,7 +31,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 951.966,
+      "processing_time_ms": 968.442,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -51,7 +51,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 1103.961,
+      "processing_time_ms": 1106.413,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -71,7 +71,7 @@
       "factual_score": 100.0,
       "failures": [],
       "tools_used": [],
-      "processing_time_ms": 4404.410000000001,
+      "processing_time_ms": 4409.998,
       "quality_details": {
         "dimension_scores": {
           "query_fulfillment": 30,
@@ -107,10 +107,10 @@
       "comparison"
     ],
     "description": "A user asks about non-EU funding programmes (NSF, UK Research Council, etc.)\nthat are outside MAPIT's scope. The system should gracefully explain its\nEU focus, provide limited comparative information where possible, and\nredirect users to appropriate resources. Tests out-of-scope handling.\n",
-    "conversation_id": 1855138419
+    "conversation_id": 1293157895
   },
-  "execution_time_ms": 153652.618,
-  "timestamp": "2026-01-23T15:45:38.032020",
+  "execution_time_ms": 153241.224,
+  "timestamp": "2026-01-23T17:45:48.453936",
   "passed": true,
   "turn_count": 4,
   "critical_failures": 0,

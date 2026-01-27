@@ -2,10 +2,8 @@
 Application configuration settings.
 """
 
-import os
-from typing import Optional, List
-from pydantic_settings import BaseSettings
 from pydantic import field_validator
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -19,12 +17,12 @@ class Settings(BaseSettings):
     # API Configuration
     api_host: str = "0.0.0.0"
     api_port: int = 8000
-    cors_origins: List[str] = ["*"]
+    cors_origins: list[str] = ["*"]
     
     # AI Provider Configuration
-    openai_api_key: Optional[str] = None
-    gemini_api_key: Optional[str] = None
-    openrouter_api_key: Optional[str] = None
+    openai_api_key: str | None = None
+    gemini_api_key: str | None = None
+    openrouter_api_key: str | None = None
     default_ai_provider: str = "gemini"
     openai_model: str = "gpt-4-turbo"
     gemini_model: str = "gemini-flash-lite-latest"
@@ -32,18 +30,18 @@ class Settings(BaseSettings):
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     
     # Google Embedding API Configuration (falls back to gemini_api_key)
-    google_embedding_api_key: Optional[str] = None
+    google_embedding_api_key: str | None = None
     embedding_model: str = "models/text-embedding-004"
     embedding_dimension: int = 768
     
     @property
-    def effective_embedding_api_key(self) -> Optional[str]:
+    def effective_embedding_api_key(self) -> str | None:
         """Get embedding API key, falling back to Gemini key if not set."""
         return self.google_embedding_api_key or self.gemini_api_key
     
     # Database Configuration
     use_local_db: bool = False
-    database_url: Optional[str] = None
+    database_url: str | None = None
     db_min_connections: int = 5
     db_max_connections: int = 50
     
@@ -53,9 +51,9 @@ class Settings(BaseSettings):
     cordis_api_timeout: int = 30
     
     # Supabase Configuration
-    supabase_url: Optional[str] = None
-    supabase_anon_key: Optional[str] = None
-    supabase_service_key: Optional[str] = None
+    supabase_url: str | None = None
+    supabase_anon_key: str | None = None
+    supabase_service_key: str | None = None
     use_supabase: bool = False
     
     # Vector Search Configuration
@@ -66,8 +64,8 @@ class Settings(BaseSettings):
     similarity_threshold: float = 0.45  # Lowered from 0.7 for better recall
     
     # Celery Configuration
-    celery_broker_url: Optional[str] = None
-    celery_result_backend: Optional[str] = None
+    celery_broker_url: str | None = None
+    celery_result_backend: str | None = None
     redis_url: str = "redis://localhost:6379/0"
     
     # Docker Configuration
@@ -79,7 +77,7 @@ class Settings(BaseSettings):
     
     # Document Processing Configuration
     max_file_size_mb: int = 50
-    supported_file_types: List[str] = [".pdf", ".txt", ".md", ".html"]
+    supported_file_types: list[str] = [".pdf", ".txt", ".md", ".html"]
     upload_dir: str = "uploads"
     
     @field_validator("openai_api_key", "gemini_api_key", "openrouter_api_key")

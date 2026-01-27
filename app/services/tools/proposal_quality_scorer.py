@@ -15,7 +15,7 @@ This tool wraps EvaluatorSimulator and GapAnalysisService to provide:
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -35,8 +35,8 @@ class CriterionAssessment:
     criterion: str
     score: float
     max_score: float = 5.0
-    strengths: List[str] = field(default_factory=list)
-    weaknesses: List[str] = field(default_factory=list)
+    strengths: list[str] = field(default_factory=list)
+    weaknesses: list[str] = field(default_factory=list)
     improvement_suggestion: str = ""
     score_potential: float = 0.0  # How much score could improve
 
@@ -48,7 +48,7 @@ class SectionScore:
     section_id: str    # objectives, methodology, etc.
     score: float
     max_score: float = 5.0
-    criteria: List[CriterionAssessment] = field(default_factory=list)
+    criteria: list[CriterionAssessment] = field(default_factory=list)
     summary: str = ""
     quality_level: str = ""
     threshold_met: bool = False
@@ -64,8 +64,8 @@ class ProposalQualityReport:
     excellence_score: float
     impact_score: float
     implementation_score: float
-    section_scores: List[SectionScore] = field(default_factory=list)
-    top_improvements: List[Dict[str, Any]] = field(default_factory=list)
+    section_scores: list[SectionScore] = field(default_factory=list)
+    top_improvements: list[dict[str, Any]] = field(default_factory=list)
     summary: str = ""
     threshold_status: str = ""  # above, at, below
 
@@ -196,10 +196,10 @@ class ProposalQualityScorerTool:
         self,
         content: str,
         section_type: str,
-        section_id: Optional[str] = None,
+        section_id: str | None = None,
         action_type: str = "RIA",
-        call_id: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        call_id: str | None = None,
+    ) -> dict[str, Any]:
         """
         Score a single proposal section.
 
@@ -288,7 +288,7 @@ class ProposalQualityScorerTool:
         content: str,
         section_type: str,
         section_id: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Fallback rule-based scoring when AI is unavailable."""
         # Simple heuristic scoring
         score = 2.5  # Base score
@@ -331,10 +331,10 @@ class ProposalQualityScorerTool:
 
     async def score_full_proposal(
         self,
-        sections: Dict[str, str],
+        sections: dict[str, str],
         action_type: str = "RIA",
-        call_id: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        call_id: str | None = None,
+    ) -> dict[str, Any]:
         """
         Score a complete proposal with all sections.
 
@@ -459,7 +459,7 @@ class ProposalQualityScorerTool:
         self,
         text: str,
         context: str = "general",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Quick quality check for draft text without full evaluation.
 
@@ -522,10 +522,10 @@ class ProposalQualityScorerTool:
 async def score_proposal_section_execute(
     content: str,
     section_type: str,
-    section_id: Optional[str] = None,
+    section_id: str | None = None,
     action_type: str = "RIA",
-    call_id: Optional[str] = None,
-) -> Dict[str, Any]:
+    call_id: str | None = None,
+) -> dict[str, Any]:
     """
     Execute proposal section scoring.
 
@@ -554,8 +554,8 @@ async def score_full_proposal_execute(
     impact_content: str = "",
     implementation_content: str = "",
     action_type: str = "RIA",
-    call_id: Optional[str] = None,
-) -> Dict[str, Any]:
+    call_id: str | None = None,
+) -> dict[str, Any]:
     """
     Execute full proposal scoring.
 
@@ -586,7 +586,7 @@ async def score_full_proposal_execute(
 async def quick_quality_check_execute(
     text: str,
     context: str = "general",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Execute quick quality check.
 

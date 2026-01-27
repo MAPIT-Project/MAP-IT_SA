@@ -3119,6 +3119,55 @@ digital_europe, life""",
                 step.observation = f"Executed {len(step.tool_calls)} tool(s) and formatted results"
                 step.next_action_needed = False
 
+            elif step.action == "call_tools_with_niche_guidance":
+                # Execute tool calls and append niche query guidance
+                # Used for highly specialized interdisciplinary queries
+                tool_calls = reasoning_result.get("tool_calls", [])
+                step.tool_calls = await self._execute_tool_calls(tool_calls)
+
+                # Collect results
+                tool_results_for_format = {}
+                calls_found = 0
+                projects_found = 0
+                for idx, tc in enumerate(step.tool_calls):
+                    if tc.success:
+                        all_tool_results[f"{tc.tool_name}_{iteration}_{idx}"] = tc.result
+                        tool_results_for_format[tc.tool_name] = tc.result
+                        # Count results
+                        if "calls_found" in tc.result:
+                            calls_found = tc.result.get("calls_found", 0)
+                        if "projects_found" in tc.result:
+                            projects_found = tc.result.get("projects_found", 0)
+                        elif "similar_projects" in tc.result:
+                            projects_found = len(tc.result.get("similar_projects", []))
+
+                # Format results normally first
+                formatted_response = self._synthesize_from_results(query, tool_results_for_format)
+
+                # Get niche context and generate guidance
+                niche_context = reasoning_result.get("niche_query_context", {})
+
+                # Determine if results are relevant (simple heuristic)
+                has_relevant_results = calls_found > 0 or projects_found > 0
+
+                # Generate and append niche query guidance
+                niche_guidance = self._generate_niche_query_guidance(
+                    query=query,
+                    niche_context=niche_context,
+                    calls_found=calls_found,
+                    projects_found=projects_found,
+                    has_relevant_results=has_relevant_results,
+                )
+
+                # Combine formatted results with guidance
+                plan.final_answer = formatted_response + "\n\n---\n\n" + niche_guidance
+                plan.confidence = 0.75  # Lower confidence for niche queries
+                step.observation = (
+                    f"Executed {len(step.tool_calls)} tool(s) for niche query, "
+                    f"found {calls_found} calls and {projects_found} projects"
+                )
+                step.next_action_needed = False
+
             plan.reasoning_steps.append(step)
 
             # Check if we should stop
@@ -3367,6 +3416,62 @@ digital_europe, life""",
                 plan.final_answer = formatted_response
                 plan.confidence = 0.90
                 step.observation = f"Executed {len(step.tool_calls)} tool(s) and formatted results"
+                step.next_action_needed = False
+
+            elif step.action == "call_tools_with_niche_guidance":
+                # Execute tool calls and append niche query guidance (streaming version)
+                tool_calls = reasoning_result.get("tool_calls", [])
+                step.tool_calls = await self._execute_tool_calls(tool_calls)
+
+                # Yield tool call events for streaming
+                for tc in step.tool_calls:
+                    yield {
+                        "type": "tool_call",
+                        "tool_name": tc.tool_name,
+                        "parameters": tc.parameters,
+                    }
+                    yield {
+                        "type": "tool_result",
+                        "tool_name": tc.tool_name,
+                        "success": tc.success,
+                        "result_summary": str(tc.result)[:200] if tc.result else "",
+                    }
+
+                # Collect results
+                tool_results_for_format = {}
+                calls_found = 0
+                projects_found = 0
+                for idx, tc in enumerate(step.tool_calls):
+                    if tc.success:
+                        all_tool_results[f"{tc.tool_name}_{iteration}_{idx}"] = tc.result
+                        tool_results_for_format[tc.tool_name] = tc.result
+                        if "calls_found" in tc.result:
+                            calls_found = tc.result.get("calls_found", 0)
+                        if "projects_found" in tc.result:
+                            projects_found = tc.result.get("projects_found", 0)
+                        elif "similar_projects" in tc.result:
+                            projects_found = len(tc.result.get("similar_projects", []))
+
+                # Format results normally first
+                formatted_response = self._synthesize_from_results(query, tool_results_for_format)
+
+                # Get niche context and generate guidance
+                niche_context = reasoning_result.get("niche_query_context", {})
+                has_relevant_results = calls_found > 0 or projects_found > 0
+                niche_guidance = self._generate_niche_query_guidance(
+                    query=query,
+                    niche_context=niche_context,
+                    calls_found=calls_found,
+                    projects_found=projects_found,
+                    has_relevant_results=has_relevant_results,
+                )
+
+                plan.final_answer = formatted_response + "\n\n---\n\n" + niche_guidance
+                plan.confidence = 0.75
+                step.observation = (
+                    f"Executed {len(step.tool_calls)} tool(s) for niche query, "
+                    f"found {calls_found} calls and {projects_found} projects"
+                )
                 step.next_action_needed = False
 
             plan.reasoning_steps.append(step)
@@ -4097,6 +4202,13 @@ digital_europe, life""",
                 ],
                 "needs_more_info": True,
             }
+
+        # Check for NICHE INTERDISCIPLINARY queries
+        # These are highly specialized queries combining multiple domains (e.g., archaeology + AI)
+        # that may not have dedicated funding calls - we need to provide helpful guidance
+        niche_result = self._detect_niche_interdisciplinary_query(query, context)
+        if niche_result:
+            return niche_result
 
         return None
 
@@ -25311,3 +25423,352 @@ If scaling up is challenging:
 - [ ] Use [Partner Search tools](https://culture.ec.europa.eu/cultural-and-creative-sectors)
 - [ ] Assess your organization's coordination capacity
 - [ ] Review successful large-scale projects for inspiration"""
+
+    # ========================================================================
+    # NICHE INTERDISCIPLINARY QUERY DETECTION AND HANDLING
+    # ========================================================================
+
+    def _detect_niche_interdisciplinary_query(
+        self, query: str, context: str
+    ) -> dict[str, Any] | None:
+        """Detect very specific niche queries that span multiple domains.
+
+        These are queries that combine:
+        - Multiple specialized fields (e.g., archaeology + AI + marine)
+        - Specific geographic constraints (e.g., Mediterranean, Arctic)
+        - Unusual technology applications in traditional fields
+        - Cross-cutting themes that don't fit neatly into one cluster
+
+        The goal is to:
+        1. Acknowledge the interdisciplinary nature of the query
+        2. Search across multiple relevant programmes/clusters
+        3. Provide helpful guidance when exact matches don't exist
+        4. NOT hallucinate specific calls - be honest about what exists
+
+        Examples:
+        - "Funding for underwater archaeology using AI in the Mediterranean"
+        - "Grants for traditional crafts preservation using blockchain"
+        - "Support for indigenous language revitalization with NLP"
+        """
+        query_lower = query.lower()
+
+        # Domain indicators - traditional/specialized fields
+        traditional_domains = {
+            "archaeology": ["archaeolog", "excavation", "artifact", "antiquit"],
+            "heritage": ["heritage", "cultural preservation", "monument", "restoration"],
+            "linguistics": ["linguistic", "language revitalization", "endangered language"],
+            "crafts": ["traditional craft", "artisan", "handicraft", "folk art"],
+            "ethnography": ["ethnograph", "indigenous", "tribal", "folk culture"],
+            "maritime": ["underwater", "maritime", "shipwreck", "marine archaeology"],
+            "restoration": ["restoration", "conservation", "preserv"],
+        }
+
+        # Technology indicators - modern tech applications
+        technology_domains = {
+            "ai": ["ai", "artificial intelligence", "machine learning", "deep learning"],
+            "digital": ["digital", "digitiz", "digitalis", "3d scanning", "virtual reality"],
+            "blockchain": ["blockchain", "nft", "decentralized"],
+            "nlp": ["nlp", "natural language processing", "text mining"],
+            "robotics": ["robot", "autonomous", "drone", "uav"],
+            "imaging": ["imaging", "photogrammetry", "lidar", "remote sensing"],
+        }
+
+        # Geographic constraints
+        geographic_constraints = [
+            "mediterranean",
+            "arctic",
+            "baltic",
+            "alpine",
+            "sahara",
+            "amazon",
+            "pacific",
+            "atlantic",
+            "caribbean",
+            "black sea",
+            "adriatic",
+            "aegean",
+        ]
+
+        # Detect domain combinations
+        detected_traditional = []
+        detected_tech = []
+        detected_geo = []
+
+        for domain, patterns in traditional_domains.items():
+            if any(p in query_lower for p in patterns):
+                detected_traditional.append(domain)
+
+        for domain, patterns in technology_domains.items():
+            if any(p in query_lower for p in patterns):
+                detected_tech.append(domain)
+
+        for geo in geographic_constraints:
+            if geo in query_lower:
+                detected_geo.append(geo)
+
+        # This is a niche interdisciplinary query if:
+        # 1. Combines traditional domain with technology domain
+        # 2. OR has geographic constraint with specialized field
+        # 3. AND is asking for funding/calls/grants
+        is_funding_query = any(
+            term in query_lower
+            for term in [
+                "funding",
+                "grant",
+                "call",
+                "support",
+                "finance",
+                "money",
+                "programme",
+                "program",
+            ]
+        )
+
+        is_niche = is_funding_query and (
+            (len(detected_traditional) >= 1 and len(detected_tech) >= 1)
+            or (len(detected_traditional) >= 1 and len(detected_geo) >= 1)
+            or (len(detected_tech) >= 1 and len(detected_geo) >= 1)
+        )
+
+        if not is_niche:
+            return None
+
+        # Determine relevant clusters and programmes
+        relevant_clusters = []
+        relevant_programmes = []
+
+        # Map domains to Horizon Europe clusters
+        if any(
+            d in detected_traditional
+            for d in [
+                "heritage",
+                "archaeology",
+                "linguistics",
+                "crafts",
+                "ethnography",
+                "restoration",
+            ]
+        ):
+            relevant_clusters.append("CL2")  # Culture, Creativity, Inclusive Society
+            relevant_programmes.append("Creative Europe")
+
+        if any(d in detected_traditional for d in ["maritime"]):
+            relevant_clusters.append("CL6")  # Food, Bioeconomy, Natural Resources
+            relevant_programmes.append("Mission Restore our Ocean and Waters")
+
+        if any(d in detected_tech for d in ["ai", "digital", "nlp", "imaging"]):
+            relevant_clusters.append("CL4")  # Digital, Industry, Space
+
+        if any(d in detected_tech for d in ["robotics"]):
+            relevant_clusters.append("CL4")
+
+        # Deduplicate
+        relevant_clusters = list(set(relevant_clusters))
+        relevant_programmes = list(set(relevant_programmes))
+
+        logger.info(
+            f"🔬 Detected niche interdisciplinary query: "
+            f"traditional={detected_traditional}, tech={detected_tech}, "
+            f"geo={detected_geo}, clusters={relevant_clusters}"
+        )
+
+        # Build search keywords - combine domain terms
+        search_terms = []
+        if detected_traditional:
+            search_terms.extend(detected_traditional)
+        if detected_tech:
+            search_terms.extend(detected_tech)
+        if detected_geo:
+            search_terms.extend(detected_geo)
+
+        # Create multi-faceted search approach
+        tool_calls = []
+
+        # 1. Search for funding calls with combined keywords
+        tool_calls.append(
+            {
+                "tool": "search_funding_calls",
+                "parameters": {
+                    "keywords": " ".join(search_terms[:3]),  # Top 3 terms
+                    "status": "open",
+                },
+                "reasoning": "Search for funding calls matching the interdisciplinary topic",
+            }
+        )
+
+        # 2. Search for similar funded projects (semantic search)
+        tool_calls.append(
+            {
+                "tool": "get_similar_funded_projects",
+                "parameters": {
+                    "description": query,  # Use full query for semantic matching
+                    "limit": 10,
+                },
+                "reasoning": "Find semantically similar projects using AI embeddings",
+            }
+        )
+
+        # 3. Search documents for relevant programme information
+        tool_calls.append(
+            {
+                "tool": "search_documents",
+                "parameters": {
+                    "query": " ".join(search_terms[:3]),
+                    "limit": 5,
+                },
+                "reasoning": "Search work programmes for relevant topic areas",
+            }
+        )
+
+        return {
+            "thought": (
+                f"This is a highly specialized interdisciplinary query combining "
+                f"{', '.join(detected_traditional or ['traditional field'])} with "
+                f"{', '.join(detected_tech or ['technology'])}. "
+                f"Relevant clusters: {', '.join(relevant_clusters)}. "
+                f"Will search across multiple sources and provide guidance on "
+                f"alternative funding approaches if exact matches don't exist."
+            ),
+            "action": "call_tools_with_niche_guidance",
+            "tool_calls": tool_calls,
+            "niche_query_context": {
+                "traditional_domains": detected_traditional,
+                "tech_domains": detected_tech,
+                "geographic_constraints": detected_geo,
+                "relevant_clusters": relevant_clusters,
+                "relevant_programmes": relevant_programmes,
+                "search_terms": search_terms,
+            },
+            "needs_more_info": True,
+        }
+
+    def _generate_niche_query_guidance(
+        self,
+        query: str,
+        niche_context: dict,
+        calls_found: int,
+        projects_found: int,
+        has_relevant_results: bool,
+    ) -> str:
+        """Generate helpful guidance for niche interdisciplinary queries.
+
+        This acknowledges when exact matches don't exist and provides
+        alternative approaches without hallucinating fake calls.
+        """
+        traditional = niche_context.get("traditional_domains", [])
+        tech = niche_context.get("tech_domains", [])
+        geo = niche_context.get("geographic_constraints", [])
+        clusters = niche_context.get("relevant_clusters", [])
+        # Note: relevant_programmes is available in niche_context if needed for future enhancements
+
+        lines = []
+
+        # Acknowledge the interdisciplinary nature
+        lines.append("## Understanding Your Funding Search\n")
+        domain_str = " + ".join(
+            [d.title() for d in traditional] + [d.upper() for d in tech] + [g.title() for g in geo]
+        )
+        lines.append(
+            f"Your query combines **{domain_str}** - this is a highly "
+            "specialized interdisciplinary area that may not have dedicated "
+            "funding calls.\n"
+        )
+
+        # Report search results honestly
+        lines.append("### What We Found\n")
+        if has_relevant_results:
+            lines.append(
+                f"✅ Found **{calls_found} potentially relevant calls** and "
+                f"**{projects_found} similar funded projects**.\n"
+            )
+            lines.append(
+                "Review the results above - while they may not be perfect matches, "
+                "they cover related topics that could accommodate your project.\n"
+            )
+        else:
+            lines.append(
+                f"⚠️ Found **{calls_found} calls** and **{projects_found} projects**, "
+                "but these may only partially match your specific requirements.\n"
+            )
+            lines.append(
+                "This is common for highly specialized interdisciplinary topics. "
+                "Below are strategies for finding appropriate funding.\n"
+            )
+
+        # Suggest relevant clusters
+        if clusters:
+            lines.append("### Relevant Horizon Europe Clusters\n")
+            cluster_names = {
+                "CL2": "Cluster 2: Culture, Creativity & Inclusive Society",
+                "CL4": "Cluster 4: Digital, Industry & Space",
+                "CL5": "Cluster 5: Climate, Energy & Mobility",
+                "CL6": "Cluster 6: Food, Bioeconomy, Natural Resources",
+            }
+            for cl in clusters:
+                name = cluster_names.get(cl, cl)
+                lines.append(f"- **{name}**")
+            lines.append("")
+
+        # Suggest alternative programmes
+        lines.append("### Alternative Funding Approaches\n")
+
+        if "heritage" in traditional or "archaeology" in traditional or "crafts" in traditional:
+            lines.append(
+                "**1. Creative Europe (CULTURE strand)**\n"
+                "   - Cultural heritage digitization projects\n"
+                "   - Cultural cooperation projects with technology components\n"
+                "   - [Creative Europe Portal](https://culture.ec.europa.eu/creative-europe)\n"
+            )
+
+        if "maritime" in traditional or "underwater" in " ".join(traditional):
+            lines.append(
+                "**2. EU Mission: Restore our Ocean and Waters**\n"
+                "   - Marine research and blue economy\n"
+                "   - Underwater cultural heritage protection\n"
+                "   - [Ocean Mission](https://research-and-innovation.ec.europa.eu/"
+                "funding/funding-opportunities/funding-programmes-and-open-calls/"
+                "horizon-europe/eu-missions-horizon-europe/restore-our-ocean-and-waters_en)\n"
+            )
+
+        if tech:
+            lines.append(
+                "**3. Digital Europe Programme**\n"
+                "   - If your project focuses on AI/digital technology deployment (TRL 7-9)\n"
+                "   - [Digital Europe Portal](https://digital-strategy.ec.europa.eu/"
+                "en/activities/digital-programme)\n"
+            )
+
+        lines.append(
+            "**4. Split Your Project**\n"
+            "   - Research component → Horizon Europe RIA\n"
+            "   - Cultural/creative component → Creative Europe\n"
+            "   - Education/training component → Erasmus+\n"
+        )
+
+        lines.append(
+            "**5. ERC Grants**\n"
+            "   - For frontier research in any domain\n"
+            "   - Principal Investigator-led, highly flexible\n"
+            "   - [ERC Portal](https://erc.europa.eu/)\n"
+        )
+
+        # Actionable next steps
+        lines.append("\n---\n")
+        lines.append("🎯 **Recommended Next Steps:**\n")
+        lines.append("1. **Review the results above** - some may be adaptable to your project\n")
+        lines.append(
+            "2. **Contact your National Contact Point (NCP)** - they can advise on "
+            "best fit: [Find your NCP](https://ec.europa.eu/info/funding-tenders/"
+            "opportunities/portal/screen/support/ncp)\n"
+        )
+        lines.append(
+            "3. **Check EU Portal topic search** - filter by multiple keywords: "
+            "[Topic Search](https://ec.europa.eu/info/funding-tenders/opportunities/"
+            "portal/screen/opportunities/topic-search)\n"
+        )
+        lines.append(
+            "4. **Consider writing to the EC** - for novel interdisciplinary topics, "
+            "the EC may include them in future work programmes\n"
+        )
+
+        return "\n".join(lines)

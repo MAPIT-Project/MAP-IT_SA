@@ -5,9 +5,10 @@ Abstract base class and common types for AI providers.
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any, AsyncGenerator
+from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 
 class ProviderStatus(Enum):
@@ -24,7 +25,7 @@ class ProviderResponse:
     text: str
     provider: str
     model: str
-    usage: Dict[str, int]  # tokens used
+    usage: dict[str, int]  # tokens used
     latency_ms: float
 
 
@@ -65,9 +66,9 @@ class BaseAIProvider(ABC):
     async def generate_structured(
         self,
         prompt: str,
-        schema: Dict[str, Any],
+        schema: dict[str, Any],
         temperature: float = 0.3
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate structured JSON output."""
         pass
 

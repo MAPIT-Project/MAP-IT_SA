@@ -4,16 +4,17 @@ Tests for RealTimeQualityService (Task 14)
 Tests streaming quality feedback, score estimation, and caching.
 """
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime, timedelta
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from app.services.proposal_writing.realtime_quality_service import (
-    RealTimeQualityService,
-    StreamingQualityIndicator,
-    StreamingFeedback,
     FeedbackType,
     QualityTier,
+    RealTimeQualityService,
+    StreamingFeedback,
+    StreamingQualityIndicator,
 )
 
 

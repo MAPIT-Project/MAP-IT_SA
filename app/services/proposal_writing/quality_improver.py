@@ -6,7 +6,7 @@ AI-powered suggestions to improve proposal quality using structured outputs.
 
 import logging
 import re
-from typing import Dict, Any, List, Optional
+from typing import Any
 
 from .proposal_ai_service import ProposalAIService
 from .schemas.ai_schemas import QUALITY_ANALYSIS_SCHEMA
@@ -19,7 +19,7 @@ class QualityImprover:
     Analyze and improve proposal quality using AI with structured outputs.
     """
 
-    def __init__(self, ai_service: Optional[Any] = None):
+    def __init__(self, ai_service: Any | None = None):
         # Use ProposalAIService for structured outputs
         self.ai_service = ProposalAIService()
 
@@ -29,7 +29,7 @@ class QualityImprover:
         section_type: str,
         call_id: str = None,
         use_ai: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Comprehensive quality analysis with AI or rule-based fallback.
 
@@ -58,7 +58,7 @@ class QualityImprover:
         self,
         section_text: str,
         section_type: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """AI-powered quality analysis using structured outputs."""
 
         prompt = self._build_quality_prompt(section_text, section_type)
@@ -119,7 +119,7 @@ Be specific and constructive in your analysis."""
         self,
         section_text: str,
         section_type: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Fallback rule-based analysis."""
 
         readability = self._analyze_readability(section_text)
@@ -149,7 +149,7 @@ Be specific and constructive in your analysis."""
             "improvement_suggestions": suggestions
         }
 
-    def _analyze_readability(self, text: str) -> Dict[str, Any]:
+    def _analyze_readability(self, text: str) -> dict[str, Any]:
         """Analyze text readability."""
 
         sentences = re.split(r'[.!?]+', text)
@@ -197,7 +197,7 @@ Be specific and constructive in your analysis."""
             "strengths": strengths
         }
 
-    def _check_terminology(self, text: str) -> Dict[str, Any]:
+    def _check_terminology(self, text: str) -> dict[str, Any]:
         """Check for proper EU/Horizon Europe terminology."""
 
         recommended_terms = {
@@ -231,7 +231,7 @@ Be specific and constructive in your analysis."""
             "suggestions": [f"Consider adding: {term}" for term in missing_terms[:3]]
         }
 
-    def _analyze_structure(self, text: str, section_type: str) -> Dict[str, Any]:
+    def _analyze_structure(self, text: str, section_type: str) -> dict[str, Any]:
         """Analyze section structure."""
 
         has_headings = bool(re.search(r'^#+\s+\w+|^\w+\s*:|\d+\.\d+', text, re.MULTILINE))
@@ -270,7 +270,7 @@ Be specific and constructive in your analysis."""
             "issues": issues
         }
 
-    def _analyze_impact_language(self, text: str) -> Dict[str, Any]:
+    def _analyze_impact_language(self, text: str) -> dict[str, Any]:
         """Analyze use of impactful language."""
 
         strong_verbs = [
@@ -308,11 +308,11 @@ Be specific and constructive in your analysis."""
 
     def _generate_rule_based_suggestions(
         self,
-        readability: Dict,
-        terminology: Dict,
-        structure: Dict,
-        impact: Dict
-    ) -> List[Dict[str, Any]]:
+        readability: dict,
+        terminology: dict,
+        structure: dict,
+        impact: dict
+    ) -> list[dict[str, Any]]:
         """Generate improvement suggestions from rule-based analysis."""
 
         suggestions = []

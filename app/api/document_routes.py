@@ -3,17 +3,16 @@
 API routes for document management and ingestion.
 """
 
-from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks, Depends, Query
-from fastapi.responses import JSONResponse
-from typing import Optional, List, Dict, Any
-import uuid
-import os
-from pathlib import Path
 import logging
+import uuid
+from pathlib import Path
+from typing import Any
 
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, UploadFile
+
+from ..core.config import settings
 from ..services.ingestion_service import DocumentIngestionService
 from ..services.supabase_client import SupabaseVectorStore
-from ..core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +30,9 @@ def get_supabase_client() -> SupabaseVectorStore:
 async def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    document_type: Optional[str] = None,
-    programme_year: Optional[str] = None,
-    metadata: Optional[str] = None,
+    document_type: str | None = None,
+    programme_year: str | None = None,
+    metadata: str | None = None,
     ingestion_service: DocumentIngestionService = Depends(get_ingestion_service)
 ):
     """Upload a document for processing and ingestion."""
@@ -115,9 +114,9 @@ async def upload_document(
 async def ingest_web_url(
     background_tasks: BackgroundTasks,
     url: str,
-    document_type: Optional[str] = None,
-    programme_year: Optional[str] = None,
-    metadata: Optional[Dict[str, Any]] = None,
+    document_type: str | None = None,
+    programme_year: str | None = None,
+    metadata: dict[str, Any] | None = None,
     ingestion_service: DocumentIngestionService = Depends(get_ingestion_service)
 ):
     """Ingest a web page URL."""
@@ -173,8 +172,8 @@ async def ingest_web_url(
 async def list_documents(
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
-    status: Optional[str] = Query(None),
-    document_type: Optional[str] = Query(None),
+    status: str | None = Query(None),
+    document_type: str | None = Query(None),
     supabase: SupabaseVectorStore = Depends(get_supabase_client)
 ):
     """List documents with pagination and filtering."""
@@ -369,9 +368,9 @@ async def get_document_stats(
 @router.post("/batch-upload")
 async def batch_upload_documents(
     background_tasks: BackgroundTasks,
-    files: List[UploadFile] = File(...),
-    document_type: Optional[str] = None,
-    programme_year: Optional[str] = None,
+    files: list[UploadFile] = File(...),
+    document_type: str | None = None,
+    programme_year: str | None = None,
     ingestion_service: DocumentIngestionService = Depends(get_ingestion_service)
 ):
     """Upload multiple documents for batch processing."""

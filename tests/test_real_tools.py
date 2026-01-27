@@ -7,11 +7,10 @@ They test the actual functionality, not mock data.
 Run with: pytest tests/test_real_tools.py -v -s
 """
 
-import pytest
-import asyncio
 import os
 import sys
-from typing import Dict, Any
+
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -374,8 +373,8 @@ class TestMultiToolIntegration:
         1. Search for similar projects
         2. Analyze call history
         """
-        from app.services.tools.similar_projects import get_similar_funded_projects_execute
         from app.services.tools.call_history import analyze_call_history_execute
+        from app.services.tools.similar_projects import get_similar_funded_projects_execute
 
         # Step 1: Similar projects
         similar = await get_similar_funded_projects_execute(

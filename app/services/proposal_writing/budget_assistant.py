@@ -5,8 +5,8 @@ Helps create budget tables and justifications for Horizon Europe proposals.
 """
 
 import logging
-from typing import Dict, Any, List
 from decimal import Decimal
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +45,8 @@ class BudgetAssistant:
         self,
         call_id: str,
         proposal_type: str,
-        project_params: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        project_params: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Generate budget breakdown table
         
@@ -119,10 +119,10 @@ class BudgetAssistant:
     
     def _calculate_partner_budget(
         self,
-        partner: Dict[str, Any],
+        partner: dict[str, Any],
         proposal_type: str,
         duration_months: int
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Calculate budget for a single partner
         """
@@ -179,7 +179,7 @@ class BudgetAssistant:
         self,
         total_funding: Decimal,
         budget_constraint: float = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Check budget compliance with call requirements
         """
@@ -207,9 +207,9 @@ class BudgetAssistant:
     
     def _generate_budget_justification(
         self,
-        partner_budgets: List[Dict],
+        partner_budgets: list[dict],
         proposal_type: str
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         """
         Generate guidance for budget justification
         """
@@ -236,7 +236,7 @@ Equipment costs are justified as follows:
 - Cost-benefit analysis supports purchase over rental
 """,
             
-            "other_direct": f"""
+            "other_direct": """
 Other direct costs include:
 - Travel and accommodation for consortium meetings (4 meetings/year)
 - Dissemination activities (conference attendance, publications)
@@ -253,7 +253,7 @@ and infrastructure costs.
         
         return justification
     
-    def _format_budget_table(self, partner_budgets: List[Dict]) -> str:
+    def _format_budget_table(self, partner_budgets: list[dict]) -> str:
         """
         Format budget as a detailed text table for display
         """

@@ -6,14 +6,14 @@ performance, and quality metrics.
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
-from typing import Dict, Any, List, Optional
-from fastapi import APIRouter, Query, HTTPException
-from pydantic import BaseModel, Field
 import os
-import psycopg2
-from psycopg2.extras import RealDictCursor
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
+from fastapi import APIRouter, HTTPException, Query
 from psycopg2 import pool
+from psycopg2.extras import RealDictCursor
+from pydantic import BaseModel
 
 from app.services.analytics.tool_analytics_service import get_analytics_service
 
@@ -57,7 +57,7 @@ def _put_connection(conn):
 class UsageMetrics(BaseModel):
     total_queries: int
     unique_conversations: int
-    queries_per_day: Dict[str, int]
+    queries_per_day: dict[str, int]
     peak_hour: int
     avg_queries_per_conversation: float
 
@@ -66,14 +66,14 @@ class PerformanceMetrics(BaseModel):
     avg_response_time_ms: float
     p95_response_time_ms: float
     error_rate: float
-    tool_success_rates: Dict[str, float]
+    tool_success_rates: dict[str, float]
 
 
 class ContentMetrics(BaseModel):
-    top_queries: List[Dict[str, Any]]
-    top_tools: List[Dict[str, Any]]
-    popular_clusters: List[Dict[str, Any]]
-    popular_countries: List[Dict[str, Any]]
+    top_queries: list[dict[str, Any]]
+    top_tools: list[dict[str, Any]]
+    popular_clusters: list[dict[str, Any]]
+    popular_countries: list[dict[str, Any]]
 
 
 class ProposalMetrics(BaseModel):
@@ -85,13 +85,13 @@ class ProposalMetrics(BaseModel):
 
 class FeedbackMetrics(BaseModel):
     avg_rating: float
-    rating_distribution: Dict[int, int]
+    rating_distribution: dict[int, int]
     total_feedback_count: int
-    improvement_suggestions: List[str]
+    improvement_suggestions: list[str]
 
 
 class AnalyticsOverview(BaseModel):
-    period: Dict[str, Any]
+    period: dict[str, Any]
     usage: UsageMetrics
     performance: PerformanceMetrics
     content: ContentMetrics
@@ -107,13 +107,13 @@ class TrendPoint(BaseModel):
 class TrendResponse(BaseModel):
     metric: str
     granularity: str
-    data: List[TrendPoint]
+    data: list[TrendPoint]
 
 
 @router.get("/overview")
 async def get_analytics_overview(
     days: int = Query(30, ge=1, le=365, description="Number of days to analyze")
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get comprehensive system analytics overview.
 
@@ -127,7 +127,7 @@ async def get_analytics_overview(
             raise HTTPException(status_code=503, detail="Database unavailable")
 
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        start_date = datetime.now(timezone.utc) - timedelta(days=days)
+        start_date = datetime.now(UTC) - timedelta(days=days)
 
         # Usage metrics
         usage = await _get_usage_metrics(cursor, start_date, days)
@@ -150,14 +150,14 @@ async def get_analytics_overview(
             "period": {
                 "days": days,
                 "start_date": start_date.isoformat(),
-                "end_date": datetime.now(timezone.utc).isoformat()
+                "end_date": datetime.now(UTC).isoformat()
             },
             "usage": usage,
             "performance": performance,
             "content": content,
             "proposals": proposals,
             "feedback": feedback,
-            "generated_at": datetime.now(timezone.utc).isoformat()
+            "generated_at": datetime.now(UTC).isoformat()
         }
 
     except HTTPException:
@@ -172,7 +172,7 @@ async def get_analytics_overview(
 @router.get("/tools")
 async def get_tool_analytics(
     hours: int = Query(24, ge=1, le=720, description="Hours to analyze")
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get detailed tool usage analytics.
 
@@ -198,7 +198,7 @@ async def get_tool_analytics(
         "slow_tools": slow_tools,
         "popular_combinations": combinations.get("combinations", []),
         "current_session": session_metrics,
-        "generated_at": datetime.now(timezone.utc).isoformat()
+        "generated_at": datetime.now(UTC).isoformat()
     }
 
 
@@ -207,7 +207,7 @@ async def get_metric_trends(
     metric: str = Query(..., description="Metric to trend: queries, response_time, error_rate, feedback"),
     granularity: str = Query("day", pattern="^(hour|day|week|month)$", description="Time granularity"),
     days: int = Query(90, ge=1, le=365, description="Number of days")
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get metric trends over time.
 
@@ -220,7 +220,7 @@ async def get_metric_trends(
             raise HTTPException(status_code=503, detail="Database unavailable")
 
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        start_date = datetime.now(timezone.utc) - timedelta(days=days)
+        start_date = datetime.now(UTC) - timedelta(days=days)
 
         # Map granularity to PostgreSQL date_trunc
         granularity_map = {
@@ -298,7 +298,7 @@ async def get_metric_trends(
             "granularity": granularity,
             "days": days,
             "data": data,
-            "generated_at": datetime.now(timezone.utc).isoformat()
+            "generated_at": datetime.now(UTC).isoformat()
         }
 
     except HTTPException:
@@ -314,7 +314,7 @@ async def get_metric_trends(
 async def get_popular_queries(
     days: int = Query(30, ge=1, le=365),
     limit: int = Query(20, ge=1, le=100)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get most popular query patterns."""
     conn = None
     try:
@@ -323,7 +323,7 @@ async def get_popular_queries(
             raise HTTPException(status_code=503, detail="Database unavailable")
 
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        start_date = datetime.now(timezone.utc) - timedelta(days=days)
+        start_date = datetime.now(UTC) - timedelta(days=days)
 
         cursor.execute("""
             SELECT
@@ -344,7 +344,7 @@ async def get_popular_queries(
         return {
             "period_days": days,
             "popular_queries": [dict(r) for r in results],
-            "generated_at": datetime.now(timezone.utc).isoformat()
+            "generated_at": datetime.now(UTC).isoformat()
         }
 
     except Exception as e:
@@ -355,7 +355,7 @@ async def get_popular_queries(
 
 
 @router.get("/health")
-async def analytics_health() -> Dict[str, Any]:
+async def analytics_health() -> dict[str, Any]:
     """Check analytics service health."""
     analytics_service = get_analytics_service()
 
@@ -364,12 +364,12 @@ async def analytics_health() -> Dict[str, Any]:
         "buffer_size": len(analytics_service.buffer),
         "last_flush": analytics_service.last_flush.isoformat(),
         "session_tools_tracked": len(analytics_service.session_metrics),
-        "timestamp": datetime.now(timezone.utc).isoformat()
+        "timestamp": datetime.now(UTC).isoformat()
     }
 
 
 # Helper functions
-async def _get_usage_metrics(cursor, start_date: datetime, days: int) -> Dict[str, Any]:
+async def _get_usage_metrics(cursor, start_date: datetime, days: int) -> dict[str, Any]:
     """Get usage metrics from database."""
     try:
         # Total queries
@@ -435,7 +435,7 @@ async def _get_usage_metrics(cursor, start_date: datetime, days: int) -> Dict[st
         }
 
 
-async def _get_performance_metrics(cursor, start_date: datetime) -> Dict[str, Any]:
+async def _get_performance_metrics(cursor, start_date: datetime) -> dict[str, Any]:
     """Get performance metrics from database."""
     try:
         cursor.execute("""
@@ -477,7 +477,7 @@ async def _get_performance_metrics(cursor, start_date: datetime) -> Dict[str, An
         }
 
 
-async def _get_content_metrics(cursor, start_date: datetime) -> Dict[str, Any]:
+async def _get_content_metrics(cursor, start_date: datetime) -> dict[str, Any]:
     """Get content metrics from database."""
     try:
         # Top tools
@@ -539,7 +539,7 @@ async def _get_content_metrics(cursor, start_date: datetime) -> Dict[str, Any]:
         }
 
 
-async def _get_proposal_metrics(cursor, start_date: datetime) -> Dict[str, Any]:
+async def _get_proposal_metrics(cursor, start_date: datetime) -> dict[str, Any]:
     """Get proposal metrics from database."""
     try:
         # Check if proposal tables exist
@@ -587,7 +587,7 @@ async def _get_proposal_metrics(cursor, start_date: datetime) -> Dict[str, Any]:
         }
 
 
-async def _get_feedback_metrics(cursor, start_date: datetime) -> Dict[str, Any]:
+async def _get_feedback_metrics(cursor, start_date: datetime) -> dict[str, Any]:
     """Get feedback metrics from database."""
     try:
         # Check if feedback table exists

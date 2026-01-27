@@ -8,10 +8,11 @@ Each EU funding programme should implement its own extractor.
 import logging
 import re
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
-from typing import List, Dict, Any, Optional, Pattern
 from decimal import Decimal
+from re import Pattern
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -30,51 +31,51 @@ class FundingCall:
     title: str                  # Call title
     
     # Optional identification
-    call_identifier: Optional[str] = None       # Parent call ID
-    programme_part: Optional[str] = None        # 'Cluster 5', 'Pillar II', etc.
-    work_programme_year: Optional[int] = None   # Year of Work Programme
+    call_identifier: str | None = None       # Parent call ID
+    programme_part: str | None = None        # 'Cluster 5', 'Pillar II', etc.
+    work_programme_year: int | None = None   # Year of Work Programme
     
     # Action type
-    action_type: Optional[str] = None           # 'RIA', 'IA', 'CSA', etc.
+    action_type: str | None = None           # 'RIA', 'IA', 'CSA', etc.
     
     # Dates
-    call_year: Optional[int] = None             # Year from topic code
-    opening_date: Optional[date] = None
-    deadline: Optional[date] = None
-    second_stage_deadline: Optional[date] = None
+    call_year: int | None = None             # Year from topic code
+    opening_date: date | None = None
+    deadline: date | None = None
+    second_stage_deadline: date | None = None
     
     # Status
     status: str = 'upcoming'                    # 'open', 'upcoming', 'closed'
     
     # Financial info
-    budget_total: Optional[Decimal] = None
-    budget_per_project_min: Optional[Decimal] = None
-    budget_per_project_max: Optional[Decimal] = None
-    expected_projects: Optional[int] = None
-    funding_rate: Optional[int] = None          # Percentage, e.g., 100 for RIA
+    budget_total: Decimal | None = None
+    budget_per_project_min: Decimal | None = None
+    budget_per_project_max: Decimal | None = None
+    expected_projects: int | None = None
+    funding_rate: int | None = None          # Percentage, e.g., 100 for RIA
     
     # Content
-    expected_outcome: Optional[str] = None
-    scope: Optional[str] = None
-    eligibility: Optional[str] = None
+    expected_outcome: str | None = None
+    scope: str | None = None
+    eligibility: str | None = None
     
     # Classification
-    cluster: Optional[str] = None               # 'CL1', 'CL2', etc.
-    destination: Optional[str] = None
-    tags: List[str] = field(default_factory=list)
+    cluster: str | None = None               # 'CL1', 'CL2', etc.
+    destination: str | None = None
+    tags: list[str] = field(default_factory=list)
     
     # Source tracking
-    source_document_id: Optional[str] = None
-    source_document_title: Optional[str] = None
-    source_page_number: Optional[int] = None
+    source_document_id: str | None = None
+    source_document_title: str | None = None
+    source_page_number: int | None = None
     
     # Portal URL
-    portal_url: Optional[str] = None
+    portal_url: str | None = None
     
     # Flexible metadata for programme-specific data
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for database insertion."""
         data = asdict(self)
         # Convert date objects to strings
@@ -129,10 +130,10 @@ class CallExtractor(ABC):
     programme_name: str = "Unknown Programme"
     
     # Topic code patterns to look for
-    topic_patterns: List[Pattern] = []
+    topic_patterns: list[Pattern] = []
     
     # Action types recognized by this programme
-    action_types: Dict[str, str] = {}
+    action_types: dict[str, str] = {}
     
     def __init__(self, db_connection=None):
         """
@@ -143,11 +144,11 @@ class CallExtractor(ABC):
                           If None, calls must be saved manually.
         """
         self.db = db_connection
-        self.extracted_calls: List[FundingCall] = []
+        self.extracted_calls: list[FundingCall] = []
         logger.info(f"Initialized {self.programme_name} extractor")
     
     @abstractmethod
-    def extract_from_content(self, content: str, document_title: str = "") -> List[FundingCall]:
+    def extract_from_content(self, content: str, document_title: str = "") -> list[FundingCall]:
         """
         Extract funding calls from document content.
         
@@ -162,9 +163,9 @@ class CallExtractor(ABC):
     
     def extract_from_chunks(
         self, 
-        chunks: List[Dict[str, Any]],
+        chunks: list[dict[str, Any]],
         document_title: str = ""
-    ) -> List[FundingCall]:
+    ) -> list[FundingCall]:
         """
         Extract funding calls from a list of document chunks.
         
@@ -200,7 +201,7 @@ class CallExtractor(ABC):
         self.extracted_calls = all_calls
         return all_calls
     
-    def save_calls(self, calls: List[FundingCall] = None) -> int:
+    def save_calls(self, calls: list[FundingCall] = None) -> int:
         """
         Save extracted calls to the database.
         
@@ -263,7 +264,7 @@ class CallExtractor(ABC):
     # Helper methods for subclasses
     # =========================================================================
     
-    def find_topic_codes(self, content: str) -> List[str]:
+    def find_topic_codes(self, content: str) -> list[str]:
         """Find all topic codes in content using the programme's patterns."""
         codes = []
         for pattern in self.topic_patterns:
@@ -271,17 +272,17 @@ class CallExtractor(ABC):
             codes.extend(matches)
         return list(set(codes))  # Deduplicate
     
-    def extract_year_from_code(self, topic_code: str) -> Optional[int]:
+    def extract_year_from_code(self, topic_code: str) -> int | None:
         """Extract year from topic code like HORIZON-CL5-2026-... -> 2026"""
         match = re.search(r'20(2[0-9]|3[0-9])', topic_code)
         return int(match.group(0)) if match else None
     
-    def extract_cluster_from_code(self, topic_code: str) -> Optional[str]:
+    def extract_cluster_from_code(self, topic_code: str) -> str | None:
         """Extract cluster from topic code like HORIZON-CL5-... -> CL5"""
         match = re.search(r'CL(\d+)', topic_code, re.IGNORECASE)
         return f"CL{match.group(1)}" if match else None
     
-    def parse_date(self, date_str: str) -> Optional[date]:
+    def parse_date(self, date_str: str) -> date | None:
         """Parse various date formats to date object."""
         if not date_str:
             return None
@@ -303,7 +304,7 @@ class CallExtractor(ABC):
         
         return None
     
-    def parse_budget(self, budget_str: str) -> Optional[Decimal]:
+    def parse_budget(self, budget_str: str) -> Decimal | None:
         """Parse budget string to Decimal."""
         if not budget_str:
             return None

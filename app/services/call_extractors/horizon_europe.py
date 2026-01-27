@@ -7,8 +7,8 @@ Understands the specific format used in HE Work Programmes (2021-2027).
 
 import logging
 import re
-from typing import List, Dict, Any, Optional
 from decimal import Decimal
+from typing import Any, Optional
 
 from .base import CallExtractor, FundingCall
 
@@ -94,7 +94,7 @@ class HorizonEuropeExtractor(CallExtractor):
         'CL6': 'Food, Bioeconomy, Natural Resources, Agriculture and Environment',
     }
     
-    def extract_from_content(self, content: str, document_title: str = "") -> List[FundingCall]:
+    def extract_from_content(self, content: str, document_title: str = "") -> list[FundingCall]:
         """
         Extract Horizon Europe calls from document content.
         
@@ -125,7 +125,7 @@ class HorizonEuropeExtractor(CallExtractor):
         content: str, 
         topic_code: str,
         document_title: str
-    ) -> Optional[FundingCall]:
+    ) -> FundingCall | None:
         """Extract details for a single call."""
         
         # Extract basic info
@@ -268,7 +268,7 @@ class HorizonEuropeExtractor(CallExtractor):
         else:
             return 'Horizon Europe'
     
-    def _extract_action_type(self, content: str, topic_code: str) -> Optional[str]:
+    def _extract_action_type(self, content: str, topic_code: str) -> str | None:
         """Extract action type for a call."""
         # Look near the topic code
         start_idx = content.upper().find(topic_code.upper())
@@ -312,7 +312,7 @@ class HorizonEuropeExtractor(CallExtractor):
         
         return None
     
-    def _extract_expected_outcome(self, content: str, topic_code: str) -> Optional[str]:
+    def _extract_expected_outcome(self, content: str, topic_code: str) -> str | None:
         """
         Extract the Expected Outcome section for a call.
         
@@ -357,7 +357,7 @@ class HorizonEuropeExtractor(CallExtractor):
         
         return None
     
-    def _extract_scope(self, content: str, topic_code: str) -> Optional[str]:
+    def _extract_scope(self, content: str, topic_code: str) -> str | None:
         """
         Extract the Scope section for a call.
         
@@ -401,7 +401,7 @@ class HorizonEuropeExtractor(CallExtractor):
         
         return None
     
-    def _extract_budget_info(self, content: str, topic_code: str) -> Dict[str, Any]:
+    def _extract_budget_info(self, content: str, topic_code: str) -> dict[str, Any]:
         """
         Extract budget information for a call.
         
@@ -514,10 +514,9 @@ class HorizonEuropeExtractor(CallExtractor):
         self, 
         content: str, 
         topic_code: str,
-        call_year: Optional[int]
+        call_year: int | None
     ) -> Optional['date']:
         """Extract deadline for a call."""
-        from datetime import date as date_type
         
         # Find content near the topic code
         start_idx = content.upper().find(topic_code.upper())
@@ -545,7 +544,7 @@ class HorizonEuropeExtractor(CallExtractor):
         
         return None
     
-    def _extract_wp_year(self, document_title: str) -> Optional[int]:
+    def _extract_wp_year(self, document_title: str) -> int | None:
         """Extract Work Programme year from document title."""
         match = re.search(r'20(2[3-9]|3[0-9])', document_title)
         return int(match.group(0)) if match else None
@@ -553,10 +552,10 @@ class HorizonEuropeExtractor(CallExtractor):
     def _generate_tags(
         self, 
         title: str, 
-        scope: Optional[str], 
-        outcome: Optional[str],
-        cluster: Optional[str]
-    ) -> List[str]:
+        scope: str | None, 
+        outcome: str | None,
+        cluster: str | None
+    ) -> list[str]:
         """Generate search tags from call content."""
         tags = []
         

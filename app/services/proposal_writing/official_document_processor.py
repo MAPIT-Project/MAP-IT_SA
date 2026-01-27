@@ -5,16 +5,16 @@ Processes all official EU templates and forms from newdocs/ folder to create
 submission-ready documents.
 """
 
-import os
 import logging
-from typing import Dict, Any, List, Optional
+from io import BytesIO
 from pathlib import Path
+from typing import Any
+
+import openpyxl
 import PyPDF2
 from docx import Document
-from docx.shared import Pt, Inches, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-import openpyxl
-from io import BytesIO
+from docx.shared import Inches, Pt, RGBColor
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ class OfficialDocumentProcessor:
         self.guidance_path = Path("newdocs/Guidence")
         self.work_programmes_path = Path("newdocs/2025_work_programmes")
     
-    def get_template_for_action_type(self, action_type: str) -> Optional[Path]:
+    def get_template_for_action_type(self, action_type: str) -> Path | None:
         """
         Get the appropriate application form template
         
@@ -64,7 +64,7 @@ class OfficialDocumentProcessor:
         
         return template_path
     
-    def get_evaluation_form(self, action_type: str) -> Optional[Path]:
+    def get_evaluation_form(self, action_type: str) -> Path | None:
         """Get evaluation form for scoring criteria"""
         
         eval_mapping = {
@@ -80,7 +80,7 @@ class OfficialDocumentProcessor:
         eval_path = self.templates_path / "Evaluation forms" / eval_file
         return eval_path if eval_path.exists() else None
     
-    def extract_template_structure(self, action_type: str) -> Dict[str, Any]:
+    def extract_template_structure(self, action_type: str) -> dict[str, Any]:
         """
         Extract section structure from official template PDF
         
@@ -111,7 +111,7 @@ class OfficialDocumentProcessor:
             logger.error(f"Error extracting template structure: {e}")
             return self._get_default_structure(action_type)
     
-    def _parse_template_structure(self, text: str, action_type: str) -> Dict[str, Any]:
+    def _parse_template_structure(self, text: str, action_type: str) -> dict[str, Any]:
         """Parse template text to extract section structure"""
         
         # Look for section headings in the PDF
@@ -145,7 +145,7 @@ class OfficialDocumentProcessor:
             "source": "official_template"
         }
     
-    def _get_default_structure(self, action_type: str) -> Dict[str, Any]:
+    def _get_default_structure(self, action_type: str) -> dict[str, Any]:
         """Fallback structure if template can't be parsed"""
         
         if action_type in ['RIA', 'IA']:
@@ -161,7 +161,7 @@ class OfficialDocumentProcessor:
         
         return {"action_type": action_type, "sections": [], "source": "default"}
     
-    def extract_evaluation_criteria(self, action_type: str) -> Dict[str, List[str]]:
+    def extract_evaluation_criteria(self, action_type: str) -> dict[str, list[str]]:
         """
         Extract exact evaluation criteria from official evaluation form
         
@@ -190,7 +190,7 @@ class OfficialDocumentProcessor:
             logger.error(f"Error extracting evaluation criteria: {e}")
             return self._get_default_criteria(action_type)
     
-    def _parse_evaluation_criteria(self, text: str) -> Dict[str, List[str]]:
+    def _parse_evaluation_criteria(self, text: str) -> dict[str, list[str]]:
         """Parse evaluation form to extract criteria"""
         
         criteria = {
@@ -224,7 +224,7 @@ class OfficialDocumentProcessor:
         
         return criteria
     
-    def _get_default_criteria(self, action_type: str) -> Dict[str, List[str]]:
+    def _get_default_criteria(self, action_type: str) -> dict[str, list[str]]:
         """Fallback criteria"""
         
         return {
@@ -257,7 +257,7 @@ class OfficialWordExporter:
     
     def create_part_b_document(
         self,
-        proposal_data: Dict[str, Any],
+        proposal_data: dict[str, Any],
         action_type: str = 'RIA'
     ) -> BytesIO:
         """
@@ -316,7 +316,7 @@ class OfficialWordExporter:
             section.page_height = Inches(11.69)  # A4
             section.page_width = Inches(8.27)
     
-    def _add_cover_page(self, doc: Document, proposal_data: Dict):
+    def _add_cover_page(self, doc: Document, proposal_data: dict):
         """Add official cover page"""
         
         # Title
@@ -344,7 +344,7 @@ class OfficialWordExporter:
         branding_run.font.size = Pt(14)
         branding_run.font.color.rgb = RGBColor(0, 51, 153)  # EU blue
     
-    def _add_table_of_contents(self, doc: Document, proposal_data: Dict):
+    def _add_table_of_contents(self, doc: Document, proposal_data: dict):
         """Add table of contents"""
         
         heading = doc.add_paragraph("Table of Contents")
@@ -363,7 +363,7 @@ class OfficialWordExporter:
         doc.add_paragraph("   3.1 Work plan and resources")
         doc.add_paragraph("   3.2 Consortium as a whole")
     
-    def _add_part_b_sections(self, doc: Document, proposal_data: Dict, action_type: str):
+    def _add_part_b_sections(self, doc: Document, proposal_data: dict, action_type: str):
         """Add all Part B sections with content"""
         
         sections = proposal_data.get('sections', {})
@@ -411,7 +411,7 @@ class OfficialBudgetExporter:
     
     def create_budget_excel(
         self,
-        budget_data: Dict[str, Any]
+        budget_data: dict[str, Any]
     ) -> BytesIO:
         """
         Create official budget Excel file

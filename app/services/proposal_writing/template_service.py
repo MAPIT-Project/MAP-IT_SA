@@ -5,9 +5,8 @@ Generates structured proposal templates based on call requirements.
 """
 
 import logging
-from typing import Dict, Any, List, Optional
-import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +20,7 @@ class ProposalTemplateService:
         self.db_pool = db_pool
         self.call_doc_service = call_doc_service
         
-    async def generate_template(self, call_id: str) -> Dict[str, Any]:
+    async def generate_template(self, call_id: str) -> dict[str, Any]:
         """
         Generate a complete proposal template for a specific call
         
@@ -53,7 +52,7 @@ class ProposalTemplateService:
         template = {
             "call_id": call_id,
             "proposal_type": proposal_type,
-            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "generated_at": datetime.now(UTC).isoformat(),
             "structure": base_template,
             "requirements": requirements,
             "evaluation_criteria": criteria_mapping,
@@ -68,7 +67,7 @@ class ProposalTemplateService:
         
         return template
     
-    def _get_base_template(self, proposal_type: str) -> Dict[str, Any]:
+    def _get_base_template(self, proposal_type: str) -> dict[str, Any]:
         """
         Get base template structure based on proposal type
         """
@@ -204,7 +203,7 @@ class ProposalTemplateService:
         # Default to RIA structure
         return self._get_base_template("RIA")
     
-    def _extract_proposal_type(self, call_id: str, call_docs: List[Dict]) -> str:
+    def _extract_proposal_type(self, call_id: str, call_docs: list[dict]) -> str:
         """
         Extract proposal type from call documents
         
@@ -232,7 +231,7 @@ class ProposalTemplateService:
         logger.warning(f"Could not determine proposal type for {call_id}, defaulting to RIA")
         return "RIA"
     
-    def _extract_requirements(self, call_id: str) -> Dict[str, Any]:
+    def _extract_requirements(self, call_id: str) -> dict[str, Any]:
         """
         Extract specific requirements from call documents
         """
@@ -271,8 +270,8 @@ class ProposalTemplateService:
     def _map_evaluation_criteria(
         self,
         call_id: str,
-        requirements: Dict
-    ) -> Dict[str, List[str]]:
+        requirements: dict
+    ) -> dict[str, list[str]]:
         """
         Map evaluation criteria to proposal sections
         """
@@ -311,7 +310,7 @@ class ProposalTemplateService:
         self,
         call_id: str,
         section_id: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get specific guidance for a section
         """

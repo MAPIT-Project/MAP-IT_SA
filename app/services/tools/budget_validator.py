@@ -14,7 +14,7 @@ Provides multi-level validation:
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -46,8 +46,8 @@ class ValidationIssue:
     category: IssueCategory
     message: str
     recommendation: str
-    affected_value: Optional[Any] = None
-    expected_range: Optional[str] = None
+    affected_value: Any | None = None
+    expected_range: str | None = None
 
 
 @dataclass
@@ -55,16 +55,16 @@ class ValidationResult:
     """Complete validation result."""
     valid: bool
     compliance_score: float  # 0-100
-    issues: List[ValidationIssue] = field(default_factory=list)
-    passed_checks: List[str] = field(default_factory=list)
+    issues: list[ValidationIssue] = field(default_factory=list)
+    passed_checks: list[str] = field(default_factory=list)
     summary: str = ""
 
     @property
-    def critical_issues(self) -> List[ValidationIssue]:
+    def critical_issues(self) -> list[ValidationIssue]:
         return [i for i in self.issues if i.level == ValidationLevel.CRITICAL]
 
     @property
-    def high_issues(self) -> List[ValidationIssue]:
+    def high_issues(self) -> list[ValidationIssue]:
         return [i for i in self.issues if i.level == ValidationLevel.HIGH]
 
 
@@ -172,9 +172,9 @@ class BudgetValidatorTool:
         action_type: str = "RIA",
         duration_months: int = 36,
         num_partners: int = 3,
-        cost_breakdown: Optional[Dict[str, float]] = None,
-        consortium: Optional[List[Dict]] = None,
-        call_budget_cap: Optional[float] = None,
+        cost_breakdown: dict[str, float] | None = None,
+        consortium: list[dict] | None = None,
+        call_budget_cap: float | None = None,
     ) -> ValidationResult:
         """
         Validate a proposal budget.
@@ -192,8 +192,8 @@ class BudgetValidatorTool:
         Returns:
             ValidationResult with issues and recommendations
         """
-        issues: List[ValidationIssue] = []
-        passed_checks: List[str] = []
+        issues: list[ValidationIssue] = []
+        passed_checks: list[str] = []
 
         # Normalize action type
         action_type = action_type.upper()
@@ -247,8 +247,8 @@ class BudgetValidatorTool:
         total_cost: float,
         eu_contribution: float,
         action_type: str,
-        issues: List[ValidationIssue],
-        passed: List[str],
+        issues: list[ValidationIssue],
+        passed: list[str],
     ):
         """Validate funding rate is correct for action type."""
         if total_cost <= 0:
@@ -292,9 +292,9 @@ class BudgetValidatorTool:
     def _validate_indirect_costs(
         self,
         total_cost: float,
-        cost_breakdown: Optional[Dict[str, float]],
-        issues: List[ValidationIssue],
-        passed: List[str],
+        cost_breakdown: dict[str, float] | None,
+        issues: list[ValidationIssue],
+        passed: list[str],
     ):
         """Validate indirect costs are calculated correctly (25% flat rate)."""
         if not cost_breakdown:
@@ -325,7 +325,7 @@ class BudgetValidatorTool:
                 level=ValidationLevel.HIGH,
                 category=IssueCategory.INDIRECT_COSTS,
                 message=f"Indirect costs (€{indirect:,.0f}) differ from 25% flat rate (€{expected_indirect:,.0f})",
-                recommendation=f"Recalculate indirect costs as 25% of direct costs (excl. subcontracting)",
+                recommendation="Recalculate indirect costs as 25% of direct costs (excl. subcontracting)",
                 affected_value=f"€{indirect:,.0f}",
                 expected_range=f"€{expected_indirect:,.0f}",
             ))
@@ -335,9 +335,9 @@ class BudgetValidatorTool:
     def _validate_cost_categories(
         self,
         action_type: str,
-        cost_breakdown: Optional[Dict[str, float]],
-        issues: List[ValidationIssue],
-        passed: List[str],
+        cost_breakdown: dict[str, float] | None,
+        issues: list[ValidationIssue],
+        passed: list[str],
     ):
         """Validate cost category ratios are reasonable."""
         if not cost_breakdown:
@@ -373,7 +373,7 @@ class BudgetValidatorTool:
                     level=ValidationLevel.LOW,
                     category=IssueCategory.COST_CATEGORY,
                     message=f"{category.replace('_', ' ').title()} costs ({ratio:.1%}) below typical range for {action_type}",
-                    recommendation=f"This may be acceptable depending on project needs",
+                    recommendation="This may be acceptable depending on project needs",
                     affected_value=f"{ratio:.1%}",
                 ))
             elif ratio > 0:
@@ -383,9 +383,9 @@ class BudgetValidatorTool:
         self,
         eu_contribution: float,
         action_type: str,
-        call_budget_cap: Optional[float],
-        issues: List[ValidationIssue],
-        passed: List[str],
+        call_budget_cap: float | None,
+        issues: list[ValidationIssue],
+        passed: list[str],
     ):
         """Validate budget is within reasonable range for action type."""
         ranges = self.BUDGET_RANGES.get(action_type, self.BUDGET_RANGES['RIA'])
@@ -427,8 +427,8 @@ class BudgetValidatorTool:
         self,
         duration_months: int,
         action_type: str,
-        issues: List[ValidationIssue],
-        passed: List[str],
+        issues: list[ValidationIssue],
+        passed: list[str],
     ):
         """Validate project duration is appropriate."""
         ranges = self.DURATION_RANGES.get(action_type, self.DURATION_RANGES['RIA'])
@@ -457,10 +457,10 @@ class BudgetValidatorTool:
     def _validate_consortium(
         self,
         num_partners: int,
-        consortium: Optional[List[Dict]],
+        consortium: list[dict] | None,
         action_type: str,
-        issues: List[ValidationIssue],
-        passed: List[str],
+        issues: list[ValidationIssue],
+        passed: list[str],
     ):
         """Validate consortium structure."""
         reqs = self.CONSORTIUM_REQUIREMENTS.get(action_type, self.CONSORTIUM_REQUIREMENTS['RIA'])
@@ -509,8 +509,8 @@ class BudgetValidatorTool:
         eu_contribution: float,
         num_partners: int,
         duration_months: int,
-        issues: List[ValidationIssue],
-        passed: List[str],
+        issues: list[ValidationIssue],
+        passed: list[str],
     ):
         """Validate budget per partner per year is reasonable."""
         if num_partners <= 0 or duration_months <= 0:
@@ -544,8 +544,8 @@ class BudgetValidatorTool:
 
     def _calculate_compliance_score(
         self,
-        issues: List[ValidationIssue],
-        passed: List[str],
+        issues: list[ValidationIssue],
+        passed: list[str],
     ) -> float:
         """Calculate overall compliance score (0-100)."""
         # Penalty weights by issue level
@@ -569,8 +569,8 @@ class BudgetValidatorTool:
         self,
         valid: bool,
         score: float,
-        issues: List[ValidationIssue],
-        passed: List[str],
+        issues: list[ValidationIssue],
+        passed: list[str],
         action_type: str,
     ) -> str:
         """Generate human-readable validation summary."""
@@ -611,10 +611,10 @@ def validate_budget_execute(
     action_type: str = "RIA",
     duration_months: int = 36,
     num_partners: int = 3,
-    cost_breakdown: Optional[Dict[str, float]] = None,
-    consortium: Optional[List[Dict]] = None,
-    call_budget_cap: Optional[float] = None,
-) -> Dict[str, Any]:
+    cost_breakdown: dict[str, float] | None = None,
+    consortium: list[dict] | None = None,
+    call_budget_cap: float | None = None,
+) -> dict[str, Any]:
     """
     Execute budget validation.
 

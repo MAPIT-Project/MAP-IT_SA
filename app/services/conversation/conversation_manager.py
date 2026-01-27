@@ -3,13 +3,13 @@ Main conversation management system that orchestrates all components.
 """
 
 import asyncio
-from collections.abc import AsyncGenerator
-from datetime import datetime
 import json
 import logging
 import os
 import random
 import re
+from collections.abc import AsyncGenerator
+from datetime import datetime
 from typing import Any
 
 import psycopg2
@@ -657,6 +657,10 @@ class ConversationManager:
                 conversation_id=conversation_id, role="user", content=user_message
             )
             logger.info("📝 Added user message to memory for context (V3)")
+
+            # Debug: Log the context being passed to the agent
+            logger.info(f"🔍 DEBUG: Context length: {len(conversation_context)}")
+            logger.info(f"🔍 DEBUG: Context preview: {conversation_context[:300]}...")
 
             # 3. Run the agentic loop - THE AGENT DECIDES EVERYTHING
             agent_result = await self.tool_aware_agent.process_query(

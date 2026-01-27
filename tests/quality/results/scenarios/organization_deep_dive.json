@@ -1,76 +1,134 @@
 {
   "scenario_name": "Organization Deep-Dive",
+  "status": "FAIL",
+  "average_quality_score": 76.6,
+  "average_factual_score": 100.0,
   "turns": [
     {
-      "turn_number": 0,
       "query": "Tell me about Technical University of Munich's EU funding history",
-      "response_text": "## Projects by Technical University of Munich\n**Total Projects Found:** 20\n\n### \ud83c\udfaf Coordinated Projects (0)\n\nNo projects coordinated by this organization found in the database.\nThe organization participates in projects but hasn't coordinated any in the current dataset.\n\n\n### \ud83e\udd1d As Participant (20)\n\n- **QOMBE**: Quantum Optics in Many-Body photonic Environments (HORIZON-TMA-MSCA-PF-EF, \u20ac0.2M) [\u2192](https://cordis.europa.eu/project/id/101198416)\n\n- **IRB-DRIVE**: IRB Barcelona International PhD Programme:  Driving talent t... (HORIZON-TMA-MSCA-Cofund-D, \u20ac1.6M) [\u2192](https://cordis.europa.eu/project/id/101217394)\n\n- **NeMo**: NonEquilibrium MOlecular processes in the ultrastrong coupli... (HORIZON-TMA-MSCA-PF-GF, \u20ac0.4M) [\u2192](https://cordis.europa.eu/project/id/101203192)\n\n- **FTMcQED**: Fundamental, topological and modular models for circuit QED (HORIZON-TMA-MSCA-PF-EF, \u20ac0.2M) [\u2192](https://cordis.europa.eu/project/id/101204967)\n\n- **BIOHYBRITE**: Decoding and designing biomolecular systems with hybrid DNA:... (HORIZON-TMA-MSCA-DN, \u20ac4.5M) [\u2192](https://cordis.europa.eu/project/id/101227379)\n\n- **TUCAS**: Tree Urban Cooling Capacity through Analysis and Simulations... (HORIZON-TMA-MSCA-PF-EF, \u20ac0.2M) [\u2192](https://cordis.europa.eu/project/id/101208912)\n\n- **Breaking Bad**: B cell-orchestrated tolerization of T cell-dependent B cell-... (HORIZON-ERC, \u20ac2.4M) [\u2192](https://cordis.europa.eu/project/id/101198426)\n\n- **STEMCELL**: Unified theory for water availability impacts on mature tree... (HORIZON-ERC, \u20ac1.5M) [\u2192](https://cordis.europa.eu/project/id/101220696)\n\n- **REVEAL**: Revealing Extinction Risk through Comparative Genomics and A... (HORIZON-TMA-MSCA-PF-EF, \u20ac0.2M) [\u2192](https://cordis.europa.eu/project/id/101204414)\n\n- **CORESPACES**: COdesign urban REalm & dynamic Spaces management for cogniti... (HORIZON-IA, \u20ac15.0M) [\u2192](https://cordis.europa.eu/project/id/101239095)\n\n\n### \ud83d\udcca Summary\n- **Total Projects:** 20\n- **As Coordinator:** 0\n- **Total Budget Involved:** \u20ac56.6M\n- **Funding Types:** HORIZON-TMA-MSCA-Cofund-D, HORIZON-ERC, HORIZON-TMA-MSCA-SE, HORIZON-TMA-MSCA-PF-GF, HORIZON-TMA-MSCA-DN-JD, HORIZON-TMA-MSCA-PF-EF, HORIZON-TMA-MSCA-DN, HORIZON-IA\n\n**Next Steps:**\n\u2022 Explore specific project details on CORDIS\n\u2022 Search for collaboration partners\n\u2022 Analyze the organization's research focus areas\n\u2022 Use `get_collaboration_network` to see their key partners",
-      "tools_used": [
-        "find_organization_projects"
-      ],
+      "response": "## Projects by TUM\n**Total Projects Found:** 20\n\n### \ud83c\udfaf Coordinated Projects (0)\n\nNo projects coordinated by this organization found in the database.\nThe organization participates in projects but hasn't coordinated any in the current dataset.\n\n\n### \ud83e\udd1d As Participant (20)\n\n- **QOMBE**: Quantum Optics in Many-Body photonic Environments (HORIZON-TMA-MSCA-PF-EF, \u20ac0.2M) [\u2192](https://cordis.europa.eu/project/id/101198416)\n\n- **IRB-DRIVE**: IRB Barcelona International PhD Programme:  Driving talent t... (...",
       "quality_score": 75,
       "factual_score": 100.0,
       "failures": [],
+      "tools_used": [
+        "find_organization_projects",
+        "find_organization_projects",
+        "find_organization_projects"
+      ],
+      "processing_time_ms": 7519.782,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 0
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 0,
       "passed": false
     },
     {
-      "turn_number": 1,
       "query": "What topics do they focus on?",
-      "response_text": "## Projects by Technical University of Munich\n**Total Projects Found:** 20\n\n### \ud83c\udfaf Coordinated Projects (0)\n\nNo projects coordinated by this organization found in the database.\nThe organization participates in projects but hasn't coordinated any in the current dataset.\n\n\n### \ud83e\udd1d As Participant (20)\n\n- **QOMBE**: Quantum Optics in Many-Body photonic Environments (HORIZON-TMA-MSCA-PF-EF, \u20ac0.2M) [\u2192](https://cordis.europa.eu/project/id/101198416)\n\n- **IRB-DRIVE**: IRB Barcelona International PhD Programme:  Driving talent t... (HORIZON-TMA-MSCA-Cofund-D, \u20ac1.6M) [\u2192](https://cordis.europa.eu/project/id/101217394)\n\n- **NeMo**: NonEquilibrium MOlecular processes in the ultrastrong coupli... (HORIZON-TMA-MSCA-PF-GF, \u20ac0.4M) [\u2192](https://cordis.europa.eu/project/id/101203192)\n\n- **FTMcQED**: Fundamental, topological and modular models for circuit QED (HORIZON-TMA-MSCA-PF-EF, \u20ac0.2M) [\u2192](https://cordis.europa.eu/project/id/101204967)\n\n- **BIOHYBRITE**: Decoding and designing biomolecular systems with hybrid DNA:... (HORIZON-TMA-MSCA-DN, \u20ac4.5M) [\u2192](https://cordis.europa.eu/project/id/101227379)\n\n- **TUCAS**: Tree Urban Cooling Capacity through Analysis and Simulations... (HORIZON-TMA-MSCA-PF-EF, \u20ac0.2M) [\u2192](https://cordis.europa.eu/project/id/101208912)\n\n- **Breaking Bad**: B cell-orchestrated tolerization of T cell-dependent B cell-... (HORIZON-ERC, \u20ac2.4M) [\u2192](https://cordis.europa.eu/project/id/101198426)\n\n- **STEMCELL**: Unified theory for water availability impacts on mature tree... (HORIZON-ERC, \u20ac1.5M) [\u2192](https://cordis.europa.eu/project/id/101220696)\n\n- **REVEAL**: Revealing Extinction Risk through Comparative Genomics and A... (HORIZON-TMA-MSCA-PF-EF, \u20ac0.2M) [\u2192](https://cordis.europa.eu/project/id/101204414)\n\n- **CORESPACES**: COdesign urban REalm & dynamic Spaces management for cogniti... (HORIZON-IA, \u20ac15.0M) [\u2192](https://cordis.europa.eu/project/id/101239095)\n\n\n### \ud83d\udcca Summary\n- **Total Projects:** 20\n- **As Coordinator:** 0\n- **Total Budget Involved:** \u20ac56.6M\n- **Funding Types:** HORIZON-TMA-MSCA-Cofund-D, HORIZON-ERC, HORIZON-TMA-MSCA-SE, HORIZON-TMA-MSCA-PF-GF, HORIZON-TMA-MSCA-DN-JD, HORIZON-TMA-MSCA-PF-EF, HORIZON-TMA-MSCA-DN, HORIZON-IA\n\n**Next Steps:**\n\u2022 Explore specific project details on CORDIS\n\u2022 Search for collaboration partners\n\u2022 Analyze the organization's research focus areas\n\u2022 Use `get_collaboration_network` to see their key partners",
-      "tools_used": [
-        "find_organization_projects"
-      ],
-      "quality_score": 75,
-      "factual_score": 100.0,
-      "failures": [],
-      "passed": false
-    },
-    {
-      "turn_number": 2,
-      "query": "What's their success rate as coordinator?",
-      "response_text": "## Projects by Technical University of Munich\n**Total Projects Found:** 20\n\n### \ud83c\udfaf Coordinated Projects (0)\n\nNo projects coordinated by this organization found in the database.\nThe organization participates in projects but hasn't coordinated any in the current dataset.\n\n\n### \ud83e\udd1d As Participant (20)\n\n- **QOMBE**: Quantum Optics in Many-Body photonic Environments (HORIZON-TMA-MSCA-PF-EF, \u20ac0.2M) [\u2192](https://cordis.europa.eu/project/id/101198416)\n\n- **IRB-DRIVE**: IRB Barcelona International PhD Programme:  Driving talent t... (HORIZON-TMA-MSCA-Cofund-D, \u20ac1.6M) [\u2192](https://cordis.europa.eu/project/id/101217394)\n\n- **NeMo**: NonEquilibrium MOlecular processes in the ultrastrong coupli... (HORIZON-TMA-MSCA-PF-GF, \u20ac0.4M) [\u2192](https://cordis.europa.eu/project/id/101203192)\n\n- **FTMcQED**: Fundamental, topological and modular models for circuit QED (HORIZON-TMA-MSCA-PF-EF, \u20ac0.2M) [\u2192](https://cordis.europa.eu/project/id/101204967)\n\n- **BIOHYBRITE**: Decoding and designing biomolecular systems with hybrid DNA:... (HORIZON-TMA-MSCA-DN, \u20ac4.5M) [\u2192](https://cordis.europa.eu/project/id/101227379)\n\n- **TUCAS**: Tree Urban Cooling Capacity through Analysis and Simulations... (HORIZON-TMA-MSCA-PF-EF, \u20ac0.2M) [\u2192](https://cordis.europa.eu/project/id/101208912)\n\n- **Breaking Bad**: B cell-orchestrated tolerization of T cell-dependent B cell-... (HORIZON-ERC, \u20ac2.4M) [\u2192](https://cordis.europa.eu/project/id/101198426)\n\n- **STEMCELL**: Unified theory for water availability impacts on mature tree... (HORIZON-ERC, \u20ac1.5M) [\u2192](https://cordis.europa.eu/project/id/101220696)\n\n- **REVEAL**: Revealing Extinction Risk through Comparative Genomics and A... (HORIZON-TMA-MSCA-PF-EF, \u20ac0.2M) [\u2192](https://cordis.europa.eu/project/id/101204414)\n\n- **CORESPACES**: COdesign urban REalm & dynamic Spaces management for cogniti... (HORIZON-IA, \u20ac15.0M) [\u2192](https://cordis.europa.eu/project/id/101239095)\n\n\n### \ud83d\udcca Summary\n- **Total Projects:** 20\n- **As Coordinator:** 0\n- **Total Budget Involved:** \u20ac56.6M\n- **Funding Types:** HORIZON-TMA-MSCA-Cofund-D, HORIZON-ERC, HORIZON-TMA-MSCA-SE, HORIZON-TMA-MSCA-PF-GF, HORIZON-TMA-MSCA-DN-JD, HORIZON-TMA-MSCA-PF-EF, HORIZON-TMA-MSCA-DN, HORIZON-IA\n\n**Next Steps:**\n\u2022 Explore specific project details on CORDIS\n\u2022 Search for collaboration partners\n\u2022 Analyze the organization's research focus areas\n\u2022 Use `get_collaboration_network` to see their key partners",
-      "tools_used": [
-        "find_organization_projects"
-      ],
-      "quality_score": 75,
-      "factual_score": 100.0,
-      "failures": [],
-      "passed": false
-    },
-    {
-      "turn_number": 3,
-      "query": "Show their recent projects",
-      "response_text": "## Projects by Technical University of Munich\n**Total Projects Found:** 20\n\n### \ud83c\udfaf Coordinated Projects (0)\n\nNo projects coordinated by this organization found in the database.\nThe organization participates in projects but hasn't coordinated any in the current dataset.\n\n\n### \ud83e\udd1d As Participant (20)\n\n- **QOMBE**: Quantum Optics in Many-Body photonic Environments (HORIZON-TMA-MSCA-PF-EF, \u20ac0.2M) [\u2192](https://cordis.europa.eu/project/id/101198416)\n\n- **IRB-DRIVE**: IRB Barcelona International PhD Programme:  Driving talent t... (HORIZON-TMA-MSCA-Cofund-D, \u20ac1.6M) [\u2192](https://cordis.europa.eu/project/id/101217394)\n\n- **NeMo**: NonEquilibrium MOlecular processes in the ultrastrong coupli... (HORIZON-TMA-MSCA-PF-GF, \u20ac0.4M) [\u2192](https://cordis.europa.eu/project/id/101203192)\n\n- **FTMcQED**: Fundamental, topological and modular models for circuit QED (HORIZON-TMA-MSCA-PF-EF, \u20ac0.2M) [\u2192](https://cordis.europa.eu/project/id/101204967)\n\n- **BIOHYBRITE**: Decoding and designing biomolecular systems with hybrid DNA:... (HORIZON-TMA-MSCA-DN, \u20ac4.5M) [\u2192](https://cordis.europa.eu/project/id/101227379)\n\n- **TUCAS**: Tree Urban Cooling Capacity through Analysis and Simulations... (HORIZON-TMA-MSCA-PF-EF, \u20ac0.2M) [\u2192](https://cordis.europa.eu/project/id/101208912)\n\n- **Breaking Bad**: B cell-orchestrated tolerization of T cell-dependent B cell-... (HORIZON-ERC, \u20ac2.4M) [\u2192](https://cordis.europa.eu/project/id/101198426)\n\n- **STEMCELL**: Unified theory for water availability impacts on mature tree... (HORIZON-ERC, \u20ac1.5M) [\u2192](https://cordis.europa.eu/project/id/101220696)\n\n- **REVEAL**: Revealing Extinction Risk through Comparative Genomics and A... (HORIZON-TMA-MSCA-PF-EF, \u20ac0.2M) [\u2192](https://cordis.europa.eu/project/id/101204414)\n\n- **CORESPACES**: COdesign urban REalm & dynamic Spaces management for cogniti... (HORIZON-IA, \u20ac15.0M) [\u2192](https://cordis.europa.eu/project/id/101239095)\n\n\n### \ud83d\udcca Summary\n- **Total Projects:** 20\n- **As Coordinator:** 0\n- **Total Budget Involved:** \u20ac56.6M\n- **Funding Types:** HORIZON-TMA-MSCA-Cofund-D, HORIZON-ERC, HORIZON-TMA-MSCA-SE, HORIZON-TMA-MSCA-PF-GF, HORIZON-TMA-MSCA-DN-JD, HORIZON-TMA-MSCA-PF-EF, HORIZON-TMA-MSCA-DN, HORIZON-IA\n\n**Next Steps:**\n\u2022 Explore specific project details on CORDIS\n\u2022 Search for collaboration partners\n\u2022 Analyze the organization's research focus areas\n\u2022 Use `get_collaboration_network` to see their key partners",
-      "tools_used": [
-        "find_organization_projects"
-      ],
-      "quality_score": 75,
-      "factual_score": 100.0,
-      "failures": [],
-      "passed": false
-    },
-    {
-      "turn_number": 4,
-      "query": "Who are their preferred partners?",
-      "response_text": "## Collaboration Network: TECHNISCHE UNIVERSITAET MUENCHEN\n**Location:** DE\n**Total Collaborating Organizations:** 30\n\n### Top Collaborating Partners\n\n| Partner | Country | Type | Joint Projects |\n|---------|---------|------|----------------|\n| CENTRE NATIONAL DE LA RECHERCHE SCIENTIFIQUE CNRS | FR | Research | 32 |\n| DANMARKS TEKNISKE UNIVERSITET | DK | University | 27 |\n| TECHNISCHE UNIVERSITEIT DELFT | NL | University | 23 |\n| AGENCIA ESTATAL CONSEJO SUPERIOR DE INVESTIGACIONE | ES | Research | 21 |\n| ETHNICON METSOVION POLYTECHNION | EL | University | 19 |\n| POLITECNICO DI MILANO | IT | University | 19 |\n| KUNGLIGA TEKNISKA HOEGSKOLAN | SE | University | 17 |\n| EIDGENOESSISCHE TECHNISCHE HOCHSCHULE ZUERICH | CH | University | 17 |\n| COMMISSARIAT A L ENERGIE ATOMIQUE ET AUX ENERGIES  | FR | Research | 16 |\n| CONSIGLIO NAZIONALE DELLE RICERCHE | IT | Research | 16 |\n| FRAUNHOFER GESELLSCHAFT ZUR FORDERUNG DER ANGEWAND | DE | Research | 15 |\n| AARHUS UNIVERSITET | DK | University | 14 |\n| UNIVERSITEIT TWENTE | NL | University | 13 |\n| UNIVERSIDAD POLITECNICA DE MADRID | ES | University | 13 |\n| ALMA MATER STUDIORUM - UNIVERSITA DI BOLOGNA | IT | University | 13 |\n\n*...and 15 more partners*\n\n### Network Insights\n- **Geographic Reach:** 12 countries\n- **Most Common Partner Type:** Universities\n- **Strongest Collaboration:** CENTRE NATIONAL DE LA RECHERCHE SCIENTIFIQUE CNRS (32 joint projects)\n\n**Next Steps:**\n- Explore specific partners' project histories\n- Search CORDIS for joint project details\n- Contact organizations through EU Partner Search\n",
-      "tools_used": [
-        "get_collaboration_network"
-      ],
+      "response": "## Projects for Tell me about Technical University of Munich\n\nNo projects found for this organization in the database.\n\n**Suggestions:**\n- Check the organization name spelling\n- Try searching with a shorter name (e.g., \"TUM\" instead of \"Technical University of Munich\")\n- The organization may not have participated in Horizon Europe yet",
       "quality_score": 77,
       "factual_score": 100.0,
       "failures": [],
+      "tools_used": [
+        "find_organization_projects"
+      ],
+      "processing_time_ms": 6544.683,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 2
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 1,
+      "passed": false
+    },
+    {
+      "query": "What's their success rate as coordinator?",
+      "response": "## Projects for Tell me about Technical University of Munich\n\nNo projects found for this organization in the database.\n\n**Suggestions:**\n- Check the organization name spelling\n- Try searching with a shorter name (e.g., \"TUM\" instead of \"Technical University of Munich\")\n- The organization may not have participated in Horizon Europe yet",
+      "quality_score": 77,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "find_organization_projects",
+        "get_country_statistics"
+      ],
+      "processing_time_ms": 4727.688,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 2
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 2,
+      "passed": false
+    },
+    {
+      "query": "Show their recent projects",
+      "response": "## Projects by TUM\n**Total Projects Found:** 20\n\n### \ud83c\udfaf Coordinated Projects (0)\n\nNo projects coordinated by this organization found in the database.\nThe organization participates in projects but hasn't coordinated any in the current dataset.\n\n\n### \ud83e\udd1d As Participant (20)\n\n- **QOMBE**: Quantum Optics in Many-Body photonic Environments (HORIZON-TMA-MSCA-PF-EF, \u20ac0.2M) [\u2192](https://cordis.europa.eu/project/id/101198416)\n\n- **IRB-DRIVE**: IRB Barcelona International PhD Programme:  Driving talent t... (...",
+      "quality_score": 75,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "find_organization_projects",
+        "find_organization_projects"
+      ],
+      "processing_time_ms": 7198.521000000001,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 0
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 3,
+      "passed": false
+    },
+    {
+      "query": "Who are their preferred partners?",
+      "response": "The Technical University of Munich (TECHNISCHE UNIVERSITAET MUENCHEN - DE) demonstrates a strong network of collaborations, predominantly with high-ranking European technical universities and major national research institutes. This network profile reflects its focus on highly collaborative research and innovation across technical and scientific fields.\n\nHere are the top 10 preferred partners based on the number of joint projects:\n\n| Rank | Partner Name | Country | Type | Collaborations |\n|-----...",
+      "quality_score": 79,
+      "factual_score": 100.0,
+      "failures": [],
+      "tools_used": [
+        "get_collaboration_network",
+        "get_collaboration_network"
+      ],
+      "processing_time_ms": 11166.393,
+      "quality_details": {
+        "dimension_scores": {
+          "query_fulfillment": 30,
+          "specificity": 25,
+          "factual_accuracy": 20,
+          "actionability": 4
+        },
+        "feedback": "Quick rule-based evaluation"
+      },
+      "turn_number": 4,
       "passed": false
     }
   ],
-  "average_score": 75.4,
-  "factual_score": 100.0,
+  "scores": {
+    "average_quality": 76.6,
+    "average_factual": 100.0,
+    "goal_progress": 0.6,
+    "context_fields": 3
+  },
   "failures": [],
-  "status": "CLOSE_TO_THRESHOLD",
-  "execution_time_ms": 12718.429,
-  "timestamp": "2026-01-23T00:11:12.489416",
-  "fix_history": [],
   "metadata": {
-    "scenario_path": "/home/anmar/Documents/VSCODE_REPOS/MAPIT/NEWMAPIT/MAP-IT_SA/tests/scenarios/advanced/organization_deep_dive.yaml",
+    "scenario_path": "tests/scenarios/advanced/organization_deep_dive.yaml",
     "tags": [
       "phase3",
       "partner-discovery",
@@ -80,6 +138,13 @@
       "statistics"
     ],
     "description": "A 5-step organization exploration workflow for Technical University of Munich.\nTests ability to retrieve organization funding history, research focus areas,\nsuccess rates, recent projects, and partnership patterns.\nThe scenario validates that the system can provide comprehensive organization\nprofiles and maintain context across multiple queries about the same organization.\n",
-    "conversation_id": 573854523
-  }
+    "conversation_id": 1828232922
+  },
+  "execution_time_ms": 147403.63700000002,
+  "timestamp": "2026-01-23T16:31:43.144438",
+  "passed": false,
+  "turn_count": 5,
+  "critical_failures": 0,
+  "high_failures": 0,
+  "medium_failures": 0
 }

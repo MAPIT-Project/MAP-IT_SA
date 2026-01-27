@@ -16,13 +16,13 @@ Examples:
     python scripts/map_call_to_documents.py HORIZON-CL3-2025-02-CS-ECCC-01
 """
 
-import sys
 import logging
-import re
-from pathlib import Path
-import psycopg2
-from psycopg2 import pool
 import os
+import re
+import sys
+from pathlib import Path
+
+import psycopg2
 from dotenv import load_dotenv
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -172,7 +172,7 @@ def create_mappings(db_pool, call_id: str, mappings: list):
         conn.commit()
         logger.info(f"✅ Created {created} mappings")
         
-    except Exception as e:
+    except Exception:
         conn.rollback()
         raise
     finally:

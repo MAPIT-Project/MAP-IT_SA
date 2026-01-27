@@ -4,10 +4,10 @@ Test script for EU Programme Call Assessment questions.
 Tests the V3 API's ability to answer questions from the MAPIT assessment framework.
 """
 
-import requests
-import json
-import time
 import sys
+import time
+
+import requests
 
 BASE_URL = "http://localhost:8000/api/v3/conversation"
 

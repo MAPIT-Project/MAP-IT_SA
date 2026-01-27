@@ -22,7 +22,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import requests
 
@@ -92,7 +92,7 @@ class DigitalEuropeCallSyncer:
             'Accept': 'application/json',
         })
 
-    def generate_topic_patterns(self, years: List[int]) -> List[str]:
+    def generate_topic_patterns(self, years: list[int]) -> list[str]:
         """Generate all possible Digital Europe topic patterns."""
         patterns = []
 
@@ -154,7 +154,7 @@ class DigitalEuropeCallSyncer:
         logger.info(f"Generated {len(unique_patterns)} unique topic patterns to try")
         return unique_patterns
 
-    def fetch_topic_details(self, topic_id: str) -> Optional[Dict[str, Any]]:
+    def fetch_topic_details(self, topic_id: str) -> dict[str, Any] | None:
         """Fetch topic details from EU Portal API."""
         # API requires lowercase topic IDs
         url = self.TOPIC_DETAILS_URL.format(topic_id=topic_id.lower())
@@ -172,7 +172,7 @@ class DigitalEuropeCallSyncer:
             logger.warning(f"Error fetching {topic_id}: {e}")
             return None
 
-    def search_topics_via_api(self, query: str = "DIGITAL") -> List[Dict[str, Any]]:
+    def search_topics_via_api(self, query: str = "DIGITAL") -> list[dict[str, Any]]:
         """Search for topics using the EU Portal search API."""
         try:
             params = {
@@ -195,7 +195,7 @@ class DigitalEuropeCallSyncer:
             logger.warning(f"Search API error: {e}")
             return []
 
-    def parse_topic_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def parse_topic_data(self, data: dict[str, Any]) -> dict[str, Any]:
         """Parse topic data into funding call format."""
         topic_details = data.get('TopicDetails', {})
 
@@ -297,7 +297,7 @@ class DigitalEuropeCallSyncer:
 
         return 'GENERAL'
 
-    def upsert_call(self, conn, data: Dict[str, Any]) -> bool:
+    def upsert_call(self, conn, data: dict[str, Any]) -> bool:
         """Insert or update a Digital Europe call in the database."""
         try:
             cursor = conn.cursor()
@@ -356,7 +356,7 @@ class DigitalEuropeCallSyncer:
             conn.rollback()
             return False
 
-    def sync_to_database(self, calls: List[Dict[str, Any]], dry_run: bool = False) -> Dict[str, int]:
+    def sync_to_database(self, calls: list[dict[str, Any]], dry_run: bool = False) -> dict[str, int]:
         """Sync calls to the funding_calls table."""
         if dry_run:
             logger.info("DRY RUN - Would sync these calls:")
@@ -368,6 +368,7 @@ class DigitalEuropeCallSyncer:
             return {'synced': 0, 'dry_run': len(calls)}
 
         import os
+
         import psycopg2
 
         database_url = os.getenv("DATABASE_URL")
@@ -428,7 +429,7 @@ class DigitalEuropeCallSyncer:
         conn.close()
         return {'synced': synced, 'errors': errors}
 
-    def run(self, years: List[int], dry_run: bool = False) -> Dict[str, Any]:
+    def run(self, years: list[int], dry_run: bool = False) -> dict[str, Any]:
         """Run the sync process."""
         logger.info("=" * 60)
         logger.info("DIGITAL EUROPE CALL SYNC")

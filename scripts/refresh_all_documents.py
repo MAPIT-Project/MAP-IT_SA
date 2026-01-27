@@ -4,17 +4,16 @@ Removes all old documents and imports fresh 2025 documents from newdocs folder
 """
 
 import sys
+
 sys.path.insert(0, '/home/anmar/Documents/VSCODE_REPOS/NEWMAPIT/MAP-IT_SA')
 
-import os
-import psycopg2
-from pathlib import Path
-from app.services.call_document_service import CallDocumentService
-from psycopg2 import pool
-import PyPDF2
 import hashlib
+import os
+from pathlib import Path
+
+import psycopg2
+import PyPDF2
 from psycopg2.extras import Json
-import re
 
 # Database connection
 DB_URL = "postgresql://postgres:postgres@localhost:54322/postgres"
@@ -42,7 +41,7 @@ def clear_all_documents(db_pool):
         cursor.execute("SELECT COUNT(*) FROM call_document_mappings")
         mapping_count = cursor.fetchone()[0]
         
-        print(f"📊 Current database:")
+        print("📊 Current database:")
         print(f"   Documents: {doc_count}")
         print(f"   Chunks: {chunk_count}")
         print(f"   Mappings: {mapping_count}")
@@ -193,7 +192,7 @@ def store_document(db_pool, filepath, doc_info):
         existing = cursor.fetchone()
         
         if existing:
-            print(f"   ⏭️  Already exists (hash match)")
+            print("   ⏭️  Already exists (hash match)")
             db_pool.putconn(conn)
             return existing[0]
         

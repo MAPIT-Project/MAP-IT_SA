@@ -12,20 +12,20 @@ Usage:
     python scripts/process_shared_documents.py [--force]
 """
 
-import sys
 import hashlib
 import logging
-from pathlib import Path
-import psycopg2
-from psycopg2 import pool
-from psycopg2.extras import Json
 import os
+import sys
+from pathlib import Path
+
+import psycopg2
 from dotenv import load_dotenv
+from psycopg2.extras import Json
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from scripts.manual_document_upload import SimpleDocumentParser, SimpleChunker
+from scripts.manual_document_upload import SimpleChunker, SimpleDocumentParser
 
 logging.basicConfig(
     level=logging.INFO,
@@ -171,7 +171,7 @@ def store_shared_document(db_pool, metadata: dict, file_path: Path,
         conn.commit()
         return document_id
         
-    except Exception as e:
+    except Exception:
         conn.rollback()
         raise
     finally:
@@ -253,7 +253,7 @@ def main():
             logger.info(f"  ✅ Created: {len(chunks)} chunks")
             
             # Store
-            logger.info(f"  💾 Storing in database...")
+            logger.info("  💾 Storing in database...")
             doc_id = store_shared_document(
                 db_pool=db_pool,
                 metadata=metadata,

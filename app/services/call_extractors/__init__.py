@@ -21,12 +21,12 @@ Adding New Programmes:
 """
 
 from .base import CallExtractor, FundingCall
-from .horizon_europe import HorizonEuropeExtractor
-from .digital_europe import DigitalEuropeExtractor
-from .life_programme import LIFEExtractor
-from .erasmus_plus import ErasmusPlusExtractor
 from .creative_europe import CreativeEuropeExtractor
+from .digital_europe import DigitalEuropeExtractor
+from .erasmus_plus import ErasmusPlusExtractor
 from .eu4health import EU4HealthExtractor
+from .horizon_europe import HorizonEuropeExtractor
+from .life_programme import LIFEExtractor
 
 # Map programme IDs to extractor classes
 EXTRACTORS = {

@@ -3,12 +3,11 @@
 Script to download key Horizon Europe documents for the RAG system.
 """
 
-import os
 import sys
-import requests
-from pathlib import Path
-from urllib.parse import urlparse
 import time
+from pathlib import Path
+
+import requests
 
 # Add the app directory to the Python path
 sys.path.append(str(Path(__file__).parent.parent))
@@ -127,12 +126,12 @@ def download_horizon_europe_documents():
             failed_downloads.append(doc['name'])
     
     # Summary
-    print(f"\n📊 Download Summary:")
+    print("\n📊 Download Summary:")
     print(f"✅ Successful: {successful_downloads}/{len(documents)}")
     print(f"❌ Failed: {len(failed_downloads)}")
     
     if failed_downloads:
-        print(f"Failed downloads:")
+        print("Failed downloads:")
         for name in failed_downloads:
             print(f"  - {name}")
     
@@ -144,7 +143,7 @@ if __name__ == "__main__":
     
     if success:
         print("🎉 Document download completed!")
-        print(f"📁 Documents saved to: downloads/horizon_europe/")
+        print("📁 Documents saved to: downloads/horizon_europe/")
         print("\n💡 Next steps:")
         print("1. Run the database setup: python scripts/setup_database.py")
         print("2. Ingest documents: python scripts/ingest_documents.py")

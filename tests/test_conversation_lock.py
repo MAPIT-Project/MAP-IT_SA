@@ -10,9 +10,9 @@ Tests:
 """
 
 import asyncio
-from datetime import datetime
 import os
 import sys
+from datetime import datetime
 from unittest.mock import MagicMock
 
 import pytest

@@ -3,13 +3,13 @@ Neo4j database configuration and connection management.
 Provides a singleton connection pool for the Neo4j graph database.
 """
 
-import os
 import logging
-from typing import Optional, List, Dict, Any
+import os
 from contextlib import contextmanager
+from typing import Any, Optional
 
-from neo4j import GraphDatabase, Session
-from neo4j.exceptions import ServiceUnavailable, AuthError
+from neo4j import GraphDatabase
+from neo4j.exceptions import AuthError, ServiceUnavailable
 
 logger = logging.getLogger(__name__)
 
@@ -104,9 +104,9 @@ class Neo4jConnection:
     def execute_query(
         self,
         query: str,
-        parameters: Optional[Dict[str, Any]] = None,
+        parameters: dict[str, Any] | None = None,
         database: str = "neo4j"
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Execute a Cypher query and return results as a list of dictionaries.
         
@@ -142,9 +142,9 @@ class Neo4jConnection:
     def execute_write(
         self,
         query: str,
-        parameters: Optional[Dict[str, Any]] = None,
+        parameters: dict[str, Any] | None = None,
         database: str = "neo4j"
-    ) -> Dict[str, int]:
+    ) -> dict[str, int]:
         """
         Execute a write query and return counters.
         
@@ -190,7 +190,7 @@ class Neo4jConnection:
             logger.error(f"❌ Connection test failed: {e}")
             return False
     
-    def get_database_stats(self) -> Dict[str, Any]:
+    def get_database_stats(self) -> dict[str, Any]:
         """
         Get statistics about the Neo4j database.
         

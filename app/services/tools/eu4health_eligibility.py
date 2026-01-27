@@ -9,7 +9,7 @@ Checks organization eligibility for EU4Health actions based on:
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -20,13 +20,13 @@ class EligibilityResult:
     eligible: bool
     action_type: str
     action_name: str
-    requirements_met: List[str]
-    requirements_missing: List[str]
-    warnings: List[str]
-    recommendations: List[str]
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    requirements_met: list[str]
+    requirements_missing: list[str]
+    warnings: list[str]
+    recommendations: list[str]
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             'eligible': self.eligible,
             'action_type': self.action_type,
@@ -172,7 +172,7 @@ class EU4HealthEligibilityTool:
         org_type: str,
         country: str,
         action_type: str,
-        strand: Optional[str] = None,
+        strand: str | None = None,
     ) -> EligibilityResult:
         """
         Check if an organization is eligible for an EU4Health action.
@@ -311,7 +311,7 @@ class EU4HealthEligibilityTool:
         self,
         org_type: str,
         country: str,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Get all EU4Health actions an organization is eligible for.
 
@@ -344,7 +344,7 @@ class EU4HealthEligibilityTool:
 
         return eligible_actions
 
-    def get_participating_countries(self) -> Dict[str, List[str]]:
+    def get_participating_countries(self) -> dict[str, list[str]]:
         """Get participating countries by category."""
         return {
             'eu_member_states': self.EU_MEMBER_STATES.copy(),
@@ -352,7 +352,7 @@ class EU4HealthEligibilityTool:
             'associated': self.ASSOCIATED_COUNTRIES.copy(),
         }
 
-    def get_strands(self) -> Dict[str, Dict]:
+    def get_strands(self) -> dict[str, dict]:
         """Get EU4Health strands."""
         return self.STRANDS.copy()
 
@@ -375,9 +375,9 @@ COUNTRY_NAME_TO_ISO = {
 async def check_eu4health_eligibility_execute(
     org_type: str,
     country: str,
-    action_type: Optional[str] = None,
-    strand: Optional[str] = None,
-) -> Dict[str, Any]:
+    action_type: str | None = None,
+    strand: str | None = None,
+) -> dict[str, Any]:
     """
     Check EU4Health eligibility for an organization.
 

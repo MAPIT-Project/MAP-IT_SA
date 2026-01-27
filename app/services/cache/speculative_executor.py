@@ -15,8 +15,9 @@ Key Features:
 import asyncio
 import logging
 import re
-from typing import Dict, Any, List, Optional, Set, Callable, Awaitable
+from collections.abc import Awaitable, Callable
 from datetime import datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +63,7 @@ class SpeculativeExecutor:
         ('history', 'trend', 'over time', 'years', 'timeline'): ['analyze_call_history'],
     }
 
-    def __init__(self, tool_executor: Callable[[str, Dict], Awaitable[Any]]):
+    def __init__(self, tool_executor: Callable[[str, dict], Awaitable[Any]]):
         """
         Initialize speculative executor.
 
@@ -70,18 +71,18 @@ class SpeculativeExecutor:
             tool_executor: Async function that executes a single tool
         """
         self.tool_executor = tool_executor
-        self.speculation_cache: Dict[str, asyncio.Task] = {}
-        self.speculation_results: Dict[str, Any] = {}
+        self.speculation_cache: dict[str, asyncio.Task] = {}
+        self.speculation_results: dict[str, Any] = {}
         self.max_speculative_calls = 3
 
-    def identify_likely_tools(self, query: str) -> List[str]:
+    def identify_likely_tools(self, query: str) -> list[str]:
         """
         Identify tools that are likely needed for this query.
 
         Returns list of tool names (max 3) that might be needed.
         """
         query_lower = query.lower()
-        likely_tools: Set[str] = set()
+        likely_tools: set[str] = set()
 
         for keywords, tools in self.SPECULATION_PATTERNS.items():
             # Check if any keyword matches
@@ -108,7 +109,7 @@ class SpeculativeExecutor:
 
         return ' '.join(keywords[:5])  # First 5 keywords
 
-    def _generate_default_params(self, tool_name: str, query: str) -> Dict[str, Any]:
+    def _generate_default_params(self, tool_name: str, query: str) -> dict[str, Any]:
         """Generate reasonable default parameters for speculative execution."""
         keywords = self._extract_keywords_from_query(query)
 
@@ -211,7 +212,7 @@ class SpeculativeExecutor:
                 return country.title()
         return 'Germany'  # Default
 
-    def _extract_cluster(self, query: str) -> Optional[str]:
+    def _extract_cluster(self, query: str) -> str | None:
         """Extract cluster from query."""
         query_lower = query.lower()
         cluster_map = {
@@ -231,7 +232,7 @@ class SpeculativeExecutor:
         self,
         query: str,
         context: str = ""
-    ) -> Dict[str, asyncio.Task]:
+    ) -> dict[str, asyncio.Task]:
         """
         Start speculative tool execution for likely-needed tools.
 
@@ -274,7 +275,7 @@ class SpeculativeExecutor:
 
         return tasks
 
-    async def _execute_with_tracking(self, tool_name: str, params: Dict) -> Any:
+    async def _execute_with_tracking(self, tool_name: str, params: dict) -> Any:
         """Execute tool and track the result."""
         try:
             start = datetime.now()
@@ -304,8 +305,8 @@ class SpeculativeExecutor:
         self,
         tool_name: str,
         timeout: float = 0.1,
-        requested_params: Optional[Dict[str, Any]] = None
-    ) -> Optional[Dict[str, Any]]:
+        requested_params: dict[str, Any] | None = None
+    ) -> dict[str, Any] | None:
         """
         Get result from speculative execution if available.
 
@@ -362,7 +363,7 @@ class SpeculativeExecutor:
                 'result': result,
                 'speculative': True
             }
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.debug(f"⏳ Speculative result not ready: {tool_name}")
             return None
         except asyncio.CancelledError:
@@ -372,7 +373,7 @@ class SpeculativeExecutor:
             logger.warning(f"Error getting speculative result: {e}")
             return None
 
-    def cancel_unused_speculation(self, used_tools: Set[str]):
+    def cancel_unused_speculation(self, used_tools: set[str]):
         """
         Cancel speculative tasks that weren't needed.
 
@@ -393,7 +394,7 @@ class SpeculativeExecutor:
         self.speculation_cache.clear()
         self.speculation_results.clear()
 
-    def _params_compatible(self, tool_name: str, cached_params: Dict, requested_params: Dict) -> bool:
+    def _params_compatible(self, tool_name: str, cached_params: dict, requested_params: dict) -> bool:
         """
         Check if cached speculative params are compatible with requested params.
 
@@ -464,7 +465,7 @@ class SpeculativeExecutor:
         self.speculation_results.clear()
         logger.debug("🗑️ Cleared speculative results cache")
 
-    def get_speculation_stats(self) -> Dict[str, Any]:
+    def get_speculation_stats(self) -> dict[str, Any]:
         """Get statistics about speculative execution."""
         completed = sum(1 for t in self.speculation_cache.values() if t.done())
         pending = len(self.speculation_cache) - completed

@@ -11,13 +11,12 @@ Strategy:
 This hybrid approach balances accuracy with cost.
 """
 
-import logging
-import re
-import os
 import json
-import asyncio
+import logging
+import os
+import re
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Tuple, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -27,9 +26,9 @@ class EvaluationResult:
     """Result of evaluating search results."""
     score: float  # 0.0 to 1.0
     is_sufficient: bool
-    reasons: List[str] = field(default_factory=list)
-    suggestions: List[str] = field(default_factory=list)
-    metrics: Dict[str, float] = field(default_factory=dict)
+    reasons: list[str] = field(default_factory=list)
+    suggestions: list[str] = field(default_factory=list)
+    metrics: dict[str, float] = field(default_factory=dict)
 
 
 class ResultEvaluator:
@@ -102,8 +101,8 @@ class ResultEvaluator:
         self,
         query: str,
         query_type: str,
-        results: Dict[str, Any],
-        entities: List[str] = None
+        results: dict[str, Any],
+        entities: list[str] = None
     ) -> EvaluationResult:
         """
         Evaluate if results sufficiently answer the query.
@@ -232,9 +231,9 @@ class ResultEvaluator:
         self,
         query: str,
         query_type: str,
-        results: Dict[str, Any],
-        entities: List[str] = None
-    ) -> Optional[Dict[str, Any]]:
+        results: dict[str, Any],
+        entities: list[str] = None
+    ) -> dict[str, Any] | None:
         """
         Use LLM to evaluate result quality for edge cases.
         
@@ -315,7 +314,7 @@ Evaluate the results:"""
         
         return None
     
-    def _format_results_for_llm(self, results: Dict[str, Any], max_chars: int = 2000) -> str:
+    def _format_results_for_llm(self, results: dict[str, Any], max_chars: int = 2000) -> str:
         """Format results for LLM evaluation prompt."""
         parts = []
         total_chars = 0
@@ -342,7 +341,7 @@ Evaluate the results:"""
         
         return "\n".join(parts) if parts else "No results found"
     
-    def _count_results(self, results: Dict[str, Any]) -> int:
+    def _count_results(self, results: dict[str, Any]) -> int:
         """Count total results across all sources."""
         total = 0
         
@@ -376,7 +375,7 @@ Evaluate the results:"""
         
         return total
     
-    def _evaluate_result_count(self, count: int, min_required: int) -> Tuple[float, str]:
+    def _evaluate_result_count(self, count: int, min_required: int) -> tuple[float, str]:
         """Evaluate result count against threshold."""
         if count == 0:
             return 0.0, "No results found"
@@ -387,7 +386,7 @@ Evaluate the results:"""
         else:
             return 0.3, f"Only {count} results (need at least {min_required})"
     
-    def _calculate_average_relevance(self, results: Dict[str, Any]) -> float:
+    def _calculate_average_relevance(self, results: dict[str, Any]) -> float:
         """Calculate average relevance score across results."""
         scores = []
         
@@ -409,7 +408,7 @@ Evaluate the results:"""
         
         return sum(scores) / len(scores) if scores else 0.0
     
-    def _evaluate_relevance(self, avg_relevance: float, min_relevance: float) -> Tuple[float, str]:
+    def _evaluate_relevance(self, avg_relevance: float, min_relevance: float) -> tuple[float, str]:
         """Evaluate average relevance score."""
         if avg_relevance >= min_relevance + 0.2:
             return 1.0, f"High relevance score: {avg_relevance:.2f}"
@@ -422,9 +421,9 @@ Evaluate the results:"""
     
     def _evaluate_content_quality(
         self, 
-        results: Dict[str, Any], 
+        results: dict[str, Any], 
         min_length: int
-    ) -> Tuple[bool, float]:
+    ) -> tuple[bool, float]:
         """Evaluate if results have substantial content."""
         content_lengths = []
         
@@ -461,8 +460,8 @@ Evaluate the results:"""
     def _calculate_term_coverage(
         self, 
         query: str, 
-        results: Dict[str, Any],
-        entities: List[str] = None
+        results: dict[str, Any],
+        entities: list[str] = None
     ) -> float:
         """Calculate what fraction of query terms appear in results."""
         # Extract important terms from query
@@ -503,7 +502,7 @@ Evaluate the results:"""
         
         return found_terms / len(query_terms) if query_terms else 0.0
     
-    def _evaluate_term_coverage(self, coverage: float) -> Tuple[float, str]:
+    def _evaluate_term_coverage(self, coverage: float) -> tuple[float, str]:
         """Evaluate query term coverage."""
         if coverage >= 0.8:
             return 1.0, f"Excellent query term coverage: {coverage:.0%}"
@@ -514,7 +513,7 @@ Evaluate the results:"""
         else:
             return 0.2, f"Poor query term coverage: {coverage:.0%}"
     
-    def _calculate_source_diversity(self, results: Dict[str, Any]) -> float:
+    def _calculate_source_diversity(self, results: dict[str, Any]) -> float:
         """Calculate diversity of sources in results."""
         sources_with_results = 0
         total_sources = 0
@@ -534,7 +533,7 @@ Evaluate the results:"""
         
         return sources_with_results / total_sources
     
-    def _evaluate_freshness(self, results: Dict[str, Any], query: str) -> float:
+    def _evaluate_freshness(self, results: dict[str, Any], query: str) -> float:
         """Evaluate freshness of results (for time-sensitive queries)."""
         # Check if query is time-sensitive
         time_sensitive_terms = ['2025', '2026', 'current', 'latest', 'new', 'upcoming', 'open']
@@ -614,11 +613,11 @@ Evaluate the results:"""
     
     def _generate_suggestions(
         self,
-        metrics: Dict[str, float],
+        metrics: dict[str, float],
         query: str,
         query_type: str,
-        results: Dict[str, Any]
-    ) -> List[str]:
+        results: dict[str, Any]
+    ) -> list[str]:
         """Generate improvement suggestions based on metrics."""
         suggestions = []
         

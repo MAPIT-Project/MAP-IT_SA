@@ -6,14 +6,13 @@ This script removes documents that have exactly 500 chunks (likely truncated)
 and then reprocesses them from the source files.
 """
 
-import os
-import sys
 import logging
-from datetime import datetime
+import sys
 from pathlib import Path
+
 import psycopg2
-from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
+from psycopg2.extras import RealDictCursor
 
 # Add the project root to the path
 project_root = Path(__file__).parent.parent
@@ -126,14 +125,14 @@ def main():
         return True
     
     # Ask for confirmation
-    print(f"\n⚠️  CONFIRMATION REQUIRED")
+    print("\n⚠️  CONFIRMATION REQUIRED")
     print(f"This will remove {len(docs_500)} documents with exactly 500 chunks")
-    print(f"and all their associated chunks from the database.")
-    print(f"\nDocuments to be removed:")
+    print("and all their associated chunks from the database.")
+    print("\nDocuments to be removed:")
     for doc in docs_500:
         print(f"  🗑️  {doc['title']}")
     
-    confirm = input(f"\nProceed with removal? (yes/no): ").lower().strip()
+    confirm = input("\nProceed with removal? (yes/no): ").lower().strip()
     
     if confirm in ['yes', 'y']:
         success = remove_500_chunk_documents()

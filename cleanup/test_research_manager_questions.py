@@ -6,10 +6,11 @@ Tests realistic questions that a research manager would ask about CORDIS project
 
 import asyncio
 import json
-import aiohttp
 import logging
-from typing import List, Dict, Any
 from datetime import datetime
+from typing import Any
+
+import aiohttp
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -30,7 +31,7 @@ class ResearchManagerTester:
         if self.session:
             await self.session.close()
 
-    async def test_streaming_endpoint(self, conversation_id: int, message: str) -> Dict[str, Any]:
+    async def test_streaming_endpoint(self, conversation_id: int, message: str) -> dict[str, Any]:
         """Test a single message against the streaming endpoint."""
 
         url = f"{self.base_url}/api/v2/conversation/{conversation_id}/message/stream"
@@ -150,7 +151,7 @@ class ResearchManagerTester:
                 projects = result.get('projects_found', 0)
                 time_ms = result.get('processing_time_ms', 0)
 
-                print(f"   Status: ✅ SUCCESS")
+                print("   Status: ✅ SUCCESS")
                 print(f"   Tools: {tools_used}")
                 print(f"   Confidence: {confidence:.2f}")
                 print(f"   Projects Found: {projects}")
@@ -163,7 +164,7 @@ class ResearchManagerTester:
                     print("   ⚠️  WARNING: No tools executed - this might be an issue!")
 
             else:
-                print(f"   Status: ❌ FAILED")
+                print("   Status: ❌ FAILED")
                 print(f"   Error: {result.get('error', 'Unknown error')}")
 
         # Summary

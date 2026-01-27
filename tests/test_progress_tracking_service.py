@@ -4,18 +4,18 @@ Tests for ProgressTrackingService (Task 15)
 Tests progress tracking, achievements, and streaks.
 """
 
+from datetime import date, datetime, timedelta
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime, timedelta, date
 
 from app.services.proposal_writing.progress_tracking_service import (
-    ProgressTrackingService,
     Achievement,
-    UserAchievement,
-    ProgressSnapshot,
-    Streak,
     AchievementCategory,
     AchievementRarity,
+    ProgressSnapshot,
+    ProgressTrackingService,
+    Streak,
+    UserAchievement,
 )
 
 
