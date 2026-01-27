@@ -15270,3 +15270,64 @@ FILES CREATED:
 TEST RESULTS: 50 passed, 2 skipped (API tests require running server)
 LINTING: All checks passed
 STATUS: COMPLETE
+
+=== 2026-01-27: Scenario 058 - Simple Query Speed ===
+
+TASK: Implement Scenario 058 - Simple Query Speed (TTFT < 2s, Total < 5s)
+
+SUMMARY:
+- This scenario tests that simple FAQ queries (e.g., "What is RIA funding?") are answered
+  quickly with time to first token (TTFT) under 2 seconds and total time under 5 seconds.
+
+PROBLEM IDENTIFIED:
+- Initial tests showed "What is RIA funding?" passing (TTFT 0.82s, Total 1.23s) but
+  "What does RIA stand for?" and "What is Horizon Europe?" failing (TTFT 4-7s)
+- Root cause: The pre-routing patterns for funding type queries didn't match variations
+  like "What is RIA funding?" (word after RIA) or "What does RIA stand for?"
+- Simple programme overview questions (e.g., "What is Horizon Europe?") had no pre-route
+  and went through full LLM reasoning (4+ seconds)
+
+FIXES IMPLEMENTED:
+
+1. **Extended funding type patterns** (`app/services/agents/tool_aware_agent.py`):
+   - Changed pattern from `r"what is (?:a |an )?(?:ria|ia|csa)\b"` to
+     `r"what is (?:a |an )?(?:ria|ia|csa)(?:\s+\w+)?(?:\?|$|\s|\.)"`
+   - Added new pattern: `r"what does (?:ria|ia|csa) (?:stand for|mean)"`
+   - Added patterns: `r"(?:ria|ia|csa) (?:meaning|definition|explanation)"`
+   - Added pattern: `r"define (?:ria|ia|csa)\b"`
+
+2. **Added simple programme overview detection**:
+   - New method `_detect_simple_programme_overview_query()` for pre-routing basic
+     programme questions like "What is Horizon Europe?" to built-in knowledge
+   - Covers patterns: "what is [programme]", "tell me about [programme]",
+     "explain [programme]", "[programme] overview", "describe [programme]"
+   - Supports all 6 EU programmes: Horizon Europe, Erasmus+, Creative Europe,
+     LIFE, Digital Europe, EU4Health
+
+3. **Added programme overview generators**:
+   - `_generate_horizon_europe_overview()`: 3-pillar structure, 6 clusters, action types
+   - `_generate_erasmus_plus_overview()`: Key Actions, sectors, funding model
+   - `_generate_creative_europe_overview()`: 3 strands (CULTURE, MEDIA, CROSS-SECTORAL)
+   - `_generate_life_programme_overview()`: 4 sub-programmes, project types, funding rates
+   - `_generate_digital_europe_overview()`: 5 capacity areas, difference from Horizon Europe
+   - `_generate_eu4health_overview()`: 4 objectives, priority areas, action types
+
+4. **Fixed test file issues**:
+   - Fixed floating-point comparison (1.7999999999999972 == 1.8) using tolerance
+   - Removed unused imports (datetime, AsyncMock, MagicMock, patch)
+   - Fixed line too long (112 > 100) by reformatting avg_score calculation
+   - Fixed unused variable warning by using `_ = evaluator.evaluate_metrics(metrics)`
+
+PERFORMANCE RESULTS (after fix):
+- "What is RIA funding?": TTFT 0.88-1.15s ✓, Total 1.29-1.57s ✓
+- "What does RIA stand for?": TTFT 0.60-0.69s ✓, Total 1.02-1.11s ✓
+- "What is Horizon Europe?": TTFT 0.47s ✓, Total 1.07s ✓
+
+FILES MODIFIED:
+- app/services/agents/tool_aware_agent.py (extended patterns, added programme overview detection)
+- tests/quality/test_scenario_058_simple_query_speed.py (fixed linting issues)
+- docs/prd/MAPIT_APPLICATION_QUALITY_IMPROVEMENT_PRD.md (marked scenario complete)
+
+TEST RESULTS: 40 passed
+LINTING: All checks passed
+STATUS: COMPLETE

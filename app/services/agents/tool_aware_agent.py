@@ -5091,6 +5091,15 @@ digital_europe, life""",
         if funding_type_result:
             return funding_type_result
 
+        # Check for SIMPLE PROGRAMME OVERVIEW queries
+        # These are basic questions about EU funding programmes (Horizon Europe, Erasmus+, etc.)
+        # that can be answered from built-in knowledge without tool calls
+        # e.g., "What is Horizon Europe?", "Tell me about Erasmus+", "Explain LIFE programme"
+        # IMPORTANT: Must be fast (<2s) for simple FAQ queries to meet performance targets
+        simple_programme_result = self._detect_simple_programme_overview_query(query, context)
+        if simple_programme_result:
+            return simple_programme_result
+
         # Check for ASSOCIATED COUNTRY ELIGIBILITY queries (Turkey, Switzerland, etc.)
         # These are questions about coordinator/partner eligibility for associated countries
         # e.g., "Can a Turkish university coordinate?", "What about defense topics?"
@@ -9485,15 +9494,19 @@ If you exceed SME thresholds:
         )
 
         # Direct funding type explanation patterns
+        # Note: Many patterns now use non-greedy word matching to capture variations like
+        # "What is RIA funding?", "What does RIA stand for?", "RIA meaning", etc.
         funding_type_explain_patterns = [
-            r"what is (?:a |an )?(?:ria|ia|csa)\b",
-            r"what are (?:ria|ia|csa)s?\b",
+            r"what is (?:a |an )?(?:ria|ia|csa)(?:\s+\w+)?(?:\?|$|\s|\.)",
+            r"what are (?:ria|ia|csa)s?(?:\?|$|\s|\.)",
             r"explain (?:ria|ia|csa)\b",
             r"tell me about (?:ria|ia|csa)\b",
-            r"what does (?:ria|ia|csa) mean",
+            r"what does (?:ria|ia|csa) (?:stand for|mean)",
             r"what is (?:a )?research and innovation action",
             r"what is (?:an )?innovation action",
             r"what is (?:a )?coordination and support",
+            r"(?:ria|ia|csa) (?:meaning|definition|explanation)",
+            r"define (?:ria|ia|csa)\b",
         ]
 
         # RIA vs IA comparison patterns
@@ -9642,6 +9655,391 @@ If you exceed SME thresholds:
                     }
 
         return None
+
+    def _detect_simple_programme_overview_query(
+        self, query: str, context: str = ""
+    ) -> dict[str, Any] | None:
+        """Detect simple FAQ queries about EU funding programmes.
+
+        These are basic overview questions that can be answered from built-in knowledge
+        without tool calls to ensure fast response times (<2s first token, <5s complete).
+
+        Patterns:
+        - "What is Horizon Europe?"
+        - "Tell me about Erasmus+"
+        - "Explain the LIFE programme"
+        - "What is Creative Europe?"
+        - "What is Digital Europe Programme?"
+        - "What is EU4Health?"
+        """
+        query_lower = query.lower().strip()
+
+        # Programme overview patterns - these ask about what a programme IS (not calls/eligibility)
+        programme_overview_patterns = [
+            # Horizon Europe
+            (r"what is horizon europe\??", "horizon_europe"),
+            (r"what'?s horizon europe\??", "horizon_europe"),
+            (r"tell me about horizon europe", "horizon_europe"),
+            (r"explain horizon europe", "horizon_europe"),
+            (r"horizon europe overview", "horizon_europe"),
+            (r"describe horizon europe", "horizon_europe"),
+            # Erasmus+
+            (r"what is erasmus\+?\??", "erasmus_plus"),
+            (r"what'?s erasmus\+?\??", "erasmus_plus"),
+            (r"tell me about erasmus\+?", "erasmus_plus"),
+            (r"explain erasmus\+?", "erasmus_plus"),
+            (r"erasmus\+? overview", "erasmus_plus"),
+            # Creative Europe
+            (r"what is creative europe\??", "creative_europe"),
+            (r"tell me about creative europe", "creative_europe"),
+            (r"explain creative europe", "creative_europe"),
+            # LIFE Programme
+            (r"what is (?:the )?life programme\??", "life"),
+            (r"tell me about (?:the )?life programme", "life"),
+            (r"explain (?:the )?life programme", "life"),
+            # Digital Europe
+            (r"what is (?:the )?digital europe(?:\s+programme)?\??", "digital_europe"),
+            (r"tell me about (?:the )?digital europe", "digital_europe"),
+            (r"explain (?:the )?digital europe", "digital_europe"),
+            # EU4Health
+            (r"what is eu4health\??", "eu4health"),
+            (r"tell me about eu4health", "eu4health"),
+            (r"explain eu4health", "eu4health"),
+        ]
+
+        for pattern, programme in programme_overview_patterns:
+            if re.search(pattern, query_lower):
+                guidance = self._generate_programme_overview_guidance(programme)
+                if guidance:
+                    return {
+                        "thought": f"User is asking about {programme.replace('_', ' ').title()}. Providing programme overview from built-in knowledge.",
+                        "action": "generate_guidance",
+                        "guidance_type": f"{programme}_overview",
+                        "response": guidance,
+                    }
+
+        return None
+
+    def _generate_programme_overview_guidance(self, programme: str) -> str | None:
+        """Generate programme overview guidance from built-in knowledge."""
+        if programme == "horizon_europe":
+            return self._generate_horizon_europe_overview()
+        elif programme == "erasmus_plus":
+            return self._generate_erasmus_plus_overview()
+        elif programme == "creative_europe":
+            return self._generate_creative_europe_overview()
+        elif programme == "life":
+            return self._generate_life_programme_overview()
+        elif programme == "digital_europe":
+            return self._generate_digital_europe_overview()
+        elif programme == "eu4health":
+            return self._generate_eu4health_overview()
+        return None
+
+    def _generate_horizon_europe_overview(self) -> str:
+        """Generate Horizon Europe programme overview."""
+        return """**Horizon Europe** is the EU's key funding programme for research and innovation (2021-2027) with a budget of **€95.5 billion**.
+
+### Programme Structure
+
+Horizon Europe is organized into **3 Pillars** plus a **horizontal part**:
+
+| Pillar | Focus | Budget | Key Components |
+|--------|-------|--------|----------------|
+| **Pillar I: Excellent Science** | Frontier research | €25B | ERC Grants, MSCA, Research Infrastructures |
+| **Pillar II: Global Challenges** | Societal challenges | €53.5B | 6 Clusters + Missions |
+| **Pillar III: Innovative Europe** | Innovation & scale-up | €13.6B | EIC, EIT, European Innovation Ecosystems |
+| **Widening & ERA** | Participation & collaboration | €3.4B | Teaming, Twinning, ERA Chairs |
+
+### Pillar II Clusters
+
+| Cluster | Theme | Key Topics |
+|---------|-------|------------|
+| Cluster 1 | Health | Cancer, infections, digital health |
+| Cluster 2 | Culture, Creativity & Society | Democracy, heritage, social inclusion |
+| Cluster 3 | Civil Security | Cybersecurity, disaster resilience |
+| Cluster 4 | Digital, Industry & Space | AI, manufacturing, space |
+| Cluster 5 | Climate, Energy & Mobility | Clean energy, transport, batteries |
+| Cluster 6 | Food, Bioeconomy & Environment | Biodiversity, agriculture, circular economy |
+
+### Action Types
+
+| Type | Funding Rate | Focus |
+|------|-------------|-------|
+| **RIA** | 100% | Research & knowledge generation |
+| **IA** | 70% (100% non-profit) | Demonstration & piloting |
+| **CSA** | 100% | Coordination & networking |
+
+### Key Facts
+
+- **Consortium requirement**: Minimum 3 entities from 3 different EU/Associated Countries (for collaborative projects)
+- **Single applicant**: ERC, MSCA Postdoctoral Fellowships, EIC Accelerator
+- **Typical budget**: €3-15M (RIA/IA), up to €2.5M (ERC Starting), up to €10M (EIC Accelerator)
+- **Duration**: Typically 36-48 months
+
+---
+
+🎯 **Next Steps:**
+• Register on [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)
+• Browse the [Work Programmes](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON)
+• Check [open calls](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search;callCode=null;freeTextSearchKeyword=;matchWholeText=true;typeCodes=1;statusCodes=31094501,31094502;programmePeriod=2021%20-%202027;programCcm2Id=43108390;programDivisionCode=null;focusAreaCode=null;destinationGroup=null;missionGroup=null;geographicalZonesCode=null;programmeDivisionProsp498742;startDateLte=null;startDateGte=null;crossCuttingPriorityCode=null;cpvCode=null;performanceOfDelivery=null;sortQuery=sortStatus;orderBy=asc;onlyTenders=false;topicListKey=topicSearchTablePageState)
+• Contact your [National Contact Point](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp)"""
+
+    def _generate_erasmus_plus_overview(self) -> str:
+        """Generate Erasmus+ programme overview."""
+        return """**Erasmus+** is the EU's programme for education, training, youth and sport (2021-2027) with a budget of **€26.2 billion**.
+
+### Programme Structure
+
+Erasmus+ is organized into **3 Key Actions** plus **Jean Monnet** and **Sport**:
+
+| Key Action | Focus | Examples |
+|------------|-------|----------|
+| **KA1: Learning Mobility** | Individual mobility | Student exchanges, staff training, youth exchanges |
+| **KA2: Cooperation** | Partnerships between organizations | Strategic partnerships, knowledge alliances |
+| **KA3: Policy Support** | Supporting EU policy | Policy dialogue, tools for recognition |
+| **Jean Monnet** | EU studies | Academic modules, centres of excellence |
+| **Sport** | Sport activities | Grassroots sport, major events |
+
+### Sectors
+
+| Sector | Target Groups |
+|--------|--------------|
+| **HED** | Higher Education (universities) |
+| **VET** | Vocational Education & Training |
+| **SCH** | School Education |
+| **ADU** | Adult Education |
+| **YOU** | Youth (non-formal learning) |
+
+### Funding Model
+
+Erasmus+ uses a **lump sum funding model** with unit costs:
+- **Travel**: Based on distance bands (10-8000+ km)
+- **Individual support**: Daily rates by destination country
+- **Organizational support**: Per participant
+- **Course fees**: For staff training
+
+### Key Facts
+
+- **Accreditation**: Simplifies annual applications for mobility (KA1)
+- **Partnerships**: 3+ organizations from 3+ Programme Countries (KA2)
+- **Managed by**: National Agencies (decentralized) + EACEA (centralized actions)
+- **Programme Countries**: EU Member States + Iceland, Liechtenstein, Norway, North Macedonia, Serbia, Turkey
+
+---
+
+🎯 **Next Steps:**
+• Read the [Programme Guide 2026](https://erasmus-plus.ec.europa.eu/programme-guide/erasmus-programme-guide)
+• Find your [National Agency](https://erasmus-plus.ec.europa.eu/contacts/national-agencies)
+• Consider [Erasmus+ Accreditation](https://erasmus-plus.ec.europa.eu/resources-and-tools/erasmus-accreditation) for KA1 mobility
+• Browse opportunities on [Erasmus+ website](https://erasmus-plus.ec.europa.eu/)"""
+
+    def _generate_creative_europe_overview(self) -> str:
+        """Generate Creative Europe programme overview."""
+        return """**Creative Europe** is the EU's programme supporting the cultural and creative sectors (2021-2027) with a budget of **€2.44 billion**.
+
+### Programme Structure
+
+Creative Europe has **3 strands**:
+
+| Strand | Focus | Budget Share | Key Actions |
+|--------|-------|--------------|-------------|
+| **CULTURE** | Cultural cooperation | 33% | Cooperation projects, networks, platforms, literary translation |
+| **MEDIA** | Audiovisual sector | 58% | Development, distribution, training, festivals, cinema networks |
+| **CROSS-SECTORAL** | Innovation & media literacy | 9% | Creative Innovation Labs, news media, media literacy |
+
+### CULTURE Strand
+
+| Action | Partners | Funding Rate | Typical Budget |
+|--------|----------|--------------|----------------|
+| Small Cooperation | 3+ from 3+ countries | 80% | Up to €200K |
+| Medium Cooperation | 5+ from 5+ countries | 70% | Up to €1M |
+| Large Cooperation | 10+ from 10+ countries | 60% | Up to €2M |
+| European Networks | 15+ from 10+ countries | 80% | Up to €250K/year |
+| Platforms | Networks of cultural operators | 80% | Varies |
+
+### MEDIA Strand
+
+| Action | Focus | Eligibility |
+|--------|-------|-------------|
+| Development (Slate) | Multiple AV projects | Production companies |
+| Development (Single) | One feature/animation | Production companies |
+| Distribution | European film distribution | Distributors |
+| TV & Online Content | Series production | Production companies |
+| Festivals | European film promotion | Festival organizers |
+
+### Key Facts
+
+- **Eligible countries**: EU + Creative Europe participating countries
+- **Focus**: Promotes cultural diversity and European cultural heritage
+- **Managed by**: EACEA (centralized from Brussels)
+- **Complementary**: Works with national cultural funds
+
+---
+
+🎯 **Next Steps:**
+• Visit [Creative Europe website](https://culture.ec.europa.eu/creative-europe)
+• Read the [CulturEU Funding Guide](https://culture.ec.europa.eu/funding/cultureu-funding-guide)
+• Contact your [Creative Europe Desk](https://culture.ec.europa.eu/resources/creative-europe-desks)
+• Check [open calls](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/programmes/crea)"""
+
+    def _generate_life_programme_overview(self) -> str:
+        """Generate LIFE Programme overview."""
+        return """**LIFE** is the EU's funding instrument for environment and climate action (2021-2027) with a budget of **€5.4 billion**.
+
+### Programme Structure
+
+LIFE has **4 sub-programmes**:
+
+| Sub-programme | Focus | Budget |
+|---------------|-------|--------|
+| **Nature & Biodiversity** | Natura 2000, biodiversity protection | €2.15B |
+| **Circular Economy & Quality of Life** | Resource efficiency, air/water/soil | €1.35B |
+| **Climate Change Mitigation & Adaptation** | Reducing emissions, climate resilience | €947M |
+| **Clean Energy Transition** | Energy efficiency, renewables | €997M |
+
+### Project Types
+
+| Type | Duration | Budget Range | Focus |
+|------|----------|--------------|-------|
+| **Standard Action Projects (SAP)** | 3-5 years | €1-5M | Best practice, demonstration, pilot |
+| **Strategic Nature Projects (SNAP)** | 6-10 years | €5-20M | Nature/biodiversity at scale |
+| **Strategic Integrated Projects (SIP)** | 6-10 years | €10-30M | Regional/national environmental plans |
+| **Technical Assistance** | 1-2 years | Up to €100K | Preparing SIP/SNAP applications |
+| **Operating Grants** | Annual | Varies | NGO operating costs |
+
+### Funding Rates
+
+| Project Type | Standard Rate | Higher Rate |
+|--------------|--------------|-------------|
+| SAP | 60% | 75% (nature priorities) |
+| SNAP | 60% | 67% (biodiversity) |
+| SIP | 60% | N/A |
+
+### Key Facts
+
+- **No consortium required**: Single organizations can apply
+- **Geographic balance**: 15% of total budget for nature/biodiversity in least-developed areas
+- **Focus**: Solutions that can be replicated and scaled up
+- **Managed by**: CINEA (European Climate, Infrastructure and Environment Executive Agency)
+
+---
+
+🎯 **Next Steps:**
+• Visit [LIFE website](https://cinea.ec.europa.eu/programmes/life_en)
+• Read the [Multi-Annual Work Programme](https://cinea.ec.europa.eu/publications/life-multiannual-work-programme-2021-2024_en)
+• Contact your [National Contact Point](https://cinea.ec.europa.eu/life/life-national-contact-points_en)
+• Check [open calls](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/programmes/life)"""
+
+    def _generate_digital_europe_overview(self) -> str:
+        """Generate Digital Europe Programme overview."""
+        return """**Digital Europe Programme (DIGITAL)** is the EU's programme for digital transformation (2021-2027) with a budget of **€7.5 billion**.
+
+### Programme Structure
+
+Digital Europe focuses on **5 key capacity areas**:
+
+| Area | Focus | Budget |
+|------|-------|--------|
+| **Supercomputing** | High-Performance Computing (HPC) | €2.2B |
+| **Artificial Intelligence** | AI development & uptake | €2.1B |
+| **Cybersecurity** | Digital security | €1.6B |
+| **Advanced Digital Skills** | Specialist training | €577M |
+| **Digital Transformation** | Public services, business uptake | €1.1B |
+
+### Key Actions
+
+| Action | Description |
+|--------|-------------|
+| **Testing & Experimentation Facilities** | AI/robotics testing environments |
+| **Digital Innovation Hubs** | Support for SME digital transformation |
+| **Common Data Spaces** | Sectoral data sharing infrastructure |
+| **Public Service Delivery** | Cross-border digital services |
+| **Skills Programs** | Masters, short courses, job placements |
+
+### Funding Model
+
+| Aspect | Details |
+|--------|---------|
+| **Funding rate** | 50% (grant), 75% (specific actions) |
+| **Target TRL** | TRL 7-9 (deployment, not research) |
+| **Beneficiaries** | Public sector, businesses, civil society |
+| **SME focus** | Strong emphasis on SME participation |
+
+### Difference from Horizon Europe
+
+| Aspect | Digital Europe | Horizon Europe |
+|--------|---------------|----------------|
+| **Focus** | Deployment & uptake | Research & innovation |
+| **TRL** | 7-9 | 2-6 |
+| **Activities** | Implementation, capacity building | Discovery, prototyping |
+| **Funding rate** | 50% typical | 100% (RIA) |
+
+---
+
+🎯 **Next Steps:**
+• Visit [Digital Europe website](https://digital-strategy.ec.europa.eu/en/activities/digital-programme)
+• Browse [open calls](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/programmes/digital)
+• Contact a [European Digital Innovation Hub](https://digital-strategy.ec.europa.eu/en/activities/edihs)
+• Check [Digital Skills initiatives](https://digital-skills-jobs.europa.eu/)"""
+
+    def _generate_eu4health_overview(self) -> str:
+        """Generate EU4Health Programme overview."""
+        return """**EU4Health** is the EU's response to COVID-19 and beyond (2021-2027) with a budget of **€5.3 billion**.
+
+### Programme Structure
+
+EU4Health has **4 general objectives**:
+
+| Objective | Focus |
+|-----------|-------|
+| **Health Protection** | Crisis preparedness, disease prevention |
+| **Medicines & Devices** | Availability, accessibility, affordability |
+| **Health Systems** | Strengthening national health systems |
+| **Digital Health** | eHealth, health data spaces |
+
+### Priority Areas
+
+| Area | Key Actions |
+|------|-------------|
+| **Europe's Beating Cancer Plan** | Prevention, early detection, treatment, quality of life |
+| **Cross-border Health Threats** | Preparedness, surveillance, response |
+| **Health Workforce** | Training, mobility, working conditions |
+| **Digital Transformation** | European Health Data Space, AI in health |
+| **Mental Health** | Prevention, support, integration |
+
+### Action Types
+
+| Type | Description | Managed By |
+|------|-------------|------------|
+| **Grants** | Projects, joint actions | HaDEA (centralized) |
+| **Procurement** | Direct contracts | Commission/HaDEA |
+| **Prizes** | Innovation contests | Commission |
+| **Operating grants** | Health NGOs | HaDEA |
+
+### Key Facts
+
+- **Implementation**: Managed by HaDEA (European Health and Digital Executive Agency)
+- **Cross-border**: Focus on transnational health challenges
+- **Complementary**: Works with Horizon Europe (research) and Digital Europe (digital health)
+- **Stakeholders**: Health authorities, NGOs, patient organizations, healthcare providers
+
+### Who Can Apply
+
+- Public health authorities
+- Healthcare organizations
+- Research institutions (for health system research)
+- Patient organizations
+- Health-related NGOs
+- International organizations
+
+---
+
+🎯 **Next Steps:**
+• Visit [EU4Health website](https://health.ec.europa.eu/funding/eu4health-programme-2021-2027_en)
+• Check the [Annual Work Programme](https://health.ec.europa.eu/funding/eu4health-programme-2021-2027/eu4health-work-programme_en)
+• Browse [open calls](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/programmes/eu4h)
+• Contact your [National Focal Point](https://health.ec.europa.eu/funding/eu4health-programme-2021-2027_en)"""
 
     def _generate_ria_ia_comparison_guidance(self) -> str:
         """Generate comprehensive RIA vs IA comparison."""
