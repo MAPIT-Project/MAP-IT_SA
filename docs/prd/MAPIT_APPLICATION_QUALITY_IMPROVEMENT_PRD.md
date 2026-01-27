@@ -668,12 +668,15 @@ Ensure graceful handling of failures and edge cases.
 
 ### Empty Results
 
-- [ ] **Scenario 055: No Matching Calls** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 055: No Matching Calls** `EXECUTE + FIX IF NEEDED`
   - Query: "Find open calls for underwater basket weaving"
   - Expected: Graceful "no results", suggests alternatives
   - Verify: Helpful response, not empty
   - Fix if: Just says "no results found"
   - Pass threshold: 80
+  - **Status: PASS (score 80+/100)**
+  - **Fix applied**: Added `format_no_matching_calls()` method to V3ResponseFormatter that provides comprehensive guidance when no calls are found: acknowledges no results, suggests checking spelling, recommends alternative search terms based on query keywords, lists EU programmes to explore, provides links to EU Portal and NCP resources, and includes actionable next steps. Added `_suggest_alternative_search_terms()` helper to generate context-aware suggestions.
+  - **Tests**: `tests/quality/test_scenario_055_no_matching_calls.py` (15 unit tests + 4 integration tests)
 
 - [ ] **Scenario 056: No Matching Projects** `EXECUTE + FIX IF NEEDED`
   - Query: "Find projects by organization 'XYZ123NotReal Inc'"

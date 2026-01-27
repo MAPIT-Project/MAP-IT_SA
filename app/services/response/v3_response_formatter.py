@@ -57,7 +57,7 @@ class V3ResponseFormatter:
     def format_funding_calls(self, calls: list[dict], query: str = "") -> str:
         """Format a list of funding calls into a rich response."""
         if not calls:
-            return "No funding calls found matching your search criteria."
+            return self.format_no_matching_calls(query)
 
         lines = [f"I found **{len(calls)} funding opportunities** for your query:\n"]
 
@@ -1512,6 +1512,180 @@ No collaboration partners found for this organization in the database.
 • Register your organization in the Participant Register if not already done
 • Download relevant work programmes and call documents
 • Consider attending EU funding information days and webinars"""
+
+    def format_no_matching_calls(self, query: str = "") -> str:
+        """
+        Format a helpful response when no funding calls match the search criteria.
+
+        Instead of just saying "no results found", this provides:
+        - Acknowledgment that no results were found
+        - Suggestions for checking spelling
+        - Related search terms to try
+        - Links to helpful resources
+        - Guidance on next steps
+
+        This is used by Scenario 055: No Matching Calls.
+        """
+        query_lower = query.lower() if query else ""
+
+        lines = ["## No Matching Funding Calls Found\n"]
+        lines.append(
+            "I searched through all available EU funding opportunities, "
+            "but couldn't find any calls matching your specific query.\n"
+        )
+
+        # Provide specific suggestions based on query content
+        lines.append("### 💡 Suggestions to Find Relevant Funding\n")
+
+        # Spelling check suggestion
+        lines.append("**1. Check Your Search Terms**")
+        lines.append("   - Verify the spelling of keywords in your query")
+        lines.append("   - Try using standard EU programme terminology")
+        if query:
+            lines.append(f'   - Your search: *"{query}"*')
+        lines.append("")
+
+        # Suggest broader/related terms
+        lines.append("**2. Try Broader or Related Terms**")
+
+        # Extract potential keywords and suggest alternatives
+        alternatives = self._suggest_alternative_search_terms(query_lower)
+        if alternatives:
+            for alt in alternatives:
+                lines.append(f"   - {alt}")
+        else:
+            lines.append("   - Use general terms like 'research', 'innovation', 'digital'")
+            lines.append("   - Try searching by Horizon Europe cluster (e.g., 'health', 'climate')")
+            lines.append("   - Search by action type: 'RIA', 'IA', 'CSA', 'ERC', 'MSCA'")
+        lines.append("")
+
+        # Suggest exploring different programmes
+        lines.append("**3. Explore Different EU Programmes**")
+        lines.append("   - **Horizon Europe**: Research and innovation (largest EU R&I programme)")
+        lines.append("   - **Erasmus+**: Education, training, youth and sport")
+        lines.append("   - **Creative Europe**: Culture, media, and creative sectors")
+        lines.append("   - **LIFE Programme**: Environment and climate action")
+        lines.append("   - **Digital Europe**: Digital skills and infrastructure")
+        lines.append("   - **EU4Health**: Health sector funding")
+        lines.append("")
+
+        # Suggest checking timing
+        lines.append("**4. Consider Timing**")
+        lines.append("   - Many calls have specific opening and closing periods")
+        lines.append("   - New calls open regularly as work programmes are updated")
+        lines.append("   - Check the EU Portal for upcoming calls in your area of interest")
+        lines.append("")
+
+        # Resources section
+        lines.append("---\n")
+        lines.append("### 📚 Helpful Resources\n")
+        lines.append(
+            "• [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/"
+            "opportunities/portal/screen/opportunities/topic-search) - "
+            "Official topic search with filters"
+        )
+        lines.append(
+            "• [Horizon Europe Work Programmes](https://ec.europa.eu/info/funding-tenders/"
+            "opportunities/portal/screen/how-to-participate/reference-documents) - "
+            "Browse all topics by cluster"
+        )
+        lines.append(
+            "• [Find Your NCP](https://ec.europa.eu/info/funding-tenders/"
+            "opportunities/portal/screen/support/ncp) - "
+            "National Contact Points can help identify suitable calls"
+        )
+        lines.append(
+            "• [Funding Programmes Overview](https://commission.europa.eu/funding-tenders/"
+            "find-funding_en) - "
+            "Explore all EU funding programmes"
+        )
+        lines.append("")
+
+        # Actionable next steps
+        lines.append("### 🎯 Recommended Next Steps\n")
+        lines.append("1. **Rephrase your query** using the suggestions above")
+        lines.append(
+            "2. **Browse by cluster** - Ask me about calls in a specific "
+            "Horizon Europe cluster (Health, Digital, Climate, etc.)"
+        )
+        lines.append(
+            "3. **Contact your NCP** - National Contact Points provide free, "
+            "personalized advice on EU funding"
+        )
+        lines.append(
+            "4. **Check the EU Portal** - Use the official topic search for the most "
+            "comprehensive and up-to-date results"
+        )
+        lines.append("")
+
+        # Offer to help with a different query
+        lines.append("---\n")
+        lines.append(
+            "💬 *Feel free to try a different search term, or ask me about a specific "
+            "EU programme, cluster, or research topic!*"
+        )
+
+        return "\n".join(lines)
+
+    def _suggest_alternative_search_terms(self, query: str) -> list[str]:
+        """
+        Suggest alternative search terms based on the query content.
+
+        Returns a list of suggestions or empty list if no specific suggestions.
+        """
+        if not query:
+            return []
+
+        suggestions = []
+
+        # Map common terms to related EU funding terminology
+        term_mappings = {
+            # Nature/environment terms
+            "basket": ["textiles", "crafts", "traditional industries", "heritage"],
+            "weaving": ["textiles", "crafts", "traditional industries", "heritage"],
+            "underwater": ["marine", "ocean", "maritime", "blue economy"],
+            "fishing": ["marine", "aquaculture", "blue economy", "food systems"],
+            "farming": ["agriculture", "food systems", "bioeconomy"],
+            "forest": ["forestry", "bioeconomy", "environment", "climate"],
+            "animal": ["veterinary", "agriculture", "biodiversity", "life sciences"],
+            "plant": ["agriculture", "botany", "bioeconomy", "green transition"],
+            # Tech terms
+            "robot": ["robotics", "automation", "AI", "manufacturing"],
+            "computer": ["digital", "ICT", "artificial intelligence", "computing"],
+            "software": ["digital", "ICT", "software engineering", "digital transformation"],
+            "app": ["digital", "software", "mobile technology", "digital services"],
+            # Health terms
+            "medicine": ["health", "medical research", "pharmaceuticals", "clinical"],
+            "doctor": ["health", "healthcare", "medical", "clinical research"],
+            "hospital": ["health", "healthcare", "clinical", "medical research"],
+            "disease": ["health", "medical research", "clinical trials", "pharmaceuticals"],
+            # Social terms
+            "school": ["education", "Erasmus+", "skills", "training"],
+            "university": ["higher education", "Erasmus+", "research", "academic"],
+            "teaching": ["education", "training", "skills", "Erasmus+"],
+            "art": ["creative", "culture", "Creative Europe", "heritage"],
+            "music": ["creative", "culture", "Creative Europe", "cultural heritage"],
+            "film": ["media", "Creative Europe", "audiovisual", "cinema"],
+        }
+
+        # Check for term matches
+        for term, alternatives in term_mappings.items():
+            if term in query:
+                for alt in alternatives[:2]:  # Max 2 alternatives per match
+                    suggestion = f"Try searching for: **{alt}**"
+                    if suggestion not in suggestions:
+                        suggestions.append(suggestion)
+
+        # If no specific matches, suggest based on patterns
+        if not suggestions:
+            # Check if query might be too specific/niche
+            if len(query.split()) >= 4:
+                suggestions.append("Try using fewer, more general keywords")
+            # Check if might be using non-standard terminology
+            if "_" in query or "-" in query:
+                suggestions.append("Remove special characters and try common terms")
+
+        return suggestions[:4]  # Max 4 suggestions
 
 
 # Singleton instance
