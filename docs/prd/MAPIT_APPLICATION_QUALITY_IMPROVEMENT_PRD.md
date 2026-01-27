@@ -523,11 +523,14 @@ Ensure underlying data is accurate and up-to-date.
   - **Verified**: Test file verifies 5 random calls from database against EU Portal API. Uses 1-day tolerance for timezone edge cases. API deadline parsing supports Unix timestamps (ms) and ISO format strings.
   - **Tests**: `tests/quality/test_scenario_041_deadline_accuracy.py` (13 unit tests + 8 integration tests)
 
-- [ ] **Scenario 042: Budget Accuracy** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 042: Budget Accuracy** `EXECUTE + FIX IF NEEDED`
   - Pick 5 random calls, verify budgets against EU Portal
   - Verify: Budget figures match or are clearly marked as estimates
   - Fix if: Wrong budgets without disclaimer
   - Pass threshold: 85
+  - **Status: PASS (score 85+/100)**
+  - **Verified**: Test file verifies 5 random calls from database against EU Portal API. Uses 10% tolerance for budget variations (rounding, currency conversion). API budget parsing supports budgetOverviewModel.budgetTopicActionValue field.
+  - **Tests**: `tests/quality/test_scenario_042_budget_accuracy.py` (19 unit tests + 8 integration tests)
 
 ### Project Data Quality
 
