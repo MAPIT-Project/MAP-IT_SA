@@ -13399,3 +13399,48 @@ The existing third country participation guidance was US-centric - it started wi
 | Specificity | 25 | 3 entities requirement, exceptions, alternative pathways |
 | Factual Accuracy | 25 | Correct third country status, funding rules, coordination rules |
 | Actionability | 10 | Links, next steps, NCP contact |
+
+## 2026-01-27: Scenario 036 - Outdated Programme (PASS)
+
+### Task Completed
+Implemented Scenario 036: Outdated Programme handling for queries like "Can I still apply to Horizon 2020?"
+
+### Problem Identified
+No code changes required - the existing `_detect_historical_applications_query()` method in ToolAwareAgent already correctly handles queries about H2020 and FP7.
+
+### Current Behavior (Verified Working)
+The system correctly:
+1. **Detects historical programme queries**: Recognizes "H2020", "Horizon 2020", "FP7" mentions
+2. **Clearly states programmes are closed**: "No, you cannot apply to H2020 or FP7 calls"
+3. **Provides programme status table**: Shows FP7 (2007-2013), H2020 (2014-2020), and Horizon Europe (2021-2027) with current status
+4. **Redirects to Horizon Europe**: Highlights €95.5 billion budget, available funding types (ERC, MSCA, RIA, IA, CSA, EIC)
+5. **Provides actionable next steps**: EU Portal links, registration guidance, NCP contact info
+
+### Files Created
+1. `tests/quality/test_scenario_036_outdated_programme.py` (NEW):
+   - Created comprehensive test suite with 13 tests
+   - Quality evaluation with 4 dimensions: Query Fulfillment (40pts), Specificity (25pts), Factual Accuracy (25pts), Actionability (10pts)
+   - Offline tests with excellent/incorrect/vague sample responses
+   - Variant tests for FP7 queries and combined H2020/FP7 queries
+   - Live API tests verifying: H2020 is not claimed open, Horizon Europe is mentioned, next steps provided
+
+### Test Results
+- 13 tests passed in ~14 seconds
+- Live API score: 100/100 (PASS)
+- Response correctly starts with "No, you cannot apply to H2020 or FP7 calls"
+- Includes comprehensive programme status table and Horizon Europe redirect
+
+### Quality Score Breakdown
+| Dimension | Points | What's Checked |
+|-----------|--------|----------------|
+| Query Fulfillment | 40 | Clear "no" answer, H2020 mentioned, HE redirect |
+| Specificity | 25 | Programme dates, budget info, funding types |
+| Factual Accuracy | 25 | H2020 correctly stated as closed, no false open claims |
+| Actionability | 10 | Portal links, next steps, NCP mention |
+
+### Key Verification Points
+1. **Critical Check**: Response NEVER claims H2020 is still open
+2. **Clear Closure Statement**: Uses terms like "closed", "ended", "no longer accepting"
+3. **Proper Redirect**: Always mentions Horizon Europe as current alternative
+4. **FP7 Handling**: Also correctly handles older FP7 queries
+5. **Helpful Transition**: Provides budget, funding types, and registration guidance

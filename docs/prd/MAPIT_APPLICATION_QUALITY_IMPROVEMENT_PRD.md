@@ -450,12 +450,15 @@ Test the system's ability to handle sophisticated user needs.
   - **Fix applied**: Enhanced `_generate_third_country_participation_guidance()` method to accept a `country` parameter for country-specific responses. Added detection of the specific third country mentioned in the query (India, China, Japan, Brazil, etc.) and generates tailored guidance with country-specific institutions and bilateral funding options. Also fixed Canada misclassification (was listed as associated country, now correctly listed as third country). Added broader detection patterns including "eligible" and "eu funding" keywords.
   - **Tests**: `tests/quality/test_scenario_035_non_eu_country.py` (10 tests)
 
-- [ ] **Scenario 036: Outdated Programme** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 036: Outdated Programme** `EXECUTE + FIX IF NEEDED`
   - Query: "Can I still apply to Horizon 2020?"
   - Expected: Explains H2020 closed, redirects to Horizon Europe
   - Verify: Doesn't pretend H2020 is open
   - Fix if: Accepts premise, gives H2020 info
   - Pass threshold: 80
+  - **Status: PASS (score 100/100)**
+  - **Verified**: Existing `_detect_historical_applications_query()` method already handles H2020/FP7 queries correctly - returns clear "No" with programme status table, explains H2020 closed (2014-2020), redirects to Horizon Europe (2021-2027, €95.5B budget), lists available funding types (ERC, MSCA, RIA, IA, CSA, EIC), and provides actionable next steps with EU Portal links
+  - **Tests**: `tests/quality/test_scenario_036_outdated_programme.py` (13 tests)
 
 - [ ] **Scenario 037: Very Specific Niche** `EXECUTE + FIX IF NEEDED`
   - Query: "Funding for underwater archaeology using AI in the Mediterranean"
