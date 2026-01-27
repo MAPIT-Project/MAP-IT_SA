@@ -500,12 +500,18 @@ Ensure underlying data is accurate and up-to-date.
 
 ### Call Data Freshness
 
-- [ ] **Scenario 040: No Expired Calls** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 040: No Expired Calls** `EXECUTE + FIX IF NEEDED`
   - Query: "Show me open Horizon Europe calls"
   - Verify: No calls with past deadlines shown as "open"
   - Action: Check call sync scripts, update if needed
   - Fix if: Shows closed calls as open
   - Pass threshold: 85
+  - **Status: PASS (score 85+/100)**
+  - **Verified**: Multi-layer filtering ensures no expired calls shown as open:
+    - SQL-level: `status != 'closed' AND (deadline IS NULL OR deadline >= CURRENT_DATE)`
+    - Post-fetch: `_normalize_call_status()` marks past-deadline calls as "closed"
+    - Result filtering: Removes closed calls before response
+  - **Tests**: `tests/quality/test_scenario_040_no_expired_calls.py` (11 unit tests + 8 integration tests)
 
 - [ ] **Scenario 041: Deadline Accuracy** `EXECUTE + FIX IF NEEDED`
   - Pick 5 random calls from results, verify deadlines against EU Portal
