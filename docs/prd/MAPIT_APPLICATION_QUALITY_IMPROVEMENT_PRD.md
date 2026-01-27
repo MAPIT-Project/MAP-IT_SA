@@ -482,12 +482,15 @@ Test the system's ability to handle sophisticated user needs.
   - **Fix applied**: Added `_detect_first_time_applicant_query` patterns in `_detect_capacity_building_query()` method to detect "where do I start" type queries from users who mention they've never applied. Added `_generate_first_time_applicant_guidance()` method providing step-by-step onboarding guidance with EU Login, PIC registration, NCP referral, and beginner-friendly language. Response includes checklist, links, common mistakes to avoid, and reassuring tone.
   - **Tests**: `tests/quality/test_scenario_038_first_time_applicant.py` (17 tests)
 
-- [ ] **Scenario 039: Urgent Deadline Query** `EXECUTE + FIX IF NEEDED`
+- [x] **Scenario 039: Urgent Deadline Query** `EXECUTE + FIX IF NEEDED`
   - Query: "Are there any calls closing this week I could apply to?"
   - Expected: Realistic assessment (likely too late), or actual options
   - Verify: Doesn't mislead about feasibility
   - Fix if: Encourages unrealistic applications
   - Pass threshold: 80
+  - **Status: PASS (score 80+/100)**
+  - **Fix applied**: Added `_search_imminent_calls_with_warning()` method to detect "calls closing this week" queries, search for calls with deadlines within 7 days, and provide realistic assessment that 1 week is NOT enough time. Response includes time requirements table, shows imminent calls with warnings, suggests alternatives (next deadline, partner role), and provides NCP contact info.
+  - **Tests**: `tests/quality/test_scenario_039_urgent_deadline_query.py` (17 tests)
 
 ---
 

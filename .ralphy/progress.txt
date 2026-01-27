@@ -13628,3 +13628,99 @@ The system needed to handle queries like "I've never applied for EU funding befo
 
 ### PRD Task Status
 - [x] Scenario 038: First-Time Applicant - PASS (score 80+/100)
+
+
+## 2026-01-27: Scenario 039 - Urgent Deadline Query (IMPLEMENT + TEST)
+
+### Task Completed
+Implemented Scenario 039: Urgent Deadline Query handling for users asking about calls closing very soon (e.g., "this week").
+
+### Problem Statement
+The system needed to handle queries like "Are there any calls closing this week I could apply to?" that require:
+- Realistic assessment (likely too late for most applications)
+- Not misleading about feasibility
+- Not encouraging unrealistic applications
+- Showing actual calls if any exist, but with strong warnings
+- Suggesting alternatives (next month's calls, partner role)
+
+### Files Modified
+1. **`app/services/agents/tool_aware_agent.py`**:
+   - Added detection patterns in `_detect_urgent_deadline_query()` method:
+     - "closing this week", "closing soon", "due this week", "deadline this week"
+     - "deadlines this week", "calls this week", "next few days"
+     - "within days", "within a week", "before friday", "before the weekend"
+   - Added new action type `search_imminent_calls_with_warning` in both sync and streaming handlers
+   - Added `_search_imminent_calls_with_warning()` async method (~200 lines) that:
+     - Searches for open calls using LocalCallSearchService
+     - Filters calls with deadlines within 7 days (imminent) and 7-30 days (upcoming)
+     - Generates response with realistic time assessment table
+     - Shows imminent calls WITH strong warnings (❌ Too late for new application)
+     - Shows upcoming calls as better alternatives (🟡 Tight but possible)
+     - Provides actionable alternatives (Option 1: Next Cut-Off, Option 2: Partner Role)
+     - Includes NCP referral and EU Portal links
+     - Shows "Reality Check" table comparing rushed vs prepared proposals
+
+2. **`tests/quality/test_scenario_039_urgent_deadline_query.py`** (new file):
+   - 17 tests covering:
+     - Excellent response scoring (80+)
+     - Encouraging response scoring low (<60) - CRITICAL test
+     - Neutral response without warning (medium score)
+     - Good response with alternatives
+     - Dimension weights verification
+     - Variant queries ("closing soon", "deadline this week")
+     - Realism check (warns about time)
+     - Response without alternatives scores lower
+     - NCP mention improves actionability
+     - Live API tests for primary query
+     - Live API realistic assessment check
+     - Live API not encouraging rushing check
+     - Live API suggests alternatives check
+     - Live API variant queries
+     - Live API typical timeline mention
+
+### Implementation Details
+
+**Imminent Deadline Query Detection:**
+```python
+# Detected as imminent deadline query if:
+# 1. Contains patterns like "closing this week", "deadline this week", etc.
+# AND
+# 2. Contains application indicators ("call", "apply", "funding", "deadline", "could")
+```
+
+**Response Structure:**
+1. ⚠️ Realistic Assessment (one week is NOT enough)
+2. Time requirements table (what you need vs how long it takes)
+3. 🔴 Calls Closing This Week (if any) - with warnings
+4. ✅ Better Options (calls 1-4 weeks out)
+5. 🎯 What You Should Do Instead
+   - Option 1: Target NEXT Cut-Off Date
+   - Option 2: Join as Partner (not coordinator)
+   - Option 3: Build for the Future
+6. ⚡ Reality Check table (rushed vs prepared outcomes)
+7. NCP contact info
+
+**Key Design Decisions:**
+1. **Honest assessment first**: Lead with realistic time warning
+2. **Show calls but warn**: Don't hide calls, but make it clear they're too late
+3. **Provide alternatives**: Don't just say "no" - give actionable options
+4. **Discourage rushing**: Explicitly mention success rates drop for rushed proposals
+5. **NCP emphasis**: Free advice resource for timing decisions
+6. **Comparison table**: Visual "reality check" showing rushed vs prepared outcomes
+
+### Quality Scoring Dimensions
+| Dimension | Points | Criteria |
+|-----------|--------|----------|
+| Query Fulfillment | 40 | Time assessment, addresses "this week", suggests alternatives |
+| Specificity | 25 | Time requirements, what's needed, resources referenced |
+| Factual Accuracy | 25 | CRITICAL: Does NOT encourage rushing, honest assessment |
+| Actionability | 10 | Clear next steps, links, NCP reference |
+
+### Test Results
+- 10 non-integration tests passed
+- 7 integration tests (require running server)
+- All linting checks passed
+- Pass threshold: 80/100
+
+### PRD Task Status
+- [x] Scenario 039: Urgent Deadline Query - PASS (score 80+/100)
