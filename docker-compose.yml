@@ -75,8 +75,8 @@ services:
     image: neo4j:5.15.0-community
     container_name: mapit-neo4j
     ports:
-      - "7475:7474"  # HTTP Browser (host 7475 -> container 7474 to avoid conflict)
-      - "7688:7687"  # Bolt Protocol (host 7688 -> container 7687 to avoid conflict)
+      - "17474:7474"  # HTTP Browser (high port to avoid conflict with other Neo4j)
+      - "17687:7687"  # Bolt Protocol (high port to avoid conflict with other Neo4j)
     environment:
       - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD:-mapit_secure_password_2024}
       - NEO4J_PLUGINS=["apoc", "graph-data-science"]
