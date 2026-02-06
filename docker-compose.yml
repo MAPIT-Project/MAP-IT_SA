@@ -28,7 +28,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres
+      - DATABASE_URL=postgresql://postgres:postgres@supabase_db_supabase_cli:5432/postgres
       - USE_LOCAL_DB=true
       - DOCKER_ENV=true
       - OPENAI_API_KEY=${OPENAI_API_KEY}
@@ -40,7 +40,7 @@ services:
       - OPENROUTER_MODEL=${OPENROUTER_MODEL:-x-ai/grok-4-fast:free}
       # Enhanced RAG Configuration
       - GOOGLE_EMBEDDING_API_KEY=${GOOGLE_EMBEDDING_API_KEY:-}
-      - SUPABASE_URL=http://host.docker.internal:54321
+      - SUPABASE_URL=http://supabase_kong_supabase_cli:8000
       - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
       - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
       - USE_SUPABASE=true
@@ -69,6 +69,7 @@ services:
       - "host.docker.internal:host-gateway"
     networks:
       - mapit_network
+      - supabase_network
 
   # Neo4j Graph Database for relationship-aware queries
   neo4j:
@@ -109,3 +110,6 @@ volumes:
 networks:
   mapit_network:
     driver: bridge
+  supabase_network:
+    external: true
+    name: supabase_network_supabase_cli
