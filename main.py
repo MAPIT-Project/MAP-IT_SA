@@ -3,6 +3,9 @@ Entry point for the CORDIS Research Projects RAG API.
 This file serves as the main entry point that can be used directly or with uvicorn.
 """
 
+# Import the FastAPI app from app.main so uvicorn can find it
+from app.main import app  # noqa: F401
+
 if __name__ == "__main__":
     import uvicorn
 

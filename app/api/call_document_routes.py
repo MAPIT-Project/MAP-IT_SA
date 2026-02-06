@@ -8,6 +8,7 @@ import os
 
 import google.generativeai as genai
 import psycopg2
+import psycopg2.pool
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -17,14 +18,47 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/call", tags=["call-documents"])
 
-# Initialize database pool and service
-db_url = os.getenv("DATABASE_URL")
-db_pool = psycopg2.pool.SimpleConnectionPool(1, 10, db_url) if db_url else None
-call_doc_service = CallDocumentService(db_pool) if db_pool else None
+# Lazy initialization of database pool and services
+_db_pool = None
+_call_doc_service = None
+_gemini_model = None
 
-# Initialize Gemini
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-model = genai.GenerativeModel("gemini-2.0-flash-exp")
+
+def _get_db_pool():
+    """Lazy initialization of database connection pool."""
+    global _db_pool
+    if _db_pool is None:
+        db_url = os.getenv("DATABASE_URL")
+        if db_url:
+            try:
+                _db_pool = psycopg2.pool.SimpleConnectionPool(1, 10, db_url)
+                logger.info("Database connection pool initialized")
+            except Exception as e:
+                logger.warning(f"Failed to initialize database pool: {e}")
+    return _db_pool
+
+
+def _get_call_doc_service():
+    """Lazy initialization of call document service."""
+    global _call_doc_service
+    if _call_doc_service is None:
+        pool = _get_db_pool()
+        if pool:
+            _call_doc_service = CallDocumentService(pool)
+            logger.info("Call document service initialized")
+    return _call_doc_service
+
+
+def _get_gemini_model():
+    """Lazy initialization of Gemini model."""
+    global _gemini_model
+    if _gemini_model is None:
+        api_key = os.getenv("GEMINI_API_KEY")
+        if api_key:
+            genai.configure(api_key=api_key)
+            _gemini_model = genai.GenerativeModel("gemini-2.0-flash-exp")
+            logger.info("Gemini model initialized")
+    return _gemini_model
 
 
 class CallQuestionRequest(BaseModel):
@@ -56,9 +90,14 @@ async def ask_call_question(call_id: str, request: CallQuestionRequest):
         POST /api/call/HORIZON-CL3-2025-02-CS-ECCC-01/ask
         {"question": "What are the eligibility criteria?"}
     """
+    call_doc_service = _get_call_doc_service()
+    model = _get_gemini_model()
 
     if not call_doc_service:
         raise HTTPException(status_code=500, detail="Call document service not initialized")
+
+    if not model:
+        raise HTTPException(status_code=500, detail="Gemini model not initialized")
 
     try:
         import time
@@ -146,6 +185,7 @@ ANSWER (cite sources):"""
 @router.get("/{call_id}/documents")
 async def get_call_documents_info(call_id: str):
     """Get information about documents available for a call"""
+    call_doc_service = _get_call_doc_service()
 
     if not call_doc_service:
         raise HTTPException(status_code=500, detail="Call document service not initialized")
