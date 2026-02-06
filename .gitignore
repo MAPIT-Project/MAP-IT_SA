@@ -179,7 +179,7 @@ Thumbs.db
 *.backup
 test_*.json
 logs/
-data/
+/data/
 *.log
 .env.local
 .env.production
