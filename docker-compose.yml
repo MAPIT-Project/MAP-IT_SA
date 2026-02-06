@@ -3,7 +3,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6380:6379"  # Host 6380 to avoid conflict with other deployment
+      - "16379:6379"  # High port to avoid conflict with other deployment
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
@@ -19,7 +19,7 @@ services:
   api:
     build: .
     ports:
-      - "8001:8000"  # Host 8001 to avoid conflict with other deployment
+      - "18000:8000"  # High port to avoid conflict with other deployment
     env_file:
       - .env
     environment:
