@@ -191,6 +191,8 @@ class CORDISIngester:
             "CREATE INDEX project_status IF NOT EXISTS FOR (p:Project) ON (p.status)",
             "CREATE INDEX org_name IF NOT EXISTS FOR (o:Organization) ON (o.name)",
             "CREATE INDEX org_country IF NOT EXISTS FOR (o:Organization) ON (o.country)",
+            "CREATE FULLTEXT INDEX project_fulltext_search IF NOT EXISTS FOR (n:Project) ON EACH [n.title, n.objective]",
+            "CREATE FULLTEXT INDEX org_fulltext_search IF NOT EXISTS FOR (n:Organization) ON EACH [n.name, n.shortName]",
         ]
 
         for constraint in constraints:

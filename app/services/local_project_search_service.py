@@ -405,9 +405,15 @@ class LocalProjectSearchService:
                 cursor.execute(query_sql, params)
                 rows = cursor.fetchall()
 
-                # Format results
+                # Format results — filter out low-similarity matches
+                SIMILARITY_THRESHOLD = 0.35  # Below this, results are noise
                 results = []
-                for i, row in enumerate(rows):
+                rank = 0
+                for row in rows:
+                    similarity = float(row[13])
+                    if similarity < SIMILARITY_THRESHOLD:
+                        continue
+                    rank += 1
                     results.append(
                         {
                             "id": row[0],
@@ -423,10 +429,16 @@ class LocalProjectSearchService:
                             "frameworkProgramme": row[10] or "",
                             "fundingScheme": row[11] or "",
                             "topics": row[12] or "",
-                            "similarity_score": float(row[13]),
+                            "similarity_score": similarity,
                             "_source": "vector",
-                            "_rank": i + 1,
+                            "_rank": rank,
                         }
+                    )
+
+                if len(rows) != len(results):
+                    logger.info(
+                        f"   Vector: filtered {len(rows) - len(results)} low-similarity results "
+                        f"(threshold={SIMILARITY_THRESHOLD})"
                     )
 
                 return results
@@ -523,8 +535,11 @@ class LocalProjectSearchService:
         # 4. Deduplicate by project_id
         unique_results = self._deduplicate(fused_results)
 
-        # 4b. Re-sort by explicit sort_by if specified (RRF fusion may override SQL sort)
-        if sort_by:
+        # 4b. Cross-encoder reranking (only for relevance sorting, top-N candidates)
+        if not sort_by or sort_by == "relevance":
+            unique_results = await self._rerank_with_cross_encoder(query, unique_results, limit)
+        else:
+            # Re-sort by explicit sort_by (ec_contribution, total_cost, start_date)
             sort_key_map = {
                 "ec_contribution": lambda p: float(
                     p.get("ec_contribution") or p.get("ecMaxContribution") or p.get("budget") or 0
@@ -535,15 +550,7 @@ class LocalProjectSearchService:
             key_fn = sort_key_map.get(sort_by)
             if key_fn:
                 logger.info(f"   Re-sorting {len(unique_results)} results by {sort_by}")
-                for p in unique_results[:3]:
-                    logger.info(
-                        f"     Before sort: {p.get('acronym')} ec={p.get('ec_contribution')} ecMax={p.get('ecMaxContribution')} budget={p.get('budget')} src={p.get('_source')}"
-                    )
                 unique_results.sort(key=key_fn, reverse=True)
-                for p in unique_results[:3]:
-                    logger.info(
-                        f"     After sort: {p.get('acronym')} ec={p.get('ec_contribution')} ecMax={p.get('ecMaxContribution')} val={key_fn(p)}"
-                    )
 
         # 5. Take top N
         final_results = unique_results[:limit]
@@ -565,6 +572,14 @@ class LocalProjectSearchService:
             "sources_used": sources_used,
             "processing_time_ms": int(elapsed * 1000),
             "data_source": "local_multi_source",
+            "search_quality": {
+                "neo4j_fulltext": self._has_neo4j_fulltext_index()
+                if self._graph_service
+                else False,
+                "vector_search": "vector" in sources_used,
+                "cross_encoder_reranked": not sort_by or sort_by == "relevance",
+                "fusion_method": "rrf" if len(sources_used) > 1 else "single_source",
+            },
         }
 
     async def find_similar_projects(
@@ -933,110 +948,184 @@ class LocalProjectSearchService:
             logger.error(f"PostgreSQL search error: {e}")
             return []
 
+    def _has_neo4j_fulltext_index(self) -> bool:
+        """Check if the Neo4j full-text index exists (cached)."""
+        if not hasattr(self, "_neo4j_ft_available"):
+            try:
+                results = self._graph_service.db.execute_query(
+                    "SHOW INDEXES YIELD name WHERE name = 'project_fulltext_search' RETURN name"
+                )
+                self._neo4j_ft_available = len(results) > 0
+                if self._neo4j_ft_available:
+                    logger.info("✅ Neo4j full-text index 'project_fulltext_search' available")
+                else:
+                    logger.warning(
+                        "⚠️ Neo4j full-text index not found — falling back to CONTAINS. "
+                        "Run: python scripts/create_neo4j_fulltext_index.py to create it."
+                    )
+            except Exception:
+                self._neo4j_ft_available = False
+        return self._neo4j_ft_available
+
     async def _search_graph(
         self, search_terms: list[str], filters: dict[str, Any], limit: int
     ) -> list[dict[str, Any]]:
         """
         Search Neo4j for projects matching criteria.
 
-        Neo4j Schema:
-        - Project: id, title, acronym, objective, status, startDate, endDate,
-                   totalCost, ecMaxContribution, fundingScheme, legalBasis
-        - Organization: id, name, shortName, city, country, sme, activityType
-        - Relationships: FUNDED_UNDER (Project->Topic), TARGETS (Project->Cluster),
-                        PARTICIPATES_IN (Organization->Project), LOCATED_IN (Org->Country)
+        Uses full-text index (Lucene) when available for ranked relevance scoring,
+        falls back to CONTAINS substring matching otherwise.
         """
         if not self._graph_service:
             return []
 
         try:
             search_query = " ".join(search_terms)
-            params = {"search": search_query, "limit": limit}
+            params = {"limit": limit}
+            use_fulltext = self._has_neo4j_fulltext_index()
 
             # Check if we need country filtering
             has_country_filter = "countries" in filters and filters["countries"]
 
-            if has_country_filter:
-                # Query with country filter via organization
-                params["countries"] = filters["countries"]
+            status_clause = ""
+            if "status" in filters:
+                status_clause = "AND p.status = $status"
+                params["status"] = filters["status"]
 
-                status_clause = ""
-                if "status" in filters:
-                    status_clause = "AND p.status = $status"
-                    params["status"] = filters["status"]
+            if use_fulltext:
+                # Full-text search with Lucene scoring — much faster and more accurate
+                # Escape special Lucene characters and build query
+                lucene_query = self._build_lucene_query(search_terms)
+                params["search"] = lucene_query
 
-                cypher = f"""
-                MATCH (o:Organization)-[:PARTICIPATES_IN]->(p:Project)
-                WHERE o.country IN $countries
-                  AND (toLower(p.title) CONTAINS toLower($search)
-                       OR toLower(p.objective) CONTAINS toLower($search))
-                  {status_clause}
+                if has_country_filter:
+                    params["countries"] = filters["countries"]
+                    cypher = f"""
+                    CALL db.index.fulltext.queryNodes('project_fulltext_search', $search)
+                    YIELD node AS p, score AS ft_score
 
-                WITH DISTINCT p
+                    // Country filter via organization
+                    WHERE EXISTS {{
+                        MATCH (o:Organization)-[:PARTICIPATES_IN]->(p)
+                        WHERE o.country IN $countries
+                    }}
+                    {status_clause}
 
-                // Get related cluster and topic info
-                OPTIONAL MATCH (p)-[:TARGETS]->(c:Cluster)
-                OPTIONAL MATCH (p)-[:FUNDED_UNDER]->(t:Topic)
+                    WITH p, ft_score
 
-                // Get coordinator organization
-                OPTIONAL MATCH (coord:Organization)-[r:PARTICIPATES_IN {{role: 'coordinator'}}]->(p)
+                    // Get related cluster and topic info
+                    OPTIONAL MATCH (p)-[:TARGETS]->(c:Cluster)
+                    OPTIONAL MATCH (p)-[:FUNDED_UNDER]->(t:Topic)
+                    OPTIONAL MATCH (coord:Organization)-[r:PARTICIPATES_IN {{role: 'coordinator'}}]->(p)
 
-                RETURN p.id as id,
-                       p.title as title,
-                       p.acronym as acronym,
-                       p.objective as objective,
-                       p.startDate as startDate,
-                       p.endDate as endDate,
-                       p.totalCost as totalCost,
-                       p.ecMaxContribution as ecMaxContribution,
-                       p.status as status,
-                       p.fundingScheme as fundingScheme,
-                       COLLECT(DISTINCT c.name)[0] as clusterName,
-                       COLLECT(DISTINCT c.code)[0] as clusterCode,
-                       COLLECT(DISTINCT t.code) as topicCodes,
-                       coord.name as coordinatorName,
-                       coord.country as coordinatorCountry
-                ORDER BY p.startDate DESC
-                LIMIT $limit
-                """
+                    RETURN p.id as id,
+                           p.title as title,
+                           p.acronym as acronym,
+                           p.objective as objective,
+                           p.startDate as startDate,
+                           p.endDate as endDate,
+                           p.totalCost as totalCost,
+                           p.ecMaxContribution as ecMaxContribution,
+                           p.status as status,
+                           p.fundingScheme as fundingScheme,
+                           COLLECT(DISTINCT c.name)[0] as clusterName,
+                           COLLECT(DISTINCT c.code)[0] as clusterCode,
+                           COLLECT(DISTINCT t.code) as topicCodes,
+                           coord.name as coordinatorName,
+                           coord.country as coordinatorCountry,
+                           ft_score
+                    ORDER BY ft_score DESC
+                    LIMIT $limit
+                    """
+                else:
+                    cypher = f"""
+                    CALL db.index.fulltext.queryNodes('project_fulltext_search', $search)
+                    YIELD node AS p, score AS ft_score
+
+                    WHERE true {status_clause}
+
+                    WITH p, ft_score
+
+                    // Get related cluster and topic info
+                    OPTIONAL MATCH (p)-[:TARGETS]->(c:Cluster)
+                    OPTIONAL MATCH (p)-[:FUNDED_UNDER]->(t:Topic)
+                    OPTIONAL MATCH (coord:Organization)-[r:PARTICIPATES_IN {{role: 'coordinator'}}]->(p)
+
+                    RETURN p.id as id,
+                           p.title as title,
+                           p.acronym as acronym,
+                           p.objective as objective,
+                           p.startDate as startDate,
+                           p.endDate as endDate,
+                           p.totalCost as totalCost,
+                           p.ecMaxContribution as ecMaxContribution,
+                           p.status as status,
+                           p.fundingScheme as fundingScheme,
+                           COLLECT(DISTINCT c.name)[0] as clusterName,
+                           COLLECT(DISTINCT c.code)[0] as clusterCode,
+                           COLLECT(DISTINCT t.code) as topicCodes,
+                           coord.name as coordinatorName,
+                           coord.country as coordinatorCountry,
+                           ft_score
+                    ORDER BY ft_score DESC
+                    LIMIT $limit
+                    """
             else:
-                # Simple query without country filter
-                status_clause = ""
-                if "status" in filters:
-                    status_clause = "AND p.status = $status"
-                    params["status"] = filters["status"]
+                # Fallback: CONTAINS substring matching (slow, no relevance scoring)
+                params["search"] = search_query
 
-                cypher = f"""
-                MATCH (p:Project)
-                WHERE (toLower(p.title) CONTAINS toLower($search)
-                       OR toLower(p.objective) CONTAINS toLower($search))
-                  {status_clause}
+                if has_country_filter:
+                    params["countries"] = filters["countries"]
+                    cypher = f"""
+                    MATCH (o:Organization)-[:PARTICIPATES_IN]->(p:Project)
+                    WHERE o.country IN $countries
+                      AND (toLower(p.title) CONTAINS toLower($search)
+                           OR toLower(p.objective) CONTAINS toLower($search))
+                      {status_clause}
 
-                // Get related cluster and topic info
-                OPTIONAL MATCH (p)-[:TARGETS]->(c:Cluster)
-                OPTIONAL MATCH (p)-[:FUNDED_UNDER]->(t:Topic)
+                    WITH DISTINCT p
 
-                // Get coordinator organization
-                OPTIONAL MATCH (coord:Organization)-[r:PARTICIPATES_IN {{role: 'coordinator'}}]->(p)
+                    OPTIONAL MATCH (p)-[:TARGETS]->(c:Cluster)
+                    OPTIONAL MATCH (p)-[:FUNDED_UNDER]->(t:Topic)
+                    OPTIONAL MATCH (coord:Organization)-[r:PARTICIPATES_IN {{role: 'coordinator'}}]->(p)
 
-                RETURN p.id as id,
-                       p.title as title,
-                       p.acronym as acronym,
-                       p.objective as objective,
-                       p.startDate as startDate,
-                       p.endDate as endDate,
-                       p.totalCost as totalCost,
-                       p.ecMaxContribution as ecMaxContribution,
-                       p.status as status,
-                       p.fundingScheme as fundingScheme,
-                       COLLECT(DISTINCT c.name)[0] as clusterName,
-                       COLLECT(DISTINCT c.code)[0] as clusterCode,
-                       COLLECT(DISTINCT t.code) as topicCodes,
-                       coord.name as coordinatorName,
-                       coord.country as coordinatorCountry
-                ORDER BY p.startDate DESC
-                LIMIT $limit
-                """
+                    RETURN p.id as id, p.title as title, p.acronym as acronym,
+                           p.objective as objective, p.startDate as startDate,
+                           p.endDate as endDate, p.totalCost as totalCost,
+                           p.ecMaxContribution as ecMaxContribution,
+                           p.status as status, p.fundingScheme as fundingScheme,
+                           COLLECT(DISTINCT c.name)[0] as clusterName,
+                           COLLECT(DISTINCT c.code)[0] as clusterCode,
+                           COLLECT(DISTINCT t.code) as topicCodes,
+                           coord.name as coordinatorName,
+                           coord.country as coordinatorCountry
+                    ORDER BY p.startDate DESC
+                    LIMIT $limit
+                    """
+                else:
+                    cypher = f"""
+                    MATCH (p:Project)
+                    WHERE (toLower(p.title) CONTAINS toLower($search)
+                           OR toLower(p.objective) CONTAINS toLower($search))
+                      {status_clause}
+
+                    OPTIONAL MATCH (p)-[:TARGETS]->(c:Cluster)
+                    OPTIONAL MATCH (p)-[:FUNDED_UNDER]->(t:Topic)
+                    OPTIONAL MATCH (coord:Organization)-[r:PARTICIPATES_IN {{role: 'coordinator'}}]->(p)
+
+                    RETURN p.id as id, p.title as title, p.acronym as acronym,
+                           p.objective as objective, p.startDate as startDate,
+                           p.endDate as endDate, p.totalCost as totalCost,
+                           p.ecMaxContribution as ecMaxContribution,
+                           p.status as status, p.fundingScheme as fundingScheme,
+                           COLLECT(DISTINCT c.name)[0] as clusterName,
+                           COLLECT(DISTINCT c.code)[0] as clusterCode,
+                           COLLECT(DISTINCT t.code) as topicCodes,
+                           coord.name as coordinatorName,
+                           coord.country as coordinatorCountry
+                    ORDER BY p.startDate DESC
+                    LIMIT $limit
+                    """
 
             results = self._graph_service.db.execute_query(cypher, params)
 
@@ -1065,6 +1154,7 @@ class LocalProjectSearchService:
                         "coordinator_country": r.get("coordinatorCountry"),
                         "_source": "neo4j",
                         "_rank": i + 1,
+                        "_ft_score": r.get("ft_score"),  # Lucene relevance score (if available)
                     }
                 )
 
@@ -1073,6 +1163,33 @@ class LocalProjectSearchService:
         except Exception as e:
             logger.error(f"Neo4j search error: {e}")
             return []
+
+    @staticmethod
+    def _build_lucene_query(search_terms: list[str]) -> str:
+        """Build a Lucene query string for Neo4j full-text search.
+
+        Escapes special characters and joins terms with OR for broad matching,
+        while also including the exact phrase for boost.
+        """
+        # Lucene special chars that need escaping
+        special = set('+-&|!(){}[]^"~*?:\\/]')
+        escaped = []
+        for term in search_terms:
+            clean = "".join(f"\\{c}" if c in special else c for c in term)
+            if clean:
+                escaped.append(clean)
+
+        if not escaped:
+            return ""
+
+        # Combine: individual terms OR + exact phrase boost
+        parts = escaped.copy()
+        if len(escaped) > 1:
+            # Boost exact phrase match
+            phrase = " ".join(escaped)
+            parts.append(f'"{phrase}"^2')
+
+        return " OR ".join(parts)
 
     async def search_projects_by_relationship(
         self, relationship_type: str, entity_value: str, limit: int = 20
@@ -1187,6 +1304,57 @@ class LocalProjectSearchService:
             logger.error(f"Relationship search error: {e}")
             return {"success": False, "error": str(e), "projects": []}
 
+    async def _rerank_with_cross_encoder(
+        self,
+        query: str,
+        results: list[dict[str, Any]],
+        limit: int,
+    ) -> list[dict[str, Any]]:
+        """Rerank top candidates using cross-encoder for better relevance.
+
+        Only reranks the top candidates (up to 2x limit, max 50) to keep latency
+        acceptable. Falls back to original ordering if reranker unavailable.
+        """
+        if len(results) < 2:
+            return results
+
+        # Only rerank a reasonable number of candidates
+        rerank_count = min(len(results), max(limit * 2, 20), 50)
+        candidates = results[:rerank_count]
+        remainder = results[rerank_count:]
+
+        try:
+            from .data_intelligence.cross_encoder_reranker import get_reranker
+
+            reranker = get_reranker(model_type="fast")
+
+            # Run reranking in thread to not block async loop
+            ranked = await asyncio.to_thread(
+                reranker.rerank,
+                query=query,
+                documents=candidates,
+                content_key="objective",  # Rank on project objective text
+                top_k=rerank_count,
+            )
+
+            if ranked:
+                # Rebuild result list from reranked order
+                reranked_results = [r.to_dict() for r in ranked]
+                logger.info(
+                    f"   Cross-encoder reranked {len(candidates)} candidates "
+                    f"(top moved: {reranked_results[0].get('acronym', '?')})"
+                )
+                return reranked_results + remainder
+
+        except ImportError:
+            logger.debug(
+                "Cross-encoder reranker not available (sentence-transformers not installed)"
+            )
+        except Exception as e:
+            logger.warning(f"Cross-encoder reranking failed, using RRF order: {e}")
+
+        return results
+
     def _reciprocal_rank_fusion(
         self, results_by_source: dict[str, list[dict]], k: int = 60
     ) -> list[dict[str, Any]]:
@@ -1211,6 +1379,14 @@ class LocalProjectSearchService:
 
                 scores[pid] += 1 / (k + rank)
                 projects_map[pid]["_sources"].append(source)
+
+        # Boost projects found by multiple sources (higher confidence)
+        for pid in scores:
+            num_sources = len(projects_map[pid]["_sources"])
+            if num_sources >= 3:
+                scores[pid] *= 1.15  # Found by all 3 sources — strong signal
+            elif num_sources >= 2:
+                scores[pid] *= 1.05  # Found by 2 sources — moderate boost
 
         # Sort by fused score
         sorted_ids = sorted(scores.keys(), key=lambda x: scores[x], reverse=True)
