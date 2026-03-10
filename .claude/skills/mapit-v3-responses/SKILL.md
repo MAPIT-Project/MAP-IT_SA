@@ -532,7 +532,7 @@ APPLICATION_FOOTER = """
 CONTEXT_LIMITS = {
     'max_context_chars': 100000,      # ~25k tokens
     'max_tool_result_chars': 5000,    # Per result
-    'max_observation_chars': 1500,    # Per reasoning step
+    'max_observation_chars': 5000,    # Per reasoning step
     'max_document_chars': 600,        # Per document in synthesis
     'max_documents_per_result': 10,
     'max_calls_per_result': 15,

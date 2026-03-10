@@ -38,7 +38,9 @@ class ContextLimits:
     # Maximum tokens for various components (approximate, using char/4 ratio)
     max_context_chars: int = 100000  # ~25k tokens
     max_tool_result_chars: int = 8000  # Per tool result
-    max_observation_chars: int = 3000  # Per reasoning step
+    max_observation_chars: int = (
+        5000  # Per reasoning step (increased for cross-analysis with partner lists)
+    )
     max_document_chars: int = 1000  # Per document in synthesis
     max_documents_per_result: int = 10  # Max docs to include
     max_calls_per_result: int = 15  # Max calls to include
@@ -51,7 +53,7 @@ class ContextLimits:
         return cls(
             max_context_chars=int(os.getenv("MAX_CONTEXT_CHARS", "100000")),
             max_tool_result_chars=int(os.getenv("MAX_TOOL_RESULT_CHARS", "8000")),
-            max_observation_chars=int(os.getenv("MAX_OBSERVATION_CHARS", "3000")),
+            max_observation_chars=int(os.getenv("MAX_OBSERVATION_CHARS", "5000")),
             max_document_chars=int(os.getenv("MAX_DOCUMENT_CHARS", "1000")),
         )
 
@@ -2377,6 +2379,37 @@ Respond ONLY with JSON (no other text):
 5. Cite your sources in the conclusion
 6. **NEVER use the full user message as a search query** - extract key terms only (e.g., "consortium eligibility" not "I want to know about consortium eligibility for my project")
 7. For general "how to start" questions, use BUILT-IN KNOWLEDGE directly - don't search
+8. **Multi-tool cross-analysis**: When the user asks a question that requires comparing, combining, or cross-referencing results from multiple tools, follow this pattern:
+   - **Iteration 1**: Call all the necessary tools in parallel (action: "call_tools")
+   - **Iteration 2**: You will see ALL tool results in your observation history. Analyze the combined results, find patterns/overlaps/differences, and provide a synthesized answer (action: "conclude")
+   - The `conclude` action is your way to deliver a **custom synthesized answer** that goes beyond what any single tool returned.
+
+**Cross-analysis examples:**
+- "List partners of Project A and Project B, find common partners" →
+  Iteration 1: call `get_project_partners` for both projects in parallel
+  Iteration 2: compare partner lists, identify shared organizations, conclude with comparison table
+- "Compare the budget of project X with project Y" →
+  Iteration 1: call `get_project_details` for both projects in parallel
+  Iteration 2: extract budgets, compute differences, conclude with comparison
+- "Which organizations coordinate both climate and health projects?" →
+  Iteration 1: call `search_projects` for climate and health separately
+  Iteration 2: cross-reference coordinator lists, identify overlaps, conclude with findings
+- "Find hydrogen calls and check if my university is eligible" →
+  Iteration 1: call `search_funding_calls` for hydrogen AND `check_erasmus_eligibility` (or relevant eligibility tool)
+  Iteration 2: combine results and conclude with tailored advice
+
+**Key principle**: If results from one tool need to be analyzed alongside results from another tool, do NOT conclude after the first iteration. Set `"needs_more_info": true` and wait for all results before concluding.
+
+**Formatting cross-analysis conclusions**: When you conclude with a cross-analysis, structure your conclusion with a `##` heading and markdown tables for clarity. Example:
+```
+## Common Partners: MAPIT & UDENE
+
+| # | Organization | Country | Role in MAPIT | Role in UDENE |
+|---|---|---|---|---|
+| 1 | University X | DE | Participant | Coordinator |
+
+**Summary**: 3 out of 15 organizations appear in both consortia...
+```
 
 ## Response Guidelines
 
@@ -4414,6 +4447,16 @@ digital_europe, life""",
                 step.observation = self._summarize_tool_results(step.tool_calls)
                 step.next_action_needed = reasoning_result.get("needs_more_info", True)
 
+                # Force another iteration when multiple tools were called successfully
+                # so the LLM can cross-analyze combined results (e.g., compare partner lists)
+                successful_calls = [tc for tc in step.tool_calls if tc.success]
+                if len(successful_calls) >= 2 and not step.next_action_needed:
+                    logger.info(
+                        f"⚡ Forcing cross-analysis iteration: {len(successful_calls)} tools "
+                        f"returned results — LLM needs to synthesize combined data"
+                    )
+                    step.next_action_needed = True
+
             elif step.action == "analyze_results":
                 # Analyze without calling more tools
                 step.observation = reasoning_result.get("analysis", "")
@@ -4812,6 +4855,17 @@ digital_europe, life""",
 
                 step.observation = self._summarize_tool_results(step.tool_calls)
                 step.next_action_needed = reasoning_result.get("needs_more_info", True)
+
+                # Force another iteration when multiple tools were called successfully
+                # so the LLM can cross-analyze combined results (e.g., compare partner lists)
+                successful_calls = [tc for tc in step.tool_calls if tc.success]
+                if len(successful_calls) >= 2 and not step.next_action_needed:
+                    logger.info(
+                        f"⚡ [Streaming] Forcing cross-analysis iteration: "
+                        f"{len(successful_calls)} tools returned results — "
+                        f"LLM needs to synthesize combined data"
+                    )
+                    step.next_action_needed = True
 
             elif step.action == "analyze_results":
                 step.observation = reasoning_result.get("analysis", "")
@@ -16168,6 +16222,10 @@ Found **{total_found} organizations** with relevant track records:
             "**ERC Statistics:**",  # Specific programme stats
             "**MSCA Statistics:**",  # Specific programme stats
             "## Call Details:",  # Lower priority - context, not main answer
+            "## Common ",  # Cross-analysis: common partners, organizations
+            "## Comparison",  # Cross-analysis: comparing results
+            "## Cross-Analysis",  # Cross-analysis: generic
+            "## Partner",  # Cross-analysis: partner-related
         ]
 
         # Collect ALL content pieces with direct output markers

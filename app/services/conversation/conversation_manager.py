@@ -714,6 +714,10 @@ class ConversationManager:
                         "| Name | Country | Role |",
                         "## Funding History Analysis:",
                         "## Budget Calculation Results",
+                        "## Common ",
+                        "## Comparison",
+                        "## Cross-Analysis",
+                        "## Partner",
                     ]
                 )
             )
@@ -991,6 +995,10 @@ class ConversationManager:
                             "| Name | Country | Role |",
                             "## Funding History Analysis:",
                             "## Budget Calculation Results",
+                            "## Common ",
+                            "## Comparison",
+                            "## Cross-Analysis",
+                            "## Partner",
                         ]
                     )
                 )
