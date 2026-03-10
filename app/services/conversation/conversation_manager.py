@@ -692,17 +692,22 @@ class ConversationManager:
             tool_results = agent_result.get("tool_results", {})
 
             # Check if agent produced a substantive answer with specific data
+            # Use strict indicators: structured markers from _synthesize_from_results
+            # (not loose words like "coordinator" which appear in any project discussion)
             agent_has_detailed_answer = (
                 agent_answer
                 and len(agent_answer) > 200
                 and any(
-                    indicator in agent_answer.lower()
+                    indicator in agent_answer
                     for indicator in [
-                        "partner",
-                        "consortium",
-                        "coordinator",
-                        "| country |",
-                        "| role |",
+                        "## Similar Funded Projects",
+                        "## Project Search Results",
+                        "## Projects by ",
+                        "## Collaboration Network:",
+                        "| Country | Role |",
+                        "| Name | Country | Role |",
+                        "## Funding History Analysis:",
+                        "## Budget Calculation Results",
                     ]
                 )
             )
@@ -960,18 +965,22 @@ class ConversationManager:
                 tool_results = agent_result.get("tool_results", {})
 
                 # Check if agent produced a substantive answer with specific data
-                # (partners, tables, detailed analysis). If so, prefer it over formatter.
+                # Use strict indicators: structured markers from _synthesize_from_results
+                # (not loose words like "coordinator" which appear in any project discussion)
                 agent_has_detailed_answer = (
                     agent_answer
                     and len(agent_answer) > 200
                     and any(
-                        indicator in agent_answer.lower()
+                        indicator in agent_answer
                         for indicator in [
-                            "partner",
-                            "consortium",
-                            "coordinator",
-                            "| country |",
-                            "| role |",
+                            "## Similar Funded Projects",
+                            "## Project Search Results",
+                            "## Projects by ",
+                            "## Collaboration Network:",
+                            "| Country | Role |",
+                            "| Name | Country | Role |",
+                            "## Funding History Analysis:",
+                            "## Budget Calculation Results",
                         ]
                     )
                 )

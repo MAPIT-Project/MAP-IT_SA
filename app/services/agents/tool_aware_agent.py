@@ -5975,20 +5975,44 @@ digital_europe, life""",
                 logger.info(
                     f"🧬 Detected long descriptive project query ({word_count} words): '{description}'"
                 )
+                # Extract key terms for keyword search (shorter phrases work better)
+                # Take first few meaningful words for a keyword complement
+                key_terms = " ".join(
+                    w
+                    for w in description.split()
+                    if len(w) >= 3
+                    and w.lower()
+                    not in {
+                        "the",
+                        "and",
+                        "for",
+                        "with",
+                        "from",
+                        "that",
+                        "this",
+                        "are",
+                        "was",
+                        "were",
+                    }
+                )[:80]
                 return {
                     "thought": f"User is asking for projects about '{description}'. "
-                    "This is a detailed description — using get_similar_funded_projects (semantic search) "
-                    "to find conceptually matching projects rather than keyword search which would return "
-                    "irrelevant results matching individual words.",
-                    "action": "call_tools",
+                    "Running BOTH semantic search (finds conceptually matching projects) "
+                    "AND keyword search (finds projects with exact term matches) to get "
+                    "comprehensive results.",
+                    "action": "call_tools_and_format",
                     "tool_calls": [
                         {
                             "tool": "get_similar_funded_projects",
                             "parameters": {"description": description, "limit": 10},
-                            "reasoning": "Long descriptive query — semantic search will find projects matching the full concept",
-                        }
+                            "reasoning": "Semantic search finds conceptually related projects by meaning",
+                        },
+                        {
+                            "tool": "search_projects",
+                            "parameters": {"keywords": key_terms, "limit": 10},
+                            "reasoning": "Keyword search catches projects that match specific terms but may rank differently in semantic search",
+                        },
                     ],
-                    "needs_more_info": True,
                 }
 
         if has_semantic_pattern:
@@ -6030,7 +6054,7 @@ digital_europe, life""",
                     "thought": f"User is asking for projects semantically similar to '{description}'. "
                     "Using get_similar_funded_projects (AI embeddings) for semantic matching, "
                     "not search_projects (keyword matching).",
-                    "action": "call_tools",
+                    "action": "call_tools_and_format",
                     "tool_calls": [
                         {
                             "tool": "get_similar_funded_projects",
@@ -6038,7 +6062,6 @@ digital_europe, life""",
                             "reasoning": "Finding projects using semantic similarity (AI embeddings) to match concepts, not just keywords",
                         }
                     ],
-                    "needs_more_info": True,
                 }
 
         return None
@@ -13921,6 +13944,20 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
                 if pid:
                     detailed_project_data[str(pid)] = r
 
+        # Pre-scan: collect project IDs from similar_projects results
+        # so search_projects handler can skip duplicates already rendered
+        similar_project_ids = set()
+        for _name, r in tool_results.items():
+            if (
+                isinstance(r, dict)
+                and "similar_projects" in r
+                and isinstance(r.get("similar_projects"), list)
+            ):
+                for proj in r["similar_projects"]:
+                    pid = proj.get("id") or proj.get("project_id")
+                    if pid:
+                        similar_project_ids.add(str(pid))
+
         # Pre-scan: collect project IDs from search_projects results
         # so get_project_details handler can skip projects that will be merged
         search_project_ids = set()
@@ -14684,9 +14721,18 @@ No projects found for this organization in the database.
             elif "projects" in result and isinstance(result["projects"], list):
                 projects = result["projects"]
                 total_found = result.get("total_found", len(projects))
-                project_parts = [f"## Project Search Results\n**Found {total_found} projects:**\n"]
+
+                # If similar_projects were already rendered, filter out duplicates
+                # and use a different header for the keyword search additions
+                has_similar_section = bool(similar_project_ids)
+                if has_similar_section:
+                    header = "## Additional Projects from Keyword Search\n"
+                else:
+                    header = f"## Project Search Results\n**Found {total_found} projects:**\n"
+                project_parts = [header]
                 rendered_pids = set()  # Track rendered project IDs to avoid duplicates across multiple search_projects calls
-                for i, proj in enumerate(projects[:10], 1):
+                additional_count = 0
+                for _i, proj in enumerate(projects[:10], 1):
                     acronym = proj.get("acronym", "")
                     title = proj.get("title", "")
                     pid = proj.get("id") or proj.get("project_id", "")
@@ -14694,10 +14740,11 @@ No projects found for this organization in the database.
                     if not (acronym or title):
                         continue
 
-                    # Skip if already rendered from a previous search_projects result
-                    if str(pid) in rendered_pids:
+                    # Skip if already rendered from similar_projects or previous search_projects
+                    if str(pid) in rendered_pids or str(pid) in similar_project_ids:
                         continue
                     rendered_pids.add(str(pid))
+                    additional_count += 1
 
                     # Merge with detailed data from get_project_details if available
                     detail = detailed_project_data.get(str(pid), {})
@@ -14751,7 +14798,7 @@ No projects found for this organization in the database.
                     ec_str = f"€{float(ec)/1_000_000:.1f}M" if ec else ""
                     total_str = f"€{float(total_cost)/1_000_000:.1f}M" if total_cost else ""
                     coord_str = f"{coordinator} ({coord_country})" if coord_country else coordinator
-                    parts = [f"### {i}. {acronym}: {title}"]
+                    parts = [f"### {additional_count}. {acronym}: {title}"]
                     if pid:
                         parts.append(f"- **Project ID:** {pid}")
                     if status:
@@ -14797,7 +14844,12 @@ No projects found for this organization in the database.
 
                     project_parts.append("\n".join(parts))
 
-                if len(project_parts) > 1:  # More than just the header
+                if additional_count > 0:  # Has non-duplicate projects to show
+                    if has_similar_section:
+                        # Update header with actual count of additional projects
+                        project_parts[0] = (
+                            f"## Additional Projects from Keyword Search\n**{additional_count} additional projects** not found by semantic search:\n"
+                        )
                     content_pieces.append("\n\n".join(project_parts))
 
             # Extract project partner results (get_project_partners)
@@ -15493,6 +15545,7 @@ Found **{total_found} organizations** with relevant track records:
         direct_output_markers_priority = [
             "## Similar Funded Projects",  # Highest priority - what user wants
             "## Similar Projects Search",
+            "## Additional Projects from Keyword Search",  # Keyword complement to semantic results
             "## Project Search Results",  # Structured project list with full metadata
             "## Collaboration Network:",  # Network exploration results
             "## Projects by ",  # Organization project results
