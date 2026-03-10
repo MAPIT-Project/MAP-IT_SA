@@ -172,7 +172,7 @@ class AtomicMessageStorage:
                 conversation_id=conversation_id,
                 message_id=message_id,
                 role="assistant",
-                content=message[:2000],  # Limit for memory
+                content=message[:8000],  # Limit for memory (generous for project tables)
             )
             result.memory_stored = True
         except Exception as e:
@@ -290,7 +290,7 @@ class AtomicMessageStorage:
                 conversation_id=conversation_id,
                 message_id=result.assistant_message_id,
                 role="assistant",
-                content=assistant_message[:2000],
+                content=assistant_message[:8000],  # Generous limit for project tables
             )
             result.memory_stored = True
         except Exception as e:

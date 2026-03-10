@@ -581,7 +581,9 @@ class ConversationManager:
                     self.memory_service.add_conversation_turn(
                         conversation_id=conversation_id,
                         role="assistant",
-                        content=assistant_response_text[:2000],  # Limit to avoid memory issues
+                        content=assistant_response_text[
+                            :8000
+                        ],  # Limit for memory (keep generous for project tables)
                         message_id=random.randint(10000, 99999),
                     )
                     logger.info(
@@ -748,7 +750,7 @@ class ConversationManager:
                     conversation_id=conversation_id,
                     user_id=user_id,
                     user_message=user_message,
-                    assistant_message=answer[:4000],  # Allow longer responses
+                    assistant_message=answer,  # Store full response (DB TEXT column is unlimited)
                 )
 
                 if not storage_result.success:
@@ -1031,7 +1033,7 @@ class ConversationManager:
                     conversation_id=conversation_id,
                     user_id=user_id,
                     user_message=user_message,
-                    assistant_message=answer[:4000],  # Allow longer responses
+                    assistant_message=answer,  # Store full response (DB TEXT column is unlimited)
                 )
 
                 if not storage_result.success:
