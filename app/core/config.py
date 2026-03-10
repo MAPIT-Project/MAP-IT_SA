@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     default_ai_provider: str = "gemini"
     openai_model: str = "gpt-4-turbo"
     gemini_model: str = "gemini-3-flash-preview"
+    gemini_pro_model: str = "gemini-3.1-pro-preview"
+    smart_model_routing: bool = True
     openrouter_model: str = "x-ai/grok-4-fast:free"
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
 

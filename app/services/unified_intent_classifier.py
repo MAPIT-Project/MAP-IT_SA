@@ -9,11 +9,11 @@ Single, intelligent AI system that classifies ALL user intents:
 5. Proposal Writing (help draft, improve, or export proposal sections)
 """
 
-from dataclasses import dataclass
 import json
 import logging
 import os
 import re
+from dataclasses import dataclass
 from typing import Any
 
 import google.generativeai as genai

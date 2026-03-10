@@ -36,7 +36,9 @@ services:
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - DEFAULT_AI_PROVIDER=gemini
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4-turbo}
-      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-flash-lite-latest}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-3-flash-preview}
+      - GEMINI_PRO_MODEL=${GEMINI_PRO_MODEL:-gemini-3.1-pro-preview}
+      - SMART_MODEL_ROUTING=${SMART_MODEL_ROUTING:-true}
       - OPENROUTER_MODEL=${OPENROUTER_MODEL:-x-ai/grok-4-fast:free}
       # Enhanced RAG Configuration
       - GOOGLE_EMBEDDING_API_KEY=${GOOGLE_EMBEDDING_API_KEY:-}

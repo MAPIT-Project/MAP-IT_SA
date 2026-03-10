@@ -14,17 +14,17 @@ funded, when, and under which calls. Helps users understand funding landscape
 and identify trends.
 """
 
-from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
 import json
 import logging
 import os
 import re
+from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 from typing import Any
 
-from dotenv import load_dotenv
 import psycopg2
+from dotenv import load_dotenv
 from psycopg2.extras import RealDictCursor
 
 # Import Gemini for AI-powered keyword expansion

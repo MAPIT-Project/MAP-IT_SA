@@ -787,6 +787,7 @@ class ConversationManager:
                     "processing_time_ms": processing_time,
                     "architecture": "simplified_v3",
                     "quality_analysis": quality_analysis,
+                    "model_used": agent_result.get("model_used", "unknown"),
                 },
             }
 
@@ -1075,6 +1076,9 @@ class ConversationManager:
                     ),
                     "processing_time_ms": processing_time,
                     "quality_analysis": quality_analysis,
+                    "model_used": (
+                        agent_result.get("model_used", "unknown") if agent_result else "unknown"
+                    ),
                     "storage_success": storage_result.success if storage_result else False,
                     "storage_error": (
                         storage_result.error

@@ -3196,26 +3196,78 @@ What is your next step? Remember: Output ONLY JSON."""
             return None
 
     def _init_llm(self):
-        """Initialize the LLM for reasoning."""
+        """Initialize LLMs for reasoning with smart model routing.
+
+        Initializes both a fast model (flash) and a powerful model (pro).
+        Smart routing selects the pro model for complex queries (comparisons,
+        analysis, multi-source) and the flash model for simple queries.
+        """
         import os
 
         self.llm_provider = os.getenv("DEFAULT_AI_PROVIDER", "gemini")
+        self.smart_model_routing = os.getenv("SMART_MODEL_ROUTING", "true").lower() == "true"
 
         if self.llm_provider == "gemini":
             try:
                 import google.generativeai as genai
 
                 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-                # Use GEMINI_MODEL from env - defaults to latest flash model
-                model_name = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
-                self.llm = genai.GenerativeModel(model_name)
-                logger.info(f"🧠 ToolAwareAgent using model: {model_name}")
+
+                # Flash model (fast, cost-effective) — used for simple queries
+                flash_model_name = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
+                self.llm_flash = genai.GenerativeModel(flash_model_name)
+                self.flash_model_name = flash_model_name
+
+                # Pro model (powerful, higher quality) — used for complex queries
+                pro_model_name = os.getenv("GEMINI_PRO_MODEL", "gemini-3.1-pro-preview")
+                self.llm_pro = genai.GenerativeModel(pro_model_name)
+                self.pro_model_name = pro_model_name
+
+                # Default active model is flash (switched per-query based on complexity)
+                self.llm = self.llm_flash
+                self._active_model_name = flash_model_name
+
+                if self.smart_model_routing:
+                    logger.info(
+                        f"🧠 Smart model routing enabled: "
+                        f"flash={flash_model_name}, pro={pro_model_name}"
+                    )
+                else:
+                    logger.info(
+                        f"🧠 ToolAwareAgent using model: {flash_model_name} (routing disabled)"
+                    )
             except Exception as e:
                 logger.warning(f"Gemini init failed: {e}")
                 self.llm = None
+                self.llm_flash = None
+                self.llm_pro = None
         else:
             self.llm = None
+            self.llm_flash = None
+            self.llm_pro = None
             logger.warning("LLM not configured for ToolAwareAgent")
+
+    def _select_model_for_query(self, complexity: str, query: str) -> None:
+        """Select the appropriate model based on query complexity.
+
+        Switches self.llm to either flash or pro model for the current query.
+        Also stores complexity so _reason_next_step can skip pre-routing for complex queries.
+        """
+        self._current_complexity = complexity
+
+        if not self.smart_model_routing or not self.llm_pro:
+            return
+
+        use_pro = complexity in ("comparison", "analysis", "multi_source")
+
+        if use_pro:
+            self.llm = self.llm_pro
+            self._active_model_name = self.pro_model_name
+            logger.info(f"🚀 Using PRO model ({self.pro_model_name}) for {complexity} query")
+        else:
+            self.llm = self.llm_flash
+            self._active_model_name = self.flash_model_name
+            logger.info(f"⚡ Using FLASH model ({self.flash_model_name}) for {complexity} query")
 
     def _init_tools(self):
         """Initialize all available tools."""
@@ -4217,8 +4269,12 @@ digital_europe, life""",
             required_sources=self._identify_required_sources(query),
         )
 
+        # Select model based on complexity (smart routing)
+        self._select_model_for_query(plan.complexity, query)
+
         logger.info(
-            f"🧠 Query complexity: {plan.complexity}, sources needed: {plan.required_sources}"
+            f"🧠 Query complexity: {plan.complexity}, sources needed: {plan.required_sources}, "
+            f"model: {getattr(self, '_active_model_name', 'unknown')}"
         )
 
         # Start speculative execution for likely-needed tools
@@ -4450,6 +4506,7 @@ digital_europe, life""",
             "confidence": plan.confidence,
             "total_time_ms": total_time,
             "quality_analysis": quality_analysis,  # Response quality metrics
+            "model_used": getattr(self, "_active_model_name", "unknown"),
         }
 
         # Add long query metadata if query was preprocessed
@@ -4544,8 +4601,12 @@ digital_europe, life""",
             required_sources=self._identify_required_sources(query),
         )
 
+        # Select model based on complexity (smart routing)
+        self._select_model_for_query(plan.complexity, query)
+
         logger.info(
-            f"🧠 [Streaming] Query complexity: {plan.complexity}, sources needed: {plan.required_sources}"
+            f"🧠 [Streaming] Query complexity: {plan.complexity}, sources needed: {plan.required_sources}, "
+            f"model: {getattr(self, '_active_model_name', 'unknown')}"
         )
 
         # Start speculative execution for likely-needed tools
@@ -4827,6 +4888,7 @@ digital_europe, life""",
             "confidence": plan.confidence,
             "total_time_ms": total_time,
             "quality_analysis": quality_analysis,  # Response quality metrics
+            "model_used": getattr(self, "_active_model_name", "unknown"),
         }
 
         # Add long query metadata if query was preprocessed
@@ -4849,25 +4911,95 @@ digital_europe, life""",
         yield {"type": "agent_complete", "result": final_result}
 
     def _assess_complexity(self, query: str) -> str:
-        """Assess the complexity of a query."""
+        """Assess query complexity for model routing and planning.
+
+        Returns:
+            "simple" — single-source, straightforward queries (flash model)
+            "comparison" — comparing 2+ things side-by-side (pro model)
+            "analysis" — explaining WHY, trends, deep reasoning (pro model)
+            "multi_source" — needs multiple data types combined (pro model)
+        """
         query_lower = query.lower()
 
-        # Comparison queries
-        if any(
-            word in query_lower
-            for word in ["compare", "versus", "vs", "difference between", "better"]
-        ):
+        # Comparison queries — need pro for structured side-by-side reasoning
+        comparison_patterns = [
+            "compare",
+            "versus",
+            "vs ",
+            "vs.",
+            "difference between",
+            "differ from",
+            "better than",
+            "how do .* compare",
+            "pros and cons",
+            "advantages .* disadvantages",
+            "which is better",
+            "which one",
+            "similarities",
+        ]
+        if any(p in query_lower for p in comparison_patterns):
             return "comparison"
 
-        # Multi-source queries
-        if any(word in query_lower for word in ["and also", "as well as", "both", "multiple"]):
+        # Analysis queries — need pro for deep reasoning and explanation
+        analysis_patterns = [
+            "why ",
+            "why?",
+            "analyze",
+            "analyse",
+            "explain the reason",
+            "how does .* work",
+            "what causes",
+            "what drives",
+            "trend",
+            "pattern",
+            "evolution of",
+            "impact of",
+            "implications",
+            "assess",
+            "evaluate",
+            "critique",
+            "success rate",
+            "success factor",
+            "what makes .* successful",
+            "lessons learned",
+            "best practice",
+        ]
+        if any(p in query_lower for p in analysis_patterns):
+            return "analysis"
+
+        # Multi-source queries — need pro to synthesize across sources
+        # Detect when query asks for multiple distinct data types
+        multi_source_signals = 0
+        if any(
+            w in query_lower for w in ["eligibility", "eligible", "who can apply", "requirements"]
+        ):
+            multi_source_signals += 1
+        if any(w in query_lower for w in ["budget", "funding", "cost", "how much"]):
+            multi_source_signals += 1
+        if any(w in query_lower for w in ["deadline", "when", "timeline", "schedule"]):
+            multi_source_signals += 1
+        if any(w in query_lower for w in ["project", "funded", "example", "similar"]):
+            multi_source_signals += 1
+        if any(w in query_lower for w in ["call", "opportunity", "topic"]):
+            multi_source_signals += 1
+        if any(
+            w in query_lower for w in ["partner", "consortium", "organization", "collaboration"]
+        ):
+            multi_source_signals += 1
+        if any(w in query_lower for w in ["statistic", "rate", "percentage", "average"]):
+            multi_source_signals += 1
+
+        if multi_source_signals >= 3:
             return "multi_source"
 
-        # Analysis queries
-        if any(
-            word in query_lower for word in ["why", "analyze", "explain the reason", "how does"]
-        ):
-            return "analysis"
+        # Explicit multi-part connectors
+        if any(p in query_lower for p in ["and also", "as well as", "in addition", "furthermore"]):
+            if multi_source_signals >= 2:
+                return "multi_source"
+
+        # Multi-question detection (contains multiple question marks)
+        if query.count("?") >= 2:
+            return "multi_source"
 
         return "simple"
 
@@ -4929,13 +5061,20 @@ digital_europe, life""",
         # PRE-ROUTING: For first step, detect queries that must use specific tools
         # This bypasses LLM for obvious cases where it might incorrectly choose search_documents
         # IMPORTANT: This check runs BEFORE cache to override bad cached plans
-        if not previous_steps:
+        # SKIP pre-routing for complex queries (comparison/analysis/multi_source) — let the
+        # pro model handle these with full tool-based reasoning for higher quality answers
+        complexity = getattr(self, "_current_complexity", "simple")
+        if not previous_steps and complexity not in ("comparison", "analysis", "multi_source"):
             pre_routed = self._detect_query_type_for_tool_selection(query, context)
             if pre_routed:
                 logger.info(
                     f"🎯 Pre-routed query to {pre_routed.get('tool_calls', [{}])[0].get('tool', 'unknown')}"
                 )
                 return pre_routed
+        elif not previous_steps and complexity in ("comparison", "analysis", "multi_source"):
+            logger.info(
+                f"🧠 Skipping pre-routing for {complexity} query — using full LLM reasoning"
+            )
 
         # Check cache for first step only (no previous steps or results)
         if not previous_steps and not tool_results and self.plan_cache:
