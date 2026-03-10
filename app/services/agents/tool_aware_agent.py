@@ -2243,16 +2243,22 @@ Examples for Consortium Building:
 
 **Organization & Network Exploration (CRITICAL - USE SPECIALIZED TOOLS!):**
 When user asks about SPECIFIC ORGANIZATIONS or their COLLABORATION NETWORKS:
-- "Show projects by [Organization]" / "Fraunhofer projects" / "projects coordinated by X" → **USE find_organization_projects** (NOT search_documents!)
+
+**IMPORTANT — Counting vs Listing:**
+- "How many projects does X have?" / "count" / "number of" / "coordinator role" / "stats for X" → **USE get_organization_stats ONLY** (fast aggregate counts — do NOT also call find_organization_projects)
+  * Example: get_organization_stats(organization_name='TECHNISCHE UNIVERSITAET MUENCHEN')
+- "Show/list projects by X" / "Fraunhofer projects" / "what projects has X done?" → **USE find_organization_projects** (lists actual project details)
   * Parameters: organization_name (required!), role (optional: 'coordinator' or 'participant')
   * Example: find_organization_projects(organization_name='Fraunhofer', role='coordinator')
+
 - "Who does [Organization] partner with?" / "collaboration network" / "partners of X" → **USE get_collaboration_network** (NOT search_documents!)
   * Parameters: organization_name (required!)
   * Example: get_collaboration_network(organization_name='Fraunhofer')
 - "Most connected organizations" / "who are the key players" (after partner search) → **USE get_collaboration_network** for top organizations from previous results
 - "Who do they typically partner with?" (follow-up about specific org) → **USE get_collaboration_network** with organization from context
 
-Examples for Network Exploration:
+Examples for Organization Queries:
+- User: "How many projects does TUM have?" → get_organization_stats(organization_name='TUM') — JUST stats, no listing
 - User: "Show projects coordinated by Fraunhofer" → find_organization_projects(organization_name='Fraunhofer', role='coordinator')
 - User: "Who do they typically partner with?" → get_collaboration_network(organization_name='Fraunhofer') (extract org from context)
 - User: "What projects has TU Delft participated in?" → find_organization_projects(organization_name='TU Delft')
@@ -3703,7 +3709,7 @@ This is the PRIMARY tool for finding projects by SPECIFIC keyword matching. For 
         self.register_tool(
             Tool(
                 name="find_organization_projects",
-                description="Find all projects an organization has participated in. Also returns the TRUE TOTAL project count and coordinator count for the organization (not limited by display limit). USE THIS for counting how many projects an organization has, or listing their projects.",
+                description="Find and LIST all projects an organization has participated in. Shows project details (title, budget, status, role). USE THIS when the user wants to SEE/LIST the actual projects. For counting or statistics (how many projects, coordinator count, total funding), use get_organization_stats instead — it is faster and more accurate.",
                 category=ToolCategory.PROJECTS,
                 parameters={
                     "organization_name": "Name (or partial name) of the organization",
@@ -5656,12 +5662,10 @@ digital_europe, life""",
             return topic_refinement_result
         logger.debug("🔍 No topic refinement detected")
 
-        # Check for SPECIFIC ORGANIZATION queries (must come before partner discovery!)
-        # These are queries about a NAMED organization's funding history/projects/track record
-        # e.g., "Tell me about TUM's EU funding history", "What has Fraunhofer done in Horizon Europe?"
-        org_profile_result = self._detect_initial_organization_profile_query(query)
-        if org_profile_result:
-            return org_profile_result
+        # Organization queries are handled by the LLM with tool descriptions:
+        # - get_organization_stats: for counts, stats, funding totals
+        # - find_organization_projects: for listing actual projects
+        # The LLM picks the right tool based on the query intent.
 
         # Check for SEMANTIC SIMILARITY PROJECT queries (must come before general project search!)
         # These are queries asking for projects "similar to" a concept, description, or idea
@@ -5731,12 +5735,7 @@ digital_europe, life""",
             return refinement_result
 
         # Check for organization DEEP-DIVE queries BEFORE partner comparison
-        # This ensures "## Projects by <org>" context triggers org tools, not partner comparison
-        # e.g., "What topics do they focus on?", "Show their projects", "Who are their partners?"
-        # e.g., "What's their success rate as coordinator?" (about a specific org in context)
-        org_deepdive_result = self._detect_organization_deepdive_query(query, context)
-        if org_deepdive_result:
-            return org_deepdive_result
+        # Organization deep-dive queries (follow-ups about an org) are handled by the LLM.
 
         # Check for cluster/programme COMPARISON queries BEFORE partner comparison
         # e.g., "How does Cluster 5 compare to Cluster 1?", "Compare EIC and ERC"
@@ -5889,6 +5888,20 @@ digital_europe, life""",
             # "esa " removed - handled by regex with word boundary
         }
 
+        # Patterns indicating stats/count queries → route to get_organization_stats
+        org_stats_patterns = [
+            "how many projects",
+            "how many of them",
+            "number of projects",
+            "count of projects",
+            "coordinator role",
+            "coordinator count",
+            "total funding",
+            "stats for",
+            "statistics for",
+        ]
+        is_stats_query = any(pattern in query_lower for pattern in org_stats_patterns)
+
         # Patterns indicating asking ABOUT an organization (not searching for partners)
         org_profile_patterns = [
             "'s eu funding",
@@ -5904,7 +5917,6 @@ digital_europe, life""",
             "project history",
             "eu funding track",
             "what projects has",
-            "how many projects has",
             "projects by",
             "projects from",
         ]
@@ -5941,6 +5953,23 @@ digital_europe, life""",
                 if org_pattern in query_lower:
                     found_org = org_name
                     break
+
+        # Stats/count queries → route to get_organization_stats (fast, aggregate counts)
+        if found_org and is_stats_query:
+            logger.info(f"📊 Detected organization STATS query for: {found_org}")
+            return {
+                "thought": f"User is asking for statistics/counts about {found_org}. "
+                f"Using get_organization_stats for aggregate data.",
+                "action": "call_tools",
+                "tool_calls": [
+                    {
+                        "tool": "get_organization_stats",
+                        "parameters": {"organization_name": found_org},
+                        "reasoning": f"Getting aggregate statistics (project count, coordinator count, funding) for {found_org}",
+                    }
+                ],
+                "needs_more_info": False,
+            }
 
         # If we found a known org AND a profile-asking pattern, use find_organization_projects
         if found_org and has_profile_pattern:
@@ -14213,8 +14242,10 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
             elif "projects" in r and isinstance(r.get("projects"), list):
                 keyword_results.extend(r["projects"])
 
-        # Only merge if at least one type has results
-        if not similar_results and not keyword_results:
+        # Only merge when semantic results exist — keyword-only results should be
+        # left for the LLM to synthesize (e.g., org stats queries return projects
+        # but the user wants counts, not a project table).
+        if not similar_results:
             return None
 
         # Build unified list: normalize to common format, deduplicate by acronym
@@ -14510,6 +14541,16 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
                     pid = proj.get("id") or proj.get("project_id")
                     if pid:
                         search_project_ids.add(str(pid))
+
+        # Pre-scan: if get_organization_stats results exist, skip verbose org project listings
+        # (user asked for counts/stats, the listing is redundant)
+        has_org_stats = any(
+            isinstance(r, dict)
+            and "project_count" in r
+            and "coordinator_count" in r
+            and "name" in r
+            for r in tool_results.values()
+        )
 
         for name, result in tool_results.items():
             # Skip tool results already consumed by the merge pre-processing
@@ -15177,7 +15218,13 @@ No collaboration partners found for this organization in the database.
                 content_pieces.append(network_text)
 
             # Extract organization projects results (find_organization_projects)
-            elif "organization" in result and "projects" in result and "count" in result:
+            # Skip verbose listing when org stats are already present (user wants counts)
+            elif (
+                "organization" in result
+                and "projects" in result
+                and "count" in result
+                and not has_org_stats
+            ):
                 org_name = result.get("organization", "Unknown")
                 projects = result.get("projects", [])
                 # Use total_project_count (true total) over count (display-limited)
@@ -15414,26 +15461,51 @@ No projects found for this organization in the database.
             # Extract organization statistics results (get_organization_stats)
             elif "project_count" in result and "coordinator_count" in result and "name" in result:
                 org_name = result.get("name", "Unknown Organization")
+                short_name = result.get("short_name", "")
                 country = result.get("country", "")
                 proj_count = result.get("project_count", 0)
                 coord_count = result.get("coordinator_count", 0)
+                participant_count = proj_count - coord_count
                 total_funding = result.get("total_funding", 0)
                 entity_type = result.get("entity_type_name") or result.get("entity_type", "")
                 active_clusters = result.get("active_clusters", [])
 
-                org_text = f"""## Organization Statistics: {org_name}
-- **Country:** {country}
-- **Total Projects:** {proj_count:,}
-- **As Coordinator:** {coord_count:,}
-- **Total EC Funding:** €{total_funding:,.0f}"""
-                if entity_type:
-                    org_text += f"\n- **Organization Type:** {entity_type}"
-                if active_clusters:
-                    org_text += (
-                        f"\n- **Active Clusters:** {', '.join(str(c) for c in active_clusters[:5])}"
-                    )
+                # Build header
+                name_display = f"{org_name} ({short_name})" if short_name else org_name
+                org_parts = [f"## Organization Statistics: {name_display}\n"]
 
-                content_pieces.append(org_text)
+                # Key metrics table
+                org_parts.append("| Metric | Value |")
+                org_parts.append("|---|---|")
+                org_parts.append(f"| **Total Projects** | {proj_count:,} |")
+                org_parts.append(
+                    f"| **As Coordinator** | {coord_count:,} ({coord_count/max(proj_count,1)*100:.0f}%) |"
+                )
+                org_parts.append(
+                    f"| **As Participant** | {participant_count:,} ({participant_count/max(proj_count,1)*100:.0f}%) |"
+                )
+                org_parts.append(f"| **Total EC Funding** | €{total_funding/1_000_000:,.1f}M |")
+                org_parts.append(f"| **Country** | {country} |")
+                if entity_type:
+                    org_parts.append(f"| **Organization Type** | {entity_type} |")
+                org_parts.append("")
+
+                # Active clusters with readable names
+                if active_clusters:
+                    cluster_names = {
+                        "CLUSTER-1": "Health",
+                        "CLUSTER-2": "Culture, Creativity & Inclusive Society",
+                        "CLUSTER-3": "Civil Security for Society",
+                        "CLUSTER-4": "Digital, Industry & Space",
+                        "CLUSTER-5": "Climate, Energy & Mobility",
+                        "CLUSTER-6": "Food, Bioeconomy & Natural Resources",
+                    }
+                    org_parts.append("**Active Research Areas:**")
+                    for c in active_clusters[:6]:
+                        label = cluster_names.get(c, c)
+                        org_parts.append(f"- {c}: {label}")
+
+                content_pieces.append("\n".join(org_parts))
 
             # Extract country statistics results
             elif "country_code" in result and "eligibility" in result:
@@ -16086,6 +16158,7 @@ Found **{total_found} organizations** with relevant track records:
             "## Collaboration Network:",  # Network exploration results
             "## Projects by ",  # Organization project results
             "## Projects for ",  # Organization project results (no results case)
+            "## Organization Statistics:",  # Organization aggregate stats
             "## Project Timeline Generated",
             "## Funding History Analysis:",
             "## Geographic Diversification Analysis:",  # Country group analysis
@@ -17517,7 +17590,7 @@ Found **{total_found} organizations** with relevant track records:
                     graph.find_projects_by_organization,
                     organization_name=org_name,
                     role=role,
-                    limit=50,
+                    limit=100,
                 ),
             )
 
