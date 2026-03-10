@@ -13957,7 +13957,7 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
     def _is_show_more_request(self, query: str) -> bool:
         """Detect if user is asking to see more projects from a previous search."""
         patterns = [
-            "show more project",
+            "show more",
             "more projects",
             "next page",
             "remaining project",
@@ -13965,11 +13965,13 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
             "show more results",
             "continue showing",
             "next 20",
-            "see more project",
+            "see more",
             "show additional",
             "see the remaining",
             "show next",
             "display more",
+            "keep going",
+            "show the other",
         ]
         lower = query.lower().strip()
         return any(p in lower for p in patterns)
@@ -13995,14 +13997,23 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
         """Handle 'show more projects' by serving next page from cached results."""
         if not self._is_show_more_request(query):
             return None
+
+        logger.info(
+            f"🔍 'Show more' detected for query: '{query}', "
+            f"conversation_id={self._conversation_id}, redis={self._redis_client is not None}"
+        )
+
         if not self._conversation_id or not self._redis_client:
+            logger.warning("Cannot serve cached page: no conversation_id or redis_client")
             return None
 
         try:
             key = f"merged_projects:{self._conversation_id}"
             cached = self._redis_client.get(key)
             if not cached:
-                logger.info("No cached merged projects found for 'show more' request")
+                logger.info(
+                    f"No cached merged projects found at key '{key}' for 'show more' request"
+                )
                 return None
 
             merged_result = json.loads(cached)
@@ -14084,8 +14095,8 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
             elif "projects" in r and isinstance(r.get("projects"), list):
                 keyword_results.extend(r["projects"])
 
-        # Only merge if both types exist
-        if not similar_results or not keyword_results:
+        # Only merge if at least one type has results
+        if not similar_results and not keyword_results:
             return None
 
         # Build unified list: normalize to common format, deduplicate by acronym
