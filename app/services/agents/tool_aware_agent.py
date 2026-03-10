@@ -13963,7 +13963,7 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
             acronym = (p.get("acronym") or "").strip().upper()
             if not acronym:
                 continue
-            pid = str(p.get("id") or p.get("project_id") or "")
+            pid = str(p.get("cordis_id") or p.get("id") or p.get("project_id") or "")
             consortium = p.get("consortium", {})
             merged[acronym] = {
                 "acronym": p.get("acronym", "N/A"),
@@ -13973,7 +13973,7 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
                 "eu_contribution": p.get("eu_contribution", p.get("total_cost", 0)),
                 "total_cost": p.get("total_cost", 0),
                 "action_type": p.get("action_type", "N/A"),
-                "objective": p.get("objective", ""),
+                "objective": p.get("objective") or p.get("objective_summary", ""),
                 "start_date": p.get("start_date", ""),
                 "end_date": p.get("end_date", ""),
                 "coordinator": consortium.get("coordinator", {}).get("name", ""),
@@ -13985,7 +13985,7 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
                 "topics": p.get("topics", ""),
                 "status": p.get("status", ""),
                 "funding_scheme": p.get("action_type", ""),
-                "cordis_url": "",
+                "cordis_url": p.get("cordis_url", ""),
                 "source": "semantic",
             }
 
@@ -13994,7 +13994,7 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
             acronym = (p.get("acronym") or "").strip().upper()
             if not acronym:
                 continue
-            pid = str(p.get("id") or p.get("project_id") or "")
+            pid = str(p.get("cordis_id") or p.get("id") or p.get("project_id") or "")
             consortium = p.get("consortium", {})
             coord_raw = p.get("coordinator_name") or p.get("coordinator", "")
             if isinstance(coord_raw, dict):
@@ -14031,7 +14031,8 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
                 obj = p.get("objective") or p.get("description", "")
                 if obj and len(obj) > len(existing.get("objective", "")):
                     existing["objective"] = obj
-                existing["cordis_url"] = p.get("cordis_url", "")
+                if not existing.get("cordis_url"):
+                    existing["cordis_url"] = p.get("cordis_url", "")
             else:
                 # New project from keyword search only — lower default score
                 merged[acronym] = {
@@ -14142,7 +14143,10 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
             coord_str = f"{coord_short} ({coord_country})" if coord_country else coord_short
             duration = f"{start_date[:7]}–{end_date[:7]}" if start_date and end_date else "—"
             partners_str = str(partner_count) if partner_count else "—"
-            cordis_link = f"[Link](https://cordis.europa.eu/project/id/{pid})" if pid else "—"
+            cordis_url = p.get("cordis_url") or (
+                f"https://cordis.europa.eu/project/id/{pid}" if pid else ""
+            )
+            cordis_link = f"[Link]({cordis_url})" if cordis_url else "—"
 
             parts.append(
                 f"| {i} | **{acronym}** ({score_pct}) | {action_type} | {budget_str} | "
