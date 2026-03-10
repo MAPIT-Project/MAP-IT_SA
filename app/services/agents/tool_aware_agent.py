@@ -6002,12 +6002,12 @@ digital_europe, life""",
                     "tool_calls": [
                         {
                             "tool": "get_similar_funded_projects",
-                            "parameters": {"description": description, "limit": 15},
-                            "reasoning": "Semantic search — fetch 15 for comprehensive coverage after merge",
+                            "parameters": {"description": description, "limit": 25},
+                            "reasoning": "Semantic search — fetch 25 for comprehensive coverage after merge",
                         },
                         {
                             "tool": "search_projects",
-                            "parameters": {"keywords": key_terms, "limit": 15},
+                            "parameters": {"keywords": key_terms, "limit": 25},
                             "reasoning": "Keyword search complement — catches projects semantic search may miss",
                         },
                     ],
@@ -6056,7 +6056,7 @@ digital_europe, life""",
                     "tool_calls": [
                         {
                             "tool": "get_similar_funded_projects",
-                            "parameters": {"description": description, "limit": 10},
+                            "parameters": {"description": description, "limit": 25},
                             "reasoning": "Finding projects using semantic similarity (AI embeddings) to match concepts, not just keywords",
                         }
                     ],
@@ -13926,7 +13926,7 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
         self,
         tool_results: dict[str, Any],
         query: str,
-        display_limit: int = 10,
+        display_limit: int = 20,
     ) -> dict[str, Any] | None:
         """Merge similar_projects and search_projects into one ranked list.
 
