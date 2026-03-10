@@ -14343,11 +14343,13 @@ Per Partner Distribution:
                     content_pieces.append("\n".join(similar_parts))
 
             # Extract collaboration network results (get_collaboration_network)
-            # Note: skip if result has "project_acronym" (that's get_project_partners, handled below)
+            # Note: skip if result has "project_acronym" (that's get_project_partners)
+            # Also skip if result has "error" (failed get_project_partners returns partners: [])
             elif (
                 "partners" in result
                 and isinstance(result.get("partners"), list)
                 and "project_acronym" not in result
+                and "error" not in result
             ):
                 org_name = result.get("organization", "Unknown Organization")
                 org_country = result.get("country", "")

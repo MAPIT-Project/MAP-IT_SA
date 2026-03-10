@@ -20,103 +20,11 @@ import logging
 from typing import Any
 
 from app.core.neo4j_config import neo4j_db
+from app.services.data_intelligence.org_name_utils import (
+    expand_org_search_terms as _expand_org_search_terms,
+)
 
 logger = logging.getLogger(__name__)
-
-# Common city name transliterations used in CORDIS organization names
-_CITY_TRANSLITERATIONS = {
-    "munich": "muenchen",
-    "cologne": "koeln",
-    "vienna": "wien",
-    "zurich": "zuerich",
-    "nuremberg": "nuernberg",
-    "copenhagen": "kobenhavn",
-    "prague": "praha",
-    "warsaw": "warszawa",
-    "lisbon": "lisboa",
-    "rome": "roma",
-    "milan": "milano",
-    "florence": "firenze",
-    "naples": "napoli",
-    "turin": "torino",
-    "geneva": "geneve",
-    "brussels": "bruxelles",
-    "the hague": "den haag",
-    "gothenburg": "goteborg",
-    "athens": "athinai",
-}
-
-# Common university abbreviation patterns
-_UNI_ABBREVIATIONS = {
-    "tu": "technische universitaet",
-    "tum": "technische universitaet muenchen",
-    "eth": "eidgenoessische technische hochschule",
-    "kit": "karlsruher institut fuer technologie",
-    "rwth": "rheinisch-westfaelische technische hochschule",
-    "epfl": "ecole polytechnique federale de lausanne",
-    "ucl": "university college london",
-    "mit": "massachusetts institute of technology",
-    "kth": "kungliga tekniska hoegskolan",
-    "dtu": "danmarks tekniske universitet",
-    "vtt": "teknologian tutkimuskeskus vtt",
-    "cnrs": "centre national de la recherche scientifique",
-    "csic": "agencia estatal consejo superior de investigaciones cientificas",
-    "fraunhofer": "fraunhofer",
-    "max planck": "max-planck",
-    "lmu": "ludwig-maximilians-universitaet muenchen",
-}
-
-
-def _expand_org_search_terms(name: str) -> list[str]:
-    """Generate alternative search terms for an organization name.
-
-    Handles common European city transliterations and university abbreviations.
-    Returns a list of terms to try, most specific first.
-    """
-    terms = [name.lower()]
-    lower = name.lower().strip()
-
-    # Check abbreviation expansions
-    if lower in _UNI_ABBREVIATIONS:
-        terms.append(_UNI_ABBREVIATIONS[lower])
-
-    # Check if name starts with a known abbreviation (e.g., "TU Munich")
-    parts = lower.split()
-    if len(parts) >= 2 and parts[0] in _UNI_ABBREVIATIONS:
-        expanded_prefix = _UNI_ABBREVIATIONS[parts[0]]
-        # Replace city names with transliterations
-        remaining = " ".join(parts[1:])
-        for eng, local in _CITY_TRANSLITERATIONS.items():
-            if eng in remaining:
-                remaining = remaining.replace(eng, local)
-        terms.append(f"{expanded_prefix} {remaining}")
-        # Also try just the expanded prefix
-        terms.append(expanded_prefix)
-
-    # Apply city transliterations to the full name
-    translated = lower
-    for eng, local in _CITY_TRANSLITERATIONS.items():
-        if eng in translated:
-            translated = translated.replace(eng, local)
-    if translated != lower:
-        terms.append(translated)
-
-    # Try individual meaningful words (3+ chars) as fallback
-    meaningful_words = [w for w in parts if len(w) >= 4]
-    for word in meaningful_words:
-        if word in _CITY_TRANSLITERATIONS:
-            terms.append(_CITY_TRANSLITERATIONS[word])
-        elif word not in terms:
-            terms.append(word)
-
-    # Deduplicate while preserving order
-    seen = set()
-    unique = []
-    for t in terms:
-        if t not in seen:
-            seen.add(t)
-            unique.append(t)
-    return unique
 
 
 class GraphSearchService:

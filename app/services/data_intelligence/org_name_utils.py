@@ -47,23 +47,82 @@ _UNI_ABBREVIATIONS = {
 }
 
 
+def _normalize_umlauts(text: str) -> str:
+    """Normalize German/Nordic umlauts to ASCII equivalents.
+
+    CORDIS stores organization names with ASCII transliterations:
+    e.g. "TECHNISCHE UNIVERSITAET MUENCHEN" not "Technische Universität München"
+    """
+    replacements = {
+        "ü": "ue",
+        "ö": "oe",
+        "ä": "ae",
+        "ß": "ss",
+        "å": "aa",
+        "ø": "oe",
+        "é": "e",
+        "è": "e",
+        "ê": "e",
+        "á": "a",
+        "à": "a",
+        "í": "i",
+        "ó": "o",
+        "ú": "u",
+        "ñ": "n",
+        "ç": "c",
+    }
+    for char, replacement in replacements.items():
+        text = text.replace(char, replacement)
+    return text
+
+
+def _extract_parenthetical_abbreviation(name: str) -> str | None:
+    """Extract abbreviation from parentheses, e.g. 'Technische Universität München (TUM)' -> 'tum'."""
+    import re
+
+    match = re.search(r"\(([A-Za-z]{2,10})\)", name)
+    if match:
+        return match.group(1).lower()
+    return None
+
+
 def expand_org_search_terms(name: str) -> list[str]:
     """Generate alternative search terms for an organization name.
 
     Handles:
+    - German/Nordic umlaut normalization (ü->ue, ö->oe, ä->ae, etc.)
+    - Parenthetical abbreviations: "Name (TUM)" -> looks up TUM
     - University abbreviations (TU Munich -> technische universitaet muenchen)
     - City name transliterations (Munich -> muenchen)
     - Individual meaningful words from the name
     """
-    terms = [name.lower()]
     lower = name.lower().strip()
+    terms = []
 
-    # Check if the whole name is a known abbreviation
-    if lower in _UNI_ABBREVIATIONS:
-        terms.append(_UNI_ABBREVIATIONS[lower])
+    # Extract abbreviation from parentheses (e.g., "TUM" from "... (TUM)")
+    paren_abbr = _extract_parenthetical_abbreviation(name)
+    if paren_abbr and paren_abbr in _UNI_ABBREVIATIONS:
+        # Known abbreviation — put expanded form first (best match)
+        terms.append(_UNI_ABBREVIATIONS[paren_abbr])
+
+    # Normalize umlauts: ü->ue, ö->oe, ä->ae, etc.
+    normalized = _normalize_umlauts(lower)
+    # Strip any remaining parenthetical for matching
+    import re
+
+    normalized = re.sub(r"\s*\([^)]*\)", "", normalized).strip()
+
+    terms.append(normalized)
+    if normalized != lower:
+        terms.append(lower)
+
+    # Check if the whole name (after normalization) is a known abbreviation
+    clean_lower = re.sub(r"\s*\([^)]*\)", "", lower).strip()
+    if clean_lower in _UNI_ABBREVIATIONS:
+        terms.append(_UNI_ABBREVIATIONS[clean_lower])
 
     # Check if first word is an abbreviation (e.g., "TU Munich")
-    parts = lower.split()
+    parts = normalized.split()
     if len(parts) >= 2 and parts[0] in _UNI_ABBREVIATIONS:
         expanded_prefix = _UNI_ABBREVIATIONS[parts[0]]
         remaining = " ".join(parts[1:])
@@ -75,11 +134,11 @@ def expand_org_search_terms(name: str) -> list[str]:
         terms.append(expanded_prefix)
 
     # Transliterate any city names in the full input
-    translated = lower
+    translated = normalized
     for eng, local in _CITY_TRANSLITERATIONS.items():
         if eng in translated:
             translated = translated.replace(eng, local)
-    if translated != lower:
+    if translated != normalized:
         terms.append(translated)
 
     # Add individual meaningful words
