@@ -700,6 +700,7 @@ class ConversationManager:
                 and any(
                     indicator in agent_answer
                     for indicator in [
+                        "## Relevant Funded Projects",
                         "## Similar Funded Projects",
                         "## Project Search Results",
                         "## Projects by ",
@@ -973,6 +974,7 @@ class ConversationManager:
                     and any(
                         indicator in agent_answer
                         for indicator in [
+                            "## Relevant Funded Projects",
                             "## Similar Funded Projects",
                             "## Project Search Results",
                             "## Projects by ",

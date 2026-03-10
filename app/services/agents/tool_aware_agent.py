@@ -5976,7 +5976,6 @@ digital_europe, life""",
                     f"🧬 Detected long descriptive project query ({word_count} words): '{description}'"
                 )
                 # Extract key terms for keyword search (shorter phrases work better)
-                # Take first few meaningful words for a keyword complement
                 key_terms = " ".join(
                     w
                     for w in description.split()
@@ -5997,20 +5996,19 @@ digital_europe, life""",
                 )[:80]
                 return {
                     "thought": f"User is asking for projects about '{description}'. "
-                    "Running BOTH semantic search (finds conceptually matching projects) "
-                    "AND keyword search (finds projects with exact term matches) to get "
-                    "comprehensive results.",
+                    "Running BOTH semantic search (conceptual matching) AND keyword search "
+                    "(exact term matching) with higher limits, then merging into one ranked list.",
                     "action": "call_tools_and_format",
                     "tool_calls": [
                         {
                             "tool": "get_similar_funded_projects",
-                            "parameters": {"description": description, "limit": 10},
-                            "reasoning": "Semantic search finds conceptually related projects by meaning",
+                            "parameters": {"description": description, "limit": 15},
+                            "reasoning": "Semantic search — fetch 15 for comprehensive coverage after merge",
                         },
                         {
                             "tool": "search_projects",
-                            "parameters": {"keywords": key_terms, "limit": 10},
-                            "reasoning": "Keyword search catches projects that match specific terms but may rank differently in semantic search",
+                            "parameters": {"keywords": key_terms, "limit": 15},
+                            "reasoning": "Keyword search complement — catches projects semantic search may miss",
                         },
                     ],
                 }
@@ -13924,10 +13922,262 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
             "needs_more_info": False,
         }
 
+    def _merge_project_search_results(
+        self,
+        tool_results: dict[str, Any],
+        query: str,
+        display_limit: int = 10,
+    ) -> dict[str, Any] | None:
+        """Merge similar_projects and search_projects into one ranked list.
+
+        When both semantic and keyword results exist, combines them into a single
+        deduplicated, ranked list. Semantic matches keep their similarity scores;
+        keyword-only matches get a lower default score.
+
+        Returns merged result dict if both exist, None otherwise.
+        """
+        similar_results = []
+        keyword_results = []
+        query_desc = ""
+        filters = {}
+
+        for _name, r in tool_results.items():
+            if not isinstance(r, dict):
+                continue
+            if "similar_projects" in r and isinstance(r.get("similar_projects"), list):
+                similar_results.extend(r["similar_projects"])
+                query_desc = r.get("query_description", query_desc)
+                filters = r.get("filters_applied", filters)
+            elif "projects" in r and isinstance(r.get("projects"), list):
+                keyword_results.extend(r["projects"])
+
+        # Only merge if both types exist
+        if not similar_results or not keyword_results:
+            return None
+
+        # Build unified list: normalize to common format, deduplicate by acronym
+        merged: dict[str, dict[str, Any]] = {}
+
+        # Add semantic results first (they have real similarity scores)
+        for p in similar_results:
+            acronym = (p.get("acronym") or "").strip().upper()
+            if not acronym:
+                continue
+            pid = str(p.get("id") or p.get("project_id") or "")
+            consortium = p.get("consortium", {})
+            merged[acronym] = {
+                "acronym": p.get("acronym", "N/A"),
+                "title": p.get("title", "N/A"),
+                "id": pid,
+                "similarity_score": p.get("similarity_score", 0),
+                "eu_contribution": p.get("eu_contribution", p.get("total_cost", 0)),
+                "total_cost": p.get("total_cost", 0),
+                "action_type": p.get("action_type", "N/A"),
+                "objective": p.get("objective", ""),
+                "start_date": p.get("start_date", ""),
+                "end_date": p.get("end_date", ""),
+                "coordinator": consortium.get("coordinator", {}).get("name", ""),
+                "coordinator_country": consortium.get("coordinator", {}).get("country", ""),
+                "partner_count": consortium.get("size", p.get("partner_count", 0)),
+                "country_count": 0,
+                "countries": [],
+                "cluster": p.get("cluster", ""),
+                "topics": p.get("topics", ""),
+                "status": p.get("status", ""),
+                "funding_scheme": p.get("action_type", ""),
+                "cordis_url": "",
+                "source": "semantic",
+            }
+
+        # Add keyword results — enrich existing or add new (with lower score)
+        for p in keyword_results:
+            acronym = (p.get("acronym") or "").strip().upper()
+            if not acronym:
+                continue
+            pid = str(p.get("id") or p.get("project_id") or "")
+            consortium = p.get("consortium", {})
+            coord_raw = p.get("coordinator_name") or p.get("coordinator", "")
+            if isinstance(coord_raw, dict):
+                coord_name = coord_raw.get("name", "")
+                coord_country = coord_raw.get("country", "")
+            else:
+                coord_name = str(coord_raw) if coord_raw else ""
+                coord_country = ""
+
+            if acronym in merged:
+                # Enrich existing semantic match with keyword data
+                existing = merged[acronym]
+                existing["source"] = "both"
+                if not existing.get("id") and pid:
+                    existing["id"] = pid
+                if not existing.get("total_cost"):
+                    existing["total_cost"] = p.get("total_cost", 0)
+                if not existing.get("eu_contribution"):
+                    existing["eu_contribution"] = (
+                        p.get("ec_contribution") or p.get("ecMaxContribution") or 0
+                    )
+                if not existing.get("coordinator") and coord_name:
+                    existing["coordinator"] = coord_name
+                    existing["coordinator_country"] = coord_country
+                if not existing.get("country_count") and consortium:
+                    existing["country_count"] = consortium.get("country_count", 0)
+                    existing["countries"] = consortium.get("countries", [])
+                if not existing.get("partner_count") and consortium:
+                    existing["partner_count"] = consortium.get("participant_count", 0)
+                if not existing.get("status"):
+                    existing["status"] = p.get("status", "")
+                if not existing.get("topics"):
+                    existing["topics"] = p.get("topics", "")
+                obj = p.get("objective") or p.get("description", "")
+                if obj and len(obj) > len(existing.get("objective", "")):
+                    existing["objective"] = obj
+                existing["cordis_url"] = p.get("cordis_url", "")
+            else:
+                # New project from keyword search only — lower default score
+                merged[acronym] = {
+                    "acronym": p.get("acronym", ""),
+                    "title": p.get("title", ""),
+                    "id": pid,
+                    "similarity_score": 0.50,
+                    "eu_contribution": p.get("ec_contribution") or p.get("ecMaxContribution") or 0,
+                    "total_cost": p.get("total_cost", 0),
+                    "action_type": p.get("funding_scheme", "N/A"),
+                    "objective": p.get("objective") or p.get("description", ""),
+                    "start_date": p.get("start_date", ""),
+                    "end_date": p.get("end_date", ""),
+                    "coordinator": coord_name,
+                    "coordinator_country": coord_country,
+                    "partner_count": consortium.get("participant_count", 0),
+                    "country_count": consortium.get("country_count", 0),
+                    "countries": consortium.get("countries", []),
+                    "cluster": "",
+                    "topics": p.get("topics", ""),
+                    "status": p.get("status", ""),
+                    "funding_scheme": p.get("funding_scheme", ""),
+                    "cordis_url": p.get("cordis_url", ""),
+                    "source": "keyword",
+                }
+
+        # Sort by similarity score descending
+        all_projects = sorted(
+            merged.values(), key=lambda x: x.get("similarity_score", 0), reverse=True
+        )
+
+        return {
+            "merged_projects": all_projects,
+            "total_found": len(all_projects),
+            "display_limit": display_limit,
+            "query_description": query_desc or query,
+            "filters": filters,
+        }
+
+    def _render_merged_project_list(self, merged: dict[str, Any]) -> str:
+        """Render the merged project list as a single unified section."""
+        projects = merged["merged_projects"]
+        total = merged["total_found"]
+        display_limit = merged["display_limit"]
+        query_desc = merged["query_description"]
+        filters = merged.get("filters", {})
+
+        parts = ["## Relevant Funded Projects\n"]
+        parts.append(f"**Query:** {query_desc}")
+        if filters:
+            filter_str = ", ".join([f"{k}: {v}" for k, v in filters.items() if v])
+            if filter_str:
+                parts.append(f"**Filters:** {filter_str}")
+        parts.append(
+            f"**Found:** {total} matching projects (showing top {min(display_limit, total)})\n"
+        )
+
+        for i, p in enumerate(projects[:display_limit], 1):
+            acronym = p.get("acronym", "N/A")
+            title = p.get("title", "N/A")
+            score = p.get("similarity_score", 0)
+            pid = p.get("id", "")
+            budget = p.get("eu_contribution", 0)
+            action_type = p.get("action_type") or p.get("funding_scheme", "N/A")
+            objective = p.get("objective", "")
+            start_date = p.get("start_date", "")
+            end_date = p.get("end_date", "")
+            coordinator = p.get("coordinator", "")
+            coord_country = p.get("coordinator_country", "")
+            partner_count = p.get("partner_count", 0)
+            country_count = p.get("country_count", 0)
+            countries = p.get("countries", [])
+            cluster = p.get("cluster", "")
+            topics = p.get("topics", "")
+            status = p.get("status", "")
+            cordis_url = p.get("cordis_url") or (
+                f"https://cordis.europa.eu/project/id/{pid}" if pid else ""
+            )
+            source = p.get("source", "")
+
+            budget_str = f"€{budget / 1_000_000:.1f}M" if budget and budget > 0 else ""
+            score_str = f" [{score:.0%} match]" if score > 0 else ""
+            coord_str = f"{coordinator} ({coord_country})" if coord_country else coordinator
+
+            parts.append(f"### {i}. {acronym}{score_str}")
+            parts.append(f"**{title}**")
+
+            # Compact metadata line
+            meta_items = []
+            if action_type and action_type != "N/A":
+                meta_items.append(f"Type: {action_type}")
+            if budget_str:
+                meta_items.append(f"Budget: {budget_str}")
+            if status:
+                meta_items.append(f"Status: {status}")
+            if partner_count:
+                meta_items.append(f"Partners: {partner_count}")
+            if meta_items:
+                parts.append(f"- {' | '.join(meta_items)}")
+
+            if cluster:
+                parts.append(f"- Cluster: {cluster}")
+            if start_date and end_date:
+                parts.append(f"- Duration: {start_date[:7]} to {end_date[:7]}")
+            if coord_str:
+                parts.append(f"- Coordinator: {coord_str}")
+            if country_count and countries:
+                parts.append(f"- Countries: {country_count} ({', '.join(countries[:8])})")
+            if topics:
+                parts.append(f"- Topic: {topics}")
+            if objective:
+                obj_preview = objective[:300] + "..." if len(objective) > 300 else objective
+                parts.append(f"- Objective: *{obj_preview}*")
+            if cordis_url:
+                parts.append(f"- [View on CORDIS]({cordis_url})")
+            if source == "keyword":
+                parts.append("- *Found via keyword search*")
+            parts.append("")
+
+        # Show more hint
+        remaining = total - display_limit
+        if remaining > 0:
+            parts.append(
+                f"---\n*Showing top {display_limit} of {total} matching projects. Ask me to **show more projects** to see the remaining {remaining}.*"
+            )
+
+        return "\n".join(parts)
+
     def _synthesize_from_results(self, query: str, tool_results: dict[str, Any]) -> str:
         """Synthesize a coherent answer from tool results."""
 
         content_pieces = []
+
+        # ── Pre-processing: merge similar_projects + search_projects if both exist ──
+        merged_result = self._merge_project_search_results(tool_results, query)
+        merged_tool_keys: set[str] = set()
+        if merged_result:
+            # Render the unified merged project list
+            content_pieces.append(self._render_merged_project_list(merged_result))
+            # Track which tool results were consumed so we skip them below
+            for name, r in tool_results.items():
+                if isinstance(r, dict) and (
+                    "similar_projects" in r
+                    or ("projects" in r and isinstance(r.get("projects"), list))
+                ):
+                    merged_tool_keys.add(name)
 
         # Pre-scan: collect detailed project data (from get_project_details)
         # keyed by project_id, so we can merge into search_projects entries
@@ -13944,20 +14194,6 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
                 if pid:
                     detailed_project_data[str(pid)] = r
 
-        # Pre-scan: collect project IDs from similar_projects results
-        # so search_projects handler can skip duplicates already rendered
-        similar_project_ids = set()
-        for _name, r in tool_results.items():
-            if (
-                isinstance(r, dict)
-                and "similar_projects" in r
-                and isinstance(r.get("similar_projects"), list)
-            ):
-                for proj in r["similar_projects"]:
-                    pid = proj.get("id") or proj.get("project_id")
-                    if pid:
-                        similar_project_ids.add(str(pid))
-
         # Pre-scan: collect project IDs from search_projects results
         # so get_project_details handler can skip projects that will be merged
         search_project_ids = set()
@@ -13969,6 +14205,10 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
                         search_project_ids.add(str(pid))
 
         for name, result in tool_results.items():
+            # Skip tool results already consumed by the merge pre-processing
+            if name in merged_tool_keys:
+                continue
+
             if not isinstance(result, dict):
                 continue
 
@@ -14718,20 +14958,14 @@ No projects found for this organization in the database.
                 content_pieces.append(org_text)
 
             # Extract project results (generic fallback for other project queries)
+            # Note: if both similar_projects AND projects existed, they were already
+            # merged and rendered above — this handler is skipped via merged_tool_keys
             elif "projects" in result and isinstance(result["projects"], list):
                 projects = result["projects"]
                 total_found = result.get("total_found", len(projects))
-
-                # If similar_projects were already rendered, filter out duplicates
-                # and use a different header for the keyword search additions
-                has_similar_section = bool(similar_project_ids)
-                if has_similar_section:
-                    header = "## Additional Projects from Keyword Search\n"
-                else:
-                    header = f"## Project Search Results\n**Found {total_found} projects:**\n"
-                project_parts = [header]
-                rendered_pids = set()  # Track rendered project IDs to avoid duplicates across multiple search_projects calls
-                additional_count = 0
+                project_parts = [f"## Project Search Results\n**Found {total_found} projects:**\n"]
+                rendered_pids = set()
+                project_count = 0
                 for _i, proj in enumerate(projects[:10], 1):
                     acronym = proj.get("acronym", "")
                     title = proj.get("title", "")
@@ -14740,11 +14974,10 @@ No projects found for this organization in the database.
                     if not (acronym or title):
                         continue
 
-                    # Skip if already rendered from similar_projects or previous search_projects
-                    if str(pid) in rendered_pids or str(pid) in similar_project_ids:
+                    if str(pid) in rendered_pids:
                         continue
                     rendered_pids.add(str(pid))
-                    additional_count += 1
+                    project_count += 1
 
                     # Merge with detailed data from get_project_details if available
                     detail = detailed_project_data.get(str(pid), {})
@@ -14798,7 +15031,7 @@ No projects found for this organization in the database.
                     ec_str = f"€{float(ec)/1_000_000:.1f}M" if ec else ""
                     total_str = f"€{float(total_cost)/1_000_000:.1f}M" if total_cost else ""
                     coord_str = f"{coordinator} ({coord_country})" if coord_country else coordinator
-                    parts = [f"### {additional_count}. {acronym}: {title}"]
+                    parts = [f"### {project_count}. {acronym}: {title}"]
                     if pid:
                         parts.append(f"- **Project ID:** {pid}")
                     if status:
@@ -14844,12 +15077,7 @@ No projects found for this organization in the database.
 
                     project_parts.append("\n".join(parts))
 
-                if additional_count > 0:  # Has non-duplicate projects to show
-                    if has_similar_section:
-                        # Update header with actual count of additional projects
-                        project_parts[0] = (
-                            f"## Additional Projects from Keyword Search\n**{additional_count} additional projects** not found by semantic search:\n"
-                        )
+                if project_count > 0:
                     content_pieces.append("\n\n".join(project_parts))
 
             # Extract project partner results (get_project_partners)
@@ -15543,10 +15771,10 @@ Found **{total_found} organizations** with relevant track records:
         # Markers for detailed content types - prioritize similar projects over call details
         # (since user wants similar projects, not just call info)
         direct_output_markers_priority = [
-            "## Similar Funded Projects",  # Highest priority - what user wants
+            "## Relevant Funded Projects",  # Highest priority — merged semantic+keyword results
+            "## Similar Funded Projects",  # Semantic-only results (when no merge)
             "## Similar Projects Search",
-            "## Additional Projects from Keyword Search",  # Keyword complement to semantic results
-            "## Project Search Results",  # Structured project list with full metadata
+            "## Project Search Results",  # Keyword-only results (when no merge)
             "## Collaboration Network:",  # Network exploration results
             "## Projects by ",  # Organization project results
             "## Projects for ",  # Organization project results (no results case)
