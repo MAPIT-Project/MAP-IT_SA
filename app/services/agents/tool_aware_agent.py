@@ -14072,90 +14072,109 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
         }
 
     def _render_merged_project_list(self, merged: dict[str, Any]) -> str:
-        """Render the merged project list as a single unified section."""
+        """Render the merged project list with conversational intro + table + details."""
         projects = merged["merged_projects"]
         total = merged["total_found"]
         display_limit = merged["display_limit"]
         query_desc = merged["query_description"]
-        filters = merged.get("filters", {})
+        show_projects = projects[:display_limit]
 
-        parts = ["## Relevant Funded Projects\n"]
-        parts.append(f"**Query:** {query_desc}")
-        if filters:
-            filter_str = ", ".join([f"{k}: {v}" for k, v in filters.items() if v])
-            if filter_str:
-                parts.append(f"**Filters:** {filter_str}")
+        parts: list[str] = []
+
+        # ── Conversational introduction ──
+        # Analyze the results to write a meaningful summary
+        action_types = {}
+        coordinators = {}
+        total_budget = 0
+        for p in show_projects:
+            at = p.get("action_type") or p.get("funding_scheme", "")
+            if at:
+                action_types[at] = action_types.get(at, 0) + 1
+            coord_country = p.get("coordinator_country", "")
+            if coord_country:
+                coordinators[coord_country] = coordinators.get(coord_country, 0) + 1
+            budget = p.get("eu_contribution", 0)
+            if budget:
+                total_budget += budget
+
+        top_type = max(action_types, key=action_types.get) if action_types else "RIA"
+        top_countries = sorted(coordinators, key=coordinators.get, reverse=True)[:3]
+
         parts.append(
-            f"**Found:** {total} matching projects (showing top {min(display_limit, total)})\n"
+            f"## Relevant Funded Projects\n\n"
+            f"I found **{total} funded Horizon Europe projects** related to "
+            f"*{query_desc}*. The top {min(display_limit, total)} most relevant are shown below, "
+            f"ranked by semantic similarity to your query."
         )
+        if total_budget > 0:
+            parts.append(
+                f"\nThese projects represent a combined EU investment of "
+                f"**€{total_budget / 1_000_000:.0f}M**, predominantly funded as "
+                f"**{top_type}** actions"
+                + (
+                    f", with leading coordinators from **{', '.join(top_countries)}**."
+                    if top_countries
+                    else "."
+                )
+            )
+        parts.append("")
 
-        for i, p in enumerate(projects[:display_limit], 1):
+        # ── Summary table ──
+        parts.append("| # | Project | Type | Budget | Partners | Coordinator | Duration | CORDIS |")
+        parts.append("|---|---------|------|--------|----------|-------------|----------|--------|")
+
+        for i, p in enumerate(show_projects, 1):
             acronym = p.get("acronym", "N/A")
             title = p.get("title", "N/A")
             score = p.get("similarity_score", 0)
             pid = p.get("id", "")
             budget = p.get("eu_contribution", 0)
             action_type = p.get("action_type") or p.get("funding_scheme", "N/A")
-            objective = p.get("objective", "")
             start_date = p.get("start_date", "")
             end_date = p.get("end_date", "")
             coordinator = p.get("coordinator", "")
             coord_country = p.get("coordinator_country", "")
             partner_count = p.get("partner_count", 0)
-            country_count = p.get("country_count", 0)
-            countries = p.get("countries", [])
-            cluster = p.get("cluster", "")
-            topics = p.get("topics", "")
-            status = p.get("status", "")
-            cordis_url = p.get("cordis_url") or (
-                f"https://cordis.europa.eu/project/id/{pid}" if pid else ""
+
+            budget_str = f"€{budget / 1_000_000:.1f}M" if budget and budget > 0 else "—"
+            score_pct = f"{score:.0%}" if score > 0 else ""
+            coord_short = coordinator[:30] + "..." if len(coordinator) > 30 else coordinator
+            coord_str = f"{coord_short} ({coord_country})" if coord_country else coord_short
+            duration = f"{start_date[:7]}–{end_date[:7]}" if start_date and end_date else "—"
+            partners_str = str(partner_count) if partner_count else "—"
+            cordis_link = f"[Link](https://cordis.europa.eu/project/id/{pid})" if pid else "—"
+
+            parts.append(
+                f"| {i} | **{acronym}** ({score_pct}) | {action_type} | {budget_str} | "
+                f"{partners_str} | {coord_str} | {duration} | {cordis_link} |"
             )
-            source = p.get("source", "")
 
-            budget_str = f"€{budget / 1_000_000:.1f}M" if budget and budget > 0 else ""
-            score_str = f" [{score:.0%} match]" if score > 0 else ""
-            coord_str = f"{coordinator} ({coord_country})" if coord_country else coordinator
+        parts.append("")
 
-            parts.append(f"### {i}. {acronym}{score_str}")
-            parts.append(f"**{title}**")
+        # ── Project details ──
+        parts.append("### Project Details\n")
+        for i, p in enumerate(show_projects, 1):
+            acronym = p.get("acronym", "N/A")
+            title = p.get("title", "N/A")
+            objective = p.get("objective", "")
+            topics = p.get("topics", "")
+            pid = p.get("id", "")
 
-            # Compact metadata line
-            meta_items = []
-            if action_type and action_type != "N/A":
-                meta_items.append(f"Type: {action_type}")
-            if budget_str:
-                meta_items.append(f"Budget: {budget_str}")
-            if status:
-                meta_items.append(f"Status: {status}")
-            if partner_count:
-                meta_items.append(f"Partners: {partner_count}")
-            if meta_items:
-                parts.append(f"- {' | '.join(meta_items)}")
+            obj_preview = objective[:250] + "..." if len(objective) > 250 else objective
 
-            if cluster:
-                parts.append(f"- Cluster: {cluster}")
-            if start_date and end_date:
-                parts.append(f"- Duration: {start_date[:7]} to {end_date[:7]}")
-            if coord_str:
-                parts.append(f"- Coordinator: {coord_str}")
-            if country_count and countries:
-                parts.append(f"- Countries: {country_count} ({', '.join(countries[:8])})")
+            parts.append(f"**{i}. {acronym} — {title}**")
             if topics:
-                parts.append(f"- Topic: {topics}")
-            if objective:
-                obj_preview = objective[:300] + "..." if len(objective) > 300 else objective
-                parts.append(f"- Objective: *{obj_preview}*")
-            if cordis_url:
-                parts.append(f"- [View on CORDIS]({cordis_url})")
-            if source == "keyword":
-                parts.append("- *Found via keyword search*")
+                parts.append(f"Topic: {topics}")
+            if obj_preview:
+                parts.append(f"{obj_preview}")
             parts.append("")
 
-        # Show more hint
+        # ── Show more hint ──
         remaining = total - display_limit
         if remaining > 0:
             parts.append(
-                f"---\n*Showing top {display_limit} of {total} matching projects. Ask me to **show more projects** to see the remaining {remaining}.*"
+                f"---\n*Showing top {display_limit} of {total} matching projects. "
+                f"Ask me to **show more projects** to see the remaining {remaining}.*"
             )
 
         return "\n".join(parts)
