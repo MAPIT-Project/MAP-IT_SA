@@ -2091,7 +2091,8 @@ The user's message may:
 - Be a NEW question: Search for the information they need
 - REFER to previous results: "the 4th one", "that call", "tell me more about it"
 - BE A COMPLAINT: "only 1 result", "that's not enough", "wtf" → They want more/better results
-- ASK FOR MORE: "show me more", "any others" → Search again with same topic
+- ASK FOR MORE PROJECTS: "show more", "show more projects", "next page", "see more" → Use show_cached_projects tool to show the next batch from the previous search results (do NOT re-run the search)
+- ASK FOR MORE (other): "any other calls?", "more options" → Search again with same topic
 - **CHANGE SCOPE**: "what about projects USING X", "X as part of projects", "applied X" → Re-run the SAME analysis tool with expand_scope=True
 
 When the user refers to previous conversation:
@@ -4203,6 +4204,22 @@ digital_europe, life""",
                 "search_life_templates(query='Natura 2000 conservation project requirements')",
                 "search_life_templates(query='climate adaptation funding criteria', subprogramme='CCA')",
                 "search_life_templates(query='clean energy transition co-financing rates', subprogramme='CET')",
+            ],
+        )
+
+        # Pagination tool for cached project results
+        self.tools["show_cached_projects"] = Tool(
+            name="show_cached_projects",
+            description=(
+                "Show the NEXT batch of projects from a previous project search. "
+                "Use this when the user asks to 'show more', 'next page', 'see more projects', "
+                "'keep going', etc. after a project search. This tool retrieves the next page "
+                "from cached results — do NOT re-run the search tools."
+            ),
+            category=ToolCategory.PROJECTS,
+            parameters={},
+            examples=[
+                "show_cached_projects()",
             ],
         )
 
@@ -14066,6 +14083,64 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
             logger.warning(f"Failed to handle 'show more' request: {e}")
             return None
 
+    def _tool_show_cached_projects(self) -> dict[str, Any]:
+        """Tool handler: show next page of cached project results.
+
+        Called by the LLM when user asks to see more projects.
+        Returns rendered content that gets used as the final answer via call_tools_and_format.
+        """
+        if not self._conversation_id or not self._redis_client:
+            return {"error": "No cached results available. Try searching for projects first."}
+
+        try:
+            key = f"merged_projects:{self._conversation_id}"
+            cached = self._redis_client.get(key)
+            if not cached:
+                return {
+                    "error": "No cached project results found. "
+                    "Please search for projects first, then ask to see more."
+                }
+
+            merged_result = json.loads(cached)
+            page_key = f"project_page:{self._conversation_id}"
+            current_offset = int(self._redis_client.get(page_key) or 20)
+
+            projects = merged_result["merged_projects"]
+            display_limit = merged_result["display_limit"]
+
+            if current_offset >= len(projects):
+                return {
+                    "message": (
+                        f"All **{len(projects)}** matching projects from the previous search "
+                        f"for *{merged_result['query_description']}* have already been shown."
+                    ),
+                    "all_shown": True,
+                }
+
+            # Render the next page
+            rendered = self._render_merged_project_list(merged_result, offset=current_offset)
+
+            # Advance the page offset
+            new_offset = min(current_offset + display_limit, len(projects))
+            self._redis_client.setex(page_key, 1800, str(new_offset))
+
+            logger.info(
+                f"📄 Serving cached page: projects {current_offset + 1}–{new_offset} "
+                f"of {len(projects)} for conversation {self._conversation_id}"
+            )
+
+            return {
+                "rendered_content": rendered,
+                "page_start": current_offset + 1,
+                "page_end": new_offset,
+                "total_projects": len(projects),
+                "remaining": len(projects) - new_offset,
+            }
+
+        except Exception as e:
+            logger.warning(f"Failed to show cached projects: {e}")
+            return {"error": f"Failed to retrieve cached results: {e}"}
+
     def _merge_project_search_results(
         self,
         tool_results: dict[str, Any],
@@ -14346,6 +14421,11 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
         """Synthesize a coherent answer from tool results."""
 
         content_pieces = []
+
+        # ── Check for pre-rendered content (e.g., from show_cached_projects) ──
+        for _name, r in tool_results.items():
+            if isinstance(r, dict) and "rendered_content" in r:
+                return r["rendered_content"]
 
         # ── Pre-processing: merge similar_projects + search_projects if both exist ──
         merged_result = self._merge_project_search_results(tool_results, query)
@@ -16241,6 +16321,8 @@ Found **{total_found} organizations** with relevant track records:
                 return await self._tool_check_life_eligibility(params)
             elif tool_name == "search_life_templates":
                 return await self._tool_search_life_templates(params)
+            elif tool_name == "show_cached_projects":
+                return self._tool_show_cached_projects()
             else:
                 return {"error": f"Tool {tool_name} not implemented"}
         except Exception as e:
