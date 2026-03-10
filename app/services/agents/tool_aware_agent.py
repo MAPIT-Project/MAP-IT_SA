@@ -2154,7 +2154,10 @@ Example: After discussing hydrogen storage calls, if user asks "What's the typic
      * Include actionable resource links from BUILT-IN KNOWLEDGE in your final answer
    - For **specific call ID** (user gives ID like HORIZON-*, CREA-*, EIC-*) → use get_call_details (fetches from EU Portal API)
    - For **finding/searching** funding calls by topic → use search_funding_calls
-   - For projects / "find projects about X" / "relevant projects about X" → use search_projects (NOT search_funding_calls!)
+   - For projects with SHORT SPECIFIC keywords ("quantum computing projects", "graphene projects") → use search_projects (NOT search_funding_calls!)
+   - For projects described with LONGER PHRASES or topic descriptions ("Improved reliability and optimised operations and maintenance for wind energy systems", "sustainable aviation fuel development using advanced electrolyzers") → use get_similar_funded_projects (semantic search understands the full meaning and finds precisely relevant projects, while keyword search would match irrelevant projects on individual words)
+   - For projects about BROAD CONCEPTS, THEMES, or TRENDS ("trustworthy AI trends", "sustainable mobility research", "digital health innovations", "responsible AI") → use get_similar_funded_projects (semantic search finds conceptually related projects even without exact keyword matches)
+   - For "trends in X" or "what projects illustrate X" → use get_similar_funded_projects (semantic) — keyword search will miss conceptually relevant projects
    - For statistics → use get_programme_statistics or get_country_statistics
    - For **country eligibility** ("Can X participate?", "Is Y eligible?") → Check BUILT-IN KNOWLEDGE first:
      * For EU Member States (AT, BE, BG, CY, CZ, DE, DK, EE, EL, ES, FI, FR, HR, HU, IE, IT, LT, LU, LV, MT, NL, PL, PT, RO, SE, SI, SK): Full eligibility, answer from knowledge
@@ -2868,6 +2871,17 @@ When searching for projects on water AND health (e.g., "drinking water health im
      → Step 2: get_project_partners(project_id='<id1>'), get_project_partners(project_id='<id2>'), get_project_partners(project_id='<id3>')
    - NEVER skip the get_project_partners step when the user explicitly asks for partner details!
 
+8. **STAY FOCUSED — only answer what was asked!**
+   - When user asks for "relevant projects about X" → ONLY search for projects. Do NOT also:
+     * Fetch partners (unless user asked for partners/consortium)
+     * Search for open calls (unless user asked about calls/opportunities)
+     * Look up call details (unless user gave a specific call ID)
+     * Run analyze_call_history (unless user asked about trends/history)
+     * Run get_budget_benchmark (unless user asked about budgets)
+   - The user's question defines the scope. Do NOT proactively add information they didn't request.
+   - If you find good results in iteration 1, CONCLUDE. Do not use iteration 2 to add unrequested extras.
+   - Exception: If iteration 1 returns poor/insufficient results, you MAY refine the search in iteration 2.
+
 **SPECIAL CASE - Project Search Results:**
 When the search_projects tool was used, your conclusion MUST:
 1. **List ALL projects found** with their key details in a structured format
@@ -3442,10 +3456,13 @@ Returns: Organizations with their project count, funding received, coordination 
 - User describes a project idea and wants semantically related projects
 - User wants to find projects that conceptually relate to their idea (finds biofuels, green aviation when searching for "sustainable aviation fuels")
 - User is writing a proposal and wants similar funded projects to learn from
+- User asks about TRENDS or THEMES in a broad research area (e.g., "trends in trustworthy AI", "what projects illustrate responsible AI")
+- User asks about a BROAD CONCEPT where keyword matching would miss relevant projects (e.g., "trustworthy AI", "sustainable mobility", "digital health innovations")
+- The query topic is abstract or multi-faceted (e.g., "trustworthy AI" encompasses fairness, explainability, robustness, privacy — keyword search only finds exact matches)
 
-**DO NOT USE FOR**: Simple keyword searches like "find projects about AI" or "show me quantum computing projects" - use search_projects instead.
+**DO NOT USE FOR**: Simple keyword searches with SPECIFIC technical terms like "find projects about graphene" or "show me quantum computing projects" - use search_projects instead.
 
-This tool uses AI embeddings to understand meaning, not just keywords. It finds conceptually related projects even if they don't contain exact keywords.""",
+**PREFER THIS OVER search_projects WHEN**: The topic is conceptual, thematic, or trend-related. Semantic search understands meaning and finds conceptually related projects even without exact keyword matches.""",
                 category=ToolCategory.PROJECTS,
                 parameters={
                     "description": "Required: Concept, topic description, or proposal idea to find similar projects for (min 20 chars)",
@@ -3599,19 +3616,22 @@ This uses AI to automatically expand keywords to related terms (e.g., "AI" → i
                 name="search_projects",
                 description="""Search the CORDIS database for funded Horizon Europe projects by topic/keywords. Supports sorting by EC contribution, relevance, or date.
 
-**USE THIS TOOL FOR**: Simple keyword-based project searches like "find projects about AI", "show me quantum computing projects", "projects on climate change"
-**DO NOT USE FOR**: Queries asking for "similar to [concept]" or semantic similarity - use get_similar_funded_projects instead!
+**USE THIS TOOL FOR**: Keyword-based project searches with SPECIFIC technical terms like "find projects about graphene", "show me quantum computing projects", "wind energy operations and maintenance"
+**DO NOT USE FOR**:
+- Queries asking for "similar to [concept]" or semantic similarity → use get_similar_funded_projects
+- Queries about BROAD CONCEPTS, THEMES, or TRENDS (e.g., "trustworthy AI", "responsible AI", "sustainable mobility") → use get_similar_funded_projects (semantic search)
+- Queries like "trends in X" or "what projects illustrate X" → use get_similar_funded_projects
 **Returns**: List of funded projects matching the keywords with titles, budgets, consortiums, descriptions, and DOI links.
 
 **SEARCH TIPS**:
-- For AI/ML research: Use keywords like "machine learning", "neural network", "deep learning", "artificial intelligence"
+- Works best with SPECIFIC technical keywords: "machine learning", "neural network", "graphene", "quantum computing"
 - Short acronyms like "AI", "ML", "IoT", "HPC" are supported but may benefit from expanded terms
 - Combine specific terms for better results: "AI healthcare diagnostics" rather than just "AI"
 - The search uses full-text matching on project titles, objectives, and topics
 - Use sort_by='ec_contribution' to find projects with the largest EU funding
 - **To get partner/consortium details**: After finding projects, call get_project_partners(project_id=<id>) for each project
 
-This is the PRIMARY tool for finding projects by keyword matching.""",
+This is the PRIMARY tool for finding projects by SPECIFIC keyword matching. For broad/conceptual topics, use get_similar_funded_projects instead.""",
                 category=ToolCategory.PROJECTS,
                 parameters={
                     "keywords": "Required: Keywords/topic to search for (e.g., 'machine learning healthcare', 'quantum computing', 'green hydrogen')",
@@ -5915,6 +5935,61 @@ digital_europe, life""",
 
         # Check if query contains semantic similarity language
         has_semantic_pattern = any(pattern in query_lower for pattern in semantic_patterns)
+
+        # Also detect LONG DESCRIPTIVE project queries where keyword search would fail
+        # e.g., "What are the most relevant projects about Improved reliability and
+        #        optimised operations and maintenance for wind energy systems?"
+        # These should use semantic search because keyword search matches individual words
+        # (like "reliability", "maintenance") against unrelated projects
+        project_query_patterns = [
+            "relevant projects about",
+            "projects about",
+            "projects related to",
+            "projects on",
+            "projects for",
+            "projects in the area of",
+            "projects in the field of",
+            "projects addressing",
+            "projects focusing on",
+            "projects dealing with",
+            "funded projects about",
+            "funded projects on",
+        ]
+        has_project_pattern = any(pattern in query_lower for pattern in project_query_patterns)
+        if has_project_pattern and not has_semantic_pattern:
+            # Extract the description part after the pattern
+            import re
+
+            description = query
+            for pattern in project_query_patterns:
+                if pattern in query_lower:
+                    idx = query_lower.find(pattern)
+                    description = query[idx + len(pattern) :].strip().rstrip("?. ")
+                    break
+            # Only route to semantic search if the description is long enough
+            # Short queries like "projects about AI" → keyword search
+            # Long queries like "projects about improved reliability and optimised operations
+            #   and maintenance for wind energy systems" → semantic search
+            word_count = len(description.split())
+            if word_count >= 6 and len(description) >= 30:
+                logger.info(
+                    f"🧬 Detected long descriptive project query ({word_count} words): '{description}'"
+                )
+                return {
+                    "thought": f"User is asking for projects about '{description}'. "
+                    "This is a detailed description — using get_similar_funded_projects (semantic search) "
+                    "to find conceptually matching projects rather than keyword search which would return "
+                    "irrelevant results matching individual words.",
+                    "action": "call_tools",
+                    "tool_calls": [
+                        {
+                            "tool": "get_similar_funded_projects",
+                            "parameters": {"description": description, "limit": 10},
+                            "reasoning": "Long descriptive query — semantic search will find projects matching the full concept",
+                        }
+                    ],
+                    "needs_more_info": True,
+                }
 
         if has_semantic_pattern:
             # Extract the description part (what comes after the semantic pattern)
@@ -13831,6 +13906,31 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
 
         content_pieces = []
 
+        # Pre-scan: collect detailed project data (from get_project_details)
+        # keyed by project_id, so we can merge into search_projects entries
+        detailed_project_data = {}
+        for _name, r in tool_results.items():
+            if (
+                isinstance(r, dict)
+                and "acronym" in r
+                and "partners" in r
+                and "organization" not in r
+                and "project_acronym" not in r
+            ):
+                pid = r.get("project_id")
+                if pid:
+                    detailed_project_data[str(pid)] = r
+
+        # Pre-scan: collect project IDs from search_projects results
+        # so get_project_details handler can skip projects that will be merged
+        search_project_ids = set()
+        for _name, r in tool_results.items():
+            if isinstance(r, dict) and "projects" in r and isinstance(r.get("projects"), list):
+                for proj in r["projects"]:
+                    pid = proj.get("id") or proj.get("project_id")
+                    if pid:
+                        search_project_ids.add(str(pid))
+
         for name, result in tool_results.items():
             if not isinstance(result, dict):
                 continue
@@ -13863,10 +13963,9 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
             # Extract calls info
             elif "calls" in result and isinstance(result["calls"], list):
                 if len(result["calls"]) == 0:
-                    # Explicitly note that no calls were found
-                    content_pieces.append(
-                        "No open funding calls were found matching your search criteria. This could mean:\n- There are currently no open calls in this topic area\n- Relevant calls may have already closed\n- Upcoming calls may not yet be announced\n\nConsider checking the Horizon Europe Funding & Tenders Portal for the latest information."
-                    )
+                    # Only show "no calls found" if the query was actually about calls
+                    # Skip this message for project searches where calls were fetched as a side-effect
+                    pass
                 else:
                     for call in result["calls"][:10]:
                         title = call.get("title", "")
@@ -14342,12 +14441,85 @@ Per Partner Distribution:
 
                     content_pieces.append("\n".join(similar_parts))
 
+            # Extract project details results (get_project_details)
+            # Has "acronym" + "partners" but NOT "project_acronym" or "organization"
+            # Skip if this project is already in a search_projects result (will be merged there)
+            elif (
+                "acronym" in result
+                and "partners" in result
+                and isinstance(result.get("partners"), list)
+                and "organization" not in result
+                and "project_acronym" not in result
+            ):
+                pid_check = result.get("project_id")
+                if pid_check and str(pid_check) in search_project_ids:
+                    continue  # Will be merged into the search_projects listing
+                acronym = result.get("acronym", "Unknown")
+                title = result.get("title", "")
+                pid = result.get("project_id", "")
+                status = result.get("status", "")
+                objective = result.get("objective", "")
+                partners = result.get("partners", [])
+                ec_contribution = result.get(
+                    "ec_max_contribution", result.get("eu_contribution", 0)
+                )
+                total_cost = result.get("total_cost", 0)
+                start_date = result.get("start_date", "")
+                end_date = result.get("end_date", "")
+                coordinator_raw = result.get("coordinator", "")
+                coordinator = (
+                    coordinator_raw.get("name", str(coordinator_raw))
+                    if isinstance(coordinator_raw, dict)
+                    else str(coordinator_raw)
+                )
+                programme = result.get("programme", "")
+                call_id = result.get("call_id", result.get("call", ""))
+
+                parts = [f"### {acronym}: {title}"]
+                if pid:
+                    parts.append(f"- **Project ID:** {pid}")
+                if status:
+                    parts.append(f"- **Status:** {status}")
+                if coordinator:
+                    parts.append(f"- **Coordinator:** {coordinator}")
+                if ec_contribution:
+                    parts.append(f"- **EC Contribution:** €{ec_contribution / 1_000_000:.1f}M")
+                if total_cost:
+                    parts.append(f"- **Total Cost:** €{total_cost / 1_000_000:.1f}M")
+                if start_date:
+                    parts.append(
+                        f"- **Duration:** {str(start_date)[:10]} to {str(end_date)[:10] if end_date else 'ongoing'}"
+                    )
+                if programme:
+                    parts.append(f"- **Programme:** {programme}")
+                if call_id:
+                    parts.append(f"- **Call:** {call_id}")
+                if objective:
+                    obj_preview = objective[:400] + "..." if len(objective) > 400 else objective
+                    parts.append(f"\n**Objective:** {obj_preview}")
+                if partners:
+                    parts.append(f"\n**Partners ({len(partners)}):**")
+                    parts.append("| Name | Country | Role |")
+                    parts.append("|------|---------|------|")
+                    for p in partners:
+                        pname = p.get("name", "Unknown")
+                        pcountry = p.get("country", "")
+                        prole = p.get("role", "participant")
+                        parts.append(f"| {pname} | {pcountry} | {prole} |")
+                cordis_url = f"https://cordis.europa.eu/project/id/{pid}" if pid else ""
+                if cordis_url:
+                    parts.append(f"\n[View on CORDIS]({cordis_url})")
+
+                content_pieces.append("\n".join(parts))
+
             # Extract collaboration network results (get_collaboration_network)
-            # Note: skip if result has "project_acronym" (that's get_project_partners)
+            # Requires "organization" key (specific to collaboration network results)
+            # Skip if result has "project_acronym" (that's get_project_partners)
             # Also skip if result has "error" (failed get_project_partners returns partners: [])
             elif (
                 "partners" in result
                 and isinstance(result.get("partners"), list)
+                and "organization" in result
                 and "project_acronym" not in result
                 and "error" not in result
             ):
@@ -14424,8 +14596,14 @@ No collaboration partners found for this organization in the database.
             elif "organization" in result and "projects" in result and "count" in result:
                 org_name = result.get("organization", "Unknown")
                 projects = result.get("projects", [])
-                count = result.get("count", len(projects))
+                # Use total_project_count (true total) over count (display-limited)
+                total_count = result.get("total_project_count") or result.get(
+                    "count", len(projects)
+                )
+                coord_count = result.get("coordinator_count")
+                count = total_count
                 role_filter = result.get("role_filter")
+                display_note = result.get("note")  # e.g. "Showing 50 of 219 total projects"
 
                 if not projects:
                     org_text = f"""## Projects for {org_name}
@@ -14438,8 +14616,9 @@ No projects found for this organization in the database.
 - The organization may not have participated in Horizon Europe yet"""
                 else:
                     role_desc = f" (as {role_filter})" if role_filter else ""
+                    note_line = f"\n*{display_note}*\n" if display_note else ""
                     org_text = f"""## Projects by {org_name}{role_desc}
-**Total Projects Found:** {count}
+**Total Projects Found:** {count}{note_line}
 
 """
                     coordinated = [p for p in projects if p.get("role") == "coordinator"]
@@ -14483,10 +14662,14 @@ No projects found for this organization in the database.
                         p.get("funding_scheme") for p in projects if p.get("funding_scheme")
                     )
 
+                    # Use true coordinator count from aggregate query if available
+                    coordinator_display = (
+                        coord_count if coord_count is not None else len(coordinated)
+                    )
                     org_text += f"""
 ### Summary
 - **Total Projects:** {count}
-- **As Coordinator:** {len(coordinated)}
+- **As Coordinator:** {coordinator_display}
 - **Total Budget Involved:** €{total_budget / 1_000_000:.1f}M
 - **Funding Types:** {", ".join(funding_schemes) if funding_schemes else "N/A"}
 
@@ -14500,36 +14683,104 @@ No projects found for this organization in the database.
             # Extract project results (generic fallback for other project queries)
             elif "projects" in result and isinstance(result["projects"], list):
                 projects = result["projects"]
-                project_parts = []
-                for i, proj in enumerate(projects[:10]):
+                total_found = result.get("total_found", len(projects))
+                project_parts = [f"## Project Search Results\n**Found {total_found} projects:**\n"]
+                rendered_pids = set()  # Track rendered project IDs to avoid duplicates across multiple search_projects calls
+                for i, proj in enumerate(projects[:10], 1):
                     acronym = proj.get("acronym", "")
                     title = proj.get("title", "")
                     pid = proj.get("id") or proj.get("project_id", "")
-                    ec = proj.get("ec_contribution") or proj.get("ecMaxContribution") or 0
-                    coordinator_raw = proj.get("coordinator_name") or proj.get("coordinator", "")
+
+                    if not (acronym or title):
+                        continue
+
+                    # Skip if already rendered from a previous search_projects result
+                    if str(pid) in rendered_pids:
+                        continue
+                    rendered_pids.add(str(pid))
+
+                    # Merge with detailed data from get_project_details if available
+                    detail = detailed_project_data.get(str(pid), {})
+
+                    ec = (
+                        detail.get("ec_max_contribution")
+                        or detail.get("eu_contribution")
+                        or proj.get("ec_contribution")
+                        or proj.get("ecMaxContribution")
+                        or 0
+                    )
+                    total_cost = detail.get("total_cost") or proj.get("total_cost") or 0
+                    coordinator_raw = (
+                        detail.get("coordinator")
+                        or proj.get("coordinator_name")
+                        or proj.get("coordinator", "")
+                    )
                     coordinator = (
                         coordinator_raw.get("name", str(coordinator_raw))
                         if isinstance(coordinator_raw, dict)
                         else str(coordinator_raw)
                     )
-                    desc = (proj.get("objective") or proj.get("description") or "")[:200]
+                    coord_country = ""
+                    if isinstance(coordinator_raw, dict):
+                        coord_country = coordinator_raw.get("country", "")
+                    # Use longer objective from detailed data if available
+                    detail_obj = detail.get("objective", "")
+                    search_obj = proj.get("objective") or proj.get("description") or ""
+                    objective = detail_obj if len(detail_obj) > len(search_obj) else search_obj
+                    obj_preview = objective[:400] + "..." if len(objective) > 400 else objective
 
-                    if not (acronym or title):
-                        continue
+                    status = detail.get("status") or proj.get("status", "")
+                    start_date = detail.get("start_date") or proj.get("start_date", "")
+                    end_date = detail.get("end_date") or proj.get("end_date", "")
+                    funding_scheme = detail.get("funding_scheme") or proj.get("funding_scheme", "")
+                    topics = detail.get("topics") or proj.get("topics", "")
+                    # Prefer partners from detailed data (complete list)
+                    partners = detail.get("partners") or proj.get("partners", [])
+                    # Consortium info from search_projects
+                    consortium = proj.get("consortium", {})
+                    partner_count = consortium.get("participant_count", 0) or len(partners)
+                    country_count = consortium.get("country_count", 0)
+                    countries = consortium.get("countries", [])
+                    # URLs
+                    cordis_url = (
+                        proj.get("cordis_url")
+                        or detail.get("cordis_url")
+                        or (f"https://cordis.europa.eu/project/id/{pid}" if pid else "")
+                    )
 
                     ec_str = f"€{float(ec)/1_000_000:.1f}M" if ec else ""
-                    parts = [f"### {i+1}. {acronym}: {title}"]
+                    total_str = f"€{float(total_cost)/1_000_000:.1f}M" if total_cost else ""
+                    coord_str = f"{coordinator} ({coord_country})" if coord_country else coordinator
+                    parts = [f"### {i}. {acronym}: {title}"]
                     if pid:
                         parts.append(f"- **Project ID:** {pid}")
+                    if status:
+                        parts.append(f"- **Status:** {status}")
+                    if funding_scheme:
+                        parts.append(f"- **Action Type:** {funding_scheme}")
                     if ec_str:
                         parts.append(f"- **EC Contribution:** {ec_str}")
+                    if total_str and total_str != ec_str:
+                        parts.append(f"- **Total Cost:** {total_str}")
                     if coordinator:
-                        parts.append(f"- **Coordinator:** {coordinator}")
-                    if desc:
-                        parts.append(f"- **Objective:** {desc}")
+                        parts.append(f"- **Coordinator:** {coord_str}")
+                    if start_date:
+                        parts.append(
+                            f"- **Duration:** {str(start_date)[:10]} to {str(end_date)[:10] if end_date else 'ongoing'}"
+                        )
+                    if partner_count:
+                        consortium_str = f"- **Consortium:** {partner_count} partners"
+                        if country_count:
+                            consortium_str += f" from {country_count} countries"
+                        if countries:
+                            consortium_str += f" ({', '.join(countries[:8])})"
+                        parts.append(consortium_str)
+                    if topics:
+                        parts.append(f"- **Topic:** {topics}")
+                    if obj_preview:
+                        parts.append(f"- **Objective:** {obj_preview}")
 
-                    # Include partners if available
-                    partners = proj.get("partners", [])
+                    # Include partners if available (from get_project_details merge)
                     if partners:
                         parts.append(f"\n**Partners ({len(partners)}):**")
                         parts.append("| Name | Country | Role |")
@@ -14540,9 +14791,13 @@ No projects found for this organization in the database.
                             prole = p.get("role", "participant")
                             parts.append(f"| {pname} | {pcountry} | {prole} |")
 
+                    # Add CORDIS link
+                    if cordis_url:
+                        parts.append(f"\n[View on CORDIS]({cordis_url})")
+
                     project_parts.append("\n".join(parts))
 
-                if project_parts:
+                if len(project_parts) > 1:  # More than just the header
                     content_pieces.append("\n\n".join(project_parts))
 
             # Extract project partner results (get_project_partners)
@@ -14864,6 +15119,11 @@ Budget Breakdown:
                     if keywords
                     else (f"Cluster {cluster}" if cluster else "Horizon Europe")
                 )
+
+                # Skip rendering if no meaningful data (0 projects funded, ≤1 call)
+                if projects_funded == 0 and calls_analyzed <= 1:
+                    continue
+
                 history_text = f"""## Funding History Analysis: {search_desc}
 
 **Overview:**
@@ -15233,6 +15493,7 @@ Found **{total_found} organizations** with relevant track records:
         direct_output_markers_priority = [
             "## Similar Funded Projects",  # Highest priority - what user wants
             "## Similar Projects Search",
+            "## Project Search Results",  # Structured project list with full metadata
             "## Collaboration Network:",  # Network exploration results
             "## Projects by ",  # Organization project results
             "## Projects for ",  # Organization project results (no results case)
@@ -15276,6 +15537,12 @@ Found **{total_found} organizations** with relevant track records:
             combined_parts = []
             for _marker, content in direct_outputs:
                 combined_parts.append(content)
+
+            # Also include substantial regular content (e.g. project lists, details)
+            # so tool results aren't silently dropped when a direct output exists
+            for rc in regular_content:
+                if len(rc) > 200:
+                    combined_parts.append(rc)
 
             return "\n\n---\n\n".join(combined_parts)
 

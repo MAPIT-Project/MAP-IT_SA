@@ -1224,15 +1224,36 @@ class LocalProjectSearchService:
         return results
 
     def _deduplicate(self, results: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """Remove duplicate projects, keeping highest-scored version."""
-        seen = set()
+        """Remove duplicate projects, merging fields from all versions.
+
+        Keeps the highest-scored version as the base but fills in missing
+        fields from duplicate entries (e.g., Neo4j version may lack totalCost
+        but PostgreSQL version has it).
+        """
+        seen: dict[str, dict[str, Any]] = {}
         unique = []
 
         for project in results:
             pid = str(project.get("id"))
             if pid not in seen:
-                seen.add(pid)
+                seen[pid] = project
                 unique.append(project)
+            else:
+                # Merge: fill in missing fields from this duplicate
+                existing = seen[pid]
+                for key, value in project.items():
+                    if key.startswith("_"):
+                        # Merge source tracking lists
+                        if key == "_sources" and isinstance(value, list):
+                            existing_sources = existing.get("_sources", [])
+                            for s in value:
+                                if s not in existing_sources:
+                                    existing_sources.append(s)
+                            existing["_sources"] = existing_sources
+                        continue
+                    existing_val = existing.get(key)
+                    if existing_val in (None, "", 0, [], {}):
+                        existing[key] = value
 
         return unique
 
@@ -1353,13 +1374,15 @@ class LocalProjectSearchService:
             "title": project.get("title", "Unknown Title"),
             "acronym": project.get("acronym"),
             "objective": self._truncate(project.get("objective", ""), 500),
-            "start_date": project.get("startDate", ""),
-            "end_date": project.get("endDate", ""),
+            "start_date": project.get("startDate") or project.get("start_date", ""),
+            "end_date": project.get("endDate") or project.get("end_date", ""),
             "status": project.get("status", "Unknown"),
-            "total_cost": project.get("totalCost", 0),
-            "ec_contribution": project.get("ecMaxContribution", 0),
-            "programme": project.get("frameworkProgramme", ""),
-            "funding_scheme": project.get("fundingScheme", ""),
+            "total_cost": project.get("totalCost") or project.get("total_cost", 0),
+            "ec_contribution": project.get("ecMaxContribution")
+            or project.get("ec_max_contribution")
+            or project.get("ec_contribution", 0),
+            "programme": project.get("frameworkProgramme") or project.get("programme", ""),
+            "funding_scheme": project.get("fundingScheme") or project.get("funding_scheme", ""),
             "topics": project.get("topics", ""),
             "coordinator": {"name": coordinator_name, "country": coordinator_country},
             "consortium": {
