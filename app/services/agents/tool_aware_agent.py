@@ -3102,6 +3102,8 @@ What is your next step? Remember: Output ONLY JSON."""
         """
         self.max_iterations = max_iterations
         self.enable_quality_analysis = enable_quality_analysis
+        self._conversation_id: int | None = None
+        self._redis_client = None
         self.tools: dict[str, Tool] = {}
         self._init_tools()
         self._init_llm()
@@ -3119,7 +3121,8 @@ What is your next step? Remember: Output ONLY JSON."""
             from ..memory.memory_service import MemoryService
 
             memory = MemoryService()
-            self.plan_cache = QueryPlanCache(memory.redis_client)
+            self._redis_client = memory.redis_client
+            self.plan_cache = QueryPlanCache(self._redis_client)
             logger.info("✅ Query plan cache initialized")
         except Exception as e:
             logger.warning(f"⚠️ Query plan cache unavailable: {e}")
@@ -4223,7 +4226,11 @@ digital_europe, life""",
         return "\n\n".join(sections)
 
     async def process_query(
-        self, query: str, context: str = "", conversation_history: list[dict] = None
+        self,
+        query: str,
+        context: str = "",
+        conversation_history: list[dict] = None,
+        conversation_id: int | None = None,
     ) -> dict[str, Any]:
         """
         Process a complex query using multi-tool reasoning.
@@ -4232,12 +4239,21 @@ digital_europe, life""",
             query: User's question
             context: Additional context
             conversation_history: Previous messages
+            conversation_id: Conversation ID for pagination caching
 
         Returns:
             Dict with answer, reasoning steps, and sources
         """
         start_time = datetime.now()
         self._current_query = query  # Store for tool methods to reference
+        self._conversation_id = conversation_id
+
+        # ── Early check: "show more projects" pagination from cached results ──
+        show_more_result = self._handle_show_more_request(query)
+        if show_more_result:
+            total_time = (datetime.now() - start_time).total_seconds() * 1000
+            show_more_result["total_time_ms"] = total_time
+            return show_more_result
 
         # Reset context window manager to prevent memory leak across queries
         _context_manager.reset()
@@ -4549,7 +4565,11 @@ digital_europe, life""",
         return result
 
     async def process_query_streaming(
-        self, query: str, context: str = "", conversation_history: list[dict] = None
+        self,
+        query: str,
+        context: str = "",
+        conversation_history: list[dict] = None,
+        conversation_id: int | None = None,
     ) -> AsyncGenerator[dict[str, Any], None]:
         """
         Process a query and yield events in real-time as reasoning happens.
@@ -4564,12 +4584,22 @@ digital_europe, life""",
             query: User's question
             context: Additional context (conversation history)
             conversation_history: Previous messages
+            conversation_id: Conversation ID for pagination caching
 
         Yields:
             Dict events as processing happens
         """
         start_time = datetime.now()
         self._current_query = query  # Store for tool methods to reference
+        self._conversation_id = conversation_id
+
+        # ── Early check: "show more projects" pagination from cached results ──
+        show_more_result = self._handle_show_more_request(query)
+        if show_more_result:
+            total_time = (datetime.now() - start_time).total_seconds() * 1000
+            show_more_result["total_time_ms"] = total_time
+            yield {"type": "agent_complete", "result": show_more_result}
+            return
 
         # Reset context window manager to prevent memory leak across queries
         _context_manager.reset()
@@ -13922,6 +13952,109 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
             "needs_more_info": False,
         }
 
+    # ── "Show more projects" pagination support ──
+
+    def _is_show_more_request(self, query: str) -> bool:
+        """Detect if user is asking to see more projects from a previous search."""
+        patterns = [
+            "show more project",
+            "more projects",
+            "next page",
+            "remaining project",
+            "show the rest",
+            "show more results",
+            "continue showing",
+            "next 20",
+            "see more project",
+            "show additional",
+            "see the remaining",
+            "show next",
+            "display more",
+        ]
+        lower = query.lower().strip()
+        return any(p in lower for p in patterns)
+
+    def _cache_merged_projects(self, merged_result: dict[str, Any]) -> None:
+        """Cache full merged project results in Redis for pagination."""
+        if not self._conversation_id or not self._redis_client:
+            return
+        try:
+            key = f"merged_projects:{self._conversation_id}"
+            self._redis_client.setex(key, 1800, json.dumps(merged_result))  # 30 min TTL
+            # Reset page offset to end of first page
+            page_key = f"project_page:{self._conversation_id}"
+            self._redis_client.setex(page_key, 1800, str(merged_result["display_limit"]))
+            logger.info(
+                f"📦 Cached {len(merged_result['merged_projects'])} merged projects "
+                f"for conversation {self._conversation_id}"
+            )
+        except Exception as e:
+            logger.warning(f"Failed to cache merged projects: {e}")
+
+    def _handle_show_more_request(self, query: str) -> dict[str, Any] | None:
+        """Handle 'show more projects' by serving next page from cached results."""
+        if not self._is_show_more_request(query):
+            return None
+        if not self._conversation_id or not self._redis_client:
+            return None
+
+        try:
+            key = f"merged_projects:{self._conversation_id}"
+            cached = self._redis_client.get(key)
+            if not cached:
+                logger.info("No cached merged projects found for 'show more' request")
+                return None
+
+            merged_result = json.loads(cached)
+            page_key = f"project_page:{self._conversation_id}"
+            current_offset = int(self._redis_client.get(page_key) or 20)
+
+            projects = merged_result["merged_projects"]
+            display_limit = merged_result["display_limit"]
+
+            # Check if there are more projects to show
+            if current_offset >= len(projects):
+                return {
+                    "answer": (
+                        f"You've already seen all **{len(projects)}** matching projects "
+                        f"from the previous search for *{merged_result['query_description']}*."
+                    ),
+                    "success": True,
+                    "reasoning_steps": [],
+                    "sources_used": ["cached_results"],
+                    "tool_results": {},
+                    "iterations": 0,
+                    "confidence": 0.95,
+                    "model_used": "cached_pagination",
+                }
+
+            # Render next page using the same table format
+            answer = self._render_merged_project_list(merged_result, offset=current_offset)
+
+            # Update offset for next "show more"
+            new_offset = min(current_offset + display_limit, len(projects))
+            self._redis_client.setex(page_key, 1800, str(new_offset))
+
+            logger.info(
+                f"📄 Serving cached page: projects {current_offset + 1}–{new_offset} "
+                f"of {len(projects)} for conversation {self._conversation_id}"
+            )
+
+            return {
+                "answer": answer,
+                "success": True,
+                "reasoning_steps": [],
+                "sources_used": ["cached_results"],
+                "tool_results": {},
+                "iterations": 0,
+                "confidence": 0.95,
+                "model_used": "cached_pagination",
+            }
+
+        except Exception as e:
+            logger.warning(f"Failed to handle 'show more' request: {e}")
+            return None
+
     def _merge_project_search_results(
         self,
         tool_results: dict[str, Any],
@@ -14072,18 +14205,23 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
             "filters": filters,
         }
 
-    def _render_merged_project_list(self, merged: dict[str, Any]) -> str:
-        """Render the merged project list with conversational intro + table + details."""
+    def _render_merged_project_list(self, merged: dict[str, Any], offset: int = 0) -> str:
+        """Render the merged project list with conversational intro + table + details.
+
+        Args:
+            merged: Merged project data from _merge_project_search_results
+            offset: Starting index for pagination (0 = first page)
+        """
         projects = merged["merged_projects"]
         total = merged["total_found"]
         display_limit = merged["display_limit"]
         query_desc = merged["query_description"]
-        show_projects = projects[:display_limit]
+        page_end = min(offset + display_limit, len(projects))
+        show_projects = projects[offset:page_end]
 
         parts: list[str] = []
 
         # ── Conversational introduction ──
-        # Analyze the results to write a meaningful summary
         action_types = {}
         coordinators = {}
         total_budget = 0
@@ -14101,32 +14239,40 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
         top_type = max(action_types, key=action_types.get) if action_types else "RIA"
         top_countries = sorted(coordinators, key=coordinators.get, reverse=True)[:3]
 
-        parts.append(
-            f"## Relevant Funded Projects\n\n"
-            f"I found **{total} funded Horizon Europe projects** related to "
-            f"*{query_desc}*. The top {min(display_limit, total)} most relevant are shown below, "
-            f"ranked by semantic similarity to your query."
-        )
-        if total_budget > 0:
+        if offset == 0:
+            # First page — full intro
             parts.append(
-                f"\nThese projects represent a combined EU investment of "
-                f"**€{total_budget / 1_000_000:.0f}M**, predominantly funded as "
-                f"**{top_type}** actions"
-                + (
-                    f", with leading coordinators from **{', '.join(top_countries)}**."
-                    if top_countries
-                    else "."
-                )
+                f"## Relevant Funded Projects\n\n"
+                f"I found **{total} funded Horizon Europe projects** related to "
+                f"*{query_desc}*. The top {min(display_limit, total)} most relevant are shown "
+                f"below, ranked by semantic similarity to your query."
             )
+            if total_budget > 0:
+                parts.append(
+                    f"\nThese projects represent a combined EU investment of "
+                    f"**€{total_budget / 1_000_000:.0f}M**, predominantly funded as "
+                    f"**{top_type}** actions"
+                    + (
+                        f", with leading coordinators from **{', '.join(top_countries)}**."
+                        if top_countries
+                        else "."
+                    )
+                )
+        else:
+            # Continuation page
+            parts.append(
+                f"## More Funded Projects (#{offset + 1}–{page_end})\n\n"
+                f"Continuing results for *{query_desc}*."
+            )
+
         parts.append("")
 
         # ── Summary table ──
         parts.append("| # | Project | Type | Budget | Partners | Coordinator | Duration | CORDIS |")
         parts.append("|---|---------|------|--------|----------|-------------|----------|--------|")
 
-        for i, p in enumerate(show_projects, 1):
+        for i, p in enumerate(show_projects, offset + 1):
             acronym = p.get("acronym", "N/A")
-            title = p.get("title", "N/A")
             score = p.get("similarity_score", 0)
             pid = p.get("id", "")
             budget = p.get("eu_contribution", 0)
@@ -14157,12 +14303,11 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
 
         # ── Project details ──
         parts.append("### Project Details\n")
-        for i, p in enumerate(show_projects, 1):
+        for i, p in enumerate(show_projects, offset + 1):
             acronym = p.get("acronym", "N/A")
             title = p.get("title", "N/A")
             objective = p.get("objective", "")
             topics = p.get("topics", "")
-            pid = p.get("id", "")
 
             obj_preview = objective[:250] + "..." if len(objective) > 250 else objective
 
@@ -14173,13 +14318,16 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
                 parts.append(f"{obj_preview}")
             parts.append("")
 
-        # ── Show more hint ──
-        remaining = total - display_limit
+        # ── Show more / all shown hint ──
+        remaining = len(projects) - page_end
         if remaining > 0:
+            shown_label = f"top {page_end}" if offset == 0 else f"projects {offset + 1}–{page_end}"
             parts.append(
-                f"---\n*Showing top {display_limit} of {total} matching projects. "
-                f"Ask me to **show more projects** to see the remaining {remaining}.*"
+                f"---\n*Showing {shown_label} of {total} matching projects. "
+                f"Ask me to **show more projects** to see the next batch.*"
             )
+        else:
+            parts.append(f"---\n*All {total} matching projects have been shown.*")
 
         return "\n".join(parts)
 
@@ -14192,7 +14340,9 @@ The coordinator typically receives **1.5x to 2.5x** the average partner budget b
         merged_result = self._merge_project_search_results(tool_results, query)
         merged_tool_keys: set[str] = set()
         if merged_result:
-            # Render the unified merged project list
+            # Cache full merged results for "show more" pagination
+            self._cache_merged_projects(merged_result)
+            # Render the unified merged project list (first page)
             content_pieces.append(self._render_merged_project_list(merged_result))
             # Track which tool results were consumed so we skip them below
             for name, r in tool_results.items():
@@ -15051,8 +15201,8 @@ No projects found for this organization in the database.
                         or (f"https://cordis.europa.eu/project/id/{pid}" if pid else "")
                     )
 
-                    ec_str = f"€{float(ec)/1_000_000:.1f}M" if ec else ""
-                    total_str = f"€{float(total_cost)/1_000_000:.1f}M" if total_cost else ""
+                    ec_str = f"€{float(ec) / 1_000_000:.1f}M" if ec else ""
+                    total_str = f"€{float(total_cost) / 1_000_000:.1f}M" if total_cost else ""
                     coord_str = f"{coordinator} ({coord_country})" if coord_country else coordinator
                     parts = [f"### {project_count}. {acronym}: {title}"]
                     if pid:
@@ -15795,6 +15945,7 @@ Found **{total_found} organizations** with relevant track records:
         # (since user wants similar projects, not just call info)
         direct_output_markers_priority = [
             "## Relevant Funded Projects",  # Highest priority — merged semantic+keyword results
+            "## More Funded Projects",  # Pagination — continuation of merged results
             "## Similar Funded Projects",  # Semantic-only results (when no merge)
             "## Similar Projects Search",
             "## Project Search Results",  # Keyword-only results (when no merge)
@@ -19303,9 +19454,9 @@ This may be because:
                     if isinstance(coordinator_raw, dict)
                     else str(coordinator_raw)
                 )
-                ec_str = f"€{float(ec)/1_000_000:.1f}M" if ec else ""
+                ec_str = f"€{float(ec) / 1_000_000:.1f}M" if ec else ""
 
-                parts.append(f"\n**{i+1}. {acronym}** (ID: {pid}) - {title}")
+                parts.append(f"\n**{i + 1}. {acronym}** (ID: {pid}) - {title}")
                 if ec_str:
                     parts.append(f"   EC Contribution: {ec_str}")
                 if coordinator:

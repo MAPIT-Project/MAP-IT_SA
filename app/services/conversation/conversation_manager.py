@@ -680,6 +680,7 @@ class ConversationManager:
                 query=user_message,
                 context=conversation_context,
                 conversation_history=recent_messages,
+                conversation_id=conversation_id,
             )
 
             logger.info("🤖 Agent completed:")
@@ -703,6 +704,7 @@ class ConversationManager:
                     indicator in agent_answer
                     for indicator in [
                         "## Relevant Funded Projects",
+                        "## More Funded Projects",
                         "## Similar Funded Projects",
                         "## Project Search Results",
                         "## Projects by ",
@@ -919,6 +921,7 @@ class ConversationManager:
                 query=user_message,
                 context=conversation_context,
                 conversation_history=recent_messages,
+                conversation_id=conversation_id,
             ):
                 event_type = event.get("type", "")
 
@@ -977,6 +980,7 @@ class ConversationManager:
                         indicator in agent_answer
                         for indicator in [
                             "## Relevant Funded Projects",
+                            "## More Funded Projects",
                             "## Similar Funded Projects",
                             "## Project Search Results",
                             "## Projects by ",
