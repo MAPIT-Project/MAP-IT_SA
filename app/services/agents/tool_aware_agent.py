@@ -6002,13 +6002,13 @@ digital_europe, life""",
                     "tool_calls": [
                         {
                             "tool": "get_similar_funded_projects",
-                            "parameters": {"description": description, "limit": 25},
-                            "reasoning": "Semantic search — fetch 25 for comprehensive coverage after merge",
+                            "parameters": {"description": description, "limit": 100},
+                            "reasoning": "Semantic search — fetch large pool for best ranking after merge",
                         },
                         {
                             "tool": "search_projects",
-                            "parameters": {"keywords": key_terms, "limit": 25},
-                            "reasoning": "Keyword search complement — catches projects semantic search may miss",
+                            "parameters": {"keywords": key_terms, "limit": 100},
+                            "reasoning": "Keyword search complement — large pool catches projects semantic search may miss",
                         },
                     ],
                 }
@@ -6056,7 +6056,7 @@ digital_europe, life""",
                     "tool_calls": [
                         {
                             "tool": "get_similar_funded_projects",
-                            "parameters": {"description": description, "limit": 25},
+                            "parameters": {"description": description, "limit": 100},
                             "reasoning": "Finding projects using semantic similarity (AI embeddings) to match concepts, not just keywords",
                         }
                     ],
