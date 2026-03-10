@@ -4378,10 +4378,36 @@ digital_europe, life""",
                 step.tool_calls = await self._execute_tool_calls(tool_calls)
 
                 # Collect results - use unique keys for each tool call
+                tool_results_this_step = {}
                 for idx, tc in enumerate(step.tool_calls):
                     if tc.success:
                         # Use iteration_idx format to ensure uniqueness when same tool called multiple times
                         all_tool_results[f"{tc.tool_name}_{iteration}_{idx}"] = tc.result
+                        tool_results_this_step[tc.tool_name] = tc.result
+
+                # Auto-promote to formatted output if results contain project data
+                # This avoids a 2nd LLM iteration that would summarize/drop projects
+                has_project_data = any(
+                    isinstance(r, dict)
+                    and (
+                        "similar_projects" in r
+                        or "rendered_content" in r
+                        or ("projects" in r and isinstance(r.get("projects"), list))
+                    )
+                    for r in tool_results_this_step.values()
+                )
+                if has_project_data:
+                    formatted = self._synthesize_from_results(query, tool_results_this_step)
+                    if formatted and len(formatted) > 200:
+                        plan.final_answer = formatted
+                        plan.confidence = 0.90
+                        step.observation = (
+                            f"Executed {len(step.tool_calls)} tool(s) — "
+                            f"auto-formatted project results"
+                        )
+                        step.next_action_needed = False
+                        plan.reasoning_steps.append(step)
+                        break
 
                 step.observation = self._summarize_tool_results(step.tool_calls)
                 step.next_action_needed = reasoning_result.get("needs_more_info", True)
@@ -4745,6 +4771,7 @@ digital_europe, life""",
                 step.tool_calls = await self._execute_tool_calls(tool_calls)
 
                 # YIELD: Tool result events after execution
+                tool_results_this_step = {}
                 for idx, tc in enumerate(step.tool_calls):
                     result_count = self._count_results(tc.result) if tc.success else 0
                     yield {
@@ -4760,6 +4787,30 @@ digital_europe, life""",
                     if tc.success:
                         # Use iteration_idx format to ensure uniqueness when same tool called multiple times
                         all_tool_results[f"{tc.tool_name}_{iteration}_{idx}"] = tc.result
+                        tool_results_this_step[tc.tool_name] = tc.result
+
+                # Auto-promote to formatted output if results contain project data
+                has_project_data = any(
+                    isinstance(r, dict)
+                    and (
+                        "similar_projects" in r
+                        or "rendered_content" in r
+                        or ("projects" in r and isinstance(r.get("projects"), list))
+                    )
+                    for r in tool_results_this_step.values()
+                )
+                if has_project_data:
+                    formatted = self._synthesize_from_results(query, tool_results_this_step)
+                    if formatted and len(formatted) > 200:
+                        plan.final_answer = formatted
+                        plan.confidence = 0.90
+                        step.observation = (
+                            f"Executed {len(step.tool_calls)} tool(s) — "
+                            f"auto-formatted project results"
+                        )
+                        step.next_action_needed = False
+                        plan.reasoning_steps.append(step)
+                        break
 
                 step.observation = self._summarize_tool_results(step.tool_calls)
                 step.next_action_needed = reasoning_result.get("needs_more_info", True)
@@ -17229,12 +17280,14 @@ Found **{total_found} organizations** with relevant track records:
             country = params.get("country")
             programme = params.get("programme")
             sort_by = params.get("sort_by")
-            limit = params.get("limit", 10)
+            limit = params.get("limit", 100)
             if isinstance(limit, str):
                 try:
                     limit = int(limit)
                 except ValueError:
-                    limit = 10
+                    limit = 100
+            # Always fetch a large pool for best ranking (display limit is applied later)
+            limit = max(limit, 100)
 
             # Build the full query including country if provided
             # Let the LocalProjectSearchService handle country extraction from natural language
@@ -17812,6 +17865,9 @@ Found **{total_found} organizations** with relevant track records:
 
             tool = SimilarProjectsTool()
 
+            # Always fetch a large pool for best ranking (display limit is applied later)
+            fetch_limit = max(params.get("limit", 100), 100)
+
             # Run in thread with overall timeout (tool has internal timeouts too)
             def _execute():
                 return tool.find_similar(
@@ -17821,7 +17877,7 @@ Found **{total_found} organizations** with relevant track records:
                     min_budget=params.get("min_budget"),
                     max_budget=params.get("max_budget"),
                     year_from=params.get("year_from"),
-                    limit=params.get("limit", 10),
+                    limit=fetch_limit,
                     similarity_threshold=params.get("similarity_threshold", 0.3),
                 )
 
@@ -17838,7 +17894,7 @@ Found **{total_found} organizations** with relevant track records:
                         description=params.get("description", ""),
                         cluster=cluster_param,
                         action_type=params.get("action_type"),
-                        limit=params.get("limit", 10),
+                        limit=fetch_limit,
                         fallback_reason="agent_level_timeout",
                     )
 
