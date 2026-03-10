@@ -227,7 +227,7 @@ class SimilarProjectsTool:
         """
 
         def _generate():
-            return embedding_service.generate_query_embedding(description)
+            return embedding_service.generate_embedding(description, use_cache=False)
 
         try:
             with ThreadPoolExecutor(max_workers=1) as executor:
@@ -1092,6 +1092,9 @@ class SimilarProjectsTool:
         """
         Fallback to keyword search when vector/embedding search unavailable.
 
+        Uses CordisProjectRepository's full-text search with ts_rank scoring
+        for relevance-ordered results instead of random date-ordered matches.
+
         Args:
             description: Project description to search for
             cluster: Optional cluster filter
@@ -1102,18 +1105,9 @@ class SimilarProjectsTool:
         logger.info(f"Using keyword fallback (reason: {fallback_reason})")
 
         try:
-            conn = self._get_connection()
-            if not conn:
-                return {
-                    "success": False,
-                    "tool_name": "get_similar_funded_projects",
-                    "error": "Database unavailable",
-                    "message": "Cannot search for similar projects - database connection failed.",
-                    "metadata": {"fallback_reason": fallback_reason, "degraded": True},
-                }
+            from ..data.cordis_repository import CordisProjectRepository
 
-            cursor = conn.cursor(cursor_factory=RealDictCursor)
-
+            repo = CordisProjectRepository()
             keywords = self._extract_keywords(description)[:5]
 
             if not keywords:
@@ -1124,50 +1118,17 @@ class SimilarProjectsTool:
                     "message": "Could not extract meaningful keywords from description.",
                 }
 
-            where_conditions = ["p.\"frameworkProgramme\" = 'HORIZON'"]
-            params = []
-
-            keyword_conditions = []
-            for kw in keywords:
-                keyword_conditions.append("(p.objective ILIKE %s OR p.title ILIKE %s)")
-                params.extend([f"%{kw}%", f"%{kw}%"])
-
-            if keyword_conditions:
-                where_conditions.append(f"({' OR '.join(keyword_conditions)})")
-
+            # Build filters
+            filters = {}
             if cluster:
-                cluster_normalized = self._normalize_cluster(cluster)
-                where_conditions.append("p.topics ILIKE %s")
-                params.append(f"%{cluster_normalized}%")
-
+                filters["programme"] = "HORIZON"
             if action_type:
-                where_conditions.append('p."fundingScheme" ILIKE %s')
-                params.append(f"%{action_type.upper()}%")
+                filters["action_type"] = action_type
 
-            where_clause = " AND ".join(where_conditions)
-
-            sql = f"""
-                SELECT
-                    p.id,
-                    p.acronym,
-                    p.title,
-                    p.objective,
-                    p."ecMaxContribution",
-                    p."startDate",
-                    p."fundingScheme",
-                    p.topics
-                FROM projects p
-                WHERE {where_clause}
-                ORDER BY p."startDate" DESC NULLS LAST
-                LIMIT %s
-            """
-            params.append(limit)
-
-            cursor.execute(sql, params)
-            results = cursor.fetchall()
-
-            cursor.close()
-            conn.close()
+            # Use the improved search_projects with cascading tsquery + ts_rank
+            results, total = repo.search_projects(
+                queries=keywords, filters=filters, limit=limit, sort_by="relevance"
+            )
 
             similar_projects = []
             for i, r in enumerate(results):
@@ -1175,14 +1136,14 @@ class SimilarProjectsTool:
                     {
                         "rank": i + 1,
                         "similarity_score": 0.0,
-                        "acronym": r["acronym"] or "N/A",
-                        "title": r["title"] or "N/A",
-                        "cordis_id": str(r["id"]),
-                        "cordis_url": f"https://cordis.europa.eu/project/id/{r['id']}",
-                        "objective_summary": self._summarize_text(r["objective"] or "", 300),
-                        "eu_contribution": round(float(r["ecMaxContribution"] or 0), 0),
-                        "start_date": str(r["startDate"])[:10] if r["startDate"] else None,
-                        "action_type": r["fundingScheme"] or "N/A",
+                        "acronym": r.acronym or "N/A",
+                        "title": r.title or "N/A",
+                        "cordis_id": str(r.id),
+                        "cordis_url": f"https://cordis.europa.eu/project/id/{r.id}",
+                        "objective_summary": self._summarize_text(r.objective or "", 300),
+                        "eu_contribution": round(float(r.ec_contribution or 0), 0),
+                        "start_date": str(r.start_date)[:10] if r.start_date else None,
+                        "action_type": r.funding_scheme or "N/A",
                         "note": "Matched by keywords (embedding search unavailable)",
                     }
                 )

@@ -69,6 +69,7 @@ class EmbeddingService:
                 content=text,
                 task_type="retrieval_document",
                 title="Document chunk",
+                output_dimensionality=self.embedding_dimension,
             )
 
             if not result or "embedding" not in result:
@@ -234,6 +235,7 @@ class EmbeddingService:
                 model=self.model_name,
                 content=query,
                 task_type="retrieval_query",  # Different task type for queries
+                output_dimensionality=self.embedding_dimension,
             )
 
             if not result or "embedding" not in result:

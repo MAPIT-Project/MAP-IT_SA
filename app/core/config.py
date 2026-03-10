@@ -31,8 +31,8 @@ class Settings(BaseSettings):
 
     # Google Embedding API Configuration (falls back to gemini_api_key)
     google_embedding_api_key: str | None = None
-    embedding_model: str = "models/text-embedding-004"
-    embedding_dimension: int = 768
+    embedding_model: str = "models/gemini-embedding-001"
+    embedding_dimension: int = 3072
 
     @property
     def effective_embedding_api_key(self) -> str | None:

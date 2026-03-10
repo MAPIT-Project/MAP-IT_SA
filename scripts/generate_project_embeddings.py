@@ -184,7 +184,7 @@ class ProjectEmbeddingGenerator:
         project_id: int,
         text: str,
         combined_embedding: list[float] | None,
-        model_version: str = "text-embedding-004",
+        model_version: str = "gemini-embedding-001",
     ) -> bool:
         """Store embedding in database with status tracking."""
         conn = self.db_pool.getconn()

@@ -114,6 +114,10 @@ class CordisProjectRepository:
         """
         Convert search terms to PostgreSQL tsquery format.
 
+        Uses a balanced approach:
+        - 1-3 terms: AND all (precise)
+        - 4+ terms: AND first 3 core terms, require at least one from the rest
+
         Args:
             terms: List of search terms
 
@@ -134,17 +138,58 @@ class CordisProjectRepository:
         if not clean_terms:
             return ""
 
-        # Use AND for precision but avoid over-restriction with many terms
         if len(clean_terms) <= 3:
-            # Short queries: AND all terms
+            # Short queries: AND all terms for precision
             return " & ".join(clean_terms)
         else:
-            # Longer queries: AND the first 2 core terms, require at least
-            # one more from the rest. This balances precision with recall.
-            core = clean_terms[:2]
-            rest = clean_terms[2:5]  # Cap at 5 total terms
+            # Longer queries: AND first 3 core terms, require at least one more
+            core = clean_terms[:3]
+            rest = clean_terms[3:6]  # Cap at 6 total terms
             rest_group = " | ".join(rest)
             return f"{' & '.join(core)} & ({rest_group})"
+
+    def _build_tsquery_variants(self, terms: list[str]) -> list[str]:
+        """
+        Build a list of progressively looser tsquery strings for cascading search.
+
+        Returns queries from most strict to most relaxed:
+        1. AND all terms
+        2. AND first 3 + OR rest (default _convert_to_tsquery behavior)
+        3. AND first 2 + OR rest (broadest)
+        """
+        clean_terms = []
+        for term in terms:
+            clean = re.sub(r"[^\w\s]", "", term.strip()).lower()
+            if clean and (len(clean) > 1 or clean in self.IMPORTANT_SHORT_TERMS):
+                clean_terms.append(clean)
+
+        if not clean_terms:
+            return []
+
+        variants = []
+
+        # Variant 1: strict AND all terms (most precise)
+        if len(clean_terms) >= 4:
+            variants.append(" & ".join(clean_terms[:6]))
+
+        # Variant 2: default behavior (AND 3 + OR rest)
+        variants.append(self._convert_to_tsquery(terms))
+
+        # Variant 3: looser (AND 2 + OR rest) — only if we have 4+ terms
+        if len(clean_terms) >= 4:
+            core = clean_terms[:2]
+            rest = clean_terms[2:5]
+            rest_group = " | ".join(rest)
+            variants.append(f"{' & '.join(core)} & ({rest_group})")
+
+        # Deduplicate while preserving order
+        seen = set()
+        unique = []
+        for v in variants:
+            if v not in seen:
+                seen.add(v)
+                unique.append(v)
+        return unique
 
     def search_projects(
         self,
@@ -180,7 +225,9 @@ class CordisProjectRepository:
             params = []
             where_clauses = []
 
-            # Full-text search
+            # Full-text search with cascading precision
+            # Try strict query first; if too few results, fall back to looser variants
+            tsquery_variants = self._build_tsquery_variants(queries)
             tsquery = self._convert_to_tsquery(queries)
             if tsquery:
                 where_clauses.append("""
@@ -240,17 +287,56 @@ class CordisProjectRepository:
             cursor.execute(count_sql, params)
             total_count = cursor.fetchone()[0]
 
+            # Cascading search: if strict query returns too few results, try looser variants
+            min_desired = min(limit, 5)
+            if total_count < min_desired and tsquery and len(tsquery_variants) > 1:
+                for variant in tsquery_variants[1:]:
+                    # Replace the tsquery param (always the first param)
+                    fallback_params = [variant] + params[1:]
+                    cursor.execute(count_sql, fallback_params)
+                    fallback_count = cursor.fetchone()[0]
+                    if fallback_count >= min_desired:
+                        tsquery = variant
+                        params[0] = variant
+                        total_count = fallback_count
+                        logger.info(
+                            f"📊 Cascading search: relaxed to '{variant}' "
+                            f"({fallback_count} results)"
+                        )
+                        break
+
             # Determine sort order
+            has_text_search = bool(tsquery)
             sort_clause_map = {
                 "ec_contribution": 'p."ecMaxContribution" DESC NULLS LAST',
                 "total_cost": 'p."totalCost" DESC NULLS LAST',
                 "start_date": 'p."startDate" DESC',
             }
-            order_clause = sort_clause_map.get(sort_by, 'p."startDate" DESC')
+            if sort_by in sort_clause_map:
+                order_clause = sort_clause_map[sort_by]
+            elif has_text_search:
+                # Default to relevance scoring when text search is active
+                order_clause = "relevance_score DESC"
+            else:
+                order_clause = 'p."startDate" DESC'
 
-            # Main query with organization aggregation
-            # Note: PostgreSQL column names use camelCase with quotes
-            params.append(limit)
+            # Build ts_rank expression
+            if has_text_search:
+                ts_rank_expr = """ts_rank(
+                    to_tsvector('english', COALESCE(p.title, '') || ' ' || COALESCE(p.objective, '') || ' ' || COALESCE(p.topics, '')),
+                    to_tsquery('english', %s)
+                ) as relevance_score"""
+            else:
+                ts_rank_expr = "0.0 as relevance_score"
+
+            # Build main query params: [ts_rank_tsquery?] + where_params + [limit]
+            main_params = []
+            if has_text_search:
+                main_params.append(tsquery)  # For ts_rank in SELECT
+            main_params.extend(params)  # WHERE clause params
+            main_params.append(limit)
+
+            # Main query with organization aggregation and relevance scoring
             main_sql = f"""
                 SELECT
                     p.id,
@@ -271,7 +357,8 @@ class CordisProjectRepository:
                     (SELECT COUNT(*) FROM organizations WHERE "projectID" = p.id) as participant_count,
                     (SELECT COUNT(DISTINCT country) FROM organizations WHERE "projectID" = p.id) as country_count,
                     (SELECT COUNT(*) FROM organizations WHERE "projectID" = p.id AND "SME" = true) as sme_count,
-                    ARRAY(SELECT DISTINCT country FROM organizations WHERE "projectID" = p.id) as participant_countries
+                    ARRAY(SELECT DISTINCT country FROM organizations WHERE "projectID" = p.id) as participant_countries,
+                    {ts_rank_expr}
                 FROM projects p
                 LEFT JOIN organizations coord ON coord."projectID" = p.id AND coord.role = 'coordinator'
                 WHERE {where_sql}
@@ -279,7 +366,7 @@ class CordisProjectRepository:
                 LIMIT %s
             """
 
-            cursor.execute(main_sql, params)
+            cursor.execute(main_sql, main_params)
             rows = cursor.fetchall()
 
             # Convert to DTOs

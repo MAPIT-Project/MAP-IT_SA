@@ -2,9 +2,10 @@
 -- Project Embeddings Table Creation
 -- ============================================================================
 -- Purpose: Store vector embeddings for semantic project search
--- Model: text-embedding-004 (Google Gemini)
--- Dimension: 768
+-- Model: gemini-embedding-001 (Google Gemini)
+-- Dimension: 3072
 -- Created: 2024-12-03
+-- Updated: 2026-03-10 (migrated from text-embedding-004/768-dim)
 -- ============================================================================
 
 -- Enable pgvector extension if not already enabled
@@ -18,15 +19,15 @@ CREATE EXTENSION IF NOT EXISTS vector;
 CREATE TABLE IF NOT EXISTS project_embeddings (
     project_id INTEGER PRIMARY KEY,
 
-    -- Vector embeddings (768 dimensions for text-embedding-004)
-    title_embedding vector(768),          -- Embedding of project title only
-    objective_embedding vector(768),      -- Embedding of objective only
-    combined_embedding vector(768),       -- Embedding of title + objective (first 2000 chars)
+    -- Vector embeddings (3072 dimensions for gemini-embedding-001)
+    title_embedding vector(3072),          -- Embedding of project title only
+    objective_embedding vector(3072),      -- Embedding of objective only
+    combined_embedding vector(3072),       -- Embedding of title + objective (first 2000 chars)
 
     -- Metadata
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW(),
-    model_version TEXT DEFAULT 'text-embedding-004',
+    model_version TEXT DEFAULT 'gemini-embedding-001',
     text_length INTEGER,                  -- Length of text used for embedding
     embedding_status TEXT DEFAULT 'completed',  -- completed, failed, pending
     error_message TEXT,                   -- Error message if embedding failed

@@ -974,8 +974,8 @@ class GraphSearchService:
 
         query = f"""
         MATCH (o:Organization)-[r:PARTICIPATES_IN]->(p:Project)
-        WHERE (toLower(o.name) CONTAINS $org_name
-           OR toLower(o.shortName) CONTAINS $org_name)
+        WHERE (toLower(o.name) CONTAINS toLower($org_name)
+           OR toLower(o.shortName) CONTAINS toLower($org_name))
            {role_filter}
         RETURN COUNT(DISTINCT p) as total_count
         """
@@ -1834,8 +1834,8 @@ class GraphSearchService:
         # Try each search term until we get results
         query = """
         MATCH (o:Organization)-[r:PARTICIPATES_IN]->(p:Project)
-        WHERE toLower(o.name) CONTAINS $org_name
-           OR toLower(o.shortName) CONTAINS $org_name
+        WHERE toLower(o.name) CONTAINS toLower($org_name)
+           OR toLower(o.shortName) CONTAINS toLower($org_name)
 
         RETURN p.id as id, p.title as title, p.acronym as acronym,
                p.ecMaxContribution as budget, p.status as status,

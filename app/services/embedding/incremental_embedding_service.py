@@ -40,8 +40,8 @@ class IncrementalEmbeddingService:
         self.db_url = os.getenv("DATABASE_URL")
         self.google_api_key = os.getenv("GOOGLE_EMBEDDING_API_KEY") or os.getenv("GEMINI_API_KEY")
         self.batch_size = 50
-        self.embedding_model = "models/text-embedding-004"
-        self.embedding_dimension = 768
+        self.embedding_model = "models/gemini-embedding-001"
+        self.embedding_dimension = 3072
         self.enabled = bool(self.db_url) and bool(self.google_api_key)
 
         if self.enabled:
@@ -216,7 +216,10 @@ class IncrementalEmbeddingService:
                 text = text[:max_chars]
 
             result = genai.embed_content(
-                model=self.embedding_model, content=text, task_type="retrieval_document"
+                model=self.embedding_model,
+                content=text,
+                task_type="retrieval_document",
+                output_dimensionality=self.embedding_dimension,
             )
 
             return result["embedding"]
@@ -260,16 +263,17 @@ class IncrementalEmbeddingService:
                     cursor.execute(
                         """
                         INSERT INTO project_embeddings
-                        (project_id, embedding, text_length, embedding_status, updated_at)
-                        VALUES (%s, %s, %s, 'completed', NOW())
+                        (project_id, combined_embedding, model_version, text_length, embedding_status, updated_at)
+                        VALUES (%s, %s, %s, %s, 'completed', NOW())
                         ON CONFLICT (project_id)
                         DO UPDATE SET
-                            embedding = EXCLUDED.embedding,
+                            combined_embedding = EXCLUDED.combined_embedding,
+                            model_version = EXCLUDED.model_version,
                             text_length = EXCLUDED.text_length,
                             embedding_status = 'completed',
                             updated_at = NOW()
                     """,
-                        (project_id, embedding, text_length),
+                        (project_id, embedding, self.embedding_model, text_length),
                     )
                     success += 1
                 else:

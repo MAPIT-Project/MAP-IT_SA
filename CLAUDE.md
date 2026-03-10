@@ -376,7 +376,7 @@ When results are insufficient, the system identifies causes:
 - **Partner Lookup**: `get_project_partners()` queries `organizations` table by project ID to return full consortium with names, countries, roles, activity types, and EC contributions
 - **Organization Stats**: `get_organization_stats` tool provides aggregate counts (total projects, coordinator count, total funding) via Neo4j graph with SQL fallback
 - **Search**: Full-text search with PostgreSQL tsquery, vector similarity search with pgvector, multi-source fusion with Neo4j using RRF algorithm. Supports sorting by relevance, EC contribution, total cost, or start date.
-- **Embeddings**: 13,850 project embeddings (768-dim vectors via Google text-embedding-004) for semantic similarity search
+- **Embeddings**: 13,850 project embeddings (3072-dim vectors via Google gemini-embedding-001) for semantic similarity search. No vector index (pgvector 0.8.0 has 2000-dim limit for HNSW/IVFFlat), uses exact search (~293ms/query).
 
 ### 4. EU Portal API
 - **Purpose**: Live call data enrichment
@@ -682,7 +682,7 @@ The Timeline Generator Tool uses a **hybrid Graph+SQL architecture** for timelin
 The Similar Projects Tool uses a **hybrid Vector+Graph architecture** for semantic similarity search:
 
 **Architecture:**
-- **Vector Service (pgvector)**: Primary semantic similarity via 768-dim embeddings (Google text-embedding-004)
+- **Vector Service (pgvector)**: Primary semantic similarity via 3072-dim embeddings (Google gemini-embedding-001)
 - **Graph Service (Neo4j)**: Context enhancement and reranking signals
   - Cluster-based similar project counts
   - Consortium size and structure analysis
